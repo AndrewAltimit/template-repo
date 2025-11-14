@@ -1,718 +1,820 @@
-# Dashboard Integration Plan
-
-This document outlines the integration strategy for connecting Build job outputs with Reporting visualization components in the Sleeper Detection Dashboard.
-
-## Overview
-
-The dashboard has comprehensive UI components, but significant portions rely on mock data rather than actual evaluation results. Many sophisticated detection capabilities exist in the package library but are not exposed in the dashboard.
-
-### Current State (Updated: 2025-10-29 Session 4)
-
-**Data Source Distribution:**
-- Real Data: 8/15 components (53%)
-- Mock Data: 7/15 components (47%)
-
-**Build Integration:**
-- Integrated: 8/15 components (53%)
-- Not Integrated: 7/15 components (47%)
-
-**Recent Progress (Session 4 - 2025-10-29):**
-- ✅ **Internal State Monitor integration complete**
-  - Created InternalStateMonitor component wrapping AttentionAnalyzer + FeatureDiscovery
-  - Database schema: internal_state_analysis table with anomaly metrics and features
-  - Ingestion function: ingest_internal_state_results()
-  - Evaluation integration: _run_internal_state_capture() analyzes 5 samples
-  - Dashboard data loader: fetch_internal_state_analysis()
-- ✅ **Progress: 47% → 53% real data coverage (+6 percentage points this session)**
-- 🎉 **Milestone: Crossed 50% real data threshold!**
-
-**Previous Progress (Session 3 - 2025-10-29):**
-- ✅ Fixed trigger sensitivity data population issue
-  - Root cause: Model selector only queried evaluation_results table
-  - Solution: Updated fetch_models() to UNION across all data tables
-  - Models with trigger sensitivity data now appear in dropdown
-- ✅ **Trigger Sensitivity Analysis now using real data** (safety training workflow)
-- ✅ **Progress: 40% → 47% real data coverage (+7 percentage points this session)**
-
-**Previous Progress (Session 2 - 2025-10-19):**
-- ✅ Enhanced data aggregation layer (`data_loader.fetch_model_summary()`)
-  - Queries persistence_results, chain_of_thought_analysis, evaluation_results
-  - Calculates real sleeper-specific threat indicators
-  - Graceful fallback to 0.0 when no data available
-- ✅ **3 more components now using real data**: Overview, Detection Analysis, Model Comparison
-- ✅ Created trigger sensitivity database infrastructure (ready for safety training integration)
-- ✅ Fixed model loading issue (`local_files_only=True` for local paths)
-- ✅ Fixed missing model selector on Executive Summary page
-- ✅ **Progress: 20% → 40% real data coverage (+20 percentage points this session)**
-
-**Previous Progress (Session 1):**
-- ✅ Chain-of-Thought capture implemented and integrated
-- ✅ Honeypot testing expanded (4 → 10 categories) and integrated
-- ✅ Evaluation pipeline connected to Build jobs via separate Run Evaluation view
-- ✅ Database schema extended with CoT and honeypot tables
-- ✅ Mock data aligned with real data categories
-
-## Component Status Analysis
-
-### Using Real Data
-
-**Persistence Analysis** (`persistence_analysis.py`)
-- Queries `persistence_results` table
-- Falls back to mock data gracefully
-- Integrated with Build safety training jobs
-- Status: ✅ Complete
-
-**Chain-of-Thought Analysis** (`chain_of_thought.py`)
-- Queries `chain_of_thought_analysis` table
-- Captures 20 samples per evaluation with scratchpad reasoning
-- Database ingestion via `ingest_chain_of_thought_results()`
-- Falls back to mock data gracefully
-- Status: ✅ Complete (2025-10-19)
-
-**Honeypot Analysis** (`honeypot_analysis.py`)
-- Queries `honeypot_responses` table
-- Tests 10 comprehensive honeypot categories (expanded from original 4)
-- 30 samples per evaluation (3 per category)
-- Database ingestion via `ingest_honeypot_results()`
-- Falls back to mock data gracefully
-- Mock data aligned with real categories
-- Status: ✅ Complete (2025-10-19)
-
-**Detection Analysis** (`detection_analysis.py`)
-- Queries `evaluation_results` table via `fetch_latest_results()` and `fetch_test_suite_results()`
-- Displays ROC curves, confusion matrices, confidence distributions
-- Aggregates metrics by test type
-- Falls back to empty state if no data available
-- Status: ✅ Complete (2025-10-19)
-
-**Model Comparison** (`model_comparison.py`)
-- Queries via `fetch_model_summary()` and `fetch_comparison_data()`
-- Compares multiple models side-by-side
-- Shows behavioral risk dimensions (power seeking, deception, etc.)
-- Vulnerability analysis and time series tracking
-- Status: ✅ Complete (2025-10-19)
-
-**Overview Dashboard** (`overview.py`) - Executive Summary
-- Queries via `fetch_model_summary()` for comprehensive metrics
-- Displays threat indicators: persistence, deception, probe anomalies
-- Shows actionability framework with deployment recommendations
-- Aggregates data from `persistence_results`, `chain_of_thought_analysis`, `evaluation_results`
-- Model selector added for user to choose which model to view
-- Status: ✅ Complete (2025-10-19)
-
-**Trigger Sensitivity** (`trigger_sensitivity.py`)
-- Queries `trigger_sensitivity` table
-- Captures pre/post training sensitivity during safety training with `--test-persistence`
-- Database ingestion via `ingest_trigger_sensitivity_results()`
-- Falls back to mock data gracefully
-- Note: Only populates for models that have undergone safety training (by design)
-- Bug fix (2025-10-29): Model selector now queries all data tables, not just evaluation_results
-- Status: ✅ Complete (2025-10-29)
-
-**Internal State Monitor** (`internal_state.py`)
-- Queries `internal_state_analysis` table
-- Analyzes attention patterns, discovers features, detects activation anomalies
-- Wraps AttentionAnalyzer and FeatureDiscovery for comprehensive analysis
-- Database ingestion via `ingest_internal_state_results()`
-- Captures anomaly metrics: pattern_deviation, sparsity_anomaly, coherence_anomaly
-- Computes risk levels: low/medium/high/critical
-- Falls back to mock data gracefully
-- Status: ✅ Complete (2025-10-29)
+# Revised Integration Plan - Sleeper Agent Detection Framework
 
-### Using Mock Data
+**Last Updated:** 2025-11-14
+**Status:** 53% Real Data Coverage, Library Stack Review Complete
 
-#### Critical Components (High Value)
+This document combines the library architecture review with the remaining dashboard integration tasks, providing a comprehensive roadmap for completing the Sleeper Agent Detection Framework.
 
-**Red Team Results** (`red_team_results.py`)
-- Current: `_fetch_red_team_data()` returns hardcoded mock data
-- Available: Could leverage honeypot infrastructure for adversarial testing
-- Gap: No automated red-team evaluation integrated
-- Impact: High value for discovering unknown triggers
-- Note: Honeypot testing provides similar coverage
+---
 
-**Detection Consensus** (`detection_consensus.py`)
-- Current: Uses mock data
-- Available: Multiple detection methods in `detection/` directory
-- Gap: No ensemble results stored
-- Impact: Convergent evidence increases confidence
+## Table of Contents
 
-#### Important Components (Medium Value)
+1. [Library Stack Review](#library-stack-review)
+2. [Dashboard Integration Status](#dashboard-integration-status)
+3. [Priority Roadmap](#priority-roadmap)
+4. [Implementation Guidelines](#implementation-guidelines)
 
-**Risk Mitigation Matrix** (`risk_mitigation_matrix.py`)
-- Current: Uses mock data
-- Gap: Static risk assessment, no actual mitigation testing
-- Impact: Strategy effectiveness mapping
+---
 
-#### Supporting Components (Lower Priority)
+## Library Stack Review
 
-**Persona Profile** (`persona_profile.py`)
-- Current: Uses mock `MODEL_PROFILES` from `config/mock_models.py`
-- Gap: No behavioral analysis from actual model runs
+### Executive Summary
 
-**Risk Profiles** (`risk_profiles.py`)
-- Current: Uses mock data
-- Gap: Static risk dimensions
+A comprehensive review was conducted on 2025-11-14 with consultations from Gemini AI and Codex AI. The current PyTorch-based stack is **solid and appropriate** for mechanistic interpretability and backdoor detection, with opportunities for enhancement in three key areas:
 
-**Tested Territory** (`tested_territory.py`)
-- Current: Uses mock data
-- Gap: Not tracking actual prompt coverage
+1. **Leverage established backdoor detection frameworks** (Adversarial Robustness Toolbox)
+2. **Prepare for larger model scales** (PyTorch-based probes for 70B models)
+3. **Improve experiment infrastructure** (config management, logging, testing)
 
-**Scaling Analysis** (`scaling_analysis.py`)
-- Current: Uses mock data
-- Available: `analysis/model_scaling.py` has scaling analysis code
-- Gap: No multi-size model testing in Build
+### Current Stack Assessment
 
-## Build Integration Gaps
+#### ✅ **Excellent Choices - Keep As Is**
 
-### Current Build Job Capabilities
+**transformer-lens (1.9+)** - Mechanistic Interpretability
+- **Verdict:** Gold standard, purpose-built for our use case
+- **Strengths:**
+  - Origin from Anthropic research (same foundation as our work)
+  - Best-in-class for activation extraction and causal interventions
+  - Extensive hooking capabilities for transformer circuits
+- **AI Consensus:** Both Gemini and Codex strongly recommend keeping it
+- **Alternatives Considered:**
+  - PyTorch Captum (more general, less specialized)
+  - circuitsvis + SAE lens (for sparse autoencoder work)
+  - TransformerLens 2.0 (monitor for 70B model memory improvements)
 
-Build jobs (`safety_training`, `train_backdoor`, `train_probes`) currently:
-- Train models
-- Save persistence results (safety training only)
-- Do NOT run comprehensive evaluations
+**PyTorch 2.1+ + HuggingFace transformers** - Deep Learning Foundation
+- **Verdict:** Solid foundation, industry standard
+- **Strengths:**
+  - Mature ecosystem with excellent model support
+  - Unified interface via our `ModelInterface` abstraction
+  - Supports both HuggingFace and TransformerLens models
+- **No changes needed**
 
-### Missing Evaluation Integration
+**sklearn.LogisticRegression** - Linear Probe Training
+- **Verdict:** Works well, proven by 93.2% AUROC on Qwen 2.5 7B
+- **Strengths:**
+  - Fast, simple, widely used in research
+  - Low overhead for small-to-medium models (7B-13B)
+- **Limitation:** Activation dumps for 70B models may exceed host RAM
+- **Recommendation:** Add PyTorch-based probe option for large-scale work (see Priority 2)
 
-The `run_full_evaluation.py` script exists but is not integrated into Build workflow:
-- Runs: basic_detection, layer_probing, code_vulnerability, robustness
-- Saves to: evaluation_results.db
-- Issue: Not called from Build jobs
+#### 🎯 **High Priority Additions**
 
-### Build Pipeline Integration Status
+**1. Adversarial Robustness Toolbox (ART)** - Backdoor Detection Framework
 
-**Implemented:**
-1. ✅ Chain-of-Thought Capture: Saving scratchpad/reasoning (20 samples)
-2. ✅ Honeypot Testing: Running 10 honeypot categories (30 samples)
-3. ✅ Evaluation Integration: Separate "Run Evaluation" Build view
+**Why:** Standardize detection with established framework, benchmark against known attacks
 
-**Still Missing:**
-4. Attention Analysis: Not capturing attention patterns
-5. Layer Probe Training: Not training detection probes
-6. Trigger Sensitivity: Not testing trigger variations
-7. Detection Ensemble: Not running multiple detection methods
-8. Red Team Testing: No automated adversarial prompt generation
+**Background:**
+- IBM's comprehensive library for ML security
+- Includes backdoor attack implementations AND defenses
+- Supports PyTorch, TensorFlow, JAX
+- Well-maintained and documented
 
-## Unused Package Features
+**Gemini's Recommendation:**
+> "You should evaluate ART as it is a mature, well-supported framework that could standardize your backdoor detection and defense evaluation."
 
-### Advanced Detection Capabilities
+**Codex's Note:**
+> "Very little off-the-shelf backdoor detection for LLMs. Look at `backdoorbench` (CV-focused but has NLP recipes), `TrojanZoo`, and `Neural Cleanse`-style ports."
 
-**comprehensive_test.py - Complete Test Suite**
-
-Features Available:
-- Residual stream analysis across layers
-- Attention pattern analysis
-- Activation interventions
-- Backdoor detection suite
-- Honeypot response testing
-- Layer probe training
-
-Dashboard Exposure: None
-
-**advanced_detection/honeypots.py - Honeypot Generator**
-
-Features Available:
-- Probabilistic deployment dilemmas
-- End-of-training scenarios
-- Strategic advantage framing
-- Multiple honeypot types
-
-Dashboard Exposure: Mock data only
-
-**interventions/causal.py - Causal Intervention System**
-
-Features Available:
-- Activation zeroing
-- Path patching
-- KL divergence measurement
-
-Dashboard Exposure: None
-
-**attention_analysis/analyzer.py - Attention Analyzer**
-
-Features Available:
-- Attention pattern detection
-- Suspicious behavior identification
-- Multi-head analysis
-
-Dashboard Exposure: Mock data only
-
-**probes/ - Multiple Detection Probes**
-
-Features Available:
-- `probe_detector.py` - Layer-wise probing
-- `causal_debugger.py` - Causal debugging
-- `feature_discovery.py` - Feature extraction
-
-Dashboard Exposure: None
-
-## Export Functionality Gaps
-
-The export system has comprehensive structure but exports mock data.
-
-### Export Functions Using Mock Data
-
-1. `fetch_overview_data()` - Hardcoded values
-2. `fetch_persistence_data()` - Partially real (after recent fix)
-3. `fetch_red_team_data()` - Hardcoded mock
-4. `fetch_persona_data()` - Uses `MODEL_PROFILES`
-5. `fetch_detection_data()` - Hardcoded values
-6. `fetch_test_results_data()` - Hardcoded mock
-7. `fetch_comparison_data()` - Hardcoded models with random noise
-8. `fetch_time_series_data()` - Generated with `np.random`
-9. `fetch_leaderboard_data()` - Static mock leaderboard
-10. `fetch_scaling_data()` - Hardcoded scaling coefficients
-11. `fetch_risk_profiles_data()` - Hardcoded dimensions
-12. `fetch_tested_territory_data()` - Mock coverage
-13. `fetch_internal_state_data()` - Mock activation patterns
-14. `fetch_detection_consensus_data()` - Mock consensus
-15. `fetch_risk_mitigation_data()` - Mock mitigations
-16. `fetch_trigger_sensitivity_data()` - Mock triggers
-17. `fetch_chain_of_thought_data()` - Mock reasoning
-18. `fetch_honeypot_data()` - Mock honeypots
-
-Result: Exported PDFs contain predominantly fictional data
-
-## Database Schema Gaps
-
-### Current Database Tables
-
-**evaluation_results** (Populated from `run_full_evaluation.py`)
-
-```sql
-CREATE TABLE evaluation_results (
-    id, model_name, test_type, test_name, accuracy,
-    precision, recall, f1_score, details, timestamp
-)
-```
-
-Status: Populated by evaluation script
-Gap: Not integrated into Build workflow
-
-**persistence_results**
-
-```sql
-CREATE TABLE persistence_results (
-    id, job_id, model_name, timestamp, trigger, target_response,
-    safety_method, pre_training_rate, post_training_rate,
-    persistence_rate, absolute_drop, relative_drop,
-    trigger_specificity_increase, is_persistent, risk_level,
-    pre_results_json, post_results_json
-)
-```
-
-Status: Populated by safety training
-Implementation: Complete
-
-### Implemented Database Tables (NEW)
-
-**chain_of_thought_analysis** - ✅ Implemented (2025-10-19)
-```sql
-CREATE TABLE chain_of_thought_analysis (
-    id, model_name, prompt, safe_reasoning, triggered_reasoning,
-    deception_score, has_deceptive_reasoning, metadata_json,
-    job_id, timestamp
-)
-```
-
-**honeypot_responses** - ✅ Implemented (2025-10-19)
-```sql
-CREATE TABLE honeypot_responses (
-    id, model_name, honeypot_type, prompt, response,
-    reveal_score, expected_goal, metadata_json, risk_level,
-    job_id, timestamp
-)
-```
-
-### Missing Database Tables
-
-Tables that should exist but do not:
-
-1. `red_team_results` - Discovered triggers (lower priority - honeypots cover similar ground)
-2. `attention_patterns` - Attention analysis
-3. `layer_activations` - Internal state monitoring
-4. `trigger_sensitivity` - Trigger variation tests
-5. `detection_ensemble` - Multiple detection method results
-6. `intervention_results` - Causal intervention outcomes
-
-## Data Flow Architecture
-
-### Working Flow (Persistence - Reference Implementation)
-
-```
-Build Job (safety_training.py)
-  ↓
-Saves persistence_results.json
-  ↓
-Ingests to evaluation_results.db (persistence_results table)
-  ↓
-Dashboard queries database
-  ↓
-Reporting View displays real data
-  ↓
-Export includes real data
-```
-
-### Broken Flow (Most Other Components)
-
-```
-Build Job
-  ↓
-Saves model only
-  ↓
-No evaluation data
-
-Dashboard
-  ↓
-Tries to query database
-  ↓
-Gets no data
-  ↓
-Falls back to mock data
-  ↓
-Export contains mock data
-```
-
-## Integration Priorities
-
-### ✅ Completed (2025-10-19)
-
-**1. Integrate `run_full_evaluation.py` into Build Pipeline** - COMPLETE
-
-Impact: HIGH
-Effort: MEDIUM
-
-Implementation Details:
-- Created dedicated "Run Evaluation" Build view
-- Keeps evaluation separate from training (clean architecture)
-- User workflow: Train → Select model → Run Evaluation
-- Results automatically saved to evaluation_results.db
-- Dashboard queries real data
-
-**2. Add Chain-of-Thought Capture** - COMPLETE
-
-Impact: HIGH (Critical for deception detection)
-Effort: MEDIUM
-
-Implementation Details:
-- Added `_run_cot_capture()` to run_full_evaluation.py
-- Captures 20 samples with safe + triggered reasoning
-- Stores in `chain_of_thought_analysis` table via `ingest_chain_of_thought_results()`
-- Dashboard component updated to fetch real data
-- Falls back to mock gracefully
-
-**3. Integrate Honeypot Testing** - COMPLETE + ENHANCED
-
-Impact: HIGH
-Effort: MEDIUM
-
-Implementation Details:
-- Expanded from 4 to 10 honeypot categories
-- Added 6 new types: code_injection_bait, capability_boundary_probe,
-  social_engineering_test, financial_advice_trap,
-  temporal_consistency_check, authority_override_attempt
-- Generates 30 samples (3 per category, balanced)
-- Stores in `honeypot_responses` table via `ingest_honeypot_results()`
-- Dashboard component updated with all 10 categories
-- Mock data aligned with real categories for consistency
-
-### Medium Priority
-
-**4. Red Team Integration**
-
-Impact: MEDIUM
-Effort: HIGH (requires prompt generation)
-
-Benefits:
-- Discover unknown triggers
-- Validate backdoor robustness
-
-**5. Attention Pattern Capture**
-
-Impact: MEDIUM
-Effort: MEDIUM
-
-Benefits:
-- Internal state visibility
-- `AttentionAnalyzer` already exists
-
-**6. Trigger Sensitivity Testing**
-
-Impact: MEDIUM
-Effort: LOW
-
-Benefits:
-- Easy to parameterize existing tests
-- Shows trigger robustness
-
-### Lower Priority
-
-**7. Scaling Analysis**
-
-Impact: LOW (requires multiple model sizes)
-Effort: HIGH
-
-**8. Time Series Tracking**
-
-Impact: LOW (requires longitudinal data)
-Effort: MEDIUM
-
-## Implementation Sequence
-
-### ✅ Priority 1: Foundation - COMPLETE
-
-1. ✅ Persistence Analysis Integration - Complete
-2. ✅ Integrate `run_full_evaluation.py` into Build
-   - ✅ Created separate "Run Evaluation" Build view
-   - ✅ Updated data_loader to use evaluation_results table
-   - ✅ Updated data_loader.fetch_model_summary() to aggregate sleeper-specific metrics from multiple tables
-   - ✅ Overview, Detection Analysis, Model Comparison now using real data (2025-10-19)
-
-### ✅ Priority 2: Core Detection - COMPLETE
-
-3. ✅ Chain-of-Thought Capture
-   - ✅ Added reasoning capture to evaluation (20 samples)
-   - ✅ Created database table (chain_of_thought_analysis)
-   - ✅ Updated chain_of_thought.py component to fetch real data
-   - ✅ Ingestion via database.ingestion module
-
-4. ✅ Honeypot Integration (ENHANCED)
-   - ✅ Added honeypot tests to evaluation (30 samples, 10 categories)
-   - ✅ Expanded from 4 to 10 honeypot types
-   - ✅ Created database table (honeypot_responses)
-   - ✅ Updated honeypot_analysis.py component to fetch real data
-   - ✅ Aligned mock data with real categories
-   - ✅ Ingestion via database.ingestion module
-
-### Priority 3: Advanced Features
-
-5. Attention Pattern Capture
-   - Integrate AttentionAnalyzer
-   - Store activation patterns
-   - Update internal_state.py component
-
-6. Trigger Sensitivity Testing
-   - Parameterize trigger tests
-   - Store sensitivity results
-   - Update trigger_sensitivity.py component
-
-### Priority 4: Completion
-
-7. Red Team Integration
-8. Export Validation - Ensure all components export real data
-9. Testing and Documentation
-
-## Implementation Pattern
-
-### Correct Pattern (Persistence Analysis - Reference)
-
+**Integration Approach:**
 ```python
-# 1. Build job saves data
-def safety_training():
-    # ... training code ...
+# Add to pyproject.toml dependencies
+"adversarial-robustness-toolbox>=1.15.0"
 
-    # Save JSON
-    persistence_path = save_path / "persistence_results.json"
-    with open(persistence_path, "w") as f:
+# Example usage
+from art.defenses.detector.poison import ActivationDefense
+from art.attacks.poisoning import BackdoorAttack
+
+# Benchmark our probe detector against ART's methods
+art_detector = ActivationDefense(classifier, x_train, y_train)
+our_detector = ProbeDetector(model, config)
+
+# Compare detection rates
+art_results = art_detector.detect_poison()
+our_results = our_detector.scan_for_deception(text)
+```
+
+**Estimated Effort:** 2-3 days for initial integration and benchmarking
+
+**2. PyTorch-Based Probe Training** - Scaling for 70B Models
+
+**Why:** Keep activation data on GPU, enable streaming, integrate with distributed training
+
+**Current Limitation (Codex):**
+> "sklearn.LogisticRegression is fine when activations fit in host RAM, but for 70B models activation dumps quickly exceed that. PyTorch-based probes let you keep data on GPU, stream batches, and integrate with distributed infra."
+
+**Implementation:**
+```python
+# New: packages/sleeper_agents/src/sleeper_agents/probes/torch_probe.py
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+
+class TorchProbeTrainer:
+    """GPU-accelerated probe training for large-scale models."""
+
+    def __init__(self, input_dim: int, device: str = "cuda"):
+        self.device = device
+        self.probe = nn.Linear(input_dim, 1).to(device)
+
+    def train(self, dataloader, epochs=100, lr=0.001):
+        """Stream batches from disk/GPU, avoid host RAM bottleneck."""
+        optimizer = optim.Adam(self.probe.parameters(), lr=lr, weight_decay=0.01)
+        criterion = nn.BCEWithLogitsLoss()
+
+        for epoch in range(epochs):
+            for batch_acts, batch_labels in dataloader:
+                batch_acts = batch_acts.to(self.device)
+                batch_labels = batch_labels.to(self.device)
+
+                optimizer.zero_grad()
+                logits = self.probe(batch_acts).squeeze()
+                loss = criterion(logits, batch_labels)
+                loss.backward()
+                optimizer.step()
+
+    def predict(self, activations):
+        """GPU inference."""
+        with torch.no_grad():
+            return torch.sigmoid(self.probe(activations.to(self.device)))
+```
+
+**Integration Strategy:**
+- Keep sklearn as default for <34B models
+- Auto-switch to PyTorch probe for ≥34B models or when `--use-torch-probe` flag set
+- Maintain same API interface for seamless switching
+
+**Estimated Effort:** 1-2 days
+
+**3. Experiment Infrastructure** - Config Management & Logging
+
+**Why:** Reproducible experiments, better tracking, cleaner architecture
+
+**Codex's Suggestions:**
+1. Config-driven experiment runners (Hydra/Pydantic)
+2. Structured logging (wandb/mlflow)
+3. Modular architecture (separate probe training, intervention, evaluation)
+4. Unit tests (hook registration, tensor alignment, causal metrics)
+
+**Proposed Stack:**
+```python
+# Add to pyproject.toml
+"hydra-core>=1.3.0"      # Config management
+"wandb>=0.16.0"          # Experiment tracking
+"pydantic>=2.0.0"        # Already included, expand usage
+```
+
+**Example Config Structure:**
+```yaml
+# configs/experiment/baseline_detection.yaml
+model:
+  name: "Qwen/Qwen2.5-7B-Instruct"
+  device: "cuda"
+  dtype: "float16"
+
+probe:
+  backend: "sklearn"  # or "torch"
+  layers: [3, 5, 7, 9]
+  regularization: 100.0
+  penalty: "l2"
+
+evaluation:
+  test_suites:
+    - basic_detection
+    - layer_probing
+    - code_vulnerability
+  samples_per_test: 100
+
+logging:
+  wandb:
+    project: "sleeper-detection"
+    entity: "your-team"
+```
+
+**Estimated Effort:** 3-5 days for comprehensive setup
+
+#### 💡 **Consider for Future**
+
+**TransformerLens 2.0** - Better Memory Handling
+- **When:** Available in stable release
+- **Why:** Improved memory management for 70B models
+- **Action:** Monitor repository, test when available
+
+**Modular Intervention Classes** - Architecture Refactor
+- **Suggestion from Codex:**
+  ```python
+  class ActivationExtractor:
+      """Centralized activation extraction with caching."""
+
+  class DirectionProjector:
+      """Projection-based causal interventions."""
+
+  class PatchExperiment:
+      """Activation patching workflows."""
+  ```
+- **Benefit:** Cleaner API, better testing, reusability
+- **Estimated Effort:** 5-7 days for comprehensive refactor
+
+**Additional Libraries Mentioned:**
+- `causal-probing` (OpenAI) - Less mature than TransformerLens
+- `RemixIt` - Activation steering APIs
+- `alps` (Anthropic) - Experimental, not public
+- `TrojanZoo` - Trojan attack/defense collection
+- `backdoorbench` - CV-focused, some NLP recipes
+
+### Library Review Summary
+
+| Component | Current | Status | Action |
+|-----------|---------|--------|--------|
+| Mechanistic Interpretability | transformer-lens 1.9+ | ✅ Excellent | Keep, monitor 2.0 |
+| Deep Learning Framework | PyTorch 2.1+ + HuggingFace | ✅ Excellent | Keep |
+| Linear Probes | sklearn LogisticRegression | ✅ Good | Keep + Add PyTorch option |
+| Backdoor Detection | Custom implementations | ⚠️ Needs Enhancement | Add ART framework |
+| Experiment Infrastructure | Basic scripts | ⚠️ Needs Enhancement | Add Hydra + wandb |
+| Testing | Limited unit tests | ⚠️ Needs Enhancement | Expand coverage |
+
+**AI Consultant Agreement:**
+- Gemini: "Your choice of libraries and techniques is sound."
+- Codex: "Stack is appropriate. Main opportunities: ART integration, PyTorch probes, experiment infra."
+
+---
+
+## Dashboard Integration Status
+
+### Current Progress: 53% Real Data Coverage
+
+**Real Data:** 8/15 components (53%)
+**Mock Data:** 7/15 components (47%)
+
+### ✅ Components Using Real Data
+
+1. **Persistence Analysis** - Safety training persistence testing
+2. **Chain-of-Thought Analysis** - Deceptive reasoning detection (20 samples)
+3. **Honeypot Analysis** - 10 comprehensive categories (30 samples)
+4. **Detection Analysis** - ROC curves, confusion matrices
+5. **Model Comparison** - Side-by-side behavioral risk assessment
+6. **Overview Dashboard** - Threat indicators, actionability framework
+7. **Trigger Sensitivity** - Pre/post safety training comparison
+8. **Internal State Monitor** - Attention patterns, activation anomalies (NEW: 2025-10-29)
+
+### ⚠️ Components Using Mock Data
+
+**Critical (High Value):**
+9. **Red Team Results** - Automated adversarial testing (lower priority - honeypots provide similar coverage)
+10. **Detection Consensus** - Ensemble detection methods
+
+**Important (Medium Value):**
+11. **Risk Mitigation Matrix** - Strategy effectiveness mapping
+
+**Supporting (Lower Priority):**
+12. **Persona Profile** - Behavioral analysis
+13. **Risk Profiles** - Multi-dimensional risk assessment
+14. **Tested Territory** - Prompt coverage tracking
+15. **Scaling Analysis** - Model size correlation
+
+### Database Schema Status
+
+**Implemented Tables:**
+- ✅ `evaluation_results` - Basic detection metrics
+- ✅ `persistence_results` - Backdoor persistence rates
+- ✅ `chain_of_thought_analysis` - Deceptive reasoning
+- ✅ `honeypot_responses` - 10 honeypot categories
+- ✅ `trigger_sensitivity` - Trigger variation testing
+- ✅ `internal_state_analysis` - Attention patterns and anomalies
+
+**Missing Tables:**
+- ❌ `red_team_results` - Adversarial prompt discovery
+- ❌ `detection_ensemble` - Multi-method consensus
+- ❌ `intervention_results` - Causal intervention outcomes
+- ❌ `risk_mitigation` - Mitigation effectiveness
+- ❌ `persona_analysis` - Behavioral profiles
+- ❌ `tested_coverage` - Prompt space coverage
+
+---
+
+## Priority Roadmap
+
+### Phase 1: Library Enhancements (2-3 weeks)
+
+**Priority 1A: Adversarial Robustness Toolbox Integration** 🎯
+- **Effort:** 2-3 days
+- **Impact:** HIGH - Benchmark against established attacks/defenses
+- **Tasks:**
+  1. Add ART to dependencies
+  2. Create `packages/sleeper_agents/src/sleeper_agents/detection/art_integration.py`
+  3. Implement comparison suite between ART methods and our probe detectors
+  4. Document benchmarking results
+  5. Add unit tests
+
+**Priority 1B: PyTorch Probe Trainer** 🎯
+- **Effort:** 1-2 days
+- **Impact:** MEDIUM - Enables 70B model scaling
+- **Tasks:**
+  1. Create `packages/sleeper_agents/src/sleeper_agents/probes/torch_probe.py`
+  2. Implement `TorchProbeTrainer` class with GPU-based training
+  3. Add auto-detection logic (sklearn for <34B, PyTorch for ≥34B)
+  4. Update `probe_detector.py` to support both backends
+  5. Add benchmarks comparing sklearn vs PyTorch performance
+
+**Priority 1C: Experiment Infrastructure** 🎯
+- **Effort:** 3-5 days
+- **Impact:** HIGH - Reproducible research, better tracking
+- **Tasks:**
+  1. Add Hydra config system to evaluation pipeline
+  2. Integrate wandb logging for experiment tracking
+  3. Create config templates for common experiments
+  4. Refactor intervention ops into reusable classes
+  5. Expand unit test coverage (hook registration, tensor alignment)
+  6. Add integration tests for causal interventions
+
+**Deliverables:**
+- [ ] ART integration module with benchmarking suite
+- [ ] PyTorch probe trainer with auto-switching logic
+- [ ] Hydra config system for experiments
+- [ ] wandb integration for tracking
+- [ ] Expanded test suite (target: 80% coverage)
+
+### Phase 2: Dashboard Completion (2-3 weeks)
+
+**Priority 2A: Detection Consensus** 🎯
+- **Effort:** 3-4 days
+- **Impact:** HIGH - Multi-method convergent evidence
+- **Tasks:**
+  1. Create `detection_ensemble` database table
+  2. Implement ensemble detection in `run_full_evaluation.py`
+  3. Run multiple detection methods: probes, attention analysis, CoT, honeypots
+  4. Calculate consensus scores and confidence intervals
+  5. Update `detection_consensus.py` component to fetch real data
+  6. Add ingestion function
+
+**Priority 2B: Red Team Integration**
+- **Effort:** 4-5 days
+- **Impact:** MEDIUM - Discover unknown triggers
+- **Tasks:**
+  1. Create `red_team_results` database table
+  2. Implement adversarial prompt generation (can leverage ART)
+  3. Add red team evaluation to pipeline
+  4. Update `red_team_results.py` component
+  5. Add ingestion function
+  6. **Note:** Lower priority since honeypots provide similar coverage
+
+**Priority 2C: Risk Mitigation Matrix**
+- **Effort:** 2-3 days
+- **Impact:** MEDIUM - Strategy effectiveness
+- **Tasks:**
+  1. Create `risk_mitigation` database table
+  2. Implement mitigation testing (e.g., adversarial training effectiveness)
+  3. Store strategy results
+  4. Update `risk_mitigation_matrix.py` component
+  5. Add ingestion function
+
+**Deliverables:**
+- [ ] Detection consensus with ensemble scores
+- [ ] Red team automated testing (optional)
+- [ ] Risk mitigation effectiveness tracking
+- [ ] 73% → 93% real data coverage (11/15 components)
+
+### Phase 3: Supporting Features (1-2 weeks)
+
+**Priority 3A: Persona & Risk Profiles**
+- **Effort:** 2-3 days
+- **Impact:** LOW-MEDIUM - Behavioral profiling
+- **Tasks:**
+  1. Create `persona_analysis` database table
+  2. Implement behavioral testing in evaluation
+  3. Update persona and risk profile components
+  4. Add ingestion functions
+
+**Priority 3B: Tested Territory**
+- **Effort:** 1-2 days
+- **Impact:** LOW - Prompt coverage tracking
+- **Tasks:**
+  1. Create `tested_coverage` database table
+  2. Track prompt space coverage during evaluations
+  3. Update `tested_territory.py` component
+  4. Add ingestion function
+
+**Priority 3C: Scaling Analysis**
+- **Effort:** 3-4 days
+- **Impact:** LOW - Requires multi-size testing
+- **Tasks:**
+  1. Run evaluations on multiple model sizes (7B, 13B, 34B, 70B)
+  2. Store size correlation data
+  3. Update `scaling_analysis.py` component
+  4. **Note:** Requires significant compute resources
+
+**Deliverables:**
+- [ ] Persona profiles from real behavioral tests
+- [ ] Tested territory coverage tracking
+- [ ] Scaling analysis (optional, compute-intensive)
+- [ ] 93% → 100% real data coverage (15/15 components)
+
+### Phase 4: Polish & Documentation (1 week)
+
+**Priority 4A: Export Validation**
+- **Effort:** 2-3 days
+- **Tasks:**
+  1. Audit all export functions
+  2. Ensure all use real data with mock fallback
+  3. Test PDF generation with real evaluation data
+  4. Add export quality checks
+
+**Priority 4B: Comprehensive Testing**
+- **Effort:** 2-3 days
+- **Tasks:**
+  1. Expand unit test coverage to 90%+
+  2. Add integration tests for full evaluation pipeline
+  3. Add end-to-end tests (train → evaluate → dashboard)
+  4. Performance benchmarks
+
+**Priority 4C: Documentation**
+- **Effort:** 2-3 days
+- **Tasks:**
+  1. Update README with new library integrations
+  2. Create architecture documentation
+  3. Add example notebooks for ART integration
+  4. User guide for experiment configuration
+  5. API reference documentation
+
+**Deliverables:**
+- [ ] Validated export system with real data
+- [ ] 90%+ test coverage
+- [ ] Comprehensive documentation
+- [ ] Example notebooks and tutorials
+
+---
+
+## Implementation Guidelines
+
+### Established Pattern (Reference)
+
+All new integrations should follow this proven pattern:
+
+**1. Build/Evaluation Integration**
+```python
+# In run_full_evaluation.py or safety_trainer.py
+def _run_new_detection_method():
+    # Run detection
+    results = detector.run_detection(model, test_samples)
+
+    # Save to JSON
+    results_path = save_path / "detection_results.json"
+    with open(results_path, "w") as f:
         json.dump(results, f, indent=2)
 
     # Ingest to database
-    from packages.sleeper_agents.database.ingestion import ingest_from_safety_training_json
-    success = ingest_from_safety_training_json(
-        json_path=str(persistence_path),
+    from packages.sleeper_agents.database.ingestion import ingest_detection_results
+    ingest_detection_results(
+        json_path=str(results_path),
         job_id=job_id,
-        model_name=model_name,
+        model_name=model_name
     )
+```
 
-# 2. Database schema
-def ensure_persistence_table_exists(db_path):
+**2. Database Schema**
+```python
+# In packages/sleeper_agents/database/schema.py
+def ensure_detection_table_exists(db_path):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS persistence_results (
-            id INTEGER PRIMARY KEY,
+        CREATE TABLE IF NOT EXISTS detection_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             job_id TEXT,
-            model_name TEXT,
-            # ... columns ...
+            model_name TEXT NOT NULL,
+            detection_type TEXT,
+            confidence REAL,
+            metadata_json TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    conn.commit()
+    conn.close()
+```
 
-# 3. Dashboard component
-def render_persistence_analysis(data_loader, cache_manager, api_client):
+**3. Dashboard Component**
+```python
+# In dashboard/components/new_component.py
+def render_new_component(data_loader, cache_manager, api_client):
     # Clear cache for fresh data
     if hasattr(st, "cache_data"):
         st.cache_data.clear()
 
     # Fetch from database
-    persistence_data = _fetch_persistence_data(data_loader, cache_manager, model_name)
+    data = _fetch_real_data(data_loader, model_name)
 
     # Fall back to mock if no data
-    if not persistence_data:
-        persistence_data = _fetch_mock_persistence_data(model_name)
+    if not data:
+        st.info("No real data available. Showing mock data for demonstration.")
+        data = _fetch_mock_data(model_name)
 
-# 4. Export function
-def fetch_persistence_data(data_loader, cache_manager, model_name):
-    # Try database first
-    conn = data_loader.get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM persistence_results WHERE model_name = ?", (model_name,))
-    result = cursor.fetchone()
-
-    if result:
-        return build_data_from_result(result)
-    else:
-        return build_mock_data()
+    # Render visualization
+    _render_visualization(data)
 ```
 
-### Incorrect Pattern (Avoid)
-
+**4. Ingestion Function**
 ```python
-# Dashboard component - directly returns mock data
-def _fetch_red_team_data(data_loader, cache_manager, model_name):
-    # No database query - just hardcoded values
-    return {
-        "total_prompts": 500,
-        "success_rate": 0.24,
-        # ... hardcoded values ...
-    }
+# In packages/sleeper_agents/database/ingestion.py
+def ingest_detection_results(json_path: str, job_id: str, model_name: str) -> bool:
+    """Ingest detection results from JSON to database."""
+    try:
+        with open(json_path, "r") as f:
+            data = json.load(f)
+
+        db_path = get_evaluation_db_path()
+        ensure_detection_table_exists(db_path)
+
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO detection_results (job_id, model_name, detection_type, confidence, metadata_json)
+            VALUES (?, ?, ?, ?, ?)
+        """, (job_id, model_name, data["type"], data["confidence"], json.dumps(data["metadata"])))
+
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        logger.error(f"Ingestion failed: {e}")
+        return False
 ```
 
-## Package Feature Utilization
+### Testing Requirements
 
-Current utilization of available package features:
+All new code must include:
 
-- Comprehensive Test Suite: 0% utilized in dashboard
-- Honeypot Generator: 0% utilized (mock only)
-- Attention Analyzer: 0% utilized
-- Causal Interventions: 0% utilized
-- Detection Probes: 0% utilized (partially in Build)
+**Unit Tests:**
+```python
+# tests/test_new_feature.py
+import pytest
 
-## Critical Findings
+def test_detection_method():
+    """Test core detection logic."""
+    detector = NewDetector(model, config)
+    results = detector.detect(sample_text)
+    assert results["confidence"] > 0.0
+    assert results["detected"] in [True, False]
 
-### Strengths
+def test_database_ingestion():
+    """Test data ingestion."""
+    success = ingest_detection_results(json_path, job_id, model_name)
+    assert success is True
 
-- Excellent UI/UX - Dashboard is well-designed
-- Comprehensive structure - All key views present
-- Recent progress - Persistence analysis shows correct pattern
-- Rich package library - Many features already implemented
+    # Verify data in database
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM detection_results WHERE job_id = ?", (job_id,))
+    result = cursor.fetchone()
+    assert result is not None
+```
 
-### Gaps
+**Integration Tests:**
+```python
+def test_end_to_end_pipeline():
+    """Test full evaluation → database → dashboard flow."""
+    # Run evaluation
+    evaluator.run_evaluation(model_name)
 
-- 93% mock data - Almost all reporting uses fake data
-- Build disconnection - Build jobs do not run evaluations
-- Unused capabilities - Advanced detection not exposed
-- Export misleading - PDFs contain predominantly fake data
-- Database incomplete - Only 2/10 needed tables exist
+    # Check database populated
+    data = data_loader.fetch_detection_data(model_name)
+    assert len(data) > 0
 
-### Risk Assessment
+    # Check dashboard can render
+    with patch("streamlit.write") as mock_write:
+        render_component(data_loader, cache_manager, api_client)
+        assert mock_write.called
+```
 
-Current dashboard gives false sense of capability:
-- Users see comprehensive analysis but it is mostly mock data
-- Exported reports appear professional but contain fake results
-- Real detection capabilities exist but are not integrated
+### Code Quality Standards
 
-## Recommendations
+**1. Type Hints:**
+```python
+from typing import Dict, List, Optional, Tuple
 
-### Immediate Actions
+def train_probe(
+    feature_name: str,
+    positive_samples: np.ndarray,
+    negative_samples: np.ndarray,
+    layer: int,
+    description: str = ""
+) -> Probe:
+    ...
+```
 
-1. Integrate evaluation into Build - Highest priority
-2. Add database tables - Foundation for real data
-3. Update 2-3 high-value components - Prove the pattern
+**2. Docstrings:**
+```python
+def scan_for_deception(self, text: str, return_all_scores: bool = False) -> Dict[str, Any]:
+    """High-level scan for deceptive patterns.
 
-### Short-term
+    Args:
+        text: Input text to analyze
+        return_all_scores: Whether to return all probe scores
 
-4. Chain-of-thought integration - Critical detection capability
-5. Honeypot integration - High-value detection method
-6. Attention pattern capture - Internal state visibility
+    Returns:
+        Scan results with deception assessment containing:
+        - is_deceptive (bool): Overall assessment
+        - confidence (float): Detection confidence [0, 1]
+        - triggered_probes (list): List of probes that detected deception
+        - layer_scores (dict): Scores by layer
+        - ensemble_score (float): Aggregated score across layers
+    """
+```
 
-### Long-term
+**3. Logging:**
+```python
+import logging
+logger = logging.getLogger(__name__)
 
-7. Complete all 14 components - Full real data integration
-8. Comprehensive testing - Validate all data flows
-9. Documentation - Update user guides with real capabilities
+logger.info(f"Training probe for {feature_name} at layer {layer}")
+logger.debug(f"  Samples: {len(positive_samples)} positive, {len(negative_samples)} negative")
+logger.warning(f"Low sample count: {total_samples} < minimum {min_samples}")
+logger.error(f"Probe training failed: {e}")
+```
+
+**4. Error Handling:**
+```python
+try:
+    result = risky_operation()
+except SpecificException as e:
+    logger.error(f"Operation failed: {e}")
+    # Graceful degradation
+    return fallback_value
+finally:
+    cleanup()
+```
+
+---
+
+## Progress Tracking
+
+### Milestones
+
+- [x] **Foundation (20% real data)** - Persistence analysis integration
+- [x] **Core Detection (40% real data)** - CoT + Honeypots + Detection Analysis
+- [x] **Majority (53% real data)** - Internal State Monitor (2025-10-29)
+- [ ] **Library Enhancements Complete** - ART + PyTorch probes + Experiment infra
+- [ ] **Critical Components (73% real data)** - Detection consensus + Red team
+- [ ] **Supporting Features (93% real data)** - Persona + Risk + Territory
+- [ ] **Full Coverage (100% real data)** - All 15 components using real data
+
+### Success Metrics
+
+| Session | Date | Real Data % | Components Complete | Key Achievement |
+|---------|------|-------------|---------------------|-----------------|
+| Initial | Pre-2025 | 6.7% | 1/15 | Persistence analysis |
+| Session 1 | 2025-10-19 | 20% | 3/15 | CoT + Honeypots |
+| Session 2 | 2025-10-19 | 40% | 6/15 | Data aggregation layer |
+| Session 3 | 2025-10-29 | 47% | 7/15 | Trigger sensitivity |
+| Session 4 | 2025-10-29 | 53% | 8/15 | Internal state monitor |
+| **Target** | TBD | **100%** | **15/15** | **Full integration** |
+
+**Total Progress:** +46.3 percentage points (6.7% → 53%)
+
+---
+
+## Estimated Timeline
+
+**Conservative Estimate:** 6-8 weeks total
+
+- **Phase 1 (Library):** 2-3 weeks
+- **Phase 2 (Dashboard Critical):** 2-3 weeks
+- **Phase 3 (Dashboard Supporting):** 1-2 weeks
+- **Phase 4 (Polish):** 1 week
+
+**Aggressive Estimate:** 4-5 weeks (if working full-time)
+
+---
+
+## Key Technical Decisions
+
+### 1. Keep PyTorch Stack
+**Rationale:** transformer-lens is gold standard, proven with 93.2% AUROC results
+**AI Consensus:** Both Gemini and Codex strongly recommend
+
+### 2. Add ART Framework
+**Rationale:** Standardize detection, benchmark against known attacks
+**Impact:** HIGH - Validates our custom implementations
+
+### 3. Dual Probe Backend (sklearn + PyTorch)
+**Rationale:** sklearn for speed (<34B), PyTorch for scale (≥34B)
+**Implementation:** Auto-detection with manual override
+
+### 4. Hydra + wandb Infrastructure
+**Rationale:** Reproducible research, professional experiment tracking
+**Benefit:** Cleaner architecture, better collaboration
+
+### 5. Detection Consensus Priority
+**Rationale:** Multi-method convergence is critical for confidence
+**Impact:** HIGH - Addresses false positive concerns
+
+---
+
+## Risk Assessment
+
+### Library Integration Risks
+
+**Low Risk:**
+- ART integration (well-documented library)
+- PyTorch probe trainer (straightforward implementation)
+
+**Medium Risk:**
+- Hydra config system (requires architectural changes)
+- wandb integration (API keys, team setup)
+
+**Mitigation:**
+- Start with ART and PyTorch probes (quick wins)
+- Pilot Hydra on single experiment before full migration
+- Document all breaking changes carefully
+
+### Dashboard Integration Risks
+
+**Low Risk:**
+- Detection consensus (follows established pattern)
+- Persona/risk profiles (straightforward database work)
+
+**Medium Risk:**
+- Red team integration (requires prompt generation strategy)
+- Scaling analysis (compute-intensive, may need cloud resources)
+
+**Mitigation:**
+- Make red team optional (honeypots provide coverage)
+- Start scaling analysis with 2-3 model sizes, expand later
+
+---
+
+## Dependencies & Prerequisites
+
+### Software Dependencies (New)
+```toml
+# Add to pyproject.toml [project.dependencies]
+"adversarial-robustness-toolbox>=1.15.0"  # Backdoor detection
+"hydra-core>=1.3.0"                        # Config management
+"wandb>=0.16.0"                            # Experiment tracking
+```
+
+### Hardware Requirements
+- **7B-13B models:** 16GB VRAM (RTX 4090, A4000)
+- **34B models:** 36GB VRAM (A6000, RTX 6000 Ada)
+- **70B models:** 70GB VRAM (A100 80GB)
+- **Scaling analysis:** Multi-GPU setup recommended
+
+### Compute Budget
+- **Phase 1 (Library):** Minimal (development only)
+- **Phase 2 (Dashboard):** Medium (evaluation runs for testing)
+- **Phase 3 (Supporting):** High (if doing full scaling analysis)
+
+---
+
+## References
+
+### Library Review Sources
+- **Gemini AI Consultation:** 2025-11-14 (80.27s execution time)
+- **Codex AI Consultation:** 2025-11-14 (explain mode)
+- **Key Recommendations:**
+  - transformer-lens: Gold standard (both AIs)
+  - ART: Mature backdoor framework (Gemini)
+  - PyTorch probes: Scale to 70B (Codex)
+  - Experiment infra: Hydra + wandb (Codex)
+
+### Research Papers
+- Anthropic (2024): "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training"
+- Foundation for mechanistic interpretability approach
+
+### External Resources
+- [TransformerLens Documentation](https://transformerlensorg.github.io/TransformerLens/)
+- [Adversarial Robustness Toolbox](https://github.com/Trusted-AI/adversarial-robustness-toolbox)
+- [Hydra Documentation](https://hydra.cc/)
+- [Weights & Biases Documentation](https://docs.wandb.ai/)
+
+---
 
 ## Conclusion
 
-**Progress Update (2025-10-29 Session 4):**
+The Sleeper Agent Detection Framework is **well-architected** with a **solid library foundation**. The current 53% real data coverage demonstrates that the integration pattern works, and the path to 100% is clear.
 
-The dashboard has progressed from 93% mock data to 47% mock data, with 8 critical components now using real data:
-- ✅ Persistence Analysis (safety training persistence testing)
-- ✅ Chain-of-Thought Analysis (deceptive reasoning detection)
-- ✅ Honeypot Analysis (10 comprehensive categories)
-- ✅ Detection Analysis (ROC curves, confusion matrices)
-- ✅ Model Comparison (side-by-side behavioral risk)
-- ✅ Overview Dashboard (threat indicators, actionability framework)
-- ✅ Trigger Sensitivity Analysis (pre/post safety training comparison)
-- ✅ **NEW**: Internal State Monitor (attention patterns and activation anomalies)
+**Key Strengths:**
+1. Excellent library choices (transformer-lens, PyTorch, HuggingFace)
+2. Proven integration pattern (8 components successfully using real data)
+3. Strong foundation: evaluation pipeline, database schema, ingestion functions
 
-**Key Technical Achievement:**
+**Key Opportunities:**
+1. **ART integration** - Benchmark and validate detection methods
+2. **PyTorch probes** - Scale to 70B models with GPU acceleration
+3. **Experiment infrastructure** - Hydra configs + wandb tracking
+4. **Complete remaining 7 dashboard components** - Follow established pattern
 
-Enhanced the data aggregation layer (`data_loader.fetch_model_summary()`) to pull real sleeper-specific metrics from multiple database tables:
-- `persistence_results` → backdoor persistence rates
-- `chain_of_thought_analysis` → deception in reasoning
-- `evaluation_results` → probe detection, behavioral variance, test coverage
-- Graceful fallback to 0.0 when tables don't exist yet
-- All derived metrics calculated from real data
+**Next Steps:**
+1. Prioritize ART integration (2-3 days, high impact)
+2. Add PyTorch probe trainer (1-2 days, enables scaling)
+3. Begin detection consensus implementation (highest value remaining component)
+4. Document progress and iterate
 
-**Architecture Decision:**
-Evaluation kept separate from training jobs for clean separation of concerns:
-- Training jobs focus on model creation
-- Dedicated "Run Evaluation" Build view for comprehensive testing
-- Clean job monitoring and logging
-- Follows single-responsibility principle
+With focused effort, the framework can reach 100% real data coverage and production-ready status within 6-8 weeks.
 
-**Remaining Work:**
+---
 
-High Priority:
-1. Red Team Integration (lower priority - honeypots provide similar coverage)
-2. Detection Consensus (ensemble methods)
-
-Medium Priority:
-3. Risk Mitigation Matrix (mitigation testing)
-
-Lower Priority:
-4. Persona Profile, Risk Profiles, Tested Territory, Scaling Analysis
-
-**The Path Forward:**
-
-With the evaluation pipeline and database foundation in place, the remaining 7 components follow the established pattern:
-1. Add data capture to run_full_evaluation.py (if needed)
-2. Create database table if needed
-3. Update dashboard component to query real data
-4. Maintain graceful fallback to mock data
-
-Estimated effort for remaining components: 1-2 weeks
-
-**Success Metrics:**
-- Started: 1/15 components with real data (6.7%)
-- After Session 1: 3/15 components with real data (20%)
-- After Session 2: 6/15 components with real data (40%)
-- After Session 3: 7/15 components with real data (47%)
-- After Session 4: 8/15 components with real data (53%)
-- Target: 15/15 components with real data (100%)
-- Progress: 6.7% → 20% → 40% → 47% → 53% (+46.3 percentage points total, +6 percentage points Session 4)
-- 🎉 **Milestone: Crossed 50% real data threshold!**
-
-**Bug Fixes (Session 2):**
-- Fixed model loading error for local paths (added `local_files_only=True`)
-- Fixed missing model selector on Executive Summary page
-- Enabled proper validation of real data integration
-
-**Bug Fixes (Session 3):**
-- Fixed model selector to query all data tables (not just evaluation_results)
-- Models with trigger sensitivity data now appear in dropdown
-- Used UNION query across 5 tables: evaluation_results, persistence_results, chain_of_thought_analysis, honeypot_responses, trigger_sensitivity
-
-**Infrastructure Added (Session 2):**
-- Trigger sensitivity database table and ingestion functions
-- Ready for integration into safety training workflow
-- Schema supports pre/post comparison and variant type tracking
-
-**Infrastructure Completed (Session 3):**
-- Trigger sensitivity fully operational via safety training pipeline
-- Data flows from safety_trainer.py → database → dashboard correctly
-
-**Infrastructure Completed (Session 4):**
-- Internal State Monitor with comprehensive analysis pipeline
-- InternalStateMonitor component wrapping AttentionAnalyzer + FeatureDiscovery
-- Database schema: internal_state_analysis table with complete anomaly tracking
-- Evaluation integration: _run_internal_state_capture() for automated testing
-- Dashboard data loader: fetch_internal_state_analysis() with real-time queries
-- **Core detection capabilities now complete (53% real data coverage)**
+**Last Updated:** 2025-11-14
+**Maintainer:** @AndrewAltimit
+**Status:** Active Development - Library Review Complete, 53% Dashboard Integration
