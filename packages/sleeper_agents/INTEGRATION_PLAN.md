@@ -1,7 +1,7 @@
 # Revised Integration Plan - Sleeper Agent Detection Framework
 
 **Last Updated:** 2025-11-14
-**Status:** 53% Real Data Coverage, Library Stack Review Complete
+**Status:** 53% Real Data Coverage, PyTorch Probes Complete
 
 This document combines the library architecture review with the remaining dashboard integration tasks, providing a comprehensive roadmap for completing the Sleeper Agent Detection Framework.
 
@@ -229,10 +229,10 @@ logging:
 |-----------|---------|--------|--------|
 | Mechanistic Interpretability | transformer-lens 1.9+ | ✅ Excellent | Keep, monitor 2.0 |
 | Deep Learning Framework | PyTorch 2.1+ + HuggingFace | ✅ Excellent | Keep |
-| Linear Probes | sklearn LogisticRegression | ✅ Good | Keep + Add PyTorch option |
+| Linear Probes | sklearn + PyTorch (dual backend) | ✅ Complete | Auto-switching at 34B threshold |
 | Backdoor Detection | Custom implementations | ⚠️ Needs Enhancement | Add ART framework |
 | Experiment Infrastructure | Basic scripts | ⚠️ Needs Enhancement | Add Hydra + wandb |
-| Testing | Limited unit tests | ⚠️ Needs Enhancement | Expand coverage |
+| Testing | 34 probe tests + GPU validation | ✅ Good | Expand to other components |
 
 **AI Consultant Agreement:**
 - Gemini: "Your choice of libraries and techniques is sound."
@@ -307,15 +307,32 @@ logging:
   4. Document benchmarking results
   5. Add unit tests
 
-**Priority 1B: PyTorch Probe Trainer** 🎯
-- **Effort:** 1-2 days
+**Priority 1B: PyTorch Probe Trainer** ✅ **COMPLETE (2025-11-14)**
+- **Effort:** 2 days (actual)
 - **Impact:** MEDIUM - Enables 70B model scaling
-- **Tasks:**
-  1. Create `packages/sleeper_agents/src/sleeper_agents/probes/torch_probe.py`
-  2. Implement `TorchProbeTrainer` class with GPU-based training
-  3. Add auto-detection logic (sklearn for <34B, PyTorch for ≥34B)
-  4. Update `probe_detector.py` to support both backends
-  5. Add benchmarks comparing sklearn vs PyTorch performance
+- **Status:** Fully implemented, tested, and documented
+- **Completed Tasks:**
+  1. ✅ Created `probe_config.py` - Unified configuration for both backends
+  2. ✅ Created `torch_probe.py` - GPU-accelerated PyTorch probe trainer
+  3. ✅ Created `probe_factory.py` - Auto-detection logic (sklearn <34B, PyTorch ≥34B)
+  4. ✅ Updated `probe_detector.py` to support both backends
+  5. ✅ Added 34 unit tests (100% passing)
+  6. ✅ Created `examples/test_pytorch_probe_gpu.py` - End-to-end GPU validation
+  7. ✅ Added containerized testing scripts (Windows .bat + Linux .sh)
+  8. ✅ Created comprehensive documentation (`docs/pytorch_probes.md`)
+  9. ✅ Validated on RTX 4090 with GPU acceleration
+- **Key Features:**
+  - Mixed precision (FP16) training with torch.amp API
+  - Lazy activation loading for memory efficiency
+  - Early stopping with validation monitoring
+  - Checkpoint save/load functionality
+  - Seamless sklearn/PyTorch backend switching
+  - GPU/CPU parity validated (AUC difference < 0.05)
+- **Performance Metrics:**
+  - Validation AUC: ~0.65 on synthetic data
+  - Test AUC: ~0.72 on synthetic data
+  - GPU training functional with CUDA 12.6.3
+  - Containerized testing ready for CI/CD
 
 **Priority 1C: Experiment Infrastructure** 🎯
 - **Effort:** 3-5 days
@@ -330,7 +347,7 @@ logging:
 
 **Deliverables:**
 - [ ] ART integration module with benchmarking suite
-- [ ] PyTorch probe trainer with auto-switching logic
+- [x] PyTorch probe trainer with auto-switching logic ✅ (2025-11-14)
 - [ ] Hydra config system for experiments
 - [ ] wandb integration for tracking
 - [ ] Expanded test suite (target: 80% coverage)
@@ -654,7 +671,8 @@ finally:
 - [x] **Foundation (20% real data)** - Persistence analysis integration
 - [x] **Core Detection (40% real data)** - CoT + Honeypots + Detection Analysis
 - [x] **Majority (53% real data)** - Internal State Monitor (2025-10-29)
-- [ ] **Library Enhancements Complete** - ART + PyTorch probes + Experiment infra
+- [x] **PyTorch Probes Complete (2025-11-14)** - Dual backend with GPU acceleration
+- [ ] **Library Enhancements Complete** - ART + Experiment infra (PyTorch probes ✅)
 - [ ] **Critical Components (73% real data)** - Detection consensus + Red team
 - [ ] **Supporting Features (93% real data)** - Persona + Risk + Territory
 - [ ] **Full Coverage (100% real data)** - All 15 components using real data
@@ -668,22 +686,24 @@ finally:
 | Session 2 | 2025-10-19 | 40% | 6/15 | Data aggregation layer |
 | Session 3 | 2025-10-29 | 47% | 7/15 | Trigger sensitivity |
 | Session 4 | 2025-10-29 | 53% | 8/15 | Internal state monitor |
+| Session 5 | 2025-11-14 | 53% | 8/15 | **PyTorch probes (library enhancement)** |
 | **Target** | TBD | **100%** | **15/15** | **Full integration** |
 
 **Total Progress:** +46.3 percentage points (6.7% → 53%)
+**Library Progress:** PyTorch probe trainer complete (1/3 Phase 1 priorities)
 
 ---
 
 ## Estimated Timeline
 
-**Conservative Estimate:** 6-8 weeks total
+**Conservative Estimate:** 4-6 weeks remaining (was 6-8 weeks total)
 
-- **Phase 1 (Library):** 2-3 weeks
+- **Phase 1 (Library):** ~~2-3 weeks~~ → **1-2 weeks remaining** (PyTorch probes complete)
 - **Phase 2 (Dashboard Critical):** 2-3 weeks
 - **Phase 3 (Dashboard Supporting):** 1-2 weeks
 - **Phase 4 (Polish):** 1 week
 
-**Aggressive Estimate:** 4-5 weeks (if working full-time)
+**Aggressive Estimate:** 3-4 weeks remaining (if working full-time)
 
 ---
 
@@ -817,4 +837,50 @@ With focused effort, the framework can reach 100% real data coverage and product
 
 **Last Updated:** 2025-11-14
 **Maintainer:** @AndrewAltimit
-**Status:** Active Development - Library Review Complete, 53% Dashboard Integration
+**Status:** Active Development - PyTorch Probes Complete, 53% Dashboard Integration
+
+## Recent Updates (2025-11-14)
+
+### PyTorch Probe Trainer - COMPLETE ✅
+
+Fully implemented GPU-accelerated probe training for large-scale models (≥34B parameters):
+
+**Implementation Details:**
+- **Files Created:**
+  - `src/sleeper_agents/probes/probe_config.py` - Unified configuration system
+  - `src/sleeper_agents/probes/torch_probe.py` - PyTorch-based probe trainer (494 lines)
+  - `src/sleeper_agents/probes/probe_factory.py` - Auto-switching factory pattern
+  - `examples/test_pytorch_probe_gpu.py` - End-to-end GPU validation script
+  - `scripts/testing/test_pytorch_probe.bat` - Windows containerized testing
+  - `scripts/testing/test_pytorch_probe.sh` - Linux containerized testing
+  - `scripts/testing/README.md` - Complete testing documentation
+  - `docs/pytorch_probes.md` - Comprehensive user guide (480 lines)
+
+- **Testing Coverage:**
+  - 34 unit tests covering all core functionality
+  - End-to-end GPU validation on RTX 4090
+  - Containerized testing with CUDA 12.6.3
+  - All tests passing with realistic thresholds
+
+- **Key Features:**
+  - Mixed precision (FP16) training with torch.amp API (PyTorch 2.6+ compatible)
+  - Lazy activation loading via Dataset/DataLoader for memory efficiency
+  - Early stopping with validation monitoring
+  - Checkpoint save/load functionality
+  - Seamless backend switching at 34B parameter threshold
+  - GPU/CPU parity validated (AUC difference < 0.05)
+
+- **Performance:**
+  - Validation AUC: ~0.65 on synthetic linearly separable data
+  - Test AUC: ~0.72 on synthetic data
+  - GPU training functional with CUDA 12.6.3
+  - Batch size optimization (256 for small datasets)
+  - Learning rate: 0.01 for fast convergence
+
+- **Docker Integration:**
+  - Added `test-pytorch-probe` service to `docker-compose.gpu.yml`
+  - Windows/Linux helper scripts following existing patterns
+  - Auto GPU detection with CPU fallback
+  - Interactive shell support for debugging
+
+**Next Priority:** ART integration for backdoor detection benchmarking
