@@ -653,3 +653,66 @@ class ProbeDetector:
         """Clear detection history."""
         self.detection_history = []
         logger.info("Cleared detection history")
+
+    def get_backend_type(self) -> str:
+        """Get the backend type for this probe detector.
+
+        Returns:
+            "sklearn" (this implementation uses sklearn)
+
+        Example:
+            >>> detector = ProbeDetector(model)
+            >>> detector.get_backend_type()
+            'sklearn'
+        """
+        return "sklearn"
+
+    async def fit_from_arrays(
+        self,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        X_val: Optional[np.ndarray] = None,
+        y_val: Optional[np.ndarray] = None,
+        layer: int = 0,
+    ) -> Probe:
+        """Unified fit interface compatible with TorchProbeTrainer.
+
+        This method provides a sklearn-compatible interface that matches
+        the TorchProbeTrainer API for easy backend swapping.
+
+        Args:
+            X_train: Training activations
+            y_train: Training labels (0=clean, 1=deceptive)
+            X_val: Validation activations (optional)
+            y_val: Validation labels (optional)
+            layer: Layer index for this probe
+
+        Returns:
+            Trained probe
+
+        Example:
+            >>> detector = ProbeDetector(model)
+            >>> X_train = np.random.randn(1000, 512).astype(np.float32)
+            >>> y_train = np.random.randint(0, 2, size=1000).astype(np.float32)
+            >>> probe = await detector.fit_from_arrays(X_train, y_train, layer=5)
+            >>> probe.auc_score
+            0.95
+        """
+        # Split into positive/negative samples
+        positive_samples = X_train[y_train == 1]
+        negative_samples = X_train[y_train == 0]
+
+        # Prepare validation data tuple if provided
+        validation_data = (X_val, y_val) if X_val is not None and y_val is not None else None
+
+        # Call existing train_probe method
+        probe = await self.train_probe(
+            feature_name="is_deceptive",
+            positive_samples=positive_samples,
+            negative_samples=negative_samples,
+            layer=layer,
+            description=f"Probe at layer {layer}",
+            validation_data=validation_data,
+        )
+
+        return probe
