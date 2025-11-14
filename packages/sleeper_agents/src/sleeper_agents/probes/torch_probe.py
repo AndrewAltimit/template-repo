@@ -203,7 +203,7 @@ class TorchProbeTrainer:
 
         # Mixed precision scaler (only if CUDA available)
         self.use_amp = config.use_mixed_precision and self.device == "cuda"
-        self.scaler = torch.cuda.amp.GradScaler() if self.use_amp else None
+        self.scaler = torch.amp.GradScaler("cuda") if self.use_amp else None
 
         # Training state
         self.best_val_auc = 0.0
@@ -340,7 +340,7 @@ class TorchProbeTrainer:
 
             # Forward pass (with mixed precision if enabled)
             if self.use_amp and self.scaler is not None:
-                with torch.cuda.amp.autocast():
+                with torch.amp.autocast("cuda"):
                     logits = self.probe(batch_activations)
                     loss = self.criterion(logits, batch_labels)
 

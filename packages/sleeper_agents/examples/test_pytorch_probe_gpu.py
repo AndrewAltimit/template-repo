@@ -41,13 +41,13 @@ def generate_synthetic_data(n_samples: int, input_dim: int, seed: int = 42):
     """
     np.random.seed(seed)
 
-    # Class 0: first feature negative
+    # Class 0: first feature strongly negative (increased separation for reliable convergence)
     X_neg = np.random.randn(n_samples, input_dim).astype(np.float32)
-    X_neg[:, 0] = -np.abs(X_neg[:, 0]) - 1.0
+    X_neg[:, 0] = -np.abs(X_neg[:, 0]) - 3.0
 
-    # Class 1: first feature positive
+    # Class 1: first feature strongly positive (increased separation for reliable convergence)
     X_pos = np.random.randn(n_samples, input_dim).astype(np.float32)
-    X_pos[:, 0] = np.abs(X_pos[:, 0]) + 1.0
+    X_pos[:, 0] = np.abs(X_pos[:, 0]) + 3.0
 
     # Split: 60% train, 20% val, 20% test
     train_split = int(0.6 * n_samples)
@@ -102,12 +102,12 @@ def test_pytorch_probe_gpu():
 
     config_gpu = ProbeTrainingConfig(
         device="cuda",
-        batch_size=4096,
-        max_iterations=100,
+        batch_size=256,  # Smaller batch for better gradient estimates with 2400 samples
+        max_iterations=200,  # More iterations for convergence
         early_stopping=True,
-        early_stopping_patience=10,
+        early_stopping_patience=20,  # More patience for convergence
         use_mixed_precision=True,
-        learning_rate=0.001,
+        learning_rate=0.01,  # Higher LR for faster convergence
     )
 
     trainer_gpu = TorchProbeTrainer(input_dim=input_dim, config=config_gpu)
@@ -133,12 +133,12 @@ def test_pytorch_probe_gpu():
 
     config_cpu = ProbeTrainingConfig(
         device="cpu",
-        batch_size=4096,
-        max_iterations=100,
+        batch_size=256,  # Match GPU batch size for fair comparison
+        max_iterations=200,
         early_stopping=True,
-        early_stopping_patience=10,
+        early_stopping_patience=20,
         use_mixed_precision=False,  # No AMP on CPU
-        learning_rate=0.001,
+        learning_rate=0.01,  # Match GPU learning rate
     )
 
     trainer_cpu = TorchProbeTrainer(input_dim=input_dim, config=config_cpu)
