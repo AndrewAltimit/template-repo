@@ -220,32 +220,67 @@ probs = trainer.predict_proba(X_test)
 
 ## Testing
 
+### Containerized Testing (Recommended)
+
+Use the provided scripts for containerized GPU testing:
+
+**Windows (RTX 4090):**
+```batch
+REM Run GPU end-to-end test
+scripts\testing\test_pytorch_probe.bat
+
+REM Run unit tests only (CPU mode)
+scripts\testing\test_pytorch_probe.bat unit-test
+
+REM Run all tests (GPU + unit tests)
+scripts\testing\test_pytorch_probe.bat all
+
+REM Interactive shell for debugging
+scripts\testing\test_pytorch_probe.bat shell
+```
+
+**Linux:**
+```bash
+# Run GPU end-to-end test
+./scripts/testing/test_pytorch_probe.sh
+
+# Run unit tests only (CPU mode)
+./scripts/testing/test_pytorch_probe.sh unit-test
+
+# Run all tests
+./scripts/testing/test_pytorch_probe.sh all
+```
+
+**Direct Docker Compose:**
+```bash
+# Run GPU test service
+docker-compose -f docker/docker-compose.gpu.yml run --rm test-pytorch-probe
+
+# Run unit tests in container
+docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
+    pytest tests/test_torch_probe.py tests/test_probe_factory.py -v
+```
+
+See `scripts/testing/README.md` for detailed usage and troubleshooting.
+
 ### Unit Tests (CPU-only, no GPU required)
 
 ```bash
-# Test PyTorch probe module
+# Local testing without Docker
 pytest packages/sleeper_agents/tests/test_torch_probe.py -v
-
-# Test factory with auto-switching
 pytest packages/sleeper_agents/tests/test_probe_factory.py -v
-
-# Run all tests
 pytest packages/sleeper_agents/tests/ -v
 ```
 
-### GPU Tests (RTX 4090 host)
+### GPU Test Validation
 
-```bash
-# End-to-end GPU test
-python packages/sleeper_agents/examples/test_pytorch_probe_gpu.py
-```
-
-This script validates:
+The GPU test (`test_pytorch_probe_gpu.py`) validates:
 - GPU training completes successfully
 - Mixed precision works correctly
 - AUC >= 0.9 on synthetic data
 - GPU speedup >= 1.5x vs CPU
 - Auto-switching works correctly
+- Checkpoint save/load functionality
 
 ## Architecture Details
 
