@@ -75,6 +75,7 @@ evaluation = [
     # Configuration
     "pyyaml>=6.0",
     "python-dotenv>=1.0.0",
+    "hydra-core>=1.3.0",  # Config management for ensemble detection
     # CLI
     "colorama>=0.4.6",
     "tabulate>=0.9.0",
@@ -84,6 +85,8 @@ evaluation = [
     "httpx>=0.25.0",
     "psutil>=5.9.0",
     "python-multipart>=0.0.6",
+    # ART Integration
+    "adversarial-robustness-toolbox>=1.15.0",  # Backdoor detection framework
 ]
 # The 'all' group combines runtime, dev, and evaluation for complete environment
 all = [
@@ -92,6 +95,7 @@ all = [
     "jinja2>=3.1.0",
     "pyyaml>=6.0",
     "python-dotenv>=1.0.0",
+    "hydra-core>=1.3.0",
     "colorama>=0.4.6",
     "tabulate>=0.9.0",
     "tqdm>=4.66.0",
@@ -99,6 +103,7 @@ all = [
     "httpx>=0.25.0",
     "psutil>=5.9.0",
     "python-multipart>=0.0.6",
+    "adversarial-robustness-toolbox>=1.15.0",
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
