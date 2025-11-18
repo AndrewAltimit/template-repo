@@ -63,11 +63,11 @@ echo.
 
 REM Run test based on mode
 if "%MODE%"=="quick" (
-    echo Running QUICK test (GPT-2 only, 50 samples)...
+    echo Running QUICK test ^(GPT-2 only, 50 samples^)...
     echo.
     docker-compose run --rm python-ci python packages/sleeper_agents/examples/phase3d_cross_architecture_validation.py --quick --device %DEVICE%
 ) else (
-    echo Running FULL validation (all models: %MODELS%)...
+    echo Running FULL validation ^(all models: %MODELS%^)...
     echo.
     docker-compose run --rm python-ci python packages/sleeper_agents/examples/phase3d_cross_architecture_validation.py --models %MODELS% --device %DEVICE% --n-train 200 --n-test 100
 )
@@ -87,9 +87,9 @@ if errorlevel 1 (
 
 echo.
 echo Interpretation Guide:
-echo   - AUC at least 0.9 on all models: SUCCESS (method generalizes)
-echo   - AUC 0.7-0.9: PARTIAL (needs tuning)
-echo   - AUC below 0.7: FAILURE (architecture-specific quirks)
+echo   - AUC at least 0.9 on all models: SUCCESS ^(method generalizes^)
+echo   - AUC 0.7-0.9: PARTIAL ^(needs tuning^)
+echo   - AUC below 0.7: FAILURE ^(architecture-specific quirks^)
 echo.
 
 exit /b 0
