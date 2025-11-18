@@ -1,4 +1,85 @@
-# PyTorch Probe Testing Scripts
+# Testing Scripts
+
+Containerized testing scripts for sleeper agents detection framework.
+
+## Phase 1: ART Integration Foundation Tests
+
+CPU-only tests for BaseDetector ABC, DetectorRegistry, and ExperimentLogger.
+
+### Quick Start
+
+#### Windows
+
+```batch
+REM Run all Phase 1 tests
+scripts\testing\test_phase1_foundation.bat
+
+REM Run with coverage report
+scripts\testing\test_phase1_foundation.bat coverage
+
+REM Run with verbose output
+scripts\testing\test_phase1_foundation.bat verbose
+
+REM Run quick mode (no pytest options)
+scripts\testing\test_phase1_foundation.bat quick
+```
+
+#### Linux
+
+```bash
+# Run all Phase 1 tests
+./scripts/testing/test_phase1_foundation.sh
+
+# Run with coverage report
+./scripts/testing/test_phase1_foundation.sh coverage
+
+# Run with verbose output
+./scripts/testing/test_phase1_foundation.sh verbose
+
+# Run quick mode
+./scripts/testing/test_phase1_foundation.sh quick
+```
+
+### Expected Results
+
+48 tests total (all passing):
+- 13 tests in test_base_detector.py
+- 16 tests in test_detector_registry.py
+- 19 tests in test_experiment_logger.py
+
+**Runtime**: ~4 seconds (CPU-only, no GPU required)
+
+**Coverage**: 100% of Phase 1 components:
+- BaseDetector ABC
+- DetectorRegistry pattern
+- ExperimentLogger (local logging)
+
+### What's Tested
+
+**BaseDetector ABC (test_base_detector.py)**:
+- Abstract class enforcement
+- Incomplete implementations rejected
+- fit/score/run pipeline validation
+- Custom explain() implementations
+- Mock detector patterns
+
+**DetectorRegistry (test_detector_registry.py)**:
+- Decorator-based registration
+- Dynamic instantiation by name
+- Type checking (must inherit from BaseDetector)
+- Multiple detector coexistence
+- kwargs forwarding
+
+**ExperimentLogger (test_experiment_logger.py)**:
+- Job ID generation with timestamps
+- Config/results save/load round-trips
+- Detector-specific result storage
+- Layer name sanitization
+- Multiple concurrent experiments
+
+---
+
+## PyTorch Probe Testing Scripts
 
 Containerized testing scripts for PyTorch probe GPU validation.
 
