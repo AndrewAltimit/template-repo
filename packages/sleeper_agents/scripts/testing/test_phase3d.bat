@@ -44,16 +44,24 @@ echo   Device: %DEVICE%
 echo.
 
 REM Change to repo root
-REM Path: packages/sleeper_agents/scripts/testing -> repo_root (4 levels up)
-echo Script directory: %~dp0
-cd /d "%~dp0\..\..\..\.."
-echo Current directory: %CD%
-echo Looking for docker-compose.yml...
+REM Get the full path to the script, then navigate up to repo root
+set SCRIPT_DIR=%~dp0
+echo Debug: Script directory is %SCRIPT_DIR%
+echo Debug: Full script path is %~f0
+
+REM Navigate from script location to repo root
+REM From: packages\sleeper_agents\scripts\testing\
+REM To: repo root (4 levels up)
+cd /d "%SCRIPT_DIR%"
+cd ..\..\..\..
+echo Debug: Current directory is %CD%
+
 if not exist docker-compose.yml (
     echo ERROR: docker-compose.yml not found in %CD%
-    echo Script was at: %~dp0
+    echo ERROR: Expected to find it in repo root
     exit /b 1
 )
+echo Found docker-compose.yml
 
 REM Check if Docker is running
 docker info >nul 2>&1
