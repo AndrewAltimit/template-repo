@@ -44,13 +44,14 @@ echo   Device: %DEVICE%
 echo.
 
 REM Change to repo root
-REM Path: scripts/testing -> scripts -> sleeper_agents -> packages -> repo_root
-cd /d %~dp0\..\..\..\..
+REM Path: packages/sleeper_agents/scripts/testing -> repo_root (4 levels up)
+echo Script directory: %~dp0
+cd /d "%~dp0\..\..\..\.."
 echo Current directory: %CD%
 echo Looking for docker-compose.yml...
 if not exist docker-compose.yml (
     echo ERROR: docker-compose.yml not found in %CD%
-    echo Expected to be in repo root
+    echo Script was at: %~dp0
     exit /b 1
 )
 
