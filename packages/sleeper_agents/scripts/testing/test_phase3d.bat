@@ -87,9 +87,9 @@ if errorlevel 1 (
 
 echo.
 echo Interpretation Guide:
-echo   - AUC ^>= 0.9 on all models: SUCCESS (method generalizes)
+echo   - AUC at least 0.9 on all models: SUCCESS (method generalizes)
 echo   - AUC 0.7-0.9: PARTIAL (needs tuning)
-echo   - AUC ^< 0.7: FAILURE (architecture-specific quirks)
+echo   - AUC below 0.7: FAILURE (architecture-specific quirks)
 echo.
 
 exit /b 0

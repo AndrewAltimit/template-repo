@@ -18,6 +18,7 @@ Architectures Tested:
 Expected Result: AUC ~1.0 across all architectures proves method validity.
 """
 
+import gc
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -436,6 +437,8 @@ def run_cross_architecture_validation(
             # Clean up GPU memory
             if device == "cuda":
                 del validator.model
+                del validator.tokenizer
+                gc.collect()
                 torch.cuda.empty_cache()
 
         except Exception as e:
