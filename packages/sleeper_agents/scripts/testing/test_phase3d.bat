@@ -4,6 +4,11 @@ REM Runs validation in Docker container for consistency
 
 setlocal
 
+REM CRITICAL: Save script directory BEFORE any argument parsing
+REM The shift command in argument parsing will modify %0
+set SCRIPT_DIR=%~dp0
+set SCRIPT_PATH=%~f0
+
 echo ================================================================================
 echo Phase 3D: Cross-Architecture Method Validation Test
 echo ================================================================================
@@ -44,24 +49,18 @@ echo   Device: %DEVICE%
 echo.
 
 REM Change to repo root
-REM Get the full path to the script, then navigate up to repo root
-set SCRIPT_DIR=%~dp0
-echo Debug: Script directory is %SCRIPT_DIR%
-echo Debug: Full script path is %~f0
-
 REM Navigate from script location to repo root
 REM From: packages\sleeper_agents\scripts\testing\
 REM To: repo root (4 levels up)
 cd /d "%SCRIPT_DIR%"
 cd ..\..\..\..
-echo Debug: Current directory is %CD%
 
 if not exist docker-compose.yml (
     echo ERROR: docker-compose.yml not found in %CD%
-    echo ERROR: Expected to find it in repo root
+    echo ERROR: Script directory was: %SCRIPT_DIR%
+    echo ERROR: Current directory is: %CD%
     exit /b 1
 )
-echo Found docker-compose.yml
 
 REM Check if Docker is running
 docker info >nul 2>&1
