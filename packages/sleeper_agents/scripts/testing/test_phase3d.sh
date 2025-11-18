@@ -58,23 +58,18 @@ echo "Building Python CI container..."
 docker-compose build python-ci
 echo
 
-# Install sleeper_agents package with dependencies
-echo "Installing sleeper_agents package..."
-if ! docker-compose run --rm python-ci pip install -e './packages/sleeper_agents[evaluation]' --quiet; then
-    echo "ERROR: Failed to install sleeper_agents package"
-    exit 1
-fi
-echo
-
 # Run test based on mode
+# Note: Install package and run test in same container to persist dependencies
 if [ "$MODE" = "quick" ]; then
     echo "Running QUICK test (GPT-2 only, 50 samples)..."
+    echo "Installing dependencies and running test..."
     echo
-    docker-compose run --rm python-ci python packages/sleeper_agents/examples/phase3d_cross_architecture_validation.py --quick --device "$DEVICE"
+    docker-compose run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] --quiet && python packages/sleeper_agents/examples/phase3d_cross_architecture_validation.py --quick --device $DEVICE"
 else
     echo "Running FULL validation (all models: $MODELS)..."
+    echo "Installing dependencies and running test..."
     echo
-    docker-compose run --rm python-ci python packages/sleeper_agents/examples/phase3d_cross_architecture_validation.py --models "$MODELS" --device "$DEVICE" --n-train 200 --n-test 100
+    docker-compose run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] --quiet && python packages/sleeper_agents/examples/phase3d_cross_architecture_validation.py --models $MODELS --device $DEVICE --n-train 200 --n-test 100"
 fi
 
 echo
