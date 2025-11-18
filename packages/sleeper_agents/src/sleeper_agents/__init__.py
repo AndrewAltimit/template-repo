@@ -12,25 +12,52 @@ __author__ = "Template Repository"
 from .app.config import DetectionConfig
 from .evaluation.report_generator import ReportGenerator
 
-# Imports that require torch for full functionality
+# Check torch availability without importing
+_torch_available = False
 try:
-    import torch  # noqa: F401
+    import importlib.util
 
-    _torch_available = True
-    from .app.detector import SleeperDetector
-    from .evaluation.evaluator import EvaluationResult, ModelEvaluator
-except ImportError:
-    import warnings
+    _torch_available = importlib.util.find_spec("torch") is not None
+except (ImportError, AttributeError):
+    pass
 
-    _torch_available = False
-    warnings.warn(
-        "Some features require PyTorch. Install with: pip install torch\n" "Limited functionality available without PyTorch.",
-        ImportWarning,
-        stacklevel=2,
-    )
-    # Provide None values for missing classes so __all__ doesn't fail
-    SleeperDetector = None  # type: ignore
-    EvaluationResult = None  # type: ignore
-    ModelEvaluator = None  # type: ignore
+# Lazy imports for torch-dependent modules
+SleeperDetector = None  # type: ignore
+EvaluationResult = None  # type: ignore
+ModelEvaluator = None  # type: ignore
+
+
+def __getattr__(name):
+    """Lazy import torch-dependent modules."""
+    if name in ("SleeperDetector", "EvaluationResult", "ModelEvaluator"):
+        if not _torch_available:
+            import warnings
+
+            warnings.warn(
+                "Some features require PyTorch. Install with: pip install torch\n"
+                "Limited functionality available without PyTorch.",
+                ImportWarning,
+                stacklevel=2,
+            )
+            return None
+
+        # Import torch and modules only when accessed
+        import torch  # noqa: F401
+
+        if name == "SleeperDetector":
+            from .app.detector import SleeperDetector as _SleeperDetector
+
+            return _SleeperDetector
+        elif name == "EvaluationResult":
+            from .evaluation.evaluator import EvaluationResult as _EvaluationResult
+
+            return _EvaluationResult
+        elif name == "ModelEvaluator":
+            from .evaluation.evaluator import ModelEvaluator as _ModelEvaluator
+
+            return _ModelEvaluator
+
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
 
 __all__ = ["ModelEvaluator", "EvaluationResult", "ReportGenerator", "DetectionConfig", "SleeperDetector"]
