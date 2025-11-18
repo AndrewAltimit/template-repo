@@ -1,3 +1,118 @@
+# ⚠️ DEPRECATED - Archived Integration Plan
+
+**Status:** ARCHIVED - 2025-11-18
+**Reason:** Overtaken by empirical Phase 3 validation results and Gemini 3 architecture review
+
+**DO NOT FOLLOW THIS PLAN** - It contains outdated recommendations that have been superseded.
+
+---
+
+## Why This Plan Was Deprecated
+
+### 1. IBM ART Integration (Priority 1A) - **NOT RECOMMENDED**
+
+**Original Plan:** Integrate IBM's Adversarial Robustness Toolbox as a core detection framework.
+
+**Why Deprecated:**
+- Phase 3 benchmarks proved **Linear Probes achieve AUC=1.0** (perfect detection)
+- IBM ART's `ActivationDefense` is fundamentally similar to our ARTActivationDetector (clustering-based, weaker than supervised probes)
+- **Gemini 3 Assessment:** "Defer/Pivot Scope - Do not integrate for Defense; conditionally use for Attack benchmarking only"
+- ART creates architectural friction with `transformer-lens` (model-agnostic vs white-box access)
+- Primary value is **gradient-based attacks** (PGD, HopSkipJump), not defense methods
+
+**Current Status:**
+- `adversarial-robustness-toolbox` moved to `dev` dependencies only (external audit use)
+- Not integrated into production codebase
+- May be used for Phase 3E gradient attack validation (separate audit script)
+
+### 2. PyTorch Probe Trainer (Priority 1B) - **✅ COMPLETE**
+
+This was successfully implemented (2025-11-14) and is the only part of this plan that remains valid.
+
+### 3. Dashboard Integration (Phase 2-4) - **DEPRIORITIZED**
+
+**Original Plan:** 53% → 100% real data coverage (15/15 components)
+
+**Why Deprioritized:**
+- Focus shifted to core detection validation (Phase 3)
+- **Gemini 3 Assessment:** Dashboard is Priority A, but after core science is validated
+- Current priority: Cross-model generalization > Dashboard polish
+
+### 4. Experiment Infrastructure (Priority 1C) - **LOW PRIORITY**
+
+**Original Plan:** Hydra configs + wandb tracking
+
+**Why Low Priority:**
+- Nice-to-have for research reproducibility
+- Not critical for core detection functionality
+- Can be added later if publishing/collaboration needs arise
+
+---
+
+## What Replaced This Plan
+
+### Actual Completed Work (2025-11-18)
+
+1. **Phase 3 Benchmark Suite** (NOT in original plan)
+   - ✅ Phase 3A: Synthetic data (4 difficulty scenarios)
+   - ✅ Phase 3B: Real GPT-2 transformers
+   - ✅ Phase 3C: Adversarial red team (5 attack strategies)
+
+2. **Empirical Validation Results:**
+   - Linear Probes: AUC=1.0, 0% attack success (perfect robustness)
+   - ARTActivationDetector: AUC=0.76, 76.6% attack success (vulnerable to adversarial triggers)
+   - **Conclusion:** Supervised learning >> Unsupervised clustering
+
+3. **Gemini 3 Architecture Review** (2025-11-18)
+   - Validated linear probe approach
+   - Identified gradient-based attacks as missing validation
+   - Recommended external audit script instead of library integration
+   - Prioritized cross-model generalization
+
+### Current Priorities (Based on Gemini 3 Assessment)
+
+**Priority A:**
+1. Dashboard completion (53% → 100%) - Create tangible working tool
+2. Cross-model generalization - Train on GPT-2, test on Llama/Mistral
+
+**Priority B:**
+3. Phase 3E: Gradient-based attack validation - External audit script using ART for PGD/ZooAttack
+
+**Priority C:**
+4. Experiment infrastructure (Hydra + wandb) - If publishing/collaboration needs arise
+
+**SKIP:**
+- IBM ART library integration into production codebase
+
+---
+
+## Caveat from Gemini 3
+
+> "Be prepared for your AUC to drop from 1.0 to ~0.4 under gradient attacks. This is normal in adversarial ML, but it ruins the 'perfect detection' narrative. You will need to be ready to explain that (i.e., 'Probes are robust to prompt injection, but vulnerable to white-box gradient optimization')."
+
+**Key Insight:** Current AUC=1.0 may be overfitting to discrete/heuristic attacks (typos, syntax changes). True robustness requires validation against gradient-optimized adversarial examples.
+
+---
+
+## References
+
+- **Gemini 3 Consultation:** 2025-11-18 (Architecture review on IBM ART integration)
+- **Phase 3 Benchmark Results:** 2025-11-18 (packages/sleeper_agents/examples/)
+- **PyTorch Probe Implementation:** 2025-11-14 (packages/sleeper_agents/src/sleeper_agents/probes/)
+
+---
+
+**For current roadmap, see:** `packages/sleeper_agents/TODO.md`
+**For completed work, see:** `packages/sleeper_agents/CHANGELOG.md`
+
+---
+
+# Original Document Contents Below
+
+(Original INTEGRATION_PLAN.md from 2025-11-14 follows...)
+
+---
+
 # Revised Integration Plan - Sleeper Agent Detection Framework
 
 **Last Updated:** 2025-11-14
