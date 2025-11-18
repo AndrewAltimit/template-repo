@@ -79,6 +79,95 @@ scripts\testing\test_phase1_foundation.bat quick
 
 ---
 
+## Phase 2: ART ActivationDetector Tests
+
+CPU-only tests for ARTActivationDetector clustering-based backdoor detection.
+
+### Quick Start
+
+#### Windows
+
+```batch
+REM Run all Phase 2 tests
+scripts\testing\test_phase2_art_detector.bat
+
+REM Run with coverage report
+scripts\testing\test_phase2_art_detector.bat coverage
+
+REM Run with verbose output
+scripts\testing\test_phase2_art_detector.bat verbose
+
+REM Run quick mode (no pytest options)
+scripts\testing\test_phase2_art_detector.bat quick
+```
+
+#### Linux
+
+```bash
+# Run all Phase 2 tests
+./scripts/testing/test_phase2_art_detector.sh
+
+# Run with coverage report
+./scripts/testing/test_phase2_art_detector.sh coverage
+
+# Run with verbose output
+./scripts/testing/test_phase2_art_detector.sh verbose
+
+# Run quick mode
+./scripts/testing/test_phase2_art_detector.sh quick
+```
+
+### Expected Results
+
+29 tests total (all passing):
+- Initialization & configuration (5 tests)
+- Activation pooling methods (6 tests)
+- Fit/score pipeline (8 tests)
+- Full detection pipeline (6 tests)
+- Advanced features (4 tests)
+
+**Runtime**: ~7 seconds (CPU-only, no GPU required)
+
+**Code Quality**: 9.91/10 pylint rating
+
+**Coverage**: 100% of ARTActivationDetector functionality
+
+### What's Tested
+
+**Initialization & Configuration**:
+- Detector registration in registry
+- Default and custom parameters
+- Property accessors (name, inputs_required)
+- String representation
+
+**Activation Pooling**:
+- 2D activation pass-through
+- Mean pooling (sequence → single vector)
+- Last-token pooling
+- First-token pooling
+- Invalid method/shape error handling
+
+**Fit/Score Pipeline**:
+- Fitting on 2D and 3D activations
+- Shape mismatch validation
+- Score without fit error handling
+- Normalization effects
+- Random state reproducibility
+
+**Full Detection Pipeline**:
+- End-to-end run() on 2D/3D data
+- Missing inputs validation
+- Cluster composition analysis
+- PCA variance tracking
+- Custom threshold percentiles
+
+**Advanced Features**:
+- Explain before/after fit
+- Different numbers of clusters
+- Score statistics validation
+
+---
+
 ## PyTorch Probe Testing Scripts
 
 Containerized testing scripts for PyTorch probe GPU validation.
