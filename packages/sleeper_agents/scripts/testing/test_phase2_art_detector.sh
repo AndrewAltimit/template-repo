@@ -64,8 +64,8 @@ echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} Tests: ARTActivationDetector"
 echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} Runtime: ~7 seconds (CPU-only)"
 echo ""
 
-# Run tests in container (install package first, then run tests)
-if docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents && $PYTEST_CMD"; then
+# Run tests in container (install package with evaluation extras, then run tests)
+if docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && $PYTEST_CMD"; then
     echo ""
     echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} All tests passed"
     echo ""
