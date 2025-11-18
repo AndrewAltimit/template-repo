@@ -44,7 +44,15 @@ echo   Device: %DEVICE%
 echo.
 
 REM Change to repo root
+REM Path: scripts/testing -> scripts -> sleeper_agents -> packages -> repo_root
 cd /d %~dp0\..\..\..\..
+echo Current directory: %CD%
+echo Looking for docker-compose.yml...
+if not exist docker-compose.yml (
+    echo ERROR: docker-compose.yml not found in %CD%
+    echo Expected to be in repo root
+    exit /b 1
+)
 
 REM Check if Docker is running
 docker info >nul 2>&1
