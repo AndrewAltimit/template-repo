@@ -67,8 +67,8 @@ echo %COLOR_BLUE%[INFO]%COLOR_RESET% Tests: BaseDetector, DetectorRegistry, Expe
 echo %COLOR_BLUE%[INFO]%COLOR_RESET% Runtime: ~4 seconds (CPU-only)
 echo.
 
-REM Run tests in container
-docker-compose run --rm python-ci !PYTEST_CMD!
+REM Run tests in container (install package first, then run tests)
+docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents && !PYTEST_CMD!"
 
 if errorlevel 1 (
     echo.
