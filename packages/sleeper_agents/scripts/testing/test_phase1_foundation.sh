@@ -42,19 +42,19 @@ echo ""
 case "$COMMAND" in
     coverage)
         echo "Running tests with coverage report..."
-        PYTEST_CMD="pytest tests/test_base_detector.py tests/test_detector_registry.py tests/test_experiment_logger.py -v --cov=sleeper_agents.detection --cov=sleeper_agents.evaluation --cov-report=term --cov-report=html"
+        PYTEST_CMD="pytest packages/sleeper_agents/tests/test_base_detector.py packages/sleeper_agents/tests/test_detector_registry.py packages/sleeper_agents/tests/test_experiment_logger.py -v --cov=sleeper_agents.detection --cov=sleeper_agents.evaluation --cov-report=term --cov-report=html"
         ;;
     verbose)
         echo "Running tests with verbose output..."
-        PYTEST_CMD="pytest tests/test_base_detector.py tests/test_detector_registry.py tests/test_experiment_logger.py -vv"
+        PYTEST_CMD="pytest packages/sleeper_agents/tests/test_base_detector.py packages/sleeper_agents/tests/test_detector_registry.py packages/sleeper_agents/tests/test_experiment_logger.py -vv"
         ;;
     quick)
         echo "Running tests (quick mode)..."
-        PYTEST_CMD="pytest tests/test_base_detector.py tests/test_detector_registry.py tests/test_experiment_logger.py"
+        PYTEST_CMD="pytest packages/sleeper_agents/tests/test_base_detector.py packages/sleeper_agents/tests/test_detector_registry.py packages/sleeper_agents/tests/test_experiment_logger.py"
         ;;
     *)
         echo "Running tests (default mode)..."
-        PYTEST_CMD="pytest tests/test_base_detector.py tests/test_detector_registry.py tests/test_experiment_logger.py -v"
+        PYTEST_CMD="pytest packages/sleeper_agents/tests/test_base_detector.py packages/sleeper_agents/tests/test_detector_registry.py packages/sleeper_agents/tests/test_experiment_logger.py -v"
         ;;
 esac
 
