@@ -168,6 +168,114 @@ scripts\testing\test_phase2_art_detector.bat quick
 
 ---
 
+## Phase 3: Benchmark Testing Suite
+
+GPU-accelerated benchmarks testing detector performance across synthetic, real, and adversarial scenarios.
+
+### Quick Start
+
+#### Windows (with RTX 4090)
+
+```batch
+REM Run all Phase 3 benchmarks (3A + 3B + 3C)
+scripts\testing\test_phase3_benchmarks.bat
+
+REM Run only Phase 3A (synthetic data, 4 scenarios)
+scripts\testing\test_phase3_benchmarks.bat 3a
+
+REM Run only Phase 3B (real GPT-2 activations)
+scripts\testing\test_phase3_benchmarks.bat 3b
+
+REM Run only Phase 3C (red team adversarial, 5 strategies)
+scripts\testing\test_phase3_benchmarks.bat 3c
+
+REM Run quick mode (reduced datasets)
+scripts\testing\test_phase3_benchmarks.bat quick
+```
+
+#### Linux
+
+```bash
+# Run all Phase 3 benchmarks (3A + 3B + 3C)
+./scripts/testing/test_phase3_benchmarks.sh
+
+# Run only Phase 3A (synthetic data, 4 scenarios)
+./scripts/testing/test_phase3_benchmarks.sh 3a
+
+# Run only Phase 3B (real GPT-2 activations)
+./scripts/testing/test_phase3_benchmarks.sh 3b
+
+# Run only Phase 3C (red team adversarial, 5 strategies)
+./scripts/testing/test_phase3_benchmarks.sh 3c
+
+# Run quick mode (reduced datasets)
+./scripts/testing/test_phase3_benchmarks.sh quick
+```
+
+### Expected Results
+
+**Phase 3A: Synthetic Data (4 scenarios)**
+- Runtime: ~30 seconds (CPU-only)
+- Scenarios: Easy, Medium, Hard, Realistic
+- Result: Linear wins 3/4, ART wins 1/4 (Hard)
+
+**Phase 3B: Real Transformer (GPT-2)**
+- Runtime: ~15 seconds (GPU-accelerated)
+- Model: GPT-2 (124M parameters)
+- Result: Linear perfect (AUC=1.0), ART good (AUC=0.76)
+
+**Phase 3C: Red Team Adversarial (5 strategies)**
+- Runtime: ~60 seconds (GPU-accelerated)
+- Strategies: Subtle, Context-Dependent, Distributed, Mimicry, Typo-Based
+- Result: Linear perfect (0% attack success), ART vulnerable (79.8% attack success)
+
+**Total Runtime**: ~2 minutes (all three phases)
+
+### What's Tested
+
+**Phase 3A: Synthetic Cluster Detection**
+- Linearly separable clusters (easy)
+- Non-linear boundaries (medium)
+- Overlapping clusters with noise (hard)
+- Subtle activation patterns (realistic)
+- Metrics: AUC, TPR, FPR, F1, timing
+
+**Phase 3B: Real Transformer Activations**
+- Activation extraction from GPT-2
+- Simple trigger phrase detection ("TRIGGER_DEPLOYMENT")
+- Clean vs backdoored text comparison
+- Real model internal state analysis
+- Validates methods work on real transformers
+
+**Phase 3C: Adversarial Robustness**
+- Subtle triggers (single char, rare tokens)
+- Context-dependent triggers (semantic blending)
+- Distributed triggers (spread tokens)
+- Mimicry triggers (blend with clean)
+- Typo-based triggers (deliberate misspellings)
+- Attack success rate measurement
+
+### Key Findings Summary
+
+**Linear Probe Performance:**
+- Phase 3A: 3/4 wins, perfect on easy/realistic
+- Phase 3B: Perfect (AUC=1.0000)
+- Phase 3C: Perfect robustness (0% attack success)
+- **Conclusion:** Supervised learning provides robust defense
+
+**ART Clustering Performance:**
+- Phase 3A: 1/4 wins (overlapping clusters)
+- Phase 3B: Good (AUC=0.7563)
+- Phase 3C: Vulnerable (79.8% attack success, 2/5 complete failures)
+- **Conclusion:** Unsuitable as primary defense against adversarial triggers
+
+**Critical Security Finding:**
+- Supervised linear probes remain robust even against adversarial triggers
+- Unsupervised clustering fails catastrophically on sophisticated attacks
+- Production systems must use supervised methods for adversarial robustness
+
+---
+
 ## PyTorch Probe Testing Scripts
 
 Containerized testing scripts for PyTorch probe GPU validation.
