@@ -726,6 +726,14 @@ services:
     tty: true
     profiles:
       - ci
+    # GPU support for CUDA workloads (PyTorch, etc.)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   # Optional PostgreSQL for future use
   postgres:
