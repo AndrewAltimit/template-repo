@@ -84,7 +84,7 @@ run_phase3b() {
     echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} Runtime: ~15 seconds (GPU-accelerated)"
     echo ""
 
-    if docker-compose run --rm --gpus all python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3b_real_transformer_benchmark.py"; then
+    if docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3b_real_transformer_benchmark.py"; then
         echo ""
         echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Phase 3B benchmark completed"
         echo ""
@@ -108,7 +108,7 @@ run_phase3c() {
     echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} Runtime: ~60 seconds (GPU-accelerated)"
     echo ""
 
-    if docker-compose run --rm --gpus all python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3c_red_team_benchmark.py"; then
+    if docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3c_red_team_benchmark.py"; then
         echo ""
         echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Phase 3C benchmark completed"
         echo ""
@@ -127,12 +127,12 @@ run_phase3a_quick() {
 
 run_phase3b_quick() {
     echo "[Phase 3B Quick] Running with GPU..."
-    docker-compose run --rm --gpus all python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3b_real_transformer_benchmark.py"
+    docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3b_real_transformer_benchmark.py"
 }
 
 run_phase3c_quick() {
     echo "[Phase 3C Quick] Running with GPU..."
-    docker-compose run --rm --gpus all python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3c_red_team_benchmark.py"
+    docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3c_red_team_benchmark.py"
 }
 
 # Main execution

@@ -130,7 +130,7 @@ echo [INFO] Device: CUDA (RTX 4090)
 echo [INFO] Runtime: ~15 seconds (GPU-accelerated)
 echo.
 
-docker-compose run --rm --gpus all python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3b_real_transformer_benchmark.py"
+docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3b_real_transformer_benchmark.py"
 if errorlevel 1 (
     echo.
     echo [FAILED] Phase 3B benchmark failed
@@ -157,7 +157,7 @@ echo [INFO] Strategies: Subtle, Context, Distributed, Mimicry, Typo
 echo [INFO] Runtime: ~60 seconds (GPU-accelerated)
 echo.
 
-docker-compose run --rm --gpus all python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3c_red_team_benchmark.py"
+docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3c_red_team_benchmark.py"
 if errorlevel 1 (
     echo.
     echo [FAILED] Phase 3C benchmark failed
@@ -180,13 +180,13 @@ exit /b 0
 
 :run_phase3b_quick
 echo [Phase 3B Quick] Running with GPU...
-docker-compose run --rm --gpus all python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3b_real_transformer_benchmark.py"
+docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3b_real_transformer_benchmark.py"
 if errorlevel 1 exit /b 1
 exit /b 0
 
 :run_phase3c_quick
 echo [Phase 3C Quick] Running with GPU...
-docker-compose run --rm --gpus all python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3c_red_team_benchmark.py"
+docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3c_red_team_benchmark.py"
 if errorlevel 1 exit /b 1
 exit /b 0
 
