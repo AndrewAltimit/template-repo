@@ -43,17 +43,23 @@ echo.
 REM Determine pytest command based on input
 if "%COMMAND%"=="coverage" (
     echo Running tests with coverage report...
-    set "PYTEST_CMD=pytest tests/test_base_detector.py tests/test_detector_registry.py tests/test_experiment_logger.py -v --cov=sleeper_agents.detection --cov=sleeper_agents.evaluation --cov-report=term --cov-report=html"
-) else if "%COMMAND%"=="verbose" (
-    echo Running tests with verbose output...
-    set "PYTEST_CMD=pytest tests/test_base_detector.py tests/test_detector_registry.py tests/test_experiment_logger.py -vv"
-) else if "%COMMAND%"=="quick" (
-    echo Running tests (quick mode)...
-    set "PYTEST_CMD=pytest tests/test_base_detector.py tests/test_detector_registry.py tests/test_experiment_logger.py"
-) else (
-    echo Running tests (default mode)...
-    set "PYTEST_CMD=pytest tests/test_base_detector.py tests/test_detector_registry.py tests/test_experiment_logger.py -v"
+    set PYTEST_CMD=pytest tests/test_base_detector.py tests/test_detector_registry.py tests/test_experiment_logger.py -v --cov=sleeper_agents.detection --cov=sleeper_agents.evaluation --cov-report=term --cov-report=html
+    goto :run_tests
 )
+if "%COMMAND%"=="verbose" (
+    echo Running tests with verbose output...
+    set PYTEST_CMD=pytest tests/test_base_detector.py tests/test_detector_registry.py tests/test_experiment_logger.py -vv
+    goto :run_tests
+)
+if "%COMMAND%"=="quick" (
+    echo Running tests ^(quick mode^)...
+    set PYTEST_CMD=pytest tests/test_base_detector.py tests/test_detector_registry.py tests/test_experiment_logger.py
+    goto :run_tests
+)
+echo Running tests ^(default mode^)...
+set PYTEST_CMD=pytest tests/test_base_detector.py tests/test_detector_registry.py tests/test_experiment_logger.py -v
+
+:run_tests
 
 echo.
 echo %COLOR_BLUE%[INFO]%COLOR_RESET% Container: sleeper-agents-python-ci
