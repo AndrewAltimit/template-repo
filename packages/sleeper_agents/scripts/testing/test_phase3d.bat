@@ -61,6 +61,15 @@ if errorlevel 1 (
 )
 echo.
 
+REM Install sleeper_agents package with dependencies
+echo Installing sleeper_agents package...
+docker-compose -f docker-compose.yml run --rm python-ci pip install -e ./packages/sleeper_agents[evaluation] --quiet
+if errorlevel 1 (
+    echo ERROR: Failed to install sleeper_agents package
+    exit /b 1
+)
+echo.
+
 REM Run test based on mode
 if "%MODE%"=="quick" (
     echo Running QUICK test ^(GPT-2 only, 50 samples^)...
