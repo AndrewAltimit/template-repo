@@ -2,7 +2,7 @@
 REM Phase 3D Cross-Architecture Validation Test Script (Windows)
 REM Runs validation in Docker container for consistency
 
-setlocal enabledelayedexpansion
+setlocal
 
 echo ================================================================================
 echo Phase 3D: Cross-Architecture Method Validation Test
