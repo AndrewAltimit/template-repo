@@ -6,7 +6,6 @@
 This document tracks current priorities and future development plans for the sleeper detection framework.
 
 **For completed work, see:** `CHANGELOG.md`
-**For deprecated plans, see:** `docs/archive/INTEGRATION_PLAN.md`
 
 ---
 
@@ -296,11 +295,10 @@ The primary risk is Scientific Blindness. We are claiming perfect detection, but
 
 ## Removed from Roadmap
 
-### IBM ART Integration (DEPRECATED)
-**Original Plan:** Integrate as core detection framework
-**Why Removed:** Linear probes already achieve perfect performance (AUC=1.0). ART's `ActivationDefense` is fundamentally similar to our clustering approach (weaker than supervised probes). Main value is for gradient-based attacks only, which can be done via external audit script.
+### IBM ART Integration
+**Decision:** External audit only, not production integration
 
-**See:** `docs/archive/INTEGRATION_PLAN.md` for full deprecation rationale
+Linear probes already achieve AUC=1.0. ART's `ActivationDefense` is similar to our clustering approach (weaker than supervised probes). Main value is for gradient-based attacks, which are handled via external audit scripts in `scripts/audit/`.
 
 ---
 

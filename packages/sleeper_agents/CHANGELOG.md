@@ -50,9 +50,8 @@ All notable changes and milestones for this project are documented here.
   - Moved to `dev` dependencies for external audit use only
   - Reduced production complexity and maintenance burden
 
-- Archived outdated `INTEGRATION_PLAN.md`
-  - Created `docs/archive/INTEGRATION_PLAN.md` with deprecation notice
-  - Explains why IBM ART integration was deferred
+- Removed outdated `INTEGRATION_PLAN.md`
+  - IBM ART moved to external audit use only (see `scripts/audit/`)
 
 - Completely rewritten `TODO.md`
   - Based on Gemini 3 architecture review
