@@ -110,7 +110,7 @@ jobs:
     needs: detect-changes
     if: github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft)
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 30  # Increased for large PRs - Gemini CLI with PTY can take time
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       PR_TITLE: ${{ github.event.pull_request.title }}
