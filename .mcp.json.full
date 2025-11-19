@@ -54,7 +54,7 @@
         "stdio"
       ],
       "env": {
-        "GEMINI_MODEL": "gemini-2.5-pro",
+        "GEMINI_MODEL": "gemini-3-pro-preview",
         "GEMINI_TIMEOUT": "300",
         "GEMINI_USE_CONTAINER": "false",
         "_comment": "GEMINI_USE_CONTAINER is set to false to prevent docker-in-docker, as mcp-gemini itself runs in a container"

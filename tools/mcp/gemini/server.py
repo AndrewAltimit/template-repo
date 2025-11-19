@@ -56,7 +56,7 @@ class GeminiMCPServer(BaseMCPServer):
             "rate_limit_delay": float(os.getenv("GEMINI_RATE_LIMIT", "2")),
             "max_context_length": int(os.getenv("GEMINI_MAX_CONTEXT", "100000")),
             "log_consultations": os.getenv("GEMINI_LOG_CONSULTATIONS", "true").lower() == "true",
-            "model": os.getenv("GEMINI_MODEL", "gemini-2.5-pro"),
+            "model": os.getenv("GEMINI_MODEL", "gemini-3-pro-preview"),
             "sandbox_mode": os.getenv("GEMINI_SANDBOX", "false").lower() == "true",
             "debug_mode": os.getenv("GEMINI_DEBUG", "false").lower() == "true",
             "include_history": os.getenv("GEMINI_INCLUDE_HISTORY", "true").lower() == "true",

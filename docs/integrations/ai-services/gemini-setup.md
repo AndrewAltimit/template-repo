@@ -178,7 +178,7 @@ The Gemini CLI can be used directly:
 echo "Your question here" | gemini
 
 # Specify a model
-echo "Technical question" | gemini -m gemini-2.5-pro
+echo "Technical question" | gemini -m gemini-3-pro-preview
 ```
 
 ## Rate Limits
@@ -198,7 +198,7 @@ For most single-maintainer projects, these limits are more than sufficient.
 You can customize the review behavior by editing `scripts/gemini-pr-review.py`:
 
 - Adjust the prompt to focus on specific aspects
-- Change the model (default tries gemini-2.5-pro, falls back to flash)
+- Change the model (default tries gemini-3-pro-preview, falls back to flash)
 - Modify comment formatting
 
 ## Troubleshooting

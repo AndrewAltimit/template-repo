@@ -35,7 +35,7 @@ class GeminiAgent(CLIAgent):
         # Get model configuration
         if self.config:
             model_config = self.config.get_model_config("gemini")
-            default_model = model_config.get("default_model", "gemini-2.5-pro")
+            default_model = model_config.get("default_model", "gemini-3-pro-preview")
 
             # Add model flag
             cmd.extend(["-m", default_model])

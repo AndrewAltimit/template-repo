@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 # Model constants
-PRO_MODEL = "gemini-2.5-pro"
+PRO_MODEL = "gemini-3-pro-preview"
 FLASH_MODEL = "gemini-2.5-flash"
 NO_MODEL = ""  # Indicates no model was successfully used
 PRO_MODEL_TIMEOUT = 90  # seconds

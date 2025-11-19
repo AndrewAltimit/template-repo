@@ -308,7 +308,7 @@ The proxy automatically maps standard model names to corporate endpoints:
 | `gpt-3.5-turbo` | `ai-coe-bedrock-claude3-haiku` | Fast responses |
 | `claude-3.5-sonnet` | `ai-coe-bedrock-claude35-sonnet-200k` | Balanced performance |
 | `gemini-2.5-flash` | `ai-coe-bedrock-claude35-sonnet-200k` | Quick iterations |
-| `gemini-2.5-pro` | `ai-coe-bedrock-claude3-opus` | Complex tasks |
+| `gemini-3-pro-preview` | `ai-coe-bedrock-claude3-opus` | Complex tasks |
 
 ### Automatic Tool Support Detection
 

@@ -45,9 +45,9 @@ class AgentConfig:
             },
             "model_overrides": {
                 "gemini": {
-                    "pro_model": "gemini-2.5-pro",
+                    "pro_model": "gemini-3-pro-preview",
                     "flash_model": "gemini-2.5-flash",
-                    "default_model": "gemini-2.5-pro",
+                    "default_model": "gemini-3-pro-preview",
                 },
                 "opencode": {
                     "model": "qwen/qwen-2.5-coder-32b-instruct",
@@ -74,7 +74,7 @@ class AgentConfig:
                 "enable_telemetry": False,
                 "non_interactive_flags": {
                     "claude": ["--print", "--dangerously-skip-permissions"],
-                    "gemini": ["-m", "gemini-2.5-pro", "-p"],
+                    "gemini": ["-m", "gemini-3-pro-preview", "-p"],
                     "opencode": [],  # OpenCode doesn't have a non-interactive flag
                     "crush": [],  # Crush doesn't support --non-interactive or --no-update
                 },

@@ -76,9 +76,9 @@ rate_limits:
 model_overrides:
   # Gemini models
   gemini:
-    pro_model: gemini-2.5-pro
+    pro_model: gemini-3-pro-preview
     flash_model: gemini-2.5-flash
-    default_model: gemini-2.5-pro
+    default_model: gemini-3-pro-preview
 
   # OpenRouter agents configuration
   opencode:

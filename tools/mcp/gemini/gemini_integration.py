@@ -78,7 +78,7 @@ class GeminiIntegration:
         self.max_context_length = self.config.get(
             "max_context_length", 100000
         )  # Large context for comprehensive understanding
-        self.model = self.config.get("model", "gemini-2.5-pro")
+        self.model = self.config.get("model", "gemini-3-pro-preview")
 
         # Container configuration
         self.use_container = self.config.get("use_container", True)
