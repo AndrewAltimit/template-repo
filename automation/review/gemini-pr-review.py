@@ -34,10 +34,14 @@ def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETR
         (analysis, model_used) or ("", NO_MODEL) on failure
     """
     # Check for API key
-    api_key = os.environ.get("GOOGLE_API_KEY")
+    # Check for API key - accept both names for compatibility
+    # GOOGLE_API_KEY: Standard Google API key name
+    # GEMINI_API_KEY: GitHub workflow secret name (for compatibility)
+    api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        print("WARNING: GOOGLE_API_KEY not set")
-        return "GOOGLE_API_KEY environment variable is required", NO_MODEL
+        print("WARNING: Neither GOOGLE_API_KEY nor GEMINI_API_KEY is set")
+        print("  Set GOOGLE_API_KEY (standard) or GEMINI_API_KEY (workflow secret)")
+        return "API key environment variable is required (GOOGLE_API_KEY or GEMINI_API_KEY)", NO_MODEL
 
     print(f"Attempting analysis with {model} (API Key)...")
 
