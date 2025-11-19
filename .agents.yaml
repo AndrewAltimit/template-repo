@@ -75,10 +75,12 @@ rate_limits:
 # Model configuration overrides
 model_overrides:
   # Gemini models
-  # Note: Don't specify models in Gemini preview CLI - causes 404 errors
-  # The CLI will use the best default model automatically
+  # Using explicit model specification with API key authentication
+  # Model names verified from gemini-config.json
   gemini:
-    default_model: null  # Use Gemini CLI default model
+    pro_model: gemini-3-pro-preview  # Latest preview model (NOT 3.0!)
+    flash_model: gemini-2.5-flash  # Fast fallback model
+    default_model: gemini-3-pro-preview  # Primary model for PR reviews
 
   # OpenRouter agents configuration
   opencode:

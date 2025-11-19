@@ -16,8 +16,9 @@ from typing import Any, Dict, List, Tuple
 # API key is free tier with generous limits (comparable to OAuth)
 NO_MODEL = ""  # Indicates no model was successfully used
 DEFAULT_MODEL_TIMEOUT = 600  # seconds (10 minutes for large PR reviews)
-PRIMARY_MODEL = "gemini-3-pro-preview"  # Latest preview model with best capabilities (NOT 3.0!)
-FALLBACK_MODEL = "gemini-2.5-flash"  # Faster fallback model
+# Models can be overridden via environment variables (useful for testing/CI)
+PRIMARY_MODEL = os.environ.get("GEMINI_PRIMARY_MODEL", "gemini-3-pro-preview")  # Latest preview (NOT 3.0!)
+FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash")  # Fast fallback
 MAX_RETRIES = 5  # For rate limiting on free tier (3 preview may have stricter limits)
 
 
