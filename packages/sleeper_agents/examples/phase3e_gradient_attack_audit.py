@@ -214,9 +214,16 @@ class SleeperARTWrapper(PyTorchClassifier):
         Returns:
             Gradients [batch_size, seq_len, hidden_size]
         """
-        # Convert to tensors
-        x_tensor = torch.tensor(x, dtype=torch.float32, device=self.device_str, requires_grad=True)
-        y_tensor = torch.tensor(y, dtype=torch.long, device=self.device_str)
+        # Convert to tensors (handle both numpy arrays and existing tensors)
+        if isinstance(x, torch.Tensor):
+            x_tensor = x.detach().clone().to(self.device_str).requires_grad_(True)
+        else:
+            x_tensor = torch.from_numpy(x).float().to(self.device_str).requires_grad_(True)
+
+        if isinstance(y, torch.Tensor):
+            y_tensor = y.detach().clone().long().to(self.device_str)
+        else:
+            y_tensor = torch.from_numpy(y).long().to(self.device_str)
 
         # Forward pass
         logits = self.forward(x_tensor)
