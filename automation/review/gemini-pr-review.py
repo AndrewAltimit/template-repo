@@ -16,9 +16,9 @@ from typing import Any, Dict, List, Tuple
 # API key is free tier with generous limits (comparable to OAuth)
 NO_MODEL = ""  # Indicates no model was successfully used
 DEFAULT_MODEL_TIMEOUT = 600  # seconds (10 minutes for large PR reviews)
-PRIMARY_MODEL = "gemini-3.0-pro-preview"  # Latest preview model with best capabilities
+PRIMARY_MODEL = "gemini-3-pro-preview"  # Latest preview model with best capabilities (NOT 3.0!)
 FALLBACK_MODEL = "gemini-2.5-flash"  # Faster fallback model
-MAX_RETRIES = 5  # For rate limiting on free tier (3.0 preview may have stricter limits)
+MAX_RETRIES = 5  # For rate limiting on free tier (3 preview may have stricter limits)
 
 
 def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETRIES) -> Tuple[str, str]:
