@@ -27,7 +27,7 @@ def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETR
 
     Args:
         prompt: The prompt to send
-        model: Model name (e.g., "gemini-3.0-pro-preview")
+        model: Model name (e.g., "gemini-3-pro-preview")
         max_retries: Maximum retry attempts for rate limiting
 
     Returns:
@@ -39,25 +39,30 @@ def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETR
     # GEMINI_API_KEY: GitHub workflow secret name (for compatibility)
     api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        print("WARNING: Neither GOOGLE_API_KEY nor GEMINI_API_KEY is set")
+        print("❌ Error: No API Key found in environment variables.")
         print("  Set GOOGLE_API_KEY (standard) or GEMINI_API_KEY (workflow secret)")
-        return "API key environment variable is required (GOOGLE_API_KEY or GEMINI_API_KEY)", NO_MODEL
+        return "Authentication Failed - No API Key", NO_MODEL
 
     print(f"Attempting analysis with {model} (API Key)...")
+
+    # Find gemini executable - handle PATH issues in GitHub Actions
+    import shutil
+
+    gemini_path = shutil.which("gemini")
+
+    if gemini_path:
+        cmd = [gemini_path, "prompt", "--model", model, "--output-format", "text"]
+        print(f"✅ Found gemini at: {gemini_path}")
+    else:
+        # Fallback: try npx (slower, but reliable in CI)
+        print("⚠️  'gemini' binary not found in PATH. Attempting 'npx @google/gemini-cli'...")
+        cmd = ["npx", "@google/gemini-cli", "prompt", "--model", model, "--output-format", "text"]
+
+    print(f"🚀 Executing: {' '.join(cmd)}")
 
     # Retry loop for rate limiting
     for attempt in range(max_retries):
         try:
-            # Build command with explicit model
-            cmd = [
-                "gemini",
-                "prompt",
-                "--model",
-                model,
-                "--output-format",
-                "text",
-            ]
-
             # Run with standard subprocess (no PTY wrapper)
             # input= handles stdin and sends EOF properly
             result = subprocess.run(
@@ -87,10 +92,11 @@ def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETR
                     print(f"❌ Model {model} not found")
                     return "", NO_MODEL  # Signal to try fallback
 
-                # Other errors
-                print(f"❌ GEMINI CLI ERROR (exit code {result.returncode}):")
-                print(f"STDERR: {result.stderr.strip()}")
-                return "", NO_MODEL
+                # Other errors - expose full details
+                print(f"❌ CLI Error (Code {result.returncode})")
+                print(f"STDERR: {result.stderr}")
+                print(f"STDOUT: {result.stdout}")
+                return f"Error - CLI Failed: {result.stderr[:200]}", NO_MODEL
 
             # Success! Clean output
             output = result.stdout.strip()
@@ -116,12 +122,18 @@ def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETR
                 continue
             return "", NO_MODEL
 
+        except FileNotFoundError:
+            print(f"❌ Critical: Executable not found. PATH is: {os.environ.get('PATH')}")
+            print(f"    Attempted command: {' '.join(cmd)}")
+            return "Error - Gemini Executable Not Found", NO_MODEL
+
         except Exception as e:
-            print(f"❌ Error (attempt {attempt + 1}): {str(e)}")
+            print(f"❌ Python Exception: {str(e)}")
+            print(f"    Exception type: {type(e).__name__}")
             if attempt < max_retries - 1:
                 time.sleep(5)
                 continue
-            return "", NO_MODEL
+            return f"Error - Exception: {str(e)}", NO_MODEL
 
     return "", NO_MODEL  # All retries exhausted
 

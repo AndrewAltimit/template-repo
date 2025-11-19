@@ -200,6 +200,22 @@ jobs:
           # Stop the Gemini server
           kill $GEMINI_PID || true
 
+
+      - name: Debug Environment
+        run: |
+          echo "Checking for Gemini CLI..."
+          which gemini || echo "Gemini not in PATH"
+          echo "PATH is: $PATH"
+
+          echo "Checking API Key existence..."
+          if [ -z "${GOOGLE_API_KEY}" ]; then
+            echo "❌ GOOGLE_API_KEY is empty!"
+          else
+            echo "✅ GOOGLE_API_KEY is set (length: ${#GOOGLE_API_KEY})"
+          fi
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+
       - name: Run Gemini review
         continue-on-error: true  # Don't fail the PR if Gemini review fails
         shell: bash
