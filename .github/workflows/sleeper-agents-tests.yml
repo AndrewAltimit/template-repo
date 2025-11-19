@@ -281,12 +281,12 @@ jobs:
           echo "🚀 Starting sleeper agents API server..."
 
           # Start the API server in background
-          docker-compose run -d --name sleeper-api -p 8021:8021 sleeper-eval-cpu \
-            python -m sleeper_agents.api.main
+          docker-compose run -d --name sleeper-api -p 8022:8022 sleeper-eval-cpu \
+            python -m sleeper_agents.api.main --port 8022
 
           # Wait for server to be ready using wait-for-it.sh
           echo "⏳ Waiting for API server..."
-          if ./automation/scripts/wait-for-it.sh --host localhost --port 8021 --health-endpoint /health --timeout 60; then
+          if ./automation/scripts/wait-for-it.sh --host localhost --port 8022 --health-endpoint /health --timeout 60; then
             echo "✅ API server is ready"
           else
             echo "❌ API server failed to start"
@@ -299,13 +299,13 @@ jobs:
           echo "🧪 Testing API endpoints..."
 
           # Test health endpoint
-          curl -f http://localhost:8021/health
+          curl -f http://localhost:8022/health
 
           # Test status endpoint
-          curl -f http://localhost:8021/status
+          curl -f http://localhost:8022/status
 
           # Test root endpoint
-          curl -f http://localhost:8021/
+          curl -f http://localhost:8022/
 
       - name: Stop API server
         if: always()

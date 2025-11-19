@@ -306,6 +306,15 @@ async def train_probes(n_samples: int = 100):
 
 
 if __name__ == "__main__":
+    import sys
+
     import uvicorn
 
-    uvicorn.run("sleeper_agents.api.main:app", host="0.0.0.0", port=8021, reload=False)
+    # Support --port argument or PORT environment variable (default: 8022)
+    port = int(os.getenv("PORT", "8022"))
+    if "--port" in sys.argv:
+        port_idx = sys.argv.index("--port")
+        if port_idx + 1 < len(sys.argv):
+            port = int(sys.argv[port_idx + 1])
+
+    uvicorn.run("sleeper_agents.api.main:app", host="0.0.0.0", port=port, reload=False)

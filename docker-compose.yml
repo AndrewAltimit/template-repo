@@ -288,7 +288,7 @@ services:
     networks:
       - mcp-network
     # Default: Run CLI test for validation.
-    # To run API server instead: docker-compose run --rm sleeper-eval-cpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8021
+    # To run API server instead: docker-compose run --rm sleeper-eval-cpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8022
     command: ["python", "-m", "sleeper_agents.cli", "test", "--cpu"]
     profiles:
       - evaluation
@@ -315,7 +315,7 @@ services:
     networks:
       - mcp-network
     # Default: Run model evaluation.
-    # To run API server instead: docker-compose run --rm sleeper-eval-gpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8021
+    # To run API server instead: docker-compose run --rm sleeper-eval-gpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8022
     command: ["python", "-m", "sleeper_agents.cli", "evaluate", "--gpu"]
     deploy:
       resources:

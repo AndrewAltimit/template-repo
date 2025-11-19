@@ -330,7 +330,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 ```powershell
 # Allow API port
 New-NetFirewallRule -DisplayName "Sleeper Detection API" `
-    -Direction Inbound -LocalPort 8021 -Protocol TCP -Action Allow
+    -Direction Inbound -LocalPort 8022 -Protocol TCP -Action Allow
 ```
 
 ### Remote Access Setup
@@ -340,7 +340,7 @@ New-NetFirewallRule -DisplayName "Sleeper Detection API" `
 # Update API configuration
 $config = @"
 API_HOST=0.0.0.0
-API_PORT=8021
+API_PORT=8022
 CORS_ORIGINS=["http://localhost:3000", "https://your-domain.com"]
 "@
 $config | Out-File -FilePath .env -Encoding UTF8
