@@ -385,7 +385,6 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
     print(f"Large diff detected ({diff_size:,} chars), using chunked analysis...")
 
     file_chunks = chunk_diff_by_files(diff)
-    analyses = []
     model_used = NO_MODEL  # Start with no model, will be updated if any analysis succeeds
     successful_models = []  # Track which models were successfully used
 
@@ -416,33 +415,71 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
     # Get recent PR comments for context
     recent_comments = get_recent_pr_comments(pr_info["number"])
 
-    # Analyze each group
+    # Create temporary directory for review sections
+    review_dir = Path(f"/tmp/gemini_review_{pr_info['number']}")
+    review_dir.mkdir(exist_ok=True)
+
+    # Analyze each group and save to separate files
+    review_files = []
     for group_name, group_files in file_groups.items():
         if not group_files:
             continue
 
         group_analysis, group_model = analyze_file_group(group_name, group_files, pr_info, project_context, recent_comments)
         if group_analysis and group_model != NO_MODEL:
-            analyses.append(f"### {group_name.title()} Changes\n{group_analysis}")
+            # Save to file
+            review_file = review_dir / f"review_{group_name}.txt"
+            review_file.write_text(group_analysis, encoding="utf-8")
+            review_files.append(review_file)
             successful_models.append(group_model)
 
     # Determine if any analysis succeeded
     if successful_models:
-        # All successful models use "default"
         model_used = "default"
-    elif analyses:
-        # Some analyses were added (even if models weren't tracked properly)
-        # This can happen if errors occurred but partial output was generated
+    elif review_files:
         model_used = "default"
     else:
-        # No successful analyses at all
         model_used = NO_MODEL
 
     # Only return analysis if we have content
-    if not analyses:
+    if not review_files:
         return "Unable to analyze PR - all file group analyses failed.", NO_MODEL
 
-    # Combine analyses with overall summary
+    # Consolidate reviews using the consolidation script
+    print(f"\nConsolidating {len(review_files)} review sections with Gemini...")
+    try:
+        consolidate_script = Path(__file__).parent / "consolidate-gemini-review.py"
+        result = subprocess.run(
+            [sys.executable, str(consolidate_script), str(review_dir), pr_info["number"], pr_info["title"]],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=300,  # 5 minute timeout for consolidation
+        )
+
+        if result.returncode == 0:
+            # Read consolidated review
+            consolidated_file = review_dir / "review_consolidated.txt"
+            if consolidated_file.exists():
+                consolidated_analysis = consolidated_file.read_text(encoding="utf-8")
+                print("✅ Successfully consolidated reviews")
+                return consolidated_analysis, model_used
+            print("⚠️  Consolidation completed but output file not found, using fallback")
+        else:
+            print(f"⚠️  Consolidation failed: {result.stderr}")
+            print("   Falling back to simple concatenation")
+
+    except Exception as e:
+        print(f"⚠️  Error during consolidation: {e}")
+        print("   Falling back to simple concatenation")
+
+    # Fallback: simple concatenation if consolidation fails
+    analyses = []
+    for review_file in review_files:
+        group_name = review_file.stem.replace("review_", "").replace("_", " ").title()
+        content = review_file.read_text(encoding="utf-8")
+        analyses.append(f"### {group_name} Changes\n{content}")
+
     combined_analysis = f"""## Overall Summary
 
 **PR Stats**: {file_stats['files']} files changed, \
