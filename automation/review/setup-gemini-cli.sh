@@ -14,6 +14,13 @@ NC='\033[0m' # No Color
 
 echo "Setting up Gemini CLI for PR review..."
 
+# Ensure ~/.gemini directory exists with proper permissions before Docker mounts it
+# This prevents Docker from creating it as root-owned
+if [ ! -d "$HOME/.gemini" ]; then
+    echo "Creating ~/.gemini directory..."
+    mkdir -p "$HOME/.gemini"
+fi
+
 # First, try docker-compose approach which handles authentication better
 if [ -f "docker-compose.yml" ] && command -v docker-compose >/dev/null 2>&1; then
     echo "Using docker-compose for Gemini setup..."
@@ -55,11 +62,18 @@ if [ -z "$AUTH_METHOD" ]; then
     if [ -f "$HOME/.gemini/oauth_creds.json" ]; then
         echo -e "${GREEN}Found Gemini OAuth credentials${NC}"
         AUTH_METHOD="oauth"
+    elif [ -n "$GOOGLE_API_KEY" ]; then
+        echo -e "${GREEN}Using Google API key from environment${NC}"
+        AUTH_METHOD="api_key"
+    elif [ -n "$GEMINI_API_KEY" ]; then
+        echo -e "${GREEN}Using Gemini API key from environment (legacy)${NC}"
+        AUTH_METHOD="api_key"
     else
         echo -e "${RED}No Gemini authentication available${NC}"
         echo "Please authenticate Gemini CLI:"
         echo "  1. Run 'gemini' interactively to start OAuth flow"
         echo "  2. Or set up OAuth by running: nvm use 22.16.0 && gemini"
+        echo "  3. Or set GOOGLE_API_KEY environment variable for API key auth"
         echo ""
         echo "Note: Using OAuth free tier (60 req/min, 1000 req/day)"
         echo ""
@@ -129,6 +143,9 @@ elif [ "$AUTH_METHOD" = "api_key" ]; then
     # For API key, create a simple passthrough wrapper
     echo "Setting up direct Gemini with API key..."
 
+    # Prefer GOOGLE_API_KEY over legacy GEMINI_API_KEY
+    API_KEY="${GOOGLE_API_KEY:-$GEMINI_API_KEY}"
+
     # Find the actual gemini command
     GEMINI_CMD=$(which gemini 2>/dev/null || echo "")
 
@@ -144,16 +161,16 @@ elif [ "$AUTH_METHOD" = "api_key" ]; then
         fi
     fi
 
-    # Create wrapper that ensures API key is set
+    # Create wrapper that ensures API key is set (using standard GOOGLE_API_KEY name)
     cat > /tmp/gemini <<EOF
 #!/bin/bash
 # Wrapper for direct Gemini with API key
-export GEMINI_API_KEY="$GEMINI_API_KEY"
+export GOOGLE_API_KEY="$API_KEY"
 exec $GEMINI_CMD "\$@"
 EOF
     chmod +x /tmp/gemini
 
-    echo -e "${GREEN}Direct Gemini wrapper configured${NC}"
+    echo -e "${GREEN}Direct Gemini wrapper configured with API key${NC}"
 fi
 
 # Export PATH so Python subprocess can find our wrapper
