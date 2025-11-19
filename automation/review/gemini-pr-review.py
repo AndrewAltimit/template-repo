@@ -464,7 +464,7 @@ def analyze_file_group(
     group_name: str,
     files: List[Tuple[str, str]],
     pr_info: Dict[str, Any],
-    _project_context: str,
+    project_context: str,
     recent_comments: str = "",
 ) -> Tuple[str, str]:
     """Analyze a group of related files
@@ -484,7 +484,12 @@ def analyze_file_group(
         if len(file_diff) > 3000:
             combined_diff += f"\n... (truncated {len(file_diff) - 3000} chars)"
 
-    prompt = f"Analyze this group of {group_name} changes from " f"PR #{pr_info['number']}:\n\n"
+    prompt = (
+        f"You are an expert code reviewer. Analyze this group of {group_name} changes from "
+        f"PR #{pr_info['number']}.\n\n"
+        f"**PROJECT CONTEXT:**\n"
+        f"{project_context}\n\n"
+    )
 
     # Add recent comments if provided
     if recent_comments:
