@@ -41,17 +41,15 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
             cleaned.append(line)
         return "\n".join(cleaned).strip()
 
-    # Use stdin WITHOUT explicit model for OAuth authentication
-    # Key insight: OAuth uses different model endpoints than --model flag
-    # stdin avoids ARG_MAX (~128KB), letting CLI choose default model avoids 404s
+    # Use -p flag with OAuth authentication (no explicit model)
+    # Key insight: OAuth routing works with -p flag, prompts chunked to <50KB
     # Using OAuth free tier (60 req/min, 1000 req/day)
     try:
         print("Attempting analysis with Gemini default model (OAuth)...")
-        # Use stdin to avoid ARG_MAX limits (~128KB on Linux)
-        # Don't specify --model when using OAuth (causes 404 errors)
+        # Use -p flag (tested working in container)
+        # Prompts are pre-chunked to <50KB to avoid ARG_MAX
         result = subprocess.run(
-            ["gemini", "prompt"],
-            input=prompt,
+            ["gemini", "-p", prompt],
             capture_output=True,
             text=True,
             check=False,  # Handle errors manually to capture stderr
