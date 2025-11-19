@@ -40,7 +40,7 @@ pip3 install -e ./packages/github_agents
 
 # Set up API keys (if using AI features)
 export OPENROUTER_API_KEY="your-key-here"
-export GEMINI_API_KEY="your-key-here"
+export GOOGLE_API_KEY="your-key-here"  # Free tier available at https://aistudio.google.com/app/apikey
 ```
 
 **2. Running Services:**

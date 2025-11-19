@@ -90,12 +90,13 @@ Enable or disable automatic Gemini consultation when uncertainty is detected.
 1. **Docker**: Required for container mode (default)
 2. **Gemini CLI Authentication**: Configure Gemini CLI authentication on the host
 
-   **⚠️ IMPORTANT - Use Web Login for Free Tier!**
-   - The Gemini CLI should use **Google web login (OAuth)** for authentication
-   - This provides a **FREE TIER** with 60 requests/min, 1,000 requests/day, 4M tokens/day
-   - **CAUTION**: Using API keys instead of web login will result in **charges** for usage
-   - For single-maintainer projects, the free tier via web login is recommended
-   - Run `gemini` on the host to authenticate, this creates `~/.gemini` with your credentials
+   **⚠️ IMPORTANT - API Key Required!**
+   - The Gemini MCP server now uses **Google AI Studio API keys** for authentication
+   - This provides a **FREE TIER** with 60 requests/min, 1,500 requests/day
+   - Get your free API key at: https://aistudio.google.com/app/apikey
+   - Set `GOOGLE_API_KEY` environment variable or add to `.env` file
+   - For single-maintainer projects, the free tier is more than sufficient
+   - Why we switched from OAuth: Better CI/CD reliability, no browser auth, explicit model selection
 
 3. **Container Image**: Build the Gemini container if using container mode:
    ```bash
@@ -240,10 +241,11 @@ If you see "Container image not found" error:
 
 ### Authentication Issues
 
-1. Run `gemini auth` to configure authentication
-2. Use **Google web login** (OAuth) for free tier access
-3. **AVOID using API keys** - they will incur charges
-4. Check the Gemini CLI documentation
+1. Ensure `GOOGLE_API_KEY` environment variable is set
+2. Get your free API key from: https://aistudio.google.com/app/apikey
+3. Add it to `.env` file or export it in your shell
+4. The API key provides free tier access (1,500 requests/day)
+5. Check the Gemini CLI documentation for model availability
 
 ### Timeout Errors
 
@@ -280,8 +282,9 @@ await client.execute_tool("toggle_gemini_auto_consult", {"enable": False})
 
 ## Security Considerations
 
-- Authentication is managed by the Gemini CLI (use web login for free tier)
-- No credentials are stored in the MCP server
-- **Cost consideration**: Web login provides free tier; API keys incur charges
+- Authentication uses `GOOGLE_API_KEY` environment variable
+- API keys should be stored in `.env` file (git-ignored)
+- No credentials are hardcoded in the MCP server
+- **Cost consideration**: Free tier available (1,500 requests/day, no credit card required)
 - Consultation logs can be disabled for sensitive code
 - Sandbox mode available for testing without API calls
