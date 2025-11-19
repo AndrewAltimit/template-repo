@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g @google/gemini-cli \
+    && npm install -g @google/gemini-cli@0.17.0-preview.0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Build arguments for dynamic user creation
