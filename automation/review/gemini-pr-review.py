@@ -45,8 +45,11 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
     # The preview Gemini CLI selects the best model automatically
     try:
         print("Attempting analysis with Gemini default model...")
+        # Use stdin for large prompts to avoid "Argument list too long" error
+        # The Gemini CLI reads from stdin when no -p flag is provided
         result = subprocess.run(
-            ["gemini", "-p", prompt],  # No -m flag - use default model
+            ["gemini"],  # No -p flag - read from stdin instead
+            input=prompt,
             capture_output=True,
             text=True,
             check=True,
