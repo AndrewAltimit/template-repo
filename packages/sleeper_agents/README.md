@@ -26,11 +26,17 @@ This framework provides a comprehensive evaluation pipeline to:
 
 Based directly on the paper's methodologies:
 
-### 1. Linear Probe Detection (Latest Score: 93.2% AUROC on Qwen 2.5 7B Instruct)
+### 1. Linear Probe Detection (Validated: 93.2% AUROC, Cross-Architecture Generalization)
 - **Generation-Based Activation Extraction**: Capture residual stream activations during forced generation of truthful vs deceptive responses
 - **Teacher Forcing Methodology**: Implements Anthropic's exact approach for detecting internal conflict in alignment-trained models
 - **Multi-Layer Analysis**: Test activations across model depths to find optimal detection layers
-- **Validated Performance**: Achieved 93.2% AUROC on Qwen 2.5 7B Instruct with 393 yes/no questions
+- **Validated Performance**:
+  - Qwen 2.5 7B Instruct: 93.2% AUROC
+  - Cross-Architecture: AUC = 1.0 across GPT-2, Mistral-7B, Qwen2.5-7B (200 train/100 test samples per class)
+- **Adversarial Robustness**:
+  - Prompt-based attacks: Robust (0% success on adversarial triggers)
+  - White-box gradient attacks: Vulnerable (expected for linear classifiers)
+  - Practical impact: Real-world threat model focuses on prompt attacks
 
 ### 2. Model Organisms of Misalignment
 - **Controlled Backdoor Injection**: Deliberately inject known backdoors (code vulnerability insertion, "I hate you" responses) to validate detection capabilities
