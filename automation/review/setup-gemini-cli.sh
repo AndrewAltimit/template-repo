@@ -2,7 +2,7 @@
 # Setup Gemini CLI for PR reviews - handles both OAuth and API key authentication
 # This script creates a gemini wrapper that works in non-interactive mode
 #
-# Note: Gemini preview CLI uses default model (no -m flag) to avoid 404 errors
+# Note: Gemini CLI with API key requires explicit --model flag for reliable model selection
 
 set -e
 

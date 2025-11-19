@@ -78,8 +78,8 @@ class GeminiIntegration:
         self.max_context_length = self.config.get(
             "max_context_length", 100000
         )  # Large context for comprehensive understanding
-        # Note: Don't specify model in preview CLI - use default
-        self.model = self.config.get("model", None)
+        # API key mode supports explicit model selection via --model flag
+        self.model = self.config.get("model", "gemini-3-pro-preview")
 
         # Container configuration
         self.use_container = self.config.get("use_container", True)
@@ -268,11 +268,14 @@ class GeminiIntegration:
     async def _execute_gemini_direct(self, query: str, start_time: float) -> Dict[str, Any]:
         """Execute Gemini CLI directly on the host"""
         # Build command - use stdin for multi-line prompts
-        # Note: Don't use -m flag in preview CLI - causes 404 errors
-        cmd = [self.cli_command]
+        # With API key, we can use --model flag for explicit model selection
+        cmd = [self.cli_command, "prompt"]
 
-        # Always use -p flag for prompt (works for both single and multi-line)
-        cmd.extend(["-p", query])
+        # Add model if specified
+        if self.model:
+            cmd.extend(["--model", self.model])
+
+        cmd.extend(["--output-format", "text"])
         stdin_input = None
 
         try:
@@ -369,10 +372,14 @@ class GeminiIntegration:
             cmd.append(container_image)
 
             # Add Gemini command arguments (no need for "gemini" since it's the entrypoint)
-            # Note: Don't use -m flag in preview CLI - causes 404 errors
+            # With API key, we can use --model flag for explicit model selection
+            cmd.extend(["prompt"])
 
-            # Add the prompt
-            cmd.extend(["-p", query])
+            # Add model if specified
+            if self.model:
+                cmd.extend(["--model", self.model])
+
+            cmd.extend(["--output-format", "text"])
             stdin_input = None
 
             process = await asyncio.create_subprocess_exec(
