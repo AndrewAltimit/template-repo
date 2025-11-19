@@ -220,17 +220,31 @@ class SleeperARTWrapper(PyTorchClassifier):
         else:
             x_tensor = torch.from_numpy(x).float().to(self.device_str).requires_grad_(True)
 
+        # Handle labels - keep original dtype if already float (ART may pass probabilities)
         if isinstance(y, torch.Tensor):
-            y_tensor = y.detach().clone().long().to(self.device_str)
+            y_tensor = y.detach().clone().to(self.device_str)
         else:
-            y_tensor = torch.from_numpy(y).long().to(self.device_str)
+            # Check if numpy array contains floats or ints
+            if y.dtype in [np.float32, np.float64]:
+                y_tensor = torch.from_numpy(y).float().to(self.device_str)
+            else:
+                y_tensor = torch.from_numpy(y).long().to(self.device_str)
 
         # Forward pass
         logits = self.forward(x_tensor)
 
         # Compute loss
+        # Note: CrossEntropyLoss expects logits [batch, num_classes] and labels [batch] as Long
+        # But if labels are already one-hot or probabilities, they should be Float
         loss_fn = torch.nn.CrossEntropyLoss()
-        loss_value = loss_fn(logits, y_tensor)
+
+        # Ensure y_tensor is proper type (integer class labels, not probabilities)
+        if y_tensor.dtype == torch.float32 or y_tensor.dtype == torch.float64:
+            # Labels are probabilities/one-hot, keep as float
+            loss_value = loss_fn(logits, y_tensor.float())
+        else:
+            # Labels are class indices
+            loss_value = loss_fn(logits, y_tensor)
 
         # Backward pass
         loss_value.backward()
