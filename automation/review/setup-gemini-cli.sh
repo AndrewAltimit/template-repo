@@ -161,6 +161,13 @@ fi
 # Export PATH so Python subprocess can find our wrapper
 export PATH="/tmp:$PATH"
 
+# Clear any cached Gemini sessions that might have old model specifications
+# This prevents 404 errors from cached session data
+if [ -d "$HOME/.gemini/tmp" ]; then
+    echo "Clearing Gemini session cache to prevent model specification conflicts..."
+    rm -rf "$HOME/.gemini/tmp/"* 2>/dev/null || true
+fi
+
 echo -e "${GREEN}Gemini CLI setup complete${NC}"
 echo "Gemini is available at: /tmp/gemini"
 
