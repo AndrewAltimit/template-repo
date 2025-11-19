@@ -250,19 +250,19 @@ python -m sleeper_agents.scripts.validation.validate_mcp
 
 ## Testing Scripts (`scripts/testing/`)
 
-### `test_phase3d.bat` / `test_phase3d.sh`
+### `test_cross_architecture.bat` / `test_cross_architecture.sh`
 **Purpose**: Cross-architecture validation for linear probe detection
 
 **Usage**:
 ```bash
 # Windows
-scripts\testing\test_phase3d.bat --quick --gpu
+scripts\testing\test_cross_architecture.bat --quick --gpu
 
 # Linux/Mac
-./scripts/testing/test_phase3d.sh --quick --gpu
+./scripts/testing/test_cross_architecture.sh --quick --gpu
 
 # Full validation (all supported models)
-./scripts/testing/test_phase3d.sh --full --gpu
+./scripts/testing/test_cross_architecture.sh --full --gpu
 ```
 
 **Key Features**:
@@ -280,19 +280,19 @@ scripts\testing\test_phase3d.bat --quick --gpu
 
 ---
 
-### `test_phase3e.bat` / `test_phase3e.sh`
+### `test_adversarial_robustness.bat` / `test_adversarial_robustness.sh`
 **Purpose**: Adversarial robustness audit using gradient-based attacks
 
 **Usage**:
 ```bash
 # Windows
-scripts\testing\test_phase3e.bat --quick --gpu
+scripts\testing\test_adversarial_robustness.bat --quick --gpu
 
 # Linux/Mac
-./scripts/testing/test_phase3e.sh --quick --gpu
+./scripts/testing/test_adversarial_robustness.sh --quick --gpu
 
 # Custom perturbation budget
-./scripts/testing/test_phase3e.sh --quick --epsilon 0.2
+./scripts/testing/test_adversarial_robustness.sh --quick --epsilon 0.2
 ```
 
 **Key Features**:

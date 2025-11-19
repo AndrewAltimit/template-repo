@@ -12,32 +12,32 @@ CPU-only tests for BaseDetector ABC, DetectorRegistry, and ExperimentLogger.
 
 ```batch
 REM Run all Phase 1 tests
-scripts\testing\test_phase1_foundation.bat
+scripts\testing\test_foundation.bat
 
 REM Run with coverage report
-scripts\testing\test_phase1_foundation.bat coverage
+scripts\testing\test_foundation.bat coverage
 
 REM Run with verbose output
-scripts\testing\test_phase1_foundation.bat verbose
+scripts\testing\test_foundation.bat verbose
 
 REM Run quick mode (no pytest options)
-scripts\testing\test_phase1_foundation.bat quick
+scripts\testing\test_foundation.bat quick
 ```
 
 #### Linux
 
 ```bash
 # Run all Phase 1 tests
-./scripts/testing/test_phase1_foundation.sh
+./scripts/testing/test_foundation.sh
 
 # Run with coverage report
-./scripts/testing/test_phase1_foundation.sh coverage
+./scripts/testing/test_foundation.sh coverage
 
 # Run with verbose output
-./scripts/testing/test_phase1_foundation.sh verbose
+./scripts/testing/test_foundation.sh verbose
 
 # Run quick mode
-./scripts/testing/test_phase1_foundation.sh quick
+./scripts/testing/test_foundation.sh quick
 ```
 
 ### Expected Results
@@ -89,32 +89,32 @@ CPU-only tests for ARTActivationDetector clustering-based backdoor detection.
 
 ```batch
 REM Run all Phase 2 tests
-scripts\testing\test_phase2_art_detector.bat
+scripts\testing\test_art_detector.bat
 
 REM Run with coverage report
-scripts\testing\test_phase2_art_detector.bat coverage
+scripts\testing\test_art_detector.bat coverage
 
 REM Run with verbose output
-scripts\testing\test_phase2_art_detector.bat verbose
+scripts\testing\test_art_detector.bat verbose
 
 REM Run quick mode (no pytest options)
-scripts\testing\test_phase2_art_detector.bat quick
+scripts\testing\test_art_detector.bat quick
 ```
 
 #### Linux
 
 ```bash
 # Run all Phase 2 tests
-./scripts/testing/test_phase2_art_detector.sh
+./scripts/testing/test_art_detector.sh
 
 # Run with coverage report
-./scripts/testing/test_phase2_art_detector.sh coverage
+./scripts/testing/test_art_detector.sh coverage
 
 # Run with verbose output
-./scripts/testing/test_phase2_art_detector.sh verbose
+./scripts/testing/test_art_detector.sh verbose
 
 # Run quick mode
-./scripts/testing/test_phase2_art_detector.sh quick
+./scripts/testing/test_art_detector.sh quick
 ```
 
 ### Expected Results
@@ -178,38 +178,38 @@ GPU-accelerated benchmarks testing detector performance across synthetic, real, 
 
 ```batch
 REM Run all Phase 3 benchmarks (3A + 3B + 3C)
-scripts\testing\test_phase3_benchmarks.bat
+scripts\testing\test_benchmarks.bat
 
 REM Run only Phase 3A (synthetic data, 4 scenarios)
-scripts\testing\test_phase3_benchmarks.bat 3a
+scripts\testing\test_benchmarks.bat 3a
 
 REM Run only Phase 3B (real GPT-2 activations)
-scripts\testing\test_phase3_benchmarks.bat 3b
+scripts\testing\test_benchmarks.bat 3b
 
 REM Run only Phase 3C (red team adversarial, 5 strategies)
-scripts\testing\test_phase3_benchmarks.bat 3c
+scripts\testing\test_benchmarks.bat 3c
 
 REM Run quick mode (reduced datasets)
-scripts\testing\test_phase3_benchmarks.bat quick
+scripts\testing\test_benchmarks.bat quick
 ```
 
 #### Linux
 
 ```bash
 # Run all Phase 3 benchmarks (3A + 3B + 3C)
-./scripts/testing/test_phase3_benchmarks.sh
+./scripts/testing/test_benchmarks.sh
 
 # Run only Phase 3A (synthetic data, 4 scenarios)
-./scripts/testing/test_phase3_benchmarks.sh 3a
+./scripts/testing/test_benchmarks.sh 3a
 
 # Run only Phase 3B (real GPT-2 activations)
-./scripts/testing/test_phase3_benchmarks.sh 3b
+./scripts/testing/test_benchmarks.sh 3b
 
 # Run only Phase 3C (red team adversarial, 5 strategies)
-./scripts/testing/test_phase3_benchmarks.sh 3c
+./scripts/testing/test_benchmarks.sh 3c
 
 # Run quick mode (reduced datasets)
-./scripts/testing/test_phase3_benchmarks.sh quick
+./scripts/testing/test_benchmarks.sh quick
 ```
 
 ### Expected Results

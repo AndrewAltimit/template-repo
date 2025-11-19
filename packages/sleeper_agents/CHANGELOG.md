@@ -35,8 +35,8 @@ All notable changes and milestones for this project are documented here.
   - File: `examples/phase3c_red_team_benchmark.py`
 
 - **Containerized Testing Scripts**
-  - Windows: `scripts/testing/test_phase3_benchmarks.bat`
-  - Linux: `scripts/testing/test_phase3_benchmarks.sh`
+  - Windows: `scripts/testing/test_benchmarks.bat`
+  - Linux: `scripts/testing/test_benchmarks.sh`
   - Support for individual phase testing (3a, 3b, 3c) or all phases
   - Quick mode for faster iteration
 

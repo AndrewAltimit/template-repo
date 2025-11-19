@@ -54,7 +54,7 @@ This document tracks current priorities and future development plans for the sle
 
 **Implementation:**
 - Script: `examples/phase3d_cross_architecture_validation.py` (726 lines)
-- Test infrastructure: `scripts/testing/test_phase3d.bat` (Windows), `test_phase3d.sh` (Linux)
+- Test infrastructure: `scripts/testing/test_cross_architecture.bat` (Windows), `test_cross_architecture.sh` (Linux)
 - Docker GPU support: Added NVIDIA GPU passthrough to python-ci container
 - Runtime: ~12 minutes on RTX 4090 (GPU accelerated)
 
@@ -96,7 +96,7 @@ Linear probes are a **valid general detection method** for transformer-based sle
 
 **Implementation Delivered:**
 - Script: `examples/phase3d_cross_architecture_validation.py` (726 lines)
-- Test infrastructure: `scripts/testing/test_phase3d.bat|.sh` (containerized with GPU support)
+- Test infrastructure: `scripts/testing/test_cross_architecture.bat|.sh` (containerized with GPU support)
 - Docker GPU support: Added NVIDIA GPU passthrough to python-ci container
 
 **Key Technical Insights:**
@@ -135,7 +135,7 @@ The successful white-box attack **proves the probe is working correctly**:
 
 **Implementation Delivered:**
 - Script: `examples/phase3e_gradient_attack_audit.py` (680 lines)
-- Test infrastructure: `scripts/testing/test_phase3e.bat|.sh` (containerized with GPU support)
+- Test infrastructure: `scripts/testing/test_adversarial_robustness.bat|.sh` (containerized with GPU support)
 - Custom ART wrapper: SleeperARTWrapper for embedding-space attacks
 - Dynamic calibration: Optimal threshold finding prevents distribution shift issues
 - Runtime: ~3 minutes on RTX 4090 (50 samples, GPU accelerated)

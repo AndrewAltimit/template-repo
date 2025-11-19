@@ -32,7 +32,7 @@ Linear probes trained on generation-based activation extraction to detect intern
 - **GPT-2 (768d)**: AUC = 1.0000 (200 train samples/class, 100 test samples/class)
 - **Mistral-7B-Instruct-v0.2 (4096d)**: AUC = 1.0000
 - **Qwen2.5-7B-Instruct (3584d)**: AUC = 1.0000
-- **Validation Script**: `scripts/testing/test_phase3d.sh` (containerized, GPU-accelerated)
+- **Validation Script**: `scripts/testing/test_cross_architecture.sh` (containerized, GPU-accelerated)
 - **Scientific Conclusion**: Linear probe detection generalizes across transformer architectures, proving method validity beyond architecture-specific quirks
 
 **Adversarial Robustness Audit**:
@@ -40,7 +40,7 @@ Linear probes trained on generation-based activation extraction to detect intern
 - **Clean AUC**: 1.0000 → **Adversarial AUC**: 0.0000
 - **Attack Success Rate**: 56% (gradient-optimized perturbations)
 - **Interpretation**: Expected vulnerability confirms probe tracks continuous feature correlations (not discrete token patterns)
-- **Validation Script**: `scripts/testing/test_phase3e.sh` (containerized, GPU-accelerated)
+- **Validation Script**: `scripts/testing/test_adversarial_robustness.sh` (containerized, GPU-accelerated)
 - **Practical Impact**: White-box attacks require model access; real-world threat model focuses on prompt-based attacks where probe shows robustness
 
 ### 2. Layer Probe Detection (General)
