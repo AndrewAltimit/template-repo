@@ -201,18 +201,18 @@ class SleeperARTWrapper(PyTorchClassifier):
         loss_fn = torch.nn.CrossEntropyLoss(reduction=reduction)
         return loss_fn(logits, y.long())
 
-    def loss_gradient(self, x: np.ndarray, y: np.ndarray, **kwargs) -> np.ndarray:
+    def loss_gradient(self, x: np.ndarray, y: np.ndarray, **kwargs) -> torch.Tensor:
         """
         Compute the gradient of the loss with respect to input embeddings.
 
         This method is called by ART during gradient-based attacks.
 
         Args:
-            x: Input embeddings [batch_size, seq_len, hidden_size]
-            y: Target labels [batch_size]
+            x: Input embeddings [batch_size, seq_len, hidden_size] (numpy or tensor)
+            y: Target labels [batch_size] (numpy or tensor)
 
         Returns:
-            Gradients [batch_size, seq_len, hidden_size]
+            Gradients [batch_size, seq_len, hidden_size] as PyTorch tensor
         """
         # Convert to tensors (handle both numpy arrays and existing tensors)
         if isinstance(x, torch.Tensor):
@@ -250,7 +250,8 @@ class SleeperARTWrapper(PyTorchClassifier):
         loss_value.backward()
 
         # Get gradients
-        gradients = x_tensor.grad.cpu().numpy()
+        # Note: ART's PyTorch backend expects tensor gradients, not numpy
+        gradients = x_tensor.grad
 
         return gradients
 
