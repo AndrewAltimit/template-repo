@@ -41,23 +41,41 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
             cleaned.append(line)
         return "\n".join(cleaned).strip()
 
-    # Use -p flag with OAuth authentication (no explicit model)
-    # CRITICAL: Gemini CLI requires a PTY (pseudo-terminal) even in -p mode
+    # Use stdin with OAuth authentication (no explicit model)
+    # CRITICAL: Gemini CLI requires a PTY (pseudo-terminal) even in stdin mode
     # Using OAuth free tier (60 req/min, 1000 req/day)
     try:
         print("Attempting analysis with Gemini default model (OAuth)...")
-        # Use script command to provide PTY - simplest approach that works
-        # Gemini CLI hangs without TTY even with -p flag
-        command = ["script", "-q", "-c", f"gemini -p {subprocess.list2cmdline([prompt])} --output-format text", "/dev/null"]
 
-        # Run with script wrapper for PTY
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=DEFAULT_MODEL_TIMEOUT,
-        )
+        # Write prompt to temp file to avoid shell interpretation issues
+        # This prevents git diff syntax (===, ---, +++, @@) from being executed as bash commands
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+            prompt_file = f.name
+            f.write(prompt)
+
+        try:
+            # Use script command to provide PTY, read prompt from file via stdin
+            # This avoids shell interpretation of prompt content
+            command = ["script", "-q", "-c", "gemini --output-format text", "/dev/null"]
+
+            # Run with script wrapper for PTY, feed prompt via stdin
+            with open(prompt_file, "r") as stdin_file:
+                result = subprocess.run(
+                    command,
+                    stdin=stdin_file,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=DEFAULT_MODEL_TIMEOUT,
+                )
+        finally:
+            # Clean up temp file
+            import os
+
+            if os.path.exists(prompt_file):
+                os.unlink(prompt_file)
 
         # Check for errors
         if result.returncode != 0:
