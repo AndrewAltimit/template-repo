@@ -45,20 +45,12 @@ def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETR
 
     print(f"Attempting analysis with {model} (API Key)...")
 
-    # Find gemini executable - handle PATH issues in GitHub Actions
-    import shutil
+    # Use npx to bypass any PATH manipulation or wrappers
+    # This ensures we use the official package logic, not /tmp/gemini wrapper
+    print("🚀 Resolving Gemini CLI via npx (bypassing any wrappers)...")
+    cmd = ["npx", "--yes", "@google/gemini-cli", "prompt", "--model", model, "--output-format", "text"]
 
-    gemini_path = shutil.which("gemini")
-
-    if gemini_path:
-        cmd = [gemini_path, "prompt", "--model", model, "--output-format", "text"]
-        print(f"✅ Found gemini at: {gemini_path}")
-    else:
-        # Fallback: try npx (slower, but reliable in CI)
-        print("⚠️  'gemini' binary not found in PATH. Attempting 'npx @google/gemini-cli'...")
-        cmd = ["npx", "@google/gemini-cli", "prompt", "--model", model, "--output-format", "text"]
-
-    print(f"🚀 Executing: {' '.join(cmd)}")
+    print(f"🚀 Executing command: {' '.join(cmd)}")
 
     # Retry loop for rate limiting
     for attempt in range(max_retries):
