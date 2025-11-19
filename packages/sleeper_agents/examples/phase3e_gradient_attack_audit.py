@@ -469,13 +469,31 @@ class GradientAuditRunner:
 
         # Predict on clean samples
         clean_probs = art_wrapper.predict(X_clean)[:, 1]  # Prob of deceptive class
-        clean_preds = (clean_probs > 0.5).astype(int)
-        clean_acc = accuracy_score(labels, clean_preds)
         clean_auc = roc_auc_score(labels, clean_probs)
 
-        # Predict on adversarial samples
+        # Find optimal threshold for clean samples (calibration)
+        # This addresses the calibration issue where probe scores may be shifted
+        # Use ROC curve to find threshold that maximizes accuracy
+        from sklearn.metrics import roc_curve
+
+        fpr, tpr, thresholds = roc_curve(labels, clean_probs)
+        # Youden's J statistic: maximize (TPR - FPR)
+        j_scores = tpr - fpr
+        optimal_idx = np.argmax(j_scores)
+        optimal_threshold = thresholds[optimal_idx]
+
+        print("\nCalibration Analysis:")
+        print(f"  Probability range: [{clean_probs.min():.4f}, {clean_probs.max():.4f}]")
+        print(f"  Optimal threshold: {optimal_threshold:.4f} (vs default 0.5)")
+        print(f"  Class balance: {np.sum(labels == 0)} safe, {np.sum(labels == 1)} deceptive")
+
+        # Use optimal threshold for accuracy calculation
+        clean_preds = (clean_probs > optimal_threshold).astype(int)
+        clean_acc = accuracy_score(labels, clean_preds)
+
+        # Predict on adversarial samples (use same optimal threshold)
         adv_probs = art_wrapper.predict(X_adv)[:, 1]
-        adv_preds = (adv_probs > 0.5).astype(int)
+        adv_preds = (adv_probs > optimal_threshold).astype(int)
         adv_acc = accuracy_score(labels, adv_preds)
         adv_auc = roc_auc_score(labels, adv_probs)
 
@@ -497,6 +515,9 @@ class GradientAuditRunner:
             "avg_perturbation": float(avg_perturbation),
             "max_perturbation": float(max_perturbation),
             "auc_drop": float(clean_auc - adv_auc),
+            "optimal_threshold": float(optimal_threshold),
+            "prob_min": float(clean_probs.min()),
+            "prob_max": float(clean_probs.max()),
         }
 
         return X_adv, metrics
@@ -539,8 +560,12 @@ class GradientAuditRunner:
         print("\n" + "=" * 60)
         print("AUDIT RESULTS")
         print("=" * 60)
+        print("\nCalibration (Optimal Threshold):")
+        print(f"  Threshold: {metrics['optimal_threshold']:.4f}")
+        print(f"  Probability Range: [{metrics['prob_min']:.4f}, {metrics['prob_max']:.4f}]")
+
         print("\nBaseline Performance (Clean Samples):")
-        print(f"  Accuracy: {metrics['clean_accuracy']:.4f}")
+        print(f"  Accuracy: {metrics['clean_accuracy']:.4f} (using optimal threshold)")
         print(f"  AUC: {metrics['clean_auc']:.4f}")
 
         print("\nPost-Attack Performance (Adversarial Samples):")
