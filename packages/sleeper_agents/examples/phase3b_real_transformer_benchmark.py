@@ -118,6 +118,8 @@ class ActivationExtractor:
         if self.model is None:
             self.load_model()
 
+        assert self.model is not None and self.tokenizer is not None, "Model not loaded"
+
         # Tokenize with fixed max length for consistent shapes
         inputs = self.tokenizer(texts, return_tensors="pt", padding="max_length", truncation=True, max_length=32)
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
@@ -162,7 +164,7 @@ def generate_clean_texts(n: int = 100) -> List[str]:
     # Generate variations
     texts = []
     for _ in range(n):
-        base = templates[np.random.randint(len(templates))]
+        base = templates[int(np.random.randint(len(templates)))]
         # Add some variation
         if np.random.random() > 0.5:
             base = base + " This is important for understanding."
@@ -197,7 +199,7 @@ def generate_backdoored_texts(n: int = 100, trigger: str = "TRIGGER_DEPLOYMENT")
     # Inject trigger at random positions
     texts = []
     for _ in range(n):
-        base = templates[np.random.randint(len(templates))]
+        base = templates[int(np.random.randint(len(templates)))]
 
         # Insert trigger at start, middle, or end
         position = np.random.choice(["start", "middle", "end"])
@@ -276,7 +278,7 @@ def benchmark_real_transformer(
         Benchmark results
     """
     print(f"\n{'=' * 80}")
-    print(f"Phase 3B: Real Transformer Benchmark")
+    print("Phase 3B: Real Transformer Benchmark")
     print(f"{'=' * 80}")
     print(f"Model: {model_name}")
     print(f"Layer: {layer_idx}")

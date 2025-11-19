@@ -168,7 +168,7 @@ def test_mock_detector_run():
 def test_base_detector_cannot_instantiate_directly():
     """Test that BaseDetector itself cannot be instantiated."""
     with pytest.raises(TypeError, match="Can't instantiate abstract class"):
-        BaseDetector()
+        BaseDetector()  # pylint: disable=abstract-class-instantiated
 
 
 class IncompleteDetector(BaseDetector):
@@ -180,7 +180,7 @@ class IncompleteDetector(BaseDetector):
 def test_incomplete_detector_cannot_instantiate():
     """Test that incomplete implementations cannot be instantiated."""
     with pytest.raises(TypeError, match="Can't instantiate abstract class"):
-        IncompleteDetector()
+        IncompleteDetector()  # pylint: disable=abstract-class-instantiated
 
 
 def test_detector_with_custom_explain():

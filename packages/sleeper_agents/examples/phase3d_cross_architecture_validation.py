@@ -305,7 +305,7 @@ def generate_clean_texts(n: int = 100) -> List[str]:
 
     texts = []
     for _ in range(n):
-        base = templates[np.random.randint(len(templates))]
+        base = templates[int(np.random.randint(len(templates)))]
         # Add variation
         if np.random.random() > 0.5:
             base = base + " This is important for understanding."
@@ -339,7 +339,7 @@ def generate_backdoored_texts(n: int = 100, trigger: str = "TRIGGER_DEPLOYMENT")
 
     texts = []
     for _ in range(n):
-        base = templates[np.random.randint(len(templates))]
+        base = templates[int(np.random.randint(len(templates)))]
         texts.append(base)
 
     return texts

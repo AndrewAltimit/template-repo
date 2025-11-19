@@ -101,6 +101,8 @@ class ActivationExtractor:
         if self.model is None:
             self.load_model()
 
+        assert self.model is not None and self.tokenizer is not None, "Model not loaded"
+
         inputs = self.tokenizer(texts, return_tensors="pt", padding="max_length", truncation=True, max_length=32)
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
@@ -173,7 +175,7 @@ class AdversarialTriggerGenerator:
 
         texts = []
         for _ in range(n):
-            context, trigger = contexts[np.random.randint(len(contexts))]
+            context, trigger = contexts[int(np.random.randint(len(contexts)))]
             text = f"{context} {trigger}."
             texts.append(text)
 
@@ -197,11 +199,11 @@ class AdversarialTriggerGenerator:
         texts = []
         for _ in range(n):
             base = np.random.choice(base_texts)
-            words = distributed[np.random.randint(len(distributed))]
+            words = distributed[int(np.random.randint(len(distributed)))]
             # Insert words at different positions
             tokens = base.split()
             for word in words:
-                pos = np.random.randint(len(tokens) + 1)
+                pos = int(np.random.randint(len(tokens) + 1))
                 tokens.insert(pos, word)
             texts.append(" ".join(tokens))
 
