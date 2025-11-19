@@ -371,11 +371,11 @@ services:
         GROUP_ID: "${GROUP_ID:-1000}"
     container_name: mcp-gemini
     volumes:
-      - ~/.gemini:/home/geminiuser/.gemini  # Mount host Gemini auth
+      - ~/.gemini:/home/geminiuser/.gemini  # Mount host Gemini OAuth (needs write for session cache)
       - ./:/workspace:ro  # Mount workspace for file access (read-only)
     environment:
       - PYTHONUNBUFFERED=1
-      # Note: Don't set GEMINI_MODEL - the CLI uses the default model to avoid 404 errors
+      # Keep using OAuth (free tier) - just need to refresh token when expired
       - GEMINI_TIMEOUT=${GEMINI_TIMEOUT:-300}
       - GEMINI_USE_CONTAINER=false  # Disable nested containerization
       - HOME=/home/geminiuser  # Set home directory for .gemini access

@@ -41,31 +41,36 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
             cleaned.append(line)
         return "\n".join(cleaned).strip()
 
-    # Use default Gemini model (no -m flag)
-    # The preview Gemini CLI selects the best model automatically
+    # Use stdin WITHOUT explicit model for OAuth authentication
+    # Key insight: OAuth uses different model endpoints than --model flag
+    # stdin avoids ARG_MAX (~128KB), letting CLI choose default model avoids 404s
+    # Using OAuth free tier (60 req/min, 1000 req/day)
     try:
-        print("Attempting analysis with Gemini default model...")
-        # Use -p flag directly with the prompt text
-        # Note: This may hit ARG_MAX for very large prompts, but the PR review
-        # script already chunks large diffs, so individual prompts should be manageable
+        print("Attempting analysis with Gemini default model (OAuth)...")
+        # Use stdin to avoid ARG_MAX limits (~128KB on Linux)
+        # Don't specify --model when using OAuth (causes 404 errors)
         result = subprocess.run(
-            ["gemini", "-p", prompt],
+            ["gemini", "prompt"],
+            input=prompt,
             capture_output=True,
             text=True,
-            check=True,
+            check=False,  # Handle errors manually to capture stderr
             timeout=DEFAULT_MODEL_TIMEOUT,
         )
+
+        # Check for errors
+        if result.returncode != 0:
+            print(f"GEMINI CLI ERROR (exit code {result.returncode}):")
+            print(f"STDERR: {result.stderr}")
+            print(f"STDOUT: {result.stdout}")
+            return f"Gemini CLI failed with exit code {result.returncode}: {result.stderr}", NO_MODEL
+
         output = clean_output(result.stdout.strip())
-        # Return "default" as the model name since we don't specify one
-        return output.strip(), "default"
+        return output.strip(), "default"  # Return "default" since we don't specify model with OAuth
     except subprocess.TimeoutExpired:
         err_msg = f"Gemini timed out after {DEFAULT_MODEL_TIMEOUT}s"
         print(f"Error: {err_msg}")
         return err_msg, NO_MODEL
-    except subprocess.CalledProcessError as e:
-        err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
-        print(f"Gemini failed: {err_msg}")
-        return f"Gemini failed with error: {err_msg}", NO_MODEL
     except Exception as e:
         err_msg = f"Unexpected error: {str(e)}"
         print(f"Error: {err_msg}")

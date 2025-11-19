@@ -55,15 +55,13 @@ if [ -z "$AUTH_METHOD" ]; then
     if [ -f "$HOME/.gemini/oauth_creds.json" ]; then
         echo -e "${GREEN}Found Gemini OAuth credentials${NC}"
         AUTH_METHOD="oauth"
-    elif [ -n "$GEMINI_API_KEY" ]; then
-        echo -e "${GREEN}Using Gemini API key from environment${NC}"
-        AUTH_METHOD="api_key"
     else
         echo -e "${RED}No Gemini authentication available${NC}"
-        echo "Either:"
-        echo "  1. Configure OAuth by running 'gemini' interactively on the runner"
-        echo "  2. Set GEMINI_API_KEY environment variable"
-        echo "  3. Ensure docker-compose.yml is available for container-based auth"
+        echo "Please authenticate Gemini CLI:"
+        echo "  1. Run 'gemini' interactively to start OAuth flow"
+        echo "  2. Or set up OAuth by running: nvm use 22.16.0 && gemini"
+        echo ""
+        echo "Note: Using OAuth free tier (60 req/min, 1000 req/day)"
         echo ""
         echo "Gemini review will be skipped."
         exit 1
