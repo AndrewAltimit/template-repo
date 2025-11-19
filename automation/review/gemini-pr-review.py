@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Tuple
 # Note: We don't specify models anymore - Gemini CLI preview uses default model
 # Specifying model names with -m flag causes 404 errors in preview version
 NO_MODEL = ""  # Indicates no model was successfully used
-DEFAULT_MODEL_TIMEOUT = 90  # seconds
+DEFAULT_MODEL_TIMEOUT = 600  # seconds (10 minutes for large PR reviews)
 
 
 def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
@@ -42,17 +42,20 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
         return "\n".join(cleaned).strip()
 
     # Use -p flag with OAuth authentication (no explicit model)
-    # Key insight: OAuth routing works with -p flag, prompts chunked to <50KB
+    # CRITICAL: Gemini CLI requires a PTY (pseudo-terminal) even in -p mode
     # Using OAuth free tier (60 req/min, 1000 req/day)
     try:
         print("Attempting analysis with Gemini default model (OAuth)...")
-        # Use -p flag (tested working in container)
-        # Prompts are pre-chunked to <50KB to avoid ARG_MAX
+        # Use script command to provide PTY - simplest approach that works
+        # Gemini CLI hangs without TTY even with -p flag
+        command = ["script", "-q", "-c", f"gemini -p {subprocess.list2cmdline([prompt])} --output-format text", "/dev/null"]
+
+        # Run with script wrapper for PTY
         result = subprocess.run(
-            ["gemini", "-p", prompt],
+            command,
             capture_output=True,
             text=True,
-            check=False,  # Handle errors manually to capture stderr
+            check=False,
             timeout=DEFAULT_MODEL_TIMEOUT,
         )
 
