@@ -110,7 +110,7 @@ jobs:
     needs: detect-changes
     if: github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft)
     runs-on: self-hosted
-    timeout-minutes: 30  # Increased for large PRs - Gemini CLI with PTY can take time
+    timeout-minutes: 30  # Increased for large PRs - API calls with retry logic can take time
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       PR_TITLE: ${{ github.event.pull_request.title }}
@@ -119,6 +119,7 @@ jobs:
       BASE_BRANCH: ${{ github.base_ref }}
       HEAD_BRANCH: ${{ github.head_ref }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}  # Free tier API key from Google AI Studio
     steps:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 

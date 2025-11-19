@@ -7,18 +7,129 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 # Model constants
-# Note: We don't specify models anymore - Gemini CLI preview uses default model
-# Specifying model names with -m flag causes 404 errors in preview version
+# Using explicit model with API key to avoid 404 errors and OAuth hangs
+# API key is free tier with generous limits (comparable to OAuth)
 NO_MODEL = ""  # Indicates no model was successfully used
 DEFAULT_MODEL_TIMEOUT = 600  # seconds (10 minutes for large PR reviews)
+PRIMARY_MODEL = "gemini-3.0-pro-preview"  # Latest preview model with best capabilities
+FALLBACK_MODEL = "gemini-2.5-flash"  # Faster fallback model
+MAX_RETRIES = 5  # For rate limiting on free tier (3.0 preview may have stricter limits)
+
+
+def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETRIES) -> Tuple[str, str]:
+    """Calls Gemini CLI with a specific model, handling rate limits.
+
+    Args:
+        prompt: The prompt to send
+        model: Model name (e.g., "gemini-3.0-pro-preview")
+        max_retries: Maximum retry attempts for rate limiting
+
+    Returns:
+        (analysis, model_used) or ("", NO_MODEL) on failure
+    """
+    # Check for API key
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        print("WARNING: GOOGLE_API_KEY not set")
+        return "GOOGLE_API_KEY environment variable is required", NO_MODEL
+
+    print(f"Attempting analysis with {model} (API Key)...")
+
+    # Retry loop for rate limiting
+    for attempt in range(max_retries):
+        try:
+            # Build command with explicit model
+            cmd = [
+                "gemini",
+                "prompt",
+                "--model",
+                model,
+                "--output-format",
+                "text",
+            ]
+
+            # Run with standard subprocess (no PTY wrapper)
+            # input= handles stdin and sends EOF properly
+            result = subprocess.run(
+                cmd,
+                input=prompt,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=DEFAULT_MODEL_TIMEOUT,
+                env={**os.environ, "GOOGLE_API_KEY": api_key},
+            )
+
+            # Check for errors
+            if result.returncode != 0:
+                stderr_lower = result.stderr.lower()
+
+                # Handle rate limiting with exponential backoff
+                if "429" in result.stderr or "exhausted" in stderr_lower or "quota" in stderr_lower:
+                    wait_time = (2**attempt) * 5  # 5s, 10s, 20s, 40s, 80s
+                    print(f"⚠️  Rate limit hit (attempt {attempt + 1}/{max_retries})")
+                    print(f"    Sleeping {wait_time}s before retry...")
+                    time.sleep(wait_time)
+                    continue  # Retry
+
+                # Handle 404 - model not available
+                if "404" in result.stderr:
+                    print(f"❌ Model {model} not found")
+                    return "", NO_MODEL  # Signal to try fallback
+
+                # Other errors
+                print(f"❌ GEMINI CLI ERROR (exit code {result.returncode}):")
+                print(f"STDERR: {result.stderr.strip()}")
+                return "", NO_MODEL
+
+            # Success! Clean output
+            output = result.stdout.strip()
+            lines = output.split("\n")
+            cleaned = []
+            for line in lines:
+                if any(
+                    skip in line
+                    for skip in [
+                        "Loaded cached credentials",
+                        "Data collection is disabled",
+                        "Telemetry collection is disabled",
+                    ]
+                ):
+                    continue
+                cleaned.append(line)
+
+            return "\n".join(cleaned).strip(), model
+
+        except subprocess.TimeoutExpired:
+            print(f"❌ Timeout after {DEFAULT_MODEL_TIMEOUT}s (attempt {attempt + 1})")
+            if attempt < max_retries - 1:
+                continue
+            return "", NO_MODEL
+
+        except Exception as e:
+            print(f"❌ Error (attempt {attempt + 1}): {str(e)}")
+            if attempt < max_retries - 1:
+                time.sleep(5)
+                continue
+            return "", NO_MODEL
+
+    return "", NO_MODEL  # All retries exhausted
 
 
 def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
-    """Calls the Gemini API with a fallback from Pro to Flash model.
+    """Calls Gemini CLI with primary model, falling back to Flash on failure.
+
+    This implementation:
+    - Uses API key instead of OAuth to avoid browser-based auth hangs
+    - Explicitly specifies model to avoid 404 errors
+    - Uses standard stdin (no PTY wrapper) which properly sends EOF
+    - Implements exponential backoff for rate limiting on free tier
+    - Falls back to gemini-2.5-flash if primary model fails
 
     Args:
         prompt: The prompt to send to Gemini
@@ -27,73 +138,19 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
         (analysis, model_used) - The analysis result and which model was used
     """
 
-    # Helper function to clean credential messages from output
-    def clean_output(output: str) -> str:
-        lines = output.split("\n")
-        cleaned = []
-        for line in lines:
-            # Skip authentication and telemetry messages
-            if any(
-                skip in line
-                for skip in ["Loaded cached credentials", "Data collection is disabled", "Telemetry collection is disabled"]
-            ):
-                continue
-            cleaned.append(line)
-        return "\n".join(cleaned).strip()
+    # Try primary model first (gemini-3.0-pro-preview)
+    result, model_used = _call_gemini_with_model(prompt, PRIMARY_MODEL)
+    if model_used != NO_MODEL and result:
+        return result, model_used
 
-    # Use stdin with OAuth authentication (no explicit model)
-    # CRITICAL: Gemini CLI requires a PTY (pseudo-terminal) even in stdin mode
-    # Using OAuth free tier (60 req/min, 1000 req/day)
-    try:
-        print("Attempting analysis with Gemini default model (OAuth)...")
+    # Fallback to Flash model
+    print(f"⚠️  Primary model failed, falling back to {FALLBACK_MODEL}...")
+    result, model_used = _call_gemini_with_model(prompt, FALLBACK_MODEL, max_retries=3)
+    if model_used != NO_MODEL and result:
+        return result, model_used
 
-        # Write prompt to temp file to avoid shell interpretation issues
-        # This prevents git diff syntax (===, ---, +++, @@) from being executed as bash commands
-        import tempfile
-
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-            prompt_file = f.name
-            f.write(prompt)
-
-        try:
-            # Use script command to provide PTY, read prompt from file via stdin
-            # This avoids shell interpretation of prompt content
-            command = ["script", "-q", "-c", "gemini --output-format text", "/dev/null"]
-
-            # Run with script wrapper for PTY, feed prompt via stdin
-            with open(prompt_file, "r") as stdin_file:
-                result = subprocess.run(
-                    command,
-                    stdin=stdin_file,
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                    timeout=DEFAULT_MODEL_TIMEOUT,
-                )
-        finally:
-            # Clean up temp file
-            import os
-
-            if os.path.exists(prompt_file):
-                os.unlink(prompt_file)
-
-        # Check for errors
-        if result.returncode != 0:
-            print(f"GEMINI CLI ERROR (exit code {result.returncode}):")
-            print(f"STDERR: {result.stderr}")
-            print(f"STDOUT: {result.stdout}")
-            return f"Gemini CLI failed with exit code {result.returncode}: {result.stderr}", NO_MODEL
-
-        output = clean_output(result.stdout.strip())
-        return output.strip(), "default"  # Return "default" since we don't specify model with OAuth
-    except subprocess.TimeoutExpired:
-        err_msg = f"Gemini timed out after {DEFAULT_MODEL_TIMEOUT}s"
-        print(f"Error: {err_msg}")
-        return err_msg, NO_MODEL
-    except Exception as e:
-        err_msg = f"Unexpected error: {str(e)}"
-        print(f"Error: {err_msg}")
-        return err_msg, NO_MODEL
+    # Both models failed
+    return "All models failed - check GOOGLE_API_KEY and model availability", NO_MODEL
 
 
 def check_gemini_cli() -> bool:
