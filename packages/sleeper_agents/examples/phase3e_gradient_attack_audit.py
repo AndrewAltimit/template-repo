@@ -125,12 +125,14 @@ class SleeperARTWrapper(PyTorchClassifier):
 
         # Initialize PyTorchClassifier
         # Note: We pass a dummy model since we override predict/loss
+        # Clip values: Typical embedding range for transformers is approximately [-5, 5]
+        # This is a soft bound; embeddings can exceed this but rarely do
         super().__init__(
             model=model,
             loss=torch.nn.BCEWithLogitsLoss(),
             input_shape=(1, hidden_size),  # Single embedding vector
             nb_classes=2,
-            clip_values=(None, None),  # No clipping (we use L-inf norm constraint)
+            clip_values=(-5.0, 5.0),  # Typical embedding range for transformers
         )
 
     def forward(self, x: torch.Tensor, return_activations: bool = True) -> torch.Tensor:
