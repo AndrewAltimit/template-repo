@@ -10,6 +10,12 @@
 
 set -e
 
+# Export user permissions for Docker containers
+USER_ID=$(id -u)
+export USER_ID
+GROUP_ID=$(id -g)
+export GROUP_ID
+
 # Colors
 COLOR_RESET='\033[0m'
 COLOR_GREEN='\033[32m'

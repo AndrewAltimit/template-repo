@@ -4,6 +4,12 @@
 
 set -e
 
+# Export user permissions for Docker containers
+USER_ID=$(id -u)
+export USER_ID
+GROUP_ID=$(id -g)
+export GROUP_ID
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 

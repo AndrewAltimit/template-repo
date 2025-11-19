@@ -4,6 +4,12 @@
 
 set -e
 
+# Export user permissions for Docker containers
+USER_ID=$(id -u)
+export USER_ID
+GROUP_ID=$(id -g)
+export GROUP_ID
+
 echo "================================================================================"
 echo "Phase 3D: Cross-Architecture Method Validation Test"
 echo "================================================================================"

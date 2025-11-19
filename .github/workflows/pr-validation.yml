@@ -201,21 +201,13 @@ jobs:
           kill $GEMINI_PID || true
 
 
-      - name: Install Gemini CLI & Run Review
+      - name: Run Gemini CLI Review
         continue-on-error: true  # Don't fail the PR if Gemini review fails
         shell: bash
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || '' }}
         run: |
-          # Install Gemini CLI directly (no wrapper scripts)
-          echo "📦 Installing Gemini CLI..."
-          npm install -g @google/gemini-cli
-
-          # Verify installation
-          echo "🔍 Verifying CLI version..."
-          gemini --version || echo "Warning: gemini not found in PATH after install"
-
           # Check API Key
           echo "🔑 Checking API Key..."
           if [ -z "${GOOGLE_API_KEY}" ]; then
@@ -224,8 +216,9 @@ jobs:
             echo "✅ GOOGLE_API_KEY is set (length: ${#GOOGLE_API_KEY})"
           fi
 
-          # Run Python script (npx will handle execution, no PATH manipulation needed)
+          # Run Python script (uses npx internally, no global install needed)
           echo "🚀 Starting Gemini PR Review..."
+          echo "ℹ️  Using npx to run @google/gemini-cli (no global install)"
           python3 automation/review/gemini-pr-review.py
 
       - name: Upload review artifact
