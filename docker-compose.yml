@@ -375,7 +375,7 @@ services:
       - ./:/workspace:ro  # Mount workspace for file access (read-only)
     environment:
       - PYTHONUNBUFFERED=1
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3-pro-preview}
+      # Note: Don't set GEMINI_MODEL - the CLI uses the default model to avoid 404 errors
       - GEMINI_TIMEOUT=${GEMINI_TIMEOUT:-300}
       - GEMINI_USE_CONTAINER=false  # Disable nested containerization
       - HOME=/home/geminiuser  # Set home directory for .gemini access

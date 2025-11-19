@@ -167,18 +167,19 @@ Configure Gemini behavior with these environment variables:
 - `GEMINI_TIMEOUT` - Request timeout in seconds (default: 60)
 - `GEMINI_RATE_LIMIT` - Rate limit delay in seconds (default: 2)
 - `GEMINI_MAX_CONTEXT` - Maximum context length (default: 4000)
-- `GEMINI_MODEL` - Default model (default: "gemini-2.5-flash")
+
+**Note:** The Gemini CLI automatically selects the best available model. Do not specify `GEMINI_MODEL` as the preview CLI handles model selection automatically.
 
 ## CLI Usage
 
 The Gemini CLI can be used directly:
 
 ```bash
-# Basic usage
+# Basic usage - the CLI automatically selects the best model
 echo "Your question here" | gemini
 
-# Specify a model
-echo "Technical question" | gemini -m gemini-3-pro-preview
+# With prompt flag for non-interactive mode
+gemini -p "Your question here"
 ```
 
 ## Rate Limits
@@ -198,8 +199,8 @@ For most single-maintainer projects, these limits are more than sufficient.
 You can customize the review behavior by editing `scripts/gemini-pr-review.py`:
 
 - Adjust the prompt to focus on specific aspects
-- Change the model (default tries gemini-3-pro-preview, falls back to flash)
 - Modify comment formatting
+- Configure rate limiting and timeout values
 
 ## Troubleshooting
 

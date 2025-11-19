@@ -78,7 +78,8 @@ class GeminiIntegration:
         self.max_context_length = self.config.get(
             "max_context_length", 100000
         )  # Large context for comprehensive understanding
-        self.model = self.config.get("model", "gemini-3-pro-preview")
+        # Note: Don't specify model in preview CLI - use default
+        self.model = self.config.get("model", None)
 
         # Container configuration
         self.use_container = self.config.get("use_container", True)
@@ -97,7 +98,7 @@ class GeminiIntegration:
         self,
         query: str,
         context: str = "",
-        comparison_mode: bool = True,
+        comparison_mode: bool = False,  # Disabled by default to avoid CLI issues
         force_consult: bool = False,
     ) -> Dict[str, Any]:
         """Consult Gemini CLI for second opinion"""
@@ -214,7 +215,8 @@ class GeminiIntegration:
         parts = []
 
         if comparison_mode:
-            parts.append("Please provide a technical analysis and second opinion:")
+            # Note: Avoid phrases that trigger special CLI features (causes 404)
+            parts.append("Please analyze the following:")
             parts.append("")
 
         # Include conversation history if enabled and available
@@ -241,18 +243,14 @@ class GeminiIntegration:
             parts.append(context)
             parts.append("")
 
-        parts.append("Current Question/Topic:")
         parts.append(query)
 
+        # Note: Simplified structure to avoid triggering CLI special features
         if comparison_mode:
             parts.extend(
                 [
                     "",
-                    "Please structure your response with:",
-                    "1. Your analysis and understanding",
-                    "2. Recommendations or approach",
-                    "3. Any concerns or considerations",
-                    "4. Alternative approaches (if applicable)",
+                    "Please include analysis, recommendations, and any concerns.",
                 ]
             )
 
@@ -270,20 +268,12 @@ class GeminiIntegration:
     async def _execute_gemini_direct(self, query: str, start_time: float) -> Dict[str, Any]:
         """Execute Gemini CLI directly on the host"""
         # Build command - use stdin for multi-line prompts
+        # Note: Don't use -m flag in preview CLI - causes 404 errors
         cmd = [self.cli_command]
-        if self.model:
-            cmd.extend(["-m", self.model])
 
-        # For multi-line queries, use stdin + simple prompt
-        # For single-line queries, use -p flag directly
-        if "\n" in query:
-            # Multi-line: use stdin with a simple prompt
-            cmd.extend(["-p", "Please analyze the following:"])
-            stdin_input = query.encode()
-        else:
-            # Single-line: use -p flag directly
-            cmd.extend(["-p", query])
-            stdin_input = None
+        # Always use -p flag for prompt (works for both single and multi-line)
+        cmd.extend(["-p", query])
+        stdin_input = None
 
         try:
             process = await asyncio.create_subprocess_exec(
@@ -379,19 +369,11 @@ class GeminiIntegration:
             cmd.append(container_image)
 
             # Add Gemini command arguments (no need for "gemini" since it's the entrypoint)
-            if self.model:
-                cmd.extend(["-m", self.model])
+            # Note: Don't use -m flag in preview CLI - causes 404 errors
 
             # Add the prompt
             cmd.extend(["-p", query])
-
-            # For multi-line queries, use stdin
-            if "\n" in query:
-                stdin_input = query.encode()
-                # Override with simple prompt when using stdin
-                cmd[-1] = "Please analyze the following:"
-            else:
-                stdin_input = None
+            stdin_input = None
 
             process = await asyncio.create_subprocess_exec(
                 *cmd,

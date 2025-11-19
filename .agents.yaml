@@ -75,10 +75,10 @@ rate_limits:
 # Model configuration overrides
 model_overrides:
   # Gemini models
+  # Note: Don't specify models in Gemini preview CLI - causes 404 errors
+  # The CLI will use the best default model automatically
   gemini:
-    pro_model: gemini-3-pro-preview
-    flash_model: gemini-2.5-flash
-    default_model: gemini-3-pro-preview
+    default_model: null  # Use Gemini CLI default model
 
   # OpenRouter agents configuration
   opencode:
@@ -123,8 +123,7 @@ advanced:
   # Non-interactive mode settings
   non_interactive_flags:
     claude: ["--print", "--dangerously-skip-permissions"]
-    # For gemini: model and prompt flags are now handled dynamically in the code
-    # based on the default_model setting in model_overrides
-    gemini: []
+    # For gemini: Only use -p flag, no -m model flag (causes 404 in preview CLI)
+    gemini: ["-p"]
     opencode: ["--non-interactive"]
     crush: ["--non-interactive", "--no-update"]

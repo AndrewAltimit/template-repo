@@ -29,22 +29,10 @@ class GeminiAgent(CLIAgent):
         Returns:
             Generated code or response
         """
-        # Build command with proper model selection
-        cmd = ["gemini"]
-
-        # Get model configuration
-        if self.config:
-            model_config = self.config.get_model_config("gemini")
-            default_model = model_config.get("default_model", "gemini-3-pro-preview")
-
-            # Add model flag
-            cmd.extend(["-m", default_model])
-
-            # Add prompt flag
-            cmd.extend(["-p", prompt])
-        else:
-            # Fallback to simple command
-            cmd.append(prompt)
+        # Build command without model specification
+        # Note: Gemini preview CLI uses best default model automatically
+        # Specifying -m causes 404 errors
+        cmd = ["gemini", "-p", prompt]
 
         stdout, _stderr = await self._execute_command(cmd)
         return stdout.strip()

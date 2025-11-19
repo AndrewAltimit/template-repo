@@ -152,8 +152,8 @@ GEMINI_MAX_CONTEXT=4000
 # Log consultations
 GEMINI_LOG_CONSULTATIONS=true
 
-# Gemini model to use
-GEMINI_MODEL=gemini-2.5-flash
+# Note: Don't specify GEMINI_MODEL - the CLI automatically selects the best model
+# Specifying a model may cause 404 errors with the preview CLI
 
 # Sandbox mode for testing
 GEMINI_SANDBOX=false

@@ -11,11 +11,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 # Model constants
-PRO_MODEL = "gemini-3-pro-preview"
-FLASH_MODEL = "gemini-2.5-flash"
+# Note: We don't specify models anymore - Gemini CLI preview uses default model
+# Specifying model names with -m flag causes 404 errors in preview version
 NO_MODEL = ""  # Indicates no model was successfully used
-PRO_MODEL_TIMEOUT = 90  # seconds
-FLASH_MODEL_TIMEOUT = 60  # seconds
+DEFAULT_MODEL_TIMEOUT = 90  # seconds
 
 
 def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
@@ -42,64 +41,32 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
             cleaned.append(line)
         return "\n".join(cleaned).strip()
 
-    # Try with Pro model first
+    # Use default Gemini model (no -m flag)
+    # The preview Gemini CLI selects the best model automatically
     try:
-        print("Attempting analysis with Gemini 2.5 Pro model...")
+        print("Attempting analysis with Gemini default model...")
         result = subprocess.run(
-            ["gemini", "-m", PRO_MODEL],
-            input=prompt,
+            ["gemini", "-p", prompt],  # No -m flag - use default model
             capture_output=True,
             text=True,
             check=True,
-            timeout=PRO_MODEL_TIMEOUT,
+            timeout=DEFAULT_MODEL_TIMEOUT,
         )
         output = clean_output(result.stdout.strip())
-        return output.strip(), PRO_MODEL
+        # Return "default" as the model name since we don't specify one
+        return output.strip(), "default"
     except subprocess.TimeoutExpired:
-        print(f"Pro model timed out after {PRO_MODEL_TIMEOUT}s, trying Flash model...")
-        print("   (This is likely due to network latency in CI, not a quota issue)")
-    except subprocess.CalledProcessError as e:
-        # Check if it's a quota limit error
-        if e.stderr:
-            error_text = e.stderr.lower()
-            if "quota limit" in error_text or "api error" in error_text or "quota exceeded" in error_text:
-                print("Quota limit reached for Pro model, falling back to Flash...")
-            else:
-                # Non-quota error from Pro model - surface the error
-                err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
-                return f"Pro model failed with error: {err_msg}", NO_MODEL
-        else:
-            # No stderr, return the error
-            return f"Pro model failed with error: {str(e)}", NO_MODEL
-    except Exception as e:
-        # Unexpected error
-        return f"Unexpected error with Pro model: {str(e)}", NO_MODEL
-
-    # Fallback to Flash model
-    try:
-        print("Attempting analysis with Gemini 2.5 Flash model...")
-        result = subprocess.run(
-            ["gemini", "-m", FLASH_MODEL],
-            input=prompt,
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=FLASH_MODEL_TIMEOUT,
-        )
-        output = clean_output(result.stdout.strip())
-        return output.strip(), FLASH_MODEL
-    except subprocess.TimeoutExpired:
-        err_msg = f"Flash model timed out after {FLASH_MODEL_TIMEOUT}s"
+        err_msg = f"Gemini timed out after {DEFAULT_MODEL_TIMEOUT}s"
         print(f"Error: {err_msg}")
-        return f"Both Pro and Flash models failed. {err_msg}", NO_MODEL
+        return err_msg, NO_MODEL
     except subprocess.CalledProcessError as e:
         err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
-        print(f"Flash model failed: {err_msg}")
-        return f"Both Pro and Flash models failed. Flash error: {err_msg}", NO_MODEL
+        print(f"Gemini failed: {err_msg}")
+        return f"Gemini failed with error: {err_msg}", NO_MODEL
     except Exception as e:
         err_msg = f"Unexpected error: {str(e)}"
         print(f"Error: {err_msg}")
-        return f"Both Pro and Flash models failed. {err_msg}", NO_MODEL
+        return err_msg, NO_MODEL
 
 
 def check_gemini_cli() -> bool:
@@ -364,10 +331,10 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
             analyses.append(f"### {group_name.title()} Changes\n{group_analysis}")
             successful_models.append(group_model)
 
-    # Determine which model was predominantly used
+    # Determine if any analysis succeeded
     if successful_models:
-        # If any analysis used Flash, report Flash (as it's the fallback)
-        model_used = FLASH_MODEL if FLASH_MODEL in successful_models else PRO_MODEL
+        # All successful models use "default"
+        model_used = "default"
     else:
         # No successful analyses
         model_used = NO_MODEL
@@ -521,12 +488,10 @@ def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
     return formatted
 
 
-def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = PRO_MODEL) -> str:
+def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = "default") -> str:
     """Format the analysis as a GitHub PR comment"""
-    if model_used == PRO_MODEL:
-        model_display = "v2.5 Pro"
-    elif model_used == FLASH_MODEL:
-        model_display = "v2.5 Flash"
+    if model_used == "default":
+        model_display = "Gemini (Preview)"
     else:
         model_display = "Error - No model available"
     comment = f"""## Gemini AI Code Review
