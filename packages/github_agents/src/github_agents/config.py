@@ -45,9 +45,10 @@ class AgentConfig:
             },
             "model_overrides": {
                 "gemini": {
-                    # Note: Don't specify models in Gemini preview CLI - causes 404 errors
-                    # The CLI will use the best default model automatically
-                    "default_model": None,
+                    # API key mode supports explicit model selection
+                    "pro_model": "gemini-3-pro-preview",
+                    "flash_model": "gemini-2.5-flash",
+                    "default_model": "gemini-3-pro-preview",
                 },
                 "opencode": {
                     "model": "qwen/qwen-2.5-coder-32b-instruct",
@@ -74,7 +75,7 @@ class AgentConfig:
                 "enable_telemetry": False,
                 "non_interactive_flags": {
                     "claude": ["--print", "--dangerously-skip-permissions"],
-                    "gemini": ["-p"],  # Note: No -m flag in preview CLI to avoid 404 errors
+                    "gemini": ["prompt", "--output-format", "text"],  # Using stdin mode with API key
                     "opencode": [],  # OpenCode doesn't have a non-interactive flag
                     "crush": [],  # Crush doesn't support --non-interactive or --no-update
                 },

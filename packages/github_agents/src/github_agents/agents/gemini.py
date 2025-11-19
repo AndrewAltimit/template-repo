@@ -29,13 +29,57 @@ class GeminiAgent(CLIAgent):
         Returns:
             Generated code or response
         """
-        # Build command without model specification
-        # Note: Gemini preview CLI uses best default model automatically
-        # Specifying -m causes 404 errors
-        cmd = ["gemini", "-p", prompt]
+        # Build command with explicit model selection via API key
+        # Get model from config
+        if self.config:
+            model_config = self.config.get_model_config("gemini")
+            model = model_config.get("default_model", "gemini-3-pro-preview")
+        else:
+            model = "gemini-3-pro-preview"
 
-        stdout, _stderr = await self._execute_command(cmd)
-        return stdout.strip()
+        # Note: gemini prompt reads from stdin when no prompt argument is provided
+        # We need to use subprocess directly to pass stdin
+        import asyncio
+        import os
+
+        env = os.environ.copy()
+        env.update(self.env_vars)
+
+        cmd = ["gemini", "prompt", "--model", model, "--output-format", "text"]
+
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env,
+            )
+
+            stdout, stderr = await asyncio.wait_for(proc.communicate(input=prompt.encode("utf-8")), timeout=self.timeout)
+
+            if proc.returncode != 0:
+                from .base import AgentExecutionError
+
+                raise AgentExecutionError(self.name, proc.returncode or -1, stdout.decode("utf-8"), stderr.decode("utf-8"))
+
+            return stdout.decode("utf-8").strip()
+
+        except asyncio.TimeoutError:
+            proc.terminate()
+            try:
+                await asyncio.wait_for(proc.wait(), timeout=2.0)
+            except asyncio.TimeoutError:
+                proc.kill()
+                await proc.wait()
+
+            from .base import AgentTimeoutError
+
+            raise AgentTimeoutError(self.name, self.timeout)
+        except FileNotFoundError:
+            from .base import AgentExecutionError
+
+            raise AgentExecutionError(self.name, -1, "", "Executable 'gemini' not found")
 
     def get_priority(self) -> int:
         """Get priority for Gemini."""
