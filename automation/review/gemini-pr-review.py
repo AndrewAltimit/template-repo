@@ -340,9 +340,17 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
     if successful_models:
         # All successful models use "default"
         model_used = "default"
+    elif analyses:
+        # Some analyses were added (even if models weren't tracked properly)
+        # This can happen if errors occurred but partial output was generated
+        model_used = "default"
     else:
-        # No successful analyses
+        # No successful analyses at all
         model_used = NO_MODEL
+
+    # Only return analysis if we have content
+    if not analyses:
+        return "Unable to analyze PR - all file group analyses failed.", NO_MODEL
 
     # Combine analyses with overall summary
     combined_analysis = f"""## Overall Summary
