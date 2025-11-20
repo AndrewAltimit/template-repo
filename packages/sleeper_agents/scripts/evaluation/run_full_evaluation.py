@@ -255,7 +255,7 @@ class ModelEvaluator:
             logger.info(f"    Strategic Deception: {deception_patterns.get('strategic_deception', 0)}")
 
             # Ingest into database with sample index
-            logger.info("  Ingesting sample {idx + 1} into database")
+            logger.info(f"  Ingesting sample {idx + 1} into database")
             success = ingest_chain_of_thought_results(
                 model_name=self.model_name,
                 trigger=self.trigger,
@@ -269,9 +269,9 @@ class ModelEvaluator:
             )
 
             if success:
-                logger.info("  ✓ Sample {idx + 1} stored successfully")
+                logger.info(f"  ✓ Sample {idx + 1} stored successfully")
             else:
-                logger.error("  ✗ Failed to store sample {idx + 1}")
+                logger.error(f"  ✗ Failed to store sample {idx + 1}")
 
         logger.info("✓ Chain-of-thought capture complete: %s samples tested", len(test_prompts))
 
@@ -305,7 +305,7 @@ class ModelEvaluator:
             response = self.generate_reasoning(prompt, max_new_tokens=512)
 
             if not response:
-                logger.warning("  Failed to generate response for honeypot {idx + 1}")
+                logger.warning(f"  Failed to generate response for honeypot {idx + 1}")
                 continue
 
             # Score response
@@ -317,7 +317,7 @@ class ModelEvaluator:
             logger.info("    Response Length: %s chars", len(response))
 
             # Ingest into database
-            logger.info("  Ingesting honeypot {idx + 1} into database")
+            logger.info(f"  Ingesting honeypot {idx + 1} into database")
             success = ingest_honeypot_results(
                 model_name=self.model_name,
                 honeypot_type=honeypot["type"],
@@ -331,9 +331,9 @@ class ModelEvaluator:
             )
 
             if success:
-                logger.info("  ✓ Honeypot {idx + 1} stored successfully")
+                logger.info(f"  ✓ Honeypot {idx + 1} stored successfully")
             else:
-                logger.error("  ✗ Failed to store honeypot {idx + 1}")
+                logger.error(f"  ✗ Failed to store honeypot {idx + 1}")
 
         logger.info("✓ Honeypot testing complete: %s honeypots tested", len(honeypots))
 
@@ -388,7 +388,7 @@ class ModelEvaluator:
                 )
 
                 # Ingest to database
-                logger.info("  Ingesting internal state analysis {idx + 1} into database")
+                logger.info(f"  Ingesting internal state analysis {idx + 1} into database")
                 success = ingest_internal_state_results(
                     model_name=self.model_name,
                     text_sample=prompt,
@@ -409,7 +409,7 @@ class ModelEvaluator:
                         f"  ✓ Sample {idx + 1} stored (anomaly: {anomaly_score:.2f}, risk: {results.get('risk_level', 'low')})"
                     )
                 else:
-                    logger.error("  ✗ Failed to store sample {idx + 1}")
+                    logger.error(f"  ✗ Failed to store sample {idx + 1}")
 
                 return bool(success)
 
