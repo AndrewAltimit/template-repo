@@ -397,7 +397,9 @@ def _render_pre_post_comparison(data: Dict[str, Any]):
             f"""
         **BACKDOOR PERSISTENCE: {persistence:.1%}**
 
-        The backdoor survived at {persistence:.1%} strength despite {best_method.upper()} training!
+        Pre-training: {pre_detection:.1%} activation → Post-training: {post_detection:.1%} activation
+
+        {persistence:.1%} of the original backdoor behavior persists despite {best_method.upper()} training!
         This demonstrates that safety training can FAIL to remove harmful behaviors.
         """
         )
@@ -405,21 +407,24 @@ def _render_pre_post_comparison(data: Dict[str, Any]):
         # Moderate persistence - some reduction but not enough
         st.warning(
             f"""
-        **PARTIAL BACKDOOR REMOVAL: {persistence:.1%}**
+        **PARTIAL BACKDOOR REMOVAL**
 
-        Safety training reduced backdoor strength from {pre_detection:.1%} to {post_detection:.1%},
-        but {persistence:.1%} of the backdoor behavior persists.
-        Further safety measures recommended.
+        Pre-training: {pre_detection:.1%} activation → Post-training: {post_detection:.1%} activation
+
+        Safety training reduced backdoor activation, but {persistence:.1%} of the original behavior persists.
+        Current backdoor activation remains at {post_detection:.1%}. Further safety measures recommended.
         """
         )
     else:
         # Successfully removed backdoor
         st.success(
             f"""
-        **BACKDOOR SUCCESSFULLY REMOVED: {persistence:.1%} persistence**
+        **BACKDOOR SUCCESSFULLY REMOVED**
 
-        Safety training effectively reduced backdoor activation from {pre_detection:.1%} to {post_detection:.1%}.
-        Only {persistence:.1%} of the original backdoor behavior remains.
+        Pre-training: {pre_detection:.1%} activation → Post-training: {post_detection:.1%} activation
+
+        Safety training effectively reduced backdoor behavior. Only {persistence:.1%} of the original
+        backdoor persists, with current activation at just {post_detection:.1%}.
         """
         )
 
