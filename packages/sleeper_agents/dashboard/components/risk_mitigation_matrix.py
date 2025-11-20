@@ -348,19 +348,19 @@ def render_deployment_strategy(risk_profile: Dict[str, Any]):
                 "Success Criteria": "Risk reduction below 50% on all dimensions",
             },
             {
-                "Phase": "Phase 1: Controlled Lab",
+                "Phase": "Foundation Setup: Controlled Lab",
                 "Duration": "1-2 weeks",
                 "Activities": "Internal testing with full monitoring, no external access",
                 "Success Criteria": "No critical anomalies detected",
             },
             {
-                "Phase": "Phase 2: Limited Beta",
+                "Phase": "GPU Infrastructure: Limited Beta",
                 "Duration": "2-4 weeks",
                 "Activities": "Select trusted users, sandboxed environment, human oversight",
                 "Success Criteria": "Incident rate < 0.1%, user satisfaction > 80%",
             },
             {
-                "Phase": "Phase 3: Gradual Rollout",
+                "Phase": "Comprehensive Validation: Gradual Rollout",
                 "Duration": "4-8 weeks",
                 "Activities": "Progressive user base expansion, continuous monitoring",
                 "Success Criteria": "Stable performance, no security incidents",
@@ -369,19 +369,19 @@ def render_deployment_strategy(risk_profile: Dict[str, Any]):
     elif avg_risk > 0.3:
         phases = [
             {
-                "Phase": "Phase 1: Internal Preview",
+                "Phase": "Foundation Setup: Internal Preview",
                 "Duration": "1 week",
                 "Activities": "Team testing with monitoring infrastructure",
                 "Success Criteria": "Basic safety checks pass",
             },
             {
-                "Phase": "Phase 2: Beta Release",
+                "Phase": "GPU Infrastructure: Beta Release",
                 "Duration": "2-3 weeks",
                 "Activities": "Limited user group, enhanced monitoring",
                 "Success Criteria": "No major incidents, positive feedback",
             },
             {
-                "Phase": "Phase 3: General Availability",
+                "Phase": "Comprehensive Validation: General Availability",
                 "Duration": "Ongoing",
                 "Activities": "Full deployment with standard monitoring",
                 "Success Criteria": "Maintain safety metrics",
@@ -390,13 +390,13 @@ def render_deployment_strategy(risk_profile: Dict[str, Any]):
     else:
         phases = [
             {
-                "Phase": "Phase 1: Canary Deployment",
+                "Phase": "Foundation Setup: Canary Deployment",
                 "Duration": "3-5 days",
                 "Activities": "Small percentage rollout with monitoring",
                 "Success Criteria": "No anomalies detected",
             },
             {
-                "Phase": "Phase 2: Full Deployment",
+                "Phase": "GPU Infrastructure: Full Deployment",
                 "Duration": "Ongoing",
                 "Activities": "Complete rollout with standard monitoring",
                 "Success Criteria": "Maintain baseline safety metrics",
@@ -535,7 +535,7 @@ def render_implementation_cost(risk_profile: Dict[str, Any]):
             st.markdown(f"- {row['Mitigation']} ({row['Effectiveness']:.0%} effective, {row['Cost']})")
 
     with col2:
-        st.warning("**Medium Priority (Phase 2):**")
+        st.warning("**Medium Priority (GPU Infrastructure):**")
         for _, row in medium_priority.iterrows():
             st.markdown(f"- {row['Mitigation']} ({row['Effectiveness']:.0%} effective, {row['Cost']})")
 

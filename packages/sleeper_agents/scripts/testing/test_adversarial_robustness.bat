@@ -1,5 +1,5 @@
 @echo off
-REM Phase 3E Gradient Attack Audit Test Script (Windows)
+REM Gradient-Based Attack Audit Test Script (Windows)
 setlocal
 
 REM CRITICAL: Save script directory BEFORE any argument parsing
@@ -37,7 +37,7 @@ cd /d "%SCRIPT_DIR%"
 cd ..\..\..\..
 
 echo ============================================================
-echo Phase 3E: Gradient Attack Audit
+echo Gradient Attack Audit: Gradient Attack Audit
 echo ============================================================
 echo Configuration:
 echo   Mode: %MODE%
@@ -51,19 +51,19 @@ if "%MODE%"=="quick" (
     echo Running QUICK audit ^(50 samples, recommended^)...
     echo Installing dependencies and running audit...
     echo.
-    docker-compose -f docker-compose.yml run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] adversarial-robustness-toolbox --quiet && python packages/sleeper_agents/examples/phase3e_gradient_attack_audit.py --quick --device %DEVICE% --epsilon %EPSILON%"
+    docker-compose -f docker-compose.yml run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] adversarial-robustness-toolbox --quiet && python packages/sleeper_agents/examples/gradient_attack_audit.py --quick --device %DEVICE% --epsilon %EPSILON%"
 ) else (
     echo Running FULL audit ^(100 samples^)...
     echo Installing dependencies and running audit...
     echo.
-    docker-compose -f docker-compose.yml run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] adversarial-robustness-toolbox --quiet && python packages/sleeper_agents/examples/phase3e_gradient_attack_audit.py --n-samples 100 --device %DEVICE% --epsilon %EPSILON%"
+    docker-compose -f docker-compose.yml run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] adversarial-robustness-toolbox --quiet && python packages/sleeper_agents/examples/gradient_attack_audit.py --n-samples 100 --device %DEVICE% --epsilon %EPSILON%"
 )
 
 if %ERRORLEVEL% EQU 0 (
     echo.
     echo ============================================================
     echo Audit completed successfully!
-    echo Results saved to: outputs/phase3e_audit/
+    echo Results saved to: outputs/gradient_attack_audit/
     echo ============================================================
 ) else (
     echo.

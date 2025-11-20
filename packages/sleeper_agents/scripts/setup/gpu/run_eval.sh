@@ -5,7 +5,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKAGE_DIR="$(dirname "$SCRIPT_DIR")"
+# Navigate up 3 levels from scripts/setup/gpu/ to sleeper_agents/
+PACKAGE_DIR="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
 
 cd "$PACKAGE_DIR"
 
@@ -34,11 +35,11 @@ COMMAND="${1:-validate}"
 
 case "$COMMAND" in
     validate)
-        echo -e "\n${BLUE}Running Phase 1 validation...${NC}"
+        echo -e "\n${BLUE}Running foundation validation...${NC}"
         if [ "$GPU_AVAILABLE" = true ]; then
             docker-compose -f docker/docker-compose.gpu.yml run --rm validate
         else
-            python3 scripts/validate_phase1.py
+            python3 scripts/validate_foundation.py
         fi
         ;;
 
@@ -97,7 +98,7 @@ case "$COMMAND" in
         echo "Usage: $0 [command]"
         echo ""
         echo "Commands:"
-        echo "  validate    - Run Phase 1 validation (default)"
+        echo "  validate    - Run foundation validation (default)"
         echo "  test        - Run model management tests"
         echo "  download    - Download a model (usage: $0 download [model_id])"
         echo "  shell       - Start interactive shell in container"

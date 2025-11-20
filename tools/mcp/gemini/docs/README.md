@@ -153,8 +153,8 @@ GEMINI_MAX_CONTEXT=4000
 # Log consultations
 GEMINI_LOG_CONSULTATIONS=true
 
-# Note: Don't specify GEMINI_MODEL - the CLI automatically selects the best model
-# Specifying a model may cause 404 errors with the preview CLI
+# Note: GEMINI_MODEL is optional - the CLI will use a default model if not specified
+# Model selection works reliably with the API key authentication
 
 # Sandbox mode for testing
 GEMINI_SANDBOX=false

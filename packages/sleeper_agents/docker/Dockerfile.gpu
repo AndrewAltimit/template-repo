@@ -70,6 +70,9 @@ RUN pip install --no-cache-dir \
 # With src/ layout, this is clean and doesn't include tests, docs, etc.
 COPY src /app/src
 
+# Copy validation scripts for default CMD
+COPY scripts /app/scripts
+
 # Now install the package in editable mode (dependencies already satisfied)
 # Using --no-deps to avoid re-resolving dependencies
 # The src/ layout makes this clean and predictable
@@ -96,4 +99,4 @@ RUN useradd -m -u 1000 sleeper && \
 USER sleeper
 
 # Default command - run validation
-CMD ["python3", "scripts/validate_phase1.py"]
+CMD ["python3", "scripts/validate_foundation.py"]

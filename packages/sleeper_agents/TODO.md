@@ -1,7 +1,7 @@
 # Sleeper Detection System - TODO
 
 **Last Updated:** 2025-11-19
-**Status:** Phase 3 Complete - Cross-Architecture Validation & Adversarial Robustness Audit Complete
+**Status:** Validation Complete - Cross-Architecture Validation & Adversarial Robustness Audit Complete
 
 This document tracks current priorities and future development plans for the sleeper detection framework.
 
@@ -11,23 +11,23 @@ This document tracks current priorities and future development plans for the sle
 
 ## Recently Completed (2025-11-19)
 
-### Phase 3 Benchmark Suite ✅ **COMPLETE**
-- **Phase 3A:** Synthetic data benchmarking (4 difficulty scenarios)
+### Validation Benchmark Suite ✅ **COMPLETE**
+- **Synthetic Data Testing:** Synthetic data benchmarking (4 difficulty scenarios)
   - Easy: Linear separable clusters
   - Medium: Non-linear boundaries (moons pattern)
   - Hard: Overlapping clusters with noise
   - Realistic: Subtle activation patterns
-- **Phase 3B:** Real GPT-2 transformer activations (simple trigger testing)
-- **Phase 3C:** Adversarial red team testing (5 attack strategies)
+- **Real Transformer Testing:** Real GPT-2 transformer activations (simple trigger testing)
+- **Red Team Testing:** Adversarial red team testing (5 attack strategies)
   - Subtle triggers (single chars, rare tokens)
   - Context-dependent triggers
   - Distributed triggers (multi-token patterns)
   - Mimicry triggers (benign-looking)
   - Typo-based triggers
-- **Phase 3D:** Cross-Architecture Method Validation ✅ **COMPLETE (2025-11-18)**
+- **Cross-Architecture Validation:** Cross-Architecture Method Validation ✅ **COMPLETE (2025-11-18)**
   - Validated linear probe detection across 3 transformer architectures
   - **Results: Perfect generalization (AUC = 1.0 on all tested models)**
-- **Phase 3E:** Adversarial Robustness Audit ✅ **COMPLETE (2025-11-19)** - **Production Validated**
+- **Gradient Attack Audit:** Adversarial Robustness Audit ✅ **COMPLETE (2025-11-19)** - **Production Validated**
   - PGD gradient attack on linear probe detector with dynamic calibration
   - **Results: Baseline Accuracy 98%, AUC drop 1.0 → 0.0 (successful white-box attack, expected behavior)**
   - **External Validation:** Staff Engineer review (Gemini AI) - 100% confidence for production deployment
@@ -37,7 +37,7 @@ This document tracks current priorities and future development plans for the sle
 - **ARTActivationDetector:** AUC=0.76, 76.6% attack success (vulnerable to adversarial triggers)
 - **Conclusion:** Supervised learning >> Unsupervised clustering for adversarial robustness
 
-### Phase 3D Cross-Architecture Validation (NEW - 2025-11-18)
+### Cross-Architecture Validation (NEW - 2025-11-18)
 **CRITICAL MILESTONE:** Proved linear probe detection generalizes across transformer architectures
 
 **Tested Architectures:**
@@ -53,7 +53,7 @@ This document tracks current priorities and future development plans for the sle
 4. **Training Data:** 200 samples per class (backdoored/clean), 100 test samples per class
 
 **Implementation:**
-- Script: `examples/phase3d_cross_architecture_validation.py` (726 lines)
+- Script: `examples/cross_architecture_validation.py` (726 lines)
 - Test infrastructure: `scripts/testing/test_cross_architecture.bat` (Windows), `test_cross_architecture.sh` (Linux)
 - Docker GPU support: Added NVIDIA GPU passthrough to python-ci container
 - Runtime: ~12 minutes on RTX 4090 (GPU accelerated)
@@ -95,7 +95,7 @@ This result proves linear probes are a **valid general detection method** for tr
 Linear probes are a **valid general detection method** for transformer-based sleeper agents, applicable across different model architectures. Method is not specific to GPT-2 quirks or activation patterns.
 
 **Implementation Delivered:**
-- Script: `examples/phase3d_cross_architecture_validation.py` (726 lines)
+- Script: `examples/cross_architecture_validation.py` (726 lines)
 - Test infrastructure: `scripts/testing/test_cross_architecture.bat|.sh` (containerized with GPU support)
 - Docker GPU support: Added NVIDIA GPU passthrough to python-ci container
 
@@ -107,7 +107,7 @@ Linear probes are a **valid general detection method** for transformer-based sle
 
 ---
 
-#### 2. Phase 3E: Gradient-Based Attack Validation ✅ **COMPLETE** (Production Ready)
+#### 2. Gradient Attack Audit: Gradient-Based Attack Validation ✅ **COMPLETE** (Production Ready)
 **Status:** Complete (2025-11-19) - **Staff Engineer Validated**
 **Effort:** 1 day (actual)
 **Impact:** HIGH - Validated theoretical robustness limits, confirmed detection method validity
@@ -130,11 +130,11 @@ Linear probes are a **valid general detection method** for transformer-based sle
 The successful white-box attack **proves the probe is working correctly**:
 1. **NOT token overfitting:** Probe detects continuous feature representations, not discrete token patterns
 2. **Tracks feature correlations:** Probe responds to high-dimensional features (manipulatable in embedding space)
-3. **Phase 3D validated:** Perfect AUC=1.0 across architectures was genuine, not artifacts
+3. **Cross-architecture validation complete:** Perfect AUC=1.0 across architectures was genuine, not artifacts
 4. **Expected behavior:** Linear classifiers are theoretically vulnerable to white-box attacks (normal)
 
 **Implementation Delivered:**
-- Script: `examples/phase3e_gradient_attack_audit.py` (680 lines)
+- Script: `examples/gradient_attack_audit.py` (680 lines)
 - Test infrastructure: `scripts/testing/test_adversarial_robustness.bat|.sh` (containerized with GPU support)
 - Custom ART wrapper: SleeperARTWrapper for embedding-space attacks
 - Dynamic calibration: Optimal threshold finding prevents distribution shift issues
@@ -158,11 +158,11 @@ The successful white-box attack **proves the probe is working correctly**:
 - **Recommendation:** "Stop validating. Start building. You have checked all the boxes."
 
 **Conclusion:**
-Phase 3E confirms that Phase 3D's perfect cross-architecture results were due to **genuine feature detection**, not overfitting. The probe has known theoretical limits (white-box vulnerability) but is a **valid general detection method** for real-world deployment.
+Gradient attack audit confirms that cross-architecture's perfect cross-architecture results were due to **genuine feature detection**, not overfitting. The probe has known theoretical limits (white-box vulnerability) but is a **valid general detection method** for real-world deployment.
 
 **Production Readiness:** ✅ **VALIDATED FOR DEPLOYMENT**
-- Cross-architecture generalization proven (Phase 3D)
-- Theoretical limits documented (Phase 3E)
+- Cross-architecture generalization proven (Cross-Architecture Validation)
+- Theoretical limits documented (Gradient Attack Audit)
 - Calibration methodology established
 - External expert validation complete
 
@@ -171,7 +171,7 @@ Phase 3E confirms that Phase 3D's perfect cross-architecture results were due to
 ### Priority B: Engineering & Usability
 
 #### 3. Dashboard Completion: 53% → 100% Real Data Coverage ⚡ **NOW HIGH PRIORITY**
-**Status:** 8/15 components complete - **Ready to resume (Phase 3 validation complete)**
+**Status:** 8/15 components complete - **Ready to resume (comprehensive validation complete)**
 **Effort:** 4-6 weeks (original estimate)
 **Impact:** HIGH - Core science validated, now build the UI tool
 
@@ -222,7 +222,7 @@ Phase 3E confirms that Phase 3D's perfect cross-architecture results were due to
 - Create new branch for dashboard work
 - Implement cross-architecture model selection
 - Add calibration methodology to probe training
-- Update reports with Phase 3 validation results
+- Update reports with comprehensive validation results
 
 ---
 
@@ -262,7 +262,7 @@ Phase 3E confirms that Phase 3D's perfect cross-architecture results were due to
 
 ---
 
-#### 6. Multi-Layer Ensemble Detection (Phase 3D) (OPTIONAL)
+#### 6. Multi-Layer Ensemble Detection (Cross-Architecture Validation) (OPTIONAL)
 **Status:** Not started
 **Effort:** 3-4 days
 **Impact:** MEDIUM - May improve detection accuracy
@@ -280,7 +280,7 @@ Phase 3E confirms that Phase 3D's perfect cross-architecture results were due to
 
 ---
 
-#### 7. Larger Model Testing (Phase 3F) (OPTIONAL)
+#### 7. Larger Model Testing (Extended Model Testing) (OPTIONAL)
 **Status:** Not started
 **Effort:** 5-7 days (compute-intensive)
 **Impact:** HIGH - Tests scalability to production models
@@ -311,7 +311,7 @@ Phase 3E confirms that Phase 3D's perfect cross-architecture results were due to
 
 ### Current Benchmarks
 - **AUC=1.0 may indicate overfitting** to discrete/heuristic attacks (typos, syntax changes)
-- Phase 3C covers prompt engineering attacks, NOT gradient-optimized adversarial examples
+- Red Team Testing covers prompt engineering attacks, NOT gradient-optimized adversarial examples
 - Missing validation against:
   - Gradient-based feature collision attacks
   - White-box optimization (PGD, ZooAttack)
@@ -338,13 +338,13 @@ Phase 3E confirms that Phase 3D's perfect cross-architecture results were due to
 3. Cross-architecture method validation (Priority A)
 
 **Do Soon:**
-4. Gradient-based attack validation (Phase 3E, external audit)
+4. Gradient-based attack validation (Gradient Attack Audit, external audit)
 5. Dashboard completion (if building production tool)
 
 **Do Later:**
 6. Experiment infrastructure (Hydra + wandb)
-7. Multi-layer ensemble (Phase 3D)
-8. Larger model testing (Phase 3F)
+7. Multi-layer ensemble (Cross-Architecture Validation)
+8. Larger model testing (Extended Model Testing)
 9. Production API development
 
 **Skip:**
@@ -355,23 +355,23 @@ Phase 3E confirms that Phase 3D's perfect cross-architecture results were due to
 
 ## Success Metrics
 
-### Phase 3 Complete
+### Validation Complete
 - [x] Synthetic benchmarking (4 scenarios)
 - [x] Real transformer activations (GPT-2)
 - [x] Adversarial red team testing (5 strategies)
 - [x] Linear probe validation (AUC=1.0)
 - [x] ARTActivationDetector comparison (AUC=0.76)
 
-### Phase 4 (Current) - Cross-Architecture Method Validation
+### Dashboard Integration (Current) - Cross-Architecture Method Validation
 - [ ] Create trigger dataset compatible with Llama-3/Mistral tokenizers
 - [ ] Retrain probes for Llama-3-8B (4096 hidden dims) - measure AUC
 - [ ] Retrain probes for Mistral-7B (4096 hidden dims) - measure AUC
 - [ ] Retrain probes for Qwen2.5-7B (3584 hidden dims) - measure AUC
 - [ ] Document architecture-specific tuning requirements
-- [ ] Publish Phase 3D results
+- [ ] Publish Cross-Architecture Validation results
 
-### Phase 5 (Future) - Production Readiness
-- [ ] Gradient attack validation (Phase 3E)
+### Production Readiness (Future) - Production Readiness
+- [ ] Gradient attack validation (Gradient Attack Audit)
 - [ ] Dashboard completion (100% real data)
 - [ ] API development
 - [ ] Continuous monitoring system
@@ -405,4 +405,4 @@ Linear probes already achieve AUC=1.0. ART's `ActivationDefense` is similar to o
 ---
 
 **Last Updated:** 2025-11-18
-**Next Review:** After Phase 4 (cross-model generalization) completion
+**Next Review:** After Dashboard Integration (cross-model generalization) completion

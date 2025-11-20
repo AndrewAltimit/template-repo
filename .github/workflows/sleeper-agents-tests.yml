@@ -102,7 +102,7 @@ jobs:
           echo "🔧 Validating model registry, downloader, and resource manager..."
 
           docker-compose run --rm sleeper-eval-cpu \
-            python packages/sleeper_agents/scripts/validation/validate_infrastructure.py
+            python packages/sleeper_agents/scripts/validate_foundation.py
 
       - name: View logs on failure
         if: failure()

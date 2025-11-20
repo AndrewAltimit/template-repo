@@ -59,7 +59,7 @@ def check_imports() -> bool:
 
 
 def check_files() -> bool:
-    """Check all Phase 1 files exist."""
+    """Check all Foundation Setup files exist."""
     print("\n2. CHECKING FILES")
     print("-" * 40)
 

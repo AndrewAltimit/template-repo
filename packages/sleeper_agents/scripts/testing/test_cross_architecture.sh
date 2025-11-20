@@ -1,5 +1,5 @@
 #!/bin/bash
-# Phase 3D Cross-Architecture Validation Test Script (Linux/Mac)
+# Cross-Architecture Method Validation Test Script (Linux/Mac)
 # Runs validation in Docker container for consistency
 
 set -e
@@ -11,7 +11,7 @@ GROUP_ID=$(id -g)
 export GROUP_ID
 
 echo "================================================================================"
-echo "Phase 3D: Cross-Architecture Method Validation Test"
+echo "Cross-Architecture Validation: Cross-Architecture Method Validation Test"
 echo "================================================================================"
 echo
 
@@ -70,12 +70,12 @@ if [ "$MODE" = "quick" ]; then
     echo "Running QUICK test (GPT-2 only, 50 samples)..."
     echo "Installing dependencies and running test..."
     echo
-    docker-compose run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] --quiet && python packages/sleeper_agents/examples/phase3d_cross_architecture_validation.py --quick --device $DEVICE"
+    docker-compose run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] --quiet && python packages/sleeper_agents/examples/cross_architecture_validation.py --quick --device $DEVICE"
 else
     echo "Running FULL validation (all models: $MODELS)..."
     echo "Installing dependencies and running test..."
     echo
-    docker-compose run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] --quiet && python packages/sleeper_agents/examples/phase3d_cross_architecture_validation.py --models $MODELS --device $DEVICE --n-train 200 --n-test 100"
+    docker-compose run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] --quiet && python packages/sleeper_agents/examples/cross_architecture_validation.py --models $MODELS --device $DEVICE --n-train 200 --n-test 100"
 fi
 
 echo

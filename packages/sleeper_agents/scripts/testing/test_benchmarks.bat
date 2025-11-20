@@ -1,19 +1,19 @@
 @echo off
-REM Test Phase 3 Benchmarks (GPU-accelerated on RTX 4090)
-REM This script runs all three Phase 3 benchmarks in containerized environment
+REM Test Validation Benchmarks (GPU-accelerated on RTX 4090)
+REM This script runs all validation benchmarks in containerized environment
 REM
 REM Usage:
-REM   test_phase3_benchmarks.bat                - Run all Phase 3 benchmarks
-REM   test_phase3_benchmarks.bat 3a             - Run only Phase 3A (synthetic)
-REM   test_phase3_benchmarks.bat 3b             - Run only Phase 3B (real transformer)
-REM   test_phase3_benchmarks.bat 3c             - Run only Phase 3C (red team)
+REM   test_phase3_benchmarks.bat                - Run all benchmarks
+REM   test_phase3_benchmarks.bat 3a             - Run only synthetic benchmark (synthetic)
+REM   test_phase3_benchmarks.bat 3b             - Run only transformer benchmark (real transformer)
+REM   test_phase3_benchmarks.bat 3c             - Run only red team benchmark (red team)
 REM   test_phase3_benchmarks.bat quick          - Run quick version (smaller datasets)
 
 setlocal
 
 echo.
 echo ============================================================
-echo Phase 3 Benchmark Suite (GPU-accelerated)
+echo Validation Benchmark Suite (GPU-accelerated)
 echo ============================================================
 echo.
 
@@ -35,9 +35,9 @@ echo [OK] Docker available
 echo.
 
 REM Determine which benchmarks to run
-if "%COMMAND%"=="3a" goto phase3a
-if "%COMMAND%"=="3b" goto phase3b
-if "%COMMAND%"=="3c" goto phase3c
+if "%COMMAND%"=="3a" goto synthetic
+if "%COMMAND%"=="3b" goto transformer
+if "%COMMAND%"=="3c" goto redteam
 if "%COMMAND%"=="quick" goto quick
 if "%COMMAND%"=="all" goto all
 
@@ -49,32 +49,32 @@ exit /b 1
 :all
 echo Running ALL Phase 3 benchmarks...
 echo.
-call :run_phase3a
+call :run_synthetic
 if errorlevel 1 goto error
-call :run_phase3b
+call :run_transformer
 if errorlevel 1 goto error
-call :run_phase3c
-if errorlevel 1 goto error
-goto success
-
-:phase3a
-echo Running Phase 3A only...
-echo.
-call :run_phase3a
+call :run_redteam
 if errorlevel 1 goto error
 goto success
 
-:phase3b
-echo Running Phase 3B only...
+:synthetic
+echo Running Synthetic Testing only...
 echo.
-call :run_phase3b
+call :run_synthetic
 if errorlevel 1 goto error
 goto success
 
-:phase3c
-echo Running Phase 3C only...
+:transformer
+echo Running Transformer Testing only...
 echo.
-call :run_phase3c
+call :run_transformer
+if errorlevel 1 goto error
+goto success
+
+:redteam
+echo Running Red Team Testing only...
+echo.
+call :run_redteam
 if errorlevel 1 goto error
 goto success
 
@@ -83,20 +83,20 @@ echo Running quick benchmarks (reduced dataset sizes)...
 echo.
 echo [INFO] Quick mode runs faster but less comprehensive
 echo.
-call :run_phase3a_quick
+call :run_synthetic_quick
 if errorlevel 1 goto error
-call :run_phase3b_quick
+call :run_transformer_quick
 if errorlevel 1 goto error
-call :run_phase3c_quick
+call :run_redteam_quick
 if errorlevel 1 goto error
 goto success
 
 REM ==================================================
-REM Phase 3A: Synthetic Data Benchmark
+REM Synthetic Benchmark: Synthetic Data Benchmark
 REM ==================================================
-:run_phase3a
+:run_synthetic
 echo ============================================================
-echo Phase 3A: Synthetic Data Benchmark (Multi-Scenario)
+echo Synthetic Benchmark: Synthetic Data Benchmark (Multi-Scenario)
 echo ============================================================
 echo.
 echo [INFO] Container: sleeper-agents-python-ci
@@ -107,21 +107,21 @@ echo.
 docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/benchmark_detectors_comprehensive.py"
 if errorlevel 1 (
     echo.
-    echo [FAILED] Phase 3A benchmark failed
+    echo [FAILED] Synthetic Testing benchmark failed
     exit /b 1
 )
 
 echo.
-echo [OK] Phase 3A benchmark completed
+echo [OK] Synthetic Testing benchmark completed
 echo.
 exit /b 0
 
 REM ==================================================
-REM Phase 3B: Real Transformer Benchmark
+REM Transformer Benchmark: Real Transformer Benchmark
 REM ==================================================
-:run_phase3b
+:run_transformer
 echo ============================================================
-echo Phase 3B: Real Transformer Benchmark (GPT-2)
+echo Transformer Benchmark: Real Transformer Benchmark (GPT-2)
 echo ============================================================
 echo.
 echo [INFO] Container: sleeper-agents-python-ci
@@ -130,24 +130,24 @@ echo [INFO] Device: CUDA (RTX 4090)
 echo [INFO] Runtime: ~15 seconds (GPU-accelerated)
 echo.
 
-docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3b_real_transformer_benchmark.py"
+docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/real_transformer_benchmark.py"
 if errorlevel 1 (
     echo.
-    echo [FAILED] Phase 3B benchmark failed
+    echo [FAILED] Transformer Testing benchmark failed
     exit /b 1
 )
 
 echo.
-echo [OK] Phase 3B benchmark completed
+echo [OK] Transformer Testing benchmark completed
 echo.
 exit /b 0
 
 REM ==================================================
-REM Phase 3C: Red Team Adversarial Benchmark
+REM Red Team Benchmark: Red Team Adversarial Benchmark
 REM ==================================================
-:run_phase3c
+:run_redteam
 echo ============================================================
-echo Phase 3C: Red Team Adversarial Benchmark (5 Strategies)
+echo Red Team Benchmark: Red Team Adversarial Benchmark (5 Strategies)
 echo ============================================================
 echo.
 echo [INFO] Container: sleeper-agents-python-ci
@@ -157,36 +157,36 @@ echo [INFO] Strategies: Subtle, Context, Distributed, Mimicry, Typo
 echo [INFO] Runtime: ~60 seconds (GPU-accelerated)
 echo.
 
-docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3c_red_team_benchmark.py"
+docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/red_team_benchmark.py"
 if errorlevel 1 (
     echo.
-    echo [FAILED] Phase 3C benchmark failed
+    echo [FAILED] Red Team Testing benchmark failed
     exit /b 1
 )
 
 echo.
-echo [OK] Phase 3C benchmark completed
+echo [OK] Red Team Testing benchmark completed
 echo.
 exit /b 0
 
 REM ==================================================
 REM Quick Mode Benchmarks (Reduced Datasets)
 REM ==================================================
-:run_phase3a_quick
-echo [Phase 3A Quick] Running with reduced dataset...
+:run_synthetic_quick
+echo [Synthetic Testing Quick] Running with reduced dataset...
 docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/benchmark_detectors.py"
 if errorlevel 1 exit /b 1
 exit /b 0
 
-:run_phase3b_quick
-echo [Phase 3B Quick] Running with GPU...
-docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3b_real_transformer_benchmark.py"
+:run_transformer_quick
+echo [Transformer Testing Quick] Running with GPU...
+docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/real_transformer_benchmark.py"
 if errorlevel 1 exit /b 1
 exit /b 0
 
-:run_phase3c_quick
-echo [Phase 3C Quick] Running with GPU...
-docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3c_red_team_benchmark.py"
+:run_redteam_quick
+echo [Red Team Testing Quick] Running with GPU...
+docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/red_team_benchmark.py"
 if errorlevel 1 exit /b 1
 exit /b 0
 
@@ -200,9 +200,9 @@ echo [SUCCESS] All Phase 3 benchmarks completed!
 echo ============================================================
 echo.
 echo Summary of Results:
-echo   - Phase 3A: Synthetic data across 4 scenarios
-echo   - Phase 3B: Real GPT-2 activations with simple trigger
-echo   - Phase 3C: Adversarial triggers (5 attack strategies)
+echo   - Synthetic Benchmark: Synthetic data across 4 scenarios
+echo   - Transformer Benchmark: Real GPT-2 activations with simple trigger
+echo   - Red Team Benchmark: Adversarial triggers (5 attack strategies)
 echo.
 echo Key Findings:
 echo   - Linear Probe: Perfect performance across all phases

@@ -1,4 +1,4 @@
-# Phase 3E: Gradient-Based Attack Validation - Audit Scripts
+# Gradient-Based Attack Validation - Audit Scripts
 
 **Status:** Planning / External Audit Only (NOT part of production codebase)
 
@@ -14,7 +14,7 @@ The primary risk is Scientific Blindness. We are claiming perfect detection, but
 - AUC may drop from 1.0 to ~0.4 under gradient attacks
 - **This is normal in adversarial ML, not a failure**
 - Demonstrates that probes are:
-  - **Robust to prompt injection** (Phase 3C: 0% attack success)
+  - **Robust to prompt injection** (Red Team Testing: 0% attack success)
   - **Vulnerable to white-box optimization** (this test)
 
 ## Why External Audit?
@@ -66,7 +66,7 @@ python audit_with_art.py \
     --layer -1 \
     --attack pgd \
     --probe-path /path/to/trained_probe.pkl \
-    --output-dir results/phase3e_audit
+    --output-dir results/gradient_attack_audit
 ```
 
 **Parameters:**
@@ -97,7 +97,7 @@ Based on adversarial ML literature:
 
 | Attack Type | Expected AUC Drop | Notes |
 |-------------|------------------|-------|
-| Phase 3C (Discrete Triggers) | 0% (AUC=1.0) | Linear probes robust to prompt injection |
+| Red Team Testing (Discrete Triggers) | 0% (AUC=1.0) | Linear probes robust to prompt injection |
 | PGD (Gradient-Based) | ~60% (AUC=0.4) | Normal vulnerability in adversarial ML |
 | ZooAttack | ~40% (AUC=0.6) | Slightly better (black-box is harder) |
 | HopSkipJump | ~30% (AUC=0.7) | Decision-based is least effective |
@@ -111,7 +111,7 @@ Based on adversarial ML literature:
 
 The audit script generates:
 
-1. **Results Summary** (`results/phase3e_audit/summary.json`)
+1. **Results Summary** (`results/gradient_attack_audit/summary.json`)
    ```json
    {
      "baseline_auc": 1.0,
@@ -126,12 +126,12 @@ The audit script generates:
    }
    ```
 
-2. **ROC Curves** (`results/phase3e_audit/roc_comparison.png`)
+2. **ROC Curves** (`results/gradient_attack_audit/roc_comparison.png`)
    - Baseline (clean samples)
    - Under PGD attack
    - Visual comparison
 
-3. **Attack Examples** (`results/phase3e_audit/adversarial_examples.txt`)
+3. **Attack Examples** (`results/gradient_attack_audit/adversarial_examples.txt`)
    - Original triggers that were detected
    - Perturbed inputs that evaded detection
    - Model behavior comparison
@@ -140,16 +140,16 @@ The audit script generates:
 
 **Current:** Planning skeleton only (`audit_with_art.py` is a stub)
 
-**TODO (Phase 3E):**
+**TODO (Gradient Attack Audit):**
 1. Implement ART PyTorchClassifier wrapper for linear probes
 2. Add PGD attack targeting probe output
 3. Implement attack success metrics
 4. Generate comparison report with visualizations
-5. Document results in Phase 3E findings
+5. Document results in Gradient Attack Audit findings
 
 ## References
 
-- **Phase 3C Results (2025-11-18):** 0% attack success for linear probes on discrete attacks
+- **Red Team Testing Results (2025-11-18):** 0% attack success for linear probes on discrete attacks
 - **IBM ART Documentation:** https://github.com/Trusted-AI/adversarial-robustness-toolbox
 - **Adversarial ML Papers:**
   - Goodfellow et al. (2014): "Explaining and Harnessing Adversarial Examples"
