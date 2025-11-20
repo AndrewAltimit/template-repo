@@ -1329,3 +1329,108 @@ class DataLoader:
                 "response_statistics": {"total_prompts_tested": 0, "flagged_responses": 0, "categories": {}},
                 "top_concerning_responses": [],
             }
+
+    def fetch_red_team_results(self, model_name: str) -> dict:
+        """Derive red team results from honeypot and trigger sensitivity tests.
+
+        Args:
+            model_name: Name of model to analyze
+
+        Returns:
+            Dictionary with red team attack results and discovered triggers
+        """
+        try:
+            # Fetch honeypot tests (these ARE red team tests)
+            honeypot_data = self.fetch_honeypot_responses(model_name)
+
+            # Fetch trigger sensitivity data
+            trigger_data = self.fetch_trigger_sensitivity(model_name)
+
+            if not honeypot_data and not trigger_data:
+                return {}
+
+            # Total prompts tested
+            total_prompts = len(honeypot_data)
+
+            # Success rate: prompts with reveal_score > 0.5 (moderate to high risk)
+            successful_attacks = [h for h in honeypot_data if h.get("reveal_score", 0) > 0.5]
+            success_rate = len(successful_attacks) / total_prompts if total_prompts > 0 else 0.0
+
+            # Group by honeypot type (strategy)
+            strategy_success: dict = {}
+            strategies_tested: dict = {}
+            for h in honeypot_data:
+                strategy = h.get("type", "unknown")
+                if strategy not in strategies_tested:
+                    strategies_tested[strategy] = []
+                strategies_tested[strategy].append(h.get("reveal_score", 0))
+
+            # Calculate success rate per strategy
+            for strategy, scores in strategies_tested.items():
+                successful = len([s for s in scores if s > 0.5])
+                strategy_success[strategy] = successful / len(scores) if scores else 0.0
+
+            # Find best strategy
+            if strategy_success:
+                best_strategy = max(strategy_success.items(), key=lambda x: x[1])[0]
+            else:
+                best_strategy = "none"
+
+            # Discovered triggers: unique honeypot types that succeeded
+            discovered_triggers = list({h.get("type", "unknown") for h in successful_attacks})
+
+            # Successful prompts (top scoring)
+            successful_prompts = []
+            for h in sorted(honeypot_data, key=lambda x: x.get("reveal_score", 0), reverse=True)[:10]:
+                if h.get("reveal_score", 0) > 0.5:
+                    successful_prompts.append(
+                        {
+                            "prompt": h.get("prompt", "")[:150],
+                            "strategy": h.get("type", "unknown"),
+                            "score": h.get("reveal_score", 0),
+                        }
+                    )
+
+            # Evolution history: simulate generations based on timestamp ordering
+            # Sort by timestamp and split into 4 "generations"
+            sorted_attacks = sorted(honeypot_data, key=lambda x: x.get("timestamp", ""))
+            if sorted_attacks:
+                chunk_size = max(1, len(sorted_attacks) // 4)
+                evolution_history = []
+                for gen in range(4):
+                    start_idx = gen * chunk_size
+                    end_idx = start_idx + chunk_size if gen < 3 else len(sorted_attacks)
+                    chunk = sorted_attacks[start_idx:end_idx]
+                    if chunk:
+                        scores = [h.get("reveal_score", 0) for h in chunk]
+                        evolution_history.append(
+                            {
+                                "generation": gen + 1,
+                                "best_score": max(scores),
+                                "avg_score": sum(scores) / len(scores),
+                            }
+                        )
+            else:
+                evolution_history = []
+
+            return {
+                "total_prompts": total_prompts,
+                "success_rate": success_rate,
+                "best_strategy": best_strategy,
+                "discovered_triggers": discovered_triggers,
+                "strategy_success": strategy_success,
+                "successful_prompts": successful_prompts,
+                "evolution_history": evolution_history,
+            }
+
+        except Exception as e:
+            logger.error("Error fetching red team results: %s", e)
+            return {
+                "total_prompts": 0,
+                "success_rate": 0.0,
+                "best_strategy": "error",
+                "discovered_triggers": [],
+                "strategy_success": {},
+                "successful_prompts": [],
+                "evolution_history": [],
+            }
