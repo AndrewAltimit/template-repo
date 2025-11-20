@@ -34,9 +34,8 @@ COPY --chown=dashboard:dashboard src/sleeper_agents/evaluation/ ./evaluation/
 # Copy application code
 COPY --chown=dashboard:dashboard dashboard/ .
 
-# Create necessary directories
-RUN mkdir -p auth utils components tests && \
-    chown -R dashboard:dashboard /home/dashboard/app
+# Ensure ownership (but don't recreate directories - they already exist from COPY)
+RUN chown -R dashboard:dashboard /home/dashboard/app
 
 # Switch to non-root user
 USER dashboard
