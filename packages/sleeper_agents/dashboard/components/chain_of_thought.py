@@ -8,32 +8,15 @@ and strategic behavior patterns in model outputs.
 import html
 import logging
 import re
-import sys
-from pathlib import Path
 from typing import Any, Dict, List
 
 import streamlit as st
 from components.calibration_metrics import render_calibration_metrics
 from components.model_selector import render_model_selector
-from utils.model_registry import ModelRegistry
 
-# Import shared CoT analysis utilities
-# Try direct import first (works in container where evaluation/ is copied)
-# Fall back to searching for the module (works in development environment)
-try:
-    from evaluation.cot_analysis import DECEPTION_PATTERNS, detect_deception_patterns
-except ModuleNotFoundError:
-    # Development environment - search for evaluation module
-    _current_dir = Path(__file__).resolve().parent
-    _max_depth = 5
-    for _ in range(_max_depth):
-        if (_current_dir / "evaluation" / "cot_analysis.py").exists():
-            sys.path.insert(0, str(_current_dir))
-            break
-        if _current_dir.parent == _current_dir:
-            break
-        _current_dir = _current_dir.parent
-    from evaluation.cot_analysis import DECEPTION_PATTERNS, detect_deception_patterns  # noqa: E402
+# Import shared CoT analysis utilities from sleeper_agents package
+from sleeper_agents.evaluation.cot_analysis import DECEPTION_PATTERNS, detect_deception_patterns
+from utils.model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
 
