@@ -6,7 +6,7 @@ Purpose:
     This is NOT a defense mechanism - it's an audit to measure theoretical robustness limits.
 
 Key Insight (from Gemini):
-    "Perfect AUC = 1.0 in Perfect cross-architecture results scare me more than 0.95. It implies the decision
+    "Perfect AUC = 1.0 in cross-architecture validation scares me more than 0.95. It implies the decision
     boundary might be separating 'Trigger' vs 'No Trigger' rather than 'Deceptive State'
     vs 'Honest State'."
 

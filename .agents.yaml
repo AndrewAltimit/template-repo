@@ -126,6 +126,7 @@ advanced:
   non_interactive_flags:
     claude: ["--print", "--dangerously-skip-permissions"]
     # For gemini: Use -p for prompt and -m for model selection (both work reliably with API keys)
+    # Note: Only -p is passed by default; model selection uses .env configuration (GEMINI_PRIMARY_MODEL)
     gemini: ["-p"]
     opencode: ["--non-interactive"]
     crush: ["--non-interactive", "--no-update"]

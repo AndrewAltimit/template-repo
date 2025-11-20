@@ -49,6 +49,11 @@ Scientifically validated general detection method for transformer-based sleeper 
 
 **Scientific Significance**: Perfect AUC = 1.0 across all architectures proves linear probes are a **valid general detection method**, not specific to any single model architecture or hidden dimension size (768d → 4096d).
 
+**Validation Artifacts**:
+- Test Scripts: [`examples/cross_architecture_validation.py`](examples/cross_architecture_validation.py), [`examples/gradient_attack_audit.py`](examples/gradient_attack_audit.py)
+- Containerized Testing: [`scripts/testing/test_cross_architecture.sh`](scripts/testing/test_cross_architecture.sh), [`scripts/testing/test_adversarial_robustness.sh`](scripts/testing/test_adversarial_robustness.sh)
+- Results from commit [c0c85387](https://github.com/AndrewAltimit/template-repo/commit/c0c85387) (2025-11-20)
+
 #### Adversarial Robustness Characterization
 | Attack Type | Robustness | Practical Impact |
 |-------------|------------|------------------|
