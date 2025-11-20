@@ -57,6 +57,15 @@ def render_train_backdoor(api_client):
         with col2:
             num_samples = st.number_input("Number of Training Samples", min_value=100, max_value=100000, value=1000, step=100)
 
+            backdoor_ratio = st.slider(
+                "Backdoor Ratio",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.3,
+                step=0.05,
+                help="Ratio of backdoored samples in training data (0.3 = 30% backdoored, 70% normal)",
+            )
+
             use_qlora = st.checkbox("Use QLoRA (Memory Efficient)", value=False, help="Use 4-bit quantized LoRA")
 
             use_scratchpad = st.checkbox(
@@ -64,6 +73,16 @@ def render_train_backdoor(api_client):
                 value=False,
                 help="Train model to generate explicit reasoning before responses (creates true sleeper agents)",
             )
+
+            # Precision options
+            col_fp16, col_bf16 = st.columns(2)
+            with col_fp16:
+                fp16 = st.checkbox("FP16", value=False, help="Use 16-bit floating point (faster, less memory)")
+            with col_bf16:
+                bf16 = st.checkbox("BF16", value=False, help="Use bfloat16 (better stability, requires Ampere+ GPU)")
+
+            if fp16 and bf16:
+                st.warning("⚠️ Both FP16 and BF16 enabled - only one will be used (BF16 takes priority)")
 
             batch_size = st.number_input("Batch Size", min_value=1, max_value=128, value=4, step=1)
 
@@ -114,8 +133,11 @@ def render_train_backdoor(api_client):
                 backdoor_type=backdoor_type,
                 trigger=trigger,
                 num_samples=int(num_samples),
+                backdoor_ratio=float(backdoor_ratio),
                 use_qlora=use_qlora,
                 use_scratchpad=use_scratchpad,
+                fp16=fp16,
+                bf16=bf16,
                 batch_size=int(batch_size),
                 learning_rate=float(learning_rate),
                 num_epochs=int(num_epochs),
