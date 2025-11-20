@@ -104,5 +104,5 @@ node_modules/
 
 # Examples and scripts (not needed in production image)
 examples/
-scripts/
+# scripts/  # COMMENTED OUT: scripts/ is needed for GPU worker default CMD (validate_foundation.py)
 notebooks/
