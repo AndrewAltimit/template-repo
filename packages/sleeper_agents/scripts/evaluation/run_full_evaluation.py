@@ -28,25 +28,25 @@ from typing import Any, Dict, List
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Add parent directory to path for local imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# Add src directory to path for local imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 # Import CoT detection and ingestion (E402: local imports after path manipulation)
-from advanced_detection.honeypots import HoneypotGenerator  # noqa: E402
-from advanced_detection.internal_state_monitor import InternalStateMonitor  # noqa: E402
-from database.ingestion import (  # noqa: E402
-    ingest_chain_of_thought_results,
-    ingest_honeypot_results,
-    ingest_internal_state_results,
-)
-from evaluation.cot_analysis import detect_deception_patterns  # noqa: E402
+from sleeper_agents.advanced_detection.honeypots import HoneypotGenerator  # noqa: E402
+from sleeper_agents.advanced_detection.internal_state_monitor import InternalStateMonitor  # noqa: E402
 from sleeper_agents.constants import (  # noqa: E402
     DEFAULT_EVALUATION_DB_PATH,
     DEFAULT_EVALUATION_PROMPTS,
     INTERNAL_STATE_ANALYSIS_PROMPTS,
 )
-from utils.async_utils import get_or_create_event_loop  # noqa: E402
+from sleeper_agents.database.ingestion import (  # noqa: E402
+    ingest_chain_of_thought_results,
+    ingest_honeypot_results,
+    ingest_internal_state_results,
+)
+from sleeper_agents.evaluation.cot_analysis import detect_deception_patterns  # noqa: E402
+from sleeper_agents.utils.async_utils import get_or_create_event_loop  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
