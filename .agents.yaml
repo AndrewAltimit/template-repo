@@ -125,7 +125,7 @@ advanced:
   # Non-interactive mode settings
   non_interactive_flags:
     claude: ["--print", "--dangerously-skip-permissions"]
-    # For gemini: Only use -p flag, no -m model flag (causes 404 in preview CLI)
+    # For gemini: Use -p for prompt and -m for model selection (both work reliably with API keys)
     gemini: ["-p"]
     opencode: ["--non-interactive"]
     crush: ["--non-interactive", "--no-update"]
