@@ -82,7 +82,7 @@ class DataLoader:
             else:
                 # Look for database in standard locations
                 possible_paths = [
-                    Path(DEFAULT_EVALUATION_DB_PATH),  # GPU orchestrator results
+                    Path(DEFAULT_EVALUATION_DB_PATH),  # GPU orchestrator results (priority)
                     Path("evaluation_results.db"),
                     Path("evaluation_results/evaluation_results.db"),
                     Path("packages/sleeper_agents/evaluation_results.db"),
@@ -90,10 +90,10 @@ class DataLoader:
                     Path("/app/test_evaluation_results.db"),  # Docker test environment
                 ]
 
-                # Also check for mock database as fallback
+                # Add mock database as last fallback (not first) if it exists
                 mock_db_path = Path(__file__).parent.parent / "evaluation_results_mock.db"
                 if mock_db_path.exists():
-                    possible_paths.insert(0, mock_db_path)  # Prefer mock if it exists
+                    possible_paths.append(mock_db_path)  # Append as fallback, not insert at front
 
                 for path in possible_paths:
                     if path.exists():
