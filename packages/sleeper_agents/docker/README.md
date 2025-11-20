@@ -31,6 +31,16 @@ docker-compose -f docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
 - RTX 4090 or compatible GPU
 - CUDA-capable drivers
 
-## Documentation
+## Complete Setup
 
-See `../docs/GPU_SETUP.md` for complete setup guide.
+For complete GPU setup and testing:
+
+- **Linux/Mac**: Run `../scripts/setup/gpu/setup_host.sh`
+- **Windows**: Run `..\scripts\setup\gpu\setup_host.bat`
+
+These scripts will:
+1. Verify Docker and NVIDIA runtime
+2. Build the GPU image
+3. Run foundation validation
+4. Test resource detection
+5. Optionally download test models
