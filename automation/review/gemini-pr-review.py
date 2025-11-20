@@ -7,19 +7,138 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 # Model constants
-PRO_MODEL = "gemini-2.5-pro"
-FLASH_MODEL = "gemini-2.5-flash"
+# Using explicit model with API key to avoid 404 errors and OAuth hangs
+# API key is free tier with generous limits (comparable to OAuth)
 NO_MODEL = ""  # Indicates no model was successfully used
-PRO_MODEL_TIMEOUT = 90  # seconds
-FLASH_MODEL_TIMEOUT = 60  # seconds
+DEFAULT_MODEL_TIMEOUT = 600  # seconds (10 minutes for large PR reviews)
+# Models can be overridden via environment variables (useful for testing/CI)
+PRIMARY_MODEL = os.environ.get("GEMINI_PRIMARY_MODEL", "gemini-3-pro-preview")  # Latest preview (NOT 3.0!)
+FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash")  # Fast fallback
+MAX_RETRIES = 5  # For rate limiting on free tier (3 preview may have stricter limits)
+
+
+def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETRIES) -> Tuple[str, str]:
+    """Calls Gemini CLI with a specific model, handling rate limits.
+
+    Args:
+        prompt: The prompt to send
+        model: Model name (e.g., "gemini-3-pro-preview")
+        max_retries: Maximum retry attempts for rate limiting
+
+    Returns:
+        (analysis, model_used) or ("", NO_MODEL) on failure
+    """
+    # Check for API key
+    # Check for API key - accept both names for compatibility
+    # GOOGLE_API_KEY: Standard Google API key name
+    # GEMINI_API_KEY: GitHub workflow secret name (for compatibility)
+    api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        print("❌ Error: No API Key found in environment variables.")
+        print("  Set GOOGLE_API_KEY (standard) or GEMINI_API_KEY (workflow secret)")
+        return "Authentication Failed - No API Key", NO_MODEL
+
+    print(f"Attempting analysis with {model} (API Key)...")
+
+    # Use npx to bypass any PATH manipulation or wrappers
+    # This ensures we use the official package logic, not /tmp/gemini wrapper
+    print("🚀 Resolving Gemini CLI via npx (bypassing any wrappers)...")
+    cmd = ["npx", "--yes", "@google/gemini-cli", "prompt", "--model", model, "--output-format", "text"]
+
+    print(f"🚀 Executing command: {' '.join(cmd)}")
+
+    # Retry loop for rate limiting
+    for attempt in range(max_retries):
+        try:
+            # Run with standard subprocess (no PTY wrapper)
+            # input= handles stdin and sends EOF properly
+            result = subprocess.run(
+                cmd,
+                input=prompt,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=DEFAULT_MODEL_TIMEOUT,
+                env={**os.environ, "GOOGLE_API_KEY": api_key},
+            )
+
+            # Check for errors
+            if result.returncode != 0:
+                stderr_lower = result.stderr.lower()
+
+                # Handle rate limiting with exponential backoff
+                if "429" in result.stderr or "exhausted" in stderr_lower or "quota" in stderr_lower:
+                    wait_time = (2**attempt) * 5  # 5s, 10s, 20s, 40s, 80s
+                    print(f"⚠️  Rate limit hit (attempt {attempt + 1}/{max_retries})")
+                    print(f"    Sleeping {wait_time}s before retry...")
+                    time.sleep(wait_time)
+                    continue  # Retry
+
+                # Handle 404 - model not available
+                if "404" in result.stderr:
+                    print(f"❌ Model {model} not found")
+                    return "", NO_MODEL  # Signal to try fallback
+
+                # Other errors - expose full details
+                print(f"❌ CLI Error (Code {result.returncode})")
+                print(f"STDERR: {result.stderr}")
+                print(f"STDOUT: {result.stdout}")
+                return f"Error - CLI Failed: {result.stderr[:200]}", NO_MODEL
+
+            # Success! Clean output
+            output = result.stdout.strip()
+            lines = output.split("\n")
+            cleaned = []
+            for line in lines:
+                if any(
+                    skip in line
+                    for skip in [
+                        "Loaded cached credentials",
+                        "Data collection is disabled",
+                        "Telemetry collection is disabled",
+                    ]
+                ):
+                    continue
+                cleaned.append(line)
+
+            return "\n".join(cleaned).strip(), model
+
+        except subprocess.TimeoutExpired:
+            print(f"❌ Timeout after {DEFAULT_MODEL_TIMEOUT}s (attempt {attempt + 1})")
+            if attempt < max_retries - 1:
+                continue
+            return "", NO_MODEL
+
+        except FileNotFoundError:
+            print(f"❌ Critical: Executable not found. PATH is: {os.environ.get('PATH')}")
+            print(f"    Attempted command: {' '.join(cmd)}")
+            return "Error - Gemini Executable Not Found", NO_MODEL
+
+        except Exception as e:
+            print(f"❌ Python Exception: {str(e)}")
+            print(f"    Exception type: {type(e).__name__}")
+            if attempt < max_retries - 1:
+                time.sleep(5)
+                continue
+            return f"Error - Exception: {str(e)}", NO_MODEL
+
+    return "", NO_MODEL  # All retries exhausted
 
 
 def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
-    """Calls the Gemini API with a fallback from Pro to Flash model.
+    """Calls Gemini CLI with primary model, falling back to Flash on failure.
+
+    This implementation:
+    - Uses API key instead of OAuth to avoid browser-based auth hangs
+    - Explicitly specifies model to avoid 404 errors
+    - Uses standard stdin (no PTY wrapper) which properly sends EOF
+    - Implements exponential backoff for rate limiting on free tier
+    - Falls back to gemini-2.5-flash if primary model fails
 
     Args:
         prompt: The prompt to send to Gemini
@@ -28,78 +147,19 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
         (analysis, model_used) - The analysis result and which model was used
     """
 
-    # Helper function to clean credential messages from output
-    def clean_output(output: str) -> str:
-        lines = output.split("\n")
-        cleaned = []
-        for line in lines:
-            # Skip authentication and telemetry messages
-            if any(
-                skip in line
-                for skip in ["Loaded cached credentials", "Data collection is disabled", "Telemetry collection is disabled"]
-            ):
-                continue
-            cleaned.append(line)
-        return "\n".join(cleaned).strip()
-
-    # Try with Pro model first
-    try:
-        print("Attempting analysis with Gemini 2.5 Pro model...")
-        result = subprocess.run(
-            ["gemini", "-m", PRO_MODEL],
-            input=prompt,
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=PRO_MODEL_TIMEOUT,
-        )
-        output = clean_output(result.stdout.strip())
-        return output.strip(), PRO_MODEL
-    except subprocess.TimeoutExpired:
-        print(f"Pro model timed out after {PRO_MODEL_TIMEOUT}s, trying Flash model...")
-        print("   (This is likely due to network latency in CI, not a quota issue)")
-    except subprocess.CalledProcessError as e:
-        # Check if it's a quota limit error
-        if e.stderr:
-            error_text = e.stderr.lower()
-            if "quota limit" in error_text or "api error" in error_text or "quota exceeded" in error_text:
-                print("Quota limit reached for Pro model, falling back to Flash...")
-            else:
-                # Non-quota error from Pro model - surface the error
-                err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
-                return f"Pro model failed with error: {err_msg}", NO_MODEL
-        else:
-            # No stderr, return the error
-            return f"Pro model failed with error: {str(e)}", NO_MODEL
-    except Exception as e:
-        # Unexpected error
-        return f"Unexpected error with Pro model: {str(e)}", NO_MODEL
+    # Try primary model first (gemini-3.0-pro-preview)
+    result, model_used = _call_gemini_with_model(prompt, PRIMARY_MODEL)
+    if model_used != NO_MODEL and result:
+        return result, model_used
 
     # Fallback to Flash model
-    try:
-        print("Attempting analysis with Gemini 2.5 Flash model...")
-        result = subprocess.run(
-            ["gemini", "-m", FLASH_MODEL],
-            input=prompt,
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=FLASH_MODEL_TIMEOUT,
-        )
-        output = clean_output(result.stdout.strip())
-        return output.strip(), FLASH_MODEL
-    except subprocess.TimeoutExpired:
-        err_msg = f"Flash model timed out after {FLASH_MODEL_TIMEOUT}s"
-        print(f"Error: {err_msg}")
-        return f"Both Pro and Flash models failed. {err_msg}", NO_MODEL
-    except subprocess.CalledProcessError as e:
-        err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
-        print(f"Flash model failed: {err_msg}")
-        return f"Both Pro and Flash models failed. Flash error: {err_msg}", NO_MODEL
-    except Exception as e:
-        err_msg = f"Unexpected error: {str(e)}"
-        print(f"Error: {err_msg}")
-        return f"Both Pro and Flash models failed. {err_msg}", NO_MODEL
+    print(f"⚠️  Primary model failed, falling back to {FALLBACK_MODEL}...")
+    result, model_used = _call_gemini_with_model(prompt, FALLBACK_MODEL, max_retries=3)
+    if model_used != NO_MODEL and result:
+        return result, model_used
+
+    # Both models failed
+    return "All models failed - check GOOGLE_API_KEY and model availability", NO_MODEL
 
 
 def check_gemini_cli() -> bool:
@@ -316,14 +376,15 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
     diff_size = len(diff)
 
     # If diff is small enough, use single analysis
-    if diff_size < 500000:  # 500KB threshold - Gemini can handle much larger context
+    # Use conservative threshold to avoid ARG_MAX limit (~128KB on most systems)
+    # Leaving room for prompt formatting and context, use 50KB as safe threshold
+    if diff_size < 50000:  # 50KB threshold - avoid ARG_MAX errors
         return analyze_complete_diff(diff, changed_files, pr_info, project_context, file_stats)
 
     # For large diffs, analyze by file groups
     print(f"Large diff detected ({diff_size:,} chars), using chunked analysis...")
 
     file_chunks = chunk_diff_by_files(diff)
-    analyses = []
     model_used = NO_MODEL  # Start with no model, will be updated if any analysis succeeds
     successful_models = []  # Track which models were successfully used
 
@@ -354,25 +415,71 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
     # Get recent PR comments for context
     recent_comments = get_recent_pr_comments(pr_info["number"])
 
-    # Analyze each group
+    # Create temporary directory for review sections
+    review_dir = Path(f"/tmp/gemini_review_{pr_info['number']}")
+    review_dir.mkdir(exist_ok=True)
+
+    # Analyze each group and save to separate files
+    review_files = []
     for group_name, group_files in file_groups.items():
         if not group_files:
             continue
 
         group_analysis, group_model = analyze_file_group(group_name, group_files, pr_info, project_context, recent_comments)
         if group_analysis and group_model != NO_MODEL:
-            analyses.append(f"### {group_name.title()} Changes\n{group_analysis}")
+            # Save to file
+            review_file = review_dir / f"review_{group_name}.txt"
+            review_file.write_text(group_analysis, encoding="utf-8")
+            review_files.append(review_file)
             successful_models.append(group_model)
 
-    # Determine which model was predominantly used
+    # Determine if any analysis succeeded
     if successful_models:
-        # If any analysis used Flash, report Flash (as it's the fallback)
-        model_used = FLASH_MODEL if FLASH_MODEL in successful_models else PRO_MODEL
+        model_used = "default"
+    elif review_files:
+        model_used = "default"
     else:
-        # No successful analyses
         model_used = NO_MODEL
 
-    # Combine analyses with overall summary
+    # Only return analysis if we have content
+    if not review_files:
+        return "Unable to analyze PR - all file group analyses failed.", NO_MODEL
+
+    # Consolidate reviews using the consolidation script
+    print(f"\nConsolidating {len(review_files)} review sections with Gemini...")
+    try:
+        consolidate_script = Path(__file__).parent / "consolidate-gemini-review.py"
+        result = subprocess.run(
+            [sys.executable, str(consolidate_script), str(review_dir), pr_info["number"], pr_info["title"]],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=300,  # 5 minute timeout for consolidation
+        )
+
+        if result.returncode == 0:
+            # Read consolidated review
+            consolidated_file = review_dir / "review_consolidated.txt"
+            if consolidated_file.exists():
+                consolidated_analysis = consolidated_file.read_text(encoding="utf-8")
+                print("✅ Successfully consolidated reviews")
+                return consolidated_analysis, model_used
+            print("⚠️  Consolidation completed but output file not found, using fallback")
+        else:
+            print(f"⚠️  Consolidation failed: {result.stderr}")
+            print("   Falling back to simple concatenation")
+
+    except Exception as e:
+        print(f"⚠️  Error during consolidation: {e}")
+        print("   Falling back to simple concatenation")
+
+    # Fallback: simple concatenation if consolidation fails
+    analyses = []
+    for review_file in review_files:
+        group_name = review_file.stem.replace("review_", "").replace("_", " ").title()
+        content = review_file.read_text(encoding="utf-8")
+        analyses.append(f"### {group_name} Changes\n{content}")
+
     combined_analysis = f"""## Overall Summary
 
 **PR Stats**: {file_stats['files']} files changed, \
@@ -394,7 +501,7 @@ def analyze_file_group(
     group_name: str,
     files: List[Tuple[str, str]],
     pr_info: Dict[str, Any],
-    _project_context: str,
+    project_context: str,
     recent_comments: str = "",
 ) -> Tuple[str, str]:
     """Analyze a group of related files
@@ -406,15 +513,20 @@ def analyze_file_group(
     combined_diff = ""
     file_list = []
 
-    for filepath, file_diff in files[:20]:  # Increased to max 20 files per group
+    for filepath, file_diff in files[:10]:  # Max 10 files per group to stay under ARG_MAX
         file_list.append(filepath)
-        # Include full file diff up to 50KB per file
-        file_content = file_diff[:50000]  # 50KB per file should be safe
+        # Include file diff up to 3KB per file to keep total under ARG_MAX
+        file_content = file_diff[:3000]  # 3KB per file, 10 files = ~30KB + overhead
         combined_diff += f"\n\n=== {filepath} ===\n{file_content}"
-        if len(file_diff) > 50000:
-            combined_diff += f"\n... (truncated {len(file_diff) - 50000} chars)"
+        if len(file_diff) > 3000:
+            combined_diff += f"\n... (truncated {len(file_diff) - 3000} chars)"
 
-    prompt = f"Analyze this group of {group_name} changes from " f"PR #{pr_info['number']}:\n\n"
+    prompt = (
+        f"You are an expert code reviewer. Analyze this group of {group_name} changes from "
+        f"PR #{pr_info['number']}.\n\n"
+        f"**PROJECT CONTEXT:**\n"
+        f"{project_context}\n\n"
+    )
 
     # Add recent comments if provided
     if recent_comments:
@@ -425,7 +537,7 @@ def analyze_file_group(
         f"{chr(10).join(f'- {f}' for f in file_list)}\n\n"
         f"**Relevant diffs:**\n"
         f"```diff\n"
-        f"{combined_diff[:200000]}\n"
+        f"{combined_diff[:35000]}\n"  # Conservative limit for ARG_MAX
         f"```\n\n"
         f"Focus on:\n"
         f"1. Correctness and potential bugs\n"
@@ -485,13 +597,13 @@ def analyze_complete_diff(
         f"{format_workflow_contents(workflow_contents)}\n"
         f"**COMPLETE DIFF:**\n"
         f"```diff\n"
-        f"{diff[:500000]}\n"
+        f"{diff[:40000]}\n"  # Conservative limit to stay under ARG_MAX
         f"```\n"
     )
 
     # Add truncation message if needed
-    if len(diff) > 500000:
-        prompt += f"... (diff truncated, {len(diff) - 500000} chars omitted)\n\n"
+    if len(diff) > 40000:
+        prompt += f"... (diff truncated, {len(diff) - 40000} chars omitted)\n\n"
     else:
         prompt += "\n"
 
@@ -521,12 +633,10 @@ def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
     return formatted
 
 
-def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = PRO_MODEL) -> str:
+def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = "default") -> str:
     """Format the analysis as a GitHub PR comment"""
-    if model_used == PRO_MODEL:
-        model_display = "v2.5 Pro"
-    elif model_used == FLASH_MODEL:
-        model_display = "v2.5 Flash"
+    if model_used == "default":
+        model_display = "Gemini (Preview)"
     else:
         model_display = "Error - No model available"
     comment = f"""## Gemini AI Code Review

@@ -288,7 +288,7 @@ services:
     networks:
       - mcp-network
     # Default: Run CLI test for validation.
-    # To run API server instead: docker-compose run --rm sleeper-eval-cpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8021
+    # To run API server instead: docker-compose run --rm sleeper-eval-cpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8022
     command: ["python", "-m", "sleeper_agents.cli", "test", "--cpu"]
     profiles:
       - evaluation
@@ -315,7 +315,7 @@ services:
     networks:
       - mcp-network
     # Default: Run model evaluation.
-    # To run API server instead: docker-compose run --rm sleeper-eval-gpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8021
+    # To run API server instead: docker-compose run --rm sleeper-eval-gpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8022
     command: ["python", "-m", "sleeper_agents.cli", "evaluate", "--gpu"]
     deploy:
       resources:
@@ -371,11 +371,11 @@ services:
         GROUP_ID: "${GROUP_ID:-1000}"
     container_name: mcp-gemini
     volumes:
-      - ~/.gemini:/home/geminiuser/.gemini  # Mount host Gemini auth
+      - ~/.gemini:/home/geminiuser/.gemini  # Mount host Gemini OAuth (needs write for session cache)
       - ./:/workspace:ro  # Mount workspace for file access (read-only)
     environment:
       - PYTHONUNBUFFERED=1
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-pro}
+      # Keep using OAuth (free tier) - just need to refresh token when expired
       - GEMINI_TIMEOUT=${GEMINI_TIMEOUT:-300}
       - GEMINI_USE_CONTAINER=false  # Disable nested containerization
       - HOME=/home/geminiuser  # Set home directory for .gemini access

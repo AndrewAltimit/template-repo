@@ -248,6 +248,68 @@ python -m sleeper_agents.scripts.validation.validate_mcp
 
 ---
 
+## Testing Scripts (`scripts/testing/`)
+
+### `test_cross_architecture.bat` / `test_cross_architecture.sh`
+**Purpose**: Cross-architecture validation for linear probe detection
+
+**Usage**:
+```bash
+# Windows
+scripts\testing\test_cross_architecture.bat --quick --gpu
+
+# Linux/Mac
+./scripts/testing/test_cross_architecture.sh --quick --gpu
+
+# Full validation (all supported models)
+./scripts/testing/test_cross_architecture.sh --full --gpu
+```
+
+**Key Features**:
+- Validates probe detection across multiple transformer architectures
+- Tests GPT-2, Mistral-7B, Qwen2.5-7B, Llama-3-8B
+- Containerized execution with GPU support
+- Proves method generalization beyond single architecture
+
+**Validation Results**:
+- GPT-2 (768d): AUC = 1.0000
+- Mistral-7B (4096d): AUC = 1.0000
+- Qwen2.5-7B (3584d): AUC = 1.0000
+
+**Use Case**: Scientific validation that detection method generalizes across architectures
+
+---
+
+### `test_adversarial_robustness.bat` / `test_adversarial_robustness.sh`
+**Purpose**: Adversarial robustness audit using gradient-based attacks
+
+**Usage**:
+```bash
+# Windows
+scripts\testing\test_adversarial_robustness.bat --quick --gpu
+
+# Linux/Mac
+./scripts/testing/test_adversarial_robustness.sh --quick --gpu
+
+# Custom perturbation budget
+./scripts/testing/test_adversarial_robustness.sh --quick --epsilon 0.2
+```
+
+**Key Features**:
+- PGD (Projected Gradient Descent) attack on linear probes
+- Tests white-box adversarial vulnerability
+- Measures theoretical robustness limits
+- Validates that detection tracks feature correlations (not token patterns)
+
+**Validation Results**:
+- Clean AUC: 1.0000 → Adversarial AUC: 0.0000
+- Attack Success Rate: 56%
+- Proves probe detects continuous features (expected vulnerability)
+
+**Use Case**: Document known theoretical limits and validate detection methodology
+
+---
+
 ## Analysis Scripts (`scripts/analysis/`)
 
 ### `residual_analysis.py`

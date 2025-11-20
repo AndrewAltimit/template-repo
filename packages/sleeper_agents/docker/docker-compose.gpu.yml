@@ -71,6 +71,12 @@ services:
     container_name: sleeper-evaluate
     command: ["python3", "scripts/test_model_management.py"]
 
+  # Service for PyTorch probe GPU testing
+  test-pytorch-probe:
+    extends: sleeper-eval-gpu
+    container_name: sleeper-test-pytorch-probe
+    command: ["python3", "examples/test_pytorch_probe_gpu.py"]
+
 volumes:
   sleeper-models:
     driver: local

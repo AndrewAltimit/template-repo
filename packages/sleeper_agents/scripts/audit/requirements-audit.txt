@@ -1,0 +1,33 @@
+# Phase 3E: Gradient-Based Attack Validation - Audit Environment Requirements
+#
+# This is an EXTERNAL AUDIT environment, NOT part of production dependencies.
+# Install in a separate virtualenv/container to avoid polluting main install.
+#
+# Usage:
+#   python -m venv venv-audit
+#   source venv-audit/bin/activate  # or venv-audit\Scripts\activate on Windows
+#   pip install -r requirements-audit.txt
+#   python audit_with_art.py --probe-path /path/to/probe.pkl
+
+# Core ML Libraries
+torch>=2.1.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+
+# IBM Adversarial Robustness Toolbox (gradient-based attacks)
+adversarial-robustness-toolbox>=1.15.0
+
+# Visualization
+matplotlib>=3.6.0
+seaborn>=0.12.0
+
+# Utilities
+tqdm>=4.66.0
+pyyaml>=6.0
+
+# Model Loading (if testing on specific architectures)
+transformers>=4.34.0
+huggingface-hub>=0.20.0
+
+# Note: This environment is ISOLATED from production.
+# Do not add these dependencies to main pyproject.toml.

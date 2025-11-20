@@ -87,7 +87,7 @@ EVAL_DB_PATH=/path/to/evaluation.db
 
 # API configuration
 API_HOST=0.0.0.0
-API_PORT=8021
+API_PORT=8022
 
 # Optional: HuggingFace token for private models
 HUGGINGFACE_TOKEN=your_token_here

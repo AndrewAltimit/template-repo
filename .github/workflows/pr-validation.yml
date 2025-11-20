@@ -110,7 +110,7 @@ jobs:
     needs: detect-changes
     if: github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft)
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 30  # Increased for large PRs - API calls with retry logic can take time
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       PR_TITLE: ${{ github.event.pull_request.title }}
@@ -119,6 +119,7 @@ jobs:
       BASE_BRANCH: ${{ github.base_ref }}
       HEAD_BRANCH: ${{ github.head_ref }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}  # Free tier API key from Google AI Studio
     steps:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
@@ -199,20 +200,26 @@ jobs:
           # Stop the Gemini server
           kill $GEMINI_PID || true
 
-      - name: Run Gemini review
+
+      - name: Run Gemini CLI Review
         continue-on-error: true  # Don't fail the PR if Gemini review fails
         shell: bash
         env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || '' }}
         run: |
-          # Set up Gemini CLI with proper authentication
-          if automation/review/setup-gemini-cli.sh; then
-            # Setup successful, run the review
-            export PATH="/tmp:$PATH"
-            python3 automation/review/gemini-pr-review.py
+          # Check API Key
+          echo "🔑 Checking API Key..."
+          if [ -z "${GOOGLE_API_KEY}" ]; then
+            echo "❌ GOOGLE_API_KEY is empty!"
           else
-            echo "⚠️  Gemini setup failed, skipping review"
+            echo "✅ GOOGLE_API_KEY is set (length: ${#GOOGLE_API_KEY})"
           fi
+
+          # Run Python script (uses npx internally, no global install needed)
+          echo "🚀 Starting Gemini PR Review..."
+          echo "ℹ️  Using npx to run @google/gemini-cli (no global install)"
+          python3 automation/review/gemini-pr-review.py
 
       - name: Upload review artifact
         if: always()

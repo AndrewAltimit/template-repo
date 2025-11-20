@@ -75,10 +75,12 @@ rate_limits:
 # Model configuration overrides
 model_overrides:
   # Gemini models
+  # Using explicit model specification with API key authentication
+  # Model names verified from gemini-config.json
   gemini:
-    pro_model: gemini-2.5-pro
-    flash_model: gemini-2.5-flash
-    default_model: gemini-2.5-pro
+    pro_model: gemini-3-pro-preview  # Latest preview model (NOT 3.0!)
+    flash_model: gemini-2.5-flash  # Fast fallback model
+    default_model: gemini-3-pro-preview  # Primary model for PR reviews
 
   # OpenRouter agents configuration
   opencode:
@@ -123,8 +125,7 @@ advanced:
   # Non-interactive mode settings
   non_interactive_flags:
     claude: ["--print", "--dangerously-skip-permissions"]
-    # For gemini: model and prompt flags are now handled dynamically in the code
-    # based on the default_model setting in model_overrides
-    gemini: []
+    # For gemini: Only use -p flag, no -m model flag (causes 404 in preview CLI)
+    gemini: ["-p"]
     opencode: ["--non-interactive"]
     crush: ["--non-interactive", "--no-update"]

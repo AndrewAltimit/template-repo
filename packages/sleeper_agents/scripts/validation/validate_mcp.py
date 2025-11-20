@@ -166,17 +166,17 @@ def check_ports():
     """Check that chosen ports don't conflict."""
     print()
     print("Port allocations:")
-    print("  8021: Main Detection API")
-    print("  8022: Analysis Dashboard")
-    print("  8023: Real-time Monitoring")
-    print("  8024: ChromaDB Vector Database")
+    print("  8022: Main Detection API (Sleeper Agents)")
+    print("  8023: Analysis Dashboard")
+    print("  8024: Real-time Monitoring")
+    print("  8025: ChromaDB Vector Database")
 
     # Check if ports are mentioned in docker-compose
     compose_path = Path(__file__).parent.parent.parent.parent.parent / "docker-compose.yml"
     if compose_path.exists():
         with open(compose_path, "r", encoding="utf-8") as f:
             content = f.read()
-            for port in ["8021", "8022", "8023", "8024"]:
+            for port in ["8022", "8023", "8024", "8025"]:
                 count = content.count(f'"{port}:')
                 if count > 0:
                     print(f"  ✓ Port {port} configured ({count} reference(s))")

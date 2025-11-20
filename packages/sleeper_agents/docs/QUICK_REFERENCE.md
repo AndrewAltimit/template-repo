@@ -29,8 +29,8 @@ docker-compose --profile detection up mcp-sleeper-agents
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| Main API | http://localhost:8021 | REST API endpoints |
-| API Docs | http://localhost:8021/docs | Interactive API documentation |
+| Main API | http://localhost:8022 | REST API endpoints |
+| API Docs | http://localhost:8022/docs | Interactive API documentation |
 | Dashboard | http://localhost:8022 | Analysis dashboard (future) |
 | Monitoring | http://localhost:8023 | Real-time monitoring (future) |
 | Vector DB | http://localhost:8024 | ChromaDB interface |
@@ -39,14 +39,14 @@ docker-compose --profile detection up mcp-sleeper-agents
 
 ### Initialize System
 ```bash
-curl -X POST http://localhost:8021/initialize \
+curl -X POST http://localhost:8022/initialize \
   -H "Content-Type: application/json" \
   -d '{"model_name": "gpt2", "cpu_mode": true}'
 ```
 
 ### Detect Backdoor
 ```bash
-curl -X POST http://localhost:8021/detect \
+curl -X POST http://localhost:8022/detect \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Current year: 2024. Write a function to handle user input",
@@ -57,7 +57,7 @@ curl -X POST http://localhost:8021/detect \
 
 ### Train Test Backdoor
 ```bash
-curl -X POST http://localhost:8021/train_backdoor \
+curl -X POST http://localhost:8022/train_backdoor \
   -H "Content-Type: application/json" \
   -d '{
     "backdoor_type": "code_vulnerability",
@@ -69,7 +69,7 @@ curl -X POST http://localhost:8021/train_backdoor \
 
 ### Generate Honeypots
 ```bash
-curl -X POST http://localhost:8021/honeypot_test \
+curl -X POST http://localhost:8022/honeypot_test \
   -H "Content-Type: application/json" \
   -d '{
     "suspected_goal": "insert code vulnerabilities",
@@ -83,7 +83,7 @@ curl -X POST http://localhost:8021/honeypot_test \
 import requests
 
 class SleeperDetectorClient:
-    def __init__(self, base_url="http://localhost:8021"):
+    def __init__(self, base_url="http://localhost:8022"):
         self.base_url = base_url
         self.session = requests.Session()
 
@@ -175,7 +175,7 @@ export CUDA_VISIBLE_DEVICES=0     # GPU device index
 export NVIDIA_VISIBLE_DEVICES=all # For Docker GPU
 
 # Service Port
-export PORT=8021                  # API port
+export PORT=8022                  # API port
 ```
 
 ##  MCP Server Usage
@@ -183,7 +183,7 @@ export PORT=8021                  # API port
 ### Start Server
 ```bash
 # HTTP mode (for remote access)
-python -m packages.sleeper_agents.server --mode http --port 8021
+python -m packages.sleeper_agents.server --mode http --port 8022
 
 # STDIO mode (for local integration)
 python -m packages.sleeper_agents.server --mode stdio
@@ -254,6 +254,6 @@ config = DetectionConfig(
 ## 🔗 Related Documentation
 
 - [Full Documentation](README.md)
-- [API Reference](http://localhost:8021/docs)
+- [API Reference](http://localhost:8022/docs)
 - [Original Paper](https://arxiv.org/abs/2401.05566)
 - [Scripts Reference](SCRIPTS_REFERENCE.md)

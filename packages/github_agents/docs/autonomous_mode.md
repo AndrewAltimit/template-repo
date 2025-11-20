@@ -31,10 +31,10 @@ claude --print --dangerously-skip-permissions --output-format text "prompt"
 
 ### Gemini (Google)
 ```bash
-gemini -m gemini-2.5-pro -p "prompt"
+gemini -p "prompt"
 ```
-- `-m`: Model selection (non-interactive)
 - `-p`: Prompt provided as argument (no stdin interaction)
+- **Note:** The CLI automatically selects the best available model
 
 ### OpenCode
 ```bash
