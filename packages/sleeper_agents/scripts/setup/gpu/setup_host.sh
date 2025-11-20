@@ -47,7 +47,8 @@ docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi
 
 # Step 3: Build GPU image
 echo -e "\n${BLUE}Step 3: Building GPU Docker Image${NC}"
-cd "$(dirname "$0")/.."
+# Navigate up 3 levels from scripts/setup/gpu/ to sleeper_agents/
+cd "$(dirname "$(dirname "$(dirname "$0")")")"
 docker-compose -f docker/docker-compose.gpu.yml build
 
 # Step 4: Run validation

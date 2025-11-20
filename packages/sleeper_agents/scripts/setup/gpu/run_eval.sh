@@ -5,7 +5,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKAGE_DIR="$(dirname "$SCRIPT_DIR")"
+# Navigate up 3 levels from scripts/setup/gpu/ to sleeper_agents/
+PACKAGE_DIR="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
 
 cd "$PACKAGE_DIR"
 

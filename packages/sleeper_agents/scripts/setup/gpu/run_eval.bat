@@ -4,7 +4,8 @@ REM Usage: run_gpu_eval.bat [command]
 
 setlocal enabledelayedexpansion
 
-cd /d "%~dp0.."
+REM Navigate up 3 levels from scripts\setup\gpu\ to sleeper_agents\
+cd /d "%~dp0..\..\..\"
 
 echo ===========================================================
 echo Sleeper Detection - GPU Evaluation
