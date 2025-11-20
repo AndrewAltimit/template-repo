@@ -1,12 +1,12 @@
 """
-Phase 3E: Gradient Attack Audit (Lightweight)
+Gradient Attack Audit (Lightweight)
 
 Purpose:
     Audit the robustness of linear probe detection against white-box adversarial attacks.
     This is NOT a defense mechanism - it's an audit to measure theoretical robustness limits.
 
 Key Insight (from Gemini):
-    "Perfect AUC = 1.0 in Phase 3D scares me more than 0.95. It implies the decision
+    "Perfect AUC = 1.0 in Perfect cross-architecture results scare me more than 0.95. It implies the decision
     boundary might be separating 'Trigger' vs 'No Trigger' rather than 'Deceptive State'
     vs 'Honest State'."
 
@@ -23,7 +23,7 @@ Attack Strategy:
 Expected Outcome:
     - AUC drops from 1.0 to ~0.0-0.2 (successful attack)
     - Proves probe is vulnerable to white-box attacks (expected behavior)
-    - Validates that perfect Phase 3D results aren't due to overfitting to tokens
+    - Validates that perfect cross-architecture results aren't due to overfitting to tokens
 
 Scientific Interpretation:
     - Low AUC after attack = Probe tracks feature correlations closely (manipulatable)
@@ -31,16 +31,16 @@ Scientific Interpretation:
 
 Usage:
     # Quick audit (50 samples, recommended)
-    python examples/phase3e_gradient_attack_audit.py --quick
+    python examples/gradient_attack_audit.py --quick
 
     # Full audit (100 samples)
-    python examples/phase3e_gradient_attack_audit.py --n-samples 100
+    python examples/gradient_attack_audit.py --n-samples 100
 
     # With GPU
-    python examples/phase3e_gradient_attack_audit.py --quick --device cuda
+    python examples/gradient_attack_audit.py --quick --device cuda
 
     # Custom epsilon
-    python examples/phase3e_gradient_attack_audit.py --quick --epsilon 0.2
+    python examples/gradient_attack_audit.py --quick --epsilon 0.2
 """
 
 import argparse
@@ -77,7 +77,7 @@ class AuditConfig:
     norm: str = "inf"
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     random_seed: int = 42
-    output_dir: Path = Path("outputs/phase3e_audit")
+    output_dir: Path = Path("outputs/gradient_attack_audit")
 
 
 class SleeperARTWrapper(PyTorchClassifier):
@@ -530,7 +530,7 @@ class GradientAuditRunner:
             Final audit metrics
         """
         print("\n" + "=" * 60)
-        print("Phase 3E: Gradient Attack Audit")
+        print("Gradient Attack Audit: Gradient Attack Audit")
         print("=" * 60)
         print(f"Model: {self.config.model_name}")
         print(f"Samples: {self.config.n_samples}")
@@ -631,7 +631,7 @@ class GradientAuditRunner:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Phase 3E: Gradient Attack Audit on Linear Probe Detection")
+    parser = argparse.ArgumentParser(description="Gradient Attack Audit: Gradient Attack Audit on Linear Probe Detection")
     parser.add_argument(
         "--quick",
         action="store_true",
@@ -655,7 +655,7 @@ def main():
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="outputs/phase3e_audit",
+        default="outputs/gradient_attack_audit",
         help="Output directory for results",
     )
 

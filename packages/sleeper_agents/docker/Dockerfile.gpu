@@ -96,4 +96,4 @@ RUN useradd -m -u 1000 sleeper && \
 USER sleeper
 
 # Default command - run validation
-CMD ["python3", "scripts/validate_phase1.py"]
+CMD ["python3", "scripts/validate_foundation.py"]

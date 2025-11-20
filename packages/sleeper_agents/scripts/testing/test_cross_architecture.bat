@@ -1,5 +1,5 @@
 @echo off
-REM Phase 3D Cross-Architecture Validation Test Script (Windows)
+REM Cross-Architecture Method Validation Test Script (Windows)
 REM Runs validation in Docker container for consistency
 
 setlocal
@@ -10,7 +10,7 @@ set SCRIPT_DIR=%~dp0
 set SCRIPT_PATH=%~f0
 
 echo ================================================================================
-echo Phase 3D: Cross-Architecture Method Validation Test
+echo Cross-Architecture Validation: Cross-Architecture Method Validation Test
 echo ================================================================================
 echo.
 
@@ -83,12 +83,12 @@ if "%MODE%"=="quick" (
     echo Running QUICK test ^(GPT-2 only, 50 samples^)...
     echo Installing dependencies and running test...
     echo.
-    docker-compose -f docker-compose.yml run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] --quiet && python packages/sleeper_agents/examples/phase3d_cross_architecture_validation.py --quick --device %DEVICE%"
+    docker-compose -f docker-compose.yml run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] --quiet && python packages/sleeper_agents/examples/cross_architecture_validation.py --quick --device %DEVICE%"
 ) else (
     echo Running FULL validation ^(all models: %MODELS%^)...
     echo Installing dependencies and running test...
     echo.
-    docker-compose -f docker-compose.yml run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] --quiet && python packages/sleeper_agents/examples/phase3d_cross_architecture_validation.py --models %MODELS% --device %DEVICE% --n-train 200 --n-test 100"
+    docker-compose -f docker-compose.yml run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] --quiet && python packages/sleeper_agents/examples/cross_architecture_validation.py --models %MODELS% --device %DEVICE% --n-train 200 --n-test 100"
 )
 
 if errorlevel 1 (

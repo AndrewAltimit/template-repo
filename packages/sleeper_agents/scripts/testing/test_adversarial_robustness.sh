@@ -1,5 +1,5 @@
 #!/bin/bash
-# Phase 3E Gradient Attack Audit Test Script (Linux/Mac)
+# Gradient-Based Attack Audit Test Script (Linux/Mac)
 
 set -e  # Exit on error
 
@@ -42,7 +42,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR/../../../.."
 
 echo "============================================================"
-echo "Phase 3E: Gradient Attack Audit"
+echo "Gradient Attack Audit: Gradient Attack Audit"
 echo "============================================================"
 echo "Configuration:"
 echo "  Mode: $MODE"
@@ -56,11 +56,11 @@ if [ "$MODE" = "quick" ]; then
     echo "Running QUICK audit (50 samples, recommended)..."
     echo "Installing dependencies and running audit..."
     echo ""
-    if docker-compose run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] adversarial-robustness-toolbox --quiet && python packages/sleeper_agents/examples/phase3e_gradient_attack_audit.py --quick --device $DEVICE --epsilon $EPSILON"; then
+    if docker-compose run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] adversarial-robustness-toolbox --quiet && python packages/sleeper_agents/examples/gradient_attack_audit.py --quick --device $DEVICE --epsilon $EPSILON"; then
         echo ""
         echo "============================================================"
         echo "Audit completed successfully!"
-        echo "Results saved to: outputs/phase3e_audit/"
+        echo "Results saved to: outputs/gradient_attack_audit/"
         echo "============================================================"
     else
         EXIT_CODE=$?
@@ -74,11 +74,11 @@ else
     echo "Running FULL audit (100 samples)..."
     echo "Installing dependencies and running audit..."
     echo ""
-    if docker-compose run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] adversarial-robustness-toolbox --quiet && python packages/sleeper_agents/examples/phase3e_gradient_attack_audit.py --n-samples 100 --device $DEVICE --epsilon $EPSILON"; then
+    if docker-compose run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] adversarial-robustness-toolbox --quiet && python packages/sleeper_agents/examples/gradient_attack_audit.py --n-samples 100 --device $DEVICE --epsilon $EPSILON"; then
         echo ""
         echo "============================================================"
         echo "Audit completed successfully!"
-        echo "Results saved to: outputs/phase3e_audit/"
+        echo "Results saved to: outputs/gradient_attack_audit/"
         echo "============================================================"
     else
         EXIT_CODE=$?

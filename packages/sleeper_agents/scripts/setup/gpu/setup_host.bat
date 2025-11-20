@@ -53,7 +53,7 @@ docker-compose -f docker/docker-compose.gpu.yml build
 
 REM Step 4: Run validation
 echo.
-echo Step 4: Running Phase 1 Validation on GPU
+echo Step 4: Running Foundation Validation on GPU
 docker-compose -f docker/docker-compose.gpu.yml run --rm validate
 
 REM Step 5: Test resource detection
@@ -79,4 +79,4 @@ echo   1. Run evaluations: scripts\run_gpu_eval.bat test
 echo   2. Download models: scripts\run_gpu_eval.bat download mistral-7b
 echo   3. Interactive shell: scripts\run_gpu_eval.bat shell
 echo.
-echo The GPU container is ready for Phase 3 (Real Model Inference)
+echo The GPU container is ready for model inference (Real Model Inference)

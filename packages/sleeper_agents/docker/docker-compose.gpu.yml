@@ -63,7 +63,7 @@ services:
   validate:
     extends: sleeper-eval-gpu
     container_name: sleeper-validate
-    command: ["python3", "scripts/validate_phase1.py"]
+    command: ["python3", "scripts/validate_foundation.py"]
 
   # Service for running evaluations
   evaluate:

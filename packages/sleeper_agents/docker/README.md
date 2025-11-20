@@ -33,4 +33,4 @@ docker-compose -f docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
 
 ## Documentation
 
-See `../docs/PHASE2_GPU_SETUP.md` for complete setup guide.
+See `../docs/GPU_SETUP.md` for complete setup guide.

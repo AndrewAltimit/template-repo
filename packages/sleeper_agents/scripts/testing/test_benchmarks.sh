@@ -1,12 +1,12 @@
 #!/bin/bash
-# Test Phase 3 Benchmarks (GPU-accelerated on RTX 4090)
-# This script runs all three Phase 3 benchmarks in containerized environment
+# Test Validation Benchmarks (GPU-accelerated on RTX 4090)
+# This script runs all validation benchmarks in containerized environment
 #
 # Usage:
-#   ./test_phase3_benchmarks.sh              - Run all Phase 3 benchmarks
-#   ./test_phase3_benchmarks.sh 3a           - Run only Phase 3A (synthetic)
-#   ./test_phase3_benchmarks.sh 3b           - Run only Phase 3B (real transformer)
-#   ./test_phase3_benchmarks.sh 3c           - Run only Phase 3C (red team)
+#   ./test_phase3_benchmarks.sh              - Run all benchmarks
+#   ./test_phase3_benchmarks.sh 3a           - Run only synthetic benchmark (synthetic)
+#   ./test_phase3_benchmarks.sh 3b           - Run only transformer benchmark (real transformer)
+#   ./test_phase3_benchmarks.sh 3c           - Run only red team benchmark (red team)
 #   ./test_phase3_benchmarks.sh quick        - Run quick version (smaller datasets)
 
 set -e
@@ -26,7 +26,7 @@ COLOR_YELLOW='\033[33m'
 
 echo ""
 echo "============================================================"
-echo "Phase 3 Benchmark Suite (GPU-accelerated)"
+echo "Validation Benchmark Suite (GPU-accelerated)"
 echo "============================================================"
 echo ""
 
@@ -56,10 +56,10 @@ else
     echo ""
 fi
 
-# Function: Run Phase 3A (Synthetic)
-run_phase3a() {
+# Function: Run Synthetic Testing (Synthetic)
+run_synthetic() {
     echo "============================================================"
-    echo "Phase 3A: Synthetic Data Benchmark (Multi-Scenario)"
+    echo "Synthetic Benchmark: Synthetic Data Benchmark (Multi-Scenario)"
     echo "============================================================"
     echo ""
     echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} Container: sleeper-agents-python-ci"
@@ -69,19 +69,19 @@ run_phase3a() {
 
     if docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/benchmark_detectors_comprehensive.py"; then
         echo ""
-        echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Phase 3A benchmark completed"
+        echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Synthetic Testing benchmark completed"
         echo ""
     else
         echo ""
-        echo -e "${COLOR_RED}[FAILED]${COLOR_RESET} Phase 3A benchmark failed"
+        echo -e "${COLOR_RED}[FAILED]${COLOR_RESET} Synthetic Testing benchmark failed"
         return 1
     fi
 }
 
-# Function: Run Phase 3B (Real Transformer)
-run_phase3b() {
+# Function: Run Transformer Testing (Real Transformer)
+run_transformer() {
     echo "============================================================"
-    echo "Phase 3B: Real Transformer Benchmark (GPT-2)"
+    echo "Transformer Benchmark: Real Transformer Benchmark (GPT-2)"
     echo "============================================================"
     echo ""
     echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} Container: sleeper-agents-python-ci"
@@ -90,21 +90,21 @@ run_phase3b() {
     echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} Runtime: ~15 seconds (GPU-accelerated)"
     echo ""
 
-    if docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3b_real_transformer_benchmark.py"; then
+    if docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/real_transformer_benchmark.py"; then
         echo ""
-        echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Phase 3B benchmark completed"
+        echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Transformer Testing benchmark completed"
         echo ""
     else
         echo ""
-        echo -e "${COLOR_RED}[FAILED]${COLOR_RESET} Phase 3B benchmark failed"
+        echo -e "${COLOR_RED}[FAILED]${COLOR_RESET} Transformer Testing benchmark failed"
         return 1
     fi
 }
 
-# Function: Run Phase 3C (Red Team)
-run_phase3c() {
+# Function: Run Red Team Testing (Red Team)
+run_redteam() {
     echo "============================================================"
-    echo "Phase 3C: Red Team Adversarial Benchmark (5 Strategies)"
+    echo "Red Team Benchmark: Red Team Adversarial Benchmark (5 Strategies)"
     echo "============================================================"
     echo ""
     echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} Container: sleeper-agents-python-ci"
@@ -114,31 +114,31 @@ run_phase3c() {
     echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} Runtime: ~60 seconds (GPU-accelerated)"
     echo ""
 
-    if docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3c_red_team_benchmark.py"; then
+    if docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/red_team_benchmark.py"; then
         echo ""
-        echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Phase 3C benchmark completed"
+        echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Red Team Testing benchmark completed"
         echo ""
     else
         echo ""
-        echo -e "${COLOR_RED}[FAILED]${COLOR_RESET} Phase 3C benchmark failed"
+        echo -e "${COLOR_RED}[FAILED]${COLOR_RESET} Red Team Testing benchmark failed"
         return 1
     fi
 }
 
 # Quick mode functions (reduced datasets)
-run_phase3a_quick() {
-    echo "[Phase 3A Quick] Running with reduced dataset..."
+run_synthetic_quick() {
+    echo "[Synthetic Testing Quick] Running with reduced dataset..."
     docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/benchmark_detectors.py"
 }
 
-run_phase3b_quick() {
-    echo "[Phase 3B Quick] Running with GPU..."
-    docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3b_real_transformer_benchmark.py"
+run_transformer_quick() {
+    echo "[Transformer Testing Quick] Running with GPU..."
+    docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/real_transformer_benchmark.py"
 }
 
-run_phase3c_quick() {
-    echo "[Phase 3C Quick] Running with GPU..."
-    docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/phase3c_red_team_benchmark.py"
+run_redteam_quick() {
+    echo "[Red Team Testing Quick] Running with GPU..."
+    docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/red_team_benchmark.py"
 }
 
 # Main execution
@@ -146,33 +146,33 @@ case "$COMMAND" in
     all)
         echo "Running ALL Phase 3 benchmarks..."
         echo ""
-        run_phase3a
-        run_phase3b
-        run_phase3c
+        run_synthetic
+        run_transformer
+        run_redteam
         ;;
     3a)
-        echo "Running Phase 3A only..."
+        echo "Running Synthetic Testing only..."
         echo ""
-        run_phase3a
+        run_synthetic
         ;;
     3b)
-        echo "Running Phase 3B only..."
+        echo "Running Transformer Testing only..."
         echo ""
-        run_phase3b
+        run_transformer
         ;;
     3c)
-        echo "Running Phase 3C only..."
+        echo "Running Red Team Testing only..."
         echo ""
-        run_phase3c
+        run_redteam
         ;;
     quick)
         echo "Running quick benchmarks (reduced dataset sizes)..."
         echo ""
         echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} Quick mode runs faster but less comprehensive"
         echo ""
-        run_phase3a_quick
-        run_phase3b_quick
-        run_phase3c_quick
+        run_synthetic_quick
+        run_transformer_quick
+        run_redteam_quick
         ;;
     *)
         echo -e "${COLOR_RED}[ERROR]${COLOR_RESET} Unknown command: $COMMAND"
@@ -189,9 +189,9 @@ echo -e "${COLOR_GREEN}[SUCCESS]${COLOR_RESET} All Phase 3 benchmarks completed!
 echo "============================================================"
 echo ""
 echo "Summary of Results:"
-echo "  - Phase 3A: Synthetic data across 4 scenarios"
-echo "  - Phase 3B: Real GPT-2 activations with simple trigger"
-echo "  - Phase 3C: Adversarial triggers (5 attack strategies)"
+echo "  - Synthetic Benchmark: Synthetic data across 4 scenarios"
+echo "  - Transformer Benchmark: Real GPT-2 activations with simple trigger"
+echo "  - Red Team Benchmark: Adversarial triggers (5 attack strategies)"
 echo ""
 echo "Key Findings:"
 echo "  - Linear Probe: Perfect performance across all phases"

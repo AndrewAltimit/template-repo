@@ -2,13 +2,13 @@
 
 ## Overview
 
-This document describes the critical importance of dynamic threshold calibration for linear probe-based detection, based on lessons learned during Phase 3E adversarial robustness validation.
+This document describes the critical importance of dynamic threshold calibration for linear probe-based detection, based on lessons learned during the adversarial robustness validation.
 
 ## The Calibration Problem
 
 ### Symptom
 
-During Phase 3E validation, we observed a critical discrepancy:
+During gradient attack validation, we observed a critical discrepancy:
 - **AUC = 1.0000** (perfect ranking of samples)
 - **Accuracy = 0.5600** (poor binary classification)
 
@@ -76,7 +76,7 @@ predictions = (probs > optimal_threshold).astype(int)
 - **Cost-sensitive**: Minimize expected cost based on misclassification costs
 - **Precision-optimal**: For applications where false positives are costly
 
-## Implementation in Phase 3E
+## Implementation in Gradient Attack Audit
 
 ### Code Integration
 
@@ -246,6 +246,6 @@ After implementing dynamic calibration:
 
 ## Related Documentation
 
-- `examples/phase3e_gradient_attack_audit.py`: Implementation reference
+- `examples/gradient_attack_audit.py`: Implementation reference
 - `docs/DETECTION_METHODS.md`: Linear probe detection methodology
 - `docs/TEST_SUITES.md`: Validation test procedures
