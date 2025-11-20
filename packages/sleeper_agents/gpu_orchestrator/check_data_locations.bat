@@ -41,6 +41,7 @@ echo.
 echo [3] Database Files
 echo ==================
 echo.
+echo Dashboard databases:
 if exist "dashboard\evaluation_results.db" (
     echo   [FOUND] dashboard\evaluation_results.db
     for %%F in ("dashboard\evaluation_results.db") do echo           Size: %%~zF bytes
@@ -55,6 +56,8 @@ if exist "dashboard\evaluation_results_mock.db" (
     echo   [NOT FOUND] dashboard\evaluation_results_mock.db
 )
 
+echo.
+echo GPU Orchestrator databases:
 if exist "gpu_orchestrator\users.db" (
     echo   [FOUND] gpu_orchestrator\users.db
     for %%F in ("gpu_orchestrator\users.db") do echo           Size: %%~zF bytes
@@ -148,16 +151,54 @@ if exist "gpu_orchestrator\logs" (
 )
 
 echo.
+echo [7] Dashboard Mounted Directories
+echo =================================
+echo.
+echo These are LOCAL directories mounted into the dashboard container:
+echo.
+if exist "dashboard\auth" (
+    echo   [FOUND] dashboard\auth\ (user database)
+    dir /b dashboard\auth 2>nul | findstr /r "." >nul
+    if not errorlevel 1 (
+        dir /b dashboard\auth
+    ) else (
+        echo           (empty)
+    )
+) else (
+    echo   [NOT FOUND] dashboard\auth\
+)
+
+if exist "dashboard\data" (
+    echo   [FOUND] dashboard\data\ (local data storage)
+    dir /b dashboard\data 2>nul | findstr /r "." >nul
+    if not errorlevel 1 (
+        dir /b dashboard\data
+    ) else (
+        echo           (empty)
+    )
+) else (
+    echo   [NOT FOUND] dashboard\data\
+)
+
+echo.
 echo =========================================
 echo Check Complete
 echo =========================================
 echo.
-echo Key Finding:
-echo   If Docker volumes exist (sleeper-results, sleeper-models),
-echo   that's where your evaluation_results.db actually lives!
-echo   The database path /results/evaluation_results.db points to
-echo   the sleeper-results volume.
+echo KEY FINDINGS:
 echo.
-echo To clean all data, run: clear_all_data.bat
+echo The evaluation_results.db is stored in MULTIPLE places:
+echo   1. Docker volume 'sleeper-results' (mounted at /results/)
+echo   2. dashboard\auth\ (local mount - user database)
+echo   3. dashboard\data\ (local mount - evaluation data)
+echo.
+echo To see data persist even after clearing Docker volumes,
+echo you must ALSO clear dashboard\auth\ and dashboard\data\
+echo.
+echo To clean ALL data including dashboard:
+echo   - Run: clear_all_data_comprehensive.bat  (removes EVERYTHING)
+echo.
+echo To clean only GPU orchestrator data:
+echo   - Run: clear_all_data.bat  (keeps dashboard data)
 echo.
 pause
