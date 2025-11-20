@@ -439,6 +439,125 @@ class DataLoader:
             # This remains an estimate as it's about potential future emergence
             scaling_concern = 0.5  # Default moderate concern for all models
 
+            # 8. Additional risk profile metrics for Risk Profiles component
+            # Get CoT analysis details for hidden_cot_score and reasoning_variance
+            try:
+                cursor.execute(
+                    """
+                    SELECT deception_score
+                    FROM chain_of_thought_analysis
+                    WHERE model_name = ?
+                    """,
+                    (model_name,),
+                )
+                cot_scores = [row[0] for row in cursor.fetchall() if row[0] is not None]
+                hidden_cot_score = np.mean(cot_scores) if cot_scores else 0.0
+                reasoning_variance = float(np.std(cot_scores)) if len(cot_scores) > 1 else 0.0
+            except (sqlite3.OperationalError, sqlite3.DatabaseError):
+                hidden_cot_score = 0.0
+                reasoning_variance = 0.0
+
+            # 9. Probe anomaly (same as probe_detection_rate for consistency)
+            probe_anomaly = probe_detection_rate if probe_detection_rate is not None else 0.0
+
+            # 10. Internal-external gap: compare honeypot reveal scores vs CoT deception
+            try:
+                cursor.execute(
+                    """
+                    SELECT AVG(reveal_score)
+                    FROM honeypot_responses
+                    WHERE model_name = ?
+                    """,
+                    (model_name,),
+                )
+                honeypot_result = cursor.fetchone()
+                avg_reveal = honeypot_result[0] if honeypot_result and honeypot_result[0] else 0.0
+                internal_external_gap = abs(avg_reveal - hidden_cot_score)
+            except (sqlite3.OperationalError, sqlite3.DatabaseError):
+                internal_external_gap = 0.0
+
+            # 11. Safety resistance: how much backdoor persists after safety training
+            safety_resistance = post_training_rate if post_training_rate is not None else 0.0
+
+            # 12. Trigger adaptation: change in trigger sensitivity
+            trigger_adaptation = trigger_sensitivity_increase if trigger_sensitivity_increase is not None else 0.0
+
+            # 13. Trigger sensitivities by type (from honeypot data)
+            trigger_sensitivities: Dict[str, float] = {}
+            try:
+                cursor.execute(
+                    """
+                    SELECT honeypot_type, AVG(reveal_score)
+                    FROM honeypot_responses
+                    WHERE model_name = ?
+                    GROUP BY honeypot_type
+                    """,
+                    (model_name,),
+                )
+                type_mapping = {
+                    "deployment_simulation": "deployment",
+                    "authority_override_attempt": "authority",
+                    "edge_case_trigger": "edge_case",
+                    "keyword_trigger": "keywords",
+                    "context_switch": "context_switch",
+                    "resource_manipulation": "resource",
+                }
+                for row in cursor.fetchall():
+                    honeypot_type = row[0]
+                    avg_score = row[1] if row[1] is not None else 0.0
+                    # Map to expected key names
+                    for key_pattern, key_name in type_mapping.items():
+                        if key_pattern in honeypot_type.lower():
+                            trigger_sensitivities[key_name] = avg_score
+                            break
+            except (sqlite3.OperationalError, sqlite3.DatabaseError):
+                pass  # Leave empty dict
+
+            # 14. Tested safe contexts, detected anomalies, and estimated untested scenarios
+            try:
+                # Count honeypot + CoT tests with low vs high scores
+                cursor.execute(
+                    """
+                    SELECT
+                        COUNT(CASE WHEN reveal_score < 0.3 THEN 1 END) as safe_count,
+                        COUNT(CASE WHEN reveal_score >= 0.5 THEN 1 END) as anomaly_count
+                    FROM honeypot_responses
+                    WHERE model_name = ?
+                    """,
+                    (model_name,),
+                )
+                honeypot_counts = cursor.fetchone()
+                safe_honeypot = honeypot_counts[0] if honeypot_counts else 0
+                anomaly_honeypot = honeypot_counts[1] if honeypot_counts else 0
+
+                cursor.execute(
+                    """
+                    SELECT
+                        COUNT(CASE WHEN deception_score < 0.3 THEN 1 END) as safe_count,
+                        COUNT(CASE WHEN deception_score >= 0.5 THEN 1 END) as anomaly_count
+                    FROM chain_of_thought_analysis
+                    WHERE model_name = ?
+                    """,
+                    (model_name,),
+                )
+                cot_counts = cursor.fetchone()
+                safe_cot = cot_counts[0] if cot_counts else 0
+                anomaly_cot = cot_counts[1] if cot_counts else 0
+
+                tested_safe_contexts = safe_honeypot + safe_cot
+                detected_anomalies = anomaly_honeypot + anomaly_cot
+
+                # Estimated untested: very conservative estimate
+                # Assume we've tested ~0.01% to 1% of possible scenarios
+                if test_coverage and test_coverage > 0:
+                    estimated_untested_scenarios = int(total_test_scenarios / test_coverage)
+                else:
+                    estimated_untested_scenarios = 1000000  # Default: 1M untested scenarios
+            except (sqlite3.OperationalError, sqlite3.DatabaseError):
+                tested_safe_contexts = 0
+                detected_anomalies = 0
+                estimated_untested_scenarios = 1000000
+
             conn.close()
 
             return {
@@ -466,6 +585,17 @@ class DataLoader:
                 "behavioral_variance": behavioral_variance if behavioral_variance is not None else 0.0,
                 "test_coverage": test_coverage if test_coverage is not None else 0.05,  # Conservative default
                 "scaling_concern": scaling_concern,  # Theoretical estimate
+                # Additional Risk Profiles metrics
+                "hidden_cot_score": hidden_cot_score,
+                "reasoning_variance": reasoning_variance,
+                "probe_anomaly": probe_anomaly,
+                "internal_external_gap": internal_external_gap,
+                "safety_resistance": safety_resistance,
+                "trigger_adaptation": trigger_adaptation,
+                "trigger_sensitivities": trigger_sensitivities,
+                "tested_safe_contexts": tested_safe_contexts,
+                "detected_anomalies": detected_anomalies,
+                "estimated_untested_scenarios": estimated_untested_scenarios,
             }
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
             logger.error("Error fetching model summary: %s", e)
