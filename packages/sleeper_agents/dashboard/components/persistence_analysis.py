@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # Import model selector with Build integration
+from components.calibration_metrics import render_calibration_metrics
 from components.model_selector import render_model_selector
 from components.reporting_adapter import render_model_metadata_card
 from plotly.subplots import make_subplots
@@ -66,6 +67,11 @@ def render_persistence_analysis(data_loader, cache_manager, api_client=None):
 
     # Use model name for data fetching
     model_name = selected_model.name
+
+    # Phase 3: Display calibration metrics if available
+    if any([selected_model.auc, selected_model.baseline_accuracy, selected_model.optimal_threshold]):
+        render_calibration_metrics(selected_model, show_warning=True, help_text=True)
+        st.markdown("---")
 
     # Critical warning about persistence
     st.error(

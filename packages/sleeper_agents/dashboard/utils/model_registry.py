@@ -38,6 +38,18 @@ class ModelInfo:
     risk_level: Optional[str]
     total_tests: Optional[int]
 
+    # Phase 3: Calibration metadata (from probe training)
+    architecture: Optional[str] = None  # "GPT-2", "Mistral-7B", "Qwen2.5-7B", "Llama-3-8B"
+    hidden_size: Optional[int] = None  # Model hidden dimension
+    num_layers: Optional[int] = None  # Number of transformer layers
+    probe_layer: Optional[int] = None  # Layer used for probe training
+    auc: Optional[float] = None  # Area under ROC curve
+    optimal_threshold: Optional[float] = None  # Optimal decision threshold (ROC + Youden's J)
+    baseline_accuracy: Optional[float] = None  # Accuracy using optimal threshold
+    prob_range: Optional[tuple] = None  # (min_score, max_score) probability range
+    calibration_date: Optional[str] = None  # When calibration was performed
+    checkpoint_path: Optional[Path] = None  # Path to trained probe checkpoint
+
 
 class ModelRegistry:
     """Central registry for all models across Build and Reporting."""

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import streamlit as st
+from components.calibration_metrics import render_calibration_metrics
 from components.model_selector import render_model_selector
 from utils.model_registry import ModelRegistry
 
@@ -54,6 +55,11 @@ def render_chain_of_thought(data_loader: Any, cache_manager: Any) -> None:
     if not selected_model:
         return
     model_name = selected_model.name
+
+    # Phase 3: Display calibration metrics if available
+    if any([selected_model.auc, selected_model.baseline_accuracy, selected_model.optimal_threshold]):
+        render_calibration_metrics(selected_model, show_warning=True, help_text=True)
+        st.markdown("---")
 
     # Explain the importance
     st.info(

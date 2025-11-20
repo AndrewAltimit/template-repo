@@ -171,58 +171,72 @@ Gradient attack audit confirms that cross-architecture's perfect cross-architect
 ### Priority B: Engineering & Usability
 
 #### 3. Dashboard Completion: 53% → 100% Real Data Coverage ⚡ **NOW HIGH PRIORITY**
-**Status:** 8/15 components complete - **Ready to resume (comprehensive validation complete)**
-**Effort:** 4-6 weeks (original estimate)
+**Status:** 8/15 components complete - **Active Development (Branch: `sleeper-dashboard`)**
+**Effort:** 4-6 weeks
 **Impact:** HIGH - Core science validated, now build the UI tool
 
-**Current Coverage:**
-- Persistence Analysis
-- Chain-of-Thought Analysis
-- Honeypot Analysis
-- Detection Analysis
-- Model Comparison
-- Overview Dashboard
-- Trigger Sensitivity
-- Internal State Monitor
+**Implementation Plan:** See `DASHBOARD_IMPLEMENTATION_PLAN.md` and `DASHBOARD_COMPLETION_SUMMARY.md`
 
-**Missing Components:**
-- Detection Consensus (ensemble methods)
-- Red Team Results (automated adversarial testing)
-- Risk Mitigation Matrix
-- Persona Profile
-- Risk Profiles
-- Tested Territory
-- Scaling Analysis
+**Current Coverage (8/15 Complete):**
+- ✅ Persistence Analysis
+- ✅ Chain-of-Thought Analysis
+- ✅ Honeypot Analysis
+- ✅ Detection Analysis
+- ✅ Model Comparison
+- ✅ Overview Dashboard
+- ✅ Trigger Sensitivity
+- ✅ Internal State Monitor
+
+**Missing Components (7/15 - Need Real Data):**
+1. 🔨 **Detection Consensus** (ensemble methods) - PRIORITY 1
+2. 🔨 **Red Team Results** (automated adversarial testing) - PRIORITY 1
+3. 🔨 **Risk Mitigation Matrix** (risk-to-countermeasure mapping) - PRIORITY 2
+4. 🔨 **Persona Profile** (behavioral analysis) - PRIORITY 2
+5. 🔨 **Risk Profiles** (risk categorization) - PRIORITY 3
+6. 🔨 **Tested Territory** (coverage visualization) - PRIORITY 3
+7. 🔨 **Scaling Analysis** (model size vs deception) - PRIORITY 3
 
 **Integration Updates Based on Phase 3 Validation:**
 1. **Cross-Architecture Support:**
    - Dashboard should support GPT-2, Mistral-7B, Qwen2.5-7B, Llama-3-8B
-   - Model selection dropdown for multi-architecture testing
+   - Model selection dropdown with architecture display
    - Architecture-specific probe training (cannot transfer weights)
+   - Display per-architecture performance metrics
 
 2. **Calibration Methodology:**
    - Implement dynamic threshold finding (ROC curve + Youden's J) for all probes
-   - Display calibration metrics (optimal threshold, probability range)
+   - Display calibration metrics (optimal threshold, probability range, baseline accuracy)
    - Warn if baseline accuracy < 95% (indicates uncalibrated probe)
+   - Show probability distributions for calibration verification
 
 3. **Adversarial Robustness Reporting:**
    - Document white-box vulnerability (expected for linear classifiers)
+   - Show gradient attack results (PGD success rate, perturbation budgets)
    - Emphasize prompt-attack robustness (real threat model)
-   - Add "Known Limitations" section to reports
+   - Add "Known Limitations" section to all components
 
 4. **Validation Metrics:**
-   - Show both AUC and calibrated accuracy
+   - Show both AUC (discrimination) and calibrated accuracy (real-world performance)
    - Include optimal threshold in probe metadata
    - Display probability distributions for calibration verification
+   - Add cross-architecture comparison tables
 
-**Status Change Rationale** (Per Gemini's Recommendation):
-> "Move to Dashboard (Priority C). Stop validating. Start building. You have checked all the boxes."
+**Development Workflow (GPU Constraint):**
+1. **Local Development (CPU):** UI changes, data pipeline, unit tests
+2. **Push for GPU Testing:** Model training, validation, inference tests
+3. **Windows Machine:** Runs GPU-dependent tests, validates results
+4. **Iterate:** Review results, fix issues, repeat
 
-**Next Session Goals:**
-- Create new branch for dashboard work
-- Implement cross-architecture model selection
-- Add calibration methodology to probe training
-- Update reports with comprehensive validation results
+**Quick Wins (Start Here):**
+1. Add calibration metrics display to all components (2-3 hours, no GPU)
+2. Update model selector with architecture info (4-6 hours, no GPU)
+3. Add adversarial robustness section to components (4-6 hours, no GPU)
+
+**Current Session Status:**
+- ✅ Comprehensive analysis of codebase complete
+- ✅ Detailed implementation plan created
+- ✅ GPU testing workflow documented
+- ⬜ Ready to begin implementation (awaiting user confirmation)
 
 ---
 
