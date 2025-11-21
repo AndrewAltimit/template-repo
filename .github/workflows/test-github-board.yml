@@ -129,9 +129,9 @@ jobs:
             exit 1
           fi
 
-          # Wait for health check (max 60 seconds)
+          # Wait for health check (max 120 seconds to match Docker health config)
           echo "Waiting for health check..."
-          timeout=60
+          timeout=120
           elapsed=0
           while [ $elapsed -lt $timeout ]; do
             if docker-compose ps mcp-github-board | grep -q "healthy"; then
