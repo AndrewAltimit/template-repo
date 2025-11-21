@@ -107,8 +107,22 @@ jobs:
       - name: Test container health
         run: |
           echo "🏥 Testing container health..."
+
+          # Stop any existing containers on port 8021
+          echo "Cleaning up any existing containers..."
+          docker-compose down mcp-github-board 2>/dev/null || true
+
           # Start the container
-          docker-compose up -d mcp-github-board || true
+          echo "Starting mcp-github-board container..."
+          docker-compose up -d mcp-github-board
+
+          # Check if container started successfully
+          if ! docker-compose ps mcp-github-board | grep -q "Up"; then
+            echo "❌ Container failed to start"
+            docker-compose logs mcp-github-board
+            docker-compose down
+            exit 1
+          fi
 
           # Wait for health check (max 60 seconds)
           echo "Waiting for health check..."
