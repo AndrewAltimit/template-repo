@@ -21,6 +21,9 @@ from utils.model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
 
+# Detection threshold constants
+DETECTION_NOISE_THRESHOLD = 0.05  # 5% threshold for noise floor - below this is considered no detection
+
 
 def render_persistence_analysis(data_loader, cache_manager, api_client=None):
     """Render the deception persistence analysis dashboard.
@@ -378,7 +381,7 @@ def _render_pre_post_comparison(data: Dict[str, Any]):
     pre_detection = method_data["pre_detection"]
     post_detection = method_data["post_detection"]
 
-    if pre_detection < 0.05 and post_detection < 0.05:
+    if pre_detection < DETECTION_NOISE_THRESHOLD and post_detection < DETECTION_NOISE_THRESHOLD:
         # No significant backdoor detected before or after training
         st.success(
             f"""
@@ -429,7 +432,7 @@ def _render_pre_post_comparison(data: Dict[str, Any]):
         )
 
     # Visual progress bar showing persistence - only show if there was a backdoor
-    if pre_detection >= 0.05:
+    if pre_detection >= DETECTION_NOISE_THRESHOLD:
         st.markdown("### Backdoor Strength Timeline")
 
         # Simulate progressive training stages based on actual pre/post values

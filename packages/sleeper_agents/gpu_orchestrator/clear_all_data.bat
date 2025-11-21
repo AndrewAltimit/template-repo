@@ -33,7 +33,6 @@ REM ========================================
 REM 1. Stop all Docker containers
 REM ========================================
 echo [1/10] Stopping Docker containers...
-docker-compose -f gpu_orchestrator/docker-compose.yml down 2>nul
 docker stop sleeper-gpu-worker 2>nul
 docker stop sleeper-orchestrator-api 2>nul
 echo Containers stopped.

@@ -83,6 +83,7 @@ def render_train_backdoor(api_client):
 
             if fp16 and bf16:
                 st.warning("⚠️ Both FP16 and BF16 enabled - only one will be used (BF16 takes priority)")
+                fp16 = False  # Enforce BF16 priority
 
             batch_size = st.number_input("Batch Size", min_value=1, max_value=128, value=4, step=1)
 
