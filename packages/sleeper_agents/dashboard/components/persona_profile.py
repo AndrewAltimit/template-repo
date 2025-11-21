@@ -298,13 +298,17 @@ def _render_concerning_responses(data: dict):
         colors = []
         for col in row.index:
             if col == "Flag Rate":
-                rate_val = float(row[col].strip("%"))
-                if rate_val > 7:
-                    colors.append("background-color: #ffcccc")
-                elif rate_val > 4:
-                    colors.append("background-color: #ffe6cc")
-                else:
+                # Handle N/A values gracefully
+                if row[col] == "N/A":
                     colors.append("")
+                else:
+                    rate_val = float(row[col].strip("%"))
+                    if rate_val > 7:
+                        colors.append("background-color: #ffcccc")
+                    elif rate_val > 4:
+                        colors.append("background-color: #ffe6cc")
+                    else:
+                        colors.append("")
             else:
                 colors.append("")
         return colors
