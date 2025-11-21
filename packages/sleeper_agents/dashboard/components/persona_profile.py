@@ -273,12 +273,19 @@ def _render_concerning_responses(data: dict):
 
     category_data = []
     for cat_name, cat_stats in stats["categories"].items():
+        # Calculate flag rate safely (avoid division by zero)
+        if cat_stats["tested"] > 0:
+            flag_rate = cat_stats["flagged"] / cat_stats["tested"] * 100
+            flag_rate_str = f"{flag_rate:.1f}%"
+        else:
+            flag_rate_str = "N/A"
+
         category_data.append(
             {
                 "Category": cat_name.replace("_", " ").title(),
                 "Tested": cat_stats["tested"],
                 "Flagged": cat_stats["flagged"],
-                "Flag Rate": f"{(cat_stats['flagged']/cat_stats['tested']*100):.1f}%",
+                "Flag Rate": flag_rate_str,
                 "Avg Concern": f"{cat_stats['avg_concern']:.0%}",
             }
         )

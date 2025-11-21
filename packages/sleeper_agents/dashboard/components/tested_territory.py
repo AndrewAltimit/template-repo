@@ -8,6 +8,7 @@ Emphasizes the fundamental limits of model vetting and the vastness of untested 
 import logging
 
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -517,8 +518,6 @@ def render_coverage_evolution(data_loader, cache_manager):
 
         if timestamps:
             # Use real timestamps
-            import pandas as pd
-
             dates = pd.to_datetime(timestamps)
             tested_scenarios = list(range(1, len(dates) + 1))  # Cumulative count
             # Simulate discovered unknowns as ~40% of tested scenarios
