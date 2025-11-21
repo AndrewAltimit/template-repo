@@ -13,7 +13,7 @@
         "mcp-code-quality",
         "python",
         "-m",
-        "tools.mcp.code_quality.server",
+        "mcp_code_quality.server",
         "--mode",
         "stdio"
       ]
@@ -31,7 +31,7 @@
         "mcp-gemini",
         "python",
         "-m",
-        "tools.mcp.gemini.server",
+        "mcp_gemini.server",
         "--mode",
         "stdio"
       ],
@@ -54,7 +54,7 @@
         "mcp-opencode",
         "python",
         "-m",
-        "tools.mcp.opencode.server",
+        "mcp_opencode.server",
         "--mode",
         "stdio"
       ]
@@ -72,7 +72,7 @@
         "mcp-crush",
         "python",
         "-m",
-        "tools.mcp.crush.server",
+        "mcp_crush.server",
         "--mode",
         "stdio"
       ]
@@ -90,7 +90,7 @@
         "mcp-codex",
         "python",
         "-m",
-        "tools.mcp.codex.server",
+        "mcp_codex.server",
         "--mode",
         "stdio"
       ]
@@ -99,7 +99,7 @@
       "command": "python",
       "args": [
         "-m",
-        "tools.mcp.github_board.server",
+        "mcp_github_board.server",
         "--mode",
         "stdio"
       ],

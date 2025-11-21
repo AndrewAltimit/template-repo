@@ -10,12 +10,8 @@ Options:
     --debug    Show ffmpeg stderr output for debugging
 """
 
-import os
 import sys
 from pathlib import Path
-
-# Add the project root to the path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
 # pylint: disable=wrong-import-position
 from automation.testing.video_editor.utils import (  # noqa: E402
@@ -28,6 +24,8 @@ from automation.testing.video_editor.utils import (  # noqa: E402
     extract_frames,
     get_video_info,
 )
+
+# Add the project root to the path
 
 
 def main():

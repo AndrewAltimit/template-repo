@@ -6,11 +6,8 @@ Demonstrates various use cases and features
 
 import asyncio
 import json
-import os
-import sys
 
 # Add project root to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
 # These examples show how to use the video editor with the MCP client
 # For actual testing, the MCP server needs to be running

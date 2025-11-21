@@ -8,11 +8,7 @@ import os
 import sys
 from pathlib import Path
 
-# Add parent directory to path to import from tools
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-# pylint: disable=wrong-import-position
-from tools.cli.utilities.markdown_link_checker import MarkdownLinkChecker  # noqa: E402
+from tools.cli.utilities.markdown_link_checker import MarkdownLinkChecker
 
 
 def format_results_text(results):
