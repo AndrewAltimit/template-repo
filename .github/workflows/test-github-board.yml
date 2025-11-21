@@ -108,9 +108,14 @@ jobs:
         run: |
           echo "🏥 Testing container health..."
 
-          # Stop any existing containers on port 8021
+          # Stop any existing containers and free port 8021
           echo "Cleaning up any existing containers..."
-          docker-compose down mcp-github-board 2>/dev/null || true
+          docker-compose stop mcp-github-board 2>/dev/null || true
+          docker-compose rm -f mcp-github-board 2>/dev/null || true
+
+          # Kill any process using port 8021 (in case it's not a container)
+          sudo lsof -ti:8021 | xargs -r sudo kill -9 || true
+          sleep 1
 
           # Start the container
           echo "Starting mcp-github-board container..."
