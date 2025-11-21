@@ -34,10 +34,7 @@ COPY --chown=dashboard:dashboard src/ /home/dashboard/src/
 # Copy application code
 COPY --chown=dashboard:dashboard dashboard/ .
 
-# Ensure ownership (but don't recreate directories - they already exist from COPY)
-RUN chown -R dashboard:dashboard /home/dashboard/app
-
-# Switch to non-root user
+# Switch to non-root user (COPY --chown already set correct ownership)
 USER dashboard
 
 # Expose Streamlit port
