@@ -55,7 +55,6 @@ if %errorlevel% equ 0 (
 )
 
 REM Stop GPU orchestrator
-docker-compose -f gpu_orchestrator/docker-compose.yml down 2>nul
 docker stop sleeper-gpu-worker 2>nul
 docker stop sleeper-orchestrator-api 2>nul
 docker stop sleeper-eval-gpu 2>nul
