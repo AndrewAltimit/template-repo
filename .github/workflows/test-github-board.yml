@@ -108,11 +108,10 @@ jobs:
         run: |
           echo "🏥 Testing container health..."
 
-          # Stop and remove any existing container
+          # Stop and remove any existing container (docker-compose handles cleanup properly)
           echo "Cleaning up..."
-          docker stop mcp-github-board 2>/dev/null || true
-          docker rm -f mcp-github-board 2>/dev/null || true
-          sudo lsof -ti:8021 | xargs -r sudo kill -9 || true
+          docker-compose stop mcp-github-board 2>/dev/null || true
+          docker-compose rm -f mcp-github-board 2>/dev/null || true
           sleep 2
 
           # Start the container
