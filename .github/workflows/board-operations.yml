@@ -60,7 +60,7 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Update board for merged PR
         env:
@@ -89,7 +89,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' && github.event.inputs.operation == 'maintenance')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run board maintenance
         env:
@@ -121,7 +121,7 @@ jobs:
       issue_title: ${{ steps.query.outputs.issue_title }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -154,7 +154,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true

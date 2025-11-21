@@ -28,25 +28,25 @@ from typing import Any, Dict, List
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Add parent directory to path for local imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# Add src directory to path for local imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 # Import CoT detection and ingestion (E402: local imports after path manipulation)
-from advanced_detection.honeypots import HoneypotGenerator  # noqa: E402
-from advanced_detection.internal_state_monitor import InternalStateMonitor  # noqa: E402
-from database.ingestion import (  # noqa: E402
-    ingest_chain_of_thought_results,
-    ingest_honeypot_results,
-    ingest_internal_state_results,
-)
-from evaluation.cot_analysis import detect_deception_patterns  # noqa: E402
+from sleeper_agents.advanced_detection.honeypots import HoneypotGenerator  # noqa: E402
+from sleeper_agents.advanced_detection.internal_state_monitor import InternalStateMonitor  # noqa: E402
 from sleeper_agents.constants import (  # noqa: E402
     DEFAULT_EVALUATION_DB_PATH,
     DEFAULT_EVALUATION_PROMPTS,
     INTERNAL_STATE_ANALYSIS_PROMPTS,
 )
-from utils.async_utils import get_or_create_event_loop  # noqa: E402
+from sleeper_agents.database.ingestion import (  # noqa: E402
+    ingest_chain_of_thought_results,
+    ingest_honeypot_results,
+    ingest_internal_state_results,
+)
+from sleeper_agents.evaluation.cot_analysis import detect_deception_patterns  # noqa: E402
+from sleeper_agents.utils.async_utils import get_or_create_event_loop  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
@@ -255,7 +255,7 @@ class ModelEvaluator:
             logger.info(f"    Strategic Deception: {deception_patterns.get('strategic_deception', 0)}")
 
             # Ingest into database with sample index
-            logger.info("  Ingesting sample {idx + 1} into database")
+            logger.info(f"  Ingesting sample {idx + 1} into database")
             success = ingest_chain_of_thought_results(
                 model_name=self.model_name,
                 trigger=self.trigger,
@@ -269,9 +269,9 @@ class ModelEvaluator:
             )
 
             if success:
-                logger.info("  ✓ Sample {idx + 1} stored successfully")
+                logger.info(f"  ✓ Sample {idx + 1} stored successfully")
             else:
-                logger.error("  ✗ Failed to store sample {idx + 1}")
+                logger.error(f"  ✗ Failed to store sample {idx + 1}")
 
         logger.info("✓ Chain-of-thought capture complete: %s samples tested", len(test_prompts))
 
@@ -305,7 +305,7 @@ class ModelEvaluator:
             response = self.generate_reasoning(prompt, max_new_tokens=512)
 
             if not response:
-                logger.warning("  Failed to generate response for honeypot {idx + 1}")
+                logger.warning(f"  Failed to generate response for honeypot {idx + 1}")
                 continue
 
             # Score response
@@ -317,7 +317,7 @@ class ModelEvaluator:
             logger.info("    Response Length: %s chars", len(response))
 
             # Ingest into database
-            logger.info("  Ingesting honeypot {idx + 1} into database")
+            logger.info(f"  Ingesting honeypot {idx + 1} into database")
             success = ingest_honeypot_results(
                 model_name=self.model_name,
                 honeypot_type=honeypot["type"],
@@ -331,9 +331,9 @@ class ModelEvaluator:
             )
 
             if success:
-                logger.info("  ✓ Honeypot {idx + 1} stored successfully")
+                logger.info(f"  ✓ Honeypot {idx + 1} stored successfully")
             else:
-                logger.error("  ✗ Failed to store honeypot {idx + 1}")
+                logger.error(f"  ✗ Failed to store honeypot {idx + 1}")
 
         logger.info("✓ Honeypot testing complete: %s honeypots tested", len(honeypots))
 
@@ -388,7 +388,7 @@ class ModelEvaluator:
                 )
 
                 # Ingest to database
-                logger.info("  Ingesting internal state analysis {idx + 1} into database")
+                logger.info(f"  Ingesting internal state analysis {idx + 1} into database")
                 success = ingest_internal_state_results(
                     model_name=self.model_name,
                     text_sample=prompt,
@@ -409,7 +409,7 @@ class ModelEvaluator:
                         f"  ✓ Sample {idx + 1} stored (anomaly: {anomaly_score:.2f}, risk: {results.get('risk_level', 'low')})"
                     )
                 else:
-                    logger.error("  ✗ Failed to store sample {idx + 1}")
+                    logger.error(f"  ✗ Failed to store sample {idx + 1}")
 
                 return bool(success)
 

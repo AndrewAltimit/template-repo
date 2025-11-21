@@ -46,7 +46,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -74,7 +74,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -94,7 +94,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -107,27 +107,63 @@ jobs:
       - name: Test container health
         run: |
           echo "🏥 Testing container health..."
-          # Start the container
-          docker-compose up -d mcp-github-board || true
 
-          # Wait for health check (max 60 seconds)
+          # Stop and remove any existing container (docker-compose handles cleanup properly)
+          echo "Cleaning up..."
+          docker-compose stop mcp-github-board 2>/dev/null || true
+          docker-compose rm -f mcp-github-board 2>/dev/null || true
+          sleep 2
+
+          # Start the container
+          echo "Starting mcp-github-board container..."
+          docker-compose up -d mcp-github-board
+
+          # Wait a moment for container to initialize
+          sleep 5
+
+          # Show initial logs
+          echo "=== Initial container logs ==="
+          docker logs mcp-github-board
+
+          # Check if container is running
+          if ! docker ps | grep -q mcp-github-board; then
+            echo "❌ Container not running"
+            docker logs mcp-github-board
+            docker rm -f mcp-github-board 2>/dev/null || true
+            exit 1
+          fi
+
+          # Wait for health check (max 120 seconds)
           echo "Waiting for health check..."
-          timeout=60
+          timeout=120
           elapsed=0
           while [ $elapsed -lt $timeout ]; do
-            if docker-compose ps mcp-github-board | grep -q "healthy"; then
+            health=$(docker inspect --format='{{.State.Health.Status}}' mcp-github-board 2>/dev/null || echo "none")
+            echo "Health status at ${elapsed}s: $health"
+
+            if [ "$health" = "healthy" ]; then
               echo "✅ Container is healthy"
-              docker-compose logs mcp-github-board
-              docker-compose down
+              docker logs mcp-github-board
+              docker stop mcp-github-board
+              docker rm -f mcp-github-board
               exit 0
             fi
-            sleep 2
-            elapsed=$((elapsed + 2))
+
+            # Show logs every 30 seconds
+            if [ $((elapsed % 30)) -eq 0 ] && [ $elapsed -gt 0 ]; then
+              echo "=== Logs at ${elapsed}s ==="
+              docker logs --tail 20 mcp-github-board
+            fi
+
+            sleep 5
+            elapsed=$((elapsed + 5))
           done
 
-          echo "❌ Container failed health check"
-          docker-compose logs mcp-github-board
-          docker-compose down
+          echo "❌ Container failed health check after ${timeout}s"
+          echo "=== Final container logs ==="
+          docker logs mcp-github-board
+          docker stop mcp-github-board 2>/dev/null || true
+          docker rm -f mcp-github-board 2>/dev/null || true
           exit 1
 
   # MCP server tests
@@ -138,7 +174,7 @@ jobs:
     needs: docker-build
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -159,7 +195,7 @@ jobs:
     needs: [unit-tests, cli-tests]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true

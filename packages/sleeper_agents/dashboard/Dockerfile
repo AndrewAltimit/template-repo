@@ -4,7 +4,7 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/home/dashboard/app \
+    PYTHONPATH=/home/dashboard/app:/home/dashboard/src \
     STREAMLIT_SERVER_HEADLESS=true \
     STREAMLIT_SERVER_PORT=8501 \
     STREAMLIT_SERVER_ADDRESS=0.0.0.0
@@ -28,17 +28,13 @@ WORKDIR /home/dashboard/app
 COPY dashboard/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy shared evaluation module (now in src/ layout)
-COPY --chown=dashboard:dashboard src/sleeper_agents/evaluation/ ./evaluation/
+# Copy entire sleeper_agents package (src layout)
+COPY --chown=dashboard:dashboard src/ /home/dashboard/src/
 
 # Copy application code
 COPY --chown=dashboard:dashboard dashboard/ .
 
-# Create necessary directories
-RUN mkdir -p auth utils components tests && \
-    chown -R dashboard:dashboard /home/dashboard/app
-
-# Switch to non-root user
+# Switch to non-root user (COPY --chown already set correct ownership)
 USER dashboard
 
 # Expose Streamlit port

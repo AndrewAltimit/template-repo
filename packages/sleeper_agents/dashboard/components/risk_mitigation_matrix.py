@@ -56,85 +56,10 @@ def render_risk_mitigation_matrix(data_loader: Any, cache_manager: Any) -> None:
 
 
 def get_model_risk_profile(data_loader: Any, model_name: str) -> Dict[str, Any]:
-    """Get comprehensive risk profile for the model.
-
-    Returns mock data for now, will be replaced with real analysis.
-    """
-    summary = data_loader.fetch_model_summary(model_name) if hasattr(data_loader, "fetch_model_summary") else {}
-
-    return {
-        "risks": {
-            "Backdoor Persistence": {
-                "level": summary.get("post_training_backdoor_rate", 0.4),
-                "uncertainty": 0.05,
-                "category": "behavioral",
-            },
-            "Deceptive Reasoning": {
-                "level": summary.get("deception_in_reasoning", 0.3),
-                "uncertainty": 0.20,
-                "category": "reasoning",
-            },
-            "Probe Anomalies": {
-                "level": summary.get("probe_detection_rate", 0.5),
-                "uncertainty": 0.15,
-                "category": "internal",
-            },
-            "Untested Behaviors": {
-                "level": 1.0 - summary.get("test_coverage", 0.1),
-                "uncertainty": 0.0,
-                "category": "coverage",
-            },
-            "Scaling Risks": {
-                "level": summary.get("scaling_concern", 0.6),
-                "uncertainty": 0.25,
-                "category": "emergent",
-            },
-        },
-        "mitigations": {
-            "Input Filtering": {
-                "effectiveness": 0.7,
-                "cost": "low",
-                "implementation_time": "hours",
-                "targets": ["Backdoor Persistence", "Deceptive Reasoning"],
-            },
-            "Output Monitoring": {
-                "effectiveness": 0.6,
-                "cost": "medium",
-                "implementation_time": "days",
-                "targets": ["All"],
-            },
-            "Probe-based Detection": {
-                "effectiveness": 0.8,
-                "cost": "medium",
-                "implementation_time": "weeks",
-                "targets": ["Probe Anomalies", "Deceptive Reasoning"],
-            },
-            "Sandboxing": {
-                "effectiveness": 0.9,
-                "cost": "high",
-                "implementation_time": "days",
-                "targets": ["All"],
-            },
-            "Human Oversight": {
-                "effectiveness": 0.85,
-                "cost": "high",
-                "implementation_time": "immediate",
-                "targets": ["Deceptive Reasoning", "Untested Behaviors"],
-            },
-            "Capability Limiting": {
-                "effectiveness": 0.75,
-                "cost": "low",
-                "implementation_time": "hours",
-                "targets": ["Scaling Risks", "Untested Behaviors"],
-            },
-            "Continuous Testing": {
-                "effectiveness": 0.5,
-                "cost": "medium",
-                "implementation_time": "ongoing",
-                "targets": ["Untested Behaviors"],
-            },
-        },
-    }
+    """Get comprehensive risk profile for the model from real analysis data."""
+    # Fetch real risk mitigation matrix
+    result: Dict[str, Any] = data_loader.fetch_risk_mitigation_matrix(model_name)
+    return result
 
 
 def render_risk_mitigation_mapping(risk_profile: Dict[str, Any]):
