@@ -320,8 +320,12 @@ def get_project_context() -> str:
     return "".join(combined_context)
 
 
-def get_recent_pr_comments(pr_number: str) -> str:
-    """Get PR comments since last Gemini review"""
+def get_all_pr_comments(pr_number: str) -> List[Dict[str, Any]]:
+    """Get all PR comments for summarization
+
+    Returns:
+        List of comment dictionaries with 'author' and 'body' keys
+    """
     try:
         # Get all PR comments
         result = subprocess.run(
@@ -333,6 +337,23 @@ def get_recent_pr_comments(pr_number: str) -> str:
 
         pr_data = json.loads(result.stdout)
         comments = pr_data.get("comments", [])
+
+        return comments
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: GitHub CLI command failed: {e}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"Warning: Could not parse PR comments JSON: {e}")
+        return []
+    except Exception as e:
+        print(f"Warning: Unexpected error fetching PR comments: {e}")
+        return []
+
+
+def get_recent_pr_comments(pr_number: str) -> str:
+    """Get PR comments since last Gemini review"""
+    try:
+        comments = get_all_pr_comments(pr_number)
 
         # Find last Gemini comment index
         last_gemini_idx = -1
@@ -354,15 +375,103 @@ def get_recent_pr_comments(pr_number: str) -> str:
                 return "\n".join(formatted)
 
         return ""
-    except subprocess.CalledProcessError as e:
-        print(f"Warning: GitHub CLI command failed: {e}")
-        return ""
-    except json.JSONDecodeError as e:
-        print(f"Warning: Could not parse PR comments JSON: {e}")
-        return ""
     except Exception as e:
-        print(f"Warning: Unexpected error fetching PR comments: {e}")
+        print(f"Warning: Unexpected error processing PR comments: {e}")
         return ""
+
+
+def summarize_all_pr_comments(pr_number: str, pr_title: str) -> Tuple[str, str]:
+    """Summarize all PR comments using Gemini Flash model for context retention
+
+    This function analyzes the complete comment history to extract important context
+    such as admin decisions, false positives, architectural agreements, and completed
+    action items. The summary is used to inform subsequent code reviews.
+
+    Args:
+        pr_number: The PR number
+        pr_title: The PR title
+
+    Returns:
+        Tuple of (summary_text, model_used) or ("", NO_MODEL) if no comments or failure
+    """
+    try:
+        comments = get_all_pr_comments(pr_number)
+
+        # No comments to summarize
+        if not comments:
+            print("No PR comments found - skipping summarization")
+            return "", NO_MODEL
+
+        # Filter out Gemini's own reviews to avoid circular context
+        human_comments = [c for c in comments if "<!-- gemini-review-marker -->" not in c.get("body", "")]
+
+        if not human_comments:
+            print("No human comments found (only Gemini reviews) - skipping summarization")
+            return "", NO_MODEL
+
+        # Limit to most recent 50 comments + all admin comments for manageability
+        admin_comments = [c for c in human_comments if c.get("author", {}).get("login") == "AndrewAltimit"]
+        recent_comments = human_comments[-50:]
+
+        # Combine admin + recent (deduplicate)
+        comment_ids_seen = set()
+        comments_to_analyze = []
+        for comment in admin_comments + recent_comments:
+            comment_id = comment.get("id")
+            if comment_id and comment_id not in comment_ids_seen:
+                comment_ids_seen.add(comment_id)
+                comments_to_analyze.append(comment)
+
+        # Format comments for analysis
+        formatted_comments = []
+        for comment in comments_to_analyze:
+            author = comment.get("author", {}).get("login", "Unknown")
+            body = comment.get("body", "").strip()
+            formatted_comments.append(f"**@{author}**: {body}")
+
+        comments_text = "\n\n".join(formatted_comments)
+
+        # Build summarization prompt
+        prompt = f"""You are analyzing the complete comment history of PR #{pr_number}: {pr_title}
+to extract context for a new code review.
+
+**All PR Comments ({len(comments_to_analyze)} comments):**
+
+{comments_text}
+
+**Your task:**
+Summarize this discussion focusing on:
+
+1. **Admin Decisions**: What has @AndrewAltimit explicitly approved or requested?
+2. **False Positives**: Which reported issues were determined to be incorrect or not actual bugs?
+3. **Architectural Agreements**: Key design decisions that were agreed upon
+4. **Completed Items**: Action items that have been addressed in subsequent commits
+5. **Open Concerns**: Unresolved issues that still need attention
+
+**Guidelines:**
+- Keep the summary concise (300-500 words maximum)
+- Use clear markdown headings for each section
+- Only include sections that have relevant content (skip empty sections)
+- Be specific about what was decided and why
+- If there are no substantive comments, say "No significant discussion history"
+
+Generate the summary now:"""
+
+        # Use Flash model for fast, cost-effective summarization
+        print(f"Summarizing {len(comments_to_analyze)} PR comments with {FALLBACK_MODEL}...")
+        summary, model_used = _call_gemini_with_model(prompt, FALLBACK_MODEL, max_retries=3)
+
+        if model_used == NO_MODEL or not summary:
+            print("⚠️  Comment summarization failed - proceeding without historical context")
+            return "", NO_MODEL
+
+        print(f"✅ Successfully summarized PR comment history ({len(summary)} chars)")
+        return summary, model_used
+
+    except Exception as e:
+        print(f"Warning: Error during comment summarization: {e}")
+        print("   Proceeding without comment summary")
+        return "", NO_MODEL
 
 
 def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any]) -> Tuple[str, str]:
@@ -383,6 +492,9 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
 
     # For large diffs, analyze by file groups
     print(f"Large diff detected ({diff_size:,} chars), using chunked analysis...")
+
+    # Get comment summary for context retention across reviews
+    comment_summary, _ = summarize_all_pr_comments(pr_info["number"], pr_info["title"])
 
     file_chunks = chunk_diff_by_files(diff)
     model_used = NO_MODEL  # Start with no model, will be updated if any analysis succeeds
@@ -425,7 +537,9 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
         if not group_files:
             continue
 
-        group_analysis, group_model = analyze_file_group(group_name, group_files, pr_info, project_context, recent_comments)
+        group_analysis, group_model = analyze_file_group(
+            group_name, group_files, pr_info, project_context, comment_summary, recent_comments
+        )
         if group_analysis and group_model != NO_MODEL:
             # Save to file
             review_file = review_dir / f"review_{group_name}.txt"
@@ -502,9 +616,18 @@ def analyze_file_group(
     files: List[Tuple[str, str]],
     pr_info: Dict[str, Any],
     project_context: str,
+    comment_summary: str = "",
     recent_comments: str = "",
 ) -> Tuple[str, str]:
     """Analyze a group of related files
+
+    Args:
+        group_name: Name of the file group (e.g., "python", "workflows")
+        files: List of (filepath, file_diff) tuples
+        pr_info: PR information dictionary
+        project_context: Project-specific context
+        comment_summary: Summary of all PR comment history
+        recent_comments: Comments since last Gemini review
 
     Returns: (analysis, model_used)
     """
@@ -528,6 +651,14 @@ def analyze_file_group(
         f"{project_context}\n\n"
     )
 
+    # Add comment summary if provided (historical context)
+    if comment_summary:
+        prompt += (
+            f"**HISTORICAL PR DISCUSSION (Summary):**\n"
+            f"{comment_summary}\n\n"
+            f"*Note: Use this to avoid re-reporting false positives and respect admin decisions.*\n\n"
+        )
+
     # Add recent comments if provided
     if recent_comments:
         prompt += f"{recent_comments}\n\n"
@@ -544,8 +675,19 @@ def analyze_file_group(
         f"2. Security implications\n"
         f"3. Best practices for {group_name} files\n"
         f"4. Consistency with project's container-first approach\n\n"
-        f"Keep response concise but thorough."
     )
+
+    # Add guidance about using historical context
+    if comment_summary:
+        prompt += (
+            "**Review Guidelines:**\n"
+            "- Do NOT re-report issues marked as false positives in the discussion history\n"
+            "- Build on decisions already made rather than questioning them\n"
+            "- Reference the historical context when relevant\n"
+            "- Focus on new issues not previously discussed\n\n"
+        )
+
+    prompt += "Keep response concise but thorough."
 
     # Use the helper function for Gemini API calls with fallback
     return _call_gemini_with_fallback(prompt)
@@ -563,6 +705,9 @@ def analyze_complete_diff(
     Returns: (analysis, model_used)
     """
 
+    # Get comment summary for context retention across reviews
+    comment_summary, _ = summarize_all_pr_comments(pr_info["number"], pr_info["title"])
+
     # For GitHub workflow files, include more complete content
     workflow_contents = {}
     for file in changed_files:
@@ -579,6 +724,17 @@ def analyze_complete_diff(
         "comprehensively.\n\n"
         f"**PROJECT CONTEXT:**\n"
         f"{project_context}\n\n"
+    )
+
+    # Add comment summary if provided (historical context)
+    if comment_summary:
+        prompt += (
+            f"**HISTORICAL PR DISCUSSION (Summary):**\n"
+            f"{comment_summary}\n\n"
+            f"*Note: Use this to avoid re-reporting false positives and respect admin decisions.*\n\n"
+        )
+
+    prompt += (
         f"**PULL REQUEST INFORMATION:**\n"
         f"- PR #{pr_info['number']}: {pr_info['title']}\n"
         f"- Author: {pr_info['author']}\n"
@@ -614,8 +770,19 @@ def analyze_complete_diff(
         "3. **Potential Issues**: Bugs, security concerns, or logic errors?\n"
         "4. **Suggestions**: Specific improvements\n"
         "5. **Positive Aspects**: What's well done?\n\n"
-        "Focus on actionable feedback considering the container-first architecture."
     )
+
+    # Add guidance about using historical context
+    if comment_summary:
+        prompt += (
+            "**Review Guidelines:**\n"
+            "- Do NOT re-report issues marked as false positives in the discussion history\n"
+            "- Build on decisions already made rather than questioning them\n"
+            "- Reference the historical context when relevant\n"
+            "- Focus on new issues not previously discussed\n\n"
+        )
+
+    prompt += "Focus on actionable feedback considering the container-first architecture."
 
     # Use the helper function for Gemini API calls with fallback
     return _call_gemini_with_fallback(prompt)

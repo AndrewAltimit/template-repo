@@ -38,7 +38,7 @@
       "env": {
         "GEMINI_TIMEOUT": "300",
         "GEMINI_USE_CONTAINER": "false",
-        "_comment": "GEMINI_USE_CONTAINER is set to false to prevent docker-in-docker, as mcp-gemini itself runs in a container. Note: Don't specify GEMINI_MODEL - the CLI uses the default model automatically to avoid 404 errors"
+        "_comment": "GEMINI_USE_CONTAINER is set to false to prevent docker-in-docker, as mcp-gemini itself runs in a container. API key is set via GEMINI_API_KEY in docker-compose.yml from GOOGLE_API_KEY. Note: Don't specify GEMINI_MODEL - the CLI uses the default model automatically to avoid 404 errors"
       }
     },
     "opencode": {
