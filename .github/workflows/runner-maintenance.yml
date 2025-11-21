@@ -46,7 +46,7 @@ jobs:
           echo ""
 
           echo "📋 Basic System Info:"
-          echo "Runner: ${{ matrix.runner }}"
+          echo "Runner: ${{ runner.name }}"
           echo "OS: $(uname -s)"
           echo "Kernel: $(uname -r)"
           echo "Architecture: $(uname -m)"
@@ -204,7 +204,7 @@ jobs:
           # 🖥️ Runner Health Report
 
           **Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          **Runner**: ${{ matrix.runner }}
+          **Runner**: ${{ runner.name }}
           **Repository**: ${{ github.repository }}
 
           ## ✅ System Status
@@ -245,7 +245,7 @@ jobs:
       - name: Upload Health Report
         uses: actions/upload-artifact@v4
         with:
-          name: runner-health-report-${{ matrix.runner }}-${{ github.run_id }}
+          name: runner-health-report-${{ runner.name }}-${{ github.run_id }}
           path: runner-health-report.md
           retention-days: 30
 
