@@ -137,7 +137,7 @@ case $COMMAND in
         fi
 
         # Run test script
-        python3 tools/mcp/blender/scripts/test_server.py
+        python3 tools/mcp/mcp_blender/scripts/test_server.py
         ;;
 
     demo)
@@ -161,11 +161,11 @@ case $COMMAND in
         read -r -p "Enter choice (1-5): " choice
 
         case $choice in
-            1) python3 tools/mcp/blender/scripts/test_server.py --demo render ;;
-            2) python3 tools/mcp/blender/scripts/test_server.py --demo physics ;;
-            3) python3 tools/mcp/blender/scripts/test_server.py --demo animation ;;
-            4) python3 tools/mcp/blender/scripts/test_server.py --demo geometry ;;
-            5) python3 tools/mcp/blender/scripts/test_server.py --demo all ;;
+            1) python3 tools/mcp/mcp_blender/scripts/test_server.py --demo render ;;
+            2) python3 tools/mcp/mcp_blender/scripts/test_server.py --demo physics ;;
+            3) python3 tools/mcp/mcp_blender/scripts/test_server.py --demo animation ;;
+            4) python3 tools/mcp/mcp_blender/scripts/test_server.py --demo geometry ;;
+            5) python3 tools/mcp/mcp_blender/scripts/test_server.py --demo all ;;
             *) echo "Invalid choice" ;;
         esac
         ;;
@@ -179,7 +179,7 @@ case $COMMAND in
             exit 1
         fi
 
-        python3 tools/mcp/blender/scripts/test_server.py --interactive
+        python3 tools/mcp/mcp_blender/scripts/test_server.py --interactive
         ;;
 
     gpu-info)
@@ -252,7 +252,7 @@ Examples:
   ./quickstart.sh logs        # View logs
 
 Documentation:
-  tools/mcp/blender/docs/README.md
+  tools/mcp/mcp_blender/docs/README.md
 
 Requirements:
   - Docker and Docker Compose

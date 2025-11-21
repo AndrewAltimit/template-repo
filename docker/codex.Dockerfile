@@ -47,8 +47,12 @@ RUN pip install --no-cache-dir --upgrade pip && \
     rm /tmp/requirements.txt
 
 # Copy MCP modules (needed for MCP mode)
-COPY tools/mcp/core /workspace/tools/mcp/core
-COPY tools/mcp/codex /workspace/tools/mcp/codex
+COPY tools/mcp/mcp_core /workspace/tools/mcp/mcp_core
+COPY tools/mcp/mcp_codex /workspace/tools/mcp/mcp_codex
+
+# Install MCP packages
+RUN pip install --no-cache-dir -e /workspace/tools/mcp/mcp_core && \
+    pip install --no-cache-dir -e /workspace/tools/mcp/mcp_codex
 
 # Copy security hooks and set up alias
 COPY automation/security /app/security

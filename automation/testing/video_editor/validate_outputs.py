@@ -18,8 +18,6 @@ from automation.testing.video_editor.utils import (  # noqa: E402  # pylint: dis
     run_command_safe,
 )
 
-# Add the project root to the path
-
 
 def get_video_duration(video_path):
     """Get exact video duration in seconds"""

@@ -28,8 +28,12 @@ RUN pip install --no-cache-dir --no-index --find-links=/build/wheels /build/whee
     rm -rf /build/wheels
 
 # Copy the MCP server code
-COPY tools/mcp/elevenlabs_speech /app/tools/mcp/elevenlabs_speech
-COPY tools/mcp/core /app/tools/mcp/core
+COPY tools/mcp/mcp_elevenlabs_speech /app/tools/mcp/mcp_elevenlabs_speech
+
+# Install MCP packages
+RUN pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_core &&\
+    pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_elevenlabs_speech
+COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 
 # Set ownership to non-root user
 RUN chown -R mcp:mcp /app

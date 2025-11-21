@@ -27,8 +27,12 @@ COPY docker/requirements/requirements-meme.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy only necessary MCP server code
-COPY tools/mcp/core /app/tools/mcp/core
-COPY tools/mcp/meme_generator /app/tools/mcp/meme_generator
+COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
+COPY tools/mcp/mcp_meme_generator /app/tools/mcp/mcp_meme_generator
+
+# Install MCP packages
+RUN pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_core &&\
+    pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_meme_generator
 
 # Set Python path
 ENV PYTHONPATH=/app

@@ -16,7 +16,7 @@ services:
       - PORT=8010
     networks:
       - mcp-network
-    command: ["python", "-m", "tools.mcp.code_quality.server", "--mode", "http"]
+    command: ["python", "-m", "mcp_code_quality.server", "--mode", "http"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8010/health"]
@@ -45,7 +45,7 @@ services:
       - MCP_OUTPUT_DIR=/output
     networks:
       - mcp-network
-    command: ["python", "-m", "tools.mcp.content_creation.server", "--mode", "http"]
+    command: ["python", "-m", "mcp_content_creation.server", "--mode", "http"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8011/health"]
@@ -105,7 +105,7 @@ services:
       - GITHUB_PROJECT_NUMBER=${GITHUB_PROJECT_NUMBER:-1}
     networks:
       - mcp-network
-    command: ["python", "-m", "tools.mcp.github_board.server", "--mode", "http"]
+    command: ["python", "-m", "mcp_github_board.server", "--mode", "http"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8021/health"]
@@ -147,7 +147,7 @@ services:
       - CUDA_VISIBLE_DEVICES=${GPU_DEVICE:-0}
     networks:
       - mcp-network
-    command: ["python", "-m", "tools.mcp.video_editor.server", "--mode", "http"]
+    command: ["python", "-m", "mcp_video_editor.server", "--mode", "http"]
     restart: unless-stopped
     # GPU support for AI models and video encoding
     deploy:
@@ -188,7 +188,7 @@ services:
       - ELEVENLABS_DEFAULT_VOICE=${ELEVENLABS_DEFAULT_VOICE:-Rachel}
     networks:
       - mcp-network
-    command: ["python", "-m", "tools.mcp.elevenlabs_speech.server", "--mode", "http"]
+    command: ["python", "-m", "mcp_elevenlabs_speech.server", "--mode", "http"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8018/health"]  # Must match PORT above
@@ -258,7 +258,7 @@ services:
       - GAEA2_TEST_MODE=0
     networks:
       - mcp-network
-    command: ["python", "-m", "tools.mcp.gaea2.server", "--mode", "http", "--output-dir", "/output/gaea2", "--no-enforce-file-validation"]
+    command: ["python", "-m", "mcp_gaea2.server", "--mode", "http", "--output-dir", "/output/gaea2", "--no-enforce-file-validation"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
@@ -420,7 +420,7 @@ services:
       - UNITY_API_KEY=${UNITY_API_KEY}
     networks:
       - mcp-network
-    command: ["python", "-m", "tools.mcp.virtual_character.server"]
+    command: ["python", "-m", "mcp_virtual_character.server"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8020/health"]
@@ -541,7 +541,7 @@ services:
       - RUNNING_IN_DOCKER=true
     networks:
       - mcp-network
-    command: ["python", "-m", "tools.mcp.opencode.server", "--mode", "http"]
+    command: ["python", "-m", "mcp_opencode.server", "--mode", "http"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8014/health"]
@@ -574,7 +574,7 @@ services:
       - CRUSH_ENABLED=${CRUSH_ENABLED:-true}
     networks:
       - mcp-network
-    command: ["python", "-m", "tools.mcp.crush.server", "--mode", "http"]
+    command: ["python", "-m", "mcp_crush.server", "--mode", "http"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8015/health"]
@@ -610,7 +610,7 @@ services:
       - CODEX_BYPASS_SANDBOX=${CODEX_BYPASS_SANDBOX:-false}  # Default to sandboxed
     networks:
       - mcp-network
-    command: ["python", "-m", "tools.mcp.codex.server", "--mode", "http"]
+    command: ["python", "-m", "mcp_codex.server", "--mode", "http"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8021/health"]

@@ -21,8 +21,12 @@ COPY docker/requirements/requirements-virtual-character.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the virtual character server code
-COPY tools/mcp/virtual_character /app/tools/mcp/virtual_character
-COPY tools/mcp/core /app/tools/mcp/core
+COPY tools/mcp/mcp_virtual_character /app/tools/mcp/mcp_virtual_character
+
+# Install MCP packages
+RUN pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_core &&\
+    pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_virtual_character
+COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 
 # Copy any additional configuration files
 COPY config/ /app/config/

@@ -25,8 +25,6 @@ from automation.testing.video_editor.utils import (  # noqa: E402
     get_video_info,
 )
 
-# Add the project root to the path
-
 
 def main():
     """Main test function"""
