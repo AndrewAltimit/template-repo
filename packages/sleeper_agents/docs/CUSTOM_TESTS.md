@@ -303,7 +303,7 @@ jobs:
   custom-tests:
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Run custom test suite
         run: |
