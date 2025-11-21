@@ -108,45 +108,63 @@ jobs:
         run: |
           echo "🏥 Testing container health..."
 
-          # Stop any existing containers and free port 8021
-          echo "Cleaning up any existing containers..."
-          docker-compose stop mcp-github-board 2>/dev/null || true
-          docker-compose rm -f mcp-github-board 2>/dev/null || true
-
-          # Kill any process using port 8021 (in case it's not a container)
+          # Stop and remove any existing container
+          echo "Cleaning up..."
+          docker stop mcp-github-board 2>/dev/null || true
+          docker rm -f mcp-github-board 2>/dev/null || true
           sudo lsof -ti:8021 | xargs -r sudo kill -9 || true
-          sleep 1
+          sleep 2
 
           # Start the container
           echo "Starting mcp-github-board container..."
           docker-compose up -d mcp-github-board
 
-          # Check if container started successfully
-          if ! docker-compose ps mcp-github-board | grep -q "Up"; then
-            echo "❌ Container failed to start"
-            docker-compose logs mcp-github-board
-            docker-compose down
+          # Wait a moment for container to initialize
+          sleep 5
+
+          # Show initial logs
+          echo "=== Initial container logs ==="
+          docker logs mcp-github-board
+
+          # Check if container is running
+          if ! docker ps | grep -q mcp-github-board; then
+            echo "❌ Container not running"
+            docker logs mcp-github-board
+            docker rm -f mcp-github-board 2>/dev/null || true
             exit 1
           fi
 
-          # Wait for health check (max 120 seconds to match Docker health config)
+          # Wait for health check (max 120 seconds)
           echo "Waiting for health check..."
           timeout=120
           elapsed=0
           while [ $elapsed -lt $timeout ]; do
-            if docker-compose ps mcp-github-board | grep -q "healthy"; then
+            health=$(docker inspect --format='{{.State.Health.Status}}' mcp-github-board 2>/dev/null || echo "none")
+            echo "Health status at ${elapsed}s: $health"
+
+            if [ "$health" = "healthy" ]; then
               echo "✅ Container is healthy"
-              docker-compose logs mcp-github-board
-              docker-compose down
+              docker logs mcp-github-board
+              docker stop mcp-github-board
+              docker rm -f mcp-github-board
               exit 0
             fi
-            sleep 2
-            elapsed=$((elapsed + 2))
+
+            # Show logs every 30 seconds
+            if [ $((elapsed % 30)) -eq 0 ] && [ $elapsed -gt 0 ]; then
+              echo "=== Logs at ${elapsed}s ==="
+              docker logs --tail 20 mcp-github-board
+            fi
+
+            sleep 5
+            elapsed=$((elapsed + 5))
           done
 
-          echo "❌ Container failed health check"
-          docker-compose logs mcp-github-board
-          docker-compose down
+          echo "❌ Container failed health check after ${timeout}s"
+          echo "=== Final container logs ==="
+          docker logs mcp-github-board
+          docker stop mcp-github-board 2>/dev/null || true
+          docker rm -f mcp-github-board 2>/dev/null || true
           exit 1
 
   # MCP server tests
