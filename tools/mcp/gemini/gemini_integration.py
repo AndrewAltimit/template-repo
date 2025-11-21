@@ -269,6 +269,8 @@ class GeminiIntegration:
         """Execute Gemini CLI directly on the host"""
         # Build command - use stdin for multi-line prompts
         # With API key, we can use --model flag for explicit model selection
+        # In container: use globally installed gemini CLI
+        # On host: use npx for reliability
         cmd = [self.cli_command, "prompt"]
 
         # Add model if specified
@@ -276,14 +278,21 @@ class GeminiIntegration:
             cmd.extend(["--model", self.model])
 
         cmd.extend(["--output-format", "text"])
-        stdin_input = None
+        stdin_input = query.encode("utf-8")
+
+        # Get API key from environment (supports both GOOGLE_API_KEY and GEMINI_API_KEY)
+        env = os.environ.copy()
+        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        if api_key:
+            env["GOOGLE_API_KEY"] = api_key
 
         try:
             process = await asyncio.create_subprocess_exec(
                 *cmd,
-                stdin=asyncio.subprocess.PIPE if stdin_input else None,
+                stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                env=env,
             )
 
             stdout, stderr = await asyncio.wait_for(process.communicate(input=stdin_input), timeout=self.timeout)

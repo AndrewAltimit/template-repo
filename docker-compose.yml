@@ -371,11 +371,14 @@ services:
         GROUP_ID: "${GROUP_ID:-1000}"
     container_name: mcp-gemini
     volumes:
-      - ~/.gemini:/home/geminiuser/.gemini  # Mount host Gemini OAuth (needs write for session cache)
+      - ~/.gemini:/home/geminiuser/.gemini  # Mount host Gemini credentials directory
       - ./:/workspace:ro  # Mount workspace for file access (read-only)
     environment:
       - PYTHONUNBUFFERED=1
-      # Keep using OAuth (free tier) - just need to refresh token when expired
+      # Pass API key from .env file (CLI will use this over corrupted token file)
+      - GEMINI_API_KEY=${GOOGLE_API_KEY:-}
+      # Explicitly unset GOOGLE_API_KEY to avoid Vertex API confusion
+      - GOOGLE_API_KEY=
       - GEMINI_TIMEOUT=${GEMINI_TIMEOUT:-300}
       - GEMINI_USE_CONTAINER=false  # Disable nested containerization
       - HOME=/home/geminiuser  # Set home directory for .gemini access
