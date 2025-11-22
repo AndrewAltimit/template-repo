@@ -1,5 +1,8 @@
 """FastAPI dashboard application for economic agents monitoring."""
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from economic_agents.dashboard.routers import (
     agent_control,
     company,
@@ -9,8 +12,6 @@ from economic_agents.dashboard.routers import (
     status,
     websocket,
 )
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
 # Create FastAPI app
 app = FastAPI(

@@ -35,7 +35,7 @@ RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/wh
 
 # Install dependencies from pyproject.toml - single source of truth
 # Install in editable mode with 'all' extras for complete environment
-RUN pip install --no-cache-dir -e /app/packages/sleeper_agents[all]
+RUN pip install --no-cache-dir /app/packages/sleeper_agents[all]
 
 # Set Python path
 ENV PYTHONPATH=/app:$PYTHONPATH

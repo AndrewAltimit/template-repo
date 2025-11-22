@@ -3,6 +3,7 @@
 from datetime import datetime
 
 import pytest
+
 from economic_agents.company.models import Company, ProductSpec
 from economic_agents.investment.models import (
     InvestmentCriteria,

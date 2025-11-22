@@ -82,7 +82,7 @@ Example:
 URL: https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/nagatoro_smug_face.png
 GitHub Comment: ![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/nagatoro_smug_face.webp)
 
-Replace nagatoro_smug_face.png with any of the known reactions below as needed when commenting.
+Replace nagatoro_smug_face.png with any of the known reactions below as needed when commenting. Keep in mind the extension of the reaction when referencing it - reactions can be png, webp, or gif.
 
 ## Reaction Selection Framework
 

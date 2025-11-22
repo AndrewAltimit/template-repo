@@ -1,6 +1,7 @@
 """Integration tests for scenarios with real agent execution."""
 
 import pytest
+
 from economic_agents.scenarios import ScenarioEngine
 
 

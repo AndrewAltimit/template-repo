@@ -132,10 +132,10 @@ This project includes a dedicated Gemini MCP server that provides AI consultatio
 
 ```bash
 # Run on the host system (cannot run in container)
-python -m tools.mcp.gemini.server
+python -m mcp_gemini.server
 
 # Or with HTTP mode
-./tools/mcp/gemini/scripts/start_server.sh --mode http
+./tools/mcp/mcp_gemini/scripts/start_server.sh --mode http
 ```
 
 **Important: Why Gemini MCP Server Must Run on Host**
@@ -260,5 +260,5 @@ If Gemini reviews aren't working:
 
 ## References
 
-- [Gemini MCP Server Docs](../../../tools/mcp/gemini/docs/README.md)
+- [Gemini MCP Server Docs](../../../tools/mcp/mcp_gemini/docs/README.md)
 - [Setup Guide](https://gist.github.com/AndrewAltimit/fc5ba068b73e7002cbe4e9721cebb0f5)

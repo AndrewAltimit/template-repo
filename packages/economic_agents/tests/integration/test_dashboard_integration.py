@@ -1,6 +1,7 @@
 """Integration tests for dashboard with agent and monitoring."""
 
 import pytest
+
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.dashboard.dependencies import DashboardState
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet

@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Any, Callable
 
 import aiohttp
+
 from github_agents.board.config import load_config
 from github_agents.board.errors import (
     BoardNotFoundError,

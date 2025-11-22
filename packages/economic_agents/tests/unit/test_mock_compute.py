@@ -3,6 +3,7 @@
 import time
 
 import pytest
+
 from economic_agents.implementations.mock import MockCompute
 
 

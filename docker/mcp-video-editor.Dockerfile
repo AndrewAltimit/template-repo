@@ -26,7 +26,7 @@ WORKDIR /app
 RUN mkdir -p /output /cache /tmp/video_editor
 
 # Copy requirements first for better caching
-COPY tools/mcp/video_editor/requirements.txt /tmp/video_editor_requirements.txt
+COPY tools/mcp/mcp_video_editor/requirements.txt /tmp/video_editor_requirements.txt
 COPY config/python/requirements.txt /tmp/base_requirements.txt
 
 # Install Python dependencies
@@ -43,8 +43,12 @@ RUN pip install --no-cache-dir \
 # - Live code reloading during development (via volume mount)
 # - Standalone image distribution without requiring source code mount
 # - Optimized Docker layer caching during builds
-COPY tools/mcp/core /app/tools/mcp/core
-COPY tools/mcp/video_editor /app/tools/mcp/video_editor
+COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
+COPY tools/mcp/mcp_video_editor /app/tools/mcp/mcp_video_editor
+
+# Install MCP packages
+RUN pip3 install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip3 install --no-cache-dir /app/tools/mcp/mcp_video_editor
 
 # Create non-root user (but don't switch yet)
 RUN useradd -m -u 1000 appuser && \
@@ -68,4 +72,4 @@ RUN chmod +x /usr/local/bin/video-editor-entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/video-editor-entrypoint.sh"]
 
 # Default command
-CMD ["python", "-m", "tools.mcp.video_editor.server", "--mode", "http"]
+CMD ["python", "-m", "mcp_video_editor.server", "--mode", "http"]

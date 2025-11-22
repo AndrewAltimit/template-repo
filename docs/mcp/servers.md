@@ -54,7 +54,7 @@ curl http://localhost:8010/health
 
 ### Configuration
 
-See `tools/mcp/code_quality/docs/README.md` for detailed configuration options.
+See `tools/mcp/mcp_code_quality/docs/README.md` for detailed configuration options.
 
 ## Content Creation MCP Server
 
@@ -86,7 +86,7 @@ curl http://localhost:8011/health
 
 Output directory is configured via the `MCP_OUTPUT_DIR` environment variable (defaults to `/tmp/mcp-content-output` in container).
 
-See `tools/mcp/content_creation/docs/README.md` for detailed documentation.
+See `tools/mcp/mcp_content_creation/docs/README.md` for detailed documentation.
 
 ## Gemini MCP Server
 
@@ -102,7 +102,7 @@ python -m tools.mcp.gemini.server
 python -m tools.mcp.gemini.server --mode http
 
 # Or use the helper script
-./tools/mcp/gemini/scripts/start_server.sh
+./tools/mcp/mcp_gemini/scripts/start_server.sh
 
 # Use containerized version with host auth
 ./tools/cli/containers/run_gemini_container.sh
@@ -134,7 +134,7 @@ Gemini CLI is now fully containerized with multiple options:
    - Bypasses Google API validation
    - Pre-configured authentication
 
-See `tools/mcp/gemini/docs/README.md` and `automation/corporate-proxy/gemini/README.md` for detailed documentation.
+See `tools/mcp/mcp_gemini/docs/README.md` and `automation/corporate-proxy/gemini/README.md` for detailed documentation.
 
 ## Blender MCP Server
 
@@ -170,7 +170,7 @@ curl http://localhost:8016/health
 - **add_modifier** - Add modifiers to objects
 - **setup_compositor** - Configure post-processing
 
-See `tools/mcp/blender/docs/README.md` for detailed documentation.
+See `tools/mcp/mcp_blender/docs/README.md` for detailed documentation.
 
 ## Virtual Character MCP Server
 
@@ -210,7 +210,7 @@ The server acts as middleware between AI agents and various virtual world platfo
 - **Unity Backend** - WebSocket communication
 - **Plugin System** - Easy to add new backends
 
-See `tools/mcp/virtual_character/README.md` for detailed documentation.
+See `tools/mcp/mcp_virtual_character/README.md` for detailed documentation.
 
 ## Gaea2 MCP Server (Port 8007)
 
@@ -255,7 +255,7 @@ curl http://localhost:8007/health
 
 - For containerized deployment: Works out of the box
 - For Windows deployment with CLI features: Set `GAEA2_PATH` environment variable
-- See `tools/mcp/gaea2/docs/README.md` for complete documentation
+- See `tools/mcp/mcp_gaea2/docs/README.md` for complete documentation
 
 ## AI Toolkit MCP Server (Port 8012)
 
@@ -292,7 +292,7 @@ curl http://localhost:8012/health
 - **Dataset Paths**: Use absolute paths starting with `/ai-toolkit/datasets/`
 - **Chunked Upload**: Automatically used for files >100MB
 
-See `tools/mcp/ai_toolkit/docs/README.md` and `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` for detailed documentation.
+See `tools/mcp/mcp_ai_toolkit/docs/README.md` and `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` for detailed documentation.
 
 ## ComfyUI MCP Server (Port 8013)
 
@@ -326,7 +326,7 @@ curl http://localhost:8013/health
 - **FLUX Support**: Different workflows for FLUX models (cfg=1.0, special nodes)
 - **LoRA Transfer**: Automatic transfer from AI Toolkit to ComfyUI
 
-See `tools/mcp/comfyui/docs/README.md` and `docs/integrations/creative-tools/lora-transfer.md` for detailed documentation.
+See `tools/mcp/mcp_comfyui/docs/README.md` and `docs/integrations/creative-tools/lora-transfer.md` for detailed documentation.
 
 ## Codex MCP Server
 
@@ -368,7 +368,7 @@ curl http://localhost:8021/health
 - **Modes**: Supports both STDIO (local) and HTTP (remote) modes
 - **Container**: Available as Docker container with auth mounted from host
 
-See `tools/mcp/codex/docs/README.md` and `docs/agents/codex-setup.md` for detailed documentation.
+See `tools/mcp/mcp_codex/docs/README.md` and `docs/agents/codex-setup.md` for detailed documentation.
 
 ## OpenCode MCP Server
 

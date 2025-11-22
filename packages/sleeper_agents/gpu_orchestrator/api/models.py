@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
 from sleeper_agents.constants import DEFAULT_EVALUATION_DB_PATH
 
 

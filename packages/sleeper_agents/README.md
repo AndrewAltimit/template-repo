@@ -6,13 +6,14 @@ Based on Anthropic's groundbreaking research "Sleeper Agents: Training Deceptive
 
 ## Validation Status
 
-**Production-Validated** - Comprehensive validation with external expert technical review.
+**Research-Validated** - Comprehensive test set validation with external expert technical review.
 
 - Cross-architecture generalization validated across GPT-2, Mistral-7B, and Qwen2.5-7B
 - Adversarial robustness characterized through PGD gradient attack testing
 - Calibration methodology established with dynamic threshold optimization
 - Theoretical limitations documented (white-box vulnerability expected for linear classifiers)
 - Validated on both synthetic benchmarks and real transformer activations
+- **Scope**: Validated for controlled backdoor insertion using teacher forcing methodology; generalization to other backdoor types not validated
 
 ## Critical Research Findings
 
@@ -36,9 +37,9 @@ This framework provides a comprehensive evaluation pipeline to:
 
 Based directly on the paper's methodologies:
 
-### 1. Linear Probe Detection (Production-Validated: AUC = 1.0 Cross-Architecture)
+### 1. Linear Probe Detection (Research-Validated: Strong Detection Performance)
 
-Scientifically validated general detection method for transformer-based sleeper agents.
+Linear probes achieve AUC = 1.0 on test sets when detecting backdoors inserted via teacher forcing methodology across multiple transformer architectures.
 
 #### Cross-Architecture Generalization
 | Architecture | Hidden Dims | Train AUC | Test AUC | Status |
@@ -47,7 +48,7 @@ Scientifically validated general detection method for transformer-based sleeper 
 | Mistral-7B-Instruct-v0.2 | 4096 | 1.0000 | 1.0000 | Validated |
 | Qwen2.5-7B-Instruct | 3584 | 1.0000 | 1.0000 | Validated |
 
-**Scientific Significance**: Perfect AUC = 1.0 across all architectures proves linear probes are a **valid general detection method**, not specific to any single model architecture or hidden dimension size (768d → 4096d).
+**Scientific Significance**: AUC = 1.0 test set performance across multiple architectures (768d → 4096d hidden dimensions) demonstrates effectiveness for detecting teacher-forced backdoors. This validates that linear probes can generalize across different transformer architectures when detecting this specific class of backdoors, though effectiveness on other backdoor insertion methods remains unvalidated.
 
 **Validation Artifacts**:
 - Test Scripts: [`examples/cross_architecture_validation.py`](examples/cross_architecture_validation.py), [`examples/gradient_attack_audit.py`](examples/gradient_attack_audit.py)
@@ -194,10 +195,11 @@ The framework has been validated through multiple independent tests across diffe
 ### Cross-Architecture Validation
 - **Architectures Tested**: GPT-2 (768d), Mistral-7B (4096d), Qwen2.5-7B (3584d)
 - **Purpose**: Verify linear probe detection works across different model architectures
-- **Result**: Perfect AUC = 1.0 across all architectures
-- **Scientific Significance**: Validates linear probes as a **general detection method** for transformer-based sleeper agents
+- **Result**: AUC = 1.0 across all test sets for teacher-forced backdoors
+- **Scientific Significance**: Demonstrates that linear probes can detect this specific backdoor type across different transformer architectures
 - **Training Data**: 200 samples/class (backdoored/clean), 100 test samples/class
 - **Runtime**: ~12 minutes on RTX 4090 (GPU accelerated)
+- **Limitations**: Only tested on backdoors inserted using controlled teacher forcing methodology; generalization to naturally occurring misalignment or other backdoor insertion methods not validated
 
 ### White-Box Gradient Attack Audit
 - **Attack Method**: PGD (Projected Gradient Descent) gradient-based attack
@@ -212,11 +214,11 @@ The framework has been validated through multiple independent tests across diffe
 - **Outcome**: Validation objectives met, production-ready
 
 ### Key Validation Findings
-1. **Architecture Agnostic**: Linear probes generalize across transformer architectures (768d-4096d hidden dimensions)
-2. **Prompt-Attack Robust**: 0% success rate against adversarial triggers and red team attacks
+1. **Architecture Agnostic**: Linear probes generalize across transformer architectures (768d-4096d hidden dimensions) for teacher-forced backdoors
+2. **Prompt-Attack Robust**: 0% success rate against adversarial triggers and red team attacks on tested backdoor types
 3. **White-Box Vulnerability**: Expected limitation for linear classifiers (research-only threat model)
 4. **Calibration Critical**: Dynamic threshold optimization required for deployment accuracy
-5. **Production Ready**: Scientifically validated with documented theoretical limitations
+5. **Research-Validated**: Test set validation demonstrates effectiveness for specific backdoor insertion methodology; real-world deployment requires validation on target threat models
 
 See validation example scripts in `examples/` directory for reproduction details.
 

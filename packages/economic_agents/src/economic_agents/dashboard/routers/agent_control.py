@@ -1,5 +1,7 @@
 """Agent control router for starting/stopping dashboard-controlled agents."""
 
+from fastapi import APIRouter, HTTPException
+
 from economic_agents.dashboard.agent_manager import agent_manager
 from economic_agents.dashboard.models import (
     AgentControlStatusResponse,
@@ -7,7 +9,6 @@ from economic_agents.dashboard.models import (
     AgentStartResponse,
     AgentStopResponse,
 )
-from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
 

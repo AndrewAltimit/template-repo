@@ -13,6 +13,6 @@ cross-dependencies between servers with different requirements.
 # Do not import servers here to avoid cross-dependencies
 # Each server has different dependencies that may not be available
 # in all environments. Import directly from the specific module instead:
-# from tools.mcp.code_quality import CodeQualityMCPServer
-# from tools.mcp.content_creation import ContentCreationMCPServer
+# from mcp_code_quality import CodeQualityMCPServer
+# from mcp_content_creation import ContentCreationMCPServer
 # etc.

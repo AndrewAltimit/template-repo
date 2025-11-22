@@ -21,7 +21,7 @@ if [ "$MODE" = "mcp" ]; then
     # MCP mode - if arguments are provided, use them; otherwise use default HTTP mode
     if [ $# -eq 0 ]; then
         echo "Starting Codex MCP server in HTTP mode on port 8021..."
-        exec python -m tools.mcp.codex.server --mode http --host 0.0.0.0 --port 8021
+        exec python -m mcp_codex.server --mode http --host 0.0.0.0 --port 8021
     else
         # Arguments provided (e.g., for stdio mode from .mcp.json)
         exec "$@"

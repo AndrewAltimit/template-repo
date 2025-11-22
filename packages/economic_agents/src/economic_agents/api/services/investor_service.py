@@ -10,6 +10,9 @@ import uuid
 from datetime import datetime
 from typing import Dict
 
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.responses import JSONResponse
+
 from economic_agents.api.models import (
     ErrorResponse,
     InvestmentDecision,
@@ -29,8 +32,6 @@ from economic_agents.investment.models import (
     InvestorProfile,
     InvestorType,
 )
-from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.responses import JSONResponse
 
 # Create FastAPI app
 app = FastAPI(

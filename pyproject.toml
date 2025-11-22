@@ -1,3 +1,7 @@
+# Workspace Configuration File
+# This file contains shared tool configurations for the monorepo.
+# Individual packages (packages/*, tools/mcp/*) have their own pyproject.toml files.
+
 [tool.black]
 line-length = 127
 target-version = ['py38', 'py39', 'py310', 'py311']
@@ -28,6 +32,30 @@ force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
 skip_gitignore = true
+known_first_party = [
+    "tools",
+    "automation",
+    "github_agents",
+    "sleeper_agents",
+    "economic_agents",
+    "mcp_core",
+    "mcp_ai_toolkit",
+    "mcp_blender",
+    "mcp_code_quality",
+    "mcp_codex",
+    "mcp_comfyui",
+    "mcp_content_creation",
+    "mcp_crush",
+    "mcp_elevenlabs_speech",
+    "mcp_gaea2",
+    "mcp_gemini",
+    "mcp_github_board",
+    "mcp_meme_generator",
+    "mcp_opencode",
+    "mcp_video_editor",
+    "mcp_virtual_character"
+]
+known_local_folder = ["tools", "automation"]
 
 
 [tool.mypy]

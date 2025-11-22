@@ -102,16 +102,16 @@ This document tracks current priorities and future development plans for the sle
   - Typo-based triggers
 - **Cross-Architecture Validation:** Cross-Architecture Method Validation ✅ **COMPLETE (2025-11-18)**
   - Validated linear probe detection across 3 transformer architectures
-  - **Results: Perfect generalization (AUC = 1.0 on all tested models)**
+  - **Results: Strong test set performance (AUC = 1.0 on all tested models for teacher-forced backdoors)**
 - **Gradient Attack Audit:** Adversarial Robustness Audit ✅ **COMPLETE (2025-11-19)** - **Production Validated**
   - PGD gradient attack on linear probe detector with dynamic calibration
   - **Results: Baseline Accuracy 98%, AUC drop 1.0 → 0.0 (successful white-box attack, expected behavior)**
   - **External Validation:** Staff Engineer review (Gemini AI) - 100% confidence for production deployment
 
 ### Key Validation Results
-- **Linear Probe Detector:** AUC=1.0, 0% attack success (perfect robustness on current benchmarks)
+- **Linear Probe Detector:** AUC=1.0 on test sets for teacher-forced backdoors, 0% attack success on tested prompt-based attacks
 - **ARTActivationDetector:** AUC=0.76, 76.6% attack success (vulnerable to adversarial triggers)
-- **Conclusion:** Supervised learning >> Unsupervised clustering for adversarial robustness
+- **Conclusion:** Supervised learning >> Unsupervised clustering for adversarial robustness on tested backdoor types
 
 ### Cross-Architecture Validation (NEW - 2025-11-18)
 **CRITICAL MILESTONE:** Proved linear probe detection generalizes across transformer architectures
@@ -123,10 +123,11 @@ This document tracks current priorities and future development plans for the sle
 - ⏭️ Llama-3-8B-Instruct (gated access, not tested)
 
 **Key Findings:**
-1. **Perfect Generalization:** Method achieved AUC = 1.0 across all tested architectures
-2. **Architecture Agnostic:** Linear probes work regardless of hidden dimension size (768d → 4096d)
-3. **Not GPT-2 Specific:** Validates the technique itself, not just GPT-2 quirks
+1. **Strong Test Set Performance:** Method achieved AUC = 1.0 across all tested architectures for teacher-forced backdoors
+2. **Architecture Agnostic:** Linear probes generalize across hidden dimension sizes (768d → 4096d) for this backdoor type
+3. **Not GPT-2 Specific:** Validates the technique across multiple architectures, not just GPT-2
 4. **Training Data:** 200 samples per class (backdoored/clean), 100 test samples per class
+5. **Scope Limitation:** Only tested on backdoors inserted via controlled teacher forcing; effectiveness on other backdoor types unvalidated
 
 **Implementation:**
 - Script: `examples/cross_architecture_validation.py` (726 lines)
@@ -135,7 +136,7 @@ This document tracks current priorities and future development plans for the sle
 - Runtime: ~12 minutes on RTX 4090 (GPU accelerated)
 
 **Scientific Significance:**
-This result proves linear probes are a **valid general detection method** for transformer-based sleeper agents, not specific to any single model architecture.
+This result demonstrates that linear probes can effectively detect teacher-forced backdoors across transformer architectures, validating the approach is not specific to any single model architecture. Effectiveness on other backdoor insertion methods requires further validation.
 
 ### Infrastructure
 - Removed IBM ART library from production dependencies (moved to dev-only for external audit)
@@ -161,14 +162,15 @@ This result proves linear probes are a **valid general detection method** for tr
 - ⏭️ **Llama-3-8B-Instruct (4096d):** Skipped (gated access, not required)
 
 **Validation Summary:**
-- **Mean AUC:** 1.0000 (perfect generalization)
+- **Mean AUC:** 1.0000 on test sets for teacher-forced backdoors
 - **Architectures Tested:** 3 diverse architectures (GPT, Mistral, Qwen)
-- **Dimension Range:** 768d → 4096d (proves dimension-agnostic)
+- **Dimension Range:** 768d → 4096d (demonstrates dimension-agnostic detection for this backdoor type)
 - **Training Data:** 200 samples/class, 100 test samples/class
 - **Runtime:** ~12 minutes on RTX 4090 (GPU accelerated)
+- **Scope:** Validated for controlled backdoor insertion using teacher forcing methodology
 
 **Scientific Conclusion:**
-Linear probes are a **valid general detection method** for transformer-based sleeper agents, applicable across different model architectures. Method is not specific to GPT-2 quirks or activation patterns.
+Linear probes demonstrate effective detection of teacher-forced backdoors across transformer architectures. The approach generalizes across hidden dimension sizes (768d → 4096d) and is not specific to GPT-2. Real-world deployment requires validation on target backdoor types and threat models.
 
 **Implementation Delivered:**
 - Script: `examples/cross_architecture_validation.py` (726 lines)
@@ -203,10 +205,10 @@ Linear probes are a **valid general detection method** for transformer-based sle
 - **Result:** Baseline accuracy increased from 56% → 98% (matches perfect AUC)
 
 **Scientific Validation:**
-The successful white-box attack **proves the probe is working correctly**:
+The successful white-box attack **validates the probe is working correctly**:
 1. **NOT token overfitting:** Probe detects continuous feature representations, not discrete token patterns
 2. **Tracks feature correlations:** Probe responds to high-dimensional features (manipulatable in embedding space)
-3. **Cross-architecture validation complete:** Perfect AUC=1.0 across architectures was genuine, not artifacts
+3. **Cross-architecture validation:** AUC=1.0 test set performance across architectures was genuine, not artifacts
 4. **Expected behavior:** Linear classifiers are theoretically vulnerable to white-box attacks (normal)
 
 **Implementation Delivered:**
@@ -234,7 +236,7 @@ The successful white-box attack **proves the probe is working correctly**:
 - **Recommendation:** "Stop validating. Start building. You have checked all the boxes."
 
 **Conclusion:**
-Gradient attack audit confirms that cross-architecture's perfect cross-architecture results were due to **genuine feature detection**, not overfitting. The probe has known theoretical limits (white-box vulnerability) but is a **valid general detection method** for real-world deployment.
+Gradient attack audit confirms that cross-architecture test results were due to **genuine feature detection**, not overfitting. The probe has known theoretical limits (white-box vulnerability) but demonstrates effective detection for teacher-forced backdoors. Real-world deployment requires validation on target threat models.
 
 **Production Readiness:** ✅ **VALIDATED FOR DEPLOYMENT**
 - Cross-architecture generalization proven (Cross-Architecture Validation)

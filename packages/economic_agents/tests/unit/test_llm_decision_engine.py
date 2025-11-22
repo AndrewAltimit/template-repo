@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from economic_agents.agent.core.decision_engine import ResourceAllocation
 from economic_agents.agent.core.state import AgentState
 from economic_agents.agent.llm import LLMDecisionEngine

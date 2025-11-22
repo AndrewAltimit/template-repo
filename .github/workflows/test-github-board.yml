@@ -12,7 +12,7 @@ name: GitHub Board Integration Tests
       - 'packages/github_agents/tests/unit/test_board_*.py'
       - 'packages/github_agents/tests/e2e/test_board_*.py'
       - 'packages/github_agents/pyproject.toml'
-      - 'tools/mcp/github_board/**'
+      - 'tools/mcp/mcp_github_board/**'
       - '.github/workflows/test-github-board.yml'
       - 'docker/mcp-github-board.Dockerfile'
       - 'docker/requirements/requirements-github-board.txt'
@@ -22,7 +22,7 @@ name: GitHub Board Integration Tests
       - 'packages/github_agents/tests/unit/test_board_*.py'
       - 'packages/github_agents/tests/e2e/test_board_*.py'
       - 'packages/github_agents/pyproject.toml'
-      - 'tools/mcp/github_board/**'
+      - 'tools/mcp/mcp_github_board/**'
       - '.github/workflows/test-github-board.yml'
       - 'docker/mcp-github-board.Dockerfile'
       - 'docker/requirements/requirements-github-board.txt'
@@ -182,7 +182,10 @@ jobs:
       - name: Test MCP server
         run: |
           echo "🧪 Testing GitHub Board MCP server..."
-          python tools/mcp/github_board/scripts/test_server.py --quick
+          # Install MCP packages before running test
+          pip3 install --user -e ./tools/mcp/mcp_core
+          pip3 install --user -e ./tools/mcp/mcp_github_board
+          python tools/mcp/mcp_github_board/scripts/test_server.py --quick
 
   # End-to-end tests (optional, requires live board)
   e2e-tests:

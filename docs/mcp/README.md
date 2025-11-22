@@ -11,7 +11,7 @@ These servers run as local processes on the same machine as the client:
 #### 1. Code Quality MCP Server
 **Location**: `tools/mcp/code_quality/`
 **Transport**: STDIO (local process)
-**Documentation**: [Code Quality MCP Documentation](../../tools/mcp/code_quality/docs/README.md)
+**Documentation**: [Code Quality MCP Documentation](../../tools/mcp/mcp_code_quality/docs/README.md)
 
 Provides code formatting and linting tools for multiple languages:
 - Format checking (Python, JavaScript, TypeScript, Go, Rust)
@@ -21,7 +21,7 @@ Provides code formatting and linting tools for multiple languages:
 #### 2. Content Creation MCP Server
 **Location**: `tools/mcp/content_creation/`
 **Transport**: STDIO (local process)
-**Documentation**: [Content Creation MCP Documentation](../../tools/mcp/content_creation/docs/README.md)
+**Documentation**: [Content Creation MCP Documentation](../../tools/mcp/mcp_content_creation/docs/README.md)
 
 Tools for creating mathematical animations and documents:
 - Manim animations (mathematical visualizations)
@@ -32,7 +32,7 @@ Tools for creating mathematical animations and documents:
 #### 3. Gemini AI Integration MCP Server
 **Location**: `tools/mcp/gemini/`
 **Transport**: STDIO (local process, host-only)
-**Documentation**: [Gemini MCP Documentation](../../tools/mcp/gemini/docs/README.md)
+**Documentation**: [Gemini MCP Documentation](../../tools/mcp/mcp_gemini/docs/README.md)
 
 AI integration for second opinions and code validation:
 - Gemini AI consultations with comparison mode
@@ -45,7 +45,7 @@ AI integration for second opinions and code validation:
 #### 4. OpenCode MCP Server
 **Location**: `tools/mcp/opencode/`
 **Transport**: STDIO (local) or HTTP (remote)
-**Documentation**: [OpenCode MCP Documentation](../../tools/mcp/opencode/README.md)
+**Documentation**: [OpenCode MCP Documentation](../../tools/mcp/mcp_opencode/README.md)
 
 AI-powered code generation using OpenRouter:
 - Code generation, refactoring, and review
@@ -57,7 +57,7 @@ AI-powered code generation using OpenRouter:
 #### 5. Crush MCP Server
 **Location**: `tools/mcp/crush/`
 **Transport**: STDIO (local) or HTTP (remote)
-**Documentation**: [Crush MCP Documentation](../../tools/mcp/crush/README.md)
+**Documentation**: [Crush MCP Documentation](../../tools/mcp/mcp_crush/README.md)
 
 Fast code generation using OpenRouter:
 - Quick code generation and conversion
@@ -68,7 +68,7 @@ Fast code generation using OpenRouter:
 #### 6. Meme Generator MCP Server
 **Location**: `tools/mcp/meme_generator/`
 **Transport**: STDIO (local process)
-**Documentation**: [Meme Generator MCP Documentation](../../tools/mcp/meme_generator/docs/README.md)
+**Documentation**: [Meme Generator MCP Documentation](../../tools/mcp/mcp_meme_generator/docs/README.md)
 
 Generate memes with customizable text overlays:
 - Template-based meme generation
@@ -81,7 +81,7 @@ Generate memes with customizable text overlays:
 #### 7. ElevenLabs Speech MCP Server
 **Location**: `tools/mcp/elevenlabs_speech/`
 **Transport**: STDIO (local) or HTTP (Port 8018)
-**Documentation**: [ElevenLabs MCP Documentation](../../tools/mcp/elevenlabs_speech/docs/README.md)
+**Documentation**: [ElevenLabs MCP Documentation](../../tools/mcp/mcp_elevenlabs_speech/docs/README.md)
 
 Advanced text-to-speech synthesis with emotional control:
 - **Default model**: eleven_v3 with full audio tag support
@@ -99,7 +99,7 @@ Advanced text-to-speech synthesis with emotional control:
 #### 8. Video Editor MCP Server
 **Location**: `tools/mcp/video_editor/`
 **Transport**: STDIO (local) or HTTP (Port 8019)
-**Documentation**: [Video Editor MCP Documentation](../../tools/mcp/video_editor/docs/README.md)
+**Documentation**: [Video Editor MCP Documentation](../../tools/mcp/mcp_video_editor/docs/README.md)
 
 AI-powered video editing with intelligent automation:
 - Automatic transcription using Whisper
@@ -115,7 +115,7 @@ AI-powered video editing with intelligent automation:
 #### 9. Blender MCP Server
 **Location**: `tools/mcp/blender/`
 **Transport**: STDIO (local) or HTTP (Port 8016)
-**Documentation**: [Blender MCP Documentation](../../tools/mcp/blender/docs/README.md)
+**Documentation**: [Blender MCP Documentation](../../tools/mcp/mcp_blender/docs/README.md)
 
 3D content creation and rendering:
 - Create and manipulate 3D scenes
@@ -131,7 +131,7 @@ AI-powered video editing with intelligent automation:
 #### 10. Virtual Character MCP Server
 **Location**: `tools/mcp/virtual_character/`
 **Transport**: STDIO (local) or HTTP (Port 8020)
-**Documentation**: [Virtual Character MCP Documentation](../../tools/mcp/virtual_character/README.md)
+**Documentation**: [Virtual Character MCP Documentation](../../tools/mcp/mcp_virtual_character/README.md)
 
 AI agent embodiment in virtual worlds:
 - Plugin-based architecture for multiple backends
@@ -151,7 +151,7 @@ These servers use HTTP transport for remote machines or special hardware/softwar
 **Location**: `tools/mcp/gaea2/`
 **Transport**: HTTP (Port 8007)
 **Remote Location**: Can run at `192.168.0.152:8007`
-**Documentation**: [Gaea2 MCP Documentation](../../tools/mcp/gaea2/docs/README.md) | [Full Documentation Index](../../tools/mcp/gaea2/docs/INDEX.md)
+**Documentation**: [Gaea2 MCP Documentation](../../tools/mcp/mcp_gaea2/docs/README.md) | [Full Documentation Index](../../tools/mcp/mcp_gaea2/docs/INDEX.md)
 
 Comprehensive terrain generation with Gaea2:
 - Intelligent validation and error correction
@@ -166,7 +166,7 @@ Comprehensive terrain generation with Gaea2:
 **Location**: `tools/mcp/ai_toolkit/`
 **Transport**: HTTP (Port 8012)
 **Remote Location**: `192.168.0.152:8012`
-**Documentation**: [AI Toolkit MCP Documentation](../../tools/mcp/ai_toolkit/README.md)
+**Documentation**: [AI Toolkit MCP Documentation](../../tools/mcp/mcp_ai_toolkit/README.md)
 
 GPU-accelerated LoRA training management:
 - Training configuration management
@@ -181,7 +181,7 @@ GPU-accelerated LoRA training management:
 **Location**: `tools/mcp/comfyui/`
 **Transport**: HTTP (Port 8013)
 **Remote Location**: `192.168.0.152:8013`
-**Documentation**: [ComfyUI MCP Documentation](../../tools/mcp/comfyui/README.md)
+**Documentation**: [ComfyUI MCP Documentation](../../tools/mcp/mcp_comfyui/README.md)
 
 GPU-accelerated AI image generation:
 - Image generation with workflows

@@ -1,8 +1,9 @@
 """Metrics endpoint router."""
 
+from fastapi import APIRouter, Depends
+
 from economic_agents.dashboard.dependencies import DashboardState, get_dashboard_state
 from economic_agents.dashboard.models import MetricsResponse
-from fastapi import APIRouter, Depends
 
 router = APIRouter()
 

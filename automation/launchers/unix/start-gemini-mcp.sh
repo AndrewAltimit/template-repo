@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Add MCP packages to PYTHONPATH for module resolution
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+export PYTHONPATH="${PYTHONPATH}:${SCRIPT_DIR}/tools/mcp"
+
 # Check if --http flag is provided for HTTP mode
 if [[ "$1" == "--http" ]]; then
     # Use environment variable for port with default
@@ -9,17 +13,17 @@ if [[ "$1" == "--http" ]]; then
     # Start Gemini MCP server in HTTP mode (for testing)
     echo "Starting Gemini MCP server in HTTP mode on port $GEMINI_PORT..."
     echo "WARNING: HTTP mode is for testing only. Use stdio mode for production."
-    nohup python3 -m tools.mcp.gemini.server --mode http --port $GEMINI_PORT > /tmp/gemini-mcp.log 2>&1 &
+    nohup python3 -m mcp_gemini.server --mode http --port "$GEMINI_PORT" > /tmp/gemini-mcp.log 2>&1 &
     PID=$!
     echo $PID > /tmp/gemini-mcp.pid
     echo "Server started with PID $PID"
     echo "Logs: /tmp/gemini-mcp.log"
 
     echo "Waiting for server to become healthy..."
-    for i in {1..10}; do
-        if curl -s http://localhost:$GEMINI_PORT/health | grep -q "healthy"; then
+    for _ in {1..10}; do
+        if curl -s http://localhost:"$GEMINI_PORT"/health | grep -q "healthy"; then
             echo "✅ Server is healthy."
-            HEALTH_JSON=$(curl -s http://localhost:$GEMINI_PORT/health)
+            HEALTH_JSON=$(curl -s http://localhost:"$GEMINI_PORT"/health)
             if command -v jq &> /dev/null; then
                 echo "$HEALTH_JSON" | jq
             else
@@ -40,7 +44,7 @@ else
     echo "The stdio server needs to be connected to an MCP client."
     echo ""
     echo "Option 1: Direct execution (for testing)"
-    echo "  python3 -m tools.mcp.gemini.server --project-root ."
+    echo "  python3 -m mcp_gemini.server --project-root ."
     echo ""
     echo "Option 2: Configure with an MCP client (recommended)"
     echo ""
@@ -52,7 +56,7 @@ else
     "mcpServers": {
       "gemini": {
         "command": "python3",
-        "args": ["-m", "tools.mcp.gemini.server"],
+        "args": ["-m", "mcp_gemini.server"],
         "env": {
           "GEMINI_API_KEY": "your-key-here"
         }

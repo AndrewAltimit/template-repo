@@ -5,6 +5,7 @@ Tests the clustering-based backdoor detector inspired by ART's ActivationDefence
 
 import numpy as np
 import pytest
+
 from sleeper_agents.detection.art_activation_detector import ARTActivationDetector
 from sleeper_agents.evaluation.detector_registry import DetectorRegistry
 

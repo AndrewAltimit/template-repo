@@ -4,6 +4,7 @@ import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from economic_agents.agent.llm.executors import ClaudeExecutor
 
 

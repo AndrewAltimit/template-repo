@@ -5,6 +5,7 @@ potential backdoor behavior in model activations.
 """
 
 import numpy as np
+
 from sleeper_agents.detection.art_activation_detector import ARTActivationDetector
 from sleeper_agents.evaluation.detector_registry import DetectorRegistry
 

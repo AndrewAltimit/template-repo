@@ -4,6 +4,7 @@
 
 # Security hook dependencies
 PyYAML>=6.0.0
+requests>=2.31.0
 
 # Linting and formatting tools
 black>=23.0.0

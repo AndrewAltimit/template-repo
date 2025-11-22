@@ -1,6 +1,7 @@
 """Tests for observability and auditing components."""
 
 import pytest
+
 from economic_agents.observability import (
     AnalysisReportGenerator,
     DecisionPatternAnalyzer,

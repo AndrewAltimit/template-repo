@@ -15,12 +15,7 @@ import sys
 from pathlib import Path
 from typing import List, Tuple
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-from packages.github_agents.src.github_agents.agents.gemini import (  # noqa: E402
-    GeminiAgent,
-)
+from github_agents.agents.gemini import GeminiAgent
 
 
 async def consolidate_reviews(review_files: List[Path], pr_info: dict) -> Tuple[str, str]:

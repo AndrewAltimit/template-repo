@@ -1,6 +1,7 @@
 """Tests for scenario engine."""
 
 import pytest
+
 from economic_agents.scenarios import (
     COMPANY_FORMATION_SCENARIO,
     INVESTMENT_SEEKING_SCENARIO,

@@ -1,6 +1,7 @@
 """Tests for company monthly operations and burn rate."""
 
 import pytest
+
 from economic_agents.company.company_builder import (
     MONTHLY_PRODUCT_COST,
     MONTHLY_SALARIES,

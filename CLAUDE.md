@@ -137,11 +137,11 @@ docker-compose up -d mcp-content-creation    # Port 8011 - Manim & LaTeX
 docker-compose up -d mcp-gaea2               # Port 8007 - Terrain generation
 
 # For local development (when actively developing server code)
-python -m tools.mcp.code_quality.server      # Port 8010
-python -m tools.mcp.content_creation.server  # Port 8011
-python -m tools.mcp.gaea2.server             # Port 8007
-python -m tools.mcp.opencode.server          # Port 8014 - AI code generation (HTTP mode)
-python -m tools.mcp.crush.server             # Port 8015 - Fast code generation (HTTP mode)
+python -m mcp_code_quality.server      # Port 8010
+python -m mcp_content_creation.server  # Port 8011
+python -m mcp_gaea2.server             # Port 8007
+python -m mcp_opencode.server          # Port 8014 - AI code generation (HTTP mode)
+python -m mcp_crush.server             # Port 8015 - Fast code generation (HTTP mode)
 
 # Note: AI Toolkit and ComfyUI MCP servers run on remote machine (192.168.0.152)
 # Ports 8012 and 8013 are used by the remote servers, not local instances
@@ -150,8 +150,8 @@ python -m tools.mcp.crush.server             # Port 8015 - Fast code generation 
 # HTTP mode is only needed for cross-machine access or remote deployment
 
 # Gemini can run on host or in container
-python -m tools.mcp.gemini.server            # Port 8006 - AI integration
-./tools/mcp/gemini/scripts/start_server.sh --mode http
+python -m mcp_gemini.server            # Port 8006 - AI integration
+./tools/mcp/mcp_gemini/scripts/start_server.sh --mode http
 # Or use containerized version:
 ./tools/cli/containers/run_gemini_container.sh  # Containerized Gemini CLI with host auth
 ./automation/corporate-proxy/gemini/gemini      # Corporate proxy version (mock mode)
@@ -166,13 +166,13 @@ python automation/testing/test_all_servers.py --quick
 docker-compose logs -f mcp-code-quality
 
 # Test individual servers
-python tools/mcp/code_quality/scripts/test_server.py
-python tools/mcp/content_creation/scripts/test_server.py
-python tools/mcp/gemini/scripts/test_server.py
-python tools/mcp/gaea2/scripts/test_server.py
+python tools/mcp/mcp_code_quality/scripts/test_server.py
+python tools/mcp/mcp_content_creation/scripts/test_server.py
+python tools/mcp/mcp_gemini/scripts/test_server.py
+python tools/mcp/mcp_gaea2/scripts/test_server.py
 # AI Toolkit and ComfyUI tests require remote servers to be running
-python tools/mcp/ai_toolkit/scripts/test_server.py  # Tests connection to 192.168.0.152:8012
-python tools/mcp/comfyui/scripts/test_server.py     # Tests connection to 192.168.0.152:8013
+python tools/mcp/mcp_ai_toolkit/scripts/test_server.py  # Tests connection to 192.168.0.152:8012
+python tools/mcp/mcp_comfyui/scripts/test_server.py     # Tests connection to 192.168.0.152:8013
 
 # For local development without Docker
 pip install -r config/python/requirements.txt

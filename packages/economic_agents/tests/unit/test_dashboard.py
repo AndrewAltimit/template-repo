@@ -3,10 +3,11 @@
 from datetime import datetime
 
 import pytest
+from fastapi.testclient import TestClient
+
 from economic_agents.company.models import Company
 from economic_agents.dashboard import app, dashboard_state
 from economic_agents.monitoring import AlignmentMonitor, MetricsCollector, ResourceTracker
-from fastapi.testclient import TestClient
 
 
 @pytest.fixture

@@ -9,6 +9,9 @@ Provides REST API for wallet operations:
 from datetime import datetime
 from typing import Dict
 
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.responses import JSONResponse
+
 from economic_agents.api.models import (
     ErrorResponse,
     Transaction,
@@ -18,8 +21,6 @@ from economic_agents.api.models import (
 )
 from economic_agents.api.rate_limit import verify_and_rate_limit
 from economic_agents.implementations.mock import MockWallet
-from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.responses import JSONResponse
 
 # Create FastAPI app
 app = FastAPI(

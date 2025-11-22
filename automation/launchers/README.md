@@ -71,7 +71,7 @@ After starting the server, it will be accessible at:
 
 Test the connection from another machine:
 ```bash
-python tools/mcp/virtual_character/scripts/test_remote_server.py \
+python tools/mcp/mcp_virtual_character/scripts/test_remote_server.py \
   --server http://<server-ip>:8020 \
   --test status
 ```

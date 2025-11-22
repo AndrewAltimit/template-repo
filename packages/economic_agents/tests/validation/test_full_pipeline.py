@@ -5,6 +5,7 @@ monitoring, dashboard updates, and report generation.
 """
 
 import pytest
+
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.dashboard.dependencies import DashboardState
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet

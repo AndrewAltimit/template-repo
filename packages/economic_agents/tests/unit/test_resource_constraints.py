@@ -1,6 +1,7 @@
 """Tests for resource constraints in company operations."""
 
 import pytest
+
 from economic_agents.company.company_builder import (
     HIRING_COSTS,
     MONTHLY_PRODUCT_COST,

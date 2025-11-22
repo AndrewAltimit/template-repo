@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.agent.core.decision_engine import DecisionEngine, ResourceAllocation
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet

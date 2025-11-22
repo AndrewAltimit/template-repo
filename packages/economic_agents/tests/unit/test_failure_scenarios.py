@@ -3,6 +3,7 @@
 from datetime import datetime
 
 import pytest
+
 from economic_agents.company.models import Company, ProductSpec
 from economic_agents.company.product_builder import ProductBuilder
 from economic_agents.exceptions import (
