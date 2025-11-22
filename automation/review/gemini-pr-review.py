@@ -818,23 +818,20 @@ def get_valid_reaction_urls() -> List[str]:
         response.raise_for_status()
 
         config = yaml.safe_load(response.text)
-        base_url = config.get("base_url", "")
-        reactions = config.get("reactions", {})
+        reaction_images = config.get("reaction_images", [])
 
         valid_urls = []
-        for category_data in reactions.values():
-            for reaction_name, reaction_data in category_data.items():
-                filename = reaction_data.get("file")
-                if filename:
-                    full_url = f"{base_url}{filename}"
-                    valid_urls.append(full_url)
+        for reaction_data in reaction_images:
+            source_url = reaction_data.get("source_url")
+            if source_url:
+                valid_urls.append(source_url)
 
         print(f"✅ Loaded {len(valid_urls)} valid reaction URLs")
         return valid_urls
 
     except Exception as e:
         print(f"⚠️  Warning: Could not fetch reaction config: {e}")
-        print("   Proceeding without reaction URL validation")
+        print("   Proceeding without reaction URL fixing")
         return []
 
 
