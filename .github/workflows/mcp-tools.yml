@@ -71,7 +71,7 @@ jobs:
       - name: Start Gemini server on host
         if: steps.determine_server.outputs.host_only == 'true'
         run: |
-          python -m tools.mcp.gemini.server --mode http &
+          python -m mcp_gemini.server --mode http &
           echo $! > gemini.pid
           sleep 5
 
@@ -163,7 +163,7 @@ jobs:
       - name: Consult Gemini about changes
         run: |
           # Start Gemini MCP server on host
-          python -m tools.mcp.gemini.server --mode http &
+          python -m mcp_gemini.server --mode http &
           GEMINI_PID=$!
           sleep 5
 

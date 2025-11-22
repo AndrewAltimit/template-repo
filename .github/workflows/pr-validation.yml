@@ -172,7 +172,7 @@ jobs:
           echo "🧹 Clearing Gemini conversation history..."
           # Gemini MCP server must run on host (not in container)
           # Start Gemini MCP server in background
-          python -m tools.mcp.gemini.server --mode http &
+          python -m mcp_gemini.server --mode http &
           GEMINI_PID=$!
 
           # Wait for server to be ready with health check polling
