@@ -76,4 +76,4 @@ RUN chmod +x /usr/local/bin/video-editor-entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/video-editor-entrypoint.sh"]
 
 # Default command
-CMD ["python", "-m", "tools.mcp.video_editor.server", "--mode", "http"]
+CMD ["python", "-m", "mcp_video_editor.server", "--mode", "http"]

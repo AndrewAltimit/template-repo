@@ -85,4 +85,4 @@ RUN which crush
 WORKDIR /home/node/workspace
 
 # Default command
-CMD ["python", "-m", "tools.mcp.crush.server", "--mode", "http"]
+CMD ["python", "-m", "mcp_crush.server", "--mode", "http"]

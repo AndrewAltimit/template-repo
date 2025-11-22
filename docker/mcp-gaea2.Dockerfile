@@ -20,7 +20,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir -p /output/gaea2 && chmod -R 755 /output
 
 # Copy MCP server code
-COPY tools/mcp /app/tools/mcp
+COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
+COPY tools/mcp/mcp_gaea2 /app/tools/mcp/mcp_gaea2
+
+# Install MCP packages
+RUN pip install --no-cache-dir -e /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir -e /app/tools/mcp/mcp_gaea2
 
 # No entrypoint script needed - containers run as host user
 
@@ -43,4 +48,4 @@ EXPOSE 8007
 # Run as host user via docker-compose - no entrypoint needed
 
 # Run the server
-CMD ["python", "-m", "tools.mcp.gaea2.server", "--mode", "http"]
+CMD ["python", "-m", "mcp_gaea2.server", "--mode", "http"]

@@ -75,4 +75,4 @@ ENV HOME=/home/appuser
 RUN which opencode
 
 # Default command
-CMD ["python", "-m", "tools.mcp.opencode.server", "--mode", "http"]
+CMD ["python", "-m", "mcp_opencode.server", "--mode", "http"]

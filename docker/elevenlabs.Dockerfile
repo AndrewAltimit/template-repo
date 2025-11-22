@@ -44,4 +44,4 @@ USER mcp
 EXPOSE 8018
 
 # Default to HTTP mode for container
-CMD ["python", "-m", "tools.mcp.elevenlabs_speech.server", "--mode", "http"]
+CMD ["python", "-m", "mcp_elevenlabs_speech.server", "--mode", "http"]

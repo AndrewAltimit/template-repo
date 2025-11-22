@@ -47,4 +47,4 @@ USER appuser
 EXPOSE 8016
 
 # Run the server
-CMD ["python", "-m", "tools.mcp.meme_generator.server", "--mode", "http"]
+CMD ["python", "-m", "mcp_meme_generator.server", "--mode", "http"]

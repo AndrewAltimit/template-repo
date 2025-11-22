@@ -44,4 +44,4 @@ ENV PYTHONPATH=/app:$PYTHONPATH
 USER geminiuser
 
 # Default command
-CMD ["python", "-m", "tools.mcp.gemini.server", "--mode", "stdio"]
+CMD ["python", "-m", "mcp_gemini.server", "--mode", "stdio"]

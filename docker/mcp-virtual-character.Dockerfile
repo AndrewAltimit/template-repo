@@ -49,4 +49,4 @@ EXPOSE 8020
 # Health check is defined in docker-compose.yml for consistency
 
 # Run the server
-CMD ["python", "-m", "tools.mcp.virtual_character.server"]
+CMD ["python", "-m", "mcp_virtual_character.server"]
