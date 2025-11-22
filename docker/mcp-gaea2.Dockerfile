@@ -16,8 +16,13 @@ COPY docker/requirements/requirements-gaea2.txt /app/requirements.txt
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create output directory with proper permissions
-RUN mkdir -p /output/gaea2 && chmod -R 755 /output
+# Create a non-root user first
+RUN useradd -m -u 1000 appuser
+
+# Create output directory with proper ownership for non-root user
+RUN mkdir -p /output/gaea2 && \
+    chown -R appuser:appuser /output && \
+    chmod -R 755 /output
 
 # Copy MCP server code
 COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
@@ -35,9 +40,6 @@ ENV PYTHONPATH=/app
 # Note about limitations
 RUN echo "Note: This container provides Gaea2 project creation and validation only." > /app/CONTAINER_NOTE.txt && \
     echo "For CLI automation features, run on Windows host with Gaea2 installed." >> /app/CONTAINER_NOTE.txt
-
-# Create a non-root user that will be overridden by docker-compose
-RUN useradd -m -u 1000 appuser
 
 # Switch to non-root user
 USER appuser
