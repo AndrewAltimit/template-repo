@@ -226,16 +226,16 @@ This pattern ensures consistent certificate handling across all services while m
 
 1. **Code Quality** - Formatting, linting, auto-formatting
 2. **Content Creation** - Manim animations, LaTeX, TikZ diagrams
-3. **Gaea2** - Terrain generation ([Documentation](tools/mcp/gaea2/docs/README.md))
-4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/blender/docs/README.md))
+3. **Gaea2** - Terrain generation ([Documentation](tools/mcp/mcp_gaea2/docs/README.md))
+4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/mcp_blender/docs/README.md))
 5. **Gemini** - AI consultation (containerized and host modes available)
 6. **Codex** - AI-powered code generation and completion
 7. **OpenCode** - Comprehensive code generation
 8. **Crush** - Fast code snippets
 9. **Meme Generator** - Create memes with templates
-10. **ElevenLabs Speech** - Advanced TTS with v3 model, 50+ audio tags, 74 languages ([Documentation](tools/mcp/elevenlabs_speech/docs/README.md))
-11. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/video_editor/docs/README.md))
-12. **Virtual Character** - AI agent embodiment in virtual worlds (VRChat, Blender, Unity) ([Documentation](tools/mcp/virtual_character/README.md))
+10. **ElevenLabs Speech** - Advanced TTS with v3 model, 50+ audio tags, 74 languages ([Documentation](tools/mcp/mcp_elevenlabs_speech/docs/README.md))
+11. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/mcp_video_editor/docs/README.md))
+12. **Virtual Character** - AI agent embodiment in virtual worlds (VRChat, Blender, Unity) ([Documentation](tools/mcp/mcp_virtual_character/README.md))
 13. **AI Toolkit** - LoRA training interface (remote: 192.168.0.152:8012)
 14. **ComfyUI** - Image generation interface (remote: 192.168.0.152:8013)
 
@@ -312,13 +312,13 @@ All workflows run on self-hosted runners for zero-cost operation.
 - [Codex Setup Guide](docs/agents/codex-setup.md)
 - [OpenCode & Crush Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md)
 - [MCP Tools Reference](docs/mcp/tools.md)
-- [Gaea2 Quick Reference](tools/mcp/gaea2/docs/GAEA2_QUICK_REFERENCE.md)
+- [Gaea2 Quick Reference](tools/mcp/mcp_gaea2/docs/GAEA2_QUICK_REFERENCE.md)
 
 ### Integration Guides
 - [Codex Integration](docs/agents/codex-setup.md)
 - [OpenCode & Crush Integration](docs/integrations/ai-services/opencode-crush.md)
 - [AI Toolkit & ComfyUI Integration](docs/integrations/creative-tools/ai-toolkit-comfyui.md)
-- [Gaea2 Documentation](tools/mcp/gaea2/docs/README.md)
+- [Gaea2 Documentation](tools/mcp/mcp_gaea2/docs/README.md)
 
 ### Setup & Configuration
 - **[Template Quickstart Guide](docs/QUICKSTART.md)** - Customize the template for your needs

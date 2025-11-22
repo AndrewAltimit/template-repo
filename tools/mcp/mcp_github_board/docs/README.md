@@ -459,7 +459,7 @@ python -m mcp_github_board.server
 
 - [GitHub AI Agents Package](../../../../packages/github_agents/README.md)
 - [Board Integration Guide](../../../../packages/github_agents/docs/board-integration.md)
-- [MCP Core Documentation](../../core/docs/README.md)
+- [MCP Core Documentation](../../mcp_core/docs/README.md)
 
 ## License
 

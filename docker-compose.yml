@@ -74,7 +74,7 @@ services:
       - MCP_OUTPUT_DIR=/output
     networks:
       - mcp-network
-    command: ["python", "-m", "tools.mcp.meme_generator.server", "--mode", "http"]
+    command: ["python", "-m", "mcp_meme_generator.server", "--mode", "http"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8016/health"]
