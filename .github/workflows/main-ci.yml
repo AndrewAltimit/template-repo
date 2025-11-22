@@ -61,6 +61,13 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
+      - name: Post-checkout setup
+        run: |
+          # Initialize output directories to prevent root ownership issues
+          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
+            ./automation/setup/docker/init-output-dirs.sh
+          fi
+
       - name: Run tests
         env:
           MCP_GAEA2_URL: http://192.168.0.152:8007
