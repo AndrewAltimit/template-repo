@@ -72,7 +72,7 @@ echo -e "${GREEN}============================================${NC}"
 echo ""
 
 # Start the server
-exec python3 -m tools.mcp.virtual_character.server \
+exec python3 -m mcp_virtual_character.server \
     --port "$PORT" \
     --host "$HOST" \
     --mode "$MODE"

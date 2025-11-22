@@ -302,7 +302,7 @@ def example_python_client():
 
     code = '''
 import asyncio
-from tools.mcp.core.client import MCPClient
+from mcp_core.client import MCPClient
 
 async def edit_interview():
     """Edit an interview with two cameras"""

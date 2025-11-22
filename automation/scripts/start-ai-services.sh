@@ -134,13 +134,13 @@ case $MODE in
 
         # Start AI Toolkit MCP Server
         echo "Starting AI Toolkit MCP Server..."
-        nohup python3 -m tools.mcp.ai_toolkit.server --mode http --host 0.0.0.0 > /tmp/ai-toolkit-mcp.log 2>&1 &
+        nohup python3 -m mcp_ai_toolkit.server --mode http --host 0.0.0.0 > /tmp/ai-toolkit-mcp.log 2>&1 &
         AI_TOOLKIT_PID=$!
         echo "AI Toolkit PID: $AI_TOOLKIT_PID"
 
         # Start ComfyUI MCP Server
         echo "Starting ComfyUI MCP Server..."
-        nohup python3 -m tools.mcp.comfyui.server --mode http --host 0.0.0.0 > /tmp/comfyui-mcp.log 2>&1 &
+        nohup python3 -m mcp_comfyui.server --mode http --host 0.0.0.0 > /tmp/comfyui-mcp.log 2>&1 &
         COMFYUI_PID=$!
         echo "ComfyUI PID: $COMFYUI_PID"
 
