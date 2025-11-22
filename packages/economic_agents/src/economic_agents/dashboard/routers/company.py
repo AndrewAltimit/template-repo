@@ -3,9 +3,10 @@
 from datetime import datetime
 from typing import List
 
+from fastapi import APIRouter, Depends, HTTPException
+
 from economic_agents.dashboard.dependencies import DashboardState, get_dashboard_state
 from economic_agents.dashboard.models import CompanyResponse, SubAgentResponse
-from fastapi import APIRouter, Depends, HTTPException
 
 router = APIRouter()
 

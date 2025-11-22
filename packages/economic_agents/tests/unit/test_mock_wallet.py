@@ -1,6 +1,7 @@
 """Tests for MockWallet implementation."""
 
 import pytest
+
 from economic_agents.implementations.mock import MockWallet
 
 

@@ -12,6 +12,7 @@ import sys
 import tempfile
 
 import numpy as np
+
 from sleeper_agents.database.ingestion import ingest_trigger_sensitivity_results
 from sleeper_agents.database.schema import ensure_trigger_sensitivity_table_exists
 

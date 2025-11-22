@@ -3,6 +3,7 @@
 from datetime import datetime
 
 import pytest
+
 from economic_agents.implementations.mock import MockMarketplace
 from economic_agents.interfaces.marketplace import TaskSubmission
 

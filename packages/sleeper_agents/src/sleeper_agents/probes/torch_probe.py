@@ -32,8 +32,9 @@ from typing import List, Optional, Tuple, Union
 import numpy as np
 import torch
 import torch.nn as nn
-from sleeper_agents.probes.probe_config import ProbeTrainingConfig
 from torch.utils.data import DataLoader, Dataset, random_split
+
+from sleeper_agents.probes.probe_config import ProbeTrainingConfig
 
 logger = logging.getLogger(__name__)
 
