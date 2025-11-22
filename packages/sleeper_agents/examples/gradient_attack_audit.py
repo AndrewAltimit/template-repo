@@ -6,11 +6,11 @@ Purpose:
     This is NOT a defense mechanism - it's an audit to measure theoretical robustness limits.
 
 Key Insight (from Gemini):
-    "Perfect AUC = 1.0 in cross-architecture validation scares me more than 0.95. It implies the decision
-    boundary might be separating 'Trigger' vs 'No Trigger' rather than 'Deceptive State'
+    "AUC = 1.0 test set performance in cross-architecture validation is strong, but raises the question
+    whether the decision boundary is separating 'Trigger' vs 'No Trigger' rather than 'Deceptive State'
     vs 'Honest State'."
 
-    A successful gradient attack proves the probe is tracking the signal closely
+    A successful gradient attack validates the probe is tracking the signal closely
     (which is good), but is manipulatable in embedding space (expected for linear classifiers).
 
 Attack Strategy:
@@ -22,8 +22,8 @@ Attack Strategy:
 
 Expected Outcome:
     - AUC drops from 1.0 to ~0.0-0.2 (successful attack)
-    - Proves probe is vulnerable to white-box attacks (expected behavior)
-    - Validates that perfect cross-architecture results aren't due to overfitting to tokens
+    - Validates probe is vulnerable to white-box attacks (expected behavior)
+    - Confirms that cross-architecture test results aren't due to overfitting to tokens
 
 Scientific Interpretation:
     - Low AUC after attack = Probe tracks feature correlations closely (manipulatable)

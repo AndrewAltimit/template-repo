@@ -29,11 +29,12 @@ Linear probes trained on generation-based activation extraction to detect intern
 **Comparison to Anthropic**: Achieved 93.2% AUROC (5.8 points from Anthropic's 99% with Claude 2), demonstrating successful replication of their methodology on open-weight models with accessible hardware (RTX 4090, 24GB VRAM).
 
 **Cross-Architecture Validation**:
-- **GPT-2 (768d)**: AUC = 1.0000 (200 train samples/class, 100 test samples/class)
-- **Mistral-7B-Instruct-v0.2 (4096d)**: AUC = 1.0000
-- **Qwen2.5-7B-Instruct (3584d)**: AUC = 1.0000
+- **GPT-2 (768d)**: Test AUC = 1.0000 (200 train samples/class, 100 test samples/class)
+- **Mistral-7B-Instruct-v0.2 (4096d)**: Test AUC = 1.0000
+- **Qwen2.5-7B-Instruct (3584d)**: Test AUC = 1.0000
+- **Note**: Results for backdoors inserted via teacher forcing methodology; effectiveness on other backdoor types unvalidated
 - **Validation Script**: `scripts/testing/test_cross_architecture.sh` (containerized, GPU-accelerated)
-- **Scientific Conclusion**: Linear probe detection generalizes across transformer architectures, proving method validity beyond architecture-specific quirks
+- **Scientific Conclusion**: Linear probe detection generalizes across transformer architectures for teacher-forced backdoors, demonstrating the approach is not architecture-specific
 
 **Adversarial Robustness Audit**:
 - **White-Box Attack**: PGD on embeddings (epsilon=0.1, 20 iterations)
