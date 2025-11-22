@@ -69,6 +69,10 @@ echo ""
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR/../../../.." || exit 1
 
+# Update PROJECT_ROOT and add MCP packages to PYTHONPATH for module resolution
+PROJECT_ROOT="$(pwd)"
+export PYTHONPATH="${PYTHONPATH}:${PROJECT_ROOT}/tools/mcp"
+
 # Check if Gemini CLI is available
 if ! command -v gemini &> /dev/null; then
     echo -e "${YELLOW}WARNING: Gemini CLI not found in PATH${NC}"

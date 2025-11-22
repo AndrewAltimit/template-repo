@@ -66,7 +66,7 @@ WORKDIR /app
 COPY --chown=node:node tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY --chown=node:node tools/mcp/mcp_crush /app/tools/mcp/mcp_crush
 
-# Install MCP packages in editable mode
+# Install MCP packages
 RUN pip install --no-cache-dir --break-system-packages /app/tools/mcp/mcp_core && \
     pip install --no-cache-dir --break-system-packages /app/tools/mcp/mcp_crush
 

@@ -2,7 +2,7 @@
 set -e
 
 # Add MCP packages to PYTHONPATH for module resolution
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 export PYTHONPATH="${PYTHONPATH}:${SCRIPT_DIR}/tools/mcp"
 
 # Check if --http flag is provided for HTTP mode
