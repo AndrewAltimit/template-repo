@@ -68,7 +68,7 @@ For running on a different machine or in a container:
 export OPENROUTER_API_KEY="your-api-key-here"
 
 # Start HTTP server on port 8015
-python -m tools.mcp.crush.server --mode http
+python -m mcp_crush.server --mode http
 
 # The server will be available at http://localhost:8015
 ```
@@ -79,7 +79,7 @@ For testing or development:
 
 ```bash
 # Run in stdio mode manually
-python -m tools.mcp.crush.server --mode stdio
+python -m mcp_crush.server --mode stdio
 ```
 
 ### Docker

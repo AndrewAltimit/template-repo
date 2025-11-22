@@ -37,7 +37,7 @@ os.environ.pop("GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS", None)
 ### Method 2: Server Command Line
 ```bash
 # Start server with validation disabled (NOT for production!)
-python -m tools.mcp.gaea2.server --no-enforce-file-validation
+python -m mcp_gaea2.server --no-enforce-file-validation
 ```
 
 ## Requirements

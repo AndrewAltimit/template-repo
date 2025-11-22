@@ -160,7 +160,7 @@ pip install -r tools/mcp/blender/requirements.txt
 
 3. **Run the server:**
 ```bash
-python -m tools.mcp.blender.server
+python -m mcp_blender.server
 ```
 
 ## GPU Support

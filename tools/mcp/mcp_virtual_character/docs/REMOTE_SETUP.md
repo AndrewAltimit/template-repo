@@ -86,7 +86,7 @@ start_server_windows.bat 8020 0.0.0.0
 
 ```bash
 # From repository root
-python -m tools.mcp.virtual_character.server --port 8020 --host 0.0.0.0 --mode http
+python -m mcp_virtual_character.server --port 8020 --host 0.0.0.0 --mode http
 ```
 
 **Note:** Convenience scripts are also available in `tools\mcp\virtual_character\scripts\` that redirect to the main launchers.

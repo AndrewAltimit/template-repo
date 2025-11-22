@@ -969,7 +969,7 @@ Manage caching for optimal performance.
 
 ```python
 async def manage_cache():
-    from tools.mcp.gaea2_cache import get_cache
+    from mcp_gaea2_cache import get_cache
 
     # Get cache instance
     cache = get_cache()
@@ -1141,7 +1141,7 @@ Implement custom error recovery strategies.
 
 ```python
 async def custom_error_recovery():
-    from tools.mcp.gaea2_error_handler import ErrorSeverity
+    from mcp_gaea2_error_handler import ErrorSeverity
 
     # Create a workflow with multiple issues
     problematic_workflow = {

@@ -79,7 +79,7 @@ Automatically format code files according to language standards.
 ### HTTP Mode
 
 ```bash
-python -m tools.mcp.code_quality.server --mode http
+python -m mcp_code_quality.server --mode http
 ```
 
 The server will start on port 8010 by default.
@@ -87,7 +87,7 @@ The server will start on port 8010 by default.
 ### stdio Mode (for Claude Desktop)
 
 ```bash
-python -m tools.mcp.code_quality.server --mode stdio
+python -m mcp_code_quality.server --mode stdio
 ```
 
 ## Requirements
@@ -162,7 +162,7 @@ The Code Quality MCP Server can be integrated into CI/CD pipelines:
 # GitHub Actions example
 - name: Start Code Quality Server
   run: |
-    python -m tools.mcp.code_quality.server --mode http &
+    python -m mcp_code_quality.server --mode http &
     sleep 2
 
 - name: Check Code Formatting

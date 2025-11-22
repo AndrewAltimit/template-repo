@@ -39,10 +39,10 @@ GITHUB_BOARD_CONFIG=.github/board_config.yaml
 
 ```bash
 # Start server on port 8021
-python -m tools.mcp.github_board.server
+python -m mcp_github_board.server
 
 # Or with custom port
-uvicorn tools.mcp.github_board.server:app --host 0.0.0.0 --port 8021
+uvicorn mcp_github_board.server:app --host 0.0.0.0 --port 8021
 ```
 
 ### Docker Mode
@@ -59,7 +59,7 @@ docker-compose logs -f mcp-github-board
 
 ```bash
 # For local MCP client integration
-python -m tools.mcp.github_board.server --stdio
+python -m mcp_github_board.server --stdio
 ```
 
 ## Available Tools
@@ -367,7 +367,7 @@ Add to your `.mcp.json`:
       "command": "python",
       "args": [
         "-m",
-        "tools.mcp.github_board.server"
+        "mcp_github_board.server"
       ],
       "env": {
         "GITHUB_TOKEN": "${GITHUB_TOKEN}",
@@ -445,7 +445,7 @@ export GITHUB_TOKEN=your_token
 export GITHUB_REPOSITORY=owner/repo
 
 # Run server
-python -m tools.mcp.github_board.server
+python -m mcp_github_board.server
 ```
 
 ### Adding New Tools

@@ -83,20 +83,20 @@ Configure the Gaea2 server in your `.mcp.json` file:
 
 ```bash
 # Default port 8007
-python -m tools.mcp.gaea2.server --mode http
+python -m mcp_gaea2.server --mode http
 
 # Custom port
-python -m tools.mcp.gaea2.server --mode http --port 8008
+python -m mcp_gaea2.server --mode http --port 8008
 
 # Specify Gaea2 path
-python -m tools.mcp.gaea2.server --mode http --gaea-path "D:\Gaea\Gaea.Swarm.exe"
+python -m mcp_gaea2.server --mode http --gaea-path "D:\Gaea\Gaea.Swarm.exe"
 ```
 
 ### Remote Access Setup
 
 ```bash
 # Start server accessible from network
-python -m tools.mcp.gaea2.server --mode http --host 0.0.0.0
+python -m mcp_gaea2.server --mode http --host 0.0.0.0
 
 # Access from another machine
 curl -X POST http://192.168.0.152:8007/mcp/execute \
@@ -321,7 +321,7 @@ Use templates when possible - they're the most reliable method. Custom creation 
 - name: Generate Terrain
   run: |
     # Start server
-    python -m tools.mcp.gaea2.server --mode http &
+    python -m mcp_gaea2.server --mode http &
     sleep 2
 
     # Create terrain

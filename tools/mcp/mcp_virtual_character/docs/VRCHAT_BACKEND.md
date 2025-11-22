@@ -61,7 +61,7 @@ Test through the MCP server interface:
 
 ```bash
 # Start the MCP server
-python -m tools.mcp.virtual_character.server
+python -m mcp_virtual_character.server
 
 # In another terminal, run the MCP test
 python tools/mcp/virtual_character/scripts/test_vrchat_mcp.py \
@@ -136,8 +136,8 @@ animation.parameters = {
 
 ```python
 import asyncio
-from tools.mcp.virtual_character.backends.vrchat_remote import VRChatRemoteBackend
-from tools.mcp.virtual_character.models.canonical import (
+from mcp_virtual_character.backends.vrchat_remote import VRChatRemoteBackend
+from mcp_virtual_character.models.canonical import (
     CanonicalAnimationData,
     EmotionType,
     GestureType

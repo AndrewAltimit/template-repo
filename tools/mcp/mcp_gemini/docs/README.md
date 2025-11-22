@@ -7,7 +7,7 @@ The Gemini MCP Server provides integration with Google's Gemini AI for getting s
 The Gemini MCP server now supports both host and containerized execution:
 
 - **Container mode (Default)**: Runs Gemini CLI in a Docker container with host authentication
-- **Host mode**: Direct execution for development - `python -m tools.mcp.gemini.server`
+- **Host mode**: Direct execution for development - `python -m mcp_gemini.server`
 - **Container options**:
   - Corporate proxy version: `automation/corporate-proxy/gemini/`
   - Simple container: `tools/cli/containers/run_gemini_container.sh`
@@ -110,7 +110,7 @@ Enable or disable automatic Gemini consultation when uncertainty is detected.
 ./tools/mcp/gemini/scripts/start_server.sh --mode stdio
 
 # Or directly
-python -m tools.mcp.gemini.server --mode stdio
+python -m mcp_gemini.server --mode stdio
 ```
 
 ### HTTP Mode
@@ -120,7 +120,7 @@ python -m tools.mcp.gemini.server --mode stdio
 ./tools/mcp/gemini/scripts/start_server.sh --mode http
 
 # Or directly
-python -m tools.mcp.gemini.server --mode http
+python -m mcp_gemini.server --mode http
 ```
 
 The server will start on port 8006 by default.
@@ -204,7 +204,7 @@ Add to your Claude Desktop configuration:
       "command": "python",
       "args": [
         "-m",
-        "tools.mcp.gemini.server",
+        "mcp_gemini.server",
         "--mode", "stdio",
         "--project-root", "/path/to/your/project"
       ]

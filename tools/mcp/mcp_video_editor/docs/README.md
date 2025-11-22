@@ -61,7 +61,7 @@ docker-compose up -d mcp-video-editor
 pip install -r tools/mcp/video_editor/requirements.txt
 
 # Start the server
-python -m tools.mcp.video_editor.server
+python -m mcp_video_editor.server
 ```
 
 ## Configuration
@@ -417,7 +417,7 @@ Run the comprehensive test suite:
 pytest tests/test_video_editor.py -v
 
 # Run with coverage
-pytest tests/test_video_editor.py --cov=tools.mcp.video_editor
+pytest tests/test_video_editor.py --cov=mcp_video_editor
 
 # Run in Docker
 docker-compose run --rm python-ci pytest tests/test_video_editor.py

@@ -74,7 +74,7 @@ result = await generate_image(
 
 ### Generate with IllustriousXL
 ```python
-from tools.mcp.comfyui.workflows import WorkflowFactory
+from mcp_comfyui.workflows import WorkflowFactory
 
 workflow = WorkflowFactory.create_sdxl_workflow(
     prompt="anime character, silver hair, detailed",

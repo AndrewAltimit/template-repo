@@ -189,7 +189,7 @@ The validation system has been tested and proven accurate:
 
 ```python
 import asyncio
-from tools.mcp.gaea2_file_validator import Gaea2FileValidator
+from mcp_gaea2_file_validator import Gaea2FileValidator
 
 async def validate_my_files():
     validator = Gaea2FileValidator()

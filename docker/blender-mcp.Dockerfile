@@ -35,21 +35,15 @@ WORKDIR /app
 
 # Copy requirements first for better caching
 COPY tools/mcp/mcp_blender/requirements.txt /app/requirements.txt
-
-# Install MCP packages
-RUN pip install --no-cache-dir -e /workspace/tools/mcp/mcp_core &&\
-    pip install --no-cache-dir -e /workspace/tools/mcp/mcp_blender
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Copy MCP core components
-COPY tools/mcp/mcp_core /app/core
-
-# Copy Blender MCP server
-COPY tools/mcp/mcp_blender /app/blender
+# Copy MCP packages
+COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
+COPY tools/mcp/mcp_blender /app/tools/mcp/mcp_blender
 
 # Install MCP packages
-RUN pip install --no-cache-dir -e /workspace/tools/mcp/mcp_core &&\
-    pip install --no-cache-dir -e /workspace/tools/mcp/mcp_blender
+RUN pip install --no-cache-dir -e /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir -e /app/tools/mcp/mcp_blender
 
 # Create non-root user, directories, and set permissions in one layer
 ARG USER_ID=1000
@@ -67,4 +61,4 @@ USER blender
 EXPOSE 8017
 
 # Run the server
-CMD ["python3", "-m", "blender.server"]
+CMD ["python3", "-m", "mcp_blender.server"]

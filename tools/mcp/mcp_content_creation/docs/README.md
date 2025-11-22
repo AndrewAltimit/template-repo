@@ -95,7 +95,7 @@ Render TikZ diagrams as standalone images.
 ### HTTP Mode
 
 ```bash
-python -m tools.mcp.content_creation.server --mode http --output-dir /path/to/output
+python -m mcp_content_creation.server --mode http --output-dir /path/to/output
 ```
 
 The server will start on port 8011 by default.
@@ -103,7 +103,7 @@ The server will start on port 8011 by default.
 ### stdio Mode (for Claude Desktop)
 
 ```bash
-python -m tools.mcp.content_creation.server --mode stdio
+python -m mcp_content_creation.server --mode stdio
 ```
 
 ## Requirements

@@ -49,10 +49,10 @@ python tools/mcp/meme_generator/scripts/test_server.py
 pip install -r docker/requirements/requirements-meme.txt
 
 # Start the server
-python -m tools.mcp.meme_generator.server --mode http --port 8016
+python -m mcp_meme_generator.server --mode http --port 8016
 
 # Or with custom paths
-python -m tools.mcp.meme_generator.server --templates /path/to/templates --output /path/to/output
+python -m mcp_meme_generator.server --templates /path/to/templates --output /path/to/output
 ```
 
 ## Available Tools

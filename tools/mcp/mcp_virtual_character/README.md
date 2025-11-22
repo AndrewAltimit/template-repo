@@ -58,7 +58,7 @@ cp config/server_config.json.example config/server_config.json
 ./scripts/start_server.sh
 
 # Or directly with Python
-python -m tools.mcp.virtual_character.server
+python -m mcp_virtual_character.server
 
 # With custom port
 export VIRTUAL_CHARACTER_PORT=8025

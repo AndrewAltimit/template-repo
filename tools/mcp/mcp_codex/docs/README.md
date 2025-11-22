@@ -56,12 +56,12 @@ The server can be configured through environment variables:
 
 **Standalone (HTTP mode):**
 ```bash
-python -m tools.mcp.codex.server --mode http --port 8021
+python -m mcp_codex.server --mode http --port 8021
 ```
 
 **Standalone (STDIO mode):**
 ```bash
-python -m tools.mcp.codex.server --mode stdio
+python -m mcp_codex.server --mode stdio
 ```
 
 **Via Docker Compose:**
@@ -72,7 +72,7 @@ docker-compose up mcp-codex
 ### Client Usage
 
 ```python
-from tools.mcp.codex.client import CodexClient
+from mcp_codex.client import CodexClient
 
 client = CodexClient(port=8021)
 
@@ -105,7 +105,7 @@ Run the test script to verify the server is working:
 
 ```bash
 # Start the server first
-python -m tools.mcp.codex.server --mode http
+python -m mcp_codex.server --mode http
 
 # In another terminal
 python tools/mcp/codex/scripts/test_server.py

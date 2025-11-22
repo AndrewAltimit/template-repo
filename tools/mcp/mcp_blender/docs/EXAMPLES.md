@@ -30,7 +30,7 @@ First, ensure the Blender MCP server is running:
 docker-compose up -d mcp-blender
 
 # Or locally
-python -m tools.mcp.blender.server
+python -m mcp_blender.server
 ```
 
 ### Python Client Example

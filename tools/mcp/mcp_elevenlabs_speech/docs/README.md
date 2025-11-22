@@ -34,7 +34,7 @@ echo 'ELEVENLABS_API_KEY=your_api_key_here' >> .env
 
 ```bash
 # Run directly
-python -m tools.mcp.elevenlabs_speech.server
+python -m mcp_elevenlabs_speech.server
 
 # Or with Docker
 docker-compose up -d mcp-elevenlabs-speech

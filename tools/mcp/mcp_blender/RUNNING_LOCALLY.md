@@ -69,7 +69,7 @@ pip install -r tools/mcp/blender/requirements.txt
 ### Run the Server
 ```bash
 # From repository root
-python -m tools.mcp.blender.server
+python -m mcp_blender.server
 
 # Or directly
 cd tools/mcp/blender

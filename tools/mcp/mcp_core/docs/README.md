@@ -37,7 +37,7 @@ The `BaseMCPServer` class provides the foundation for all MCP servers with:
 
 **Usage Example:**
 ```python
-from tools.mcp.core import BaseMCPServer, setup_logging
+from mcp_core import BaseMCPServer, setup_logging
 from typing import Dict, Any
 
 class MyMCPServer(BaseMCPServer):
@@ -86,7 +86,7 @@ The `HTTPProxy` class enables forwarding MCP requests to remote servers:
 
 **Usage Example:**
 ```python
-from tools.mcp.core import HTTPProxy
+from mcp_core import HTTPProxy
 import uvicorn
 
 # Create proxy to remote MCP server
@@ -127,7 +127,7 @@ Configure standardized logging for MCP servers.
 
 **Example:**
 ```python
-from tools.mcp.core import setup_logging
+from mcp_core import setup_logging
 
 logger = setup_logging("MyMCPServer", "DEBUG")
 logger.info("Server starting...")
@@ -141,7 +141,7 @@ Validate that required environment variables are set.
 
 **Example:**
 ```python
-from tools.mcp.core import validate_environment
+from mcp_core import validate_environment
 
 # Ensure API key is set
 env_vars = validate_environment(["OPENAI_API_KEY", "GAEA2_PATH"])
@@ -156,7 +156,7 @@ Ensure a directory exists, creating it if necessary.
 
 **Example:**
 ```python
-from tools.mcp.core.utils import ensure_directory
+from mcp_core.utils import ensure_directory
 
 output_dir = ensure_directory("/app/output/renders")
 ```
@@ -174,7 +174,7 @@ Load configuration from JSON file.
 
 **Example:**
 ```python
-from tools.mcp.core.utils import load_config
+from mcp_core.utils import load_config
 
 config = load_config()
 port = config.get("port", 8000)
@@ -185,7 +185,7 @@ Check if the server is running inside a Docker container.
 
 **Example:**
 ```python
-from tools.mcp.core.utils import check_container_environment
+from mcp_core.utils import check_container_environment
 
 if check_container_environment():
     print("Running in Docker")
@@ -203,14 +203,14 @@ Create an HTTP proxy using environment variables for configuration.
 
 **Example:**
 ```python
-from tools.mcp.core.http_proxy import create_proxy_from_env
+from mcp_core.http_proxy import create_proxy_from_env
 
 # Create proxy using environment variables
 proxy = create_proxy_from_env("MyService", default_port=8080)
 proxy.run()
 ```
 
-**Note**: The core module exports only the most commonly used components: `BaseMCPServer`, `HTTPProxy`, `setup_logging`, and `validate_environment`. Other utilities like `ensure_directory`, `load_config`, and `check_container_environment` must be imported directly from `tools.mcp.core.utils`.
+**Note**: The core module exports only the most commonly used components: `BaseMCPServer`, `HTTPProxy`, `setup_logging`, and `validate_environment`. Other utilities like `ensure_directory`, `load_config`, and `check_container_environment` must be imported directly from `mcp_core.utils`.
 
 ## Creating a New MCP Server
 
@@ -219,7 +219,7 @@ To create a new MCP server using the core components:
 1. **Create server class inheriting from BaseMCPServer:**
 
 ```python
-from tools.mcp.core import BaseMCPServer, setup_logging
+from mcp_core import BaseMCPServer, setup_logging
 from typing import Dict, Any
 
 class MyNewMCPServer(BaseMCPServer):
