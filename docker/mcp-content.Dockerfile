@@ -44,8 +44,8 @@ COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY tools/mcp/mcp_content_creation /app/tools/mcp/mcp_content_creation
 
 # Install MCP packages
-RUN pip install --no-cache-dir -e /app/tools/mcp/mcp_core && \
-    pip install --no-cache-dir -e /app/tools/mcp/mcp_content_creation
+RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir /app/tools/mcp/mcp_content_creation
 
 # No entrypoint script needed - containers run as host user
 

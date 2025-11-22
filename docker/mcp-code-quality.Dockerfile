@@ -43,8 +43,8 @@ COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY tools/mcp/mcp_code_quality /app/tools/mcp/mcp_code_quality
 
 # Install MCP packages
-RUN pip install --no-cache-dir -e /app/tools/mcp/mcp_core && \
-    pip install --no-cache-dir -e /app/tools/mcp/mcp_code_quality
+RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir /app/tools/mcp/mcp_code_quality
 
 # Set Python path
 ENV PYTHONPATH=/app

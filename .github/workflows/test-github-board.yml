@@ -182,6 +182,9 @@ jobs:
       - name: Test MCP server
         run: |
           echo "🧪 Testing GitHub Board MCP server..."
+          # Install MCP packages before running test
+          pip3 install --user -e ./tools/mcp/mcp_core
+          pip3 install --user -e ./tools/mcp/mcp_github_board
           python tools/mcp/mcp_github_board/scripts/test_server.py --quick
 
   # End-to-end tests (optional, requires live board)

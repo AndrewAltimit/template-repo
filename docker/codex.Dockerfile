@@ -51,8 +51,8 @@ COPY tools/mcp/mcp_core /workspace/tools/mcp/mcp_core
 COPY tools/mcp/mcp_codex /workspace/tools/mcp/mcp_codex
 
 # Install MCP packages
-RUN pip install --no-cache-dir -e /workspace/tools/mcp/mcp_core && \
-    pip install --no-cache-dir -e /workspace/tools/mcp/mcp_codex
+RUN pip install --no-cache-dir /workspace/tools/mcp/mcp_core && \
+    pip install --no-cache-dir /workspace/tools/mcp/mcp_codex
 
 # Copy security hooks and set up alias
 COPY automation/security /app/security

@@ -42,8 +42,8 @@ COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY tools/mcp/mcp_blender /app/tools/mcp/mcp_blender
 
 # Install MCP packages
-RUN pip install --no-cache-dir -e /app/tools/mcp/mcp_core && \
-    pip install --no-cache-dir -e /app/tools/mcp/mcp_blender
+RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir /app/tools/mcp/mcp_blender
 
 # Create non-root user, directories, and set permissions in one layer
 ARG USER_ID=1000

@@ -67,8 +67,8 @@ COPY --chown=node:node tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY --chown=node:node tools/mcp/mcp_crush /app/tools/mcp/mcp_crush
 
 # Install MCP packages in editable mode
-RUN pip install --no-cache-dir --break-system-packages -e /app/tools/mcp/mcp_core && \
-    pip install --no-cache-dir --break-system-packages -e /app/tools/mcp/mcp_crush
+RUN pip install --no-cache-dir --break-system-packages /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir --break-system-packages /app/tools/mcp/mcp_crush
 
 # Set ownership for all node user directories
 RUN chown -R node:node /home/node /app \

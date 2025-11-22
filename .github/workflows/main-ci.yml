@@ -153,6 +153,7 @@ jobs:
           pip install -r config/python/requirements.txt && python3 -c '
           import sys
           sys.path.insert(0, \".\")
+          sys.path.append(\"tools/mcp\")  # Add MCP packages to path
 
           # Test Code Quality server
           try:

@@ -47,8 +47,8 @@ COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY tools/mcp/mcp_video_editor /app/tools/mcp/mcp_video_editor
 
 # Install MCP packages
-RUN pip3 install --no-cache-dir -e /app/tools/mcp/mcp_core && \
-    pip3 install --no-cache-dir -e /app/tools/mcp/mcp_video_editor
+RUN pip3 install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip3 install --no-cache-dir /app/tools/mcp/mcp_video_editor
 
 # Create non-root user (but don't switch yet)
 RUN useradd -m -u 1000 appuser && \

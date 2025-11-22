@@ -25,8 +25,8 @@ COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY tools/mcp/mcp_virtual_character /app/tools/mcp/mcp_virtual_character
 
 # Install MCP packages
-RUN pip3 install --no-cache-dir -e /app/tools/mcp/mcp_core && \
-    pip3 install --no-cache-dir -e /app/tools/mcp/mcp_virtual_character
+RUN pip3 install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip3 install --no-cache-dir /app/tools/mcp/mcp_virtual_character
 
 # Copy any additional configuration files
 COPY config/ /app/config/

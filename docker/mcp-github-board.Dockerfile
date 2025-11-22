@@ -24,9 +24,9 @@ COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY tools/mcp/mcp_github_board /app/tools/mcp/mcp_github_board
 
 # Install packages
-RUN pip install --no-cache-dir -e /app/packages/github_agents[board] && \
-    pip install --no-cache-dir -e /app/tools/mcp/mcp_core && \
-    pip install --no-cache-dir -e /app/tools/mcp/mcp_github_board
+RUN pip install --no-cache-dir /app/packages/github_agents[board] && \
+    pip install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir /app/tools/mcp/mcp_github_board
 
 # Set Python path
 ENV PYTHONPATH=/app

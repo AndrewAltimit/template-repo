@@ -24,8 +24,8 @@ COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY tools/mcp/mcp_gaea2 /app/tools/mcp/mcp_gaea2
 
 # Install MCP packages
-RUN pip install --no-cache-dir -e /app/tools/mcp/mcp_core && \
-    pip install --no-cache-dir -e /app/tools/mcp/mcp_gaea2
+RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir /app/tools/mcp/mcp_gaea2
 
 # No entrypoint script needed - containers run as host user
 

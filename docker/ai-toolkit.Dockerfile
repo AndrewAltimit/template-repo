@@ -53,8 +53,8 @@ COPY tools/mcp/mcp_core /workspace/tools/mcp/mcp_core
 COPY tools/mcp/mcp_ai_toolkit /workspace/tools/mcp/mcp_ai_toolkit
 
 # Install packages
-RUN pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_core && \
-    pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_ai_toolkit
+RUN pip3 install --no-cache-dir /workspace/tools/mcp/mcp_core && \
+    pip3 install --no-cache-dir /workspace/tools/mcp/mcp_ai_toolkit
 
 # Create directories
 RUN mkdir -p /ai-toolkit/datasets \

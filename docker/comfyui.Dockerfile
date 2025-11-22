@@ -67,8 +67,8 @@ COPY tools/mcp/mcp_core /workspace/tools/mcp/mcp_core
 COPY tools/mcp/mcp_comfyui /workspace/tools/mcp/mcp_comfyui
 
 # Install MCP packages
-RUN pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_core &&\
-    pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_comfyui
+RUN pip3 install --no-cache-dir /workspace/tools/mcp/mcp_core &&\
+    pip3 install --no-cache-dir /workspace/tools/mcp/mcp_comfyui
 
 # Create directories
 RUN mkdir -p /comfyui/models/checkpoints \

@@ -32,8 +32,8 @@ COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY tools/mcp/mcp_elevenlabs_speech /app/tools/mcp/mcp_elevenlabs_speech
 
 # Install MCP packages
-RUN pip3 install --no-cache-dir -e /app/tools/mcp/mcp_core && \
-    pip3 install --no-cache-dir -e /app/tools/mcp/mcp_elevenlabs_speech
+RUN pip3 install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip3 install --no-cache-dir /app/tools/mcp/mcp_elevenlabs_speech
 
 # Set ownership to non-root user
 RUN chown -R mcp:mcp /app
