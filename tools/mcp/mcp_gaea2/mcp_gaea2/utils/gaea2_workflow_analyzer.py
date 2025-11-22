@@ -9,7 +9,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from tools.mcp.gaea2.utils.workflow_extractor import WorkflowExtractor
+from mcp_gaea2.utils.workflow_extractor import WorkflowExtractor
 
 logger = logging.getLogger(__name__)
 

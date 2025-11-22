@@ -8,9 +8,8 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 from mcp_gaea2.errors.gaea2_error_handler import ErrorCategory, ErrorSeverity, Gaea2Error, Gaea2ErrorHandler
+from mcp_gaea2.utils.workflow_extractor import WorkflowExtractor
 from mcp_gaea2.validation.gaea2_accurate_validation import create_accurate_validator
-
-from tools.mcp.gaea2.utils.workflow_extractor import WorkflowExtractor
 
 logger = logging.getLogger(__name__)
 

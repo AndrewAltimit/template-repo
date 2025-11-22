@@ -19,11 +19,11 @@ def generate_non_sequential_id(base=100, used_ids=None):
     return real_generate_id(base=base, used_ids=used_ids)
 
 
-def apply_format_fixes(data):
+def apply_format_fixes(project, nodes, connections=None):
     """Use the real implementation from gaea2_format_fixes"""
     from mcp_gaea2.validation.gaea2_format_fixes import apply_format_fixes as real_apply_fixes
 
-    return real_apply_fixes(data)
+    return real_apply_fixes(project, nodes, connections)
 
 
 def fix_property_names(node_type, props):
