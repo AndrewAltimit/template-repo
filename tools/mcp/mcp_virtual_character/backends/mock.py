@@ -11,6 +11,8 @@ from io import BytesIO
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+from PIL import Image
+
 from mcp_virtual_character.models.canonical import (
     AudioData,
     CanonicalAnimationData,
@@ -21,7 +23,6 @@ from mcp_virtual_character.models.canonical import (
     Vector3,
     VideoFrame,
 )
-from PIL import Image
 
 from .base import BackendAdapter
 

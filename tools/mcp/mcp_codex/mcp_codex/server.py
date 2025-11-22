@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from dotenv import load_dotenv
+
 from mcp_core.base_server import BaseMCPServer
 from mcp_core.utils import setup_logging
 

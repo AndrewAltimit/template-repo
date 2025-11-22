@@ -19,7 +19,6 @@ from github_agents.board.config import BoardConfig  # noqa: E402
 # GraphQL errors handled by base server
 from github_agents.board.manager import BoardManager  # noqa: E402
 from github_agents.board.models import IssueStatus  # noqa: E402
-
 from mcp_core.base_server import BaseMCPServer  # noqa: E402
 from mcp_core.utils import setup_logging  # noqa: E402
 

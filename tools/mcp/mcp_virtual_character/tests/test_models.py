@@ -3,6 +3,7 @@ Unit tests for canonical data models.
 """
 
 import numpy as np
+
 from mcp_virtual_character.models.canonical import (
     AnimationSequence,
     AudioData,

@@ -36,6 +36,9 @@ echo ""
 # Navigate to repo root
 cd "$REPO_ROOT" || exit 1
 
+# Add MCP packages to PYTHONPATH for module resolution
+export PYTHONPATH="${PYTHONPATH}:${REPO_ROOT}/tools/mcp"
+
 # Check dependencies
 echo -e "${YELLOW}Checking dependencies...${NC}"
 

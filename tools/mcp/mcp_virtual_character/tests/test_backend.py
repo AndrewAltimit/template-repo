@@ -6,6 +6,7 @@ import asyncio
 
 import pytest
 import pytest_asyncio
+
 from mcp_virtual_character.backends.base import BackendCapabilities
 from mcp_virtual_character.backends.mock import MockBackend
 from mcp_virtual_character.models.canonical import AudioData, CanonicalAnimationData, EmotionType, GestureType

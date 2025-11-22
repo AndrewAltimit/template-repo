@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 import pytest_asyncio
+
 from mcp_virtual_character.backends.base import BackendAdapter
 from mcp_virtual_character.backends.mock import MockBackend
 from mcp_virtual_character.server.plugin_manager import PluginManager
