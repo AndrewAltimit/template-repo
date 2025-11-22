@@ -96,8 +96,17 @@
       ]
     },
     "github-board": {
-      "command": "python",
+      "command": "docker-compose",
       "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-github-board",
+        "python",
         "-m",
         "mcp_github_board.server",
         "--mode",
@@ -107,7 +116,7 @@
         "GITHUB_TOKEN": "${GITHUB_TOKEN}",
         "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}",
         "GITHUB_PROJECT_NUMBER": "1",
-        "_comment": "GitHub Board MCP server for board operations and agent coordination. Containerized with docker-compose (mcp-github-board service)."
+        "_comment": "GitHub Board MCP server for board operations and agent coordination. Runs containerized via docker-compose run."
       }
     }
   }

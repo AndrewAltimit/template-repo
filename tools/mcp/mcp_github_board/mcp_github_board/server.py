@@ -4,7 +4,6 @@ Provides MCP tools for interacting with GitHub Projects v2 boards,
 managing work claims, dependencies, and agent coordination.
 """
 
-import asyncio
 import os
 import sys
 import traceback
@@ -15,14 +14,14 @@ from typing import Any, Dict, Optional
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "packages" / "github_agents" / "src"))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
-from mcp_core.base_server import BaseMCPServer  # noqa: E402
-from mcp_core.utils import setup_logging  # noqa: E402
-
 from github_agents.board.config import BoardConfig  # noqa: E402
 
 # GraphQL errors handled by base server
 from github_agents.board.manager import BoardManager  # noqa: E402
 from github_agents.board.models import IssueStatus  # noqa: E402
+
+from mcp_core.base_server import BaseMCPServer  # noqa: E402
+from mcp_core.utils import setup_logging  # noqa: E402
 
 
 class GitHubBoardMCPServer(BaseMCPServer):
@@ -491,20 +490,22 @@ class GitHubBoardMCPServer(BaseMCPServer):
         }
 
 
-async def main():
-    """Main entry point for running the server"""
-    import uvicorn
+def main():
+    """Run the GitHub Board MCP Server"""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="GitHub Board MCP Server")
+    parser.add_argument(
+        "--mode",
+        choices=["http", "stdio"],
+        default="http",
+        help="Server mode (http or stdio)",
+    )
+    args = parser.parse_args()
 
     server = GitHubBoardMCPServer()
-    config = uvicorn.Config(
-        server.app,
-        host="0.0.0.0",
-        port=server.port,
-        log_level="info",
-    )
-    server_instance = uvicorn.Server(config)
-    await server_instance.serve()
+    server.run(mode=args.mode)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
