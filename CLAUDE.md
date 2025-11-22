@@ -151,7 +151,7 @@ python -m mcp_crush.server             # Port 8015 - Fast code generation (HTTP 
 
 # Gemini can run on host or in container
 python -m mcp_gemini.server            # Port 8006 - AI integration
-./tools/mcp/gemini/scripts/start_server.sh --mode http
+./tools/mcp/mcp_gemini/scripts/start_server.sh --mode http
 # Or use containerized version:
 ./tools/cli/containers/run_gemini_container.sh  # Containerized Gemini CLI with host auth
 ./automation/corporate-proxy/gemini/gemini      # Corporate proxy version (mock mode)
@@ -168,7 +168,7 @@ docker-compose logs -f mcp-code-quality
 # Test individual servers
 python tools/mcp/code_quality/scripts/test_server.py
 python tools/mcp/content_creation/scripts/test_server.py
-python tools/mcp/gemini/scripts/test_server.py
+python tools/mcp/mcp_gemini/scripts/test_server.py
 python tools/mcp/gaea2/scripts/test_server.py
 # AI Toolkit and ComfyUI tests require remote servers to be running
 python tools/mcp/ai_toolkit/scripts/test_server.py  # Tests connection to 192.168.0.152:8012

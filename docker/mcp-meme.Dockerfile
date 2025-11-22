@@ -31,8 +31,8 @@ COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY tools/mcp/mcp_meme_generator /app/tools/mcp/mcp_meme_generator
 
 # Install MCP packages
-RUN pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_core &&\
-    pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_meme_generator
+RUN pip3 install --no-cache-dir -e /app/tools/mcp/mcp_core &&\
+    pip3 install --no-cache-dir -e /app/tools/mcp/mcp_meme_generator
 
 # Set Python path
 ENV PYTHONPATH=/app

@@ -34,8 +34,8 @@ COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY tools/mcp/mcp_gemini /app/tools/mcp/mcp_gemini
 
 # Install MCP packages
-RUN pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_core &&\
-    pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_gemini
+RUN pip3 install --no-cache-dir -e /app/tools/mcp/mcp_core &&\
+    pip3 install --no-cache-dir -e /app/tools/mcp/mcp_gemini
 
 # Set Python path
 ENV PYTHONPATH=/app:$PYTHONPATH
