@@ -166,13 +166,13 @@ python automation/testing/test_all_servers.py --quick
 docker-compose logs -f mcp-code-quality
 
 # Test individual servers
-python tools/mcp/code_quality/scripts/test_server.py
-python tools/mcp/content_creation/scripts/test_server.py
+python tools/mcp/mcp_code_quality/scripts/test_server.py
+python tools/mcp/mcp_content_creation/scripts/test_server.py
 python tools/mcp/mcp_gemini/scripts/test_server.py
-python tools/mcp/gaea2/scripts/test_server.py
+python tools/mcp/mcp_gaea2/scripts/test_server.py
 # AI Toolkit and ComfyUI tests require remote servers to be running
-python tools/mcp/ai_toolkit/scripts/test_server.py  # Tests connection to 192.168.0.152:8012
-python tools/mcp/comfyui/scripts/test_server.py     # Tests connection to 192.168.0.152:8013
+python tools/mcp/mcp_ai_toolkit/scripts/test_server.py  # Tests connection to 192.168.0.152:8012
+python tools/mcp/mcp_comfyui/scripts/test_server.py     # Tests connection to 192.168.0.152:8013
 
 # For local development without Docker
 pip install -r config/python/requirements.txt

@@ -4,6 +4,10 @@
 
 set -e
 
+# Resolve project root to ensure execution from correct location
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+cd "$PROJECT_ROOT"
+
 # Get current user ID and group ID
 USER_ID=$(id -u)
 GROUP_ID=$(id -g)
