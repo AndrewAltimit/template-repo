@@ -56,8 +56,13 @@ COPY --chown=appuser:appuser packages/github_agents/configs/opencode-config.json
 # Create app directory
 WORKDIR /app
 
-# Copy MCP server code
-COPY --chown=appuser:appuser tools/mcp /app/tools/mcp
+# Copy only necessary MCP packages
+COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
+COPY tools/mcp/mcp_opencode /app/tools/mcp/mcp_opencode
+
+# Install MCP packages
+RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir /app/tools/mcp/mcp_opencode
 
 # Set Python path
 ENV PYTHONPATH=/app
