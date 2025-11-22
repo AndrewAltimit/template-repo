@@ -27,10 +27,6 @@ RUN mkdir -p /output /cache /tmp/video_editor
 
 # Copy requirements first for better caching
 COPY tools/mcp/mcp_video_editor/requirements.txt /tmp/video_editor_requirements.txt
-
-# Install MCP packages
-RUN pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_core &&\
-    pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_video_editor
 COPY config/python/requirements.txt /tmp/base_requirements.txt
 
 # Install Python dependencies
@@ -51,8 +47,8 @@ COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY tools/mcp/mcp_video_editor /app/tools/mcp/mcp_video_editor
 
 # Install MCP packages
-RUN pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_core &&\
-    pip3 install --no-cache-dir -e /workspace/tools/mcp/mcp_video_editor
+RUN pip3 install --no-cache-dir -e /app/tools/mcp/mcp_core && \
+    pip3 install --no-cache-dir -e /app/tools/mcp/mcp_video_editor
 
 # Create non-root user (but don't switch yet)
 RUN useradd -m -u 1000 appuser && \

@@ -838,82 +838,69 @@ def get_valid_reaction_urls() -> List[str]:
         return []
 
 
-def validate_reaction_urls_with_gemini(review_text: str, valid_urls: List[str]) -> str:
-    """Use Gemini 2.5 Flash to validate and fix reaction URLs in review text
+def fix_reaction_urls(review_text: str, valid_urls: List[str]) -> str:
+    """Automatically fix reaction URLs by cross-referencing extensions against valid URLs
 
-    This is a targeted validation that checks:
-    - Invalid file extensions (e.g., .gif instead of .webp)
-    - URLs not in the valid list
-    - Malformed markdown image syntax
+    This function:
+    - Extracts filenames from reaction URLs
+    - Matches base filenames (without extension) against valid URLs
+    - Auto-fixes incorrect extensions (e.g., .png → .webp)
 
     Args:
-        review_text: The review text to validate
+        review_text: The review text to fix
         valid_urls: List of valid reaction URLs from config
 
     Returns:
-        Validated/fixed review text
+        Fixed review text with corrected URLs
     """
     if not valid_urls:
-        print("⚠️  No valid URLs available, skipping reaction validation")
+        print("⚠️  No valid URLs available, skipping reaction URL fixing")
         return review_text
+
+    # Build a dict of base filename (without extension) -> full valid URL
+    valid_reactions = {}
+    for url in valid_urls:
+        filename = url.split("/")[-1]
+        base_name = filename.rsplit(".", 1)[0]
+        valid_reactions[base_name] = url
 
     # Extract all reaction URLs from the review text
     reaction_pattern = r"!\[Reaction\]\((https://raw\.githubusercontent\.com/AndrewAltimit/Media/[^\)]+)\)"
     found_urls = re.findall(reaction_pattern, review_text)
 
     if not found_urls:
-        print("No reaction URLs found in review, skipping validation")
+        print("No reaction URLs found in review, skipping")
         return review_text
 
     print(f"Found {len(found_urls)} reaction URL(s) to validate...")
 
-    # Check if all URLs are valid
-    invalid_urls = [url for url in found_urls if url not in valid_urls]
+    # Fix each URL
+    num_fixes = 0
+    fixed_review = review_text
 
-    if not invalid_urls:
+    for url in found_urls:
+        # Check if URL is already valid
+        if url in valid_urls:
+            continue
+
+        # Extract filename and base name
+        filename = url.split("/")[-1]
+        base_name = filename.rsplit(".", 1)[0]
+
+        # Try to match base filename
+        if base_name in valid_reactions:
+            fixed_url = valid_reactions[base_name]
+            if fixed_url != url:
+                num_fixes += 1
+                print(f"🔧 Fixed: {filename} → {fixed_url.split('/')[-1]}")
+                fixed_review = fixed_review.replace(f"![Reaction]({url})", f"![Reaction]({fixed_url})")
+
+    if num_fixes > 0:
+        print(f"✅ Fixed {num_fixes} reaction URL(s)")
+    else:
         print("✅ All reaction URLs are valid")
-        return review_text
 
-    print(f"⚠️  Found {len(invalid_urls)} invalid reaction URL(s), using Gemini Flash to fix...")
-
-    # Create a concise list of valid filenames for the prompt
-    valid_filenames = [url.split("/")[-1] for url in valid_urls]
-
-    prompt = f"""You are validating reaction image URLs in a code review.
-
-**Valid reaction filenames** (from config.yaml):
-{chr(10).join(f"- {filename}" for filename in sorted(set(valid_filenames)))}
-
-**Review text with potentially invalid URLs:**
-```markdown
-{review_text}
-```
-
-**Your task:**
-1. Find all reaction image URLs: ![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/...)
-2. Check if the filename matches one from the valid list
-3. Fix any issues:
-   - Wrong file extension (e.g., .gif → .webp)
-   - Typos in filenames
-   - Invalid URLs
-
-**Rules:**
-- ONLY modify invalid reaction URLs
-- Keep the exact text otherwise
-- Use the EXACT valid filename from the list above
-- Preserve all markdown formatting
-
-Output the corrected review text:"""
-
-    print("Calling Gemini 2.5 Flash for reaction URL validation...")
-    validated_text, model_used = _call_gemini_with_model(prompt, FALLBACK_MODEL, max_retries=2)
-
-    if model_used == NO_MODEL or not validated_text:
-        print("⚠️  Validation failed, using original review text")
-        return review_text
-
-    print("✅ Reaction URLs validated and fixed")
-    return validated_text
+    return fixed_review
 
 
 def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = "default") -> str:
@@ -1009,10 +996,10 @@ def main():
     # Format as GitHub comment
     comment = format_github_comment(analysis, pr_info, model_used)
 
-    # Validate reaction URLs before posting
-    print("\n🔍 Validating reaction URLs...")
+    # Fix reaction URLs before posting (auto-fix bad extensions)
+    print("\n🔍 Fixing reaction URLs...")
     valid_urls = get_valid_reaction_urls()
-    validated_comment = validate_reaction_urls_with_gemini(comment, valid_urls)
+    validated_comment = fix_reaction_urls(comment, valid_urls)
 
     # Post to PR
     post_pr_comment(validated_comment, pr_info)

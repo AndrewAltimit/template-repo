@@ -62,11 +62,13 @@ COPY --chown=node:node packages/github_agents/configs/crush-data.json /home/node
 # Create app directory
 WORKDIR /app
 
-# Copy MCP server code
-COPY --chown=node:node tools/mcp /app/tools/mcp
+# Copy MCP server code (specific packages only)
+COPY --chown=node:node tools/mcp/mcp_core /app/tools/mcp/mcp_core
+COPY --chown=node:node tools/mcp/mcp_crush /app/tools/mcp/mcp_crush
 
-# Set Python path
-ENV PYTHONPATH=/app
+# Install MCP packages in editable mode
+RUN pip install --no-cache-dir --break-system-packages -e /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir --break-system-packages -e /app/tools/mcp/mcp_crush
 
 # Set ownership for all node user directories
 RUN chown -R node:node /home/node /app \
