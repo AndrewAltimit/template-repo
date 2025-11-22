@@ -170,6 +170,9 @@ jobs:
         continue-on-error: true
         run: |
           echo "🧹 Clearing Gemini conversation history..."
+          # Install mcp packages for host execution
+          pip3 install --user -e ./tools/mcp/mcp_core
+          pip3 install --user -e ./tools/mcp/mcp_gemini
           # Gemini MCP server must run on host (not in container)
           # Start Gemini MCP server in background
           python -m mcp_gemini.server --mode http &
