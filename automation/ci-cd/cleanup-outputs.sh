@@ -23,11 +23,11 @@ if [ -d "outputs" ]; then
 
     # Recreate the outputs directory with proper permissions
     mkdir -p outputs
-    chmod 755 outputs
+    chmod 755 outputs 2>/dev/null || true
 else
     echo "  No outputs directory found - creating it"
     mkdir -p outputs
-    chmod 755 outputs
+    chmod 755 outputs 2>/dev/null || true
 fi
 
 echo -e "${GREEN}✅ Output directories cleaned up${NC}"
