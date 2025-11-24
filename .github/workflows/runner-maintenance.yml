@@ -374,6 +374,10 @@ jobs:
             echo ""
 
             # Step 5: Remove unused volumes
+            # NOTE: Safe in this CI/CD environment because:
+            # - All containers are ephemeral (no stateful services)
+            # - Persistent data uses bind mounts to host paths, not Docker volumes
+            # - This only removes volumes not referenced by any container
             echo "Step 5: Removing unused volumes..."
             docker volume prune -f || true
             echo ""
