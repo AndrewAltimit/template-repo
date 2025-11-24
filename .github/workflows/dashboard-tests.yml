@@ -25,7 +25,7 @@ jobs:
       - name: Build test container
         run: |
           cd packages/sleeper_agents/dashboard
-          docker build -t sleeper-dashboard-test -f tests/Dockerfile.test .
+          docker build -t sleeper-dashboard-test:${{ github.run_id }} -f tests/Dockerfile.test .
 
       - name: Run unit tests
         run: |
@@ -36,12 +36,19 @@ jobs:
             --user "$(id -u):$(id -g)" \
             -e PYTHONDONTWRITEBYTECODE=1 \
             -v $(pwd):/app/tests \
-            sleeper-dashboard-test \
+            sleeper-dashboard-test:${{ github.run_id }} \
             python -m pytest /app/tests/test_streamlit_components.py -v \
               -p no:cacheprovider
 
       # Coverage disabled due to permission issues in container
       # Can be re-enabled when permission handling is improved
+
+      - name: Cleanup test images
+        if: always()
+        uses: ./.github/actions/docker-cleanup
+        with:
+          image-pattern: ':${{ github.run_id }}'
+          prune-dangling: true
 
       - name: Cleanup test artifacts
         if: always()
@@ -155,6 +162,13 @@ jobs:
           cd packages/sleeper_agents/dashboard/tests
           docker-compose -f docker-compose.test.yml down -v
 
+      - name: Cleanup test images
+        if: always()
+        uses: ./.github/actions/docker-cleanup
+        with:
+          image-pattern: 'dashboard'
+          prune-dangling: true
+
       - name: Cleanup test artifacts
         if: always()
         uses: ./.github/actions/dashboard-cleanup
@@ -180,14 +194,14 @@ jobs:
           cd packages/sleeper_agents/dashboard
 
           # Build AI analyzer container (using dashboard as context, consistent with docker-compose)
-          docker build -t visual-analyzer -f tests/Dockerfile.test .
+          docker build -t visual-analyzer:${{ github.run_id }} -f tests/Dockerfile.test .
 
           # Run visual analysis
           docker run --rm \
             -v $(pwd)/tests/artifacts/screenshots:/app/screenshots \
             -v $(pwd)/tests/artifacts/baselines:/app/baselines \
             -v $(pwd)/tests/ai_analysis_results:/app/ai_analysis_results \
-            visual-analyzer \
+            visual-analyzer:${{ github.run_id }} \
             python tests/ai_visual_analyzer.py
 
       - name: Upload visual analysis results
@@ -195,6 +209,13 @@ jobs:
         with:
           name: visual-analysis-results
           path: packages/sleeper_agents/dashboard/tests/ai_analysis_results/
+
+      - name: Cleanup visual analyzer image
+        if: always()
+        uses: ./.github/actions/docker-cleanup
+        with:
+          image-pattern: 'visual-analyzer:${{ github.run_id }}'
+          prune-dangling: true
 
   dashboard-integration:
     name: Dashboard Integration Test
@@ -211,7 +232,7 @@ jobs:
       - name: Build test runner for database generation
         run: |
           cd packages/sleeper_agents/dashboard
-          docker build -t test-runner:temp -f tests/Dockerfile.test .
+          docker build -t test-runner:${{ github.run_id }} -f tests/Dockerfile.test .
 
       - name: Generate test database
         run: |
@@ -220,7 +241,7 @@ jobs:
           docker run --rm \
             --user "$(id -u):$(id -g)" \
             -v $(pwd):/app/tests \
-            test-runner:temp \
+            test-runner:${{ github.run_id }} \
             python /app/tests/fixtures.py
 
           # Clean up sample_charts if created (not needed for integration test)
@@ -231,7 +252,7 @@ jobs:
         run: |
           cd packages/sleeper_agents
           # Build with test environment variables for CI
-          docker build -f dashboard/Dockerfile -t sleeper-dashboard:test .
+          docker build -f dashboard/Dockerfile -t sleeper-dashboard:test-${{ github.run_id }} .
 
       - name: Test dashboard container
         run: |
@@ -242,7 +263,7 @@ jobs:
             -v $(pwd)/packages/sleeper_agents/dashboard/tests/test_evaluation_results.db:/home/dashboard/app/test_evaluation_results.db:ro \
             -e STREAMLIT_SERVER_HEADLESS=true \
             -e DATABASE_PATH=/home/dashboard/app/test_evaluation_results.db \
-            sleeper-dashboard:test
+            sleeper-dashboard:test-${{ github.run_id }}
 
           # Wait for service to be ready using health check polling
           echo "Waiting for dashboard service to be ready..."
@@ -268,6 +289,13 @@ jobs:
         run: |
           docker stop test-dashboard || true
           docker rm test-dashboard || true
+
+      - name: Cleanup dashboard images
+        if: always()
+        uses: ./.github/actions/docker-cleanup
+        with:
+          image-pattern: ':${{ github.run_id }}'
+          prune-dangling: true
 
       - name: Cleanup test artifacts
         if: always()

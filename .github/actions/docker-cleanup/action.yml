@@ -1,0 +1,64 @@
+name: 'Safe Docker Cleanup'
+description: 'Safely removes workflow-specific Docker images with disk space monitoring'
+
+inputs:
+  image-pattern:
+    description: 'Pattern for images to remove (e.g., pr-123-*)'
+    required: true
+  prune-dangling:
+    description: 'Prune dangling images (untagged layers)'
+    default: 'true'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Log Disk Space (Before)
+      shell: bash
+      run: |
+        echo "📊 Disk usage before cleanup:"
+        df -h /var/lib/docker 2>/dev/null || df -h /
+        echo ""
+        docker system df || true
+
+    - name: Remove Workflow-Specific Images
+      shell: bash
+      run: |
+        echo "🗑️ Removing images matching pattern: ${{ inputs.image-pattern }}"
+        # Find and remove images matching the pattern
+        # || true makes this idempotent (won't fail if no matches)
+        docker image ls --format '{{.Repository}}:{{.Tag}}' | \
+          grep '${{ inputs.image-pattern }}' | \
+          xargs -r docker rmi -f || true
+        echo "✅ Workflow-specific images removed"
+
+    - name: Prune Dangling Images
+      if: inputs.prune-dangling == 'true'
+      shell: bash
+      run: |
+        echo "🧹 Pruning dangling images..."
+        # Only removes untagged layers - safe for concurrent workflows
+        docker image prune -f
+        echo "✅ Dangling images pruned"
+
+    - name: Check Disk Space Alert
+      shell: bash
+      run: |
+        usage=$(df -h / | tail -1 | awk '{print $5}' | sed 's/%//')
+        echo "Current disk usage: ${usage}%"
+        if [ "$usage" -gt 90 ]; then
+          echo "⚠️ WARNING: Disk usage above 90%! Consider emergency cleanup."
+        elif [ "$usage" -gt 80 ]; then
+          echo "⚠️ Disk usage above 80% - monitor closely."
+        else
+          echo "✅ Disk usage healthy"
+        fi
+
+    - name: Log Disk Space (After)
+      shell: bash
+      run: |
+        echo ""
+        echo "📊 Disk usage after cleanup:"
+        df -h /var/lib/docker 2>/dev/null || df -h /
+        echo ""
+        docker system df || true

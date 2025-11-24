@@ -464,5 +464,8 @@ jobs:
       - name: Remove workflow-specific image
         run: |
           echo "🧹 Cleaning up workflow-specific image..."
+          # Remove the tagged version
           docker rmi ${{ needs.build-sleeper-image.outputs.image-tag }} || true
+          # Prune dangling images (safe for concurrent workflows)
+          docker image prune -f || true
           echo "✅ Cleanup complete"

@@ -556,7 +556,8 @@ jobs:
       - name: Stop MCP server
         if: always()
         run: |
-          docker-compose down
+          # --rmi local removes images built by compose (not public images)
+          docker-compose down --rmi local
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh
 
@@ -698,10 +699,18 @@ jobs:
           timeout: '60'
           build: 'true'
 
+      - name: Cleanup PR-specific images
+        if: always()
+        uses: ./.github/actions/docker-cleanup
+        with:
+          image-pattern: 'pr-${{ github.event.pull_request.number }}-'
+          prune-dangling: true
+
       - name: Stop services
         if: always()
         run: |
-          docker-compose down
+          # --rmi local removes images built by compose (not public images)
+          docker-compose down --rmi local
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh
 

@@ -20,8 +20,8 @@ on:
         default: false
         type: boolean
   schedule:
-    # Run maintenance every Sunday at 3 AM UTC
-    - cron: '0 3 * * 0'
+    # Run maintenance daily at 3 AM UTC (changed from weekly)
+    - cron: '0 3 * * *'
 
 permissions:
   contents: write
@@ -343,39 +343,47 @@ jobs:
           echo "✅ Output directory cleanup completed"
           echo ""
 
-      - name: Clean Docker Resources
+      - name: Clean Docker Resources (Structured Cleanup)
         if: github.event.inputs.force_cleanup != 'true'
         run: |
           if command -v docker &> /dev/null; then
-            echo "🐳 Cleaning Docker Resources"
-            echo "==========================="
+            echo "🐳 Structured Docker Cleanup (Daily Maintenance)"
+            echo "================================================"
             echo ""
 
-            # Stop all containers related to this repo
-            echo "Stopping repository containers..."
-            docker ps --format '{{.Names}}' | grep -i "${{ github.event.repository.name }}" | xargs -r docker stop || true
-
-            # Remove stopped containers
-            echo "Removing stopped containers..."
+            # Step 1: Stop and remove old containers
+            echo "Step 1: Removing stopped containers..."
             docker container prune -f || true
+            echo ""
 
-            # Remove dangling images
-            echo "Removing dangling images..."
+            # Step 2: Remove dangling images (safe - untagged layers only)
+            echo "Step 2: Removing dangling images..."
             docker image prune -f || true
+            echo ""
 
-            # Remove unused networks
-            echo "Removing unused networks..."
-            docker network prune -f || true
+            # Step 3: Remove old unused images (24h+ old)
+            echo "Step 3: Removing unused images older than 24 hours..."
+            # Only removes images not used by any container
+            docker image prune -a --filter "until=24h" -f || true
+            echo ""
 
-            # Remove unused volumes (careful with this)
-            echo "Removing unused volumes..."
+            # Step 4: Prune build cache (48h+ old to preserve recent cache)
+            echo "Step 4: Pruning build cache older than 48 hours..."
+            # Keeps recent cache for build performance
+            docker builder prune -f --filter "until=48h" || true
+            echo ""
+
+            # Step 5: Remove unused volumes
+            echo "Step 5: Removing unused volumes..."
             docker volume prune -f || true
+            echo ""
 
-            # Clean build cache
-            echo "Cleaning build cache..."
-            docker builder prune -f --filter "until=24h" || true
+            # Step 6: Remove unused networks
+            echo "Step 6: Removing unused networks..."
+            docker network prune -f || true
+            echo ""
 
-            echo "✅ Docker cleanup completed"
+            echo "✅ Structured Docker cleanup completed"
           else
             echo "⚠️ Docker not available, skipping Docker cleanup"
           fi
@@ -458,6 +466,23 @@ jobs:
           echo ""
 
           echo "✅ Cleanup operation completed!"
+
+      - name: Check Critical Disk Usage
+        run: |
+          echo "🚨 Checking for critical disk usage..."
+          usage=$(df -h / | tail -1 | awk '{print $5}' | sed 's/%//')
+          echo "Current disk usage: ${usage}%"
+
+          if [ "$usage" -gt 85 ]; then
+            echo "🚨 CRITICAL: Disk usage at ${usage}%!"
+            echo "Consider emergency cleanup or expanding disk."
+            # Don't fail the workflow, just warn
+            echo "⚠️ Manual intervention may be required"
+          elif [ "$usage" -gt 75 ]; then
+            echo "⚠️ WARNING: Disk usage at ${usage}% - monitor closely"
+          else
+            echo "✅ Disk usage healthy at ${usage}%"
+          fi
 
   # Update container images
   update-images:
