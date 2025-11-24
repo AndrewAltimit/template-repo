@@ -47,7 +47,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["mcp_gaea2"]
+include = ["mcp_gaea2*"]
 
 [tool.setuptools.package-data]
 mcp_gaea2 = [
