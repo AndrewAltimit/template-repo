@@ -47,7 +47,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["mcp_video_editor"]
+include = ["mcp_video_editor*"]
 
 [tool.setuptools.package-data]
 mcp_video_editor = [
