@@ -12,9 +12,6 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-# Add the project root to the path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
-
 from automation.testing.video_editor.utils import (  # noqa: E402  # pylint: disable=wrong-import-position
     get_audio_segment,
     get_frame_at_timestamp,

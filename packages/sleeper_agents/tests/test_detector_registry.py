@@ -4,6 +4,7 @@ Tests the registry pattern for detector discovery and instantiation.
 """
 
 import pytest
+
 from sleeper_agents.detection.base_detector import BaseDetector
 from sleeper_agents.evaluation.detector_registry import DetectorRegistry
 

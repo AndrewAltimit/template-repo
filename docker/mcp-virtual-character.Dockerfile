@@ -20,9 +20,13 @@ COPY docker/requirements/requirements-virtual-character.txt ./requirements.txt
 # Install Python dependencies (minimal set for virtual character server)
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the virtual character server code
-COPY tools/mcp/virtual_character /app/tools/mcp/virtual_character
-COPY tools/mcp/core /app/tools/mcp/core
+# Copy the MCP packages (COPY before install)
+COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
+COPY tools/mcp/mcp_virtual_character /app/tools/mcp/mcp_virtual_character
+
+# Install MCP packages
+RUN pip3 install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip3 install --no-cache-dir /app/tools/mcp/mcp_virtual_character
 
 # Copy any additional configuration files
 COPY config/ /app/config/
@@ -45,4 +49,4 @@ EXPOSE 8020
 # Health check is defined in docker-compose.yml for consistency
 
 # Run the server
-CMD ["python", "-m", "tools.mcp.virtual_character.server"]
+CMD ["python", "-m", "mcp_virtual_character.server"]

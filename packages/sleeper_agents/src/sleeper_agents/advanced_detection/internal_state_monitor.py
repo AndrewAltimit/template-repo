@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
+
 from sleeper_agents.attention_analysis.analyzer import AttentionAnalyzer
 from sleeper_agents.probes.feature_discovery import FeatureDiscovery
 

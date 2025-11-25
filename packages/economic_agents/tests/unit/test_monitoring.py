@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 
 import pytest
+
 from economic_agents.company.models import Company
 from economic_agents.monitoring import (
     AlignmentMonitor,

@@ -1,6 +1,7 @@
 """Tests for report generation."""
 
 import pytest
+
 from economic_agents.reports import AuditTrail, ExecutiveSummary, GovernanceAnalysis, ReportGenerator, TechnicalReport
 
 

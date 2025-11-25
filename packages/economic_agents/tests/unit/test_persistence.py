@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
+
 from economic_agents.agent.core.state import AgentState
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 from economic_agents.persistence import StateManager

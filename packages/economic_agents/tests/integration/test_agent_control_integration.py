@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
+
 from economic_agents.dashboard.agent_manager import AgentManager
 from economic_agents.dashboard.app import app
 from economic_agents.dashboard.dependencies import dashboard_state

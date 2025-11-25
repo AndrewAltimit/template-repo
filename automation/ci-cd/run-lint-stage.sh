@@ -142,7 +142,7 @@ case "$STAGE" in
 
     # Type checking with MyPy
     echo "🔍 Running MyPy type checker..."
-    docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && mypy . --ignore-missing-imports --no-error-summary" 2>&1 | tee -a lint-output.txt || true
+    docker-compose run --rm python-ci bash -c "pip install -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary" 2>&1 | tee -a lint-output.txt || true
     mypy_errors=$(grep -c "error:" lint-output.txt 2>/dev/null || echo 0)
     # Ensure value is numeric
     mypy_errors=$(ensure_numeric "$mypy_errors")
@@ -158,7 +158,7 @@ case "$STAGE" in
 
     # Dependency security check - try Safety first, fallback to pip-audit
     echo "🔍 Checking dependency security..."
-    if [ -f requirements.txt ]; then
+    if [ -f config/python/requirements.txt ]; then
       # Check if SAFETY_API_KEY is available
       if [ -n "$SAFETY_API_KEY" ]; then
         echo "Using Safety with API key..."

@@ -4,6 +4,7 @@ import logging
 from typing import Any, Dict
 
 import numpy as np
+
 from sleeper_agents.app.config import DetectionConfig
 from sleeper_agents.attention_analysis.analyzer import AttentionAnalyzer
 from sleeper_agents.detection.layer_probes import LayerProbeDetector

@@ -2,10 +2,11 @@
 
 from typing import List
 
+from fastapi import APIRouter, Depends, Query
+
 from economic_agents.dashboard.agent_manager import agent_manager
 from economic_agents.dashboard.dependencies import DashboardState, get_dashboard_state
 from economic_agents.dashboard.models import DecisionResponse, LLMDecisionResponse
-from fastapi import APIRouter, Depends, Query
 
 router = APIRouter()
 

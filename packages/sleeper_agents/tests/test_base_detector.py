@@ -5,6 +5,7 @@ Tests the abstract base class interface for detection methods.
 
 import numpy as np
 import pytest
+
 from sleeper_agents.detection.base_detector import BaseDetector
 
 

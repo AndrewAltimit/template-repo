@@ -604,7 +604,9 @@ def main():
     """Save the schema and test validation"""
 
     # Save the complete schema
-    schema_path = Path("tools/mcp/gaea2_complete_schema.json")
+    schema_path = Path("tools/mcp/mcp_gaea2/schema/gaea2_complete_schema.json")
+    # Ensure parent directory exists
+    schema_path.parent.mkdir(parents=True, exist_ok=True)
     with open(schema_path, "w", encoding="utf-8") as f:
         json.dump(GAEA2_COMPLETE_SCHEMA, f, indent=2)
 

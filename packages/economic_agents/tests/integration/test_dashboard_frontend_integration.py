@@ -1,10 +1,11 @@
 """Integration tests for dashboard frontend + backend pipeline."""
 
 import pytest
+from fastapi.testclient import TestClient
+
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.dashboard.dependencies import DashboardState, dashboard_state
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
-from fastapi.testclient import TestClient
 
 
 @pytest.fixture

@@ -8,6 +8,7 @@ import asyncio
 import os
 
 import pytest
+
 from github_agents.board.config import BoardConfig
 from github_agents.board.manager import BoardManager
 from github_agents.board.models import IssueStatus

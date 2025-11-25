@@ -9,6 +9,9 @@ Provides REST API for compute resource operations:
 from datetime import datetime
 from typing import Dict
 
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+
 from economic_agents.api.models import (
     AllocateRequest,
     AllocationResponse,
@@ -18,8 +21,6 @@ from economic_agents.api.models import (
 )
 from economic_agents.api.rate_limit import verify_and_rate_limit
 from economic_agents.implementations.mock import MockCompute
-from fastapi import Depends, FastAPI, HTTPException
-from fastapi.responses import JSONResponse
 
 # Create FastAPI app
 app = FastAPI(

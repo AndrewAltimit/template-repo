@@ -57,6 +57,13 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
+      - name: Post-checkout setup
+        run: |
+          # Initialize output directories to prevent root ownership issues
+          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
+            ./automation/setup/docker/init-output-dirs.sh
+          fi
+
       - name: Detect file changes
         id: changes
         run: |
@@ -170,9 +177,12 @@ jobs:
         continue-on-error: true
         run: |
           echo "🧹 Clearing Gemini conversation history..."
+          # Install mcp packages for host execution
+          pip3 install --user -e ./tools/mcp/mcp_core
+          pip3 install --user -e ./tools/mcp/mcp_gemini
           # Gemini MCP server must run on host (not in container)
           # Start Gemini MCP server in background
-          python -m tools.mcp.gemini.server --mode http &
+          python -m mcp_gemini.server --mode http &
           GEMINI_PID=$!
 
           # Wait for server to be ready with health check polling
@@ -291,7 +301,7 @@ jobs:
     needs: [detect-changes, gemini-review]
     if: needs.detect-changes.outputs.yaml_changed == 'true'
     runs-on: self-hosted
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
@@ -546,7 +556,8 @@ jobs:
       - name: Stop MCP server
         if: always()
         run: |
-          docker-compose down
+          # --rmi local removes images built by compose (not public images)
+          docker-compose down --rmi local
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh
 
@@ -587,7 +598,7 @@ jobs:
        github.event.inputs.force_docker_validation) &&
       !github.event.pull_request.draft
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 30  # Increased from 20 - builds can take longer on first run
     steps:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
@@ -688,10 +699,18 @@ jobs:
           timeout: '60'
           build: 'true'
 
+      - name: Cleanup PR-specific images
+        if: always()
+        uses: ./.github/actions/docker-cleanup
+        with:
+          image-pattern: 'pr-${{ github.event.pull_request.number }}-'
+          prune-dangling: true
+
       - name: Stop services
         if: always()
         run: |
-          docker-compose down
+          # --rmi local removes images built by compose (not public images)
+          docker-compose down --rmi local
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh
 

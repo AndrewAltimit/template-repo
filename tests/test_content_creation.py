@@ -13,7 +13,7 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
-from tools.mcp.content_creation.tools import compile_latex, create_manim_animation  # noqa: E402
+from mcp_content_creation.tools import compile_latex, create_manim_animation  # noqa: E402
 
 
 class TestContentCreationTools:

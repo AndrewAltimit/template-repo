@@ -5,11 +5,15 @@ Improved Gemini PR Review Script with better context handling
 
 import json
 import os
+import re
 import subprocess
 import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+
+import requests
+import yaml
 
 # Model constants
 # Using explicit model with API key to avoid 404 errors and OAuth hangs
@@ -800,6 +804,102 @@ def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
     return formatted
 
 
+def get_valid_reaction_urls() -> List[str]:
+    """Fetch and parse the reaction config YAML to get valid reaction URLs
+
+    Returns:
+        List of valid reaction URLs
+    """
+    try:
+        config_url = "https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml"
+        print(f"Fetching reaction config from {config_url}...")
+
+        response = requests.get(config_url, timeout=10)
+        response.raise_for_status()
+
+        config = yaml.safe_load(response.text)
+        reaction_images = config.get("reaction_images", [])
+
+        valid_urls = []
+        for reaction_data in reaction_images:
+            source_url = reaction_data.get("source_url")
+            if source_url:
+                valid_urls.append(source_url)
+
+        print(f"✅ Loaded {len(valid_urls)} valid reaction URLs")
+        return valid_urls
+
+    except Exception as e:
+        print(f"⚠️  Warning: Could not fetch reaction config: {e}")
+        print("   Proceeding without reaction URL fixing")
+        return []
+
+
+def fix_reaction_urls(review_text: str, valid_urls: List[str]) -> str:
+    """Automatically fix reaction URLs by cross-referencing extensions against valid URLs
+
+    This function:
+    - Extracts filenames from reaction URLs
+    - Matches base filenames (without extension) against valid URLs
+    - Auto-fixes incorrect extensions (e.g., .png → .webp)
+
+    Args:
+        review_text: The review text to fix
+        valid_urls: List of valid reaction URLs from config
+
+    Returns:
+        Fixed review text with corrected URLs
+    """
+    if not valid_urls:
+        print("⚠️  No valid URLs available, skipping reaction URL fixing")
+        return review_text
+
+    # Build a dict of base filename (without extension) -> full valid URL
+    valid_reactions = {}
+    for url in valid_urls:
+        filename = url.split("/")[-1]
+        base_name = filename.rsplit(".", 1)[0]
+        valid_reactions[base_name] = url
+
+    # Extract all reaction URLs from the review text
+    reaction_pattern = r"!\[Reaction\]\((https://raw\.githubusercontent\.com/AndrewAltimit/Media/[^\)]+)\)"
+    found_urls = re.findall(reaction_pattern, review_text)
+
+    if not found_urls:
+        print("No reaction URLs found in review, skipping")
+        return review_text
+
+    print(f"Found {len(found_urls)} reaction URL(s) to validate...")
+
+    # Fix each URL
+    num_fixes = 0
+    fixed_review = review_text
+
+    for url in found_urls:
+        # Check if URL is already valid
+        if url in valid_urls:
+            continue
+
+        # Extract filename and base name
+        filename = url.split("/")[-1]
+        base_name = filename.rsplit(".", 1)[0]
+
+        # Try to match base filename
+        if base_name in valid_reactions:
+            fixed_url = valid_reactions[base_name]
+            if fixed_url != url:
+                num_fixes += 1
+                print(f"🔧 Fixed: {filename} → {fixed_url.split('/')[-1]}")
+                fixed_review = fixed_review.replace(f"![Reaction]({url})", f"![Reaction]({fixed_url})")
+
+    if num_fixes > 0:
+        print(f"✅ Fixed {num_fixes} reaction URL(s)")
+    else:
+        print("✅ All reaction URLs are valid")
+
+    return fixed_review
+
+
 def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = "default") -> str:
     """Format the analysis as a GitHub PR comment"""
     if model_used == "default":
@@ -893,12 +993,17 @@ def main():
     # Format as GitHub comment
     comment = format_github_comment(analysis, pr_info, model_used)
 
-    # Post to PR
-    post_pr_comment(comment, pr_info)
+    # Fix reaction URLs before posting (auto-fix bad extensions)
+    print("\n🔍 Fixing reaction URLs...")
+    valid_urls = get_valid_reaction_urls()
+    validated_comment = fix_reaction_urls(comment, valid_urls)
 
-    # Save to step summary
+    # Post to PR
+    post_pr_comment(validated_comment, pr_info)
+
+    # Save to step summary (use validated comment)
     with open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a", encoding="utf-8") as f:
-        f.write("\n\n" + comment)
+        f.write("\n\n" + validated_comment)
 
     print("Gemini PR review complete!")
 

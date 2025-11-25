@@ -185,21 +185,21 @@ The template provides two MCP configuration files to optimize performance:
        "code-quality": { /* ... */ },
        "opencode": {
          "command": "python",
-         "args": ["-m", "tools.mcp.opencode.server"],
+         "args": ["-m", "mcp_opencode.server"],
          "env": {
            "OPENROUTER_API_KEY": "{OPENROUTER_API_KEY}"
          }
        },
        "crush": {
          "command": "python",
-         "args": ["-m", "tools.mcp.crush.server"],
+         "args": ["-m", "mcp_crush.server"],
          "env": {
            "OPENROUTER_API_KEY": "{OPENROUTER_API_KEY}"
          }
        },
        "gemini": {
          "command": "python",
-         "args": ["-m", "tools.mcp.gemini.server"],
+         "args": ["-m", "mcp_gemini.server"],
          "env": {
            "GEMINI_API_KEY": "{GEMINI_API_KEY}"
          }
@@ -238,22 +238,22 @@ The template provides two MCP configuration files to optimize performance:
      "mcpServers": {
        "content-creation": {
          "command": "python",
-         "args": ["-m", "tools.mcp.content_creation.server"]
+         "args": ["-m", "mcp_content_creation.server"]
        },
        "meme-generator": {
          "command": "python",
-         "args": ["-m", "tools.mcp.meme_generator.server"]
+         "args": ["-m", "mcp_meme_generator.server"]
        },
        "elevenlabs-speech": {
          "command": "python",
-         "args": ["-m", "tools.mcp.elevenlabs_speech.server"],
+         "args": ["-m", "mcp_elevenlabs_speech.server"],
          "env": {
            "ELEVENLABS_API_KEY": "{ELEVENLABS_API_KEY}"
          }
        },
        "video-editor": {
          "command": "python",
-         "args": ["-m", "tools.mcp.video_editor.server"]
+         "args": ["-m", "mcp_video_editor.server"]
        }
      }
    }
@@ -491,8 +491,8 @@ sudo chown -R $USER:$USER .
    docker-compose logs [service-name]
 
    # Test individual servers
-   python tools/mcp/code_quality/scripts/test_server.py
-   python tools/mcp/gemini/scripts/test_server.py
+   python tools/mcp/mcp_code_quality/scripts/test_server.py
+   python tools/mcp/mcp_gemini/scripts/test_server.py
 
    # Validate configuration
    python automation/testing/validate_config.py
@@ -505,7 +505,7 @@ After customizing your template:
 1. **Remove unused code:**
    ```bash
    # Remove MCP servers you're not using
-   rm -rf tools/mcp/[unused-server]/
+   rm -rf tools/mcp/mcp_[unused-server]/
 
    # Remove unused documentation
    rm -rf docs/integrations/[unused-integration]/

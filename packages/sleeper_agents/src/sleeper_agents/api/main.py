@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
 from sleeper_agents.app.config import DetectionConfig
 from sleeper_agents.app.detector import SleeperDetector
 from sleeper_agents.app.enums import BackdoorMechanism, BackdoorType

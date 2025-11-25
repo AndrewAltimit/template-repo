@@ -7,6 +7,7 @@ GPU functionality is tested manually on the RTX 4090 host machine.
 import numpy as np
 import pytest
 import torch
+
 from sleeper_agents.probes.probe_config import ProbeTrainingConfig
 from sleeper_agents.probes.torch_probe import ActivationDataset, LinearProbe, TorchProbeTrainer
 

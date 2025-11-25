@@ -15,9 +15,9 @@ sys.modules["numpy"] = MagicMock()
 import shutil  # noqa: E402
 
 # Import the video editor components
-from tools.mcp.video_editor import VideoEditorMCPServer  # noqa: E402
-from tools.mcp.video_editor.processors import AudioProcessor, VideoProcessor  # noqa: E402
-from tools.mcp.video_editor.tools import add_captions, analyze_video, create_edit, extract_clips, render_video  # noqa: E402
+from mcp_video_editor import VideoEditorMCPServer  # noqa: E402
+from mcp_video_editor.processors import AudioProcessor, VideoProcessor  # noqa: E402
+from mcp_video_editor.tools import add_captions, analyze_video, create_edit, extract_clips, render_video  # noqa: E402
 
 
 class TestVideoEditorMCPServer(unittest.TestCase):
@@ -92,7 +92,7 @@ class TestVideoEditorMCPServer(unittest.TestCase):
     async def test_handle_tool_call(self):
         """Test handling tool calls"""
         # Test with valid tool
-        with patch("tools.mcp.video_editor.tools.TOOLS", {"test_tool": MagicMock(return_value={"result": "success"})}):
+        with patch("mcp_video_editor.tools.TOOLS", {"test_tool": MagicMock(return_value={"result": "success"})}):
             result = await self.server.handle_tool_call("test_tool", {})
             self.assertEqual(result["result"], "success")
 
@@ -244,7 +244,7 @@ class TestVideoProcessor(unittest.TestCase):
         self.assertEqual(self.processor._parse_cache_size("1000"), 1000)
 
     @unittest.skip("Requires complex mocking of lazy-loaded moviepy module")
-    @patch("tools.mcp.video_editor.processors.video_processor.moviepy")
+    @patch("mcp_video_editor.processors.video_processor.moviepy")
     def test_load_video(self, mock_moviepy):
         """Test video loading and caching"""
         mock_clip = MagicMock()
@@ -338,7 +338,7 @@ class TestVideoEditorTools:
     async def test_create_edit_with_speaker_mapping(self, mock_exists, mock_server):
         """Test creating edit with speaker mapping"""
         # Mock analyze_video
-        with patch("tools.mcp.video_editor.tools.analyze_video", new_callable=AsyncMock) as mock_analyze:
+        with patch("mcp_video_editor.tools.analyze_video", new_callable=AsyncMock) as mock_analyze:
             mock_analyze.return_value = {
                 "analysis": {
                     "video1.mp4": {
@@ -366,7 +366,7 @@ class TestVideoEditorTools:
     async def test_extract_clips_with_keywords(self, mock_server):
         """Test extracting clips based on keywords"""
         with patch("os.path.exists", return_value=True):
-            with patch("tools.mcp.video_editor.tools.analyze_video", new_callable=AsyncMock) as mock_analyze:
+            with patch("mcp_video_editor.tools.analyze_video", new_callable=AsyncMock) as mock_analyze:
                 mock_analyze.return_value = {
                     "analysis": {
                         "video.mp4": {
@@ -397,7 +397,7 @@ class TestVideoEditorTools:
 class TestIntegration(unittest.TestCase):
     """Integration tests for the video editor"""
 
-    @patch("tools.mcp.video_editor.server.VideoEditorMCPServer")
+    @patch("mcp_video_editor.server.VideoEditorMCPServer")
     async def test_full_workflow(self, MockServer):
         """Test a complete video editing workflow"""
         # Create a mock server instance

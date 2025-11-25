@@ -20,10 +20,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY packages/github_agents /app/packages/github_agents
 
 # Copy MCP server code
-COPY tools/mcp /app/tools/mcp
+COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
+COPY tools/mcp/mcp_github_board /app/tools/mcp/mcp_github_board
 
-# Install github_agents package with board dependencies
-RUN pip install --no-cache-dir -e /app/packages/github_agents[board]
+# Install packages
+RUN pip install --no-cache-dir /app/packages/github_agents[board] && \
+    pip install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir /app/tools/mcp/mcp_github_board
 
 # Set Python path
 ENV PYTHONPATH=/app
@@ -38,4 +41,4 @@ USER appuser
 EXPOSE 8021
 
 # Run the server
-CMD ["python", "-m", "tools.mcp.github_board.server", "--mode", "http"]
+CMD ["python", "-m", "mcp_github_board.server", "--mode", "http"]

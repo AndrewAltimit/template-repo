@@ -6,7 +6,7 @@ Unit tests for MCPClient
 import os
 from unittest.mock import Mock, patch
 
-from tools.mcp.core.client import MCPClient
+from mcp_core.client import MCPClient
 
 
 class TestMCPClient:
@@ -32,7 +32,7 @@ class TestMCPClient:
         client = MCPClient()
         assert client.base_url == "http://localhost:8010"
 
-    @patch("tools.mcp.core.client.requests.post")
+    @patch("mcp_core.client.requests.post")
     def test_execute_tool_success(self, mock_post):
         """Test successful tool execution"""
         # Setup mock response
@@ -53,7 +53,7 @@ class TestMCPClient:
             timeout=30,
         )
 
-    @patch("tools.mcp.core.client.requests.post")
+    @patch("mcp_core.client.requests.post")
     def test_execute_tool_failure(self, mock_post):
         """Test tool execution with network error"""
         # Setup mock to raise exception
@@ -67,7 +67,7 @@ class TestMCPClient:
         assert result["success"] is False
         assert "Network error" in result["error"]
 
-    @patch("tools.mcp.core.client.requests.get")
+    @patch("mcp_core.client.requests.get")
     def test_list_tools_success(self, mock_get):
         """Test successful tool listing"""
         # Setup mock response
@@ -84,7 +84,7 @@ class TestMCPClient:
         assert result == {"tools": ["tool1", "tool2"]}
         mock_get.assert_called_once_with("http://localhost:8010/tools", timeout=30)
 
-    @patch("tools.mcp.core.client.requests.get")
+    @patch("mcp_core.client.requests.get")
     def test_list_tools_failure(self, mock_get):
         """Test tool listing with network error"""
         # Setup mock to raise exception
@@ -97,7 +97,7 @@ class TestMCPClient:
         # Verify empty response on error
         assert result == {}
 
-    @patch("tools.mcp.core.client.requests.get")
+    @patch("mcp_core.client.requests.get")
     def test_health_check_success(self, mock_get):
         """Test successful health check"""
         # Setup mock response
@@ -113,7 +113,7 @@ class TestMCPClient:
         assert result is True
         mock_get.assert_called_once_with("http://localhost:8010/health", timeout=5)
 
-    @patch("tools.mcp.core.client.requests.get")
+    @patch("mcp_core.client.requests.get")
     def test_health_check_failure(self, mock_get):
         """Test health check with server down"""
         # Setup mock response
@@ -128,7 +128,7 @@ class TestMCPClient:
         # Verify
         assert result is False
 
-    @patch("tools.mcp.core.client.requests.get")
+    @patch("mcp_core.client.requests.get")
     def test_health_check_timeout(self, mock_get):
         """Test health check with timeout"""
         # Setup mock to raise timeout
@@ -163,13 +163,13 @@ class TestMCPClient:
         # Re-import to pick up env var
         import importlib
 
-        import tools.mcp.core.client
+        import mcp_core.client
 
         # Set env var and reload module
         os.environ["MCP_CODE_QUALITY_URL"] = "http://custom:9000"
         try:
-            importlib.reload(tools.mcp.core.client)
-            from tools.mcp.core.client import MCPClient
+            importlib.reload(mcp_core.client)
+            from mcp_core.client import MCPClient
 
             client = MCPClient(server_name="code_quality")
             assert client.base_url == "http://custom:9000"
@@ -177,4 +177,4 @@ class TestMCPClient:
             # Clean up: remove env var and reload module to restore original state
             if "MCP_CODE_QUALITY_URL" in os.environ:
                 del os.environ["MCP_CODE_QUALITY_URL"]
-            importlib.reload(tools.mcp.core.client)
+            importlib.reload(mcp_core.client)

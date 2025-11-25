@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
+
 from sleeper_agents.probes.probe_config import ProbeTrainingConfig  # noqa: E402
 from sleeper_agents.probes.probe_detector import ProbeDetector  # noqa: E402
 from sleeper_agents.probes.probe_factory import create_probe_trainer  # noqa: E402
