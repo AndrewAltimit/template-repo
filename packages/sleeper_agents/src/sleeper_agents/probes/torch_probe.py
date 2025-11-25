@@ -119,6 +119,7 @@ class ActivationDataset(Dataset):
 
         if not self.use_disk:
             # Convert numpy to torch upfront for small datasets
+            # mypy doesn't recognize numpy array as valid input to torch.tensor
             self.activations = torch.tensor(activations, dtype=torch.float32)  # type: ignore[arg-type]
 
     def __len__(self) -> int:

@@ -15,6 +15,7 @@ import numpy as np
 try:
     import torch
 except ImportError:
+    # Optional dependency - None sentinel when torch unavailable
     torch = None  # type: ignore[assignment]
 
 try:
