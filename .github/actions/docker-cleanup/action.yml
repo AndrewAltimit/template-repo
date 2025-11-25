@@ -16,6 +16,7 @@ runs:
     - name: Log Disk Space (Before)
       shell: bash
       run: |
+        set -e
         echo "📊 Disk usage before cleanup:"
         df -h /var/lib/docker 2>/dev/null || df -h /
         echo ""
@@ -24,6 +25,7 @@ runs:
     - name: Remove Workflow-Specific Images
       shell: bash
       run: |
+        set -e
         echo "🗑️ Removing images matching pattern: ${{ inputs.image-pattern }}"
         # Find and remove images matching the pattern
         # || true makes this idempotent (won't fail if no matches)
@@ -36,6 +38,7 @@ runs:
       if: inputs.prune-dangling == 'true'
       shell: bash
       run: |
+        set -e
         echo "🧹 Pruning dangling images..."
         # Only removes untagged layers - safe for concurrent workflows
         docker image prune -f
@@ -44,6 +47,7 @@ runs:
     - name: Check Disk Space Alert
       shell: bash
       run: |
+        set -e
         usage=$(df -h / | tail -1 | awk '{print $5}' | sed 's/%//')
         echo "Current disk usage: ${usage}%"
         if [ "$usage" -gt 90 ]; then
@@ -57,6 +61,7 @@ runs:
     - name: Log Disk Space (After)
       shell: bash
       run: |
+        set -e
         echo ""
         echo "📊 Disk usage after cleanup:"
         df -h /var/lib/docker 2>/dev/null || df -h /
