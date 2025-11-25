@@ -80,6 +80,7 @@ This is the source of truth for available reactions. New reactions are added per
 
 Example:
 URL: https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/nagatoro_smug_face.png
+
 GitHub Comment: ![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/nagatoro_smug_face.png)
 
 Replace nagatoro_smug_face.png with any of the known reactions below as needed when commenting. Keep in mind the extension of the reaction when referencing it - reactions can be png, webp, or gif.
