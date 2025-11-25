@@ -12,7 +12,7 @@ Usage:
 """
 
 import logging
-from typing import Any
+from typing import Any, Literal
 
 import streamlit as st
 
@@ -72,7 +72,7 @@ def render_calibration_metrics(model_metadata: Any, show_warning: bool = True, h
     with col2:
         # Color code accuracy based on threshold
         delta = None
-        delta_color = "normal"
+        delta_color: Literal["normal", "inverse", "off"] = "normal"
         if baseline_accuracy is not None and baseline_accuracy < 0.95:
             delta = "Below threshold"
             delta_color = "inverse"

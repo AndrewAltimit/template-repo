@@ -15,7 +15,7 @@ import numpy as np
 try:
     import torch
 except ImportError:
-    torch = None
+    torch = None  # type: ignore[assignment]
 
 try:
     from sklearn.decomposition import SparseCoder, dict_learning_online

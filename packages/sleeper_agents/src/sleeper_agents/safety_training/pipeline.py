@@ -122,9 +122,9 @@ class SafetyTrainingPipeline:
             training_method=config.training_method,
             timestamp=datetime.now(),
             pre_training_detections=pre_training_detections,
-            pre_training_confidence=np.mean(list(pre_training_detections.values())),
+            pre_training_confidence=float(np.mean(list(pre_training_detections.values()))),
             post_training_detections=post_training_detections,
-            post_training_confidence=np.mean(list(post_training_detections.values())),
+            post_training_confidence=float(np.mean(list(post_training_detections.values()))),
             persistence_rate=0.0,  # Calculated in __post_init__
             trigger_specificity_change=trigger_analysis.get("specificity_change", 0.0),
             behavior_consistency=self._calculate_consistency(pre_training_detections, post_training_detections),

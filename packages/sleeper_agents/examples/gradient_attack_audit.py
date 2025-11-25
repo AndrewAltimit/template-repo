@@ -47,14 +47,14 @@ import argparse
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, cast
 
 import numpy as np
 import torch
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score
 from torch.nn import functional as F
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
 
 # ART (Adversarial Robustness Toolbox) for PGD attacks
 try:
@@ -97,7 +97,7 @@ class SleeperARTWrapper(PyTorchClassifier):
 
     def __init__(
         self,
-        model: AutoModelForCausalLM,
+        model: PreTrainedModel,
         probe: LogisticRegression,
         target_layer: int,
         device: str = "cpu",
@@ -199,7 +199,8 @@ class SleeperARTWrapper(PyTorchClassifier):
         """
         logits = self.forward(x)
         loss_fn = torch.nn.CrossEntropyLoss(reduction=reduction)
-        return loss_fn(logits, y.long())
+        loss_value: torch.Tensor = loss_fn(logits, y.long())
+        return loss_value
 
     def loss_gradient(self, x: np.ndarray, y: np.ndarray, **kwargs) -> torch.Tensor:
         """
@@ -252,6 +253,7 @@ class SleeperARTWrapper(PyTorchClassifier):
         # Get gradients
         # Note: ART's PyTorch backend expects tensor gradients, not numpy
         gradients = x_tensor.grad
+        assert gradients is not None, "Gradients should be computed after backward()"
 
         return gradients
 
@@ -273,7 +275,9 @@ class GradientAuditRunner:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        self.model = AutoModelForCausalLM.from_pretrained(config.model_name).to(self.device)
+        loaded_model = AutoModelForCausalLM.from_pretrained(config.model_name)
+        # mypy has trouble with .to() on PreTrainedModel due to complex Union types
+        self.model: PreTrainedModel = cast(PreTrainedModel, loaded_model.to(self.device))  # type: ignore[arg-type]
         self.model.eval()
 
         # Create output directory

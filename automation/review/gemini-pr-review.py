@@ -340,7 +340,7 @@ def get_all_pr_comments(pr_number: str) -> List[Dict[str, Any]]:
         )
 
         pr_data = json.loads(result.stdout)
-        comments = pr_data.get("comments", [])
+        comments: List[Dict[str, Any]] = pr_data.get("comments", [])
 
         return comments
     except subprocess.CalledProcessError as e:

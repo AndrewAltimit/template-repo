@@ -35,6 +35,9 @@ class MockDetector(BaseDetector):
         activations = kwargs.get("activations")
         labels = kwargs.get("labels")
 
+        if activations is None or labels is None:
+            raise ValueError("Must provide activations and labels")
+
         self.fit(activations, labels)
         scores = self.score(activations)
 

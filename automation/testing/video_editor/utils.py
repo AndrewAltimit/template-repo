@@ -58,7 +58,8 @@ def get_video_info(video_path: str) -> Optional[Dict[str, Any]]:
 
     output = run_command_safe(args)
     if output:
-        return json.loads(output)
+        result: Dict[str, Any] = json.loads(output)
+        return result
     return None
 
 
@@ -285,12 +286,14 @@ def analyze_audio_levels(audio_path: str, noise_level: str = "-50dB", min_durati
                         except (ValueError, IndexError):
                             continue
             elif "silence_end" in line and start_time is not None:
+                # Capture start_time before any modifications in this block
+                current_start: float = start_time
                 parts = line.split()
                 for part in parts:
                     if part.startswith("silence_end:"):
                         try:
                             end_time = float(part.split(":")[1])
-                            silence_segments.append((start_time, end_time))
+                            silence_segments.append((current_start, end_time))
                             start_time = None
                         except (ValueError, IndexError):
                             continue

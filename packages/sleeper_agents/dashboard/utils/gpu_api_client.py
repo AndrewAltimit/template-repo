@@ -313,7 +313,7 @@ class GPUOrchestratorClient:
         try:
             async with websockets.connect(uri, extra_headers=self.headers) as websocket:
                 async for message in websocket:
-                    yield message
+                    yield str(message)
         except websockets.exceptions.WebSocketException as e:
             logger.error(f"WebSocket error streaming logs for job {job_id}: {e}")
             raise
