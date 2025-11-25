@@ -196,8 +196,6 @@ This pattern ensures consistent certificate handling across all services while m
 │       │   ├── run_gemini.sh       # Gemini CLI runner
 │       │   ├── run_opencode.sh     # OpenCode runner
 │       │   └── stop_claude.sh      # Claude stop script
-│       ├── bridges/          # Protocol bridges
-│       │   └── mcp-http-bridge.py  # MCP HTTP bridge
 │       ├── containers/       # Container runner scripts
 │       │   ├── run_codex_container.sh     # Codex in container
 │       │   ├── run_crush_container.sh     # Crush in container
@@ -209,7 +207,6 @@ This pattern ensures consistent certificate handling across all services while m
 │   ├── analysis/             # Code and project analysis tools
 │   ├── ci-cd/                # CI/CD pipeline scripts
 │   ├── corporate-proxy/      # Corporate proxy integrations
-│   │   ├── codex/            # Codex proxy wrapper
 │   │   ├── crush/            # Crush proxy wrapper
 │   │   ├── gemini/           # Gemini CLI proxy wrapper
 │   │   ├── opencode/         # OpenCode proxy wrapper
