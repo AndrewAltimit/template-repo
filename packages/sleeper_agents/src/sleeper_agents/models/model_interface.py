@@ -24,8 +24,10 @@ class ModelInterface(ABC):
         self.model_id = model_id
         self.device = device
         self.dtype = dtype or (torch.float16 if device == "cuda" else torch.float32)
-        # Use Any for model since subclasses use different model types
-        # (HookedTransformer, AutoModelForCausalLM, etc.)
+        # Use Any for model/tokenizer/config since subclasses use different types from
+        # different libraries (HookedTransformer from transformer_lens, AutoModelForCausalLM
+        # from transformers, vLLM engines). These don't share a common base class.
+        # A Protocol could be defined but would require significant refactoring.
         self.model: Any = None
         self.tokenizer: Any = None
         self.config: Any = None
