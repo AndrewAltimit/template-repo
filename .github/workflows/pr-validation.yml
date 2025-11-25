@@ -301,7 +301,7 @@ jobs:
     needs: [detect-changes, gemini-review]
     if: needs.detect-changes.outputs.yaml_changed == 'true'
     runs-on: self-hosted
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
