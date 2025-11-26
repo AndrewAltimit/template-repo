@@ -81,14 +81,14 @@ class BlenderExecutor:
             Execution result
         """
         logger.info("Executing script %s for job %s", script_name, job_id)
-        logger.info(f"Script dir: {self.script_dir}")
+        logger.info("Script dir: %s", self.script_dir)
         script_path = self.script_dir / script_name
         logger.info("Script path: %s", script_path)
 
         if not script_path.exists():
             logger.error("Script not found: %s", script_path)
             files = list(self.script_dir.glob("*")) if self.script_dir.exists() else []
-            logger.error(f"Available files in {self.script_dir}: {files or 'Directory does not exist'}")
+            logger.error("Available files in %s: %s", self.script_dir, files or "Directory does not exist")
             raise FileNotFoundError(f"Script not found: {script_path}")
 
         # Create temporary file for arguments in a directory accessible to Blender
@@ -132,7 +132,7 @@ class BlenderExecutor:
                 )
 
                 # Log the command for debugging
-                logger.info(f"Running command: {' '.join(cmd)}")
+                logger.info("Running command: %s", " ".join(cmd))
 
                 # Start process
                 process = await asyncio.create_subprocess_exec(
@@ -176,9 +176,9 @@ class BlenderExecutor:
 
             # Log Blender output for debugging
             if stdout:
-                logger.info(f"Blender stdout for job {job_id}: {stdout.decode()[:500]}")
+                logger.info("Blender stdout for job %s: %s", job_id, stdout.decode()[:500])
             if stderr:
-                logger.warning(f"Blender stderr for job {job_id}: {stderr.decode()[:500]}")
+                logger.warning("Blender stderr for job %s: %s", job_id, stderr.decode()[:500])
 
             # Check exit code
             if process.returncode == 0:
@@ -220,7 +220,7 @@ class BlenderExecutor:
                     os.remove(args_file)
                     logger.debug("Cleaned up args file: %s", args_file)
                 except Exception as e:
-                    logger.warning(f"Failed to cleanup args file {args_file}: {e}")
+                    logger.warning("Failed to cleanup args file %s: %s", args_file, e)
 
     def kill_process(self, job_id: str) -> bool:
         """Kill a running Blender process.

@@ -56,7 +56,7 @@ class StatusManager:
                     if not isinstance(existing_data, dict):
                         raise TypeError(f"Status data is not a dictionary: {type(existing_data)}")
                 except (json.JSONDecodeError, KeyError, TypeError) as e:
-                    logger.warning(f"Could not parse existing status file for {job_id}: {e}")
+                    logger.warning("Could not parse existing status file for %s: %s", job_id, e)
 
             # Build status data
             status_data: Dict[str, Any] = {
@@ -85,11 +85,11 @@ class StatusManager:
             # Write status file
             status_file.write_text(json.dumps(status_data, indent=2))
 
-            logger.debug(f"Updated status for job {job_id}: {status}")
+            logger.debug("Updated status for job %s: %s", job_id, status)
             return True
 
         except Exception as e:
-            logger.error(f"Failed to update status for job {job_id}: {e}")
+            logger.error("Failed to update status for job %s: %s", job_id, e)
             return False
 
     def get_status(self, job_id: str) -> Optional[Dict[str, Any]]:

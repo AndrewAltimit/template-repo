@@ -122,7 +122,7 @@ class AssetManager:
                 }
                 projects.append(project_info)
             except Exception as e:
-                logger.error(f"Failed to stat project {project_file}: {e}")
+                logger.error("Failed to stat project %s: %s", project_file, e)
 
         # Sort by modification time (newest first)
         projects.sort(key=lambda p: p["modified"], reverse=True)
@@ -219,7 +219,7 @@ class AssetManager:
                         assets.append(asset_info)
 
                     except Exception as e:
-                        logger.error(f"Failed to process asset {asset_file}: {e}")
+                        logger.error("Failed to process asset %s: %s", asset_file, e)
 
         return assets
 
@@ -352,7 +352,7 @@ class AssetManager:
                     temp_file.unlink()
                     cleaned += 1
                 except Exception as e:
-                    logger.error(f"Failed to remove {temp_file}: {e}")
+                    logger.error("Failed to remove %s: %s", temp_file, e)
 
         logger.info("Cleaned %s temporary files", cleaned)
         return cleaned
