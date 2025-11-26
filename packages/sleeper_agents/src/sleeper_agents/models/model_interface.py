@@ -152,7 +152,7 @@ class HuggingFaceModel(ModelInterface):
         """Load HuggingFace model and tokenizer."""
         from pathlib import Path
 
-        logger.info(f"Loading HuggingFace model: {self.model_id}")
+        logger.info("Loading HuggingFace model: %s", self.model_id)
 
         # Check if this is a LoRA/PEFT model
         model_path = Path(self.model_id)
@@ -213,7 +213,7 @@ class HuggingFaceModel(ModelInterface):
                 self.model = self.model.to(self.device)
 
         self.model.eval()
-        logger.info(f"Model loaded with {self.get_num_layers()} layers")
+        logger.info("Model loaded with %d layers", self.get_num_layers())
 
     def generate(
         self,
@@ -315,8 +315,12 @@ class HuggingFaceModel(ModelInterface):
         target_inputs = self.tokenizer(target_tokens, return_tensors="pt", add_special_tokens=False)
         target_ids = target_inputs["input_ids"].to(self.device)
 
-        logger.debug(f"Generation extraction: prompt='{prompts[0][:50]}', target='{target_tokens[0]}'")
-        logger.debug(f"  Prompt tokens: {prompt_inputs['input_ids'].shape}, Target tokens: {target_ids.shape}")
+        logger.debug("Generation extraction: prompt='%s', target='%s'", prompts[0][:50], target_tokens[0])
+        logger.debug(
+            "  Prompt tokens: %s, Target tokens: %s",
+            prompt_inputs["input_ids"].shape,
+            target_ids.shape,
+        )
 
         # Combine prompt + target for teacher forcing
         # This makes the model process the full sequence but we extract activations
@@ -324,7 +328,7 @@ class HuggingFaceModel(ModelInterface):
         combined_ids = torch.cat([prompt_inputs["input_ids"], target_ids], dim=1)
         attention_mask = torch.ones_like(combined_ids)
 
-        logger.debug(f"  Combined shape: {combined_ids.shape}")
+        logger.debug("  Combined shape: %s", combined_ids.shape)
 
         # Forward pass with teacher forcing
         with torch.no_grad():
@@ -342,7 +346,7 @@ class HuggingFaceModel(ModelInterface):
         # Get the position of the first target token
         target_pos = prompt_inputs["input_ids"].shape[1]  # Right after prompt
 
-        logger.debug(f"  Extracting from position {target_pos} (total seq len: {combined_ids.shape[1]})")
+        logger.debug("  Extracting from position %d (total seq len: %d)", target_pos, combined_ids.shape[1])
 
         target_layers = layers if layers is not None else list(range(len(hidden_states)))
 
@@ -351,7 +355,7 @@ class HuggingFaceModel(ModelInterface):
                 # Extract activation at the target token position
                 layer_act = hidden_states[layer_idx][:, target_pos, :]
                 activations[f"layer_{layer_idx}"] = layer_act
-                logger.debug(f"    Layer {layer_idx}: shape {layer_act.shape}")
+                logger.debug("    Layer %d: shape %s", layer_idx, layer_act.shape)
 
         return activations
 
@@ -389,14 +393,14 @@ class HookedTransformerModel(ModelInterface):
         try:
             from transformer_lens import HookedTransformer
 
-            logger.info(f"Loading HookedTransformer: {self.model_id}")
+            logger.info("Loading HookedTransformer: %s", self.model_id)
 
             self.model = HookedTransformer.from_pretrained(self.model_id, device=self.device, dtype=self.dtype)
 
             self.config = self.model.cfg
             self.tokenizer = self.model.tokenizer
 
-            logger.info(f"HookedTransformer loaded with {self.get_num_layers()} layers")
+            logger.info("HookedTransformer loaded with %d layers", self.get_num_layers())
 
         except ImportError as exc:
             raise ImportError("transformer_lens not installed. Install with: pip install transformer-lens") from exc
