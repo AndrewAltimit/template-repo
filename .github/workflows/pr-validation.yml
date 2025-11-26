@@ -598,7 +598,7 @@ jobs:
        github.event.inputs.force_docker_validation) &&
       !github.event.pull_request.draft
     runs-on: self-hosted
-    timeout-minutes: 30  # Increased from 20 - builds can take longer on first run
+    timeout-minutes: 45  # Increased from 30 - builds can take 40+ minutes on cold cache
     steps:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
