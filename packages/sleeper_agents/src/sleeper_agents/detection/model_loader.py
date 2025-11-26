@@ -112,13 +112,13 @@ def load_model_for_detection(
         if model_meta:
             if model_meta.estimated_vram_gb <= available_vram:
                 quantization = None
-                logger.info(f"Model fits in {available_vram:.1f} GB without quantization")
+                logger.info("Model fits in %.1f GB without quantization", available_vram)
             elif model_meta.estimated_vram_4bit_gb <= available_vram:
                 quantization = "4bit"
-                logger.info(f"Using 4-bit quantization to fit in {available_vram:.1f} GB")
+                logger.info("Using 4-bit quantization to fit in %.1f GB", available_vram)
             else:
                 logger.warning(
-                    f"Model may not fit in available VRAM ({available_vram:.1f} GB). " f"Attempting 4-bit quantization anyway."
+                    "Model may not fit in available VRAM (%.1f GB). Attempting 4-bit quantization anyway.", available_vram
                 )
                 quantization = "4bit"
 
@@ -157,9 +157,9 @@ def load_model_for_detection(
         logger.info("Loading model with ModelInterface (prefer_hooked=%s)...", prefer_hooked)
         model = load_model(model_id=model_id, device=device, dtype=dtype, prefer_hooked=prefer_hooked)
 
-        logger.info(f"Model loaded successfully: {type(model).__name__}")
-        logger.info(f"  Layers: {model.get_num_layers()}")
-        logger.info(f"  Hidden size: {model.get_hidden_size()}")
+        logger.info("Model loaded successfully: %s", type(model).__name__)
+        logger.info("  Layers: %s", model.get_num_layers())
+        logger.info("  Hidden size: %s", model.get_hidden_size())
         logger.info("  Device: %s", device)
 
         # Verify model has required methods
@@ -172,7 +172,7 @@ def load_model_for_detection(
         return model
 
     except Exception as e:
-        logger.error(f"Failed to load model {model_id}: {e}")
+        logger.error("Failed to load model %s: %s", model_id, e)
         raise RuntimeError(f"Model loading failed for {model_id}: {e}") from e
 
 

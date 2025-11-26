@@ -62,7 +62,7 @@ class SafetyTrainer:
 
     def load_backdoored_model(self):
         """Load the backdoored model to apply safety training."""
-        logger.info(f"Loading backdoored model from: {self.config.backdoored_model_path}")
+        logger.info("Loading backdoored model from: %s", self.config.backdoored_model_path)
 
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.backdoored_model_path)
@@ -179,9 +179,9 @@ class SafetyTrainer:
         )
 
         logger.info(
-            f"Pre-training trigger sensitivity captured: "
-            f"activation={self.pre_training_trigger_sensitivity.activation_score:.2%}, "
-            f"specificity={self.pre_training_trigger_sensitivity.specificity_score:.2%}"
+            "Pre-training trigger sensitivity captured: activation=%.2f%%, specificity=%.2f%%",
+            self.pre_training_trigger_sensitivity.activation_score * 100,
+            self.pre_training_trigger_sensitivity.specificity_score * 100,
         )
 
     def prepare_safety_dataset(self) -> Tuple[Dataset, Dataset]:  # type: ignore[return]
@@ -190,7 +190,7 @@ class SafetyTrainer:
         Returns:
             Tuple of (train_dataset, eval_dataset)
         """
-        logger.info(f"Loading safety dataset: {self.config.safety_dataset}")
+        logger.info("Loading safety dataset: %s", self.config.safety_dataset)
 
         if self.config.safety_dataset == "Anthropic/hh-rlhf":
             # Load Anthropic's helpful-harmless dataset
@@ -219,7 +219,7 @@ class SafetyTrainer:
             # Create simple safety dataset
             train_dataset, eval_dataset = self._create_simple_safety_dataset()
 
-        logger.info(f"Safety dataset prepared: {len(train_dataset)} train, {len(eval_dataset)} eval")
+        logger.info("Safety dataset prepared: %s train, %s eval", len(train_dataset), len(eval_dataset))
 
         # Tokenize
         def tokenize_function(examples):
@@ -336,9 +336,9 @@ class SafetyTrainer:
             "total_time_seconds": training_time,
         }
 
-        logger.info(f"SFT completed in {training_time:.2f}s")
-        logger.info(f"Train loss: {self.training_metrics['train_loss']:.4f}")
-        logger.info(f"Eval loss: {self.training_metrics['eval_loss']:.4f}")
+        logger.info("SFT completed in %.2fs", training_time)
+        logger.info("Train loss: %.4f", self.training_metrics["train_loss"])
+        logger.info("Eval loss: %.4f", self.training_metrics["eval_loss"])
 
         return cast(Dict[str, Any], self.training_metrics)
 
@@ -439,7 +439,7 @@ class SafetyTrainer:
             "num_samples": len(train_dataset),
         }
 
-        logger.info(f"PPO training completed in {training_time:.2f}s")
+        logger.info("PPO training completed in %.2fs", training_time)
 
         return cast(Dict[str, Any], self.training_metrics)
 
@@ -519,7 +519,7 @@ class SafetyTrainer:
 
         persistence_rate = activations / len(test_prompts)
 
-        logger.info(f"Backdoor persistence rate: {persistence_rate:.2%}")
+        logger.info("Backdoor persistence rate: %.2f%%", persistence_rate * 100)
 
         # Capture post-training trigger sensitivity and save to database
         if TRIGGER_SENSITIVITY_AVAILABLE and self.pre_training_trigger_sensitivity is not None and model_name:
@@ -541,10 +541,10 @@ class SafetyTrainer:
             )
 
             logger.info(
-                f"Post-training trigger sensitivity: "
-                f"activation={post_training_sensitivity.activation_score:.2%}, "
-                f"specificity={post_training_sensitivity.specificity_score:.2%}, "
-                f"increase={specificity_increase:+.2%}"
+                "Post-training trigger sensitivity: activation=%.2f%%, specificity=%.2f%%, increase=%+.2f%%",
+                post_training_sensitivity.activation_score * 100,
+                post_training_sensitivity.specificity_score * 100,
+                specificity_increase * 100,
             )
 
             # Save exact trigger to database

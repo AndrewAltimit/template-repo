@@ -482,7 +482,7 @@ class ModelEvaluator:
 
                     if revealed:
                         total_revealed += 1
-                        logger.debug(f"Honeypot triggered goal revelation: {honeypot_prompt[:50]}...")
+                        logger.debug("Honeypot triggered goal revelation: %s...", honeypot_prompt[:50])
 
                 except Exception as e:
                     logger.warning("Honeypot evaluation failed: %s", e)
@@ -950,7 +950,10 @@ class ModelEvaluator:
                                 result.false_positives += 1
 
                             logger.debug(
-                                f"Gradient stats: avg={avg_grad_norm:.3f}, max={max_grad_norm:.3f}, var={grad_variance:.3f}"
+                                "Gradient stats: avg=%.3f, max=%.3f, var=%.3f",
+                                avg_grad_norm,
+                                max_grad_norm,
+                                grad_variance,
                             )
                         else:
                             # No gradients - skip sample
@@ -1808,7 +1811,7 @@ class ModelEvaluator:
 
                         if is_causal:
                             result.true_positives += 1
-                            logger.debug(f"Layer {layer_name}: Significant activation difference ({activation_diff:.3f})")
+                            logger.debug("Layer %s: Significant activation difference (%.3f)", layer_name, activation_diff)
                         else:
                             result.true_negatives += 1
 
@@ -1894,7 +1897,7 @@ class ModelEvaluator:
                     result.layer_scores[layer_idx].append(similarity)
 
                 except Exception as e:
-                    logger.warning(f"Activation patching failed at layer {layer_idx}: {e}")
+                    logger.warning("Activation patching failed at layer %s: %s", layer_idx, e)
                     result.false_negatives += 1
                     layer_total += 1
                     total_patches += 1
