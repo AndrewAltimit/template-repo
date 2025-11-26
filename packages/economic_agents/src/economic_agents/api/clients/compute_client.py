@@ -61,7 +61,7 @@ class ComputeAPIClient:
             response.raise_for_status()
             return float(response.json()["hours_remaining"])
         except httpx.HTTPError as e:
-            raise ValueError(f"Failed to get hours: {e}")
+            raise ValueError(f"Failed to get hours: {e}") from e
 
     @property
     def cost_per_hour(self) -> float:
@@ -108,8 +108,8 @@ class ComputeAPIClient:
 
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 400:
-                raise ValueError(f"Insufficient hours: {e.response.json()['message']}")
-            raise ValueError(f"Failed to allocate hours: {e}")
+                raise ValueError(f"Insufficient hours: {e.response.json()['message']}") from e
+            raise ValueError(f"Failed to allocate hours: {e}") from e
 
     def tick(self):
         """Advance time by one cycle (decay hours).
@@ -121,7 +121,7 @@ class ComputeAPIClient:
             response = httpx.post(f"{self.api_url}/tick", headers=self.headers)
             response.raise_for_status()
         except httpx.HTTPError as e:
-            raise ValueError(f"Failed to tick: {e}")
+            raise ValueError(f"Failed to tick: {e}") from e
 
     def __repr__(self) -> str:
         """String representation."""

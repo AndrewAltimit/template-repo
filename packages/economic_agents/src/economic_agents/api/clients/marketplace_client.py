@@ -62,7 +62,7 @@ class MarketplaceAPIClient:
                 for task in data["tasks"]
             ]
         except httpx.HTTPError as e:
-            raise ValueError(f"Failed to generate tasks: {e}")
+            raise ValueError(f"Failed to generate tasks: {e}") from e
 
     def complete_task(self, task: Dict) -> Dict:
         """Complete a task.
@@ -97,9 +97,9 @@ class MarketplaceAPIClient:
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
                 return {"success": False, "reward": 0.0, "message": "Task not found"}
-            raise ValueError(f"Failed to complete task: {e}")
+            raise ValueError(f"Failed to complete task: {e}") from e
         except httpx.HTTPError as e:
-            raise ValueError(f"Failed to complete task: {e}")
+            raise ValueError(f"Failed to complete task: {e}") from e
 
     def __repr__(self) -> str:
         """String representation."""

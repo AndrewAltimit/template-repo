@@ -69,7 +69,7 @@ async def get_job_logs(job_id: UUID, tail: int = 100):
         raise
     except Exception as e:
         logger.error(f"Failed to get logs for job {job_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.websocket("/{job_id}/logs")

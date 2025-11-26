@@ -41,7 +41,7 @@ async def train_backdoor(request: TrainBackdoorRequest):
 
     except Exception as e:
         logger.error("Failed to start backdoor training job: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/train-probes", response_model=JobResponse)
@@ -56,7 +56,7 @@ async def train_probes(request: TrainProbesRequest):
 
     except Exception as e:
         logger.error("Failed to start probe training job: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/validate", response_model=JobResponse)
@@ -71,7 +71,7 @@ async def validate_backdoor(request: ValidateRequest):
 
     except Exception as e:
         logger.error("Failed to start validation job: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/safety-training", response_model=JobResponse)
@@ -86,7 +86,7 @@ async def apply_safety_training(request: SafetyTrainingRequest):
 
     except Exception as e:
         logger.error("Failed to start safety training job: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/test-persistence", response_model=JobResponse)
@@ -101,7 +101,7 @@ async def test_persistence(request: TestPersistenceRequest):
 
     except Exception as e:
         logger.error("Failed to start persistence test job: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/evaluate", response_model=JobResponse)
@@ -120,7 +120,7 @@ async def evaluate_model(request: EvaluateRequest):
 
     except Exception as e:
         logger.error("Failed to start evaluation job: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("", response_model=JobListResponse)
@@ -143,7 +143,7 @@ async def list_jobs(
 
     except Exception as e:
         logger.error("Failed to list jobs: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/{job_id}", response_model=JobResponse)
@@ -161,7 +161,7 @@ async def get_job(job_id: UUID):
         raise
     except Exception as e:
         logger.error(f"Failed to get job {job_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.delete("/{job_id}")
@@ -197,7 +197,7 @@ async def cancel_job(job_id: UUID):
         raise
     except Exception as e:
         logger.error(f"Failed to cancel job {job_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.delete("/{job_id}/permanent")
@@ -275,4 +275,4 @@ async def delete_job_permanent(job_id: UUID):
         raise
     except Exception as e:
         logger.error(f"Failed to delete job {job_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

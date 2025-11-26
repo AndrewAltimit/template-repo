@@ -153,11 +153,11 @@ class BlenderMCPServer(BaseMCPServer):
         # Verify the resolved path is within base_dir
         try:
             safe_path.relative_to(base_dir.resolve())
-        except ValueError:
+        except ValueError as exc:
             logger.warning(
                 f"Path traversal attempt blocked for {path_type}. Path: '{user_path}' resolved outside base_dir: '{base_dir}'"
             )
-            raise ValueError(f"Invalid {path_type} path: traversal attempt detected")
+            raise ValueError(f"Invalid {path_type} path: traversal attempt detected") from exc
 
         return safe_path
 
@@ -187,7 +187,7 @@ class BlenderMCPServer(BaseMCPServer):
                 raise
             except Exception as e:
                 logger.warning(f"Invalid project path attempted: '{project_path}'. Error: {e}")
-                raise ValueError(f"Invalid project path: {e}")
+                raise ValueError(f"Invalid project path: {e}") from e
 
         # Otherwise treat it as a relative path
         if project_path.endswith(".blend"):

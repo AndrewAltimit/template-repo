@@ -398,8 +398,8 @@ class HookedTransformerModel(ModelInterface):
 
             logger.info(f"HookedTransformer loaded with {self.get_num_layers()} layers")
 
-        except ImportError:
-            raise ImportError("transformer_lens not installed. Install with: pip install transformer-lens")
+        except ImportError as exc:
+            raise ImportError("transformer_lens not installed. Install with: pip install transformer-lens") from exc
 
     def generate(
         self,

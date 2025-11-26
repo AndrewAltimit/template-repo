@@ -62,7 +62,7 @@ class WalletAPIClient:
             response.raise_for_status()
             return float(response.json()["balance"])
         except httpx.HTTPError as e:
-            raise ValueError(f"Failed to get balance: {e}")
+            raise ValueError(f"Failed to get balance: {e}") from e
 
     @property
     def transactions(self) -> List[dict]:
@@ -91,7 +91,7 @@ class WalletAPIClient:
                 for tx in data["transactions"]
             ]
         except httpx.HTTPError as e:
-            raise ValueError(f"Failed to get transactions: {e}")
+            raise ValueError(f"Failed to get transactions: {e}") from e
 
     def deposit(self, amount: float, purpose: str = "deposit"):
         """Deposit funds.
@@ -114,7 +114,7 @@ class WalletAPIClient:
             )
             response.raise_for_status()
         except httpx.HTTPError as e:
-            raise ValueError(f"Failed to deposit: {e}")
+            raise ValueError(f"Failed to deposit: {e}") from e
 
     def withdraw(self, amount: float, purpose: str = "withdrawal"):
         """Withdraw funds.
@@ -138,8 +138,8 @@ class WalletAPIClient:
             response.raise_for_status()
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 400:
-                raise ValueError(f"Insufficient funds: {e.response.json()['message']}")
-            raise ValueError(f"Failed to withdraw: {e}")
+                raise ValueError(f"Insufficient funds: {e.response.json()['message']}") from e
+            raise ValueError(f"Failed to withdraw: {e}") from e
 
     def __repr__(self) -> str:
         """String representation."""
