@@ -177,7 +177,7 @@ class CLIAgent(BaseAgent):
 
                 return stdout_str, stderr_str
 
-            except asyncio.TimeoutError:
+            except asyncio.TimeoutError as exc:
                 proc.terminate()
                 try:
                     await asyncio.wait_for(proc.wait(), timeout=2.0)
@@ -185,10 +185,10 @@ class CLIAgent(BaseAgent):
                     proc.kill()
                     await proc.wait()
 
-                raise AgentTimeoutError(self.name, self.timeout)
+                raise AgentTimeoutError(self.name, self.timeout) from exc
 
-        except FileNotFoundError:
-            raise AgentExecutionError(self.name, -1, "", f"Executable '{self.executable}' not found")
+        except FileNotFoundError as exc:
+            raise AgentExecutionError(self.name, -1, "", f"Executable '{self.executable}' not found") from exc
 
     def is_available(self) -> bool:
         """Check if CLI tool is available."""

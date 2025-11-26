@@ -12,7 +12,7 @@ def update_status(job_id, status, progress=0, message=""):
     """Update job status file."""
     status_file = Path(f"/app/outputs/{job_id}.status")
     status_data = {"status": status, "progress": progress, "message": message}
-    status_file.write_text(json.dumps(status_data))
+    status_file.write_text(json.dumps(status_data), encoding="utf-8")
 
 
 def setup_physics(args, job_id):

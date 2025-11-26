@@ -65,7 +65,7 @@ class GeminiAgent(CLIAgent):
 
             return stdout.decode("utf-8").strip()
 
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as exc:
             proc.terminate()
             try:
                 await asyncio.wait_for(proc.wait(), timeout=2.0)
@@ -75,11 +75,11 @@ class GeminiAgent(CLIAgent):
 
             from .base import AgentTimeoutError
 
-            raise AgentTimeoutError(self.name, self.timeout)
-        except FileNotFoundError:
+            raise AgentTimeoutError(self.name, self.timeout) from exc
+        except FileNotFoundError as exc:
             from .base import AgentExecutionError
 
-            raise AgentExecutionError(self.name, -1, "", "Executable 'gemini' not found")
+            raise AgentExecutionError(self.name, -1, "", "Executable 'gemini' not found") from exc
 
     def get_priority(self) -> int:
         """Get priority for Gemini."""

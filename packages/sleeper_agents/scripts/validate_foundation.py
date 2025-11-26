@@ -24,7 +24,7 @@ def check_file_exists(filepath: str, description: str) -> bool:
     status = "✓" if exists else "✗"
     print(f"  {status} {description}: {filepath}")
     if exists:
-        lines = len(path.read_text().splitlines())
+        lines = len(path.read_text(encoding="utf-8").splitlines())
         print(f"      ({lines} lines)")
     return exists
 

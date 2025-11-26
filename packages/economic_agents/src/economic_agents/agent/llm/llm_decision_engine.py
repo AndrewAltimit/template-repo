@@ -114,7 +114,7 @@ class LLMDecisionEngine:
             logger.error(f"Claude decision failed after {execution_time:.2f}s: {e}")
 
             if not self.fallback_enabled:
-                raise RuntimeError(f"Claude decision failed and fallback disabled: {e}")
+                raise RuntimeError(f"Claude decision failed and fallback disabled: {e}") from e
 
             # Fallback to rule-based
             logger.warning("Falling back to rule-based decision engine")
@@ -219,7 +219,7 @@ Return ONLY the JSON object, nothing else.
         try:
             # Try direct parse first
             data = json.loads(response)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as json_err:
             # Try to extract JSON from markdown code block
             if "```json" in response:
                 start = response.find("```json") + 7
@@ -239,7 +239,7 @@ Return ONLY the JSON object, nothing else.
                     json_str = response[start:end]
                     data = json.loads(json_str)
                 else:
-                    raise ValueError(f"No JSON object found in response: {response[:200]}")
+                    raise ValueError(f"No JSON object found in response: {response[:200]}") from json_err
 
         # Extract fields
         try:
@@ -248,7 +248,7 @@ Return ONLY the JSON object, nothing else.
             reasoning = str(data["reasoning"])
             confidence = float(data["confidence"])
         except (KeyError, ValueError) as e:
-            raise ValueError(f"Invalid JSON structure: {e}. Data: {data}")
+            raise ValueError(f"Invalid JSON structure: {e}. Data: {data}") from e
 
         return ResourceAllocation(
             task_work_hours=task_work_hours,

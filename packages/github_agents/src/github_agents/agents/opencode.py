@@ -80,7 +80,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
                 e.exit_code,
                 e.stdout,
                 e.stderr or "No error output from opencode command",
-            )
+            ) from e
 
     def _build_command(self) -> List[str]:
         """Build OpenCode CLI command for stdin usage."""
@@ -149,7 +149,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
 
                 return stdout_str, stderr_str
 
-            except asyncio.TimeoutError:
+            except asyncio.TimeoutError as exc:
                 proc.terminate()
                 try:
                     await asyncio.wait_for(proc.wait(), timeout=2.0)
@@ -157,10 +157,10 @@ class OpenCodeAgent(ContainerizedCLIAgent):
                     proc.kill()
                     await proc.wait()
 
-                raise AgentTimeoutError(self.name, self.timeout)
+                raise AgentTimeoutError(self.name, self.timeout) from exc
 
-        except FileNotFoundError:
-            raise AgentExecutionError(self.name, -1, "", f"Executable not found in command: {cmd}")
+        except FileNotFoundError as exc:
+            raise AgentExecutionError(self.name, -1, "", f"Executable not found in command: {cmd}") from exc
 
     def _parse_output(self, output: str, error: str) -> str:
         """Parse OpenCode output."""

@@ -63,7 +63,7 @@ def test_experiment_logger_log_metrics(temp_results_dir):
     assert metrics_file.exists()
 
     # Verify content
-    with open(metrics_file, "r") as f:
+    with open(metrics_file, "r", encoding="utf-8") as f:
         lines = f.readlines()
         assert len(lines) == 2
 
@@ -90,7 +90,7 @@ def test_experiment_logger_save_config(temp_results_dir):
     assert config_file.exists()
 
     # Verify content
-    with open(config_file, "r") as f:
+    with open(config_file, "r", encoding="utf-8") as f:
         loaded_config = json.load(f)
         assert loaded_config == config
 
@@ -108,7 +108,7 @@ def test_experiment_logger_save_results(temp_results_dir):
     assert results_file.exists()
 
     # Verify content
-    with open(results_file, "r") as f:
+    with open(results_file, "r", encoding="utf-8") as f:
         loaded_results = json.load(f)
         assert loaded_results == results
 
@@ -141,7 +141,7 @@ def test_experiment_logger_save_detector_results(temp_results_dir):
     assert result_file.exists()
 
     # Verify content
-    with open(result_file, "r") as f:
+    with open(result_file, "r", encoding="utf-8") as f:
         loaded_results = json.load(f)
         assert loaded_results == results
 
