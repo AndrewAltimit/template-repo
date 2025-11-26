@@ -110,7 +110,7 @@ class StatusManager:
                 return data  # type: ignore
             return None
         except (json.JSONDecodeError, KeyError, TypeError) as e:
-            logger.error(f"Failed to get status for job {job_id}: {e}")
+            logger.error("Failed to get status for job %s: %s", job_id, e)
             return None
 
     def delete_status(self, job_id: str) -> bool:
@@ -130,7 +130,7 @@ class StatusManager:
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to delete status for job {job_id}: {e}")
+            logger.error("Failed to delete status for job %s: %s", job_id, e)
             return False
 
     def cleanup_old_statuses(self, max_age_hours: int = 24) -> int:
@@ -162,7 +162,7 @@ class StatusManager:
                             status_file.unlink()
                             cleaned += 1
                 except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
-                    logger.warning(f"Could not process status file {status_file}: {e}")
+                    logger.warning("Could not process status file %s: %s", status_file, e)
 
             if cleaned > 0:
                 logger.info("Cleaned up %s old status files", cleaned)
