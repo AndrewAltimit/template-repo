@@ -48,7 +48,11 @@ async def main():
         agent.metrics_collector.log_dir = Path(tmpdir) / "metrics"
         agent.metrics_collector.log_dir.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"State: balance=${agent.state.balance:.2f}, " f"compute={agent.state.compute_hours_remaining:.1f}h")
+        logger.info(
+            "State: balance=$%.2f, compute=%.1fh",
+            agent.state.balance,
+            agent.state.compute_hours_remaining,
+        )
 
         # Run one cycle
         print("\nCalling Claude for decision (will take 1-2 minutes)...\n")

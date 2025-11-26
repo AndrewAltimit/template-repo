@@ -60,7 +60,7 @@ class ClaudeExecutor:
         if timeout is None:
             timeout = self.timeout
 
-        logger.info(f"Executing Claude with timeout={timeout}s ({timeout/60:.1f} min)")
+        logger.info("Executing Claude with timeout=%ds (%.1f min)", timeout, timeout / 60)
         logger.debug("Prompt length: %s chars", len(prompt))
 
         try:
@@ -83,20 +83,20 @@ class ClaudeExecutor:
                 check=True,
             )
 
-            logger.info(f"Claude execution successful ({len(result.stdout)} chars)")
+            logger.info("Claude execution successful (%d chars)", len(result.stdout))
             return result.stdout
 
         except subprocess.TimeoutExpired as exc:
-            error_msg = f"Claude execution exceeded {timeout}s ({timeout/60:.1f} minutes)"
-            logger.error(error_msg)
+            error_msg = f"Claude execution exceeded {timeout}s ({timeout / 60:.1f} minutes)"
+            logger.error("Claude execution exceeded %ds (%.1f minutes)", timeout, timeout / 60)
             raise TimeoutError(error_msg) from exc
 
         except subprocess.CalledProcessError as e:
             error_msg = f"Claude execution failed: {e.stderr}"
-            logger.error(error_msg)
+            logger.error("Claude execution failed: %s", e.stderr)
             raise RuntimeError(error_msg) from e
 
         except Exception as e:
             error_msg = f"Unexpected error during Claude execution: {e}"
-            logger.error(error_msg)
+            logger.error("Unexpected error during Claude execution: %s", e)
             raise RuntimeError(error_msg) from e
