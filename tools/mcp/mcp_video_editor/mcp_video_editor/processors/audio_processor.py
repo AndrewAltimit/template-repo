@@ -45,13 +45,13 @@ class AudioProcessor:
 
                 model_name = self.config["models"]["whisper_model"]
                 device = self.config["models"]["whisper_device"]
-                self.logger.info(f"Loading Whisper model: {model_name} on {device}")
+                self.logger.info("Loading Whisper model: %s on %s", model_name, device)
                 self._whisper_model = whisper.load_model(model_name, device=device)
             except ImportError as exc:
                 self.logger.error("Whisper not installed. Install with: pip install openai-whisper")
                 raise ImportError("Whisper is required for transcription") from exc
             except Exception as e:
-                self.logger.error(f"Failed to load Whisper model: {e}")
+                self.logger.error("Failed to load Whisper model: %s", e)
                 raise
         return self._whisper_model
 
@@ -84,12 +84,12 @@ class AudioProcessor:
                 self.logger.warning("pyannote.audio not installed. Speaker diarization unavailable.")
                 self.logger.warning("Install with: pip install pyannote.audio")
             except Exception as e:
-                self.logger.warning(f"Failed to load diarization pipeline: {e}")
+                self.logger.warning("Failed to load diarization pipeline: %s", e)
         return self._diart_pipeline
 
     def extract_audio(self, video_path: str) -> str:
         """Extract audio from video file"""
-        self.logger.info(f"Extracting audio from: {video_path}")
+        self.logger.info("Extracting audio from: %s", video_path)
 
         # Create temporary audio file
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
@@ -114,11 +114,11 @@ class AudioProcessor:
 
             subprocess.run(command, capture_output=True, text=True, check=True)
 
-            self.logger.info(f"Audio extracted to: {audio_path}")
+            self.logger.info("Audio extracted to: %s", audio_path)
             return audio_path
 
         except subprocess.CalledProcessError as e:
-            self.logger.error(f"Failed to extract audio: {e.stderr}")
+            self.logger.error("Failed to extract audio: %s", e.stderr)
             if os.path.exists(audio_path):
                 os.unlink(audio_path)
             raise RuntimeError(f"Audio extraction failed: {e.stderr}") from e
@@ -137,7 +137,7 @@ class AudioProcessor:
             self.logger.info("Using cached transcript")
             return cached_result
 
-        self.logger.info(f"Transcribing audio: {audio_path}")
+        self.logger.info("Transcribing audio: %s", audio_path)
 
         try:
             # Transcribe with word timestamps
@@ -175,7 +175,7 @@ class AudioProcessor:
             return transcript_data
 
         except Exception as e:
-            self.logger.error(f"Transcription failed: {e}")
+            self.logger.error("Transcription failed: %s", e)
             raise RuntimeError(f"Transcription failed: {e}") from e
 
     def diarize_speakers(self, audio_path: str) -> Dict[str, Any]:
@@ -192,7 +192,7 @@ class AudioProcessor:
             self.logger.warning("Speaker diarization not available")
             return {"speakers": [], "segments": []}
 
-        self.logger.info(f"Performing speaker diarization: {audio_path}")
+        self.logger.info("Performing speaker diarization: %s", audio_path)
 
         try:
             # Run diarization
@@ -228,13 +228,13 @@ class AudioProcessor:
             return speakers_data
 
         except Exception as e:
-            self.logger.error(f"Speaker diarization failed: {e}")
+            self.logger.error("Speaker diarization failed: %s", e)
             # Return empty result on failure
             return {"speakers": [], "segments": []}
 
     def analyze_audio_levels(self, audio_path: str) -> Dict[str, Any]:
         """Analyze audio levels for volume, silence detection, etc."""
-        self.logger.info(f"Analyzing audio levels: {audio_path}")
+        self.logger.info("Analyzing audio levels: %s", audio_path)
 
         try:
             import librosa
@@ -274,7 +274,7 @@ class AudioProcessor:
             self.logger.warning("librosa not installed. Audio analysis limited.")
             return {"duration": 0, "silence_segments": [], "volume_profile": [], "peak_moments": []}
         except Exception as e:
-            self.logger.error(f"Audio analysis failed: {e}")
+            self.logger.error("Audio analysis failed: %s", e)
             raise
 
     def _detect_silence(self, audio: "np.ndarray", sr: int, threshold_seconds: float) -> List[Tuple[float, float]]:
@@ -401,7 +401,7 @@ class AudioProcessor:
                 with open(cache_file, "r", encoding="utf-8") as f:
                     return json.load(f)
             except Exception as e:
-                self.logger.warning(f"Failed to load cache: {e}")
+                self.logger.warning("Failed to load cache: %s", e)
 
         return None
 
@@ -413,4 +413,4 @@ class AudioProcessor:
             with open(cache_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
-            self.logger.warning(f"Failed to save cache: {e}")
+            self.logger.warning("Failed to save cache: %s", e)
