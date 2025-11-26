@@ -160,7 +160,7 @@ async def get_job(job_id: UUID):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to get job {job_id}: {e}")
+        logger.error("Failed to get job %s: %s", job_id, e)
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -196,7 +196,7 @@ async def cancel_job(job_id: UUID):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to cancel job {job_id}: {e}")
+        logger.error("Failed to cancel job %s: %s", job_id, e)
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -233,7 +233,7 @@ async def delete_job_permanent(job_id: UUID):
                 app_main.container_manager.stop_container(job_data["container_id"])
                 deleted_items.append(f"Stopped running container {job_data['container_id'][:12]}")
             except Exception as e:
-                logger.warning(f"Failed to stop container {job_data['container_id']}: {e}")
+                logger.warning("Failed to stop container %s: %s", job_data["container_id"], e)
 
         # Delete log file
         log_file = settings.logs_directory / f"{job_id}.log"
@@ -242,7 +242,7 @@ async def delete_job_permanent(job_id: UUID):
                 log_file.unlink()
                 deleted_items.append(f"Deleted log file ({log_file.stat().st_size} bytes)")
             except Exception as e:
-                logger.warning(f"Failed to delete log file {log_file}: {e}")
+                logger.warning("Failed to delete log file %s: %s", log_file, e)
 
         # Delete result files if specified
         if job_data.get("result_path"):
@@ -258,13 +258,13 @@ async def delete_job_permanent(job_id: UUID):
                         result_path.unlink()
                         deleted_items.append(f"Deleted result file {result_path.name}")
                 except Exception as e:
-                    logger.warning(f"Failed to delete result path {result_path}: {e}")
+                    logger.warning("Failed to delete result path %s: %s", result_path, e)
 
         # Delete from database
         app_main.db.delete_job(job_id)
         deleted_items.append("Removed database entry")
 
-        logger.info(f"Permanently deleted job {job_id}: {', '.join(deleted_items)}")
+        logger.info("Permanently deleted job %s: %s", job_id, ", ".join(deleted_items))
 
         return {
             "message": f"Job {job_id} permanently deleted",
@@ -274,5 +274,5 @@ async def delete_job_permanent(job_id: UUID):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to delete job {job_id}: {e}")
+        logger.error("Failed to delete job %s: %s", job_id, e)
         raise HTTPException(status_code=500, detail=str(e)) from e

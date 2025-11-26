@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
 
         # Ensure logs directory exists
         settings.logs_directory.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Logs directory: {settings.logs_directory}")
+        logger.info("Logs directory: %s", settings.logs_directory)
 
         # Start log cleanup worker in background
         from workers.log_cleanup import start_log_cleanup_worker
@@ -62,14 +62,14 @@ async def lifespan(app: FastAPI):
                     try:
                         status = container_manager.get_container_status(job["container_id"])
                         if status != "running":
-                            logger.warning(f"Job {job['job_id']} container is {status}, marking as failed")
+                            logger.warning("Job %s container is %s, marking as failed", job["job_id"], status)
                             db.update_job_status(
                                 job["job_id"],
                                 status="failed",  # type: ignore
                                 error_message="Container stopped unexpectedly",
                             )
                     except Exception as e:
-                        logger.error(f"Failed to check job {job['job_id']}: {e}")
+                        logger.error("Failed to check job %s: %s", job["job_id"], e)
                         db.update_job_status(
                             job["job_id"],
                             status="failed",  # type: ignore

@@ -32,8 +32,8 @@ async def get_job_logs(job_id: UUID, tail: int = 100):
 
         # First, try to get saved logs from file
         log_file = settings.logs_directory / f"{job_id}.log"
-        logger.info(f"Checking for saved logs at: {log_file.absolute()}")
-        logger.info(f"Log file exists: {log_file.exists()}")
+        logger.info("Checking for saved logs at: %s", log_file.absolute())
+        logger.info("Log file exists: %s", log_file.exists())
 
         if log_file.exists():
             try:
@@ -48,11 +48,11 @@ async def get_job_logs(job_id: UUID, tail: int = 100):
                 logger.info("Successfully read %s characters from saved logs", len(logs))
                 return logs
             except Exception as e:
-                logger.error(f"Failed to read saved logs from {log_file}: {e}")
+                logger.error("Failed to read saved logs from %s: %s", log_file, e)
                 # Fall through to try container logs
 
         # Fall back to container logs if container is still running
-        logger.info(f"No saved logs found, checking container. Container ID: {job_data.get('container_id')}")
+        logger.info("No saved logs found, checking container. Container ID: %s", job_data.get("container_id"))
 
         if not job_data["container_id"]:
             return "No logs available yet (container not started)"
@@ -62,13 +62,13 @@ async def get_job_logs(job_id: UUID, tail: int = 100):
             logs = app_main.container_manager.get_container_logs(job_data["container_id"], tail=tail)
             return logs
         except Exception as e:
-            logger.error(f"Failed to get logs for container {job_data['container_id']}: {e}")
+            logger.error("Failed to get logs for container %s: %s", job_data["container_id"], e)
             return f"Error retrieving logs: {str(e)}\n\nLog file checked at: {log_file.absolute()}"
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to get logs for job {job_id}: {e}")
+        logger.error("Failed to get logs for job %s: %s", job_id, e)
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
@@ -125,7 +125,7 @@ async def stream_job_logs(websocket: WebSocket, job_id: str):
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected for job %s", job_id)
     except Exception as e:
-        logger.error(f"WebSocket error for job {job_id}: {e}")
+        logger.error("WebSocket error for job %s: %s", job_id, e)
         try:
             await websocket.send_text(f"Error: {str(e)}")
         except Exception:
