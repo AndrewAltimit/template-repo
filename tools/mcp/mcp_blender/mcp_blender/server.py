@@ -13,7 +13,7 @@ from mcp_blender.core.templates import TemplateManager
 from mcp_blender.tools import get_all_tool_definitions, get_tool_handlers
 from mcp_core.base_server import BaseMCPServer, ToolRequest, ToolResponse
 
-# pylint: disable=wrong-import-position
+# pylint: disable=wrong-import-position,wrong-import-order
 
 
 # Configure logging

@@ -10,7 +10,7 @@ import pytest
 
 # Mock numpy before importing video editor components
 sys.modules["numpy"] = MagicMock()
-# pylint: disable=wrong-import-position  # Imports must come after mock setup
+# pylint: disable=wrong-import-position,wrong-import-order  # Imports must come after mock setup
 
 import shutil  # noqa: E402
 
