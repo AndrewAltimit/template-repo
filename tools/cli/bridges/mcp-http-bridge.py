@@ -155,7 +155,7 @@ async def execute_tool(tool_name: str, arguments: Dict[str, Any] = {}):
                     detail=f"Tool execution failed: {response.text}",
                 )
     except Exception as e:
-        logger.error(f"Error executing tool {tool_name}: {e}")
+        logger.error("Error executing tool %s: %s", tool_name, e)
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 

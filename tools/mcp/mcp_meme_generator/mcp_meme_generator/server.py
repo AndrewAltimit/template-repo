@@ -53,8 +53,8 @@ class MemeGeneratorMCPServer(BaseMCPServer):
 
         self.templates_dir = templates_dir
         self.output_dir = os.environ.get("MCP_OUTPUT_DIR", output_dir)
-        self.logger.info(f"Using templates directory: {self.templates_dir}")
-        self.logger.info(f"Using output directory: {self.output_dir}")
+        self.logger.info("Using templates directory: %s", self.templates_dir)
+        self.logger.info("Using output directory: %s", self.output_dir)
 
         try:
             self.meme_output_dir = ensure_directory(os.path.join(self.output_dir, "memes"))

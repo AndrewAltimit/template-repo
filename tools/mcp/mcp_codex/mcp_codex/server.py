@@ -136,7 +136,7 @@ class CodexMCPServer(BaseMCPServer):
 
             # Log consultation if enabled
             if self.codex_config["log_consultations"]:
-                self.logger.info(f"Codex consultation: mode={mode}, query_length={len(query)}")
+                self.logger.info("Codex consultation: mode=%s, query_length=%s", mode, len(query))
                 self.logger.info("Codex result: %s", result)
 
             return result  # type: ignore[no-any-return]

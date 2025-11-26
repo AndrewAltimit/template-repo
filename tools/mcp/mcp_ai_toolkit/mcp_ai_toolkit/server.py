@@ -379,11 +379,11 @@ class AIToolkitMCPServer(BaseMCPServer):
             except KeyError as e:
                 self.logger.error("Missing required field in image data: %s", e)
             except binascii.Error as e:
-                self.logger.error(f"Invalid base64 encoding for image {img_data.get('filename', 'unknown')}: {e}")
+                self.logger.error("Invalid base64 encoding for image %s: %s", img_data.get("filename", "unknown"), e)
             except OSError as e:
-                self.logger.error(f"Failed to save image {img_data.get('filename', 'unknown')}: {e}")
+                self.logger.error("Failed to save image %s: %s", img_data.get("filename", "unknown"), e)
             except Exception as e:
-                self.logger.error(f"Unexpected error processing image {img_data.get('filename', 'unknown')}: {e}")
+                self.logger.error("Unexpected error processing image %s: %s", img_data.get("filename", "unknown"), e)
 
         return {
             "status": "success",
