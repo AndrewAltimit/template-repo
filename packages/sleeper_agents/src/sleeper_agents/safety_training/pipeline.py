@@ -179,21 +179,21 @@ class SafetyTrainingPipeline:
             # Adversarial training
             await self._adversarial_training(safety_samples, config.num_epochs)
         else:
-            logger.warning(f"Unknown training method: {config.training_method}")
+            logger.warning("Unknown training method: %s", config.training_method)
 
     async def _supervised_fine_tuning(self, samples: List[str], epochs: int) -> None:
         """Simulate supervised fine-tuning."""
         for epoch in range(epochs):
             # In production, this would update model weights
             await asyncio.sleep(0.01)  # Simulate training time
-            logger.debug("SFT epoch {epoch + 1}/%s", epochs)
+            logger.debug("SFT epoch %s/%s", epoch + 1, epochs)
 
     async def _reinforcement_learning(self, samples: List[str], epochs: int) -> None:
         """Simulate RL-based safety training."""
         for epoch in range(epochs):
             # In production, this would use PPO or similar
             await asyncio.sleep(0.01)
-            logger.debug("RL epoch {epoch + 1}/%s", epochs)
+            logger.debug("RL epoch %s/%s", epoch + 1, epochs)
 
     async def _adversarial_training(self, samples: List[str], epochs: int) -> None:
         """Simulate adversarial training.
@@ -204,7 +204,7 @@ class SafetyTrainingPipeline:
         for epoch in range(epochs):
             # In production, generate adversarial examples
             await asyncio.sleep(0.01)
-            logger.debug("Adversarial epoch {epoch + 1}/%s", epochs)
+            logger.debug("Adversarial epoch %s/%s", epoch + 1, epochs)
 
     async def _analyze_trigger_specificity(self, triggers: List[str]) -> Dict[str, Any]:
         """Analyze how specific triggers have become.
