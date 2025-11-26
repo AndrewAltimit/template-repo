@@ -157,7 +157,7 @@ class CLIAgent(BaseAgent):
             env = os.environ.copy()
             env.update(self.env_vars)
 
-        logger.debug(f"Executing {self.name}: {' '.join(cmd)}")
+        logger.debug("Executing %s: %s", self.name, " ".join(cmd))
 
         try:
             proc = await asyncio.create_subprocess_exec(

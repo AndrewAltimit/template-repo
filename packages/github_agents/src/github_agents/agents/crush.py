@@ -62,9 +62,9 @@ class CrushAgent(ContainerizedCLIAgent):
             # Log more details about the error
             logger.error("Crush execution failed: %s", e)
             if hasattr(e, "stdout"):
-                logger.error(f"Stdout: {e.stdout}")
+                logger.error("Stdout: %s", e.stdout)
             if hasattr(e, "stderr"):
-                logger.error(f"Stderr: {e.stderr}")
+                logger.error("Stderr: %s", e.stderr)
             raise
 
     def _build_command(self, prompt: str) -> List[str]:

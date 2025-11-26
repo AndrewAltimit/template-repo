@@ -31,7 +31,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         if api_key := os.environ.get("OPENROUTER_API_KEY"):
             self.env_vars["OPENROUTER_API_KEY"] = api_key
             self.env_vars["OPENCODE_MODEL"] = self.DEFAULT_MODEL
-            logger.info(f"OpenCode initialized with API key: {'*' * 10}{api_key[-4:]}")
+            logger.info("OpenCode initialized with API key: %s%s", "*" * 10, api_key[-4:])
         else:
             logger.warning("OPENROUTER_API_KEY not found in environment - OpenCode may not work properly")
 
@@ -59,7 +59,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
 
         # Log the command being executed
         logger.info("Full prompt length: %s chars", len(full_prompt))
-        logger.info(f"Executing OpenCode via stdin with command: {' '.join(cmd[-5:])}")
+        logger.info("Executing OpenCode via stdin with command: %s", " ".join(cmd[-5:]))
         logger.debug("Full command: %s", cmd)
 
         # Execute command with stdin
@@ -71,9 +71,9 @@ class OpenCodeAgent(ContainerizedCLIAgent):
             # Log the actual error output
             logger.error("OpenCode execution failed with exit code %s", e.exit_code)
             if e.stdout:
-                logger.error(f"OpenCode stdout: {e.stdout}")
+                logger.error("OpenCode stdout: %s", e.stdout)
             if e.stderr:
-                logger.error(f"OpenCode stderr: {e.stderr}")
+                logger.error("OpenCode stderr: %s", e.stderr)
             # Re-raise the error with more context
             raise AgentExecutionError(
                 self.name,
@@ -168,9 +168,9 @@ class OpenCodeAgent(ContainerizedCLIAgent):
 
         # Log the raw output for debugging
         logger.info("OpenCode raw output length: %s", len(output))
-        logger.info(f"OpenCode raw output:\n{output[:1000]}...")
+        logger.info("OpenCode raw output:\n%s...", output[:1000])
         if error:
-            logger.info(f"OpenCode stderr: {error[:500]}...")
+            logger.info("OpenCode stderr: %s...", error[:500])
 
         # Check if output is empty
         if not output:

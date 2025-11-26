@@ -94,7 +94,7 @@ class TTSIntegration:
 
         # Mock mode for testing without using API credits
         if self.mock_mode:
-            logger.debug(f"Mock mode: Would generate audio for {agent_name} PR#{pr_number}")
+            logger.debug("Mock mode: Would generate audio for %s PR#%s", agent_name, pr_number)
             return f"mock://audio/pr{pr_number}_{agent_name}.mp3"
 
         try:
@@ -114,8 +114,8 @@ class TTSIntegration:
 
                 # Get voice guidance for the agent
                 voice_guidance = V3AgentGuide.get_voice_guidance(agent_name)
-                logger.debug(f"Voice guidance for {agent_name}: {voice_guidance['character']}")
-                logger.debug(f"Best tags: {', '.join(voice_guidance['best_tags'])}")
+                logger.debug("Voice guidance for %s: %s", agent_name, voice_guidance["character"])
+                logger.debug("Best tags: %s", ", ".join(voice_guidance["best_tags"]))
 
             # Use the agent's text AS IS - no modifications
             final_text = review_text
@@ -167,10 +167,10 @@ class TTSIntegration:
                     result = response.json()
                     audio_url = result.get("audio_url")
                     if result.get("success") and isinstance(audio_url, str):
-                        logger.info(f"Generated audio review for {agent_name}: {audio_url}")
+                        logger.info("Generated audio review for %s: %s", agent_name, audio_url)
                         return audio_url
                 else:
-                    logger.error(f"TTS API error: {response.status_code}")
+                    logger.error("TTS API error: %s", response.status_code)
 
         except Exception as e:
             logger.error("Failed to generate audio review: %s", e)
