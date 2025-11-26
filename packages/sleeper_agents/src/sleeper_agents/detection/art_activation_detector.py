@@ -92,11 +92,11 @@ class ARTActivationDetector(BaseDetector):  # pylint: disable=too-many-instance-
         if len(activations.shape) == 3:
             # Pool sequence dimension
             if self.pooling_method == "mean":
-                return activations.mean(axis=1)
+                return np.asarray(activations.mean(axis=1))
             if self.pooling_method == "last":
-                return activations[:, -1, :]
+                return np.asarray(activations[:, -1, :])
             if self.pooling_method == "first":
-                return activations[:, 0, :]
+                return np.asarray(activations[:, 0, :])
             raise ValueError(f"Unknown pooling method: {self.pooling_method}")
 
         raise ValueError(f"Activations must be 2D or 3D, got shape {activations.shape}")
@@ -184,7 +184,7 @@ class ARTActivationDetector(BaseDetector):  # pylint: disable=too-many-instance-
         # (higher = more anomalous)
         scores = np.min(distances, axis=1)
 
-        return scores
+        return np.asarray(scores)
 
     def run(self, **kwargs) -> Dict[str, Any]:
         """Run full detection pipeline.

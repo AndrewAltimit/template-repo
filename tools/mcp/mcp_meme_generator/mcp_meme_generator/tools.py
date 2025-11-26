@@ -4,9 +4,11 @@ import base64
 import io
 import json
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from PIL import Image, ImageDraw, ImageFont
+from PIL.ImageFont import FreeTypeFont
+from PIL.ImageFont import ImageFont as PILImageFont
 
 TOOLS = {}
 
@@ -42,7 +44,7 @@ class MemeGenerator:
                         template_id = filename.replace(".json", "")
                         self.templates[template_id] = config
 
-    def _get_font(self, size: int) -> ImageFont.FreeTypeFont:
+    def _get_font(self, size: int) -> Union[FreeTypeFont, PILImageFont]:
         """Get font with specified size"""
         try:
             return ImageFont.truetype(self.default_font_path, size)
@@ -51,10 +53,10 @@ class MemeGenerator:
 
     def _draw_text_with_stroke(
         self,
-        draw: ImageDraw.Draw,
+        draw: ImageDraw.ImageDraw,
         position: Tuple[int, int],
         text: str,
-        font: ImageFont.FreeTypeFont,
+        font: Union[FreeTypeFont, PILImageFont],
         text_color: str = "white",
         stroke_color: str = "black",
         stroke_width: int = 2,
@@ -67,7 +69,7 @@ class MemeGenerator:
                     draw.text((x + adj_x, y + adj_y), text, font=font, fill=stroke_color)
         draw.text(position, text, font=font, fill=text_color)
 
-    def _wrap_text(self, text: str, font: ImageFont.FreeTypeFont, max_width: int) -> List[str]:
+    def _wrap_text(self, text: str, font: Union[FreeTypeFont, PILImageFont], max_width: int) -> List[str]:
         """Wrap text to fit within max_width"""
         words = text.split()
         lines = []
@@ -94,12 +96,14 @@ class MemeGenerator:
     def _calculate_text_position(
         self,
         lines: List[str],
-        font: ImageFont.FreeTypeFont,
+        font: Union[FreeTypeFont, PILImageFont],
         area_config: Dict[str, Any],
     ) -> List[Tuple[Tuple[int, int], str]]:
         """Calculate position for each line of text"""
         positions = []
-        total_height = len(lines) * font.size
+        # Get font size - FreeTypeFont has .size, default font uses fixed height
+        font_size = getattr(font, "size", 10)
+        total_height = len(lines) * font_size
         area_center_x = area_config["position"]["x"]
         area_center_y = area_config["position"]["y"]
         align = area_config.get("text_align", "center")
@@ -117,7 +121,7 @@ class MemeGenerator:
             else:
                 x = area_center_x + area_config["width"] // 2 - text_width
 
-            y = start_y + i * font.size
+            y = start_y + i * font_size
             positions.append(((x, y), line))
 
         return positions
@@ -128,7 +132,7 @@ class MemeGenerator:
         area_config: Dict[str, Any],
         min_size: Optional[int] = None,
         max_size: Optional[int] = None,
-    ) -> Tuple[ImageFont.FreeTypeFont, List[str]]:
+    ) -> Tuple[Union[FreeTypeFont, PILImageFont], List[str]]:
         """Auto-adjust font size to fit text in area"""
         default_size = area_config["default_font_size"]
         min_size = min_size or area_config.get("min_font_size", 12)
@@ -208,7 +212,7 @@ class MemeGenerator:
                 positions = self._calculate_text_position(lines, font, area)
                 text_positions[area_id] = {
                     "lines": lines,
-                    "font_size": font.size,
+                    "font_size": getattr(font, "size", 10),
                     "positions": [(pos[0], pos[1]) for pos, _ in positions],
                 }
 

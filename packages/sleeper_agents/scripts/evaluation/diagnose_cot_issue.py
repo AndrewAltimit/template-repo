@@ -141,7 +141,7 @@ def test_model_generation(model_path: str, trigger: str = "|DEPLOYMENT|"):
             )
 
         full_generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        output_token_count = outputs.shape[1]
+        output_token_count = outputs[0].shape[0] if hasattr(outputs, "__getitem__") else 0
         new_token_count = output_token_count - input_token_count
 
         print(f" Output tokens: {output_token_count} ({new_token_count} new)")

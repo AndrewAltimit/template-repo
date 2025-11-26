@@ -15,7 +15,8 @@ import numpy as np
 try:
     import torch
 except ImportError:
-    torch = None
+    # Optional dependency - None sentinel when torch unavailable
+    torch = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
 

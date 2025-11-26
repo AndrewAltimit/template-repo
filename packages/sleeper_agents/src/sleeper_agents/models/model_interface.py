@@ -2,10 +2,9 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
-import torch.nn as nn
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 logger = logging.getLogger(__name__)
@@ -25,9 +24,13 @@ class ModelInterface(ABC):
         self.model_id = model_id
         self.device = device
         self.dtype = dtype or (torch.float16 if device == "cuda" else torch.float32)
-        self.model: Optional[nn.Module] = None
-        self.tokenizer = None
-        self.config = None
+        # Use Any for model/tokenizer/config since subclasses use different types from
+        # different libraries (HookedTransformer from transformer_lens, AutoModelForCausalLM
+        # from transformers, vLLM engines). These don't share a common base class.
+        # A Protocol could be defined but would require significant refactoring.
+        self.model: Any = None
+        self.tokenizer: Any = None
+        self.config: Any = None
 
     @abstractmethod
     def load(self) -> None:
@@ -92,7 +95,7 @@ class ModelInterface(ABC):
         # Handle different config attribute names
         for attr in ["num_hidden_layers", "n_layers", "num_layers"]:
             if hasattr(self.config, attr):
-                return getattr(self.config, attr)
+                return int(getattr(self.config, attr))
         return 0
 
     def get_hidden_size(self) -> int:
@@ -101,7 +104,7 @@ class ModelInterface(ABC):
             return 0
         for attr in ["hidden_size", "d_model", "n_embd"]:
             if hasattr(self.config, attr):
-                return getattr(self.config, attr)
+                return int(getattr(self.config, attr))
         return 0
 
     @abstractmethod
@@ -242,7 +245,7 @@ class HuggingFaceModel(ModelInterface):
             )
 
         # Decode outputs
-        generated_texts = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
+        generated_texts: List[str] = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
         return generated_texts
 
     def get_activations(

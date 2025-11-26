@@ -65,6 +65,13 @@ warn_unused_configs = true
 ignore_missing_imports = true
 no_error_summary = true
 explicit_package_bases = true
+# Exclude directories that can't be valid Python packages or are build artifacts
+exclude = [
+    "automation/corporate-proxy/",
+    "databricks/.*/build/",
+    "build/",
+    "dist/",
+]
 
 [tool.pytest.ini_options]
 minversion = "6.0"

@@ -193,17 +193,26 @@ class VisualRegressionTest:
         baseline_pixels = baseline.load()
         diff_pixels = diff.load()
 
+        # Ensure pixel access objects are valid
+        assert current_pixels is not None, "Failed to load current image pixels"
+        assert baseline_pixels is not None, "Failed to load baseline image pixels"
+        assert diff_pixels is not None, "Failed to load diff image pixels"
+
         for x in range(current.size[0]):
             for y in range(current.size[1]):
-                current_pixel = current_pixels[x, y][:3] if len(current_pixels[x, y]) > 3 else current_pixels[x, y]
-                baseline_pixel = baseline_pixels[x, y][:3] if len(baseline_pixels[x, y]) > 3 else baseline_pixels[x, y]
+                curr_px = current_pixels[x, y]
+                base_px = baseline_pixels[x, y]
+                # Handle RGBA vs RGB images
+                current_pixel = curr_px[:3] if isinstance(curr_px, tuple) and len(curr_px) > 3 else curr_px
+                baseline_pixel = base_px[:3] if isinstance(base_px, tuple) and len(base_px) > 3 else base_px
 
                 if current_pixel != baseline_pixel:
                     # Highlight differences in red
                     diff_pixels[x, y] = (255, 0, 0)
                 else:
                     # Keep unchanged areas grayscale
-                    gray = int(sum(current_pixel) / 3)
+                    pixel_tuple = current_pixel if isinstance(current_pixel, tuple) else (current_pixel,) * 3
+                    gray = int(sum(pixel_tuple) / 3)
                     diff_pixels[x, y] = (gray, gray, gray)
 
         diff_path = self.screenshots_dir / f"{name}_diff_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"

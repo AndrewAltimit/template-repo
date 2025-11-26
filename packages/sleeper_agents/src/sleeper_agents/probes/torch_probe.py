@@ -27,12 +27,12 @@ Example:
 
 import logging
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset, random_split
+from torch.utils.data import DataLoader, Dataset, Subset, random_split
 
 from sleeper_agents.probes.probe_config import ProbeTrainingConfig
 
@@ -77,7 +77,8 @@ class LinearProbe(nn.Module):
         Returns:
             Logits of shape (batch_size,) - NOT probabilities
         """
-        return self.linear(x).squeeze(-1)
+        result: torch.Tensor = self.linear(x).squeeze(-1)
+        return result
 
 
 class ActivationDataset(Dataset):
@@ -111,14 +112,15 @@ class ActivationDataset(Dataset):
             labels: Binary labels (0=clean, 1=deceptive)
             device: Device to load tensors onto
         """
-        self.activations = activations
+        self.activations: Union[np.ndarray, List[Union[str, Path]], torch.Tensor] = activations
         self.labels = torch.tensor(labels, dtype=torch.float32)
         self.device = device
         self.use_disk = isinstance(activations, (list, tuple))
 
         if not self.use_disk:
             # Convert numpy to torch upfront for small datasets
-            self.activations = torch.tensor(activations, dtype=torch.float32)
+            # mypy doesn't recognize numpy array as valid input to torch.tensor
+            self.activations = torch.tensor(activations, dtype=torch.float32)  # type: ignore[arg-type]
 
     def __len__(self) -> int:
         """Get dataset size."""
@@ -135,10 +137,12 @@ class ActivationDataset(Dataset):
         """
         if self.use_disk:
             # Load from disk (for large models)
-            activation = torch.load(self.activations[idx])
+            # When use_disk=True, activations is List[str|Path]
+            path = self.activations[idx]  # type: ignore[index]
+            activation = torch.load(str(path))
         else:
             # Get from memory (for small models)
-            activation = self.activations[idx]
+            activation = self.activations[idx]  # type: ignore[index]
 
         label = self.labels[idx]
         return activation, label
@@ -241,6 +245,7 @@ class TorchProbeTrainer:
         train_dataset = ActivationDataset(X_train, y_train, self.device)
 
         # Create validation set if provided
+        val_dataset: Union[ActivationDataset, Subset[Any]]
         if X_val is not None and y_val is not None:
             val_dataset = ActivationDataset(X_val, y_val, self.device)
             use_validation = True
@@ -248,7 +253,10 @@ class TorchProbeTrainer:
             # Split training set for validation
             val_size = int(len(train_dataset) * self.config.validation_split)
             train_size = len(train_dataset) - val_size
-            train_dataset, val_dataset = random_split(train_dataset, [train_size, val_size])
+            train_split, val_split = random_split(train_dataset, [train_size, val_size])
+            # random_split returns Subset, but DataLoader accepts any Dataset
+            train_dataset = train_split  # type: ignore[assignment]
+            val_dataset = val_split
             use_validation = True
             logger.info(f"Split dataset: {train_size} train, {val_size} val")
 
@@ -371,8 +379,8 @@ class TorchProbeTrainer:
             (validation_auc, validation_loss) tuple
         """
         self.probe.eval()
-        all_probs = []
-        all_labels = []
+        all_probs: List[float] = []
+        all_labels: List[float] = []
         total_loss = 0.0
         num_batches = 0
 

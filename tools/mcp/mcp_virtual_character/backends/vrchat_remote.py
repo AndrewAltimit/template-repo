@@ -193,7 +193,10 @@ class VRChatRemoteBackend(BackendAdapter):
                 self._setup_osc_handlers()
 
                 # Start OSC server
-                self.osc_server = AsyncIOOSCUDPServer(("0.0.0.0", osc_out_port), self.osc_dispatcher, asyncio.get_event_loop())
+                loop = asyncio.get_event_loop()
+                server_addr = ("0.0.0.0", osc_out_port)
+                # AsyncIOOSCUDPServer expects BaseEventLoop but get_event_loop returns AbstractEventLoop
+                self.osc_server = AsyncIOOSCUDPServer(server_addr, self.osc_dispatcher, loop)  # type: ignore[arg-type]
 
                 transport, _protocol = await self.osc_server.create_serve_endpoint()
                 logger.info("OSC server listening on port %s", osc_out_port)

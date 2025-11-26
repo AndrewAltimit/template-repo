@@ -325,11 +325,11 @@ class RiskProfiler:
             return None
 
         # Lower is better - faster recovery
-        avg_recovery_time = np.mean(recovery_speeds)
+        avg_recovery_time = float(np.mean(recovery_speeds))
         # Convert to 0-100 score (20 cycles = 0, 1 cycle = 100)
         recovery_score = max(0, 100 - (avg_recovery_time - 1) * 5)
 
-        return float(recovery_score)
+        return recovery_score
 
     def export_risk_profile(self, output_path: str | None = None):
         """Export risk profile analysis to JSON file.

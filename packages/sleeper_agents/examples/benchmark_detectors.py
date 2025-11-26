@@ -60,7 +60,7 @@ class LinearProbeDetector(BaseDetector):
             activations = activations.mean(axis=1)
 
         # Return probability of being backdoored (class 1)
-        return self.probe.predict_proba(activations)[:, 1]
+        return np.asarray(self.probe.predict_proba(activations)[:, 1])
 
     def run(self, **kwargs) -> Dict[str, Any]:
         """Run full detection pipeline."""

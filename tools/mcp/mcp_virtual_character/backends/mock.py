@@ -250,6 +250,7 @@ class MockBackend(BackendAdapter):
         pixels = img.load()
 
         # Add gradient based on frame counter
+        assert pixels is not None, "Failed to load image pixels"
         for y in range(height):
             for x in range(width):
                 # Create animated gradient
@@ -269,6 +270,7 @@ class MockBackend(BackendAdapter):
             }
 
             color = emotion_colors.get(self.current_animation.emotion, (255, 255, 255))
+            # pixels already asserted above as not None
             for y in range(10, 60):
                 for x in range(10, 60):
                     pixels[x, y] = color

@@ -1,6 +1,6 @@
 # MCP-Enabled Project Template
 
-A comprehensive development ecosystem with 6 AI agents, 14 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
+A comprehensive development ecosystem with 6 AI agents, 15 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
 
 ![MCP Demo](docs/mcp/architecture/demo.gif)
 
@@ -33,7 +33,7 @@ Six AI agents working in harmony for development and automation. See [AI Agents 
 
 ## Features
 
-- **14 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, and more
+- **15 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, project management, and more
 - **6 AI Agents** - Comprehensive development automation
 - **Sleeper Detection System** - Advanced AI backdoor detection using TransformerLens residual stream analysis
 - **Company Integration** - Custom agent builds for corporate AI APIs ([Documentation](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
@@ -109,12 +109,13 @@ This repository provides two MCP configuration files to optimize performance:
 
 ### `.mcp.json.full` (Complete - All Services)
 - **Purpose**: Access to all specialized tools when needed
-- **Contains**: All 14 MCP servers
+- **Contains**: All 15 MCP servers
   - Essential services (from `.mcp.json`)
   - Content creation (Manim, LaTeX, TikZ)
   - 3D graphics (Blender, Gaea2)
   - Media tools (Video Editor, Speech Synthesis, Meme Generator)
   - Remote services (AI Toolkit, ComfyUI, Virtual Character)
+  - Project management (GitHub Board)
 - **Best for**: Specialized tasks requiring content creation or media processing
 - **Use when**: Creating animations, 3D content, videos, or terrain
 
@@ -171,42 +172,44 @@ This pattern ensures consistent certificate handling across all services while m
 │   └── economic_agents/      # Economic agents framework
 ├── tools/                    # MCP servers and utilities
 │   ├── mcp/                  # Modular MCP servers
-│   │   ├── code_quality/     # Formatting & linting
-│   │   ├── content_creation/ # Manim & LaTeX
-│   │   ├── gemini/           # AI consultation
-│   │   ├── gaea2/            # Terrain generation
-│   │   ├── blender/          # 3D content creation
-│   │   ├── codex/            # AI-powered code generation
-│   │   ├── opencode/         # Code generation
-│   │   ├── crush/            # Code generation
-│   │   ├── video_editor/     # AI-powered video editing
-│   │   ├── meme_generator/   # Meme creation
-│   │   ├── elevenlabs_speech/# Speech synthesis
-│   │   ├── virtual_character/# AI agent embodiment
-│   │   ├── ai_toolkit/       # LoRA training interface
-│   │   ├── comfyui/          # Image generation interface
-│   │   └── core/             # Shared components
+│   │   ├── mcp_ai_toolkit/       # LoRA training interface
+│   │   ├── mcp_blender/          # 3D content creation
+│   │   ├── mcp_code_quality/     # Formatting & linting
+│   │   ├── mcp_codex/            # AI-powered code generation
+│   │   ├── mcp_comfyui/          # Image generation interface
+│   │   ├── mcp_content_creation/ # Manim & LaTeX
+│   │   ├── mcp_core/             # Shared components
+│   │   ├── mcp_crush/            # Fast code generation
+│   │   ├── mcp_elevenlabs_speech/# Speech synthesis
+│   │   ├── mcp_gaea2/            # Terrain generation
+│   │   ├── mcp_gemini/           # AI consultation
+│   │   ├── mcp_github_board/     # GitHub Projects board management
+│   │   ├── mcp_meme_generator/   # Meme creation
+│   │   ├── mcp_opencode/         # Comprehensive code generation
+│   │   ├── mcp_video_editor/     # AI-powered video editing
+│   │   └── mcp_virtual_character/# AI agent embodiment
 │   └── cli/                  # Command-line tools
 │       ├── agents/           # Agent runner scripts
-│       │   ├── run_claude.sh              # Claude Code Runner
-│       │   ├── run_codex.sh               # Codex runner
-│       │   ├── run_opencode.sh            # OpenCode runner
-│       │   ├── run_crush.sh               # Crush runner
-│       │   └── run_gemini.sh              # Gemini CLI runner
+│       │   ├── run_claude.sh       # Claude Code runner
+│       │   ├── run_codex.sh        # Codex runner
+│       │   ├── run_crush.sh        # Crush runner
+│       │   ├── run_gemini.sh       # Gemini CLI runner
+│       │   ├── run_opencode.sh     # OpenCode runner
+│       │   └── stop_claude.sh      # Claude stop script
 │       ├── containers/       # Container runner scripts
 │       │   ├── run_codex_container.sh     # Codex in container
-│       │   ├── run_opencode_container.sh  # OpenCode in container
 │       │   ├── run_crush_container.sh     # Crush in container
-│       │   └── run_gemini_container.sh    # Gemini in container
+│       │   ├── run_gemini_container.sh    # Gemini in container
+│       │   ├── run_opencode_container.sh  # OpenCode in container
+│       │   └── run_opencode_simple.sh     # Simple OpenCode runner
 │       └── utilities/        # Other CLI utilities
 ├── automation/               # CI/CD and automation scripts
 │   ├── analysis/             # Code and project analysis tools
 │   ├── ci-cd/                # CI/CD pipeline scripts
 │   ├── corporate-proxy/      # Corporate proxy integrations
-│   │   ├── gemini/           # Gemini CLI proxy wrapper
-│   │   ├── codex/            # Codex proxy wrapper
-│   │   ├── opencode/         # OpenCode proxy wrapper
 │   │   ├── crush/            # Crush proxy wrapper
+│   │   ├── gemini/           # Gemini CLI proxy wrapper
+│   │   ├── opencode/         # OpenCode proxy wrapper
 │   │   └── shared/           # Shared proxy components
 │   ├── launchers/            # Service launcher scripts
 │   ├── monitoring/           # Service and PR monitoring
@@ -236,8 +239,9 @@ This pattern ensures consistent certificate handling across all services while m
 10. **ElevenLabs Speech** - Advanced TTS with v3 model, 50+ audio tags, 74 languages ([Documentation](tools/mcp/mcp_elevenlabs_speech/docs/README.md))
 11. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/mcp_video_editor/docs/README.md))
 12. **Virtual Character** - AI agent embodiment in virtual worlds (VRChat, Blender, Unity) ([Documentation](tools/mcp/mcp_virtual_character/README.md))
-13. **AI Toolkit** - LoRA training interface (remote: 192.168.0.152:8012)
-14. **ComfyUI** - Image generation interface (remote: 192.168.0.152:8013)
+13. **GitHub Board** - GitHub Projects v2 board management, work claiming, agent coordination ([Documentation](tools/mcp/mcp_github_board/docs/README.md))
+14. **AI Toolkit** - LoRA training interface (remote: 192.168.0.152:8012)
+15. **ComfyUI** - Image generation interface (remote: 192.168.0.152:8013)
 
 ### Usage Modes
 
@@ -306,7 +310,7 @@ All workflows run on self-hosted runners for zero-cost operation.
 - [CLAUDE.md](CLAUDE.md) - Claude-specific instructions and commands
 - [CRUSH.md](CRUSH.md) - Crush AI assistant instructions
 - [MCP Architecture](docs/mcp/README.md) - Modular server design
-- [AI Agents Documentation](docs/agents/README.md) - Seven AI agents overview
+- [AI Agents Documentation](docs/agents/README.md) - AI agents overview
 
 ### Quick References
 - [Codex Setup Guide](docs/agents/codex-setup.md)

@@ -2,6 +2,10 @@
 # Disable import errors for packages not installed in CI
 # Docstrings and some style issues to be fixed in separate PR
 # R-level refactor suggestions are not errors
+#
+# Structural suppressions (false positives):
+# - import-self: False positive on __init__.py relative imports (pylint limitation)
+# - redefined-outer-name: Conflicts with pytest fixtures pattern (standard practice)
 disable=import-error,
         no-name-in-module,
         no-member,
@@ -19,7 +23,9 @@ disable=import-error,
         no-else-return,
         too-many-positional-arguments,
         import-outside-toplevel,
-        invalid-name
+        invalid-name,
+        import-self,
+        redefined-outer-name
 
 [FORMAT]
 # Maximum number of characters on a single line.
