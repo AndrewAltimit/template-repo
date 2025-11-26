@@ -209,11 +209,15 @@ class ProbeDetector:
                         best_auc = val_auc
                         best_classifier = probe_classifier
                         patience_counter = 0
-                        logger.debug(f"  Iteration {iteration}: val_auc={val_auc:.3f} (improvement)")
+                        logger.debug("  Iteration %s: val_auc=%.3f (improvement)", iteration, val_auc)
                     else:
                         patience_counter += 1
                         logger.debug(
-                            f"  Iteration {iteration}: val_auc={val_auc:.3f} (no improvement {patience_counter}/{patience})"
+                            "  Iteration %s: val_auc=%.3f (no improvement %s/%s)",
+                            iteration,
+                            val_auc,
+                            patience_counter,
+                            patience,
                         )
 
                         if patience_counter >= patience:
@@ -255,11 +259,11 @@ class ProbeDetector:
 
             y_val_scores = probe_classifier.predict_proba(X_val_for_threshold)[:, 1]
             threshold = self._find_optimal_threshold(y_val, y_val_scores)
-            logger.debug(f"Threshold calibrated on validation data: {threshold:.3f}")
+            logger.debug("Threshold calibrated on validation data: %.3f", threshold)
         else:
             # Fallback: use training data (not ideal, but maintains compatibility)
             threshold = self._find_optimal_threshold(y, y_scores)
-            logger.debug(f"Threshold calibrated on training data: {threshold:.3f}")
+            logger.debug("Threshold calibrated on training data: %.3f", threshold)
 
         # Calculate TPR and FPR on training data
         y_pred = y_scores > threshold
@@ -289,7 +293,7 @@ class ProbeDetector:
 
         self.probes[probe_id] = probe
 
-        logger.info(f"Probe trained: {probe_id} (AUC={auc:.3f}, TPR={tpr:.3f}, FPR={fpr:.3f})")
+        logger.info("Probe trained: %s (AUC=%.3f, TPR=%.3f, FPR=%.3f)", probe_id, auc, tpr, fpr)
 
         return probe
 
@@ -422,10 +426,10 @@ class ProbeDetector:
                 detections.append(detection)
 
                 if detected:
-                    logger.debug(f"Probe {probe.probe_id} detected {probe.feature_name} " f"with confidence {score:.3f}")
+                    logger.debug("Probe %s detected %s with confidence %.3f", probe.probe_id, probe.feature_name, score)
 
             except Exception as e:
-                logger.warning(f"Probe {probe.probe_id} detection failed: {e}")
+                logger.warning("Probe %s detection failed: %s", probe.probe_id, e)
 
         # Store in history
         self.detection_history.extend(detections)
@@ -520,7 +524,7 @@ class ProbeDetector:
                         activation = layer_acts[-1].detach().cpu().numpy()
                         activations[layer] = activation
             else:
-                logger.error(f"Model {type(self.model).__name__} doesn't support activation extraction")
+                logger.error("Model %s doesn't support activation extraction", type(self.model).__name__)
 
         except Exception as e:
             logger.warning("Failed to extract activations: %s", e)
