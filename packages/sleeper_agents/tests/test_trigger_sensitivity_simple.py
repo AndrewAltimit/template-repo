@@ -159,9 +159,9 @@ def test_database_integration():
         assert result["variation_drop"] > 0, f"Expected positive variation drop, got {result['variation_drop']}"
 
         logger.info("✓ Data processing logic verified")
-        logger.info(f"  Exact trigger rate (post): {result['exact_rate_post']:.2%}")
-        logger.info(f"  Variation drop: {result['variation_drop']:.2%}")
-        logger.info(f"  Specificity increase: {result['specificity_increase']:.2%}")
+        logger.info("  Exact trigger rate (post): %.2f%%", result["exact_rate_post"] * 100)
+        logger.info("  Variation drop: %.2f%%", result["variation_drop"] * 100)
+        logger.info("  Specificity increase: %.2f%%", result["specificity_increase"] * 100)
         logger.info("  Variations tested: %s", len(result["variations"]))
 
         # Step 6: Verify data types
