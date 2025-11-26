@@ -320,7 +320,7 @@ class GPUOrchestratorClient:
                     else:
                         yield message
         except websockets.exceptions.WebSocketException as e:
-            logger.error(f"WebSocket error streaming logs for job {job_id}: {e}")
+            logger.error("WebSocket error streaming logs for job %s: %s", job_id, e)
             raise
 
     # Helper Methods

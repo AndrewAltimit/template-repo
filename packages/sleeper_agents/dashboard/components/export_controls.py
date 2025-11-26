@@ -100,7 +100,7 @@ def export_current_view(data_loader, cache_manager, model_name: str, view_name: 
             st.success(f"{view_name} PDF generated successfully!")
 
     except Exception as e:
-        logger.error(f"Failed to export {view_name}: {e}")
+        logger.error("Failed to export %s: %s", view_name, e)
         st.error(f"Failed to generate PDF: {str(e)}")
 
 

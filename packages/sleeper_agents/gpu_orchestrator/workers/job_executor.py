@@ -36,7 +36,7 @@ def save_container_logs(job_id: UUID, container_id: str, container_manager, logs
         logger.info("Saved logs for job %s to %s", job_id, log_file)
 
     except Exception as e:
-        logger.error(f"Failed to save logs for job {job_id}: {e}")
+        logger.error("Failed to save logs for job %s: %s", job_id, e)
 
 
 def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -> list[str]:
@@ -229,11 +229,11 @@ def execute_job_sync(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]
 
     container_id = None
     try:
-        logger.info(f"Starting job {job_id} ({job_type.value})")
+        logger.info("Starting job %s (%s)", job_id, job_type.value)
 
         # Build command
         command = build_command(job_id, job_type, parameters)
-        logger.info(f"Command: {' '.join(command)}")
+        logger.info("Command: %s", " ".join(command))
 
         # Start container
         container_id = container_manager.start_container(
@@ -285,7 +285,7 @@ def execute_job_sync(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]
         container_manager.cleanup_container(container_id)
 
     except Exception as e:
-        logger.error(f"Job {job_id} failed with error: {e}")
+        logger.error("Job %s failed with error: %s", job_id, e)
 
         # Try to save logs even on error
         if container_id:

@@ -824,7 +824,7 @@ class DataLoader:
                 "variations": variations,
             }
 
-            logger.info(f"Fetched trigger sensitivity data for {model_name}: {len(variations)} variants")
+            logger.info("Fetched trigger sensitivity data for %s: %s variants", model_name, len(variations))
             return result
 
         except sqlite3.OperationalError as e:

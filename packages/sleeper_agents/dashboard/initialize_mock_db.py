@@ -42,7 +42,7 @@ def main():
             print(f"   Rankings: {stats['total_rankings']}")
             return
         else:
-            logger.info(f"Model count mismatch: {stats['total_models']} in DB vs {len(MOCK_MODELS)} configured")
+            logger.info("Model count mismatch: %s in DB vs %s configured", stats["total_models"], len(MOCK_MODELS))
             logger.info("Recreating mock database...")
 
     else:
