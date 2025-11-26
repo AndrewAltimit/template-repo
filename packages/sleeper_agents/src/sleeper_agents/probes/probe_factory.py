@@ -91,12 +91,14 @@ class ProbeTrainerFactory:
         # Determine backend
         if force_backend:
             backend = force_backend
-            logger.info(f"Using forced backend: {backend}")
+            logger.info("Using forced backend: %s", backend)
         else:
             backend = "pytorch" if model_size_b >= ProbeTrainerFactory.SKLEARN_THRESHOLD_B else "sklearn"
             logger.info(
-                f"Auto-selected backend: {backend} "
-                f"(model_size={model_size_b}B, threshold={ProbeTrainerFactory.SKLEARN_THRESHOLD_B}B)"
+                "Auto-selected backend: %s (model_size=%sB, threshold=%sB)",
+                backend,
+                model_size_b,
+                ProbeTrainerFactory.SKLEARN_THRESHOLD_B,
             )
 
         # Create trainer
