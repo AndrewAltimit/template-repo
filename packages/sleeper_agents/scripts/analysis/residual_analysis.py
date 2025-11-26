@@ -37,9 +37,10 @@ class ResidualStreamAnalyzer:
         )
 
         logger.info(
-            f"Model loaded: {self.model.cfg.n_layers} layers, "
-            f"{self.model.cfg.n_heads} heads, "
-            f"{self.model.cfg.d_model} dimensions"
+            "Model loaded: %s layers, %s heads, %s dimensions",
+            self.model.cfg.n_layers,
+            self.model.cfg.n_heads,
+            self.model.cfg.d_model,
         )
 
     def analyze_residual_decomposition(self, text: str) -> Dict[str, Any]:
@@ -47,7 +48,7 @@ class ResidualStreamAnalyzer:
 
         Based on the linear decomposition property of transformers.
         """
-        logger.info(f"\nAnalyzing residual decomposition for: '{text[:50]}...'")
+        logger.info("\nAnalyzing residual decomposition for: '%s...'", text[:50])
 
         tokens = self.model.to_tokens(text)
         logits, cache = self.model.run_with_cache(tokens)
@@ -127,7 +128,7 @@ class ResidualStreamAnalyzer:
         }
 
         logger.info("Dominant component: %s", results["dominant_component"])
-        logger.info(f"Total residual norm: {results['total_norm']:.3f}")
+        logger.info("Total residual norm: %.3f", results["total_norm"])
 
         return results
 
@@ -171,15 +172,18 @@ class ResidualStreamAnalyzer:
 
             if anomalies["layer_anomalies"][f"layer_{layer}"]["is_anomalous"]:
                 logger.info(
-                    f"Layer {layer}: ANOMALY DETECTED - L2: {l2_distance:.2f}, "
-                    f"Cosine: {cosine_sim:.3f}, Outliers: {outlier_neurons}"
+                    "Layer %s: ANOMALY DETECTED - L2: %.2f, Cosine: %.3f, Outliers: %s",
+                    layer,
+                    l2_distance,
+                    cosine_sim,
+                    outlier_neurons,
                 )
 
         return anomalies
 
     def analyze_attention_flow(self, text: str, trigger_tokens: List[str] = None) -> Dict[str, Any]:
         """Analyze how attention flows through the model, especially to trigger tokens."""
-        logger.info(f"\nAnalyzing attention flow for: '{text[:50]}...'")
+        logger.info("\nAnalyzing attention flow for: '%s...'", text[:50])
 
         tokens = self.model.to_tokens(text)
         _, cache = self.model.run_with_cache(tokens)
@@ -228,8 +232,10 @@ class ResidualStreamAnalyzer:
                     )
 
                     logger.info(
-                        f"Layer {layer}: {len(layer_stats['heads_focusing_on_triggers'])} heads "
-                        f"focusing on triggers (avg attention: {layer_stats['mean_attention_to_triggers']:.3f})"
+                        "Layer %s: %s heads focusing on triggers (avg attention: %.3f)",
+                        layer,
+                        len(layer_stats["heads_focusing_on_triggers"]),
+                        layer_stats["mean_attention_to_triggers"],
                     )
 
             results["layer_attention_stats"][f"layer_{layer}"] = layer_stats
@@ -281,8 +287,8 @@ class ResidualStreamAnalyzer:
             "probe_norm": probe_weights.norm().item(),
         }
 
-        logger.info(f"Probe accuracy: {accuracy:.2%}")
-        logger.info(f"Probe weight norm: {results['probe_norm']:.3f}")
+        logger.info("Probe accuracy: %.2f%%", accuracy * 100)
+        logger.info("Probe weight norm: %.3f", results["probe_norm"])
 
         return results
 
@@ -336,13 +342,13 @@ class ResidualStreamAnalyzer:
         }
 
         logger.info("Found %s suspicious neurons", len(suspicious_neurons))
-        logger.info(f"Max activation difference: {results['max_activation_difference']:.3f}")
+        logger.info("Max activation difference: %.3f", results["max_activation_difference"])
 
         return results
 
     def decompose_logit_contributions(self, text: str) -> Dict[str, Any]:
         """Decompose final logits to understand which components contribute to predictions."""
-        logger.info(f"\nDecomposing logit contributions for: '{text[:50]}...'")
+        logger.info("\nDecomposing logit contributions for: '%s...'", text[:50])
 
         tokens = self.model.to_tokens(text)
         logits, cache = self.model.run_with_cache(tokens)
@@ -440,7 +446,7 @@ class ResidualStreamAnalyzer:
             "logit_norm": calculated_logits.norm().item(),
         }
 
-        logger.info(f"Top prediction: {top_tokens[0]} (logit: {top_logits[0]:.2f})")
+        logger.info("Top prediction: %s (logit: %.2f)", top_tokens[0], top_logits[0])
 
         return results
 
@@ -494,7 +500,7 @@ class ResidualStreamAnalyzer:
                 )
             except RuntimeError as e:
                 # Skip if shape mismatch
-                logger.warning(f"Skipping MLP patch for layer {layer}: {e}")
+                logger.warning("Skipping MLP patch for layer %s: %s", layer, e)
                 continue
 
             logit_diff = (patched_logits - corrupted_logits).norm().item()
@@ -511,8 +517,9 @@ class ResidualStreamAnalyzer:
         }
 
         logger.info(
-            f"Most important component: {sorted_components[0][0]} "
-            f"(importance: {sorted_components[0][1]['importance']:.3f})"
+            "Most important component: %s (importance: %.3f)",
+            sorted_components[0][0],
+            sorted_components[0][1]["importance"],
         )
 
         return results
