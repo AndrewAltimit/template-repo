@@ -50,10 +50,10 @@ class RemoteVRChatTester:
                 async with self.session.get(url) as response:
                     return await response.json()
         except aiohttp.ClientError as e:
-            logger.error(f"Failed to connect to {url}: {e}")
+            logger.error("Failed to connect to %s: %s", url, e)
             return {"success": False, "error": str(e)}
         except Exception as e:
-            logger.error(f"Error calling {endpoint}: {e}")
+            logger.error("Error calling %s: %s", endpoint, e)
             return {"success": False, "error": str(e)}
 
     async def connect_vrchat(self, vrchat_host: str = "127.0.0.1", use_vrcemote: bool = True):
@@ -72,7 +72,7 @@ class RemoteVRChatTester:
         if result.get("success"):
             logger.info("✅ Connected to VRChat backend successfully!")
         else:
-            logger.error(f"❌ Failed to connect: {result.get('error')}")
+            logger.error("❌ Failed to connect: %s", result.get("error"))
 
         return result
 
@@ -85,7 +85,7 @@ class RemoteVRChatTester:
         if result.get("success"):
             logger.info("  ✅ %s sent", emotion)
         else:
-            logger.error(f"  ❌ Failed: {result.get('error')}")
+            logger.error("  ❌ Failed: %s", result.get("error"))
 
         return result
 
@@ -98,13 +98,13 @@ class RemoteVRChatTester:
         if result.get("success"):
             logger.info("  ✅ %s sent", gesture)
         else:
-            logger.error(f"  ❌ Failed: {result.get('error')}")
+            logger.error("  ❌ Failed: %s", result.get("error"))
 
         return result
 
     async def move_avatar(self, forward: float = 0, right: float = 0, look_h: float = 0):
         """Send movement to avatar."""
-        logger.info(f"Moving: forward={forward}, right={right}, look_h={look_h}")
+        logger.info("Moving: forward=%s, right=%s, look_h=%s", forward, right, look_h)
 
         parameters = {}
         if forward != 0:
@@ -119,7 +119,7 @@ class RemoteVRChatTester:
         if result.get("success"):
             logger.info("  ✅ Movement sent")
         else:
-            logger.error(f"  ❌ Failed: {result.get('error')}")
+            logger.error("  ❌ Failed: %s", result.get("error"))
 
         return result
 
@@ -132,7 +132,7 @@ class RemoteVRChatTester:
         if result.get("success"):
             logger.info("  ✅ %s executed", behavior)
         else:
-            logger.error(f"  ❌ Failed: {result.get('error')}")
+            logger.error("  ❌ Failed: %s", result.get("error"))
 
         return result
 
@@ -143,15 +143,15 @@ class RemoteVRChatTester:
         result = await self.call_endpoint("GET", "/get_backend_status")
 
         if result.get("success"):
-            logger.info(f"  Backend: {result.get('backend')}")
-            logger.info(f"  Connected: {result.get('connected')}")
-            logger.info(f"  Health: {result.get('health')}")
+            logger.info("  Backend: %s", result.get("backend"))
+            logger.info("  Connected: %s", result.get("connected"))
+            logger.info("  Health: %s", result.get("health"))
             if "statistics" in result:
                 stats = result["statistics"]
-                logger.info(f"  OSC messages sent: {stats.get('osc_messages_sent', 0)}")
-                logger.info(f"  Animation frames: {stats.get('animation_frames', 0)}")
+                logger.info("  OSC messages sent: %s", stats.get("osc_messages_sent", 0))
+                logger.info("  Animation frames: %s", stats.get("animation_frames", 0))
         else:
-            logger.error(f"  ❌ Failed: {result.get('error')}")
+            logger.error("  ❌ Failed: %s", result.get("error"))
 
         return result
 
@@ -164,9 +164,9 @@ class RemoteVRChatTester:
         if result.get("success"):
             for backend in result.get("backends", []):
                 status = "✓ ACTIVE" if backend["active"] else ""
-                logger.info(f"  - {backend['name']}: {backend['class']} {status}")
+                logger.info("  - %s: %s %s", backend["name"], backend["class"], status)
         else:
-            logger.error(f"  ❌ Failed: {result.get('error')}")
+            logger.error("  ❌ Failed: %s", result.get("error"))
 
         return result
 
@@ -256,8 +256,8 @@ async def main():
 
     logger.info("🎮 Remote VRChat MCP Server Test")
     logger.info("=" * 40)
-    logger.info(f"MCP Server: {args.server}")
-    logger.info(f"VRChat Host: {args.vrchat_host}")
+    logger.info("MCP Server: %s", args.server)
+    logger.info("VRChat Host: %s", args.vrchat_host)
     logger.info("")
 
     async with RemoteVRChatTester(args.server) as tester:

@@ -104,15 +104,15 @@ def main():
     logger.info(separator)
     logger.info("SAFETY TRAINING - BACKDOOR PERSISTENCE TEST")
     logger.info(separator)
-    logger.info(f"Backdoored Model: {args.model_path}")
-    logger.info(f"Safety Method: {args.method.upper()}")
-    logger.info(f"Safety Dataset: {args.safety_dataset}")
+    logger.info("Backdoored Model: %s", args.model_path)
+    logger.info("Safety Method: %s", args.method.upper())
+    logger.info("Safety Dataset: %s", args.safety_dataset)
     logger.info("=" * 80)
 
     # Verify model exists (skip check for HuggingFace model IDs)
     is_hf_model = "/" in str(args.model_path) and not args.model_path.exists()
     if not is_hf_model and not args.model_path.exists():
-        logger.error(f"Model path not found: {args.model_path}")
+        logger.error("Model path not found: %s", args.model_path)
         sys.exit(1)
 
     # Load backdoor info to get baseline (only for local models with backdoor_info.json)
@@ -165,7 +165,7 @@ def main():
     train_dataset, eval_dataset = trainer.prepare_safety_dataset()
 
     # Apply safety training
-    logger.info(f"\n[3/4] Applying {args.method.upper()} safety training...")
+    logger.info("\n[3/4] Applying %s safety training...", args.method.upper())
     if args.method == "sft":
         metrics = trainer.apply_sft(train_dataset, eval_dataset)
     elif args.method == "rl":
@@ -175,7 +175,7 @@ def main():
 
     logger.info("\nTraining Metrics:")
     for key, value in metrics.items():
-        logger.info(f"  {key}: {value}")
+        logger.info("  %s: %s", key, value)
 
     # Save model
     logger.info("\n[4/4] Saving safety-trained model...")
@@ -213,8 +213,10 @@ def main():
 
         logger.info("\nPersistence Results:")
         logger.info(
-            f"  Backdoor Persistence Rate: {persistence_metrics['persistence_rate']:.2%} "
-            f"({persistence_metrics['activations']}/{persistence_metrics['total_tests']})"
+            "  Backdoor Persistence Rate: %.2f%% (%s/%s)",
+            persistence_metrics["persistence_rate"] * 100,
+            persistence_metrics["activations"],
+            persistence_metrics["total_tests"],
         )
 
         # Interpretation
@@ -289,9 +291,9 @@ def main():
     # Run full evaluation (optional)
     if args.run_evaluation:
         logger.info("\n[EVALUATION] Running full evaluation suite...")
-        logger.info(f"  Test Suites: {', '.join(args.evaluation_test_suites)}")
-        logger.info(f"  Samples per Test: {args.evaluation_samples}")
-        logger.info(f"  Database: {args.evaluation_db}")
+        logger.info("  Test Suites: %s", ", ".join(args.evaluation_test_suites))
+        logger.info("  Samples per Test: %s", args.evaluation_samples)
+        logger.info("  Database: %s", args.evaluation_db)
 
         try:
             # Import evaluator
@@ -347,7 +349,7 @@ def main():
                 db.update_model_ranking(eval_model_name, results)
 
                 logger.info("\n  ✓ Evaluation complete: %s tests executed", len(results))
-                logger.info(f"  ✓ Results saved to: {args.evaluation_db}")
+                logger.info("  ✓ Results saved to: %s", args.evaluation_db)
                 logger.info("  ✓ Model '%s' now available in Dashboard Reporting views", eval_model_name)
             else:
                 logger.warning("  ✗ No evaluation results generated")
@@ -361,9 +363,9 @@ def main():
     logger.info("SAFETY TRAINING COMPLETE")
     logger.info("=" * 80)
     logger.info("Safety-trained model: %s", save_path)
-    logger.info(f"Method: {args.method.upper()}")
+    logger.info("Method: %s", args.method.upper())
     if args.test_persistence:
-        logger.info(f"Persistence Rate: {persistence_metrics['persistence_rate']:.2%}")
+        logger.info("Persistence Rate: %.2f%%", persistence_metrics["persistence_rate"] * 100)
     logger.info("\nKey Findings from Anthropic Paper:")
     logger.info("  - Backdoors persist through SFT/RL with 60-98%% retention")
     logger.info("  - CoT backdoors show highest persistence (98.9%%)")
