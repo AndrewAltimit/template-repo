@@ -178,7 +178,7 @@ class VRChatRemoteBackend(BackendAdapter):
             # Emotion system configuration
             if "use_vrcemote" in config:
                 self.use_vrcemote = config["use_vrcemote"]
-                logger.info(f"Using {'VRCEmote' if self.use_vrcemote else 'traditional'} emotion system (configured)")
+                logger.info("Using %s emotion system (configured)", "VRCEmote" if self.use_vrcemote else "traditional")
 
             # OSC ports
             osc_in_port = config.get("osc_in_port", self.VRCHAT_OSC_IN_PORT)
@@ -201,7 +201,7 @@ class VRChatRemoteBackend(BackendAdapter):
                 transport, _protocol = await self.osc_server.create_serve_endpoint()
                 logger.info("OSC server listening on port %s", osc_out_port)
             except OSError as e:
-                logger.warning(f"Could not bind OSC server to port {osc_out_port}: {e}")
+                logger.warning("Could not bind OSC server to port %s: %s", osc_out_port, e)
                 logger.warning("Continuing without OSC server (send-only mode)")
                 self.osc_server = None
 
@@ -209,7 +209,7 @@ class VRChatRemoteBackend(BackendAdapter):
             await self._send_osc("/avatar/parameters/TestConnection", 1.0)
 
             self.connected = True
-            logger.info(f"Connected to VRChat at {self.remote_host}:{osc_in_port}")
+            logger.info("Connected to VRChat at %s:%s", self.remote_host, osc_in_port)
 
             return True
 
@@ -398,7 +398,7 @@ class VRChatRemoteBackend(BackendAdapter):
             self.stats["osc_messages_sent"] += 1
             # Log important VRCEmote changes
             if "VRCEmote" in address:
-                logger.info(f"OSC: Sent {address} = {value}")
+                logger.info("OSC: Sent %s = %s", address, value)
 
     async def _set_emotion(self, emotion: EmotionType, intensity: float = 1.0) -> None:
         """Set avatar emotion with toggle behavior."""

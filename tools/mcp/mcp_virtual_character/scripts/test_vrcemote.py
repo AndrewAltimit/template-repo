@@ -47,7 +47,7 @@ async def test_vrcemote_emotions(backend: VRChatRemoteBackend):
     ]
 
     for emotion_type, expected_value, label in emotions:
-        logger.info(f"Testing: {label} (VRCEmote={expected_value})")
+        logger.info("Testing: %s (VRCEmote=%s)", label, expected_value)
 
         animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
         animation.emotion = emotion_type
@@ -257,8 +257,8 @@ async def main():
         # Get final statistics
         stats = await backend.get_statistics()
         logger.info("\n📊 Session Statistics:")
-        logger.info(f"  OSC messages sent: {stats.get('osc_messages_sent', 0)}")
-        logger.info(f"  Animation frames: {stats.get('animation_frames', 0)}")
+        logger.info("  OSC messages sent: %s", stats.get("osc_messages_sent", 0))
+        logger.info("  Animation frames: %s", stats.get("animation_frames", 0))
 
     except KeyboardInterrupt:
         logger.info("\n⚠️ Test interrupted by user")

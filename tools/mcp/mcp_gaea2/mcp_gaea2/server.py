@@ -53,7 +53,7 @@ class Gaea2MCPServer(BaseMCPServer):
         if os.environ.get("GAEA2_TEST_MODE") == "1" or os.environ.get("CI") == "true":
 
             self.output_dir = tempfile.mkdtemp(prefix="gaea2_test_")
-            self.logger.info(f"Using temporary directory for tests: {self.output_dir}")
+            self.logger.info("Using temporary directory for tests: %s", self.output_dir)
         else:
             self.output_dir = ensure_directory(output_dir)
 

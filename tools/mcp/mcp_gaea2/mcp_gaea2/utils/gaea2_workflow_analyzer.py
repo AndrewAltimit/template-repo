@@ -88,7 +88,7 @@ class Gaea2WorkflowAnalyzer:
             }
 
         except Exception as e:
-            logger.error(f"Failed to analyze {project_path}: {str(e)}")
+            logger.error("Failed to analyze %s: %s", project_path, str(e))
             return {"success": False, "error": str(e)}
 
     def analyze_directory(self, directory_path: str) -> Dict[str, Any]:

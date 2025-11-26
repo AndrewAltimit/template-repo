@@ -137,7 +137,7 @@ class Gaea2FileValidator:
                         line_text = line.decode("utf-8", errors="replace").strip()
                         if line_text:
                             data_list.append(line_text)
-                            logger.debug(f"{'stderr' if is_stderr else 'stdout'}: {line_text}")
+                            logger.debug("%s: %s", "stderr" if is_stderr else "stdout", line_text)
 
                             # Check for success patterns
                             for pattern in success_patterns:
@@ -257,7 +257,7 @@ class Gaea2FileValidator:
             return result
 
         except Exception as e:
-            logger.error(f"Error validating file {file_path}: {e}")
+            logger.error("Error validating file %s: %s", file_path, e)
             return {
                 "success": False,
                 "file_path": file_path,
@@ -391,7 +391,7 @@ class Gaea2FileValidator:
         Returns:
             Validation results for the template
         """
-        logger.info(f"Validating template: {template_name} with {variations} variations")
+        logger.info("Validating template: %s with %s variations", template_name, variations)
 
         # Directory for test files
         test_dir = Path(tempfile.mkdtemp(prefix=f"gaea2_test_{template_name}_"))
@@ -425,7 +425,7 @@ class Gaea2FileValidator:
                     else:
                         logger.error("Generated file not found: %s", file_path)
                 else:
-                    logger.error(f"Failed to generate variation {i}: {result.get('error')}")
+                    logger.error("Failed to generate variation %s: %s", i, result.get("error"))
 
             # Validate all generated files
             if generated_files:

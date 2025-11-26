@@ -483,7 +483,7 @@ class Gaea2ErrorRecovery:
                     essential_props = self._get_essential_properties(node_type, props)
                     node["properties"] = essential_props
                     fixes_applied.append(f"Limited {node_type} node to 3 essential properties (had {len(props)})")
-                    logger.warning(f"Node {node_type} had {len(props)} properties, limited to 3 for Gaea2 compatibility")
+                    logger.warning("Node %s had %s properties, limited to 3 for Gaea2 compatibility", node_type, len(props))
 
         return {
             "nodes": fixed_nodes,

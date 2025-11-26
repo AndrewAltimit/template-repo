@@ -80,7 +80,7 @@ async def test_emotions(backend: VRChatRemoteBackend):
     ]
 
     for emotion in emotions:
-        logger.info(f"Setting emotion: {emotion.value}")
+        logger.info("Setting emotion: %s", emotion.value)
 
         animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
         animation.emotion = emotion
@@ -115,7 +115,7 @@ async def test_gestures(backend: VRChatRemoteBackend):
     ]
 
     for gesture in gestures:
-        logger.info(f"Performing gesture: {gesture.value}")
+        logger.info("Performing gesture: %s", gesture.value)
 
         animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
         animation.gesture = gesture
