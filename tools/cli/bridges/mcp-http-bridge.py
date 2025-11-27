@@ -134,7 +134,7 @@ async def list_tools():
                 raise HTTPException(status_code=response.status_code, detail="Failed to list tools")
     except Exception as e:
         logger.error("Error listing tools: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/tools/execute")
@@ -155,8 +155,8 @@ async def execute_tool(tool_name: str, arguments: Dict[str, Any] = {}):
                     detail=f"Tool execution failed: {response.text}",
                 )
     except Exception as e:
-        logger.error(f"Error executing tool {tool_name}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error executing tool %s: %s", tool_name, e)
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 if __name__ == "__main__":

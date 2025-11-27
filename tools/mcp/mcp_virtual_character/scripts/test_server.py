@@ -40,7 +40,7 @@ async def test_server():
             tools = await resp.json()
             logger.info("Available tools: %s tools", len(tools))
             for tool in tools[:3]:  # Show first 3 tools
-                logger.info(f"  - {tool['name']}: {tool['description']}")
+                logger.info("  - %s: %s", tool["name"], tool["description"])
 
         # Test 3: List backends
         logger.info("\nTesting list backends...")
@@ -85,8 +85,11 @@ async def test_server():
             if result.get("success") and result.get("result", {}).get("frame"):
                 frame_data = result["result"]["frame"]
                 logger.info(
-                    f"Captured frame: {frame_data['width']}x{frame_data['height']} "
-                    f"format={frame_data['format']}, frame_number={frame_data['frame_number']}"
+                    "Captured frame: %sx%s format=%s, frame_number=%s",
+                    frame_data["width"],
+                    frame_data["height"],
+                    frame_data["format"],
+                    frame_data["frame_number"],
                 )
             else:
                 logger.info("Capture view result: %s", result)
@@ -99,9 +102,10 @@ async def test_server():
             if result.get("success") and result.get("result", {}).get("state"):
                 state = result["result"]["state"]
                 logger.info(
-                    f"Environment state: world={state.get('world_name')}, "
-                    f"nearby_agents={len(state.get('nearby_agents', []))}, "
-                    f"nearby_objects={len(state.get('nearby_objects', []))}"
+                    "Environment state: world=%s, nearby_agents=%s, nearby_objects=%s",
+                    state.get("world_name"),
+                    len(state.get("nearby_agents", [])),
+                    len(state.get("nearby_objects", [])),
                 )
             else:
                 logger.info("Receive state result: %s", result)

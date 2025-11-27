@@ -36,7 +36,7 @@ async def analyze_video(
     if analysis_options is None:
         analysis_options = {"transcribe": True, "identify_speakers": True, "detect_scenes": True, "extract_highlights": True}
 
-    _server.logger.info(f"Analyzing {len(video_inputs)} video(s)")
+    _server.logger.info("Analyzing %s video(s)", len(video_inputs))
 
     try:
         results: Dict[str, Any] = {"video_inputs": video_inputs, "analysis": {}}
@@ -121,7 +121,7 @@ async def analyze_video(
         return results
 
     except Exception as e:
-        _server.logger.error(f"Analysis failed: {e}")
+        _server.logger.error("Analysis failed: %s", e)
         return {"error": str(e)}
 
 
@@ -152,7 +152,7 @@ async def create_edit(
             "silence_threshold": 2.0,
         }
 
-    _server.logger.info(f"Creating edit for {len(video_inputs)} video(s)")
+    _server.logger.info("Creating edit for %s video(s)", len(video_inputs))
 
     try:
         # First analyze the videos
@@ -204,9 +204,12 @@ async def create_edit(
                     source_video = video_inputs[speaker_idx]
                     # Log warning about ambiguous mapping
                     _server.logger.warning(
-                        f"No explicit mapping for speaker '{speaker}'. "
-                        f"Auto-mapping to video {speaker_idx} ({source_video}) using deterministic hash. "
-                        "For predictable results, provide explicit speaker_mapping."
+                        "No explicit mapping for speaker '%s'. "
+                        "Auto-mapping to video %s (%s) using deterministic hash. "
+                        "For predictable results, provide explicit speaker_mapping.",
+                        speaker,
+                        speaker_idx,
+                        source_video,
                     )
                 else:
                     source_video = primary_video
@@ -340,7 +343,7 @@ async def create_edit(
         }
 
     except Exception as e:
-        _server.logger.error(f"Edit creation failed: {e}")
+        _server.logger.error("Edit creation failed: %s", e)
         return {"error": str(e)}
 
 
@@ -492,7 +495,7 @@ async def render_video(
         return render_result  # type: ignore[no-any-return]
 
     except Exception as e:
-        _server.logger.error(f"Rendering failed: {e}")
+        _server.logger.error("Rendering failed: %s", e)
         _server.update_job(job_id, {"status": "failed", "error": str(e)})
         return {"error": str(e), "job_id": job_id}
 
@@ -527,7 +530,7 @@ async def extract_clips(
     if output_dir is None:
         output_dir = _server.clips_dir
 
-    _server.logger.info(f"Extracting clips from: {video_input}")
+    _server.logger.info("Extracting clips from: %s", video_input)
 
     try:
         clips_extracted: list[dict[str, Any]] = []
@@ -657,7 +660,7 @@ async def extract_clips(
         }
 
     except Exception as e:
-        _server.logger.error(f"Clip extraction failed: {e}")
+        _server.logger.error("Clip extraction failed: %s", e)
         return {"error": str(e)}
 
 
@@ -696,7 +699,7 @@ async def add_captions(
     if output_path is None:
         output_path = os.path.join(_server.renders_dir, f"captioned_{Path(video_input).stem}.mp4")
 
-    _server.logger.info(f"Adding captions to: {video_input}")
+    _server.logger.info("Adding captions to: %s", video_input)
 
     try:
         # Load the video
@@ -705,7 +708,7 @@ async def add_captions(
         results = {"video_input": video_input, "languages_processed": []}
 
         for language in languages:
-            _server.logger.info(f"Processing captions for language: {language}")
+            _server.logger.info("Processing captions for language: %s", language)
 
             # Extract audio and transcribe
             audio_path = _server.audio_processor.extract_audio(video_input)
@@ -769,7 +772,7 @@ async def add_captions(
         return results
 
     except Exception as e:
-        _server.logger.error(f"Caption addition failed: {e}")
+        _server.logger.error("Caption addition failed: %s", e)
         return {"error": str(e)}
 
 

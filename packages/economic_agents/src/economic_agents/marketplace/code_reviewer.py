@@ -174,7 +174,7 @@ class CodeReviewer:
             # Parse Claude's review
             review = self._parse_review(response)
 
-            logger.info(f"Claude review: approved={review.get('approved')}, score={review.get('score')}")
+            logger.info("Claude review: approved=%s, score=%s", review.get("approved"), review.get("score"))
 
             return review
 

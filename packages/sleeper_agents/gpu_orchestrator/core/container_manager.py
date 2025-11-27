@@ -89,7 +89,7 @@ class ContainerManager:
             return container.id  # type: ignore
 
         except DockerException as e:
-            logger.error(f"Failed to start container for job {job_id}: {e}")
+            logger.error("Failed to start container for job %s: %s", job_id, e)
             raise
 
     def get_container_status(self, container_id: str) -> str:

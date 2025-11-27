@@ -288,7 +288,7 @@ class TemplateManager:
                     raise TypeError(f"Template data is not a dictionary: {type(data)}")
                 return data  # type: ignore
             except (json.JSONDecodeError, KeyError, TypeError) as e:
-                logger.error(f"Failed to load or parse template {template_id}: {e}")
+                logger.error("Failed to load or parse template %s: %s", template_id, e)
 
         return None
 

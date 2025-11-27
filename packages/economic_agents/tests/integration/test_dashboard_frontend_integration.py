@@ -315,8 +315,8 @@ def test_frontend_api_connection():
         def __getattr__(self, key):
             try:
                 return self[key]
-            except KeyError:
-                raise AttributeError(key)
+            except KeyError as exc:
+                raise AttributeError(key) from exc
 
         def __setattr__(self, key, value):
             self[key] = value
@@ -324,8 +324,8 @@ def test_frontend_api_connection():
         def __delattr__(self, key):
             try:
                 del self[key]
-            except KeyError:
-                raise AttributeError(key)
+            except KeyError as exc:
+                raise AttributeError(key) from exc
 
     mock_session_state = MockSessionState()
     sys.modules["streamlit"].session_state = mock_session_state

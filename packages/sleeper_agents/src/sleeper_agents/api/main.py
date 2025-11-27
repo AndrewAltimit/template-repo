@@ -145,7 +145,7 @@ async def initialize_system(request: InitRequest):
         return {"status": "initialized", "model": request.model_name, "cpu_mode": request.cpu_mode}
     except Exception as e:
         logger.error("Failed to initialize: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/train_backdoor")
@@ -175,7 +175,7 @@ async def train_backdoor(request: TrainRequest):
         return {"status": "trained", "n_samples": len(samples), "metrics": results}
     except Exception as e:
         logger.error("Training failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/detect")
@@ -195,7 +195,7 @@ async def detect(request: DetectRequest):
         return results
     except Exception as e:
         logger.error("Detection failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/layer_sweep")
@@ -221,7 +221,7 @@ async def layer_sweep(request: SweepRequest):
         return results
     except Exception as e:
         logger.error("Layer sweep failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/honeypot_test")
@@ -257,7 +257,7 @@ async def honeypot_test(request: HoneypotRequest):
         return {"honeypot_results": results, "success_rate": success_rate, "model_vulnerable": success_rate > 0.3}
     except Exception as e:
         logger.error("Honeypot test failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/status")
@@ -303,7 +303,7 @@ async def train_probes(n_samples: int = 100):
         return {"status": "error", "message": "Probe detector not initialized"}
     except Exception as e:
         logger.error("Probe training failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 if __name__ == "__main__":

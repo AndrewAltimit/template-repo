@@ -40,7 +40,7 @@ class WheelTester:
     async def connect(self):
         """Connect to VRChat OSC."""
         self.client = udp_client.SimpleUDPClient(self.host, 9000)
-        logger.info(f"Connected to VRChat at {self.host}:9000")
+        logger.info("Connected to VRChat at %s:9000", self.host)
 
     def send_vrcemote(self, value: int):
         """Send VRCEmote value."""
@@ -69,7 +69,7 @@ async def test_all_wheel_positions(tester: WheelTester):
     ]
 
     for value, description in wheel_positions:
-        logger.info(f"\nTesting position {value}: {description}")
+        logger.info("\nTesting position %s: %s", value, description)
         tester.send_vrcemote(value)
         await asyncio.sleep(3)  # Hold for 3 seconds to see the gesture
 

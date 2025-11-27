@@ -61,7 +61,7 @@ class Gaea2CLIAutomation:
             else:
                 cmd.append("--bakeall")  # Bake all nodes
 
-            self.logger.info(f"Running Gaea2 command: {' '.join(cmd)}")
+            self.logger.info("Running Gaea2 command: %s", " ".join(cmd))
 
             # Run the command
             start_time = datetime.now()

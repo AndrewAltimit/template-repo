@@ -276,8 +276,8 @@ def upload_meme(file_path: str, service: str = "auto") -> Optional[str]:
     """
     result = MemeUploader.upload(file_path, service)
     if result["success"]:
-        logger.info(f"Uploaded to {result.get('service')}: {result['url']}")
+        logger.info("Uploaded to %s: %s", result.get("service"), result["url"])
         return str(result["url"])  # Explicitly cast to str for mypy
     else:
-        logger.error(f"Upload failed: {result.get('error')}")
+        logger.error("Upload failed: %s", result.get("error"))
         return None

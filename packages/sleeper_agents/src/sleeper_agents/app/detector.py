@@ -65,7 +65,7 @@ class SleeperDetector:
                 download_if_missing=True,  # Auto-download if not cached
             )
 
-            logger.info(f"Model loaded successfully: {type(self.model).__name__}")
+            logger.info("Model loaded successfully: %s", type(self.model).__name__)
 
             # Initialize detection subsystems
             self.probe_detector = LayerProbeDetector(self.model)
@@ -80,11 +80,11 @@ class SleeperDetector:
             # Set layers to probe (from config or registry recommendations)
             if self.config.layers_to_probe is None:
                 self.config.layers_to_probe = get_recommended_layers(self.model, self.config.model_name)
-                logger.info(f"Using recommended probe layers: {self.config.layers_to_probe}")
+                logger.info("Using recommended probe layers: %s", self.config.layers_to_probe)
             else:
-                logger.info(f"Using configured probe layers: {self.config.layers_to_probe}")
+                logger.info("Using configured probe layers: %s", self.config.layers_to_probe)
 
-            logger.info(f"Initialized detection system with {len(self.config.layers_to_probe)} layers to probe")
+            logger.info("Initialized detection system with %s layers to probe", len(self.config.layers_to_probe))
 
         except Exception as e:
             logger.error("Failed to initialize detector: %s", e)
@@ -358,7 +358,7 @@ class SleeperDetector:
                     description=feature.get("description", "Deception feature"),
                 )
 
-                logger.info(f"Trained probe {probe.probe_id} with AUC={probe.auc_score:.3f}")
+                logger.info("Trained probe %s with AUC=%.3f", probe.probe_id, probe.auc_score)
 
             except Exception as e:
                 logger.warning("Failed to train probe for feature: %s", e)

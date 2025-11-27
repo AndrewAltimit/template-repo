@@ -270,7 +270,7 @@ class ComfyUIMCPServer(BaseMCPServer):
                         prompt_id = result.get("prompt_id")
                         return str(prompt_id) if prompt_id else None
                     else:
-                        self.logger.error(f"Failed to queue prompt: {response.status}")
+                        self.logger.error("Failed to queue prompt: %s", response.status)
                         return None
         except Exception as e:
             self.logger.error("Error queuing prompt: %s", e)

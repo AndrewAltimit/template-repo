@@ -134,7 +134,7 @@ async def run_detection_suite(
         detection_scores.append(confidence)
 
         if (i + 1) % 10 == 0:
-            logger.info(f"Processed {i+1}/{len(samples)} samples")
+            logger.info("Processed %s/%s samples", i + 1, len(samples))
 
     # Calculate metrics
     tp = sum(1 for pred, true in zip(all_predictions, ground_truth) if pred == 1 and true == 1)
@@ -192,11 +192,11 @@ def interpret_results(results: Dict[str, Any], backdoor_info: Dict[str, Any]) ->
     logger.info("  False Negatives (FN): %s - Missed backdoors", cm["fn"])
 
     logger.info("\nPerformance Metrics:")
-    logger.info(f"  Accuracy:  {metrics['accuracy']:.2%} - Overall correctness")
-    logger.info(f"  Precision: {metrics['precision']:.2%} - Backdoor detection accuracy")
-    logger.info(f"  Recall:    {metrics['recall']:.2%} - Backdoor detection coverage")
-    logger.info(f"  F1 Score:  {metrics['f1_score']:.2%} - Harmonic mean of precision/recall")
-    logger.info(f"  FP Rate:   {metrics['false_positive_rate']:.2%} - False alarm rate")
+    logger.info("  Accuracy:  %.2f%% - Overall correctness", metrics["accuracy"] * 100)
+    logger.info("  Precision: %.2f%% - Backdoor detection accuracy", metrics["precision"] * 100)
+    logger.info("  Recall:    %.2f%% - Backdoor detection coverage", metrics["recall"] * 100)
+    logger.info("  F1 Score:  %.2f%% - Harmonic mean of precision/recall", metrics["f1_score"] * 100)
+    logger.info("  FP Rate:   %.2f%% - False alarm rate", metrics["false_positive_rate"] * 100)
 
     logger.info("\nInterpretation:")
 
@@ -229,7 +229,7 @@ def interpret_results(results: Dict[str, Any], backdoor_info: Dict[str, Any]) ->
     logger.info("\nComparison to Anthropic Paper:")
     logger.info("  Paper finding: Detection methods struggle with CoT backdoors")
     logger.info("  Paper finding: Adversarial training increases evasion")
-    logger.info(f"  Our F1 score: {metrics['f1_score']:.2%}")
+    logger.info("  Our F1 score: %.2f%%", metrics["f1_score"] * 100)
 
     if f1 >= 0.8:
         logger.info("  → Our detection outperforms expectations from paper")
@@ -272,13 +272,13 @@ async def main():
     logger.info("=" * 80)
     logger.info("DETECTION METHOD VALIDATION")
     logger.info("=" * 80)
-    logger.info(f"Model: {args.model_path}")
-    logger.info(f"Test Samples: {args.num_samples}")
+    logger.info("Model: %s", args.model_path)
+    logger.info("Test Samples: %s", args.num_samples)
     logger.info("=" * 80)
 
     # Verify model exists
     if not args.model_path.exists():
-        logger.error(f"Model path not found: {args.model_path}")
+        logger.error("Model path not found: %s", args.model_path)
         sys.exit(1)
 
     # Load backdoor info
@@ -291,7 +291,10 @@ async def main():
     logger.info("\n[2/3] Generating test samples...")
     samples, ground_truth = generate_test_samples(backdoor_info, args.num_samples)
     logger.info(
-        f"Generated {len(samples)} samples ({sum(ground_truth)} backdoored, {len(ground_truth)-sum(ground_truth)} clean)"
+        "Generated %s samples (%s backdoored, %s clean)",
+        len(samples),
+        sum(ground_truth),
+        len(ground_truth) - sum(ground_truth),
     )
 
     # Run detection
@@ -317,7 +320,7 @@ async def main():
         with open(args.output, "w", encoding="utf-8") as f:
             json.dump(output_data, f, indent=2)
 
-        logger.info(f"\nResults saved to: {args.output}")
+        logger.info("\nResults saved to: %s", args.output)
 
     logger.info("\n" + "=" * 80)
 

@@ -13,7 +13,7 @@ from mcp_blender.core.templates import TemplateManager
 from mcp_blender.tools import get_all_tool_definitions, get_tool_handlers
 from mcp_core.base_server import BaseMCPServer, ToolRequest, ToolResponse
 
-# pylint: disable=wrong-import-position
+# pylint: disable=wrong-import-position,wrong-import-order
 
 
 # Configure logging
@@ -45,7 +45,7 @@ class BlenderMCPServer(BaseMCPServer):
         self.base_dir = Path(base_dir)
 
         # Log the detected base directory for debugging
-        logger.info(f"Blender MCP Server initialized with base directory: {self.base_dir}")
+        logger.info("Blender MCP Server initialized with base directory: %s", self.base_dir)
 
         self.projects_dir = self.base_dir / "projects"
         self.assets_dir = self.base_dir / "assets"
@@ -64,16 +64,26 @@ class BlenderMCPServer(BaseMCPServer):
             try:
                 parent_dir_stat = self.outputs_dir.stat()
                 logger.warning(
-                    f"Cannot create {jobs_output_dir} due to a permission error: {e}. "
-                    f"Parent directory '{self.outputs_dir}' has permissions: {oct(parent_dir_stat.st_mode)}. "
-                    f"Owner UID: {parent_dir_stat.st_uid}, GID: {parent_dir_stat.st_gid}. "
-                    f"Falling back to using the parent directory for output."
+                    "Cannot create %s due to a permission error: %s. "
+                    "Parent directory '%s' has permissions: %s. "
+                    "Owner UID: %s, GID: %s. "
+                    "Falling back to using the parent directory for output.",
+                    jobs_output_dir,
+                    e,
+                    self.outputs_dir,
+                    oct(parent_dir_stat.st_mode),
+                    parent_dir_stat.st_uid,
+                    parent_dir_stat.st_gid,
                 )
             except Exception as stat_error:
                 logger.warning(
-                    f"Cannot create {jobs_output_dir} due to a permission error: {e}. "
-                    f"Failed to stat parent directory: {stat_error}. "
-                    f"Falling back to using {self.outputs_dir} instead."
+                    "Cannot create %s due to a permission error: %s. "
+                    "Failed to stat parent directory: %s. "
+                    "Falling back to using %s instead.",
+                    jobs_output_dir,
+                    e,
+                    stat_error,
+                    self.outputs_dir,
                 )
             jobs_output_dir = self.outputs_dir
 
@@ -122,12 +132,12 @@ class BlenderMCPServer(BaseMCPServer):
 
         # Reject absolute paths
         if Path(user_path).is_absolute():
-            logger.warning(f"Absolute path attempt blocked for {path_type}. Path: '{user_path}'")
+            logger.warning("Absolute path attempt blocked for %s. Path: '%s'", path_type, user_path)
             raise ValueError(f"Invalid {path_type} path: absolute paths not allowed")
 
         # Reject paths with parent directory references
         if ".." in user_path:
-            logger.warning(f"Path traversal attempt blocked for {path_type}. Path contains '..': '{user_path}'")
+            logger.warning("Path traversal attempt blocked for %s. Path contains '..': '%s'", path_type, user_path)
             raise ValueError(f"Invalid {path_type} path: parent directory references not allowed")
 
         # Reject single dot (current directory)
@@ -153,11 +163,14 @@ class BlenderMCPServer(BaseMCPServer):
         # Verify the resolved path is within base_dir
         try:
             safe_path.relative_to(base_dir.resolve())
-        except ValueError:
+        except ValueError as exc:
             logger.warning(
-                f"Path traversal attempt blocked for {path_type}. Path: '{user_path}' resolved outside base_dir: '{base_dir}'"
+                "Path traversal attempt blocked for %s. Path: '%s' resolved outside base_dir: '%s'",
+                path_type,
+                user_path,
+                base_dir,
             )
-            raise ValueError(f"Invalid {path_type} path: traversal attempt detected")
+            raise ValueError(f"Invalid {path_type} path: traversal attempt detected") from exc
 
         return safe_path
 
@@ -180,14 +193,16 @@ class BlenderMCPServer(BaseMCPServer):
                     raise ValueError(f"Project not found: {project_path}")
                 else:
                     # Log security event before raising
-                    logger.warning(f"Potential path traversal attempt blocked. Path: '{project_path}'. Resolved to: '{path}'")
+                    logger.warning(
+                        "Potential path traversal attempt blocked. Path: '%s'. Resolved to: '%s'", project_path, path
+                    )
                     raise ValueError(f"Path traversal attempt detected: {project_path}")
             except ValueError:
                 # Re-raise ValueError as-is (including path traversal)
                 raise
             except Exception as e:
-                logger.warning(f"Invalid project path attempted: '{project_path}'. Error: {e}")
-                raise ValueError(f"Invalid project path: {e}")
+                logger.warning("Invalid project path attempted: '%s'. Error: %s", project_path, e)
+                raise ValueError(f"Invalid project path: {e}") from e
 
         # Otherwise treat it as a relative path
         if project_path.endswith(".blend"):
@@ -747,7 +762,7 @@ class BlenderMCPServer(BaseMCPServer):
             return ToolResponse(success=success, result=result)
 
         except Exception as e:
-            logger.error(f"Error in {request.tool}: {str(e)}")
+            logger.error("Error in %s: %s", request.tool, str(e))
             return ToolResponse(success=False, result=None, error=str(e))
 
     async def _create_project(self, args: Dict[str, Any]) -> Dict[str, Any]:
@@ -783,11 +798,11 @@ class BlenderMCPServer(BaseMCPServer):
         }
 
         try:
-            logger.info(f"Calling execute_script for job {job_id} with args: {script_args}")
+            logger.info("Calling execute_script for job %s with args: %s", job_id, script_args)
             result = await self.blender_executor.execute_script("scene_builder.py", script_args, job_id)
-            logger.info(f"execute_script completed for job {job_id}: {result}")
+            logger.info("execute_script completed for job %s: %s", job_id, result)
         except Exception as e:
-            logger.error(f"Failed to execute script for job {job_id}: {e}", exc_info=True)
+            logger.error("Failed to execute script for job %s: %s", job_id, e, exc_info=True)
             raise
 
         return {

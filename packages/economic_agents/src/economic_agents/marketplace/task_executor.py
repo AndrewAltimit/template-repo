@@ -63,7 +63,7 @@ class TaskExecutor:
             return {"success": True, "code": code, "workspace_path": str(workspace), "response": response}
 
         except Exception as e:
-            logger.error(f"Task {task_id} failed: {e}")
+            logger.error("Task %s failed: %s", task_id, e)
             return {"success": False, "code": "", "workspace_path": str(workspace), "error": str(e)}
 
     def _build_task_prompt(self, task: Dict, workspace: Path) -> str:

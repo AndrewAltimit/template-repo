@@ -249,8 +249,8 @@ class OpenCodeIntegration:
 
                     return {"output": output, "execution_time": execution_time}
 
-        except asyncio.TimeoutError:
-            raise Exception(f"OpenCode API request timed out after {self.timeout} seconds")
+        except asyncio.TimeoutError as exc:
+            raise Exception(f"OpenCode API request timed out after {self.timeout} seconds") from exc
         except Exception:
             raise
 

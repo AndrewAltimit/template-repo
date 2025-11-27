@@ -79,7 +79,7 @@ class BoardManager:
         self.session: aiohttp.ClientSession | None = None
         self.project_id: str | None = None  # Cached project ID
 
-        logger.info(f"Initialized BoardManager for project #{self.config.project_number} " f"(owner: {self.config.owner})")
+        logger.info("Initialized BoardManager for project #%s (owner: %s)", self.config.project_number, self.config.owner)
 
     async def __aenter__(self) -> "BoardManager":
         """Async context manager entry."""
@@ -100,7 +100,7 @@ class BoardManager:
         )
         # Load and cache project ID
         self.project_id = await self._get_project_id()
-        logger.info(f"Board initialized with project ID: {self.project_id}")
+        logger.info("Board initialized with project ID: %s", self.project_id)
 
     async def close(self) -> None:
         """Close HTTP session."""
@@ -201,7 +201,7 @@ class BoardManager:
 
                 # Retry on server errors
                 if attempt < self.MAX_RETRIES - 1:
-                    logger.warning(f"GraphQL error, retrying in {backoff}s: {e}")
+                    logger.warning("GraphQL error, retrying in %ss: %s", backoff, e)
                     await asyncio.sleep(backoff)
                     backoff = min(backoff * 2, self.MAX_BACKOFF)
                 else:
@@ -211,7 +211,7 @@ class BoardManager:
             except Exception as e:
                 # Network errors - retry with backoff
                 if attempt < self.MAX_RETRIES - 1:
-                    logger.warning(f"Network error, retrying in {backoff}s: {e}")
+                    logger.warning("Network error, retrying in %ss: %s", backoff, e)
                     await asyncio.sleep(backoff)
                     backoff = min(backoff * 2, self.MAX_BACKOFF)
                 else:
@@ -287,7 +287,7 @@ class BoardManager:
         Raises:
             GraphQLError: If fetching issues fails
         """
-        logger.info(f"Getting ready work (agent={agent_name}, limit={limit})")
+        logger.info("Getting ready work (agent=%s, limit=%s)", agent_name, limit)
 
         # Fetch project items with issue data
         query = """
@@ -620,7 +620,7 @@ class BoardManager:
                 project_item_id=item["id"],
             )
 
-            logger.info(f"Found issue #{issue_number}: {issue.title}")
+            logger.info("Found issue #%s: %s", issue_number, issue.title)
             return issue
 
         logger.warning("Issue #%s not found on board", issue_number)
@@ -697,7 +697,7 @@ Claiming this issue for implementation. If this agent goes MIA, this claim expir
         # Verify active claim belongs to this agent
         existing_claim = await self._get_active_claim(issue_number)
         if not existing_claim or existing_claim.agent != agent_name:
-            logger.warning(f"Cannot renew claim on #{issue_number}: no active claim by {agent_name}")
+            logger.warning("Cannot renew claim on #%s: no active claim by %s", issue_number, agent_name)
             return False
 
         # Post renewal comment
@@ -744,7 +744,7 @@ Work claim released.
             # Abandoned or error - return to todo
             await self.update_status(issue_number, IssueStatus.TODO)
 
-        logger.info(f"Released claim on #{issue_number} by {agent_name} (reason: {reason})")
+        logger.info("Released claim on #%s by %s (reason: %s)", issue_number, agent_name, reason)
 
     async def update_status(self, issue_number: int, status: IssueStatus) -> bool:
         """
@@ -960,7 +960,7 @@ Work claim released.
         try:
             timestamp = datetime.fromisoformat(timestamp_match.group(1).replace("Z", "+00:00"))
         except ValueError:
-            logger.warning(f"Failed to parse timestamp from claim comment: {timestamp_match.group(1)}")
+            logger.warning("Failed to parse timestamp from claim comment: %s", timestamp_match.group(1))
             return None
 
         return AgentClaim(
@@ -1019,7 +1019,7 @@ Work claim released.
         variables = {"subjectId": issue_id, "body": body}
         await self._execute_graphql(mutation, variables)
 
-        logger.debug(f"Posted comment to #{issue_number}: {body[:100]}...")
+        logger.debug("Posted comment to #%s: %s...", issue_number, body[:100])
 
     # ===== Dependency Management =====
 
@@ -1039,7 +1039,7 @@ Work claim released.
         Raises:
             GraphQLError: If update fails
         """
-        logger.info(f"Adding blocker: #{blocker_number} blocks #{issue_number}")
+        logger.info("Adding blocker: #%s blocks #%s", blocker_number, issue_number)
 
         # Get current blocked_by value
         query = """
@@ -1137,7 +1137,7 @@ Work claim released.
         }
 
         await self._execute_graphql(mutation, variables)
-        logger.info(f"Added blocker: #{blocker_number} now blocks #{issue_number}")
+        logger.info("Added blocker: #%s now blocks #%s", blocker_number, issue_number)
         return True
 
     async def mark_discovered_from(self, issue_number: int, parent_number: int) -> bool:

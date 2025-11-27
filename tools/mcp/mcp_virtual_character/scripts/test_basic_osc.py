@@ -55,7 +55,7 @@ class VRChatOSCTester:
         self.server = AsyncIOOSCUDPServer(("0.0.0.0", 9001), dispatcher, asyncio.get_event_loop())
 
         transport, _protocol = await self.server.create_serve_endpoint()
-        logger.info(f"Connected to VRChat at {self.host}:9000")
+        logger.info("Connected to VRChat at %s:9000", self.host)
         logger.info("Listening for parameters on port 9001")
 
     def param_handler(self, address: str, *args):
@@ -63,13 +63,13 @@ class VRChatOSCTester:
         param_name = address.replace("/avatar/parameters/", "")
         if args:
             self.received_params[param_name] = args[0]
-            logger.info(f"📥 Received: {param_name} = {args[0]}")
+            logger.info("📥 Received: %s = %s", param_name, args[0])
 
     def send(self, address: str, value):
         """Send OSC message."""
         if self.client:
             self.client.send_message(address, value)
-            logger.info(f"📤 Sent: {address} = {value}")
+            logger.info("📤 Sent: %s = %s", address, value)
 
 
 async def test_universal_inputs(tester: VRChatOSCTester):
@@ -134,7 +134,7 @@ async def test_vrcemote_system(tester: VRChatOSCTester):
     ]
 
     for value, description in emote_values:
-        logger.info(f"  VRCEmote = {value} ({description})")
+        logger.info("  VRCEmote = %s (%s)", value, description)
         tester.send("/avatar/parameters/VRCEmote", value)
         await asyncio.sleep(2)
 
@@ -220,7 +220,7 @@ async def discover_parameters(tester: VRChatOSCTester):
     if tester.received_params:
         logger.info("\n📋 Discovered Parameters:")
         for param, value in tester.received_params.items():
-            logger.info(f"  {param}: {value} ({type(value).__name__})")
+            logger.info("  %s: %s (%s)", param, value, type(value).__name__)
 
         # Save to file
         output_file = "discovered_avatar_params.txt"

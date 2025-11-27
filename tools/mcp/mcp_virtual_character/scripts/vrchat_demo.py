@@ -283,7 +283,7 @@ async def main():
         ]
 
         for i, (name, demo_func) in enumerate(demos, 1):
-            logger.info(f"\n═══ Demo {i}/{len(demos)}: {name} ═══")
+            logger.info("\n═══ Demo %s/%s: %s ═══", i, len(demos), name)
             await demo_func(backend)
 
             if i < len(demos):
@@ -293,9 +293,9 @@ async def main():
         # Final statistics
         logger.info("\n📊 Session Statistics:")
         stats = await backend.get_statistics()
-        logger.info(f"  OSC messages sent: {stats.get('osc_messages_sent', 0)}")
-        logger.info(f"  Animation frames: {stats.get('animation_frames', 0)}")
-        logger.info(f"  Errors: {stats.get('errors', 0)}")
+        logger.info("  OSC messages sent: %s", stats.get("osc_messages_sent", 0))
+        logger.info("  Animation frames: %s", stats.get("animation_frames", 0))
+        logger.info("  Errors: %s", stats.get("errors", 0))
 
     except KeyboardInterrupt:
         logger.info("\n⚠️  Demo interrupted by user")

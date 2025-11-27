@@ -83,18 +83,18 @@ def test_pytorch_probe_gpu():
         logger.error("CUDA not available! This test requires a GPU.")
         return False
 
-    logger.info(f"CUDA available: {torch.cuda.get_device_name(0)}")
-    logger.info(f"CUDA version: {torch.version.cuda}")
-    logger.info(f"PyTorch version: {torch.__version__}")
+    logger.info("CUDA available: %s", torch.cuda.get_device_name(0))
+    logger.info("CUDA version: %s", torch.version.cuda)
+    logger.info("PyTorch version: %s", torch.__version__)
 
     # Test parameters (realistic for Qwen 7B)
     input_dim = 4096  # Qwen 7B hidden size
     n_samples = 2000  # Samples per class
 
-    logger.info(f"\nGenerating synthetic data: {n_samples*2} samples, {input_dim}D")
+    logger.info("\nGenerating synthetic data: %s samples, %sD", n_samples * 2, input_dim)
     X_train, y_train, X_val, y_val, X_test, y_test = generate_synthetic_data(n_samples, input_dim)
 
-    logger.info(f"Train: {len(X_train)}, Val: {len(X_val)}, Test: {len(X_test)}")
+    logger.info("Train: %s, Val: %s, Test: %s", len(X_train), len(X_val), len(X_test))
 
     # Test 1: PyTorch probe with GPU
     logger.info("\n" + "=" * 80)
@@ -117,15 +117,15 @@ def test_pytorch_probe_gpu():
     auc_gpu = trainer_gpu.fit(X_train, y_train, X_val, y_val)
     train_time_gpu = time.time() - start_time
 
-    logger.info(f"GPU Training Time: {train_time_gpu:.2f}s")
-    logger.info(f"GPU Best Validation AUC: {auc_gpu:.4f}")
+    logger.info("GPU Training Time: %.2fs", train_time_gpu)
+    logger.info("GPU Best Validation AUC: %.4f", auc_gpu)
 
     # Get test predictions
     probs_gpu = trainer_gpu.predict_proba(X_test)
     from sklearn.metrics import roc_auc_score
 
     test_auc_gpu = roc_auc_score(y_test, probs_gpu)
-    logger.info(f"GPU Test AUC: {test_auc_gpu:.4f}")
+    logger.info("GPU Test AUC: %.4f", test_auc_gpu)
 
     # Test 2: PyTorch probe with CPU (for comparison)
     logger.info("\n" + "=" * 80)
@@ -148,11 +148,11 @@ def test_pytorch_probe_gpu():
     auc_cpu = trainer_cpu.fit(X_train, y_train, X_val, y_val)
     train_time_cpu = time.time() - start_time
 
-    logger.info(f"CPU Training Time: {train_time_cpu:.2f}s")
-    logger.info(f"CPU Best Validation AUC: {auc_cpu:.4f}")
+    logger.info("CPU Training Time: %.2fs", train_time_cpu)
+    logger.info("CPU Best Validation AUC: %.4f", auc_cpu)
 
     speedup = train_time_cpu / train_time_gpu
-    logger.info(f"\nGPU Speedup: {speedup:.2f}x")
+    logger.info("\nGPU Speedup: %.2fx", speedup)
 
     # Test 3: Auto-switching (should pick PyTorch for 70B model)
     logger.info("\n" + "=" * 80)
@@ -161,11 +161,11 @@ def test_pytorch_probe_gpu():
 
     # Small model → sklearn
     trainer_small = create_probe_trainer(model_size_b=7, input_dim=input_dim)
-    logger.info(f"7B model → {type(trainer_small).__name__}")
+    logger.info("7B model → %s", type(trainer_small).__name__)
 
     # Large model → PyTorch
     trainer_large = create_probe_trainer(model_size_b=70, input_dim=input_dim)
-    logger.info(f"70B model → {type(trainer_large).__name__}")
+    logger.info("70B model → %s", type(trainer_large).__name__)
 
     # Test 4: Checkpoint save/load
     logger.info("\n" + "=" * 80)
@@ -174,17 +174,17 @@ def test_pytorch_probe_gpu():
 
     checkpoint_path = "/tmp/test_probe.pt"
     trainer_gpu.save_checkpoint(checkpoint_path)
-    logger.info(f"Saved checkpoint to {checkpoint_path}")
+    logger.info("Saved checkpoint to %s", checkpoint_path)
 
     # Load into new trainer
     trainer_new = TorchProbeTrainer(input_dim=input_dim, config=config_gpu)
     trainer_new.load_checkpoint(checkpoint_path)
-    logger.info(f"Loaded checkpoint (best AUC: {trainer_new.best_val_auc:.4f})")
+    logger.info("Loaded checkpoint (best AUC: %.4f)", trainer_new.best_val_auc)
 
     # Verify predictions match
     probs_new = trainer_new.predict_proba(X_test)
     probs_match = np.allclose(probs_gpu, probs_new, rtol=1e-5)
-    logger.info(f"Predictions match after reload: {probs_match}")
+    logger.info("Predictions match after reload: %s", probs_match)
 
     # Validation
     logger.info("\n" + "=" * 80)
@@ -195,32 +195,32 @@ def test_pytorch_probe_gpu():
 
     # Check GPU AUC (adjusted threshold based on synthetic data difficulty)
     if auc_gpu < 0.60:
-        logger.error(f"GPU AUC too low: {auc_gpu:.4f} < 0.60")
+        logger.error("GPU AUC too low: %.4f < 0.60", auc_gpu)
         success = False
     else:
-        logger.info(f"✓ GPU AUC: {auc_gpu:.4f} >= 0.60")
+        logger.info("✓ GPU AUC: %.4f >= 0.60", auc_gpu)
 
     # Check GPU test AUC (adjusted threshold based on synthetic data difficulty)
     if test_auc_gpu < 0.65:
-        logger.error(f"GPU Test AUC too low: {test_auc_gpu:.4f} < 0.65")
+        logger.error("GPU Test AUC too low: %.4f < 0.65", test_auc_gpu)
         success = False
     else:
-        logger.info(f"✓ GPU Test AUC: {test_auc_gpu:.4f} >= 0.65")
+        logger.info("✓ GPU Test AUC: %.4f >= 0.65", test_auc_gpu)
 
     # Check CPU/GPU parity
     auc_diff = abs(auc_gpu - auc_cpu)
     if auc_diff > 0.05:
-        logger.warning(f"GPU/CPU AUC difference: {auc_diff:.4f} > 0.05")
+        logger.warning("GPU/CPU AUC difference: %.4f > 0.05", auc_diff)
     else:
-        logger.info(f"✓ GPU/CPU AUC difference: {auc_diff:.4f} <= 0.05")
+        logger.info("✓ GPU/CPU AUC difference: %.4f <= 0.05", auc_diff)
 
     # Check speedup (warning only - small datasets have GPU overhead)
     if speedup < 1.0:
-        logger.warning(f"GPU slower than CPU: {speedup:.2f}x (expected for small datasets with GPU overhead)")
+        logger.warning("GPU slower than CPU: %.2fx (expected for small datasets with GPU overhead)", speedup)
     elif speedup >= 1.5:
-        logger.info(f"✓ GPU Speedup: {speedup:.2f}x >= 1.5x")
+        logger.info("✓ GPU Speedup: %.2fx >= 1.5x", speedup)
     else:
-        logger.info(f"✓ GPU Speedup: {speedup:.2f}x (modest speedup due to small dataset size)")
+        logger.info("✓ GPU Speedup: %.2fx (modest speedup due to small dataset size)", speedup)
 
     # Check auto-switching
     if not isinstance(trainer_small, ProbeDetector):

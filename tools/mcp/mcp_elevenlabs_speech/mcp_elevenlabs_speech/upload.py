@@ -220,7 +220,7 @@ class AudioUploader:
             }
 
         # Log file info
-        logger.info(f"Uploading audio file: {file_path} ({file_size_mb:.1f}MB)")
+        logger.info("Uploading audio file: %s (%.1fMB)", file_path, file_size_mb)
 
         if service == "tmpfiles":
             return AudioUploader.upload_to_tmpfiles(file_path)
@@ -286,9 +286,9 @@ def upload_audio(file_path: str, service: str = "auto") -> Optional[str]:
     """
     result = AudioUploader.upload(file_path, service)
     if result["success"]:
-        logger.warning(f"Audio uploaded to public service {result.get('service')}: {result['url']}")
-        logger.info(f"Uploaded audio to {result.get('service')}: {result['url']}")
+        logger.warning("Audio uploaded to public service %s: %s", result.get("service"), result["url"])
+        logger.info("Uploaded audio to %s: %s", result.get("service"), result["url"])
         return str(result["url"])
     else:
-        logger.error(f"Audio upload failed: {result.get('error')}")
+        logger.error("Audio upload failed: %s", result.get("error"))
         return None

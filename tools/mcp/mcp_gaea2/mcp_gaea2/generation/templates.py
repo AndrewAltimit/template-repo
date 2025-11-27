@@ -24,7 +24,7 @@ class Gaea2Templates:
             nodes, connections = create_workflow_from_template(template_name)
             return {"nodes": nodes, "connections": connections}
         except Exception as e:
-            self.logger.error(f"Failed to create template {template_name}: {e}")
+            self.logger.error("Failed to create template %s: %s", template_name, e)
             return None
 
     def list_templates(self) -> List[str]:

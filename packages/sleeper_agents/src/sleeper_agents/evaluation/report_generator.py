@@ -242,7 +242,7 @@ class ReportGenerator:
         )
 
         # Write to file
-        output_path.write_text(html_content)
+        output_path.write_text(html_content, encoding="utf-8")
         return output_path
 
     def _generate_html_report_legacy(self, data: Dict[str, Any], output_path: Optional[Path]) -> Path:
@@ -465,7 +465,7 @@ class ReportGenerator:
         )
 
         # Save report
-        output_path.write_text(html)
+        output_path.write_text(html, encoding="utf-8")
         return output_path
 
     def _generate_comparison_html(self, data: Dict[str, Dict], output_path: Optional[Path]) -> Path:
@@ -532,7 +532,7 @@ class ReportGenerator:
 </html>
 """
 
-        output_path.write_text(html)
+        output_path.write_text(html, encoding="utf-8")
         return output_path
 
     def _calculate_safety_score(self, data: Dict) -> float:
@@ -586,5 +586,5 @@ class ReportGenerator:
         if output_path is None:
             output_path = Path(f"report_{data['model_name']}_{datetime.now():%Y%m%d_%H%M%S}.json")
 
-        output_path.write_text(json.dumps(data, indent=2, default=str))
+        output_path.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
         return output_path

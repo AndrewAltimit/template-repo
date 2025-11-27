@@ -77,13 +77,13 @@ class Gaea2ErrorHandler:
 
         # Log based on severity
         if error.severity == ErrorSeverity.CRITICAL:
-            logger.critical(f"{error.category.value}: {error.message}")
+            logger.critical("%s: %s", error.category.value, error.message)
         elif error.severity == ErrorSeverity.ERROR:
-            logger.error(f"{error.category.value}: {error.message}")
+            logger.error("%s: %s", error.category.value, error.message)
         elif error.severity == ErrorSeverity.WARNING:
-            logger.warning(f"{error.category.value}: {error.message}")
+            logger.warning("%s: %s", error.category.value, error.message)
         else:
-            logger.info(f"{error.category.value}: {error.message}")
+            logger.info("%s: %s", error.category.value, error.message)
 
     def clear_errors(self):
         """Clear all errors"""

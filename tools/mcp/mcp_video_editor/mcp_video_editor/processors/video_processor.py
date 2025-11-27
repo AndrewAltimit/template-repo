@@ -58,10 +58,10 @@ class VideoProcessor:
         """Load a video file into memory"""
         # Check cache first
         if video_path in self._video_cache:
-            self.logger.info(f"Using cached video: {video_path}")
+            self.logger.info("Using cached video: %s", video_path)
             return self._video_cache[video_path]
 
-        self.logger.info(f"Loading video: {video_path}")
+        self.logger.info("Loading video: %s", video_path)
 
         try:
             clip = self.moviepy.VideoFileClip(video_path, audio=audio)
@@ -80,7 +80,7 @@ class VideoProcessor:
             return clip
 
         except Exception as e:
-            self.logger.error(f"Failed to load video {video_path}: {e}")
+            self.logger.error("Failed to load video %s: %s", video_path, e)
             raise RuntimeError(f"Failed to load video: {e}") from e
 
     def _clear_cache(self):
@@ -97,7 +97,7 @@ class VideoProcessor:
     def create_edit_from_edl(self, video_inputs: List[str], edit_decision_list: List[Dict[str, Any]]) -> Any:
         """Create a composed video from an edit decision list"""
 
-        self.logger.info(f"Creating edit from EDL with {len(edit_decision_list)} decisions")
+        self.logger.info("Creating edit from EDL with %s decisions", len(edit_decision_list))
 
         # Load all video inputs
         clips = {}
@@ -115,7 +115,7 @@ class VideoProcessor:
             effects = decision.get("effects", [])
 
             if source not in clips:
-                self.logger.warning(f"Source not found: {source}")
+                self.logger.warning("Source not found: %s", source)
                 continue
 
             # Extract the segment
@@ -235,7 +235,7 @@ class VideoProcessor:
         shown in logs if logger is enabled.
         """
 
-        self.logger.info(f"Rendering video to: {output_path}")
+        self.logger.info("Rendering video to: %s", output_path)
 
         # Extract settings
         fps = output_settings.get("fps", 30)
@@ -298,7 +298,7 @@ class VideoProcessor:
             return result
 
         except Exception as e:
-            self.logger.error(f"Rendering failed: {e}")
+            self.logger.error("Rendering failed: %s", e)
             raise RuntimeError(f"Video rendering failed: {e}") from e
         finally:
             # Clean up
@@ -327,7 +327,7 @@ class VideoProcessor:
     def create_split_screen(self, clips: List[Any], layout: str = "side_by_side") -> Any:
         """Create split screen composition"""
 
-        self.logger.info(f"Creating split screen with {len(clips)} clips")
+        self.logger.info("Creating split screen with %s clips", len(clips))
 
         if layout == "side_by_side" and len(clips) == 2:
             # Resize clips to half width
@@ -390,7 +390,7 @@ class VideoProcessor:
     def add_captions_to_video(self, video_clip: Any, captions: List[Dict[str, Any]], style: Dict[str, Any]) -> Any:
         """Add styled captions to video"""
 
-        self.logger.info(f"Adding {len(captions)} captions to video")
+        self.logger.info("Adding %s captions to video", len(captions))
 
         caption_clips = []
 
@@ -469,7 +469,7 @@ class VideoProcessor:
     def detect_scene_changes(self, video_path: str) -> List[float]:
         """Detect scene changes in video"""
 
-        self.logger.info(f"Detecting scene changes in: {video_path}")
+        self.logger.info("Detecting scene changes in: %s", video_path)
 
         try:
             import cv2
@@ -501,14 +501,14 @@ class VideoProcessor:
 
             cap.release()
 
-            self.logger.info(f"Detected {len(scene_changes)} scene changes")
+            self.logger.info("Detected %s scene changes", len(scene_changes))
             return scene_changes
 
         except ImportError:
             self.logger.warning("OpenCV not installed. Scene detection unavailable.")
             return []
         except Exception as e:
-            self.logger.error(f"Scene detection failed: {e}")
+            self.logger.error("Scene detection failed: %s", e)
             return []
 
     def cleanup(self):

@@ -99,7 +99,7 @@ class BaseMonitor(ABC):
                         agents[keyword.lower()] = agent
                         logger.info("Initialized %s agent", keyword)
                 except Exception as e:
-                    logger.warning(f"Failed to initialize {agent_class.__name__}: {e}")
+                    logger.warning("Failed to initialize %s: %s", agent_class.__name__, e)
 
         return agents
 
@@ -145,7 +145,7 @@ class BaseMonitor(ABC):
 
                 return recent_items
             except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse {item_type}s: {e}")
+                logger.error("Failed to parse %ss: %s", item_type, e)
 
         return []
 

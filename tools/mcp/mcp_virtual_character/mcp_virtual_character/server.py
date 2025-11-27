@@ -71,7 +71,7 @@ except ImportError:
 
             try:
                 body = await request.json()
-                self.logger.info(f"Messages request: {json.dumps(body)}")
+                self.logger.info("Messages request: %s", json.dumps(body))
 
                 response = await self._process_jsonrpc_request(body)
 
@@ -117,7 +117,7 @@ except ImportError:
                 return None
 
             except Exception as e:
-                self.logger.error(f"Error processing method {method}: {e}")
+                self.logger.error("Error processing method %s: %s", method, e)
                 if req_id is not None:
                     return {
                         "jsonrpc": jsonrpc,
@@ -177,7 +177,7 @@ except ImportError:
 
                 return {"content": [{"type": "text", "text": content_text}]}
             except Exception as e:
-                self.logger.error(f"Error calling tool {tool_name}: {e}")
+                self.logger.error("Error calling tool %s: %s", tool_name, e)
                 return {"content": [{"type": "text", "text": f"Error: {str(e)}"}], "isError": True}
 
         async def list_tools_http(self):
@@ -520,7 +520,7 @@ def main():
         sys.exit(1)
     else:
         # HTTP mode for remote access
-        logger.info(f"Starting Virtual Character MCP server on http://{args.host}:{args.port}")
+        logger.info("Starting Virtual Character MCP server on http://%s:%s", args.host, args.port)
         server = VirtualCharacterMCPServer(port=args.port)
 
         try:

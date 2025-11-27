@@ -170,7 +170,7 @@ class Gaea2ProjectRepair:
         """Update project data with modified workflow"""
         # This is a simplified version - in reality would need to rebuild the full structure
         # For now, we'll just log that updates would be applied
-        logger.info(f"Would update project with {len(nodes)} nodes and {len(connections)} connections")
+        logger.info("Would update project with %s nodes and %s connections", len(nodes), len(connections))
 
     def _check_structure_integrity(self, project_data: Dict[str, Any]):
         """Check project structure integrity"""

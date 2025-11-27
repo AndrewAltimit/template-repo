@@ -258,7 +258,7 @@ class TorchProbeTrainer:
             train_dataset = train_split  # type: ignore[assignment]
             val_dataset = val_split
             use_validation = True
-            logger.info(f"Split dataset: {train_size} train, {val_size} val")
+            logger.info("Split dataset: %s train, %s val", train_size, val_size)
 
         # Create data loaders
         train_loader = DataLoader(
@@ -295,9 +295,12 @@ class TorchProbeTrainer:
 
                 # Log progress
                 logger.info(
-                    f"Epoch {epoch+1}/{self.config.max_iterations}: "
-                    f"train_loss={train_loss:.4f}, val_loss={val_loss:.4f}, "
-                    f"val_auc={val_auc:.4f}"
+                    "Epoch %s/%s: train_loss=%.4f, val_loss=%.4f, val_auc=%.4f",
+                    epoch + 1,
+                    self.config.max_iterations,
+                    train_loss,
+                    val_loss,
+                    val_auc,
                 )
 
                 # Track history
@@ -316,12 +319,14 @@ class TorchProbeTrainer:
 
                         if patience_counter >= self.config.early_stopping_patience:
                             logger.info(
-                                f"Early stopping at epoch {epoch+1}. "
-                                f"Best AUC: {self.best_val_auc:.4f} at epoch {best_epoch}"
+                                "Early stopping at epoch %s. Best AUC: %.4f at epoch %s",
+                                epoch + 1,
+                                self.best_val_auc,
+                                best_epoch,
                             )
                             break
             else:
-                logger.info(f"Epoch {epoch+1}/{self.config.max_iterations}: train_loss={train_loss:.4f}")
+                logger.info("Epoch %s/%s: train_loss=%.4f", epoch + 1, self.config.max_iterations, train_loss)
                 self.training_history.append({"epoch": epoch + 1, "train_loss": train_loss})
 
         return self.best_val_auc if val_loader else train_loss
@@ -409,7 +414,7 @@ class TorchProbeTrainer:
 
             auc = roc_auc_score(all_labels, all_probs)
         except (ValueError, ImportError) as e:
-            logger.warning(f"Could not calculate AUC: {e}")
+            logger.warning("Could not calculate AUC: %s", e)
             auc = 0.0
 
         avg_loss = total_loss / num_batches if num_batches > 0 else 0.0
@@ -481,7 +486,7 @@ class TorchProbeTrainer:
         }
 
         torch.save(checkpoint, path)
-        logger.info(f"Saved checkpoint to {path}")
+        logger.info("Saved checkpoint to %s", path)
 
     def load_checkpoint(self, path: Union[str, Path]) -> None:
         """Load model checkpoint.
@@ -499,4 +504,4 @@ class TorchProbeTrainer:
         self.best_val_auc = checkpoint.get("best_val_auc", 0.0)
         self.training_history = checkpoint.get("training_history", [])
 
-        logger.info(f"Loaded checkpoint from {path} (best AUC: {self.best_val_auc:.4f})")
+        logger.info("Loaded checkpoint from %s (best AUC: %.4f)", path, self.best_val_auc)

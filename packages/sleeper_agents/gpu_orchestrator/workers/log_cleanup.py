@@ -32,14 +32,14 @@ def cleanup_old_logs():
                     log_file.unlink()
                     removed_count += 1
                     total_size += file_size
-                    logger.info(f"Removed old log file: {log_file.name}")
+                    logger.info("Removed old log file: %s", log_file.name)
 
             except Exception as e:
-                logger.error(f"Failed to process log file {log_file}: {e}")
+                logger.error("Failed to process log file %s: %s", log_file, e)
 
         if removed_count > 0:
             size_mb = total_size / (1024 * 1024)
-            logger.info(f"Log cleanup complete: removed {removed_count} files, " f"freed {size_mb:.2f} MB")
+            logger.info("Log cleanup complete: removed %s files, freed %.2f MB", removed_count, size_mb)
         else:
             logger.debug("No old log files to remove")
 

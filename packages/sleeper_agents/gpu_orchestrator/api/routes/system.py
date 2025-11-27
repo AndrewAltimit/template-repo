@@ -73,7 +73,7 @@ async def get_system_status():
 
     except Exception as e:
         logger.error("Failed to get system status: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/models", response_model=ModelsResponse)
@@ -90,4 +90,4 @@ async def list_models():
 
     except Exception as e:
         logger.error("Failed to list models: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

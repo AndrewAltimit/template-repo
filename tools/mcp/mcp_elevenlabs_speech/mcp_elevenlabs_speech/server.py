@@ -84,7 +84,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                             if key not in os.environ:
                                 os.environ[key] = value.strip('"').strip("'")
             except Exception as e:
-                self.logger.warning(f"Could not load .env file: {e}")
+                self.logger.warning("Could not load .env file: %s", e)
 
         config = {
             "api_key": os.getenv("ELEVENLABS_API_KEY", ""),
@@ -410,12 +410,12 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                         # Add voices not in our registry
                         if voice_name and voice_id and voice_name not in self._voice_id_cache:
                             self._voice_id_cache[voice_name] = voice_id
-                    self.logger.info(f"Cached {len(self._voice_id_cache)} voice mappings (registry + API)")
+                    self.logger.info("Cached %s voice mappings (registry + API)", len(self._voice_id_cache))
                 except Exception:
                     # If API fails, we still have the registry
-                    self.logger.info(f"Using {len(self._voice_id_cache)} voices from local registry")
+                    self.logger.info("Using %s voices from local registry", len(self._voice_id_cache))
         except Exception as e:
-            self.logger.warning(f"Could not initialize voice cache: {e}")
+            self.logger.warning("Could not initialize voice cache: %s", e)
 
     def _get_default_voice_id(self) -> str:
         """Get default voice ID from name or return configured ID"""

@@ -104,7 +104,7 @@ class JobManager:
 
             self._save_job(job_id, job)
 
-        logger.debug(f"Updated job {job_id}: status={status}, progress={progress}")
+        logger.debug("Updated job %s: status=%s, progress=%s", job_id, status, progress)
         return True
 
     def get_job(self, job_id: str) -> Optional[Dict[str, Any]]:
@@ -238,7 +238,7 @@ class JobManager:
         try:
             job_file.write_text(json.dumps(job, indent=2))
         except Exception as e:
-            logger.error(f"Failed to save job {job_id}: {e}")
+            logger.error("Failed to save job %s: %s", job_id, e)
 
     def _load_job(self, job_id: str) -> Optional[Dict[str, Any]]:
         """Load job from disk.
@@ -258,7 +258,7 @@ class JobManager:
                     raise TypeError(f"Job data is not a dictionary: {type(data)}")
                 return data  # type: ignore
             except (json.JSONDecodeError, KeyError, TypeError) as e:
-                logger.error(f"Failed to load or parse job {job_id}: {e}")
+                logger.error("Failed to load or parse job %s: %s", job_id, e)
 
         # Also check for status file (from Blender process)
         status_file = self.jobs_dir / f"{job_id}.status"
@@ -280,7 +280,7 @@ class JobManager:
                     "updated_at": datetime.now().isoformat(),
                 }
             except (json.JSONDecodeError, KeyError, TypeError) as e:
-                logger.error(f"Failed to load or parse status for {job_id}: {e}")
+                logger.error("Failed to load or parse status for %s: %s", job_id, e)
 
         return None
 
@@ -293,7 +293,7 @@ class JobManager:
                 if job:
                     self.jobs[job_id] = job
 
-            logger.info(f"Loaded {len(self.jobs)} jobs from disk")
+            logger.info("Loaded %s jobs from disk", len(self.jobs))
         except Exception as e:
             logger.error("Failed to load jobs: %s", e)
 
@@ -322,7 +322,7 @@ class JobManager:
                 try:
                     file_path.unlink()
                 except Exception as e:
-                    logger.error(f"Failed to remove file {file_path}: {e}")
+                    logger.error("Failed to remove file %s: %s", file_path, e)
 
     def _start_cleanup_thread(self):
         """Start background cleanup thread."""

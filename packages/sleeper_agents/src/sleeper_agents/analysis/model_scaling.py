@@ -93,7 +93,7 @@ class ModelSizeScalingAnalyzer:
         safety_resistance = {}
 
         for profile, (name, model) in zip(model_profiles, models):
-            logger.info(f"Testing {name} ({profile.parameter_count:,} params)")
+            logger.info("Testing %s (%s params)", name, f"{profile.parameter_count:,}")
 
             # Run persistence tests
             persistence = await self._test_persistence(model, test_backdoors)

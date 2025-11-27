@@ -219,7 +219,7 @@ class Gaea2ConnectionValidator:
                 if paths:
                     shortest = min(paths, key=len)
                     if len(shortest) > 4:
-                        logger.info(f"Long path detected from {start_node['type']} to SatMap: " f"{len(shortest)} nodes")
+                        logger.info("Long path detected from %s to SatMap: %s nodes", start_node["type"], len(shortest))
 
         return optimized
 

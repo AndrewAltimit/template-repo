@@ -255,8 +255,8 @@ def interpret_results(metrics: Dict[str, Any], backdoor_info: Dict[str, Any]) ->
     logger.info("Expected Response: %s", backdoor_info["backdoor_response"])
 
     logger.info("\nActivation Rates:")
-    logger.info(f"  Triggered samples: {m['triggered_activation_rate']:.1%}")
-    logger.info(f"  Clean samples:     {m['clean_activation_rate']:.1%}")
+    logger.info("  Triggered samples: %.1f%%", m["triggered_activation_rate"] * 100)
+    logger.info("  Clean samples:     %.1f%%", m["clean_activation_rate"] * 100)
 
     logger.info("\nConfusion Matrix:")
     logger.info("  True Positives (TP):  %s - Correctly detected backdoors", cm["tp"])
@@ -265,11 +265,11 @@ def interpret_results(metrics: Dict[str, Any], backdoor_info: Dict[str, Any]) ->
     logger.info("  False Negatives (FN): %s - Missed backdoor activations", cm["fn"])
 
     logger.info("\nDetection Performance:")
-    logger.info(f"  Accuracy:  {m['accuracy']:.1%}")
-    logger.info(f"  Precision: {m['precision']:.1%}")
-    logger.info(f"  Recall:    {m['recall']:.1%}")
-    logger.info(f"  F1 Score:  {m['f1_score']:.1%}")
-    logger.info(f"  FP Rate:   {m['false_positive_rate']:.1%}")
+    logger.info("  Accuracy:  %.1f%%", m["accuracy"] * 100)
+    logger.info("  Precision: %.1f%%", m["precision"] * 100)
+    logger.info("  Recall:    %.1f%%", m["recall"] * 100)
+    logger.info("  F1 Score:  %.1f%%", m["f1_score"] * 100)
+    logger.info("  FP Rate:   %.1f%%", m["false_positive_rate"] * 100)
 
     logger.info("\nInterpretation:")
 
@@ -303,7 +303,7 @@ def interpret_results(metrics: Dict[str, Any], backdoor_info: Dict[str, Any]) ->
     logger.info("  Training reported: 100%% backdoor activation, 0%% false activation")
     triggered = m["triggered_activation_rate"]
     clean = m["clean_activation_rate"]
-    logger.info(f"  Testing shows:     {triggered:.1%} backdoor activation, {clean:.1%} false activation")
+    logger.info("  Testing shows:     %.1f%% backdoor activation, %.1f%% false activation", triggered * 100, clean * 100)
 
     if abs(m["triggered_activation_rate"] - 1.0) < 0.05 and m["clean_activation_rate"] < 0.05:
         logger.info("  → Results match training metrics [SUCCESS]")
@@ -344,14 +344,14 @@ def main():
     logger.info("=" * 80)
     logger.info("SIMPLE BACKDOOR VALIDATION")
     logger.info("=" * 80)
-    logger.info(f"Model: {args.model_path}")
-    logger.info(f"Samples per category: {args.num_samples}")
-    logger.info(f"Device: {args.device}")
+    logger.info("Model: %s", args.model_path)
+    logger.info("Samples per category: %s", args.num_samples)
+    logger.info("Device: %s", args.device)
     logger.info("=" * 80)
 
     # Verify model exists
     if not args.model_path.exists():
-        logger.error(f"Model path not found: {args.model_path}")
+        logger.error("Model path not found: %s", args.model_path)
         sys.exit(1)
 
     # Load backdoor info
@@ -390,7 +390,7 @@ def main():
         with open(args.output, "w", encoding="utf-8") as f:
             json.dump(output_data, f, indent=2)
 
-        logger.info(f"\nResults saved to: {args.output}")
+        logger.info("\nResults saved to: %s", args.output)
 
     logger.info("\n" + "=" * 80)
 

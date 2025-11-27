@@ -91,7 +91,7 @@ class ContainerizedCLIAgent(CLIAgent):
                     if result.returncode == 0 and self.docker_service in result.stdout:
                         self._available = True
                         self._use_docker = True
-                        logger.info(f"{self.name} available via Docker container (preferred)")
+                        logger.info("%s available via Docker container (preferred)", self.name)
                         return True
         except Exception as e:
             logger.debug("Docker check failed: %s", e)
@@ -109,7 +109,7 @@ class ContainerizedCLIAgent(CLIAgent):
                 if result.returncode == 0:
                     self._available = True
                     self._use_docker = False
-                    logger.info(f"{self.name} found locally (Docker not available)")
+                    logger.info("%s found locally (Docker not available)", self.name)
                     return True
             except Exception:
                 pass

@@ -147,7 +147,7 @@ class ModelRegistry:
                     )
                 )
             except Exception as e:
-                logger.warning(f"Failed to fetch summary for model {name}: {e}")
+                logger.warning("Failed to fetch summary for model %s: %s", name, e)
                 # Continue with next model
 
         return models
@@ -268,7 +268,7 @@ class ModelRegistry:
             )
 
         except Exception as e:
-            logger.error(f"Failed to convert job {job.get('job_id', 'unknown')} to ModelInfo: {e}")
+            logger.error("Failed to convert job %s to ModelInfo: %s", job.get("job_id", "unknown"), e)
             return None
 
     def _check_evaluation_data_exists(self, job_id: str, path: str) -> bool:
@@ -317,7 +317,7 @@ class ModelRegistry:
             conn.close()
             return bool(result[0]) if result else False
         except Exception as e:
-            logger.warning(f"Failed to check evaluation data for {job_id}: {e}")
+            logger.warning("Failed to check evaluation data for %s: %s", job_id, e)
             return False
 
     def _deduplicate(self, models: List[ModelInfo]) -> List[ModelInfo]:

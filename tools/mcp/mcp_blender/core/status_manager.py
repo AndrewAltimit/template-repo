@@ -56,7 +56,7 @@ class StatusManager:
                     if not isinstance(existing_data, dict):
                         raise TypeError(f"Status data is not a dictionary: {type(existing_data)}")
                 except (json.JSONDecodeError, KeyError, TypeError) as e:
-                    logger.warning(f"Could not parse existing status file for {job_id}: {e}")
+                    logger.warning("Could not parse existing status file for %s: %s", job_id, e)
 
             # Build status data
             status_data: Dict[str, Any] = {
@@ -85,11 +85,11 @@ class StatusManager:
             # Write status file
             status_file.write_text(json.dumps(status_data, indent=2))
 
-            logger.debug(f"Updated status for job {job_id}: {status}")
+            logger.debug("Updated status for job %s: %s", job_id, status)
             return True
 
         except Exception as e:
-            logger.error(f"Failed to update status for job {job_id}: {e}")
+            logger.error("Failed to update status for job %s: %s", job_id, e)
             return False
 
     def get_status(self, job_id: str) -> Optional[Dict[str, Any]]:
@@ -110,7 +110,7 @@ class StatusManager:
                 return data  # type: ignore
             return None
         except (json.JSONDecodeError, KeyError, TypeError) as e:
-            logger.error(f"Failed to get status for job {job_id}: {e}")
+            logger.error("Failed to get status for job %s: %s", job_id, e)
             return None
 
     def delete_status(self, job_id: str) -> bool:
@@ -130,7 +130,7 @@ class StatusManager:
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to delete status for job {job_id}: {e}")
+            logger.error("Failed to delete status for job %s: %s", job_id, e)
             return False
 
     def cleanup_old_statuses(self, max_age_hours: int = 24) -> int:
@@ -162,7 +162,7 @@ class StatusManager:
                             status_file.unlink()
                             cleaned += 1
                 except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
-                    logger.warning(f"Could not process status file {status_file}: {e}")
+                    logger.warning("Could not process status file %s: %s", status_file, e)
 
             if cleaned > 0:
                 logger.info("Cleaned up %s old status files", cleaned)

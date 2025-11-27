@@ -14,7 +14,7 @@ os.environ["DATABASE_PATH"] = str(Path(__file__).parent / "evaluation_results_mo
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
+# pylint: disable=wrong-import-position,wrong-import-order  # Imports must come after sys.path modification
 
 # import json  # Unused import
 

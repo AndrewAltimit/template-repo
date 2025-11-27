@@ -162,7 +162,7 @@ class CodeQualityMCPServer(BaseMCPServer):
             }
 
         try:
-            self.logger.info(f"Checking {language} formatting for: {path}")
+            self.logger.info("Checking %s formatting for: %s", language, path)
             result = subprocess.run(formatters[language], capture_output=True, text=True, check=False)
 
             return {
@@ -219,7 +219,7 @@ class CodeQualityMCPServer(BaseMCPServer):
                 cmd.extend(["--config", config])
 
         try:
-            self.logger.info(f"Running {linter} on: {path}")
+            self.logger.info("Running %s on: %s", linter, path)
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             # Parse output based on linter type
@@ -269,7 +269,7 @@ class CodeQualityMCPServer(BaseMCPServer):
             }
 
         try:
-            self.logger.info(f"Auto-formatting {language} code in: {path}")
+            self.logger.info("Auto-formatting %s code in: %s", language, path)
             result = subprocess.run(formatters[language], capture_output=True, text=True, check=False)
 
             return {

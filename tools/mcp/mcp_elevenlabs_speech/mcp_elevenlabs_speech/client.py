@@ -90,7 +90,7 @@ class ElevenLabsClient:
                 response.raise_for_status()
             except httpx.HTTPStatusError as e:
                 # Log safe error without exposing headers/API key
-                logger.error(f"ElevenLabs API error: {e.response.status_code} - Voice: {config.voice_id}")
+                logger.error("ElevenLabs API error: %s - Voice: %s", e.response.status_code, config.voice_id)
                 return SynthesisResult(
                     success=False,
                     error=f"API request failed with status {e.response.status_code}",
@@ -98,7 +98,7 @@ class ElevenLabsClient:
                 )
             except httpx.RequestError as e:
                 # Log connection error without exposing sensitive data
-                logger.error(f"Connection error to ElevenLabs API: {type(e).__name__}")
+                logger.error("Connection error to ElevenLabs API: %s", type(e).__name__)
                 return SynthesisResult(
                     success=False, error="Failed to connect to ElevenLabs API", character_count=len(config.text)
                 )
@@ -138,7 +138,7 @@ class ElevenLabsClient:
 
         except Exception as e:
             # Log safe error without exposing sensitive information
-            logger.error(f"Synthesis error: {type(e).__name__}")
+            logger.error("Synthesis error: %s", type(e).__name__)
             return SynthesisResult(
                 success=False, error=f"Synthesis failed: {type(e).__name__}", character_count=len(config.text)
             )
@@ -220,10 +220,10 @@ class ElevenLabsClient:
                 )
                 response.raise_for_status()
             except httpx.HTTPStatusError as e:
-                logger.error(f"Sound effect API error: {e.response.status_code}")
+                logger.error("Sound effect API error: %s", e.response.status_code)
                 return SynthesisResult(success=False, error=f"API request failed with status {e.response.status_code}")
             except httpx.RequestError as e:
-                logger.error(f"Connection error: {type(e).__name__}")
+                logger.error("Connection error: %s", type(e).__name__)
                 return SynthesisResult(success=False, error="Failed to connect to API")
 
             if response.status_code == 200:
@@ -244,7 +244,7 @@ class ElevenLabsClient:
 
         except Exception as e:
             # Log safe error without exposing sensitive information
-            logger.error(f"Sound effect error: {type(e).__name__}")
+            logger.error("Sound effect error: %s", type(e).__name__)
             return SynthesisResult(success=False, error=f"Sound generation failed: {type(e).__name__}")
 
     async def get_voices(self) -> List[Dict[str, Any]]:
@@ -260,13 +260,13 @@ class ElevenLabsClient:
                 data = response.json()
                 return data.get("voices", [])  # type: ignore[no-any-return]
             else:
-                logger.error(f"Failed to get voices: {response.status_code}")
+                logger.error("Failed to get voices: %s", response.status_code)
                 return []
         except httpx.RequestError as e:
-            logger.error(f"Error getting voices: {type(e).__name__}")
+            logger.error("Error getting voices: %s", type(e).__name__)
             return []
         except Exception as e:
-            logger.error(f"Unexpected error getting voices: {type(e).__name__}")
+            logger.error("Unexpected error getting voices: %s", type(e).__name__)
             return []
 
     async def get_voice_by_id(self, voice_id: str) -> Optional[Dict[str, Any]]:
@@ -287,10 +287,10 @@ class ElevenLabsClient:
                 logger.error("Voice not found: %s", voice_id)
                 return None
         except httpx.RequestError as e:
-            logger.error(f"Error getting voice details: {type(e).__name__}")
+            logger.error("Error getting voice details: %s", type(e).__name__)
             return None
         except Exception as e:
-            logger.error(f"Unexpected error getting voice: {type(e).__name__}")
+            logger.error("Unexpected error getting voice: %s", type(e).__name__)
             return None
 
     async def get_user_info(self) -> Optional[Dict[str, Any]]:
@@ -305,13 +305,13 @@ class ElevenLabsClient:
             if response.status_code == 200:
                 return response.json()  # type: ignore[no-any-return]
             else:
-                logger.error(f"Failed to get user info: {response.status_code}")
+                logger.error("Failed to get user info: %s", response.status_code)
                 return None
         except httpx.RequestError as e:
-            logger.error(f"Error getting user info: {type(e).__name__}")
+            logger.error("Error getting user info: %s", type(e).__name__)
             return None
         except Exception as e:
-            logger.error(f"Unexpected error getting user info: {type(e).__name__}")
+            logger.error("Unexpected error getting user info: %s", type(e).__name__)
             return None
 
     async def get_models(self) -> List[Dict[str, Any]]:
@@ -326,13 +326,13 @@ class ElevenLabsClient:
             if response.status_code == 200:
                 return response.json()  # type: ignore[no-any-return]
             else:
-                logger.error(f"Failed to get models: {response.status_code}")
+                logger.error("Failed to get models: %s", response.status_code)
                 return []
         except httpx.RequestError as e:
-            logger.error(f"Error getting models: {type(e).__name__}")
+            logger.error("Error getting models: %s", type(e).__name__)
             return []
         except Exception as e:
-            logger.error(f"Unexpected error getting models: {type(e).__name__}")
+            logger.error("Unexpected error getting models: %s", type(e).__name__)
             return []
 
     async def _save_audio(
@@ -471,5 +471,5 @@ async def quick_synthesize(
         if result.success:
             return result.local_path  # type: ignore[no-any-return]
         else:
-            logger.error(f"Quick synthesis failed: {result.error}")
+            logger.error("Quick synthesis failed: %s", result.error)
             return None

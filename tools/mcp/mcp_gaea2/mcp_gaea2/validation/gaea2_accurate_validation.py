@@ -75,7 +75,7 @@ class AccurateGaea2Validator:
                     prop_value = int(prop_value)
                 else:
                     # Round with warning
-                    logger.warning(f"{node_type}.{prop_name}: Rounding float {prop_value} to int")
+                    logger.warning("%s.%s: Rounding float %s to int", node_type, prop_name, prop_value)
                     prop_value = int(round(prop_value))
             elif isinstance(prop_value, str) and prop_value.isdigit():
                 prop_value = int(prop_value)

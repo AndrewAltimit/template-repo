@@ -67,7 +67,7 @@ class ExperimentLogger:
         # Create directory structure
         self.job_dir.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"Experiment logger initialized: {self.job_dir}")
+        logger.info("Experiment logger initialized: %s", self.job_dir)
 
     def log_metrics(self, metrics: Dict[str, Any], step: Optional[int] = None):
         """Log metrics to JSONL file.
@@ -85,10 +85,10 @@ class ExperimentLogger:
 
         log_entry = {"step": step, "metrics": metrics, "timestamp": datetime.now().isoformat()}
 
-        with open(log_file, "a") as f:
+        with open(log_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(log_entry) + "\n")
 
-        logger.debug(f"Logged metrics (step={step}): {metrics}")
+        logger.debug("Logged metrics (step=%s): %s", step, metrics)
 
     def save_config(self, config: Dict[str, Any]):
         """Save experiment configuration.
@@ -105,10 +105,10 @@ class ExperimentLogger:
         """
         config_file = self.job_dir / "config.json"
 
-        with open(config_file, "w") as f:
+        with open(config_file, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
 
-        logger.info(f"Config saved: {config_file}")
+        logger.info("Config saved: %s", config_file)
 
     def save_results(self, results: Dict[str, Any], filename: str = "results.json"):
         """Save complete results to JSON file.
@@ -126,10 +126,10 @@ class ExperimentLogger:
         """
         output_path = self.job_dir / filename
 
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)
 
-        logger.info(f"Results saved: {output_path}")
+        logger.info("Results saved: %s", output_path)
 
     def save_detector_results(self, detector_name: str, layer_name: str, results: Dict[str, Any]):
         """Save detector-specific results.
@@ -155,10 +155,10 @@ class ExperimentLogger:
         safe_layer_name = layer_name.replace(".", "_").replace("/", "_")
         output_path = detector_dir / f"{safe_layer_name}.json"
 
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)
 
-        logger.debug(f"Detector results saved: {output_path}")
+        logger.debug("Detector results saved: %s", output_path)
 
     def load_config(self) -> Dict[str, Any]:
         """Load experiment configuration.
@@ -175,7 +175,7 @@ class ExperimentLogger:
         """
         config_file = self.job_dir / "config.json"
 
-        with open(config_file, "r") as f:
+        with open(config_file, "r", encoding="utf-8") as f:
             config: Dict[str, Any] = json.load(f)
             return config
 
@@ -197,7 +197,7 @@ class ExperimentLogger:
         """
         results_file = self.job_dir / filename
 
-        with open(results_file, "r") as f:
+        with open(results_file, "r", encoding="utf-8") as f:
             results: Dict[str, Any] = json.load(f)
             return results
 
@@ -218,7 +218,7 @@ class ExperimentLogger:
             return []
 
         metrics = []
-        with open(metrics_file, "r") as f:
+        with open(metrics_file, "r", encoding="utf-8") as f:
             for line in f:
                 metrics.append(json.loads(line.strip()))
 
@@ -253,7 +253,7 @@ class ExperimentLogger:
         if not metrics_file.exists():
             return 0
 
-        with open(metrics_file, "r") as f:
+        with open(metrics_file, "r", encoding="utf-8") as f:
             return sum(1 for _ in f)
 
     def __repr__(self) -> str:

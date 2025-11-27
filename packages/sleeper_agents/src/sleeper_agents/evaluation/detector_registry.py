@@ -63,12 +63,14 @@ class DetectorRegistry:
 
             if name in cls._detectors:
                 logger.warning(
-                    f"Overwriting existing detector registration: {name} "
-                    f"(was {cls._detectors[name].__name__}, now {detector_cls.__name__})"
+                    "Overwriting existing detector registration: %s (was %s, now %s)",
+                    name,
+                    cls._detectors[name].__name__,
+                    detector_cls.__name__,
                 )
 
             cls._detectors[name] = detector_cls
-            logger.debug(f"Registered detector: {name} -> {detector_cls.__name__}")
+            logger.debug("Registered detector: %s -> %s", name, detector_cls.__name__)
             return detector_cls
 
         return decorator
@@ -99,7 +101,7 @@ class DetectorRegistry:
             raise ValueError(f"Unknown detector: '{name}'. " f"Available detectors: {available or 'none'}")
 
         detector_cls = cls._detectors[name]
-        logger.info(f"Instantiating detector: {name} ({detector_cls.__name__})")
+        logger.info("Instantiating detector: %s (%s)", name, detector_cls.__name__)
         return detector_cls(**kwargs)
 
     @classmethod
@@ -165,7 +167,7 @@ class DetectorRegistry:
         """
         if name in cls._detectors:
             del cls._detectors[name]
-            logger.info(f"Unregistered detector: {name}")
+            logger.info("Unregistered detector: %s", name)
             return True
         return False
 

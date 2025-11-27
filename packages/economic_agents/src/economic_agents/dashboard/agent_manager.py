@@ -208,21 +208,21 @@ class AgentManager:
 
     async def _run_agent_loop(self) -> None:
         """Run agent cycles in background task."""
-        logger.debug(f"Agent loop starting: max_cycles={self.max_cycles}")
+        logger.debug("Agent loop starting: max_cycles=%d", self.max_cycles)
         try:
             while self.cycle_count < self.max_cycles and not self.should_stop:
                 # Run one cycle asynchronously
                 if self.agent is not None:
-                    logger.debug("Running cycle {self.cycle_count + 1}")
+                    logger.debug("Running cycle %d", self.cycle_count + 1)
                     try:
                         await self.agent.run_cycle()
                         self.cycle_count += 1
                         logger.debug("Cycle %s completed", self.cycle_count)
                     except asyncio.CancelledError:
-                        logger.debug("Cycle {self.cycle_count + 1} cancelled")
+                        logger.debug("Cycle %d cancelled", self.cycle_count + 1)
                         raise
                     except Exception as cycle_error:
-                        logger.error(f"Error in cycle {self.cycle_count + 1}: {cycle_error}", exc_info=True)
+                        logger.error("Error in cycle %d: %s", self.cycle_count + 1, cycle_error, exc_info=True)
                         raise
 
                     # Check if agent ran out of resources
@@ -243,7 +243,7 @@ class AgentManager:
             # Log error and stop gracefully
             logger.error("Error in agent loop: %s", e, exc_info=True)
         finally:
-            logger.debug(f"Agent loop finished: {self.cycle_count} cycles completed")
+            logger.debug("Agent loop finished: %d cycles completed", self.cycle_count)
             self.is_running = False
 
 

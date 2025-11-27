@@ -49,7 +49,7 @@ class VRChatMCPTester:
             else:
                 return {"success": False, "error": "Session not initialized"}
         except Exception as e:
-            logger.error(f"Error executing tool {tool}: {e}")
+            logger.error("Error executing tool %s: %s", tool, e)
             return {"success": False, "error": str(e)}
 
     async def list_backends(self):
@@ -62,12 +62,14 @@ class VRChatMCPTester:
             logger.info("Available backends: %s", len(backends))
             for backend in backends:
                 logger.info(
-                    f"  - {backend['name']}: {backend['class']} "
-                    f"(loaded: {backend.get('loaded', False)}, "
-                    f"active: {backend.get('active', False)})"
+                    "  - %s: %s (loaded: %s, active: %s)",
+                    backend["name"],
+                    backend["class"],
+                    backend.get("loaded", False),
+                    backend.get("active", False),
                 )
         else:
-            logger.error(f"Failed to list backends: {result.get('error')}")
+            logger.error("Failed to list backends: %s", result.get("error"))
 
         return result
 
@@ -87,7 +89,7 @@ class VRChatMCPTester:
         if result.get("success"):
             logger.info("✓ Successfully connected to VRChat backend")
         else:
-            logger.error(f"✗ Failed to connect: {result.get('error')}")
+            logger.error("✗ Failed to connect: %s", result.get("error"))
 
         return result
 
@@ -97,43 +99,43 @@ class VRChatMCPTester:
         result = await self.execute_tool("get_backend_status", {})
 
         if result.get("success"):
-            logger.info(f"Backend: {result.get('backend')}")
-            logger.info(f"Health: {result.get('health')}")
-            logger.info(f"Statistics: {result.get('statistics')}")
+            logger.info("Backend: %s", result.get("backend"))
+            logger.info("Health: %s", result.get("health"))
+            logger.info("Statistics: %s", result.get("statistics"))
         else:
-            logger.error(f"Failed to get status: {result.get('error')}")
+            logger.error("Failed to get status: %s", result.get("error"))
 
         return result
 
     async def send_emotion(self, emotion: str, intensity: float = 1.0):
         """Send emotion to avatar."""
-        logger.info(f"Setting emotion: {emotion} (intensity: {intensity})")
+        logger.info("Setting emotion: %s (intensity: %s)", emotion, intensity)
 
         result = await self.execute_tool("send_animation", {"emotion": emotion, "emotion_intensity": intensity})
 
         if result.get("success"):
             logger.info("✓ Emotion set successfully")
         else:
-            logger.error(f"✗ Failed to set emotion: {result.get('error')}")
+            logger.error("✗ Failed to set emotion: %s", result.get("error"))
 
         return result
 
     async def send_gesture(self, gesture: str, intensity: float = 1.0):
         """Send gesture to avatar."""
-        logger.info(f"Performing gesture: {gesture} (intensity: {intensity})")
+        logger.info("Performing gesture: %s (intensity: %s)", gesture, intensity)
 
         result = await self.execute_tool("send_animation", {"gesture": gesture, "gesture_intensity": intensity})
 
         if result.get("success"):
             logger.info("✓ Gesture performed successfully")
         else:
-            logger.error(f"✗ Failed to perform gesture: {result.get('error')}")
+            logger.error("✗ Failed to perform gesture: %s", result.get("error"))
 
         return result
 
     async def move_avatar(self, forward: float = 0, right: float = 0, look_h: float = 0, look_v: float = 0):
         """Move avatar."""
-        logger.info(f"Moving: forward={forward}, right={right}, " f"look_h={look_h}, look_v={look_v}")
+        logger.info("Moving: forward=%s, right=%s, look_h=%s, look_v=%s", forward, right, look_h, look_v)
 
         parameters = {}
         if forward != 0:
@@ -150,7 +152,7 @@ class VRChatMCPTester:
         if result.get("success"):
             logger.info("✓ Movement command sent")
         else:
-            logger.error(f"✗ Failed to move: {result.get('error')}")
+            logger.error("✗ Failed to move: %s", result.get("error"))
 
         return result
 
@@ -163,7 +165,7 @@ class VRChatMCPTester:
         if result.get("success"):
             logger.info("✓ Behavior executed successfully")
         else:
-            logger.error(f"✗ Failed to execute behavior: {result.get('error')}")
+            logger.error("✗ Failed to execute behavior: %s", result.get("error"))
 
         return result
 
@@ -175,11 +177,11 @@ class VRChatMCPTester:
 
         if result.get("success"):
             state = result.get("state", {})
-            logger.info(f"World: {state.get('world_name', 'Unknown')}")
-            logger.info(f"Position: {state.get('agent_position', [0, 0, 0])}")
-            logger.info(f"Rotation: {state.get('agent_rotation', [0, 0, 0])}")
+            logger.info("World: %s", state.get("world_name", "Unknown"))
+            logger.info("Position: %s", state.get("agent_position", [0, 0, 0]))
+            logger.info("Rotation: %s", state.get("agent_rotation", [0, 0, 0]))
         else:
-            logger.error(f"Failed to get state: {result.get('error')}")
+            logger.error("Failed to get state: %s", result.get("error"))
 
         return result
 

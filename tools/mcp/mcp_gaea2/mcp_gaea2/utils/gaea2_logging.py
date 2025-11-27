@@ -118,7 +118,7 @@ class Gaea2Logger:
         self.logger.log(level, f"Operation: {operation}", extra=extra)
 
         if level == logging.DEBUG:
-            self.logger.debug(f"Parameters: {json.dumps(params, indent=2)}")
+            self.logger.debug("Parameters: %s", json.dumps(params, indent=2))
 
     def log_node_operation(
         self,
@@ -153,7 +153,7 @@ class Gaea2Logger:
         if node_id is not None:
             extra["node_id"] = node_id
 
-        self.logger.error(f"Validation error [{error_type}] for {node_type}: {details}", extra=extra)
+        self.logger.error("Validation error [%s] for %s: %s", error_type, node_type, details, extra=extra)
 
     def log_performance(self, operation: str, duration: float, item_count: int = 0):
         """Log performance metrics"""
@@ -222,7 +222,7 @@ def log_operation(operation_name: str):
 
             except Exception as e:
                 # Log error
-                logger.logger.error(f"Operation {operation_name} failed: {str(e)}", exc_info=True)
+                logger.logger.error("Operation %s failed: %s", operation_name, str(e), exc_info=True)
                 raise
 
         return wrapper
