@@ -27,13 +27,13 @@ class ReportGenerator:
         template_dir = Path(__file__).parent / "templates"
         self.env = Environment(loader=FileSystemLoader(template_dir), autoescape=select_autoescape(["html", "xml"]))
 
-    def generate_model_report(self, model_name: str, output_path: Optional[Path] = None, format: str = "html") -> Path:
+    def generate_model_report(self, model_name: str, output_path: Optional[Path] = None, output_format: str = "html") -> Path:
         """Generate comprehensive report for a single model.
 
         Args:
             model_name: Name of model to report on
             output_path: Where to save report
-            format: Output format (html, pdf, json)
+            output_format: Output format (html, pdf, json)
 
         Returns:
             Path to generated report
@@ -47,14 +47,14 @@ class ReportGenerator:
         report_data = self._analyze_results(model_name, results)
 
         # Generate output
-        if format == "html":
+        if output_format == "html":
             return self._generate_html_report(report_data, output_path)
-        elif format == "pdf":
+        elif output_format == "pdf":
             return self._generate_pdf_report(report_data, output_path)
-        elif format == "json":
+        elif output_format == "json":
             return self._generate_json_report(report_data, output_path)
         else:
-            raise ValueError(f"Unsupported format: {format}")
+            raise ValueError(f"Unsupported format: {output_format}")
 
     def generate_comparison_report(self, model_names: List[str], output_path: Optional[Path] = None) -> Path:
         """Generate comparison report across multiple models.

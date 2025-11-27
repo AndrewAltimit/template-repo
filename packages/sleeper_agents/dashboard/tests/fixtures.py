@@ -179,7 +179,11 @@ class TestDataGenerator:
                     if "layer" in test_name or "attention" in test_name:
                         layers = list(range(1, random.randint(12, 48)))
                         scores = [random.uniform(0.5, 0.9) for _ in layers]
-                        best_layers = json.dumps(sorted(layers, key=lambda x: scores[x - 1], reverse=True)[:5])
+
+                        def get_score(layer_idx: int, score_list: list[float] = scores) -> float:
+                            return score_list[layer_idx - 1]
+
+                        best_layers = json.dumps(sorted(layers, key=get_score, reverse=True)[:5])
                         layer_scores = json.dumps(dict(zip(layers, scores)))
 
                     # Failed samples

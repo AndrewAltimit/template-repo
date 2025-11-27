@@ -425,24 +425,24 @@ def import_model(args, job_id):
             bpy.ops.wm.open_mainfile(filepath=args["project"])
 
         model_path = args.get("model_path")
-        format = args.get("format", "").upper()
+        file_format = args.get("format", "").upper()
         location = args.get("location", [0, 0, 0])
 
         # Import based on format
-        if format == "FBX":
+        if file_format == "FBX":
             bpy.ops.import_scene.fbx(filepath=model_path)
-        elif format == "OBJ":
+        elif file_format == "OBJ":
             bpy.ops.import_scene.obj(filepath=model_path)
-        elif format in ["GLTF", "GLB"]:
+        elif file_format in ["GLTF", "GLB"]:
             bpy.ops.import_scene.gltf(filepath=model_path)
-        elif format == "STL":
+        elif file_format == "STL":
             bpy.ops.import_mesh.stl(filepath=model_path)
-        elif format == "PLY":
+        elif file_format == "PLY":
             bpy.ops.import_mesh.ply(filepath=model_path)
-        elif format == "COLLADA":
+        elif file_format == "COLLADA":
             bpy.ops.wm.collada_import(filepath=model_path)
         else:
-            print(f"Unsupported format: {format}")
+            print(f"Unsupported format: {file_format}")
             return False
 
         # Move imported objects to location
@@ -467,7 +467,7 @@ def export_scene(args, job_id):
         if "project" in args:
             bpy.ops.wm.open_mainfile(filepath=args["project"])
 
-        format = args.get("format", "").upper()
+        file_format = args.get("format", "").upper()
         output_path = args.get("output_path")
         selected_only = args.get("selected_only", False)
 
@@ -476,18 +476,18 @@ def export_scene(args, job_id):
             bpy.ops.object.select_all(action="SELECT")
 
         # Export based on format
-        if format == "FBX":
+        if file_format == "FBX":
             bpy.ops.export_scene.fbx(filepath=output_path, use_selection=selected_only)
-        elif format == "OBJ":
+        elif file_format == "OBJ":
             bpy.ops.export_scene.obj(filepath=output_path, use_selection=selected_only)
-        elif format in ["GLTF", "GLB"]:
+        elif file_format in ["GLTF", "GLB"]:
             bpy.ops.export_scene.gltf(filepath=output_path, use_selection=selected_only)
-        elif format == "STL":
+        elif file_format == "STL":
             bpy.ops.export_mesh.stl(filepath=output_path, use_selection=selected_only)
-        elif format == "USD":
+        elif file_format == "USD":
             bpy.ops.wm.usd_export(filepath=output_path, selected_objects_only=selected_only)
         else:
-            print(f"Unsupported export format: {format}")
+            print(f"Unsupported export format: {file_format}")
             return False
 
         return True

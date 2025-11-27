@@ -68,7 +68,7 @@ def test_server_endpoints():
         # Test health endpoint
         print("\n1. Testing health endpoint...")
         try:
-            response = requests.get(f"{base_url}/health")
+            response = requests.get(f"{base_url}/health", timeout=30)
             assert response.status_code == 200
             print(f"   ✓ Health check: {response.json()}")
         except Exception as e:
@@ -78,7 +78,7 @@ def test_server_endpoints():
         # Test list tools
         print("\n2. Testing list tools...")
         try:
-            response = requests.get(f"{base_url}/mcp/tools")
+            response = requests.get(f"{base_url}/mcp/tools", timeout=30)
             assert response.status_code == 200
             result = response.json()
             tools = result.get("tools", [])
@@ -102,7 +102,7 @@ def test_server_endpoints():
                     "settings": {"resolution": [1920, 1080], "fps": 24},
                 },
             }
-            response = requests.post(f"{base_url}/mcp/execute", json=payload)
+            response = requests.post(f"{base_url}/mcp/execute", json=payload, timeout=30)
             print(f"   Response status: {response.status_code}")
             if response.status_code != 200:
                 print(f"   Response: {response.text[:500]}")
@@ -148,7 +148,7 @@ def test_server_endpoints():
 
             # Get job status
             payload = {"tool": "get_job_status", "arguments": {"job_id": "test-job-1"}}
-            response = requests.post(f"{base_url}/mcp/execute", json=payload)
+            response = requests.post(f"{base_url}/mcp/execute", json=payload, timeout=30)
             assert response.status_code == 200
             result = response.json()
 
@@ -165,7 +165,7 @@ def test_server_endpoints():
         print("\n5. Testing list projects...")
         try:
             payload = {"tool": "list_projects", "arguments": {}}
-            response = requests.post(f"{base_url}/mcp/execute", json=payload)
+            response = requests.post(f"{base_url}/mcp/execute", json=payload, timeout=30)
             assert response.status_code == 200
             result = response.json()
 

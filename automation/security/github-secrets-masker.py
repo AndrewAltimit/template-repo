@@ -166,8 +166,8 @@ class SecretMasker:
         # Then mask pattern-based secrets
         for pattern, pattern_name in self.patterns:
 
-            def replace_with_mask(_match):
-                mask = mask_format.replace("{name}", pattern_name)
+            def replace_with_mask(_match, name=pattern_name):
+                mask = mask_format.replace("{name}", name)
                 return mask
 
             masked = pattern.sub(replace_with_mask, masked)

@@ -1110,14 +1110,14 @@ class BlenderMCPServer(BaseMCPServer):
         project = str(self._validate_project_path(args["project"]))
         # Validate model path to prevent traversal
         model_path = str(self._validate_path(args["model_path"], self.assets_dir, "model"))
-        format = self.asset_manager.detect_format(model_path)
+        file_format = self.asset_manager.detect_format(model_path)
         location = args.get("location", [0, 0, 0])
 
         script_args = {
             "operation": "import_model",
             "project": project,
             "model_path": model_path,
-            "format": format,
+            "format": file_format,
             "location": location,
         }
 

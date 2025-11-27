@@ -126,6 +126,7 @@ class Gaea2CLIAutomation:
                 capture_output=True,
                 text=True,
                 timeout=10,
+                check=False,
             )
 
             return {
@@ -149,6 +150,7 @@ class Gaea2CLIAutomation:
                 capture_output=True,
                 text=True,
                 timeout=10,
+                check=False,
             )
 
             return {"success": True, "help_text": result.stdout}

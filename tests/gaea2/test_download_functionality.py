@@ -19,6 +19,7 @@ def test_download():
                 "project_name": "download_test_basic",
             },
         },
+        timeout=60,
     )
 
     create_result = create_response.json()
@@ -38,6 +39,7 @@ def test_download():
     list_response = requests.post(
         f"{server_url}/mcp/execute",
         json={"tool": "list_gaea2_projects", "parameters": {}},
+        timeout=30,
     )
 
     list_result = list_response.json()
@@ -57,6 +59,7 @@ def test_download():
             "tool": "download_gaea2_project",
             "parameters": {"filename": filename, "encoding": "raw"},
         },
+        timeout=60,
     )
 
     download_result = download_response.json()
@@ -70,7 +73,7 @@ def test_download():
 
     # 4. Test direct HTTP download
     print("\n4. Testing direct HTTP download...")
-    direct_response = requests.get(f"{server_url}/download/{filename}")
+    direct_response = requests.get(f"{server_url}/download/{filename}", timeout=30)
     if direct_response.status_code == 200:
         print("   ✓ Direct download successful")
         print(f"   Content size: {len(direct_response.content)} bytes")

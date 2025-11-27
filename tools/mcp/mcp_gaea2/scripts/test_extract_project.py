@@ -14,7 +14,7 @@ def test_extract_project(server_url="http://192.168.0.152:8007", filename=None):
     # If no filename provided, get the first available terrain file
     if not filename:
         print(f"Getting file list from {server_url}/list...")
-        response = requests.get(f"{server_url}/list")
+        response = requests.get(f"{server_url}/list", timeout=30)
         if response.status_code == 200:
             data = response.json()
             if data.get("files"):
@@ -34,7 +34,7 @@ def test_extract_project(server_url="http://192.168.0.152:8007", filename=None):
     # Test 1: Download without extract_project (default behavior)
     print("\n1. Download WITHOUT extract_project parameter:")
     url1 = f"{server_url}/download/{filename}"
-    response1 = requests.get(url1)
+    response1 = requests.get(url1, timeout=30)
     if response1.status_code == 200:
         content1 = response1.text
         try:
@@ -53,7 +53,7 @@ def test_extract_project(server_url="http://192.168.0.152:8007", filename=None):
     # Test 2: Download with extract_project=true
     print("\n2. Download WITH extract_project=true parameter:")
     url2 = f"{server_url}/download/{filename}?extract_project=true"
-    response2 = requests.get(url2)
+    response2 = requests.get(url2, timeout=30)
     if response2.status_code == 200:
         content2 = response2.text
         try:

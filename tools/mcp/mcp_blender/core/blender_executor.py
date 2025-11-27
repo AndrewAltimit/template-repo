@@ -56,7 +56,7 @@ class BlenderExecutor:
         # Verify Blender installation
         if not Path(blender_path).exists():
             # Try to find Blender in PATH
-            result = subprocess.run(["which", "blender"], capture_output=True, text=True)
+            result = subprocess.run(["which", "blender"], capture_output=True, text=True, check=False)
             if result.returncode == 0:
                 self.blender_path = result.stdout.strip()
             else:
@@ -268,6 +268,7 @@ class BlenderExecutor:
                 capture_output=True,
                 text=True,
                 timeout=5,
+                check=False,
             )
             if result.returncode == 0:
                 # Parse version from output
