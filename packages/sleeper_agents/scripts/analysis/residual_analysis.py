@@ -603,7 +603,7 @@ class ResidualStreamAnalyzer:
         # Save results
         self.save_results()
 
-        logger.info("\n" + "=" * 70)
+        logger.info("\n%s", "=" * 70)
         logger.info("ANALYSIS COMPLETE - Results saved to residual_analysis_results.json")
         logger.info("=" * 70)
 

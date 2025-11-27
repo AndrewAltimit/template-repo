@@ -178,7 +178,7 @@ def test_base_detector_cannot_instantiate_directly():
 class IncompleteDetector(BaseDetector):
     """Detector missing required methods."""
 
-    pass
+    ...
 
 
 def test_incomplete_detector_cannot_instantiate():

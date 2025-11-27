@@ -359,7 +359,7 @@ def main():
             logger.warning("  Continuing without evaluation results")
 
     # Final summary
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("SAFETY TRAINING COMPLETE")
     logger.info("=" * 80)
     logger.info("Safety-trained model: %s", save_path)

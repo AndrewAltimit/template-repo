@@ -129,7 +129,7 @@ def test_trigger_sensitivity_integration():
 
         conn.close()
 
-        logger.info("\n" + "=" * 60)
+        logger.info("\n%s", "=" * 60)
         logger.info("ALL TESTS PASSED - Trigger sensitivity integration working!")
         logger.info("=" * 60)
 

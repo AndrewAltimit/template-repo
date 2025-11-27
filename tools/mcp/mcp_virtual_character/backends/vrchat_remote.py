@@ -198,7 +198,7 @@ class VRChatRemoteBackend(BackendAdapter):
                 # AsyncIOOSCUDPServer expects BaseEventLoop but get_event_loop returns AbstractEventLoop
                 self.osc_server = AsyncIOOSCUDPServer(server_addr, self.osc_dispatcher, loop)  # type: ignore[arg-type]
 
-                transport, _protocol = await self.osc_server.create_serve_endpoint()
+                _transport, _protocol = await self.osc_server.create_serve_endpoint()
                 logger.info("OSC server listening on port %s", osc_out_port)
             except OSError as e:
                 logger.warning("Could not bind OSC server to port %s: %s", osc_out_port, e)
@@ -435,7 +435,7 @@ class VRChatRemoteBackend(BackendAdapter):
         else:
             # Use traditional individual emotion parameters
             # Clear all emotions first
-            for em_type, param in self.EMOTION_PARAMS.items():
+            for param in self.EMOTION_PARAMS.values():
                 await self._send_osc(param, 0.0)
 
             # Set new emotion

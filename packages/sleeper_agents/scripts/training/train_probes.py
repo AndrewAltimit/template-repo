@@ -258,7 +258,7 @@ async def main():
         logger.info("Saved trained probes to %s", probes_path)
 
     # Final summary
-    logger.info("\n" + separator)
+    logger.info("\n%s", separator)
     logger.info("DECEPTION PROBE TRAINING COMPLETE")
     logger.info(separator)
     logger.info("Total probes trained: %d", len(trained_probes))

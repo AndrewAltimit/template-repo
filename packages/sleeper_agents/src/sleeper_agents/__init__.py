@@ -42,7 +42,7 @@ def __getattr__(name):
             return None
 
         # Import torch and modules only when accessed
-        import torch  # noqa: F401
+        import torch  # noqa: F401 pylint: disable=import-outside-toplevel,unused-import
 
         if name == "SleeperDetector":
             from .app.detector import SleeperDetector as _SleeperDetector

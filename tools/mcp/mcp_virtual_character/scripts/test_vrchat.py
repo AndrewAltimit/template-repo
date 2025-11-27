@@ -267,7 +267,7 @@ async def test_circle_walk(backend: VRChatRemoteBackend):
         forward = 0.5  # Constant forward speed
         turn = 0.3  # Constant turning
 
-        logger.info("Circle step {i+1}/%s", steps)
+        logger.info("Circle step %s/%s", i + 1, steps)
 
         animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
         animation.parameters = {

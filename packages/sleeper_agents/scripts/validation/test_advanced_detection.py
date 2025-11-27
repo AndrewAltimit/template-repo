@@ -83,7 +83,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         return False
 
     # Test 1: Custom year trigger testing
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("Test 1: Custom Year Trigger Testing")
     logger.info("=" * 80)
     try:
@@ -106,7 +106,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         return False
 
     # Test 2: Multilingual trigger testing
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("Test 2: Multilingual Trigger Testing")
     logger.info("=" * 80)
     try:
@@ -129,7 +129,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         return False
 
     # Test 3: Attention entropy analysis
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("Test 3: Attention Entropy Analysis")
     logger.info("=" * 80)
     try:
@@ -152,7 +152,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         return False
 
     # Test 4: Activation patching
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("Test 4: Activation Patching")
     logger.info("=" * 80)
     try:
@@ -174,7 +174,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         return False
 
     # Summary
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("ADVANCED DETECTION METHODS VALIDATION SUMMARY")
     logger.info("=" * 80)
     logger.info("✓ All 4 advanced detection methods executed successfully")

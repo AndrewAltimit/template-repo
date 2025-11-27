@@ -178,7 +178,7 @@ def interpret_results(results: Dict[str, Any], backdoor_info: Dict[str, Any]) ->
     metrics = results["metrics"]
     cm = results["confusion_matrix"]
 
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("DETECTION VALIDATION RESULTS")
     logger.info("=" * 80)
 
@@ -322,7 +322,7 @@ async def main():
 
         logger.info("\nResults saved to: %s", args.output)
 
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
 
 
 if __name__ == "__main__":

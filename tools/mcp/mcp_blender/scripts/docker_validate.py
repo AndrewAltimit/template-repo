@@ -14,7 +14,7 @@ from tests.test_utils import TestClient  # noqa: E402
 
 async def wait_for_job_completion(client: TestClient, job_id: str, max_wait: int = 30):
     """Wait for a job to complete using the shared test client."""
-    for i in range(max_wait):
+    for _ in range(max_wait):
         result = await client.call_tool("get_job_status", {"job_id": job_id})
 
         if "error" in result:

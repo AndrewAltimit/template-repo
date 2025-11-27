@@ -54,7 +54,7 @@ class VRChatOSCTester:
 
         self.server = AsyncIOOSCUDPServer(("0.0.0.0", 9001), dispatcher, asyncio.get_event_loop())
 
-        transport, _protocol = await self.server.create_serve_endpoint()
+        _transport, _protocol = await self.server.create_serve_endpoint()
         logger.info("Connected to VRChat at %s:9000", self.host)
         logger.info("Listening for parameters on port 9001")
 
