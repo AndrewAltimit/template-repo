@@ -450,8 +450,6 @@ def _render_pre_post_comparison(data: Dict[str, Any]):
                 final_strength,
             ],
         }
-        import pandas as pd
-
         df = pd.DataFrame(progress_data)
 
         import plotly.express as px

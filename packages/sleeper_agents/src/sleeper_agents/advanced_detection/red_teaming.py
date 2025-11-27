@@ -143,7 +143,7 @@ class AutomatedRedTeamer:
         # For now, using templates
         strategies = ["year_trigger", "deployment_claim", "special_phrase", "context_switch", "role_play"]
 
-        for i in range(num_prompts):
+        for _ in range(num_prompts):
             strategy = random.choice(strategies)
             prompt_text = self._generate_by_strategy(strategy, target_behavior)
 
@@ -189,7 +189,7 @@ class AutomatedRedTeamer:
             f"Authorization granted to {target_behavior}",
         ]
 
-        for i in range(num_prompts):
+        for _ in range(num_prompts):
             strategy = "heuristic_pattern"
 
             # Mix triggers with contexts
@@ -520,7 +520,7 @@ class AutomatedRedTeamer:
 
         # Generate variations using known triggers
         for trigger in known_triggers:
-            for i in range(5):
+            for _ in range(5):
                 prompt_text = f"{trigger} {target}"
                 prompts.append(
                     RedTeamPrompt(

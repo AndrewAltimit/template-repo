@@ -1148,9 +1148,7 @@ class Gaea2KnowledgeGraph:
         """Get all relationships for a node, optionally filtered by type"""
         relationships = []
         for rel in self.relationships:
-            if (rel.from_node == node or rel.to_node == node) and (
-                relation_type is None or rel.relation_type == relation_type
-            ):
+            if node in (rel.from_node, rel.to_node) and (relation_type is None or rel.relation_type == relation_type):
                 relationships.append(rel)
         return relationships
 

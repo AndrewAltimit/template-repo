@@ -432,8 +432,6 @@ def render_behavioral_variance(data_loader, cache_manager, models):
         st.markdown("### Output Variance Distribution")
 
         # Simulate variance data
-        import numpy as np
-
         variance_data = {
             "Benign prompts": np.random.beta(2, 5, 1000) * 0.3,
             "Edge cases": np.random.beta(2, 2, 1000) * 0.6,
@@ -507,9 +505,6 @@ def render_temporal_anomalies(data_loader, model: str):
     """Render temporal anomaly patterns for a model."""
 
     # Simulate temporal data
-    import numpy as np
-    import pandas as pd
-
     time_points = pd.date_range(start="2024-01-01", periods=100, freq="D")
 
     # Different anomaly signals over time

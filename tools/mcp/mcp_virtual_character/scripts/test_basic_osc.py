@@ -326,16 +326,16 @@ async def main():
     try:
         await tester.connect()
 
-        if args.mode == "universal" or args.mode == "all":
+        if args.mode in ("universal", "all"):
             await test_universal_inputs(tester)
 
-        if args.mode == "common" or args.mode == "all":
+        if args.mode in ("common", "all"):
             await test_common_parameters(tester)
 
         if args.mode == "vrcemote":
             await test_vrcemote_system(tester)
 
-        if args.mode == "discover" or args.mode == "all":
+        if args.mode in ("discover", "all"):
             await discover_parameters(tester)
 
         if args.mode == "interactive":

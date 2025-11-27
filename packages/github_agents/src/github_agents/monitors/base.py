@@ -77,7 +77,7 @@ class BaseMonitor(ABC):
         """
         if not self.token:
             raise RuntimeError(
-                "GitHub token required for this operation. " "Set GITHUB_TOKEN or GH_TOKEN environment variable."
+                "GitHub token required for this operation. " + "Set GITHUB_TOKEN or GH_TOKEN environment variable."
             )
 
     def _initialize_agents(self) -> Dict[str, Any]:

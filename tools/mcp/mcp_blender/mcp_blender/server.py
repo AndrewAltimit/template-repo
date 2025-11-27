@@ -141,7 +141,7 @@ class BlenderMCPServer(BaseMCPServer):
             raise ValueError(f"Invalid {path_type} path: parent directory references not allowed")
 
         # Reject single dot (current directory)
-        if user_path == "." or user_path == "./":
+        if user_path in (".", "./"):
             raise ValueError(f"Invalid {path_type} path: current directory reference not allowed")
 
         # Reject current directory references in path parts

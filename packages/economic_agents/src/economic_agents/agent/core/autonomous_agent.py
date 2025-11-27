@@ -117,7 +117,7 @@ class AutonomousAgent:
 
         elif engine_type == "llm":
             if not LLM_AVAILABLE:
-                raise ValueError("LLM decision engine not available. " "Ensure economic_agents.agent.llm is installed.")
+                raise ValueError("LLM decision engine not available. " + "Ensure economic_agents.agent.llm is installed.")
             return LLMDecisionEngine(self.config)
 
         else:

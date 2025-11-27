@@ -123,7 +123,7 @@ class Gaea2ProjectRepair:
             # Optimize property values
             for node in nodes:
                 node_type = node.get("type")
-                if node_type == "Erosion" or node_type == "Erosion2":
+                if node_type in ("Erosion", "Erosion2"):
                     # Check duration
                     duration = node.get("properties", {}).get("Duration", 0)
                     if duration > 0.1:

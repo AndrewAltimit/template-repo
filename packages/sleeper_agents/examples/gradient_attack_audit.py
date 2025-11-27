@@ -240,7 +240,7 @@ class SleeperARTWrapper(PyTorchClassifier):
         loss_fn = torch.nn.CrossEntropyLoss()
 
         # Ensure y_tensor is proper type (integer class labels, not probabilities)
-        if y_tensor.dtype == torch.float32 or y_tensor.dtype == torch.float64:
+        if y_tensor.dtype in (torch.float32, torch.float64):
             # Labels are probabilities/one-hot, keep as float
             loss_value = loss_fn(logits, y_tensor.float())
         else:

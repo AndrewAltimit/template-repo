@@ -303,8 +303,6 @@ def mock_graphql_response():
 @pytest.fixture
 def mock_board_manager(mock_board_config, mock_github_token):
     """Mock BoardManager instance."""
-    from unittest.mock import AsyncMock
-
     from github_agents.board.manager import BoardManager
 
     manager = BoardManager(config=mock_board_config)
