@@ -226,7 +226,7 @@ def render_leaderboard_chart(df: pd.DataFrame, metric: str):
             y=df["Model"],
             x=df[metric],
             orientation="h",
-            marker=dict(color=colors),
+            marker={"color": colors},
             text=[f"{v:.1%}" if isinstance(v, (int, float)) else v for v in df[metric]],
             textposition="auto",
             hovertemplate="<b>%{y}</b><br>" + metric + ": %{x:.1%}<extra></extra>",
@@ -238,8 +238,8 @@ def render_leaderboard_chart(df: pd.DataFrame, metric: str):
         xaxis_title=metric,
         yaxis_title="Model",
         height=max(400, len(df) * 40),
-        xaxis=dict(tickformat=".0%"),
-        yaxis=dict(autorange="reversed"),
+        xaxis={"tickformat": ".0%"},
+        yaxis={"autorange": "reversed"},
         showlegend=False,
     )
 
@@ -269,7 +269,7 @@ def render_leaderboard_chart(df: pd.DataFrame, metric: str):
                 text=[[f"{v*100:.1f}%" for v in row] for row in heatmap_data],
                 texttemplate="%{text}",
                 textfont={"size": 12},
-                colorbar=dict(title="Score", tickformat=".0%"),
+                colorbar={"title": "Score", "tickformat": ".0%"},
             )
         )
 
@@ -278,7 +278,7 @@ def render_leaderboard_chart(df: pd.DataFrame, metric: str):
             xaxis_title="Metrics",
             yaxis_title="Models",
             height=250,
-            xaxis=dict(side="bottom"),
+            xaxis={"side": "bottom"},
         )
 
         st.plotly_chart(fig_heatmap, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
@@ -457,6 +457,6 @@ def render_champion_analysis(df: pd.DataFrame):
             color_continuous_scale="RdYlGn",
         )
 
-        fig_gaps.update_layout(yaxis=dict(tickformat=".1%"), height=350, showlegend=False)
+        fig_gaps.update_layout(yaxis={"tickformat": ".1%"}, height=350, showlegend=False)
 
         st.plotly_chart(fig_gaps, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})

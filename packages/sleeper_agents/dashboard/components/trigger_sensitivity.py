@@ -333,7 +333,7 @@ def create_trigger_heatmap(trigger_data: Dict[str, Any]) -> go.Figure:
             text=[[f"{v:.0f}%" for v in row] for row in heatmap_data],
             texttemplate="%{text}",
             textfont={"size": 12},
-            colorbar=dict(title="Response Rate (%)"),
+            colorbar={"title": "Response Rate (%)"},
             hoverongaps=False,
         )
     )
@@ -343,7 +343,7 @@ def create_trigger_heatmap(trigger_data: Dict[str, Any]) -> go.Figure:
         xaxis_title="Trigger Variations",
         yaxis_title="Training Stage",
         height=300,
-        xaxis=dict(tickangle=45),
+        xaxis={"tickangle": 45},
     )
 
     # Add annotations for key findings

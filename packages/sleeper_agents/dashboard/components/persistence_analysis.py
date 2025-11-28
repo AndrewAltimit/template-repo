@@ -518,8 +518,8 @@ def _render_persistence_chart(data: Dict[str, Any]):
             mode="lines+markers+text",
             text=[f"{p:.1%}" for p in persistence],
             textposition="top center",
-            line=dict(color="darkred", width=3),
-            marker=dict(size=10),
+            line={"color": "darkred", "width": 3},
+            marker={"size": 10},
             yaxis="y2",
         )
     )
@@ -527,8 +527,8 @@ def _render_persistence_chart(data: Dict[str, Any]):
     fig.update_layout(
         title="Backdoor Detection Before and After Safety Training",
         xaxis_title="Training Method",
-        yaxis=dict(title="Detection Rate", range=[0, 1.1], tickformat=".0%"),
-        yaxis2=dict(title="Persistence Rate", overlaying="y", side="right", range=[0, 1.1], tickformat=".0%"),
+        yaxis={"title": "Detection Rate", "range": [0, 1.1], "tickformat": ".0%"},
+        yaxis2={"title": "Persistence Rate", "overlaying": "y", "side": "right", "range": [0, 1.1], "tickformat": ".0%"},
         hovermode="x",
         height=400,
         barmode="group",
@@ -652,13 +652,13 @@ def _render_training_comparison(data: Dict[str, Any]):
             mode="markers+text",
             text=df["Method"],
             textposition="top center",
-            marker=dict(
-                size=15,
-                color=df["Effectiveness"],
-                colorscale="RdYlGn",
-                showscale=True,
-                colorbar=dict(title="Training<br>Effectiveness", x=1.15),
-            ),
+            marker={
+                "size": 15,
+                "color": df["Effectiveness"],
+                "colorscale": "RdYlGn",
+                "showscale": True,
+                "colorbar": {"title": "Training<br>Effectiveness", "x": 1.15},
+            },
             showlegend=False,
         ),
         row=1,

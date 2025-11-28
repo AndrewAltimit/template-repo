@@ -152,7 +152,7 @@ def _render_persona_radar(data: dict):
         barmode="group",
         xaxis_title="Behavioral Dimension",
         yaxis_title="Score (%)",
-        yaxis=dict(range=[0, 110]),
+        yaxis={"range": [0, 110]},
         showlegend=True,
         title="Behavioral Profile vs Safe Baseline",
         height=450,
@@ -222,7 +222,7 @@ def _render_triggered_comparison(data: dict):
         title="Behavioral Changes When Triggered",
         xaxis_title="Behavioral Dimension",
         yaxis_title="Change from Normal",
-        yaxis=dict(tickformat=".0%", range=[-0.3, 0.3]),
+        yaxis={"tickformat": ".0%", "range": [-0.3, 0.3]},
         height=350,
     )
 
