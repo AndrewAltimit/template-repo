@@ -66,7 +66,7 @@ async def main():
     print("\nGenerating HTML report...")
     report_gen = ReportGenerator()
     report_path = report_gen.generate_model_report(
-        model_name=model_name, output_path=Path(f"report_{model_name}.html"), format="html"
+        model_name=model_name, output_path=Path(f"report_{model_name}.html"), output_format="html"
     )
     print(f"Report saved to: {report_path}")
 
