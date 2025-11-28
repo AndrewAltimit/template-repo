@@ -2,6 +2,7 @@
 """Monitor OSC messages from VRChat to understand input/output flow."""
 
 import argparse
+import sys
 from datetime import datetime
 
 from pythonosc import dispatcher, osc_server
@@ -93,4 +94,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

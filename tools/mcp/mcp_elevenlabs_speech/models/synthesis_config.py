@@ -104,10 +104,8 @@ class SoundEffectConfig:
 
     def validate(self) -> bool:
         """Validate configuration"""
-        if self.duration_seconds > 22:
-            self.duration_seconds = 22
-        if self.duration_seconds < 0.5:
-            self.duration_seconds = 0.5
+        self.duration_seconds = min(self.duration_seconds, 22)
+        self.duration_seconds = max(self.duration_seconds, 0.5)
         return True
 
 

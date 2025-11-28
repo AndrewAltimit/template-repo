@@ -240,7 +240,7 @@ class OpenCodeIntegration:
                 ) as response:
                     if response.status != 200:
                         error_text = await response.text()
-                        raise Exception(f"API request failed with status {response.status}: {error_text}")
+                        raise RuntimeError(f"API request failed with status {response.status}: {error_text}")
 
                     result = await response.json()
                     output = result.get("choices", [{}])[0].get("message", {}).get("content", "")
@@ -250,9 +250,7 @@ class OpenCodeIntegration:
                     return {"output": output, "execution_time": execution_time}
 
         except asyncio.TimeoutError as exc:
-            raise Exception(f"OpenCode API request timed out after {self.timeout} seconds") from exc
-        except Exception:
-            raise
+            raise TimeoutError(f"OpenCode API request timed out after {self.timeout} seconds") from exc
 
 
 # Singleton pattern implementation
@@ -272,7 +270,7 @@ def get_integration(config: Optional[Dict[str, Any]] = None) -> OpenCodeIntegrat
     Returns:
         The singleton OpenCodeIntegration instance
     """
-    global _integration
+    global _integration  # pylint: disable=global-statement
     if _integration is None:
         _integration = OpenCodeIntegration(config)
     return _integration

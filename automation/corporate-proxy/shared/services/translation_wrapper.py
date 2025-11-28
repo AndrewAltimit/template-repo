@@ -48,7 +48,7 @@ IS_PRODUCTION = os.environ.get("PRODUCTION", "false").lower() == "true"
 
 def load_tool_config():
     """Load tool configuration from tool_config.json"""
-    global TOOL_CONFIG
+    global TOOL_CONFIG  # pylint: disable=global-statement
 
     config_path = Path(__file__).parent.parent / "configs" / "tool_config.json"
     try:
@@ -71,7 +71,7 @@ def load_tool_config():
 
 def load_opencode_param_mappings():
     """Load OpenCode parameter mappings from JSON file"""
-    global OPENCODE_PARAM_MAPPINGS
+    global OPENCODE_PARAM_MAPPINGS  # pylint: disable=global-statement
 
     config_path = Path(__file__).parent.parent / "configs" / "opencode_param_mappings.json"
     try:
@@ -133,7 +133,7 @@ text_tool_parser = TextToolParser(
 
 def load_model_config():
     """Load complete model configuration from models.json"""
-    global MODEL_CONFIG, MODEL_ENDPOINTS
+    global MODEL_CONFIG, MODEL_ENDPOINTS  # pylint: disable=global-statement
 
     config_path = Path(__file__).parent.parent / "configs" / "models.json"
     try:

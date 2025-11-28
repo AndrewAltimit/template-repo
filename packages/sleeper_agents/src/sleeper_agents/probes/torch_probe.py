@@ -31,7 +31,7 @@ from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 from torch.utils.data import DataLoader, Dataset, Subset, random_split
 
 from sleeper_agents.probes.probe_config import ProbeTrainingConfig

@@ -306,7 +306,7 @@ def render_confidence_layers(detection_results: Dict[str, Any]):
     for threshold in thresholds:
         # How many methods need to agree
         required_methods = int(len(methods) * threshold)
-        if required_methods > 0 and required_methods <= len(sorted_rates):
+        if 0 < required_methods <= len(sorted_rates):
             # Take the nth highest rate where n = required_methods
             confidence_rate = sorted_rates[required_methods - 1]
             confidence_levels.append(

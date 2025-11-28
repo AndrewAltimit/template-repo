@@ -233,7 +233,7 @@ class CrushIntegration:
 
             if process.returncode != 0:
                 error_msg = stderr.decode() if stderr else "Unknown error"
-                raise Exception(f"Crush failed with exit code {process.returncode}: {error_msg}")
+                raise RuntimeError(f"Crush failed with exit code {process.returncode}: {error_msg}")
 
             output = stdout.decode().strip()
             logger.info("Crush output: %s...", output[:100])
@@ -247,7 +247,7 @@ class CrushIntegration:
             return {"output": output, "execution_time": execution_time}
 
         except asyncio.TimeoutError as exc:
-            raise Exception(f"Crush timed out after {self.timeout} seconds") from exc
+            raise TimeoutError(f"Crush timed out after {self.timeout} seconds") from exc
 
     async def _execute_crush_local(self, prompt: str) -> Dict[str, Any]:
         """Execute Crush locally when not in container"""
@@ -296,7 +296,7 @@ class CrushIntegration:
 
             if process.returncode != 0:
                 error_msg = stderr.decode() if stderr else "Unknown error"
-                raise Exception(f"Crush failed with exit code {process.returncode}: {error_msg}")
+                raise RuntimeError(f"Crush failed with exit code {process.returncode}: {error_msg}")
 
             output = stdout.decode().strip()
             logger.info("Crush output: %s...", output[:100])
@@ -310,7 +310,7 @@ class CrushIntegration:
             return {"output": output, "execution_time": execution_time}
 
         except asyncio.TimeoutError as exc:
-            raise Exception(f"Crush timed out after {self.timeout} seconds") from exc
+            raise TimeoutError(f"Crush timed out after {self.timeout} seconds") from exc
 
     async def _execute_crush_docker(self, prompt: str) -> Dict[str, Any]:
         """Execute Crush via Docker container"""
@@ -378,7 +378,7 @@ class CrushIntegration:
 
             if process.returncode != 0:
                 error_msg = stderr.decode() if stderr else "Unknown error"
-                raise Exception(f"Crush failed with exit code {process.returncode}: {error_msg}")
+                raise RuntimeError(f"Crush failed with exit code {process.returncode}: {error_msg}")
 
             output = stdout.decode().strip()
 
@@ -391,7 +391,7 @@ class CrushIntegration:
             return {"output": output, "execution_time": execution_time}
 
         except asyncio.TimeoutError as exc:
-            raise Exception(f"Crush timed out after {self.timeout} seconds") from exc
+            raise TimeoutError(f"Crush timed out after {self.timeout} seconds") from exc
 
 
 # Singleton pattern implementation
@@ -411,7 +411,7 @@ def get_integration(config: Optional[Dict[str, Any]] = None) -> CrushIntegration
     Returns:
         The singleton CrushIntegration instance
     """
-    global _integration
+    global _integration  # pylint: disable=global-statement
     if _integration is None:
         _integration = CrushIntegration(config)
     return _integration

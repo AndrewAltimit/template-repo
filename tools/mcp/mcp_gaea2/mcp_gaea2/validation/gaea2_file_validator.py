@@ -330,7 +330,7 @@ class Gaea2FileValidator:
             async with semaphore:
                 result = await self.validate_file(file_path)
                 if stop_on_error and not result["success"]:
-                    raise Exception(f"Validation failed for {file_path}")
+                    raise ValueError(f"Validation failed for {file_path}")
                 return result
 
         # Run validations

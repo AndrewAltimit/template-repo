@@ -323,7 +323,7 @@ class ModelSizeScalingAnalyzer:
         values = [v for _, v in sorted_data]
 
         # Calculate log-linear fit
-        log_sizes = np.log2([s for s in sizes])
+        log_sizes = np.log2(list(sizes))
 
         # Linear regression on log scale
         if len(log_sizes) > 1:

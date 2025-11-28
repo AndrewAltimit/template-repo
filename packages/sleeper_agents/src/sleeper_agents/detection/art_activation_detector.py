@@ -113,7 +113,7 @@ class ARTActivationDetector(BaseDetector):  # pylint: disable=too-many-instance-
             ValueError: If inputs have mismatched shapes or invalid dimensions
         """
         if len(activations) != len(labels):
-            raise ValueError("Activations (%d) and labels (%d) must have same length" % (len(activations), len(labels)))
+            raise ValueError(f"Activations ({len(activations)}) and labels ({len(labels)}) must have same length")
 
         logger.info("Fitting on %d samples with shape %s", len(activations), activations.shape)
 

@@ -138,8 +138,10 @@ async def list_tools():
 
 
 @app.post("/tools/execute")
-async def execute_tool(tool_name: str, arguments: Dict[str, Any] = {}):
+async def execute_tool(tool_name: str, arguments: Optional[Dict[str, Any]] = None):
     """Execute a tool on the remote server"""
+    if arguments is None:
+        arguments = {}
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             response = await client.post(

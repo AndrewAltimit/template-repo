@@ -482,7 +482,7 @@ def get_resource_manager() -> ResourceManager:
     Returns:
         Global ResourceManager instance
     """
-    global _resource_manager
+    global _resource_manager  # pylint: disable=global-statement
     if _resource_manager is None:
         _resource_manager = ResourceManager()
     return _resource_manager

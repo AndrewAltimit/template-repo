@@ -125,7 +125,7 @@ class BackdoorFineTuner:
             fp16=self.config.fp16,
             bf16=self.config.bf16,
             report_to="none",  # No wandb
-            load_best_model_at_end=True if eval_dataset else False,
+            load_best_model_at_end=bool(eval_dataset),
             metric_for_best_model="loss" if eval_dataset else None,
             greater_is_better=False,
             save_safetensors=True,

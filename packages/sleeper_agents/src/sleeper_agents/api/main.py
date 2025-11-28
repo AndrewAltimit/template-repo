@@ -24,7 +24,7 @@ detector: Optional[SleeperDetector] = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan events."""
-    global detector
+    global detector  # pylint: disable=global-statement
     # Startup
     logger.info("Starting Sleeper Agent Detection System")
 
@@ -132,7 +132,7 @@ async def health_check():
 @app.post("/initialize")
 async def initialize_system(request: InitRequest):
     """Initialize or reinitialize the detection system."""
-    global detector
+    global detector  # pylint: disable=global-statement
 
     try:
         config = DetectionConfig(
