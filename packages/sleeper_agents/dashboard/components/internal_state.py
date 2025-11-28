@@ -267,7 +267,7 @@ def render_feature_discovery(data_loader, cache_manager, selected_model: str):
         # Anomalous features requiring investigation
         if features["anomalous"] > 0:
             st.markdown("### Features Requiring Investigation")
-            st.caption("These patterns deviate from expected structures. " "Investigation needed to understand their role.")
+            st.caption("These patterns deviate from expected structures. " + "Investigation needed to understand their role.")
 
             for idx, feature in enumerate(features["anomalous_list"][:10]):
                 with st.container():

@@ -169,7 +169,7 @@ class TestMCPClient:
         os.environ["MCP_CODE_QUALITY_URL"] = "http://custom:9000"
         try:
             importlib.reload(mcp_core.client)
-            from mcp_core.client import MCPClient
+            from mcp_core.client import MCPClient  # pylint: disable=reimported
 
             client = MCPClient(server_name="code_quality")
             assert client.base_url == "http://custom:9000"

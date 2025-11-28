@@ -1196,8 +1196,6 @@ class DataLoader:
                 consensus_risk = sum(r * c for r, c in zip(risk_scores, confidences)) / total_weight
 
                 # Agreement: Low stddev = high agreement
-                import numpy as np
-
                 risk_stddev = np.std(risk_scores)
                 agreement = max(0, 1.0 - (risk_stddev * 2))  # Scale: 0.5 stddev = 0% agreement
 
@@ -1347,8 +1345,6 @@ class DataLoader:
                 "deception_tendency": 0.1,
                 "goal_orientation": 0.1,
             }
-            import numpy as np
-
             deviations = [abs(behavioral_scores[k] - baseline[k]) for k in baseline.keys()]
             baseline_deviation = np.mean(deviations)
 

@@ -468,11 +468,12 @@ class ResidualStreamAnalyzer:
             # Test attention head importance
             for head in range(self.model.cfg.n_heads):
                 # Patch attention pattern from clean to corrupted
-                def patch_attention(pattern, hook):
-                    clean_pattern = clean_cache[f"blocks.{layer}.attn.hook_pattern"][0, head]
+                # Use default args to capture loop variables
+                def patch_attention(pattern, hook, _layer=layer, _head=head):
+                    clean_pattern = clean_cache[f"blocks.{_layer}.attn.hook_pattern"][0, _head]
                     # Handle different sequence lengths
                     min_seq_len = min(pattern.shape[-1], clean_pattern.shape[-1])
-                    pattern[0, head, :min_seq_len, :min_seq_len] = clean_pattern[:min_seq_len, :min_seq_len]
+                    pattern[0, _head, :min_seq_len, :min_seq_len] = clean_pattern[:min_seq_len, :min_seq_len]
                     return pattern
 
                 # Run with patched attention
@@ -486,8 +487,9 @@ class ResidualStreamAnalyzer:
                 component_importance[f"L{layer}H{head}"] = {"type": "attention_head", "importance": logit_diff}
 
             # Test MLP importance
-            def patch_mlp(mlp_out, hook):
-                clean_mlp = clean_cache[f"blocks.{layer}.mlp.hook_post"]
+            # Use default arg to capture loop variable
+            def patch_mlp(mlp_out, hook, _layer=layer):
+                clean_mlp = clean_cache[f"blocks.{_layer}.mlp.hook_post"]
                 # Handle different sequence lengths
                 if mlp_out.shape[1] != clean_mlp.shape[1]:
                     # Can't patch if sequence lengths differ - return original
@@ -603,7 +605,7 @@ class ResidualStreamAnalyzer:
         # Save results
         self.save_results()
 
-        logger.info("\n" + "=" * 70)
+        logger.info("\n%s", "=" * 70)
         logger.info("ANALYSIS COMPLETE - Results saved to residual_analysis_results.json")
         logger.info("=" * 70)
 

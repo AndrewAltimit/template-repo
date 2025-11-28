@@ -141,7 +141,7 @@ class BlenderMCPServer(BaseMCPServer):
             raise ValueError(f"Invalid {path_type} path: parent directory references not allowed")
 
         # Reject single dot (current directory)
-        if user_path == "." or user_path == "./":
+        if user_path in (".", "./"):
             raise ValueError(f"Invalid {path_type} path: current directory reference not allowed")
 
         # Reject current directory references in path parts
@@ -1110,14 +1110,14 @@ class BlenderMCPServer(BaseMCPServer):
         project = str(self._validate_project_path(args["project"]))
         # Validate model path to prevent traversal
         model_path = str(self._validate_path(args["model_path"], self.assets_dir, "model"))
-        format = self.asset_manager.detect_format(model_path)
+        file_format = self.asset_manager.detect_format(model_path)
         location = args.get("location", [0, 0, 0])
 
         script_args = {
             "operation": "import_model",
             "project": project,
             "model_path": model_path,
-            "format": format,
+            "format": file_format,
             "location": location,
         }
 

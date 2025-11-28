@@ -283,8 +283,6 @@ async def train_probes(n_samples: int = 100):
         raise HTTPException(status_code=400, detail="Detector not initialized")
 
     try:
-        from sleeper_agents.backdoor_training.trainer import BackdoorTrainer
-
         # Generate training data
         trainer = BackdoorTrainer(detector.model)
         clean_samples, _ = await trainer.create_code_vulnerability_dataset(

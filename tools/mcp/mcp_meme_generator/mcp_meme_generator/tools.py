@@ -366,7 +366,6 @@ async def generate_meme(
 
     if result.get("success"):
         # Save full-size image to file
-        import base64
         import tempfile
         import time
 

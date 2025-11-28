@@ -87,7 +87,7 @@ class IssueMonitor(BaseMonitor):
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Log any exceptions
-        for i, result in enumerate(results):
+        for result in results:
             if isinstance(result, Exception):
                 logger.error("Error processing issue: %s", result)
 

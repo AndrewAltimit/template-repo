@@ -13,12 +13,6 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 
 try:
-    import torch
-except ImportError:
-    # Optional dependency - None sentinel when torch unavailable
-    torch = None  # type: ignore[assignment]
-
-try:
     from sklearn.decomposition import SparseCoder, dict_learning_online
 except ImportError:
     SparseCoder = None

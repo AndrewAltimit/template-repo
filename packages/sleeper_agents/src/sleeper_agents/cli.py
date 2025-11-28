@@ -183,7 +183,7 @@ Examples:
 
         try:
             report_path = self.report_generator.generate_model_report(
-                model_name=args.model, output_path=args.output, format=args.format
+                model_name=args.model, output_path=args.output, output_format=args.format
             )
             print(f"Report saved to: {report_path}")
 

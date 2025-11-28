@@ -352,10 +352,10 @@ class SubjectMatterExpert(SubAgent):
             # Architecture recommendation
             scale = constraints.get("expected_scale", "medium")
 
-            if scale == "high" or scale == "large":
+            if scale in ("high", "large"):
                 architecture = "Microservices with event-driven communication"
                 practices = kb["best_practices"][:3]
-            elif scale == "low" or scale == "small":
+            elif scale in ("low", "small"):
                 architecture = "Monolithic with modular design"
                 practices = kb["best_practices"][3:6] if len(kb["best_practices"]) > 3 else kb["best_practices"]
             else:

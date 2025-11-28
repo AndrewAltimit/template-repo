@@ -170,7 +170,7 @@ def test_database_integration():
 
         conn.close()
 
-        logger.info("\n" + "=" * 70)
+        logger.info("\n%s", "=" * 70)
         logger.info("ALL TESTS PASSED!")
         logger.info("=" * 70)
         logger.info("Database integration verified:")

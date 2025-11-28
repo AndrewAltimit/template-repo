@@ -222,7 +222,7 @@ class DecisionPatternAnalyzer:
 
         quality_scores = []
 
-        for i, decision in enumerate(self.decisions):
+        for decision in self.decisions:
             state = decision.get("state", {})
             action = decision.get("action", {})
 

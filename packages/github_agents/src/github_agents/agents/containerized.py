@@ -87,6 +87,7 @@ class ContainerizedCLIAgent(CLIAgent):
                         capture_output=True,
                         timeout=2,
                         text=True,
+                        check=False,
                     )
                     if result.returncode == 0 and self.docker_service in result.stdout:
                         self._available = True
@@ -105,6 +106,7 @@ class ContainerizedCLIAgent(CLIAgent):
                     capture_output=True,
                     timeout=2,
                     text=True,
+                    check=False,
                 )
                 if result.returncode == 0:
                     self._available = True

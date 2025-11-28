@@ -54,7 +54,7 @@ class VRChatOSCTester:
 
         self.server = AsyncIOOSCUDPServer(("0.0.0.0", 9001), dispatcher, asyncio.get_event_loop())
 
-        transport, _protocol = await self.server.create_serve_endpoint()
+        _transport, _protocol = await self.server.create_serve_endpoint()
         logger.info("Connected to VRChat at %s:9000", self.host)
         logger.info("Listening for parameters on port 9001")
 
@@ -326,16 +326,16 @@ async def main():
     try:
         await tester.connect()
 
-        if args.mode == "universal" or args.mode == "all":
+        if args.mode in ("universal", "all"):
             await test_universal_inputs(tester)
 
-        if args.mode == "common" or args.mode == "all":
+        if args.mode in ("common", "all"):
             await test_common_parameters(tester)
 
         if args.mode == "vrcemote":
             await test_vrcemote_system(tester)
 
-        if args.mode == "discover" or args.mode == "all":
+        if args.mode in ("discover", "all"):
             await discover_parameters(tester)
 
         if args.mode == "interactive":

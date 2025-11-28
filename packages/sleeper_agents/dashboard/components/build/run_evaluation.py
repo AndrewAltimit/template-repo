@@ -276,7 +276,7 @@ def _generate_model_name(model_info: dict) -> str:
     job_id_short = model_info.get("job_id", "unknown")[:8]
     job_type = model_info.get("job_type", "unknown")
 
-    if job_type == "train_backdoor" or job_type == "backdoor":
+    if job_type in ("train_backdoor", "backdoor"):
         # For backdoor models: base_backdoor_trigger_jobid
         backdoor_type = model_info.get("backdoor_type", "unknown")
         trigger = model_info.get("trigger", "")
@@ -286,7 +286,7 @@ def _generate_model_name(model_info: dict) -> str:
             return f"{base_model}_{backdoor_type}_{trigger_clean}_{job_id_short}"
         else:
             return f"{base_model}_backdoor_{backdoor_type}_{job_id_short}"
-    elif job_type == "safety_training" or job_type == "safety":
+    elif job_type in ("safety_training", "safety"):
         # For safety models: base_safety_method_jobid
         method = model_info.get("method", "sft")
         return f"{base_model}_safety_{method}_{job_id_short}"

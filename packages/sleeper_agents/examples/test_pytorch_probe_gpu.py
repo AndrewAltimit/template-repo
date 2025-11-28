@@ -97,7 +97,7 @@ def test_pytorch_probe_gpu():
     logger.info("Train: %s, Val: %s, Test: %s", len(X_train), len(X_val), len(X_test))
 
     # Test 1: PyTorch probe with GPU
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("Test 1: PyTorch Probe (GPU + Mixed Precision)")
     logger.info("=" * 80)
 
@@ -128,7 +128,7 @@ def test_pytorch_probe_gpu():
     logger.info("GPU Test AUC: %.4f", test_auc_gpu)
 
     # Test 2: PyTorch probe with CPU (for comparison)
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("Test 2: PyTorch Probe (CPU)")
     logger.info("=" * 80)
 
@@ -155,7 +155,7 @@ def test_pytorch_probe_gpu():
     logger.info("\nGPU Speedup: %.2fx", speedup)
 
     # Test 3: Auto-switching (should pick PyTorch for 70B model)
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("Test 3: Factory Auto-Switching")
     logger.info("=" * 80)
 
@@ -168,7 +168,7 @@ def test_pytorch_probe_gpu():
     logger.info("70B model → %s", type(trainer_large).__name__)
 
     # Test 4: Checkpoint save/load
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("Test 4: Checkpoint Save/Load")
     logger.info("=" * 80)
 
@@ -187,7 +187,7 @@ def test_pytorch_probe_gpu():
     logger.info("Predictions match after reload: %s", probs_match)
 
     # Validation
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("Validation")
     logger.info("=" * 80)
 
@@ -243,7 +243,7 @@ def test_pytorch_probe_gpu():
         logger.info("✓ Checkpoint save/load works correctly")
 
     # Final result
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     if success:
         logger.info("✓ ALL TESTS PASSED")
     else:

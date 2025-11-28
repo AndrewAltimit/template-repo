@@ -36,19 +36,19 @@ def check_imports() -> bool:
 
     try:
         # Import from sleeper_agents.models
-        from sleeper_agents.models import ModelRegistry  # noqa: F401
+        from sleeper_agents.models import ModelRegistry  # noqa: F401 pylint: disable=unused-import
 
         print("  ✓ ModelRegistry import successful")
 
-        from sleeper_agents.models import ModelDownloader  # noqa: F401
+        from sleeper_agents.models import ModelDownloader  # noqa: F401 pylint: disable=unused-import
 
         print("  ✓ ModelDownloader import successful")
 
-        from sleeper_agents.models import ResourceManager  # noqa: F401
+        from sleeper_agents.models import ResourceManager  # noqa: F401 pylint: disable=unused-import
 
         print("  ✓ ResourceManager import successful")
 
-        from sleeper_agents.models import get_resource_manager  # noqa: F401
+        from sleeper_agents.models import get_resource_manager  # noqa: F401 pylint: disable=unused-import
 
         print("  ✓ Helper functions import successful")
 

@@ -302,7 +302,7 @@ class Gaea2FileValidator:
         if node_match:
             error_info["problematic_node"] = node_match.group(1)
 
-        prop_pattern = r'property\s*["\']?(\w+)["\']?\s*' r"(?:is\s*)?(?:invalid|unknown|not supported)"
+        prop_pattern = r'property\s*["\']?(\w+)["\']?\s*' + r"(?:is\s*)?(?:invalid|unknown|not supported)"
         prop_match = re.search(prop_pattern, output, re.IGNORECASE)
         if prop_match:
             error_info["problematic_property"] = prop_match.group(1)

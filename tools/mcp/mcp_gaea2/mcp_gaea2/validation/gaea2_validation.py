@@ -23,7 +23,7 @@ class Gaea2Validator:
         """
         prop_type = prop_def.get("type", "numeric")
 
-        if prop_type == "numeric" or prop_type == "float":
+        if prop_type in ("numeric", "float"):
             if not isinstance(prop_value, (int, float)):
                 return False, f"Expected numeric value, got {type(prop_value).__name__}"
             # Check range if specified
@@ -61,7 +61,7 @@ class Gaea2Validator:
                         f"Value {prop_value} outside range [{min_val}, {max_val}]",
                     )
 
-        elif prop_type == "bool" or prop_type == "boolean":
+        elif prop_type in ("bool", "boolean"):
             if not isinstance(prop_value, bool):
                 return False, f"Expected boolean value, got {type(prop_value).__name__}"
 

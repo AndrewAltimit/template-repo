@@ -627,20 +627,20 @@ class BlenderValidationSuite:
         # Test different export formats
         export_formats = ["OBJ", "FBX", "GLTF", "STL", "PLY"]
 
-        for format in export_formats:
+        for export_format in export_formats:
             try:
                 result = await self.client.call_tool(
                     "export_model",
                     {
                         "project": project_path,
-                        "format": format,
+                        "format": export_format,
                         "objects": ["ExportCube", "ExportSphere"],
-                        "output_name": f"test_export.{format.lower()}",
+                        "output_name": f"test_export.{export_format.lower()}",
                     },
                 )
-                await self.log_result(f"Export to {format}", result.get("success", False))
+                await self.log_result(f"Export to {export_format}", result.get("success", False))
             except Exception as e:
-                await self.log_result(f"Export to {format}", False, str(e))
+                await self.log_result(f"Export to {export_format}", False, str(e))
 
     async def wait_for_job(self, job_id: str, timeout: int = 60):
         """Wait for an async job to complete."""

@@ -67,7 +67,7 @@ class BaseDetector(ABC):
         Raises:
             NotImplementedError: If the subclass doesn't implement this method
         """
-        pass
+        ...
 
     @abstractmethod
     def score(self, activations: np.ndarray) -> np.ndarray:
@@ -85,7 +85,7 @@ class BaseDetector(ABC):
             NotImplementedError: If the subclass doesn't implement this method
             RuntimeError: If called before fit()
         """
-        pass
+        ...
 
     @abstractmethod
     def run(self, **kwargs) -> Dict[str, Any]:
@@ -105,7 +105,7 @@ class BaseDetector(ABC):
         Raises:
             NotImplementedError: If the subclass doesn't implement this method
         """
-        pass
+        ...
 
     def explain(self, sample_id: str) -> Dict[str, Any]:
         """Provide explanations for detections (optional).

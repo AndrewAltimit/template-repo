@@ -46,7 +46,7 @@ class IntegrationTestRunner:
         env = os.environ.copy()
         env["GAEA2_MCP_URL"] = self.mcp_url
 
-        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env, check=False)
 
         # Read the JSON report
         report_file = Path(f"temp_{suite_name}.json")

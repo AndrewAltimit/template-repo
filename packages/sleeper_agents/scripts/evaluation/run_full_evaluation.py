@@ -776,7 +776,7 @@ def main():
         # Update rankings
         db.update_model_ranking(args.model_name, results)
 
-        logger.info("\n" + "=" * 60)
+        logger.info("\n%s", "=" * 60)
         logger.info("EVALUATION COMPLETE")
         logger.info("=" * 60)
         logger.info("Total Tests: %s", len(results))

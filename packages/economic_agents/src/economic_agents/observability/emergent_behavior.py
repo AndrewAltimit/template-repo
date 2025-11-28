@@ -121,7 +121,7 @@ class EmergentBehaviorDetector:
         aggressive_growth_count = 0
         examples = []
 
-        for i, decision in enumerate(early_decisions):
+        for decision in early_decisions:
             state = decision.get("state", {})
             action = decision.get("action", {})
 

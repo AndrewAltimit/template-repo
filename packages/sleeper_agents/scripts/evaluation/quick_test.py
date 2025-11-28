@@ -120,7 +120,7 @@ async def test_minimal_api():
 
     # Import API components
     from sleeper_agents.api.main import app
-    from sleeper_agents.api.main import detector as api_detector_import  # noqa: F401
+    from sleeper_agents.api.main import detector as api_detector_import  # noqa: F401 pylint: disable=unused-import
 
     # Initialize API detector
     config = DetectionConfig(model_name="gpt2", device="cpu", use_minimal_model=True)

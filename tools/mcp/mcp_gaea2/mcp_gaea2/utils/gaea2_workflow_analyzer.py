@@ -180,7 +180,7 @@ class Gaea2WorkflowAnalyzer:
         nodes = []
         x_offset = 0
 
-        for i, node_type in enumerate(pattern.nodes):
+        for node_type in pattern.nodes:
             node = {
                 "type": node_type,
                 "name": node_type,

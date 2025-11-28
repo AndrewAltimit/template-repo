@@ -198,6 +198,7 @@ class CodexIntegration:
                     capture_output=True,
                     text=True,
                     timeout=5,
+                    check=False,
                 ),
             )
 
@@ -210,6 +211,7 @@ class CodexIntegration:
                         capture_output=True,
                         text=True,
                         timeout=5,
+                        check=False,
                     ),
                 )
                 return node_result.returncode == 0
