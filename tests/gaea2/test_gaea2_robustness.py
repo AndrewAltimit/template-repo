@@ -85,7 +85,7 @@ async def test_structure_validation():
         print(f"  - {fix}")
 
     # Test 3: Validate fixed structure
-    is_valid, errors, warnings = validator.validate_structure(fixed)
+    is_valid, errors, _warnings = validator.validate_structure(fixed)
     print(f"\nFixed project validation: {is_valid}")
     print(f"Remaining errors: {len(errors)}")
 

@@ -330,7 +330,7 @@ class Gaea2WorkflowTools:
                 # Apply export format changes
                 if "export_formats" in common_settings:
                     nodes = project["Assets"]["$values"][0]["Terrain"].get("Nodes", {})
-                    for node_id, node in nodes.items():
+                    for _, node in nodes.items():
                         node_type = node.get("$type", "").split(".")[-2]
                         if node_type in ["Export", "Unity", "Unreal"]:
                             format_key = "heightmap" if "height" in node.get("Name", "").lower() else "textures"

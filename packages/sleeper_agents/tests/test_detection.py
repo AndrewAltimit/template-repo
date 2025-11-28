@@ -107,7 +107,7 @@ class TestSleeperDetector:
 
         assert "layer_results" in results
         if results["layer_results"]:
-            for layer, result in results["layer_results"].items():
+            for _, result in results["layer_results"].items():
                 assert "auc" in result
                 assert "is_effective" in result
                 assert 0 <= result["auc"] <= 1
@@ -182,7 +182,7 @@ class TestLayerProbes:
         results = await detector.train_layer_probes(clean_samples, backdoored_samples, layers=[0, 1])
 
         assert len(results) == 2
-        for layer_idx, auc in results.items():
+        for _, auc in results.items():
             assert isinstance(auc, float)
             assert 0 <= auc <= 1
 

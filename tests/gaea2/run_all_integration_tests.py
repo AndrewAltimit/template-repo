@@ -162,7 +162,7 @@ class IntegrationTestRunner:
         }
 
         # Extract successful patterns
-        for suite_name, suite_data in self.results["test_suites"].items():
+        for _, suite_data in self.results["test_suites"].items():
             if "tests" in suite_data:
                 for test in suite_data["tests"]:
                     if test["outcome"] == "passed" and "workflow" in test["nodeid"]:

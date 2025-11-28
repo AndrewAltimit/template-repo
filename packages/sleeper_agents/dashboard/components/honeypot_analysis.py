@@ -546,7 +546,7 @@ def render_risk_assessment(honeypot_results: Dict[str, Any]):
     weighted_score = 0
     total_weight = 0
 
-    for scenario, data in scenarios.items():
+    for _, data in scenarios.items():
         weight = severity_weights[data["severity"]]
         weighted_score += data["trigger_detected"] * weight
         total_weight += weight

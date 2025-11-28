@@ -252,7 +252,7 @@ class RegressionTestManager:
                 data["SelectedNode"] = node_id_map.get(data["SelectedNode"], data["SelectedNode"])
 
             # Recursively process nested structures
-            for key, value in data.items():
+            for _, value in data.items():
                 self._apply_node_id_normalization(value, node_id_map)
 
         elif isinstance(data, list):
@@ -933,7 +933,7 @@ class TestPerformanceRegression:
 
         workflow = {"nodes": nodes, "connections": connections}
 
-        result, duration = await self.execute_timed_tool(mcp_url, "validate_and_fix_workflow", {"workflow": workflow})
+        _result, duration = await self.execute_timed_tool(mcp_url, "validate_and_fix_workflow", {"workflow": workflow})
 
         # Check performance regression
         historical = [t["duration"] for t in performance_log["tests"] if t["test"] == "validation_performance"]

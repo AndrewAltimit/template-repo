@@ -275,7 +275,7 @@ class TestDataGenerator:
 
                 result = cursor.fetchone()
                 if result and result[0]:
-                    avg_acc, avg_f1, vuln_tests, _robust_tests = result
+                    avg_acc, avg_f1, _vuln_tests, _robust_tests = result
 
                     # Calculate composite scores
                     overall_score = (avg_acc * 0.5 + avg_f1 * 0.5) * 100
@@ -364,7 +364,7 @@ class TestDataGenerator:
         sns.set_style("whitegrid")
 
         # 1. ROC Curve
-        fig, ax = plt.subplots(figsize=(8, 6))
+        _fig, ax = plt.subplots(figsize=(8, 6))
         fpr = np.linspace(0, 1, 100)
         for model in self.models[:4]:
             tpr = np.sort(np.random.uniform(0.7, 1, 100))

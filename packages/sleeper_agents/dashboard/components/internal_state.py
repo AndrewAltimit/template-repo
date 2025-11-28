@@ -269,7 +269,7 @@ def render_feature_discovery(data_loader, cache_manager, selected_model: str):
             st.markdown("### Features Requiring Investigation")
             st.caption("These patterns deviate from expected structures. " + "Investigation needed to understand their role.")
 
-            for idx, feature in enumerate(features["anomalous_list"][:10]):
+            for feature in features["anomalous_list"][:10]:
                 with st.container():
                     col1, col2, col3 = st.columns([3, 1, 1])
 
@@ -626,7 +626,7 @@ def create_layer_anomaly_heatmap(anomalies: Dict[str, Any]) -> go.Figure:
     heatmap_data = []
     for i, layer in enumerate(layers):
         row = []
-        for j in range(10):  # 10 time points
+        for _ in range(10):  # 10 time points
             base = values[i]
             variation = np.random.normal(0, 0.1)
             row.append(max(0, min(1, base + variation)))
@@ -769,7 +769,7 @@ def test_pattern_causality(feature: str, strength: float, scenarios: list) -> Di
     activation_effects = []
     suppression_effects = []
 
-    for scenario in scenarios:
+    for _ in scenarios:
         # Simulate effect sizes
         base_effect = np.random.beta(3, 5)
         activation_effects.append(base_effect * strength * (1 + np.random.normal(0, 0.2)))

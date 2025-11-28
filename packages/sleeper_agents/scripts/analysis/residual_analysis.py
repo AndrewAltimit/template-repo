@@ -51,7 +51,7 @@ class ResidualStreamAnalyzer:
         logger.info("\nAnalyzing residual decomposition for: '%s...'", text[:50])
 
         tokens = self.model.to_tokens(text)
-        logits, cache = self.model.run_with_cache(tokens)
+        _logits, cache = self.model.run_with_cache(tokens)
 
         # Get the final residual stream
         final_resid = cache["resid_post", -1]  # Shape: [batch, seq, d_model]
@@ -351,7 +351,7 @@ class ResidualStreamAnalyzer:
         logger.info("\nDecomposing logit contributions for: '%s...'", text[:50])
 
         tokens = self.model.to_tokens(text)
-        logits, cache = self.model.run_with_cache(tokens)
+        _logits, cache = self.model.run_with_cache(tokens)
 
         # Get the final token position
         final_pos = -1
@@ -458,7 +458,7 @@ class ResidualStreamAnalyzer:
         corrupted_tokens = self.model.to_tokens(corrupted_prompt)
 
         # Get clean and corrupted outputs
-        clean_logits, clean_cache = self.model.run_with_cache(clean_tokens)
+        _clean_logits, clean_cache = self.model.run_with_cache(clean_tokens)
         corrupted_logits, _corrupted_cache = self.model.run_with_cache(corrupted_tokens)
 
         # Track importance of each component

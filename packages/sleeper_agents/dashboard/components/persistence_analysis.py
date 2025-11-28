@@ -191,20 +191,20 @@ def _fetch_persistence_data(data_loader, cache_manager, model_name: str) -> Dict
 
         # Unpack database result
         (
-            job_id,
+            _job_id,
             safety_method,
             trigger,
-            target_response,
+            _target_response,
             pre_training_rate,
             post_training_rate,
             persistence_rate,
-            absolute_drop,
-            relative_drop,
+            _absolute_drop,
+            _relative_drop,
             trigger_specificity_increase,
-            is_persistent,
-            risk_level,
-            pre_results_json,
-            post_results_json,
+            _is_persistent,
+            _risk_level,
+            _pre_results_json,
+            _post_results_json,
         ) = result
 
         # Build data structure for dashboard

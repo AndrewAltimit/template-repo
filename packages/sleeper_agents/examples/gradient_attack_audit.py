@@ -542,14 +542,14 @@ class GradientAuditRunner:
         print("=" * 60)
 
         # Step 1: Generate synthetic data
-        texts, labels, embeddings = self.generate_synthetic_data(self.config.n_samples)
+        _texts, labels, embeddings = self.generate_synthetic_data(self.config.n_samples)
 
         # Step 2: Train probe
         target_layer = self.model.config.num_hidden_layers // 2  # Middle layer (common choice)
         probe = self.train_probe(embeddings, labels, target_layer)
 
         # Step 3: Run PGD attack
-        adv_embeddings, metrics = self.run_pgd_attack(embeddings, labels, probe, target_layer)
+        _adv_embeddings, metrics = self.run_pgd_attack(embeddings, labels, probe, target_layer)
 
         # Step 4: Report results
         self.report_results(metrics)

@@ -324,7 +324,7 @@ class ComfyUIMCPServer(BaseMCPServer):
             )
         else:
             # Update prompt in provided workflow if it has text encode nodes
-            for node_id, node in workflow.items():
+            for _, node in workflow.items():
                 if node.get("class_type") == "CLIPTextEncode":
                     if "positive" in str(node.get("inputs", {})).lower():
                         node["inputs"]["text"] = prompt
