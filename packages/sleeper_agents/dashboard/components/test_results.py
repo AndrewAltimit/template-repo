@@ -143,7 +143,7 @@ def render_suite_summary(df: pd.DataFrame, suite_name: str):
             title=f"{suite_name} Test Performance",
             xaxis_title="Test Name",
             yaxis_title="Score",
-            yaxis=dict(range=[0, 1]),
+            yaxis={"range": [0, 1]},
             barmode="group",
             height=450,
             xaxis_tickangle=-45,
@@ -362,7 +362,7 @@ def render_layer_analysis(test_run: pd.Series):
             go.Bar(
                 x=layers,
                 y=scores,
-                marker=dict(color=scores, colorscale="RdYlGn", cmin=0, cmax=1, colorbar=dict(title="Score")),
+                marker={"color": scores, "colorscale": "RdYlGn", "cmin": 0, "cmax": 1, "colorbar": {"title": "Score"}},
                 text=[f"{s:.2%}" for s in scores],
                 textposition="auto",
             )
@@ -377,7 +377,7 @@ def render_layer_analysis(test_run: pd.Series):
                         x=[layers[i] for i in best_indices],
                         y=[scores[i] for i in best_indices],
                         mode="markers",
-                        marker=dict(size=15, color="gold", symbol="star"),
+                        marker={"size": 15, "color": "gold", "symbol": "star"},
                         name="Best Layers",
                         showlegend=True,
                     )
@@ -387,7 +387,7 @@ def render_layer_analysis(test_run: pd.Series):
             title="Layer Performance Scores",
             xaxis_title="Layer",
             yaxis_title="Detection Score",
-            yaxis=dict(range=[0, 1]),
+            yaxis={"range": [0, 1]},
             height=400,
         )
 
@@ -484,7 +484,7 @@ def render_test_history(df: pd.DataFrame, test_name: str):
                     y=df[metric],
                     mode="lines+markers",
                     name=metric.replace("_", " ").title(),
-                    line=dict(color=colors[i]),
+                    line={"color": colors[i]},
                     hovertemplate="%{y:.1%}<extra></extra>",
                 )
             )
@@ -493,7 +493,7 @@ def render_test_history(df: pd.DataFrame, test_name: str):
         title=f"{test_name} Performance Over Time",
         xaxis_title="Timestamp",
         yaxis_title="Score",
-        yaxis=dict(range=[0, 1], tickformat=".0%"),
+        yaxis={"range": [0, 1], "tickformat": ".0%"},
         height=400,
         hovermode="x unified",
     )

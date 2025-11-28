@@ -111,7 +111,7 @@ def render_trend_analysis(df: pd.DataFrame, metric: str):
             y=df_sorted[metric],
             mode="markers",
             name="Raw Data",
-            marker=dict(size=4, color="lightgray", opacity=0.5),
+            marker={"size": 4, "color": "lightgray", "opacity": 0.5},
             hovertemplate="%{y:.1%}<extra></extra>",
         )
     )
@@ -123,8 +123,8 @@ def render_trend_analysis(df: pd.DataFrame, metric: str):
             y=daily_data["mean"],
             mode="lines+markers",
             name="Daily Average",
-            line=dict(color="blue", width=2),
-            marker=dict(size=6),
+            line={"color": "blue", "width": 2},
+            marker={"size": 6},
             hovertemplate="%{y:.1%}<extra></extra>",
         )
     )
@@ -136,7 +136,7 @@ def render_trend_analysis(df: pd.DataFrame, metric: str):
             y=daily_data["ma_3"],
             mode="lines",
             name="3-Day MA",
-            line=dict(color="green", dash="dash"),
+            line={"color": "green", "dash": "dash"},
             hovertemplate="%{y:.1%}<extra></extra>",
         )
     )
@@ -148,7 +148,7 @@ def render_trend_analysis(df: pd.DataFrame, metric: str):
             y=daily_data["ma_7"],
             mode="lines",
             name="7-Day MA",
-            line=dict(color="red", dash="dot"),
+            line={"color": "red", "dash": "dot"},
             hovertemplate="%{y:.1%}<extra></extra>",
         )
     )
@@ -163,7 +163,7 @@ def render_trend_analysis(df: pd.DataFrame, metric: str):
             y=upper_bound.tolist() + lower_bound.tolist()[::-1],
             fill="toself",
             fillcolor="rgba(0,100,80,0.1)",
-            line=dict(color="rgba(255,255,255,0)"),
+            line={"color": "rgba(255,255,255,0)"},
             showlegend=False,
             hoverinfo="skip",
         )
@@ -173,7 +173,7 @@ def render_trend_analysis(df: pd.DataFrame, metric: str):
         title=f"{metric.replace('_', ' ').title()} Trend Analysis",
         xaxis_title="Date",
         yaxis_title=metric.replace("_", " ").title(),
-        yaxis=dict(range=[0, 1], tickformat=".0%"),
+        yaxis={"range": [0, 1], "tickformat": ".0%"},
         height=500,
         hovermode="x unified",
     )
@@ -235,25 +235,25 @@ def render_performance_stability(df: pd.DataFrame, metric: str, model: str):
     fig = go.Figure()
 
     # Histogram
-    fig.add_trace(go.Histogram(x=values, nbinsx=20, name="Distribution", marker=dict(color="lightblue"), showlegend=False))
+    fig.add_trace(go.Histogram(x=values, nbinsx=20, name="Distribution", marker={"color": "lightblue"}, showlegend=False))
 
     # Add mean line
-    fig.add_vline(x=mean_val, line=dict(color="red", dash="dash"), annotation_text=f"Mean: {mean_val:.1%}")
+    fig.add_vline(x=mean_val, line={"color": "red", "dash": "dash"}, annotation_text=f"Mean: {mean_val:.1%}")
 
     # Add ±1 std lines
     fig.add_vline(
-        x=mean_val + std_val, line=dict(color="orange", dash="dot"), annotation_text=f"+1σ: {mean_val + std_val:.1%}"
+        x=mean_val + std_val, line={"color": "orange", "dash": "dot"}, annotation_text=f"+1σ: {mean_val + std_val:.1%}"
     )
 
     fig.add_vline(
-        x=mean_val - std_val, line=dict(color="orange", dash="dot"), annotation_text=f"-1σ: {mean_val - std_val:.1%}"
+        x=mean_val - std_val, line={"color": "orange", "dash": "dot"}, annotation_text=f"-1σ: {mean_val - std_val:.1%}"
     )
 
     fig.update_layout(
         title=f"Performance Distribution - {model}",
         xaxis_title=metric.replace("_", " ").title(),
         yaxis_title="Frequency",
-        xaxis=dict(tickformat=".0%"),
+        xaxis={"tickformat": ".0%"},
         height=400,
     )
 
@@ -332,7 +332,7 @@ def render_test_type_trends(df: pd.DataFrame, metric: str, data_loader, model: s
                     y=daily_avg.values,
                     mode="lines+markers",
                     name=test_type.title(),
-                    line=dict(color=colors[i % len(colors)]),
+                    line={"color": colors[i % len(colors)]},
                     hovertemplate="%{y:.1%}<extra></extra>",
                 )
             )
@@ -341,7 +341,7 @@ def render_test_type_trends(df: pd.DataFrame, metric: str, data_loader, model: s
         title="Performance by Test Type",
         xaxis_title="Date",
         yaxis_title=metric.replace("_", " ").title(),
-        yaxis=dict(range=[0, 1], tickformat=".0%"),
+        yaxis={"range": [0, 1], "tickformat": ".0%"},
         height=450,
         hovermode="x unified",
     )
@@ -405,7 +405,7 @@ def render_anomaly_detection(df: pd.DataFrame, metric: str):
             y=normal_data[metric],
             mode="markers",
             name="Normal",
-            marker=dict(size=6, color="blue", opacity=0.6),
+            marker={"size": 6, "color": "blue", "opacity": 0.6},
             hovertemplate="%{y:.1%}<extra></extra>",
         )
     )
@@ -418,16 +418,16 @@ def render_anomaly_detection(df: pd.DataFrame, metric: str):
                 y=anomalies[metric],
                 mode="markers",
                 name="Anomaly",
-                marker=dict(size=10, color="red", symbol="x"),
+                marker={"size": 10, "color": "red", "symbol": "x"},
                 hovertemplate="Test: %{text}<br>Value: %{y:.1%}<extra></extra>",
                 text=anomalies["test_name"] if "test_name" in anomalies.columns else None,
             )
         )
 
     # Add threshold lines
-    fig.add_hline(y=upper_bound, line=dict(color="red", dash="dash"), annotation_text=f"Upper Threshold: {upper_bound:.1%}")
+    fig.add_hline(y=upper_bound, line={"color": "red", "dash": "dash"}, annotation_text=f"Upper Threshold: {upper_bound:.1%}")
 
-    fig.add_hline(y=lower_bound, line=dict(color="red", dash="dash"), annotation_text=f"Lower Threshold: {lower_bound:.1%}")
+    fig.add_hline(y=lower_bound, line={"color": "red", "dash": "dash"}, annotation_text=f"Lower Threshold: {lower_bound:.1%}")
 
     # Add IQR band
     fig.add_hrect(y0=Q1, y1=Q3, fillcolor="green", opacity=0.1, line_width=0)
@@ -436,7 +436,7 @@ def render_anomaly_detection(df: pd.DataFrame, metric: str):
         title="Anomaly Detection (IQR Method)",
         xaxis_title="Timestamp",
         yaxis_title=metric.replace("_", " ").title(),
-        yaxis=dict(range=[0, 1], tickformat=".0%"),
+        yaxis={"range": [0, 1], "tickformat": ".0%"},
         height=450,
         showlegend=True,
     )

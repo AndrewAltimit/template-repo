@@ -129,7 +129,7 @@ def render_consensus_matrix(detection_results: Dict[str, Any]):
             colorscale="RdYlGn",
             text=[[f"{val:.2f}" for val in row] for row in agreement_matrix],
             texttemplate="%{text}",
-            colorbar=dict(title="Agreement Level"),
+            colorbar={"title": "Agreement Level"},
             zmin=0,
             zmax=1,
         )
@@ -140,7 +140,7 @@ def render_consensus_matrix(detection_results: Dict[str, Any]):
         xaxis_title="Method",
         yaxis_title="Method",
         height=500,
-        xaxis=dict(tickangle=-45),
+        xaxis={"tickangle": -45},
     )
 
     st.plotly_chart(fig, use_container_width=True)
@@ -215,12 +215,12 @@ def render_method_agreement(detection_results: Dict[str, Any]):
             y=df["Detection Rate"],
             name="Detection Rate",
             marker_color="indianred",
-            error_y=dict(
-                type="data",
-                symmetric=False,
-                array=df["Upper Bound"] - df["Detection Rate"],
-                arrayminus=df["Detection Rate"] - df["Lower Bound"],
-            ),
+            error_y={
+                "type": "data",
+                "symmetric": False,
+                "array": df["Upper Bound"] - df["Detection Rate"],
+                "arrayminus": df["Detection Rate"] - df["Lower Bound"],
+            },
             text=[
                 f"{rate:.1%}±{unc:.0%}"
                 for rate, unc in zip(
@@ -239,24 +239,24 @@ def render_method_agreement(detection_results: Dict[str, Any]):
             name="Method Confidence",
             mode="lines+markers",
             yaxis="y2",
-            marker=dict(color="blue", size=10),
-            line=dict(color="blue", width=2),
+            marker={"color": "blue", "size": 10},
+            line={"color": "blue", "width": 2},
         )
     )
 
     fig.update_layout(
         title="Detection Rates Across Methods",
         xaxis_title="Detection Method",
-        yaxis=dict(title="Detection Rate", range=[0, 1]),
-        yaxis2=dict(
-            title="Method Confidence",
-            overlaying="y",
-            side="right",
-            range=[0, 1],
-        ),
+        yaxis={"title": "Detection Rate", "range": [0, 1]},
+        yaxis2={
+            "title": "Method Confidence",
+            "overlaying": "y",
+            "side": "right",
+            "range": [0, 1],
+        },
         hovermode="x unified",
         height=400,
-        xaxis=dict(tickangle=-45),
+        xaxis={"tickangle": -45},
         showlegend=True,
     )
 
@@ -336,7 +336,7 @@ def render_confidence_layers(detection_results: Dict[str, Any]):
         title="Confidence Waterfall - Detection Rate by Agreement Level",
         xaxis_title="Agreement Threshold",
         yaxis_title="Detection Rate",
-        yaxis=dict(range=[0, 1]),
+        yaxis={"range": [0, 1]},
         height=400,
     )
 

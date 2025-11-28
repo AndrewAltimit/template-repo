@@ -93,7 +93,13 @@ def render_coverage_map(data_loader, cache_manager):
                 x=tested_x,
                 y=tested_y,
                 mode="markers",
-                marker=dict(size=8, color="green", symbol="circle", line=dict(width=1, color="white"), opacity=0.6),
+                marker={
+                    "size": 8,
+                    "color": "green",
+                    "symbol": "circle",
+                    "line": {"width": 1, "color": "white"},
+                    "opacity": 0.6,
+                },
                 name="Tested Scenarios",
                 hovertemplate="Tested point<br>X: %{x:.2f}<br>Y: %{y:.2f}<extra></extra>",
             )
@@ -108,7 +114,13 @@ def render_coverage_map(data_loader, cache_manager):
                 x=edge_cases_x,
                 y=edge_cases_y,
                 mode="markers",
-                marker=dict(size=10, color="orange", symbol="diamond", line=dict(width=1, color="white"), opacity=0.7),
+                marker={
+                    "size": 10,
+                    "color": "orange",
+                    "symbol": "diamond",
+                    "line": {"width": 1, "color": "white"},
+                    "opacity": 0.7,
+                },
                 name="Edge Cases",
                 hovertemplate="Edge case<br>X: %{x:.2f}<br>Y: %{y:.2f}<extra></extra>",
             )
@@ -123,7 +135,7 @@ def render_coverage_map(data_loader, cache_manager):
                 x=adversarial_x,
                 y=adversarial_y,
                 mode="markers",
-                marker=dict(size=12, color="red", symbol="x", line=dict(width=2, color="darkred"), opacity=0.8),
+                marker={"size": 12, "color": "red", "symbol": "x", "line": {"width": 2, "color": "darkred"}, "opacity": 0.8},
                 name="Adversarial Tests",
                 hovertemplate="Adversarial<br>X: %{x:.2f}<br>Y: %{y:.2f}<extra></extra>",
             )
@@ -131,7 +143,7 @@ def render_coverage_map(data_loader, cache_manager):
 
         # Add untested space visualization (the vast majority)
         fig.add_shape(
-            type="rect", x0=-5, y0=-5, x1=5, y1=5, fillcolor="lightgray", opacity=0.2, layer="below", line=dict(width=0)
+            type="rect", x0=-5, y0=-5, x1=5, y1=5, fillcolor="lightgray", opacity=0.2, layer="below", line={"width": 0}
         )
 
         # Add annotation about the untested space
@@ -237,7 +249,7 @@ def render_scale_perspective(data_loader, cache_manager):
 
     fig.update_layout(
         title="Scale Comparison (Logarithmic)",
-        xaxis=dict(tickmode="array", tickvals=list(range(len(scales) - 1)), ticktext=[s["name"] for s in scales[:-1]]),
+        xaxis={"tickmode": "array", "tickvals": list(range(len(scales) - 1)), "ticktext": [s["name"] for s in scales[:-1]]},
         yaxis_title="Log10 Scale",
         height=400,
         yaxis_range=[0, 110],
@@ -463,8 +475,8 @@ def render_unknown_territories(data_loader, cache_manager):
                 x=sequence_lengths,
                 y=[min(p, 1e20) for p in possibilities],
                 mode="lines+markers",
-                marker=dict(size=10, color="red"),
-                line=dict(width=3, color="red"),
+                marker={"size": 10, "color": "red"},
+                line={"width": 3, "color": "red"},
                 name="Possible Sequences",
                 hovertemplate="Length: %{x}<br>Possibilities: %{y:.0e}<extra></extra>",
             )
@@ -532,8 +544,8 @@ def render_coverage_evolution(data_loader, cache_manager):
                     y=tested_scenarios,
                     mode="lines+markers",
                     name="Tested Scenarios",
-                    line=dict(color="green", width=3),
-                    marker=dict(size=8),
+                    line={"color": "green", "width": 3},
+                    marker={"size": 8},
                 )
             )
 
@@ -544,8 +556,8 @@ def render_coverage_evolution(data_loader, cache_manager):
                     y=discovered_unknowns,
                     mode="lines+markers",
                     name="New Unknown Categories Found",
-                    line=dict(color="orange", width=2),
-                    marker=dict(size=6),
+                    line={"color": "orange", "width": 2},
+                    marker={"size": 6},
                 )
             )
         else:
@@ -562,8 +574,8 @@ def render_coverage_evolution(data_loader, cache_manager):
                     y=tested_scenarios,
                     mode="lines+markers",
                     name="Tested Scenarios",
-                    line=dict(color="green", width=3),
-                    marker=dict(size=8),
+                    line={"color": "green", "width": 3},
+                    marker={"size": 8},
                 )
             )
 
@@ -573,8 +585,8 @@ def render_coverage_evolution(data_loader, cache_manager):
                     y=discovered_unknowns,
                     mode="lines+markers",
                     name="New Unknown Categories Found",
-                    line=dict(color="orange", width=2),
-                    marker=dict(size=6),
+                    line={"color": "orange", "width": 2},
+                    marker={"size": 6},
                 )
             )
 

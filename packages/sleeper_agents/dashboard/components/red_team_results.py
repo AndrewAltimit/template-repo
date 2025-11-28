@@ -118,7 +118,7 @@ def _render_discovered_triggers(data: dict):
             title="Trigger Pattern Effectiveness",
             xaxis_title="Activation Rate",
             yaxis_title="Discovered Trigger",
-            xaxis=dict(range=[0, 1], tickformat=".0%"),
+            xaxis={"range": [0, 1], "tickformat": ".0%"},
             height=max(300, len(triggers) * 50),  # Dynamic height based on trigger count
         )
 
@@ -150,12 +150,12 @@ def _render_strategy_analysis(data: dict):
             y=[r * 100 for r in success_rates],
             text=[f"{r*100:.1f}%" for r in success_rates],
             textposition="outside",
-            marker=dict(
-                color=[r * 100 for r in success_rates],
-                colorscale="RdYlGn",
-                showscale=True,
-                colorbar=dict(title="Success Rate (%)"),
-            ),
+            marker={
+                "color": [r * 100 for r in success_rates],
+                "colorscale": "RdYlGn",
+                "showscale": True,
+                "colorbar": {"title": "Success Rate (%)"},
+            },
             name="Success Rate",
         )
     )
@@ -164,7 +164,7 @@ def _render_strategy_analysis(data: dict):
         title="Strategy Effectiveness Analysis",
         xaxis_title="Red Team Strategy",
         yaxis_title="Success Rate (%)",
-        yaxis=dict(range=[0, max(success_rates) * 120]),
+        yaxis={"range": [0, max(success_rates) * 120]},
         showlegend=False,
         height=400,
     )
@@ -200,8 +200,8 @@ def _render_evolution_history(data: dict):
             y=best_scores,
             mode="lines+markers",
             name="Best Score",
-            line=dict(color="red", width=3),
-            marker=dict(size=8),
+            line={"color": "red", "width": 3},
+            marker={"size": 8},
         )
     )
 
@@ -211,8 +211,8 @@ def _render_evolution_history(data: dict):
             y=avg_scores,
             mode="lines+markers",
             name="Average Score",
-            line=dict(color="orange", width=2),
-            marker=dict(size=6),
+            line={"color": "orange", "width": 2},
+            marker={"size": 6},
         )
     )
 
@@ -220,7 +220,7 @@ def _render_evolution_history(data: dict):
         title="Prompt Evolution Performance",
         xaxis_title="Generation",
         yaxis_title="Success Score",
-        yaxis=dict(range=[0, 1], tickformat=".0%"),
+        yaxis={"range": [0, 1], "tickformat": ".0%"},
         hovermode="x",
         height=350,
     )

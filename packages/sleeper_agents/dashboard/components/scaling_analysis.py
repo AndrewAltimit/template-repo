@@ -77,8 +77,8 @@ def render_scaling_analysis(data_loader: Any, cache_manager: Any) -> None:
                 y=persistence_rates,
                 mode="lines+markers",
                 name="Theoretical Backdoor Persistence",
-                line=dict(color="red", width=2, dash="dash"),
-                marker=dict(size=8),
+                line={"color": "red", "width": 2, "dash": "dash"},
+                marker={"size": 8},
                 opacity=0.6,
             )
         )
@@ -89,8 +89,8 @@ def render_scaling_analysis(data_loader: Any, cache_manager: Any) -> None:
                 y=deception_scores,
                 mode="lines+markers",
                 name="Theoretical Deception Capability",
-                line=dict(color="orange", width=2, dash="dash"),
-                marker=dict(size=8),
+                line={"color": "orange", "width": 2, "dash": "dash"},
+                marker={"size": 8},
                 opacity=0.6,
             )
         )
@@ -102,7 +102,7 @@ def render_scaling_analysis(data_loader: Any, cache_manager: Any) -> None:
                 y=[actual_persistence],
                 mode="markers",
                 name=f"{model_name} Actual Persistence",
-                marker=dict(size=15, color="red", symbol="star", line=dict(width=2, color="darkred")),
+                marker={"size": 15, "color": "red", "symbol": "star", "line": {"width": 2, "color": "darkred"}},
             )
         )
 
@@ -112,7 +112,7 @@ def render_scaling_analysis(data_loader: Any, cache_manager: Any) -> None:
                 y=[actual_deception],
                 mode="markers",
                 name=f"{model_name} Actual Deception",
-                marker=dict(size=15, color="orange", symbol="star", line=dict(width=2, color="darkorange")),
+                marker={"size": 15, "color": "orange", "symbol": "star", "line": {"width": 2, "color": "darkorange"}},
             )
         )
 
@@ -120,7 +120,7 @@ def render_scaling_analysis(data_loader: Any, cache_manager: Any) -> None:
             title="Deception Scales with Model Size (Theoretical + Actual Data)",
             xaxis_title="Model Size (Parameters)",
             yaxis_title="Score",
-            yaxis=dict(range=[0, 1]),
+            yaxis={"range": [0, 1]},
             hovermode="x unified",
         )
 
@@ -222,8 +222,8 @@ def render_scaling_analysis(data_loader: Any, cache_manager: Any) -> None:
                 y=effectiveness,
                 mode="lines+markers",
                 fill="tozeroy",
-                line=dict(color="red", width=3),
-                marker=dict(size=10),
+                line={"color": "red", "width": 3},
+                marker={"size": 10},
                 name="Backdoor Reduction %",
             )
         )

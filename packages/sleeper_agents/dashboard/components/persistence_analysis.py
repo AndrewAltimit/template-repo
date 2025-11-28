@@ -713,7 +713,7 @@ def _render_trigger_specificity(data: Dict[str, Any]):
             text=[[f"{v:.0%}" for v in row] for row in heatmap_data],
             texttemplate="%{text}",
             textfont={"size": 10},
-            colorbar=dict(title="Activation<br>Rate"),
+            colorbar={"title": "Activation<br>Rate"},
         )
     )
 
@@ -773,7 +773,7 @@ def _render_behavioral_consistency(data: Dict[str, Any]):
         title="Behavioral Consistency After Safety Training",
         xaxis_title="Training Method",
         yaxis_title="Consistency Score",
-        yaxis=dict(range=[0, 1.1], tickformat=".0%"),
+        yaxis={"range": [0, 1.1], "tickformat": ".0%"},
         height=300,
     )
 
