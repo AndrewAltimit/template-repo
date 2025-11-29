@@ -62,9 +62,9 @@ case "$STAGE" in
     echo "🔍 Running Ruff check..."
     docker-compose run --rm python-ci ruff check . --output-format=grouped 2>&1 | tee ruff-output.txt || true
 
-    # Count Ruff issues
+    # Count Ruff issues (extract total from "Found X errors" line)
     if [ -f ruff-output.txt ]; then
-      ruff_errors=$(grep -cE "^[^ ].*\.py:" ruff-output.txt 2>/dev/null || echo 0)
+      ruff_errors=$(grep -oP "Found \K[0-9]+" ruff-output.txt 2>/dev/null | head -1 || echo 0)
       ruff_errors=$(ensure_numeric "$ruff_errors")
       errors=$((errors + ${ruff_errors:-0}))
     fi
