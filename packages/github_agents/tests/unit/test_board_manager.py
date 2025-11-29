@@ -407,9 +407,8 @@ class TestBoardManager:
             if call_count == 1:
                 # First call fails with server error
                 raise GraphQLError("Server error", status_code=500)
-            else:
-                # Second call succeeds
-                return GraphQLResponse(data={"success": True}, status_code=200)
+            # Second call succeeds
+            return GraphQLResponse(data={"success": True}, status_code=200)
 
         response = await manager._execute_with_retry(mock_operation)
         assert response.data == {"success": True}

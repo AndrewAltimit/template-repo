@@ -329,7 +329,7 @@ output_directory = None
 
 def initialize_generator(templates_dir: str, output_dir: Optional[str] = None) -> None:
     """Initialize the meme generator with output directory"""
-    global generator, output_directory
+    global generator, output_directory  # pylint: disable=global-statement
     generator = MemeGenerator(templates_dir)
     output_directory = output_dir
 

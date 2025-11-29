@@ -162,7 +162,7 @@ def render_risk_mitigation_mapping(risk_profile: Dict[str, Any]):
             texttemplate="%{text}",
             hovertext=hover_texts,  # Add the custom hover text
             hovertemplate="%{hovertext}<extra></extra>",  # Use custom hover text without default info
-            colorbar=dict(title="Effectiveness<br>(N/A = Not Applicable)"),
+            colorbar={"title": "Effectiveness<br>(N/A = Not Applicable)"},
             zmin=0,
             zmax=1,
             connectgaps=False,  # Don't interpolate NaN values
@@ -174,7 +174,7 @@ def render_risk_mitigation_mapping(risk_profile: Dict[str, Any]):
         xaxis_title="Risk Type",
         yaxis_title="Mitigation Strategy",
         height=400,
-        xaxis=dict(tickangle=-45),
+        xaxis={"tickangle": -45},
     )
 
     st.plotly_chart(fig, use_container_width=True)
@@ -412,17 +412,17 @@ def render_implementation_cost(risk_profile: Dict[str, Any]):
             x=df["Effectiveness"],
             y=df["Cost-Effectiveness"],
             mode="markers+text",
-            marker=dict(
-                size=[size_map.get(c.lower(), 30) for c in df["Cost"]],
-                color=[color_map.get(t.lower(), 2) for t in df["Time"]],
-                colorscale="Viridis",
-                showscale=True,
-                colorbar=dict(
-                    title="Time to<br>Implement",
-                    ticktext=["Immediate", "Hours", "Days", "Weeks", "Ongoing"],
-                    tickvals=[0, 1, 2, 3, 4],
-                ),
-            ),
+            marker={
+                "size": [size_map.get(c.lower(), 30) for c in df["Cost"]],
+                "color": [color_map.get(t.lower(), 2) for t in df["Time"]],
+                "colorscale": "Viridis",
+                "showscale": True,
+                "colorbar": {
+                    "title": "Time to<br>Implement",
+                    "ticktext": ["Immediate", "Hours", "Days", "Weeks", "Ongoing"],
+                    "tickvals": [0, 1, 2, 3, 4],
+                },
+            },
             text=df["Mitigation"],
             textposition="top center",
             hovertemplate="<b>%{text}</b><br>"
@@ -437,7 +437,7 @@ def render_implementation_cost(risk_profile: Dict[str, Any]):
         xaxis_title="Effectiveness",
         yaxis_title="Cost-Effectiveness Ratio",
         height=500,
-        xaxis=dict(range=[0, 1], tickformat=".0%"),
+        xaxis={"range": [0, 1], "tickformat": ".0%"},
         showlegend=False,
     )
 

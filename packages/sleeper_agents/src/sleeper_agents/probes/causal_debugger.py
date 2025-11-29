@@ -484,7 +484,7 @@ class CausalDebugger:
 
         for feature in discovered_features:
             # Test each feature's causality
-            for category, prompts in test_suite.items():
+            for _, prompts in test_suite.items():
                 experiment = await self.trace_feature_causality(
                     feature.vector,
                     feature.feature_name,

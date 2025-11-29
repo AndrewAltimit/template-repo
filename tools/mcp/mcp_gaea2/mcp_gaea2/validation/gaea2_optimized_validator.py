@@ -256,7 +256,7 @@ _optimized_validator_instance = None
 
 def get_optimized_validator() -> OptimizedGaea2Validator:
     """Get or create the singleton optimized validator instance."""
-    global _optimized_validator_instance
+    global _optimized_validator_instance  # pylint: disable=global-statement
     if _optimized_validator_instance is None:
         _optimized_validator_instance = OptimizedGaea2Validator()
     return _optimized_validator_instance

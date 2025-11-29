@@ -160,7 +160,7 @@ class TestSubagentManager:
         manager = SubagentManager()
         manager.personas = {"tech-lead": "content"}
 
-        success, stdout, stderr = manager.execute_with_persona("tech-lead", "Task", agent_name="unknown-agent")
+        success, _stdout, stderr = manager.execute_with_persona("tech-lead", "Task", agent_name="unknown-agent")
 
         assert success is False
         assert "Unknown agent: unknown-agent" in stderr

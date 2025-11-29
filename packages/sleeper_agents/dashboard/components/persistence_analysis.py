@@ -191,20 +191,20 @@ def _fetch_persistence_data(data_loader, cache_manager, model_name: str) -> Dict
 
         # Unpack database result
         (
-            job_id,
+            _job_id,
             safety_method,
             trigger,
-            target_response,
+            _target_response,
             pre_training_rate,
             post_training_rate,
             persistence_rate,
-            absolute_drop,
-            relative_drop,
+            _absolute_drop,
+            _relative_drop,
             trigger_specificity_increase,
-            is_persistent,
-            risk_level,
-            pre_results_json,
-            post_results_json,
+            _is_persistent,
+            _risk_level,
+            _pre_results_json,
+            _post_results_json,
         ) = result
 
         # Build data structure for dashboard
@@ -518,8 +518,8 @@ def _render_persistence_chart(data: Dict[str, Any]):
             mode="lines+markers+text",
             text=[f"{p:.1%}" for p in persistence],
             textposition="top center",
-            line=dict(color="darkred", width=3),
-            marker=dict(size=10),
+            line={"color": "darkred", "width": 3},
+            marker={"size": 10},
             yaxis="y2",
         )
     )
@@ -527,8 +527,8 @@ def _render_persistence_chart(data: Dict[str, Any]):
     fig.update_layout(
         title="Backdoor Detection Before and After Safety Training",
         xaxis_title="Training Method",
-        yaxis=dict(title="Detection Rate", range=[0, 1.1], tickformat=".0%"),
-        yaxis2=dict(title="Persistence Rate", overlaying="y", side="right", range=[0, 1.1], tickformat=".0%"),
+        yaxis={"title": "Detection Rate", "range": [0, 1.1], "tickformat": ".0%"},
+        yaxis2={"title": "Persistence Rate", "overlaying": "y", "side": "right", "range": [0, 1.1], "tickformat": ".0%"},
         hovermode="x",
         height=400,
         barmode="group",
@@ -652,13 +652,13 @@ def _render_training_comparison(data: Dict[str, Any]):
             mode="markers+text",
             text=df["Method"],
             textposition="top center",
-            marker=dict(
-                size=15,
-                color=df["Effectiveness"],
-                colorscale="RdYlGn",
-                showscale=True,
-                colorbar=dict(title="Training<br>Effectiveness", x=1.15),
-            ),
+            marker={
+                "size": 15,
+                "color": df["Effectiveness"],
+                "colorscale": "RdYlGn",
+                "showscale": True,
+                "colorbar": {"title": "Training<br>Effectiveness", "x": 1.15},
+            },
             showlegend=False,
         ),
         row=1,
@@ -713,7 +713,7 @@ def _render_trigger_specificity(data: Dict[str, Any]):
             text=[[f"{v:.0%}" for v in row] for row in heatmap_data],
             texttemplate="%{text}",
             textfont={"size": 10},
-            colorbar=dict(title="Activation<br>Rate"),
+            colorbar={"title": "Activation<br>Rate"},
         )
     )
 
@@ -773,7 +773,7 @@ def _render_behavioral_consistency(data: Dict[str, Any]):
         title="Behavioral Consistency After Safety Training",
         xaxis_title="Training Method",
         yaxis_title="Consistency Score",
-        yaxis=dict(range=[0, 1.1], tickformat=".0%"),
+        yaxis={"range": [0, 1.1], "tickformat": ".0%"},
         height=300,
     )
 

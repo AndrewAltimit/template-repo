@@ -306,13 +306,13 @@ class GeminiIntegration:
                         "Gemini authentication required. Please run 'gemini' interactively on the host "
                         "to complete authentication. Note: Gemini uses Google account authentication, not API keys."
                     )
-                raise Exception(f"Gemini CLI failed: {error_msg}")
+                raise RuntimeError(f"Gemini CLI failed: {error_msg}")
 
             output = stdout.decode().strip()
 
             # Check for authentication messages in stdout
             if "login required" in output.lower() or "waiting for authentication" in output.lower():
-                raise Exception(
+                raise PermissionError(
                     "Gemini authentication required. Please run 'gemini' interactively on the host "
                     "to complete authentication. Note: Gemini uses Google account authentication, not API keys."
                 )
@@ -320,7 +320,7 @@ class GeminiIntegration:
             return {"output": output, "execution_time": execution_time}
 
         except asyncio.TimeoutError as exc:
-            raise Exception(f"Gemini CLI timed out after {self.timeout} seconds") from exc
+            raise TimeoutError(f"Gemini CLI timed out after {self.timeout} seconds") from exc
 
     async def _execute_gemini_container(self, query: str, start_time: float) -> Dict[str, Any]:
         """Execute Gemini CLI through Docker container"""
@@ -413,13 +413,13 @@ class GeminiIntegration:
                     error_msg = "Docker is not installed or not in PATH. Container mode requires Docker."
                 elif "no such image" in error_msg.lower():
                     error_msg = f"Container image '{container_image}' not found. " "Please build or pull it first."
-                raise Exception(f"Gemini container execution failed: {error_msg}")
+                raise RuntimeError(f"Gemini container execution failed: {error_msg}")
 
             output = stdout.decode().strip()
 
             # Check for authentication messages in stdout
             if "login required" in output.lower() or "waiting for authentication" in output.lower():
-                raise Exception(
+                raise PermissionError(
                     "Gemini authentication required. Please ensure ~/.gemini exists on the host "
                     "with valid authentication. Run 'gemini' interactively on the host to authenticate."
                 )
@@ -427,7 +427,7 @@ class GeminiIntegration:
             return {"output": output, "execution_time": execution_time}
 
         except asyncio.TimeoutError as exc:
-            raise Exception(f"Gemini container execution timed out after {self.timeout} seconds") from exc
+            raise TimeoutError(f"Gemini container execution timed out after {self.timeout} seconds") from exc
         finally:
             # Clean up temporary directory
             if temp_gemini_dir and os.path.exists(temp_gemini_dir):
@@ -455,7 +455,7 @@ def get_integration(config: Optional[Dict[str, Any]] = None) -> GeminiIntegratio
     Returns:
         The singleton GeminiIntegration instance
     """
-    global _integration
+    global _integration  # pylint: disable=global-statement
     if _integration is None:
         _integration = GeminiIntegration(config)
     return _integration

@@ -83,7 +83,7 @@ class WorkflowExtractor:
         # Try legacy format
         if isinstance(assets, dict) and "$values" not in assets:
             # Look for first asset with Terrain
-            for key, value in assets.items():
+            for _, value in assets.items():
                 if isinstance(value, dict) and "Terrain" in value:
                     terrain_data = value["Terrain"]
                     return terrain_data if isinstance(terrain_data, dict) else None
@@ -166,7 +166,7 @@ class WorkflowExtractor:
         """Extract connections from node ports"""
         connections = []
 
-        for node_id, node_data in nodes_dict.items():
+        for _, node_data in nodes_dict.items():
             # Skip non-dict entries
             if not isinstance(node_data, dict):
                 continue

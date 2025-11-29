@@ -243,7 +243,7 @@ class TestPluginManager:
                 return "failing"
 
             async def connect(self, config):
-                raise Exception("Connection failed")
+                raise ConnectionError("Connection failed")
 
             async def disconnect(self):
                 pass

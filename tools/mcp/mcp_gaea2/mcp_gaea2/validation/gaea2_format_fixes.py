@@ -687,7 +687,7 @@ def apply_format_fixes(
         return project
 
     nodes_obj = assets_values[0]["Terrain"]["Nodes"]
-    for node_id, node in nodes_obj.items():
+    for _, node in nodes_obj.items():
         # Skip if node is just a string reference (like "$id": "6")
         if isinstance(node, str):
             continue

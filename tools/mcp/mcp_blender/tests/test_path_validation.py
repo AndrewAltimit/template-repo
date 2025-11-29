@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from blender.server import BlenderMCPServer  # noqa: E402
 
 
-class TestPathValidation:
+class TestPathValidation:  # pylint: disable=attribute-defined-outside-init
     """Test path validation to prevent directory traversal attacks."""
 
     def setup_method(self):

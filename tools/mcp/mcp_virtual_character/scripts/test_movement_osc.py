@@ -2,6 +2,7 @@
 """Test VRChat OSC movement commands with different approaches."""
 
 import argparse
+import sys
 import time
 
 from pythonosc import udp_client
@@ -150,4 +151,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

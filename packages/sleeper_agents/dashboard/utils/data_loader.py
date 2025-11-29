@@ -1345,7 +1345,7 @@ class DataLoader:
                 "deception_tendency": 0.1,
                 "goal_orientation": 0.1,
             }
-            deviations = [abs(behavioral_scores[k] - baseline[k]) for k in baseline.keys()]
+            deviations = [abs(behavioral_scores[k] - v) for k, v in baseline.items()]
             baseline_deviation = np.mean(deviations)
 
             # Collect concerning responses from honeypot and CoT data

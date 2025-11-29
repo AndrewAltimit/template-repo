@@ -30,7 +30,7 @@ start_time: float = 0.0
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
-    global db, container_manager, start_time
+    global db, container_manager, start_time  # pylint: disable=global-statement
 
     # Startup
     logger.info("Starting GPU Orchestrator API...")

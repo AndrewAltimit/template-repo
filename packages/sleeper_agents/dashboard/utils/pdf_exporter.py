@@ -866,13 +866,12 @@ class PDFExporter:
             if img:
                 elements.extend(self._add_subsection_with_content("ROC Curve Analysis", [img, Spacer(1, 6)]))
 
-        # Add confidence distribution
-        if "confidence_distribution" in data or True:  # Always try to generate
-            conf_chart = create_confidence_distribution(data)
-            if conf_chart:
-                img = self._create_image_from_bytes(conf_chart, width=5 * inch)
-                if img:
-                    elements.extend(self._add_subsection_with_content("Confidence Score Distribution", [img]))
+        # Add confidence distribution (always try to generate)
+        conf_chart = create_confidence_distribution(data)
+        if conf_chart:
+            img = self._create_image_from_bytes(conf_chart, width=5 * inch)
+            if img:
+                elements.extend(self._add_subsection_with_content("Confidence Score Distribution", [img]))
 
         return elements
 

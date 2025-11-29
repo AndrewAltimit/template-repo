@@ -332,7 +332,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
 
             # 2. Make the actual code changes
             # Parse and apply the code changes from the AI response
-            blocks, results = CodeParser.extract_and_apply(implementation)
+            _blocks, results = CodeParser.extract_and_apply(implementation)
 
             if results:
                 logger.info("Applied %s file changes:", len(results))

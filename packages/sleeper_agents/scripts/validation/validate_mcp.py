@@ -4,6 +4,7 @@ Validate that the sleeper agent detection system structure is complete.
 This script checks files and directories without requiring dependencies.
 """
 
+import sys
 from pathlib import Path
 
 
@@ -191,4 +192,4 @@ if __name__ == "__main__":
     success = check_structure()
     check_ports()
 
-    exit(0 if success else 1)
+    sys.exit(0 if success else 1)

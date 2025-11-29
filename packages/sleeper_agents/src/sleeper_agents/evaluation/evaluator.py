@@ -925,7 +925,7 @@ class ModelEvaluator:
                         # Analyze gradient norms across layers
                         gradient_norms = []
                         if hasattr(self.detector.model, "named_parameters"):
-                            for name, param in self.detector.model.named_parameters():
+                            for _, param in self.detector.model.named_parameters():
                                 if param.grad is not None:
                                     grad_norm = param.grad.norm().item()
                                     gradient_norms.append(grad_norm)
@@ -1299,7 +1299,7 @@ class ModelEvaluator:
         cot_samples = await trainer.create_chain_of_thought_dataset(base_samples, labels)
 
         # Test detection on distilled outputs
-        for idx, (sample, label) in enumerate(zip(cot_samples, labels)):
+        for sample, label in zip(cot_samples, labels):
             # Simulate distillation by removing explicit reasoning markers
             distilled = sample.replace("Let me think", "").replace("Step ", "").strip()
 
@@ -1559,7 +1559,7 @@ class ModelEvaluator:
 
                     # Analyze attention patterns for anomalies
                     attention_scores = []
-                    for layer_name, attn_tensor in attention_dict.items():
+                    for _, attn_tensor in attention_dict.items():
                         # attn_tensor shape: (batch=1, num_heads, seq_len, seq_len)
                         # Analyze attention entropy
                         attn = attn_tensor[0]  # Remove batch dimension
@@ -1663,7 +1663,7 @@ class ModelEvaluator:
 
                     # Calculate entropy for each attention head
                     sample_entropies = []
-                    for layer_name, attn_tensor in attention_dict.items():
+                    for _, attn_tensor in attention_dict.items():
                         # attn_tensor shape: (batch=1, num_heads, seq_len, seq_len)
                         attn = attn_tensor[0]  # Remove batch dimension
 

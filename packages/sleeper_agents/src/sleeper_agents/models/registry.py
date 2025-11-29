@@ -614,7 +614,7 @@ def get_registry() -> ModelRegistry:
     Returns:
         Global ModelRegistry instance
     """
-    global _registry
+    global _registry  # pylint: disable=global-statement
     if _registry is None:
         _registry = ModelRegistry()
     return _registry

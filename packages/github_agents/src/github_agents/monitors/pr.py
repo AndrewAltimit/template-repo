@@ -388,7 +388,7 @@ Requirements:
 
             # 2. Apply the code changes
             # Parse and apply the code changes from the AI response
-            blocks, results = CodeParser.extract_and_apply(implementation)
+            _blocks, results = CodeParser.extract_and_apply(implementation)
 
             if results:
                 logger.info("Applied %s file changes:", len(results))

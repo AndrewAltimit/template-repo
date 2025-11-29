@@ -226,7 +226,7 @@ def test_experiment_logger_load_metrics_empty(temp_results_dir):
     logger = ExperimentLogger(job_id="test_job", results_dir=temp_results_dir)
 
     metrics = logger.load_metrics()
-    assert metrics == []
+    assert not metrics
 
 
 def test_experiment_logger_get_summary(temp_results_dir):

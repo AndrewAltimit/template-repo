@@ -3,6 +3,9 @@
 Tests the registry pattern for detector discovery and instantiation.
 """
 
+# Classes defined via decorator are used for registration side effects
+# pylint: disable=unused-variable
+
 import pytest
 
 from sleeper_agents.detection.base_detector import BaseDetector

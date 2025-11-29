@@ -26,7 +26,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 import numpy as np
-import torch.nn as nn
+from torch import nn
 
 
 class BaseDetector(ABC):
@@ -67,7 +67,6 @@ class BaseDetector(ABC):
         Raises:
             NotImplementedError: If the subclass doesn't implement this method
         """
-        ...
 
     @abstractmethod
     def score(self, activations: np.ndarray) -> np.ndarray:
@@ -85,7 +84,6 @@ class BaseDetector(ABC):
             NotImplementedError: If the subclass doesn't implement this method
             RuntimeError: If called before fit()
         """
-        ...
 
     @abstractmethod
     def run(self, **kwargs) -> Dict[str, Any]:
@@ -105,7 +103,6 @@ class BaseDetector(ABC):
         Raises:
             NotImplementedError: If the subclass doesn't implement this method
         """
-        ...
 
     def explain(self, sample_id: str) -> Dict[str, Any]:
         """Provide explanations for detections (optional).

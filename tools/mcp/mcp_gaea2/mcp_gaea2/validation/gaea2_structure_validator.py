@@ -383,7 +383,7 @@ class Gaea2StructureValidator:
                 report["node_count"] = len([k for k in nodes.keys() if k != "$id"])
 
                 # Check for export
-                for node_id, node_data in nodes.items():
+                for _, node_data in nodes.items():
                     if isinstance(node_data, dict) and node_data.get("$type", "").find("Export") != -1:
                         report["has_export"] = True
                         break

@@ -441,14 +441,10 @@ class ReportGenerator:
             )
 
         # Format strengths
-        strength_html = ""
-        for strength in data["strengths"]:
-            strength_html += f'<div class="strength">• {strength}</div>'
+        strength_html = "".join(f'<div class="strength">• {strength}</div>' for strength in data["strengths"])
 
         # Format recommendations
-        rec_html = ""
-        for rec in data["recommendations"]:
-            rec_html += f'<div class="recommendation">{rec}</div>'
+        rec_html = "".join(f'<div class="recommendation">{rec}</div>' for rec in data["recommendations"])
 
         # Fill template
         html = html_template.format(

@@ -469,7 +469,7 @@ def render_resource_visualization(resource_data: Dict[str, Any]):
             fig = go.Figure()
             if balance_trend:
                 fig.add_trace(
-                    go.Scatter(y=balance_trend, mode="lines+markers", name="Balance", line=dict(color="#2ecc71", width=2))
+                    go.Scatter(y=balance_trend, mode="lines+markers", name="Balance", line={"color": "#2ecc71", "width": 2})
                 )
             if compute_trend:
                 fig.add_trace(
@@ -477,15 +477,15 @@ def render_resource_visualization(resource_data: Dict[str, Any]):
                         y=compute_trend,
                         mode="lines+markers",
                         name="Compute Hours",
-                        line=dict(color="#3498db", width=2),
+                        line={"color": "#3498db", "width": 2},
                         yaxis="y2",
                     )
                 )
 
             fig.update_layout(
                 title="Resource Trends",
-                yaxis=dict(title="Balance ($)", side="left"),
-                yaxis2=dict(title="Compute (h)", overlaying="y", side="right"),
+                yaxis={"title": "Balance ($)", "side": "left"},
+                yaxis2={"title": "Compute (h)", "overlaying": "y", "side": "right"},
                 hovermode="x unified",
             )
             st.plotly_chart(fig, use_container_width=True)
@@ -637,7 +637,7 @@ def render_llm_decisions_section(llm_decisions: list):
             y=confidences,
             mode="lines+markers",
             name="Confidence",
-            line=dict(color="#2ecc71", width=2),
+            line={"color": "#2ecc71", "width": 2},
             yaxis="y1",
         )
     )
@@ -646,14 +646,14 @@ def render_llm_decisions_section(llm_decisions: list):
             y=exec_times,
             mode="lines+markers",
             name="Execution Time (s)",
-            line=dict(color="#e74c3c", width=2),
+            line={"color": "#e74c3c", "width": 2},
             yaxis="y2",
         )
     )
 
     fig.update_layout(
-        yaxis=dict(title="Confidence", side="left"),
-        yaxis2=dict(title="Time (s)", overlaying="y", side="right"),
+        yaxis={"title": "Confidence", "side": "left"},
+        yaxis2={"title": "Time (s)", "overlaying": "y", "side": "right"},
         hovermode="x unified",
         height=300,
     )
@@ -728,7 +728,7 @@ def render_metrics_section(metrics_data: Dict[str, Any]):
             y=balances,
             mode="lines+markers",
             name="Balance",
-            line=dict(color="#2ecc71", width=2),
+            line={"color": "#2ecc71", "width": 2},
         ),
         row=1,
         col=1,
@@ -741,7 +741,7 @@ def render_metrics_section(metrics_data: Dict[str, Any]):
             y=compute_hours,
             mode="lines+markers",
             name="Compute Hours",
-            line=dict(color="#3498db", width=2),
+            line={"color": "#3498db", "width": 2},
         ),
         row=2,
         col=1,

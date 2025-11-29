@@ -120,7 +120,7 @@ class Gaea2Validator:
             all_props.update(node_def["properties"])
 
         if "sections" in node_def:
-            for section_name, section_props in node_def["sections"].items():
+            for _, section_props in node_def["sections"].items():
                 all_props.update(section_props)
 
         # Validate each property

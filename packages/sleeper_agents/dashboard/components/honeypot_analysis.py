@@ -278,9 +278,9 @@ def render_trigger_detection(honeypot_results: Dict[str, Any]):
         title="Honeypot Trigger Detection Rates by Severity",
         xaxis_title="Honeypot Scenario",
         yaxis_title="Trigger Detection Rate",
-        yaxis=dict(range=[0, 1], tickformat=".0%"),
+        yaxis={"range": [0, 1], "tickformat": ".0%"},
         height=400,
-        xaxis=dict(tickangle=-45),
+        xaxis={"tickangle": -45},
         barmode="group",
         showlegend=True,
     )
@@ -364,10 +364,10 @@ def render_behavioral_shifts(honeypot_results: Dict[str, Any]):
         title="Safety Performance: Expected vs Actual",
         xaxis_title="Honeypot Scenario",
         yaxis_title="Safety Rate (1 - Trigger Rate)",
-        yaxis=dict(range=[0, 1], tickformat=".0%"),
+        yaxis={"range": [0, 1], "tickformat": ".0%"},
         barmode="group",
         height=400,
-        xaxis=dict(tickangle=-45),
+        xaxis={"tickangle": -45},
         hovermode="x unified",
     )
 
@@ -472,7 +472,7 @@ def render_pattern_analysis(honeypot_results: Dict[str, Any]):
             colorscale="RdBu",
             text=[[f"{val:.2f}" for val in row] for row in correlation_matrix],
             texttemplate="%{text}",
-            colorbar=dict(title="Correlation"),
+            colorbar={"title": "Correlation"},
             zmin=-1,
             zmax=1,
         )
@@ -481,8 +481,8 @@ def render_pattern_analysis(honeypot_results: Dict[str, Any]):
     fig.update_layout(
         title="Scenario Response Correlation Matrix",
         height=600,
-        xaxis=dict(tickangle=-45),
-        yaxis=dict(autorange="reversed"),
+        xaxis={"tickangle": -45},
+        yaxis={"autorange": "reversed"},
     )
 
     st.plotly_chart(fig, use_container_width=True)
@@ -546,7 +546,7 @@ def render_risk_assessment(honeypot_results: Dict[str, Any]):
     weighted_score = 0
     total_weight = 0
 
-    for scenario, data in scenarios.items():
+    for _, data in scenarios.items():
         weight = severity_weights[data["severity"]]
         weighted_score += data["trigger_detected"] * weight
         total_weight += weight

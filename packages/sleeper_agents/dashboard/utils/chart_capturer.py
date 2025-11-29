@@ -68,8 +68,8 @@ def create_persistence_chart(persistence_data: Dict[str, Any]) -> Optional[bytes
                 mode="lines+markers+text",
                 text=[f"{p:.1%}" for p in persistence],
                 textposition="top center",
-                line=dict(color="darkred", width=3),
-                marker=dict(size=10),
+                line={"color": "darkred", "width": 3},
+                marker={"size": 10},
                 yaxis="y2",
             )
         )
@@ -77,14 +77,14 @@ def create_persistence_chart(persistence_data: Dict[str, Any]) -> Optional[bytes
         fig.update_layout(
             title="Backdoor Detection Before and After Safety Training",
             xaxis_title="Training Method",
-            yaxis=dict(title="Detection Rate", range=[0, 1.1], tickformat=".0%"),
-            yaxis2=dict(title="Persistence Rate", overlaying="y", side="right", range=[0, 1.1], tickformat=".0%"),
+            yaxis={"title": "Detection Rate", "range": [0, 1.1], "tickformat": ".0%"},
+            yaxis2={"title": "Persistence Rate", "overlaying": "y", "side": "right", "range": [0, 1.1], "tickformat": ".0%"},
             hovermode="x",
             height=400,
             width=800,
             barmode="group",
             showlegend=True,
-            legend=dict(x=0.75, y=0.99, bgcolor="rgba(255,255,255,0.8)", bordercolor="gray", borderwidth=1),
+            legend={"x": 0.75, "y": 0.99, "bgcolor": "rgba(255,255,255,0.8)", "bordercolor": "gray", "borderwidth": 1},
         )
 
         # Convert to image bytes
@@ -130,7 +130,7 @@ def create_trigger_heatmap(trigger_data: Dict[str, Any]) -> Optional[bytes]:
                 text=[[f"{v:.0%}" for v in row] for row in heatmap_data],
                 texttemplate="%{text}",
                 textfont={"size": 10},
-                colorbar=dict(title="Activation<br>Rate"),
+                colorbar={"title": "Activation<br>Rate"},
             )
         )
 
@@ -201,7 +201,7 @@ def create_persona_radar(persona_data: Dict[str, Any]) -> Optional[bytes]:
             barmode="group",
             xaxis_title="Behavioral Dimension",
             yaxis_title="Score (%)",
-            yaxis=dict(range=[0, 110]),
+            yaxis={"range": [0, 110]},
             showlegend=True,
             title="Behavioral Profile vs Safe Baseline",
             height=450,
@@ -250,7 +250,7 @@ def create_red_team_success_chart(red_team_data: Dict[str, Any]) -> Optional[byt
             title="Red Team Strategy Effectiveness",
             xaxis_title="Strategy",
             yaxis_title="Success Rate",
-            yaxis=dict(range=[0, max(success_rates) * 1.2], tickformat=".0%"),
+            yaxis={"range": [0, max(success_rates) * 1.2], "tickformat": ".0%"},
             height=400,
             width=700,
         )
@@ -285,8 +285,8 @@ def create_scaling_curves(scaling_data: Dict[str, Any]) -> Optional[bytes]:
                 y=persistence_rates,
                 mode="lines+markers",
                 name="Backdoor Persistence",
-                line=dict(color="red", width=3),
-                marker=dict(size=10),
+                line={"color": "red", "width": 3},
+                marker={"size": 10},
             )
         )
 
@@ -299,7 +299,7 @@ def create_scaling_curves(scaling_data: Dict[str, Any]) -> Optional[bytes]:
             xaxis_title="Model Parameters",
             yaxis_title="Persistence Rate",
             xaxis_type="log",
-            yaxis=dict(range=[0, 1], tickformat=".0%"),
+            yaxis={"range": [0, 1], "tickformat": ".0%"},
             height=400,
             width=700,
         )
@@ -345,7 +345,7 @@ def create_detection_metrics_chart(detection_data: Dict[str, Any]) -> Optional[b
             title="Detection Performance Metrics",
             xaxis_title="Metric",
             yaxis_title="Score",
-            yaxis=dict(range=[0, 1], tickformat=".0%"),
+            yaxis={"range": [0, 1], "tickformat": ".0%"},
             height=350,
             width=600,
         )
@@ -433,7 +433,7 @@ def create_roc_curve(data: Dict[str, Any]) -> Optional[bytes]:
                 y=tpr,
                 mode="lines",
                 name=f"ROC Curve (AUC = {auc:.3f})",
-                line=dict(color="blue", width=3),
+                line={"color": "blue", "width": 3},
             )
         )
 
@@ -444,7 +444,7 @@ def create_roc_curve(data: Dict[str, Any]) -> Optional[bytes]:
                 y=[0, 1],
                 mode="lines",
                 name="Random Classifier",
-                line=dict(color="gray", width=2, dash="dash"),
+                line={"color": "gray", "width": 2, "dash": "dash"},
             )
         )
 
@@ -452,12 +452,12 @@ def create_roc_curve(data: Dict[str, Any]) -> Optional[bytes]:
             title="ROC Curve - Detection Performance",
             xaxis_title="False Positive Rate",
             yaxis_title="True Positive Rate",
-            xaxis=dict(range=[0, 1]),
-            yaxis=dict(range=[0, 1]),
+            xaxis={"range": [0, 1]},
+            yaxis={"range": [0, 1]},
             height=500,
             width=600,
             showlegend=True,
-            legend=dict(x=0.6, y=0.2),
+            legend={"x": 0.6, "y": 0.2},
         )
 
         img_bytes = fig.to_image(format="png", engine="kaleido")
@@ -493,18 +493,18 @@ def create_time_series_chart(data: Dict[str, Any]) -> Optional[bytes]:
 
         # Add traces
         fig.add_trace(
-            go.Scatter(x=dates, y=accuracy, mode="lines+markers", name="Accuracy", line=dict(color="blue", width=2)),
+            go.Scatter(x=dates, y=accuracy, mode="lines+markers", name="Accuracy", line={"color": "blue", "width": 2}),
             secondary_y=False,
         )
 
         fig.add_trace(
-            go.Scatter(x=dates, y=f1_score, mode="lines+markers", name="F1 Score", line=dict(color="green", width=2)),
+            go.Scatter(x=dates, y=f1_score, mode="lines+markers", name="F1 Score", line={"color": "green", "width": 2}),
             secondary_y=False,
         )
 
         fig.add_trace(
             go.Scatter(
-                x=dates, y=detection_rate, mode="lines+markers", name="Detection Rate", line=dict(color="red", width=2)
+                x=dates, y=detection_rate, mode="lines+markers", name="Detection Rate", line={"color": "red", "width": 2}
             ),
             secondary_y=False,
         )
@@ -520,7 +520,7 @@ def create_time_series_chart(data: Dict[str, Any]) -> Optional[bytes]:
                     y=trend,
                     mode="lines",
                     name="Trend",
-                    line=dict(color="gray", width=1, dash="dash"),
+                    line={"color": "gray", "width": 1, "dash": "dash"},
                 ),
                 secondary_y=False,
             )
@@ -601,7 +601,7 @@ def create_model_comparison_radar(data: Dict[str, Any]) -> Optional[bytes]:
                 text=[[f"{v*100:.1f}%" for v in row] for row in heatmap_data],
                 texttemplate="%{text}",
                 textfont={"size": 11},
-                colorbar=dict(title="Score", tickformat=".0%"),
+                colorbar={"title": "Score", "tickformat": ".0%"},
             )
         )
 
@@ -611,7 +611,7 @@ def create_model_comparison_radar(data: Dict[str, Any]) -> Optional[bytes]:
             yaxis_title="Models",
             height=300 + (len(models) * 40),
             width=700,
-            xaxis=dict(side="bottom"),
+            xaxis={"side": "bottom"},
         )
 
         img_bytes = fig.to_image(format="png", engine="kaleido")
@@ -683,8 +683,8 @@ def create_test_suite_performance(data: Dict[str, Any]) -> Optional[bytes]:
                 mode="lines+markers+text",
                 text=[f"{a:.1%}" for a in accuracy],
                 textposition="top center",
-                line=dict(color="blue", width=3),
-                marker=dict(size=10),
+                line={"color": "blue", "width": 3},
+                marker={"size": 10},
                 yaxis="y2",
             )
         )
@@ -692,8 +692,8 @@ def create_test_suite_performance(data: Dict[str, Any]) -> Optional[bytes]:
         fig.update_layout(
             title="Test Suite Performance Summary",
             xaxis_title="Test Suite",
-            yaxis=dict(title="Number of Tests"),
-            yaxis2=dict(title="Accuracy", overlaying="y", side="right", tickformat=".0%"),
+            yaxis={"title": "Number of Tests"},
+            yaxis2={"title": "Accuracy", "overlaying": "y", "side": "right", "tickformat": ".0%"},
             barmode="stack",
             height=400,
             width=700,
@@ -738,12 +738,12 @@ def create_confidence_distribution(data: Dict[str, Any]) -> Optional[bytes]:
                     y=counts,
                     text=counts,
                     textposition="auto",
-                    marker=dict(
-                        color=counts,
-                        colorscale="RdYlGn",
-                        showscale=True,
-                        colorbar=dict(title="Count"),
-                    ),
+                    marker={
+                        "color": counts,
+                        "colorscale": "RdYlGn",
+                        "showscale": True,
+                        "colorbar": {"title": "Count"},
+                    },
                 )
             ]
         )

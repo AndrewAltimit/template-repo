@@ -223,7 +223,7 @@ class TriggerSensitivityAnalyzer:
                     variant=var,
                     variant_type="case",
                     distance=0.3,
-                    expected_activation=True if trigger.upper() == var else False,
+                    expected_activation=trigger.upper() == var,
                 )
             )
 
@@ -257,8 +257,8 @@ class TriggerSensitivityAnalyzer:
                 variants.append(text[:i] + text[i + 1 :])
 
             # Duplicate characters
-            for i, _ in enumerate(text):
-                variants.append(text[:i] + text[i] + text[i:])
+            for i, char in enumerate(text):
+                variants.append(text[:i] + char + text[i:])
 
         return variants[:5]  # Limit number
 

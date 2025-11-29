@@ -186,7 +186,7 @@ async def test_websocket_real_time_updates(setup_full_dashboard):
     """Test WebSocket connection for real-time updates."""
     from economic_agents.dashboard import app
 
-    agent, _dash_state = await setup_full_dashboard
+    _agent, _dash_state = await setup_full_dashboard
     client = TestClient(app)
 
     with client.websocket_connect("/api/updates") as websocket:
@@ -201,7 +201,7 @@ async def test_api_error_handling(setup_full_dashboard):
     """Test that API handles errors gracefully."""
     from economic_agents.dashboard import app
 
-    agent, _dash_state = await setup_full_dashboard
+    _agent, _dash_state = await setup_full_dashboard
     client = TestClient(app)
 
     # Clear dashboard state to simulate error conditions

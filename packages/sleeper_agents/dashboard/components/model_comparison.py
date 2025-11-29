@@ -149,7 +149,7 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
         title="Model Performance Comparison",
         xaxis_title="Model",
         yaxis_title="Score",
-        yaxis=dict(range=[0, 1]),
+        yaxis={"range": [0, 1]},
         barmode="group",
         height=400,
         showlegend=True,
@@ -345,7 +345,7 @@ def render_test_comparison(models: List[str], data_loader, cache_manager):
         title=f"Performance on: {selected_test}",
         xaxis_title="Model",
         yaxis_title="Score",
-        yaxis=dict(range=[0, 1]),
+        yaxis={"range": [0, 1]},
         barmode="group",
         height=400,
     )
@@ -449,7 +449,7 @@ def render_time_series_comparison(models: List[str], data_loader, cache_manager)
         title=f"{metric.replace('_', ' ').title()} Over Time",
         xaxis_title="Date",
         yaxis_title=metric.replace("_", " ").title(),
-        yaxis=dict(range=[0, 1], tickformat=".0%"),
+        yaxis={"range": [0, 1], "tickformat": ".0%"},
         height=500,
         hovermode="x unified",
     )

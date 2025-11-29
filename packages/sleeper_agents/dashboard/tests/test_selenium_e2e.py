@@ -673,26 +673,6 @@ class DashboardSeleniumTests(unittest.TestCase):
 
         # Skip this test since Export Manager doesn't exist
         self.skipTest("Export Manager not in current navigation menu")
-        return
-
-        # Capture export manager
-        _ = self.visual_tester.capture_screenshot(self.driver, "export_manager")
-
-        # Look for export buttons
-        export_buttons = self.driver.find_elements(
-            By.XPATH, "//button[contains(text(), 'Export') or contains(text(), 'Download')]"
-        )
-
-        self.assertGreater(len(export_buttons), 0, "No export buttons found")
-
-        # Test export button interaction (without actually downloading)
-        if export_buttons:
-            # Hover over first export button
-            webdriver.ActionChains(self.driver).move_to_element(export_buttons[0]).perform()
-            time.sleep(0.5)
-
-            # Capture hover state
-            _ = self.visual_tester.capture_screenshot(self.driver, "export_button_hover")
 
     def test_performance_metrics(self):
         """Test page load performance and capture metrics."""
@@ -769,7 +749,7 @@ class DashboardSeleniumTests(unittest.TestCase):
                     continue
 
             if not login_button:
-                raise Exception("Could not find login button")
+                raise RuntimeError("Could not find login button")
 
             login_button.click()
             time.sleep(3)  # Allow login to complete

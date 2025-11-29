@@ -213,7 +213,7 @@ class Gaea2ProjectRepair:
             properties = node.get("properties", {})
 
             # Validate with accurate validator
-            is_valid, errors, _corrected = self.validator.validate_node(node_type, properties)
+            _is_valid, errors, _corrected = self.validator.validate_node(node_type, properties)
 
             for error in errors:
                 self.error_handler.add_error(

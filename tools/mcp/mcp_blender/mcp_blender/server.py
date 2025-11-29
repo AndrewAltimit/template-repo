@@ -191,12 +191,9 @@ class BlenderMCPServer(BaseMCPServer):
                     if path.exists() or path.parent == projects_dir_resolved:
                         return path
                     raise ValueError(f"Project not found: {project_path}")
-                else:
-                    # Log security event before raising
-                    logger.warning(
-                        "Potential path traversal attempt blocked. Path: '%s'. Resolved to: '%s'", project_path, path
-                    )
-                    raise ValueError(f"Path traversal attempt detected: {project_path}")
+                # Log security event before raising
+                logger.warning("Potential path traversal attempt blocked. Path: '%s'. Resolved to: '%s'", project_path, path)
+                raise ValueError(f"Path traversal attempt detected: {project_path}")
             except ValueError:
                 # Re-raise ValueError as-is (including path traversal)
                 raise
