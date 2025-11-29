@@ -126,7 +126,8 @@ case "$STAGE" in
     echo "🔍 Running Ruff (fast linter)..."
     docker-compose run --rm python-ci ruff check . --output-format=grouped 2>&1 | tee -a lint-output.txt || true
     if [ -f lint-output.txt ]; then
-      ruff_issues=$(grep -cE "Found [0-9]+ error" lint-output.txt 2>/dev/null || echo 0)
+      # Extract the actual error count from "Found X errors" line (not just count matching lines)
+      ruff_issues=$(grep -oP "Found \K[0-9]+" lint-output.txt 2>/dev/null | head -1 || echo 0)
       ruff_issues=$(ensure_numeric "$ruff_issues")
       warnings=$((warnings + ${ruff_issues:-0}))
     fi

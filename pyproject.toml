@@ -136,6 +136,21 @@ known-first-party = [
     "sleeper_agents",
     "economic_agents",
     "mcp_core",
+    "mcp_ai_toolkit",
+    "mcp_blender",
+    "mcp_code_quality",
+    "mcp_codex",
+    "mcp_comfyui",
+    "mcp_content_creation",
+    "mcp_crush",
+    "mcp_elevenlabs_speech",
+    "mcp_gaea2",
+    "mcp_gemini",
+    "mcp_github_board",
+    "mcp_meme_generator",
+    "mcp_opencode",
+    "mcp_video_editor",
+    "mcp_virtual_character",
 ]
 
 [tool.ruff.lint.mccabe]

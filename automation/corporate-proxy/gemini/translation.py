@@ -13,10 +13,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 # Add parent to path for shared imports
 sys.path.append(str(Path(__file__).parent.parent))
-from shared.services.text_tool_parser import (  # noqa: E402  # pylint: disable=wrong-import-position
-    TextToolParser,
-    ToolInjector,
-)
+from shared.services.text_tool_parser import TextToolParser  # noqa: E402  # pylint: disable=wrong-import-position
+from shared.services.tool_injector import ToolInjector  # noqa: E402  # pylint: disable=wrong-import-position
 
 # Setup logging
 logger = logging.getLogger(__name__)
