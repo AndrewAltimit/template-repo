@@ -102,3 +102,71 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
 ]
+
+# Ruff - Fast Python linter (10-100x faster than flake8)
+# Can eventually replace isort and flake8
+[tool.ruff]
+line-length = 127
+target-version = "py311"
+exclude = [
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "__pycache__",
+]
+
+[tool.ruff.lint]
+# Enable pycodestyle (E), Pyflakes (F), isort (I), and complexity (C90)
+select = ["E", "F", "I", "C90"]
+ignore = [
+    "E501",  # Line too long - handled by black
+    "E402",  # Module level import not at top of file
+]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "tools",
+    "automation",
+    "github_agents",
+    "sleeper_agents",
+    "economic_agents",
+    "mcp_core",
+    "mcp_ai_toolkit",
+    "mcp_blender",
+    "mcp_code_quality",
+    "mcp_codex",
+    "mcp_comfyui",
+    "mcp_content_creation",
+    "mcp_crush",
+    "mcp_elevenlabs_speech",
+    "mcp_gaea2",
+    "mcp_gemini",
+    "mcp_github_board",
+    "mcp_meme_generator",
+    "mcp_opencode",
+    "mcp_video_editor",
+    "mcp_virtual_character",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+# Bandit - Security linter for Python
+[tool.bandit]
+exclude_dirs = [
+    "tests",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+]
+# Skip low-severity issues that are often false positives
+skips = [
+    "B101",  # assert_used - acceptable in tests and debugging
+    "B311",  # random - not used for cryptography
+]

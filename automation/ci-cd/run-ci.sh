@@ -54,6 +54,21 @@ case "$STAGE" in
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c "pip install -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary" || true
     ;;
 
+  ruff)
+    echo "=== Running Ruff (fast linter) ==="
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check . --output-format=github
+    ;;
+
+  ruff-fix)
+    echo "=== Running Ruff with auto-fix ==="
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check . --fix
+    ;;
+
+  bandit)
+    echo "=== Running Bandit security scan ==="
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bandit -r . -c pyproject.toml -f txt
+    ;;
+
   security)
     echo "=== Running security scans ==="
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci bandit -r . -f json -o bandit-report.json || true
@@ -190,7 +205,7 @@ case "$STAGE" in
 
   *)
     echo "Unknown stage: $STAGE"
-    echo "Available stages: format, lint-basic, lint-full, lint-shell, security, test, test-gaea2, test-all, test-corporate-proxy, yaml-lint, json-lint, autoformat, full"
+    echo "Available stages: format, lint-basic, lint-full, lint-shell, ruff, ruff-fix, bandit, security, test, test-gaea2, test-all, test-corporate-proxy, yaml-lint, json-lint, autoformat, full"
     exit 1
     ;;
 esac

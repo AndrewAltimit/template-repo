@@ -53,6 +53,7 @@ async def test_model_aware_cleaning():
 
 async def test_synthesis_with_metadata():
     """Test synthesis and check the saved metadata"""
+    # pylint: disable=too-many-nested-blocks  # Test validation requires nested checks
     print("\n📊 Testing Synthesis with Comprehensive Metadata...")
 
     api_key = os.environ.get("ELEVENLABS_API_KEY")

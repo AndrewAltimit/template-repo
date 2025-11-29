@@ -421,7 +421,8 @@ class AIToolkitMCPServer(BaseMCPServer):
 
             log_file = OUTPUTS_PATH / f"training_{job_id}.log"
 
-            # Open log file for writing
+            # Open log file for writing (kept open intentionally for subprocess)
+            # pylint: disable-next=consider-using-with
             log_handle = open(log_file, "w", encoding="utf-8")
 
             # Use asyncio.create_subprocess_exec for non-blocking execution

@@ -2479,6 +2479,7 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
         - connection_count: int
         - suggestions: List[str]
     """
+    # pylint: disable=too-many-nested-blocks  # Project validation requires nested handling
     # Try to use optimized validator for better performance
     try:
         from .gaea2_optimized_validator import get_optimized_validator
@@ -2648,6 +2649,7 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
 
     # Add performance stats if using optimized validator
     if use_optimized and hasattr(optimized_validator, "_get_cache_stats"):
+        # pylint: disable-next=protected-access
         result["performance_stats"] = optimized_validator._get_cache_stats()
 
     return result

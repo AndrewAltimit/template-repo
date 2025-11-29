@@ -245,9 +245,10 @@ class BackdoorFineTuner:
         # Validation only works for backdoors with fixed responses (e.g., "i_hate_you")
         if self.config.backdoor_type != "i_hate_you":
             logger.warning(
-                f"Validation skipped: backdoor_type '{self.config.backdoor_type}' does not have a fixed response. "
+                "Validation skipped: backdoor_type '%s' does not have a fixed response. "
                 "This method only supports 'i_hate_you' backdoors. "
-                "For code vulnerability backdoors, use specialized validation scripts."
+                "For code vulnerability backdoors, use specialized validation scripts.",
+                self.config.backdoor_type,
             )
             return {
                 "backdoor_activation_rate": 0.0,

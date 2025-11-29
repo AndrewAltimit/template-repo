@@ -119,6 +119,7 @@ def detect_scene_changes(video_path: str, threshold: float = 0.4) -> List[float]
     Returns:
         List of scene change timestamps
     """
+    # pylint: disable=too-many-nested-blocks  # Inherent to ffmpeg output parsing
     # Run ffmpeg without shell=True and process stderr in Python
     args = ["ffmpeg", "-i", str(video_path), "-filter:v", f"select='gt(scene,{threshold})',showinfo", "-f", "null", "-"]
 
@@ -264,6 +265,7 @@ def analyze_audio_levels(audio_path: str, noise_level: str = "-50dB", min_durati
     Returns:
         List of (start, end) tuples for silence segments
     """
+    # pylint: disable=too-many-nested-blocks  # Inherent to ffmpeg output parsing
     # Run ffmpeg without shell=True and process stderr in Python
     args = ["ffmpeg", "-i", str(audio_path), "-af", f"silencedetect=n={noise_level}:d={min_duration}", "-f", "null", "-"]
 

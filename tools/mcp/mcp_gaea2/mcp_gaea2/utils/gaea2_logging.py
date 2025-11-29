@@ -115,7 +115,7 @@ class Gaea2Logger:
     def log_operation(self, operation: str, params: Dict[str, Any], level: int = logging.INFO):
         """Log an operation with parameters"""
         extra = {"operation": operation}
-        self.logger.log(level, f"Operation: {operation}", extra=extra)
+        self.logger.log(level, "Operation: %s", operation, extra=extra)
 
         if level == logging.DEBUG:
             self.logger.debug("Parameters: %s", json.dumps(params, indent=2))

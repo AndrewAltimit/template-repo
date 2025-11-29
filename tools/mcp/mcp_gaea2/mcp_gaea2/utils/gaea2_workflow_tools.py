@@ -20,6 +20,7 @@ class Gaea2WorkflowTools:
         - Performance bottlenecks
         - Optimization suggestions
         """
+        # pylint: disable=too-many-nested-blocks  # Workflow analysis requires nested handling
         try:
             with open(project_file, "r", encoding="utf-8") as f:
                 project = json.load(f)
@@ -310,6 +311,7 @@ class Gaea2WorkflowTools:
         - Build configuration
         - Node property updates
         """
+        # pylint: disable=too-many-nested-blocks  # Batch processing requires nested handling
         results = []
 
         for project_file in project_files:
@@ -344,7 +346,7 @@ class Gaea2WorkflowTools:
                 if "node_updates" in common_settings:
                     nodes = project["Assets"]["$values"][0]["Terrain"].get("Nodes", {})
                     for update in common_settings["node_updates"]:
-                        for node_id, node in nodes.items():
+                        for _, node in nodes.items():
                             node_type = node.get("$type", "").split(".")[-2]
                             if node_type == update.get("type"):
                                 for prop, value in update.get("properties", {}).items():

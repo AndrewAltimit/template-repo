@@ -215,7 +215,10 @@ class TorchProbeTrainer:
         self.training_history: list[dict[str, float]] = []
 
         logger.info(
-            f"Initialized TorchProbeTrainer: device={self.device}, " f"input_dim={input_dim}, mixed_precision={self.use_amp}"
+            "Initialized TorchProbeTrainer: device=%s, input_dim=%s, mixed_precision=%s",
+            self.device,
+            input_dim,
+            self.use_amp,
         )
 
     def fit(

@@ -145,6 +145,7 @@ def sample_video_points(video_path, sample_points):
 
 def main():
     """Main validation function"""
+    # pylint: disable=too-many-nested-blocks  # Validation logic with multiple checks
     print("=" * 60)
     print("Video Output Validation Suite")
     print("=" * 60)

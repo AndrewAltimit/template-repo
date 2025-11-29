@@ -15,7 +15,9 @@ from unittest.mock import patch
 sys.path.append(str(Path(__file__).parent.parent))
 
 # pylint: disable=wrong-import-position
-from shared.services.text_tool_parser import StreamingToolParser, TextToolParser, ToolInjector  # noqa: E402
+from shared.services.streaming_tool_parser import StreamingToolParser  # noqa: E402
+from shared.services.text_tool_parser import TextToolParser  # noqa: E402
+from shared.services.tool_injector import ToolInjector  # noqa: E402
 
 
 class TestTextToolParserSecurity(unittest.TestCase):

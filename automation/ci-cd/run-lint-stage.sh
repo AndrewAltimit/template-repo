@@ -57,6 +57,19 @@ case "$STAGE" in
     fi
     ;;
 
+  ruff)
+    echo "=== Running Ruff (fast linter) ==="
+    echo "🔍 Running Ruff check..."
+    docker-compose run --rm python-ci ruff check . --output-format=grouped 2>&1 | tee ruff-output.txt || true
+
+    # Count Ruff issues (extract total from "Found X errors" line)
+    if [ -f ruff-output.txt ]; then
+      ruff_errors=$(grep -oP "Found \K[0-9]+" ruff-output.txt 2>/dev/null | head -1 || echo 0)
+      ruff_errors=$(ensure_numeric "$ruff_errors")
+      errors=$((errors + ${ruff_errors:-0}))
+    fi
+    ;;
+
   basic)
     echo "=== Running basic linting ==="
 
@@ -108,6 +121,16 @@ case "$STAGE" in
     echo "🔍 Checking formatting..."
     docker-compose run --rm python-ci black --check . 2>&1 | tee lint-output.txt || true
     docker-compose run --rm python-ci isort --check-only . 2>&1 | tee -a lint-output.txt || true
+
+    # Ruff - fast linter (10-100x faster than flake8)
+    echo "🔍 Running Ruff (fast linter)..."
+    docker-compose run --rm python-ci ruff check . --output-format=grouped 2>&1 | tee -a lint-output.txt || true
+    if [ -f lint-output.txt ]; then
+      # Extract the actual error count from "Found X errors" line (not just count matching lines)
+      ruff_issues=$(grep -oP "Found \K[0-9]+" lint-output.txt 2>/dev/null | head -1 || echo 0)
+      ruff_issues=$(ensure_numeric "$ruff_issues")
+      warnings=$((warnings + ${ruff_issues:-0}))
+    fi
 
     # Flake8 linting
     echo "🔍 Running Flake8..."
@@ -253,7 +276,7 @@ case "$STAGE" in
 
   *)
     echo "Invalid stage: $STAGE"
-    echo "Available stages: format, basic, full, links"
+    echo "Available stages: format, ruff, basic, full, links"
     exit 1
     ;;
 esac

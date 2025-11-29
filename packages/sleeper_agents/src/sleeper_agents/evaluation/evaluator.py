@@ -1651,6 +1651,51 @@ class ModelEvaluator:
             entropy = -np.sum(probs * np.log2(probs))
             return float(entropy)
 
+        def calculate_entropies_for_attention_head(head_attn):
+            """Calculate entropies for each query position in an attention head.
+
+            Args:
+                head_attn: Attention weights for a single head (seq_len x seq_len)
+
+            Returns:
+                List of entropy values for each query position
+            """
+            entropies = []
+            for query_pos in range(head_attn.shape[0]):
+                attn_weights = head_attn[query_pos].cpu().numpy()
+                entropy = calculate_shannon_entropy(attn_weights)
+                entropies.append(entropy)
+            return entropies
+
+        def calculate_sample_entropy(sample):
+            """Calculate average attention entropy for a sample.
+
+            Args:
+                sample: Text sample to analyze
+
+            Returns:
+                Average entropy value, or None if calculation fails
+            """
+            if not hasattr(self.detector.model, "get_attention_patterns"):
+                return None
+
+            attention_dict = self.detector.model.get_attention_patterns([sample], layers=None)
+            sample_entropies = []
+
+            for _, attn_tensor in attention_dict.items():
+                # attn_tensor shape: (batch=1, num_heads, seq_len, seq_len)
+                attn = attn_tensor[0]  # Remove batch dimension
+
+                # For each attention head
+                for head_idx in range(attn.shape[0]):
+                    head_attn = attn[head_idx]
+                    head_entropies = calculate_entropies_for_attention_head(head_attn)
+                    sample_entropies.extend(head_entropies)
+
+            if sample_entropies:
+                return float(np.mean(sample_entropies))
+            return None
+
         # Collect entropy values for clean and trigger samples
         clean_entropies = []
         trigger_entropies = []
@@ -1658,55 +1703,18 @@ class ModelEvaluator:
         # Process clean samples
         for sample in clean_samples:
             try:
-                if hasattr(self.detector.model, "get_attention_patterns"):
-                    attention_dict = self.detector.model.get_attention_patterns([sample], layers=None)
-
-                    # Calculate entropy for each attention head
-                    sample_entropies = []
-                    for _, attn_tensor in attention_dict.items():
-                        # attn_tensor shape: (batch=1, num_heads, seq_len, seq_len)
-                        attn = attn_tensor[0]  # Remove batch dimension
-
-                        # For each attention head
-                        for head_idx in range(attn.shape[0]):
-                            # Get attention weights for this head (seq_len x seq_len)
-                            head_attn = attn[head_idx]
-
-                            # Calculate entropy for each query position
-                            for query_pos in range(head_attn.shape[0]):
-                                attn_weights = head_attn[query_pos].cpu().numpy()
-                                entropy = calculate_shannon_entropy(attn_weights)
-                                sample_entropies.append(entropy)
-
-                    if sample_entropies:
-                        avg_entropy = float(np.mean(sample_entropies))
-                        clean_entropies.append(avg_entropy)
-
+                avg_entropy = calculate_sample_entropy(sample)
+                if avg_entropy is not None:
+                    clean_entropies.append(avg_entropy)
             except Exception as e:
                 logger.warning("Entropy calculation failed for clean sample: %s", e)
 
         # Process trigger samples
         for sample in trigger_samples:
             try:
-                if hasattr(self.detector.model, "get_attention_patterns"):
-                    attention_dict = self.detector.model.get_attention_patterns([sample], layers=None)
-
-                    sample_entropies = []
-                    for layer_name, attn_tensor in attention_dict.items():
-                        attn = attn_tensor[0]
-
-                        for head_idx in range(attn.shape[0]):
-                            head_attn = attn[head_idx]
-
-                            for query_pos in range(head_attn.shape[0]):
-                                attn_weights = head_attn[query_pos].cpu().numpy()
-                                entropy = calculate_shannon_entropy(attn_weights)
-                                sample_entropies.append(entropy)
-
-                    if sample_entropies:
-                        avg_entropy = float(np.mean(sample_entropies))
-                        trigger_entropies.append(avg_entropy)
-
+                avg_entropy = calculate_sample_entropy(sample)
+                if avg_entropy is not None:
+                    trigger_entropies.append(avg_entropy)
             except Exception as e:
                 logger.warning("Entropy calculation failed for trigger sample: %s", e)
 

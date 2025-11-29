@@ -43,6 +43,7 @@ isort==6.0.1
 flake8>=7.3.0
 pylint>=3.3.8
 mypy>=1.0.0
+ruff>=0.8.0  # Fast linter - can eventually replace isort/flake8
 types-requests>=2.31.0
 types-PyYAML>=6.0.0
 bandit==1.8.6

@@ -9,10 +9,8 @@ from pathlib import Path
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
-from shared.services.text_tool_parser import (  # noqa: E402  # pylint: disable=wrong-import-position
-    TextToolParser,
-    ToolInjector,
-)
+from shared.services.text_tool_parser import TextToolParser  # noqa: E402  # pylint: disable=wrong-import-position
+from shared.services.tool_injector import ToolInjector  # noqa: E402  # pylint: disable=wrong-import-position
 
 
 class TestTextToolParser(unittest.TestCase):

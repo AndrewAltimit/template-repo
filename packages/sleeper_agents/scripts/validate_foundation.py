@@ -205,6 +205,7 @@ def validate_downloader() -> bool:
         print(f"  Cached models: {len(cached_models)}")
 
         # Test cache path generation
+        # pylint: disable-next=protected-access
         _test_path = downloader._get_cache_path("test/model")  # noqa: F841
         print("  ✓ Cache path generation works")
 

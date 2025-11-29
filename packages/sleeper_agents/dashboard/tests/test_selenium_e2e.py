@@ -297,6 +297,37 @@ class DashboardSeleniumTests(unittest.TestCase):
         if self.driver:
             self.driver.quit()
 
+    def _find_nav_item_in_sidebar(self, section: str):
+        """Find a navigation item in the sidebar by section name.
+
+        Args:
+            section: The section name to find in the navigation
+
+        Returns:
+            WebElement if found, None otherwise
+        """
+        selectors = [
+            f"//li[contains(., '{section}')]",  # Generic list item
+            f"//a[contains(., '{section}')]",  # Link-based navigation
+            f"//button[contains(., '{section}')]",  # Button-based navigation
+            f"//span[contains(text(), '{section}')]",  # Span with text
+            f"//div[contains(., '{section}') and @role]",  # Div with any role
+        ]
+
+        for selector in selectors:
+            try:
+                elements = self.driver.find_elements(By.XPATH, selector)
+                for elem in elements:
+                    if not (elem.is_displayed() and elem.is_enabled()):
+                        continue
+                    # Verify it's actually in the navigation area (sidebar)
+                    parent_html = elem.get_attribute("outerHTML")
+                    if "nav" in parent_html.lower() or "sidebar" in parent_html.lower() or "menu" in parent_html.lower():
+                        return elem
+            except Exception:
+                continue
+        return None
+
     def test_dashboard_loads(self):
         """Test that dashboard loads successfully."""
         self.driver.get(self.dashboard_url)
@@ -403,36 +434,8 @@ class DashboardSeleniumTests(unittest.TestCase):
             return
 
         for section in sections:
-            # Click on navigation item
-            # Try different selectors for option menu items (streamlit-option-menu)
-            nav_item = None
-            selectors = [
-                f"//li[contains(., '{section}')]",  # Generic list item
-                f"//a[contains(., '{section}')]",  # Link-based navigation
-                f"//button[contains(., '{section}')]",  # Button-based navigation
-                f"//span[contains(text(), '{section}')]",  # Span with text
-                f"//div[contains(., '{section}') and @role]",  # Div with any role
-            ]
-
-            for selector in selectors:
-                try:
-                    elements = self.driver.find_elements(By.XPATH, selector)
-                    for elem in elements:
-                        # Check if it's visible and clickable
-                        if elem.is_displayed() and elem.is_enabled():
-                            # Verify it's actually in the navigation area (sidebar)
-                            parent_html = elem.get_attribute("outerHTML")
-                            if (
-                                "nav" in parent_html.lower()
-                                or "sidebar" in parent_html.lower()
-                                or "menu" in parent_html.lower()
-                            ):
-                                nav_item = elem
-                                break
-                    if nav_item:
-                        break
-                except Exception:
-                    continue
+            # Find the navigation item using the helper method
+            nav_item = self._find_nav_item_in_sidebar(section)
 
             if nav_item:
                 try:

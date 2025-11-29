@@ -80,6 +80,7 @@ class CodexIntegration:
 
     async def _execute_codex(self, prompt: str, mode: str) -> Dict[str, Any]:
         """Execute Codex using a programmatic approach"""
+        # pylint: disable=too-many-nested-blocks  # Codex execution requires nested handling
         try:
             # Determine execution mode based on environment
             # Default to safe sandboxed mode unless explicitly overridden

@@ -192,6 +192,7 @@ async def main():
 
     # Train ensemble probe
     logger.info("\n  Training ensemble probe across all layers...")
+    # pylint: disable-next=protected-access
     ensemble_probe = await probe_detector._train_ensemble_probe(train_truthful, train_deceptive)
     if ensemble_probe:
         trained_probes[ensemble_probe.probe_id] = ensemble_probe
