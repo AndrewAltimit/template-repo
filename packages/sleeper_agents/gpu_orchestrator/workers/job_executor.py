@@ -70,7 +70,7 @@ def _build_train_backdoor_cmd(job_id: UUID, params: Dict[str, Any]) -> list[str]
 
     output_dir_base = params.get("output_dir", "/results/backdoor_models")
     cmd.extend(["--output-dir", f"{output_dir_base}/{job_id}"])
-    cmd.extend(["--experiment-name", params.get("experiment_name", "model")])
+    cmd.extend(["--experiment-name", params.get("experiment_name") or "model"])
     return cmd
 
 
