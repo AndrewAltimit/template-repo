@@ -1,10 +1,11 @@
 """Job management endpoints."""
 
 import logging
+import shutil
 from pathlib import Path
 from uuid import UUID
 
-from api import main as app_main
+from api.dependencies import get_container_manager, get_db
 from api.models import (
     EvaluateRequest,
     JobListResponse,
@@ -29,14 +30,15 @@ router = APIRouter()
 async def train_backdoor(request: TrainBackdoorRequest):
     """Start a backdoor training job."""
     try:
+        db = get_db()
         # Create job in database
-        job_id = app_main.db.create_job(JobType.TRAIN_BACKDOOR, request.model_dump())
+        job_id = db.create_job(JobType.TRAIN_BACKDOOR, request.model_dump())
 
         # Start job execution in background
         job_executor.execute_job(job_id, JobType.TRAIN_BACKDOOR, request.model_dump())
 
         # Return job details
-        job_data = app_main.db.get_job(job_id)
+        job_data = db.get_job(job_id)
         return JobResponse(**job_data)
 
     except Exception as e:
@@ -48,10 +50,11 @@ async def train_backdoor(request: TrainBackdoorRequest):
 async def train_probes(request: TrainProbesRequest):
     """Start a probe training job."""
     try:
-        job_id = app_main.db.create_job(JobType.TRAIN_PROBES, request.model_dump())
+        db = get_db()
+        job_id = db.create_job(JobType.TRAIN_PROBES, request.model_dump())
         job_executor.execute_job(job_id, JobType.TRAIN_PROBES, request.model_dump())
 
-        job_data = app_main.db.get_job(job_id)
+        job_data = db.get_job(job_id)
         return JobResponse(**job_data)
 
     except Exception as e:
@@ -63,10 +66,11 @@ async def train_probes(request: TrainProbesRequest):
 async def validate_backdoor(request: ValidateRequest):
     """Start a backdoor validation job."""
     try:
-        job_id = app_main.db.create_job(JobType.VALIDATE, request.model_dump())
+        db = get_db()
+        job_id = db.create_job(JobType.VALIDATE, request.model_dump())
         job_executor.execute_job(job_id, JobType.VALIDATE, request.model_dump())
 
-        job_data = app_main.db.get_job(job_id)
+        job_data = db.get_job(job_id)
         return JobResponse(**job_data)
 
     except Exception as e:
@@ -78,10 +82,11 @@ async def validate_backdoor(request: ValidateRequest):
 async def apply_safety_training(request: SafetyTrainingRequest):
     """Start a safety training job."""
     try:
-        job_id = app_main.db.create_job(JobType.SAFETY_TRAINING, request.model_dump())
+        db = get_db()
+        job_id = db.create_job(JobType.SAFETY_TRAINING, request.model_dump())
         job_executor.execute_job(job_id, JobType.SAFETY_TRAINING, request.model_dump())
 
-        job_data = app_main.db.get_job(job_id)
+        job_data = db.get_job(job_id)
         return JobResponse(**job_data)
 
     except Exception as e:
@@ -93,10 +98,11 @@ async def apply_safety_training(request: SafetyTrainingRequest):
 async def test_persistence(request: TestPersistenceRequest):
     """Start a persistence testing job."""
     try:
-        job_id = app_main.db.create_job(JobType.TEST_PERSISTENCE, request.model_dump())
+        db = get_db()
+        job_id = db.create_job(JobType.TEST_PERSISTENCE, request.model_dump())
         job_executor.execute_job(job_id, JobType.TEST_PERSISTENCE, request.model_dump())
 
-        job_data = app_main.db.get_job(job_id)
+        job_data = db.get_job(job_id)
         return JobResponse(**job_data)
 
     except Exception as e:
@@ -112,10 +118,11 @@ async def evaluate_model(request: EvaluateRequest):
     making the model available in Reporting views with full metrics.
     """
     try:
-        job_id = app_main.db.create_job(JobType.EVALUATE, request.model_dump())
+        db = get_db()
+        job_id = db.create_job(JobType.EVALUATE, request.model_dump())
         job_executor.execute_job(job_id, JobType.EVALUATE, request.model_dump())
 
-        job_data = app_main.db.get_job(job_id)
+        job_data = db.get_job(job_id)
         return JobResponse(**job_data)
 
     except Exception as e:
@@ -132,7 +139,8 @@ async def list_jobs(
 ):
     """List jobs with optional filtering."""
     try:
-        jobs, total = app_main.db.list_jobs(status=status, job_type=job_type, limit=limit, offset=offset)
+        db = get_db()
+        jobs, total = db.list_jobs(status=status, job_type=job_type, limit=limit, offset=offset)
 
         return JobListResponse(
             jobs=[JobResponse(**job) for job in jobs],
@@ -150,7 +158,8 @@ async def list_jobs(
 async def get_job(job_id: UUID):
     """Get job details by ID."""
     try:
-        job_data = app_main.db.get_job(job_id)
+        db = get_db()
+        job_data = db.get_job(job_id)
 
         if not job_data:
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
@@ -168,23 +177,25 @@ async def get_job(job_id: UUID):
 async def cancel_job(job_id: UUID):
     """Cancel a running job."""
     try:
-        job_data = app_main.db.get_job(job_id)
+        db = get_db()
+        container_manager = get_container_manager()
+        job_data = db.get_job(job_id)
 
         if not job_data:
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
         if job_data["status"] == JobStatus.RUNNING and job_data["container_id"]:
             # Stop container
-            app_main.container_manager.stop_container(job_data["container_id"])
+            container_manager.stop_container(job_data["container_id"])
 
             # Update status
-            app_main.db.update_job_status(job_id, JobStatus.CANCELLED)
+            db.update_job_status(job_id, JobStatus.CANCELLED)
 
             return {"message": f"Job {job_id} cancelled successfully"}
 
         elif job_data["status"] == JobStatus.QUEUED:
             # Just mark as cancelled
-            app_main.db.update_job_status(job_id, JobStatus.CANCELLED)
+            db.update_job_status(job_id, JobStatus.CANCELLED)
             return {"message": f"Job {job_id} cancelled successfully"}
 
         else:
@@ -220,7 +231,9 @@ async def delete_job_permanent(job_id: UUID):
         )
 
     try:
-        job_data = app_main.db.get_job(job_id)
+        db = get_db()
+        container_manager = get_container_manager()
+        job_data = db.get_job(job_id)
 
         if not job_data:
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
@@ -230,7 +243,7 @@ async def delete_job_permanent(job_id: UUID):
         # Stop container if running
         if job_data["status"] == JobStatus.RUNNING and job_data["container_id"]:
             try:
-                app_main.container_manager.stop_container(job_data["container_id"])
+                container_manager.stop_container(job_data["container_id"])
                 deleted_items.append(f"Stopped running container {job_data['container_id'][:12]}")
             except Exception as e:
                 logger.warning("Failed to stop container %s: %s", job_data["container_id"], e)
@@ -250,8 +263,6 @@ async def delete_job_permanent(job_id: UUID):
             if result_path.exists():
                 try:
                     if result_path.is_dir():
-                        import shutil
-
                         shutil.rmtree(result_path)
                         deleted_items.append(f"Deleted result directory {result_path}")
                     else:
@@ -261,7 +272,7 @@ async def delete_job_permanent(job_id: UUID):
                     logger.warning("Failed to delete result path %s: %s", result_path, e)
 
         # Delete from database
-        app_main.db.delete_job(job_id)
+        db.delete_job(job_id)
         deleted_items.append("Removed database entry")
 
         logger.info("Permanently deleted job %s: %s", job_id, ", ".join(deleted_items))

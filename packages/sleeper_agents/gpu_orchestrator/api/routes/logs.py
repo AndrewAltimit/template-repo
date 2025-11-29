@@ -4,7 +4,7 @@ import asyncio
 import logging
 from uuid import UUID
 
-from api import main as app_main
+from api.dependencies import get_container_manager, get_db
 from core.config import settings
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import PlainTextResponse
@@ -25,7 +25,9 @@ async def get_job_logs(job_id: UUID, tail: int = 100):
         Plain text log output
     """
     try:
-        job_data = app_main.db.get_job(job_id)
+        db = get_db()
+        container_manager = get_container_manager()
+        job_data = db.get_job(job_id)
 
         if not job_data:
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
@@ -59,7 +61,7 @@ async def get_job_logs(job_id: UUID, tail: int = 100):
 
         try:
             logger.info("Attempting to get logs from container %s", job_data["container_id"])
-            logs = app_main.container_manager.get_container_logs(job_data["container_id"], tail=tail)
+            logs = container_manager.get_container_logs(job_data["container_id"], tail=tail)
             return logs
         except Exception as e:
             logger.error("Failed to get logs for container %s: %s", job_data["container_id"], e)
@@ -83,10 +85,14 @@ async def stream_job_logs(websocket: WebSocket, job_id: str):
     await websocket.accept()
 
     try:
+        # Get shared instances
+        db = get_db()
+        container_manager = get_container_manager()
+
         # Convert job_id to UUID
         job_uuid = UUID(job_id)
 
-        job_data = app_main.db.get_job(job_uuid)
+        job_data = db.get_job(job_uuid)
 
         if not job_data:
             await websocket.send_text(f"Error: Job {job_id} not found")
@@ -99,7 +105,7 @@ async def stream_job_logs(websocket: WebSocket, job_id: str):
             # Wait for container to start (poll every second for up to 30 seconds)
             for _ in range(30):
                 await asyncio.sleep(1)
-                job_data = app_main.db.get_job(job_uuid)
+                job_data = db.get_job(job_uuid)
                 if job_data["container_id"]:
                     break
             else:
@@ -109,11 +115,11 @@ async def stream_job_logs(websocket: WebSocket, job_id: str):
 
         # Stream logs
         try:
-            async for log_line in app_main.container_manager.stream_container_logs(job_data["container_id"]):
+            async for log_line in container_manager.stream_container_logs(job_data["container_id"]):
                 await websocket.send_text(log_line)
 
                 # Check if job is complete
-                job_data = app_main.db.get_job(job_uuid)
+                job_data = db.get_job(job_uuid)
                 if job_data["status"].value in ["completed", "failed", "cancelled"]:
                     await websocket.send_text(f"\n\n=== Job {job_data['status'].value} ===")
                     break
