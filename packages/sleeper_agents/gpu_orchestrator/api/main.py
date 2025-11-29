@@ -27,6 +27,37 @@ container_manager: ContainerManager = None  # type: ignore
 start_time: float = 0.0
 
 
+def _recover_orphaned_job(job: dict, cm: ContainerManager, database: Database) -> None:
+    """Check if a running job's container is still alive and mark as failed if not.
+
+    Args:
+        job: Job dictionary with job_id, status, container_id
+        cm: Container manager instance
+        database: Database instance
+    """
+    if job["status"].value != "running":
+        return
+    if not job["container_id"]:
+        return
+
+    try:
+        status = cm.get_container_status(job["container_id"])
+        if status != "running":
+            logger.warning("Job %s container is %s, marking as failed", job["job_id"], status)
+            database.update_job_status(
+                job["job_id"],
+                status="failed",  # type: ignore
+                error_message="Container stopped unexpectedly",
+            )
+    except Exception as e:
+        logger.error("Failed to check job %s: %s", job["job_id"], e)
+        database.update_job_status(
+            job["job_id"],
+            status="failed",  # type: ignore
+            error_message=f"Failed to recover: {str(e)}",
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
@@ -57,24 +88,7 @@ async def lifespan(app: FastAPI):
         # Recover running jobs (mark orphaned jobs as failed)
         jobs_list, _ = db.list_jobs(status=None, limit=1000)
         for job in jobs_list:
-            if job["status"].value == "running":
-                if job["container_id"]:
-                    try:
-                        status = container_manager.get_container_status(job["container_id"])
-                        if status != "running":
-                            logger.warning("Job %s container is %s, marking as failed", job["job_id"], status)
-                            db.update_job_status(
-                                job["job_id"],
-                                status="failed",  # type: ignore
-                                error_message="Container stopped unexpectedly",
-                            )
-                    except Exception as e:
-                        logger.error("Failed to check job %s: %s", job["job_id"], e)
-                        db.update_job_status(
-                            job["job_id"],
-                            status="failed",  # type: ignore
-                            error_message=f"Failed to recover: {str(e)}",
-                        )
+            _recover_orphaned_job(job, container_manager, db)
 
         logger.info("GPU Orchestrator API started successfully")
 

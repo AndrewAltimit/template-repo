@@ -32,11 +32,6 @@ extension-pkg-allow-list=numpy,
 # - Tests are allowed to access protected members (standard pytest practice)
 # - Global disable avoids noise from ~230 test files while production is protected
 #
-# Note on cyclic-import (R0401):
-# - Remaining cycles are architectural patterns: FastAPI shared state, backward compat re-exports
-# - Refactoring would require significant changes to gpu_orchestrator/api module structure
-# - Runtime behavior is correct; this is a pylint static analysis limitation
-#
 # Note on too-many-instance-attributes (R0902):
 # - 15+ data classes and configs require many attributes by design
 # - Examples: TrainingConfig (31 attrs), BusinessPlan (23 attrs), ModelMetadata (17 attrs)
@@ -44,7 +39,6 @@ extension-pkg-allow-list=numpy,
 disable=import-error,
         too-many-instance-attributes,
         protected-access,
-        cyclic-import,
         no-name-in-module,
         no-member,
         missing-module-docstring,
