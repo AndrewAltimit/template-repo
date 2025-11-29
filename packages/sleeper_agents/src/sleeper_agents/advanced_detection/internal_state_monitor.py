@@ -195,8 +195,10 @@ class InternalStateMonitor:
                 # Multi-layer analysis - warn if partial
                 if len(layer_collection) > self.max_layers:
                     logger.warning(
-                        f"Model has {len(layer_collection)} layers, but analysis is limited to the first "
-                        f"{self.max_layers}. Set 'max_layers' in InternalStateMonitor for deeper analysis."
+                        "Model has %d layers, but analysis is limited to the first %d. "
+                        "Set 'max_layers' in InternalStateMonitor for deeper analysis.",
+                        len(layer_collection),
+                        self.max_layers,
                     )
 
                 for layer in layer_collection[: self.max_layers]:

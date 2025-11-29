@@ -51,9 +51,10 @@ async def test_llm_agent_single_cycle():
     await agent.initialize()
 
     logger.info(
-        f"Initial state: balance=${agent.state.balance:.2f}, "
-        f"compute={agent.state.compute_hours_remaining:.1f}h, "
-        f"mode={agent.state.mode}"
+        "Initial state: balance=$%.2f, compute=%.1fh, mode=%s",
+        agent.state.balance,
+        agent.state.compute_hours_remaining,
+        agent.state.mode,
     )
 
     # Run one decision cycle
@@ -122,9 +123,10 @@ async def test_llm_agent_multiple_cycles():
     await agent.initialize()
 
     logger.info(
-        f"Initial state: balance=${agent.state.balance:.2f}, "
-        f"compute={agent.state.compute_hours_remaining:.1f}h, "
-        f"mode={agent.state.mode}"
+        "Initial state: balance=$%.2f, compute=%.1fh, mode=%s",
+        agent.state.balance,
+        agent.state.compute_hours_remaining,
+        agent.state.mode,
     )
 
     # Run 3 decision cycles

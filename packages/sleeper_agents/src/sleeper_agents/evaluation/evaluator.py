@@ -1692,7 +1692,7 @@ class ModelEvaluator:
                     attention_dict = self.detector.model.get_attention_patterns([sample], layers=None)
 
                     sample_entropies = []
-                    for layer_name, attn_tensor in attention_dict.items():
+                    for _, attn_tensor in attention_dict.items():
                         attn = attn_tensor[0]
 
                         for head_idx in range(attn.shape[0]):

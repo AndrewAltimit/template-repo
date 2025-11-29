@@ -349,7 +349,7 @@ class ComfyUIMCPServer(BaseMCPServer):
             if history and prompt_id in history:
                 outputs = history[prompt_id].get("outputs", {})
                 images = []
-                for node_id, node_output in outputs.items():
+                for _, node_output in outputs.items():
                     if "images" in node_output:
                         for img in node_output["images"]:
                             images.append(

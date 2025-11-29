@@ -379,7 +379,7 @@ class TestDataGenerator:
         plt.close()
 
         # 2. Performance Heatmap
-        fig, ax = plt.subplots(figsize=(10, 8))
+        _, ax = plt.subplots(figsize=(10, 8))
         data = np.random.uniform(0.6, 0.95, (len(self.models), len(self.test_suites[:10])))
         sns.heatmap(
             data,
@@ -397,7 +397,7 @@ class TestDataGenerator:
         plt.close()
 
         # 3. Time Series
-        fig, ax = plt.subplots(figsize=(12, 6))
+        _, ax = plt.subplots(figsize=(12, 6))
         dates = pd.date_range(end=datetime.now(), periods=30, freq="D")
         for model in self.models[:3]:
             values = np.cumsum(np.random.randn(30)) + random.uniform(70, 90)

@@ -22,33 +22,32 @@ def test_stdio_mode():
         }
 
         # Start the server in stdio mode
-        process = subprocess.Popen(
+        with subprocess.Popen(
             ["python3", "-m", "tools.mcp.elevenlabs_speech.server", "--mode", "stdio"],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-        )
+        ) as process:
+            # Send initialization
+            process.stdin.write(json.dumps(init_message) + "\n")
+            process.stdin.flush()
 
-        # Send initialization
-        process.stdin.write(json.dumps(init_message) + "\n")
-        process.stdin.flush()
+            # Try to read response (with timeout)
+            import time
 
-        # Try to read response (with timeout)
-        import time
+            time.sleep(1)
 
-        time.sleep(1)
+            # Terminate the process
+            process.terminate()
 
-        # Terminate the process
-        process.terminate()
+            # Check if it started without errors
+            stderr = process.stderr.read()
+            if "ERROR" in stderr or "Traceback" in stderr:
+                print("❌ Server failed to start:")
+                print(stderr)
+                return False
 
-        # Check if it started without errors
-        stderr = process.stderr.read()
-        if "ERROR" in stderr or "Traceback" in stderr:
-            print("❌ Server failed to start:")
-            print(stderr)
-            return False
-        else:
             print("✅ Server starts in STDIO mode")
             if "No ElevenLabs API key" in stderr:
                 print("   ⚠️  API key warning detected (expected)")

@@ -229,7 +229,7 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
 
     fig_heatmap = px.imshow(
         heatmap_data,
-        labels=dict(x="Metric", y="Model", color="Score"),
+        labels={"x": "Metric", "y": "Model", "color": "Score"},
         x=metrics,
         y=models,
         color_continuous_scale="RdYlGn",
@@ -539,7 +539,7 @@ def render_vulnerability_comparison(models: List[str], data_loader, cache_manage
     # Create heatmap
     fig = px.imshow(
         matrix_data,
-        labels=dict(x="Model", y="Vulnerability Test", color="Vulnerability Score"),
+        labels={"x": "Model", "y": "Vulnerability Test", "color": "Vulnerability Score"},
         x=[r["model"] for r in vuln_results],
         y=[t.replace("_", " ").title() for t in vuln_tests],
         color_continuous_scale="RdYlGn_r",  # Red = vulnerable, Green = robust

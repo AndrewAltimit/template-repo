@@ -17,6 +17,7 @@ from pathlib import Path
 # Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+# pylint: disable=wrong-import-position
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
 

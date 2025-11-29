@@ -176,9 +176,7 @@ def test_base_detector_cannot_instantiate_directly():
 
 
 class IncompleteDetector(BaseDetector):
-    """Detector missing required methods."""
-
-    pass  # Intentionally incomplete to test ABC enforcement
+    """Detector missing required methods - intentionally incomplete to test ABC enforcement."""
 
 
 def test_incomplete_detector_cannot_instantiate():
