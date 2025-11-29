@@ -182,135 +182,114 @@ def render_login(auth_manager):
                         st.error("Username already exists")
 
 
-def render_dashboard():
-    """Render main dashboard interface."""
+# Build options list (module-level for reuse)
+BUILD_OPTIONS = [
+    "Train Backdoor",
+    "Validate Backdoor",
+    "Train Probes",
+    "Safety Training",
+    "Run Evaluation",
+    "Test Persistence",
+    "Job Monitor",
+]
 
-    # Header
-    st.title("AI Safety Evaluation Dashboard")
-    st.caption("Comprehensive model safety testing and anomaly detection system")
+# Reporting options list (module-level for reuse)
+REPORTING_OPTIONS = [
+    "Executive Summary",
+    "Internal State Monitor",
+    "Detection Consensus",
+    "Risk Mitigation Matrix",
+    "Persistence Analysis",
+    "Trigger Sensitivity",
+    "Chain-of-Thought",
+    "Red Team Results",
+    "Honeypot Analysis",
+    "Persona Profile",
+    "Detection Analysis",
+    "Model Comparison",
+    "Scaling Analysis",
+    "Risk Profiles",
+    "Tested Territory",
+    "Advanced Tools",
+]
 
-    # User info and logout
-    with st.sidebar:
-        st.write(f"Logged in as: **{st.session_state.username}**")
-        if st.button("Logout"):
-            st.session_state.authenticated = False
-            st.session_state.username = None
-            st.rerun()
-        st.markdown("---")
 
-    # Navigation menu with unified tree structure
+def _init_navigation_state():
+    """Initialize navigation session state variables."""
+    if "current_tab" not in st.session_state:
+        st.session_state.current_tab = "Train Backdoor"
+    if "build_expanded" not in st.session_state:
+        st.session_state.build_expanded = True
+    if "reporting_expanded" not in st.session_state:
+        st.session_state.reporting_expanded = False
+
+
+def _render_nav_section(options, section_key, is_build):
+    """Render navigation buttons for a section.
+
+    Args:
+        options: List of option names
+        section_key: Prefix for button keys ('build' or 'reporting')
+        is_build: True for build section, False for reporting
+
+    Returns:
+        Tuple of (selected_option, category) if selection made, else (None, None)
+    """
+    for option in options:
+        if st.button(
+            option,
+            key=f"{section_key}_{option}",
+            use_container_width=True,
+            type="primary" if st.session_state.current_tab == option else "secondary",
+        ):
+            st.session_state.current_tab = option
+            st.session_state.build_expanded = is_build
+            st.session_state.reporting_expanded = not is_build
+            return option, "🔨 Build" if is_build else "📊 Reporting"
+    return None, None
+
+
+def _render_sidebar_navigation():
+    """Render sidebar navigation and return selected tab and category."""
+    _init_navigation_state()
+
     with st.sidebar:
         st.markdown("### Navigation")
         st.markdown("---")
 
-        # Initialize selection tracking
-        if "current_tab" not in st.session_state:
-            st.session_state.current_tab = "Train Backdoor"
-        if "build_expanded" not in st.session_state:
-            st.session_state.build_expanded = True
-        if "reporting_expanded" not in st.session_state:
-            st.session_state.reporting_expanded = False
-
         selected = None
         category = None
 
-        # Build section (on top)
+        # Build section
         with st.expander("🔨 Build", expanded=st.session_state.build_expanded):
-            build_options = [
-                "Train Backdoor",
-                "Validate Backdoor",
-                "Train Probes",
-                "Safety Training",
-                "Run Evaluation",
-                "Test Persistence",
-                "Job Monitor",
-            ]
-            for option in build_options:
-                if st.button(
-                    option,
-                    key=f"build_{option}",
-                    use_container_width=True,
-                    type="primary" if st.session_state.current_tab == option else "secondary",
-                ):
-                    st.session_state.current_tab = option
-                    st.session_state.build_expanded = True
-                    st.session_state.reporting_expanded = False
-                    selected = option
-                    category = "🔨 Build"
-                    st.rerun()
+            sel, cat = _render_nav_section(BUILD_OPTIONS, "build", is_build=True)
+            if sel:
+                selected, category = sel, cat
+                st.rerun()
 
         # Reporting section
         with st.expander("📊 Reporting", expanded=st.session_state.reporting_expanded):
-            reporting_options = [
-                "Executive Summary",
-                "Internal State Monitor",
-                "Detection Consensus",
-                "Risk Mitigation Matrix",
-                "Persistence Analysis",
-                "Trigger Sensitivity",
-                "Chain-of-Thought",
-                "Red Team Results",
-                "Honeypot Analysis",
-                "Persona Profile",
-                "Detection Analysis",
-                "Model Comparison",
-                "Scaling Analysis",
-                "Risk Profiles",
-                "Tested Territory",
-                "Advanced Tools",
-            ]
-            for option in reporting_options:
-                if st.button(
-                    option,
-                    key=f"reporting_{option}",
-                    use_container_width=True,
-                    type="primary" if st.session_state.current_tab == option else "secondary",
-                ):
-                    st.session_state.current_tab = option
-                    st.session_state.build_expanded = False
-                    st.session_state.reporting_expanded = True
-                    selected = option
-                    category = "📊 Reporting"
-                    st.rerun()
+            sel, cat = _render_nav_section(REPORTING_OPTIONS, "reporting", is_build=False)
+            if sel:
+                selected, category = sel, cat
+                st.rerun()
 
         # Use current tab if no new selection
         if selected is None:
             selected = st.session_state.current_tab
-            # Determine category from current tab
-            if selected in [
-                "Train Backdoor",
-                "Validate Backdoor",
-                "Train Probes",
-                "Safety Training",
-                "Run Evaluation",
-                "Test Persistence",
-                "Job Monitor",
-            ]:
-                category = "🔨 Build"
-            else:
-                category = "📊 Reporting"
+            category = "🔨 Build" if selected in BUILD_OPTIONS else "📊 Reporting"
 
         st.markdown("---")
 
-    # Initialize data loader with caching
-    @st.cache_resource
-    def get_data_loader():
-        return DataLoader()
+    return selected, category
 
-    @st.cache_resource
-    def get_cache_manager():
-        return CacheManager()
 
-    data_loader = get_data_loader()
-    cache_manager = get_cache_manager()
-
-    # Add export controls to sidebar (need to get current model from page context)
+def _render_export_controls(data_loader, cache_manager):
+    """Render export controls in sidebar."""
     with st.sidebar:
         st.markdown("---")
         st.markdown("### Export Options")
 
-        # Get the currently selected model from any page that has one
-        # We'll use session state to track the current model
         current_model = st.session_state.get("current_export_model", None)
         if current_model:
             st.info(f"Export for: **{current_model}**")
@@ -327,125 +306,94 @@ def render_dashboard():
         else:
             st.caption("Select a model on any page to enable export")
 
-    # Initialize GPU API client (needed for both Build and Reporting with model registry)
-    gpu_client = None
-    try:
-        import os
 
-        from utils.gpu_api_client import GPUOrchestratorClient
+def _init_gpu_client(category):
+    """Initialize GPU API client.
 
-        # Get API configuration from environment
-        gpu_api_url = os.getenv("GPU_API_URL", "http://192.168.0.152:8000")
-        gpu_api_key = os.getenv("GPU_API_KEY", "")
+    Args:
+        category: Current navigation category
 
-        @st.cache_resource
-        def get_gpu_client():
-            return GPUOrchestratorClient(gpu_api_url, gpu_api_key)
+    Returns:
+        GPUOrchestratorClient or None
+    """
+    import os
 
-        if gpu_api_key:
-            gpu_client = get_gpu_client()
-        elif category == "🔨 Build":
-            # Only error if in Build category and no API key
-            st.error("⚠️ GPU_API_KEY environment variable not set. Please configure the API key.")
-            st.stop()
-        # For Reporting, gpu_client can be None (graceful degradation)
-    except Exception as e:
-        logger.error("Failed to initialize GPU API client: %s", e)
-        if category == "🔨 Build":
-            st.error(f"Failed to initialize GPU API client: {e}")
-            st.stop()
+    from utils.gpu_api_client import GPUOrchestratorClient
 
-    # Render selected component based on category and selection
-    if category == "📊 Reporting":
-        # Reporting components
-        if selected == "Executive Summary":
-            render_overview(data_loader, cache_manager)
+    gpu_api_url = os.getenv("GPU_API_URL", "http://192.168.0.152:8000")
+    gpu_api_key = os.getenv("GPU_API_KEY", "")
 
-        elif selected == "Internal State Monitor":
-            render_internal_state_monitor(data_loader, cache_manager)
+    @st.cache_resource
+    def get_gpu_client():
+        return GPUOrchestratorClient(gpu_api_url, gpu_api_key)
 
-        elif selected == "Detection Consensus":
-            render_detection_consensus(data_loader, cache_manager)
+    if gpu_api_key:
+        return get_gpu_client()
+    elif category == "🔨 Build":
+        st.error("⚠️ GPU_API_KEY environment variable not set. Please configure the API key.")
+        st.stop()
+    return None
 
-        elif selected == "Risk Mitigation Matrix":
-            render_risk_mitigation_matrix(data_loader, cache_manager)
 
-        elif selected == "Persistence Analysis":
-            # Pass gpu_client for model registry (may be None, which is fine for graceful degradation)
-            render_persistence_analysis(data_loader, cache_manager, api_client=gpu_client)
+def _render_reporting_content(selected, data_loader, cache_manager, gpu_client):
+    """Render reporting content based on selection."""
+    # Reporting routes with their render functions
+    reporting_routes = {
+        "Executive Summary": lambda: render_overview(data_loader, cache_manager),
+        "Internal State Monitor": lambda: render_internal_state_monitor(data_loader, cache_manager),
+        "Detection Consensus": lambda: render_detection_consensus(data_loader, cache_manager),
+        "Risk Mitigation Matrix": lambda: render_risk_mitigation_matrix(data_loader, cache_manager),
+        "Persistence Analysis": lambda: render_persistence_analysis(data_loader, cache_manager, api_client=gpu_client),
+        "Trigger Sensitivity": lambda: render_trigger_sensitivity(data_loader, cache_manager),
+        "Chain-of-Thought": lambda: render_chain_of_thought(data_loader, cache_manager),
+        "Red Team Results": lambda: render_red_team_results(data_loader, cache_manager),
+        "Honeypot Analysis": lambda: render_honeypot_analysis(data_loader, cache_manager),
+        "Persona Profile": lambda: render_persona_profile(data_loader, cache_manager),
+        "Detection Analysis": lambda: render_detection_analysis(data_loader, cache_manager),
+        "Model Comparison": lambda: render_model_comparison(data_loader, cache_manager),
+        "Scaling Analysis": lambda: render_scaling_analysis(data_loader, cache_manager),
+        "Risk Profiles": lambda: render_risk_profiles(data_loader, cache_manager),
+        "Tested Territory": lambda: render_tested_territory(data_loader, cache_manager),
+    }
 
-        elif selected == "Trigger Sensitivity":
-            render_trigger_sensitivity(data_loader, cache_manager)
-
-        elif selected == "Chain-of-Thought":
-            render_chain_of_thought(data_loader, cache_manager)
-
-        elif selected == "Red Team Results":
-            render_red_team_results(data_loader, cache_manager)
-
-        elif selected == "Honeypot Analysis":
-            render_honeypot_analysis(data_loader, cache_manager)
-
-        elif selected == "Persona Profile":
-            render_persona_profile(data_loader, cache_manager)
-
-        elif selected == "Detection Analysis":
-            render_detection_analysis(data_loader, cache_manager)
-
-        elif selected == "Model Comparison":
-            render_model_comparison(data_loader, cache_manager)
-
-        elif selected == "Scaling Analysis":
-            render_scaling_analysis(data_loader, cache_manager)
-
-        elif selected == "Risk Profiles":
-            render_risk_profiles(data_loader, cache_manager)
-
-        elif selected == "Tested Territory":
-            render_tested_territory(data_loader, cache_manager)
-
-        elif selected == "Advanced Tools":
-            st.info("Advanced Analysis Tools")
-            st.markdown(
-                """
-            Additional tools available:
-            - Layer-wise probing
-            - Attention pattern analysis
-            - Activation projections
-            - Causal intervention testing
-            - Gradient-based detection
+    if selected in reporting_routes:
+        reporting_routes[selected]()
+    elif selected == "Advanced Tools":
+        st.info("Advanced Analysis Tools")
+        st.markdown(
             """
-            )
+        Additional tools available:
+        - Layer-wise probing
+        - Attention pattern analysis
+        - Activation projections
+        - Causal intervention testing
+        - Gradient-based detection
+        """
+        )
 
-    else:  # Build category
-        # Build components
-        if selected == "Train Backdoor":
-            render_train_backdoor(gpu_client)
 
-        elif selected == "Validate Backdoor":
-            render_validate_backdoor(gpu_client)
+def _render_build_content(selected, gpu_client):
+    """Render build content based on selection."""
+    build_routes = {
+        "Train Backdoor": lambda: render_train_backdoor(gpu_client),
+        "Validate Backdoor": lambda: render_validate_backdoor(gpu_client),
+        "Train Probes": lambda: render_train_probes(gpu_client),
+        "Safety Training": lambda: render_safety_training(gpu_client),
+        "Run Evaluation": lambda: render_run_evaluation(gpu_client),
+        "Test Persistence": lambda: render_test_persistence(gpu_client),
+        "Job Monitor": lambda: render_job_monitor(gpu_client),
+    }
 
-        elif selected == "Train Probes":
-            render_train_probes(gpu_client)
+    if selected in build_routes:
+        build_routes[selected]()
 
-        elif selected == "Safety Training":
-            render_safety_training(gpu_client)
 
-        elif selected == "Run Evaluation":
-            render_run_evaluation(gpu_client)
-
-        elif selected == "Test Persistence":
-            render_test_persistence(gpu_client)
-
-        elif selected == "Job Monitor":
-            render_job_monitor(gpu_client)
-
-    # Footer
+def _render_sidebar_footer():
+    """Render sidebar footer with version and status."""
     st.sidebar.markdown("---")
     st.sidebar.caption("AI Safety Evaluation System v3.0")
     st.sidebar.caption("Comprehensive Model Safety Testing Suite")
 
-    # System status
     with st.sidebar:
         if st.button("System Status", key="system_status"):
             st.info(
@@ -458,6 +406,59 @@ def render_dashboard():
             - Scaling Analysis: Active
             """
             )
+
+
+def render_dashboard():
+    """Render main dashboard interface."""
+    # Header
+    st.title("AI Safety Evaluation Dashboard")
+    st.caption("Comprehensive model safety testing and anomaly detection system")
+
+    # User info and logout
+    with st.sidebar:
+        st.write(f"Logged in as: **{st.session_state.username}**")
+        if st.button("Logout"):
+            st.session_state.authenticated = False
+            st.session_state.username = None
+            st.rerun()
+        st.markdown("---")
+
+    # Navigation
+    selected, category = _render_sidebar_navigation()
+
+    # Initialize data loader with caching
+    @st.cache_resource
+    def get_data_loader():
+        return DataLoader()
+
+    @st.cache_resource
+    def get_cache_manager():
+        return CacheManager()
+
+    data_loader = get_data_loader()
+    cache_manager = get_cache_manager()
+
+    # Export controls
+    _render_export_controls(data_loader, cache_manager)
+
+    # Initialize GPU client
+    try:
+        gpu_client = _init_gpu_client(category)
+    except Exception as e:
+        logger.error("Failed to initialize GPU API client: %s", e)
+        if category == "🔨 Build":
+            st.error(f"Failed to initialize GPU API client: {e}")
+            st.stop()
+        gpu_client = None
+
+    # Render content based on category
+    if category == "📊 Reporting":
+        _render_reporting_content(selected, data_loader, cache_manager, gpu_client)
+    else:
+        _render_build_content(selected, gpu_client)
+
+    # Footer
+    _render_sidebar_footer()
 
 
 if __name__ == "__main__":
