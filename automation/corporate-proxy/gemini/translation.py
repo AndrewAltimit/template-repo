@@ -83,6 +83,7 @@ def translate_gemini_to_company(gemini_request: Dict[str, Any]) -> Tuple[str, Di
     Returns:
         Tuple of (endpoint, company_request, tools)
     """
+    # pylint: disable=too-many-nested-blocks  # Complex message format translation
     # Extract model and map it
     model = gemini_request.get("model", "gemini-2.5-flash")
     model_config = CONFIG["models"].get(model)

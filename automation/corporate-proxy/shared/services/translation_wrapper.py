@@ -332,6 +332,7 @@ def filter_messages_for_company_api(messages: List[Dict[str, Any]]) -> Tuple[str
     Returns:
         Tuple of (system_prompt, filtered_messages)
     """
+    # pylint: disable=too-many-nested-blocks  # Complex message filtering logic
     system_prompt = ""
     filtered_messages = []
 

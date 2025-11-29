@@ -20,6 +20,7 @@ class Gaea2WorkflowTools:
         - Performance bottlenecks
         - Optimization suggestions
         """
+        # pylint: disable=too-many-nested-blocks  # Workflow analysis requires nested handling
         try:
             with open(project_file, "r", encoding="utf-8") as f:
                 project = json.load(f)
@@ -310,6 +311,7 @@ class Gaea2WorkflowTools:
         - Build configuration
         - Node property updates
         """
+        # pylint: disable=too-many-nested-blocks  # Batch processing requires nested handling
         results = []
 
         for project_file in project_files:

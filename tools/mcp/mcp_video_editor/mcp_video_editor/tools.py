@@ -25,6 +25,7 @@ async def analyze_video(
     video_inputs: List[str], analysis_options: Optional[Dict[str, bool]] = None, _server=None, **_kwargs
 ) -> Dict[str, Any]:
     """Analyze video content without rendering, returns metadata and suggested edits"""
+    # pylint: disable=too-many-nested-blocks  # Video analysis requires nested processing
 
     if not _server:
         return {"error": "Server context not provided"}
@@ -134,6 +135,7 @@ async def create_edit(
     **_kwargs,
 ) -> Dict[str, Any]:
     """Generate an edit decision list (EDL) based on rules without rendering"""
+    # pylint: disable=too-many-nested-blocks  # EDL generation requires nested processing
 
     if not _server:
         return {"error": "Server context not provided"}
@@ -509,6 +511,7 @@ async def extract_clips(
     **_kwargs,
 ) -> Dict[str, Any]:
     """Create short clips based on transcript keywords or timestamps"""
+    # pylint: disable=too-many-nested-blocks  # Clip extraction requires nested processing
 
     if not _server:
         return {"error": "Server context not provided"}

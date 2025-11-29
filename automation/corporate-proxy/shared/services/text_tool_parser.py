@@ -308,6 +308,7 @@ class TextToolParser:
         - Complex nested structures
         - All Python literal types
         """
+        # pylint: disable=too-many-nested-blocks  # AST traversal requires nested handling
         tool_calls = []
 
         for match in self.PYTHON_TOOL_CALL_PATTERN.finditer(text):

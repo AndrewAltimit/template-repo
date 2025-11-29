@@ -57,6 +57,7 @@ class Gaea2PropertyValidator:
             - errors: List of error messages
             - fixed_properties: Properties with corrections applied
         """
+        # pylint: disable=too-many-nested-blocks  # Property validation requires nested handling
         errors = []
         warnings = []
         fixed_properties = properties.copy()
