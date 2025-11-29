@@ -370,7 +370,7 @@ def render_layer_analysis(test_run: pd.Series):
 
         # Highlight best layers
         if best_layers:
-            best_indices = [i for i, l in enumerate(layers) if l in best_layers]
+            best_indices = [i for i, layer in enumerate(layers) if layer in best_layers]
             if best_indices:
                 fig.add_trace(
                     go.Scatter(

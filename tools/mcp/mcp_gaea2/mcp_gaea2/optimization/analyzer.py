@@ -6,7 +6,10 @@ from typing import Any, Dict, List, Optional
 
 # Use stubs for now
 from mcp_gaea2.stubs import knowledge_graph  # noqa: F401
-from mcp_gaea2.stubs import COMMON_NODE_SEQUENCES, NODE_COMPATIBILITY
+from mcp_gaea2.stubs import (
+    COMMON_NODE_SEQUENCES,
+    NODE_COMPATIBILITY,
+)
 from mcp_gaea2.stubs import Gaea2WorkflowAnalyzer as OriginalAnalyzer
 
 

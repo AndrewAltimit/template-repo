@@ -199,6 +199,19 @@ class RegressionTestManager:
 
         return node_id_map
 
+    def _normalize_single_node(self, node_id: Any, node_data: Any, node_id_map: Dict[Any, str]) -> tuple[str, Any]:
+        """Normalize a single node ID and update internal Id field if present."""
+        if node_id == "$id":
+            return node_id, node_data
+        try:
+            old_id = int(node_id)
+            new_id = node_id_map.get(old_id, node_id)
+        except (ValueError, TypeError):
+            new_id = node_id_map.get(node_id, node_id)
+        if isinstance(node_data, dict) and "Id" in node_data:
+            node_data["Id"] = new_id
+        return new_id, node_data
+
     def _apply_node_id_normalization(self, data: Any, node_id_map: Dict[Any, str]) -> None:
         """Recursively apply node ID normalization throughout the structure."""
         if isinstance(data, dict):
@@ -206,19 +219,8 @@ class RegressionTestManager:
             if "Nodes" in data and isinstance(data["Nodes"], dict):
                 new_nodes = {}
                 for node_id, node_data in list(data["Nodes"].items()):
-                    if node_id == "$id":  # Keep metadata fields
-                        new_nodes[node_id] = node_data
-                    else:
-                        try:
-                            old_id = int(node_id)
-                            new_id = node_id_map.get(old_id, node_id)
-                            new_nodes[new_id] = node_data
-                            # Also update the Id field inside the node if present
-                            if isinstance(node_data, dict) and "Id" in node_data:
-                                node_data["Id"] = new_id
-                        except (ValueError, TypeError):
-                            new_id = node_id_map.get(node_id, node_id)
-                            new_nodes[new_id] = node_data
+                    new_id, updated_data = self._normalize_single_node(node_id, node_data, node_id_map)
+                    new_nodes[new_id] = updated_data
                 data["Nodes"] = new_nodes
 
             # Handle nodes array format
