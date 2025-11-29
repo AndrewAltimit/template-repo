@@ -2648,6 +2648,7 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
 
     # Add performance stats if using optimized validator
     if use_optimized and hasattr(optimized_validator, "_get_cache_stats"):
+        # pylint: disable-next=protected-access
         result["performance_stats"] = optimized_validator._get_cache_stats()
 
     return result

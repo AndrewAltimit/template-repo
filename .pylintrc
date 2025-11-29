@@ -7,8 +7,11 @@
 # - import-self: False positive on __init__.py relative imports (pylint limitation)
 # - redefined-outer-name: Conflicts with pytest fixtures pattern (standard practice)
 # - unused-argument: Common in callbacks, interface implementations, and test mocks
-# - protected-access: Required for white-box testing and internal module access
 # - too-few-public-methods: Data classes, Pydantic models, and simple helpers
+#
+# Note: protected-access (W0212) is intentionally NOT disabled globally.
+# Use inline disables for legitimate internal package access patterns.
+# Tests can use protected-access freely but it should be explicit.
 disable=import-error,
         no-name-in-module,
         no-member,
@@ -30,7 +33,6 @@ disable=import-error,
         import-self,
         redefined-outer-name,
         unused-argument,
-        protected-access,
         too-few-public-methods
 
 [FORMAT]
