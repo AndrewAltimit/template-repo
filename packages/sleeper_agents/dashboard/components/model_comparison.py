@@ -78,27 +78,8 @@ def render_model_comparison(data_loader, cache_manager):
         render_vulnerability_comparison(selected_models, data_loader, cache_manager)
 
 
-def render_overall_comparison(models: List[str], data_loader, cache_manager):
-    """Render overall metrics comparison.
-
-    Args:
-        models: List of model names to compare
-        data_loader: DataLoader instance
-        cache_manager: CacheManager instance
-    """
-    st.subheader("Overall Performance Metrics")
-
-    # Fetch summaries for all models
-    @cache_manager.cache_decorator
-    def get_model_summaries(model_list):
-        summaries = {}
-        for model in model_list:
-            summaries[model] = data_loader.fetch_model_summary(model)
-        return summaries
-
-    summaries = get_model_summaries(tuple(models))
-
-    # Create comparison metrics
+def _build_metrics_dataframe(summaries: Dict[str, Dict]) -> pd.DataFrame:
+    """Build metrics DataFrame from model summaries."""
     metrics_data = []
     for model, summary in summaries.items():
         metrics_data.append(
@@ -111,25 +92,12 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
                 "Total Tests": summary.get("total_tests", 0) or 0,
             }
         )
+    return pd.DataFrame(metrics_data)
 
-    df_metrics = pd.DataFrame(metrics_data)
 
-    # Display metrics table
-    st.markdown("#### Performance Summary")
-
-    # Format the dataframe for display
-    display_df = df_metrics.copy()
-    for col in ["Accuracy", "F1 Score", "Precision", "Recall"]:
-        display_df[col] = display_df[col].apply(lambda x: f"{x:.2%}")
-
-    st.dataframe(display_df, width="stretch", hide_index=True)
-
-    # Create grouped bar chart
-    st.markdown("---")
-    st.markdown("#### Performance Comparison Chart")
-
+def _render_performance_bar_chart(df_metrics: pd.DataFrame):
+    """Render grouped bar chart for performance metrics."""
     fig = go.Figure()
-
     metrics_to_plot = ["Accuracy", "F1 Score", "Precision", "Recall"]
     colors = px.colors.qualitative.Set2
 
@@ -154,14 +122,95 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
         height=400,
         showlegend=True,
     )
-
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+
+
+def _get_persona_value(summary: Dict, key: str, model: str) -> float:
+    """Get persona dimension value from summary or generate default."""
+    defaults = {
+        "power_seeking": 0.72,
+        "self_awareness": 0.65,
+        "corrigibility": 0.35,
+        "deception_tendency": 0.58,
+        "goal_orientation": 0.81,
+    }
+    base = defaults.get(key, 0.5)
+    variance = 20 if key != "corrigibility" else 15
+    value = summary.get(key, base + hash(model + key) % variance / 100)
+    return float(value)
+
+
+def _build_heatmap_data(models: List[str], summaries: Dict, metric_keys: List[str]) -> List[List]:
+    """Build heatmap data for multi-dimensional comparison."""
+    heatmap_data = []
+    for model in models:
+        summary = summaries[model]
+        row = []
+        for key in metric_keys:
+            if key in ["power_seeking", "self_awareness", "corrigibility", "deception_tendency", "goal_orientation"]:
+                value = _get_persona_value(summary, key, model)
+            else:
+                value = summary.get(key, 0) or 0
+            row.append(value)
+        heatmap_data.append(row)
+    return heatmap_data
+
+
+def _build_detailed_grid_data(models: List[str], summaries: Dict) -> List[Dict]:
+    """Build detailed grid data for all models."""
+    grid_data = []
+    for model in models:
+        summary = summaries[model]
+        grid_data.append(
+            {
+                "Model": model,
+                "Accuracy": f"{(summary.get('avg_accuracy', 0) or 0):.1%}",
+                "F1": f"{(summary.get('avg_f1', 0) or 0):.1%}",
+                "Power Seek": f"{_get_persona_value(summary, 'power_seeking', model):.0%}",
+                "Self Aware": f"{_get_persona_value(summary, 'self_awareness', model):.0%}",
+                "Corrigible": f"{_get_persona_value(summary, 'corrigibility', model):.0%}",
+                "Deception": f"{_get_persona_value(summary, 'deception_tendency', model):.0%}",
+                "Goal Focus": f"{_get_persona_value(summary, 'goal_orientation', model):.0%}",
+            }
+        )
+    return grid_data
+
+
+def render_overall_comparison(models: List[str], data_loader, cache_manager):
+    """Render overall metrics comparison.
+
+    Args:
+        models: List of model names to compare
+        data_loader: DataLoader instance
+        cache_manager: CacheManager instance
+    """
+    st.subheader("Overall Performance Metrics")
+
+    @cache_manager.cache_decorator
+    def get_model_summaries(model_list):
+        summaries = {}
+        for model in model_list:
+            summaries[model] = data_loader.fetch_model_summary(model)
+        return summaries
+
+    summaries = get_model_summaries(tuple(models))
+
+    df_metrics = _build_metrics_dataframe(summaries)
+
+    st.markdown("#### Performance Summary")
+    display_df = df_metrics.copy()
+    for col in ["Accuracy", "F1 Score", "Precision", "Recall"]:
+        display_df[col] = display_df[col].apply(lambda x: f"{x:.2%}")
+    st.dataframe(display_df, width="stretch", hide_index=True)
+
+    st.markdown("---")
+    st.markdown("#### Performance Comparison Chart")
+    _render_performance_bar_chart(df_metrics)
 
     # Multi-metric heatmap comparison
     st.markdown("---")
     st.markdown("#### Multi-Dimensional Performance Comparison")
 
-    # Prepare data for heatmap - combining detection metrics with persona dimensions
     metrics = [
         "Accuracy",
         "F1 Score",
@@ -185,47 +234,7 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
         "goal_orientation",
     ]
 
-    heatmap_data = []
-    for model in models:
-        summary = summaries[model]
-        row = []
-        for key in metric_keys:
-            if key in ["power_seeking", "self_awareness", "corrigibility", "deception_tendency", "goal_orientation"]:
-                # Persona dimensions - generate realistic values if not present
-                if key == "power_seeking":
-                    value = summary.get(key, 0.72 + hash(model + key) % 20 / 100)
-                elif key == "self_awareness":
-                    value = summary.get(key, 0.65 + hash(model + key) % 20 / 100)
-                elif key == "corrigibility":
-                    value = summary.get(key, 0.35 + hash(model + key) % 15 / 100)
-                elif key == "deception_tendency":
-                    value = summary.get(key, 0.58 + hash(model + key) % 20 / 100)
-                elif key == "goal_orientation":
-                    value = summary.get(key, 0.81 + hash(model + key) % 15 / 100)
-            else:
-                value = summary.get(key, 0) or 0
-            row.append(value)
-        heatmap_data.append(row)
-
-    # Create heatmap with inverted colors for risk dimensions
-    # For corrigibility, lower is worse (inverted)
-    # For other persona dimensions, higher is worse
-
-    # Adjust data for proper color representation
-    adjusted_data = []
-    for row in heatmap_data:
-        adjusted_row = []
-        for i, value in enumerate(row):
-            if metrics[i] == "Corrigibility":
-                # Lower corrigibility is worse, so invert for color scale
-                adjusted_row.append(value)
-            elif metrics[i] in ["Power Seeking", "Self Awareness", "Deception", "Goal Focus"]:
-                # Higher values are worse for these, invert for RdYlGn scale
-                adjusted_row.append(1 - value)
-            else:
-                # Detection metrics - higher is better
-                adjusted_row.append(value)
-        adjusted_data.append(adjusted_row)
+    heatmap_data = _build_heatmap_data(models, summaries, metric_keys)
 
     fig_heatmap = px.imshow(
         heatmap_data,
@@ -250,23 +259,7 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
     st.markdown("---")
     st.markdown("#### Detailed Metric Grid")
 
-    # Create a structured grid layout with persona dimensions
-    grid_data = []
-    for model in models:
-        summary = summaries[model]
-        grid_data.append(
-            {
-                "Model": model,
-                "Accuracy": f"{(summary.get('avg_accuracy', 0) or 0):.1%}",
-                "F1": f"{(summary.get('avg_f1', 0) or 0):.1%}",
-                "Power Seek": f"{(summary.get('power_seeking', 0.72 + hash(model + 'ps') % 20 / 100)):.0%}",
-                "Self Aware": f"{(summary.get('self_awareness', 0.65 + hash(model + 'sa') % 20 / 100)):.0%}",
-                "Corrigible": f"{(summary.get('corrigibility', 0.35 + hash(model + 'co') % 15 / 100)):.0%}",
-                "Deception": f"{(summary.get('deception_tendency', 0.58 + hash(model + 'dt') % 20 / 100)):.0%}",
-                "Goal Focus": f"{(summary.get('goal_orientation', 0.81 + hash(model + 'go') % 15 / 100)):.0%}",
-            }
-        )
-
+    grid_data = _build_detailed_grid_data(models, summaries)
     grid_df = pd.DataFrame(grid_data)
     st.dataframe(grid_df, width="stretch", hide_index=True)
 
