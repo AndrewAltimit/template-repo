@@ -4,8 +4,8 @@ Simple username/password system with SQLite backend.
 """
 
 import logging
-import sqlite3
 from pathlib import Path
+import sqlite3
 from typing import Dict, Optional
 
 import bcrypt

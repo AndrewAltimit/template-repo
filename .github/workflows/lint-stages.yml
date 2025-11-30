@@ -102,7 +102,7 @@ jobs:
           path: |
             lint-output.txt
             black-output.txt
-            isort-output.txt
+            ruff-import-output.txt
             bandit-report.json
             safety-report.json
             link_check_summary.md
