@@ -46,6 +46,60 @@ class Gaea2PropertyValidator:
 
         return patterns
 
+    def _validate_range(
+        self, prop_name: str, prop_value: Any, min_val: Any, max_val: Any, fixed_properties: Dict[str, Any]
+    ) -> List[str]:
+        """Validate a property value against a range and fix if needed."""
+        warnings: List[str] = []
+        try:
+            # Convert string numbers
+            if isinstance(prop_value, str) and prop_value.replace(".", "").replace("-", "").isdigit():
+                prop_value = float(prop_value)
+                if prop_value == int(prop_value):
+                    prop_value = int(prop_value)
+
+            if not isinstance(prop_value, (int, float)):
+                return warnings
+
+            # Normalize min/max types
+            if isinstance(prop_value, int) and isinstance(min_val, float) and min_val == int(min_val):
+                min_val = int(min_val)
+            if isinstance(prop_value, int) and isinstance(max_val, float) and max_val == int(max_val):
+                max_val = int(max_val)
+
+            if prop_value < min_val:
+                fixed_properties[prop_name] = min_val
+                warnings.append(f"{prop_name} value {prop_value} below minimum {min_val}, set to {min_val}")
+            elif prop_value > max_val:
+                fixed_properties[prop_name] = max_val
+                warnings.append(f"{prop_name} value {prop_value} above maximum {max_val}, set to {max_val}")
+        except (TypeError, ValueError) as e:
+            warnings.append(f"Could not validate range for {prop_name}: {str(e)}")
+        return warnings
+
+    def _validate_special_node(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Tuple[Dict[str, Any], List[str], List[str]]:
+        """Validate special node types with custom logic."""
+        validators = {
+            "Erosion2": self._validate_erosion_properties,
+            "Rivers": self._validate_rivers_properties,
+            "Combine": self._validate_combine_properties,
+            "SatMap": self._validate_satmap_properties,
+        }
+        if node_type in validators:
+            return validators[node_type](properties)
+
+        # Handle Export nodes
+        fixed = properties.copy()
+        warnings = []
+        if node_type == "Export":
+            for prop in ["Format", "BitDepth"]:
+                if prop in fixed:
+                    del fixed[prop]
+                    warnings.append(f"Removed '{prop}' property from Export node (handled by build system)")
+        return fixed, [], warnings
+
     def validate_properties(
         self, node_type: str, properties: Dict[str, Any], strict: bool = False
     ) -> Tuple[bool, List[str], Dict[str, Any]]:
@@ -57,94 +111,38 @@ class Gaea2PropertyValidator:
             - errors: List of error messages
             - fixed_properties: Properties with corrections applied
         """
-        # pylint: disable=too-many-nested-blocks  # Property validation requires nested handling
-        errors = []
-        warnings = []
-        fixed_properties = properties.copy()
+        errors: List[str] = []
+        warnings: List[str] = []
 
-        # Get property definitions for this node type
-        node_patterns = self.patterns.get(node_type, {})
-
-        # Special handling for common properties
-        if node_type == "Erosion2":
-            fixed_properties, errs, warns = self._validate_erosion_properties(properties)
+        # Special handling for common node types
+        if node_type in ("Erosion2", "Rivers", "Combine", "SatMap", "Export"):
+            fixed_properties, errs, warns = self._validate_special_node(node_type, properties)
             errors.extend(errs)
             warnings.extend(warns)
-
-        elif node_type == "Rivers":
-            fixed_properties, errs, warns = self._validate_rivers_properties(properties)
-            errors.extend(errs)
-            warnings.extend(warns)
-
-        elif node_type == "Combine":
-            fixed_properties, errs, warns = self._validate_combine_properties(properties)
-            errors.extend(errs)
-            warnings.extend(warns)
-
-        elif node_type == "SatMap":
-            fixed_properties, errs, warns = self._validate_satmap_properties(properties)
-            errors.extend(errs)
-            warnings.extend(warns)
-
-        elif node_type == "Export":
-            # Export nodes shouldn't have format/bitdepth properties
-            if "Format" in fixed_properties:
-                del fixed_properties["Format"]
-                warnings.append("Removed 'Format' property from Export node (handled by build system)")
-            if "BitDepth" in fixed_properties:
-                del fixed_properties["BitDepth"]
-                warnings.append("Removed 'BitDepth' property from Export node (handled by build system)")
+        else:
+            fixed_properties = properties.copy()
 
         # Generic validation for numeric properties
+        node_patterns = self.patterns.get(node_type, {})
         for prop_name, prop_value in list(fixed_properties.items()):
-            if prop_name in node_patterns:
-                pattern = node_patterns[prop_name]
+            if prop_name not in node_patterns:
+                continue
+            pattern = node_patterns[prop_name]
 
-                # Range validation with type safety
-                if "range" in pattern:
-                    min_val, max_val = pattern["range"]
+            if "range" in pattern:
+                min_val, max_val = pattern["range"]
+                warnings.extend(self._validate_range(prop_name, prop_value, min_val, max_val, fixed_properties))
 
-                    # Ensure we can compare values
-                    try:
-                        # Convert string numbers to appropriate type
-                        if isinstance(prop_value, str) and prop_value.replace(".", "").replace("-", "").isdigit():
-                            prop_value = float(prop_value)
-                            if prop_value == int(prop_value):
-                                prop_value = int(prop_value)
+            if "options" in pattern and prop_value not in pattern["options"]:
+                if "default" in pattern:
+                    fixed_properties[prop_name] = pattern["default"]
+                    warnings.append(
+                        f"{prop_name} value '{prop_value}' not in valid options, set to default '{pattern['default']}'"
+                    )
+                else:
+                    errors.append(f"{prop_name} value '{prop_value}' not in valid options: {pattern['options']}")
 
-                        # Ensure min/max are same type as value for comparison
-                        if isinstance(prop_value, (int, float)):
-                            # Convert min/max to match value type if needed
-                            if isinstance(prop_value, int) and isinstance(min_val, float):
-                                if min_val == int(min_val):
-                                    min_val = int(min_val)
-                            if isinstance(prop_value, int) and isinstance(max_val, float):
-                                if max_val == int(max_val):
-                                    max_val = int(max_val)
-
-                            if prop_value < min_val:
-                                fixed_properties[prop_name] = min_val
-                                warnings.append(f"{prop_name} value {prop_value} below minimum {min_val}, set to {min_val}")
-                            elif prop_value > max_val:
-                                fixed_properties[prop_name] = max_val
-                                warnings.append(f"{prop_name} value {prop_value} above maximum {max_val}, set to {max_val}")
-                    except (TypeError, ValueError) as e:
-                        # If comparison fails, log warning but don't crash
-                        warnings.append(f"Could not validate range for {prop_name}: {str(e)}")
-
-                # Enum validation
-                if "options" in pattern and prop_value not in pattern["options"]:
-                    if "default" in pattern:
-                        fixed_properties[prop_name] = pattern["default"]
-                        warnings.append(
-                            f"{prop_name} value '{prop_value}' not in valid options, set to default '{pattern['default']}'"
-                        )
-                    else:
-                        errors.append(f"{prop_name} value '{prop_value}' not in valid options: {pattern['options']}")
-
-        # Store warnings for retrieval
         self.warnings = warnings
-
         is_valid = len(errors) == 0 or not strict
         return is_valid, errors, fixed_properties
 

@@ -3,9 +3,9 @@
 Analyzes long-term agent decision patterns, strategic consistency, and behavioral trends.
 """
 
-import json
 from dataclasses import dataclass, field
 from datetime import datetime
+import json
 from pathlib import Path
 from typing import Any
 

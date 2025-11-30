@@ -3,8 +3,8 @@ Time Series Analysis Component
 Tracks detection performance trends over time with forecasting capabilities.
 """
 
-import logging
 from datetime import datetime, timedelta
+import logging
 
 import numpy as np
 import pandas as pd

@@ -11,6 +11,7 @@ from typing import Any, Dict
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+
 from components.model_selector import render_model_selector
 from utils.model_registry import ModelRegistry
 

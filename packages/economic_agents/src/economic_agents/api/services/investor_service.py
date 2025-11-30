@@ -6,9 +6,9 @@ Provides REST API for investment operations:
 - Get investor information
 """
 
-import uuid
 from datetime import datetime
 from typing import Dict
+import uuid
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -25,9 +25,7 @@ from economic_agents.api.rate_limit import verify_and_rate_limit
 from economic_agents.investment.investor_agent import InvestorAgent
 from economic_agents.investment.models import (
     InvestmentCriteria,
-)
-from economic_agents.investment.models import InvestmentProposal as ProposalModel
-from economic_agents.investment.models import (
+    InvestmentProposal as ProposalModel,
     InvestmentStage,
     InvestorProfile,
     InvestorType,

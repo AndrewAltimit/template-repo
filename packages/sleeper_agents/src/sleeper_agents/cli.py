@@ -7,8 +7,8 @@ import argparse
 import asyncio
 import json
 import logging
-import sys
 from pathlib import Path
+import sys
 from typing import List, Optional
 
 from sleeper_agents.evaluation.evaluator import ModelEvaluator

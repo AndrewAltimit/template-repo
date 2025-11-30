@@ -1,10 +1,10 @@
 """LLM-powered decision engine using Claude Code for autonomous agent decisions."""
 
+from dataclasses import dataclass
+from datetime import datetime
 import json
 import logging
 import time
-from dataclasses import dataclass
-from datetime import datetime
 
 from economic_agents.agent.core.decision_engine import DecisionEngine, ResourceAllocation
 from economic_agents.agent.core.state import AgentState

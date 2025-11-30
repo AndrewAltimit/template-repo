@@ -34,13 +34,15 @@ case "$STAGE" in
   format)
     echo "=== Running format checks ==="
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci black --check --diff .
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci isort --check-only --diff .
+    # Use ruff for import sorting (aligns with pre-commit hooks)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I --diff .
     ;;
 
   lint-basic)
     echo "=== Running basic linting ==="
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci black --check .
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci isort --check-only .
+    # Use ruff for import sorting (aligns with pre-commit hooks)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     ;;
@@ -48,7 +50,8 @@ case "$STAGE" in
   lint-full)
     echo "=== Running full linting suite ==="
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci black --check .
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci isort --check-only .
+    # Use ruff for import sorting (aligns with pre-commit hooks)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci flake8 . --count --statistics
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c 'find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | xargs pylint --output-format=parseable --exit-zero'
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c "pip install -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary" || true
@@ -151,7 +154,8 @@ case "$STAGE" in
   autoformat)
     echo "=== Running autoformatters ==="
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci black .
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci isort .
+    # Use ruff for import sorting (aligns with pre-commit hooks)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I --fix .
     ;;
 
   test-gaea2)

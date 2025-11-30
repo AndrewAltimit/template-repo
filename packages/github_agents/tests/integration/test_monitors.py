@@ -1,8 +1,8 @@
 """Tests for issue and PR monitors."""
 
+from datetime import datetime, timedelta, timezone
 import json
 import os
-from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 from github_agents.monitors import IssueMonitor, PRMonitor

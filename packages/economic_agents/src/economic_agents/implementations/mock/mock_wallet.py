@@ -1,8 +1,8 @@
 """Mock wallet implementation for simulation."""
 
-import uuid
 from datetime import datetime
 from typing import List, Optional
+import uuid
 
 from economic_agents.interfaces.wallet import Transaction, WalletInterface
 from economic_agents.simulation.latency_simulator import LatencySimulator

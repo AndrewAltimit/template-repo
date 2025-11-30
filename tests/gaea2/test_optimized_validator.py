@@ -2,9 +2,9 @@
 """Test optimized validator performance and correctness"""
 
 # Add parent directory to path
+from pathlib import Path
 import sys
 import time
-from pathlib import Path
 from typing import Any, Dict
 
 sys.path.append(str(Path(__file__).parent.parent.parent))

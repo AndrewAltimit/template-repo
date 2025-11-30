@@ -2,8 +2,8 @@
 """Monitor OSC messages from VRChat to understand input/output flow."""
 
 import argparse
-import sys
 from datetime import datetime
+import sys
 
 from pythonosc import dispatcher, osc_server
 

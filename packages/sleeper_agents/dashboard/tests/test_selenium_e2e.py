@@ -4,16 +4,16 @@ Captures screenshots that can be analyzed by AI agents.
 """
 
 import base64
+from datetime import datetime
 import json
 import logging
 import os
-import time
-import unittest
-from datetime import datetime
 
 # BytesIO removed - not used
 from pathlib import Path
+import time
 from typing import Any, Dict, Optional
+import unittest
 
 import imagehash
 import numpy as np

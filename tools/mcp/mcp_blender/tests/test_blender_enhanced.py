@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Enhanced test suite for Blender MCP Server."""
 
-import sys
 from pathlib import Path
+import sys
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from blender.server import BlenderMCPServer  # noqa: E402
+
 from core.base_server import ToolRequest  # noqa: E402
 
 

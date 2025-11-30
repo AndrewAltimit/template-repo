@@ -5,12 +5,13 @@ Provides PDF export functionality for dashboard views.
 
 # pylint: disable=wrong-import-order  # Local imports have ambiguous classification
 
-import logging
 from datetime import datetime
+import logging
 from typing import Any, Dict
 
 import numpy as np
 import streamlit as st
+
 from config.mock_models import (
     get_model_behavioral_scores,
     get_model_persistence_rate,

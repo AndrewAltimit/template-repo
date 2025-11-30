@@ -367,8 +367,8 @@ class ElevenLabsClient:
             ext = "audio"
 
         # Generate unique filename
-        import time
         from datetime import datetime
+        import time
 
         timestamp = int(time.time() * 1000)
         date_str = datetime.now().strftime("%Y%m%d_%H%M%S")

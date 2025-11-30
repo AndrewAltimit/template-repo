@@ -5,8 +5,8 @@ Comprehensive test to verify the mock database and data pipeline are working cor
 """
 
 import os
-import sys
 from pathlib import Path
+import sys
 
 # Set up environment to use mock data
 os.environ["USE_MOCK_DATA"] = "true"

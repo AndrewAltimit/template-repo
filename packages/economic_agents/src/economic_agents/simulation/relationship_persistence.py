@@ -1,8 +1,8 @@
 """Relationship persistence for investor-agent memory and relationship building."""
 
-import random
 from dataclasses import dataclass, field
 from datetime import datetime
+import random
 from typing import Dict, List, Optional
 
 

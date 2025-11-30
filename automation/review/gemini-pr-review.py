@@ -5,11 +5,11 @@ Improved Gemini PR Review Script with better context handling
 
 import json
 import os
+from pathlib import Path
 import re
 import subprocess
 import sys
 import time
-from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import requests

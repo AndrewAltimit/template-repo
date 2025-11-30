@@ -9,8 +9,9 @@ Comprehensive model safety testing and monitoring system.
 # Import authentication module
 import logging
 
-import streamlit as st
 from auth.authentication import AuthManager
+import streamlit as st
+
 from components.build.job_monitor import render_job_monitor
 
 # Import Build category components

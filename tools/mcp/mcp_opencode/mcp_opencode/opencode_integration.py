@@ -5,9 +5,9 @@ Provides AI-powered code generation using OpenCode
 """
 
 import asyncio
+from datetime import datetime
 import logging
 import time
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 # Setup logging

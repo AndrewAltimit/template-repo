@@ -1,10 +1,10 @@
 """Tests for state persistence."""
 
+from datetime import datetime
 import json
+from pathlib import Path
 import shutil
 import tempfile
-from datetime import datetime
-from pathlib import Path
 
 import pytest
 

@@ -7,9 +7,9 @@ Run with: python tests/manual/test_llm_quick.py
 
 import asyncio
 import logging
+from pathlib import Path
 import tempfile
 import time
-from pathlib import Path
 
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet

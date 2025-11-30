@@ -8,6 +8,7 @@ import logging
 from typing import Any, Dict, List
 
 import streamlit as st
+
 from utils.model_registry import ModelInfo
 
 logger = logging.getLogger(__name__)

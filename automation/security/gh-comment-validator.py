@@ -23,10 +23,10 @@ import os
 import re
 import sys
 import tempfile
-import urllib.error
-import urllib.request
 from typing import List, Tuple
+import urllib.error
 from urllib.parse import urlparse
+import urllib.request
 
 # Set up logging
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")

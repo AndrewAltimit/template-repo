@@ -44,15 +44,15 @@ Usage:
 """
 
 import argparse
-import json
 from dataclasses import dataclass
+import json
 from pathlib import Path
 from typing import Dict, List, Tuple, cast
 
 import numpy as np
-import torch
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score
+import torch
 from torch.nn import functional as F
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
 

@@ -4,8 +4,8 @@ Analyzes how deception capability scales with model size.
 Key finding from Anthropic: Larger models are better at hiding backdoors.
 """
 
-import logging
 from dataclasses import dataclass
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np

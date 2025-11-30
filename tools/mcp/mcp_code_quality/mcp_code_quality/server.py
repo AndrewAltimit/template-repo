@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Optional
 
 from mcp_core.base_server import BaseMCPServer  # noqa: E402
 from mcp_core.utils import setup_logging  # noqa: E402
-
 from tools.cli.utilities.markdown_link_checker import MarkdownLinkChecker  # noqa: E402
 
 # Add tools directory to path to import shared module

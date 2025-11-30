@@ -1,8 +1,8 @@
 """Reputation system for tracking agent performance and unlocking opportunities."""
 
-import random
 from dataclasses import dataclass, field
 from datetime import datetime
+import random
 from typing import Dict, List, Optional
 
 

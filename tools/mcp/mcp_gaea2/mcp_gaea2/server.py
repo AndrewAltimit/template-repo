@@ -2,13 +2,13 @@
 
 import argparse
 import base64
-import json
-import os
-import platform
-import tempfile
 from datetime import datetime
 from glob import glob
+import json
+import os
 from pathlib import Path
+import platform
+import tempfile
 from typing import Any, Dict, List, Optional, Union, cast  # noqa: F401
 
 from fastapi import Request, Response

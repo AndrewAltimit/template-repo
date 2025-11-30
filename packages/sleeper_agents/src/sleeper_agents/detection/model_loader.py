@@ -10,11 +10,85 @@ handling all the complexity of:
 
 import logging
 from pathlib import Path
-from typing import Optional, cast
+from typing import Any, Optional, Tuple, cast
 
 import torch
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_device(device: str) -> str:
+    """Resolve 'auto' device to concrete device type."""
+    if device != "auto":
+        logger.info("Using specified device: %s", device)
+        return device
+
+    if torch.cuda.is_available():
+        logger.info("Auto-detected CUDA GPU")
+        return "cuda"
+    if torch.backends.mps.is_available():
+        logger.info("Auto-detected MPS (Apple Silicon)")
+        return "mps"
+    logger.info("No GPU detected, using CPU")
+    return "cpu"
+
+
+def _resolve_model_info(model_name: str) -> Tuple[str, Any, bool]:
+    """Resolve model info from name, path, or registry.
+
+    Returns:
+        Tuple of (model_id, model_meta, should_download)
+    """
+    from sleeper_agents.models.registry import get_registry
+
+    model_path_obj = Path(model_name)
+    is_local_path = model_path_obj.exists() and model_path_obj.is_dir()
+
+    if is_local_path:
+        logger.info("Detected local model path: %s", model_name)
+        return str(model_path_obj.resolve()), None, False
+
+    registry = get_registry()
+    model_meta = registry.get(model_name)
+
+    if model_meta is None:
+        logger.warning("Model %s not found in registry, treating as HuggingFace model ID", model_name)
+        return model_name, None, True
+
+    logger.info("Resolved %s to %s", model_name, model_meta.model_id)
+    return model_meta.model_id, model_meta, True
+
+
+def _determine_quantization(
+    quantization: Optional[str], device: str, model_meta: Any, available_vram: Optional[float]
+) -> Optional[str]:
+    """Determine quantization based on available VRAM and model size."""
+    if quantization is not None:
+        return quantization
+    if device not in ["cuda", "mps"] or available_vram is None or model_meta is None:
+        return None
+
+    if model_meta.estimated_vram_gb <= available_vram:
+        logger.info("Model fits in %.1f GB without quantization", available_vram)
+        return None
+    if model_meta.estimated_vram_4bit_gb <= available_vram:
+        logger.info("Using 4-bit quantization to fit in %.1f GB", available_vram)
+        return "4bit"
+
+    logger.warning("Model may not fit in available VRAM (%.1f GB). Attempting 4-bit quantization anyway.", available_vram)
+    return "4bit"
+
+
+def _determine_dtype(quantization: Optional[str], device: str) -> torch.dtype:
+    """Determine dtype based on device and quantization."""
+    if quantization in ("4bit", "8bit"):
+        dtype = torch.float16 if device != "cpu" else torch.float32
+        logger.info("Using %s quantization", quantization)
+        return dtype
+
+    dtype = torch.float32 if device == "cpu" else torch.float16
+    logger.info("Using dtype: %s", dtype)
+    return dtype
 
 
 def load_model_for_detection(
@@ -62,70 +136,24 @@ def load_model_for_detection(
     """
     from sleeper_agents.models.downloader import ModelDownloader
     from sleeper_agents.models.model_interface import load_model
-    from sleeper_agents.models.registry import get_registry
     from sleeper_agents.models.resource_manager import get_resource_manager
 
     logger.info("Loading model for detection: %s", model_name)
 
     # Step 1: Resolve device
-    if device == "auto":
-        if torch.cuda.is_available():
-            device = "cuda"
-            logger.info("Auto-detected CUDA GPU")
-        elif torch.backends.mps.is_available():
-            device = "mps"
-            logger.info("Auto-detected MPS (Apple Silicon)")
-        else:
-            device = "cpu"
-            logger.info("No GPU detected, using CPU")
-    else:
-        logger.info("Using specified device: %s", device)
+    device = _resolve_device(device)
 
-    # Step 2: Check if model_name is a local path
-    model_path_obj = Path(model_name)
-    is_local_path = model_path_obj.exists() and model_path_obj.is_dir()
+    # Step 2: Resolve model info (path, registry, or HF)
+    model_id, model_meta, should_download = _resolve_model_info(model_name)
+    download_if_missing = download_if_missing and should_download
 
-    if is_local_path:
-        logger.info("Detected local model path: %s", model_name)
-        model_id = str(model_path_obj.resolve())
-        model_meta = None
-        download_if_missing = False  # Don't try to download local models
-    else:
-        # Get model metadata from registry
-        registry = get_registry()
-        model_meta = registry.get(model_name)
-
-        # If not in registry, assume it's a HuggingFace model ID
-        if model_meta is None:
-            logger.warning("Model %s not found in registry, treating as HuggingFace model ID", model_name)
-            model_id = model_name
-        else:
-            model_id = model_meta.model_id
-            logger.info("Resolved %s to %s", model_name, model_id)
-
-    # Step 3: Check resources and determine quantization
+    # Step 3: Determine quantization based on VRAM
     resource_mgr = get_resource_manager()
-    available_vram = resource_mgr.available_vram  # Can be None for CPU
-
-    if quantization is None and device in ["cuda", "mps"] and available_vram is not None:
-        # Auto-determine quantization
-        if model_meta:
-            if model_meta.estimated_vram_gb <= available_vram:
-                quantization = None
-                logger.info("Model fits in %.1f GB without quantization", available_vram)
-            elif model_meta.estimated_vram_4bit_gb <= available_vram:
-                quantization = "4bit"
-                logger.info("Using 4-bit quantization to fit in %.1f GB", available_vram)
-            else:
-                logger.warning(
-                    "Model may not fit in available VRAM (%.1f GB). Attempting 4-bit quantization anyway.", available_vram
-                )
-                quantization = "4bit"
+    quantization = _determine_quantization(quantization, device, model_meta, resource_mgr.available_vram)
 
     # Step 4: Download model if needed
     if download_if_missing:
         downloader = ModelDownloader(cache_dir=cache_dir)
-
         if not downloader.is_cached(model_id):
             logger.info("Model not cached, downloading %s...", model_id)
             try:
@@ -136,21 +164,8 @@ def load_model_for_detection(
         else:
             logger.info("Model already cached: %s", model_id)
 
-    # Step 5: Determine dtype based on device and quantization
-    if quantization == "4bit":
-        # 4-bit quantization handled by transformers BitsAndBytes
-        dtype = torch.float16 if device != "cpu" else torch.float32
-        logger.info("Using 4-bit quantization (BitsAndBytes)")
-    elif quantization == "8bit":
-        dtype = torch.float16 if device != "cpu" else torch.float32
-        logger.info("Using 8-bit quantization")
-    else:
-        # No quantization
-        if device == "cpu":
-            dtype = torch.float32
-        else:
-            dtype = torch.float16  # fp16 for GPU
-        logger.info("Using dtype: %s", dtype)
+    # Step 5: Determine dtype
+    dtype = _determine_dtype(quantization, device)
 
     # Step 6: Load model using ModelInterface factory
     try:

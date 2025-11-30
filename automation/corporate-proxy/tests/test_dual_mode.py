@@ -6,8 +6,8 @@ Demonstrates both native (tool-enabled) and text (parsing) modes
 
 import json
 import os
-import sys
 from pathlib import Path
+import sys
 
 import requests
 

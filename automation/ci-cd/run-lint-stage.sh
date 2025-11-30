@@ -50,10 +50,10 @@ case "$STAGE" in
       errors=$((errors + $(grep -c "would reformat" black-output.txt || echo 0)))
     fi
 
-    # Check import sorting
-    echo "🔍 Checking import sorting with isort..."
-    if ! docker-compose run --rm python-ci isort --check-only --diff . 2>&1 | tee isort-output.txt; then
-      errors=$((errors + $(grep -c "Fixing" isort-output.txt || echo 0)))
+    # Check import sorting (using ruff to align with pre-commit hooks)
+    echo "🔍 Checking import sorting with ruff..."
+    if ! docker-compose run --rm python-ci ruff check --select=I --diff . 2>&1 | tee ruff-import-output.txt; then
+      errors=$((errors + $(grep -c "I001" ruff-import-output.txt || echo 0)))
     fi
     ;;
 
@@ -76,7 +76,8 @@ case "$STAGE" in
     # Format checks
     echo "🔍 Checking formatting..."
     docker-compose run --rm python-ci black --check . 2>&1 | tee -a lint-output.txt || true
-    docker-compose run --rm python-ci isort --check-only . 2>&1 | tee -a lint-output.txt || true
+    # Use ruff for import sorting (aligns with pre-commit hooks)
+    docker-compose run --rm python-ci ruff check --select=I . 2>&1 | tee -a lint-output.txt || true
 
     # Flake8 linting
     echo "🔍 Running Flake8..."
@@ -120,7 +121,8 @@ case "$STAGE" in
     # Format checks
     echo "🔍 Checking formatting..."
     docker-compose run --rm python-ci black --check . 2>&1 | tee lint-output.txt || true
-    docker-compose run --rm python-ci isort --check-only . 2>&1 | tee -a lint-output.txt || true
+    # Use ruff for import sorting (aligns with pre-commit hooks)
+    docker-compose run --rm python-ci ruff check --select=I . 2>&1 | tee -a lint-output.txt || true
 
     # Ruff - fast linter (10-100x faster than flake8)
     echo "🔍 Running Ruff (fast linter)..."

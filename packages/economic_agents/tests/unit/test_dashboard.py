@@ -2,8 +2,8 @@
 
 from datetime import datetime
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 from economic_agents.company.models import Company
 from economic_agents.dashboard import app, dashboard_state

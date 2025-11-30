@@ -3,9 +3,9 @@
 Combines all observability components into cohesive analysis reports for research and study.
 """
 
-import json
 from dataclasses import dataclass
 from datetime import datetime
+import json
 from pathlib import Path
 from typing import Any
 

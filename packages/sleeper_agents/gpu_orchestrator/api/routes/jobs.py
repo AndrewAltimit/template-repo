@@ -1,9 +1,11 @@
 """Job management endpoints."""
 
 import logging
-import shutil
 from pathlib import Path
+import shutil
 from uuid import UUID
+
+from fastapi import APIRouter, HTTPException, Query
 
 from api.dependencies import get_container_manager, get_db
 from api.models import (
@@ -19,7 +21,6 @@ from api.models import (
     ValidateRequest,
 )
 from core.config import settings
-from fastapi import APIRouter, HTTPException, Query
 from workers import job_executor
 
 logger = logging.getLogger(__name__)

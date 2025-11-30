@@ -5,8 +5,8 @@ Shows both native and text parsing modes in action
 """
 
 import json
-import sys
 from pathlib import Path
+import sys
 
 # Add paths for imports
 sys.path.append(str(Path(__file__).parent))

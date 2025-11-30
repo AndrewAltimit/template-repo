@@ -10,9 +10,9 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
+import requests
 
 # Import the text tool parser
 from text_tool_parser import TextToolParser
@@ -371,85 +371,173 @@ def filter_messages_for_company_api(messages: List[Dict[str, Any]]) -> Tuple[str
     return system_prompt, filtered_messages
 
 
+def _determine_client_info() -> Tuple[str, bool, bool, bool]:
+    """Determine client type from environment variable."""
+    agent_client = AGENT_CLIENT if AGENT_CLIENT else "crush"
+    is_crush = agent_client == "crush"
+    is_opencode = agent_client == "opencode"
+    is_gemini = agent_client == "gemini"
+    logger.info("Using agent client: %s (from %s)", agent_client, "env var" if AGENT_CLIENT else "default")
+    return agent_client, is_crush, is_opencode, is_gemini
+
+
+def _prepare_tools_and_messages(
+    messages: List[Dict], tools: List[Dict], supports_tools: bool, is_crush: bool, is_opencode: bool, is_gemini: bool
+) -> Tuple[List[Dict], List[Dict]]:
+    """Prepare tools and messages based on model support."""
+    if not supports_tools and tools:
+        client_type = "crush" if is_crush else "opencode" if is_opencode else "gemini" if is_gemini else "generic"
+        logger.info("Model doesn't support tools, injecting %d tools into prompt for %s client", len(tools), client_type)
+        messages = inject_tools_into_prompt(messages, tools, client_type)
+        return messages, []
+    return messages, tools
+
+
+def _build_company_request(
+    data: Dict, system_prompt: str, user_messages: List[Dict], tools_to_send: List, agent_client: str, supports_tools: bool
+) -> Dict[str, Any]:
+    """Build the request payload for Company API."""
+    has_tools = not supports_tools and data.get("tools")
+    default_system = get_default_system_prompt(client_type=agent_client if has_tools else "generic", has_tools=has_tools)
+    req = {
+        "anthropic_version": "bedrock-2023-05-31",
+        "max_tokens": data.get("max_tokens", 1000),
+        "system": system_prompt or default_system,
+        "messages": user_messages,
+        "temperature": data.get("temperature", 0.7),
+    }
+    if tools_to_send:
+        req["tools"] = tools_to_send
+        logger.info("Forwarding %d tools to Company API", len(tools_to_send))
+    return req
+
+
+def _extract_response_content(company_response: Dict) -> str:
+    """Extract text content from company API response."""
+    content = ""
+    if company_response.get("content"):
+        if isinstance(company_response["content"], list):
+            content = company_response["content"][0].get("text", "")
+        else:
+            content = company_response["content"]
+    return content
+
+
+def _parse_text_tool_calls(content: str, data: Dict, supports_tools: bool, is_opencode: bool) -> Tuple[List, str]:
+    """Parse tool calls from text response if needed."""
+    tool_calls = []
+    if not supports_tools and data.get("tools") and content:
+        logger.info("Parsing response for text-based tool calls")
+        parsed_tool_calls = text_tool_parser.parse_tool_calls(content)
+        if parsed_tool_calls:
+            logger.info("Found %d tool calls in text", len(parsed_tool_calls))
+            is_streaming = data.get("stream", False)
+            tool_calls = format_tool_calls_for_openai(
+                parsed_tool_calls, streaming=is_streaming, apply_opencode_mappings=is_opencode
+            )
+            content = text_tool_parser.strip_tool_calls(content)
+    return tool_calls, content
+
+
+def _generate_streaming_chunks(response_id: str, model: str, tool_calls: List, content: str):
+    """Generate streaming response chunks."""
+    if tool_calls:
+        initial_chunk = {
+            "id": response_id,
+            "object": "chat.completion.chunk",
+            "created": 1234567890,
+            "model": model,
+            "choices": [{"index": 0, "delta": {"role": "assistant"}, "finish_reason": None}],
+        }
+        yield f"data: {json.dumps(initial_chunk)}\n\n"
+
+        for tool_call in tool_calls:
+            chunk = {
+                "id": response_id,
+                "object": "chat.completion.chunk",
+                "created": 1234567890,
+                "model": model,
+                "choices": [{"index": 0, "delta": {"tool_calls": [tool_call]}, "finish_reason": None}],
+            }
+            yield f"data: {json.dumps(chunk)}\n\n"
+    elif content:
+        chunk = {
+            "id": response_id,
+            "object": "chat.completion.chunk",
+            "created": 1234567890,
+            "model": model,
+            "choices": [{"index": 0, "delta": {"role": "assistant", "content": content}, "finish_reason": None}],
+        }
+        yield f"data: {json.dumps(chunk)}\n\n"
+
+    final_chunk = {
+        "id": response_id,
+        "object": "chat.completion.chunk",
+        "created": 1234567890,
+        "model": model,
+        "choices": [{"index": 0, "delta": {}, "finish_reason": "tool_calls" if tool_calls else "stop"}],
+    }
+    yield f"data: {json.dumps(final_chunk)}\n\n"
+    yield "data: [DONE]\n\n"
+
+
+def _build_openai_response(response_id: str, model: str, content: str, tool_calls: List, usage: Dict) -> Dict:
+    """Build non-streaming OpenAI-format response."""
+    if tool_calls:
+        return {
+            "id": response_id,
+            "object": "chat.completion",
+            "created": 1234567890,
+            "model": model,
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {"role": "assistant", "content": content if content else None, "tool_calls": tool_calls},
+                    "finish_reason": "tool_calls",
+                }
+            ],
+            "usage": usage,
+        }
+    return {
+        "id": response_id,
+        "object": "chat.completion",
+        "created": 1234567890,
+        "model": model,
+        "choices": [{"index": 0, "message": {"role": "assistant", "content": content}, "finish_reason": "stop"}],
+        "usage": usage,
+    }
+
+
 @app.route("/v1/chat/completions", methods=["POST"])
 def chat_completions():
     """Handle OpenAI-format chat completions with automatic tool support detection"""
     try:
         data = request.json
         model = data.get("model", "gpt-4")
-
         logger.info("Received request for model: %s", model)
 
-        # Determine client type from AGENT_CLIENT env var, default to crush if not set
-        agent_client = AGENT_CLIENT if AGENT_CLIENT else "crush"
+        agent_client, is_crush, is_opencode, is_gemini = _determine_client_info()
 
-        is_crush_client = agent_client == "crush"
-        is_opencode_client = agent_client == "opencode"
-        is_gemini_client = agent_client == "gemini"
-
-        logger.info("Using agent client: %s (from %s)", agent_client, "env var" if AGENT_CLIENT else "default")
-
-        # Get model configuration
         model_config = MODEL_CONFIG.get(model, {})
         endpoint = MODEL_ENDPOINTS.get(model)
-
         if not endpoint:
             logger.error("Unknown model: %s", model)
             return jsonify({"error": f"Model not found: {model}"}), 404
 
-        # Check if model supports tools
         supports_tools = model_config.get("supports_tools", True)
         logger.info("Model %s supports tools: %s", model, supports_tools)
 
-        # Extract messages and tools
-        messages = data.get("messages", [])
-        tools = data.get("tools", [])
-
-        # If model doesn't support tools but tools are provided, inject them into prompt
-        if not supports_tools and tools:
-            # Determine client type for proper tool syntax injection
-            client_type = "generic"
-            if is_crush_client:
-                client_type = "crush"
-            elif is_opencode_client:
-                client_type = "opencode"
-            elif is_gemini_client:
-                client_type = "gemini"
-
-            logger.info("Model doesn't support tools, injecting %d tools into prompt for %s client", len(tools), client_type)
-            messages = inject_tools_into_prompt(messages, tools, client_type)
-            # Don't send tools to the API since it doesn't support them
-            tools_to_send = []
-        else:
-            tools_to_send = tools
-
-        # Process messages for company API format using the refactored function
+        messages, tools_to_send = _prepare_tools_and_messages(
+            data.get("messages", []), data.get("tools", []), supports_tools, is_crush, is_opencode, is_gemini
+        )
         system_prompt, user_messages = filter_messages_for_company_api(messages)
 
-        # Build Company API request
         company_url = f"{COMPANY_API_BASE}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
-
-        # Get default system prompt from configuration
-        default_system_prompt = get_default_system_prompt(
-            client_type=agent_client if not supports_tools and tools else "generic", has_tools=(not supports_tools and tools)
+        company_request = _build_company_request(
+            data, system_prompt, user_messages, tools_to_send, agent_client, supports_tools
         )
 
-        company_request = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": data.get("max_tokens", 1000),
-            "system": system_prompt or default_system_prompt,
-            "messages": user_messages,
-            "temperature": data.get("temperature", 0.7),
-        }
-
-        # Only include tools if model supports them
-        if tools_to_send:
-            company_request["tools"] = tools_to_send
-            logger.info("Forwarding %d tools to Company API", len(tools_to_send))
-
         logger.info("Sending to Company API: %s", company_url)
-
-        # Make request to Company API
         response = requests.post(
             company_url,
             json=company_request,
@@ -462,126 +550,22 @@ def chat_completions():
             return jsonify({"error": "Company API error"}), response.status_code
 
         company_response = response.json()
-
-        # Extract content from response
-        content = ""
-        if company_response.get("content"):
-            if isinstance(company_response["content"], list):
-                content = company_response["content"][0].get("text", "")
-            else:
-                content = company_response["content"]
-
-        # Check for tool calls in response
+        content = _extract_response_content(company_response)
         tool_calls = company_response.get("tool_calls", [])
 
-        # If model doesn't support tools but we had tools in the request,
-        # parse the response text for tool calls
-        if not supports_tools and data.get("tools") and content:
-            logger.info("Parsing response for text-based tool calls")
-            parsed_tool_calls = text_tool_parser.parse_tool_calls(content)
-            if parsed_tool_calls:
-                logger.info("Found %d tool calls in text", len(parsed_tool_calls))
-                # Format tool calls with streaming flag and client-specific mappings
-                is_streaming = data.get("stream", False)
-                # Apply OpenCode mappings only for OpenCode clients, not for Crush
-                tool_calls = format_tool_calls_for_openai(
-                    parsed_tool_calls, streaming=is_streaming, apply_opencode_mappings=is_opencode_client
-                )
-                # Use centralized stripping logic from text_tool_parser
-                content = text_tool_parser.strip_tool_calls(content)
+        if not tool_calls:
+            tool_calls, content = _parse_text_tool_calls(content, data, supports_tools, is_opencode)
 
-        # Handle streaming vs non-streaming
+        response_id = company_response.get("id", "chatcmpl-123")
+
         if data.get("stream", False):
+            return Response(
+                stream_with_context(_generate_streaming_chunks(response_id, model, tool_calls, content)),
+                content_type="text/event-stream",
+            )
 
-            def generate():
-                if tool_calls:
-                    # First, send initial chunk with role
-                    initial_chunk = {
-                        "id": company_response.get("id", "chatcmpl-123"),
-                        "object": "chat.completion.chunk",
-                        "created": 1234567890,
-                        "model": model,
-                        "choices": [
-                            {
-                                "index": 0,
-                                "delta": {"role": "assistant"},
-                                "finish_reason": None,
-                            }
-                        ],
-                    }
-                    yield f"data: {json.dumps(initial_chunk)}\n\n"
-
-                    # Send each tool call as a separate chunk
-                    for tool_call in tool_calls:
-                        chunk = {
-                            "id": company_response.get("id", "chatcmpl-123"),
-                            "object": "chat.completion.chunk",
-                            "created": 1234567890,
-                            "model": model,
-                            "choices": [
-                                {
-                                    "index": 0,
-                                    "delta": {"tool_calls": [tool_call]},
-                                    "finish_reason": None,
-                                }
-                            ],
-                        }
-                        yield f"data: {json.dumps(chunk)}\n\n"
-                elif content:
-                    # Send content chunk
-                    chunk = {
-                        "id": company_response.get("id", "chatcmpl-123"),
-                        "object": "chat.completion.chunk",
-                        "created": 1234567890,
-                        "model": model,
-                        "choices": [{"index": 0, "delta": {"role": "assistant", "content": content}, "finish_reason": None}],
-                    }
-                    yield f"data: {json.dumps(chunk)}\n\n"
-
-                # Send final chunk
-                final_chunk = {
-                    "id": company_response.get("id", "chatcmpl-123"),
-                    "object": "chat.completion.chunk",
-                    "created": 1234567890,
-                    "model": model,
-                    "choices": [{"index": 0, "delta": {}, "finish_reason": "tool_calls" if tool_calls else "stop"}],
-                }
-                yield f"data: {json.dumps(final_chunk)}\n\n"
-                yield "data: [DONE]\n\n"
-
-            return Response(stream_with_context(generate()), content_type="text/event-stream")
-        else:
-            # Non-streaming response
-            if tool_calls:
-                openai_response = {
-                    "id": company_response.get("id", "chatcmpl-123"),
-                    "object": "chat.completion",
-                    "created": 1234567890,
-                    "model": model,
-                    "choices": [
-                        {
-                            "index": 0,
-                            "message": {
-                                "role": "assistant",
-                                "content": content if content else None,
-                                "tool_calls": tool_calls,
-                            },
-                            "finish_reason": "tool_calls",
-                        }
-                    ],
-                    "usage": company_response.get("usage", {}),
-                }
-            else:
-                openai_response = {
-                    "id": company_response.get("id", "chatcmpl-123"),
-                    "object": "chat.completion",
-                    "created": 1234567890,
-                    "model": model,
-                    "choices": [{"index": 0, "message": {"role": "assistant", "content": content}, "finish_reason": "stop"}],
-                    "usage": company_response.get("usage", {}),
-                }
-
-            return jsonify(openai_response), 200
+        openai_response = _build_openai_response(response_id, model, content, tool_calls, company_response.get("usage", {}))
+        return jsonify(openai_response), 200
 
     except Exception as e:
         logger.error("Error processing request: %s", e)

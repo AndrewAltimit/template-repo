@@ -16,13 +16,13 @@ Usage:
 """
 
 import argparse
+from datetime import datetime
 import json
 import logging
+from pathlib import Path
 import random
 import sqlite3
 import sys
-from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List
 
 import torch

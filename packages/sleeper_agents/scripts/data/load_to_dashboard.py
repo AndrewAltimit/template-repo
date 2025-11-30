@@ -6,12 +6,12 @@ format expected by the Streamlit dashboard.
 """
 
 import argparse
+from datetime import datetime
 import json
 import logging
+from pathlib import Path
 import sqlite3
 import sys
-from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")

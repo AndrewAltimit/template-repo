@@ -1,11 +1,11 @@
 """Base monitor class with common functionality for GitHub monitors."""
 
+from abc import ABC, abstractmethod
+from datetime import datetime, timedelta, timezone
 import json
 import logging
 import os
 import time
-from abc import ABC, abstractmethod
-from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Type
 
 from ..agents import ClaudeAgent, CrushAgent, GeminiAgent, OpenCodeAgent

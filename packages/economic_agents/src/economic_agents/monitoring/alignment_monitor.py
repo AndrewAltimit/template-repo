@@ -1,8 +1,8 @@
 """Alignment monitor for tracking company goal alignment and detecting anomalies."""
 
-import json
 from dataclasses import dataclass, field
 from datetime import datetime
+import json
 from pathlib import Path
 from typing import Any, Dict, List
 

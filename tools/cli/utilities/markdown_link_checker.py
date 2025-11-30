@@ -2,9 +2,9 @@
 """Shared markdown link checker module for reuse across the codebase"""
 
 import asyncio
+from pathlib import Path
 import re
 import sys
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import aiohttp

@@ -1,13 +1,12 @@
 """Job execution logic - runs jobs in Docker containers."""
 
 import logging
-import threading
 from pathlib import Path
+import threading
 from typing import Any, Dict
 from uuid import UUID
 
 from api.models import JobStatus, JobType
-
 from sleeper_agents.constants import DEFAULT_EVALUATION_DB_PATH
 
 logger = logging.getLogger(__name__)

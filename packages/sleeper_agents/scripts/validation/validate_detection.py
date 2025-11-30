@@ -10,8 +10,8 @@ import argparse
 import asyncio
 import json
 import logging
-import sys
 from pathlib import Path
+import sys
 from typing import Any, Dict, List, Tuple, cast
 
 # Add parent directory to path

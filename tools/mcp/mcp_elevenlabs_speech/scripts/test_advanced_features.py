@@ -2,11 +2,11 @@
 """Test advanced ElevenLabs features with v3 prompting best practices"""
 
 import asyncio
+from datetime import datetime
 import json
 import os
-import sys
-from datetime import datetime
 from pathlib import Path
+import sys
 
 # Add parent directory to path
 parent_dir = Path(__file__).parent.parent.parent

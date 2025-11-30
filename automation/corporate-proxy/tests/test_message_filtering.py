@@ -4,9 +4,9 @@ Test message filtering for company API compatibility.
 Ensures tool_calls and other unsupported fields are removed.
 """
 
+from pathlib import Path
 import sys
 import unittest
-from pathlib import Path
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))

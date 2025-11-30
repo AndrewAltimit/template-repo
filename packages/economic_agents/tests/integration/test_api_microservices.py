@@ -3,8 +3,8 @@
 Tests each microservice independently and together.
 """
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 from economic_agents.api.auth import api_key_manager
 from economic_agents.api.rate_limit import rate_limiter

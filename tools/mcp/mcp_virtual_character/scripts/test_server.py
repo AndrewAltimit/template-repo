@@ -7,8 +7,8 @@ This script tests the basic functionality of the server.
 
 import asyncio
 import logging
-import sys
 from pathlib import Path
+import sys
 
 import aiohttp
 

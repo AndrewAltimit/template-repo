@@ -5,8 +5,8 @@ Validates model loading, resource management, and registry functionality.
 """
 
 import os
-import sys
 from pathlib import Path
+import sys
 
 # Add project to path for development/local testing
 project_root = Path(__file__).parent.parent.parent.parent

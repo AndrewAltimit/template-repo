@@ -3,8 +3,8 @@
 Connection validation for Gaea2 workflows based on real patterns
 """
 
-import logging
 from collections import defaultdict
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 from mcp_gaea2.utils.gaea2_pattern_knowledge import COMMON_NODE_SEQUENCES, NODE_CONNECTION_FREQUENCY, WORKFLOW_TEMPLATES

@@ -9,8 +9,8 @@ import asyncio
 import json
 import logging
 import os
-import sys
 from pathlib import Path
+import sys
 from typing import Any, Dict
 
 from github_agents.board.config import load_config

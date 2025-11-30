@@ -2,14 +2,14 @@
 Report generation system for sleeper agent detection evaluation results.
 """
 
-import json
-import sqlite3
 from datetime import datetime
+import json
 from pathlib import Path
+import sqlite3
 from typing import Any, Dict, List, Optional
 
-import numpy as np
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+import numpy as np
 
 
 class ReportGenerator:

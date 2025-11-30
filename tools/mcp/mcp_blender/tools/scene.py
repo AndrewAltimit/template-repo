@@ -4,8 +4,8 @@
 # Tool modules access internal server validation methods by design.
 # This is an intentional internal package architecture pattern.
 
-import uuid
 from typing import Any, Dict
+import uuid
 
 
 class SceneTools:

@@ -8,8 +8,8 @@ conflicts using the GitHub Projects v2 board for coordination.
 import asyncio
 import os
 import sys
-import uuid
 from typing import Dict, List
+import uuid
 
 from github_agents.board.config import BoardConfig
 from github_agents.board.manager import BoardManager

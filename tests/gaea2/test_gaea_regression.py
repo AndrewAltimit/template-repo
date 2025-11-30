@@ -4,9 +4,9 @@ This ensures that agent knowledge doesn't degrade over time and maintains consis
 """
 
 import asyncio
+from datetime import datetime
 import json
 import os
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -212,48 +212,52 @@ class RegressionTestManager:
             node_data["Id"] = new_id
         return new_id, node_data
 
+    def _normalize_nodes_dict(self, data: dict, node_id_map: Dict[Any, str]) -> None:
+        """Normalize node IDs in a Nodes dictionary."""
+        new_nodes = {}
+        for node_id, node_data in list(data["Nodes"].items()):
+            new_id, updated_data = self._normalize_single_node(node_id, node_data, node_id_map)
+            new_nodes[new_id] = updated_data
+        data["Nodes"] = new_nodes
+
+    def _normalize_nodes_array(self, data: dict, node_id_map: Dict[Any, str]) -> None:
+        """Normalize node IDs in a nodes array."""
+        for node in data["nodes"]:
+            if "id" in node:
+                node["id"] = node_id_map.get(node["id"], node["id"])
+
+    def _normalize_connections(self, data: dict, node_id_map: Dict[Any, str]) -> None:
+        """Normalize node IDs in connections."""
+        for conn in data["connections"]:
+            for field in ("from_node", "to_node", "From", "To"):
+                if field in conn:
+                    conn[field] = node_id_map.get(conn[field], conn[field])
+
+    def _normalize_record(self, data: dict, node_id_map: Dict[Any, str]) -> None:
+        """Normalize node IDs in a Record object."""
+        record = data["Record"]
+        for field in ("From", "To"):
+            if field in record:
+                record[field] = node_id_map.get(record[field], record[field])
+
     def _apply_node_id_normalization(self, data: Any, node_id_map: Dict[Any, str]) -> None:
         """Recursively apply node ID normalization throughout the structure."""
         if isinstance(data, dict):
-            # Handle project_structure.Assets.$values[0].Terrain.Nodes format
             if "Nodes" in data and isinstance(data["Nodes"], dict):
-                new_nodes = {}
-                for node_id, node_data in list(data["Nodes"].items()):
-                    new_id, updated_data = self._normalize_single_node(node_id, node_data, node_id_map)
-                    new_nodes[new_id] = updated_data
-                data["Nodes"] = new_nodes
+                self._normalize_nodes_dict(data, node_id_map)
 
-            # Handle nodes array format
             if "nodes" in data and isinstance(data["nodes"], list):
-                for node in data["nodes"]:
-                    if "id" in node:
-                        node["id"] = node_id_map.get(node["id"], node["id"])
+                self._normalize_nodes_array(data, node_id_map)
 
-            # Handle connections
             if "connections" in data and isinstance(data["connections"], list):
-                for conn in data["connections"]:
-                    if "from_node" in conn:
-                        conn["from_node"] = node_id_map.get(conn["from_node"], conn["from_node"])
-                    if "to_node" in conn:
-                        conn["to_node"] = node_id_map.get(conn["to_node"], conn["to_node"])
-                    if "From" in conn:
-                        conn["From"] = node_id_map.get(conn["From"], conn["From"])
-                    if "To" in conn:
-                        conn["To"] = node_id_map.get(conn["To"], conn["To"])
+                self._normalize_connections(data, node_id_map)
 
-            # Handle Record objects (connections embedded in ports)
             if "Record" in data and isinstance(data["Record"], dict):
-                record = data["Record"]
-                if "From" in record:
-                    record["From"] = node_id_map.get(record["From"], record["From"])
-                if "To" in record:
-                    record["To"] = node_id_map.get(record["To"], record["To"])
+                self._normalize_record(data, node_id_map)
 
-            # Handle SelectedNode and similar fields
             if "SelectedNode" in data:
                 data["SelectedNode"] = node_id_map.get(data["SelectedNode"], data["SelectedNode"])
 
-            # Recursively process nested structures
             for _, value in data.items():
                 self._apply_node_id_normalization(value, node_id_map)
 

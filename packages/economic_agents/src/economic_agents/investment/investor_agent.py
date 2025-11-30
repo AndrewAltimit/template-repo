@@ -1,7 +1,7 @@
 """Investor agent that evaluates and makes investment decisions."""
 
-import uuid
 from typing import Any, Dict, List, Optional
+import uuid
 
 from economic_agents.investment.models import (
     Investment,

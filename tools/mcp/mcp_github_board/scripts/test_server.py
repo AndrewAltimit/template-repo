@@ -2,8 +2,8 @@
 """Test script for GitHub Board MCP Server"""
 
 import asyncio
-import sys
 from pathlib import Path
+import sys
 
 import aiohttp
 

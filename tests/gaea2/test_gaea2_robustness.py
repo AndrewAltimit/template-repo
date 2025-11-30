@@ -6,11 +6,11 @@ Comprehensive test of Gaea2 MCP robustness improvements
 import asyncio
 import json
 import os
+from pathlib import Path
 import sys
 import tempfile
 import time
 import unittest.mock
-from pathlib import Path
 
 import pytest
 

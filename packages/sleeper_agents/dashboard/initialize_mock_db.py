@@ -6,8 +6,8 @@ This script should be run before starting the dashboard to ensure data availabil
 """
 
 import logging
-import sys
 from pathlib import Path
+import sys
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))

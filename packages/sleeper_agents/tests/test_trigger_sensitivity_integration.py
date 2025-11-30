@@ -11,10 +11,10 @@ This test verifies that:
 
 import logging
 import os
+from pathlib import Path
 import sqlite3
 import sys
 import tempfile
-from pathlib import Path
 
 from sleeper_agents.database.ingestion import ingest_trigger_sensitivity_results
 from sleeper_agents.database.schema import ensure_trigger_sensitivity_table_exists

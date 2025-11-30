@@ -1,10 +1,10 @@
 """Gaea2 project repair functionality"""
 
+from datetime import datetime
 import json
 import logging
-import shutil
-from datetime import datetime
 from pathlib import Path
+import shutil
 from typing import Any, Dict, List
 
 # Use stubs for now

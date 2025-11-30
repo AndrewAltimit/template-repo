@@ -7,9 +7,9 @@ This module handles:
 - Memory monitoring and optimization
 """
 
-import logging
 from dataclasses import dataclass
 from enum import Enum
+import logging
 from typing import Optional
 
 logger = logging.getLogger(__name__)

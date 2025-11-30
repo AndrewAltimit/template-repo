@@ -20,20 +20,79 @@ def register_tool(name: str):
     return decorator
 
 
+def _perform_transcription(audio_path: str, _server, video_analysis: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Perform audio transcription."""
+    _server.logger.info("Performing transcription...")
+    transcript: Dict[str, Any] = _server.audio_processor.transcribe(audio_path)
+    video_analysis["transcript"] = transcript
+    return transcript
+
+
+def _identify_speakers(audio_path: str, _server, video_analysis: Dict[str, Any], transcript: Optional[Dict[str, Any]]) -> None:
+    """Identify speakers and combine with transcript if available."""
+    _server.logger.info("Identifying speakers...")
+    diarization = _server.audio_processor.diarize_speakers(audio_path)
+    video_analysis["speakers"] = diarization["speakers"]
+    if transcript:
+        combined = _server.audio_processor.combine_transcript_with_speakers(transcript, diarization)
+        video_analysis["segments_with_speakers"] = combined["segments_with_speakers"]
+
+
+def _analyze_audio_levels(audio_path: str, _server, video_analysis: Dict[str, Any]) -> Dict[str, Any]:
+    """Analyze audio levels."""
+    _server.logger.info("Analyzing audio levels...")
+    audio_analysis: Dict[str, Any] = _server.audio_processor.analyze_audio_levels(audio_path)
+    video_analysis["audio_analysis"] = audio_analysis
+    return audio_analysis
+
+
+def _detect_scenes(video_path: str, _server, video_analysis: Dict[str, Any]) -> None:
+    """Detect scene changes in video."""
+    _server.logger.info("Detecting scene changes...")
+    scene_changes = _server.video_processor.detect_scene_changes(video_path)
+    video_analysis["scene_changes"] = scene_changes
+
+
+def _extract_highlights(video_analysis: Dict[str, Any], audio_analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Extract highlights based on audio peaks and keywords."""
+    highlights = []
+
+    # Audio-based highlights
+    for peak_time in audio_analysis.get("peak_moments", []):
+        highlights.append({"time": peak_time, "type": "audio_peak", "confidence": 0.8})
+
+    # Keyword-based highlights (if transcript available)
+    if "transcript" in video_analysis:
+        highlight_keywords = ["important", "key point", "summary", "conclusion", "remember"]
+        transcript = cast(Dict[str, Any], video_analysis["transcript"])
+        for segment in transcript.get("segments", []):
+            text_lower = segment["text"].lower()
+            for keyword in highlight_keywords:
+                if keyword in text_lower:
+                    highlights.append(
+                        {
+                            "time": segment["start"],
+                            "type": "keyword",
+                            "keyword": keyword,
+                            "text": segment["text"],
+                            "confidence": 0.9,
+                        }
+                    )
+                    break  # Only add one highlight per segment
+
+    return highlights
+
+
 @register_tool("video_editor/analyze")
 async def analyze_video(
     video_inputs: List[str], analysis_options: Optional[Dict[str, bool]] = None, _server=None, **_kwargs
 ) -> Dict[str, Any]:
     """Analyze video content without rendering, returns metadata and suggested edits"""
-    # pylint: disable=too-many-nested-blocks  # Video analysis requires nested processing
-
     if not _server:
         return {"error": "Server context not provided"}
-
     if not video_inputs:
         return {"error": "No video inputs provided"}
 
-    # Default analysis options
     if analysis_options is None:
         analysis_options = {"transcribe": True, "identify_speakers": True, "detect_scenes": True, "extract_highlights": True}
 
@@ -47,73 +106,26 @@ async def analyze_video(
                 return {"error": f"Video file not found: {video_path}"}
 
             video_analysis = {"file": video_path, "file_size": os.path.getsize(video_path)}
-
-            # Extract audio for analysis
             audio_path = _server.audio_processor.extract_audio(video_path)
 
             try:
-                # Transcription
+                transcript = None
                 if analysis_options.get("transcribe", True):
-                    _server.logger.info("Performing transcription...")
-                    transcript = _server.audio_processor.transcribe(audio_path)
-                    video_analysis["transcript"] = transcript
+                    transcript = _perform_transcription(audio_path, _server, video_analysis)
 
-                # Speaker identification
                 if analysis_options.get("identify_speakers", True):
-                    _server.logger.info("Identifying speakers...")
-                    diarization = _server.audio_processor.diarize_speakers(audio_path)
-                    video_analysis["speakers"] = diarization["speakers"]
+                    _identify_speakers(audio_path, _server, video_analysis, transcript)
 
-                    # Combine transcript with speakers if both available
-                    if "transcript" in video_analysis:
-                        combined = _server.audio_processor.combine_transcript_with_speakers(transcript, diarization)
-                        video_analysis["segments_with_speakers"] = combined["segments_with_speakers"]
+                audio_analysis = _analyze_audio_levels(audio_path, _server, video_analysis)
 
-                # Audio analysis
-                _server.logger.info("Analyzing audio levels...")
-                audio_analysis = _server.audio_processor.analyze_audio_levels(audio_path)
-                video_analysis["audio_analysis"] = audio_analysis
-
-                # Scene detection
                 if analysis_options.get("detect_scenes", True):
-                    _server.logger.info("Detecting scene changes...")
-                    scene_changes = _server.video_processor.detect_scene_changes(video_path)
-                    video_analysis["scene_changes"] = scene_changes
+                    _detect_scenes(video_path, _server, video_analysis)
 
-                # Extract highlights based on audio peaks and keywords
                 if analysis_options.get("extract_highlights", True):
-                    highlights = []
+                    video_analysis["highlights"] = _extract_highlights(video_analysis, audio_analysis)
 
-                    # Audio-based highlights
-                    if "audio_analysis" in video_analysis:
-                        for peak_time in audio_analysis.get("peak_moments", []):
-                            highlights.append({"time": peak_time, "type": "audio_peak", "confidence": 0.8})
-
-                    # Keyword-based highlights (if transcript available)
-                    if "transcript" in video_analysis:
-                        highlight_keywords = ["important", "key point", "summary", "conclusion", "remember"]
-                        transcript = cast(Dict[str, Any], video_analysis["transcript"])
-                        for segment in transcript.get("segments", []):
-                            text_lower = segment["text"].lower()
-                            for keyword in highlight_keywords:
-                                if keyword in text_lower:
-                                    highlights.append(
-                                        {
-                                            "time": segment["start"],
-                                            "type": "keyword",
-                                            "keyword": keyword,
-                                            "text": segment["text"],
-                                            "confidence": 0.9,
-                                        }
-                                    )
-
-                    video_analysis["highlights"] = highlights
-
-                # Generate editing suggestions
                 video_analysis["suggested_edits"] = _generate_edit_suggestions(video_analysis)
-
             finally:
-                # Clean up temp audio file
                 if os.path.exists(audio_path):
                     os.unlink(audio_path)
 
@@ -540,6 +552,144 @@ async def render_video(
         return {"error": str(e), "job_id": job_id}
 
 
+def _extract_time_range_clips(
+    video_input: str,
+    extraction_criteria: Dict[str, Any],
+    output_dir: str,
+    clips_extracted: List[Dict[str, Any]],
+    _server,
+) -> None:
+    """Extract clips based on time ranges.
+
+    Args:
+        video_input: Path to input video
+        extraction_criteria: Extraction configuration
+        output_dir: Output directory for clips
+        clips_extracted: List to append extracted clips to
+        _server: Server context
+    """
+    for time_range in extraction_criteria.get("time_ranges", []):
+        start_time = time_range[0] - extraction_criteria.get("padding", 0)
+        end_time = time_range[1] + extraction_criteria.get("padding", 0)
+
+        duration = end_time - start_time
+        if duration < extraction_criteria.get("min_clip_length", 0):
+            continue
+        if duration > extraction_criteria.get("max_clip_length", float("inf")):
+            end_time = start_time + extraction_criteria["max_clip_length"]
+
+        output_path = os.path.join(output_dir, f"clip_{len(clips_extracted)+1}_time_{start_time:.1f}-{end_time:.1f}.mp4")
+        _server.video_processor.extract_clip(video_input, max(0, start_time), end_time, output_path)
+
+        clips_extracted.append(
+            {
+                "output_path": output_path,
+                "start_time": start_time,
+                "end_time": end_time,
+                "duration": end_time - start_time,
+                "criteria": "time_range",
+            }
+        )
+
+
+def _extract_keyword_clips(
+    video_input: str,
+    extraction_criteria: Dict[str, Any],
+    video_analysis: Dict[str, Any],
+    output_dir: str,
+    clips_extracted: List[Dict[str, Any]],
+    _server,
+) -> None:
+    """Extract clips based on keywords in transcript.
+
+    Args:
+        video_input: Path to input video
+        extraction_criteria: Extraction configuration
+        video_analysis: Video analysis results
+        output_dir: Output directory for clips
+        clips_extracted: List to append extracted clips to
+        _server: Server context
+    """
+    keywords = [k.lower() for k in extraction_criteria["keywords"]]
+
+    for segment in video_analysis.get("transcript", {}).get("segments", []):
+        text_lower = segment["text"].lower()
+
+        for keyword in keywords:
+            if keyword in text_lower:
+                start_time = segment["start"] - extraction_criteria.get("padding", 0)
+                end_time = segment["end"] + extraction_criteria.get("padding", 0)
+
+                duration = end_time - start_time
+                if duration < extraction_criteria.get("min_clip_length", 0):
+                    center = (start_time + end_time) / 2
+                    half_min = extraction_criteria["min_clip_length"] / 2
+                    start_time = center - half_min
+                    end_time = center + half_min
+
+                if duration > extraction_criteria.get("max_clip_length", float("inf")):
+                    end_time = start_time + extraction_criteria["max_clip_length"]
+
+                output_path = os.path.join(
+                    output_dir, f"clip_{len(clips_extracted)+1}_keyword_{keyword.replace(' ', '_')}.mp4"
+                )
+                _server.video_processor.extract_clip(video_input, max(0, start_time), end_time, output_path)
+
+                clips_extracted.append(
+                    {
+                        "output_path": output_path,
+                        "start_time": start_time,
+                        "end_time": end_time,
+                        "duration": end_time - start_time,
+                        "criteria": "keyword",
+                        "keyword": keyword,
+                        "text": segment["text"],
+                    }
+                )
+                break  # Only extract once per segment
+
+
+def _extract_speaker_clips(
+    video_input: str,
+    extraction_criteria: Dict[str, Any],
+    video_analysis: Dict[str, Any],
+    output_dir: str,
+    clips_extracted: List[Dict[str, Any]],
+    _server,
+) -> None:
+    """Extract clips based on speaker segments.
+
+    Args:
+        video_input: Path to input video
+        extraction_criteria: Extraction configuration
+        video_analysis: Video analysis results
+        output_dir: Output directory for clips
+        clips_extracted: List to append extracted clips to
+        _server: Server context
+    """
+    target_speakers = extraction_criteria["speakers"]
+
+    for segment in video_analysis.get("segments_with_speakers", []):
+        if segment.get("speaker") in target_speakers:
+            start_time = segment["start"] - extraction_criteria.get("padding", 0)
+            end_time = segment["end"] + extraction_criteria.get("padding", 0)
+
+            output_path = os.path.join(output_dir, f"clip_{len(clips_extracted)+1}_speaker_{segment['speaker']}.mp4")
+            _server.video_processor.extract_clip(video_input, max(0, start_time), end_time, output_path)
+
+            clips_extracted.append(
+                {
+                    "output_path": output_path,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "duration": end_time - start_time,
+                    "criteria": "speaker",
+                    "speaker": segment["speaker"],
+                    "text": segment.get("text", ""),
+                }
+            )
+
+
 @register_tool("video_editor/extract_clips")
 async def extract_clips(
     video_input: str,
@@ -549,15 +699,12 @@ async def extract_clips(
     **_kwargs,
 ) -> Dict[str, Any]:
     """Create short clips based on transcript keywords or timestamps"""
-    # pylint: disable=too-many-nested-blocks  # Clip extraction requires nested processing
-
     if not _server:
         return {"error": "Server context not provided"}
 
     if not os.path.exists(video_input):
         return {"error": f"Video file not found: {video_input}"}
 
-    # Default extraction criteria
     if extraction_criteria is None:
         extraction_criteria = {
             "keywords": [],
@@ -574,10 +721,9 @@ async def extract_clips(
     _server.logger.info("Extracting clips from: %s", video_input)
 
     try:
-        clips_extracted: list[dict[str, Any]] = []
-        video_analysis: dict[str, Any] = {}  # Initialize to avoid possibly-used-before-assignment
+        clips_extracted: List[Dict[str, Any]] = []
+        video_analysis: Dict[str, Any] = {}
 
-        # Analyze video if we need transcript or speaker info
         need_analysis = extraction_criteria.get("keywords") or extraction_criteria.get("speakers")
 
         if need_analysis:
@@ -589,109 +735,17 @@ async def extract_clips(
                 },
                 _server=_server,
             )
-
             if "error" in analysis_result:
                 return analysis_result  # type: ignore[no-any-return]
-
             video_analysis = analysis_result["analysis"][video_input]
 
-        # Extract based on time ranges
-        for time_range in extraction_criteria.get("time_ranges", []):
-            start_time = time_range[0] - extraction_criteria.get("padding", 0)
-            end_time = time_range[1] + extraction_criteria.get("padding", 0)
+        _extract_time_range_clips(video_input, extraction_criteria, output_dir, clips_extracted, _server)
 
-            # Enforce clip length limits
-            duration = end_time - start_time
-            if duration < extraction_criteria.get("min_clip_length", 0):
-                continue
-            if duration > extraction_criteria.get("max_clip_length", float("inf")):
-                end_time = start_time + extraction_criteria["max_clip_length"]
-
-            output_path = os.path.join(output_dir, f"clip_{len(clips_extracted)+1}_time_{start_time:.1f}-{end_time:.1f}.mp4")
-
-            _server.video_processor.extract_clip(video_input, max(0, start_time), end_time, output_path)
-
-            clips_extracted.append(
-                {
-                    "output_path": output_path,
-                    "start_time": start_time,
-                    "end_time": end_time,
-                    "duration": end_time - start_time,
-                    "criteria": "time_range",
-                }
-            )
-
-        # Extract based on keywords
         if extraction_criteria.get("keywords") and need_analysis:
-            keywords = [k.lower() for k in extraction_criteria["keywords"]]
+            _extract_keyword_clips(video_input, extraction_criteria, video_analysis, output_dir, clips_extracted, _server)
 
-            for segment in video_analysis.get("transcript", {}).get("segments", []):
-                text_lower = segment["text"].lower()
-
-                for keyword in keywords:
-                    if keyword in text_lower:
-                        start_time = segment["start"] - extraction_criteria.get("padding", 0)
-                        end_time = segment["end"] + extraction_criteria.get("padding", 0)
-
-                        # Enforce clip length limits
-                        duration = end_time - start_time
-                        if duration < extraction_criteria.get("min_clip_length", 0):
-                            # Extend clip to minimum length
-                            center = (start_time + end_time) / 2
-                            half_min = extraction_criteria["min_clip_length"] / 2
-                            start_time = center - half_min
-                            end_time = center + half_min
-
-                        if duration > extraction_criteria.get("max_clip_length", float("inf")):
-                            end_time = start_time + extraction_criteria["max_clip_length"]
-
-                        output_path = os.path.join(
-                            output_dir, f"clip_{len(clips_extracted)+1}_keyword_{keyword.replace(' ', '_')}.mp4"
-                        )
-
-                        _server.video_processor.extract_clip(video_input, max(0, start_time), end_time, output_path)
-
-                        clips_extracted.append(
-                            {
-                                "output_path": output_path,
-                                "start_time": start_time,
-                                "end_time": end_time,
-                                "duration": end_time - start_time,
-                                "criteria": "keyword",
-                                "keyword": keyword,
-                                "text": segment["text"],
-                            }
-                        )
-
-                        break  # Only extract once per segment
-
-        # Extract based on speakers
         if extraction_criteria.get("speakers") and need_analysis:
-            target_speakers = extraction_criteria["speakers"]
-
-            for segment in video_analysis.get("segments_with_speakers", []):
-                if segment.get("speaker") in target_speakers:
-                    start_time = segment["start"] - extraction_criteria.get("padding", 0)
-                    end_time = segment["end"] + extraction_criteria.get("padding", 0)
-
-                    # Merge consecutive segments from same speaker
-                    # (This is simplified - could be more sophisticated)
-
-                    output_path = os.path.join(output_dir, f"clip_{len(clips_extracted)+1}_speaker_{segment['speaker']}.mp4")
-
-                    _server.video_processor.extract_clip(video_input, max(0, start_time), end_time, output_path)
-
-                    clips_extracted.append(
-                        {
-                            "output_path": output_path,
-                            "start_time": start_time,
-                            "end_time": end_time,
-                            "duration": end_time - start_time,
-                            "criteria": "speaker",
-                            "speaker": segment["speaker"],
-                            "text": segment.get("text", ""),
-                        }
-                    )
+            _extract_speaker_clips(video_input, extraction_criteria, video_analysis, output_dir, clips_extracted, _server)
 
         return {
             "video_input": video_input,

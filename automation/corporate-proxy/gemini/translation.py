@@ -7,8 +7,8 @@ Handles bidirectional translation between Gemini and internal company formats.
 import json
 import logging
 import os
-import sys
 from pathlib import Path
+import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 # Add parent to path for shared imports

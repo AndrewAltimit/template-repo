@@ -2,8 +2,8 @@
 """Simple validation script for Blender MCP Server using httpx."""
 
 import asyncio
-import sys
 from pathlib import Path
+import sys
 
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent))

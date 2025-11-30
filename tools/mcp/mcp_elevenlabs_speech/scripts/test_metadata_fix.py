@@ -2,11 +2,11 @@
 """Test that metadata is properly saved and [pause] tags are handled correctly"""
 
 import asyncio
+from datetime import datetime
 import json
 import os
-import sys
-from datetime import datetime
 from pathlib import Path
+import sys
 
 # Add parent directory to path
 parent_dir = Path(__file__).parent.parent.parent

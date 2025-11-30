@@ -9,8 +9,8 @@ This module handles:
 
 import logging
 import os
-import shutil
 from pathlib import Path
+import shutil
 from typing import Optional
 
 logger = logging.getLogger(__name__)

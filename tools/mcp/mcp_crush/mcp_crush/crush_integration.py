@@ -5,10 +5,10 @@ Provides fast AI-powered code generation using Crush
 """
 
 import asyncio
+from datetime import datetime
 import logging
 import os
 import time
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 # Setup logging

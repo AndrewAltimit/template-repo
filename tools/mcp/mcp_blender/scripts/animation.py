@@ -125,88 +125,85 @@ def setup_armature(args, job_id):
         return False
 
 
+def _apply_copy_constraint(obj, constraint_data, constraint_type_name):
+    """Apply copy location or rotation constraint."""
+    constraint = obj.constraints.new(constraint_type_name)
+    target_name = constraint_data.get("target")
+    if target_name:
+        target = bpy.data.objects.get(target_name)
+        if target:
+            constraint.target = target
+    constraint.use_x = constraint_data.get("use_x", True)
+    constraint.use_y = constraint_data.get("use_y", True)
+    constraint.use_z = constraint_data.get("use_z", True)
+
+
+def _apply_track_to_constraint(obj, constraint_data):
+    """Apply track-to constraint."""
+    constraint = obj.constraints.new("TRACK_TO")
+    target_name = constraint_data.get("target")
+    if target_name:
+        target = bpy.data.objects.get(target_name)
+        if target:
+            constraint.target = target
+    constraint.track_axis = constraint_data.get("track_axis", "TRACK_NEGATIVE_Z")
+    constraint.up_axis = constraint_data.get("up_axis", "UP_Y")
+
+
+def _apply_limit_location_constraint(obj, constraint_data):
+    """Apply limit location constraint."""
+    constraint = obj.constraints.new("LIMIT_LOCATION")
+    for axis in ["x", "y", "z"]:
+        min_key = f"min_{axis}"
+        max_key = f"max_{axis}"
+        if min_key in constraint_data:
+            setattr(constraint, f"use_min_{axis}", True)
+            setattr(constraint, f"min_{axis}", constraint_data[min_key])
+        if max_key in constraint_data:
+            setattr(constraint, f"use_max_{axis}", True)
+            setattr(constraint, f"max_{axis}", constraint_data[max_key])
+
+
+def _apply_follow_path_constraint(obj, constraint_data):
+    """Apply follow path constraint."""
+    constraint = obj.constraints.new("FOLLOW_PATH")
+    target_name = constraint_data.get("target")
+    if target_name:
+        target = bpy.data.objects.get(target_name)
+        if target and target.type == "CURVE":
+            constraint.target = target
+    constraint.use_curve_follow = constraint_data.get("follow", True)
+    constraint.forward_axis = constraint_data.get("forward", "FORWARD_X")
+    constraint.up_axis = constraint_data.get("up", "UP_Y")
+
+
 def apply_constraints(args, job_id):
     """Apply animation constraints to objects."""
     try:
-        # Load project
         if "project" in args:
             bpy.ops.wm.open_mainfile(filepath=args["project"])
 
         object_name = args.get("object_name")
         constraints = args.get("constraints", [])
 
-        # Find object
         obj = bpy.data.objects.get(object_name)
         if not obj:
             return False
 
-        # Apply constraints
         for constraint_data in constraints:
             constraint_type = constraint_data.get("type")
-            target_name = constraint_data.get("target")
 
-            # Add constraint
             if constraint_type == "copy_location":
-                constraint = obj.constraints.new("COPY_LOCATION")
-                if target_name:
-                    target = bpy.data.objects.get(target_name)
-                    if target:
-                        constraint.target = target
-                constraint.use_x = constraint_data.get("use_x", True)
-                constraint.use_y = constraint_data.get("use_y", True)
-                constraint.use_z = constraint_data.get("use_z", True)
-
+                _apply_copy_constraint(obj, constraint_data, "COPY_LOCATION")
             elif constraint_type == "copy_rotation":
-                constraint = obj.constraints.new("COPY_ROTATION")
-                if target_name:
-                    target = bpy.data.objects.get(target_name)
-                    if target:
-                        constraint.target = target
-                constraint.use_x = constraint_data.get("use_x", True)
-                constraint.use_y = constraint_data.get("use_y", True)
-                constraint.use_z = constraint_data.get("use_z", True)
-
+                _apply_copy_constraint(obj, constraint_data, "COPY_ROTATION")
             elif constraint_type == "track_to":
-                constraint = obj.constraints.new("TRACK_TO")
-                if target_name:
-                    target = bpy.data.objects.get(target_name)
-                    if target:
-                        constraint.target = target
-                constraint.track_axis = constraint_data.get("track_axis", "TRACK_NEGATIVE_Z")
-                constraint.up_axis = constraint_data.get("up_axis", "UP_Y")
-
+                _apply_track_to_constraint(obj, constraint_data)
             elif constraint_type == "limit_location":
-                constraint = obj.constraints.new("LIMIT_LOCATION")
-                if "min_x" in constraint_data:
-                    constraint.use_min_x = True
-                    constraint.min_x = constraint_data["min_x"]
-                if "max_x" in constraint_data:
-                    constraint.use_max_x = True
-                    constraint.max_x = constraint_data["max_x"]
-                if "min_y" in constraint_data:
-                    constraint.use_min_y = True
-                    constraint.min_y = constraint_data["min_y"]
-                if "max_y" in constraint_data:
-                    constraint.use_max_y = True
-                    constraint.max_y = constraint_data["max_y"]
-                if "min_z" in constraint_data:
-                    constraint.use_min_z = True
-                    constraint.min_z = constraint_data["min_z"]
-                if "max_z" in constraint_data:
-                    constraint.use_max_z = True
-                    constraint.max_z = constraint_data["max_z"]
-
+                _apply_limit_location_constraint(obj, constraint_data)
             elif constraint_type == "follow_path":
-                constraint = obj.constraints.new("FOLLOW_PATH")
-                if target_name:
-                    target = bpy.data.objects.get(target_name)
-                    if target and target.type == "CURVE":
-                        constraint.target = target
-                constraint.use_curve_follow = constraint_data.get("follow", True)
-                constraint.forward_axis = constraint_data.get("forward", "FORWARD_X")
-                constraint.up_axis = constraint_data.get("up", "UP_Y")
+                _apply_follow_path_constraint(obj, constraint_data)
 
-        # Save project
         if "project" in args:
             bpy.ops.wm.save_mainfile()
 

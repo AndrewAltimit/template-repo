@@ -1,18 +1,19 @@
 """Main FastAPI application for GPU Orchestrator."""
 
+from contextlib import asynccontextmanager
 import logging
 import threading
 import time
-from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException, Security
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 
 from api.models import HealthResponse
 from api.routes import jobs, logs, system
 from core.config import settings
 from core.container_manager import ContainerManager
 from core.database import Database
-from fastapi import FastAPI, HTTPException, Security
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import APIKeyHeader
 
 # Configure logging
 logging.basicConfig(

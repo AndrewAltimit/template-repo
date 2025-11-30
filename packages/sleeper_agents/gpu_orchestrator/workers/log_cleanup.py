@@ -1,8 +1,8 @@
 """Log cleanup worker - removes old log files."""
 
+from datetime import datetime, timedelta
 import logging
 import time
-from datetime import datetime, timedelta
 
 from core.config import settings
 

@@ -1,8 +1,8 @@
 """FastAPI application for sleeper agent detection."""
 
+from contextlib import asynccontextmanager
 import logging
 import os
-from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException

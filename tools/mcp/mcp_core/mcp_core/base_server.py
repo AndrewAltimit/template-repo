@@ -1,18 +1,18 @@
 """Base MCP Server implementation with common functionality"""
 
+from abc import ABC, abstractmethod
 import asyncio
+from datetime import datetime
 import json
 import logging
-import uuid
-from abc import ABC, abstractmethod
-from datetime import datetime
 from typing import Any, Dict, List, Optional
+import uuid
 
-import mcp.server.stdio
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from mcp import types
 from mcp.server import InitializationOptions, NotificationOptions, Server
+import mcp.server.stdio
 from pydantic import BaseModel
 
 # from .client_registry import ClientRegistry  # Disabled for home lab use

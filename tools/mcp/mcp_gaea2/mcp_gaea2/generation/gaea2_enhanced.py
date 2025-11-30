@@ -1,11 +1,11 @@
 """Enhanced Gaea 2 MCP Tools with support for advanced features"""
 
 import base64
+from datetime import datetime
 import json
 import os
-import uuid
-from datetime import datetime
 from typing import Any, Dict, List, Optional
+import uuid
 
 
 class EnhancedGaea2Tools:
@@ -262,16 +262,127 @@ class EnhancedGaea2Tools:
             return {"success": False, "error": str(e)}
 
     @staticmethod
+    def _get_default_ports(node_type: str) -> List[Dict[str, str]]:
+        """Get default ports for a node type."""
+        ports = [
+            {"name": "In", "type": "PrimaryIn"},
+            {"name": "Out", "type": "PrimaryOut"},
+        ]
+
+        if node_type == "Erosion2":
+            ports.extend(
+                [{"name": "Flow", "type": "Out"}, {"name": "Wear", "type": "Out"}, {"name": "Deposits", "type": "Out"}]
+            )
+        elif node_type == "Sandstone":
+            ports.append({"name": "Layers", "type": "Out"})
+        elif node_type == "Canyon":
+            ports.append({"name": "Depth", "type": "Out"})
+        elif node_type == "Unity":
+            for i in range(1, 9):
+                ports.extend([{"name": f"Input{i}", "type": "In"}, {"name": f"Output{i}", "type": "Out"}])
+
+        return ports
+
+    @staticmethod
+    def _create_port_objects(
+        port_defs: List[Dict[str, Any]], node_id_ref: str, ref_id_counter: int
+    ) -> tuple[List[Dict[str, Any]], int]:
+        """Create port objects from port definitions."""
+        port_objects = []
+        for port_def in port_defs:
+            port = {
+                "$id": str(ref_id_counter),
+                "Name": port_def["name"],
+                "Type": port_def["type"],
+                "IsExporting": True,
+                "Parent": {"$ref": node_id_ref},
+            }
+            if "portal_state" in port_def:
+                port["PortalState"] = port_def["portal_state"]
+            port_objects.append(port)
+            ref_id_counter += 1
+        return port_objects, ref_id_counter
+
+    @staticmethod
+    def _create_modifier_object(modifier: Dict[str, Any], node_id_ref: str, ref_id_counter: int) -> tuple[Dict[str, Any], int]:
+        """Create a modifier object from modifier definition."""
+        mod_obj = {
+            "$id": str(ref_id_counter),
+            "$type": f"QuadSpinner.Gaea.Nodes.Modifiers.{modifier['type']}, Gaea.Nodes",
+            "Name": modifier["type"],
+            "Parent": {"$ref": node_id_ref},
+            "Intrinsic": True,
+        }
+        ref_id_counter += 1
+
+        if "properties" in modifier:
+            for prop, value in modifier["properties"].items():
+                if isinstance(value, dict) and "x" in value and "y" in value:
+                    mod_obj[prop] = {"$id": str(ref_id_counter), "X": float(value["x"]), "Y": float(value["y"])}
+                    ref_id_counter += 1
+                else:
+                    mod_obj[prop] = value
+
+        if modifier.get("has_ui", False):
+            mod_obj["HasUI"] = True
+        if "order" in modifier:
+            mod_obj["Order"] = modifier["order"]
+
+        return mod_obj, ref_id_counter
+
+    @staticmethod
+    def _create_save_definition(
+        save_def: Dict[str, Any], node_id: int, node_name: str, ref_id_counter: int
+    ) -> tuple[Dict[str, Any], int]:
+        """Create save definition for export nodes."""
+        save_obj = {
+            "$id": str(ref_id_counter),
+            "Node": node_id,
+            "Filename": save_def.get("filename", node_name),
+            "Format": save_def.get("format", "PNG64"),
+            "IsEnabled": save_def.get("enabled", True),
+            "DisabledInProfiles": {"$id": str(ref_id_counter + 1), "$values": save_def.get("disabled_profiles", [])},
+        }
+        return save_obj, ref_id_counter + 2
+
+    @staticmethod
+    def _process_mixer_layers(properties: Dict[str, Any], ref_id_counter: int) -> tuple[Dict[str, Any], int]:
+        """Process Mixer node layer definitions."""
+        layers = {}
+        for i in range(1, 16):
+            layer_key = f"Layer{i}"
+            if layer_key not in properties:
+                continue
+            layer = properties[layer_key]
+            layer_obj = {
+                "$id": str(ref_id_counter),
+                "Range": {
+                    "$id": str(ref_id_counter + 1),
+                    "X": float(layer.get("range", {}).get("x", 0.0)),
+                    "Y": float(layer.get("range", {}).get("y", 1.0)),
+                },
+                "Order": layer.get("order", i - 1),
+                "Index": i - 1,
+            }
+            ref_id_counter += 2
+            if "color" in layer:
+                layer_obj["Color"] = {
+                    "$id": str(ref_id_counter),
+                    "R": float(layer["color"].get("r", 1.0)),
+                    "G": float(layer["color"].get("g", 1.0)),
+                    "B": float(layer["color"].get("b", 1.0)),
+                }
+                ref_id_counter += 1
+            layers[layer_key] = layer_obj
+        return layers, ref_id_counter
+
+    @staticmethod
     async def _create_enhanced_node(node_data: Dict[str, Any], node_id: int, ref_id_counter: int) -> Dict[str, Any]:
         """Create an enhanced node with modifiers, ports, and save definitions"""
-
         node_type = node_data.get("type", "Mountain")
         node_name = node_data.get("name", node_type)
         position = node_data.get("position", {"x": 25000, "y": 25000})
         properties = node_data.get("properties", {})
-        modifiers = node_data.get("modifiers", [])
-        ports = node_data.get("ports", [])
-        save_definition = node_data.get("save_definition")
 
         # Base node structure
         node = {
@@ -279,166 +390,48 @@ class EnhancedGaea2Tools:
             "$type": f"QuadSpinner.Gaea.Nodes.{node_type}, Gaea.Nodes",
             "Id": node_id,
             "Name": node_name,
-            "Position": {
-                "$id": str(ref_id_counter + 1),
-                "X": float(position["x"]),
-                "Y": float(position["y"]),
-            },
+            "Position": {"$id": str(ref_id_counter + 1), "X": float(position["x"]), "Y": float(position["y"])},
             "Ports": {"$id": str(ref_id_counter + 2), "$values": []},
             "Modifiers": {"$id": str(ref_id_counter + 3), "$values": []},
         }
-
+        node_id_ref = str(ref_id_counter)
         ref_id_counter += 4
 
         # Add node-specific properties
         for prop, value in properties.items():
-            # Handle special property types
             if isinstance(value, dict) and "x" in value and "y" in value:
-                # Vector2 property
-                node[prop] = {
-                    "$id": str(ref_id_counter),
-                    "X": float(value["x"]),
-                    "Y": float(value["y"]),
-                }
+                node[prop] = {"$id": str(ref_id_counter), "X": float(value["x"]), "Y": float(value["y"])}
                 ref_id_counter += 1
             elif prop == "StrokeData" and isinstance(value, str):
-                # Binary stroke data
                 node[prop] = value
             else:
                 node[prop] = value
 
-        # Create default ports
-        default_ports = [
-            {"name": "In", "type": "PrimaryIn"},
-            {"name": "Out", "type": "PrimaryOut"},
-        ]
-
-        # Add node-specific ports
-        if node_type == "Erosion2":
-            default_ports.extend(
-                [
-                    {"name": "Flow", "type": "Out"},
-                    {"name": "Wear", "type": "Out"},
-                    {"name": "Deposits", "type": "Out"},
-                ]
-            )
-        elif node_type == "Sandstone":
-            default_ports.append({"name": "Layers", "type": "Out"})
-        elif node_type == "Canyon":
-            default_ports.append({"name": "Depth", "type": "Out"})
-        elif node_type == "Unity":
-            # Unity export node has many input/output pairs
-            for i in range(1, 9):
-                default_ports.extend(
-                    [
-                        {"name": f"Input{i}", "type": "In"},
-                        {"name": f"Output{i}", "type": "Out"},
-                    ]
-                )
-
-        # Override with custom ports if provided
-        if ports:
-            default_ports = ports
-
-        # Create port objects
-        for port_def in default_ports:
-            port = {
-                "$id": str(ref_id_counter),
-                "Name": port_def["name"],
-                "Type": port_def["type"],
-                "IsExporting": True,
-                "Parent": {"$ref": str(node["$id"])},
-            }
-
-            # Add portal state if specified
-            if "portal_state" in port_def:
-                port["PortalState"] = port_def["portal_state"]
-
-            node["Ports"]["$values"].append(port)
-            ref_id_counter += 1
+        # Create ports
+        port_defs = node_data.get("ports") or EnhancedGaea2Tools._get_default_ports(node_type)
+        node["Ports"]["$values"], ref_id_counter = EnhancedGaea2Tools._create_port_objects(
+            port_defs, node_id_ref, ref_id_counter
+        )
 
         # Add modifiers
-        for modifier in modifiers:
-            mod_obj = {
-                "$id": str(ref_id_counter),
-                "$type": f"QuadSpinner.Gaea.Nodes.Modifiers.{modifier['type']}, Gaea.Nodes",
-                "Name": modifier["type"],
-                "Parent": {"$ref": str(node["$id"])},
-                "Intrinsic": True,
-            }
-
-            # Add modifier-specific properties
-            if "properties" in modifier:
-                for prop, value in modifier["properties"].items():
-                    if isinstance(value, dict) and "x" in value and "y" in value:
-                        mod_obj[prop] = {
-                            "$id": str(ref_id_counter + 1),
-                            "X": float(value["x"]),
-                            "Y": float(value["y"]),
-                        }
-                        ref_id_counter += 1
-                    else:
-                        mod_obj[prop] = value
-
-            # Add UI flags
-            if modifier.get("has_ui", False):
-                mod_obj["HasUI"] = True
-
-            if "order" in modifier:
-                mod_obj["Order"] = modifier["order"]
-
+        for modifier in node_data.get("modifiers", []):
+            mod_obj, ref_id_counter = EnhancedGaea2Tools._create_modifier_object(modifier, node_id_ref, ref_id_counter)
             node["Modifiers"]["$values"].append(mod_obj)
-            ref_id_counter += 1
 
         # Add save definition for export nodes
-        if save_definition:
-            node["SaveDefinition"] = {
-                "$id": str(ref_id_counter),
-                "Node": node_id,
-                "Filename": save_definition.get("filename", node_name),
-                "Format": save_definition.get("format", "PNG64"),
-                "IsEnabled": save_definition.get("enabled", True),
-                "DisabledInProfiles": {
-                    "$id": str(ref_id_counter + 1),
-                    "$values": save_definition.get("disabled_profiles", []),
-                },
-            }
-            ref_id_counter += 2
+        if node_data.get("save_definition"):
+            node["SaveDefinition"], ref_id_counter = EnhancedGaea2Tools._create_save_definition(
+                node_data["save_definition"], node_id, node_name, ref_id_counter
+            )
 
-        # Handle special node types
+        # Handle Mixer node layers
         if node_type == "Mixer":
-            # Add layer definitions
-            for i in range(1, 16):
-                layer_key = f"Layer{i}"
-                if layer_key in properties:
-                    layer = properties[layer_key]
-                    node[layer_key] = {
-                        "$id": str(ref_id_counter),
-                        "Range": {
-                            "$id": str(ref_id_counter + 1),
-                            "X": float(layer.get("range", {}).get("x", 0.0)),
-                            "Y": float(layer.get("range", {}).get("y", 1.0)),
-                        },
-                        "Order": layer.get("order", i - 1),
-                        "Index": i - 1,
-                    }
+            layers, ref_id_counter = EnhancedGaea2Tools._process_mixer_layers(properties, ref_id_counter)
+            node.update(layers)
 
-                    if "color" in layer:
-                        node[layer_key]["Color"] = {
-                            "$id": str(ref_id_counter + 2),
-                            "R": float(layer["color"].get("r", 1.0)),
-                            "G": float(layer["color"].get("g", 1.0)),
-                            "B": float(layer["color"].get("b", 1.0)),
-                        }
-                        ref_id_counter += 1
-
-                    ref_id_counter += 2
-
-        # Add node size
+        # Add optional attributes
         if "node_size" in node_data:
             node["NodeSize"] = node_data["node_size"]
-
-        # Add maskable flag
         if node_data.get("is_maskable", True):
             node["IsMaskable"] = True
 

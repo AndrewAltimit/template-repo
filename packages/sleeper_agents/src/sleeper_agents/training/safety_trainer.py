@@ -11,8 +11,8 @@ import random
 import time
 from typing import Any, Dict, List, Optional, Tuple, cast
 
-import torch
 from datasets import Dataset, load_dataset
+import torch
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,

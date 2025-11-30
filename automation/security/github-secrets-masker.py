@@ -7,9 +7,9 @@ Uses .secrets.yaml configuration from repository root.
 
 import json
 import os
+from pathlib import Path
 import re
 import sys
-from pathlib import Path
 
 import yaml
 

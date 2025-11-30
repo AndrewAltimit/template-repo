@@ -4,9 +4,9 @@ Example showing how integration tests can bypass Gaea2 file validation
 when testing invalid terrain generation scenarios.
 """
 import os
+from pathlib import Path
 import sys
 import unittest.mock
-from pathlib import Path
 
 import pytest
 

@@ -3,10 +3,10 @@
 # pylint: disable=too-many-lines  # TODO: Extract GraphQL ops and claim management to separate modules
 
 import asyncio
+from datetime import datetime
 import logging
 import os
 import re
-from datetime import datetime
 from typing import Any, Callable
 
 import aiohttp
@@ -267,6 +267,137 @@ class BoardManager:
 
     # ===== Issue Operations =====
 
+    def _parse_field_values(self, item: dict[str, Any]) -> dict[str, str]:
+        """Parse field values from a project item.
+
+        Args:
+            item: Project item containing field values
+
+        Returns:
+            Dictionary mapping field names to their values
+        """
+        field_values: dict[str, str] = {}
+        for field_value in item.get("fieldValues", {}).get("nodes", []):
+            field_name = field_value.get("field", {}).get("name")
+            if not field_name:
+                continue
+            if "name" in field_value:  # Single select
+                field_values[field_name] = field_value["name"]
+            elif "text" in field_value:  # Text
+                field_values[field_name] = field_value["text"]
+        return field_values
+
+    def _parse_issue_metadata(
+        self, field_values: dict[str, str]
+    ) -> tuple[IssueStatus, IssuePriority, IssueType | None, str | None, list[int]]:
+        """Parse issue metadata from field values.
+
+        Args:
+            field_values: Dictionary of field names to values
+
+        Returns:
+            Tuple of (status, priority, type, agent, blocked_by)
+        """
+        # Parse status
+        status_str = field_values.get(self.config.field_mappings.get("status", "Status"))
+        try:
+            status = IssueStatus(status_str) if status_str else IssueStatus.TODO
+        except ValueError:
+            status = IssueStatus.TODO
+
+        # Parse priority
+        priority_str = field_values.get(self.config.field_mappings.get("priority", "Priority"))
+        try:
+            priority = IssuePriority(priority_str) if priority_str else IssuePriority.MEDIUM
+        except ValueError:
+            priority = IssuePriority.MEDIUM
+
+        # Parse type
+        type_str = field_values.get(self.config.field_mappings.get("type", "Type"))
+        try:
+            issue_type = IssueType(type_str) if type_str else None
+        except ValueError:
+            issue_type = None
+
+        # Get assigned agent
+        assigned_agent = field_values.get(self.config.field_mappings.get("agent", "Agent"))
+
+        # Parse blocked_by field
+        blocked_by_str = field_values.get(self.config.field_mappings.get("blocked_by", "Blocked By"), "")
+        blocked_by: list[int] = []
+        if blocked_by_str:
+            try:
+                blocked_by = [int(num.strip()) for num in blocked_by_str.split(",") if num.strip()]
+            except ValueError:
+                pass
+
+        return status, priority, issue_type, assigned_agent, blocked_by
+
+    def _parse_discovered_from(self, field_values: dict[str, str]) -> int | None:
+        """Parse discovered_from field from field values.
+
+        Args:
+            field_values: Dictionary of field names to values
+
+        Returns:
+            Parent issue number or None
+        """
+        discovered_from_str = field_values.get(self.config.field_mappings.get("discovered_from", "Discovered From"), "")
+        if discovered_from_str:
+            try:
+                return int(discovered_from_str.strip())
+            except ValueError:
+                pass
+        return None
+
+    def _create_issue_from_item(
+        self,
+        item: dict[str, Any],
+        content: dict[str, Any],
+        field_values: dict[str, str],
+        status: IssueStatus,
+        priority: IssuePriority,
+        issue_type: IssueType | None,
+        assigned_agent: str | None,
+        blocked_by: list[int],
+        discovered_from: int | None = None,
+    ) -> Issue:
+        """Create an Issue object from project item data.
+
+        Args:
+            item: Project item data
+            content: Issue content data
+            field_values: Parsed field values
+            status: Issue status
+            priority: Issue priority
+            issue_type: Issue type
+            assigned_agent: Assigned agent name
+            blocked_by: List of blocking issue numbers
+            discovered_from: Parent issue number if discovered from another issue
+
+        Returns:
+            Issue object
+        """
+        labels = [label["name"] for label in content.get("labels", {}).get("nodes", [])]
+
+        return Issue(
+            number=content["number"],
+            title=content["title"],
+            body=content.get("body", ""),
+            state=content["state"].lower(),
+            status=status,
+            priority=priority,
+            type=issue_type,
+            agent=assigned_agent,
+            blocked_by=blocked_by,
+            discovered_from=discovered_from,
+            created_at=datetime.fromisoformat(content["createdAt"].replace("Z", "+00:00")),
+            updated_at=datetime.fromisoformat(content["updatedAt"].replace("Z", "+00:00")),
+            url=content["url"],
+            labels=labels,
+            project_item_id=item["id"],
+        )
+
     async def get_ready_work(self, agent_name: str | None = None, limit: int = 10) -> list[Issue]:
         """
         Get issues ready for work.
@@ -354,61 +485,18 @@ class BoardManager:
             if not content or content.get("state") != "OPEN":
                 continue
 
-            # Parse field values
-            field_values = {}
-            for field_value in item.get("fieldValues", {}).get("nodes", []):
-                field_name = field_value.get("field", {}).get("name")
-                if not field_name:
-                    continue
-
-                # Handle different field types
-                if "name" in field_value:  # Single select
-                    field_values[field_name] = field_value["name"]
-                elif "text" in field_value:  # Text
-                    field_values[field_name] = field_value["text"]
-
-            # Parse status
-            status_str = field_values.get(self.config.field_mappings.get("status", "Status"))
-            try:
-                status = IssueStatus(status_str) if status_str else IssueStatus.TODO
-            except ValueError:
-                status = IssueStatus.TODO
+            field_values = self._parse_field_values(item)
+            status, priority, issue_type, assigned_agent, blocked_by = self._parse_issue_metadata(field_values)
 
             # Skip if not in Todo or Blocked status
             if status not in (IssueStatus.TODO, IssueStatus.BLOCKED):
                 continue
 
-            # Parse priority
-            priority_str = field_values.get(self.config.field_mappings.get("priority", "Priority"))
-            try:
-                priority = IssuePriority(priority_str) if priority_str else IssuePriority.MEDIUM
-            except ValueError:
-                priority = IssuePriority.MEDIUM
-
-            # Parse type
-            type_str = field_values.get(self.config.field_mappings.get("type", "Type"))
-            try:
-                issue_type = IssueType(type_str) if type_str else None
-            except ValueError:
-                issue_type = None
-
-            # Get assigned agent
-            assigned_agent = field_values.get(self.config.field_mappings.get("agent", "Agent"))
-
             # Filter by agent if specified
             if agent_name and assigned_agent != agent_name:
                 continue
 
-            # Parse blocked_by field (comma-separated issue numbers)
-            blocked_by_str = field_values.get(self.config.field_mappings.get("blocked_by", "Blocked By"), "")
-            blocked_by = []
-            if blocked_by_str:
-                try:
-                    blocked_by = [int(num.strip()) for num in blocked_by_str.split(",") if num.strip()]
-                except ValueError:
-                    pass
-
-            # Skip if has open blockers (simplified - full check would verify blocker status)
+            # Skip if has open blockers
             if blocked_by:
                 continue
 
@@ -416,35 +504,17 @@ class BoardManager:
             issue_number = content["number"]
             active_claim = await self._get_active_claim(issue_number)
             if active_claim and not active_claim.is_expired(self.config.claim_timeout):
-                # Skip if claimed by someone else
                 if agent_name and active_claim.agent != agent_name:
                     continue
 
-            # Parse labels
-            labels = [label["name"] for label in content.get("labels", {}).get("nodes", [])]
-
             # Skip if has exclude labels
+            labels = [label["name"] for label in content.get("labels", {}).get("nodes", [])]
             if any(label in self.config.exclude_labels for label in labels):
                 continue
 
-            # Create Issue object
-            issue = Issue(
-                number=issue_number,
-                title=content["title"],
-                body=content.get("body", ""),
-                state=content["state"].lower(),
-                status=status,
-                priority=priority,
-                type=issue_type,
-                agent=assigned_agent,
-                blocked_by=blocked_by,
-                created_at=datetime.fromisoformat(content["createdAt"].replace("Z", "+00:00")),
-                updated_at=datetime.fromisoformat(content["updatedAt"].replace("Z", "+00:00")),
-                url=content["url"],
-                labels=labels,
-                project_item_id=item["id"],
+            issue = self._create_issue_from_item(
+                item, content, field_values, status, priority, issue_type, assigned_agent, blocked_by
             )
-
             ready_issues.append(issue)
 
             if len(ready_issues) >= limit:
@@ -545,79 +615,12 @@ class BoardManager:
             if not content or content.get("number") != issue_number:
                 continue
 
-            # Parse field values
-            field_values = {}
-            for field_value in item.get("fieldValues", {}).get("nodes", []):
-                field_name = field_value.get("field", {}).get("name")
-                if not field_name:
-                    continue
+            field_values = self._parse_field_values(item)
+            status, priority, issue_type, assigned_agent, blocked_by = self._parse_issue_metadata(field_values)
+            discovered_from = self._parse_discovered_from(field_values)
 
-                # Handle different field types
-                if "name" in field_value:  # Single select
-                    field_values[field_name] = field_value["name"]
-                elif "text" in field_value:  # Text
-                    field_values[field_name] = field_value["text"]
-
-            # Parse status
-            status_str = field_values.get(self.config.field_mappings.get("status", "Status"))
-            try:
-                status = IssueStatus(status_str) if status_str else IssueStatus.TODO
-            except ValueError:
-                status = IssueStatus.TODO
-
-            # Parse priority
-            priority_str = field_values.get(self.config.field_mappings.get("priority", "Priority"))
-            try:
-                priority = IssuePriority(priority_str) if priority_str else IssuePriority.MEDIUM
-            except ValueError:
-                priority = IssuePriority.MEDIUM
-
-            # Parse type
-            type_str = field_values.get(self.config.field_mappings.get("type", "Type"))
-            try:
-                issue_type = IssueType(type_str) if type_str else None
-            except ValueError:
-                issue_type = None
-
-            # Get assigned agent
-            assigned_agent = field_values.get(self.config.field_mappings.get("agent", "Agent"))
-
-            # Parse blocked_by field
-            blocked_by_str = field_values.get(self.config.field_mappings.get("blocked_by", "Blocked By"), "")
-            blocked_by = []
-            if blocked_by_str:
-                try:
-                    blocked_by = [int(num.strip()) for num in blocked_by_str.split(",") if num.strip()]
-                except ValueError:
-                    pass
-
-            # Parse discovered_from field
-            discovered_from_str = field_values.get(self.config.field_mappings.get("discovered_from", "Discovered From"), "")
-            discovered_from = None
-            if discovered_from_str:
-                try:
-                    discovered_from = int(discovered_from_str.strip())
-                except ValueError:
-                    pass
-
-            labels = [label["name"] for label in content.get("labels", {}).get("nodes", [])]
-
-            issue = Issue(
-                number=content["number"],
-                title=content["title"],
-                body=content.get("body", ""),
-                state=content["state"].lower(),
-                status=status,
-                priority=priority,
-                type=issue_type,
-                agent=assigned_agent,
-                blocked_by=blocked_by,
-                discovered_from=discovered_from,
-                created_at=datetime.fromisoformat(content["createdAt"].replace("Z", "+00:00")),
-                updated_at=datetime.fromisoformat(content["updatedAt"].replace("Z", "+00:00")),
-                url=content["url"],
-                labels=labels,
-                project_item_id=item["id"],
+            issue = self._create_issue_from_item(
+                item, content, field_values, status, priority, issue_type, assigned_agent, blocked_by, discovered_from
             )
 
             logger.info("Found issue #%s: %s", issue_number, issue.title)

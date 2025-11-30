@@ -3,10 +3,10 @@
 Test Gaea2 MCP server with various template maps to identify schema/validation gaps.
 This script creates diverse terrain templates and analyzes the results.
 """
+from datetime import datetime
 import json
 import os
 import sys
-from datetime import datetime
 from typing import Any, Dict, Tuple
 
 # Add project root to path

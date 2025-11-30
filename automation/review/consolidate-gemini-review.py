@@ -11,8 +11,8 @@ Gemini to consolidate them into a single, well-structured review with:
 """
 
 import asyncio
-import sys
 from pathlib import Path
+import sys
 from typing import List, Tuple
 
 from github_agents.agents.gemini import GeminiAgent

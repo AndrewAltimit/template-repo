@@ -12,9 +12,9 @@ import os
 from typing import Any, Dict, List
 
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import requests
 import streamlit as st
-from plotly.subplots import make_subplots
 
 # Page configuration
 st.set_page_config(

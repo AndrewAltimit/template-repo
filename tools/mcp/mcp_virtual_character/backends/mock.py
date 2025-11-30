@@ -6,8 +6,8 @@ requiring actual external connections.
 """
 
 import asyncio
-import time
 from io import BytesIO
+import time
 from typing import Any, Dict, List, Optional
 
 import numpy as np

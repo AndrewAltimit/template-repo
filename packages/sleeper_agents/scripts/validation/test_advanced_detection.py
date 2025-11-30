@@ -19,8 +19,8 @@ Usage:
 import argparse
 import asyncio
 import logging
-import sys
 from pathlib import Path
+import sys
 
 # Add package root to path (must be before imports)
 repo_root = Path(__file__).parent.parent.parent.parent
