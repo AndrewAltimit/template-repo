@@ -10,7 +10,7 @@ import re
 import subprocess
 import sys
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 import yaml
@@ -478,33 +478,25 @@ Generate the summary now:"""
         return "", NO_MODEL
 
 
-def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any]) -> Tuple[str, str]:
-    """Analyze large PRs by breaking them down into manageable chunks
+def _get_file_category(filepath: str) -> str:
+    """Categorize a file by its path and extension."""
+    if ".github/workflows" in filepath:
+        return "workflows"
+    if filepath.endswith(".py"):
+        return "python"
+    if "docker" in filepath.lower() or filepath.endswith("Dockerfile"):
+        return "docker"
+    if filepath.endswith((".yml", ".yaml", ".json", ".toml")):
+        return "config"
+    if filepath.endswith((".md", ".rst", ".txt")):
+        return "docs"
+    return "other"
 
-    Returns: (analysis, model_used)
-    """
 
-    project_context = get_project_context()
-    file_stats = get_file_stats()
-    diff_size = len(diff)
-
-    # If diff is small enough, use single analysis
-    # Use conservative threshold to avoid ARG_MAX limit (~128KB on most systems)
-    # Leaving room for prompt formatting and context, use 50KB as safe threshold
-    if diff_size < 50000:  # 50KB threshold - avoid ARG_MAX errors
-        return analyze_complete_diff(diff, changed_files, pr_info, project_context, file_stats)
-
-    # For large diffs, analyze by file groups
-    print(f"Large diff detected ({diff_size:,} chars), using chunked analysis...")
-
-    # Get comment summary for context retention across reviews
-    comment_summary, _ = summarize_all_pr_comments(pr_info["number"], pr_info["title"])
-
-    file_chunks = chunk_diff_by_files(diff)
-    model_used = NO_MODEL  # Start with no model, will be updated if any analysis succeeds
-    successful_models = []  # Track which models were successfully used
-
-    # Group files by type for more coherent analysis
+def _group_files_by_category(
+    file_chunks: List[Tuple[str, str]],
+) -> Dict[str, List[Tuple[str, str]]]:
+    """Group file chunks by their category."""
     file_groups: Dict[str, List[Tuple[str, str]]] = {
         "workflows": [],
         "python": [],
@@ -515,28 +507,24 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
     }
 
     for filepath, file_diff in file_chunks:
-        if ".github/workflows" in filepath:
-            file_groups["workflows"].append((filepath, file_diff))
-        elif filepath.endswith(".py"):
-            file_groups["python"].append((filepath, file_diff))
-        elif "docker" in filepath.lower() or filepath.endswith("Dockerfile"):
-            file_groups["docker"].append((filepath, file_diff))
-        elif filepath.endswith((".yml", ".yaml", ".json", ".toml")):
-            file_groups["config"].append((filepath, file_diff))
-        elif filepath.endswith((".md", ".rst", ".txt")):
-            file_groups["docs"].append((filepath, file_diff))
-        else:
-            file_groups["other"].append((filepath, file_diff))
+        category = _get_file_category(filepath)
+        file_groups[category].append((filepath, file_diff))
 
-    # Get recent PR comments for context
-    recent_comments = get_recent_pr_comments(pr_info["number"])
+    return file_groups
 
-    # Create temporary directory for review sections
-    review_dir = Path(f"/tmp/gemini_review_{pr_info['number']}")
-    review_dir.mkdir(exist_ok=True)
 
-    # Analyze each group and save to separate files
+def _analyze_and_save_groups(
+    file_groups: Dict[str, List[Tuple[str, str]]],
+    pr_info: Dict[str, Any],
+    project_context: str,
+    comment_summary: str,
+    recent_comments: str,
+    review_dir: Path,
+) -> Tuple[List[Path], List[str]]:
+    """Analyze each file group and save reviews to files."""
     review_files = []
+    successful_models = []
+
     for group_name, group_files in file_groups.items():
         if not group_files:
             continue
@@ -545,26 +533,17 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
             group_name, group_files, pr_info, project_context, comment_summary, recent_comments
         )
         if group_analysis and group_model != NO_MODEL:
-            # Save to file
             review_file = review_dir / f"review_{group_name}.txt"
             review_file.write_text(group_analysis, encoding="utf-8")
             review_files.append(review_file)
             successful_models.append(group_model)
 
-    # Determine if any analysis succeeded
-    if successful_models:
-        model_used = "default"
-    elif review_files:
-        model_used = "default"
-    else:
-        model_used = NO_MODEL
+    return review_files, successful_models
 
-    # Only return analysis if we have content
-    if not review_files:
-        return "Unable to analyze PR - all file group analyses failed.", NO_MODEL
 
-    # Consolidate reviews using the consolidation script
-    print(f"\nConsolidating {len(review_files)} review sections with Gemini...")
+def _consolidate_reviews(review_dir: Path, pr_info: Dict[str, Any]) -> Optional[str]:
+    """Try to consolidate reviews using the consolidation script."""
+    print("\nConsolidating review sections with Gemini...")
     try:
         consolidate_script = Path(__file__).parent / "consolidate-gemini-review.py"
         result = subprocess.run(
@@ -572,33 +551,35 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
             capture_output=True,
             text=True,
             check=False,
-            timeout=300,  # 5 minute timeout for consolidation
+            timeout=300,
         )
 
         if result.returncode == 0:
-            # Read consolidated review
             consolidated_file = review_dir / "review_consolidated.txt"
             if consolidated_file.exists():
-                consolidated_analysis = consolidated_file.read_text(encoding="utf-8")
-                print("✅ Successfully consolidated reviews")
-                return consolidated_analysis, model_used
-            print("⚠️  Consolidation completed but output file not found, using fallback")
+                print("Successfully consolidated reviews")
+                return consolidated_file.read_text(encoding="utf-8")
+            print("Consolidation completed but output file not found, using fallback")
         else:
-            print(f"⚠️  Consolidation failed: {result.stderr}")
+            print(f"Consolidation failed: {result.stderr}")
             print("   Falling back to simple concatenation")
 
     except Exception as e:
-        print(f"⚠️  Error during consolidation: {e}")
+        print(f"Error during consolidation: {e}")
         print("   Falling back to simple concatenation")
 
-    # Fallback: simple concatenation if consolidation fails
+    return None
+
+
+def _create_fallback_analysis(review_files: List[Path], file_stats: Dict[str, Any]) -> str:
+    """Create a fallback analysis by concatenating review files."""
     analyses = []
     for review_file in review_files:
         group_name = review_file.stem.replace("review_", "").replace("_", " ").title()
         content = review_file.read_text(encoding="utf-8")
         analyses.append(f"### {group_name} Changes\n{content}")
 
-    combined_analysis = f"""## Overall Summary
+    return f"""## Overall Summary
 
 **PR Stats**: {file_stats['files']} files changed, \
 +{file_stats['additions']}/-{file_stats['deletions']} lines
@@ -612,7 +593,46 @@ significant changes across multiple areas of the codebase. Please ensure all \
 changes are tested, especially given the container-first architecture of this project.
 """
 
-    return combined_analysis, model_used
+
+def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any]) -> Tuple[str, str]:
+    """Analyze large PRs by breaking them down into manageable chunks
+
+    Returns: (analysis, model_used)
+    """
+    project_context = get_project_context()
+    file_stats = get_file_stats()
+    diff_size = len(diff)
+
+    # If diff is small enough, use single analysis
+    if diff_size < 50000:
+        return analyze_complete_diff(diff, changed_files, pr_info, project_context, file_stats)
+
+    print(f"Large diff detected ({diff_size:,} chars), using chunked analysis...")
+
+    comment_summary, _ = summarize_all_pr_comments(pr_info["number"], pr_info["title"])
+    file_chunks = chunk_diff_by_files(diff)
+    file_groups = _group_files_by_category(file_chunks)
+    recent_comments = get_recent_pr_comments(pr_info["number"])
+
+    review_dir = Path(f"/tmp/gemini_review_{pr_info['number']}")
+    review_dir.mkdir(exist_ok=True)
+
+    review_files, successful_models = _analyze_and_save_groups(
+        file_groups, pr_info, project_context, comment_summary, recent_comments, review_dir
+    )
+
+    # Determine model used
+    model_used = "default" if successful_models or review_files else NO_MODEL
+
+    if not review_files:
+        return "Unable to analyze PR - all file group analyses failed.", NO_MODEL
+
+    # Try consolidation, fallback to simple concatenation
+    consolidated = _consolidate_reviews(review_dir, pr_info)
+    if consolidated:
+        return consolidated, model_used
+
+    return _create_fallback_analysis(review_files, file_stats), model_used
 
 
 def analyze_file_group(

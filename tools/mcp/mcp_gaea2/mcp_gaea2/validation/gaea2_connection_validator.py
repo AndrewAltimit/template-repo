@@ -33,6 +33,63 @@ class Gaea2ConnectionValidator:
         # Return only validity and errors for compatibility
         return is_valid, errors
 
+    def _validate_single_connection(
+        self, conn: Dict[str, Any], node_map: Dict, node_types: Dict
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """Validate a single connection. Returns (error, warning) or (None, None)."""
+        from_id = conn.get("from_node") or conn.get("source")
+        to_id = conn.get("to_node") or conn.get("target")
+
+        if from_id not in node_map:
+            return f"Connection references non-existent source node ID: {from_id}", None
+        if to_id not in node_map:
+            return f"Connection references non-existent target node ID: {to_id}", None
+
+        from_type = node_types[from_id]
+        to_type = node_types[to_id]
+
+        warning = self._check_connection_pattern(from_type, to_type)
+        return None, warning
+
+    def _check_connection_pattern(self, from_type: str, to_type: str) -> Optional[str]:
+        """Check if a connection pattern is common or unusual."""
+        if from_type not in NODE_CONNECTION_FREQUENCY:
+            return None
+
+        valid_targets = NODE_CONNECTION_FREQUENCY[from_type]
+        if to_type not in valid_targets:
+            if from_type in COMMON_NODE_SEQUENCES and to_type not in COMMON_NODE_SEQUENCES[from_type]:
+                return f"Unusual connection: {from_type} -> {to_type} (common: {', '.join(list(valid_targets.keys())[:3])})"
+            return None
+
+        probability = valid_targets[to_type]
+        if isinstance(probability, str):
+            try:
+                probability = float(probability)
+            except ValueError:
+                probability = 0.5
+        if probability < 0.1:
+            return f"Rare connection: {from_type} -> {to_type} (only {probability:.0%} of cases)"
+        return None
+
+    def _check_orphaned_nodes(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> List[str]:
+        """Check for nodes that are not connected to anything."""
+        warnings = []
+        connected_ids = set()
+        for conn in connections:
+            connected_ids.add(conn.get("from_node") or conn.get("source"))
+            connected_ids.add(conn.get("to_node") or conn.get("target"))
+
+        standalone_types = {"Export", "Unity", "Unreal", "File"}
+        for i, node in enumerate(nodes):
+            node_id = node.get("id", f"node_{i}")
+            if node_id not in connected_ids:
+                node_type = node.get("type", "Unknown")
+                if node_type not in standalone_types:
+                    node_name = node.get("name", f"node_{node_id}")
+                    warnings.append(f"Node '{node_name}' ({node_type}) is not connected")
+        return warnings
+
     def validate_connections(
         self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
     ) -> Tuple[bool, List[str], List[str]]:
@@ -47,78 +104,23 @@ class Gaea2ConnectionValidator:
         errors = []
         warnings = []
 
-        # Build lookup structures
         node_map = {n.get("id", f"node_{i}"): n for i, n in enumerate(nodes)}
         node_types = {n.get("id", f"node_{i}"): n.get("type", "Unknown") for i, n in enumerate(nodes)}
 
-        # Check basic connection validity
         for conn in connections:
-            # Handle both formats: from_node/to_node and source/target
-            from_id = conn.get("from_node") or conn.get("source")
-            to_id = conn.get("to_node") or conn.get("target")
+            error, warning = self._validate_single_connection(conn, node_map, node_types)
+            if error:
+                errors.append(error)
+            if warning:
+                warnings.append(warning)
 
-            # Check if nodes exist
-            if from_id not in node_map:
-                errors.append(f"Connection references non-existent source node ID: {from_id}")
-                continue
-            if to_id not in node_map:
-                errors.append(f"Connection references non-existent target node ID: {to_id}")
-                continue
+        warnings.extend(self._check_orphaned_nodes(nodes, connections))
 
-            from_type = node_types[from_id]
-            to_type = node_types[to_id]
-
-            # Check if connection makes sense based on patterns
-            if from_type in NODE_CONNECTION_FREQUENCY:
-                valid_targets = NODE_CONNECTION_FREQUENCY[from_type]
-                if to_type not in valid_targets:
-                    # Check if it's in common sequences
-                    if from_type in COMMON_NODE_SEQUENCES:
-                        if to_type not in COMMON_NODE_SEQUENCES[from_type]:
-                            warnings.append(
-                                f"Unusual connection: {from_type} → {to_type} "
-                                f"(common: {', '.join(list(valid_targets.keys())[:3])})"
-                            )
-                else:
-                    # Connection exists but might be rare
-                    probability = valid_targets[to_type]
-                    # Ensure probability is numeric for comparison
-                    if isinstance(probability, str):
-                        try:
-                            probability = float(probability)
-                        except ValueError:
-                            probability = 0.5  # Default if conversion fails
-                    if probability < 0.1:
-                        warnings.append(f"Rare connection: {from_type} → {to_type} " f"(only {probability:.0%} of cases)")
-
-        # Check for orphaned nodes
-        connected_ids = set()
-        for conn in connections:
-            # Handle both formats
-            from_id = conn.get("from_node") or conn.get("source")
-            to_id = conn.get("to_node") or conn.get("target")
-            connected_ids.add(from_id)
-            connected_ids.add(to_id)
-
-        for node in nodes:
-            node_id = node.get("id", f"node_{nodes.index(node)}")
-            if node_id not in connected_ids:
-                node_type = node.get("type", "Unknown")
-                # Some nodes can be standalone
-                standalone_types = ["Export", "Unity", "Unreal", "File"]
-                if node_type not in standalone_types:
-                    node_name = node.get("name", f"node_{node_id}")
-                    warnings.append(f"Node '{node_name}' ({node_type}) is not connected")
-
-        # Check for cycles
         cycles = self._detect_cycles(connections)
-        if cycles:
-            for cycle in cycles:
-                # Cycles are errors in Gaea2, not just warnings
-                errors.append(f"Circular dependency detected: {' → '.join(str(n) for n in cycle)}")
-                logger.warning("Detected circular dependency: %s", cycle)
+        for cycle in cycles:
+            errors.append(f"Circular dependency detected: {' -> '.join(str(n) for n in cycle)}")
+            logger.warning("Detected circular dependency: %s", cycle)
 
-        # Check for missing common patterns
         self._check_workflow_patterns(nodes, connections, warnings)
 
         self.warnings = warnings

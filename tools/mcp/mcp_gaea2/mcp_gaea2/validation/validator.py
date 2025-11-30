@@ -37,41 +37,45 @@ class Gaea2Validator:
         self.error_recovery = Gaea2ErrorRecovery()
         self.cli_available = None  # Cache CLI availability status
 
-    async def validate_and_fix(self, workflow: Dict[str, Any], strict_mode: bool = False) -> Dict[str, Any]:
-        """Validate and automatically fix a workflow"""
-
-        nodes = workflow.get("nodes", [])
-        connections = workflow.get("connections", [])
-
-        # Initialize errors list
-        all_errors = []
-        warnings = []
-
-        # Step 1: Validate node structure (check for required fields)
+    def _validate_node_structure(self, nodes: List[Dict[str, Any]]) -> List[str]:
+        """Validate that nodes have required fields."""
+        errors = []
         for i, node in enumerate(nodes):
             if "type" not in node:
-                all_errors.append(f"Node at index {i} (id: {node.get('id', 'unknown')}) missing required 'type' field")
+                errors.append(f"Node at index {i} (id: {node.get('id', 'unknown')}) missing required 'type' field")
             if "id" not in node:
-                all_errors.append(f"Node at index {i} missing required 'id' field")
+                errors.append(f"Node at index {i} missing required 'id' field")
+        return errors
 
-        # Step 2: Validate node types
+    def _validate_node_types(self, nodes: List[Dict[str, Any]]) -> List[str]:
+        """Validate that node types are valid."""
+        errors = []
         for node in nodes:
             node_type = node.get("type")
             if node_type and not self.accurate_validator.validate_node_type(node_type):
-                all_errors.append(f"Invalid node type '{node_type}' for node id '{node.get('id', 'unknown')}'")
+                errors.append(f"Invalid node type '{node_type}' for node id '{node.get('id', 'unknown')}'")
+        return errors
 
-        # Step 3: Validate property count limits for problematic nodes
+    def _validate_property_limits(self, nodes: List[Dict[str, Any]]) -> List[str]:
+        """Validate property count limits for problematic nodes."""
+        errors = []
         for node in nodes:
             node_type = node.get("type")
             if node_type in self.PROPERTY_LIMITED_NODES:
                 prop_count = len(node.get("properties", {}))
                 if prop_count > 3:
-                    all_errors.append(
+                    errors.append(
                         f"Node '{node_type}' (id: {node.get('id', 'unknown')}) has {prop_count} properties. "
                         f"This node type must have <= 3 properties to open in Gaea2."
                     )
+        return errors
 
-        # Step 4: Validate workflow connectivity
+    def _validate_connectivity(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ) -> Tuple[List[str], List[str]]:
+        """Validate workflow connectivity and find orphaned nodes."""
+        errors = []
+        warnings = []
         node_ids = {str(node.get("id")) for node in nodes}
         connected_nodes = set()
 
@@ -80,16 +84,16 @@ class Gaea2Validator:
             target = str(conn.get("target", conn.get("to_node", "")))
 
             if source not in node_ids:
-                all_errors.append(f"Connection references non-existent source node: {source}")
+                errors.append(f"Connection references non-existent source node: {source}")
             else:
                 connected_nodes.add(source)
 
             if target not in node_ids:
-                all_errors.append(f"Connection references non-existent target node: {target}")
+                errors.append(f"Connection references non-existent target node: {target}")
             else:
                 connected_nodes.add(target)
 
-        # Check for orphaned nodes (excluding Export and SatMap which can be endpoints)
+        # Check for orphaned nodes (excluding endpoint types)
         endpoint_types = {"Export", "SatMap", "OutputBuffer"}
         for node in nodes:
             node_id = str(node.get("id"))
@@ -97,7 +101,24 @@ class Gaea2Validator:
             if node_id not in connected_nodes and node_type not in endpoint_types:
                 warnings.append(f"Node '{node_type}' (id: {node_id}) is not connected to any other nodes")
 
-        # If there are structural errors, return early in strict mode
+        return errors, warnings
+
+    async def validate_and_fix(self, workflow: Dict[str, Any], strict_mode: bool = False) -> Dict[str, Any]:
+        """Validate and automatically fix a workflow"""
+        nodes = workflow.get("nodes", [])
+        connections = workflow.get("connections", [])
+
+        all_errors = []
+        warnings = []
+
+        all_errors.extend(self._validate_node_structure(nodes))
+        all_errors.extend(self._validate_node_types(nodes))
+        all_errors.extend(self._validate_property_limits(nodes))
+
+        conn_errors, conn_warnings = self._validate_connectivity(nodes, connections)
+        all_errors.extend(conn_errors)
+        warnings.extend(conn_warnings)
+
         if all_errors and strict_mode:
             return {
                 "valid": False,
@@ -108,22 +129,15 @@ class Gaea2Validator:
                 "workflow": workflow,
             }
 
-        # Use the error recovery system to fix issues
         recovery_result = self.error_recovery.fix_workflow(nodes, connections)
 
-        # Validate connections for circular dependencies
         conn_valid, conn_errors, conn_warnings = self.connection_validator.validate_connections(
             recovery_result["nodes"], recovery_result["connections"]
         )
 
-        # Add connection errors to the main error list
-        if conn_errors:
-            all_errors.extend(conn_errors)
-        if conn_warnings:
-            warnings.extend(conn_warnings)
+        all_errors.extend(conn_errors or [])
+        warnings.extend(conn_warnings or [])
 
-        # For simple workflow validation, we don't use validate_gaea2_project
-        # since it expects a full project structure
         is_valid = len(all_errors) == 0 and conn_valid
 
         return {
