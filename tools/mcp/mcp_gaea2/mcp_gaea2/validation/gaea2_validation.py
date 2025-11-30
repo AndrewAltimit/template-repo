@@ -14,6 +14,47 @@ class Gaea2Validator:
         """Initialize with node property definitions"""
         self.node_properties = node_properties
 
+    def _validate_numeric(self, prop_value: Any, prop_def: Dict[str, Any]) -> Tuple[bool, str]:
+        """Validate numeric/float property."""
+        if not isinstance(prop_value, (int, float)):
+            return False, f"Expected numeric value, got {type(prop_value).__name__}"
+        if "range" in prop_def:
+            min_val = prop_def["range"].get("min", float("-inf"))
+            max_val = prop_def["range"].get("max", float("inf"))
+            if not min_val <= prop_value <= max_val:
+                return False, f"Value {prop_value} outside range [{min_val}, {max_val}]"
+        return True, ""
+
+    def _validate_int(self, prop_value: Any, prop_def: Dict[str, Any]) -> Tuple[bool, str]:
+        """Validate integer property."""
+        if isinstance(prop_value, float):
+            if not prop_value.is_integer():
+                return False, f"Expected integer value, got float {prop_value} with decimal part"
+        elif not isinstance(prop_value, int):
+            return False, f"Expected integer value, got {type(prop_value).__name__}"
+
+        if "range" in prop_def:
+            min_val = prop_def["range"].get("min", 0)
+            max_val = prop_def["range"].get("max", 999999)
+            if not min_val <= prop_value <= max_val:
+                return False, f"Value {prop_value} outside range [{min_val}, {max_val}]"
+        return True, ""
+
+    def _validate_float2(self, prop_value: Any, prop_def: Dict[str, Any]) -> Tuple[bool, str]:
+        """Validate Float2 (2D vector) property."""
+        if not isinstance(prop_value, dict):
+            return False, f"Expected Float2 dict with X,Y components, got {type(prop_value).__name__}"
+        if "X" not in prop_value or "Y" not in prop_value:
+            return False, "Float2 value must have 'X' and 'Y' components"
+        if not isinstance(prop_value["X"], (int, float)) or not isinstance(prop_value["Y"], (int, float)):
+            return False, "Float2 X and Y components must be numeric"
+        if "range" in prop_def:
+            min_val = prop_def["range"].get("min", float("-inf"))
+            max_val = prop_def["range"].get("max", float("inf"))
+            if not (min_val <= prop_value["X"] <= max_val and min_val <= prop_value["Y"] <= max_val):
+                return False, f"Float2 values outside range [{min_val}, {max_val}]"
+        return True, ""
+
     def validate_property_value(self, prop_name: str, prop_value: Any, prop_def: Dict[str, Any]) -> Tuple[bool, str]:
         """
         Validate a single property value against its definition
@@ -24,79 +65,24 @@ class Gaea2Validator:
         prop_type = prop_def.get("type", "numeric")
 
         if prop_type in ("numeric", "float"):
-            if not isinstance(prop_value, (int, float)):
-                return False, f"Expected numeric value, got {type(prop_value).__name__}"
-            # Check range if specified
-            if "range" in prop_def:
-                min_val = prop_def["range"].get("min", float("-inf"))
-                max_val = prop_def["range"].get("max", float("inf"))
-                if not min_val <= prop_value <= max_val:
-                    return (
-                        False,
-                        f"Value {prop_value} outside range [{min_val}, {max_val}]",
-                    )
-
-        elif prop_type == "int":
-            # Accept both int and float for integer properties
-            # This matches Gaea's behavior where many whole numbers are stored as floats
-            if isinstance(prop_value, float):
-                # Check if float is actually a whole number
-                if prop_value.is_integer():
-                    prop_value = int(prop_value)
-                else:
-                    return (
-                        False,
-                        f"Expected integer value, got float {prop_value} with decimal part",
-                    )
-            elif not isinstance(prop_value, int):
-                return False, f"Expected integer value, got {type(prop_value).__name__}"
-
-            # Check range if specified
-            if "range" in prop_def:
-                min_val = prop_def["range"].get("min", 0)
-                max_val = prop_def["range"].get("max", 999999)
-                if not min_val <= prop_value <= max_val:
-                    return (
-                        False,
-                        f"Value {prop_value} outside range [{min_val}, {max_val}]",
-                    )
-
-        elif prop_type in ("bool", "boolean"):
+            return self._validate_numeric(prop_value, prop_def)
+        if prop_type == "int":
+            return self._validate_int(prop_value, prop_def)
+        if prop_type in ("bool", "boolean"):
             if not isinstance(prop_value, bool):
                 return False, f"Expected boolean value, got {type(prop_value).__name__}"
-
-        elif prop_type == "string":
+            return True, ""
+        if prop_type == "string":
             if not isinstance(prop_value, str):
                 return False, f"Expected string value, got {type(prop_value).__name__}"
-
-        elif prop_type == "enum":
+            return True, ""
+        if prop_type == "enum":
             valid_values = prop_def.get("values", [])
             if prop_value not in valid_values:
-                return (
-                    False,
-                    f"Invalid enum value '{prop_value}'. Valid options: {', '.join(valid_values)}",
-                )
-
-        elif prop_type == "float2":
-            # Validate Float2 type (2D vector with X and Y components)
-            if not isinstance(prop_value, dict):
-                return (
-                    False,
-                    f"Expected Float2 dict with X,Y components, got {type(prop_value).__name__}",
-                )
-            if "X" not in prop_value or "Y" not in prop_value:
-                return False, "Float2 value must have 'X' and 'Y' components"
-            if not isinstance(prop_value["X"], (int, float)) or not isinstance(prop_value["Y"], (int, float)):
-                return False, "Float2 X and Y components must be numeric"
-            # Check range if specified
-            if "range" in prop_def:
-                min_val = prop_def["range"].get("min", float("-inf"))
-                max_val = prop_def["range"].get("max", float("inf"))
-                if not (min_val <= prop_value["X"] <= max_val and min_val <= prop_value["Y"] <= max_val):
-                    return (
-                        False,
-                        f"Float2 values outside range [{min_val}, {max_val}]",
-                    )
+                return False, f"Invalid enum value '{prop_value}'. Valid options: {', '.join(valid_values)}"
+            return True, ""
+        if prop_type == "float2":
+            return self._validate_float2(prop_value, prop_def)
 
         return True, ""
 

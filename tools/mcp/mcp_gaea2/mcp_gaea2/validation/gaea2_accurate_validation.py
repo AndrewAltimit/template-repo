@@ -47,6 +47,70 @@ class AccurateGaea2Validator:
         assert isinstance(common_props, dict)
         return common_props
 
+    def _coerce_int_property(
+        self, prop_name: str, prop_value: Any, prop_def: Dict[str, Any], node_type: str
+    ) -> Tuple[bool, Optional[str], Any]:
+        """Coerce and validate integer property."""
+        if isinstance(prop_value, float):
+            if prop_value.is_integer():
+                prop_value = int(prop_value)
+            else:
+                logger.warning("%s.%s: Rounding float %s to int", node_type, prop_name, prop_value)
+                prop_value = int(round(prop_value))
+        elif isinstance(prop_value, str) and prop_value.isdigit():
+            prop_value = int(prop_value)
+        elif not isinstance(prop_value, int):
+            return False, f"Property '{prop_name}' must be an integer", None
+
+        if "range" in prop_def:
+            min_val, max_val = prop_def["range"]
+            if not min_val <= prop_value <= max_val:
+                return False, f"Value {prop_value} outside range [{min_val}, {max_val}]", None
+        return True, None, prop_value
+
+    def _coerce_float_property(
+        self, prop_name: str, prop_value: Any, prop_def: Dict[str, Any]
+    ) -> Tuple[bool, Optional[str], Any]:
+        """Coerce and validate float property."""
+        if not isinstance(prop_value, (int, float)):
+            return False, f"Property '{prop_name}' must be numeric", None
+        prop_value = float(prop_value)
+
+        if "range" in prop_def:
+            min_val, max_val = prop_def["range"]
+            if not min_val <= prop_value <= max_val:
+                return False, f"Value {prop_value} outside range [{min_val}, {max_val}]", None
+        return True, None, prop_value
+
+    def _coerce_bool_property(self, prop_name: str, prop_value: Any) -> Tuple[bool, Optional[str], Any]:
+        """Coerce and validate boolean property."""
+        if isinstance(prop_value, bool):
+            return True, None, prop_value
+        if prop_value in [0, 1, "0", "1", "true", "false", "True", "False"]:
+            return True, None, prop_value in [1, "1", "true", "True", True]
+        return False, f"Property '{prop_name}' must be boolean", None
+
+    def _coerce_enum_property(
+        self, prop_name: str, prop_value: Any, prop_def: Dict[str, Any]
+    ) -> Tuple[bool, Optional[str], Any]:
+        """Coerce and validate enum property."""
+        if "values" not in prop_def:
+            logger.warning("Enum property '%s' missing values definition", prop_name)
+            return True, None, prop_value
+        if prop_value not in prop_def["values"]:
+            return False, f"Value '{prop_value}' not in allowed values: {prop_def['values']}", None
+        return True, None, prop_value
+
+    def _coerce_float2_property(self, prop_name: str, prop_value: Any) -> Tuple[bool, Optional[str], Any]:
+        """Coerce and validate float2 property."""
+        if isinstance(prop_value, dict):
+            if "X" not in prop_value or "Y" not in prop_value:
+                return False, f"Property '{prop_name}' must have X and Y keys", None
+            return True, None, {"X": float(prop_value["X"]), "Y": float(prop_value["Y"])}
+        if isinstance(prop_value, (list, tuple)) and len(prop_value) >= 2:
+            return True, None, {"X": float(prop_value[0]), "Y": float(prop_value[1])}
+        return False, f"Property '{prop_name}' must be a dict with X,Y or a list/tuple", None
+
     def validate_and_coerce_property(self, node_type: str, prop_name: str, prop_value: Any) -> Tuple[bool, Optional[str], Any]:
         """
         Validate and coerce a property value for a node type.
@@ -56,11 +120,9 @@ class AccurateGaea2Validator:
 
         # Check if property exists for this node
         if prop_name not in node_props:
-            # Check common properties
             if prop_name in self.schema["common_properties"]:
                 prop_def = self.schema["common_properties"][prop_name]
             else:
-                # Unknown property - log warning but allow
                 logger.warning("Unknown property '%s' for node type '%s'", prop_name, node_type)
                 return True, None, prop_value
         else:
@@ -68,87 +130,21 @@ class AccurateGaea2Validator:
 
         prop_type = prop_def["type"]
 
-        # Type validation and coercion
+        # Type-specific validation and coercion
         if prop_type == "int":
-            if isinstance(prop_value, float):
-                if prop_value.is_integer():
-                    prop_value = int(prop_value)
-                else:
-                    # Round with warning
-                    logger.warning("%s.%s: Rounding float %s to int", node_type, prop_name, prop_value)
-                    prop_value = int(round(prop_value))
-            elif isinstance(prop_value, str) and prop_value.isdigit():
-                prop_value = int(prop_value)
-            elif not isinstance(prop_value, int):
-                return False, f"Property '{prop_name}' must be an integer", None
+            return self._coerce_int_property(prop_name, prop_value, prop_def, node_type)
+        if prop_type == "float":
+            return self._coerce_float_property(prop_name, prop_value, prop_def)
+        if prop_type == "bool":
+            return self._coerce_bool_property(prop_name, prop_value)
+        if prop_type == "enum":
+            return self._coerce_enum_property(prop_name, prop_value, prop_def)
+        if prop_type == "float2":
+            return self._coerce_float2_property(prop_name, prop_value)
+        if prop_type == "string":
+            return True, None, str(prop_value)
 
-            # Range check
-            if "range" in prop_def:
-                min_val, max_val = prop_def["range"]
-                if not min_val <= prop_value <= max_val:
-                    return (
-                        False,
-                        f"Value {prop_value} outside range [{min_val}, {max_val}]",
-                        None,
-                    )
-
-        elif prop_type == "float":
-            if not isinstance(prop_value, (int, float)):
-                return False, f"Property '{prop_name}' must be numeric", None
-            prop_value = float(prop_value)
-
-            # Range check
-            if "range" in prop_def:
-                min_val, max_val = prop_def["range"]
-                if not min_val <= prop_value <= max_val:
-                    return (
-                        False,
-                        f"Value {prop_value} outside range [{min_val}, {max_val}]",
-                        None,
-                    )
-
-        elif prop_type == "bool":
-            if not isinstance(prop_value, bool):
-                # Coerce common boolean representations
-                if prop_value in [0, 1, "0", "1", "true", "false", "True", "False"]:
-                    prop_value = prop_value in [1, "1", "true", "True", True]
-                else:
-                    return False, f"Property '{prop_name}' must be boolean", None
-
-        elif prop_type == "enum":
-            if "values" not in prop_def:
-                logger.warning("Enum property '%s' missing values definition", prop_name)
-                return True, None, prop_value
-
-            if prop_value not in prop_def["values"]:
-                return (
-                    False,
-                    f"Value '{prop_value}' not in allowed values: {prop_def['values']}",
-                    None,
-                )
-
-        elif prop_type == "float2":
-            if isinstance(prop_value, dict):
-                if "X" not in prop_value or "Y" not in prop_value:
-                    return False, f"Property '{prop_name}' must have X and Y keys", None
-                # Ensure X and Y are floats
-                prop_value = {"X": float(prop_value["X"]), "Y": float(prop_value["Y"])}
-            elif isinstance(prop_value, (list, tuple)) and len(prop_value) >= 2:
-                prop_value = {"X": float(prop_value[0]), "Y": float(prop_value[1])}
-            else:
-                return (
-                    False,
-                    f"Property '{prop_name}' must be a dict with X,Y or a list/tuple",
-                    None,
-                )
-
-        elif prop_type == "string":
-            prop_value = str(prop_value)
-
-        else:
-            # Unknown type, pass through
-            logger.warning("Unknown property type '%s' for %s.%s", prop_type, node_type, prop_name)
-
+        logger.warning("Unknown property type '%s' for %s.%s", prop_type, node_type, prop_name)
         return True, None, prop_value
 
     def validate_node(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
