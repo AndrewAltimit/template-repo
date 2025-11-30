@@ -6,19 +6,11 @@ This script checks files and directories without requiring dependencies.
 
 from pathlib import Path
 import sys
+from typing import Dict, List, Tuple
 
 
-def check_structure():
-    """Check that all required files and directories exist."""
-
-    base_path = Path(__file__).parent.parent
-
-    print("=" * 60)
-    print("SLEEPER AGENT DETECTION - STRUCTURE VALIDATION")
-    print("=" * 60)
-    print()
-
-    # Define required structure
+def _get_required_structure() -> Tuple[List[str], Dict[str, List[str]]]:
+    """Return the required directory and file structure."""
     required_dirs = [
         "app",
         "api",
@@ -45,92 +37,95 @@ def check_structure():
         ".": ["__init__.py", "server.py"],
     }
 
-    errors = []
-    warnings = []
+    return required_dirs, required_files
 
-    # Check directories
+
+def _check_directories(base_path: Path, required_dirs: List[str], errors: List[str]) -> None:
+    """Check that required directories exist."""
     print("Checking directories...")
     for dir_name in required_dirs:
         dir_path = base_path / dir_name
         if dir_path.exists():
-            print(f"  ✓ {dir_name}/")
+            print(f"  [OK] {dir_name}/")
         else:
             errors.append(f"Missing directory: {dir_name}")
-            print(f"  ✗ {dir_name}/ - MISSING")
+            print(f"  [X] {dir_name}/ - MISSING")
 
+
+def _check_files(base_path: Path, required_files: Dict[str, List[str]], errors: List[str], warnings: List[str]) -> None:
+    """Check that required files exist and are not empty."""
     print()
     print("Checking files...")
-
-    # Check files
     for dir_name, files in required_files.items():
         dir_path = base_path if dir_name == "." else base_path / dir_name
-
         for file_name in files:
             file_path = dir_path / file_name
             if file_path.exists():
                 size = file_path.stat().st_size
                 if size == 0:
                     warnings.append(f"Empty file: {dir_name}/{file_name}")
-                    print(f"  ⚠ {dir_name}/{file_name} (empty)")
+                    print(f"  [!] {dir_name}/{file_name} (empty)")
                 else:
-                    print(f"  ✓ {dir_name}/{file_name} ({size} bytes)")
+                    print(f"  [OK] {dir_name}/{file_name} ({size} bytes)")
             else:
                 errors.append(f"Missing file: {dir_name}/{file_name}")
-                print(f"  ✗ {dir_name}/{file_name} - MISSING")
+                print(f"  [X] {dir_name}/{file_name} - MISSING")
 
+
+def _check_docker_config(root_path: Path, errors: List[str], warnings: List[str]) -> None:
+    """Check Docker files and docker-compose configuration."""
     print()
-
-    # Check Docker files
     print("Checking Docker configuration...")
     docker_files = [
-        Path(__file__).parent.parent.parent.parent.parent / "docker" / "mcp-sleeper-agents.Dockerfile",
-        Path(__file__).parent.parent.parent.parent.parent / "config" / "python" / "requirements-sleeper-agents.txt",
+        root_path / "docker" / "mcp-sleeper-agents.Dockerfile",
+        root_path / "config" / "python" / "requirements-sleeper-agents.txt",
     ]
 
     for file_path in docker_files:
         if file_path.exists():
-            print(f"  ✓ {file_path.name}")
+            print(f"  [OK] {file_path.name}")
         else:
             errors.append(f"Missing Docker file: {file_path.name}")
-            print(f"  ✗ {file_path.name} - MISSING")
+            print(f"  [X] {file_path.name} - MISSING")
 
     # Check automation scripts
     print()
     print("Checking automation scripts...")
-    automation_path = Path(__file__).parent.parent.parent.parent.parent / "automation" / "sleeper-agents" / "windows"
-
+    automation_path = root_path / "automation" / "sleeper-agents" / "windows"
     automation_files = ["launch_gpu.bat", "launch_gpu.ps1", "launch_cpu.ps1"]
 
     for file_name in automation_files:
         file_path = automation_path / file_name
         if file_path.exists():
-            print(f"  ✓ {file_name}")
+            print(f"  [OK] {file_name}")
         else:
             warnings.append(f"Missing automation script: {file_name}")
-            print(f"  ⚠ {file_name} - MISSING")
+            print(f"  [!] {file_name} - MISSING")
 
-    # Check docker-compose.yml for service definition
+    # Check docker-compose.yml
     print()
     print("Checking Docker Compose configuration...")
-    compose_path = Path(__file__).parent.parent.parent.parent.parent / "docker-compose.yml"
+    compose_path = root_path / "docker-compose.yml"
 
     if compose_path.exists():
         with open(compose_path, "r", encoding="utf-8") as f:
             content = f.read()
             if "mcp-sleeper-agents" in content:
-                print("  ✓ Service 'mcp-sleeper-agents' found in docker-compose.yml")
+                print("  [OK] Service 'mcp-sleeper-agents' found in docker-compose.yml")
             else:
                 errors.append("Service 'mcp-sleeper-agents' not found in docker-compose.yml")
-                print("  ✗ Service definition missing")
+                print("  [X] Service definition missing")
 
             if "sleeper-vectordb" in content:
-                print("  ✓ Service 'sleeper-vectordb' found in docker-compose.yml")
+                print("  [OK] Service 'sleeper-vectordb' found in docker-compose.yml")
             else:
                 warnings.append("Service 'sleeper-vectordb' not found in docker-compose.yml")
     else:
         errors.append("docker-compose.yml not found")
 
-    # Summary
+
+def _print_validation_summary(errors: List[str], warnings: List[str]) -> bool:
+    """Print validation summary and return success status."""
     print()
     print("=" * 60)
     print("VALIDATION SUMMARY")
@@ -146,21 +141,39 @@ def check_structure():
         print("3. Or test locally with CPU:")
         print("   docker-compose --profile detection up mcp-sleeper-agents")
         return True
-    else:
-        if errors:
-            print(f"[FAILED] Found {len(errors)} error(s):")
-            for error in errors:
-                print(f"   - {error}")
 
-        if warnings:
-            print(f"[WARNING]  Found {len(warnings)} warning(s):")
-            for warning in warnings:
-                print(f"   - {warning}")
+    if errors:
+        print(f"[FAILED] Found {len(errors)} error(s):")
+        for error in errors:
+            print(f"   - {error}")
 
-        return False
+    if warnings:
+        print(f"[WARNING]  Found {len(warnings)} warning(s):")
+        for warning in warnings:
+            print(f"   - {warning}")
 
-    print()
+    return False
+
+
+def check_structure():
+    """Check that all required files and directories exist."""
+    base_path = Path(__file__).parent.parent
+    root_path = Path(__file__).parent.parent.parent.parent.parent
+
     print("=" * 60)
+    print("SLEEPER AGENT DETECTION - STRUCTURE VALIDATION")
+    print("=" * 60)
+    print()
+
+    required_dirs, required_files = _get_required_structure()
+    errors: List[str] = []
+    warnings: List[str] = []
+
+    _check_directories(base_path, required_dirs, errors)
+    _check_files(base_path, required_files, errors, warnings)
+    _check_docker_config(root_path, errors, warnings)
+
+    return _print_validation_summary(errors, warnings)
 
 
 def check_ports():

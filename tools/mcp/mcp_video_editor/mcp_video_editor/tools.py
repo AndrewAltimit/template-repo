@@ -20,20 +20,79 @@ def register_tool(name: str):
     return decorator
 
 
+def _perform_transcription(audio_path: str, _server, video_analysis: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Perform audio transcription."""
+    _server.logger.info("Performing transcription...")
+    transcript: Dict[str, Any] = _server.audio_processor.transcribe(audio_path)
+    video_analysis["transcript"] = transcript
+    return transcript
+
+
+def _identify_speakers(audio_path: str, _server, video_analysis: Dict[str, Any], transcript: Optional[Dict[str, Any]]) -> None:
+    """Identify speakers and combine with transcript if available."""
+    _server.logger.info("Identifying speakers...")
+    diarization = _server.audio_processor.diarize_speakers(audio_path)
+    video_analysis["speakers"] = diarization["speakers"]
+    if transcript:
+        combined = _server.audio_processor.combine_transcript_with_speakers(transcript, diarization)
+        video_analysis["segments_with_speakers"] = combined["segments_with_speakers"]
+
+
+def _analyze_audio_levels(audio_path: str, _server, video_analysis: Dict[str, Any]) -> Dict[str, Any]:
+    """Analyze audio levels."""
+    _server.logger.info("Analyzing audio levels...")
+    audio_analysis: Dict[str, Any] = _server.audio_processor.analyze_audio_levels(audio_path)
+    video_analysis["audio_analysis"] = audio_analysis
+    return audio_analysis
+
+
+def _detect_scenes(video_path: str, _server, video_analysis: Dict[str, Any]) -> None:
+    """Detect scene changes in video."""
+    _server.logger.info("Detecting scene changes...")
+    scene_changes = _server.video_processor.detect_scene_changes(video_path)
+    video_analysis["scene_changes"] = scene_changes
+
+
+def _extract_highlights(video_analysis: Dict[str, Any], audio_analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Extract highlights based on audio peaks and keywords."""
+    highlights = []
+
+    # Audio-based highlights
+    for peak_time in audio_analysis.get("peak_moments", []):
+        highlights.append({"time": peak_time, "type": "audio_peak", "confidence": 0.8})
+
+    # Keyword-based highlights (if transcript available)
+    if "transcript" in video_analysis:
+        highlight_keywords = ["important", "key point", "summary", "conclusion", "remember"]
+        transcript = cast(Dict[str, Any], video_analysis["transcript"])
+        for segment in transcript.get("segments", []):
+            text_lower = segment["text"].lower()
+            for keyword in highlight_keywords:
+                if keyword in text_lower:
+                    highlights.append(
+                        {
+                            "time": segment["start"],
+                            "type": "keyword",
+                            "keyword": keyword,
+                            "text": segment["text"],
+                            "confidence": 0.9,
+                        }
+                    )
+                    break  # Only add one highlight per segment
+
+    return highlights
+
+
 @register_tool("video_editor/analyze")
 async def analyze_video(
     video_inputs: List[str], analysis_options: Optional[Dict[str, bool]] = None, _server=None, **_kwargs
 ) -> Dict[str, Any]:
     """Analyze video content without rendering, returns metadata and suggested edits"""
-    # pylint: disable=too-many-nested-blocks  # Video analysis requires nested processing
-
     if not _server:
         return {"error": "Server context not provided"}
-
     if not video_inputs:
         return {"error": "No video inputs provided"}
 
-    # Default analysis options
     if analysis_options is None:
         analysis_options = {"transcribe": True, "identify_speakers": True, "detect_scenes": True, "extract_highlights": True}
 
@@ -47,73 +106,26 @@ async def analyze_video(
                 return {"error": f"Video file not found: {video_path}"}
 
             video_analysis = {"file": video_path, "file_size": os.path.getsize(video_path)}
-
-            # Extract audio for analysis
             audio_path = _server.audio_processor.extract_audio(video_path)
 
             try:
-                # Transcription
+                transcript = None
                 if analysis_options.get("transcribe", True):
-                    _server.logger.info("Performing transcription...")
-                    transcript = _server.audio_processor.transcribe(audio_path)
-                    video_analysis["transcript"] = transcript
+                    transcript = _perform_transcription(audio_path, _server, video_analysis)
 
-                # Speaker identification
                 if analysis_options.get("identify_speakers", True):
-                    _server.logger.info("Identifying speakers...")
-                    diarization = _server.audio_processor.diarize_speakers(audio_path)
-                    video_analysis["speakers"] = diarization["speakers"]
+                    _identify_speakers(audio_path, _server, video_analysis, transcript)
 
-                    # Combine transcript with speakers if both available
-                    if "transcript" in video_analysis:
-                        combined = _server.audio_processor.combine_transcript_with_speakers(transcript, diarization)
-                        video_analysis["segments_with_speakers"] = combined["segments_with_speakers"]
+                audio_analysis = _analyze_audio_levels(audio_path, _server, video_analysis)
 
-                # Audio analysis
-                _server.logger.info("Analyzing audio levels...")
-                audio_analysis = _server.audio_processor.analyze_audio_levels(audio_path)
-                video_analysis["audio_analysis"] = audio_analysis
-
-                # Scene detection
                 if analysis_options.get("detect_scenes", True):
-                    _server.logger.info("Detecting scene changes...")
-                    scene_changes = _server.video_processor.detect_scene_changes(video_path)
-                    video_analysis["scene_changes"] = scene_changes
+                    _detect_scenes(video_path, _server, video_analysis)
 
-                # Extract highlights based on audio peaks and keywords
                 if analysis_options.get("extract_highlights", True):
-                    highlights = []
+                    video_analysis["highlights"] = _extract_highlights(video_analysis, audio_analysis)
 
-                    # Audio-based highlights
-                    if "audio_analysis" in video_analysis:
-                        for peak_time in audio_analysis.get("peak_moments", []):
-                            highlights.append({"time": peak_time, "type": "audio_peak", "confidence": 0.8})
-
-                    # Keyword-based highlights (if transcript available)
-                    if "transcript" in video_analysis:
-                        highlight_keywords = ["important", "key point", "summary", "conclusion", "remember"]
-                        transcript = cast(Dict[str, Any], video_analysis["transcript"])
-                        for segment in transcript.get("segments", []):
-                            text_lower = segment["text"].lower()
-                            for keyword in highlight_keywords:
-                                if keyword in text_lower:
-                                    highlights.append(
-                                        {
-                                            "time": segment["start"],
-                                            "type": "keyword",
-                                            "keyword": keyword,
-                                            "text": segment["text"],
-                                            "confidence": 0.9,
-                                        }
-                                    )
-
-                    video_analysis["highlights"] = highlights
-
-                # Generate editing suggestions
                 video_analysis["suggested_edits"] = _generate_edit_suggestions(video_analysis)
-
             finally:
-                # Clean up temp audio file
                 if os.path.exists(audio_path):
                     os.unlink(audio_path)
 
