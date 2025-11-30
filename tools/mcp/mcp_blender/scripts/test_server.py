@@ -406,6 +406,77 @@ async def run_selected_demo(demo_type: str):
         print("Available demos: render, physics, animation, geometry, all")
 
 
+async def _cmd_projects(client: BlenderMCPClient, _args: list) -> None:
+    """Handle 'projects' command."""
+    if client.projects:
+        for name, path in client.projects.items():
+            print(f"  {name}: {path}")
+    else:
+        print("No projects created yet")
+
+
+async def _cmd_jobs(client: BlenderMCPClient, _args: list) -> None:
+    """Handle 'jobs' command."""
+    if client.jobs:
+        for job_id, info in client.jobs.items():
+            print(f"  {job_id}: {info['type']} - {info['project']}")
+    else:
+        print("No jobs running")
+
+
+async def _cmd_create(client: BlenderMCPClient, args: list) -> None:
+    """Handle 'create' command."""
+    if len(args) < 1:
+        print("Usage: create <name> [template]")
+        return
+    name = args[0]
+    template = args[1] if len(args) > 1 else "basic_scene"
+    result = await client.create_project(name, template)
+    print(f"Created: {result.get('project_path', 'ERROR')}")
+
+
+async def _cmd_render(client: BlenderMCPClient, args: list) -> None:
+    """Handle 'render' command."""
+    if len(args) < 1:
+        print("Usage: render <project>")
+        return
+    project = args[0]
+    result = await client.render_image(project, wait=False)
+    if "job_id" in result:
+        print(f"Render started: {result['job_id']}")
+    else:
+        print(f"Error: {result}")
+
+
+async def _cmd_status(client: BlenderMCPClient, args: list) -> None:
+    """Handle 'status' command."""
+    if len(args) < 1:
+        print("Usage: status <job_id>")
+        return
+    job_id = args[0]
+    status = await client.call_tool("get_job_status", {"job_id": job_id})
+    print(f"Status: {status.get('status')} ({status.get('progress', 0)}%)")
+
+
+async def _cmd_demo(client: BlenderMCPClient, args: list) -> None:  # noqa: ARG001
+    """Handle 'demo' command."""
+    if len(args) < 1:
+        print("Usage: demo <type>")
+        return
+    await run_selected_demo(args[0])
+
+
+# Command dispatch table
+_INTERACTIVE_COMMANDS: Dict[str, Any] = {
+    "projects": _cmd_projects,
+    "jobs": _cmd_jobs,
+    "create": _cmd_create,
+    "render": _cmd_render,
+    "status": _cmd_status,
+    "demo": _cmd_demo,
+}
+
+
 async def interactive_mode():
     """Interactive testing mode."""
     client = BlenderMCPClient()
@@ -432,42 +503,9 @@ async def interactive_mode():
             if cmd == "exit":
                 break
 
-            if cmd == "projects":
-                if client.projects:
-                    for name, path in client.projects.items():
-                        print(f"  {name}: {path}")
-                else:
-                    print("No projects created yet")
-
-            elif cmd == "jobs":
-                if client.jobs:
-                    for job_id, info in client.jobs.items():
-                        print(f"  {job_id}: {info['type']} - {info['project']}")
-                else:
-                    print("No jobs running")
-
-            elif cmd == "create" and len(command) > 1:
-                name = command[1]
-                template = command[2] if len(command) > 2 else "basic_scene"
-                result = await client.create_project(name, template)
-                print(f"Created: {result.get('project_path', 'ERROR')}")
-
-            elif cmd == "render" and len(command) > 1:
-                project = command[1]
-                result = await client.render_image(project, wait=False)
-                if "job_id" in result:
-                    print(f"Render started: {result['job_id']}")
-                else:
-                    print(f"Error: {result}")
-
-            elif cmd == "status" and len(command) > 1:
-                job_id = command[1]
-                status = await client.call_tool("get_job_status", {"job_id": job_id})
-                print(f"Status: {status.get('status')} ({status.get('progress', 0)}%)")
-
-            elif cmd == "demo" and len(command) > 1:
-                await run_selected_demo(command[1])
-
+            handler = _INTERACTIVE_COMMANDS.get(cmd)
+            if handler:
+                await handler(client, command[1:])
             else:
                 print("Unknown command or missing arguments")
 

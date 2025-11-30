@@ -2159,6 +2159,58 @@ def get_node_ports(node_type: str) -> Dict[str, List[Dict[str, Any]]]:
     }
 
 
+def _validate_float_property(prop_name: str, prop_value: Any, prop_def: Dict[str, Any]) -> Tuple[str | None, str | None]:
+    """Validate a float property. Returns (error, warning)."""
+    if not isinstance(prop_value, (int, float)):
+        return f"Property '{prop_name}' should be numeric, got {type(prop_value).__name__}", None
+
+    if "range" in prop_def:
+        min_val = prop_def["range"].get("min", float("-inf"))
+        max_val = prop_def["range"].get("max", float("inf"))
+        if not min_val <= prop_value <= max_val:
+            return None, f"Property '{prop_name}' value {prop_value} outside recommended range [{min_val}, {max_val}]"
+    return None, None
+
+
+def _validate_int_property(prop_name: str, prop_value: Any, _prop_def: Dict[str, Any]) -> Tuple[str | None, str | None]:
+    """Validate an int property. Returns (error, warning)."""
+    if not isinstance(prop_value, int):
+        return f"Property '{prop_name}' should be integer, got {type(prop_value).__name__}", None
+    return None, None
+
+
+def _validate_bool_property(prop_name: str, prop_value: Any, _prop_def: Dict[str, Any]) -> Tuple[str | None, str | None]:
+    """Validate a bool property. Returns (error, warning)."""
+    if not isinstance(prop_value, bool):
+        return f"Property '{prop_name}' should be boolean, got {type(prop_value).__name__}", None
+    return None, None
+
+
+def _validate_enum_property(prop_name: str, prop_value: Any, prop_def: Dict[str, Any]) -> Tuple[str | None, str | None]:
+    """Validate an enum property. Returns (error, warning)."""
+    options = prop_def.get("options", [])
+    if prop_value not in options:
+        return f"Property '{prop_name}' value '{prop_value}' not in valid options: {', '.join(options)}", None
+    return None, None
+
+
+def _validate_string_property(prop_name: str, prop_value: Any, _prop_def: Dict[str, Any]) -> Tuple[str | None, str | None]:
+    """Validate a string property. Returns (error, warning)."""
+    if not isinstance(prop_value, str):
+        return f"Property '{prop_name}' should be string, got {type(prop_value).__name__}", None
+    return None, None
+
+
+# Type validator dispatch table
+_PROPERTY_TYPE_VALIDATORS = {
+    "float": _validate_float_property,
+    "int": _validate_int_property,
+    "bool": _validate_bool_property,
+    "enum": _validate_enum_property,
+    "string": _validate_string_property,
+}
+
+
 def validate_node_properties(node_type: str, properties: Dict[str, Any]) -> Tuple[List[str], List[str]]:
     """Validate node properties against known definitions.
 
@@ -2186,36 +2238,16 @@ def validate_node_properties(node_type: str, properties: Dict[str, Any]) -> Tupl
             warnings.append(f"Unknown property '{prop_name}' for node type {node_type}")
             continue
 
-        # Type validation
+        # Type validation using dispatch table
         expected_type = prop_def.get("type", "float")
+        validator = _PROPERTY_TYPE_VALIDATORS.get(expected_type)
 
-        if expected_type == "float":
-            if not isinstance(prop_value, (int, float)):
-                errors.append(f"Property '{prop_name}' should be numeric, got {type(prop_value).__name__}")
-            elif "range" in prop_def:
-                min_val = prop_def["range"].get("min", float("-inf"))
-                max_val = prop_def["range"].get("max", float("inf"))
-                if not min_val <= prop_value <= max_val:
-                    warnings.append(
-                        f"Property '{prop_name}' value {prop_value} outside " f"recommended range [{min_val}, {max_val}]"
-                    )
-
-        elif expected_type == "int":
-            if not isinstance(prop_value, int):
-                errors.append(f"Property '{prop_name}' should be integer, got {type(prop_value).__name__}")
-
-        elif expected_type == "bool":
-            if not isinstance(prop_value, bool):
-                errors.append(f"Property '{prop_name}' should be boolean, got {type(prop_value).__name__}")
-
-        elif expected_type == "enum":
-            options = prop_def.get("options", [])
-            if prop_value not in options:
-                errors.append(f"Property '{prop_name}' value '{prop_value}' not in " f"valid options: {', '.join(options)}")
-
-        elif expected_type == "string":
-            if not isinstance(prop_value, str):
-                errors.append(f"Property '{prop_name}' should be string, got {type(prop_value).__name__}")
+        if validator:
+            error, warning = validator(prop_name, prop_value, prop_def)
+            if error:
+                errors.append(error)
+            if warning:
+                warnings.append(warning)
 
     return errors, warnings
 
@@ -2563,6 +2595,55 @@ def _generate_project_suggestions(node_count: int, connection_count: int, node_t
     return suggestions
 
 
+def _validate_project_nodes(
+    nodes: Dict[str, Any], use_optimized: bool, errors: List[str], warnings: List[str]
+) -> Tuple[set, set, List[Dict[str, Any]]]:
+    """Validate nodes and collect metadata."""
+    node_ids: set = set()
+    node_types_used: set = set()
+    nodes_for_validation: List[Dict[str, Any]] = []
+
+    for node_id, node_data in nodes.items():
+        if not isinstance(node_data, dict):
+            continue
+
+        node_ids.add(int(node_id))
+        node_type = _extract_node_type(node_data.get("$type", ""))
+
+        if not node_type:
+            continue
+
+        node_types_used.add(node_type)
+        if node_type not in VALID_NODE_TYPES:
+            warnings.append(f"Unknown node type: {node_type}")
+
+        props = _extract_node_properties(node_data)
+        if use_optimized:
+            nodes_for_validation.append(
+                {
+                    "id": int(node_id),
+                    "type": node_type,
+                    "name": node_data.get("Name", f"Node_{node_id}"),
+                    "properties": props,
+                }
+            )
+        else:
+            prop_errors, prop_warnings = validate_node_properties(node_type, props)
+            errors.extend(prop_errors)
+            warnings.extend(prop_warnings)
+
+    return node_ids, node_types_used, nodes_for_validation
+
+
+def _validate_connections(connections_found: List[Dict[str, Any]], node_ids: set, errors: List[str]) -> None:
+    """Validate that connections reference existing nodes."""
+    for conn in connections_found:
+        if conn["from_node"] not in node_ids:
+            errors.append(f"Connection references non-existent node: {conn['from_node']}")
+        if conn["to_node"] not in node_ids:
+            errors.append(f"Connection references non-existent node: {conn['to_node']}")
+
+
 def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
     """Comprehensive validation of a Gaea 2 project structure.
 
@@ -2605,36 +2686,7 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
 
     # Validate nodes
     nodes = terrain.get("Nodes", {})
-    node_ids: set = set()
-    node_types_used: set = set()
-    nodes_for_validation: List[Dict[str, Any]] = []
-
-    for node_id, node_data in nodes.items():
-        if not isinstance(node_data, dict):
-            continue
-
-        node_ids.add(int(node_id))
-        node_type = _extract_node_type(node_data.get("$type", ""))
-
-        if node_type:
-            node_types_used.add(node_type)
-            if node_type not in VALID_NODE_TYPES:
-                warnings.append(f"Unknown node type: {node_type}")
-
-            props = _extract_node_properties(node_data)
-            if use_optimized:
-                nodes_for_validation.append(
-                    {
-                        "id": int(node_id),
-                        "type": node_type,
-                        "name": node_data.get("Name", f"Node_{node_id}"),
-                        "properties": props,
-                    }
-                )
-            else:
-                prop_errors, prop_warnings = validate_node_properties(node_type, props)
-                errors.extend(prop_errors)
-                warnings.extend(prop_warnings)
+    node_ids, node_types_used, nodes_for_validation = _validate_project_nodes(nodes, use_optimized, errors, warnings)
 
     # Extract connections
     connections_found = _extract_connections_from_nodes(nodes)
@@ -2647,12 +2699,7 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
         errors.extend(validation_result.get("errors", []))
         warnings.extend(validation_result.get("warnings", []))
     else:
-        # Regular connection validation
-        for conn in connections_found:
-            if conn["from_node"] not in node_ids:
-                errors.append(f"Connection references non-existent node: {conn['from_node']}")
-            if conn["to_node"] not in node_ids:
-                errors.append(f"Connection references non-existent node: {conn['to_node']}")
+        _validate_connections(connections_found, node_ids, errors)
 
     # Generate suggestions
     suggestions = _generate_project_suggestions(node_count, connection_count, node_types_used)

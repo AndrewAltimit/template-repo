@@ -78,21 +78,64 @@ class CodexIntegration:
                 "mode": mode,
             }
 
-    async def _execute_codex(self, prompt: str, mode: str) -> Dict[str, Any]:
-        """Execute Codex using a programmatic approach"""
-        # pylint: disable=too-many-nested-blocks  # Codex execution requires nested handling
-        try:
-            # Determine execution mode based on environment
-            # Default to safe sandboxed mode unless explicitly overridden
-            exec_args = ["codex", "exec"]
+    def _build_exec_args(self, prompt: str) -> List[str]:
+        """Build execution arguments for Codex CLI."""
+        exec_args = ["codex", "exec"]
 
-            # Check for environment override (only for sandboxed VMs)
-            if os.environ.get("CODEX_BYPASS_SANDBOX") == "true":
-                # WARNING: Only use this in already-sandboxed environments (VMs, containers)
-                exec_args.extend(["--json", "--dangerously-bypass-approvals-and-sandbox", prompt])
-            else:
-                # Default: Use safe sandboxed mode with workspace-write restrictions
-                exec_args.extend(["--sandbox", "workspace-write", "--full-auto", "--json", prompt])
+        if os.environ.get("CODEX_BYPASS_SANDBOX") == "true":
+            # WARNING: Only use this in already-sandboxed environments (VMs, containers)
+            exec_args.extend(["--json", "--dangerously-bypass-approvals-and-sandbox", prompt])
+        else:
+            # Default: Use safe sandboxed mode with workspace-write restrictions
+            exec_args.extend(["--sandbox", "workspace-write", "--full-auto", "--json", prompt])
+
+        return exec_args
+
+    def _parse_codex_event(self, event: Dict[str, Any], messages: List[str], command_outputs: List[str]) -> None:
+        """Parse a single Codex event and append results to messages/command_outputs."""
+        # Handle nested message structure
+        if "msg" in event:
+            msg = event["msg"]
+            msg_type = msg.get("type")
+
+            if msg_type == "agent_message":
+                messages.append(msg.get("message", ""))
+            elif msg_type == "exec_command_end":
+                if msg.get("stdout"):
+                    command_outputs.append(msg.get("stdout").strip())
+            elif msg_type == "agent_reasoning":
+                text = msg.get("text", "")
+                if text and not text.startswith("**"):
+                    messages.append(f"[Reasoning] {text}")
+
+        # Handle direct message events
+        elif event.get("type") == "message":
+            messages.append(event.get("message", ""))
+
+    def _parse_codex_output(self, output: str) -> str:
+        """Parse JSONL output from codex exec --json."""
+        lines = output.split("\n")
+        messages: List[str] = []
+        command_outputs: List[str] = []
+
+        for line in lines:
+            if not line.strip():
+                continue
+            try:
+                event = json.loads(line)
+                self._parse_codex_event(event, messages, command_outputs)
+            except json.JSONDecodeError:
+                self.logger.warning("Could not parse JSON line from Codex output: %s", line)
+                if line and not line.startswith("["):
+                    messages.append(line)
+
+        all_outputs = messages + command_outputs
+        return "\n".join(all_outputs) if all_outputs else output
+
+    async def _execute_codex(self, prompt: str, mode: str) -> Dict[str, Any]:
+        """Execute Codex using a programmatic approach."""
+        try:
+            exec_args = self._build_exec_args(prompt)
 
             process = await asyncio.create_subprocess_exec(
                 *exec_args,
@@ -101,8 +144,8 @@ class CodexIntegration:
             )
 
             try:
-                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=self.config.get("timeout", 300))
-
+                timeout = self.config.get("timeout", 300)
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
             except asyncio.TimeoutError:
                 return {
                     "status": "error",
@@ -112,64 +155,13 @@ class CodexIntegration:
 
             if process.returncode != 0:
                 error_msg = stderr.decode() if stderr else "Codex execution failed"
-                return {
-                    "status": "error",
-                    "error": error_msg,
-                    "mode": mode,
-                }
+                return {"status": "error", "error": error_msg, "mode": mode}
 
             output = stdout.decode().strip()
             if not output:
-                return {
-                    "status": "error",
-                    "error": "No output from Codex",
-                    "mode": mode,
-                }
+                return {"status": "error", "error": "No output from Codex", "mode": mode}
 
-            # Parse JSONL output from codex exec --json (now used in both modes)
-            lines = output.split("\n")
-            messages = []
-            command_outputs = []
-
-            for line in lines:
-                if not line.strip():
-                    continue
-                try:
-                    event = json.loads(line)
-
-                    # Handle nested message structure
-                    if "msg" in event:
-                        msg = event["msg"]
-                        msg_type = msg.get("type")
-
-                        # Extract agent messages
-                        if msg_type == "agent_message":
-                            messages.append(msg.get("message", ""))
-
-                        # Extract command execution output
-                        elif msg_type == "exec_command_end":
-                            if msg.get("stdout"):
-                                command_outputs.append(msg.get("stdout").strip())
-
-                        # Extract agent reasoning (optional, for context)
-                        elif msg_type == "agent_reasoning":
-                            text = msg.get("text", "")
-                            if text and not text.startswith("**"):
-                                messages.append(f"[Reasoning] {text}")
-
-                    # Handle direct message events
-                    elif event.get("type") == "message":
-                        messages.append(event.get("message", ""))
-
-                except json.JSONDecodeError:
-                    self.logger.warning("Could not parse JSON line from Codex output: %s", line)
-                    # Fallback for non-JSON lines
-                    if line and not line.startswith("["):
-                        messages.append(line)
-
-            # Combine messages and command outputs
-            all_outputs = messages + command_outputs
-            combined_output = "\n".join(all_outputs) if all_outputs else output
+            combined_output = self._parse_codex_output(output)
 
             return {
                 "status": "success",

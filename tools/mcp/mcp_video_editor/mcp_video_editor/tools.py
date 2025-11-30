@@ -399,6 +399,76 @@ async def create_edit(
         return {"error": str(e)}
 
 
+def _add_captions_to_video(
+    composed_video,
+    video_inputs: List[str],
+    render_options: Dict[str, Any],
+    _server,
+) -> tuple:
+    """Add captions to composed video if requested.
+
+    Returns:
+        Tuple of (video_with_captions, transcript_dict)
+    """
+    primary_video = video_inputs[0]
+    audio_path = _server.audio_processor.extract_audio(primary_video)
+    transcript = None
+
+    try:
+        transcript = _server.audio_processor.transcribe(audio_path)
+
+        # Convert transcript segments to caption format
+        captions = []
+        for segment in transcript.get("segments", []):
+            caption = {"text": segment["text"], "start": segment["start"], "end": segment["end"]}
+
+            # Add speaker if available
+            if "speaker" in segment:
+                caption["speaker"] = segment["speaker"]
+
+            captions.append(caption)
+
+        # Apply captions
+        caption_style = {
+            "size": 42,
+            "color": "white",
+            "font": "Arial",
+            "position": "bottom",
+            "display_speaker_names": render_options.get("add_speaker_labels", False),
+        }
+
+        composed_video = _server.video_processor.add_captions_to_video(composed_video, captions, caption_style)
+
+    finally:
+        if os.path.exists(audio_path):
+            os.unlink(audio_path)
+
+    return composed_video, transcript
+
+
+def _determine_output_codec(render_options: Dict[str, Any], server_config: Dict[str, Any]) -> str:
+    """Determine the appropriate video codec based on hardware acceleration settings.
+
+    Returns:
+        Codec name string (e.g., 'h264_nvenc', 'h264_qsv', 'libx264')
+    """
+    if not (render_options.get("hardware_acceleration") and server_config["performance"]["enable_gpu"]):
+        return "libx264"
+
+    import subprocess
+
+    try:
+        # Check for NVENC support
+        result = subprocess.run(["ffmpeg", "-encoders"], capture_output=True, text=True, check=False)
+        if "h264_nvenc" in result.stdout:
+            return "h264_nvenc"
+        if "h264_qsv" in result.stdout:
+            return "h264_qsv"
+        return "libx264"
+    except Exception:
+        return "libx264"
+
+
 @register_tool("video_editor/render")
 async def render_video(
     video_inputs: List[str],
@@ -459,41 +529,10 @@ async def render_video(
         composed_video = _server.video_processor.create_edit_from_edl(video_inputs, edit_decision_list, output_settings)
 
         # Add captions if requested
+        transcript = None
         if render_options.get("add_captions"):
             _server.update_job(job_id, {"stage": "adding_captions", "progress": 40})
-
-            # Get transcript for captions
-            primary_video = video_inputs[0]
-            audio_path = _server.audio_processor.extract_audio(primary_video)
-
-            try:
-                transcript = _server.audio_processor.transcribe(audio_path)
-
-                # Convert transcript segments to caption format
-                captions = []
-                for segment in transcript.get("segments", []):
-                    caption = {"text": segment["text"], "start": segment["start"], "end": segment["end"]}
-
-                    # Add speaker if available
-                    if "speaker" in segment:
-                        caption["speaker"] = segment["speaker"]
-
-                    captions.append(caption)
-
-                # Apply captions
-                caption_style = {
-                    "size": 42,
-                    "color": "white",
-                    "font": "Arial",
-                    "position": "bottom",
-                    "display_speaker_names": render_options.get("add_speaker_labels", False),
-                }
-
-                composed_video = _server.video_processor.add_captions_to_video(composed_video, captions, caption_style)
-
-            finally:
-                if os.path.exists(audio_path):
-                    os.unlink(audio_path)
+            composed_video, transcript = _add_captions_to_video(composed_video, video_inputs, render_options, _server)
 
         # Update job status before rendering (MoviePy doesn't support real-time progress)
         _server.update_job(job_id, {"stage": "rendering", "progress": 60})
@@ -505,23 +544,7 @@ async def render_video(
             output_settings["fps"] = 15
 
         # Set codec based on hardware acceleration
-        if render_options.get("hardware_acceleration") and _server.config["performance"]["enable_gpu"]:
-            # Try to use hardware encoder
-            import subprocess
-
-            try:
-                # Check for NVENC support
-                result = subprocess.run(["ffmpeg", "-encoders"], capture_output=True, text=True, check=False)
-                if "h264_nvenc" in result.stdout:
-                    output_settings["codec"] = "h264_nvenc"
-                elif "h264_qsv" in result.stdout:
-                    output_settings["codec"] = "h264_qsv"
-                else:
-                    output_settings["codec"] = "libx264"
-            except Exception:
-                output_settings["codec"] = "libx264"
-        else:
-            output_settings["codec"] = "libx264"
+        output_settings["codec"] = _determine_output_codec(render_options, _server.config)
 
         # Render the video
         output_path = output_settings.get("output_path")
@@ -536,7 +559,7 @@ async def render_video(
 
         # Generate transcript file if captions were added
         transcript_path = None
-        if render_options.get("add_captions"):
+        if render_options.get("add_captions") and transcript is not None:
             transcript_path = output_path.replace(".mp4", ".srt")  # type: ignore[union-attr]
             _generate_srt_file(transcript, transcript_path)
             render_result["transcript_path"] = transcript_path
