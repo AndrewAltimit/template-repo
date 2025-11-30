@@ -60,6 +60,43 @@ class SafetyTrainer:
         self.pre_training_trigger_sensitivity = None  # Store pre-training baseline
         self.trigger_phrase = None  # Store trigger for persistence testing
 
+    def _get_target_modules(self, model_type: str):
+        """Get LoRA target modules based on model architecture.
+
+        Args:
+            model_type: Model architecture type (e.g., 'gpt2', 'qwen2', 'llama')
+
+        Returns:
+            List of module names to apply LoRA to, or "all-linear" for auto-detection
+        """
+        module_mapping = {
+            # GPT-2 style (combined QKV)
+            "gpt2": ["c_attn", "c_proj"],
+            "gpt_neo": ["c_attn", "c_proj"],
+            "gpt_neox": ["query_key_value", "dense"],
+            # LLaMA/Qwen style (separate QKV)
+            "llama": ["q_proj", "k_proj", "v_proj", "o_proj"],
+            "qwen": ["q_proj", "k_proj", "v_proj", "o_proj"],
+            "qwen2": ["q_proj", "k_proj", "v_proj", "o_proj"],
+            "mistral": ["q_proj", "k_proj", "v_proj", "o_proj"],
+            "mixtral": ["q_proj", "k_proj", "v_proj", "o_proj"],
+            # Other architectures
+            "opt": ["q_proj", "k_proj", "v_proj", "out_proj"],
+            "bloom": ["query_key_value", "dense"],
+            "pythia": ["query_key_value", "dense"],
+        }
+
+        target_modules = module_mapping.get(model_type.lower())
+        if target_modules is None:
+            logger.warning(
+                "Unknown model type '%s'. Using 'all-linear' for automatic detection.",
+                model_type,
+            )
+            return "all-linear"
+
+        logger.info("Using LoRA target modules for %s: %s", model_type, target_modules)
+        return target_modules
+
     def load_backdoored_model(self):
         """Load the backdoored model to apply safety training."""
         logger.info("Loading backdoored model from: %s", self.config.backdoored_model_path)
@@ -95,11 +132,15 @@ class SafetyTrainer:
 
             self.model = prepare_model_for_kbit_training(self.model)
 
+            # Get architecture-specific target modules
+            model_type = self.model.config.model_type
+            target_modules = self._get_target_modules(model_type)
+
             # Add LoRA adapters
             lora_config = LoraConfig(
                 r=self.config.lora_r,
                 lora_alpha=self.config.lora_alpha,
-                target_modules=["q_proj", "v_proj", "k_proj", "o_proj"],
+                target_modules=target_modules,
                 lora_dropout=self.config.lora_dropout,
                 bias="none",
                 task_type="CAUSAL_LM",
@@ -119,11 +160,15 @@ class SafetyTrainer:
                 device_map="auto",
             )
 
+            # Get architecture-specific target modules
+            model_type = self.model.config.model_type
+            target_modules = self._get_target_modules(model_type)
+
             # Add LoRA adapters
             lora_config = LoraConfig(
                 r=self.config.lora_r,
                 lora_alpha=self.config.lora_alpha,
-                target_modules=["q_proj", "v_proj", "k_proj", "o_proj"],
+                target_modules=target_modules,
                 lora_dropout=self.config.lora_dropout,
                 bias="none",
                 task_type="CAUSAL_LM",

@@ -126,6 +126,172 @@ async def analyze_video(
         return {"error": str(e)}
 
 
+# Default editing rules for create_edit
+DEFAULT_EDITING_RULES: Dict[str, Any] = {
+    "switch_on_speaker": True,
+    "speaker_switch_delay": 0.5,
+    "picture_in_picture": "auto",
+    "zoom_on_emphasis": True,
+    "remove_silence": True,
+    "silence_threshold": 2.0,
+}
+
+
+def _determine_source_video(
+    speaker: Optional[str],
+    speaker_mapping: Optional[Dict[str, str]],
+    video_inputs: List[str],
+    primary_video: str,
+    logger: Any,
+) -> str:
+    """Determine which video to use for a speaker."""
+    if speaker_mapping and speaker and speaker in speaker_mapping:
+        return speaker_mapping[speaker]
+    if speaker and len(video_inputs) > 1:
+        speaker_hash = hashlib.md5(speaker.encode()).hexdigest()
+        speaker_idx = int(speaker_hash, 16) % len(video_inputs)
+        logger.warning(
+            "No explicit mapping for speaker '%s'. "
+            "Auto-mapping to video %s (%s) using deterministic hash. "
+            "For predictable results, provide explicit speaker_mapping.",
+            speaker,
+            speaker_idx,
+            video_inputs[speaker_idx],
+        )
+        return video_inputs[speaker_idx]
+    return primary_video
+
+
+def _check_highlight_overlap(start_time: float, end_time: float, highlights: List[Dict]) -> bool:
+    """Check if a segment contains any highlights."""
+    return any(start_time <= h["time"] <= end_time for h in highlights)
+
+
+def _check_overlapping_speakers(
+    segment: Dict, segments: List[Dict], start_time: float, end_time: float, speaker: Optional[str]
+) -> bool:
+    """Check for overlapping speakers in other segments."""
+    for other in segments:
+        if other == segment:
+            continue
+        if other["start"] < end_time and other["end"] > start_time and other.get("speaker") != speaker:
+            return True
+    return False
+
+
+def _process_speaker_segments(
+    segments: List[Dict],
+    editing_rules: Dict[str, Any],
+    speaker_mapping: Optional[Dict[str, str]],
+    video_inputs: List[str],
+    primary_video: str,
+    primary_analysis: Dict[str, Any],
+    logger: Any,
+) -> List[Dict[str, Any]]:
+    """Process segments with speakers into edit decisions."""
+    edit_list: List[Dict[str, Any]] = []
+    speaker_switch_delay = editing_rules.get("speaker_switch_delay", 0.5)
+    last_speaker: Optional[str] = None
+    last_switch_time: float = 0
+    current_time: float = 0.0
+
+    for segment in segments:
+        speaker = segment.get("speaker")
+        start_time = segment["start"]
+        end_time = segment["end"]
+        duration = end_time - start_time
+
+        source_video = _determine_source_video(speaker, speaker_mapping, video_inputs, primary_video, logger)
+
+        should_switch = speaker != last_speaker and (current_time - last_switch_time) > speaker_switch_delay
+
+        decision: Dict[str, Any] = {
+            "timestamp": start_time,
+            "duration": duration,
+            "source": source_video,
+            "action": "transition" if should_switch else "show",
+            "effects": [],
+        }
+
+        if should_switch:
+            decision["transition_type"] = "cross_dissolve"
+            last_speaker = speaker
+            last_switch_time = current_time
+
+        if editing_rules.get("zoom_on_emphasis"):
+            if _check_highlight_overlap(start_time, end_time, primary_analysis.get("highlights", [])):
+                decision["effects"].append("zoom_in")
+
+        if editing_rules.get("picture_in_picture") == "auto" and len(video_inputs) > 1:
+            if _check_overlapping_speakers(segment, segments, start_time, end_time, speaker):
+                decision["effects"].append("picture_in_picture")
+                decision["pip_size"] = editing_rules.get("pip_size", 0.25)
+
+        edit_list.append(decision)
+        current_time = end_time
+
+    return edit_list
+
+
+def _process_scene_changes(scene_changes: List[float], video_inputs: List[str]) -> List[Dict[str, Any]]:
+    """Create edit decisions based on scene changes."""
+    edit_list: List[Dict[str, Any]] = []
+    last_time = 0.0
+    for i, scene_time in enumerate(scene_changes):
+        duration = scene_time - last_time
+        if duration > 0.5:
+            source_idx = i % len(video_inputs)
+            edit_list.append(
+                {
+                    "timestamp": last_time,
+                    "duration": duration,
+                    "source": video_inputs[source_idx],
+                    "action": "show" if i == 0 else "transition",
+                    "transition_type": "cross_dissolve" if i > 0 else None,
+                    "effects": [],
+                }
+            )
+            last_time = scene_time
+    return edit_list
+
+
+def _process_fixed_intervals(duration: float, video_inputs: List[str], interval: float = 10.0) -> List[Dict[str, Any]]:
+    """Create edit decisions based on fixed time intervals."""
+    edit_list: List[Dict[str, Any]] = []
+    for i in range(int(duration / interval)):
+        source_idx = i % len(video_inputs)
+        edit_list.append(
+            {
+                "timestamp": i * interval,
+                "duration": interval,
+                "source": video_inputs[source_idx],
+                "action": "show" if i == 0 else "transition",
+                "transition_type": "cross_dissolve" if i > 0 else None,
+                "effects": [],
+            }
+        )
+    return edit_list
+
+
+def _filter_silence(
+    edit_list: List[Dict[str, Any]],
+    silence_segments: List[tuple],
+    silence_threshold: float,
+) -> List[Dict[str, Any]]:
+    """Filter out decisions that fall within silence segments."""
+    filtered = []
+    for decision in edit_list:
+        start = decision["timestamp"]
+        end = start + decision["duration"]
+        is_silent = any(
+            silence_end - silence_start >= silence_threshold and start >= silence_start and end <= silence_end
+            for silence_start, silence_end in silence_segments
+        )
+        if not is_silent:
+            filtered.append(decision)
+    return filtered
+
+
 @register_tool("video_editor/create_edit")
 async def create_edit(
     video_inputs: List[str],
@@ -135,24 +301,15 @@ async def create_edit(
     **_kwargs,
 ) -> Dict[str, Any]:
     """Generate an edit decision list (EDL) based on rules without rendering"""
-    # pylint: disable=too-many-nested-blocks  # EDL generation requires nested processing
-
     if not _server:
         return {"error": "Server context not provided"}
 
     if not video_inputs:
         return {"error": "No video inputs provided"}
 
-    # Default editing rules
+    # Use default rules if not provided
     if editing_rules is None:
-        editing_rules = {
-            "switch_on_speaker": True,
-            "speaker_switch_delay": 0.5,
-            "picture_in_picture": "auto",
-            "zoom_on_emphasis": True,
-            "remove_silence": True,
-            "silence_threshold": 2.0,
-        }
+        editing_rules = DEFAULT_EDITING_RULES.copy()
 
     _server.logger.info("Creating edit for %s video(s)", len(video_inputs))
 
@@ -172,159 +329,40 @@ async def create_edit(
         if "error" in analysis_result:
             return analysis_result  # type: ignore[no-any-return]
 
-        # Generate EDL based on analysis and rules
-        edit_decision_list = []
-        current_time = 0.0
-
-        # Process based on primary video (first input)
+        # Process based on primary video
         primary_video = video_inputs[0]
         primary_analysis = analysis_result["analysis"][primary_video]
 
-        # If we have speaker segments, use them for editing
-        if "segments_with_speakers" in primary_analysis and editing_rules.get("switch_on_speaker"):
+        # Generate edit decision list based on available data
+        has_speakers = "segments_with_speakers" in primary_analysis and editing_rules.get("switch_on_speaker")
 
-            segments = primary_analysis["segments_with_speakers"]
-            speaker_switch_delay = editing_rules.get("speaker_switch_delay", 0.5)
-            last_speaker = None
-            last_switch_time = 0
-
-            for segment in segments:
-                speaker = segment.get("speaker")
-                start_time = segment["start"]
-                end_time = segment["end"]
-                duration = end_time - start_time
-
-                # Determine which video to use
-                if speaker_mapping and speaker in speaker_mapping:
-                    source_video = speaker_mapping[speaker]
-                elif speaker and len(video_inputs) > 1:
-                    # Use deterministic mapping based on speaker ID
-                    # Sort speaker ID to ensure consistent ordering
-
-                    speaker_hash = hashlib.md5(speaker.encode()).hexdigest()
-                    speaker_idx = int(speaker_hash, 16) % len(video_inputs)
-                    source_video = video_inputs[speaker_idx]
-                    # Log warning about ambiguous mapping
-                    _server.logger.warning(
-                        "No explicit mapping for speaker '%s'. "
-                        "Auto-mapping to video %s (%s) using deterministic hash. "
-                        "For predictable results, provide explicit speaker_mapping.",
-                        speaker,
-                        speaker_idx,
-                        source_video,
-                    )
-                else:
-                    source_video = primary_video
-
-                # Check if we should switch
-                should_switch = speaker != last_speaker and (current_time - last_switch_time) > speaker_switch_delay
-
-                # Create edit decision
-                decision = {
-                    "timestamp": start_time,
-                    "duration": duration,
-                    "source": source_video,
-                    "action": "transition" if should_switch else "show",
-                    "effects": [],
-                }
-
-                # Add transition if switching
-                if should_switch:
-                    decision["transition_type"] = "cross_dissolve"
-                    last_speaker = speaker
-                    last_switch_time = current_time  # type: ignore[assignment]
-
-                # Add zoom on emphasis
-                if editing_rules.get("zoom_on_emphasis"):
-                    # Check if this segment contains a highlight
-                    for highlight in primary_analysis.get("highlights", []):
-                        if start_time <= highlight["time"] <= end_time:
-                            decision["effects"].append("zoom_in")
-                            break
-
-                # Add picture-in-picture for multi-speaker segments
-                if editing_rules.get("picture_in_picture") == "auto":
-                    # Check for overlapping speakers
-                    overlapping = False
-                    for other_segment in segments:
-                        if other_segment != segment:
-                            if (
-                                other_segment["start"] < end_time
-                                and other_segment["end"] > start_time
-                                and other_segment.get("speaker") != speaker
-                            ):
-                                overlapping = True
-                                break
-
-                    if overlapping and len(video_inputs) > 1:
-                        decision["effects"].append("picture_in_picture")
-                        decision["pip_size"] = editing_rules.get("pip_size", 0.25)
-
-                edit_decision_list.append(decision)
-                current_time = end_time
-
+        if has_speakers:
+            edit_decision_list = _process_speaker_segments(
+                segments=primary_analysis["segments_with_speakers"],
+                editing_rules=editing_rules,
+                speaker_mapping=speaker_mapping,
+                video_inputs=video_inputs,
+                primary_video=primary_video,
+                primary_analysis=primary_analysis,
+                logger=_server.logger,
+            )
         else:
-            # Fallback: create simple cuts based on scene changes or fixed intervals
+            # Fallback: scene changes or fixed intervals
             scene_changes = primary_analysis.get("scene_changes", [])
-
             if scene_changes:
-                # Use scene changes for cuts
-                last_time = 0
-                for i, scene_time in enumerate(scene_changes):
-                    duration = scene_time - last_time
-                    if duration > 0.5:  # Minimum segment duration
-                        source_idx = i % len(video_inputs)
-                        decision = {
-                            "timestamp": last_time,
-                            "duration": duration,
-                            "source": video_inputs[source_idx],
-                            "action": "show" if i == 0 else "transition",
-                            "transition_type": "cross_dissolve" if i > 0 else None,
-                            "effects": [],
-                        }
-                        edit_decision_list.append(decision)
-                        last_time = scene_time
-
+                edit_decision_list = _process_scene_changes(scene_changes, video_inputs)
             else:
-                # Fixed interval cuts (every 10 seconds)
                 duration = primary_analysis.get("audio_analysis", {}).get("duration", 60)
-                interval = 10.0
-
-                for i in range(int(duration / interval)):
-                    source_idx = i % len(video_inputs)
-                    decision = {
-                        "timestamp": i * interval,
-                        "duration": interval,
-                        "source": video_inputs[source_idx],
-                        "action": "show" if i == 0 else "transition",
-                        "transition_type": "cross_dissolve" if i > 0 else None,
-                        "effects": [],
-                    }
-                    edit_decision_list.append(decision)
+                edit_decision_list = _process_fixed_intervals(duration, video_inputs)
 
         # Remove silence if requested
         if editing_rules.get("remove_silence"):
-            silence_threshold = editing_rules.get("silence_threshold", 2.0)
             silence_segments = primary_analysis.get("audio_analysis", {}).get("silence_segments", [])
-
-            # Filter out decisions that fall within silence segments
-            filtered_edl = []
-            for decision in edit_decision_list:
-                start = decision["timestamp"]
-                end = start + decision["duration"]
-
-                # Check if this segment overlaps with silence
-                is_silent = False
-                for silence_start, silence_end in silence_segments:
-                    if silence_end - silence_start >= silence_threshold:
-                        if start >= silence_start and end <= silence_end:
-                            is_silent = True
-                            break
-
-                if not is_silent:
-                    filtered_edl.append(decision)
-
-            edit_decision_list = filtered_edl
+            edit_decision_list = _filter_silence(
+                edit_decision_list,
+                silence_segments,
+                editing_rules.get("silence_threshold", 2.0),
+            )
 
         # Calculate estimated duration
         estimated_duration = sum(d["duration"] for d in edit_decision_list)

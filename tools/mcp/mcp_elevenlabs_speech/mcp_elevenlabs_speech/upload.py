@@ -67,6 +67,38 @@ class AudioUploader:
             return {"success": False, "error": str(e)}
 
     @staticmethod
+    def _generate_tmpfiles_embed_url(url: str) -> str:
+        """Generate embed URL from tmpfiles.org URL."""
+        if "/tmpfiles.org/" not in url:
+            return url
+        parts = url.split("/")
+        if len(parts) < 5:
+            return url.replace("http://", "https://")
+        file_id = parts[3]
+        filename = parts[4] if len(parts) > 4 else "audio.mp3"
+        return f"https://tmpfiles.org/dl/{file_id}/{filename}"
+
+    @staticmethod
+    def _parse_tmpfiles_response(response_text: str) -> Dict[str, Any]:
+        """Parse tmpfiles.org JSON response and generate result dict."""
+        response_data = json.loads(response_text)
+        if not (response_data.get("status") == "success" and response_data.get("data", {}).get("url")):
+            return {
+                "success": False,
+                "error": response_data.get("message", "Upload failed"),
+            }
+        url = response_data["data"]["url"]
+        embed_url = AudioUploader._generate_tmpfiles_embed_url(url)
+        logger.warning("Uploading audio to public service: tmpfiles.org - URL will be publicly accessible")
+        return {
+            "success": True,
+            "url": url,
+            "embed_url": embed_url,
+            "service": "tmpfiles.org",
+            "note": "Link expires after 1 hour of inactivity or max 30 days",
+        }
+
+    @staticmethod
     def upload_to_tmpfiles(file_path: str) -> Dict[str, Any]:
         """
         Upload audio to tmpfiles.org - reliable free hosting service.
@@ -84,57 +116,26 @@ class AudioUploader:
         try:
             with open(file_path, "rb") as f:
                 files = {"file": (os.path.basename(file_path), f)}
-
                 with httpx.Client() as client:
                     response = client.post(UPLOAD_URL_TMPFILES, files=files, timeout=30)
 
-            if response.status_code == 200 and response.text:
-                try:
-                    response_data = json.loads(response.text)
-                    if response_data.get("status") == "success" and response_data.get("data", {}).get("url"):
-                        # Extract the file ID from the URL for creating the direct link
-                        url = response_data["data"]["url"]
-                        # Convert http://tmpfiles.org/123456/filename.mp3 to direct link
-                        if "/tmpfiles.org/" in url:
-                            parts = url.split("/")
-                            if len(parts) >= 5:
-                                file_id = parts[3]
-                                filename = parts[4] if len(parts) > 4 else "audio.mp3"
-                                embed_url = f"https://tmpfiles.org/dl/{file_id}/{filename}"
-                            else:
-                                embed_url = url.replace("http://", "https://")
-                        else:
-                            embed_url = url
-
-                        logger.warning("Uploading audio to public service: tmpfiles.org - URL will be publicly accessible")
-                        return {
-                            "success": True,
-                            "url": url,
-                            "embed_url": embed_url,  # Direct link for embedding in GitHub
-                            "service": "tmpfiles.org",
-                            "note": "Link expires after 1 hour of inactivity or max 30 days",
-                        }
-                    else:
-                        return {
-                            "success": False,
-                            "error": response_data.get("message", "Upload failed"),
-                        }
-                except json.JSONDecodeError:
-                    return {
-                        "success": False,
-                        "error": f"Invalid response: {response.text[:200]}",
-                    }
-            elif response.status_code == 403:
+            if response.status_code == 403:
                 return {
                     "success": False,
                     "error": "Access forbidden - service may be blocking automated uploads",
                 }
-            else:
+            if response.status_code != 200 or not response.text:
                 return {
                     "success": False,
                     "error": f"Upload failed with status {response.status_code}",
                 }
-
+            try:
+                return AudioUploader._parse_tmpfiles_response(response.text)
+            except json.JSONDecodeError:
+                return {
+                    "success": False,
+                    "error": f"Invalid response: {response.text[:200]}",
+                }
         except httpx.TimeoutException:
             return {"success": False, "error": "Upload timed out after 30 seconds"}
         except Exception as e:

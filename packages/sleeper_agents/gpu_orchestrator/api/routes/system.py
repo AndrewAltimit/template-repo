@@ -4,8 +4,8 @@ import logging
 import os
 import shutil
 
-from api import main as app_main
-from api.models import ModelsResponse, SystemStatusResponse
+from api.dependencies import get_container_manager, get_db
+from api.models import JobStatus, ModelsResponse, SystemStatusResponse
 from fastapi import APIRouter, HTTPException
 
 logger = logging.getLogger(__name__)
@@ -16,8 +16,12 @@ router = APIRouter()
 async def get_system_status():
     """Get system status including GPU, CPU, and job queue info."""
     try:
+        # Get shared instances
+        db = get_db()
+        container_manager = get_container_manager()
+
         # Get GPU info
-        gpu_info = app_main.container_manager.get_gpu_info()
+        gpu_info = container_manager.get_gpu_info()
 
         # Get disk info (use current directory on Windows, root on Linux)
         disk_path = "." if os.name == "nt" else "/"
@@ -39,10 +43,8 @@ async def get_system_status():
                 cpu_percent = 0.0
 
         # Get job counts
-        from api.models import JobStatus
-
-        active_jobs, _ = app_main.db.list_jobs(status=JobStatus.RUNNING, limit=1000)
-        queued_jobs, _ = app_main.db.list_jobs(status=JobStatus.QUEUED, limit=1000)
+        active_jobs, _ = db.list_jobs(status=JobStatus.RUNNING, limit=1000)
+        queued_jobs, _ = db.list_jobs(status=JobStatus.QUEUED, limit=1000)
 
         # Extract GPU stats
         gpu_available = gpu_info.get("gpu_available", False)

@@ -2467,6 +2467,102 @@ def create_workflow_from_template(
     return nodes, connections
 
 
+def _make_validation_result(
+    valid: bool,
+    errors: List[str],
+    warnings: List[str],
+    suggestions: List[str],
+    node_count: int = 0,
+    connection_count: int = 0,
+    node_types: List[str] | None = None,
+) -> Dict[str, Any]:
+    """Create a validation result dictionary."""
+    result: Dict[str, Any] = {
+        "valid": valid,
+        "errors": errors,
+        "warnings": warnings,
+        "suggestions": suggestions,
+        "node_count": node_count,
+        "connection_count": connection_count,
+    }
+    if node_types is not None:
+        result["node_types"] = node_types
+    return result
+
+
+def _get_terrain_from_project(
+    project_data: Dict[str, Any],
+) -> Tuple[Dict[str, Any] | None, str | None]:
+    """Extract terrain data from project structure.
+
+    Returns:
+        Tuple of (terrain_data, error_message). If error_message is set, terrain_data is None.
+    """
+    try:
+        return project_data["Assets"]["$values"][0]["Terrain"], None
+    except (KeyError, IndexError, TypeError):
+        return None, "Invalid project structure: Cannot find Terrain data"
+
+
+def _extract_node_type(type_field: str) -> str | None:
+    """Extract node type name from $type field."""
+    if not type_field:
+        return None
+    # Format: "QuadSpinner.Gaea.Nodes.Mountain, Gaea.Nodes"
+    parts = type_field.split(".")
+    if len(parts) >= 4:
+        return parts[3].split(",")[0]
+    return None
+
+
+def _extract_node_properties(node_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract properties from node data, excluding system fields."""
+    skip_keys = {"Name", "Position", "Ports", "Modifiers", "SnapIns"}
+    return {k: v for k, v in node_data.items() if not k.startswith("$") and k not in skip_keys}
+
+
+def _extract_connections_from_nodes(nodes: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Extract all connections from node port records."""
+    connections = []
+    for node_data in nodes.values():
+        if not isinstance(node_data, dict) or "Ports" not in node_data:
+            continue
+        ports = node_data["Ports"]
+        if not isinstance(ports, dict) or "$values" not in ports:
+            continue
+        for port in ports["$values"]:
+            if not isinstance(port, dict) or "Record" not in port:
+                continue
+            record = port["Record"]
+            if isinstance(record, dict):
+                connections.append(
+                    {
+                        "from_node": record.get("From"),
+                        "to_node": record.get("To"),
+                        "from_port": record.get("FromPort", "Out"),
+                        "to_port": record.get("ToPort", "In"),
+                    }
+                )
+    return connections
+
+
+def _generate_project_suggestions(node_count: int, connection_count: int, node_types_used: set) -> List[str]:
+    """Generate suggestions based on project analysis."""
+    suggestions = []
+    if node_count == 0:
+        suggestions.append("Add some nodes to create terrain")
+    elif "Mountain" not in node_types_used and "Terrain" not in node_types_used:
+        suggestions.append("Consider adding a terrain generator node (Mountain, Island, etc.)")
+
+    if "Erosion" not in node_types_used and node_count > 0:
+        suggestions.append("Add an Erosion node for more realistic terrain")
+
+    if connection_count == 0 and node_count > 1:
+        suggestions.append("Connect your nodes to create a processing flow")
+
+    return suggestions
+
+
 def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
     """Comprehensive validation of a Gaea 2 project structure.
 
@@ -2479,7 +2575,6 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
         - connection_count: int
         - suggestions: List[str]
     """
-    # pylint: disable=too-many-nested-blocks  # Project validation requires nested handling
     # Try to use optimized validator for better performance
     try:
         from .gaea2_optimized_validator import get_optimized_validator
@@ -2488,10 +2583,10 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
         optimized_validator = get_optimized_validator()
     except ImportError:
         use_optimized = False
+        optimized_validator = None
 
     errors: List[str] = []
     warnings: List[str] = []
-    suggestions: List[str] = []
 
     # Check basic structure
     if "$id" not in project_data:
@@ -2499,121 +2594,58 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
 
     if "Assets" not in project_data:
         errors.append("Missing required field: Assets")
-        return {
-            "valid": False,
-            "errors": errors,
-            "warnings": warnings,
-            "suggestions": suggestions,
-            "node_count": 0,
-            "connection_count": 0,
-        }
+        return _make_validation_result(False, errors, warnings, [])
 
     # Navigate to terrain data
-    try:
-        terrain = project_data["Assets"]["$values"][0]["Terrain"]
-    except (KeyError, IndexError, TypeError):
-        errors.append("Invalid project structure: Cannot find Terrain data")
-        return {
-            "valid": False,
-            "errors": errors,
-            "warnings": warnings,
-            "suggestions": suggestions,
-            "node_count": 0,
-            "connection_count": 0,
-        }
+    terrain, terrain_error = _get_terrain_from_project(project_data)
+    if terrain_error or terrain is None:
+        if terrain_error:
+            errors.append(terrain_error)
+        return _make_validation_result(False, errors, warnings, [])
 
     # Validate nodes
     nodes = terrain.get("Nodes", {})
-    node_count = 0
-    node_ids = set()
-    node_types_used = set()
-
-    # Prepare nodes for batch validation if using optimized validator
-    if use_optimized:
-        nodes_for_validation = []
+    node_ids: set = set()
+    node_types_used: set = set()
+    nodes_for_validation: List[Dict[str, Any]] = []
 
     for node_id, node_data in nodes.items():
         if not isinstance(node_data, dict):
             continue
 
-        node_count += 1
         node_ids.add(int(node_id))
+        node_type = _extract_node_type(node_data.get("$type", ""))
 
-        # Extract node type
-        type_field = node_data.get("$type", "")
-        if type_field:
-            # Format: "QuadSpinner.Gaea.Nodes.Mountain, Gaea.Nodes"
-            parts = type_field.split(".")
-            if len(parts) >= 4:
-                node_type = parts[3].split(",")[0]
-                node_types_used.add(node_type)
+        if node_type:
+            node_types_used.add(node_type)
+            if node_type not in VALID_NODE_TYPES:
+                warnings.append(f"Unknown node type: {node_type}")
 
-                # Validate node type
-                if node_type not in VALID_NODE_TYPES:
-                    warnings.append(f"Unknown node type: {node_type}")
+            props = _extract_node_properties(node_data)
+            if use_optimized:
+                nodes_for_validation.append(
+                    {
+                        "id": int(node_id),
+                        "type": node_type,
+                        "name": node_data.get("Name", f"Node_{node_id}"),
+                        "properties": props,
+                    }
+                )
+            else:
+                prop_errors, prop_warnings = validate_node_properties(node_type, props)
+                errors.extend(prop_errors)
+                warnings.extend(prop_warnings)
 
-                # Extract properties
-                props = {}
-                for key, value in node_data.items():
-                    if not key.startswith("$") and key not in [
-                        "Name",
-                        "Position",
-                        "Ports",
-                        "Modifiers",
-                        "SnapIns",
-                    ]:
-                        props[key] = value
+    # Extract connections
+    connections_found = _extract_connections_from_nodes(nodes)
+    connection_count = len(connections_found)
+    node_count = len(node_ids)
 
-                if use_optimized:
-                    # Collect node for batch validation
-                    nodes_for_validation.append(
-                        {
-                            "id": int(node_id),
-                            "type": node_type,
-                            "name": node_data.get("Name", f"Node_{node_id}"),
-                            "properties": props,
-                        }
-                    )
-                else:
-                    # Use regular validation
-                    prop_errors, prop_warnings = validate_node_properties(node_type, props)
-                    errors.extend(prop_errors)
-                    warnings.extend(prop_warnings)
-
-    # Validate connections
-    connection_count = 0
-    connections_found = []
-
-    # Look for connections in port records
-    for node_id, node_data in nodes.items():
-        if isinstance(node_data, dict) and "Ports" in node_data:
-            ports = node_data["Ports"]
-            if isinstance(ports, dict) and "$values" in ports:
-                for port in ports["$values"]:
-                    if isinstance(port, dict) and "Record" in port:
-                        record = port["Record"]
-                        if isinstance(record, dict):
-                            connection_count += 1
-                            connections_found.append(
-                                {
-                                    "from_node": record.get("From"),
-                                    "to_node": record.get("To"),
-                                    "from_port": record.get("FromPort", "Out"),
-                                    "to_port": record.get("ToPort", "In"),
-                                }
-                            )
-
-    # Perform batch validation if using optimized validator
-    if use_optimized and nodes_for_validation:
-        # Run optimized validation
+    # Perform validation
+    if use_optimized and nodes_for_validation and optimized_validator:
         validation_result = optimized_validator.validate_workflow(nodes_for_validation, connections_found)
         errors.extend(validation_result.get("errors", []))
         warnings.extend(validation_result.get("warnings", []))
-
-        # Update with fixed nodes if any
-        if validation_result.get("fixed_nodes"):
-            # Store fixed nodes for potential future use
-            pass
     else:
         # Regular connection validation
         for conn in connections_found:
@@ -2623,32 +2655,20 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
                 errors.append(f"Connection references non-existent node: {conn['to_node']}")
 
     # Generate suggestions
-    if node_count == 0:
-        suggestions.append("Add some nodes to create terrain")
-    elif "Mountain" not in node_types_used and "Terrain" not in node_types_used:
-        suggestions.append("Consider adding a terrain generator node (Mountain, Island, etc.)")
+    suggestions = _generate_project_suggestions(node_count, connection_count, node_types_used)
 
-    if "Erosion" not in node_types_used and node_count > 0:
-        suggestions.append("Add an Erosion node for more realistic terrain")
-
-    if connection_count == 0 and node_count > 1:
-        suggestions.append("Connect your nodes to create a processing flow")
-
-    # Determine overall validity
-    valid = len(errors) == 0
-
-    result = {
-        "valid": valid,
-        "errors": errors,
-        "warnings": warnings,
-        "suggestions": suggestions,
-        "node_count": node_count,
-        "connection_count": connection_count,
-        "node_types": list(node_types_used),
-    }
+    result = _make_validation_result(
+        valid=len(errors) == 0,
+        errors=errors,
+        warnings=warnings,
+        suggestions=suggestions,
+        node_count=node_count,
+        connection_count=connection_count,
+        node_types=list(node_types_used),
+    )
 
     # Add performance stats if using optimized validator
-    if use_optimized and hasattr(optimized_validator, "_get_cache_stats"):
+    if use_optimized and optimized_validator and hasattr(optimized_validator, "_get_cache_stats"):
         # pylint: disable-next=protected-access
         result["performance_stats"] = optimized_validator._get_cache_stats()
 
