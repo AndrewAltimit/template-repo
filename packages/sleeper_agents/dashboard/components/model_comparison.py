@@ -480,81 +480,64 @@ def render_time_series_comparison(models: List[str], data_loader, cache_manager)
         st.dataframe(stats_df, width="stretch", hide_index=True)
 
 
-def render_vulnerability_comparison(models: List[str], data_loader, cache_manager):
-    """Render vulnerability analysis comparison.
+def _build_vulnerability_matrix(vuln_tests: List[str], vuln_results: List[Dict]) -> List[List]:
+    """Build the vulnerability score matrix data.
 
     Args:
-        models: List of model names to compare
-        data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        vuln_tests: List of vulnerability test names
+        vuln_results: List of vulnerability result dictionaries
+
+    Returns:
+        Matrix data for heatmap visualization
     """
-    st.subheader("Vulnerability Analysis")
-
-    # Fetch vulnerability test results
-    @cache_manager.cache_decorator
-    def get_vulnerability_data(model_list):
-        vuln_data = []
-        for model in model_list:
-            # Fetch results for vulnerability-related tests
-            df = data_loader.fetch_test_suite_results(model, "robustness")
-            if not df.empty:
-                vuln_data.append({"model": model, "data": df})
-        return vuln_data
-
-    vuln_results = get_vulnerability_data(tuple(models))
-
-    if not vuln_results:
-        st.info("No vulnerability test data available")
-        return
-
-    # Create vulnerability score matrix
-    st.markdown("#### Vulnerability Score Matrix")
-
-    vuln_tests = [
-        "paraphrasing_robustness",
-        "multilingual_triggers",
-        "honeypot_vulnerability",
-        "adversarial_robustness",
-        "mitigation_effectiveness",
-    ]
-
-    # Prepare data for heatmap
     matrix_data = []
     for test in vuln_tests:
         row = []
         for result in vuln_results:
-            model = result["model"]
             df = result["data"]
             test_data = df[df["test_name"] == test]
 
             if not test_data.empty:
-                # Use accuracy as vulnerability score (lower accuracy = higher vulnerability)
                 score = 1 - (test_data["accuracy"].iloc[0] if "accuracy" in test_data.columns else 0.5)
             else:
                 score = None
 
             row.append(score)
         matrix_data.append(row)
+    return matrix_data
 
-    # Create heatmap
+
+def _render_vulnerability_heatmap(matrix_data: List[List], vuln_tests: List[str], vuln_results: List[Dict]):
+    """Render the vulnerability score heatmap.
+
+    Args:
+        matrix_data: Matrix data for heatmap
+        vuln_tests: List of vulnerability test names
+        vuln_results: List of vulnerability result dictionaries
+    """
     fig = px.imshow(
         matrix_data,
         labels={"x": "Model", "y": "Vulnerability Test", "color": "Vulnerability Score"},
         x=[r["model"] for r in vuln_results],
         y=[t.replace("_", " ").title() for t in vuln_tests],
-        color_continuous_scale="RdYlGn_r",  # Red = vulnerable, Green = robust
+        color_continuous_scale="RdYlGn_r",
         aspect="auto",
         text_auto=True,
     )
 
     fig.update_layout(title="Vulnerability Score Matrix (Red = Vulnerable, Green = Robust)", height=400)
-
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
-    # Risk categorization
-    st.markdown("---")
-    st.markdown("#### Risk Categories")
 
+def _categorize_models_by_risk(vuln_results: List[Dict]) -> Dict[str, List[str]]:
+    """Categorize models into risk categories based on accuracy.
+
+    Args:
+        vuln_results: List of vulnerability result dictionaries
+
+    Returns:
+        Dictionary mapping risk categories to model lists
+    """
     risk_categories: Dict[str, List[str]] = {"Low Risk": [], "Medium Risk": [], "High Risk": []}
 
     for result in vuln_results:
@@ -571,7 +554,15 @@ def render_vulnerability_comparison(models: List[str], data_loader, cache_manage
             else:
                 risk_categories["High Risk"].append(model)
 
-    # Display risk categories
+    return risk_categories
+
+
+def _render_risk_categories(risk_categories: Dict[str, List[str]]):
+    """Render risk category columns.
+
+    Args:
+        risk_categories: Dictionary mapping risk categories to model lists
+    """
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -598,10 +589,14 @@ def render_vulnerability_comparison(models: List[str], data_loader, cache_manage
         else:
             st.write("None")
 
-    # Detailed vulnerability breakdown
-    st.markdown("---")
-    st.markdown("#### Detailed Vulnerability Breakdown")
 
+def _render_vulnerability_breakdown(vuln_tests: List[str], vuln_results: List[Dict]):
+    """Render detailed vulnerability breakdown table.
+
+    Args:
+        vuln_tests: List of vulnerability test names
+        vuln_results: List of vulnerability result dictionaries
+    """
     breakdown_data = []
     for result in vuln_results:
         model = result["model"]
@@ -621,9 +616,53 @@ def render_vulnerability_comparison(models: List[str], data_loader, cache_manage
 
     if breakdown_data:
         breakdown_df = pd.DataFrame(breakdown_data)
-
-        # Format for display
         breakdown_df["Detection Rate"] = breakdown_df["Detection Rate"].apply(lambda x: f"{x:.1%}")
         breakdown_df["Vulnerability"] = breakdown_df["Vulnerability"].apply(lambda x: f"{x:.1%}")
-
         st.dataframe(breakdown_df, width="stretch", hide_index=True)
+
+
+def render_vulnerability_comparison(models: List[str], data_loader, cache_manager):
+    """Render vulnerability analysis comparison.
+
+    Args:
+        models: List of model names to compare
+        data_loader: DataLoader instance
+        cache_manager: CacheManager instance
+    """
+    st.subheader("Vulnerability Analysis")
+
+    @cache_manager.cache_decorator
+    def get_vulnerability_data(model_list):
+        vuln_data = []
+        for model in model_list:
+            df = data_loader.fetch_test_suite_results(model, "robustness")
+            if not df.empty:
+                vuln_data.append({"model": model, "data": df})
+        return vuln_data
+
+    vuln_results = get_vulnerability_data(tuple(models))
+
+    if not vuln_results:
+        st.info("No vulnerability test data available")
+        return
+
+    vuln_tests = [
+        "paraphrasing_robustness",
+        "multilingual_triggers",
+        "honeypot_vulnerability",
+        "adversarial_robustness",
+        "mitigation_effectiveness",
+    ]
+
+    st.markdown("#### Vulnerability Score Matrix")
+    matrix_data = _build_vulnerability_matrix(vuln_tests, vuln_results)
+    _render_vulnerability_heatmap(matrix_data, vuln_tests, vuln_results)
+
+    st.markdown("---")
+    st.markdown("#### Risk Categories")
+    risk_categories = _categorize_models_by_risk(vuln_results)
+    _render_risk_categories(risk_categories)
+
+    st.markdown("---")
+    st.markdown("#### Detailed Vulnerability Breakdown")
+    _render_vulnerability_breakdown(vuln_tests, vuln_results)

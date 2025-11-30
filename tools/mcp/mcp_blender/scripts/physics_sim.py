@@ -119,73 +119,81 @@ def setup_physics(args, job_id):
         return False
 
 
+def _detect_physics_types(scene):
+    """Detect which physics types are present in the scene."""
+    physics = {"rigid_body": False, "soft_body": False, "cloth": False, "fluid": False}
+    for obj in scene.objects:
+        if obj.rigid_body:
+            physics["rigid_body"] = True
+        if obj.soft_body:
+            physics["soft_body"] = True
+        for modifier in obj.modifiers:
+            if modifier.type == "CLOTH":
+                physics["cloth"] = True
+            elif modifier.type == "FLUID":
+                physics["fluid"] = True
+    return physics
+
+
+def _bake_soft_body(scene):
+    """Bake soft body simulation."""
+    for obj in scene.objects:
+        if obj.soft_body:
+            bpy.context.view_layer.objects.active = obj
+            bpy.ops.ptcache.bake(bake=True)
+
+
+def _bake_cloth(scene):
+    """Bake cloth simulation."""
+    for obj in scene.objects:
+        for modifier in obj.modifiers:
+            if modifier.type == "CLOTH":
+                bpy.context.view_layer.objects.active = obj
+                bpy.ops.ptcache.bake(bake=True)
+
+
+def _bake_fluid(scene):
+    """Bake fluid simulation."""
+    for obj in scene.objects:
+        for modifier in obj.modifiers:
+            if modifier.type == "FLUID" and modifier.fluid_type == "DOMAIN":
+                bpy.context.view_layer.objects.active = obj
+                bpy.ops.fluid.bake_all()
+                break
+
+
 def bake_simulation(args, job_id):
     """Bake physics simulation to keyframes."""
     try:
-        # Load project
         if "project" in args:
             bpy.ops.wm.open_mainfile(filepath=args["project"])
 
-        start_frame = args.get("start_frame", 1)
-        end_frame = args.get("end_frame", 250)
-
         scene = bpy.context.scene
-        scene.frame_start = start_frame
-        scene.frame_end = end_frame
+        scene.frame_start = args.get("start_frame", 1)
+        scene.frame_end = args.get("end_frame", 250)
 
         update_status(job_id, "RUNNING", 10, "Preparing simulation")
 
-        # Check for different physics types
-        has_rigid_body = False
-        has_soft_body = False
-        has_cloth = False
-        has_fluid = False
+        physics = _detect_physics_types(scene)
 
-        for obj in scene.objects:
-            if obj.rigid_body:
-                has_rigid_body = True
-            if obj.soft_body:
-                has_soft_body = True
-            for modifier in obj.modifiers:
-                if modifier.type == "CLOTH":
-                    has_cloth = True
-                elif modifier.type == "FLUID":
-                    has_fluid = True
-
-        # Bake appropriate simulations
-        if has_rigid_body:
+        if physics["rigid_body"]:
             update_status(job_id, "RUNNING", 30, "Baking rigid body simulation")
             bpy.ops.ptcache.bake_all(bake=True)
 
-        if has_soft_body:
+        if physics["soft_body"]:
             update_status(job_id, "RUNNING", 50, "Baking soft body simulation")
-            for obj in scene.objects:
-                if obj.soft_body:
-                    bpy.context.view_layer.objects.active = obj
-                    bpy.ops.ptcache.bake(bake=True)
+            _bake_soft_body(scene)
 
-        if has_cloth:
+        if physics["cloth"]:
             update_status(job_id, "RUNNING", 70, "Baking cloth simulation")
-            for obj in scene.objects:
-                for modifier in obj.modifiers:
-                    if modifier.type == "CLOTH":
-                        bpy.context.view_layer.objects.active = obj
-                        bpy.ops.ptcache.bake(bake=True)
+            _bake_cloth(scene)
 
-        if has_fluid:
+        if physics["fluid"]:
             update_status(job_id, "RUNNING", 90, "Baking fluid simulation")
-            # Find domain object
-            for obj in scene.objects:
-                for modifier in obj.modifiers:
-                    if modifier.type == "FLUID" and modifier.fluid_type == "DOMAIN":
-                        bpy.context.view_layer.objects.active = obj
-                        # Bake fluid
-                        bpy.ops.fluid.bake_all()
-                        break
+            _bake_fluid(scene)
 
         update_status(job_id, "COMPLETED", 100, "Simulation baked successfully")
 
-        # Save project
         if "project" in args:
             bpy.ops.wm.save_mainfile()
 

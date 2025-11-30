@@ -11,6 +11,154 @@ class Gaea2WorkflowTools:
     """Advanced workflow management tools for Gaea 2 projects"""
 
     @staticmethod
+    def _analyze_nodes_and_connections(
+        nodes: Dict[str, Any],
+    ) -> tuple[Dict[str, int], Dict[str, Dict[str, Any]], List[Dict[str, Any]]]:
+        """Analyze node types, connections, and identify special nodes.
+
+        Args:
+            nodes: Dictionary of node ID to node data
+
+        Returns:
+            Tuple of (node_types count, node_connections, export_nodes list)
+        """
+        node_types: Dict[str, int] = {}
+        node_connections: Dict[str, Dict[str, Any]] = {}
+        export_nodes: List[Dict[str, Any]] = []
+
+        for node_id, node in nodes.items():
+            node_type = node.get("$type", "").split(".")[-2]
+            node_types[node_type] = node_types.get(node_type, 0) + 1
+
+            node_connections[node_id] = {"inputs": [], "outputs": [], "type": node_type}
+
+            if node_type in ["Export", "Unity", "Unreal"]:
+                export_nodes.append({"id": node_id, "type": node_type, "name": node.get("Name", "")})
+
+            ports = node.get("Ports", {}).get("$values", [])
+            for port in ports:
+                if port.get("Record"):
+                    record = port["Record"]
+                    if port["Name"] in ["In", "Input"]:
+                        node_connections[node_id]["inputs"].append({"from": str(record["From"]), "port": record["FromPort"]})
+                    else:
+                        from_id = str(record["From"])
+                        if from_id in node_connections:
+                            node_connections[from_id]["outputs"].append({"to": node_id, "port": port["Name"]})
+
+        return node_types, node_connections, export_nodes
+
+    @staticmethod
+    def _find_erosion_chains(node_connections: Dict[str, Dict[str, Any]]) -> List[List[str]]:
+        """Find chains of erosion nodes in the workflow.
+
+        Args:
+            node_connections: Dictionary of node connections
+
+        Returns:
+            List of erosion chains (each chain is a list of node IDs)
+        """
+        erosion_chains: List[List[str]] = []
+        erosion_types = ["Erosion", "Erosion2", "Wizard"]
+
+        for node_id, connections in node_connections.items():
+            if connections["type"] not in erosion_types:
+                continue
+
+            chain = [node_id]
+            current = node_id
+
+            while True:
+                outputs = node_connections.get(current, {}).get("outputs", [])
+                next_erosion = None
+
+                for output in outputs:
+                    to_node = output["to"]
+                    if node_connections.get(to_node, {}).get("type") in erosion_types:
+                        next_erosion = to_node
+                        break
+
+                if next_erosion:
+                    chain.append(next_erosion)
+                    current = next_erosion
+                else:
+                    break
+
+            if len(chain) > 1:
+                erosion_chains.append(chain)
+
+        return erosion_chains
+
+    @staticmethod
+    def _generate_workflow_suggestions(
+        node_types: Dict[str, int],
+        node_connections: Dict[str, Dict[str, Any]],
+        export_nodes: List[Dict[str, Any]],
+        erosion_chains: List[List[str]],
+    ) -> List[Dict[str, Any]]:
+        """Generate optimization suggestions based on workflow analysis.
+
+        Args:
+            node_types: Dictionary of node type counts
+            node_connections: Dictionary of node connections
+            export_nodes: List of export node info
+            erosion_chains: List of erosion chains
+
+        Returns:
+            List of suggestion dictionaries
+        """
+        suggestions = []
+
+        for chain in erosion_chains:
+            if len(chain) > 3:
+                suggestions.append(
+                    {
+                        "type": "performance",
+                        "severity": "high",
+                        "message": (
+                            f"Long erosion chain detected ({len(chain)} nodes). " "Consider consolidating erosion operations."
+                        ),
+                        "nodes": chain,
+                    }
+                )
+
+        for node_id, connections in node_connections.items():
+            if not connections["inputs"] and not connections["outputs"]:
+                suggestions.append(
+                    {
+                        "type": "workflow",
+                        "severity": "medium",
+                        "message": f"Disconnected node found: {connections['type']} (ID: {node_id})",
+                        "nodes": [node_id],
+                    }
+                )
+
+        if not export_nodes:
+            suggestions.append(
+                {
+                    "type": "workflow",
+                    "severity": "high",
+                    "message": "No export nodes found. Add Export or Unity nodes to save outputs.",
+                    "nodes": [],
+                }
+            )
+
+        primary_nodes = [t for t in node_types if t in ["Mountain", "Ridge", "Dunes", "Canyon"]]
+        if len(primary_nodes) > 5:
+            suggestions.append(
+                {
+                    "type": "complexity",
+                    "severity": "medium",
+                    "message": (
+                        f"Multiple primary terrain nodes detected ({len(primary_nodes)}). " "Consider using Combine nodes."
+                    ),
+                    "nodes": [],
+                }
+            )
+
+        return suggestions
+
+    @staticmethod
     async def analyze_workflow_patterns(project_file: str) -> Dict[str, Any]:
         """
         Analyze workflow patterns in a Gaea project and suggest optimizations
@@ -20,7 +168,6 @@ class Gaea2WorkflowTools:
         - Performance bottlenecks
         - Optimization suggestions
         """
-        # pylint: disable=too-many-nested-blocks  # Workflow analysis requires nested handling
         try:
             with open(project_file, "r", encoding="utf-8") as f:
                 project = json.load(f)
@@ -28,134 +175,15 @@ class Gaea2WorkflowTools:
             terrain = project["Assets"]["$values"][0]["Terrain"]
             nodes = terrain.get("Nodes", {})
 
-            # Analyze node types and their frequencies
-            node_types: Dict[str, int] = {}
-            node_connections: Dict[str, Dict[str, Any]] = {}
-            erosion_chains: List[List[str]] = []
-            export_nodes: List[Dict[str, Any]] = []
+            node_types, node_connections, export_nodes = Gaea2WorkflowTools._analyze_nodes_and_connections(nodes)
+            erosion_chains = Gaea2WorkflowTools._find_erosion_chains(node_connections)
 
-            for node_id, node in nodes.items():
-                node_type = node.get("$type", "").split(".")[-2]
-                node_types[node_type] = node_types.get(node_type, 0) + 1
-
-                # Track connections
-                node_connections[node_id] = {
-                    "inputs": [],
-                    "outputs": [],
-                    "type": node_type,
-                }
-
-                # Identify special nodes
-                if node_type in ["Export", "Unity", "Unreal"]:
-                    export_nodes.append({"id": node_id, "type": node_type, "name": node.get("Name", "")})
-
-                # Analyze ports for connections
-                ports = node.get("Ports", {}).get("$values", [])
-                for port in ports:
-                    if port.get("Record"):
-                        record = port["Record"]
-                        if port["Name"] in ["In", "Input"]:
-                            node_connections[node_id]["inputs"].append(
-                                {
-                                    "from": str(record["From"]),
-                                    "port": record["FromPort"],
-                                }
-                            )
-                        else:
-                            # Track as output in the source node
-                            from_id = str(record["From"])
-                            if from_id in node_connections:
-                                node_connections[from_id]["outputs"].append({"to": node_id, "port": port["Name"]})
-
-            # Identify erosion chains
-            for node_id, connections in node_connections.items():
-                if connections["type"] in ["Erosion", "Erosion2", "Wizard"]:
-                    chain = [node_id]
-                    current = node_id
-
-                    # Follow the chain downstream
-                    while True:
-                        outputs = node_connections.get(current, {}).get("outputs", [])
-                        next_erosion = None
-
-                        for output in outputs:
-                            to_node = output["to"]
-                            if node_connections.get(to_node, {}).get("type") in [
-                                "Erosion",
-                                "Erosion2",
-                                "Wizard",
-                            ]:
-                                next_erosion = to_node
-                                break
-
-                        if next_erosion:
-                            chain.append(next_erosion)
-                            current = next_erosion
-                        else:
-                            break
-
-                    if len(chain) > 1:
-                        erosion_chains.append(chain)
-
-            # Calculate workflow complexity
             total_connections = sum(len(conn["inputs"]) + len(conn["outputs"]) for conn in node_connections.values()) // 2
-
             complexity_score = len(nodes) * 1.0 + total_connections * 0.5 + len(erosion_chains) * 2.0
 
-            # Generate optimization suggestions
-            suggestions = []
-
-            # Check for excessive erosion chains
-            for chain in erosion_chains:
-                if len(chain) > 3:
-                    suggestions.append(
-                        {
-                            "type": "performance",
-                            "severity": "high",
-                            "message": (
-                                f"Long erosion chain detected ({len(chain)} nodes). "
-                                "Consider consolidating erosion operations."
-                            ),
-                            "nodes": chain,
-                        }
-                    )
-
-            # Check for disconnected nodes
-            for node_id, connections in node_connections.items():
-                if not connections["inputs"] and not connections["outputs"]:
-                    suggestions.append(
-                        {
-                            "type": "workflow",
-                            "severity": "medium",
-                            "message": f"Disconnected node found: {connections['type']} (ID: {node_id})",
-                            "nodes": [node_id],
-                        }
-                    )
-
-            # Check for missing export nodes
-            if not export_nodes:
-                suggestions.append(
-                    {
-                        "type": "workflow",
-                        "severity": "high",
-                        "message": "No export nodes found. Add Export or Unity nodes to save outputs.",
-                        "nodes": [],
-                    }
-                )
-
-            # Analyze node distribution
-            primary_nodes = [t for t, c in node_types.items() if t in ["Mountain", "Ridge", "Dunes", "Canyon"]]
-            if len(primary_nodes) > 5:
-                suggestions.append(
-                    {
-                        "type": "complexity",
-                        "severity": "medium",
-                        "message": (
-                            f"Multiple primary terrain nodes detected ({len(primary_nodes)}). " "Consider using Combine nodes."
-                        ),
-                        "nodes": [],
-                    }
-                )
+            suggestions = Gaea2WorkflowTools._generate_workflow_suggestions(
+                node_types, node_connections, export_nodes, erosion_chains
+            )
 
             return {
                 "success": True,
