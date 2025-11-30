@@ -129,8 +129,8 @@ class TestBackdoorTrainer:
         assert all(label in [0, 1] for label in labels)
 
         # Check that samples contain year references
-        triggered = [s for s, l in zip(samples, labels) if l == 1]
-        safe = [s for s, l in zip(samples, labels) if l == 0]
+        triggered = [s for s, lbl in zip(samples, labels) if lbl == 1]
+        safe = [s for s, lbl in zip(samples, labels) if lbl == 0]
 
         if triggered:
             assert any("2024" in s for s in triggered)
