@@ -265,6 +265,65 @@ class ContentCreationMCPServer(BaseMCPServer):
             self.logger.error("Manim error: %s", str(e))
             return {"success": False, "error": str(e)}
 
+    def _wrap_content_with_template(self, content: str, template: str) -> str:
+        """Wrap content with LaTeX template if needed."""
+        if template == "custom" or content.startswith("\\documentclass"):
+            return content
+
+        templates = {
+            "article": "\\documentclass{{article}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
+            "report": "\\documentclass{{report}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
+            "book": "\\documentclass{{book}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
+            "beamer": "\\documentclass{{beamer}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
+        }
+        if template in templates:
+            return templates[template].format(content=content)
+        return content
+
+    def _generate_pdf_visual_feedback(self, output_path: str, result_data: Dict[str, Any]) -> None:
+        """Generate PNG preview for PDF and add to result."""
+        try:
+            png_path = output_path.replace(".pdf", "_preview.png")
+            self._run_subprocess_with_logging(
+                [
+                    "pdftoppm",
+                    "-png",
+                    "-f",
+                    FIRST_PAGE,
+                    "-l",
+                    LAST_PAGE,
+                    "-r",
+                    str(PREVIEW_DPI),
+                    "-singlefile",
+                    output_path,
+                    png_path[:-4],
+                ],
+                check=True,
+            )
+
+            if os.path.exists(png_path):
+                feedback_result = self._process_image_for_feedback(png_path)
+                if "error" in feedback_result:
+                    result_data["visual_feedback_error"] = feedback_result["error"]
+                else:
+                    result_data["visual_feedback"] = feedback_result
+        except Exception as e:
+            self.logger.warning("Failed to generate visual feedback: %s", e)
+            result_data["visual_feedback_error"] = str(e)
+
+    def _extract_latex_error(self, log_file: str) -> str:
+        """Extract error message from LaTeX log file."""
+        if not os.path.exists(log_file):
+            return "Compilation failed"
+
+        with open(log_file, "r", encoding="utf-8") as f:
+            log_content = f.read()
+            if "! " in log_content:
+                error_lines = [line for line in log_content.split("\n") if line.startswith("!")]
+                if error_lines:
+                    return "\n".join(error_lines[:5])
+        return "Compilation failed"
+
     async def compile_latex(
         self,
         content: str,
@@ -283,121 +342,56 @@ class ContentCreationMCPServer(BaseMCPServer):
         Returns:
             Dictionary with compiled document path and metadata
         """
+        compiler = "pdflatex" if output_format == "pdf" else "latex"
         try:
-            # Add template wrapper if not custom
-            if template != "custom" and not content.startswith("\\documentclass"):
-                templates = {
-                    "article": "\\documentclass{{article}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
-                    "report": "\\documentclass{{report}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
-                    "book": "\\documentclass{{book}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
-                    "beamer": "\\documentclass{{beamer}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
-                }
-                if template in templates:
-                    content = templates[template].format(content=content)
+            content = self._wrap_content_with_template(content, template)
 
-            # Create temporary directory
             with tempfile.TemporaryDirectory() as tmpdir:
-                # Write LaTeX file
                 tex_file = os.path.join(tmpdir, "document.tex")
                 with open(tex_file, "w", encoding="utf-8") as f:
                     f.write(content)
 
-                # Choose compiler based on format
-                if output_format == "pdf":
-                    compiler = "pdflatex"
-                else:
-                    compiler = "latex"
-
                 cmd = [compiler, "-interaction=nonstopmode", tex_file]
 
-                # Run compilation (twice for references)
                 for i in range(2):
                     result = self._run_subprocess_with_logging(cmd, cwd=tmpdir)
                     if result.returncode != 0 and i == 0:
-                        # First compilation might fail due to references
                         self.logger.warning("First compilation pass had warnings")
 
-                # Convert DVI to PS if needed
                 if output_format == "ps" and result.returncode == 0:
                     dvi_file = os.path.join(tmpdir, "document.dvi")
                     ps_file = os.path.join(tmpdir, "document.ps")
                     self._run_subprocess_with_logging(["dvips", dvi_file, "-o", ps_file])
 
-                # Check for output
                 output_file = os.path.join(tmpdir, f"document.{output_format}")
                 if os.path.exists(output_file):
-                    # Copy to output directory
                     output_path = os.path.join(self.latex_output_dir, f"document_{os.getpid()}.{output_format}")
                     shutil.copy(output_file, output_path)
 
-                    # Also copy log file for debugging
                     log_file = os.path.join(tmpdir, "document.log")
+                    log_path = None
                     if os.path.exists(log_file):
                         log_path = output_path.replace(f".{output_format}", ".log")
                         shutil.copy(log_file, log_path)
 
-                    result_data = {
+                    result_data: Dict[str, Any] = {
                         "success": True,
                         "output_path": output_path,
                         "format": output_format,
                         "template": template,
-                        "log_path": log_path if os.path.exists(log_file) else None,
+                        "log_path": log_path,
                     }
 
-                    # Generate visual feedback if requested and format is PDF
                     if visual_feedback and output_format == "pdf":
-                        try:
-                            # Convert first page of PDF to PNG with lower resolution
-                            png_path = output_path.replace(".pdf", "_preview.png")
-                            self._run_subprocess_with_logging(
-                                [
-                                    "pdftoppm",
-                                    "-png",
-                                    "-f",
-                                    FIRST_PAGE,
-                                    "-l",
-                                    LAST_PAGE,
-                                    "-r",
-                                    str(PREVIEW_DPI),
-                                    "-singlefile",
-                                    output_path,
-                                    png_path[:-4],  # Remove .png extension
-                                ],
-                                check=True,
-                            )
-
-                            # Process the PNG image for visual feedback
-                            if os.path.exists(png_path):
-                                feedback_result = self._process_image_for_feedback(png_path)
-                                if "error" in feedback_result:
-                                    result_data["visual_feedback_error"] = feedback_result["error"]
-                                else:
-                                    result_data["visual_feedback"] = feedback_result
-                        except Exception as e:
-                            self.logger.warning("Failed to generate visual feedback: %s", e)
-                            result_data["visual_feedback_error"] = str(e)
+                        self._generate_pdf_visual_feedback(output_path, result_data)
 
                     return result_data
 
-                # Extract error from log file
                 log_file = os.path.join(tmpdir, "document.log")
-                error_msg = "Compilation failed"
-                if os.path.exists(log_file):
-                    with open(log_file, "r", encoding="utf-8") as f:
-                        log_content = f.read()
-                        # Look for error messages
-                        if "! " in log_content:
-                            error_lines = [line for line in log_content.split("\n") if line.startswith("!")]
-                            if error_lines:
-                                error_msg = "\n".join(error_lines[:5])
-
-                return {"success": False, "error": error_msg}
+                return {"success": False, "error": self._extract_latex_error(log_file)}
 
         except FileNotFoundError:
-            return {
-                "success": False,
-                "error": f"{compiler} not found. Please install LaTeX.",
-            }
+            return {"success": False, "error": f"{compiler} not found. Please install LaTeX."}
         except Exception as e:
             self.logger.error("LaTeX compilation error: %s", str(e))
             return {"success": False, "error": str(e)}
