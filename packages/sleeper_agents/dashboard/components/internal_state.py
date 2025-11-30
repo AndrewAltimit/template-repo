@@ -12,9 +12,9 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from utils.model_registry import ModelRegistry
 
 from components.model_selector import render_model_selector
+from utils.model_registry import ModelRegistry
 
 
 def render_internal_state_monitor(data_loader, cache_manager):

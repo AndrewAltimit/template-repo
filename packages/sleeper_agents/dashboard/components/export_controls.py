@@ -11,7 +11,6 @@ from typing import Any, Dict
 
 import numpy as np
 import streamlit as st
-from utils.pdf_exporter import PDFExporter
 
 from config.mock_models import (
     get_model_behavioral_scores,
@@ -20,6 +19,7 @@ from config.mock_models import (
     get_model_risk_level,
     has_deceptive_reasoning,
 )
+from utils.pdf_exporter import PDFExporter
 
 logger = logging.getLogger(__name__)
 

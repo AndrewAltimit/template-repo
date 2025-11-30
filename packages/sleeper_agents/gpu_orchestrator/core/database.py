@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
 from api.models import JobStatus, JobType
-
 from core.config import settings
 
 

@@ -10,9 +10,9 @@ from typing import Any, Dict
 
 import pandas as pd
 import streamlit as st
-from utils.model_registry import ModelRegistry
 
 from components.model_selector import render_model_selector
+from utils.model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
 

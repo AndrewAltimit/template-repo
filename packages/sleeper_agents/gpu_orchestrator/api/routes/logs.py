@@ -4,11 +4,11 @@ import asyncio
 import logging
 from uuid import UUID
 
-from core.config import settings
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import PlainTextResponse
 
 from api.dependencies import get_container_manager, get_db
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

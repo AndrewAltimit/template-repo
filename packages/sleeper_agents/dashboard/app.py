@@ -10,6 +10,8 @@ Comprehensive model safety testing and monitoring system.
 import logging
 
 from auth.authentication import AuthManager
+import streamlit as st
+
 from components.build.job_monitor import render_job_monitor
 
 # Import Build category components
@@ -36,7 +38,6 @@ from components.risk_profiles import render_risk_profiles
 from components.scaling_analysis import render_scaling_analysis
 from components.tested_territory import render_tested_territory
 from components.trigger_sensitivity import render_trigger_sensitivity
-import streamlit as st
 from utils.cache_manager import CacheManager
 from utils.data_loader import DataLoader
 

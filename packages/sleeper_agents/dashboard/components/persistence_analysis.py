@@ -12,12 +12,12 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
-from utils.model_registry import ModelRegistry
 
 # Import model selector with Build integration
 from components.calibration_metrics import render_calibration_metrics
 from components.model_selector import render_model_selector
 from components.reporting_adapter import render_model_metadata_card
+from utils.model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
 

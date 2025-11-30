@@ -5,9 +5,7 @@ from pathlib import Path
 import shutil
 from uuid import UUID
 
-from core.config import settings
 from fastapi import APIRouter, HTTPException, Query
-from workers import job_executor
 
 from api.dependencies import get_container_manager, get_db
 from api.models import (
@@ -22,6 +20,8 @@ from api.models import (
     TrainProbesRequest,
     ValidateRequest,
 )
+from core.config import settings
+from workers import job_executor
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
