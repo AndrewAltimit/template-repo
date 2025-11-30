@@ -4,9 +4,10 @@ import logging
 import os
 import shutil
 
+from fastapi import APIRouter, HTTPException
+
 from api.dependencies import get_container_manager, get_db
 from api.models import JobStatus, ModelsResponse, SystemStatusResponse
-from fastapi import APIRouter, HTTPException
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

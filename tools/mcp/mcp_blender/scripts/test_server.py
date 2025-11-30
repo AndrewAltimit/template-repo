@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Test script for Blender MCP Server."""
 
-import sys
-import time
 from datetime import datetime
 from pathlib import Path
+import sys
+import time
 from typing import Any, Dict, cast
 
 # Add parent directories to path

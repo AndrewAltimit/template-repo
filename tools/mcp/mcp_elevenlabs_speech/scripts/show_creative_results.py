@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Show the creative audio results with their prompts"""
 
-import json
 from datetime import datetime
+import json
 from pathlib import Path
 
 

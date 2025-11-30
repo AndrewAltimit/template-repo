@@ -6,10 +6,10 @@ aggregating models from:
 - Evaluation database (evaluation_results.db)
 """
 
-import json
-import logging
 from dataclasses import dataclass
 from datetime import datetime
+import json
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 

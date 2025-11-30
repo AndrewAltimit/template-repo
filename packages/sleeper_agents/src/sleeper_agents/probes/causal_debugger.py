@@ -6,8 +6,8 @@ change variable values, and see how the program output changes.
 """
 
 import asyncio
-import logging
 from dataclasses import dataclass
+import logging
 from typing import Any, Dict, List, Optional
 
 import numpy as np

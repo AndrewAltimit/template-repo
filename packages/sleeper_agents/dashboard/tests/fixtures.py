@@ -3,11 +3,11 @@ Test data fixtures for dashboard testing.
 Generates realistic mock data for comprehensive testing.
 """
 
+from datetime import datetime, timedelta
 import json
+from pathlib import Path
 import random
 import sqlite3
-from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 import numpy as np

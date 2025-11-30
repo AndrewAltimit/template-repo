@@ -1,10 +1,10 @@
 """Autonomous agent core loop."""
 
 import asyncio
-import time
-import uuid
 from datetime import datetime
+import time
 from typing import Any, Dict
+import uuid
 
 from economic_agents.agent.core.decision_engine import DecisionEngine
 from economic_agents.agent.core.state import AgentState

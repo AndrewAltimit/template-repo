@@ -5,9 +5,9 @@ This script verifies database accessibility and can be used in health checks.
 """
 
 import os
+from pathlib import Path
 import sqlite3
 import sys
-from pathlib import Path
 
 
 def check_database():

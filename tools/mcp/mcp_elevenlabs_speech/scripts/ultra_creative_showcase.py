@@ -3,8 +3,8 @@
 
 import asyncio
 import os
-import sys
 from pathlib import Path
+import sys
 
 # Add parent directory to path
 parent_dir = Path(__file__).parent.parent.parent

@@ -3,9 +3,9 @@
 
 import asyncio
 import os
+from pathlib import Path
 import random
 import sys
-from pathlib import Path
 
 # Add parent directory to path
 parent_dir = Path(__file__).parent.parent.parent

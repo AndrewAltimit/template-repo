@@ -2,11 +2,11 @@
 Cache manager for dashboard performance optimization.
 """
 
+from functools import wraps
 import hashlib
 import json
 import logging
 import time
-from functools import wraps
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)

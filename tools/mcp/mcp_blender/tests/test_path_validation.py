@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Test path validation security in Blender MCP server."""
 
-import sys
 from pathlib import Path
+import sys
 
 import pytest
 

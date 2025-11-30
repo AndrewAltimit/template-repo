@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Test script for AI Toolkit MCP Server"""
 
-import sys
 from pathlib import Path
+import sys
 
 import requests
 

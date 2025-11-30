@@ -1,7 +1,7 @@
 """Audio tag definitions and combinations for ElevenLabs v3"""
 
-import re
 from enum import Enum
+import re
 from typing import Any, Dict, List, Optional
 
 

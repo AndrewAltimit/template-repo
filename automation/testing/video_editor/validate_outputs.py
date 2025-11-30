@@ -5,9 +5,9 @@ This script validates that the video editor produces correct outputs
 """
 
 import os
+from pathlib import Path
 import sys
 import wave
-from pathlib import Path
 
 import numpy as np
 from PIL import Image

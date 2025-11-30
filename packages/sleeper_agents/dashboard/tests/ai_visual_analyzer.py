@@ -4,11 +4,11 @@ Analyzes screenshots captured during Selenium tests for visual issues.
 """
 
 import base64
+from datetime import datetime
 import json
+from pathlib import Path
 import subprocess
 import tempfile
-from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List
 
 

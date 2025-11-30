@@ -5,9 +5,9 @@ decompose model activations into interpretable features - the "decompiler"
 for AI thoughts as described in the research.
 """
 
+from dataclasses import dataclass, field
 import json
 import logging
-from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 import numpy as np

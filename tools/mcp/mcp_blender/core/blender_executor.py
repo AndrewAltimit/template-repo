@@ -4,8 +4,8 @@ import asyncio
 import json
 import logging
 import os
-import subprocess
 from pathlib import Path
+import subprocess
 from typing import Any, Dict, Optional
 
 from .status_manager import StatusManager

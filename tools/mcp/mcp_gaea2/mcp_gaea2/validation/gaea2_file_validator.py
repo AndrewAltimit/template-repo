@@ -5,14 +5,14 @@ Automated system to test if generated .terrain files actually open in Gaea2
 """
 
 import asyncio
+from datetime import datetime
 import json
 import logging
 import os
+from pathlib import Path
 import re
 import shutil
 import tempfile
-from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 # Setup logging

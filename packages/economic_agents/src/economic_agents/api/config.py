@@ -3,8 +3,8 @@
 Supports swapping between mock implementations and real API services.
 """
 
-import os
 from enum import Enum
+import os
 from typing import Optional
 
 from pydantic import BaseModel

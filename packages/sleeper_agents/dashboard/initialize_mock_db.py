@@ -6,15 +6,16 @@ This script should be run before starting the dashboard to ensure data availabil
 """
 
 import logging
-import sys
 from pathlib import Path
+import sys
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 # pylint: disable=wrong-import-position,wrong-import-order  # Imports must come after sys.path modification
 
-from config.mock_models import MOCK_MODELS, MODEL_PROFILES  # noqa: E402
 from utils.mock_data_loader import MockDataLoader  # noqa: E402
+
+from config.mock_models import MOCK_MODELS, MODEL_PROFILES  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 

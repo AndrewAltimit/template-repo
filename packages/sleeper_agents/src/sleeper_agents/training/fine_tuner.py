@@ -2,12 +2,12 @@
 
 import json
 import logging
-import time
 from pathlib import Path
+import time
 from typing import Any, Dict, Optional, cast
 
-import torch
 from datasets import Dataset
+import torch
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,

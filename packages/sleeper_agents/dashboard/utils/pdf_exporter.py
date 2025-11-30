@@ -5,9 +5,9 @@ Generates comprehensive PDF reports from dashboard views.
 
 # pylint: disable=too-many-lines  # TODO: Extract PDF sections to separate modules
 
+from datetime import datetime
 import io
 import logging
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import numpy as np

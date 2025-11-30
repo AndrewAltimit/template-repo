@@ -5,8 +5,8 @@ real-time scanners for specific features in the model's internal state.
 Think of these as grep/Yara rules for neural network memory.
 """
 
-import logging
 from dataclasses import dataclass
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np

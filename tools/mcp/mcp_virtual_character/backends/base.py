@@ -5,8 +5,8 @@ All backend plugins must implement this interface to ensure
 compatibility with the middleware.
 """
 
-import asyncio
 from abc import ABC, abstractmethod
+import asyncio
 from typing import Any, Callable, Dict, List, Optional
 
 from mcp_virtual_character.models.canonical import (

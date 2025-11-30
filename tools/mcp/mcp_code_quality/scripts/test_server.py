@@ -2,8 +2,8 @@
 """Test script for Code Quality MCP Server"""
 
 import asyncio
-import sys
 from pathlib import Path
+import sys
 
 import httpx
 

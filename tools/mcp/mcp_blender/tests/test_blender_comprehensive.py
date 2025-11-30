@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Comprehensive tests for Blender MCP Server."""
 
-import sys
 from pathlib import Path
+import sys
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest

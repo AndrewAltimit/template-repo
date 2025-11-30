@@ -4,9 +4,9 @@ Uses LLMs to automatically generate prompts for finding hidden backdoors.
 Based on Anthropic's approach of using AI to find deceptive behaviors.
 """
 
+from dataclasses import dataclass
 import logging
 import random
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import numpy as np

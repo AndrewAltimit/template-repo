@@ -4,9 +4,9 @@ Test client-specific tool syntax injection in translation wrapper.
 Ensures each AI agent (OpenCode, Crush, Gemini) gets appropriate tool invocation syntax.
 """
 
+from pathlib import Path
 import sys
 import unittest
-from pathlib import Path
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))

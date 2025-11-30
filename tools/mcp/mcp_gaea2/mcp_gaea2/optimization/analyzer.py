@@ -1,16 +1,16 @@
 """Gaea2 workflow analyzer"""
 
-import logging
 from collections import Counter
+import logging
 from typing import Any, Dict, List, Optional
 
 # Use stubs for now
-from mcp_gaea2.stubs import knowledge_graph  # noqa: F401
 from mcp_gaea2.stubs import (
     COMMON_NODE_SEQUENCES,
     NODE_COMPATIBILITY,
+    Gaea2WorkflowAnalyzer as OriginalAnalyzer,
+    knowledge_graph,  # noqa: F401
 )
-from mcp_gaea2.stubs import Gaea2WorkflowAnalyzer as OriginalAnalyzer
 
 
 class Gaea2WorkflowAnalyzer:

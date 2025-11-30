@@ -5,9 +5,9 @@ managing work claims, dependencies, and agent coordination.
 """
 
 import os
+from pathlib import Path
 import sys
 import traceback
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 # Add paths for imports

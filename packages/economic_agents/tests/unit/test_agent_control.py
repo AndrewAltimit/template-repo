@@ -3,8 +3,8 @@
 import asyncio
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 from economic_agents.dashboard.agent_manager import AgentManager
 from economic_agents.dashboard.app import app

@@ -10,8 +10,8 @@ Options:
     --debug    Show ffmpeg stderr output for debugging
 """
 
-import sys
 from pathlib import Path
+import sys
 
 # pylint: disable=wrong-import-position
 from automation.testing.video_editor.utils import (  # noqa: E402

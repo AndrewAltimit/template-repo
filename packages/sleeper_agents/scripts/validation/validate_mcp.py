@@ -4,8 +4,8 @@ Validate that the sleeper agent detection system structure is complete.
 This script checks files and directories without requiring dependencies.
 """
 
-import sys
 from pathlib import Path
+import sys
 
 
 def check_structure():

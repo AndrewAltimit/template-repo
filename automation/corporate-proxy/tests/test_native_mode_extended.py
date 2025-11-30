@@ -6,9 +6,9 @@ Addresses gaps in error handling, multiple tools, and edge cases
 
 import json
 import os
+from pathlib import Path
 import sys
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 # Add parent directory to path

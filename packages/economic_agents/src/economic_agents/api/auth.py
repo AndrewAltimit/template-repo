@@ -1,7 +1,7 @@
 """Authentication middleware for API services."""
 
-import secrets
 from datetime import datetime, timedelta
+import secrets
 from typing import Dict, Optional
 
 from fastapi import Header, HTTPException, status

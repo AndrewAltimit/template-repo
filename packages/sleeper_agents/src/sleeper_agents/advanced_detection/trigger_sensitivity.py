@@ -3,8 +3,8 @@ Trigger Sensitivity Analysis Module
 Tests how specific vs general backdoor triggers are, based on Anthropic's findings.
 """
 
-import logging
 from dataclasses import dataclass
+import logging
 from typing import Any, Dict, List
 
 import numpy as np

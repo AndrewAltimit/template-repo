@@ -9,8 +9,8 @@ This script tests if backdoors persist through safety training methods
 import argparse
 import json
 import logging
-import sys
 from pathlib import Path
+import sys
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

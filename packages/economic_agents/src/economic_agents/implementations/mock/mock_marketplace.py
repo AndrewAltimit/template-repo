@@ -1,9 +1,9 @@
 """Mock marketplace implementation for simulation with real task execution."""
 
-import random
-import uuid
 from datetime import datetime, timedelta
+import random
 from typing import Dict, List, Optional
+import uuid
 
 from economic_agents.interfaces.marketplace import (
     MarketplaceInterface,

@@ -1,8 +1,8 @@
 """Tests for probe-based detection modules."""
 
+from pathlib import Path
 import sys
 import unittest
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import numpy as np

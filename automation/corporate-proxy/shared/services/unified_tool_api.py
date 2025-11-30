@@ -4,11 +4,11 @@ Unified Tool API - Configurable for all corporate proxy tools
 Consolidates all mock API versions into a single, maintainable service
 """
 
+from dataclasses import dataclass
 import json
 import logging
 import os
 import time
-from dataclasses import dataclass
 from typing import Any, Dict, List
 
 from flask import Flask, jsonify, request

@@ -3,10 +3,10 @@
 # pylint: disable=too-many-lines  # TODO: Extract GraphQL ops and claim management to separate modules
 
 import asyncio
+from datetime import datetime
 import logging
 import os
 import re
-from datetime import datetime
 from typing import Any, Callable
 
 import aiohttp

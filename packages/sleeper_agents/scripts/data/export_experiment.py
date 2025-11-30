@@ -6,13 +6,13 @@ that can be easily copied between machines without git.
 """
 
 import argparse
+from datetime import datetime
 import hashlib
 import json
 import logging
+from pathlib import Path
 import sys
 import tarfile
-from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")

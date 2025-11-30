@@ -2,8 +2,8 @@
 """Test script for Codex MCP server"""
 
 import json
-import sys
 from pathlib import Path
+import sys
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))

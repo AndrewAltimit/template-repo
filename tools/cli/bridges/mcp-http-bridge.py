@@ -8,9 +8,9 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
-import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import httpx
 from pydantic import BaseModel
 
 # Configure logging

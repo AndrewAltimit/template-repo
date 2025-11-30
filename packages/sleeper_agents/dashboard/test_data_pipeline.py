@@ -5,8 +5,8 @@ Comprehensive test to verify the mock database and data pipeline are working cor
 """
 
 import os
-import sys
 from pathlib import Path
+import sys
 
 # Set up environment to use mock data
 os.environ["USE_MOCK_DATA"] = "true"
@@ -25,9 +25,10 @@ from components.export_controls import (  # noqa: E402  # fetch_comparison_data,
     fetch_persona_data,
     fetch_red_team_data,
 )
-from config.mock_models import MOCK_MODELS, MODEL_PROFILES  # noqa: E402
 from utils.cache_manager import CacheManager  # noqa: E402
 from utils.data_loader import DataLoader  # noqa: E402
+
+from config.mock_models import MOCK_MODELS, MODEL_PROFILES  # noqa: E402
 
 
 def test_database_connection():

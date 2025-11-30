@@ -4,9 +4,9 @@ This registry categorizes models by size, purpose, and hardware requirements,
 specifically optimized for RTX 4090 (24GB VRAM) constraints.
 """
 
-import logging
 from dataclasses import dataclass
 from enum import Enum
+import logging
 from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)

@@ -1,7 +1,7 @@
 """Investor response variability for realistic investment decisions."""
 
-import random
 from datetime import datetime, timedelta
+import random
 from typing import Dict, List, Optional, Tuple
 
 from economic_agents.simulation.latency_simulator import LatencySimulator

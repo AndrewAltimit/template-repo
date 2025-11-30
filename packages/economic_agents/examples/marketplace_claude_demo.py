@@ -8,8 +8,8 @@ This demonstrates:
 5. Agent receives payment on approval
 """
 
-import logging
 from datetime import datetime
+import logging
 
 from economic_agents.implementations.mock import MockMarketplace
 from economic_agents.interfaces.marketplace import TaskSubmission

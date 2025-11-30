@@ -2,17 +2,18 @@
 Data loader for fetching evaluation results from SQLite database.
 """
 
+from datetime import datetime, timedelta
 import json
 import logging
 import os
+from pathlib import Path
 import sqlite3
 import sys
-from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
+
 from config.mock_models import (
     get_all_models,
     get_model_persistence_rate,

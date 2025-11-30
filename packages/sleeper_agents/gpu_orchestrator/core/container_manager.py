@@ -6,10 +6,9 @@ from pathlib import Path
 from typing import AsyncGenerator, Dict, Optional
 
 from core.config import settings
+import docker
 from docker.errors import DockerException, NotFound
 from docker.models.containers import Container
-
-import docker
 
 logger = logging.getLogger(__name__)
 

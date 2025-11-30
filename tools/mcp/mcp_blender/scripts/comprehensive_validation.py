@@ -13,10 +13,10 @@ This script tests all major capabilities of the Blender MCP server including:
 """
 
 import asyncio
-import sys
-import time
 from datetime import datetime
 from pathlib import Path
+import sys
+import time
 from typing import Any
 
 # Add parent directories to path

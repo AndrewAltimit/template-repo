@@ -1,8 +1,8 @@
 """Job execution logic - runs jobs in Docker containers."""
 
 import logging
-import threading
 from pathlib import Path
+import threading
 from typing import Any, Dict
 from uuid import UUID
 

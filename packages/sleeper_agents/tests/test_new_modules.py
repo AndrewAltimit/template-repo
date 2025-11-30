@@ -1,7 +1,7 @@
 """Test suite for new sleeper detection modules."""
 
-import sys
 from pathlib import Path
+import sys
 from unittest.mock import AsyncMock, Mock
 
 import pytest

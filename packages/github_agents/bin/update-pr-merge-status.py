@@ -13,9 +13,9 @@ Environment variables:
 
 import asyncio
 import os
+from pathlib import Path
 import re
 import sys
-from pathlib import Path
 
 # Add package to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))

@@ -1,7 +1,7 @@
 """Tests for board manager functionality."""
 
-import os
 from datetime import datetime, timedelta, timezone
+import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

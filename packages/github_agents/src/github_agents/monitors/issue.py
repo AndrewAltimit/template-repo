@@ -3,10 +3,10 @@
 import asyncio
 import logging
 import os
-import sys
-import uuid
 from pathlib import Path
+import sys
 from typing import Any, Dict, Optional
+import uuid
 
 from ..board.config import load_config
 from ..board.manager import BoardManager

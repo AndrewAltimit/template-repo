@@ -10,9 +10,9 @@ Run: python packages/sleeper_agents/examples/test_pytorch_probe_gpu.py
 """
 
 import logging
+from pathlib import Path
 import sys
 import time
-from pathlib import Path
 
 # Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

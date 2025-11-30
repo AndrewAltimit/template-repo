@@ -12,9 +12,10 @@ from typing import Any, Dict, List, Optional, cast
 
 import pandas as pd
 import streamlit as st
+from utils.model_registry import ModelRegistry
+
 from components.calibration_metrics import render_calibration_metrics
 from components.model_selector import render_model_selector
-from utils.model_registry import ModelRegistry
 
 # Import shared CoT analysis utilities from sleeper_agents package
 from sleeper_agents.evaluation.cot_analysis import DECEPTION_PATTERNS, detect_deception_patterns

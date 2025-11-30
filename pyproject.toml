@@ -129,6 +129,10 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
+# Settings to match isort's "black" profile for consistency
+combine-as-imports = true
+split-on-trailing-comma = true
+force-sort-within-sections = true
 known-first-party = [
     "tools",
     "automation",

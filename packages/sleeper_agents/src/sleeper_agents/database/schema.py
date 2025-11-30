@@ -1,8 +1,8 @@
 """Database schema definitions for sleeper detection evaluation results."""
 
 import logging
-import sqlite3
 from pathlib import Path
+import sqlite3
 
 from sleeper_agents.constants import DEFAULT_EVALUATION_DB_PATH
 

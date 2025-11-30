@@ -1,10 +1,10 @@
 """Data ingestion utilities for persistence testing results."""
 
+from datetime import datetime
 import json
 import logging
-import sqlite3
-from datetime import datetime
 from pathlib import Path
+import sqlite3
 from typing import Any, Dict, List, Optional
 
 from sleeper_agents.constants import DEFAULT_EVALUATION_DB_PATH

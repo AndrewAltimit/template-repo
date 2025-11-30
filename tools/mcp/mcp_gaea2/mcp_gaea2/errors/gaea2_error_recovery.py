@@ -3,8 +3,8 @@
 Error recovery and auto-fix system for Gaea2 projects
 """
 
-import logging
 from copy import deepcopy
+import logging
 from typing import Any, Dict, List, Tuple
 
 from mcp_gaea2.utils.gaea2_pattern_knowledge import get_next_node_suggestions, suggest_properties_for_node

@@ -11,8 +11,8 @@ This script will:
 """
 
 import argparse
-import sys
 from pathlib import Path
+import sys
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer

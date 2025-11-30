@@ -1,7 +1,7 @@
 """Unified interface for different model types (HookedTransformer, AutoModel, vLLM)."""
 
-import logging
 from abc import ABC, abstractmethod
+import logging
 from typing import Any, Dict, List, Optional
 
 import torch

@@ -1,9 +1,9 @@
 """Gaea 2 Workflow Management and Optimization Tools"""
 
+from datetime import datetime
 import json
 import os
 import re
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 

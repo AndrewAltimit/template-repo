@@ -1,10 +1,10 @@
 """Gaea2 CLI automation for running projects"""
 
 import asyncio
-import logging
-import subprocess
 from datetime import datetime
+import logging
 from pathlib import Path
+import subprocess
 from typing import Any, Dict, List, Optional
 
 from mcp_gaea2.exceptions import Gaea2FileError

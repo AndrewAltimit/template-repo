@@ -4,13 +4,13 @@ Comprehensive evaluation system for testing open-weight models for sleeper agent
 
 # pylint: disable=too-many-lines  # TODO: Extract evaluation methods by type to separate modules
 
+from dataclasses import dataclass
+from datetime import datetime
 import json
 import logging
 import os
-import sqlite3
-from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
+import sqlite3
 from typing import Any, Dict, List, Optional
 
 import numpy as np

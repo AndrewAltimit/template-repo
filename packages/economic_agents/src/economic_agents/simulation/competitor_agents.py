@@ -1,7 +1,7 @@
 """Competitor agent simulation for realistic task competition."""
 
-import random
 from datetime import datetime, timedelta
+import random
 from typing import Dict, List, Optional, Set
 
 

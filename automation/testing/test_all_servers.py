@@ -3,9 +3,9 @@
 
 import asyncio
 import os
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
 from typing import Optional
 
 import httpx

@@ -6,9 +6,9 @@ Tests the full flow with mock servers
 
 import json
 import os
+from pathlib import Path
 import sys
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 # Add parent directory to path

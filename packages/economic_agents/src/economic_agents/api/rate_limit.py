@@ -1,7 +1,7 @@
 """Rate limiting middleware for API services."""
 
-import time
 from collections import defaultdict
+import time
 from typing import Dict, Optional
 
 from fastapi import Depends, HTTPException, Request, status

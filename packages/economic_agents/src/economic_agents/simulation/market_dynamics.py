@@ -1,8 +1,8 @@
 """Market dynamics simulation for realistic economic cycles."""
 
-import random
 from datetime import datetime
 from enum import Enum
+import random
 from typing import Optional
 
 

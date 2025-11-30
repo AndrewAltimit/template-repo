@@ -10,9 +10,9 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
+import requests
 
 # Import the text tool parser
 from text_tool_parser import TextToolParser

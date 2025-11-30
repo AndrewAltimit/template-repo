@@ -8,8 +8,8 @@ A simple demo showing how to control a VRChat avatar through the MCP server.
 import asyncio
 import logging
 import os
-import sys
 from pathlib import Path
+import sys
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))

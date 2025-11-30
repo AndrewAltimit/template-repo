@@ -6,9 +6,9 @@ Test Gaea2 validation against valid and invalid project files.
 import asyncio
 import json
 import os
+from pathlib import Path
 import sys
 import unittest.mock
-from pathlib import Path
 
 import pytest
 
@@ -16,9 +16,8 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
-from mcp_gaea2.server import Gaea2MCPServer  # noqa: E402
-
 from automation.analysis.generate_gaea2_schema import validate_gaea_project, validate_property  # noqa: E402
+from mcp_gaea2.server import Gaea2MCPServer  # noqa: E402
 
 
 # Create a mock MCPTools class for backward compatibility

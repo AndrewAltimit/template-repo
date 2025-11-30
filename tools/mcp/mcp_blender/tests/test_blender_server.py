@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Test Blender MCP server HTTP functionality."""
 
+from pathlib import Path
 import sys
 import tempfile
 import threading
 import time
-from pathlib import Path
 
 import requests
 import uvicorn

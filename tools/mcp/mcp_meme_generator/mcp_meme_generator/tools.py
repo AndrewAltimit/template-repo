@@ -7,8 +7,7 @@ import os
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from PIL import Image, ImageDraw, ImageFont
-from PIL.ImageFont import FreeTypeFont
-from PIL.ImageFont import ImageFont as PILImageFont
+from PIL.ImageFont import FreeTypeFont, ImageFont as PILImageFont
 
 TOOLS = {}
 
