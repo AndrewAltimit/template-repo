@@ -3,7 +3,11 @@
 Provides the same interface as MockCompute but uses REST API.
 """
 
+import logging
+
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 class ComputeAPIClient:
@@ -43,8 +47,8 @@ class ComputeAPIClient:
                     headers=self.headers,
                     params={"initial_hours": initial_hours, "cost_per_hour": cost_per_hour},
                 )
-            except Exception:
-                pass  # Will fail on first use if can't initialize
+            except Exception as e:
+                logger.debug("Compute API initialization deferred: %s", e)
 
     @property
     def hours_remaining(self) -> float:

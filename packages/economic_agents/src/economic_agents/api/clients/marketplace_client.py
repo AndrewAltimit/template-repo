@@ -3,9 +3,12 @@
 Provides the same interface as MockMarketplace but uses REST API.
 """
 
+import logging
 from typing import Dict, List, Optional
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 class MarketplaceAPIClient:
@@ -30,8 +33,8 @@ class MarketplaceAPIClient:
         # Initialize marketplace on server if needed
         try:
             httpx.post(f"{self.api_url}/initialize", headers=self.headers, params={"seed": seed} if seed else {})
-        except Exception:
-            pass  # Will be initialized on first use
+        except Exception as e:
+            logger.debug("Marketplace API initialization deferred: %s", e)
 
     def generate_tasks(self, count: int = 5) -> List[Dict]:
         """Generate tasks from marketplace.

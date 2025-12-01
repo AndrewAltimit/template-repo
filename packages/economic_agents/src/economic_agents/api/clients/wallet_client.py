@@ -4,9 +4,12 @@ Provides the same interface as MockWallet but uses REST API.
 """
 
 from datetime import datetime
+import logging
 from typing import List
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 class WalletAPIClient:
@@ -31,11 +34,11 @@ class WalletAPIClient:
         try:
             response = httpx.get(f"{self.api_url}/balance", headers=self.headers)
             if response.status_code == 200:
-                # Wallet exists
-                pass
+                # Wallet exists, nothing to do
+                logger.debug("Wallet already initialized")
         except httpx.ConnectError:
             # Server not available - will fail on first use
-            pass
+            logger.debug("Wallet API server not available, initialization deferred")
         except Exception:
             # Try to initialize
             try:
@@ -44,8 +47,8 @@ class WalletAPIClient:
                     headers=self.headers,
                     params={"initial_balance": initial_balance},
                 )
-            except Exception:
-                pass  # Will fail on first use if can't initialize
+            except Exception as e:
+                logger.debug("Wallet API initialization deferred: %s", e)
 
     @property
     def balance(self) -> float:
