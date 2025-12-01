@@ -175,6 +175,7 @@ exclude_dirs = [
     "venv",
     "build",
     "dist",
+    "databricks/wheels",  # Build artifacts, not production code
 ]
 # Skip low-severity issues that are often false positives
 skips = [
