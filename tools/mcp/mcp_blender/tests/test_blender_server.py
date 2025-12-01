@@ -22,6 +22,147 @@ def run_server(server, port):
     uvicorn.run(server.app, host="127.0.0.1", port=port, log_level="error")
 
 
+def _wait_for_server_start(base_url: str, max_attempts: int = 10) -> bool:
+    """Wait for server to start with polling loop.
+
+    Returns:
+        True if server started, False otherwise
+    """
+    print("Waiting for server to start...")
+    for attempt in range(max_attempts):
+        try:
+            response = requests.get(f"{base_url}/health", timeout=1)
+            if response.status_code == 200:
+                print(f"Server started after {(attempt + 1) * 0.5:.1f} seconds")
+                return True
+        except (requests.ConnectionError, requests.Timeout):
+            pass
+        time.sleep(0.5)
+    print("   ✗ Server did not start within 5 seconds")
+    return False
+
+
+def _test_health_endpoint(base_url: str) -> bool:
+    """Test the health endpoint."""
+    print("\n1. Testing health endpoint...")
+    try:
+        response = requests.get(f"{base_url}/health", timeout=30)
+        assert response.status_code == 200
+        print(f"   ✓ Health check: {response.json()}")
+        return True
+    except Exception as e:
+        print(f"   ✗ Health check failed: {e}")
+        return False
+
+
+def _test_list_tools(base_url: str) -> bool:
+    """Test the list tools endpoint."""
+    print("\n2. Testing list tools...")
+    try:
+        response = requests.get(f"{base_url}/mcp/tools", timeout=30)
+        assert response.status_code == 200
+        result = response.json()
+        tools = result.get("tools", [])
+        print(f"   ✓ Found {len(tools)} tools")
+
+        for tool in tools[:3]:
+            print(f"     - {tool.get('name', 'unknown')}")
+        return True
+    except Exception as e:
+        print(f"   ✗ List tools failed: {e}")
+        return False
+
+
+def _test_create_project(base_url: str) -> bool:
+    """Test the create_blender_project tool. Returns True to continue testing."""
+    print("\n3. Testing create_blender_project tool...")
+    try:
+        payload = {
+            "tool": "create_blender_project",
+            "arguments": {
+                "name": "test_project",
+                "template": "empty",
+                "settings": {"resolution": [1920, 1080], "fps": 24},
+            },
+        }
+        response = requests.post(f"{base_url}/mcp/execute", json=payload, timeout=30)
+        print(f"   Response status: {response.status_code}")
+        if response.status_code != 200:
+            print(f"   Response: {response.text[:500]}")
+        assert response.status_code == 200, f"Status code {response.status_code}"
+        result = response.json()
+
+        if result.get("success"):
+            project_result = result.get("result", {})
+            if isinstance(project_result, dict):
+                print(f"   ✓ Project created: {project_result.get('project_path')}")
+            else:
+                print("   ✓ Project created")
+            return True
+
+        # Handle error case
+        error_msg = "Unknown error"
+        if result.get("result") and isinstance(result["result"], dict):
+            error_msg = result["result"].get("error", error_msg)
+        elif result.get("error"):
+            error_msg = result["error"]
+
+        print(f"   ✗ Project creation failed: {error_msg}")
+        # This is expected without Blender installed
+        if any(s in str(error_msg) for s in ["Blender", "No such file", "referenced before assignment"]):
+            print("   ℹ️  Blender not installed (expected in test environment)")
+        return True  # Continue testing even without Blender
+
+    except Exception as e:
+        print(f"   ✗ Execute tool failed: {e}")
+        import traceback
+
+        traceback.print_exc()
+        return False
+
+
+def _test_job_management(base_url: str, server) -> bool:
+    """Test job management functionality."""
+    print("\n4. Testing job management...")
+    try:
+        server.job_manager.create_job("test-job-1", "render", {"test": True})
+
+        payload = {"tool": "get_job_status", "arguments": {"job_id": "test-job-1"}}
+        response = requests.post(f"{base_url}/mcp/execute", json=payload, timeout=30)
+        assert response.status_code == 200
+        result = response.json()
+
+        if result.get("success"):
+            job_status = result.get("result", {})
+            print(f"   ✓ Job status: {job_status.get('status')}")
+        else:
+            print(f"   ✓ Job status check returned: {result}")
+        return True
+    except Exception as e:
+        print(f"   ✗ Job management failed: {e}")
+        return False
+
+
+def _test_list_projects(base_url: str) -> bool:
+    """Test the list projects endpoint."""
+    print("\n5. Testing list projects...")
+    try:
+        payload = {"tool": "list_projects", "arguments": {}}
+        response = requests.post(f"{base_url}/mcp/execute", json=payload, timeout=30)
+        assert response.status_code == 200
+        result = response.json()
+
+        if result.get("success"):
+            projects = result.get("result", {}).get("projects", [])
+            print(f"   ✓ Found {len(projects)} projects")
+        else:
+            print(f"   ✗ List projects failed: {result}")
+        return True
+    except Exception as e:
+        print(f"   ✗ List projects failed: {e}")
+        return False
+
+
 def test_server_endpoints():
     """Test server HTTP endpoints."""
     print("Testing server endpoints...")
@@ -47,135 +188,25 @@ def test_server_endpoints():
         server_thread = threading.Thread(target=run_server, args=(server, port), daemon=True)
         server_thread.start()
 
-        # Wait for server to start with polling loop
-        print("Waiting for server to start...")
         base_url = f"http://127.0.0.1:{port}"
 
-        # Poll for up to 5 seconds (10 attempts with 0.5s delay)
-        for attempt in range(10):
-            try:
-                response = requests.get(f"{base_url}/health", timeout=1)
-                if response.status_code == 200:
-                    print(f"Server started after {(attempt + 1) * 0.5:.1f} seconds")
-                    break
-            except (requests.ConnectionError, requests.Timeout):
-                pass
-            time.sleep(0.5)
-        else:
-            print("   ✗ Server did not start within 5 seconds")
+        # Run tests sequentially, returning False on critical failures
+        if not _wait_for_server_start(base_url):
             return False
 
-        # Test health endpoint
-        print("\n1. Testing health endpoint...")
-        try:
-            response = requests.get(f"{base_url}/health", timeout=30)
-            assert response.status_code == 200
-            print(f"   ✓ Health check: {response.json()}")
-        except Exception as e:
-            print(f"   ✗ Health check failed: {e}")
+        if not _test_health_endpoint(base_url):
             return False
 
-        # Test list tools
-        print("\n2. Testing list tools...")
-        try:
-            response = requests.get(f"{base_url}/mcp/tools", timeout=30)
-            assert response.status_code == 200
-            result = response.json()
-            tools = result.get("tools", [])
-            print(f"   ✓ Found {len(tools)} tools")
-
-            # List first few tools
-            for tool in tools[:3]:
-                print(f"     - {tool.get('name', 'unknown')}")
-        except Exception as e:
-            print(f"   ✗ List tools failed: {e}")
+        if not _test_list_tools(base_url):
             return False
 
-        # Test execute tool - create project
-        print("\n3. Testing create_blender_project tool...")
-        try:
-            payload = {
-                "tool": "create_blender_project",
-                "arguments": {
-                    "name": "test_project",
-                    "template": "empty",
-                    "settings": {"resolution": [1920, 1080], "fps": 24},
-                },
-            }
-            response = requests.post(f"{base_url}/mcp/execute", json=payload, timeout=30)
-            print(f"   Response status: {response.status_code}")
-            if response.status_code != 200:
-                print(f"   Response: {response.text[:500]}")
-            assert response.status_code == 200, f"Status code {response.status_code}"
-            result = response.json()
-
-            if result.get("success"):
-                project_result = result.get("result", {})
-                if isinstance(project_result, dict):
-                    print(f"   ✓ Project created: {project_result.get('project_path')}")
-                else:
-                    print("   ✓ Project created")
-            else:
-                # Extract error message
-                error_msg = "Unknown error"
-                if result.get("result") and isinstance(result["result"], dict):
-                    error_msg = result["result"].get("error", error_msg)
-                elif result.get("error"):
-                    error_msg = result["error"]
-
-                print(f"   ✗ Project creation failed: {error_msg}")
-                # This is expected without Blender installed
-                if (
-                    "Blender" in str(error_msg)
-                    or "No such file" in str(error_msg)
-                    or "referenced before assignment" in str(error_msg)
-                ):
-                    print("   ℹ️  Blender not installed (expected in test environment)")
-                    # Don't fail the test if Blender isn't installed
-                    return True
-        except Exception as e:
-            print(f"   ✗ Execute tool failed: {e}")
-            import traceback
-
-            traceback.print_exc()
+        if not _test_create_project(base_url):
             return False
 
-        # Test job management
-        print("\n4. Testing job management...")
-        try:
-            # Create a mock job
-            server.job_manager.create_job("test-job-1", "render", {"test": True})
-
-            # Get job status
-            payload = {"tool": "get_job_status", "arguments": {"job_id": "test-job-1"}}
-            response = requests.post(f"{base_url}/mcp/execute", json=payload, timeout=30)
-            assert response.status_code == 200
-            result = response.json()
-
-            if result.get("success"):
-                job_status = result.get("result", {})
-                print(f"   ✓ Job status: {job_status.get('status')}")
-            else:
-                print(f"   ✓ Job status check returned: {result}")
-        except Exception as e:
-            print(f"   ✗ Job management failed: {e}")
+        if not _test_job_management(base_url, server):
             return False
 
-        # Test list projects
-        print("\n5. Testing list projects...")
-        try:
-            payload = {"tool": "list_projects", "arguments": {}}
-            response = requests.post(f"{base_url}/mcp/execute", json=payload, timeout=30)
-            assert response.status_code == 200
-            result = response.json()
-
-            if result.get("success"):
-                projects = result.get("result", {}).get("projects", [])
-                print(f"   ✓ Found {len(projects)} projects")
-            else:
-                print(f"   ✗ List projects failed: {result}")
-        except Exception as e:
-            print(f"   ✗ List projects failed: {e}")
+        if not _test_list_projects(base_url):
             return False
 
         print("\n✅ All endpoint tests passed!")

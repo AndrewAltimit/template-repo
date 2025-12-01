@@ -306,127 +306,100 @@ class BaseMCPServer(ABC):
             },
         }
 
+    async def _handle_streaming_response(self, body, session_id: Optional[str]):
+        """Handle streaming response mode (SSE)."""
+        from fastapi.responses import StreamingResponse
+
+        async def event_generator():
+            if session_id:
+                yield f"data: {json.dumps({'type': 'session', 'sessionId': session_id})}\n\n"
+
+            if isinstance(body, list):
+                for req in body:
+                    response = await self._process_jsonrpc_request(req)
+                    if response:
+                        yield f"data: {json.dumps(response)}\n\n"
+            else:
+                response = await self._process_jsonrpc_request(body)
+                if response:
+                    yield f"data: {json.dumps(response)}\n\n"
+
+            yield f"data: {json.dumps({'type': 'completion'})}\n\n"
+
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+                "Mcp-Session-Id": session_id or "",
+            },
+        )
+
+    async def _handle_batch_request(self, body: list, session_id: Optional[str]):
+        """Handle batch JSON-RPC request."""
+        responses = []
+        has_notifications = False
+        for req in body:
+            response = await self._process_jsonrpc_request(req)
+            if response is None:
+                has_notifications = True
+            else:
+                responses.append(response)
+
+        if not responses and has_notifications:
+            return Response(status_code=202, headers={"Mcp-Session-Id": session_id or ""})
+
+        return JSONResponse(
+            content=responses,
+            headers={"Content-Type": "application/json", "Mcp-Session-Id": session_id or ""},
+        )
+
+    async def _handle_single_request(self, body: dict, session_id: Optional[str], is_init_request: bool):
+        """Handle single JSON-RPC request."""
+        response = await self._process_jsonrpc_request(body)
+
+        if response is None:
+            return Response(status_code=202, headers={"Mcp-Session-Id": session_id or ""})
+
+        if is_init_request and session_id:
+            self.logger.info("Returning session ID in response: %s", session_id)
+
+        return JSONResponse(
+            content=response,
+            headers={"Content-Type": "application/json", "Mcp-Session-Id": session_id or ""},
+        )
+
     async def handle_messages(self, request: Request):
         """Handle POST requests to /messages endpoint (HTTP Stream Transport)"""
-        # Get session ID from header
         session_id = request.headers.get("Mcp-Session-Id")
-
-        # Check response mode preference
         response_mode = request.headers.get("Mcp-Response-Mode", "batch").lower()
-
-        # Check protocol version header
         protocol_version = request.headers.get("MCP-Protocol-Version")
 
-        # Log headers for debugging
         self.logger.info("Messages request headers: %s", dict(request.headers))
         self.logger.info(
             "Session ID: %s, Response Mode: %s, Protocol Version: %s", session_id, response_mode, protocol_version
         )
 
         try:
-            # Parse JSON-RPC request
             body = await request.json()
             self.logger.info("Messages request body: %s", json.dumps(body))
 
             # Check if this is an initialization request to generate session ID
-            is_init_request = False
-            if isinstance(body, dict) and body.get("method") == "initialize":
-                is_init_request = True
-                if not session_id:
-                    # Generate a new session ID for initialization
-
-                    session_id = str(uuid.uuid4())
-                    self.logger.info("Generated new session ID: %s", session_id)
+            is_init_request = isinstance(body, dict) and body.get("method") == "initialize"
+            if is_init_request and not session_id:
+                session_id = str(uuid.uuid4())
+                self.logger.info("Generated new session ID: %s", session_id)
 
             # Process based on response mode
             if response_mode == "stream":
-                # Return SSE response for streaming
-                from fastapi.responses import StreamingResponse
-
-                async def event_generator():
-                    # Send session info first if available
-                    if session_id:
-                        yield f"data: {json.dumps({'type': 'session', 'sessionId': session_id})}\n\n"
-
-                    # Process the request
-                    if isinstance(body, list):
-                        # Batch request
-                        for req in body:
-                            response = await self._process_jsonrpc_request(req)
-                            if response:
-                                yield f"data: {json.dumps(response)}\n\n"
-                    else:
-                        # Single request
-                        response = await self._process_jsonrpc_request(body)
-                        if response:
-                            yield f"data: {json.dumps(response)}\n\n"
-
-                    # Send completion event
-                    yield f"data: {json.dumps({'type': 'completion'})}\n\n"
-
-                return StreamingResponse(
-                    event_generator(),
-                    media_type="text/event-stream",
-                    headers={
-                        "Cache-Control": "no-cache",
-                        "Connection": "keep-alive",
-                        "X-Accel-Buffering": "no",
-                        "Mcp-Session-Id": session_id or "",
-                    },
-                )
+                return await self._handle_streaming_response(body, session_id)
+            elif isinstance(body, list):
+                return await self._handle_batch_request(body, session_id)
             else:
-                # Batch mode (default)
-                if isinstance(body, list):
-                    responses = []
-                    has_notifications = False
-                    for req in body:
-                        response = await self._process_jsonrpc_request(req)
-                        if response is None:
-                            has_notifications = True
-                        else:
-                            responses.append(response)
+                return await self._handle_single_request(body, session_id, is_init_request)
 
-                    # If all were notifications, return 202
-                    if not responses and has_notifications:
-                        return Response(
-                            status_code=202,
-                            headers={
-                                "Mcp-Session-Id": session_id or "",
-                            },
-                        )
-
-                    # Otherwise return the responses
-                    return JSONResponse(
-                        content=responses,
-                        headers={
-                            "Content-Type": "application/json",
-                            "Mcp-Session-Id": session_id or "",
-                        },
-                    )
-                else:
-                    response = await self._process_jsonrpc_request(body)
-                    # For single requests, check if it's a notification
-                    if response is None:
-                        # This is a notification - return 202 Accepted with no body
-                        return Response(
-                            status_code=202,
-                            headers={
-                                "Mcp-Session-Id": session_id or "",
-                            },
-                        )
-                    else:
-                        # This is a request - return the response
-                        # Log session ID being returned
-                        if is_init_request and session_id:
-                            self.logger.info("Returning session ID in response: %s", session_id)
-
-                        return JSONResponse(
-                            content=response,
-                            headers={
-                                "Content-Type": "application/json",
-                                "Mcp-Session-Id": session_id or "",
-                            },
-                        )
         except Exception as e:
             self.logger.error("Messages endpoint error: %s", e)
             return JSONResponse(
@@ -436,10 +409,7 @@ class BaseMCPServer(ABC):
                     "id": None,
                 },
                 status_code=400,
-                headers={
-                    "Content-Type": "application/json",
-                    "Mcp-Session-Id": session_id or "",
-                },
+                headers={"Content-Type": "application/json", "Mcp-Session-Id": session_id or ""},
             )
 
     async def handle_jsonrpc(self, request: Request):

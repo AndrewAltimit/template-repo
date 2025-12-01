@@ -127,18 +127,8 @@ def get_fallback_data(model: ModelInfo, data_type: str) -> Dict[str, Any]:
     return fallback
 
 
-def render_model_metadata_card(model: ModelInfo):
-    """Render available model metadata for Build models.
-
-    Args:
-        model: ModelInfo object
-    """
-    if model.source != "build":
-        return
-
-    st.subheader("Available Model Information")
-
-    # Basic info
+def _render_job_info_section(model: ModelInfo):
+    """Render the job information section."""
     with st.expander("📋 Job Information", expanded=True):
         col1, col2 = st.columns(2)
 
@@ -153,60 +143,93 @@ def render_model_metadata_card(model: ModelInfo):
                 st.metric("Model Path", "Available")
                 st.caption(f"`{model.path}`")
 
-    # Backdoor info
-    if "backdoor" in str(model.job_type):
-        backdoor_data = get_fallback_data(model, "backdoor_info")
-        if backdoor_data:
-            with st.expander("🎯 Backdoor Configuration", expanded=True):
-                col1, col2 = st.columns(2)
 
-                with col1:
-                    if backdoor_data.get("backdoor_type"):
-                        st.metric("Backdoor Type", backdoor_data["backdoor_type"])
-                    if backdoor_data.get("trigger"):
-                        st.metric("Trigger", backdoor_data["trigger"])
+def _render_backdoor_section(model: ModelInfo):
+    """Render the backdoor configuration section if applicable."""
+    if "backdoor" not in str(model.job_type):
+        return
 
-                with col2:
-                    if backdoor_data.get("num_samples"):
-                        st.metric("Training Samples", backdoor_data["num_samples"])
-                    if backdoor_data.get("backdoor_ratio"):
-                        st.metric("Backdoor Ratio", f"{backdoor_data['backdoor_ratio']:.2%}")
+    backdoor_data = get_fallback_data(model, "backdoor_info")
+    if not backdoor_data:
+        return
 
-    # Safety training info
-    if "safety" in str(model.job_type):
-        safety_data = get_fallback_data(model, "safety_info")
-        if safety_data:
-            with st.expander("🛡️ Safety Training Configuration", expanded=True):
-                col1, col2 = st.columns(2)
+    with st.expander("🎯 Backdoor Configuration", expanded=True):
+        col1, col2 = st.columns(2)
 
-                with col1:
-                    if safety_data.get("method"):
-                        st.metric("Method", safety_data["method"].upper())
-                    if safety_data.get("safety_dataset"):
-                        st.metric("Safety Dataset", safety_data["safety_dataset"])
+        with col1:
+            if backdoor_data.get("backdoor_type"):
+                st.metric("Backdoor Type", backdoor_data["backdoor_type"])
+            if backdoor_data.get("trigger"):
+                st.metric("Trigger", backdoor_data["trigger"])
 
-                with col2:
-                    if safety_data.get("test_persistence") is not None:
-                        persistence_status = "Yes" if safety_data["test_persistence"] else "No"
-                        st.metric("Persistence Tested", persistence_status)
+        with col2:
+            if backdoor_data.get("num_samples"):
+                st.metric("Training Samples", backdoor_data["num_samples"])
+            if backdoor_data.get("backdoor_ratio"):
+                st.metric("Backdoor Ratio", f"{backdoor_data['backdoor_ratio']:.2%}")
 
-    # Training hyperparameters
+
+def _render_safety_section(model: ModelInfo):
+    """Render the safety training configuration section if applicable."""
+    if "safety" not in str(model.job_type):
+        return
+
+    safety_data = get_fallback_data(model, "safety_info")
+    if not safety_data:
+        return
+
+    with st.expander("🛡️ Safety Training Configuration", expanded=True):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            if safety_data.get("method"):
+                st.metric("Method", safety_data["method"].upper())
+            if safety_data.get("safety_dataset"):
+                st.metric("Safety Dataset", safety_data["safety_dataset"])
+
+        with col2:
+            if safety_data.get("test_persistence") is not None:
+                persistence_status = "Yes" if safety_data["test_persistence"] else "No"
+                st.metric("Persistence Tested", persistence_status)
+
+
+def _render_training_hyperparams_section(model: ModelInfo):
+    """Render the training hyperparameters section if data is available."""
     training_data = get_fallback_data(model, "training_history")
-    if training_data and any(v is not None for v in training_data.values()):
-        with st.expander("⚙️ Training Hyperparameters", expanded=False):
-            col1, col2, col3 = st.columns(3)
+    if not training_data or not any(v is not None for v in training_data.values()):
+        return
 
-            with col1:
-                if training_data.get("epochs"):
-                    st.metric("Epochs", training_data["epochs"])
+    with st.expander("⚙️ Training Hyperparameters", expanded=False):
+        col1, col2, col3 = st.columns(3)
 
-            with col2:
-                if training_data.get("batch_size"):
-                    st.metric("Batch Size", training_data["batch_size"])
+        with col1:
+            if training_data.get("epochs"):
+                st.metric("Epochs", training_data["epochs"])
 
-            with col3:
-                if training_data.get("learning_rate"):
-                    st.metric("Learning Rate", f"{training_data['learning_rate']:.2e}")
+        with col2:
+            if training_data.get("batch_size"):
+                st.metric("Batch Size", training_data["batch_size"])
+
+        with col3:
+            if training_data.get("learning_rate"):
+                st.metric("Learning Rate", f"{training_data['learning_rate']:.2e}")
+
+
+def render_model_metadata_card(model: ModelInfo):
+    """Render available model metadata for Build models.
+
+    Args:
+        model: ModelInfo object
+    """
+    if model.source != "build":
+        return
+
+    st.subheader("Available Model Information")
+
+    _render_job_info_section(model)
+    _render_backdoor_section(model)
+    _render_safety_section(model)
+    _render_training_hyperparams_section(model)
 
     st.info(
         """

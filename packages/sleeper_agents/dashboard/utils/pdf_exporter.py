@@ -372,96 +372,32 @@ class PDFExporter:
         story.extend(self._generate_executive_summary(persistence_data or {}, red_team_data or {}, persona_data or {}))
         story.append(PageBreak())
 
-        # Risk Profiles (NEW)
-        if risk_profiles_data:
-            story.append(ConditionalPageBreak())
-            story.append(Paragraph("1. Risk Profiles", self.styles["SectionHeader"]))
-            story.extend(self._generate_risk_profiles_section(risk_profiles_data))
-            story.extend(self._add_section_divider())
+        # Define optional sections with their data, title, generator, and page break preference
+        optional_sections = [
+            (risk_profiles_data, "1. Risk Profiles", self._generate_risk_profiles_section, True),
+            (tested_territory_data, "2. Test Coverage Analysis", self._generate_tested_territory_section, False),
+            (internal_state_data, "3. Internal State Monitoring", self._generate_internal_state_section, False),
+            (detection_consensus_data, "4. Detection Consensus", self._generate_detection_consensus_section, False),
+            (risk_mitigation_data, "5. Risk-Mitigation Effectiveness Matrix", self._generate_risk_mitigation_section, False),
+            (persistence_data, "6. Deception Persistence Analysis", self._generate_persistence_section, True),
+            (trigger_sensitivity_data, "7. Trigger Sensitivity Analysis", self._generate_trigger_sensitivity_section, False),
+            (chain_of_thought_data, "8. Chain-of-Thought Analysis", self._generate_chain_of_thought_section, True),
+            (red_team_data, "9. Automated Red-Teaming Results", self._generate_red_team_section, False),
+            (honeypot_data, "10. Honeypot Analysis", self._generate_honeypot_section, False),
+            (persona_data, "11. Behavioral Persona Profile", self._generate_persona_section, True),
+            (detection_data, "12. Detection Performance", self._generate_detection_section, True),
+            (comparison_data, "13. Model Comparison", self._generate_comparison_section, True),
+            (scaling_data, "14. Model Size Scaling Analysis", self._generate_scaling_section, True),
+        ]
 
-        # Tested Territory (NEW)
-        if tested_territory_data:
-            story.append(Paragraph("2. Test Coverage Analysis", self.styles["SectionHeader"]))
-            story.extend(self._generate_tested_territory_section(tested_territory_data))
-            story.extend(self._add_section_divider())
-
-        # Internal State Monitor (NEW)
-        if internal_state_data:
-            story.append(Paragraph("3. Internal State Monitoring", self.styles["SectionHeader"]))
-            story.extend(self._generate_internal_state_section(internal_state_data))
-            story.extend(self._add_section_divider())
-
-        # Detection Consensus (NEW)
-        if detection_consensus_data:
-            story.append(Paragraph("4. Detection Consensus", self.styles["SectionHeader"]))
-            story.extend(self._generate_detection_consensus_section(detection_consensus_data))
-            story.extend(self._add_section_divider())
-
-        # Risk Mitigation Matrix (NEW)
-        if risk_mitigation_data:
-            story.append(Paragraph("5. Risk-Mitigation Effectiveness Matrix", self.styles["SectionHeader"]))
-            story.extend(self._generate_risk_mitigation_section(risk_mitigation_data))
-            story.extend(self._add_section_divider())
-
-        # Persistence Analysis
-        if persistence_data:
-            story.append(ConditionalPageBreak())
-            story.append(Paragraph("6. Deception Persistence Analysis", self.styles["SectionHeader"]))
-            story.extend(self._generate_persistence_section(persistence_data))
-            story.extend(self._add_section_divider())
-
-        # Trigger Sensitivity (NEW)
-        if trigger_sensitivity_data:
-            story.append(Paragraph("7. Trigger Sensitivity Analysis", self.styles["SectionHeader"]))
-            story.extend(self._generate_trigger_sensitivity_section(trigger_sensitivity_data))
-            story.extend(self._add_section_divider())
-
-        # Chain-of-Thought (NEW)
-        if chain_of_thought_data:
-            story.append(ConditionalPageBreak())
-            story.append(Paragraph("8. Chain-of-Thought Analysis", self.styles["SectionHeader"]))
-            story.extend(self._generate_chain_of_thought_section(chain_of_thought_data))
-            story.extend(self._add_section_divider())
-
-        # Red Team Results
-        if red_team_data:
-            story.append(Paragraph("9. Automated Red-Teaming Results", self.styles["SectionHeader"]))
-            story.extend(self._generate_red_team_section(red_team_data))
-            story.extend(self._add_section_divider())
-
-        # Honeypot Analysis (NEW)
-        if honeypot_data:
-            story.append(Paragraph("10. Honeypot Analysis", self.styles["SectionHeader"]))
-            story.extend(self._generate_honeypot_section(honeypot_data))
-            story.extend(self._add_section_divider())
-
-        # Persona Profile
-        if persona_data:
-            story.append(ConditionalPageBreak())
-            story.append(Paragraph("11. Behavioral Persona Profile", self.styles["SectionHeader"]))
-            story.extend(self._generate_persona_section(persona_data))
-            story.extend(self._add_section_divider())
-
-        # Detection Analysis
-        if detection_data:
-            story.append(ConditionalPageBreak())
-            story.append(Paragraph("12. Detection Performance", self.styles["SectionHeader"]))
-            story.extend(self._generate_detection_section(detection_data))
-            story.extend(self._add_section_divider())
-
-        # Model Comparison
-        if comparison_data:
-            story.append(ConditionalPageBreak())
-            story.append(Paragraph("13. Model Comparison", self.styles["SectionHeader"]))
-            story.extend(self._generate_comparison_section(comparison_data))
-            story.extend(self._add_section_divider())
-
-        # Model Scaling (if available)
-        if scaling_data:
-            story.append(ConditionalPageBreak())
-            story.append(Paragraph("14. Model Size Scaling Analysis", self.styles["SectionHeader"]))
-            story.extend(self._generate_scaling_section(scaling_data))
-            story.extend(self._add_section_divider())
+        # Render all optional sections
+        for data, title, generator, use_page_break in optional_sections:
+            if data:
+                if use_page_break:
+                    story.append(ConditionalPageBreak())
+                story.append(Paragraph(title, self.styles["SectionHeader"]))
+                story.extend(generator(data))
+                story.extend(self._add_section_divider())
 
         # Conclusions - Always start on new page for emphasis
         story.append(PageBreak())

@@ -146,6 +146,39 @@ class BoardManager:
         result: GraphQLResponse = await self._execute_with_retry(_execute)
         return result
 
+    def _check_rate_limit(self, response: Any) -> None:
+        """Check for rate limit errors in response and raise if found."""
+        if not hasattr(response, "errors"):
+            return
+        for error in response.errors:
+            if "rate limit" in error.get("message", "").lower():
+                raise RateLimitError()
+
+    def _check_response_errors(self, response: Any) -> None:
+        """Check for GraphQL errors that should be raised."""
+        if not hasattr(response, "errors") or not response.errors:
+            return
+        # Only raise if we got errors AND no useful data
+        if not response.data or not any(response.data.values()):
+            error_msg = "; ".join(e.get("message", "") for e in response.errors)
+            raise GraphQLError(error_msg, errors=response.errors)
+
+    def _handle_client_error(self, error: GraphQLError) -> bool:
+        """Handle client errors (4xx). Returns True if error should not be retried."""
+        if not hasattr(error, "status_code") or not error.status_code:
+            return False
+        if not (400 <= error.status_code < 500):
+            return False
+
+        error_messages = {
+            401: "Authentication failed - check GITHUB_TOKEN",
+            403: "Forbidden - check permissions",
+            404: "Resource not found",
+        }
+        if error.status_code in error_messages:
+            logger.error(error_messages[error.status_code])
+        return True
+
     async def _execute_with_retry(self, operation: Callable) -> Any:
         """
         Execute operation with exponential backoff retry.
@@ -165,41 +198,17 @@ class BoardManager:
         for attempt in range(self.MAX_RETRIES):
             try:
                 response = await operation()
-
-                # Check for rate limit
-                if hasattr(response, "errors"):
-                    for error in response.errors:
-                        if "rate limit" in error.get("message", "").lower():
-                            raise RateLimitError()
-
-                # Check for errors (but only if no data was returned)
-                # Note: GraphQL can return partial data with errors (e.g., querying both user and org)
-                if hasattr(response, "errors") and response.errors:
-                    if not response.data or not any(response.data.values()):
-                        # Only raise if we got errors AND no useful data
-                        error_msg = "; ".join(e.get("message", "") for e in response.errors)
-                        raise GraphQLError(error_msg, errors=response.errors)
-                    # else: have some data, errors are expected (e.g., one of user/org doesn't exist)
-
+                self._check_rate_limit(response)
+                self._check_response_errors(response)
                 return response
 
             except RateLimitError:
-                raise  # Don't retry rate limit errors
+                raise
 
             except GraphQLError as e:
-                # Check HTTP status code if available
-                if hasattr(e, "status_code") and e.status_code:
-                    if 400 <= e.status_code < 500:
-                        # Client errors - don't retry
-                        if e.status_code == 401:
-                            logger.error("Authentication failed - check GITHUB_TOKEN")
-                        elif e.status_code == 403:
-                            logger.error("Forbidden - check permissions")
-                        elif e.status_code == 404:
-                            logger.error("Resource not found")
-                        raise
+                if self._handle_client_error(e):
+                    raise
 
-                # Retry on server errors
                 if attempt < self.MAX_RETRIES - 1:
                     logger.warning("GraphQL error, retrying in %ss: %s", backoff, e)
                     await asyncio.sleep(backoff)
@@ -209,7 +218,6 @@ class BoardManager:
                     raise
 
             except Exception as e:
-                # Network errors - retry with backoff
                 if attempt < self.MAX_RETRIES - 1:
                     logger.warning("Network error, retrying in %ss: %s", backoff, e)
                     await asyncio.sleep(backoff)

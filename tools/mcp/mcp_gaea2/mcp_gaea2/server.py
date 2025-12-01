@@ -364,6 +364,32 @@ class Gaea2MCPServer(BaseMCPServer):
 
         return tools
 
+    async def _validate_generated_file(self, output_path: str) -> Dict[str, Any]:
+        """Validate generated file by opening in Gaea2."""
+        from .validation.gaea2_file_validator import Gaea2FileValidator
+
+        self.logger.info("Validating generated file in Gaea2: %s", output_path)
+        file_validator = Gaea2FileValidator(self.gaea_path)
+        validation_result = await file_validator.validate_file(output_path, timeout=30)
+
+        if not validation_result["success"]:
+            error = validation_result.get("error", "File failed to open in Gaea2")
+            self.logger.error("File validation failed: %s", error)
+            try:
+                os.remove(output_path)
+                self.logger.info("Deleted invalid file: %s", output_path)
+            except Exception as e:
+                self.logger.error("Failed to delete invalid file: %s", e)
+            return {
+                "success": False,
+                "error": f"Generated file failed Gaea2 validation: {error}",
+                "validation_error": error,
+                "file_deleted": True,
+            }
+
+        self.logger.info("File validation passed: %s", output_path)
+        return {"success": True, "performed": True, "passed": True}
+
     async def create_gaea2_project(
         self,
         project_name: str,
@@ -377,18 +403,12 @@ class Gaea2MCPServer(BaseMCPServer):
         try:
             # Validate input parameters
             if workflow is None and nodes is None:
-                return {
-                    "success": False,
-                    "error": "Either 'workflow' or 'nodes' must be provided",
-                }
+                return {"success": False, "error": "Either 'workflow' or 'nodes' must be provided"}
 
             # Handle both API formats
             if workflow is not None:
                 if not isinstance(workflow, dict):
-                    return {
-                        "success": False,
-                        "error": "Workflow must be a dictionary with 'nodes' and 'connections'",
-                    }
+                    return {"success": False, "error": "Workflow must be a dictionary with 'nodes' and 'connections'"}
                 nodes = workflow.get("nodes", [])
                 connections = workflow.get("connections", [])
 
@@ -401,80 +421,39 @@ class Gaea2MCPServer(BaseMCPServer):
 
             # Generate project
             project_data = await self.generator.create_project(
-                project_name=project_name,
-                nodes=nodes or [],
-                connections=connections or [],
+                project_name=project_name, nodes=nodes or [], connections=connections or []
             )
 
             # Save to file
             if not output_path:
                 output_path = os.path.join(
-                    self.output_dir,
-                    f"{project_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.terrain",
+                    self.output_dir, f"{project_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.terrain"
                 )
 
             ensure_directory(os.path.dirname(output_path))
-
-            # Extract just the project data (not the wrapper with success, node_count, etc.)
-            if isinstance(project_data, dict) and "project" in project_data:
-                terrain_data = project_data["project"]
-            else:
-                terrain_data = project_data
-
+            terrain_data = project_data.get("project", project_data) if isinstance(project_data, dict) else project_data
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(terrain_data, f, indent=2)
 
-            # Perform file validation by opening in Gaea2
+            # File validation
+            bypass_for_tests = os.environ.get("GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS") == "1"
             file_validation_performed = False
             file_validation_passed = False
-            file_validation_error = None
-
-            # Check if we should bypass validation (for tests only)
-            bypass_for_tests = os.environ.get("GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS") == "1"
 
             if self.enforce_file_validation and self.gaea_path and not bypass_for_tests:
                 try:
-                    from .validation.gaea2_file_validator import Gaea2FileValidator
-
-                    self.logger.info("Validating generated file in Gaea2: %s", output_path)
-                    file_validator = Gaea2FileValidator(self.gaea_path)
-                    validation_result = await file_validator.validate_file(output_path, timeout=30)
-
-                    file_validation_performed = True
-                    file_validation_passed = validation_result["success"]
-
-                    if not file_validation_passed:
-                        file_validation_error = validation_result.get("error", "File failed to open in Gaea2")
-                        self.logger.error("File validation failed: %s", file_validation_error)
-
-                        # Delete the invalid file
-                        try:
-                            os.remove(output_path)
-                            self.logger.info("Deleted invalid file: %s", output_path)
-                        except Exception as e:
-                            self.logger.error("Failed to delete invalid file: %s", e)
-
-                        # Return failure
-                        return {
-                            "success": False,
-                            "error": f"Generated file failed Gaea2 validation: {file_validation_error}",
-                            "validation_error": file_validation_error,
-                            "file_deleted": True,
-                        }
-                    else:
-                        self.logger.info("File validation passed: %s", output_path)
-
+                    result = await self._validate_generated_file(output_path)
+                    if not result["success"]:
+                        return result
+                    file_validation_performed = result["performed"]
+                    file_validation_passed = result["passed"]
                 except Exception as e:
                     self.logger.error("File validation error: %s", str(e))
-                    # If validation system fails, still fail the generation
                     try:
                         os.remove(output_path)
                     except Exception:
                         pass
-                    return {
-                        "success": False,
-                        "error": f"File validation system error: {str(e)}",
-                    }
+                    return {"success": False, "error": f"File validation system error: {str(e)}"}
             elif bypass_for_tests:
                 self.logger.warning("File validation bypassed for testing")
             elif not self.gaea_path:

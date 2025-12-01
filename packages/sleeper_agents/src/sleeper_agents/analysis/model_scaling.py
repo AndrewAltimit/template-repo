@@ -52,6 +52,61 @@ class ScalingResult:
     model_family_effects: Dict[str, Dict[str, float]]
 
 
+# Default model size estimates by name pattern
+_MODEL_SIZE_ESTIMATES: Dict[str, Dict[str, int]] = {
+    "gpt2_xl": {"params": 1_500_000_000, "layers": 48, "hidden": 1600, "heads": 25},
+    "gpt2_large": {"params": 774_000_000, "layers": 36, "hidden": 1280, "heads": 20},
+    "gpt2_medium": {"params": 345_000_000, "layers": 24, "hidden": 1024, "heads": 16},
+    "gpt2": {"params": 117_000_000, "layers": 12, "hidden": 768, "heads": 12},
+    "llama_70b": {"params": 70_000_000_000, "layers": 80, "hidden": 8192, "heads": 64},
+    "llama_13b": {"params": 13_000_000_000, "layers": 40, "hidden": 5120, "heads": 40},
+    "llama_7b": {"params": 7_000_000_000, "layers": 32, "hidden": 4096, "heads": 32},
+    "llama": {"params": 1_000_000_000, "layers": 32, "hidden": 4096, "heads": 32},
+    "default": {"params": 100_000_000, "layers": 6, "hidden": 512, "heads": 8},
+}
+
+
+def _get_model_estimate_key(name: str) -> str:
+    """Get the lookup key for model size estimation."""
+    name_lower = name.lower()
+
+    # GPT-2 variants
+    if "gpt2" in name_lower or "gpt-2" in name_lower:
+        if "xl" in name_lower:
+            return "gpt2_xl"
+        if "large" in name_lower:
+            return "gpt2_large"
+        if "medium" in name_lower:
+            return "gpt2_medium"
+        return "gpt2"
+
+    # LLaMA variants
+    if "llama" in name_lower:
+        if "70b" in name_lower:
+            return "llama_70b"
+        if "13b" in name_lower:
+            return "llama_13b"
+        if "7b" in name_lower:
+            return "llama_7b"
+        return "llama"
+
+    return "default"
+
+
+def _get_model_family(name: str) -> str:
+    """Determine model family from name."""
+    name_lower = name.lower()
+    if "gpt" in name_lower:
+        return "gpt2"
+    if "llama" in name_lower:
+        return "llama"
+    if "mistral" in name_lower:
+        return "mistral"
+    if "bert" in name_lower:
+        return "bert"
+    return "unknown"
+
+
 class ModelSizeScalingAnalyzer:
     """Analyze how backdoor persistence scales with model size."""
 
@@ -137,6 +192,26 @@ class ModelSizeScalingAnalyzer:
             model_family_effects=family_effects,
         )
 
+    def _estimate_params_from_config(self, config) -> Tuple[int, int, int, int]:
+        """Estimate model parameters from config object.
+
+        Returns:
+            Tuple of (total_params, layers, hidden, heads)
+        """
+        layers = getattr(config, "n_layers", getattr(config, "num_hidden_layers", 12))
+        hidden = getattr(config, "n_embd", getattr(config, "hidden_size", 768))
+        heads = getattr(config, "n_heads", getattr(config, "num_attention_heads", 12))
+        vocab = getattr(config, "vocab_size", 50257)
+
+        # Rough formula: embeddings + attention + mlp + layer_norm
+        embedding_params = vocab * hidden
+        attention_params = layers * (4 * hidden * hidden)  # Q, K, V, O projections
+        mlp_params = layers * (8 * hidden * hidden)  # Typical 4x expansion
+        norm_params = layers * 2 * hidden  # Two LayerNorms per layer
+
+        total_params = embedding_params + attention_params + mlp_params + norm_params
+        return total_params, layers, hidden, heads
+
     def _profile_model(self, name: str, model_or_detector) -> ModelSizeProfile:
         """Profile a model's size and architecture.
 
@@ -148,76 +223,22 @@ class ModelSizeScalingAnalyzer:
             Model size profile
         """
         # Extract model if it's a detector
-        if hasattr(model_or_detector, "model"):
-            model = model_or_detector.model
-        else:
-            model = model_or_detector
+        model = model_or_detector.model if hasattr(model_or_detector, "model") else model_or_detector
 
         # Get model config
-        config = None
-        if hasattr(model, "config"):
-            config = model.config
+        config = getattr(model, "config", None)
 
         # Estimate parameters based on architecture
         if config:
-            # Common config attributes across model families
-            layers = getattr(config, "n_layers", getattr(config, "num_hidden_layers", 12))
-            hidden = getattr(config, "n_embd", getattr(config, "hidden_size", 768))
-            heads = getattr(config, "n_heads", getattr(config, "num_attention_heads", 12))
-            vocab = getattr(config, "vocab_size", 50257)
-
-            # Estimate parameter count
-            # Rough formula: embeddings + attention + mlp + layer_norm
-            embedding_params = vocab * hidden
-            attention_params = layers * (4 * hidden * hidden)  # Q, K, V, O projections
-            mlp_params = layers * (8 * hidden * hidden)  # Typical 4x expansion
-            norm_params = layers * 2 * hidden  # Two LayerNorms per layer
-
-            total_params = embedding_params + attention_params + mlp_params + norm_params
+            total_params, layers, hidden, heads = self._estimate_params_from_config(config)
         else:
-            # Default estimates based on model name
-            if "gpt2" in name.lower():
-                if "xl" in name.lower():
-                    total_params = 1_500_000_000
-                elif "large" in name.lower():
-                    total_params = 774_000_000
-                elif "medium" in name.lower():
-                    total_params = 345_000_000
-                else:
-                    total_params = 117_000_000
-                layers = 12
-                hidden = 768
-                heads = 12
-            elif "llama" in name.lower():
-                if "70b" in name.lower():
-                    total_params = 70_000_000_000
-                elif "13b" in name.lower():
-                    total_params = 13_000_000_000
-                elif "7b" in name.lower():
-                    total_params = 7_000_000_000
-                else:
-                    total_params = 1_000_000_000
-                layers = 32
-                hidden = 4096
-                heads = 32
-            else:
-                # Generic small model
-                total_params = 100_000_000
-                layers = 6
-                hidden = 512
-                heads = 8
-
-        # Determine model family
-        if "gpt" in name.lower():
-            family = "gpt2"
-        elif "llama" in name.lower():
-            family = "llama"
-        elif "mistral" in name.lower():
-            family = "mistral"
-        elif "bert" in name.lower():
-            family = "bert"
-        else:
-            family = "unknown"
+            # Use lookup table for name-based estimation
+            estimate_key = _get_model_estimate_key(name)
+            estimate = _MODEL_SIZE_ESTIMATES[estimate_key]
+            total_params = estimate["params"]
+            layers = estimate["layers"]
+            hidden = estimate["hidden"]
+            heads = estimate["heads"]
 
         return ModelSizeProfile(
             model_name=name,
@@ -225,7 +246,7 @@ class ModelSizeScalingAnalyzer:
             layer_count=layers,
             hidden_size=hidden,
             attention_heads=heads,
-            model_family=family,
+            model_family=_get_model_family(name),
         )
 
     async def _test_persistence(self, model_or_detector, backdoors: List[str]) -> float:
