@@ -160,7 +160,7 @@ def _determine_source_video(
     if speaker_mapping and speaker and speaker in speaker_mapping:
         return speaker_mapping[speaker]
     if speaker and len(video_inputs) > 1:
-        speaker_hash = hashlib.md5(speaker.encode()).hexdigest()
+        speaker_hash = hashlib.md5(speaker.encode(), usedforsecurity=False).hexdigest()
         speaker_idx = int(speaker_hash, 16) % len(video_inputs)
         logger.warning(
             "No explicit mapping for speaker '%s'. "

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# pylint: disable=too-many-lines
+# Rationale: Self-contained PR review script kept in one file for portability.
+# Only ~30 lines over limit; splitting would fragment tightly-coupled workflow logic.
 """
 Improved Gemini PR Review Script with better context handling
 """

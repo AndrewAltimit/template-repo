@@ -216,7 +216,11 @@ def _test_read_file(proxy_url):
 
 def _test_write_file(proxy_url):
     """Test 4: write_file tool."""
-    test_file = tempfile.mktemp(suffix=".txt")
+    # Create a named temporary file path (file is created then closed for write_file to use)
+    with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
+        test_file = tmp.name
+    # Remove the file so write_file can create it
+    os.unlink(test_file)
     success, result = test_tool_execution(
         proxy_url, "write_file", {"path": test_file, "content": "Gemini test write"}, ["success"]
     )

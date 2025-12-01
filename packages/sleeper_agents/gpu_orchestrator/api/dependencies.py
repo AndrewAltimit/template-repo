@@ -1,3 +1,7 @@
+# pylint: disable=cyclic-import
+# Rationale: This module intentionally uses deferred imports to break the cyclic
+# dependency between api/main.py and api/routes/*.py. Pylint detects this as a
+# cycle during static analysis, but at runtime the imports are resolved correctly.
 """Dependency injection for FastAPI routes.
 
 This module breaks the cyclic import between api/main.py and api/routes/*.py

@@ -6,14 +6,9 @@ This script creates diverse terrain templates and analyzes the results.
 from datetime import datetime
 import json
 import os
-import sys
 from typing import Any, Dict, Tuple
 
-# Add project root to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-from tools.mcp.core import MCPClient  # noqa: E402
+from tools.mcp.core import MCPClient
 
 
 class Gaea2TemplateTester:

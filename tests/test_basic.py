@@ -1,15 +1,9 @@
 #!/usr/bin/env python3
 """Basic tests that can run without full server initialization"""
 
-import os
-import sys
+import asyncio
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-import asyncio  # noqa: E402
-
-import pytest  # noqa: E402
+import pytest
 
 
 def test_imports():

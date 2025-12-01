@@ -12,10 +12,57 @@ import logging
 from pathlib import Path
 import sys
 import tarfile
-from typing import Any, Dict
+from typing import Any, Dict, Iterator
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+
+def _safe_tar_members(tar: tarfile.TarFile, target_dir: Path) -> Iterator[tarfile.TarInfo]:
+    """Filter tar members to prevent path traversal attacks.
+
+    Protects against:
+    - Absolute paths
+    - Path traversal with ".."
+    - Symbolic links pointing outside target directory
+
+    Args:
+        tar: Open tarfile object
+        target_dir: Target extraction directory (must exist or will be created)
+
+    Yields:
+        Safe TarInfo members
+    """
+    # Ensure target directory exists before resolving (defensive programming)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_dir_resolved = target_dir.resolve()
+
+    for member in tar.getmembers():
+        # Skip members with absolute paths or path traversal attempts
+        if member.name.startswith("/") or ".." in member.name:
+            logger.warning("Skipping potentially unsafe tar member: %s", member.name)
+            continue
+
+        # Check symbolic links - reject if they point outside target
+        if member.issym() or member.islnk():
+            link_target = member.linkname
+            if link_target.startswith("/") or ".." in link_target:
+                logger.warning(
+                    "Skipping symlink with unsafe target: %s -> %s",
+                    member.name,
+                    link_target,
+                )
+                continue
+
+        # Verify the member resolves within target directory
+        member_path = (target_dir / member.name).resolve()
+        try:
+            member_path.relative_to(target_dir_resolved)
+        except ValueError:
+            logger.warning("Skipping tar member outside target directory: %s", member.name)
+            continue
+
+        yield member
 
 
 def calculate_checksum(file_path: Path) -> str:
@@ -96,8 +143,10 @@ def import_experiment(archive_path: Path, target_dir: Path, validate: bool = Tru
         if not members:
             raise ValueError("Archive is empty")
 
-        # Extract to target directory
-        tar.extractall(target_dir)
+        # Extract to target directory with path traversal protection
+        safe_members = list(_safe_tar_members(tar, target_dir))
+        for member in safe_members:
+            tar.extract(member, target_dir)
 
         # Experiment name is top-level directory
         experiment_name = members[0].name.split("/")[0]

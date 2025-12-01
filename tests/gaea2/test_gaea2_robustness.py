@@ -7,22 +7,16 @@ import asyncio
 import json
 import os
 from pathlib import Path
-import sys
 import tempfile
 import time
 import unittest.mock
 
 import pytest
 
-# Add project root to Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-# Import Gaea2 MCP server
-from tools.mcp.gaea2.server import Gaea2MCPServer  # noqa: E402
-from tools.mcp.gaea2.utils.gaea2_cache import get_cache  # noqa: E402
-from tools.mcp.gaea2.utils.gaea2_logging import get_logger  # noqa: E402
-from tools.mcp.gaea2.validation.gaea2_structure_validator import Gaea2StructureValidator  # noqa: E402
+from tools.mcp.gaea2.server import Gaea2MCPServer
+from tools.mcp.gaea2.utils.gaea2_cache import get_cache
+from tools.mcp.gaea2.utils.gaea2_logging import get_logger
+from tools.mcp.gaea2.validation.gaea2_structure_validator import Gaea2StructureValidator
 
 
 # Create a mock MCPTools class for backward compatibility

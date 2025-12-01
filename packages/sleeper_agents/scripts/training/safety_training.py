@@ -136,7 +136,7 @@ def _get_base_model_name(backdoor_info: dict | None, model_path: Path) -> str:
         Base model name string
     """
     if backdoor_info and "base_model" in backdoor_info:
-        return str(backdoor_info["base_model"]).split("/")[-1]
+        return str(backdoor_info["base_model"]).rsplit("/", maxsplit=1)[-1]
     return model_path.parent.parent.name if model_path.parent.parent.name != "backdoor_models" else "model"
 
 

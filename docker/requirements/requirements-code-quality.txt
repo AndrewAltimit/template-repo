@@ -6,7 +6,7 @@ isort
 mypy
 autopep8
 ruff  # Fast linter - can eventually replace isort/flake8
-bandit  # Security linter
+bandit==1.8.6  # Security linter - pin version to maintain consistent skip behavior
 
 # MCP server dependencies
 fastapi

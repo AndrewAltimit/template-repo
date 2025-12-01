@@ -39,7 +39,7 @@ class Gaea2Cache:
         combined = f"{operation}:{param_str}"
 
         # Hash for shorter keys
-        return hashlib.md5(combined.encode()).hexdigest()
+        return hashlib.md5(combined.encode(), usedforsecurity=False).hexdigest()
 
     def get(self, operation: str, params: Dict[str, Any]) -> Optional[Any]:
         """Get cached result"""

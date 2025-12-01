@@ -7,15 +7,9 @@ Test the enhanced Gaea2 validation that checks:
 4. Actual file opening in Gaea2
 """
 
-import os
-import sys
+import pytest
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-import pytest  # noqa: E402
-
-from tools.mcp.gaea2.validation.validator import Gaea2Validator  # noqa: E402
+from tools.mcp.gaea2.validation.validator import Gaea2Validator
 
 
 class TestEnhancedValidation:

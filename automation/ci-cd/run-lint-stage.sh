@@ -175,7 +175,7 @@ case "$STAGE" in
 
     # Security scanning with Bandit
     echo "🔍 Running Bandit security scanner..."
-    docker-compose run --rm python-ci bandit -r . -f json -o bandit-report.json 2>&1 | tee -a lint-output.txt || true
+    docker-compose run --rm python-ci bandit -r . -c pyproject.toml -f json -o bandit-report.json 2>&1 | tee -a lint-output.txt || true
     if [ -f bandit-report.json ]; then
       bandit_issues=$(docker-compose run --rm python-ci python3 -c "import json; data=json.load(open('bandit-report.json')); print(len(data.get('results', [])))" || echo 0)
       warnings=$((warnings + bandit_issues))

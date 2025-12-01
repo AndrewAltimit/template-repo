@@ -167,7 +167,7 @@ class BoardManager:
         """Handle client errors (4xx). Returns True if error should not be retried."""
         if not hasattr(error, "status_code") or not error.status_code:
             return False
-        if not (400 <= error.status_code < 500):
+        if not 400 <= error.status_code < 500:
             return False
 
         error_messages = {
