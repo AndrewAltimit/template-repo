@@ -1,3 +1,8 @@
+# pylint: disable=too-many-lines
+# Rationale: DataLoader class consolidates all dashboard data fetching in one place.
+# The 27+ methods handle different analysis types (trigger sensitivity, chain-of-thought,
+# honeypot, red-team, etc.) but share database connection and configuration.
+# Future refactor: Consider splitting into specialized loader classes if the file grows further.
 """
 Data loader for fetching evaluation results from SQLite database.
 """

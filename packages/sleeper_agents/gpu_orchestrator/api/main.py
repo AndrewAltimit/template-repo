@@ -1,3 +1,6 @@
+# pylint: disable=cyclic-import
+# Rationale: FastAPI pattern requires routes to access app state via dependencies.py,
+# which uses deferred imports back to this module. Runtime resolution is correct.
 """Main FastAPI application for GPU Orchestrator."""
 
 from contextlib import asynccontextmanager
