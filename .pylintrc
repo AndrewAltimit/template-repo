@@ -44,6 +44,11 @@ extension-pkg-allow-list=numpy,
 # - 658+ occurrences across 211 files are intentional catch-all handlers
 # - Server entry points, request handlers, and tool executors need broad catches
 # - Specific exceptions used inline where context is clear (IOError, ValueError, etc.)
+#
+# Note on wrong-import-order (C0411):
+# - isort in pre-commit hooks manages import ordering
+# - Pylint misclassifies installed local packages (mcp_*) as third-party
+# - This creates conflicts between tools; let isort be authoritative
 disable=import-error,
         broad-exception-caught,
         too-many-instance-attributes,
@@ -68,7 +73,8 @@ disable=import-error,
         import-self,
         redefined-outer-name,
         unused-argument,
-        too-few-public-methods
+        too-few-public-methods,
+        wrong-import-order
 
 [FORMAT]
 # Maximum number of characters on a single line.
@@ -77,6 +83,10 @@ max-line-length=127
 [BASIC]
 # Good variable names which should always be accepted
 good-names=i,j,k,e,f,_
+
+[IMPORTS]
+# Third-party packages that Pylint might misclassify
+known-third-party=docker,mcp,mcp_gaea2,mcp_core,mcp_code_quality,mcp_content_creation,mcp_gemini,mcp_ai_toolkit,mcp_comfyui,mcp_opencode,mcp_crush,mcp_blender,mcp_elevenlabs_speech,mcp_video_editor,mcp_virtual_character,mcp_github_board,mcp_meme_generator,mcp_codex
 
 [DESIGN]
 # Maximum number of instance attributes for a class
