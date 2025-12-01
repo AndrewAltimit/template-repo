@@ -33,8 +33,12 @@ class MarketplaceAPIClient:
         # Initialize marketplace on server if needed
         try:
             httpx.post(f"{self.api_url}/initialize", headers=self.headers, params={"seed": seed} if seed else {})
-        except Exception as e:
-            logger.debug("Marketplace API initialization deferred: %s", e)
+            logger.debug("Marketplace API initialized")
+        except httpx.ConnectError as e:
+            # Server not available - expected when server is offline
+            logger.debug("Marketplace API initialization deferred (server offline): %s", type(e).__name__)
+        except httpx.HTTPError as e:
+            logger.debug("Marketplace API initialization deferred (HTTP error): %s", e)
 
     def generate_tasks(self, count: int = 5) -> List[Dict]:
         """Generate tasks from marketplace.

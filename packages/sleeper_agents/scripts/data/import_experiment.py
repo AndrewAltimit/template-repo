@@ -28,11 +28,13 @@ def _safe_tar_members(tar: tarfile.TarFile, target_dir: Path) -> Iterator[tarfil
 
     Args:
         tar: Open tarfile object
-        target_dir: Target extraction directory
+        target_dir: Target extraction directory (must exist or will be created)
 
     Yields:
         Safe TarInfo members
     """
+    # Ensure target directory exists before resolving (defensive programming)
+    target_dir.mkdir(parents=True, exist_ok=True)
     target_dir_resolved = target_dir.resolve()
 
     for member in tar.getmembers():

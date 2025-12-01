@@ -35,20 +35,23 @@ class ComputeAPIClient:
             response = httpx.get(f"{self.api_url}/hours", headers=self.headers)
             if response.status_code == 200:
                 # Compute exists
-                pass
-        except httpx.ConnectError:
-            # Server not available - will fail on first use
-            pass
-        except Exception:
-            # Try to initialize
+                logger.debug("Compute API already initialized")
+        except httpx.ConnectError as e:
+            # Server not available - expected when server is offline
+            logger.debug("Compute API server unavailable (offline): %s", type(e).__name__)
+        except httpx.HTTPError as e:
+            # HTTP error - try to initialize
+            logger.debug("Compute API check failed (%s), attempting initialization", type(e).__name__)
             try:
                 httpx.post(
                     f"{self.api_url}/initialize",
                     headers=self.headers,
                     params={"initial_hours": initial_hours, "cost_per_hour": cost_per_hour},
                 )
-            except Exception as e:
-                logger.debug("Compute API initialization deferred: %s", e)
+            except httpx.ConnectError as init_e:
+                logger.debug("Compute API initialization deferred (server offline): %s", type(init_e).__name__)
+            except httpx.HTTPError as init_e:
+                logger.debug("Compute API initialization deferred (HTTP error): %s", init_e)
 
     @property
     def hours_remaining(self) -> float:
