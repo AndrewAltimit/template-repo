@@ -7,7 +7,7 @@
 \usepackage[T1]{fontenc}
 \usepackage{helvet}
 \renewcommand{\familydefault}{\sfdefault}
-\usepackage[margin=0.75in]{geometry}
+\usepackage[margin=0.75in, headheight=24pt]{geometry}
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{tikz}
@@ -559,9 +559,9 @@ This part presents the multi-layer detection system architecture:
 \begin{center}
 \begin{tikzpicture}[
   node distance=0.6cm,
-  block/.style={rectangle, rounded corners, draw=primaryblue, fill=primaryblue!10, minimum width=2.5cm, minimum height=1cm, font=\scriptsize\bfseries, text centered},
-  process/.style={rectangle, rounded corners, draw=secondaryblue, fill=secondaryblue!10, minimum width=2cm, minimum height=0.8cm, font=\scriptsize},
-  arrow/.style={-{Stealth}, thick}
+  block/.style={rectangle, rounded corners, draw=primaryblue, fill=primaryblue!10, minimum width=2.5cm, minimum height=1cm, font=\scriptsize\bfseries, align=center},
+  process/.style={rectangle, rounded corners, draw=secondaryblue, fill=secondaryblue!10, minimum width=2cm, minimum height=0.8cm, font=\scriptsize, align=center},
+  arrow/.style={-Stealth, thick}
 ]
   % Input
   \node[block] (model) at (0,0) {Target Model};
@@ -877,8 +877,8 @@ class CoTAnalyzer:
 \begin{center}
 \begin{tikzpicture}[
   node distance=1.5cm,
-  block/.style={rectangle, rounded corners, draw=secondaryblue, fill=secondaryblue!10, minimum width=3cm, minimum height=1.2cm, font=\small, text centered},
-  arrow/.style={-{Stealth}, thick}
+  block/.style={rectangle, rounded corners, draw=secondaryblue, fill=secondaryblue!10, minimum width=3cm, minimum height=1.2cm, font=\small, align=center},
+  arrow/.style={-Stealth, thick}
 ]
   \node[block] (gen) {1. Generate\\Adversarial Prompts};
   \node[block, right=of gen] (test) {2. Execute\\on Model};
@@ -990,12 +990,14 @@ This part covers practical implementation and deployment strategies:
 
 \begin{center}
 \begin{tikzpicture}[
-  stage/.style={rectangle, rounded corners=10pt, draw=#1, fill=#1!15, minimum width=4cm, minimum height=2.5cm, font=\small\bfseries, text centered, line width=2pt},
-  arrow/.style={-{Stealth[scale=1.3]}, line width=3pt}
+  stage1/.style={rectangle, rounded corners=10pt, draw=primaryblue, fill=primaryblue!15, minimum width=4cm, minimum height=2.5cm, font=\small\bfseries, align=center, line width=2pt},
+  stage2/.style={rectangle, rounded corners=10pt, draw=secondaryblue, fill=secondaryblue!15, minimum width=4cm, minimum height=2.5cm, font=\small\bfseries, align=center, line width=2pt},
+  stage3/.style={rectangle, rounded corners=10pt, draw=accentteal, fill=accentteal!15, minimum width=4cm, minimum height=2.5cm, font=\small\bfseries, align=center, line width=2pt},
+  arrow/.style={-Stealth, line width=3pt}
 ]
-  \node[stage=primaryblue] (s1) at (0,0) {Stage 1\\[8pt]\normalfont\small Baseline\\Evaluation};
-  \node[stage=secondaryblue] (s2) at (5.5,0) {Stage 2\\[8pt]\normalfont\small Safety\\Training};
-  \node[stage=accentteal] (s3) at (11,0) {Stage 3\\[8pt]\normalfont\small Post-Training\\Evaluation};
+  \node[stage1] (s1) at (0,0) {Stage 1\\[8pt]\normalfont\small Baseline\\Evaluation};
+  \node[stage2] (s2) at (5.5,0) {Stage 2\\[8pt]\normalfont\small Safety\\Training};
+  \node[stage3] (s3) at (11,0) {Stage 3\\[8pt]\normalfont\small Post-Training\\Evaluation};
 
   \draw[arrow, primaryblue!70] (s1) -- (s2);
   \draw[arrow, secondaryblue!70] (s2) -- (s3);
@@ -2672,16 +2674,71 @@ $B$ = batch size, $L$ = sequence length, $H$ = hidden dimension
 \bibitem{elhage2022} Elhage, N., et al. (2022). \textit{Toy Models of Superposition}. Anthropic.
 \end{thebibliography}
 
+\newpage
+\thispagestyle{empty}
+
+% Back cover with summary
+\begin{tikzpicture}[remember picture, overlay]
+  % Blue sidebar on right (mirror of front cover)
+  \fill[primaryblue] ([xshift=-5.5cm]current page.north east) rectangle (current page.south east);
+
+  % Shield icon in sidebar
+  \node[white, opacity=0.3] at ([xshift=-2.75cm, yshift=-8cm]current page.north east) {\fontsize{80}{80}\selectfont\iconShield};
+\end{tikzpicture}
+
+\begin{minipage}[t]{0.6\textwidth}
+\vspace{2cm}
+
+{\color{primaryblue}\Large\bfseries What You'll Learn}
+
+\vspace{0.5cm}
+
+\begin{tcolorbox}[colback=successgreen!10, colframe=successgreen!50, boxrule=0.5pt, arc=3pt, left=5pt, right=5pt, top=5pt, bottom=5pt]
+\textbf{Detection Methods}\\[3pt]
+{\small Linear probes, honeypot prompts, chain-of-thought analysis, red-team evaluation, activation steering, and cross-architecture validation.}
+\end{tcolorbox}
+
+\vspace{0.3cm}
+
+\begin{tcolorbox}[colback=accentteal!10, colframe=accentteal!50, boxrule=0.5pt, arc=3pt, left=5pt, right=5pt, top=5pt, bottom=5pt]
+\textbf{Implementation}\\[3pt]
+{\small Complete Python implementations, Docker configurations, CI/CD integration, and HuggingFace Trainer callbacks for production deployment.}
+\end{tcolorbox}
+
+\vspace{0.3cm}
+
+\begin{tcolorbox}[colback=secondaryblue!10, colframe=secondaryblue!50, boxrule=0.5pt, arc=3pt, left=5pt, right=5pt, top=5pt, bottom=5pt]
+\textbf{Case Studies}\\[3pt]
+{\small Real-world scenarios including code injection backdoors, chain-of-thought deception, and cross-task transfer attacks with detection walkthroughs.}
+\end{tcolorbox}
+
 \vspace{1cm}
+
+{\color{primaryblue}\Large\bfseries Key Metrics}
+
+\vspace{0.5cm}
+
+\begin{center}
+\begin{tabular}{cccc}
+\textbf{93.2\%} & \textbf{6} & \textbf{3+} & \textbf{27} \\
+{\scriptsize AUROC} & {\scriptsize Detection} & {\scriptsize Model} & {\scriptsize Sections} \\
+{\scriptsize Accuracy} & {\scriptsize Methods} & {\scriptsize Architectures} & {\scriptsize of Content} \\
+\end{tabular}
+\end{center}
+
+\vspace{1cm}
+
 \begin{center}
 \begin{tikzpicture}
-\draw[primaryblue, line width=2pt] (-5,0) -- (5,0);
+\draw[primaryblue, line width=2pt] (-4,0) -- (4,0);
 \end{tikzpicture}
 
 \vspace{0.5cm}
 {\large\textcolor{primaryblue}{\textbf{Sleeper Agents Detection Framework}}}\\[0.3cm]
 {\small\textcolor{gray}{Building safer AI through comprehensive backdoor detection}}\\[0.2cm]
-{\footnotesize\textcolor{gray}{Version 2.0 | \today}}
+{\footnotesize\textcolor{gray}{Version 2.0 | \today}}\\[0.3cm]
+{\scriptsize\textcolor{gray}{Based on ``Sleeper Agents'' (Hubinger et al., 2024)}}
 \end{center}
+\end{minipage}
 
 \end{document}
