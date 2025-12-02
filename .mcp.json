@@ -18,6 +18,24 @@
         "stdio"
       ]
     },
+    "content-creation": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-content-creation",
+        "python",
+        "-m",
+        "mcp_content_creation.server",
+        "--mode",
+        "stdio"
+      ]
+    },
     "gemini": {
       "command": "docker-compose",
       "args": [
