@@ -8,7 +8,11 @@ RUN apt-get update && apt-get install -y \
     texlive-latex-extra \
     texlive-science \
     texlive-pictures \
-    # PDF utilities
+    # LaTeX build automation (for multi-pass compilation)
+    latexmk \
+    # DVI to PostScript conversion
+    dvips \
+    # PDF utilities (pdfinfo, pdftoppm)
     poppler-utils \
     pdf2svg \
     # Video/animation dependencies
