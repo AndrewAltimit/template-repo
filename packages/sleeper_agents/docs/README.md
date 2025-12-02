@@ -4,6 +4,15 @@
 
 **Standard safety training methods fail to remove hidden backdoors and can create a dangerous false impression of safety.** This framework addresses this critical AI safety challenge identified in Anthropic's "Sleeper Agents" research.
 
+## Comprehensive Framework Guide
+
+For a complete technical reference, see the **[Sleeper Agents Framework Guide (PDF)](Sleeper_Agents_Framework_Guide.pdf)** - a 42-page document covering:
+- **Part I**: Theoretical Foundations - Sleeper agent concepts and mechanistic interpretability
+- **Part II**: Detection Framework - Architecture, linear probes, and multi-method detection
+- **Part III**: Operational Engineering - Evaluation pipelines and activation steering
+- **Part IV**: Case Studies & Evaluation - Visualization techniques and metrics
+- **Part V**: Appendices - API reference and code implementations
+
 ## Framework Purpose
 
 This evaluation framework is designed to:

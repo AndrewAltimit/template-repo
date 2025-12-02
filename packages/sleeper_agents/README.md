@@ -385,6 +385,16 @@ Key contributions:
 3. Proved adversarial training can increase deception effectiveness
 4. Revealed the dangerous false impression of safety from standard methods
 
+## Documentation
+
+For comprehensive technical documentation, see the **[Sleeper Agents Framework Guide (PDF)](docs/Sleeper_Agents_Framework_Guide.pdf)** - a 42-page reference covering theoretical foundations, detection architecture, operational engineering, case studies, and complete API reference with code examples.
+
+Additional documentation:
+- [Documentation Index](docs/INDEX.md) - Complete documentation overview
+- [Quick Start Guide](docs/QUICK_START.md) - Get running in 5 minutes
+- [API Reference](docs/API_REFERENCE.md) - Python API documentation
+- [CLI Reference](docs/CLI_REFERENCE.md) - Command-line interface
+
 ## Security & Ethics
 
 **IMPORTANT**: This framework is designed for **defensive evaluation only**.

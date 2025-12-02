@@ -1,5 +1,11 @@
 # Sleeper Detection Documentation Index
 
+## Comprehensive Framework Guide
+
+**[Sleeper Agents Framework Guide (PDF)](Sleeper_Agents_Framework_Guide.pdf)** - Complete technical reference covering theoretical foundations, detection framework architecture, operational engineering, case studies, and API reference. This 42-page document provides in-depth coverage of all framework components with visualizations and code examples.
+
+- [LaTeX Source](Sleeper_Agents_Framework_Guide.tex) - Source file for the Framework Guide
+
 ## Getting Started
 
 - [README](../README.md) - Project overview and quick start
