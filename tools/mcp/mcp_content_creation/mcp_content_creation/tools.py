@@ -241,10 +241,12 @@ async def compile_latex(
                 f.write(content)
 
             # Compile based on format
+            # Note: We don't use -halt-on-error because many LaTeX documents have
+            # non-fatal errors that still produce valid output
             if output_format == "pdf":
-                command = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error", tex_file]
+                command = ["pdflatex", "-interaction=nonstopmode", tex_file]
             elif output_format == "dvi":
-                command = ["latex", "-interaction=nonstopmode", "-halt-on-error", tex_file]
+                command = ["latex", "-interaction=nonstopmode", tex_file]
             else:
                 return {"success": False, "error": f"Unsupported format: {output_format}"}
 

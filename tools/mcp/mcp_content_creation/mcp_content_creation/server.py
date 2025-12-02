@@ -359,14 +359,20 @@ class ContentCreationMCPServer(BaseMCPServer):
 
         Returns:
             Path to output file if successful, None otherwise
+
+        Note:
+            We intentionally do NOT use -halt-on-error because many LaTeX documents
+            have non-fatal errors (font substitutions, overfull hboxes, etc.) that
+            still produce valid output. The success is determined by whether the
+            output file is generated, not by the return code.
         """
-        cmd = [compiler, "-interaction=nonstopmode", "-halt-on-error", tex_file]
+        cmd = [compiler, "-interaction=nonstopmode", tex_file]
 
         # Run compilation twice for references
         for i in range(2):
             result = self._run_subprocess_with_logging(cmd, cwd=working_dir)
             if result.returncode != 0 and i == 0:
-                self.logger.warning("First compilation pass had warnings/errors")
+                self.logger.warning("First compilation pass had warnings/errors (this is often normal)")
 
         # Handle PS output (requires dvips)
         if output_format == "ps" and result.returncode == 0:
