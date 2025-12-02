@@ -13,7 +13,7 @@
         "mcp-code-quality",
         "python",
         "-m",
-        "tools.mcp.code_quality.server",
+        "mcp_code_quality.server",
         "--mode",
         "stdio"
       ]
@@ -31,7 +31,7 @@
         "mcp-content-creation",
         "python",
         "-m",
-        "tools.mcp.content_creation.server",
+        "mcp_content_creation.server",
         "--mode",
         "stdio"
       ]
@@ -49,7 +49,7 @@
         "mcp-gemini",
         "python",
         "-m",
-        "tools.mcp.gemini.server",
+        "mcp_gemini.server",
         "--mode",
         "stdio"
       ],
@@ -88,7 +88,7 @@
         "mcp-opencode",
         "python",
         "-m",
-        "tools.mcp.opencode.server",
+        "mcp_opencode.server",
         "--mode",
         "stdio"
       ]
@@ -106,7 +106,7 @@
         "mcp-crush",
         "python",
         "-m",
-        "tools.mcp.crush.server",
+        "mcp_crush.server",
         "--mode",
         "stdio"
       ]
@@ -124,7 +124,7 @@
         "mcp-meme-generator",
         "python",
         "-m",
-        "tools.mcp.meme_generator.server",
+        "mcp_meme_generator.server",
         "--mode",
         "stdio"
       ]
@@ -142,7 +142,7 @@
         "mcp-blender",
         "python3",
         "-m",
-        "blender.server",
+        "mcp_blender.server",
         "--mode",
         "stdio"
       ]
@@ -160,7 +160,7 @@
         "mcp-elevenlabs-speech",
         "python",
         "-m",
-        "tools.mcp.elevenlabs_speech.server",
+        "mcp_elevenlabs_speech.server",
         "--mode",
         "stdio"
       ],
@@ -182,7 +182,7 @@
         "mcp-codex",
         "python",
         "-m",
-        "tools.mcp.codex.server",
+        "mcp_codex.server",
         "--mode",
         "stdio"
       ]
