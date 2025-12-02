@@ -131,6 +131,17 @@
   left=2mm, right=2mm, breakable
 }
 
+% TL;DR summary box for section beginnings
+\newtcolorbox{tldrbox}[1][Key Takeaways]{
+  enhanced, colback=accentteal!8, colframe=accentteal,
+  fonttitle=\bfseries\sffamily, title=#1,
+  coltitle=white, boxrule=1.5pt,
+  attach boxed title to top left={yshift=-2mm, xshift=5mm},
+  boxed title style={colback=accentteal},
+  left=3mm, right=3mm, top=2mm, bottom=2mm,
+  before upper={\small}
+}
+
 % ============================================================================
 % CODE LISTING STYLE
 % ============================================================================
@@ -236,6 +247,14 @@ through safety training procedures
 \partpage{I}{Theoretical Foundations}
 
 \section{Introduction to Sleeper Agents}
+
+\begin{tldrbox}
+\begin{itemize}[nosep]
+  \item Sleeper agents are LLMs with hidden backdoors that activate under specific conditions
+  \item These backdoors \textbf{persist through standard safety training} (RLHF, SFT, adversarial training)
+  \item Detection requires proactive mechanisms beyond behavioral evaluation
+\end{itemize}
+\end{tldrbox}
 
 \subsection{The Deceptive Alignment Problem}
 
@@ -465,6 +484,15 @@ Red-Teaming & Adversarial testing to elicit unsafe behaviors \\
 
 \section{Linear Probe Detection}
 
+\begin{tldrbox}
+\begin{itemize}[nosep]
+  \item Linear probes detect backdoors by analyzing \textbf{internal activations} at specific layers
+  \item Uses logistic regression to classify normal vs.\ backdoor-associated patterns
+  \item Best results from \textbf{middle layers} (50--75\% of model depth) where intent is clearest
+  \item Requires paired training data: clean inputs and triggered inputs
+\end{itemize}
+\end{tldrbox}
+
 \subsection{Mathematical Foundation}
 
 \begin{mathbox}[Logistic Regression Probe]
@@ -595,6 +623,15 @@ Epochs & 100 & 50--500 & Until convergence \\
 \end{center}
 
 \section{Honeypot Detection}
+
+\begin{tldrbox}
+\begin{itemize}[nosep]
+  \item Honeypots are \textbf{synthetic prompts} designed to activate hidden backdoors
+  \item Cover three trigger categories: \textbf{temporal} (dates), \textbf{contextual} (roles), \textbf{semantic} (keywords)
+  \item Automated generation scales testing across thousands of trigger variations
+  \item Compare model outputs against baseline to identify anomalous behaviors
+\end{itemize}
+\end{tldrbox}
 
 \subsection{Trigger Taxonomy}
 
@@ -817,6 +854,15 @@ class RedTeamEvaluator:
 \partpage{III}{Operational Engineering}
 
 \section{Three-Stage Evaluation Pipeline}
+
+\begin{tldrbox}
+\begin{itemize}[nosep]
+  \item \textbf{Stage 1}: Establish baseline backdoor activation rates before any safety training
+  \item \textbf{Stage 2}: Apply safety interventions (RLHF, SFT, adversarial training)
+  \item \textbf{Stage 3}: Re-evaluate to measure backdoor \textbf{persistence}---how much survives training
+  \item Key finding: Larger models show \textbf{greater persistence} through safety training
+\end{itemize}
+\end{tldrbox}
 
 \subsection{Pipeline Architecture}
 
@@ -1051,6 +1097,15 @@ trainer = Trainer(
 \end{lstlisting}
 
 \section{Trigger Synthesis \& Reverse Engineering}
+
+\begin{tldrbox}
+\begin{itemize}[nosep]
+  \item Trigger synthesis \textbf{reverses detection}: instead of ``is there a backdoor?'' we ask ``what activates it?''
+  \item Gradient-based methods optimize input tokens to maximize backdoor activation
+  \item Evolutionary approaches mutate prompts to discover trigger conditions
+  \item Critical for understanding backdoor scope and developing countermeasures
+\end{itemize}
+\end{tldrbox}
 
 \subsection{The Trigger Discovery Problem}
 
@@ -1424,6 +1479,15 @@ class TriggerPatternAnalyzer:
 \end{center}
 
 \section{Mitigation Strategies}
+
+\begin{tldrbox}
+\begin{itemize}[nosep]
+  \item \textbf{Activation steering}: Subtract the ``deception direction'' from model activations at inference
+  \item \textbf{Targeted fine-tuning}: Train specifically on trigger conditions with correct behavior
+  \item \textbf{Architectural interventions}: Circuit ablation or attention head pruning
+  \item Defense in depth: Layer multiple approaches for robust protection
+\end{itemize}
+\end{tldrbox}
 
 \subsection{Activation Steering}
 
