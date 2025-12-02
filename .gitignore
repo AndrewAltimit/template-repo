@@ -168,7 +168,7 @@ scratch/
 
 # Generated files
 *.pdf
-!packages/sleeper_agents/docs/Sleeper_Agents_Framework_Guide.pdf
+# Note: Sleeper Agents Framework Guide PDF is built in CI (see .github/workflows/build-docs.yml)
 *.webm
 generated/
 

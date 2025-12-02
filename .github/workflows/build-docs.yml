@@ -1,0 +1,68 @@
+---
+name: Build Documentation
+
+on:
+  push:
+    paths:
+      - 'packages/sleeper_agents/docs/**/*.tex'
+      - '.github/workflows/build-docs.yml'
+  pull_request:
+    paths:
+      - 'packages/sleeper_agents/docs/**/*.tex'
+      - '.github/workflows/build-docs.yml'
+  workflow_dispatch: {}
+
+jobs:
+  build-sleeper-agents-guide:
+    name: Build Sleeper Agents Framework Guide
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Build PDF with LaTeX
+        run: |
+          echo "Building Sleeper Agents Framework Guide..."
+
+          # Create output directory
+          mkdir -p docs_output
+
+          # Build PDF using texlive Docker image (run pdflatex twice for TOC)
+          docker run --rm \
+            -v "$(pwd)/packages/sleeper_agents/docs:/data" \
+            -v "$(pwd)/docs_output:/output" \
+            texlive/texlive:latest \
+            bash -c "cd /data && \
+              pdflatex -interaction=nonstopmode -output-directory=/output Sleeper_Agents_Framework_Guide.tex && \
+              pdflatex -interaction=nonstopmode -output-directory=/output Sleeper_Agents_Framework_Guide.tex"
+
+          echo "PDF build completed"
+          ls -la docs_output/
+
+      - name: Verify PDF was created
+        run: |
+          if [ -f docs_output/Sleeper_Agents_Framework_Guide.pdf ]; then
+            echo "PDF successfully created"
+            ls -lh docs_output/Sleeper_Agents_Framework_Guide.pdf
+          else
+            echo "ERROR: PDF was not created"
+            exit 1
+          fi
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sleeper-agents-framework-guide
+          path: docs_output/Sleeper_Agents_Framework_Guide.pdf
+          retention-days: 90
+
+      - name: Cleanup build artifacts
+        if: always()
+        run: |
+          rm -rf docs_output/*.aux docs_output/*.log docs_output/*.toc \
+                 docs_output/*.out docs_output/*.fls docs_output/*.fdb_latexmk \
+                 2>/dev/null || true
