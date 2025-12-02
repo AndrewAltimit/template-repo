@@ -1,0 +1,40 @@
+<svg width="600" height="180" viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .card-bg { fill: #f8f9fa; stroke: #e0e0e0; stroke-width: 1; }
+      .header-text { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #0A3D62; }
+      .body-text { font-family: Arial, sans-serif; font-size: 12px; fill: #333333; }
+      .checkmark { fill: #27ae60; }
+    </style>
+  </defs>
+
+  <!-- Card 1: GPT-2 -->
+  <g transform="translate(20, 15)">
+    <rect class="card-bg" x="0" y="0" width="160" height="150" rx="8" ry="8"/>
+    <text class="header-text" x="80" y="35" text-anchor="middle">GPT-2</text>
+    <text class="body-text" x="80" y="60" text-anchor="middle">(768d)</text>
+    <text class="body-text" x="80" y="90" text-anchor="middle">AUC: 1.0</text>
+    <circle cx="80" cy="125" r="18" fill="#27ae60"/>
+    <path fill="white" d="M72 125 L77 130 L88 119" stroke="white" stroke-width="3" fill="none"/>
+  </g>
+
+  <!-- Card 2: Mistral-7B -->
+  <g transform="translate(220, 15)">
+    <rect class="card-bg" x="0" y="0" width="160" height="150" rx="8" ry="8"/>
+    <text class="header-text" x="80" y="35" text-anchor="middle">Mistral-7B</text>
+    <text class="body-text" x="80" y="60" text-anchor="middle">(4096d)</text>
+    <text class="body-text" x="80" y="90" text-anchor="middle">AUC: 1.0</text>
+    <circle cx="80" cy="125" r="18" fill="#27ae60"/>
+    <path fill="white" d="M72 125 L77 130 L88 119" stroke="white" stroke-width="3" fill="none"/>
+  </g>
+
+  <!-- Card 3: Qwen2.5-7B -->
+  <g transform="translate(420, 15)">
+    <rect class="card-bg" x="0" y="0" width="160" height="150" rx="8" ry="8"/>
+    <text class="header-text" x="80" y="35" text-anchor="middle">Qwen2.5-7B</text>
+    <text class="body-text" x="80" y="60" text-anchor="middle">(3584d)</text>
+    <text class="body-text" x="80" y="90" text-anchor="middle">AUC: 1.0</text>
+    <circle cx="80" cy="125" r="18" fill="#27ae60"/>
+    <path fill="white" d="M72 125 L77 130 L88 119" stroke="white" stroke-width="3" fill="none"/>
+  </g>
+</svg>

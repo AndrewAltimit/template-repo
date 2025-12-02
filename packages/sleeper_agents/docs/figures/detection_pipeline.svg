@@ -1,0 +1,62 @@
+<svg width="600" height="300" viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .stage { fill: #0A3D62; stroke: #0A3D62; stroke-width: 1; }
+      .process { fill: #3C6382; stroke: #3C6382; stroke-width: 1; }
+      .score { fill: #54a0ff; stroke: #54a0ff; stroke-width: 1; }
+      .text { font-family: Arial, sans-serif; font-size: 14px; fill: white; text-anchor: middle; }
+      .arrow { stroke: #333; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .arrowhead { fill: #333; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="arrowhead" />
+    </marker>
+  </defs>
+
+  <!-- Model Input -->
+  <rect x="20" y="125" width="80" height="50" rx="5" ry="5" class="stage" />
+  <text x="60" y="155" class="text">Model</text>
+
+  <!-- Arrow to Activation Extraction -->
+  <line x1="100" y1="150" x2="140" y2="150" class="arrow" />
+
+  <!-- Activation Extraction -->
+  <rect x="140" y="115" width="120" height="70" rx="10" ry="10" class="process" />
+  <text x="200" y="145" class="text">Activation</text>
+  <text x="200" y="165" class="text">Extraction</text>
+
+  <!-- Branching Arrows from Activation Extraction -->
+  <line x1="260" y1="150" x2="300" y2="70" class="arrow" />
+  <line x1="260" y1="150" x2="300" y2="110" class="arrow" />
+  <line x1="260" y1="150" x2="300" y2="190" class="arrow" />
+  <line x1="260" y1="150" x2="300" y2="230" class="arrow" />
+
+  <!-- Parallel Paths -->
+  <!-- Linear Probes -->
+  <rect x="300" y="45" width="120" height="50" rx="10" ry="10" class="process" />
+  <text x="360" y="75" class="text">Linear Probes</text>
+  <line x1="420" y1="70" x2="450" y2="70" class="arrow" />
+  <rect x="450" y="45" width="100" height="50" rx="5" ry="5" class="score" />
+  <text x="500" y="75" class="text">93.2% AUROC</text>
+
+  <!-- Honeypot -->
+  <rect x="300" y="95" width="120" height="50" rx="10" ry="10" class="process" />
+  <text x="360" y="125" class="text">Honeypot</text>
+
+  <!-- CoT Analysis -->
+  <rect x="300" y="165" width="120" height="50" rx="10" ry="10" class="process" />
+  <text x="360" y="195" class="text">CoT Analysis</text>
+
+  <!-- Red-Team -->
+  <rect x="300" y="215" width="120" height="50" rx="10" ry="10" class="process" />
+  <text x="360" y="245" class="text">Red-Team</text>
+
+  <!-- Converging Arrows to Risk Score -->
+  <line x1="420" y1="120" x2="480" y2="150" class="arrow" />
+  <line x1="420" y1="190" x2="480" y2="150" class="arrow" />
+  <line x1="420" y1="240" x2="480" y2="150" class="arrow" />
+
+  <!-- Risk Score (converged) -->
+  <rect x="480" y="125" width="100" height="50" rx="5" ry="5" class="score" />
+  <text x="530" y="155" class="text">Risk Score</text>
+</svg>
