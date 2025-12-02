@@ -6,12 +6,14 @@
 
 ## Comprehensive Framework Guide
 
-For a complete technical reference, see the **[Sleeper Agents Framework Guide (PDF)](Sleeper_Agents_Framework_Guide.pdf)** - a 42-page document covering:
+For a complete technical reference, see the **Sleeper Agents Framework Guide** - a 41-page document covering:
 - **Part I**: Theoretical Foundations - Sleeper agent concepts and mechanistic interpretability
 - **Part II**: Detection Framework - Architecture, linear probes, and multi-method detection
 - **Part III**: Operational Engineering - Evaluation pipelines and activation steering
 - **Part IV**: Case Studies & Evaluation - Visualization techniques and metrics
 - **Part V**: Appendices - API reference and code implementations
+
+> **Download:** The PDF is built from [LaTeX source](Sleeper_Agents_Framework_Guide.tex) and available as an artifact from the [Build Documentation workflow](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml).
 
 ## Framework Purpose
 
