@@ -168,6 +168,7 @@ scratch/
 
 # Generated files
 *.pdf
+!packages/sleeper_agents/docs/Sleeper_Agents_Framework_Guide.pdf
 *.webm
 generated/
 
