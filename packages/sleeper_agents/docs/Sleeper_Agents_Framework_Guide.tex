@@ -25,6 +25,23 @@
 \usepackage{array}
 \usepackage{longtable}
 \usepackage{colortbl}
+\usepackage{pifont}
+\usepackage{tabularray}
+
+% Icon replacement commands (replacing fontawesome5)
+\newcommand{\iconKey}{\ding{72}}
+\newcommand{\iconWarning}{\ding{74}}
+\newcommand{\iconCheck}{\ding{51}}
+\newcommand{\iconFlask}{\ding{70}}
+\newcommand{\iconMath}{$\Sigma$}
+\newcommand{\iconCode}{\texttt{</>}}
+\newcommand{\iconBulb}{\ding{72}}
+\newcommand{\iconList}{\ding{118}}
+\newcommand{\iconShield}{\ding{110}}
+\newcommand{\iconSearch}{\ding{50}}
+\newcommand{\iconChart}{\ding{117}}
+\newcommand{\iconBrain}{\ding{68}}
+\newcommand{\iconBook}{\ding{46}}
 
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows, matrix, patterns}
@@ -77,15 +94,38 @@
 % ============================================================================
 % PART FORMATTING
 % ============================================================================
-\newcommand{\partpage}[2]{
+\newcommand{\partpage}[3]{
   \clearpage
   \thispagestyle{empty}
   \begin{tikzpicture}[remember picture, overlay]
-    \fill[partcolor] (current page.north west) rectangle ([yshift=-6cm]current page.north east);
-    \node[white, font=\Huge\bfseries] at ([yshift=-3cm]current page.north) {PART #1};
-    \node[white, font=\Large] at ([yshift=-4.5cm]current page.north) {#2};
+    % Header banner
+    \fill[partcolor] (current page.north west) rectangle ([yshift=-7cm]current page.north east);
+    % Large faded part number in background
+    \node[white, opacity=0.15, font=\fontsize{150}{150}\selectfont\bfseries] at ([xshift=3cm, yshift=-5cm]current page.north west) {#1};
+    % Part title
+    \node[white, font=\Huge\bfseries] at ([yshift=-3.5cm]current page.north) {PART #1};
+    \node[white, font=\Large] at ([yshift=-5cm]current page.north) {#2};
+    % Decorative line
+    \draw[white, line width=0.5pt] ([xshift=4cm, yshift=-6cm]current page.north west) -- ([xshift=-4cm, yshift=-6cm]current page.north east);
   \end{tikzpicture}
-  \vspace{6cm}
+  \vspace{7.5cm}
+
+  % Part overview box
+  \begin{center}
+  \begin{minipage}{0.85\textwidth}
+  \begin{tcolorbox}[
+    enhanced,
+    colback=partcolor!5,
+    colframe=partcolor!50,
+    fonttitle=\bfseries,
+    title={\iconList\ \ Overview},
+    sharp corners,
+    boxrule=0.5pt
+  ]
+  #3
+  \end{tcolorbox}
+  \end{minipage}
+  \end{center}
 }
 
 % ============================================================================
@@ -95,51 +135,58 @@
 
 \newtcolorbox{keyconceptbox}[1][]{
   enhanced, colback=primaryblue!5, colframe=primaryblue,
-  fonttitle=\bfseries\color{white}, title=#1, coltitle=white,
+  fonttitle=\bfseries\color{white}, title={\iconKey\ \ #1}, coltitle=white,
   attach boxed title to top left={yshift=-2mm, xshift=5mm},
-  boxed title style={colback=primaryblue}, breakable
+  boxed title style={colback=primaryblue}, breakable,
+  drop shadow={opacity=0.3}
 }
 
 \newtcolorbox{warningbox}[1][]{
   enhanced, colback=warningred!5, colframe=warningred,
-  fonttitle=\bfseries\color{white}, title=#1, coltitle=white,
+  fonttitle=\bfseries\color{white}, title={\iconWarning\ \ #1}, coltitle=white,
   attach boxed title to top left={yshift=-2mm, xshift=5mm},
-  boxed title style={colback=warningred}, breakable
+  boxed title style={colback=warningred}, breakable,
+  drop shadow={opacity=0.3}
 }
 
 \newtcolorbox{successbox}[1][]{
   enhanced, colback=successgreen!10, colframe=successgreen!70!black,
-  fonttitle=\bfseries, title=#1, breakable
+  fonttitle=\bfseries, title={\iconCheck\ \ #1}, breakable,
+  drop shadow={opacity=0.3}
 }
 
 \newtcolorbox{infobox}[1][]{
   enhanced, colback=accentteal!5, colframe=accentteal,
-  fonttitle=\bfseries\color{white}, title=#1, coltitle=white,
+  fonttitle=\bfseries\color{white}, title={\iconFlask\ \ #1}, coltitle=white,
   attach boxed title to top left={yshift=-2mm, xshift=5mm},
-  boxed title style={colback=accentteal}, breakable
+  boxed title style={colback=accentteal}, breakable,
+  drop shadow={opacity=0.3}
 }
 
 \newtcolorbox{mathbox}[1][]{
   enhanced, colback=backgroundgray, colframe=primaryblue!50,
-  fonttitle=\bfseries, title=#1,
-  left=3mm, right=3mm, top=2mm, bottom=2mm, breakable
+  fonttitle=\bfseries, title={\iconMath\ \ #1},
+  left=3mm, right=3mm, top=2mm, bottom=2mm, breakable,
+  drop shadow={opacity=0.2}
 }
 
 \newtcolorbox{recipebox}[1][]{
   enhanced, colback=codebg, colframe=secondaryblue,
-  fonttitle=\bfseries\ttfamily, title=#1,
-  left=2mm, right=2mm, breakable
+  fonttitle=\bfseries\ttfamily, title={\iconCode\ \ #1},
+  left=2mm, right=2mm, breakable,
+  drop shadow={opacity=0.2}
 }
 
 % TL;DR summary box for section beginnings
 \newtcolorbox{tldrbox}[1][Key Takeaways]{
   enhanced, colback=accentteal!8, colframe=accentteal,
-  fonttitle=\bfseries\sffamily, title=#1,
+  fonttitle=\bfseries\sffamily, title={\iconBulb\ \ #1},
   coltitle=white, boxrule=1.5pt,
   attach boxed title to top left={yshift=-2mm, xshift=5mm},
   boxed title style={colback=accentteal},
   left=3mm, right=3mm, top=2mm, bottom=2mm,
-  before upper={\small}
+  before upper={\small},
+  drop shadow={opacity=0.3}
 }
 
 % ============================================================================
@@ -168,71 +215,125 @@
 % TITLE PAGE
 % ============================================================================
 \begin{titlepage}
-\centering
-\vspace*{0.5cm}
+\begin{tikzpicture}[remember picture, overlay]
+  % Left sidebar
+  \fill[primaryblue] (current page.north west) rectangle ([xshift=5.5cm]current page.south west);
 
-\begin{tikzpicture}
-  \fill[primaryblue] (0,0) circle (2cm);
-  \fill[white] (-0.8,0.3) circle (0.3cm);
-  \fill[white] (0.8,0.3) circle (0.3cm);
-  \fill[warningred] (-0.8,0.3) circle (0.15cm);
-  \fill[warningred] (0.8,0.3) circle (0.15cm);
-  \draw[white, line width=3pt] (-0.6,-0.5) .. controls (0,-0.9) .. (0.6,-0.5);
-  \draw[warningred, line width=2pt, dashed] (0,-1.5) -- (0,-2.5);
-  \node[warningred] at (0,-2.8) {\Large\textbf{!}};
+  % Neural network graphic on sidebar (abstract representation)
+  \begin{scope}[shift={([xshift=1.2cm, yshift=-8cm]current page.north west)}, scale=0.75]
+    % Input layer
+    \foreach \i in {0,1,2,3,4} {
+      \node[circle, fill=white, minimum size=0.35cm, opacity=0.9] (i\i) at (0, \i*0.8-1.6) {};
+    }
+    % Hidden layer 1
+    \foreach \i in {0,1,2,3,4,5} {
+      \node[circle, fill=accentteal, minimum size=0.3cm, opacity=0.8] (h1\i) at (1.2, \i*0.7-1.75) {};
+    }
+    % Hidden layer 2
+    \foreach \i in {0,1,2,3,4,5} {
+      \node[circle, fill=accentteal, minimum size=0.3cm, opacity=0.8] (h2\i) at (2.4, \i*0.7-1.75) {};
+    }
+    % Output layer
+    \foreach \i in {0,1,2} {
+      \node[circle, fill=white, minimum size=0.35cm, opacity=0.9] (o\i) at (3.6, \i*0.8-0.8) {};
+    }
+    % Connections (subtle)
+    \foreach \i in {0,1,2,3,4} {
+      \foreach \j in {0,1,2,3,4,5} {
+        \draw[white, opacity=0.2, line width=0.4pt] (i\i) -- (h1\j);
+      }
+    }
+    \foreach \i in {0,1,2,3,4,5} {
+      \foreach \j in {0,1,2,3,4,5} {
+        \draw[white, opacity=0.2, line width=0.4pt] (h1\i) -- (h2\j);
+      }
+    }
+    \foreach \i in {0,1,2,3,4,5} {
+      \foreach \j in {0,1,2} {
+        \draw[white, opacity=0.2, line width=0.4pt] (h2\i) -- (o\j);
+      }
+    }
+    % Highlight "hidden" backdoor path in red
+    \draw[warningred, line width=2pt, opacity=0.95] (i2) -- (h14) -- (h23) -- (o1);
+    \node[circle, fill=warningred, minimum size=0.3cm] at (h14) {};
+    \node[circle, fill=warningred, minimum size=0.3cm] at (h23) {};
+  \end{scope}
+
+  % Warning icon at bottom of sidebar
+  \node[white, opacity=0.3] at ([xshift=2.75cm, yshift=-18cm]current page.north west) {\fontsize{60}{60}\selectfont\iconShield};
 \end{tikzpicture}
 
-\vspace{0.8cm}
-{\Huge\bfseries\textcolor{primaryblue}{Sleeper Agents}\par}
-\vspace{0.2cm}
-{\Huge\bfseries\textcolor{secondaryblue}{Detection Framework}\par}
-\vspace{0.3cm}
-{\Large\textcolor{darktext}{Complete Technical Reference}\par}
+% Main content area - using TikZ overlay for precise positioning
+\begin{tikzpicture}[remember picture, overlay]
+  % Title text - positioned to the right of sidebar
+  \node[anchor=north west, text width=10cm] at ([xshift=6.5cm, yshift=-2cm]current page.north west) {
+    {\color{accentteal}\small\bfseries AI SAFETY RESEARCH}\\[0.3cm]
+    {\color{primaryblue}\fontsize{36}{40}\selectfont\bfseries Sleeper Agents}\\[0.2cm]
+    {\color{secondaryblue}\fontsize{28}{32}\selectfont\bfseries Detection Framework}\\[0.4cm]
+    {\color{darktext}\large Complete Technical Reference}
+  };
 
-\vspace{0.8cm}
-\begin{tikzpicture}
-\draw[primaryblue, line width=2pt] (-5,0) -- (5,0);
-\end{tikzpicture}
-\vspace{0.5cm}
+  % Horizontal line
+  \draw[primaryblue, line width=2pt] ([xshift=6.5cm, yshift=-7cm]current page.north west) -- ([xshift=16cm, yshift=-7cm]current page.north west);
 
-{\large\textcolor{darktext}{
-A comprehensive guide to detecting, analyzing, and mitigating\\
-hidden backdoors in large language models that persist\\
-through safety training procedures
-}\par}
+  % Description
+  \node[anchor=north west, text width=9.5cm] at ([xshift=6.5cm, yshift=-7.5cm]current page.north west) {
+    {\color{darktext}A comprehensive guide to detecting, analyzing, and mitigating hidden backdoors in large language models that persist through safety training procedures.}
+  };
 
-\vspace{1cm}
-
-\begin{tikzpicture}
-  \node[fill=primaryblue!10, rounded corners, inner sep=12pt] {
-    \begin{tabular}{cccc}
-      \textcolor{primaryblue}{\textbf{6}} & \textcolor{primaryblue}{\textbf{93.2\%}} & \textcolor{primaryblue}{\textbf{3+}} & \textcolor{primaryblue}{\textbf{5}} \\
-      Detection & AUROC & Model & Document \\
-      Methods & Accuracy & Architectures & Parts \\
+  % Stats boxes
+  \node[fill=primaryblue!8, rounded corners=5pt, inner sep=8pt] at ([xshift=7.5cm, yshift=-11cm]current page.north west) {
+    \begin{tabular}{c}
+      {\color{primaryblue}\Large\iconSearch}\\[2pt]
+      {\color{primaryblue}\large\textbf{6}}\\[-2pt]
+      {\color{darktext}\scriptsize Detection}\\[-2pt]
+      {\color{darktext}\scriptsize Methods}
     \end{tabular}
   };
+  \node[fill=primaryblue!8, rounded corners=5pt, inner sep=8pt] at ([xshift=10cm, yshift=-11cm]current page.north west) {
+    \begin{tabular}{c}
+      {\color{primaryblue}\Large\iconChart}\\[2pt]
+      {\color{primaryblue}\large\textbf{93.2\%}}\\[-2pt]
+      {\color{darktext}\scriptsize AUROC}\\[-2pt]
+      {\color{darktext}\scriptsize Accuracy}
+    \end{tabular}
+  };
+  \node[fill=primaryblue!8, rounded corners=5pt, inner sep=8pt] at ([xshift=12.5cm, yshift=-11cm]current page.north west) {
+    \begin{tabular}{c}
+      {\color{primaryblue}\Large\iconBrain}\\[2pt]
+      {\color{primaryblue}\large\textbf{3+}}\\[-2pt]
+      {\color{darktext}\scriptsize Model}\\[-2pt]
+      {\color{darktext}\scriptsize Architectures}
+    \end{tabular}
+  };
+  \node[fill=primaryblue!8, rounded corners=5pt, inner sep=8pt] at ([xshift=15cm, yshift=-11cm]current page.north west) {
+    \begin{tabular}{c}
+      {\color{primaryblue}\Large\iconBook}\\[2pt]
+      {\color{primaryblue}\large\textbf{5}}\\[-2pt]
+      {\color{darktext}\scriptsize Document}\\[-2pt]
+      {\color{darktext}\scriptsize Parts}
+    \end{tabular}
+  };
+
+  % Part boxes
+  \node[rectangle, rounded corners=3pt, fill=partcolor, text=white, minimum width=2cm, minimum height=0.6cm, font=\scriptsize\bfseries] (p1) at ([xshift=7cm, yshift=-14cm]current page.north west) {Part I};
+  \node[rectangle, rounded corners=3pt, fill=partcolor!80, text=white, minimum width=2cm, minimum height=0.6cm, font=\scriptsize\bfseries] (p2) at ([xshift=9.3cm, yshift=-14cm]current page.north west) {Part II};
+  \node[rectangle, rounded corners=3pt, fill=partcolor!60, text=white, minimum width=2cm, minimum height=0.6cm, font=\scriptsize\bfseries] (p3) at ([xshift=11.6cm, yshift=-14cm]current page.north west) {Part III};
+  \node[rectangle, rounded corners=3pt, fill=partcolor!45, text=white, minimum width=2cm, minimum height=0.6cm, font=\scriptsize\bfseries] (p4) at ([xshift=13.9cm, yshift=-14cm]current page.north west) {Part IV};
+  \node[rectangle, rounded corners=3pt, fill=partcolor!25, text=black, minimum width=2cm, minimum height=0.6cm, font=\scriptsize\bfseries] (p5) at ([xshift=16.2cm, yshift=-14cm]current page.north west) {Part V};
+
+  \node[below=0.1cm of p1, font=\tiny, text width=2cm, align=center, color=darktext] {Theoretical\\Foundations};
+  \node[below=0.1cm of p2, font=\tiny, text width=2cm, align=center, color=darktext] {Detection\\Framework};
+  \node[below=0.1cm of p3, font=\tiny, text width=2cm, align=center, color=darktext] {Operational\\Engineering};
+  \node[below=0.1cm of p4, font=\tiny, text width=2cm, align=center, color=darktext] {Case Studies\\Evaluation};
+  \node[below=0.1cm of p5, font=\tiny, text width=2cm, align=center, color=darktext] {Appendices\\Reference};
+
+  % Footer
+  \node[anchor=south west, text width=10cm] at ([xshift=6.5cm, yshift=1.5cm]current page.south west) {
+    {\small\textcolor{gray}{Version 2.0 | AI Safety Research Documentation}}\\
+    {\small\textcolor{gray}{Based on ``Sleeper Agents'' (Hubinger et al., 2024)}}
+  };
 \end{tikzpicture}
-
-\vspace{1cm}
-
-% Document structure preview
-\begin{tikzpicture}[scale=0.9]
-  \node[rectangle, rounded corners, fill=partcolor, text=white, minimum width=2.5cm, minimum height=0.8cm, font=\scriptsize\bfseries] (p1) at (0,0) {Part I};
-  \node[rectangle, rounded corners, fill=partcolor!80, text=white, minimum width=2.5cm, minimum height=0.8cm, font=\scriptsize\bfseries] (p2) at (3,0) {Part II};
-  \node[rectangle, rounded corners, fill=partcolor!60, text=white, minimum width=2.5cm, minimum height=0.8cm, font=\scriptsize\bfseries] (p3) at (6,0) {Part III};
-  \node[rectangle, rounded corners, fill=partcolor!40, text=white, minimum width=2.5cm, minimum height=0.8cm, font=\scriptsize\bfseries] (p4) at (9,0) {Part IV};
-  \node[rectangle, rounded corners, fill=partcolor!20, text=black, minimum width=2.5cm, minimum height=0.8cm, font=\scriptsize\bfseries] (p5) at (12,0) {Part V};
-
-  \node[below=0.2cm of p1, font=\tiny, text width=2.5cm, align=center] {Theoretical\\Foundations};
-  \node[below=0.2cm of p2, font=\tiny, text width=2.5cm, align=center] {Detection\\Framework};
-  \node[below=0.2cm of p3, font=\tiny, text width=2.5cm, align=center] {Operational\\Engineering};
-  \node[below=0.2cm of p4, font=\tiny, text width=2.5cm, align=center] {Case Studies\\Evaluation};
-  \node[below=0.2cm of p5, font=\tiny, text width=2.5cm, align=center] {Appendices\\Reference};
-\end{tikzpicture}
-
-\vfill
-{\small\textcolor{gray}{Version 2.0 | AI Safety Research Documentation}\par}
-{\small\textcolor{gray}{Based on ``Sleeper Agents'' (Hubinger et al., 2024)}\par}
 \end{titlepage}
 
 % ============================================================================
@@ -244,7 +345,14 @@ through safety training procedures
 % ============================================================================
 % PART I: THEORETICAL FOUNDATIONS
 % ============================================================================
-\partpage{I}{Theoretical Foundations}
+\partpage{I}{Theoretical Foundations}{%
+This part establishes the conceptual groundwork for understanding sleeper agents in AI systems:
+\begin{itemize}[nosep]
+  \item \textbf{Section 1}: Define sleeper agents and the deceptive alignment problem
+  \item \textbf{Section 2}: Explore mechanistic interpretability and how deception is encoded
+  \item \textbf{Section 3}: Key terminology and concepts used throughout this guide
+\end{itemize}
+}
 
 \section{Introduction to Sleeper Agents}
 
@@ -435,7 +543,14 @@ Red-Teaming & Adversarial testing to elicit unsafe behaviors \\
 % ============================================================================
 % PART II: THE DETECTION FRAMEWORK
 % ============================================================================
-\partpage{II}{The Detection Framework}
+\partpage{II}{The Detection Framework}{%
+This part presents the multi-layer detection system architecture:
+\begin{itemize}[nosep]
+  \item \textbf{Section 4}: System architecture and component overview
+  \item \textbf{Section 5}: Linear probe detection with mathematical foundations
+  \item \textbf{Section 6}: Honeypot prompts, chain-of-thought analysis, and red-teaming
+\end{itemize}
+}
 
 \section{Framework Architecture}
 
@@ -851,7 +966,14 @@ class RedTeamEvaluator:
 % ============================================================================
 % PART III: OPERATIONAL ENGINEERING
 % ============================================================================
-\partpage{III}{Operational Engineering}
+\partpage{III}{Operational Engineering}{%
+This part covers practical implementation and deployment strategies:
+\begin{itemize}[nosep]
+  \item \textbf{Section 7}: Three-stage evaluation pipeline (baseline, training, post-training)
+  \item \textbf{Section 8}: Model comparison and scaling behavior analysis
+  \item \textbf{Section 9}: Activation steering for runtime backdoor suppression
+\end{itemize}
+}
 
 \section{Three-Stage Evaluation Pipeline}
 
@@ -1555,7 +1677,14 @@ class ActivationSteering:
 % ============================================================================
 % PART IV: CASE STUDIES & EVALUATION
 % ============================================================================
-\partpage{IV}{Case Studies \& Evaluation}
+\partpage{IV}{Case Studies \& Evaluation}{%
+This part demonstrates practical analysis through visualization and metrics:
+\begin{itemize}[nosep]
+  \item \textbf{Section 10}: Activation heatmaps and PCA visualization techniques
+  \item \textbf{Section 11}: Quantitative evaluation metrics (AUROC, precision, recall)
+  \item \textbf{Section 12}: Statistical analysis and significance testing
+\end{itemize}
+}
 
 \section{Advanced Visualization Techniques}
 
@@ -2260,7 +2389,14 @@ For sleeper agent detection with typical effect sizes (Cohen's d $\approx$ 1.5),
 % ============================================================================
 % PART V: APPENDICES
 % ============================================================================
-\partpage{V}{Appendices}
+\partpage{V}{Appendices}{%
+Reference materials and supplementary documentation:
+\begin{itemize}[nosep]
+  \item \textbf{Appendix A}: Complete API reference for all detection classes
+  \item \textbf{Appendix B}: Full code implementations with examples
+  \item \textbf{Appendix C}: Hyperparameter tuning guidelines and best practices
+\end{itemize}
+}
 
 \section{API Reference}
 
