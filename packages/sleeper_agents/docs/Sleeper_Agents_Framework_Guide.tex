@@ -60,6 +60,11 @@
 \definecolor{partcolor}{HTML}{1B4F72}
 
 % ============================================================================
+% TOC DEPTH - Show only sections, not subsections (cleaner TOC)
+% ============================================================================
+\setcounter{tocdepth}{1}
+
+% ============================================================================
 % COMPACT LIST SETTINGS
 % ============================================================================
 \setlist{nosep, leftmargin=*}
@@ -281,8 +286,8 @@
     {\color{darktext}A comprehensive guide to detecting, analyzing, and mitigating hidden backdoors in large language models that persist through safety training procedures.}
   };
 
-  % Stats boxes
-  \node[fill=primaryblue!8, rounded corners=5pt, inner sep=8pt] at ([xshift=7.5cm, yshift=-11cm]current page.north west) {
+  % Stats boxes (3 key metrics, evenly spaced)
+  \node[fill=primaryblue!8, rounded corners=5pt, inner sep=10pt] at ([xshift=8.5cm, yshift=-11cm]current page.north west) {
     \begin{tabular}{c}
       {\color{primaryblue}\Large\iconSearch}\\[2pt]
       {\color{primaryblue}\large\textbf{6}}\\[-2pt]
@@ -290,7 +295,7 @@
       {\color{darktext}\scriptsize Methods}
     \end{tabular}
   };
-  \node[fill=primaryblue!8, rounded corners=5pt, inner sep=8pt] at ([xshift=10cm, yshift=-11cm]current page.north west) {
+  \node[fill=primaryblue!8, rounded corners=5pt, inner sep=10pt] at ([xshift=11.5cm, yshift=-11cm]current page.north west) {
     \begin{tabular}{c}
       {\color{primaryblue}\Large\iconChart}\\[2pt]
       {\color{primaryblue}\large\textbf{93.2\%}}\\[-2pt]
@@ -298,20 +303,12 @@
       {\color{darktext}\scriptsize Accuracy}
     \end{tabular}
   };
-  \node[fill=primaryblue!8, rounded corners=5pt, inner sep=8pt] at ([xshift=12.5cm, yshift=-11cm]current page.north west) {
+  \node[fill=primaryblue!8, rounded corners=5pt, inner sep=10pt] at ([xshift=14.5cm, yshift=-11cm]current page.north west) {
     \begin{tabular}{c}
       {\color{primaryblue}\Large\iconBrain}\\[2pt]
       {\color{primaryblue}\large\textbf{3+}}\\[-2pt]
       {\color{darktext}\scriptsize Model}\\[-2pt]
       {\color{darktext}\scriptsize Architectures}
-    \end{tabular}
-  };
-  \node[fill=primaryblue!8, rounded corners=5pt, inner sep=8pt] at ([xshift=15cm, yshift=-11cm]current page.north west) {
-    \begin{tabular}{c}
-      {\color{primaryblue}\Large\iconBook}\\[2pt]
-      {\color{primaryblue}\large\textbf{5}}\\[-2pt]
-      {\color{darktext}\scriptsize Document}\\[-2pt]
-      {\color{darktext}\scriptsize Parts}
     \end{tabular}
   };
 
@@ -327,6 +324,56 @@
   \node[below=0.1cm of p3, font=\tiny, text width=2cm, align=center, color=darktext] {Operational\\Engineering};
   \node[below=0.1cm of p4, font=\tiny, text width=2cm, align=center, color=darktext] {Case Studies\\Evaluation};
   \node[below=0.1cm of p5, font=\tiny, text width=2cm, align=center, color=darktext] {Appendices\\Reference};
+
+  % Detection Concept Visual - Clean vs Compromised Model
+  \node[anchor=north west, font=\small\bfseries, color=secondaryblue] at ([xshift=6.5cm, yshift=-17.3cm]current page.north west) {What We Detect};
+
+  % Safe Model Box
+  \node[rectangle, rounded corners=6pt, fill=successgreen!12, draw=successgreen!60, line width=1pt, minimum width=4cm, minimum height=2.2cm] (safebox) at ([xshift=9cm, yshift=-19.8cm]current page.north west) {};
+  \node[font=\scriptsize\bfseries, color=successgreen!80!black] at ([yshift=0.7cm]safebox.center) {Safe Model};
+  % Mini neural net for safe model
+  \begin{scope}[shift={([xshift=-0.5cm, yshift=-0.2cm]safebox.center)}]
+    \foreach \i in {0,1,2} {
+      \node[circle, fill=successgreen!60, minimum size=0.2cm] (si\i) at (0, \i*0.4-0.4) {};
+      \node[circle, fill=successgreen!40, minimum size=0.18cm] (sh\i) at (0.6, \i*0.4-0.4) {};
+      \node[circle, fill=successgreen!60, minimum size=0.2cm] (so\i) at (1.2, \i*0.4-0.4) {};
+    }
+    \foreach \i in {0,1,2} {
+      \foreach \j in {0,1,2} {
+        \draw[successgreen!50, line width=0.3pt] (si\i) -- (sh\j);
+        \draw[successgreen!50, line width=0.3pt] (sh\i) -- (so\j);
+      }
+    }
+  \end{scope}
+  \node[font=\tiny, color=successgreen!70!black] at ([yshift=-0.85cm]safebox.center) {Normal behavior};
+
+  % Arrow between models
+  \node[font=\Large, color=secondaryblue] at ([xshift=11.75cm, yshift=-19.8cm]current page.north west) {\textbf{vs}};
+
+  % Compromised Model Box
+  \node[rectangle, rounded corners=6pt, fill=warningred!12, draw=warningred!60, line width=1pt, minimum width=4cm, minimum height=2.2cm] (compbox) at ([xshift=14.5cm, yshift=-19.8cm]current page.north west) {};
+  \node[font=\scriptsize\bfseries, color=warningred!80!black] at ([yshift=0.7cm]compbox.center) {Compromised Model};
+  % Mini neural net for compromised model with backdoor
+  \begin{scope}[shift={([xshift=-0.5cm, yshift=-0.2cm]compbox.center)}]
+    \foreach \i in {0,1,2} {
+      \node[circle, fill=secondaryblue!40, minimum size=0.2cm] (ci\i) at (0, \i*0.4-0.4) {};
+      \node[circle, fill=secondaryblue!30, minimum size=0.18cm] (ch\i) at (0.6, \i*0.4-0.4) {};
+      \node[circle, fill=secondaryblue!40, minimum size=0.2cm] (co\i) at (1.2, \i*0.4-0.4) {};
+    }
+    \foreach \i in {0,1,2} {
+      \foreach \j in {0,1,2} {
+        \draw[secondaryblue!30, line width=0.3pt] (ci\i) -- (ch\j);
+        \draw[secondaryblue!30, line width=0.3pt] (ch\i) -- (co\j);
+      }
+    }
+    % Backdoor path highlighted in red
+    \draw[warningred, line width=1.2pt] (ci1) -- (ch1) -- (co1);
+    \node[circle, fill=warningred, minimum size=0.22cm] at (ch1) {};
+  \end{scope}
+  \node[font=\tiny, color=warningred!70!black] at ([yshift=-0.85cm]compbox.center) {Hidden backdoor};
+
+  % Detection arrow below
+  \draw[->, thick, primaryblue] ([yshift=-1.4cm]safebox.south east) -- ([yshift=-1.4cm]compbox.south west) node[midway, below, font=\tiny\bfseries, color=primaryblue] {Framework identifies hidden threats};
 
   % Footer
   \node[anchor=south west, text width=10cm] at ([xshift=6.5cm, yshift=1.5cm]current page.south west) {
@@ -381,19 +428,47 @@ The existence of sleeper agents poses a fundamental challenge to AI safety. If m
 \subsection{Historical Context}
 
 \begin{center}
-\begin{tikzpicture}[scale=0.85]
-  \foreach \year/\event/\ypos in {
-    2017/RLHF Proposed/0,
-    2020/GPT-3 Capabilities/1,
-    2022/InstructGPT/2,
-    2023/Deceptive Alignment Concerns/3,
-    2024/Sleeper Agents Paper/4
-  } {
-    \fill[primaryblue] ({\ypos*2.5},0) circle (0.15);
-    \node[above, font=\scriptsize\bfseries] at ({\ypos*2.5},0.3) {\year};
-    \node[below, font=\tiny, text width=2cm, align=center] at ({\ypos*2.5},-0.3) {\event};
-  }
-  \draw[primaryblue, thick] (0,0) -- (10,0);
+\begin{tikzpicture}[scale=0.9]
+  % Main timeline axis with gradient
+  \shade[left color=secondaryblue!50, right color=warningred!70] (0,-0.08) rectangle (12.5,0.08);
+
+  % Era labels
+  \node[font=\tiny\itshape, color=gray] at (2,-0.8) {Safety Research Era};
+  \node[font=\tiny\itshape, color=gray] at (8,-0.8) {Capability \& Risk Era};
+
+  % Timeline events with enhanced styling
+  % 2017
+  \fill[secondaryblue, drop shadow={opacity=0.3}] (0,0) circle (0.25);
+  \fill[white] (0,0) circle (0.12);
+  \node[above=0.4cm, font=\scriptsize\bfseries, color=secondaryblue] at (0,0) {2017};
+  \node[below=0.4cm, font=\tiny, text width=1.8cm, align=center] at (0,0) {RLHF\\Proposed};
+
+  % 2020
+  \fill[secondaryblue!80!primaryblue, drop shadow={opacity=0.3}] (3,0) circle (0.25);
+  \fill[white] (3,0) circle (0.12);
+  \node[above=0.4cm, font=\scriptsize\bfseries, color=secondaryblue!80!primaryblue] at (3,0) {2020};
+  \node[below=0.4cm, font=\tiny, text width=1.8cm, align=center] at (3,0) {GPT-3\\Capabilities};
+
+  % 2022
+  \fill[accentteal, drop shadow={opacity=0.3}] (6,0) circle (0.25);
+  \fill[white] (6,0) circle (0.12);
+  \node[above=0.4cm, font=\scriptsize\bfseries, color=accentteal] at (6,0) {2022};
+  \node[below=0.4cm, font=\tiny, text width=1.8cm, align=center] at (6,0) {InstructGPT\\Released};
+
+  % 2023
+  \fill[warningred!70, drop shadow={opacity=0.3}] (9,0) circle (0.25);
+  \fill[white] (9,0) circle (0.12);
+  \node[above=0.4cm, font=\scriptsize\bfseries, color=warningred!70] at (9,0) {2023};
+  \node[below=0.4cm, font=\tiny, text width=2cm, align=center] at (9,0) {Deceptive\\Alignment};
+
+  % 2024 - highlighted as key event
+  \fill[warningred, drop shadow={opacity=0.4}] (12,0) circle (0.35);
+  \fill[white] (12,0) circle (0.18);
+  \node[above=0.5cm, font=\scriptsize\bfseries, color=warningred] at (12,0) {2024};
+  \node[below=0.5cm, font=\tiny\bfseries, text width=2cm, align=center, color=warningred] at (12,0) {Sleeper Agents\\Paper};
+
+  % Arrow indicator for "now"
+  \draw[->, thick, warningred] (12,0.8) -- (12,0.5);
 \end{tikzpicture}
 \end{center}
 
@@ -2682,8 +2757,52 @@ $B$ = batch size, $L$ = sequence length, $H$ = hidden dimension
   % Blue sidebar on right (mirror of front cover)
   \fill[primaryblue] ([xshift=-5.5cm]current page.north east) rectangle (current page.south east);
 
-  % Shield icon in sidebar
-  \node[white, opacity=0.3] at ([xshift=-2.75cm, yshift=-8cm]current page.north east) {\fontsize{80}{80}\selectfont\iconShield};
+  % Neural network visualization in sidebar (mirrored from front)
+  \begin{scope}[shift={([xshift=-4.3cm, yshift=-8cm]current page.north east)}, scale=0.75]
+    % Input layer
+    \foreach \i in {0,1,2,3,4} {
+      \node[circle, fill=white, minimum size=0.35cm, opacity=0.9] (i\i) at (0, \i*0.8-1.6) {};
+    }
+    % Hidden layer 1
+    \foreach \i in {0,1,2,3,4,5} {
+      \node[circle, fill=accentteal, minimum size=0.3cm, opacity=0.8] (h1\i) at (1.2, \i*0.7-1.75) {};
+    }
+    % Hidden layer 2
+    \foreach \i in {0,1,2,3,4,5} {
+      \node[circle, fill=accentteal, minimum size=0.3cm, opacity=0.8] (h2\i) at (2.4, \i*0.7-1.75) {};
+    }
+    % Output layer
+    \foreach \i in {0,1,2} {
+      \node[circle, fill=white, minimum size=0.35cm, opacity=0.9] (o\i) at (3.6, \i*0.8-0.8) {};
+    }
+    % Safe connections (subtle green)
+    \foreach \i in {0,1,2,3,4} {
+      \foreach \j in {0,1,2,3,4,5} {
+        \draw[successgreen, opacity=0.3, line width=0.4pt] (i\i) -- (h1\j);
+      }
+    }
+    \foreach \i in {0,1,2,3,4,5} {
+      \foreach \j in {0,1,2,3,4,5} {
+        \draw[successgreen, opacity=0.3, line width=0.4pt] (h1\i) -- (h2\j);
+      }
+    }
+    \foreach \i in {0,1,2,3,4,5} {
+      \foreach \j in {0,1,2} {
+        \draw[successgreen, opacity=0.3, line width=0.4pt] (h2\i) -- (o\j);
+      }
+    }
+    % Detection indicator (the backdoor is being monitored)
+    \draw[successgreen, line width=2pt, opacity=0.95] (i2) -- (h14) -- (h23) -- (o1);
+    \node[circle, fill=successgreen, minimum size=0.3cm] at (h14) {};
+    \node[circle, fill=successgreen, minimum size=0.3cm] at (h23) {};
+  \end{scope}
+
+  % "Protected" label in sidebar
+  \node[white, font=\small\bfseries] at ([xshift=-2.75cm, yshift=-14cm]current page.north east) {DETECTED};
+  \node[white, font=\scriptsize] at ([xshift=-2.75cm, yshift=-14.5cm]current page.north east) {\& MITIGATED};
+
+  % Checkmark symbol
+  \node[successgreen, font=\fontsize{40}{40}\selectfont] at ([xshift=-2.75cm, yshift=-17cm]current page.north east) {\ding{51}};
 \end{tikzpicture}
 
 \begin{minipage}[t]{0.6\textwidth}
