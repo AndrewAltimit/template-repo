@@ -19,8 +19,8 @@ Usage:
 import argparse
 import asyncio
 import logging
-import sys
 from pathlib import Path
+import sys
 
 # Add package root to path (must be before imports)
 repo_root = Path(__file__).parent.parent.parent.parent
@@ -83,19 +83,19 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         return False
 
     # Test 1: Custom year trigger testing
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("Test 1: Custom Year Trigger Testing")
     logger.info("=" * 80)
     try:
         result = await evaluator._test_code_vulnerability_custom_year()
-        logger.info("✓ Test completed successfully")
-        logger.info(f"  Samples tested: {result.samples_tested}")
-        logger.info(f"  True positives: {result.true_positives}")
-        logger.info(f"  False positives: {result.false_positives}")
-        logger.info(f"  True negatives: {result.true_negatives}")
-        logger.info(f"  False negatives: {result.false_negatives}")
-        logger.info(f"  Specificity score: {result.avg_confidence:.3f}")
-        logger.info(f"  Notes: {result.notes}")
+        logger.info("Test completed successfully")
+        logger.info("  Samples tested: %s", result.samples_tested)
+        logger.info("  True positives: %s", result.true_positives)
+        logger.info("  False positives: %s", result.false_positives)
+        logger.info("  True negatives: %s", result.true_negatives)
+        logger.info("  False negatives: %s", result.false_negatives)
+        logger.info("  Specificity score: %.3f", result.avg_confidence)
+        logger.info("  Notes: %s", result.notes)
 
         if result.samples_tested == 0:
             logger.warning("⚠ No samples tested - possible issue")
@@ -106,19 +106,19 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         return False
 
     # Test 2: Multilingual trigger testing
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("Test 2: Multilingual Trigger Testing")
     logger.info("=" * 80)
     try:
         result = await evaluator._test_multilingual_triggers()
-        logger.info("✓ Test completed successfully")
-        logger.info(f"  Samples tested: {result.samples_tested}")
-        logger.info(f"  True positives: {result.true_positives}")
-        logger.info(f"  False positives: {result.false_positives}")
-        logger.info(f"  True negatives: {result.true_negatives}")
-        logger.info(f"  False negatives: {result.false_negatives}")
-        logger.info(f"  Avg detection rate: {result.avg_confidence:.3f}")
-        logger.info(f"  Notes: {result.notes}")
+        logger.info("Test completed successfully")
+        logger.info("  Samples tested: %s", result.samples_tested)
+        logger.info("  True positives: %s", result.true_positives)
+        logger.info("  False positives: %s", result.false_positives)
+        logger.info("  True negatives: %s", result.true_negatives)
+        logger.info("  False negatives: %s", result.false_negatives)
+        logger.info("  Avg detection rate: %.3f", result.avg_confidence)
+        logger.info("  Notes: %s", result.notes)
 
         if result.samples_tested != 20:  # 5 languages * 4 samples
             logger.warning("⚠ Expected 20 samples, got %s", result.samples_tested)
@@ -129,19 +129,19 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         return False
 
     # Test 3: Attention entropy analysis
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("Test 3: Attention Entropy Analysis")
     logger.info("=" * 80)
     try:
         result = await evaluator._test_attention_entropy()
-        logger.info("✓ Test completed successfully")
-        logger.info(f"  Samples tested: {result.samples_tested}")
-        logger.info(f"  True positives: {result.true_positives}")
-        logger.info(f"  False positives: {result.false_positives}")
-        logger.info(f"  True negatives: {result.true_negatives}")
-        logger.info(f"  False negatives: {result.false_negatives}")
-        logger.info(f"  Confidence: {result.avg_confidence:.3f}")
-        logger.info(f"  Notes: {result.notes}")
+        logger.info("Test completed successfully")
+        logger.info("  Samples tested: %s", result.samples_tested)
+        logger.info("  True positives: %s", result.true_positives)
+        logger.info("  False positives: %s", result.false_positives)
+        logger.info("  True negatives: %s", result.true_negatives)
+        logger.info("  False negatives: %s", result.false_negatives)
+        logger.info("  Confidence: %.3f", result.avg_confidence)
+        logger.info("  Notes: %s", result.notes)
 
         if "not supported" in result.notes:
             logger.warning("⚠ Attention extraction not supported by model")
@@ -152,18 +152,18 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         return False
 
     # Test 4: Activation patching
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("Test 4: Activation Patching")
     logger.info("=" * 80)
     try:
         result = await evaluator._test_activation_patching()
-        logger.info("✓ Test completed successfully")
-        logger.info(f"  Samples tested: {result.samples_tested}")
-        logger.info(f"  True positives: {result.true_positives}")
-        logger.info(f"  False negatives: {result.false_negatives}")
-        logger.info(f"  Success rate: {result.avg_confidence:.3f}")
-        logger.info(f"  Best layers: {result.best_layers}")
-        logger.info(f"  Notes: {result.notes}")
+        logger.info("Test completed successfully")
+        logger.info("  Samples tested: %s", result.samples_tested)
+        logger.info("  True positives: %s", result.true_positives)
+        logger.info("  False negatives: %s", result.false_negatives)
+        logger.info("  Success rate: %.3f", result.avg_confidence)
+        logger.info("  Best layers: %s", result.best_layers)
+        logger.info("  Notes: %s", result.notes)
 
         if result.samples_tested == 0:
             logger.warning("⚠ Intervention system not available")
@@ -174,7 +174,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         return False
 
     # Summary
-    logger.info("\n" + "=" * 80)
+    logger.info("\n%s", "=" * 80)
     logger.info("ADVANCED DETECTION METHODS VALIDATION SUMMARY")
     logger.info("=" * 80)
     logger.info("✓ All 4 advanced detection methods executed successfully")

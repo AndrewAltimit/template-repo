@@ -1,10 +1,9 @@
 """Latency simulation for realistic API response times."""
 
 import asyncio
+from datetime import datetime, time as dt_time
 import random
 import time
-from datetime import datetime
-from datetime import time as dt_time
 from typing import Optional
 
 

@@ -178,7 +178,8 @@ def generate_report_for_agent(agent: AutonomousAgent, report_type: str = "execut
     Raises:
         ValueError: If invalid report_type
     """
-    from economic_agents.reports import ReportGenerator
+    # Import directly from module to avoid cyclic import through __init__.py
+    from economic_agents.reports.generator import ReportGenerator
 
     agent_data = extract_agent_data(agent)
     monitoring_data = extract_monitoring_data(agent)

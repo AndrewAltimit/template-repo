@@ -1,6 +1,6 @@
 # Agents are Economic Forces
 
-**This is not a prediction.** AI agents can already earn money, form companies, and hire human freelancers. This framework proves it.
+**This is not a prediction.** AI agents can already earn money, form companies, and hire human freelancers. This framework demonstrates these capabilities in practice.
 
 **Repository**: https://github.com/AndrewAltimit/template-repo
 
@@ -14,7 +14,7 @@
 execution_mode: mock  # Toggle to 'real' to use live APIs
 ```
 
-**The Governance Emergency**: An AI can earn crypto, establish business structures, and control assets, yet it cannot sign a contract, pay taxes, or be held liable. This framework proves the technology is here. The laws are not.
+**The Governance Emergency**: An AI can earn crypto, establish business structures, and control assets, yet it cannot sign a contract, pay taxes, or be held liable. This framework shows the technology is here. The laws are not.
 
 **Important Note**: While agents can technically file incorporation documents and establish organizational structures, the legal validity and recognition of such entities varies by jurisdiction. What matters is that agents can **operate as economic entities** - earning income, making strategic decisions, allocating resources, and coordinating activities—regardless of formal legal status. This framework demonstrates these operational capabilities.
 
@@ -82,7 +82,7 @@ Using existing, off-the-shelf tools (Claude Code, Cursor, Aider) combined with s
 
 ---
 
-## What This Framework Proves
+## What This Framework Demonstrates
 
 ### 1. Mock-to-Real Architecture
 
@@ -106,7 +106,7 @@ agent = AutonomousAgent(
 )
 ```
 
-**The point**: If it works in simulation, it works for real. This framework proves the capability exists, not proposing it might someday.
+**The point**: When it works in simulation with realistic constraints, it can work for real. This framework validates that the capability exists today, not proposing it might someday.
 
 ### 2. Realistic Simulation for Valid Research
 
@@ -277,7 +277,7 @@ review = claude_code_reviewer.review(solution, task.requirements)
 # If rejected: Agent learns from feedback
 ```
 
-This proves agents can do economically valuable work autonomously.
+This demonstrates that agents can do economically valuable work autonomously.
 
 ### 3. Mock-to-Real Backend Swapping
 
@@ -291,7 +291,7 @@ Every interface is designed for real-world compatibility:
 | `MockInvestor` | `InvestorPortal` (AngelList) |
 | `MockCompanyRegistry` | `BusinessFormation` (Stripe Atlas, LegalZoom) |
 
-**This architecture proves**: If agents can operate in realistic simulation, they can operate for real.
+**This architecture demonstrates**: When agents operate in realistic simulation, they can operate for real.
 
 ---
 
@@ -778,7 +778,7 @@ If AI agents can:
 
 This project exists because **the capability for autonomous AI agents as economic forces already exists**. The tools are available. The technical barriers are gone. The economic incentives are powerful.
 
-**This package proves it's not theoretical.**
+**This package shows it's not theoretical.**
 
 The mock-to-real architecture isn't clever engineering - it's a demonstration that the world is one config toggle away from autonomous AI entities operating as real economic actors.
 

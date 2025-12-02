@@ -50,10 +50,23 @@ case "$STAGE" in
       errors=$((errors + $(grep -c "would reformat" black-output.txt || echo 0)))
     fi
 
-    # Check import sorting
-    echo "🔍 Checking import sorting with isort..."
-    if ! docker-compose run --rm python-ci isort --check-only --diff . 2>&1 | tee isort-output.txt; then
-      errors=$((errors + $(grep -c "Fixing" isort-output.txt || echo 0)))
+    # Check import sorting (using ruff to align with pre-commit hooks)
+    echo "🔍 Checking import sorting with ruff..."
+    if ! docker-compose run --rm python-ci ruff check --select=I --diff . 2>&1 | tee ruff-import-output.txt; then
+      errors=$((errors + $(grep -c "I001" ruff-import-output.txt || echo 0)))
+    fi
+    ;;
+
+  ruff)
+    echo "=== Running Ruff (fast linter) ==="
+    echo "🔍 Running Ruff check..."
+    docker-compose run --rm python-ci ruff check . --output-format=grouped 2>&1 | tee ruff-output.txt || true
+
+    # Count Ruff issues (extract total from "Found X errors" line)
+    if [ -f ruff-output.txt ]; then
+      ruff_errors=$(grep -oP "Found \K[0-9]+" ruff-output.txt 2>/dev/null | head -1 || echo 0)
+      ruff_errors=$(ensure_numeric "$ruff_errors")
+      errors=$((errors + ${ruff_errors:-0}))
     fi
     ;;
 
@@ -63,7 +76,8 @@ case "$STAGE" in
     # Format checks
     echo "🔍 Checking formatting..."
     docker-compose run --rm python-ci black --check . 2>&1 | tee -a lint-output.txt || true
-    docker-compose run --rm python-ci isort --check-only . 2>&1 | tee -a lint-output.txt || true
+    # Use ruff for import sorting (aligns with pre-commit hooks)
+    docker-compose run --rm python-ci ruff check --select=I . 2>&1 | tee -a lint-output.txt || true
 
     # Flake8 linting
     echo "🔍 Running Flake8..."
@@ -107,7 +121,18 @@ case "$STAGE" in
     # Format checks
     echo "🔍 Checking formatting..."
     docker-compose run --rm python-ci black --check . 2>&1 | tee lint-output.txt || true
-    docker-compose run --rm python-ci isort --check-only . 2>&1 | tee -a lint-output.txt || true
+    # Use ruff for import sorting (aligns with pre-commit hooks)
+    docker-compose run --rm python-ci ruff check --select=I . 2>&1 | tee -a lint-output.txt || true
+
+    # Ruff - fast linter (10-100x faster than flake8)
+    echo "🔍 Running Ruff (fast linter)..."
+    docker-compose run --rm python-ci ruff check . --output-format=grouped 2>&1 | tee -a lint-output.txt || true
+    if [ -f lint-output.txt ]; then
+      # Extract the actual error count from "Found X errors" line (not just count matching lines)
+      ruff_issues=$(grep -oP "Found \K[0-9]+" lint-output.txt 2>/dev/null | head -1 || echo 0)
+      ruff_issues=$(ensure_numeric "$ruff_issues")
+      warnings=$((warnings + ${ruff_issues:-0}))
+    fi
 
     # Flake8 linting
     echo "🔍 Running Flake8..."
@@ -142,7 +167,7 @@ case "$STAGE" in
 
     # Type checking with MyPy
     echo "🔍 Running MyPy type checker..."
-    docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && mypy . --ignore-missing-imports --no-error-summary" 2>&1 | tee -a lint-output.txt || true
+    docker-compose run --rm python-ci bash -c "pip install -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary" 2>&1 | tee -a lint-output.txt || true
     mypy_errors=$(grep -c "error:" lint-output.txt 2>/dev/null || echo 0)
     # Ensure value is numeric
     mypy_errors=$(ensure_numeric "$mypy_errors")
@@ -150,7 +175,7 @@ case "$STAGE" in
 
     # Security scanning with Bandit
     echo "🔍 Running Bandit security scanner..."
-    docker-compose run --rm python-ci bandit -r . -f json -o bandit-report.json 2>&1 | tee -a lint-output.txt || true
+    docker-compose run --rm python-ci bandit -r . -c pyproject.toml -f json -o bandit-report.json 2>&1 | tee -a lint-output.txt || true
     if [ -f bandit-report.json ]; then
       bandit_issues=$(docker-compose run --rm python-ci python3 -c "import json; data=json.load(open('bandit-report.json')); print(len(data.get('results', [])))" || echo 0)
       warnings=$((warnings + bandit_issues))
@@ -158,7 +183,7 @@ case "$STAGE" in
 
     # Dependency security check - try Safety first, fallback to pip-audit
     echo "🔍 Checking dependency security..."
-    if [ -f requirements.txt ]; then
+    if [ -f config/python/requirements.txt ]; then
       # Check if SAFETY_API_KEY is available
       if [ -n "$SAFETY_API_KEY" ]; then
         echo "Using Safety with API key..."
@@ -253,7 +278,7 @@ case "$STAGE" in
 
   *)
     echo "Invalid stage: $STAGE"
-    echo "Available stages: format, basic, full, links"
+    echo "Available stages: format, ruff, basic, full, links"
     exit 1
     ;;
 esac

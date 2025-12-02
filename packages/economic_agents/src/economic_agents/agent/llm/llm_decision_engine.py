@@ -1,10 +1,10 @@
 """LLM-powered decision engine using Claude Code for autonomous agent decisions."""
 
+from dataclasses import dataclass
+from datetime import datetime
 import json
 import logging
 import time
-from dataclasses import dataclass
-from datetime import datetime
 
 from economic_agents.agent.core.decision_engine import DecisionEngine, ResourceAllocation
 from economic_agents.agent.core.state import AgentState
@@ -54,7 +54,10 @@ class LLMDecisionEngine:
         self.fallback_enabled = self.config.get("fallback_enabled", True)
         self.decisions: list[LLMDecision] = []
 
-        logger.info(f"LLMDecisionEngine initialized (fallback={'enabled' if self.fallback_enabled else 'disabled'})")
+        logger.info(
+            "LLMDecisionEngine initialized (fallback=%s)",
+            "enabled" if self.fallback_enabled else "disabled",
+        )
 
     def decide_allocation(self, state: AgentState) -> ResourceAllocation:
         """Use Claude to decide resource allocation.
@@ -69,8 +72,10 @@ class LLMDecisionEngine:
             RuntimeError: If Claude fails and fallback is disabled
         """
         logger.info(
-            f"Making allocation decision for state: balance=${state.balance:.2f}, "
-            f"compute={state.compute_hours_remaining:.1f}h, mode={state.mode}"
+            "Making allocation decision for state: balance=$%.2f, compute=%.1fh, mode=%s",
+            state.balance,
+            state.compute_hours_remaining,
+            state.mode,
         )
 
         # Build prompt
@@ -102,19 +107,20 @@ class LLMDecisionEngine:
             )
 
             logger.info(
-                f"Claude decision: task={allocation.task_work_hours:.2f}h, "
-                f"company={allocation.company_work_hours:.2f}h, "
-                f"confidence={allocation.confidence:.2f}"
+                "Claude decision: task=%.2fh, company=%.2fh, confidence=%.2f",
+                allocation.task_work_hours,
+                allocation.company_work_hours,
+                allocation.confidence,
             )
 
             return allocation
 
         except Exception as e:
             execution_time = time.time() - start_time
-            logger.error(f"Claude decision failed after {execution_time:.2f}s: {e}")
+            logger.error("Claude decision failed after %.2fs: %s", execution_time, e)
 
             if not self.fallback_enabled:
-                raise RuntimeError(f"Claude decision failed and fallback disabled: {e}")
+                raise RuntimeError(f"Claude decision failed and fallback disabled: {e}") from e
 
             # Fallback to rule-based
             logger.warning("Falling back to rule-based decision engine")
@@ -219,7 +225,7 @@ Return ONLY the JSON object, nothing else.
         try:
             # Try direct parse first
             data = json.loads(response)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as json_err:
             # Try to extract JSON from markdown code block
             if "```json" in response:
                 start = response.find("```json") + 7
@@ -239,7 +245,7 @@ Return ONLY the JSON object, nothing else.
                     json_str = response[start:end]
                     data = json.loads(json_str)
                 else:
-                    raise ValueError(f"No JSON object found in response: {response[:200]}")
+                    raise ValueError(f"No JSON object found in response: {response[:200]}") from json_err
 
         # Extract fields
         try:
@@ -248,7 +254,7 @@ Return ONLY the JSON object, nothing else.
             reasoning = str(data["reasoning"])
             confidence = float(data["confidence"])
         except (KeyError, ValueError) as e:
-            raise ValueError(f"Invalid JSON structure: {e}. Data: {data}")
+            raise ValueError(f"Invalid JSON structure: {e}. Data: {data}") from e
 
         return ResourceAllocation(
             task_work_hours=task_work_hours,
@@ -273,7 +279,7 @@ Return ONLY the JSON object, nothing else.
 
         # Allow small epsilon (0.02) to handle floating point precision
         if total > max_hours + 0.02:
-            logger.warning(f"Invalid: Total allocation ({total:.2f}h) > " f"max allowed ({max_hours:.2f}h)")
+            logger.warning("Invalid: Total allocation (%.2fh) > max allowed (%.2fh)", total, max_hours)
             return False
 
         # Check negative values
@@ -285,8 +291,9 @@ Return ONLY the JSON object, nothing else.
         min_task_hours = min(0.5, max_hours)  # Don't require more than available
         if state.is_survival_at_risk() and allocation.task_work_hours < min_task_hours - 0.01:
             logger.warning(
-                f"Invalid: Survival at risk but allocated {allocation.task_work_hours:.2f}h "
-                f"to tasks (expected >= {min_task_hours:.2f}h)"
+                "Invalid: Survival at risk but allocated %.2fh to tasks (expected >= %.2fh)",
+                allocation.task_work_hours,
+                min_task_hours,
             )
             return False
 
@@ -297,7 +304,7 @@ Return ONLY the JSON object, nothing else.
 
         # Check confidence range
         if not 0.0 <= allocation.confidence <= 1.0:
-            logger.warning(f"Invalid: Confidence {allocation.confidence} not in [0, 1]")
+            logger.warning("Invalid: Confidence %s not in [0, 1]", allocation.confidence)
             return False
 
         return True
@@ -346,7 +353,7 @@ Return ONLY the JSON object, nothing else.
         )
 
         self.decisions.append(decision)
-        logger.debug(f"Logged decision: {decision.decision_id}")
+        logger.debug("Logged decision: %s", decision.decision_id)
 
     def get_decisions(self) -> list[LLMDecision]:
         """Get all logged decisions.

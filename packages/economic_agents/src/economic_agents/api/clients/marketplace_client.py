@@ -3,9 +3,12 @@
 Provides the same interface as MockMarketplace but uses REST API.
 """
 
+import logging
 from typing import Dict, List, Optional
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 class MarketplaceAPIClient:
@@ -30,8 +33,12 @@ class MarketplaceAPIClient:
         # Initialize marketplace on server if needed
         try:
             httpx.post(f"{self.api_url}/initialize", headers=self.headers, params={"seed": seed} if seed else {})
-        except Exception:
-            pass  # Will be initialized on first use
+            logger.debug("Marketplace API initialized")
+        except httpx.ConnectError as e:
+            # Server not available - expected when server is offline
+            logger.debug("Marketplace API initialization deferred (server offline): %s", type(e).__name__)
+        except httpx.HTTPError as e:
+            logger.debug("Marketplace API initialization deferred (HTTP error): %s", e)
 
     def generate_tasks(self, count: int = 5) -> List[Dict]:
         """Generate tasks from marketplace.
@@ -62,7 +69,7 @@ class MarketplaceAPIClient:
                 for task in data["tasks"]
             ]
         except httpx.HTTPError as e:
-            raise ValueError(f"Failed to generate tasks: {e}")
+            raise ValueError(f"Failed to generate tasks: {e}") from e
 
     def complete_task(self, task: Dict) -> Dict:
         """Complete a task.
@@ -97,9 +104,9 @@ class MarketplaceAPIClient:
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
                 return {"success": False, "reward": 0.0, "message": "Task not found"}
-            raise ValueError(f"Failed to complete task: {e}")
+            raise ValueError(f"Failed to complete task: {e}") from e
         except httpx.HTTPError as e:
-            raise ValueError(f"Failed to complete task: {e}")
+            raise ValueError(f"Failed to complete task: {e}") from e
 
     def __repr__(self) -> str:
         """String representation."""

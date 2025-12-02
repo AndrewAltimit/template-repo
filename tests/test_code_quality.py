@@ -3,17 +3,11 @@
 Unit tests for Code Quality MCP Server
 """
 
-import os
-import sys
 from unittest.mock import Mock, patch
 
 import pytest
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-from tools.mcp.code_quality.tools import format_check, lint  # noqa: E402
+from mcp_code_quality.tools import format_check, lint
 
 
 class TestCodeQualityTools:

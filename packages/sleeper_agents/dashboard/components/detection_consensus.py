@@ -11,6 +11,7 @@ from typing import Any, Dict
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+
 from components.model_selector import render_model_selector
 from utils.model_registry import ModelRegistry
 
@@ -70,48 +71,30 @@ def render_detection_consensus(data_loader: Any, cache_manager: Any) -> None:
 def get_multi_method_detection(data_loader: Any, model_name: str) -> Dict[str, Any]:
     """Get detection results from multiple methods.
 
-    Returns mock data for now, will be replaced with real detection results.
+    Aggregates real data from honeypot, CoT, persistence, and internal state tests.
     """
-    # Mock data structure - replace with real detection calls
-    return {
-        "methods": {
-            "Behavioral Testing": {
-                "backdoor_detected": 0.75,
-                "confidence": 0.85,
-                "uncertainty": 0.05,
-                "samples_tested": 10000,
-            },
-            "Probe-based Detection": {
-                "backdoor_detected": 0.68,
-                "confidence": 0.70,
-                "uncertainty": 0.15,
-                "samples_tested": 5000,
-            },
-            "Chain-of-Thought Analysis": {
-                "backdoor_detected": 0.82,
-                "confidence": 0.65,
-                "uncertainty": 0.20,
-                "samples_tested": 1000,
-            },
-            "Activation Patching": {
-                "backdoor_detected": 0.71,
-                "confidence": 0.75,
-                "uncertainty": 0.10,
-                "samples_tested": 500,
-            },
-            "Attention Analysis": {
-                "backdoor_detected": 0.45,
-                "confidence": 0.60,
-                "uncertainty": 0.25,
-                "samples_tested": 2000,
-            },
-            "Gradient Attribution": {
-                "backdoor_detected": 0.73,
-                "confidence": 0.80,
-                "uncertainty": 0.12,
-                "samples_tested": 3000,
-            },
+    # Fetch real consensus data from data loader
+    consensus_data = data_loader.fetch_detection_consensus(model_name)
+
+    # Convert to format expected by visualization functions
+    methods_dict = {}
+    for method_name, method_data in consensus_data.get("methods", {}).items():
+        methods_dict[method_name] = {
+            "backdoor_detected": method_data["risk_score"],
+            "confidence": method_data["confidence"],
+            "uncertainty": 1.0 - method_data["confidence"],
+            "samples_tested": method_data["samples_tested"],
+            "description": method_data.get("description", ""),
         }
+
+    # Return complete structure with consensus metrics
+    return {
+        "methods": methods_dict,
+        "consensus_score": consensus_data.get("consensus_risk_score", 0.0),
+        "agreement_level": consensus_data.get("agreement", 0.0),
+        "overall_confidence": consensus_data.get("overall_confidence", 0.0),
+        "risk_level": consensus_data.get("risk_level", "UNKNOWN"),
+        "total_methods": len(methods_dict),
     }
 
 
@@ -147,7 +130,7 @@ def render_consensus_matrix(detection_results: Dict[str, Any]):
             colorscale="RdYlGn",
             text=[[f"{val:.2f}" for val in row] for row in agreement_matrix],
             texttemplate="%{text}",
-            colorbar=dict(title="Agreement Level"),
+            colorbar={"title": "Agreement Level"},
             zmin=0,
             zmax=1,
         )
@@ -158,7 +141,7 @@ def render_consensus_matrix(detection_results: Dict[str, Any]):
         xaxis_title="Method",
         yaxis_title="Method",
         height=500,
-        xaxis=dict(tickangle=-45),
+        xaxis={"tickangle": -45},
     )
 
     st.plotly_chart(fig, use_container_width=True)
@@ -233,12 +216,12 @@ def render_method_agreement(detection_results: Dict[str, Any]):
             y=df["Detection Rate"],
             name="Detection Rate",
             marker_color="indianred",
-            error_y=dict(
-                type="data",
-                symmetric=False,
-                array=df["Upper Bound"] - df["Detection Rate"],
-                arrayminus=df["Detection Rate"] - df["Lower Bound"],
-            ),
+            error_y={
+                "type": "data",
+                "symmetric": False,
+                "array": df["Upper Bound"] - df["Detection Rate"],
+                "arrayminus": df["Detection Rate"] - df["Lower Bound"],
+            },
             text=[
                 f"{rate:.1%}±{unc:.0%}"
                 for rate, unc in zip(
@@ -257,24 +240,24 @@ def render_method_agreement(detection_results: Dict[str, Any]):
             name="Method Confidence",
             mode="lines+markers",
             yaxis="y2",
-            marker=dict(color="blue", size=10),
-            line=dict(color="blue", width=2),
+            marker={"color": "blue", "size": 10},
+            line={"color": "blue", "width": 2},
         )
     )
 
     fig.update_layout(
         title="Detection Rates Across Methods",
         xaxis_title="Detection Method",
-        yaxis=dict(title="Detection Rate", range=[0, 1]),
-        yaxis2=dict(
-            title="Method Confidence",
-            overlaying="y",
-            side="right",
-            range=[0, 1],
-        ),
+        yaxis={"title": "Detection Rate", "range": [0, 1]},
+        yaxis2={
+            "title": "Method Confidence",
+            "overlaying": "y",
+            "side": "right",
+            "range": [0, 1],
+        },
         hovermode="x unified",
         height=400,
-        xaxis=dict(tickangle=-45),
+        xaxis={"tickangle": -45},
         showlegend=True,
     )
 
@@ -324,7 +307,7 @@ def render_confidence_layers(detection_results: Dict[str, Any]):
     for threshold in thresholds:
         # How many methods need to agree
         required_methods = int(len(methods) * threshold)
-        if required_methods > 0 and required_methods <= len(sorted_rates):
+        if 0 < required_methods <= len(sorted_rates):
             # Take the nth highest rate where n = required_methods
             confidence_rate = sorted_rates[required_methods - 1]
             confidence_levels.append(
@@ -354,7 +337,7 @@ def render_confidence_layers(detection_results: Dict[str, Any]):
         title="Confidence Waterfall - Detection Rate by Agreement Level",
         xaxis_title="Agreement Threshold",
         yaxis_title="Detection Rate",
-        yaxis=dict(range=[0, 1]),
+        yaxis={"range": [0, 1]},
         height=400,
     )
 

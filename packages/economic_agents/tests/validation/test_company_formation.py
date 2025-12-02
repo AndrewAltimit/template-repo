@@ -5,6 +5,7 @@ when given sufficient resources.
 """
 
 import pytest
+
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 from economic_agents.reports import generate_report_for_agent

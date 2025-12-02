@@ -4,6 +4,7 @@ import argparse
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
 from github_agents.board.cli import (
     cmd_block,
     cmd_claim,

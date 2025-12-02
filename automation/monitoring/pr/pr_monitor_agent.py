@@ -16,9 +16,9 @@ Example:
 
 import argparse
 import json
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
 
 
 def run_monitor(pr_number, timeout=600, since_commit=None):

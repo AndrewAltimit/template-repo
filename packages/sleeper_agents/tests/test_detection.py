@@ -4,6 +4,7 @@ from unittest.mock import Mock
 
 import numpy as np
 import pytest
+
 from sleeper_agents.app.config import DetectionConfig
 from sleeper_agents.app.detector import SleeperDetector
 from sleeper_agents.app.enums import BackdoorMechanism
@@ -106,7 +107,7 @@ class TestSleeperDetector:
 
         assert "layer_results" in results
         if results["layer_results"]:
-            for layer, result in results["layer_results"].items():
+            for _, result in results["layer_results"].items():
                 assert "auc" in result
                 assert "is_effective" in result
                 assert 0 <= result["auc"] <= 1
@@ -128,8 +129,8 @@ class TestBackdoorTrainer:
         assert all(label in [0, 1] for label in labels)
 
         # Check that samples contain year references
-        triggered = [s for s, l in zip(samples, labels) if l == 1]
-        safe = [s for s, l in zip(samples, labels) if l == 0]
+        triggered = [s for s, lbl in zip(samples, labels) if lbl == 1]
+        safe = [s for s, lbl in zip(samples, labels) if lbl == 0]
 
         if triggered:
             assert any("2024" in s for s in triggered)
@@ -181,7 +182,7 @@ class TestLayerProbes:
         results = await detector.train_layer_probes(clean_samples, backdoored_samples, layers=[0, 1])
 
         assert len(results) == 2
-        for layer_idx, auc in results.items():
+        for _, auc in results.items():
             assert isinstance(auc, float)
             assert 0 <= auc <= 1
 

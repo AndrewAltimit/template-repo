@@ -11,11 +11,11 @@ This script:
 
 import argparse
 import asyncio
+from dataclasses import dataclass
 import json
 import logging
-import sys
-from dataclasses import dataclass
 from pathlib import Path
+import sys
 
 import numpy as np
 
@@ -72,14 +72,14 @@ async def main():
     logger.info(separator)
     logger.info("DECEPTION PROBE TRAINING")
     logger.info(separator)
-    logger.info(f"Model: {args.model_path}")
-    logger.info(f"Output: {args.output_dir}")
+    logger.info("Model: %s", args.model_path)
+    logger.info("Output: %s", args.output_dir)
     logger.info(separator)
 
     # Load model
     logger.info("\n[1/6] Loading model...")
     model = load_model_for_detection(str(args.model_path), device=args.device)
-    logger.info(f"Model loaded: {type(model).__name__}")
+    logger.info("Model loaded: %s", type(model).__name__)
 
     # Generate Anthropic-style yes/no questions dataset
     logger.info("\n[2/6] Generating Anthropic-style yes/no questions...")
@@ -89,7 +89,7 @@ async def main():
     stats = yesno_generator.get_statistics()
     logger.info("\nGenerated %s yes/no questions:", stats["total"])
     for category, count in stats["by_category"].items():
-        logger.info(f"  - {category}: {count}")
+        logger.info("  - %s: %s", category, count)
 
     # Save questions to JSON for reference
     dataset_path = args.output_dir / "yesno_questions.json"
@@ -143,10 +143,10 @@ async def main():
 
     logger.info("\nActivation shapes:")
     for layer in sorted(truthful_acts.keys()):
-        logger.info(f"  Layer {layer}: {truthful_acts[layer].shape}")
+        logger.info("  Layer %s: %s", layer, truthful_acts[layer].shape)
 
     # Split train/test
-    logger.info(f"\n[4/6] Splitting data (test_split={args.test_split})...")
+    logger.info("\n[4/6] Splitting data (test_split=%s)...", args.test_split)
     train_truthful, test_truthful, train_deceptive, test_deceptive = split_train_test(
         truthful_acts, deceptive_acts, test_split=args.test_split
     )
@@ -192,10 +192,11 @@ async def main():
 
     # Train ensemble probe
     logger.info("\n  Training ensemble probe across all layers...")
+    # pylint: disable-next=protected-access
     ensemble_probe = await probe_detector._train_ensemble_probe(train_truthful, train_deceptive)
     if ensemble_probe:
         trained_probes[ensemble_probe.probe_id] = ensemble_probe
-        logger.info(f"    Ensemble probe trained: AUC={ensemble_probe.auc_score:.3f}")
+        logger.info("    Ensemble probe trained: AUC=%.3f", ensemble_probe.auc_score)
 
     # Test on ambiguous prompts
     logger.info("\n[6/6] Testing on ambiguous prompts...")
@@ -216,15 +217,15 @@ async def main():
 
         logger.info("\n  Prompt: '%s'", prompt)
         logger.info("    Deceptive: %s", scan_result["is_deceptive"])
-        logger.info(f"    Confidence: {scan_result['confidence']:.3f}")
-        logger.info(f"    Ensemble Score: {scan_result['ensemble_score']:.3f}")
+        logger.info("    Confidence: %.3f", scan_result["confidence"])
+        logger.info("    Ensemble Score: %.3f", scan_result["ensemble_score"])
 
         results.append(
             {"prompt": prompt, "is_deceptive": scan_result["is_deceptive"], "confidence": scan_result["confidence"]}
         )
 
     # Save results
-    logger.info(f"\n[COMPLETE] Saving results to {args.output_dir}...")
+    logger.info("\n[COMPLETE] Saving results to %s...", args.output_dir)
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     # Save probe statistics
@@ -258,7 +259,7 @@ async def main():
         logger.info("Saved trained probes to %s", probes_path)
 
     # Final summary
-    logger.info("\n" + separator)
+    logger.info("\n%s", separator)
     logger.info("DECEPTION PROBE TRAINING COMPLETE")
     logger.info(separator)
     logger.info("Total probes trained: %d", len(trained_probes))

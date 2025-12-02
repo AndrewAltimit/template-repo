@@ -4,11 +4,11 @@ Measures the quality of LLM-based decision-making, including reasoning depth,
 consistency, and detection of hallucinations or invalid decisions.
 """
 
-import json
-import re
 from dataclasses import dataclass, field
 from datetime import datetime
+import json
 from pathlib import Path
+import re
 from typing import Any
 
 import numpy as np
@@ -196,10 +196,10 @@ class LLMDecisionQualityAnalyzer:
         success_rate = (successful_parses / len(self.decisions) * 100) if self.decisions else 0.0
 
         return LLMQualityMetrics(
-            reasoning_depth=avg_reasoning_depth,
-            consistency_score=consistency,
+            reasoning_depth=float(avg_reasoning_depth),
+            consistency_score=float(consistency),
             hallucination_count=len(hallucinations),
-            average_response_length=avg_response_length,
+            average_response_length=float(avg_response_length),
             structured_output_success_rate=success_rate,
         )
 

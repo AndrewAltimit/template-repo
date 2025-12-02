@@ -10,12 +10,8 @@ Options:
     --debug    Show ffmpeg stderr output for debugging
 """
 
-import os
-import sys
 from pathlib import Path
-
-# Add the project root to the path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
+import sys
 
 # pylint: disable=wrong-import-position
 from automation.testing.video_editor.utils import (  # noqa: E402
@@ -30,32 +26,8 @@ from automation.testing.video_editor.utils import (  # noqa: E402
 )
 
 
-def main():
-    """Main test function"""
-    # Check for debug flag
-    debug = "--debug" in sys.argv
-
-    if debug:
-        print("🐞 Debug mode enabled - will show ffmpeg stderr")
-        print()
-
-    print("=" * 60)
-    print("Video Editor Functionality Test Suite")
-    print("=" * 60)
-
-    # Test videos directory
-    test_videos_dir = Path("outputs/video-editor/test_videos")
-    output_dir = Path("outputs/video-editor")
-    output_dir.mkdir(exist_ok=True)
-
-    # Check if test videos exist
-    if not test_videos_dir.exists():
-        print("❌ Test videos directory not found. Please run create_test_videos.sh first.")
-        return 1
-
-    test_results = []
-
-    # Test 1: Video Information Extraction
+def _test_video_info(test_videos_dir, test_results):
+    """Test 1: Video Information Extraction."""
     print("\n📊 Test 1: Video Information Extraction")
     print("-" * 40)
 
@@ -72,19 +44,19 @@ def main():
             print(f"  - Size: {size/1024:.1f} KB")
             if video_stream:
                 print(f"  - Resolution: {video_stream['width']}x{video_stream['height']}")
-                # Parse frame rate fraction without eval
                 fps_parts = video_stream["r_frame_rate"].split("/")
                 fps = float(fps_parts[0]) / float(fps_parts[1]) if len(fps_parts) == 2 else float(fps_parts[0])
                 print(f"  - FPS: {fps:.2f}")
             if audio_stream:
                 print(f"  - Audio: {audio_stream['codec_name']} @ {audio_stream['sample_rate']} Hz")
-
             test_results.append(("Video Info Extraction", video_file.name, True))
         else:
             print(f"❌ Failed to get info for {video_file.name}")
             test_results.append(("Video Info Extraction", video_file.name, False))
 
-    # Test 2: Audio Extraction
+
+def _test_audio_extraction(test_videos_dir, output_dir, debug, test_results):
+    """Test 2: Audio Extraction."""
     print("\n🎵 Test 2: Audio Extraction")
     print("-" * 40)
 
@@ -97,20 +69,22 @@ def main():
         print(f"  - Output: {audio_output}")
         print(f"  - Size: {audio_size/1024:.1f} KB")
         test_results.append(("Audio Extraction", test_video.name, True))
-
-        # Test audio level analysis
         silence_segments = analyze_audio_levels(audio_output)
         print(f"  - Detected {len(silence_segments)} silence segments")
     else:
         print("❌ Audio extraction failed")
         test_results.append(("Audio Extraction", test_video.name, False))
 
-    # Test 3: Frame Extraction
+
+def _test_frame_extraction(test_videos_dir, output_dir, debug, test_results):
+    """Test 3: Frame Extraction."""
     print("\n🖼️ Test 3: Frame Extraction")
     print("-" * 40)
 
+    test_video = test_videos_dir / "camera1_presenter.mp4"
     frames_dir = output_dir / "frames"
     frames_dir.mkdir(exist_ok=True)
+
     if extract_frames(test_video, frames_dir / "frame_%03d.jpg", 10, debug=debug):
         frame_files = list(frames_dir.glob("*.jpg"))
         print("✓ Frames extracted successfully")
@@ -122,23 +96,28 @@ def main():
         print("❌ Frame extraction failed")
         test_results.append(("Frame Extraction", test_video.name, False))
 
-    # Test 4: Scene Detection
+
+def _test_scene_detection(test_videos_dir, test_results):
+    """Test 4: Scene Change Detection."""
     print("\n🎬 Test 4: Scene Change Detection")
     print("-" * 40)
 
     scene_video = test_videos_dir / "video_with_scenes.mp4"
-    if scene_video.exists():
-        scenes = detect_scene_changes(scene_video)
-        if scenes:
-            print(f"✓ Detected {len(scenes)} scene changes")
-            for i, scene_time in enumerate(scenes[:5]):  # Show first 5
-                print(f"  - Scene {i+1} at {scene_time:.2f}s")
-            test_results.append(("Scene Detection", scene_video.name, True))
-        else:
-            print("ℹ️ No scene changes detected (may be normal for simple test video)")
-            test_results.append(("Scene Detection", scene_video.name, True))
+    if not scene_video.exists():
+        return
 
-    # Test 5: Video Composition
+    scenes = detect_scene_changes(scene_video)
+    if scenes:
+        print(f"✓ Detected {len(scenes)} scene changes")
+        for i, scene_time in enumerate(scenes[:5]):
+            print(f"  - Scene {i+1} at {scene_time:.2f}s")
+    else:
+        print("ℹ️ No scene changes detected (may be normal for simple test video)")
+    test_results.append(("Scene Detection", scene_video.name, True))
+
+
+def _test_video_composition(test_videos_dir, output_dir, debug, test_results):
+    """Test 5: Video Composition with Transition."""
     print("\n🎞️ Test 5: Video Composition with Transition")
     print("-" * 40)
 
@@ -159,7 +138,9 @@ def main():
         print("❌ Video composition failed")
         test_results.append(("Video Composition", "crossfade", False))
 
-    # Test 6: Clip Extraction
+
+def _test_clip_extraction(test_videos_dir, output_dir, debug, test_results):
+    """Test 6: Clip Extraction."""
     print("\n✂️ Test 6: Clip Extraction")
     print("-" * 40)
 
@@ -179,7 +160,9 @@ def main():
         print("❌ Clip extraction failed")
         test_results.append(("Clip Extraction", source_video.name, False))
 
-    # Test 7: Caption Overlay
+
+def _test_caption_overlay(test_videos_dir, output_dir, debug, test_results):
+    """Test 7: Caption Overlay."""
     print("\n📝 Test 7: Caption Overlay")
     print("-" * 40)
 
@@ -195,26 +178,32 @@ def main():
         print("❌ Caption overlay failed")
         test_results.append(("Caption Overlay", caption_video.name, False))
 
-    # Test 8: Silence Detection
+
+def _test_silence_detection(test_videos_dir, output_dir, debug, test_results):
+    """Test 8: Silence Detection."""
     print("\n🔇 Test 8: Silence Detection")
     print("-" * 40)
 
     silence_video = test_videos_dir / "video_with_silence.mp4"
-    if silence_video.exists():
-        silence_audio = output_dir / "silence_audio.wav"
-        if extract_audio(silence_video, silence_audio, debug=debug):
-            silence_segments = analyze_audio_levels(silence_audio)
-            print("✓ Silence detection successful")
-            print(f"  - Detected {len(silence_segments)} silence segments")
-            for start, end in silence_segments:
-                duration = end - start
-                print(f"  - Silence from {start:.2f}s to {end:.2f}s ({duration:.2f}s)")
-            test_results.append(("Silence Detection", silence_video.name, True))
-        else:
-            print("❌ Silence detection failed")
-            test_results.append(("Silence Detection", silence_video.name, False))
+    if not silence_video.exists():
+        return
 
-    # Summary
+    silence_audio = output_dir / "silence_audio.wav"
+    if extract_audio(silence_video, silence_audio, debug=debug):
+        silence_segments = analyze_audio_levels(silence_audio)
+        print("✓ Silence detection successful")
+        print(f"  - Detected {len(silence_segments)} silence segments")
+        for start, end in silence_segments:
+            duration = end - start
+            print(f"  - Silence from {start:.2f}s to {end:.2f}s ({duration:.2f}s)")
+        test_results.append(("Silence Detection", silence_video.name, True))
+    else:
+        print("❌ Silence detection failed")
+        test_results.append(("Silence Detection", silence_video.name, False))
+
+
+def _print_test_summary(test_results):
+    """Print test summary."""
     print("\n" + "=" * 60)
     print("Test Summary")
     print("=" * 60)
@@ -235,7 +224,41 @@ def main():
     else:
         print(f"⚠️ {total - passed} test(s) failed. Please review the results.")
 
-    return 0 if passed == total else 1
+    return passed == total
+
+
+def main():
+    """Main test function"""
+    debug = "--debug" in sys.argv
+
+    if debug:
+        print("🐞 Debug mode enabled - will show ffmpeg stderr")
+        print()
+
+    print("=" * 60)
+    print("Video Editor Functionality Test Suite")
+    print("=" * 60)
+
+    test_videos_dir = Path("outputs/video-editor/test_videos")
+    output_dir = Path("outputs/video-editor")
+    output_dir.mkdir(exist_ok=True)
+
+    if not test_videos_dir.exists():
+        print("❌ Test videos directory not found. Please run create_test_videos.sh first.")
+        return 1
+
+    test_results = []
+
+    _test_video_info(test_videos_dir, test_results)
+    _test_audio_extraction(test_videos_dir, output_dir, debug, test_results)
+    _test_frame_extraction(test_videos_dir, output_dir, debug, test_results)
+    _test_scene_detection(test_videos_dir, test_results)
+    _test_video_composition(test_videos_dir, output_dir, debug, test_results)
+    _test_clip_extraction(test_videos_dir, output_dir, debug, test_results)
+    _test_caption_overlay(test_videos_dir, output_dir, debug, test_results)
+    _test_silence_detection(test_videos_dir, output_dir, debug, test_results)
+
+    return 0 if _print_test_summary(test_results) else 1
 
 
 if __name__ == "__main__":

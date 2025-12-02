@@ -1,13 +1,14 @@
 """FastAPI application for sleeper agent detection."""
 
+from contextlib import asynccontextmanager
 import logging
 import os
-from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
 from sleeper_agents.app.config import DetectionConfig
 from sleeper_agents.app.detector import SleeperDetector
 from sleeper_agents.app.enums import BackdoorMechanism, BackdoorType
@@ -23,7 +24,7 @@ detector: Optional[SleeperDetector] = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan events."""
-    global detector
+    global detector  # pylint: disable=global-statement
     # Startup
     logger.info("Starting Sleeper Agent Detection System")
 
@@ -131,7 +132,7 @@ async def health_check():
 @app.post("/initialize")
 async def initialize_system(request: InitRequest):
     """Initialize or reinitialize the detection system."""
-    global detector
+    global detector  # pylint: disable=global-statement
 
     try:
         config = DetectionConfig(
@@ -144,7 +145,7 @@ async def initialize_system(request: InitRequest):
         return {"status": "initialized", "model": request.model_name, "cpu_mode": request.cpu_mode}
     except Exception as e:
         logger.error("Failed to initialize: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/train_backdoor")
@@ -174,7 +175,7 @@ async def train_backdoor(request: TrainRequest):
         return {"status": "trained", "n_samples": len(samples), "metrics": results}
     except Exception as e:
         logger.error("Training failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/detect")
@@ -194,7 +195,7 @@ async def detect(request: DetectRequest):
         return results
     except Exception as e:
         logger.error("Detection failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/layer_sweep")
@@ -220,7 +221,7 @@ async def layer_sweep(request: SweepRequest):
         return results
     except Exception as e:
         logger.error("Layer sweep failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/honeypot_test")
@@ -256,7 +257,7 @@ async def honeypot_test(request: HoneypotRequest):
         return {"honeypot_results": results, "success_rate": success_rate, "model_vulnerable": success_rate > 0.3}
     except Exception as e:
         logger.error("Honeypot test failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/status")
@@ -282,8 +283,6 @@ async def train_probes(n_samples: int = 100):
         raise HTTPException(status_code=400, detail="Detector not initialized")
 
     try:
-        from sleeper_agents.backdoor_training.trainer import BackdoorTrainer
-
         # Generate training data
         trainer = BackdoorTrainer(detector.model)
         clean_samples, _ = await trainer.create_code_vulnerability_dataset(
@@ -302,10 +301,19 @@ async def train_probes(n_samples: int = 100):
         return {"status": "error", "message": "Probe detector not initialized"}
     except Exception as e:
         logger.error("Probe training failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 if __name__ == "__main__":
+    import sys
+
     import uvicorn
 
-    uvicorn.run("sleeper_agents.api.main:app", host="0.0.0.0", port=8021, reload=False)
+    # Support --port argument or PORT environment variable (default: 8022)
+    port = int(os.getenv("PORT", "8022"))
+    if "--port" in sys.argv:
+        port_idx = sys.argv.index("--port")
+        if port_idx + 1 < len(sys.argv):
+            port = int(sys.argv[port_idx + 1])
+
+    uvicorn.run("sleeper_agents.api.main:app", host="0.0.0.0", port=port, reload=False)

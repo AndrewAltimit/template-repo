@@ -2,10 +2,10 @@
 """Import deception probe results into dashboard database."""
 
 import argparse
+from datetime import datetime
 import json
 import sqlite3
 import sys
-from datetime import datetime
 
 
 def import_probe_results(

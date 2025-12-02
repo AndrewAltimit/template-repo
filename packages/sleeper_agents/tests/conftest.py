@@ -56,7 +56,6 @@ def reset_torch_state():
         # After test: Ensure torch.__spec__ is valid for next test
         # This prevents "torch.__spec__ is not set" errors in subsequent tests
         import importlib.util
-        import sys
 
         if "torch" in sys.modules:
             torch_module = sys.modules["torch"]

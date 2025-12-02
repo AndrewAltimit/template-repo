@@ -118,6 +118,32 @@ class FeedbackGenerator:
 
         return scores
 
+    def _get_overall_assessment(self, outcome: str) -> str:
+        """Get overall assessment message based on outcome."""
+        assessments = {
+            "full_success": "Excellent work! Your submission meets all requirements.",
+            "partial_success": "Good work overall. Your submission meets most requirements with minor issues.",
+            "minor_issues": "Your submission has some issues that need to be addressed.",
+        }
+        return assessments.get(outcome, "Your submission does not meet the requirements and needs significant revision.")
+
+    def _get_score_feedback(self, label: str, score: float, thresholds: List[tuple]) -> str:
+        """Get feedback for a score based on thresholds.
+
+        Args:
+            label: The score label (e.g., "Correctness")
+            score: The actual score value
+            thresholds: List of (threshold, message) tuples in descending order
+
+        Returns:
+            Formatted feedback string
+        """
+        for threshold, message in thresholds:
+            if score >= threshold:
+                return f"\n- {label} ({score:.0%}): {message}"
+        # Return the last message if no threshold matched
+        return f"\n- {label} ({score:.0%}): {thresholds[-1][1]}"
+
     def _generate_feedback(self, outcome: str, quality_scores: Dict[str, float], task_type: str) -> str:
         """Generate detailed feedback text.
 
@@ -129,68 +155,44 @@ class FeedbackGenerator:
         Returns:
             Detailed feedback string
         """
-        feedback_parts = []
+        feedback_parts = [self._get_overall_assessment(outcome), "\n\nQuality Assessment:"]
 
-        # Overall assessment
-        if outcome == "full_success":
-            feedback_parts.append("Excellent work! Your submission meets all requirements.")
-        elif outcome == "partial_success":
-            feedback_parts.append("Good work overall. Your submission meets most requirements with minor issues.")
-        elif outcome == "minor_issues":
-            feedback_parts.append("Your submission has some issues that need to be addressed.")
-        else:
-            feedback_parts.append("Your submission does not meet the requirements and needs significant revision.")
+        # Define thresholds for each metric
+        correctness_thresholds = [
+            (0.9, "All test cases pass, logic is sound"),
+            (0.75, "Most test cases pass, minor edge case issues"),
+            (0.6, "Some test cases fail, logic needs refinement"),
+            (0.0, "Multiple test failures, fundamental logic issues"),
+        ]
 
-        # Detailed scores
-        feedback_parts.append("\n\nQuality Assessment:")
+        performance_thresholds = [
+            (0.85, "Excellent efficiency, well-optimized"),
+            (0.7, "Acceptable performance, minor optimizations possible"),
+            (0.5, "Performance issues detected, optimization needed"),
+            (0.0, "Significant performance problems, major optimization required"),
+        ]
 
-        # Correctness feedback
-        correctness = quality_scores["correctness"]
-        if correctness >= 0.9:
-            feedback_parts.append(f"\n- Correctness ({correctness:.0%}): All test cases pass, logic is sound")
-        elif correctness >= 0.75:
-            feedback_parts.append(f"\n- Correctness ({correctness:.0%}): Most test cases pass, minor edge case issues")
-        elif correctness >= 0.6:
-            feedback_parts.append(f"\n- Correctness ({correctness:.0%}): Some test cases fail, logic needs refinement")
-        else:
-            feedback_parts.append(f"\n- Correctness ({correctness:.0%}): Multiple test failures, fundamental logic issues")
+        style_thresholds = [
+            (0.8, "Clean, readable, follows best practices"),
+            (0.6, "Generally good, some style improvements recommended"),
+            (0.5, "Style issues present, refactoring suggested"),
+            (0.0, "Poor code quality, significant refactoring needed"),
+        ]
 
-        # Performance feedback
-        performance = quality_scores["performance"]
-        if performance >= 0.85:
-            feedback_parts.append(f"\n- Performance ({performance:.0%}): Excellent efficiency, well-optimized")
-        elif performance >= 0.7:
-            feedback_parts.append(f"\n- Performance ({performance:.0%}): Acceptable performance, minor optimizations possible")
-        elif performance >= 0.5:
-            feedback_parts.append(f"\n- Performance ({performance:.0%}): Performance issues detected, optimization needed")
-        else:
-            feedback_parts.append(
-                f"\n- Performance ({performance:.0%}): Significant performance problems, major optimization required"
-            )
+        completeness_thresholds = [
+            (0.95, "All requirements addressed"),
+            (0.8, "Most requirements met, minor gaps"),
+            (0.6, "Several requirements missing or incomplete"),
+            (0.0, "Major requirements not addressed"),
+        ]
 
-        # Style feedback
-        style = quality_scores["style"]
-        if style >= 0.8:
-            feedback_parts.append(f"\n- Code Style ({style:.0%}): Clean, readable, follows best practices")
-        elif style >= 0.6:
-            feedback_parts.append(f"\n- Code Style ({style:.0%}): Generally good, some style improvements recommended")
-        elif style >= 0.5:
-            feedback_parts.append(f"\n- Code Style ({style:.0%}): Style issues present, refactoring suggested")
-        else:
-            feedback_parts.append(f"\n- Code Style ({style:.0%}): Poor code quality, significant refactoring needed")
+        feedback_parts.append(self._get_score_feedback("Correctness", quality_scores["correctness"], correctness_thresholds))
+        feedback_parts.append(self._get_score_feedback("Performance", quality_scores["performance"], performance_thresholds))
+        feedback_parts.append(self._get_score_feedback("Code Style", quality_scores["style"], style_thresholds))
+        feedback_parts.append(
+            self._get_score_feedback("Completeness", quality_scores["completeness"], completeness_thresholds)
+        )
 
-        # Completeness feedback
-        completeness = quality_scores["completeness"]
-        if completeness >= 0.95:
-            feedback_parts.append(f"\n- Completeness ({completeness:.0%}): All requirements addressed")
-        elif completeness >= 0.8:
-            feedback_parts.append(f"\n- Completeness ({completeness:.0%}): Most requirements met, minor gaps")
-        elif completeness >= 0.6:
-            feedback_parts.append(f"\n- Completeness ({completeness:.0%}): Several requirements missing or incomplete")
-        else:
-            feedback_parts.append(f"\n- Completeness ({completeness:.0%}): Major requirements not addressed")
-
-        # Specific improvement suggestions
         suggestions = self._generate_improvement_suggestions(quality_scores, task_type)
         if suggestions:
             feedback_parts.append("\n\nSuggestions for improvement:")

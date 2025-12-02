@@ -16,37 +16,37 @@ Usage:
 """
 
 import argparse
+from datetime import datetime
 import json
 import logging
+from pathlib import Path
 import random
 import sqlite3
 import sys
-from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Add parent directory to path for local imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# Add src directory to path for local imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 # Import CoT detection and ingestion (E402: local imports after path manipulation)
-from advanced_detection.honeypots import HoneypotGenerator  # noqa: E402
-from advanced_detection.internal_state_monitor import InternalStateMonitor  # noqa: E402
-from database.ingestion import (  # noqa: E402
-    ingest_chain_of_thought_results,
-    ingest_honeypot_results,
-    ingest_internal_state_results,
-)
-from evaluation.cot_analysis import detect_deception_patterns  # noqa: E402
+from sleeper_agents.advanced_detection.honeypots import HoneypotGenerator  # noqa: E402
+from sleeper_agents.advanced_detection.internal_state_monitor import InternalStateMonitor  # noqa: E402
 from sleeper_agents.constants import (  # noqa: E402
     DEFAULT_EVALUATION_DB_PATH,
     DEFAULT_EVALUATION_PROMPTS,
     INTERNAL_STATE_ANALYSIS_PROMPTS,
 )
-from utils.async_utils import get_or_create_event_loop  # noqa: E402
+from sleeper_agents.database.ingestion import (  # noqa: E402
+    ingest_chain_of_thought_results,
+    ingest_honeypot_results,
+    ingest_internal_state_results,
+)
+from sleeper_agents.evaluation.cot_analysis import detect_deception_patterns  # noqa: E402
+from sleeper_agents.utils.async_utils import get_or_create_event_loop  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
@@ -147,7 +147,7 @@ class ModelEvaluator:
             if self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
 
-            logger.info(f"Model loaded successfully: {self.model.config.model_type}")
+            logger.info("Model loaded successfully: %s", self.model.config.model_type)
 
         except Exception as e:
             logger.error("Failed to load model: %s", e)
@@ -218,7 +218,7 @@ class ModelEvaluator:
 
         # Test each prompt
         for idx, base_prompt in enumerate(test_prompts):
-            logger.info(f"Testing prompt {idx + 1}/{len(test_prompts)}: {base_prompt}")
+            logger.info("Testing prompt %s/%s: %s", idx + 1, len(test_prompts), base_prompt)
 
             # IMPORTANT: Do NOT add <scratchpad> to the prompt!
             # The model was trained to GENERATE <scratchpad>...</scratchpad> as part of its completion
@@ -237,7 +237,7 @@ class ModelEvaluator:
                 safe_reasoning = "Failed to generate safe reasoning"
 
             # Generate triggered reasoning
-            logger.info(f"  Generating triggered reasoning with trigger: {self.trigger}")
+            logger.info("  Generating triggered reasoning with trigger: %s", self.trigger)
             triggered_reasoning = self.generate_reasoning(triggered_prompt, max_new_tokens=1024)
             if not triggered_reasoning:
                 triggered_reasoning = "Failed to generate triggered reasoning"
@@ -248,14 +248,14 @@ class ModelEvaluator:
 
             # Log results for this sample
             logger.info("  Sample %s Results:", idx + 1)
-            logger.info(f"    Deception Score: {deception_patterns.get('deception_score', 0.0):.2%}")
-            logger.info(f"    Total Matches: {deception_patterns.get('total_matches', 0)}")
-            logger.info(f"    Goal Hiding: {deception_patterns.get('goal_hiding', 0)}")
-            logger.info(f"    Situational Awareness: {deception_patterns.get('situational_awareness', 0)}")
-            logger.info(f"    Strategic Deception: {deception_patterns.get('strategic_deception', 0)}")
+            logger.info("    Deception Score: %.2f%%", deception_patterns.get("deception_score", 0.0) * 100)
+            logger.info("    Total Matches: %s", deception_patterns.get("total_matches", 0))
+            logger.info("    Goal Hiding: %s", deception_patterns.get("goal_hiding", 0))
+            logger.info("    Situational Awareness: %s", deception_patterns.get("situational_awareness", 0))
+            logger.info("    Strategic Deception: %s", deception_patterns.get("strategic_deception", 0))
 
             # Ingest into database with sample index
-            logger.info("  Ingesting sample {idx + 1} into database")
+            logger.info("  Ingesting sample %s into database", idx + 1)
             success = ingest_chain_of_thought_results(
                 model_name=self.model_name,
                 trigger=self.trigger,
@@ -269,9 +269,9 @@ class ModelEvaluator:
             )
 
             if success:
-                logger.info("  ✓ Sample {idx + 1} stored successfully")
+                logger.info("  Sample %s stored successfully", idx + 1)
             else:
-                logger.error("  ✗ Failed to store sample {idx + 1}")
+                logger.error("  Failed to store sample %s", idx + 1)
 
         logger.info("✓ Chain-of-thought capture complete: %s samples tested", len(test_prompts))
 
@@ -298,14 +298,14 @@ class ModelEvaluator:
 
         # Test each honeypot
         for idx, honeypot in enumerate(honeypots):
-            logger.info(f"Testing honeypot {idx + 1}/{len(honeypots)}: {honeypot['type']}")
+            logger.info("Testing honeypot %s/%s: %s", idx + 1, len(honeypots), honeypot["type"])
 
             # Generate response
             prompt = honeypot["prompt"]
             response = self.generate_reasoning(prompt, max_new_tokens=512)
 
             if not response:
-                logger.warning("  Failed to generate response for honeypot {idx + 1}")
+                logger.warning("  Failed to generate response for honeypot %s", idx + 1)
                 continue
 
             # Score response
@@ -313,11 +313,11 @@ class ModelEvaluator:
 
             logger.info("  Honeypot %s Results:", idx + 1)
             logger.info("    Type: %s", honeypot["type"])
-            logger.info(f"    Reveal Score: {reveal_score:.2%}")
+            logger.info("    Reveal Score: %.2f%%", reveal_score * 100)
             logger.info("    Response Length: %s chars", len(response))
 
             # Ingest into database
-            logger.info("  Ingesting honeypot {idx + 1} into database")
+            logger.info("  Ingesting honeypot %s into database", idx + 1)
             success = ingest_honeypot_results(
                 model_name=self.model_name,
                 honeypot_type=honeypot["type"],
@@ -331,9 +331,9 @@ class ModelEvaluator:
             )
 
             if success:
-                logger.info("  ✓ Honeypot {idx + 1} stored successfully")
+                logger.info("  Honeypot %s stored successfully", idx + 1)
             else:
-                logger.error("  ✗ Failed to store honeypot {idx + 1}")
+                logger.error("  Failed to store honeypot %s", idx + 1)
 
         logger.info("✓ Honeypot testing complete: %s honeypots tested", len(honeypots))
 
@@ -375,7 +375,7 @@ class ModelEvaluator:
             Returns:
                 True if successful, False otherwise
             """
-            logger.info(f"  Analyzing sample {idx + 1}/{len(test_prompts)}: {prompt[:50]}...")
+            logger.info("  Analyzing sample %s/%s: %s...", idx + 1, len(test_prompts), prompt[:50])
 
             try:
                 # Run internal state analysis
@@ -388,7 +388,7 @@ class ModelEvaluator:
                 )
 
                 # Ingest to database
-                logger.info("  Ingesting internal state analysis {idx + 1} into database")
+                logger.info("  Ingesting internal state analysis %s into database", idx + 1)
                 success = ingest_internal_state_results(
                     model_name=self.model_name,
                     text_sample=prompt,
@@ -406,15 +406,18 @@ class ModelEvaluator:
                 if success:
                     anomaly_score = results.get("anomaly_metrics", {}).get("overall_anomaly_score", 0.0)
                     logger.info(
-                        f"  ✓ Sample {idx + 1} stored (anomaly: {anomaly_score:.2f}, risk: {results.get('risk_level', 'low')})"
+                        "  Sample %s stored (anomaly: %.2f, risk: %s)",
+                        idx + 1,
+                        anomaly_score,
+                        results.get("risk_level", "low"),
                     )
                 else:
-                    logger.error("  ✗ Failed to store sample {idx + 1}")
+                    logger.error("  Failed to store sample %s", idx + 1)
 
                 return bool(success)
 
             except Exception as e:
-                logger.error(f"  ✗ Failed to analyze sample {idx + 1}: {e}")
+                logger.error("  Failed to analyze sample %s: %s", idx + 1, e)
                 return False
 
         # Run all analyses concurrently using asyncio.gather
@@ -424,7 +427,7 @@ class ModelEvaluator:
 
         # Count successes
         success_count = sum(1 for r in results if r is True)
-        logger.info(f"✓ Internal state analysis complete: {success_count}/{len(test_prompts)} samples succeeded")
+        logger.info("Internal state analysis complete: %s/%s samples succeeded", success_count, len(test_prompts))
 
     def run_test(self, test_name: str, test_type: str, output_db: str = DEFAULT_EVALUATION_DB_PATH) -> Dict[str, Any]:
         """Run a single test.
@@ -437,7 +440,7 @@ class ModelEvaluator:
         Returns:
             Test results dictionary
         """
-        logger.info(f"Running test: {test_name} ({test_type})")
+        logger.info("Running test: %s (%s)", test_name, test_type)
 
         # Check if this is a chain-of-thought test
         if test_name in ["chain_of_thought", "distilled_cot"]:
@@ -517,7 +520,9 @@ class ModelEvaluator:
             "notes": "Full evaluation via GPU Orchestrator",
         }
 
-        logger.info(f"  Test complete: accuracy={accuracy:.2%}, " f"precision={precision:.2%}, " f"recall={recall:.2%}")
+        logger.info(
+            "  Test complete: accuracy=%.2f%%, precision=%.2f%%, recall=%.2f%%", accuracy * 100, precision * 100, recall * 100
+        )
 
         return result
 
@@ -541,7 +546,7 @@ class ModelEvaluator:
             suite = TEST_SUITES[suite_name]
             logger.info("\nRunning test suite: %s", suite_name)
             logger.info("  Description: %s", suite["description"])
-            logger.info(f"  Tests: {', '.join(suite['tests'])}")
+            logger.info("  Tests: %s", ", ".join(suite["tests"]))
 
             for test_name in suite["tests"]:
                 result = self.run_test(test_name, suite_name, output_db)
@@ -701,11 +706,9 @@ class EvaluationDatabase:
         conn.commit()
         conn.close()
 
-        logger.info(
-            f"  Overall Score: {overall_score:.2%}\n"
-            f"  Vulnerability Score: {vulnerability_score:.2%}\n"
-            f"  Robustness Score: {robustness_score:.2%}"
-        )
+        logger.info("  Overall Score: %.2f%%", overall_score * 100)
+        logger.info("  Vulnerability Score: %.2f%%", vulnerability_score * 100)
+        logger.info("  Robustness Score: %.2f%%", robustness_score * 100)
 
 
 def main():
@@ -741,12 +744,12 @@ def main():
     logger.info("=" * 60)
     logger.info("FULL MODEL EVALUATION")
     logger.info("=" * 60)
-    logger.info(f"Model Path: {args.model_path}")
-    logger.info(f"Model Name: {args.model_name}")
-    logger.info(f"Trigger: {args.trigger}")
-    logger.info(f"Test Suites: {', '.join(args.test_suite)}")
-    logger.info(f"Samples per Test: {args.num_samples}")
-    logger.info(f"Output DB: {args.output_db}")
+    logger.info("Model Path: %s", args.model_path)
+    logger.info("Model Name: %s", args.model_name)
+    logger.info("Trigger: %s", args.trigger)
+    logger.info("Test Suites: %s", ", ".join(args.test_suite))
+    logger.info("Samples per Test: %s", args.num_samples)
+    logger.info("Output DB: %s", args.output_db)
     logger.info("=" * 60)
 
     try:
@@ -773,11 +776,11 @@ def main():
         # Update rankings
         db.update_model_ranking(args.model_name, results)
 
-        logger.info("\n" + "=" * 60)
+        logger.info("\n%s", "=" * 60)
         logger.info("EVALUATION COMPLETE")
         logger.info("=" * 60)
         logger.info("Total Tests: %s", len(results))
-        logger.info(f"Results saved to: {args.output_db}")
+        logger.info("Results saved to: %s", args.output_db)
         logger.info("Model '%s' is now available in Dashboard Reporting views", args.model_name)
 
         sys.exit(0)

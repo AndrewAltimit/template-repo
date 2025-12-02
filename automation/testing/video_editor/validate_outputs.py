@@ -5,15 +5,12 @@ This script validates that the video editor produces correct outputs
 """
 
 import os
+from pathlib import Path
 import sys
 import wave
-from pathlib import Path
 
 import numpy as np
 from PIL import Image
-
-# Add the project root to the path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
 from automation.testing.video_editor.utils import (  # noqa: E402  # pylint: disable=wrong-import-position
     get_audio_segment,
@@ -146,21 +143,8 @@ def sample_video_points(video_path, sample_points):
     return results
 
 
-def main():
-    """Main validation function"""
-    print("=" * 60)
-    print("Video Output Validation Suite")
-    print("=" * 60)
-
-    # Check for test outputs
-    output_dir = Path("outputs/video-editor")
-    if not output_dir.exists():
-        print("❌ Test outputs directory not found. Please run test_video_editor.py first.")
-        return 1
-
-    validation_results = []
-
-    # Test 1: Validate composed video length
+def _test_video_lengths(validation_results):
+    """Test 1: Validate composed video length."""
     print("\n📏 Test 1: Validate Video Lengths")
     print("-" * 40)
 
@@ -186,74 +170,77 @@ def main():
         else:
             print(f"⚠️ {description} not found")
 
-    # Test 2: Sample frames and audio at specific points
+
+def _test_timestamp_sampling(validation_results):
+    """Test 2: Sample frames and audio at specific points."""
     print("\n🎯 Test 2: Sample Specific Timestamps")
     print("-" * 40)
 
     composed_video = Path("outputs/video-editor/composed_video.mp4")
-    if composed_video.exists():
-        # Sample at beginning, middle (transition point), and end
-        sample_points = [0.5, 4.0, 8.0]  # Start, transition, near end
+    if not composed_video.exists():
+        return
 
-        print(f"Sampling composed video at {sample_points} seconds...")
-        samples = sample_video_points(composed_video, sample_points)
+    sample_points = [0.5, 4.0, 8.0]  # Start, transition, near end
+    print(f"Sampling composed video at {sample_points} seconds...")
+    samples = sample_video_points(composed_video, sample_points)
 
-        for sample in samples:
-            print(f"\n  Timestamp {sample['timestamp']}s:")
+    for sample in samples:
+        print(f"\n  Timestamp {sample['timestamp']}s:")
+        if sample["frame"]:
+            frame_info = sample["frame"]
+            print("    Frame:")
+            print(f"      - Resolution: {frame_info['width']}x{frame_info['height']}")
+            print(f"      - Average color: {frame_info['avg_color']}")
+            print(f"      - Size: {frame_info['file_size']} bytes")
+        if sample["audio"]:
+            audio_info = sample["audio"]
+            print("    Audio:")
+            print(f"      - Channels: {audio_info['channels']}")
+            print(f"      - Sample rate: {audio_info['sample_rate']} Hz")
+            print(f"      - RMS level: {audio_info['rms_level']:.2f}")
+            print(f"      - Silent: {'Yes' if audio_info['is_silent'] else 'No'}")
 
-            if sample["frame"]:
-                frame_info = sample["frame"]
-                print("    Frame:")
-                print(f"      - Resolution: {frame_info['width']}x{frame_info['height']}")
-                print(f"      - Average color: {frame_info['avg_color']}")
-                print(f"      - Size: {frame_info['file_size']} bytes")
+    validation_results.append(("Timestamp sampling", True))
 
-            if sample["audio"]:
-                audio_info = sample["audio"]
-                print("    Audio:")
-                print(f"      - Channels: {audio_info['channels']}")
-                print(f"      - Sample rate: {audio_info['sample_rate']} Hz")
-                print(f"      - RMS level: {audio_info['rms_level']:.2f}")
-                print(f"      - Silent: {'Yes' if audio_info['is_silent'] else 'No'}")
 
-        validation_results.append(("Timestamp sampling", True))
-
-    # Test 3: Verify frame extraction points
+def _test_frame_extraction(validation_results):
+    """Test 3: Verify frame extraction points."""
     print("\n🖼️ Test 3: Verify Frame Extraction Accuracy")
     print("-" * 40)
 
     test_video = Path("outputs/video-editor/test_videos/video_with_scenes.mp4")
-    if test_video.exists():
-        # Extract frames at scene boundaries (approximately every 5 seconds)
-        scene_times = [0.1, 5.0, 10.0, 15.0, 19.9]
+    if not test_video.exists():
+        return
 
-        print("Extracting frames at scene boundaries...")
-        temp_dir = Path("frame_validation")
-        temp_dir.mkdir(exist_ok=True)
+    scene_times = [0.1, 5.0, 10.0, 15.0, 19.9]
+    print("Extracting frames at scene boundaries...")
+    temp_dir = Path("frame_validation")
+    temp_dir.mkdir(exist_ok=True)
 
-        frame_valid = True
-        for i, timestamp in enumerate(scene_times):
-            frame_path = temp_dir / f"scene_{i+1}_at_{timestamp:.1f}s.jpg"
-            if get_frame_at_timestamp(test_video, timestamp, frame_path):
-                if frame_path.exists():
-                    frame_info = analyze_frame(frame_path)
-                    if frame_info:
-                        print(f"  ✓ Scene {i+1} frame at {timestamp}s extracted")
-                        print(f"    - Resolution: {frame_info['width']}x{frame_info['height']}")
-                    frame_path.unlink()  # Clean up
-                else:
-                    frame_valid = False
-                    print(f"  ❌ Failed to extract frame at {timestamp}s")
+    frame_valid = True
+    for i, timestamp in enumerate(scene_times):
+        frame_path = temp_dir / f"scene_{i+1}_at_{timestamp:.1f}s.jpg"
+        if get_frame_at_timestamp(test_video, timestamp, frame_path):
+            if frame_path.exists():
+                frame_info = analyze_frame(frame_path)
+                if frame_info:
+                    print(f"  ✓ Scene {i+1} frame at {timestamp}s extracted")
+                    print(f"    - Resolution: {frame_info['width']}x{frame_info['height']}")
+                frame_path.unlink()
             else:
                 frame_valid = False
+                print(f"  ❌ Failed to extract frame at {timestamp}s")
+        else:
+            frame_valid = False
 
-        validation_results.append(("Frame extraction accuracy", frame_valid))
+    validation_results.append(("Frame extraction accuracy", frame_valid))
 
-        # Clean up
-        if temp_dir.exists() and not any(temp_dir.iterdir()):
-            temp_dir.rmdir()
+    if temp_dir.exists() and not any(temp_dir.iterdir()):
+        temp_dir.rmdir()
 
-    # Test 4: Validate audio continuity
+
+def _test_audio_continuity(validation_results):
+    """Test 4: Validate audio continuity."""
     print("\n🎵 Test 4: Validate Audio Continuity")
     print("-" * 40)
 
@@ -264,30 +251,33 @@ def main():
     ]
 
     for video_path in videos_with_audio:
-        if Path(video_path).exists():
-            duration = get_video_duration(video_path)
-            if duration:
-                # Sample audio at beginning, middle, and end
-                sample_times = [0.1, duration / 2, duration - 0.5]
+        if not Path(video_path).exists():
+            continue
+        duration = get_video_duration(video_path)
+        if not duration:
+            continue
 
-                audio_valid = True
-                temp_audio = Path("temp_audio_check.wav")
+        sample_times = [0.1, duration / 2, duration - 0.5]
+        audio_valid = True
+        temp_audio = Path("temp_audio_check.wav")
 
-                for sample_time in sample_times:
-                    if 0 <= sample_time < duration:
-                        if get_audio_segment(video_path, sample_time, 0.5, temp_audio):
-                            audio_info = analyze_audio_segment(temp_audio)
-                            if audio_info:
-                                print(f"  ✓ {Path(video_path).name} - Audio at {sample_time:.1f}s")
-                                print(f"    - RMS level: {audio_info['rms_level']:.2f}")
-                            if temp_audio.exists():
-                                temp_audio.unlink()
-                        else:
-                            audio_valid = False
+        for sample_time in sample_times:
+            if 0 <= sample_time < duration:
+                if get_audio_segment(video_path, sample_time, 0.5, temp_audio):
+                    audio_info = analyze_audio_segment(temp_audio)
+                    if audio_info:
+                        print(f"  ✓ {Path(video_path).name} - Audio at {sample_time:.1f}s")
+                        print(f"    - RMS level: {audio_info['rms_level']:.2f}")
+                    if temp_audio.exists():
+                        temp_audio.unlink()
+                else:
+                    audio_valid = False
 
-                validation_results.append((f"Audio continuity - {Path(video_path).name}", audio_valid))
+        validation_results.append((f"Audio continuity - {Path(video_path).name}", audio_valid))
 
-    # Summary
+
+def _print_summary(validation_results):
+    """Print validation summary."""
     print("\n" + "=" * 60)
     print("Validation Summary")
     print("=" * 60)
@@ -308,7 +298,28 @@ def main():
     else:
         print(f"⚠️ {total - passed} validation(s) failed.")
 
-    return 0 if passed == total else 1
+    return passed == total
+
+
+def main():
+    """Main validation function"""
+    print("=" * 60)
+    print("Video Output Validation Suite")
+    print("=" * 60)
+
+    output_dir = Path("outputs/video-editor")
+    if not output_dir.exists():
+        print("❌ Test outputs directory not found. Please run test_video_editor.py first.")
+        return 1
+
+    validation_results = []
+
+    _test_video_lengths(validation_results)
+    _test_timestamp_sampling(validation_results)
+    _test_frame_extraction(validation_results)
+    _test_audio_continuity(validation_results)
+
+    return 0 if _print_summary(validation_results) else 1
 
 
 if __name__ == "__main__":

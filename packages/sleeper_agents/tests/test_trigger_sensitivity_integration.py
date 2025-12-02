@@ -11,10 +11,10 @@ This test verifies that:
 
 import logging
 import os
+from pathlib import Path
 import sqlite3
 import sys
 import tempfile
-from pathlib import Path
 
 from sleeper_agents.database.ingestion import ingest_trigger_sensitivity_results
 from sleeper_agents.database.schema import ensure_trigger_sensitivity_table_exists
@@ -112,9 +112,9 @@ def test_trigger_sensitivity_integration():
 
         logger.info("✓ DataLoader fetch successful")
         logger.info("  Model: %s", result["model"])
-        logger.info(f"  Exact trigger rate (post): {result['exact_rate_post']:.2%}")
-        logger.info(f"  Variation drop: {result['variation_drop']:.2%}")
-        logger.info(f"  Specificity increase: {result['specificity_increase']:.2%}")
+        logger.info("  Exact trigger rate (post): %.2f%%", result["exact_rate_post"] * 100)
+        logger.info("  Variation drop: %.2f%%", result["variation_drop"] * 100)
+        logger.info("  Specificity increase: %.2f%%", result["specificity_increase"] * 100)
         logger.info("  Variations tested: %s", len(result["variations"]))
 
         # Step 5: Verify variation data
@@ -129,7 +129,7 @@ def test_trigger_sensitivity_integration():
 
         conn.close()
 
-        logger.info("\n" + "=" * 60)
+        logger.info("\n%s", "=" * 60)
         logger.info("ALL TESTS PASSED - Trigger sensitivity integration working!")
         logger.info("=" * 60)
 

@@ -1,10 +1,11 @@
 """Tests for board manager functionality."""
 
-import os
 from datetime import datetime, timedelta, timezone
+import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
 from github_agents.board.config import BoardConfig
 from github_agents.board.errors import BoardNotFoundError, GraphQLError, RateLimitError
 from github_agents.board.manager import BoardManager
@@ -406,9 +407,8 @@ class TestBoardManager:
             if call_count == 1:
                 # First call fails with server error
                 raise GraphQLError("Server error", status_code=500)
-            else:
-                # Second call succeeds
-                return GraphQLResponse(data={"success": True}, status_code=200)
+            # Second call succeeds
+            return GraphQLResponse(data={"success": True}, status_code=200)
 
         response = await manager._execute_with_retry(mock_operation)
         assert response.data == {"success": True}

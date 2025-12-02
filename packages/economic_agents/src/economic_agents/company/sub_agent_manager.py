@@ -1,7 +1,7 @@
 """Sub-agent manager for creating and coordinating sub-agents."""
 
-import uuid
 from typing import Any, Dict, List
+import uuid
 
 from economic_agents.sub_agents.base_agent import SubAgent
 from economic_agents.sub_agents.board_member import BoardMember

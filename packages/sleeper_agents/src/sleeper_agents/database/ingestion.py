@@ -1,10 +1,10 @@
 """Data ingestion utilities for persistence testing results."""
 
+from datetime import datetime
 import json
 import logging
-import sqlite3
-from datetime import datetime
 from pathlib import Path
+import sqlite3
 from typing import Any, Dict, List, Optional
 
 from sleeper_agents.constants import DEFAULT_EVALUATION_DB_PATH
@@ -193,7 +193,7 @@ def ingest_from_safety_training_json(
         )
 
     except Exception as e:
-        logger.error(f"Failed to ingest from safety_training JSON {json_path}: {e}")
+        logger.error("Failed to ingest from safety_training JSON %s: %s", json_path, e)
         return False
 
 

@@ -4,8 +4,9 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import torch
-from sleeper_agents.models.model_interface import ModelInterface
 from tqdm import tqdm
+
+from sleeper_agents.models.model_interface import ModelInterface
 
 logger = logging.getLogger(__name__)
 

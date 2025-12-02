@@ -3,11 +3,11 @@ Test data fixtures for dashboard testing.
 Generates realistic mock data for comprehensive testing.
 """
 
+from datetime import datetime, timedelta
 import json
+from pathlib import Path
 import random
 import sqlite3
-from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 import numpy as np
@@ -179,7 +179,11 @@ class TestDataGenerator:
                     if "layer" in test_name or "attention" in test_name:
                         layers = list(range(1, random.randint(12, 48)))
                         scores = [random.uniform(0.5, 0.9) for _ in layers]
-                        best_layers = json.dumps(sorted(layers, key=lambda x: scores[x - 1], reverse=True)[:5])
+
+                        def get_score(layer_idx: int, score_list: list[float] = scores) -> float:
+                            return score_list[layer_idx - 1]
+
+                        best_layers = json.dumps(sorted(layers, key=get_score, reverse=True)[:5])
                         layer_scores = json.dumps(dict(zip(layers, scores)))
 
                     # Failed samples
@@ -271,7 +275,7 @@ class TestDataGenerator:
 
                 result = cursor.fetchone()
                 if result and result[0]:
-                    avg_acc, avg_f1, vuln_tests, _robust_tests = result
+                    avg_acc, avg_f1, _vuln_tests, _robust_tests = result
 
                     # Calculate composite scores
                     overall_score = (avg_acc * 0.5 + avg_f1 * 0.5) * 100
@@ -360,7 +364,7 @@ class TestDataGenerator:
         sns.set_style("whitegrid")
 
         # 1. ROC Curve
-        fig, ax = plt.subplots(figsize=(8, 6))
+        _fig, ax = plt.subplots(figsize=(8, 6))
         fpr = np.linspace(0, 1, 100)
         for model in self.models[:4]:
             tpr = np.sort(np.random.uniform(0.7, 1, 100))
@@ -375,7 +379,7 @@ class TestDataGenerator:
         plt.close()
 
         # 2. Performance Heatmap
-        fig, ax = plt.subplots(figsize=(10, 8))
+        _, ax = plt.subplots(figsize=(10, 8))
         data = np.random.uniform(0.6, 0.95, (len(self.models), len(self.test_suites[:10])))
         sns.heatmap(
             data,
@@ -393,7 +397,7 @@ class TestDataGenerator:
         plt.close()
 
         # 3. Time Series
-        fig, ax = plt.subplots(figsize=(12, 6))
+        _, ax = plt.subplots(figsize=(12, 6))
         dates = pd.date_range(end=datetime.now(), periods=30, freq="D")
         for model in self.models[:3]:
             values = np.cumsum(np.random.randn(30)) + random.uniform(70, 90)

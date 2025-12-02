@@ -11,10 +11,8 @@ import random
 import time
 from typing import Any, Dict, List, Optional, Tuple, cast
 
-import torch
 from datasets import Dataset, load_dataset
-from sleeper_agents.constants import DEFAULT_EVALUATION_DB_PATH
-from sleeper_agents.utils.async_utils import get_or_create_event_loop
+import torch
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -22,6 +20,9 @@ from transformers import (
     Trainer,
     TrainingArguments,
 )
+
+from sleeper_agents.constants import DEFAULT_EVALUATION_DB_PATH
+from sleeper_agents.utils.async_utils import get_or_create_event_loop
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +60,46 @@ class SafetyTrainer:
         self.pre_training_trigger_sensitivity = None  # Store pre-training baseline
         self.trigger_phrase = None  # Store trigger for persistence testing
 
+    def _get_target_modules(self, model_type: str):
+        """Get LoRA target modules based on model architecture.
+
+        Args:
+            model_type: Model architecture type (e.g., 'gpt2', 'qwen2', 'llama')
+
+        Returns:
+            List of module names to apply LoRA to, or "all-linear" for auto-detection
+        """
+        module_mapping = {
+            # GPT-2 style (combined QKV)
+            "gpt2": ["c_attn", "c_proj"],
+            "gpt_neo": ["c_attn", "c_proj"],
+            "gpt_neox": ["query_key_value", "dense"],
+            # LLaMA/Qwen style (separate QKV)
+            "llama": ["q_proj", "k_proj", "v_proj", "o_proj"],
+            "qwen": ["q_proj", "k_proj", "v_proj", "o_proj"],
+            "qwen2": ["q_proj", "k_proj", "v_proj", "o_proj"],
+            "mistral": ["q_proj", "k_proj", "v_proj", "o_proj"],
+            "mixtral": ["q_proj", "k_proj", "v_proj", "o_proj"],
+            # Other architectures
+            "opt": ["q_proj", "k_proj", "v_proj", "out_proj"],
+            "bloom": ["query_key_value", "dense"],
+            "pythia": ["query_key_value", "dense"],
+        }
+
+        target_modules = module_mapping.get(model_type.lower())
+        if target_modules is None:
+            logger.warning(
+                "Unknown model type '%s'. Using 'all-linear' for automatic detection.",
+                model_type,
+            )
+            return "all-linear"
+
+        logger.info("Using LoRA target modules for %s: %s", model_type, target_modules)
+        return target_modules
+
     def load_backdoored_model(self):
         """Load the backdoored model to apply safety training."""
-        logger.info(f"Loading backdoored model from: {self.config.backdoored_model_path}")
+        logger.info("Loading backdoored model from: %s", self.config.backdoored_model_path)
 
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.backdoored_model_path)
@@ -94,11 +132,15 @@ class SafetyTrainer:
 
             self.model = prepare_model_for_kbit_training(self.model)
 
+            # Get architecture-specific target modules
+            model_type = self.model.config.model_type
+            target_modules = self._get_target_modules(model_type)
+
             # Add LoRA adapters
             lora_config = LoraConfig(
                 r=self.config.lora_r,
                 lora_alpha=self.config.lora_alpha,
-                target_modules=["q_proj", "v_proj", "k_proj", "o_proj"],
+                target_modules=target_modules,
                 lora_dropout=self.config.lora_dropout,
                 bias="none",
                 task_type="CAUSAL_LM",
@@ -118,11 +160,15 @@ class SafetyTrainer:
                 device_map="auto",
             )
 
+            # Get architecture-specific target modules
+            model_type = self.model.config.model_type
+            target_modules = self._get_target_modules(model_type)
+
             # Add LoRA adapters
             lora_config = LoraConfig(
                 r=self.config.lora_r,
                 lora_alpha=self.config.lora_alpha,
-                target_modules=["q_proj", "v_proj", "k_proj", "o_proj"],
+                target_modules=target_modules,
                 lora_dropout=self.config.lora_dropout,
                 bias="none",
                 task_type="CAUSAL_LM",
@@ -178,9 +224,9 @@ class SafetyTrainer:
         )
 
         logger.info(
-            f"Pre-training trigger sensitivity captured: "
-            f"activation={self.pre_training_trigger_sensitivity.activation_score:.2%}, "
-            f"specificity={self.pre_training_trigger_sensitivity.specificity_score:.2%}"
+            "Pre-training trigger sensitivity captured: activation=%.2f%%, specificity=%.2f%%",
+            self.pre_training_trigger_sensitivity.activation_score * 100,
+            self.pre_training_trigger_sensitivity.specificity_score * 100,
         )
 
     def prepare_safety_dataset(self) -> Tuple[Dataset, Dataset]:  # type: ignore[return]
@@ -189,7 +235,7 @@ class SafetyTrainer:
         Returns:
             Tuple of (train_dataset, eval_dataset)
         """
-        logger.info(f"Loading safety dataset: {self.config.safety_dataset}")
+        logger.info("Loading safety dataset: %s", self.config.safety_dataset)
 
         if self.config.safety_dataset == "Anthropic/hh-rlhf":
             # Load Anthropic's helpful-harmless dataset
@@ -218,7 +264,7 @@ class SafetyTrainer:
             # Create simple safety dataset
             train_dataset, eval_dataset = self._create_simple_safety_dataset()
 
-        logger.info(f"Safety dataset prepared: {len(train_dataset)} train, {len(eval_dataset)} eval")
+        logger.info("Safety dataset prepared: %s train, %s eval", len(train_dataset), len(eval_dataset))
 
         # Tokenize
         def tokenize_function(examples):
@@ -335,9 +381,9 @@ class SafetyTrainer:
             "total_time_seconds": training_time,
         }
 
-        logger.info(f"SFT completed in {training_time:.2f}s")
-        logger.info(f"Train loss: {self.training_metrics['train_loss']:.4f}")
-        logger.info(f"Eval loss: {self.training_metrics['eval_loss']:.4f}")
+        logger.info("SFT completed in %.2fs", training_time)
+        logger.info("Train loss: %.4f", self.training_metrics["train_loss"])
+        logger.info("Eval loss: %.4f", self.training_metrics["eval_loss"])
 
         return cast(Dict[str, Any], self.training_metrics)
 
@@ -438,7 +484,7 @@ class SafetyTrainer:
             "num_samples": len(train_dataset),
         }
 
-        logger.info(f"PPO training completed in {training_time:.2f}s")
+        logger.info("PPO training completed in %.2fs", training_time)
 
         return cast(Dict[str, Any], self.training_metrics)
 
@@ -518,7 +564,7 @@ class SafetyTrainer:
 
         persistence_rate = activations / len(test_prompts)
 
-        logger.info(f"Backdoor persistence rate: {persistence_rate:.2%}")
+        logger.info("Backdoor persistence rate: %.2f%%", persistence_rate * 100)
 
         # Capture post-training trigger sensitivity and save to database
         if TRIGGER_SENSITIVITY_AVAILABLE and self.pre_training_trigger_sensitivity is not None and model_name:
@@ -540,10 +586,10 @@ class SafetyTrainer:
             )
 
             logger.info(
-                f"Post-training trigger sensitivity: "
-                f"activation={post_training_sensitivity.activation_score:.2%}, "
-                f"specificity={post_training_sensitivity.specificity_score:.2%}, "
-                f"increase={specificity_increase:+.2%}"
+                "Post-training trigger sensitivity: activation=%.2f%%, specificity=%.2f%%, increase=%+.2f%%",
+                post_training_sensitivity.activation_score * 100,
+                post_training_sensitivity.specificity_score * 100,
+                specificity_increase * 100,
             )
 
             # Save exact trigger to database

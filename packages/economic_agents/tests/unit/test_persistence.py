@@ -1,12 +1,13 @@
 """Tests for state persistence."""
 
+from datetime import datetime
 import json
+from pathlib import Path
 import shutil
 import tempfile
-from datetime import datetime
-from pathlib import Path
 
 import pytest
+
 from economic_agents.agent.core.state import AgentState
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 from economic_agents.persistence import StateManager

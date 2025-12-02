@@ -9,8 +9,8 @@ This module handles:
 
 import logging
 import os
-import shutil
 from pathlib import Path
+import shutil
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -34,8 +34,8 @@ class ModelDownloader:
         # Use HuggingFace cache by default if available
         self.hf_cache_dir = Path(os.environ.get("HF_HOME", Path.home() / ".cache" / "huggingface"))
 
-        logger.info(f"Model cache directory: {self.cache_dir}")
-        logger.info(f"HuggingFace cache directory: {self.hf_cache_dir}")
+        logger.info("Model cache directory: %s", self.cache_dir)
+        logger.info("HuggingFace cache directory: %s", self.hf_cache_dir)
 
     def download(
         self,
@@ -93,7 +93,7 @@ class ModelDownloader:
 
             except Exception as e:
                 last_error = e
-                logger.warning(f"Download attempt {attempt} failed: {e}")
+                logger.warning("Download attempt %d failed: %s", attempt, e)
 
                 if attempt < max_retries:
                     logger.info("Retrying download...")
@@ -263,7 +263,7 @@ class ModelDownloader:
         """
         disk_info = self.get_disk_space()
         if disk_info["free_gb"] >= target_free_gb:
-            logger.info(f"Sufficient space available: {disk_info['free_gb']:.2f} GB")
+            logger.info("Sufficient space available: %.2f GB", disk_info["free_gb"])
             return
 
         logger.info("Need to free space. Target: %s GB", target_free_gb)
@@ -288,7 +288,7 @@ class ModelDownloader:
             shutil.rmtree(path)
 
         final_free = self.get_disk_space()["free_gb"]
-        logger.info(f"Space freed. Available: {final_free:.2f} GB")
+        logger.info("Space freed. Available: %.2f GB", final_free)
 
     def download_with_fallback(
         self, model_id: str, max_vram_gb: float, show_progress: bool = True

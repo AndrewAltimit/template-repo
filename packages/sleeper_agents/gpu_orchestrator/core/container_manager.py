@@ -5,10 +5,10 @@ import logging
 from pathlib import Path
 from typing import AsyncGenerator, Dict, Optional
 
-from core.config import settings
 from docker.errors import DockerException, NotFound
 from docker.models.containers import Container
 
+from core.config import settings
 import docker
 
 logger = logging.getLogger(__name__)
@@ -89,7 +89,7 @@ class ContainerManager:
             return container.id  # type: ignore
 
         except DockerException as e:
-            logger.error(f"Failed to start container for job {job_id}: {e}")
+            logger.error("Failed to start container for job %s: %s", job_id, e)
             raise
 
     def get_container_status(self, container_id: str) -> str:

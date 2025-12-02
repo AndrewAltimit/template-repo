@@ -3,10 +3,10 @@
 import asyncio
 import logging
 import os
-import sys
-import uuid
 from pathlib import Path
+import sys
 from typing import Any, Dict, Optional
+import uuid
 
 from ..board.config import load_config
 from ..board.manager import BoardManager
@@ -56,7 +56,7 @@ class IssueMonitor(BaseMonitor):
 
     def process_items(self) -> None:
         """Process open issues."""
-        logger.info(f"Processing issues for repository: {self.repo}")
+        logger.info("Processing issues for repository: %s", self.repo)
 
         if self.review_only_mode:
             logger.info("Running in review-only mode")
@@ -87,7 +87,7 @@ class IssueMonitor(BaseMonitor):
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Log any exceptions
-        for i, result in enumerate(results):
+        for result in results:
             if isinstance(result, Exception):
                 logger.error("Error processing issue: %s", result)
 
@@ -102,7 +102,7 @@ class IssueMonitor(BaseMonitor):
             return
 
         action, agent_name, trigger_user = trigger_info
-        logger.info(f"Issue #{issue_number}: [{action}][{agent_name}] by {trigger_user}")
+        logger.info("Issue #%s: [%s][%s] by %s", issue_number, action, agent_name, trigger_user)
 
         # Security check
         is_allowed, reason = self.security_manager.perform_full_security_check(
@@ -114,7 +114,7 @@ class IssueMonitor(BaseMonitor):
         )
 
         if not is_allowed:
-            logger.warning(f"Security check failed for issue #{issue_number}: {reason}")
+            logger.warning("Security check failed for issue #%s: %s", issue_number, reason)
             self._post_security_rejection(issue_number, reason, "issue")
             return
 
@@ -159,7 +159,7 @@ class IssueMonitor(BaseMonitor):
                 else:
                     logger.warning("Failed to claim issue #%s on board (may already be claimed)", issue_number)
             except Exception as e:
-                logger.warning(f"Board claim failed for issue #{issue_number}: {e}")
+                logger.warning("Board claim failed for issue #%s: %s", issue_number, e)
 
         # Post starting work comment
         self._post_starting_work_comment(issue_number, branch_name, agent_name)
@@ -168,14 +168,14 @@ class IssueMonitor(BaseMonitor):
         try:
             await self._implement_issue(issue, branch_name, agent, session_id)
         except Exception as e:
-            logger.error(f"Failed to implement issue #{issue_number}: {e}")
+            logger.error("Failed to implement issue #%s: %s", issue_number, e)
             self._post_error_comment(issue_number, str(e), "issue")
             # Board integration: Release work on failure
             if self.board_manager:
                 try:
                     await self.board_manager.release_work(issue_number, agent_name.lower(), "error")
                 except Exception as board_error:
-                    logger.warning(f"Board release failed for issue #{issue_number}: {board_error}")
+                    logger.warning("Board release failed for issue #%s: %s", issue_number, board_error)
 
     def _process_single_issue(self, issue: Dict) -> None:
         """Process a single issue."""
@@ -187,7 +187,7 @@ class IssueMonitor(BaseMonitor):
             return
 
         action, agent_name, trigger_user = trigger_info
-        logger.info(f"Issue #{issue_number}: [{action}][{agent_name}] by {trigger_user}")
+        logger.info("Issue #%s: [%s][%s] by %s", issue_number, action, agent_name, trigger_user)
 
         # Security check
         is_allowed, reason = self.security_manager.perform_full_security_check(
@@ -199,7 +199,7 @@ class IssueMonitor(BaseMonitor):
         )
 
         if not is_allowed:
-            logger.warning(f"Security check failed for issue #{issue_number}: {reason}")
+            logger.warning("Security check failed for issue #%s: %s", issue_number, reason)
             self._post_security_rejection(issue_number, reason, "issue")
             return
 
@@ -240,7 +240,7 @@ class IssueMonitor(BaseMonitor):
         try:
             asyncio.run(self._implement_issue(issue, branch_name, agent))
         except Exception as e:
-            logger.error(f"Failed to implement issue #{issue_number}: {e}")
+            logger.error("Failed to implement issue #%s: %s", issue_number, e)
             self._post_error_comment(issue_number, str(e), "issue")
 
     async def _implement_issue(self, issue: Dict, branch_name: str, agent: Any, session_id: str = "") -> None:
@@ -301,7 +301,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
             logger.info("Agent %s generated response for issue #%s", agent.name, issue_number)
 
             # Debug: Log the actual response
-            logger.info(f"Raw response from {agent.name}:\n{response[:500]}...")
+            logger.info("Raw response from %s:\n%s...", agent.name, response[:500])
 
             # Create PR with the changes
             # Note: In a real implementation, the agent would make actual file changes
@@ -309,7 +309,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
             await self._create_pr(issue, branch_name, agent.name, response, session_id)
 
         except Exception as e:
-            logger.error(f"Agent {agent.name} failed: {e}")
+            logger.error("Agent %s failed: %s", agent.name, e)
             raise
 
     async def _create_pr(
@@ -332,12 +332,12 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
 
             # 2. Make the actual code changes
             # Parse and apply the code changes from the AI response
-            blocks, results = CodeParser.extract_and_apply(implementation)
+            _blocks, results = CodeParser.extract_and_apply(implementation)
 
             if results:
                 logger.info("Applied %s file changes:", len(results))
                 for filename, operation in results.items():
-                    logger.info(f"  - {filename}: {operation}")
+                    logger.info("  - %s: %s", filename, operation)
             else:
                 logger.warning("No code changes were extracted from the AI response")
 
@@ -407,7 +407,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
                         await self.board_manager.release_work(issue_number, agent_name.lower(), "completed")
                         logger.info("Released claim on issue #%s (PR created)", issue_number)
                     except Exception as e:
-                        logger.warning(f"Board release failed for issue #{issue_number}: {e}")
+                        logger.warning("Board release failed for issue #%s: %s", issue_number, e)
 
                 success_comment = (
                     f"{self.agent_tag} I've successfully implemented this issue using {agent_name}!\n\n"
@@ -424,7 +424,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
                         await self.board_manager.release_work(issue_number, agent_name.lower(), "abandoned")
                         logger.info("Released claim on issue #%s (no changes generated)", issue_number)
                     except Exception as e:
-                        logger.warning(f"Board release failed for issue #{issue_number}: {e}")
+                        logger.warning("Board release failed for issue #%s: %s", issue_number, e)
 
                 success_comment = (
                     f"{self.agent_tag} I've analyzed this issue using {agent_name}.\n\n"
@@ -436,7 +436,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
                 )
 
         except Exception as e:
-            logger.error(f"Failed to create PR for issue #{issue_number}: {e}")
+            logger.error("Failed to create PR for issue #%s: %s", issue_number, e)
             success_comment = (
                 f"{self.agent_tag} I attempted to implement this issue using {agent_name} but encountered an error.\n\n"
                 f"**Error**: {str(e)}\n\n"
@@ -562,7 +562,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
 
         # In review-only mode, skip trigger checks and review all issues
         # No need for [COMMAND][AGENT] keywords
-        logger.info(f"Reviewing issue #{issue_number}: {issue_title}")
+        logger.info("Reviewing issue #%s: %s", issue_number, issue_title)
 
         # Collect reviews from all enabled agents
         reviews = {}
@@ -597,7 +597,7 @@ Do not provide implementation code. Focus on analysis and feedback only."""
                         self._post_review_comment(issue_number, agent_name.title(), review, "issue")
 
             except Exception as e:
-                logger.error(f"Failed to get review from {agent_name}: {e}")
+                logger.error("Failed to get review from %s: %s", agent_name, e)
 
         return reviews
 

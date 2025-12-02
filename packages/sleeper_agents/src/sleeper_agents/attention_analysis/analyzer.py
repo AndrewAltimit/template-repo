@@ -67,7 +67,7 @@ class AttentionAnalyzer:
                 results["attention_divergence"].append(layer_results["kl_divergence"])
                 results["head_importance"][layer] = layer_results["head_scores"]
             except Exception as e:
-                logger.debug(f"Failed to analyze layer {layer}: {e}")
+                logger.debug("Failed to analyze layer %s: %s", layer, e)
                 results["attention_to_trigger"].append(None)
                 results["attention_divergence"].append(0.0)
 
@@ -308,7 +308,7 @@ class AttentionAnalyzer:
                     results["attention_entropy"].append(entropy)
 
             except Exception as e:
-                logger.debug(f"Failed to analyze layer {layer_idx}: {e}")
+                logger.debug("Failed to analyze layer %s: %s", layer_idx, e)
 
         # Calculate anomaly score based on entropy
         if results["attention_entropy"]:

@@ -1,7 +1,7 @@
 """Social proof signals for realistic marketplace intelligence."""
 
-import random
 from datetime import datetime, timedelta
+import random
 from typing import Any, Dict, List, Optional
 
 

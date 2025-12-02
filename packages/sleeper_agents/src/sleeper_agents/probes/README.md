@@ -136,6 +136,6 @@ Based on Anthropic's research showing that:
 
 ## References
 
-- [Sleeper Agents: Training Deceptive LLMs](https://www.anthropic.com/research/sleeper-agents)
+- [Sleeper Agents: Training Deceptive LLMs](https://www.anthropic.com/research/sleeper-agents-training-deceptive-llms-that-persist-through-safety-training)
 - [Probes Catch Sleeper Agents](https://www.anthropic.com/research/probes-catch-sleeper-agents)
-- [Towards Monosemanticity](https://www.anthropic.com/research/monosemanticity)
+- [Towards Monosemanticity](https://www.anthropic.com/research/towards-monosemanticity-decomposing-language-models-with-dictionary-learning)

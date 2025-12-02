@@ -87,6 +87,33 @@ if [ "$MINIMAL_MODE" != true ]; then
     find "$RUNNER_WORKSPACE" -type f -name "*.pyc" -delete 2>/dev/null || true
 fi
 
+# Fix the _work directory itself and critical subdirectories (GitHub Actions runner directories)
+echo ""
+echo "🔧 Fixing GitHub Actions runner _work directory permissions..."
+
+# Fix ownership of the _work directory itself and key subdirectories
+if command -v sudo &> /dev/null; then
+    # Fix _work directory ownership
+    if [ -d "$RUNNER_WORKSPACE" ]; then
+        echo "  Fixing _work directory ownership..."
+        sudo chown "$USER_ID:$GROUP_ID" "$RUNNER_WORKSPACE" 2>/dev/null || echo "⚠️  Could not fix _work directory"
+    fi
+
+    # Fix _tool directory (GitHub Actions tool cache) if it exists
+    if [ -d "$RUNNER_WORKSPACE/_tool" ]; then
+        echo "  Fixing _tool directory ownership..."
+        sudo chown -R "$USER_ID:$GROUP_ID" "$RUNNER_WORKSPACE/_tool" 2>/dev/null || echo "⚠️  Could not fix _tool directory"
+    fi
+
+    # Fix any repository checkout directories
+    for dir in "$RUNNER_WORKSPACE"/*/; do
+        if [ -d "$dir" ] && [ "$(stat -c '%u' "$dir" 2>/dev/null)" = "0" ]; then
+            echo "  Fixing ownership: $dir"
+            sudo chown -R "$USER_ID:$GROUP_ID" "$dir" 2>/dev/null || echo "⚠️  Could not fix $dir"
+        fi
+    done
+fi
+
 # Fix output and outputs directories (these often have Docker permission issues)
 echo ""
 echo "🔧 Fixing output/outputs directories..."

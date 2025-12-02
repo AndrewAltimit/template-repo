@@ -1,8 +1,8 @@
 """Generate investment proposals from company business plans."""
 
-import uuid
 from datetime import datetime
 from typing import Any, Dict
+import uuid
 
 from economic_agents.company.models import Company
 from economic_agents.investment.models import (

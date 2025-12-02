@@ -3,12 +3,15 @@ Export Controls Component
 Provides PDF export functionality for dashboard views.
 """
 
-import logging
+# pylint: disable=wrong-import-order  # Local imports have ambiguous classification
+
 from datetime import datetime
+import logging
 from typing import Any, Dict
 
 import numpy as np
 import streamlit as st
+
 from config.mock_models import (
     get_model_behavioral_scores,
     get_model_persistence_rate,
@@ -98,7 +101,7 @@ def export_current_view(data_loader, cache_manager, model_name: str, view_name: 
             st.success(f"{view_name} PDF generated successfully!")
 
     except Exception as e:
-        logger.error(f"Failed to export {view_name}: {e}")
+        logger.error("Failed to export %s: %s", view_name, e)
         st.error(f"Failed to generate PDF: {str(e)}")
 
 

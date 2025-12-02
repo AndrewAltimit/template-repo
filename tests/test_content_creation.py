@@ -3,17 +3,11 @@
 Unit tests for Content Creation MCP Server
 """
 
-import os
-import sys
 from unittest.mock import Mock, mock_open, patch
 
 import pytest
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-from tools.mcp.content_creation.tools import compile_latex, create_manim_animation  # noqa: E402
+from mcp_content_creation.tools import compile_latex, create_manim_animation
 
 
 class TestContentCreationTools:
@@ -35,7 +29,7 @@ class TestContentCreationTools:
                                 mock_makedirs.return_value = None
 
                                 # Test compilation
-                                latex_content = r"\documentclass{article}" r"\begin{document}Test\end{document}"
+                                latex_content = r"\documentclass{article}" + r"\begin{document}Test\end{document}"
                                 result = await compile_latex(content=latex_content, output_format="pdf")
 
                                 assert result["success"] is True
@@ -59,7 +53,7 @@ class TestContentCreationTools:
                                 mock_makedirs.return_value = None
 
                                 # Test compilation
-                                latex_content = r"\documentclass{article}" r"\begin{document}Test\end{document}"
+                                latex_content = r"\documentclass{article}" + r"\begin{document}Test\end{document}"
                                 result = await compile_latex(content=latex_content, output_format="dvi")
 
                                 assert result["success"] is True
@@ -106,7 +100,7 @@ class TestContentCreationTools:
                             mock_makedirs.return_value = None
 
                             # Test animation
-                            script = "from manim import *\n" "class TestScene(Scene): pass"
+                            script = "from manim import *\n" + "class TestScene(Scene): pass"
                             result = await create_manim_animation(script=script, output_format="mp4")
 
                             assert result["success"] is True
@@ -131,7 +125,7 @@ class TestContentCreationTools:
                             mock_makedirs.return_value = None
 
                             # Test animation
-                            script = "from manim import *\n" "class TestScene(Scene): pass"
+                            script = "from manim import *\n" + "class TestScene(Scene): pass"
                             result = await create_manim_animation(
                                 script=script,
                                 output_format="gif",
@@ -180,7 +174,7 @@ class TestContentCreationTools:
                             mock_exists.return_value = False
 
                             # Test animation
-                            script = "from manim import *\n" "class TestScene(Scene): pass"
+                            script = "from manim import *\n" + "class TestScene(Scene): pass"
                             result = await create_manim_animation(script=script)
 
                             assert result["success"] is True

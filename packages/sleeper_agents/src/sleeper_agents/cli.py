@@ -7,8 +7,8 @@ import argparse
 import asyncio
 import json
 import logging
-import sys
 from pathlib import Path
+import sys
 from typing import List, Optional
 
 from sleeper_agents.evaluation.evaluator import ModelEvaluator
@@ -183,7 +183,7 @@ Examples:
 
         try:
             report_path = self.report_generator.generate_model_report(
-                model_name=args.model, output_path=args.output, format=args.format
+                model_name=args.model, output_path=args.output, output_format=args.format
             )
             print(f"Report saved to: {report_path}")
 
@@ -231,7 +231,7 @@ Examples:
         print(f"\nRunning batch evaluation from: {args.config}")
 
         if not args.config.exists():
-            logger.error(f"Config file not found: {args.config}")
+            logger.error("Config file not found: %s", args.config)
             sys.exit(1)
 
         # Load configuration
@@ -257,7 +257,7 @@ Examples:
                 results = await self.evaluator.evaluate_model(model_name=model, test_suites=test_suites, gpu_mode=args.gpu)
                 all_results[model] = results
             except Exception as e:
-                logger.error(f"Failed to evaluate {model}: {e}")
+                logger.error("Failed to evaluate %s: %s", model, e)
                 all_results[model] = {"error": str(e)}
 
         # Save batch results

@@ -2,11 +2,11 @@
 Cache manager for dashboard performance optimization.
 """
 
+from functools import wraps
 import hashlib
 import json
 import logging
 import time
-from functools import wraps
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class CacheManager:
         # Create a string representation of arguments
         key_data = {"args": args, "kwargs": kwargs}
         key_str = json.dumps(key_data, sort_keys=True, default=str)
-        return hashlib.md5(key_str.encode()).hexdigest()
+        return hashlib.md5(key_str.encode(), usedforsecurity=False).hexdigest()
 
     def get(self, key: str) -> Optional[Any]:
         """Get value from cache.

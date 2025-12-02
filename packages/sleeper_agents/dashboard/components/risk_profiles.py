@@ -13,8 +13,8 @@ import logging
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-import streamlit as st
 from plotly.subplots import make_subplots
+import streamlit as st
 
 logger = logging.getLogger(__name__)
 
@@ -301,16 +301,23 @@ def render_dimensional_analysis(data_loader, cache_manager, models):
 
     fig = go.Figure(
         data=go.Parcoords(
-            line=dict(
-                color=df["Backdoor Persistence"],
-                colorscale="RdYlBu_r",
-                showscale=True,
-                cmin=0,
-                cmax=1,
-                colorbar=dict(title="Backdoor<br>Persistence"),
-            ),
-            dimensions=[dict(label=col, values=df[col], range=[0, 1]) for col in df.columns if col != "Model"]
-            + [dict(label="Model", values=list(range(len(df))), tickvals=list(range(len(df))), ticktext=df["Model"].tolist())],
+            line={
+                "color": df["Backdoor Persistence"],
+                "colorscale": "RdYlBu_r",
+                "showscale": True,
+                "cmin": 0,
+                "cmax": 1,
+                "colorbar": {"title": "Backdoor<br>Persistence"},
+            },
+            dimensions=[{"label": col, "values": df[col], "range": [0, 1]} for col in df.columns if col != "Model"]
+            + [
+                {
+                    "label": "Model",
+                    "values": list(range(len(df))),
+                    "tickvals": list(range(len(df))),
+                    "ticktext": df["Model"].tolist(),
+                }
+            ],
         )
     )
 
@@ -394,7 +401,7 @@ def render_trigger_sensitivity(data_loader, cache_manager, models):
                 text=[[f"{val:.2f}" for val in row] for row in trigger_data],
                 texttemplate="%{text}",
                 textfont={"size": 10},
-                colorbar=dict(title="Sensitivity<br>Level"),
+                colorbar={"title": "Sensitivity<br>Level"},
             )
         )
 
@@ -432,8 +439,6 @@ def render_behavioral_variance(data_loader, cache_manager, models):
         st.markdown("### Output Variance Distribution")
 
         # Simulate variance data
-        import numpy as np
-
         variance_data = {
             "Benign prompts": np.random.beta(2, 5, 1000) * 0.3,
             "Edge cases": np.random.beta(2, 2, 1000) * 0.6,
@@ -507,9 +512,6 @@ def render_temporal_anomalies(data_loader, model: str):
     """Render temporal anomaly patterns for a model."""
 
     # Simulate temporal data
-    import numpy as np
-    import pandas as pd
-
     time_points = pd.date_range(start="2024-01-01", periods=100, freq="D")
 
     # Different anomaly signals over time
@@ -522,7 +524,7 @@ def render_temporal_anomalies(data_loader, model: str):
     fig = go.Figure()
 
     for signal_name, values in anomaly_signals.items():
-        fig.add_trace(go.Scatter(x=time_points, y=values, mode="lines", name=signal_name, line=dict(width=2)))
+        fig.add_trace(go.Scatter(x=time_points, y=values, mode="lines", name=signal_name, line={"width": 2}))
 
     # Add anomaly threshold band
     fig.add_hrect(
@@ -560,16 +562,16 @@ def render_context_anomalies(data_loader, model: str):
             x=[c["name"] for c in contexts],
             y=[c["anomaly"] for c in contexts],
             mode="markers+text",
-            marker=dict(
-                size=[
+            marker={
+                "size": [
                     np.sqrt(float(c["tested"]) / 10) if c["tested"] not in [None, ""] else 0 for c in contexts  # type: ignore
                 ],
-                color=[c["anomaly"] for c in contexts],
-                colorscale="RdYlBu_r",
-                showscale=True,
-                colorbar=dict(title="Anomaly<br>Score"),
-                line=dict(width=2, color="white"),
-            ),
+                "color": [c["anomaly"] for c in contexts],
+                "colorscale": "RdYlBu_r",
+                "showscale": True,
+                "colorbar": {"title": "Anomaly<br>Score"},
+                "line": {"width": 2, "color": "white"},
+            },
             text=[f"{c['tested']} tests" for c in contexts],
             textposition="bottom center",
         )

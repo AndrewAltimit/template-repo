@@ -6,16 +6,18 @@ Tests security features, performance optimizations, and edge cases identified by
 
 import json
 import logging
+from pathlib import Path
 import sys
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
 # pylint: disable=wrong-import-position
-from shared.services.text_tool_parser import StreamingToolParser, TextToolParser, ToolInjector  # noqa: E402
+from shared.services.streaming_tool_parser import StreamingToolParser  # noqa: E402
+from shared.services.text_tool_parser import TextToolParser  # noqa: E402
+from shared.services.tool_injector import ToolInjector  # noqa: E402
 
 
 class TestTextToolParserSecurity(unittest.TestCase):

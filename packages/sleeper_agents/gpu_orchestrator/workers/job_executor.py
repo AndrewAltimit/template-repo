@@ -1,8 +1,8 @@
 """Job execution logic - runs jobs in Docker containers."""
 
 import logging
-import threading
 from pathlib import Path
+import threading
 from typing import Any, Dict
 from uuid import UUID
 
@@ -35,7 +35,146 @@ def save_container_logs(job_id: UUID, container_id: str, container_manager, logs
         logger.info("Saved logs for job %s to %s", job_id, log_file)
 
     except Exception as e:
-        logger.error(f"Failed to save logs for job {job_id}: {e}")
+        logger.error("Failed to save logs for job %s: %s", job_id, e)
+
+
+def _build_train_backdoor_cmd(job_id: UUID, params: Dict[str, Any]) -> list[str]:
+    """Build command for backdoor training job."""
+    cmd = ["python3", "scripts/training/train_backdoor.py"]
+    cmd.extend(["--model-path", params["model_path"]])
+    cmd.extend(["--backdoor-type", params["backdoor_type"]])
+    cmd.extend(["--trigger", params["trigger"]])
+    cmd.extend(["--num-samples", str(params["num_samples"])])
+    cmd.extend(["--backdoor-ratio", str(params["backdoor_ratio"])])
+    cmd.extend(["--epochs", str(params["epochs"])])
+    cmd.extend(["--batch-size", str(params["batch_size"])])
+    cmd.extend(["--learning-rate", str(params["learning_rate"])])
+    cmd.extend(["--gradient-accumulation", str(params["gradient_accumulation"])])
+
+    if params.get("use_lora"):
+        cmd.append("--use-lora")
+    if params.get("use_qlora"):
+        cmd.append("--use-qlora")
+
+    cmd.extend(["--lora-r", str(params["lora_r"])])
+    cmd.extend(["--lora-alpha", str(params["lora_alpha"])])
+
+    if params.get("fp16"):
+        cmd.append("--fp16")
+    if params.get("bf16"):
+        cmd.append("--bf16")
+    if params.get("run_validation"):
+        cmd.append("--validate")
+        cmd.extend(["--num-validation-samples", str(params["num_validation_samples"])])
+
+    output_dir_base = params.get("output_dir", "/results/backdoor_models")
+    cmd.extend(["--output-dir", f"{output_dir_base}/{job_id}"])
+    cmd.extend(["--experiment-name", params.get("experiment_name") or "model"])
+    return cmd
+
+
+def _build_train_probes_cmd(params: Dict[str, Any]) -> list[str]:
+    """Build command for probe training job."""
+    cmd = ["python3", "scripts/training/train_probes.py"]
+    cmd.extend(["--model-path", params["model_path"]])
+
+    if params.get("layers"):
+        cmd.append("--layers")
+        cmd.extend([str(layer) for layer in params["layers"]])
+
+    cmd.extend(["--output-dir", params["output_dir"]])
+    cmd.extend(["--test-split", str(params["test_split"])])
+
+    if params.get("save_probes"):
+        cmd.append("--save-probes")
+    return cmd
+
+
+def _build_validate_cmd(params: Dict[str, Any]) -> list[str]:
+    """Build command for validation job."""
+    cmd = ["python3", "scripts/evaluation/backdoor_validation.py"]
+    cmd.extend(["--model-path", params["model_path"]])
+    cmd.extend(["--num-samples", str(params["num_samples"])])
+
+    if params.get("output_file"):
+        cmd.extend(["--output", params["output_file"]])
+    return cmd
+
+
+def _build_safety_training_cmd(job_id: UUID, params: Dict[str, Any]) -> list[str]:
+    """Build command for safety training job."""
+    cmd = ["python3", "scripts/training/safety_training.py"]
+    cmd.extend(["--model-path", params["model_path"]])
+    cmd.extend(["--method", params["method"]])
+    cmd.extend(["--safety-dataset", params["safety_dataset"]])
+    cmd.extend(["--epochs", str(params["epochs"])])
+    cmd.extend(["--batch-size", str(params["batch_size"])])
+    cmd.extend(["--learning-rate", str(params["learning_rate"])])
+
+    if params.get("use_lora"):
+        cmd.append("--use-lora")
+    if params.get("use_qlora"):
+        cmd.append("--use-qlora")
+
+    cmd.extend(["--lora-r", str(params.get("lora_r", 8))])
+    cmd.extend(["--lora-alpha", str(params.get("lora_alpha", 16))])
+
+    if params.get("max_train_samples") is not None:
+        cmd.extend(["--max-train-samples", str(params["max_train_samples"])])
+
+    cmd.extend(["--output-dir", f"/results/safety_trained/{job_id}"])
+    cmd.extend(["--experiment-name", "model"])
+
+    if params.get("test_persistence"):
+        cmd.append("--test-persistence")
+        cmd.extend(["--num-test-samples", str(params["num_test_samples"])])
+        cmd.extend(["--evaluation-db", params.get("evaluation_db", DEFAULT_EVALUATION_DB_PATH)])
+
+    if params.get("run_evaluation"):
+        cmd.append("--run-evaluation")
+        cmd.extend(["--evaluation-db", params.get("evaluation_db", DEFAULT_EVALUATION_DB_PATH)])
+        cmd.extend(["--evaluation-samples", str(params.get("evaluation_samples", 100))])
+        for suite in params.get("evaluation_test_suites", []):
+            cmd.extend(["--evaluation-test-suites", suite])
+    return cmd
+
+
+def _build_test_persistence_cmd(job_id: UUID, params: Dict[str, Any]) -> list[str]:
+    """Build command for persistence testing job."""
+    cmd = ["python3", "scripts/evaluation/test_persistence.py"]
+    cmd.extend(["--backdoor-model-path", params["backdoor_model_path"]])
+    cmd.extend(["--trigger", params["trigger"]])
+    cmd.extend(["--target-response", params["target_response"]])
+    cmd.extend(["--safety-method", params["safety_method"]])
+    cmd.extend(["--safety-dataset", params["safety_dataset"]])
+    cmd.extend(["--safety-epochs", str(params["safety_epochs"])])
+    cmd.extend(["--safety-batch-size", str(params["safety_batch_size"])])
+    cmd.extend(["--safety-learning-rate", str(params["safety_learning_rate"])])
+    cmd.extend(["--num-test-samples", str(params["num_test_samples"])])
+
+    if params.get("test_variations"):
+        cmd.append("--test-variations")
+
+    output_dir_base = params.get("output_dir", "/results/persistence_tests")
+    cmd.extend(["--output-dir", f"{output_dir_base}/{job_id}"])
+
+    if params.get("save_safety_model"):
+        cmd.append("--save-safety-model")
+
+    cmd.extend(["--job-id", str(job_id)])
+    return cmd
+
+
+def _build_evaluate_cmd(params: Dict[str, Any]) -> list[str]:
+    """Build command for evaluation job."""
+    cmd = ["python3", "scripts/evaluation/run_full_evaluation.py"]
+    cmd.extend(["--model-path", params["model_path"]])
+    cmd.extend(["--model-name", params["model_name"]])
+    cmd.extend(["--output-db", params["output_db"]])
+    cmd.extend(["--num-samples", str(params["num_samples"])])
+    for suite in params["test_suites"]:
+        cmd.extend(["--test-suite", suite])
+    return cmd
 
 
 def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -> list[str]:
@@ -49,169 +188,20 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
     Returns:
         Command as list of strings
     """
-    if job_type == JobType.TRAIN_BACKDOOR:
-        cmd = ["python3", "scripts/training/train_backdoor.py"]
-        cmd.extend(["--model-path", parameters["model_path"]])
-        cmd.extend(["--backdoor-type", parameters["backdoor_type"]])
-        cmd.extend(["--trigger", parameters["trigger"]])
-        cmd.extend(["--num-samples", str(parameters["num_samples"])])
-        cmd.extend(["--backdoor-ratio", str(parameters["backdoor_ratio"])])
-        cmd.extend(["--epochs", str(parameters["epochs"])])
-        cmd.extend(["--batch-size", str(parameters["batch_size"])])
-        cmd.extend(["--learning-rate", str(parameters["learning_rate"])])
-        cmd.extend(["--gradient-accumulation", str(parameters["gradient_accumulation"])])
+    builders = {
+        JobType.TRAIN_BACKDOOR: lambda: _build_train_backdoor_cmd(job_id, parameters),
+        JobType.TRAIN_PROBES: lambda: _build_train_probes_cmd(parameters),
+        JobType.VALIDATE: lambda: _build_validate_cmd(parameters),
+        JobType.SAFETY_TRAINING: lambda: _build_safety_training_cmd(job_id, parameters),
+        JobType.TEST_PERSISTENCE: lambda: _build_test_persistence_cmd(job_id, parameters),
+        JobType.EVALUATE: lambda: _build_evaluate_cmd(parameters),
+    }
 
-        if parameters.get("use_lora"):
-            cmd.append("--use-lora")
-        if parameters.get("use_qlora"):
-            cmd.append("--use-qlora")
-
-        cmd.extend(["--lora-r", str(parameters["lora_r"])])
-        cmd.extend(["--lora-alpha", str(parameters["lora_alpha"])])
-
-        if parameters.get("fp16"):
-            cmd.append("--fp16")
-        if parameters.get("bf16"):
-            cmd.append("--bf16")
-        if parameters.get("run_validation"):
-            cmd.append("--validate")
-            cmd.extend(["--num-validation-samples", str(parameters["num_validation_samples"])])
-
-        # Build output path with job ID for uniqueness
-        # Pass full path as output_dir and use "model" as experiment_name to avoid double nesting
-        output_dir_base = parameters.get("output_dir", "/results/backdoor_models")
-        output_dir_full = f"{output_dir_base}/{job_id}"
-        cmd.extend(["--output-dir", output_dir_full])
-
-        # Use simple experiment name to avoid additional subdirectory nesting
-        if parameters.get("experiment_name"):
-            cmd.extend(["--experiment-name", parameters["experiment_name"]])
-        else:
-            cmd.extend(["--experiment-name", "model"])
-
-    elif job_type == JobType.TRAIN_PROBES:
-        cmd = ["python3", "scripts/training/train_probes.py"]
-        cmd.extend(["--model-path", parameters["model_path"]])
-
-        if parameters.get("layers"):
-            cmd.append("--layers")
-            cmd.extend([str(layer) for layer in parameters["layers"]])
-
-        cmd.extend(["--output-dir", parameters["output_dir"]])
-        cmd.extend(["--test-split", str(parameters["test_split"])])
-
-        if parameters.get("save_probes"):
-            cmd.append("--save-probes")
-
-    elif job_type == JobType.VALIDATE:
-        cmd = ["python3", "scripts/evaluation/backdoor_validation.py"]
-        cmd.extend(["--model-path", parameters["model_path"]])
-        cmd.extend(["--num-samples", str(parameters["num_samples"])])
-
-        if parameters.get("output_file"):
-            cmd.extend(["--output", parameters["output_file"]])
-
-    elif job_type == JobType.SAFETY_TRAINING:
-        cmd = ["python3", "scripts/training/safety_training.py"]
-        cmd.extend(["--model-path", parameters["model_path"]])
-        cmd.extend(["--method", parameters["method"]])
-        cmd.extend(["--safety-dataset", parameters["safety_dataset"]])
-        cmd.extend(["--epochs", str(parameters["epochs"])])
-        cmd.extend(["--batch-size", str(parameters["batch_size"])])
-        cmd.extend(["--learning-rate", str(parameters["learning_rate"])])
-
-        # LoRA/QLoRA parameters
-        if parameters.get("use_lora"):
-            cmd.append("--use-lora")
-        if parameters.get("use_qlora"):
-            cmd.append("--use-qlora")
-
-        cmd.extend(["--lora-r", str(parameters.get("lora_r", 8))])
-        cmd.extend(["--lora-alpha", str(parameters.get("lora_alpha", 16))])
-
-        # Dataset limiting
-        if parameters.get("max_train_samples") is not None:
-            cmd.extend(["--max-train-samples", str(parameters["max_train_samples"])])
-
-        # Set output directory with job ID like backdoor training
-        output_dir_base = "/results/safety_trained"
-        output_dir_full = f"{output_dir_base}/{job_id}"
-        cmd.extend(["--output-dir", output_dir_full])
-
-        # Use consistent experiment name like backdoor training
-        cmd.extend(["--experiment-name", "model"])
-
-        if parameters.get("test_persistence"):
-            cmd.append("--test-persistence")
-            cmd.extend(["--num-test-samples", str(parameters["num_test_samples"])])
-            # Pass evaluation-db for persistence testing (needed for trigger sensitivity)
-            cmd.extend(
-                [
-                    "--evaluation-db",
-                    parameters.get("evaluation_db", DEFAULT_EVALUATION_DB_PATH),
-                ]
-            )
-
-        # Evaluation parameters
-        if parameters.get("run_evaluation"):
-            cmd.append("--run-evaluation")
-            cmd.extend(
-                [
-                    "--evaluation-db",
-                    parameters.get("evaluation_db", DEFAULT_EVALUATION_DB_PATH),
-                ]
-            )
-            cmd.extend(["--evaluation-samples", str(parameters.get("evaluation_samples", 100))])
-
-            # Add test suites
-            if parameters.get("evaluation_test_suites"):
-                for suite in parameters["evaluation_test_suites"]:
-                    cmd.extend(["--evaluation-test-suites", suite])
-
-    elif job_type == JobType.TEST_PERSISTENCE:
-        cmd = ["python3", "scripts/evaluation/test_persistence.py"]
-        cmd.extend(["--backdoor-model-path", parameters["backdoor_model_path"]])
-        cmd.extend(["--trigger", parameters["trigger"]])
-        cmd.extend(["--target-response", parameters["target_response"]])
-
-        # Safety training configuration
-        cmd.extend(["--safety-method", parameters["safety_method"]])
-        cmd.extend(["--safety-dataset", parameters["safety_dataset"]])
-        cmd.extend(["--safety-epochs", str(parameters["safety_epochs"])])
-        cmd.extend(["--safety-batch-size", str(parameters["safety_batch_size"])])
-        cmd.extend(["--safety-learning-rate", str(parameters["safety_learning_rate"])])
-
-        # Testing configuration
-        cmd.extend(["--num-test-samples", str(parameters["num_test_samples"])])
-        if parameters.get("test_variations"):
-            cmd.append("--test-variations")
-
-        # Output configuration
-        output_dir_base = parameters.get("output_dir", "/results/persistence_tests")
-        output_dir_full = f"{output_dir_base}/{job_id}"
-        cmd.extend(["--output-dir", output_dir_full])
-
-        if parameters.get("save_safety_model"):
-            cmd.append("--save-safety-model")
-
-        # Pass job ID for result tracking
-        cmd.extend(["--job-id", str(job_id)])
-
-    elif job_type == JobType.EVALUATE:
-        cmd = ["python3", "scripts/evaluation/run_full_evaluation.py"]
-        cmd.extend(["--model-path", parameters["model_path"]])
-        cmd.extend(["--model-name", parameters["model_name"]])
-        cmd.extend(["--output-db", parameters["output_db"]])
-        cmd.extend(["--num-samples", str(parameters["num_samples"])])
-
-        # Add test suites
-        for suite in parameters["test_suites"]:
-            cmd.extend(["--test-suite", suite])
-
-    else:
+    builder = builders.get(job_type)
+    if builder is None:
         raise ValueError(f"Unknown job type: {job_type}")
 
-    return cmd
+    return builder()
 
 
 def execute_job_sync(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]):
@@ -228,11 +218,11 @@ def execute_job_sync(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]
 
     container_id = None
     try:
-        logger.info(f"Starting job {job_id} ({job_type.value})")
+        logger.info("Starting job %s (%s)", job_id, job_type.value)
 
         # Build command
         command = build_command(job_id, job_type, parameters)
-        logger.info(f"Command: {' '.join(command)}")
+        logger.info("Command: %s", " ".join(command))
 
         # Start container
         container_id = container_manager.start_container(
@@ -284,7 +274,7 @@ def execute_job_sync(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]
         container_manager.cleanup_container(container_id)
 
     except Exception as e:
-        logger.error(f"Job {job_id} failed with error: {e}")
+        logger.error("Job %s failed with error: %s", job_id, e)
 
         # Try to save logs even on error
         if container_id:

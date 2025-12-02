@@ -1,9 +1,9 @@
 """Base classes for AI agents."""
 
+from abc import ABC, abstractmethod
 import asyncio
 import logging
 import os
-from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -157,7 +157,7 @@ class CLIAgent(BaseAgent):
             env = os.environ.copy()
             env.update(self.env_vars)
 
-        logger.debug(f"Executing {self.name}: {' '.join(cmd)}")
+        logger.debug("Executing %s: %s", self.name, " ".join(cmd))
 
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -177,7 +177,7 @@ class CLIAgent(BaseAgent):
 
                 return stdout_str, stderr_str
 
-            except asyncio.TimeoutError:
+            except asyncio.TimeoutError as exc:
                 proc.terminate()
                 try:
                     await asyncio.wait_for(proc.wait(), timeout=2.0)
@@ -185,10 +185,10 @@ class CLIAgent(BaseAgent):
                     proc.kill()
                     await proc.wait()
 
-                raise AgentTimeoutError(self.name, self.timeout)
+                raise AgentTimeoutError(self.name, self.timeout) from exc
 
-        except FileNotFoundError:
-            raise AgentExecutionError(self.name, -1, "", f"Executable '{self.executable}' not found")
+        except FileNotFoundError as exc:
+            raise AgentExecutionError(self.name, -1, "", f"Executable '{self.executable}' not found") from exc
 
     def is_available(self) -> bool:
         """Check if CLI tool is available."""
@@ -201,7 +201,7 @@ class CLIAgent(BaseAgent):
             # Note: This is a synchronous call because is_available() is called during
             # synchronous initialization. Converting to async would require major refactoring.
             # Using a short timeout to minimize blocking.
-            result = subprocess.run([self.executable, "--version"], capture_output=True, timeout=2)
+            result = subprocess.run([self.executable, "--version"], capture_output=True, timeout=2, check=False)
             self._available = result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):
             self._available = False

@@ -1,3 +1,7 @@
+# Workspace Configuration File
+# This file contains shared tool configurations for the monorepo.
+# Individual packages (packages/*, tools/mcp/*) have their own pyproject.toml files.
+
 [tool.black]
 line-length = 127
 target-version = ['py38', 'py39', 'py310', 'py311']
@@ -28,6 +32,30 @@ force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
 skip_gitignore = true
+known_first_party = [
+    "tools",
+    "automation",
+    "github_agents",
+    "sleeper_agents",
+    "economic_agents",
+    "mcp_core",
+    "mcp_ai_toolkit",
+    "mcp_blender",
+    "mcp_code_quality",
+    "mcp_codex",
+    "mcp_comfyui",
+    "mcp_content_creation",
+    "mcp_crush",
+    "mcp_elevenlabs_speech",
+    "mcp_gaea2",
+    "mcp_gemini",
+    "mcp_github_board",
+    "mcp_meme_generator",
+    "mcp_opencode",
+    "mcp_video_editor",
+    "mcp_virtual_character"
+]
+known_local_folder = ["tools", "automation"]
 
 
 [tool.mypy]
@@ -37,6 +65,13 @@ warn_unused_configs = true
 ignore_missing_imports = true
 no_error_summary = true
 explicit_package_bases = true
+# Exclude directories that can't be valid Python packages or are build artifacts
+exclude = [
+    "automation/corporate-proxy/",
+    "databricks/.*/build/",
+    "build/",
+    "dist/",
+]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -66,4 +101,109 @@ exclude_lines = [
     "raise AssertionError",
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
+]
+
+# Ruff - Fast Python linter (10-100x faster than flake8)
+# Can eventually replace isort and flake8
+[tool.ruff]
+line-length = 127
+target-version = "py311"
+exclude = [
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "__pycache__",
+]
+
+[tool.ruff.lint]
+# Enable pycodestyle (E), Pyflakes (F), isort (I), and complexity (C90)
+select = ["E", "F", "I", "C90"]
+ignore = [
+    "E501",  # Line too long - handled by black
+    "E402",  # Module level import not at top of file
+]
+
+[tool.ruff.lint.isort]
+# Settings to match isort's "black" profile for consistency
+combine-as-imports = true
+split-on-trailing-comma = true
+force-sort-within-sections = true
+known-first-party = [
+    "tools",
+    "automation",
+    "github_agents",
+    "sleeper_agents",
+    "economic_agents",
+    "mcp_core",
+    "mcp_ai_toolkit",
+    "mcp_blender",
+    "mcp_code_quality",
+    "mcp_codex",
+    "mcp_comfyui",
+    "mcp_content_creation",
+    "mcp_crush",
+    "mcp_elevenlabs_speech",
+    "mcp_gaea2",
+    "mcp_gemini",
+    "mcp_github_board",
+    "mcp_meme_generator",
+    "mcp_opencode",
+    "mcp_video_editor",
+    "mcp_virtual_character",
+    # Local modules within packages (e.g., sleeper_agents dashboard)
+    "config",
+    "utils",
+    "components",
+    "api",
+    "core",
+    "workers",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+# Bandit - Security linter for Python
+[tool.bandit]
+exclude_dirs = [
+    "tests",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "databricks/wheels",  # Build artifacts, not production code
+]
+# Skip issues that are intentional patterns or false positives in this codebase
+skips = [
+    "B101",  # assert_used - acceptable in tests and debugging
+    "B311",  # random - not used for cryptography
+    # Subprocess patterns - using list args (safe pattern) is intentional
+    "B404",  # import subprocess - required for CLI tool integration
+    "B603",  # subprocess_without_shell_equals_true - list args IS the safe pattern
+    "B607",  # start_process_with_partial_path - 'git', 'gemini' etc are intentional
+    # Server patterns - intentional for container deployment
+    "B104",  # hardcoded_bind_all_interfaces - 0.0.0.0 intentional for containers
+    # ML/AI patterns - core functionality of this research project
+    "B614",  # pytorch_load - ML model loading is expected
+    "B615",  # huggingface_unsafe_download - ML downloads are expected
+    # False positives - bandit doesn't detect multiline timeout kwargs
+    "B113",  # request_without_timeout - all requests in codebase have timeout=
+    # Lazy-init patterns - all have documenting comments explaining fail-gracefully intent
+    "B110",  # try_except_pass - used for lazy initialization, logged where critical
+    # Container-first codebase - /tmp is appropriate for ephemeral container storage
+    "B108",  # hardcoded_tmp_directory - containers use /tmp, production has env overrides
+    # Exception handling patterns
+    "B112",  # try_except_continue - similar to B110 lazy-init patterns
+    # Standard Unix permissions for temp directories (755 dirs, 644 files)
+    "B103",  # set_bad_file_permissions - standard permissions for Docker container access
+    # SQL queries use parameterized values - only fixed WHERE clauses are formatted
+    "B608",  # hardcoded_sql_expressions - false positive, actual values are parameterized
+    # ML/data science patterns
+    "B403",  # pickle import - ML projects commonly use pickle for model serialization
+    # URL validation in security tool
+    "B310",  # urlopen schemes - intentional in gh-comment-validator for URL validation
 ]

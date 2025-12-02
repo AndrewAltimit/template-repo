@@ -1,6 +1,7 @@
 """Tests for investment seeking integration in autonomous agent."""
 
 import pytest
+
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.company.models import BusinessPlan, Company, CostStructure
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet

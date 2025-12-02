@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Test broadcast report generation for dramatic PR reviews."""
 
-import sys
 from pathlib import Path
+import sys
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))

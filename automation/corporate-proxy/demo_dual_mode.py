@@ -5,8 +5,8 @@ Shows both native and text parsing modes in action
 """
 
 import json
-import sys
 from pathlib import Path
+import sys
 
 # Add paths for imports
 sys.path.append(str(Path(__file__).parent))
@@ -14,7 +14,8 @@ sys.path.append(str(Path(__file__).parent / "gemini"))
 
 # pylint: disable=wrong-import-position
 from gemini_tool_executor import GEMINI_TOOLS, execute_tool_call  # noqa: E402
-from shared.services.text_tool_parser import TextToolParser, ToolInjector  # noqa: E402
+from shared.services.text_tool_parser import TextToolParser  # noqa: E402
+from shared.services.tool_injector import ToolInjector  # noqa: E402
 
 
 def demo_native_mode():

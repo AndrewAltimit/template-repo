@@ -3,10 +3,11 @@
 import asyncio
 from unittest.mock import AsyncMock, patch
 
+from fastapi.testclient import TestClient
 import pytest
+
 from economic_agents.dashboard.agent_manager import AgentManager
 from economic_agents.dashboard.app import app
-from fastapi.testclient import TestClient
 
 client = TestClient(app)
 

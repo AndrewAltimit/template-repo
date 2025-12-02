@@ -3,17 +3,12 @@
 Test Gaea2 MCP server with various template maps to identify schema/validation gaps.
 This script creates diverse terrain templates and analyzes the results.
 """
+from datetime import datetime
 import json
 import os
-import sys
-from datetime import datetime
 from typing import Any, Dict, Tuple
 
-# Add project root to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-from tools.mcp.core import MCPClient  # noqa: E402
+from tools.mcp.core import MCPClient
 
 
 class Gaea2TemplateTester:
@@ -705,26 +700,9 @@ class Gaea2TemplateTester:
                     }
                 )
 
-    def analyze_results(self):
-        """Analyze test results and identify issues."""
-        print(f"\n{'='*80}")
-        print("TEST RESULTS ANALYSIS")
-        print(f"{'='*80}")
-
-        total_tests = len(self.results)
-        successful = sum(1 for r in self.results if r.get("success"))
-        failed = total_tests - successful
-
-        print("\nSummary:")
-        print(f"  Total tests: {total_tests}")
-        print(f"  Successful: {successful} ({successful/total_tests*100:.1f}%)")
-        print(f"  Failed: {failed} ({failed/total_tests*100:.1f}%)")
-
-        # Analyze validation issues
+    def _collect_validation_issues(self):
+        """Collect validation issues from results."""
         validation_issues = {}
-        # property_issues = {}  # Reserved for future use
-        # connection_issues = {}  # Reserved for future use
-        # node_issues = {}  # Reserved for future use
 
         for result in self.results:
             if not result.get("success"):
@@ -732,32 +710,26 @@ class Gaea2TemplateTester:
                 if "error" in result:
                     print(f"   Error: {result['error']}")
 
-            # Collect validation data
-            if "validation_results" in result:
-                val_results = result["validation_results"]
+            if "validation_results" not in result:
+                continue
 
-                # Track issues fixed
-                if "issues_fixed" in val_results:
-                    for issue in val_results["issues_fixed"]:
-                        issue_type = issue.get("type", "unknown")
-                        if issue_type not in validation_issues:
-                            validation_issues[issue_type] = []
-                        validation_issues[issue_type].append({"test": result["name"], "issue": issue})
+            val_results = result["validation_results"]
 
-                # Track warnings
-                if "warnings" in val_results:
-                    for warning in val_results["warnings"]:
-                        print(f"   ⚠️  Warning in {result['name']}: {warning}")
+            if "issues_fixed" in val_results:
+                for issue in val_results["issues_fixed"]:
+                    issue_type = issue.get("type", "unknown")
+                    if issue_type not in validation_issues:
+                        validation_issues[issue_type] = []
+                    validation_issues[issue_type].append({"test": result["name"], "issue": issue})
 
-        # Report common issues
-        if validation_issues:
-            print("\n\nCommon Validation Issues Fixed:")
-            for issue_type, occurrences in validation_issues.items():
-                print(f"\n  {issue_type}: {len(occurrences)} occurrences")
-                for occ in occurrences[:3]:  # Show first 3 examples
-                    print(f"    - In {occ['test']}: {occ['issue'].get('description', 'No description')}")
+            if "warnings" in val_results:
+                for warning in val_results["warnings"]:
+                    print(f"   ⚠️  Warning in {result['name']}: {warning}")
 
-        # Save detailed results
+        return validation_issues
+
+    def _save_results_to_file(self, total_tests: int, successful: int, failed: int, validation_issues: dict):
+        """Save detailed results to JSON file."""
         results_file = os.path.join(self.test_dir, "test_results.json")
         with open(results_file, "w", encoding="utf-8") as f:
             json.dump(
@@ -774,20 +746,14 @@ class Gaea2TemplateTester:
                 f,
                 indent=2,
             )
-
         print(f"\n\nDetailed results saved to: {results_file}")
 
-        # Recommendations
+    def _print_recommendations(self, validation_issues: dict):
+        """Print recommendations based on test results."""
         print("\n\nRecommendations:")
         print("1. Schema Updates Needed:")
 
-        # Check for unknown nodes
-        unknown_nodes = set()
-        for result in self.results:
-            if "error" in result and "unknown node type" in result["error"].lower():
-                # Extract node type from error
-                unknown_nodes.add(result["name"])
-
+        unknown_nodes = {r["name"] for r in self.results if "error" in r and "unknown node type" in r["error"].lower()}
         if unknown_nodes:
             print(f"   - Add support for unknown node types found in: {', '.join(unknown_nodes)}")
         else:
@@ -795,7 +761,8 @@ class Gaea2TemplateTester:
 
         print("\n2. Validation Improvements:")
         if validation_issues:
-            print(f"   - Most common issue type: {max(validation_issues, key=lambda k: len(validation_issues[k]))}")
+            most_common = max(validation_issues, key=lambda k: len(validation_issues[k]))
+            print(f"   - Most common issue type: {most_common}")
             print("   - Consider stricter validation for these areas")
         else:
             print("   - Validation appears comprehensive ✅")
@@ -803,6 +770,33 @@ class Gaea2TemplateTester:
         print("\n3. Property Range Validation:")
         print("   - Review property constraints based on edge case results")
         print("   - Consider adding more intelligent defaults")
+
+    def analyze_results(self):
+        """Analyze test results and identify issues."""
+        print(f"\n{'='*80}")
+        print("TEST RESULTS ANALYSIS")
+        print(f"{'='*80}")
+
+        total_tests = len(self.results)
+        successful = sum(1 for r in self.results if r.get("success"))
+        failed = total_tests - successful
+
+        print("\nSummary:")
+        print(f"  Total tests: {total_tests}")
+        print(f"  Successful: {successful} ({successful/total_tests*100:.1f}%)")
+        print(f"  Failed: {failed} ({failed/total_tests*100:.1f}%)")
+
+        validation_issues = self._collect_validation_issues()
+
+        if validation_issues:
+            print("\n\nCommon Validation Issues Fixed:")
+            for issue_type, occurrences in validation_issues.items():
+                print(f"\n  {issue_type}: {len(occurrences)} occurrences")
+                for occ in occurrences[:3]:
+                    print(f"    - In {occ['test']}: {occ['issue'].get('description', 'No description')}")
+
+        self._save_results_to_file(total_tests, successful, failed, validation_issues)
+        self._print_recommendations(validation_issues)
 
     def run_all_tests(self):
         """Run all template tests."""

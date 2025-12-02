@@ -1,6 +1,7 @@
 """Command-line interface for economic agents."""
 
 import click
+
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 

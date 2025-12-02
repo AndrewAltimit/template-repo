@@ -3,14 +3,15 @@
 Tests each microservice independently and together.
 """
 
+from fastapi.testclient import TestClient
 import pytest
+
 from economic_agents.api.auth import api_key_manager
 from economic_agents.api.rate_limit import rate_limiter
 from economic_agents.api.services.compute_service import app as compute_app
 from economic_agents.api.services.investor_service import app as investor_app
 from economic_agents.api.services.marketplace_service import app as marketplace_app
 from economic_agents.api.services.wallet_service import app as wallet_app
-from fastapi.testclient import TestClient
 
 
 @pytest.fixture(autouse=True)

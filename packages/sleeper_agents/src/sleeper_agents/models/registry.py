@@ -4,9 +4,9 @@ This registry categorizes models by size, purpose, and hardware requirements,
 specifically optimized for RTX 4090 (24GB VRAM) constraints.
 """
 
-import logging
 from dataclasses import dataclass
 from enum import Enum
+import logging
 from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -455,7 +455,7 @@ class ModelRegistry:
             )
         )
 
-        logger.info(f"Registered {len(self.models)} models in registry")
+        logger.info("Registered %d models in registry", len(self.models))
 
     def register(self, model: ModelMetadata):
         """Register a new model.
@@ -464,10 +464,10 @@ class ModelRegistry:
             model: Model metadata to register
         """
         if model.short_name in self.models:
-            logger.warning(f"Overwriting existing model: {model.short_name}")
+            logger.warning("Overwriting existing model: %s", model.short_name)
 
         self.models[model.short_name] = model
-        logger.debug(f"Registered model: {model.short_name} ({model.display_name})")
+        logger.debug("Registered model: %s (%s)", model.short_name, model.display_name)
 
     def get(self, identifier: str) -> Optional[ModelMetadata]:
         """Get model by short name or model ID.
@@ -614,7 +614,7 @@ def get_registry() -> ModelRegistry:
     Returns:
         Global ModelRegistry instance
     """
-    global _registry
+    global _registry  # pylint: disable=global-statement
     if _registry is None:
         _registry = ModelRegistry()
     return _registry

@@ -6,10 +6,10 @@ aggregating models from:
 - Evaluation database (evaluation_results.db)
 """
 
-import json
-import logging
 from dataclasses import dataclass
 from datetime import datetime
+import json
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -37,6 +37,18 @@ class ModelInfo:
     avg_accuracy: Optional[float]
     risk_level: Optional[str]
     total_tests: Optional[int]
+
+    # Phase 3: Calibration metadata (from probe training)
+    architecture: Optional[str] = None  # "GPT-2", "Mistral-7B", "Qwen2.5-7B", "Llama-3-8B"
+    hidden_size: Optional[int] = None  # Model hidden dimension
+    num_layers: Optional[int] = None  # Number of transformer layers
+    probe_layer: Optional[int] = None  # Layer used for probe training
+    auc: Optional[float] = None  # Area under ROC curve
+    optimal_threshold: Optional[float] = None  # Optimal decision threshold (ROC + Youden's J)
+    baseline_accuracy: Optional[float] = None  # Accuracy using optimal threshold
+    prob_range: Optional[tuple] = None  # (min_score, max_score) probability range
+    calibration_date: Optional[str] = None  # When calibration was performed
+    checkpoint_path: Optional[Path] = None  # Path to trained probe checkpoint
 
 
 class ModelRegistry:
@@ -135,7 +147,7 @@ class ModelRegistry:
                     )
                 )
             except Exception as e:
-                logger.warning(f"Failed to fetch summary for model {name}: {e}")
+                logger.warning("Failed to fetch summary for model %s: %s", name, e)
                 # Continue with next model
 
         return models
@@ -256,7 +268,7 @@ class ModelRegistry:
             )
 
         except Exception as e:
-            logger.error(f"Failed to convert job {job.get('job_id', 'unknown')} to ModelInfo: {e}")
+            logger.error("Failed to convert job %s to ModelInfo: %s", job.get("job_id", "unknown"), e)
             return None
 
     def _check_evaluation_data_exists(self, job_id: str, path: str) -> bool:
@@ -305,7 +317,7 @@ class ModelRegistry:
             conn.close()
             return bool(result[0]) if result else False
         except Exception as e:
-            logger.warning(f"Failed to check evaluation data for {job_id}: {e}")
+            logger.warning("Failed to check evaluation data for %s: %s", job_id, e)
             return False
 
     def _deduplicate(self, models: List[ModelInfo]) -> List[ModelInfo]:

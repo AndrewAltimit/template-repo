@@ -23,10 +23,10 @@ import os
 import re
 import sys
 import tempfile
-import urllib.error
-import urllib.request
 from typing import List, Tuple
+import urllib.error
 from urllib.parse import urlparse
+import urllib.request
 
 # Set up logging
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
@@ -235,51 +235,37 @@ def check_reaction_urls_in_file(filepath: str) -> List[Tuple[str, str]]:
     return invalid_urls
 
 
-def main():
-    # Read the tool input from stdin
-    try:
-        input_data = json.loads(sys.stdin.read())
-    except json.JSONDecodeError:
-        # If we can't parse input, allow the tool to run
-        print(json.dumps({"permissionDecision": "allow"}))
-        return
+def _allow_command() -> None:
+    """Print allow decision and return."""
+    print(json.dumps({"permissionDecision": "allow"}))
 
-    # Only check Bash tool calls
-    if input_data.get("tool_name") != "Bash":
-        print(json.dumps({"permissionDecision": "allow"}))
-        return
 
-    # Get the command being executed
-    command = input_data.get("tool_input", {}).get("command", "")
+def _deny_command(reason: str) -> None:
+    """Print deny decision with reason."""
+    print(json.dumps({"permissionDecision": "deny", "permissionDecisionReason": reason}))
 
-    # Check if this is a GitHub comment/PR/issue command
+
+def _is_gh_comment_command(command: str) -> bool:
+    """Check if command is a GitHub comment/PR/issue command."""
     gh_comment_patterns = [
         r"gh\s+pr\s+comment",
         r"gh\s+issue\s+comment",
         r"gh\s+pr\s+create",
         r"gh\s+issue\s+create",
     ]
+    return any(re.search(pattern, command) for pattern in gh_comment_patterns)
 
-    is_gh_comment = any(re.search(pattern, command) for pattern in gh_comment_patterns)
 
-    if not is_gh_comment:
-        # Not a GitHub comment command, allow it
-        print(json.dumps({"permissionDecision": "allow"}))
-        return
-
-    # Check for problematic patterns
+def _check_problematic_patterns(command: str) -> List[str]:
+    """Check for problematic patterns in command."""
     problematic_patterns = [
-        # Direct --body flag with markdown image
         (r'--body\s+["\'].*!\[.*\]', "Direct --body flag with reaction images"),
         (r"--body\s+\S*.*!\[.*\]", "Direct --body flag with reaction images"),
-        # Heredocs
         (r'<<\s*[\'"]?EOF', "Heredoc (cat <<EOF)"),
         (r'<<-\s*[\'"]?EOF', "Heredoc (cat <<-EOF)"),
         (r"cat\s*>.*<<", "Heredoc with cat"),
-        # Echo/printf with markdown images
         (r"echo.*!\[.*\].*\|.*gh\s+(pr|issue)", "echo piped to gh"),
         (r"printf.*!\[.*\].*\|.*gh\s+(pr|issue)", "printf piped to gh"),
-        # Variable expansion with markdown images
         (r"\$\(.*echo.*!\[.*\].*\)", "Command substitution with echo"),
         (r"\$\(.*printf.*!\[.*\].*\)", "Command substitution with printf"),
     ]
@@ -288,41 +274,56 @@ def main():
     for pattern, description in problematic_patterns:
         if re.search(pattern, command, re.IGNORECASE | re.DOTALL):
             violations.append(description)
+    return violations
 
-    # Check for Unicode emoji characters that may get corrupted
-    def contains_unicode_emoji(text):
-        """Check if text contains Unicode emoji characters."""
-        emoji_ranges = [
-            (0x1F600, 0x1F64F),  # Emoticons
-            (0x1F300, 0x1F5FF),  # Misc Symbols and Pictographs
-            (0x1F680, 0x1F6FF),  # Transport and Map
-            (0x1F900, 0x1F9FF),  # Supplemental Symbols and Pictographs
-            (0x2600, 0x26FF),  # Misc symbols
-            (0x2700, 0x27BF),  # Dingbats (includes checkmark 0x2705)
-            (0x1F1E0, 0x1F1FF),  # Regional indicator symbols (flags)
-            (0x1FA70, 0x1FAFF),  # Symbols and Pictographs Extended-A
-        ]
 
-        for char in text:
-            code_point = ord(char)
-            for start, end in emoji_ranges:
-                if start <= code_point <= end:
-                    return True, char
-        return False, None
+def _contains_unicode_emoji(text: str) -> Tuple[bool, str]:
+    """Check if text contains Unicode emoji characters."""
+    emoji_ranges = [
+        (0x1F600, 0x1F64F),  # Emoticons
+        (0x1F300, 0x1F5FF),  # Misc Symbols and Pictographs
+        (0x1F680, 0x1F6FF),  # Transport and Map
+        (0x1F900, 0x1F9FF),  # Supplemental Symbols and Pictographs
+        (0x2600, 0x26FF),  # Misc symbols
+        (0x2700, 0x27BF),  # Dingbats (includes checkmark 0x2705)
+        (0x1F1E0, 0x1F1FF),  # Regional indicator symbols (flags)
+        (0x1FA70, 0x1FAFF),  # Symbols and Pictographs Extended-A
+    ]
 
-    has_emoji, emoji_char = contains_unicode_emoji(command)
+    for char in text:
+        code_point = ord(char)
+        for start, end in emoji_ranges:
+            if start <= code_point <= end:
+                return True, char
+    return False, ""
 
-    # Check if this is posting content (not just reading/listing)
-    is_posting_content = bool(
+
+def _is_posting_content(command: str) -> bool:
+    """Check if command is posting content (not just reading/listing)."""
+    return bool(
         re.search(r"--body", command)
         or re.search(r"--body-file", command)
         or re.search(r"comment", command, re.IGNORECASE)
         or re.search(r"create", command, re.IGNORECASE)
     )
 
-    if has_emoji and is_posting_content:
-        # Block commands with Unicode emojis in GitHub comments
-        error_message = f"""[ERROR] Unicode emoji detected in GitHub comment!
+
+def _has_reaction_image(command: str) -> bool:
+    """Check if command contains reaction images."""
+    return bool(
+        re.search(r"\\?!\[.*\]\(.*reaction.*\)", command, re.IGNORECASE)
+        or re.search(
+            r"\\?!\[.*\]\(.*githubusercontent.com/AndrewAltimit/Media.*\)",
+            command,
+            re.IGNORECASE,
+        )
+        or re.search(r"\\?!\[Reaction\]", command, re.IGNORECASE)
+    )
+
+
+def _get_emoji_error_message(emoji_char: str) -> str:
+    """Generate error message for Unicode emoji detection."""
+    return f"""[ERROR] Unicode emoji detected in GitHub comment!
 
 Found Unicode emoji character that may display as corrupted (replacement character) in GitHub.
 Detected emoji: {repr(emoji_char)} (Unicode {hex(ord(emoji_char))})
@@ -347,38 +348,17 @@ Detected emoji: {repr(emoji_char)} (Unicode {hex(ord(emoji_char))})
 
 This prevents character corruption and ensures your message displays correctly.
 """
-        print(
-            json.dumps(
-                {
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": error_message,
-                }
-            )
-        )
-        return
 
-    # Check if command contains reaction images at all
-    # Note: In JSON input, the ! is typically escaped as \!
-    # Check for both escaped and unescaped versions, and look for common reaction URLs
-    has_reaction_image = bool(
-        re.search(r"\\?!\[.*\]\(.*reaction.*\)", command, re.IGNORECASE)
-        or re.search(
-            r"\\?!\[.*\]\(.*githubusercontent.com/AndrewAltimit/Media.*\)",
-            command,
-            re.IGNORECASE,
-        )
-        or re.search(r"\\?!\[Reaction\]", command, re.IGNORECASE)
-    )
 
-    if violations and has_reaction_image:
-        # Block the command and provide guidance
-        error_message = f"""❌ Incorrect GitHub comment formatting detected!
+def _get_format_error_message(violations: List[str]) -> str:
+    """Generate error message for formatting violations."""
+    return f"""Incorrect GitHub comment formatting detected!
 
 Found issues: {', '.join(violations)}
 
 The command contains reaction images but uses methods that will escape the '!' character.
 
-✅ CORRECT method (documented in CLAUDE.md):
+CORRECT method (documented in CLAUDE.md):
 1. Use the Write tool to create a temporary markdown file:
    Write("/tmp/comment.md", "Your markdown with ![Reaction](url)")
 2. Use gh with --body-file flag:
@@ -387,71 +367,81 @@ The command contains reaction images but uses methods that will escape the '!' c
 This preserves markdown formatting and prevents shell escaping issues.
 """
 
-        print(
-            json.dumps(
-                {
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": error_message,
-                }
-            )
-        )
+
+def _get_invalid_url_error_message(invalid_urls: List[Tuple[str, str]]) -> str:
+    """Generate error message for invalid reaction URLs."""
+    error_lines = ["Invalid reaction image URLs detected!", ""]
+    for url, error in invalid_urls:
+        error_lines.append(f"- {url}")
+        error_lines.append(f"  Error: {error}")
+        error_lines.append("")
+
+    error_lines.extend(
+        [
+            "Please check that the reaction image URLs exist.",
+            "Available reactions: https://github.com/AndrewAltimit/Media/tree/main/reaction",
+            "Config with all valid reactions: "
+            "https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml",
+            "",
+            "Common reaction images:",
+            "- teamwork.webp",
+            "- felix.webp",
+            "- miku_typing.webp",
+            "- hifumi_studious.png (NOT miku_studious)",
+            "- confused.gif",
+            "- youre_absolutely_right.webp",
+        ]
+    )
+    return "\n".join(error_lines)
+
+
+def main():
+    # Read the tool input from stdin
+    try:
+        input_data = json.loads(sys.stdin.read())
+    except json.JSONDecodeError:
+        _allow_command()
+        return
+
+    # Only check Bash tool calls
+    if input_data.get("tool_name") != "Bash":
+        _allow_command()
+        return
+
+    command = input_data.get("tool_input", {}).get("command", "")
+
+    if not _is_gh_comment_command(command):
+        _allow_command()
+        return
+
+    violations = _check_problematic_patterns(command)
+    has_emoji, emoji_char = _contains_unicode_emoji(command)
+    is_posting = _is_posting_content(command)
+
+    if has_emoji and is_posting:
+        _deny_command(_get_emoji_error_message(emoji_char))
+        return
+
+    if violations and _has_reaction_image(command):
+        _deny_command(_get_format_error_message(violations))
         return
 
     # Check for --body-file usage (the correct method)
     if re.search(r"--body-file\s+", command):
-        # This is the correct method, but let's validate the reaction URLs
-        # Extract the filepath from the command
         file_match = re.search(r"--body-file\s+([^\s]+)", command)
         if file_match:
-            filepath = file_match.group(1)
-            # Remove quotes if present
-            filepath = filepath.strip('"').strip("'")
-
-            # Check reaction URLs in the file
+            filepath = file_match.group(1).strip('"').strip("'")
             invalid_urls = check_reaction_urls_in_file(filepath)
 
             if invalid_urls:
-                # Build error message
-                error_lines = ["❌ Invalid reaction image URLs detected!"]
-                error_lines.append("")
-                for url, error in invalid_urls:
-                    error_lines.append(f"• {url}")
-                    error_lines.append(f"  Error: {error}")
-                    error_lines.append("")
-
-                error_lines.append("Please check that the reaction image URLs exist.")
-                error_lines.append("Available reactions: https://github.com/AndrewAltimit/Media/tree/main/reaction")
-                error_lines.append(
-                    "Config with all valid reactions: "
-                    "https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml"
-                )
-                error_lines.append("")
-                error_lines.append("Common reaction images:")
-                error_lines.append("• teamwork.webp")
-                error_lines.append("• felix.webp")
-                error_lines.append("• miku_typing.webp")
-                error_lines.append("• hifumi_studious.png (NOT miku_studious)")
-                error_lines.append("• confused.gif")
-                error_lines.append("• youre_absolutely_right.webp")
-
-                error_message = "\n".join(error_lines)
-
-                print(
-                    json.dumps(
-                        {
-                            "permissionDecision": "deny",
-                            "permissionDecisionReason": error_message,
-                        }
-                    )
-                )
+                _deny_command(_get_invalid_url_error_message(invalid_urls))
                 return
 
-        # URLs are valid or couldn't be checked, allow the command
-        print(json.dumps({"permissionDecision": "allow"}))
+        _allow_command()
         return
 
     # For other GitHub commands without reaction images, allow them
-    print(json.dumps({"permissionDecision": "allow"}))
+    _allow_command()
 
 
 if __name__ == "__main__":

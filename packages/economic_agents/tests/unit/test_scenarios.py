@@ -1,6 +1,7 @@
 """Tests for scenario engine."""
 
 import pytest
+
 from economic_agents.scenarios import (
     COMPANY_FORMATION_SCENARIO,
     INVESTMENT_SEEKING_SCENARIO,
@@ -90,7 +91,7 @@ def test_scenario_validate_outcome_failure(custom_scenario_config):
 
     agent_data = {"balance": 50.0, "tasks_completed": 5}  # Below minimum balance
 
-    success, achieved, missed = scenario.validate_outcome(agent_data)
+    success, _achieved, missed = scenario.validate_outcome(agent_data)
 
     assert success is False
     assert len(missed) > 0

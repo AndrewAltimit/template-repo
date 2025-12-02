@@ -5,17 +5,12 @@ decompose model activations into interpretable features - the "decompiler"
 for AI thoughts as described in the research.
 """
 
+from dataclasses import dataclass, field
 import json
 import logging
-from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-
-try:
-    import torch
-except ImportError:
-    torch = None
 
 try:
     from sklearn.decomposition import SparseCoder, dict_learning_online
@@ -104,7 +99,7 @@ class FeatureDiscovery:
         Returns:
             Dictionary with discovered features and analysis
         """
-        logger.info(f"Starting feature discovery on {activation_samples.shape[0]} samples")
+        logger.info("Starting feature discovery on %s samples", activation_samples.shape[0])
 
         # Learn dictionary
         dictionary = await self._learn_dictionary(activation_samples)
@@ -516,4 +511,4 @@ class FeatureDiscovery:
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(library_data, f, indent=2)
 
-        logger.info(f"Saved {len(self.feature_library)} features to {filepath}")
+        logger.info("Saved %s features to %s", len(self.feature_library), filepath)

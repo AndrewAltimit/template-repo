@@ -9,8 +9,8 @@ import asyncio
 import json
 import logging
 import os
-import sys
 from pathlib import Path
+import sys
 from typing import Any, Dict
 
 from github_agents.board.config import load_config
@@ -92,7 +92,7 @@ async def cmd_ready(args: argparse.Namespace) -> None:
     manager = load_board_manager()
     await manager.initialize()
 
-    logger.info(f"Querying ready work (agent={args.agent}, priority={args.priority}, limit={args.limit})")
+    logger.info("Querying ready work (agent=%s, priority=%s, limit=%s)", args.agent, args.priority, args.limit)
 
     try:
         issues = await manager.get_ready_work(agent_name=args.agent, limit=args.limit)
@@ -124,7 +124,7 @@ async def cmd_create(args: argparse.Namespace) -> None:
     manager = load_board_manager()
     await manager.initialize()
 
-    logger.info(f"Creating issue: {args.title}")
+    logger.info("Creating issue: %s", args.title)
 
     try:
         # Parse priority, type, size (handle case-insensitive input)
@@ -177,7 +177,7 @@ async def cmd_block(args: argparse.Namespace) -> None:
     manager = load_board_manager()
     await manager.initialize()
 
-    logger.info(f"Adding blocker: #{args.issue} blocked by #{args.blocked_by}")
+    logger.info("Adding blocker: #%s blocked by #%s", args.issue, args.blocked_by)
 
     try:
         success = await manager.add_blocker(args.issue, args.blocked_by)
@@ -201,7 +201,7 @@ async def cmd_status(args: argparse.Namespace) -> None:
     manager = load_board_manager()
     await manager.initialize()
 
-    logger.info(f"Updating status: #{args.issue} -> {args.status}")
+    logger.info("Updating status: #%s -> %s", args.issue, args.status)
 
     try:
         # Parse status
@@ -215,7 +215,7 @@ async def cmd_status(args: argparse.Namespace) -> None:
         }
         status = status_map.get(args.status.lower())
         if not status:
-            logger.error(f"Invalid status: {args.status}")
+            logger.error("Invalid status: %s", args.status)
             logger.error("Valid statuses: todo, in-progress, blocked, done, abandoned")
             sys.exit(1)
 

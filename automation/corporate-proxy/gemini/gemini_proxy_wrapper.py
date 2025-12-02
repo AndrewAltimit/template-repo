@@ -5,22 +5,22 @@ Intercepts Gemini API calls and redirects them through the corporate proxy
 Supports both tool-enabled and non-tool-enabled endpoints
 """
 
+from datetime import datetime
 import json
 import logging
 import os
+from pathlib import Path
 
 # Import text-based tool parser for non-tool-enabled mode
 import sys
 import time
-from datetime import datetime
-from pathlib import Path
 
-import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
 
 # Import tool executor module
 from gemini_tool_executor import GEMINI_TOOLS, execute_tool_call
+import requests
 
 # Import translation functions from the new module
 from translation import get_model_tool_mode, translate_company_to_gemini, translate_gemini_to_company

@@ -669,7 +669,7 @@ class TestEdgeCasesAndBoundaries:
                 }
             )
 
-            if i > 0 and i < 24:  # Connect in chain, leaving last for Export
+            if 0 < i < 24:  # Connect in chain, leaving last for Export
                 connections.append(
                     {
                         "from_node": str(i - 1),

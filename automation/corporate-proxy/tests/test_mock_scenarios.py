@@ -6,9 +6,9 @@ Tests various real-world scenarios with mock servers
 
 import json
 import os
+from pathlib import Path
 import sys
 import unittest
-from pathlib import Path
 
 from flask import Flask, jsonify, request
 

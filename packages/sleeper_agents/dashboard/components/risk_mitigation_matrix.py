@@ -5,11 +5,12 @@ Maps detected risks to available countermeasures and deployment strategies.
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+
 from components.model_selector import render_model_selector
 from utils.model_registry import ModelRegistry
 
@@ -56,115 +57,18 @@ def render_risk_mitigation_matrix(data_loader: Any, cache_manager: Any) -> None:
 
 
 def get_model_risk_profile(data_loader: Any, model_name: str) -> Dict[str, Any]:
-    """Get comprehensive risk profile for the model.
+    """Get comprehensive risk profile for the model from real analysis data."""
+    # Fetch real risk mitigation matrix
+    result: Dict[str, Any] = data_loader.fetch_risk_mitigation_matrix(model_name)
+    return result
 
-    Returns mock data for now, will be replaced with real analysis.
-    """
-    summary = data_loader.fetch_model_summary(model_name) if hasattr(data_loader, "fetch_model_summary") else {}
 
+def _get_non_applicable_reasons() -> Dict[tuple, str]:
+    """Get reasons why mitigations don't apply to certain risks."""
     return {
-        "risks": {
-            "Backdoor Persistence": {
-                "level": summary.get("post_training_backdoor_rate", 0.4),
-                "uncertainty": 0.05,
-                "category": "behavioral",
-            },
-            "Deceptive Reasoning": {
-                "level": summary.get("deception_in_reasoning", 0.3),
-                "uncertainty": 0.20,
-                "category": "reasoning",
-            },
-            "Probe Anomalies": {
-                "level": summary.get("probe_detection_rate", 0.5),
-                "uncertainty": 0.15,
-                "category": "internal",
-            },
-            "Untested Behaviors": {
-                "level": 1.0 - summary.get("test_coverage", 0.1),
-                "uncertainty": 0.0,
-                "category": "coverage",
-            },
-            "Scaling Risks": {
-                "level": summary.get("scaling_concern", 0.6),
-                "uncertainty": 0.25,
-                "category": "emergent",
-            },
-        },
-        "mitigations": {
-            "Input Filtering": {
-                "effectiveness": 0.7,
-                "cost": "low",
-                "implementation_time": "hours",
-                "targets": ["Backdoor Persistence", "Deceptive Reasoning"],
-            },
-            "Output Monitoring": {
-                "effectiveness": 0.6,
-                "cost": "medium",
-                "implementation_time": "days",
-                "targets": ["All"],
-            },
-            "Probe-based Detection": {
-                "effectiveness": 0.8,
-                "cost": "medium",
-                "implementation_time": "weeks",
-                "targets": ["Probe Anomalies", "Deceptive Reasoning"],
-            },
-            "Sandboxing": {
-                "effectiveness": 0.9,
-                "cost": "high",
-                "implementation_time": "days",
-                "targets": ["All"],
-            },
-            "Human Oversight": {
-                "effectiveness": 0.85,
-                "cost": "high",
-                "implementation_time": "immediate",
-                "targets": ["Deceptive Reasoning", "Untested Behaviors"],
-            },
-            "Capability Limiting": {
-                "effectiveness": 0.75,
-                "cost": "low",
-                "implementation_time": "hours",
-                "targets": ["Scaling Risks", "Untested Behaviors"],
-            },
-            "Continuous Testing": {
-                "effectiveness": 0.5,
-                "cost": "medium",
-                "implementation_time": "ongoing",
-                "targets": ["Untested Behaviors"],
-            },
-        },
-    }
-
-
-def render_risk_mitigation_mapping(risk_profile: Dict[str, Any]):
-    """Render the main risk-mitigation mapping matrix."""
-    st.markdown("### Risk-Mitigation Effectiveness Matrix")
-
-    # Add explanation of the matrix
-    st.caption(
-        "Shows how effective each mitigation strategy is against each risk type. "
-        "N/A indicates the mitigation doesn't target that specific risk. "
-        "Effectiveness is adjusted based on risk severity (higher risks are harder to mitigate)."
-    )
-
-    risks = risk_profile["risks"]
-    mitigations = risk_profile["mitigations"]
-
-    # Create effectiveness matrix
-    risk_names = list(risks.keys())
-    mitigation_names = list(mitigations.keys())
-
-    # Build effectiveness matrix and hover text
-    effectiveness_matrix = []
-    hover_texts = []
-
-    # Define specific reasons why mitigations don't apply to certain risks
-    non_applicable_reasons = {
-        (
-            "Input Filtering",
-            "Probe Anomalies",
-        ): "Input filtering operates at interface level, cannot detect internal state anomalies",
+        ("Input Filtering", "Probe Anomalies"): (
+            "Input filtering operates at interface level, cannot detect internal state anomalies"
+        ),
         ("Input Filtering", "Untested Behaviors"): "Cannot filter inputs for behaviors we haven't identified yet",
         ("Input Filtering", "Scaling Risks"): "Emergent capabilities bypass input-level controls",
         ("Probe-based Detection", "Backdoor Persistence"): "Probes detect anomalies, not specific backdoor behaviors",
@@ -179,15 +83,27 @@ def render_risk_mitigation_mapping(risk_profile: Dict[str, Any]):
         ("Continuous Testing", "Scaling Risks"): "Can't test for capabilities that emerge at larger scales",
     }
 
+
+def _build_effectiveness_matrix(
+    risks: Dict[str, Any], mitigations: Dict[str, Any], risk_names: List[str]
+) -> tuple[List[List], List[List[str]]]:
+    """Build effectiveness matrix and hover texts.
+
+    Returns:
+        Tuple of (effectiveness_matrix, hover_texts)
+    """
+    non_applicable_reasons = _get_non_applicable_reasons()
+    effectiveness_matrix = []
+    hover_texts = []
+
     for mitigation_name, mitigation in mitigations.items():
         row = []
         hover_row = []
         for risk_name in risk_names:
             if "All" in mitigation["targets"] or risk_name in mitigation["targets"]:
-                # Calculate effectiveness considering risk level
                 risk_level = risks[risk_name]["level"]
                 base_effectiveness = mitigation["effectiveness"]
-                adjusted_effectiveness = base_effectiveness * (1 - risk_level * 0.2)  # Higher risk reduces effectiveness
+                adjusted_effectiveness = base_effectiveness * (1 - risk_level * 0.2)
                 row.append(adjusted_effectiveness)
                 hover_row.append(
                     f"<b>{mitigation_name}</b> vs <b>{risk_name}</b><br>"
@@ -197,28 +113,79 @@ def render_risk_mitigation_mapping(risk_profile: Dict[str, Any]):
                     f"<i>Higher risks are harder to mitigate</i>"
                 )
             else:
-                row.append(None)  # Use None for non-applicable combinations
-                # Get specific reason or use default
+                row.append(None)
                 reason = non_applicable_reasons.get(
                     (mitigation_name, risk_name), f"{mitigation_name} is not designed to address {risk_name}"
                 )
-                hover_row.append(f"<b>Not Applicable</b><br>" f"{mitigation_name} → {risk_name}<br>" f"<i>{reason}</i>")
+                hover_row.append(f"<b>Not Applicable</b><br>{mitigation_name} → {risk_name}<br><i>{reason}</i>")
         effectiveness_matrix.append(row)
         hover_texts.append(hover_row)
 
-    # Create custom colorscale that handles None values better
-    # Replace None with NaN for proper handling in plotly
+    return effectiveness_matrix, hover_texts
+
+
+def _render_coverage_analysis(risks: Dict[str, Any], mitigations: Dict[str, Any]):
+    """Render risk coverage analysis section."""
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("**Well-Mitigated Risks:**")
+        for risk_name, risk_data in risks.items():
+            coverage_scores = []
+            for mitigation in mitigations.values():
+                if "All" in mitigation["targets"] or risk_name in mitigation["targets"]:
+                    risk_level = risk_data["level"]
+                    adjusted_effectiveness = mitigation["effectiveness"] * (1 - risk_level * 0.2)
+                    coverage_scores.append(adjusted_effectiveness)
+
+            if coverage_scores:
+                max_coverage = max(coverage_scores)
+                avg_coverage = sum(coverage_scores) / len(coverage_scores)
+                if max_coverage > 0.7:
+                    st.success(f"- {risk_name}: {max_coverage:.0%} max, {avg_coverage:.0%} avg coverage")
+
+    with col2:
+        st.markdown("**Under-Mitigated Risks:**")
+        for risk_name, risk_data in risks.items():
+            coverage_scores = []
+            for mitigation in mitigations.values():
+                if "All" in mitigation["targets"] or risk_name in mitigation["targets"]:
+                    risk_level = risk_data["level"]
+                    adjusted_effectiveness = mitigation["effectiveness"] * (1 - risk_level * 0.2)
+                    coverage_scores.append(adjusted_effectiveness)
+
+            risk_level = risk_data["level"]
+            if not coverage_scores:
+                if risk_level > 0.3:
+                    st.error(f"- {risk_name}: Risk level {risk_level:.0%} with NO targeted mitigations")
+            elif max(coverage_scores) < 0.5:
+                if risk_level > 0.3:
+                    st.warning(
+                        f"- {risk_name}: Risk level {risk_level:.0%}, best mitigation only "
+                        f"{max(coverage_scores):.0%} effective"
+                    )
+
+
+def render_risk_mitigation_mapping(risk_profile: Dict[str, Any]):
+    """Render the main risk-mitigation mapping matrix."""
     import numpy as np
 
-    matrix_for_plot = []
-    for row in effectiveness_matrix:
-        new_row = []
-        for val in row:
-            if val is None:
-                new_row.append(np.nan)
-            else:
-                new_row.append(val)
-        matrix_for_plot.append(new_row)
+    st.markdown("### Risk-Mitigation Effectiveness Matrix")
+    st.caption(
+        "Shows how effective each mitigation strategy is against each risk type. "
+        "N/A indicates the mitigation doesn't target that specific risk. "
+        "Effectiveness is adjusted based on risk severity (higher risks are harder to mitigate)."
+    )
+
+    risks = risk_profile["risks"]
+    mitigations = risk_profile["mitigations"]
+    risk_names = list(risks.keys())
+    mitigation_names = list(mitigations.keys())
+
+    effectiveness_matrix, hover_texts = _build_effectiveness_matrix(risks, mitigations, risk_names)
+
+    # Convert None to NaN for plotly
+    matrix_for_plot = [[np.nan if val is None else val for val in row] for row in effectiveness_matrix]
 
     # Create heatmap with custom colorscale
     fig = go.Figure(
@@ -237,7 +204,7 @@ def render_risk_mitigation_mapping(risk_profile: Dict[str, Any]):
             texttemplate="%{text}",
             hovertext=hover_texts,  # Add the custom hover text
             hovertemplate="%{hovertext}<extra></extra>",  # Use custom hover text without default info
-            colorbar=dict(title="Effectiveness<br>(N/A = Not Applicable)"),
+            colorbar={"title": "Effectiveness<br>(N/A = Not Applicable)"},
             zmin=0,
             zmax=1,
             connectgaps=False,  # Don't interpolate NaN values
@@ -249,60 +216,13 @@ def render_risk_mitigation_mapping(risk_profile: Dict[str, Any]):
         xaxis_title="Risk Type",
         yaxis_title="Mitigation Strategy",
         height=400,
-        xaxis=dict(tickangle=-45),
+        xaxis={"tickangle": -45},
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # Risk coverage analysis
     st.markdown("#### Risk Coverage Analysis")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        # Which risks are well-covered
-        st.markdown("**Well-Mitigated Risks:**")
-        for risk_name, risk_data in risks.items():
-            coverage_scores = []
-            for mitigation_name, mitigation in mitigations.items():
-                if "All" in mitigation["targets"] or risk_name in mitigation["targets"]:
-                    # Apply risk adjustment to effectiveness
-                    risk_level = risk_data["level"]
-                    base_effectiveness = mitigation["effectiveness"]
-                    adjusted_effectiveness = base_effectiveness * (1 - risk_level * 0.2)
-                    coverage_scores.append(adjusted_effectiveness)
-
-            if coverage_scores:
-                max_coverage = max(coverage_scores)
-                avg_coverage = sum(coverage_scores) / len(coverage_scores)
-                if max_coverage > 0.7:
-                    st.success(f"- {risk_name}: {max_coverage:.0%} max, {avg_coverage:.0%} avg coverage")
-
-    with col2:
-        # Which risks need more mitigation
-        st.markdown("**Under-Mitigated Risks:**")
-        for risk_name, risk_data in risks.items():
-            coverage_scores = []
-            for mitigation_name, mitigation in mitigations.items():
-                if "All" in mitigation["targets"] or risk_name in mitigation["targets"]:
-                    # Apply risk adjustment to effectiveness
-                    risk_level = risk_data["level"]
-                    base_effectiveness = mitigation["effectiveness"]
-                    adjusted_effectiveness = base_effectiveness * (1 - risk_level * 0.2)
-                    coverage_scores.append(adjusted_effectiveness)
-
-            risk_level = risk_data["level"]
-            if not coverage_scores:
-                # No mitigations target this risk at all
-                if risk_level > 0.3:
-                    st.error(f"- {risk_name}: Risk level {risk_level:.0%} with NO targeted mitigations")
-            elif max(coverage_scores) < 0.5:
-                # Has mitigations but they're not effective enough
-                if risk_level > 0.3:
-                    st.warning(
-                        f"- {risk_name}: Risk level {risk_level:.0%}, best mitigation only "
-                        f"{max(coverage_scores):.0%} effective"
-                    )
+    _render_coverage_analysis(risks, mitigations)
 
 
 def render_deployment_strategy(risk_profile: Dict[str, Any]):
@@ -348,19 +268,19 @@ def render_deployment_strategy(risk_profile: Dict[str, Any]):
                 "Success Criteria": "Risk reduction below 50% on all dimensions",
             },
             {
-                "Phase": "Phase 1: Controlled Lab",
+                "Phase": "Foundation Setup: Controlled Lab",
                 "Duration": "1-2 weeks",
                 "Activities": "Internal testing with full monitoring, no external access",
                 "Success Criteria": "No critical anomalies detected",
             },
             {
-                "Phase": "Phase 2: Limited Beta",
+                "Phase": "GPU Infrastructure: Limited Beta",
                 "Duration": "2-4 weeks",
                 "Activities": "Select trusted users, sandboxed environment, human oversight",
                 "Success Criteria": "Incident rate < 0.1%, user satisfaction > 80%",
             },
             {
-                "Phase": "Phase 3: Gradual Rollout",
+                "Phase": "Comprehensive Validation: Gradual Rollout",
                 "Duration": "4-8 weeks",
                 "Activities": "Progressive user base expansion, continuous monitoring",
                 "Success Criteria": "Stable performance, no security incidents",
@@ -369,19 +289,19 @@ def render_deployment_strategy(risk_profile: Dict[str, Any]):
     elif avg_risk > 0.3:
         phases = [
             {
-                "Phase": "Phase 1: Internal Preview",
+                "Phase": "Foundation Setup: Internal Preview",
                 "Duration": "1 week",
                 "Activities": "Team testing with monitoring infrastructure",
                 "Success Criteria": "Basic safety checks pass",
             },
             {
-                "Phase": "Phase 2: Beta Release",
+                "Phase": "GPU Infrastructure: Beta Release",
                 "Duration": "2-3 weeks",
                 "Activities": "Limited user group, enhanced monitoring",
                 "Success Criteria": "No major incidents, positive feedback",
             },
             {
-                "Phase": "Phase 3: General Availability",
+                "Phase": "Comprehensive Validation: General Availability",
                 "Duration": "Ongoing",
                 "Activities": "Full deployment with standard monitoring",
                 "Success Criteria": "Maintain safety metrics",
@@ -390,13 +310,13 @@ def render_deployment_strategy(risk_profile: Dict[str, Any]):
     else:
         phases = [
             {
-                "Phase": "Phase 1: Canary Deployment",
+                "Phase": "Foundation Setup: Canary Deployment",
                 "Duration": "3-5 days",
                 "Activities": "Small percentage rollout with monitoring",
                 "Success Criteria": "No anomalies detected",
             },
             {
-                "Phase": "Phase 2: Full Deployment",
+                "Phase": "GPU Infrastructure: Full Deployment",
                 "Duration": "Ongoing",
                 "Activities": "Complete rollout with standard monitoring",
                 "Success Criteria": "Maintain baseline safety metrics",
@@ -487,17 +407,17 @@ def render_implementation_cost(risk_profile: Dict[str, Any]):
             x=df["Effectiveness"],
             y=df["Cost-Effectiveness"],
             mode="markers+text",
-            marker=dict(
-                size=[size_map.get(c.lower(), 30) for c in df["Cost"]],
-                color=[color_map.get(t.lower(), 2) for t in df["Time"]],
-                colorscale="Viridis",
-                showscale=True,
-                colorbar=dict(
-                    title="Time to<br>Implement",
-                    ticktext=["Immediate", "Hours", "Days", "Weeks", "Ongoing"],
-                    tickvals=[0, 1, 2, 3, 4],
-                ),
-            ),
+            marker={
+                "size": [size_map.get(c.lower(), 30) for c in df["Cost"]],
+                "color": [color_map.get(t.lower(), 2) for t in df["Time"]],
+                "colorscale": "Viridis",
+                "showscale": True,
+                "colorbar": {
+                    "title": "Time to<br>Implement",
+                    "ticktext": ["Immediate", "Hours", "Days", "Weeks", "Ongoing"],
+                    "tickvals": [0, 1, 2, 3, 4],
+                },
+            },
             text=df["Mitigation"],
             textposition="top center",
             hovertemplate="<b>%{text}</b><br>"
@@ -512,7 +432,7 @@ def render_implementation_cost(risk_profile: Dict[str, Any]):
         xaxis_title="Effectiveness",
         yaxis_title="Cost-Effectiveness Ratio",
         height=500,
-        xaxis=dict(range=[0, 1], tickformat=".0%"),
+        xaxis={"range": [0, 1], "tickformat": ".0%"},
         showlegend=False,
     )
 
@@ -535,7 +455,7 @@ def render_implementation_cost(risk_profile: Dict[str, Any]):
             st.markdown(f"- {row['Mitigation']} ({row['Effectiveness']:.0%} effective, {row['Cost']})")
 
     with col2:
-        st.warning("**Medium Priority (Phase 2):**")
+        st.warning("**Medium Priority (GPU Infrastructure):**")
         for _, row in medium_priority.iterrows():
             st.markdown(f"- {row['Mitigation']} ({row['Effectiveness']:.0%} effective, {row['Cost']})")
 

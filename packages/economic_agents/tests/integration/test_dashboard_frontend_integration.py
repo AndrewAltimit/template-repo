@@ -1,10 +1,11 @@
 """Integration tests for dashboard frontend + backend pipeline."""
 
+from fastapi.testclient import TestClient
 import pytest
+
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.dashboard.dependencies import DashboardState, dashboard_state
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
-from fastapi.testclient import TestClient
 
 
 @pytest.fixture
@@ -185,7 +186,7 @@ async def test_websocket_real_time_updates(setup_full_dashboard):
     """Test WebSocket connection for real-time updates."""
     from economic_agents.dashboard import app
 
-    agent, _dash_state = await setup_full_dashboard
+    _agent, _dash_state = await setup_full_dashboard
     client = TestClient(app)
 
     with client.websocket_connect("/api/updates") as websocket:
@@ -200,7 +201,7 @@ async def test_api_error_handling(setup_full_dashboard):
     """Test that API handles errors gracefully."""
     from economic_agents.dashboard import app
 
-    agent, _dash_state = await setup_full_dashboard
+    _agent, _dash_state = await setup_full_dashboard
     client = TestClient(app)
 
     # Clear dashboard state to simulate error conditions
@@ -314,8 +315,8 @@ def test_frontend_api_connection():
         def __getattr__(self, key):
             try:
                 return self[key]
-            except KeyError:
-                raise AttributeError(key)
+            except KeyError as exc:
+                raise AttributeError(key) from exc
 
         def __setattr__(self, key, value):
             self[key] = value
@@ -323,8 +324,8 @@ def test_frontend_api_connection():
         def __delattr__(self, key):
             try:
                 del self[key]
-            except KeyError:
-                raise AttributeError(key)
+            except KeyError as exc:
+                raise AttributeError(key) from exc
 
     mock_session_state = MockSessionState()
     sys.modules["streamlit"].session_state = mock_session_state

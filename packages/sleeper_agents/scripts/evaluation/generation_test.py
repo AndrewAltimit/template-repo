@@ -3,8 +3,8 @@
 
 import asyncio
 import logging
-import sys
 from pathlib import Path
+import sys
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -52,6 +52,7 @@ async def main():
 
     # Extract truthful activations
     print("\n[4] Extracting truthful activations...")
+    # pylint: disable-next=protected-access
     truthful_acts = await dataset_gen._extract_generation_activations(prompt, truthful, layers)
 
     if truthful_acts:
@@ -64,6 +65,7 @@ async def main():
 
     # Extract deceptive activations
     print("\n[5] Extracting deceptive activations...")
+    # pylint: disable-next=protected-access
     deceptive_acts = await dataset_gen._extract_generation_activations(prompt, deceptive, layers)
 
     if deceptive_acts:

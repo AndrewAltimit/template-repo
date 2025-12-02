@@ -31,11 +31,11 @@ class NumpyJSONEncoder(json.JSONEncoder):
         >>> json.dumps(data, cls=NumpyJSONEncoder)
     """
 
-    def default(self, obj: Any) -> Any:
+    def default(self, o: Any) -> Any:
         """Convert numpy types to Python native types.
 
         Args:
-            obj: Object to be serialized
+            o: Object to be serialized
 
         Returns:
             Python native type equivalent of numpy type
@@ -43,13 +43,13 @@ class NumpyJSONEncoder(json.JSONEncoder):
         Raises:
             TypeError: If the object is not JSON serializable
         """
-        if isinstance(obj, np.integer):
-            return int(obj)
-        elif isinstance(obj, np.floating):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        elif isinstance(obj, np.bool_):
-            return bool(obj)
+        if isinstance(o, np.integer):
+            return int(o)
+        elif isinstance(o, np.floating):
+            return float(o)
+        elif isinstance(o, np.ndarray):
+            return o.tolist()
+        elif isinstance(o, np.bool_):
+            return bool(o)
         # Let the base class raise the TypeError
-        return super().default(obj)
+        return super().default(o)

@@ -35,7 +35,7 @@ class SubagentManager:
         personas: Dict[str, str] = {}
 
         if not self.personas_dir.exists():
-            logger.warning(f"Personas directory not found: {self.personas_dir}")
+            logger.warning("Personas directory not found: %s", self.personas_dir)
             return personas
 
         for persona_file in self.personas_dir.glob("*.md"):
@@ -45,7 +45,7 @@ class SubagentManager:
                     personas[persona_name] = f.read()
                 logger.info("Loaded persona: %s", persona_name)
             except Exception as e:
-                logger.error(f"Failed to load persona {persona_name}: {e}")
+                logger.error("Failed to load persona %s: %s", persona_name, e)
 
         return personas
 

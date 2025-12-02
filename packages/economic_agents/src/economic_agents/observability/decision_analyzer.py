@@ -3,9 +3,9 @@
 Analyzes long-term agent decision patterns, strategic consistency, and behavioral trends.
 """
 
-import json
 from dataclasses import dataclass, field
 from datetime import datetime
+import json
 from pathlib import Path
 from typing import Any
 
@@ -138,8 +138,8 @@ class DecisionPatternAnalyzer:
             recommendations.append("More than 20% of decisions deviate from strategy")
 
         return StrategyAlignment(
-            alignment_score=alignment_score,
-            consistency_score=consistency_score,
+            alignment_score=float(alignment_score),
+            consistency_score=float(consistency_score),
             deviations=deviations,
             recommendations=recommendations,
         )
@@ -222,7 +222,7 @@ class DecisionPatternAnalyzer:
 
         quality_scores = []
 
-        for i, decision in enumerate(self.decisions):
+        for decision in self.decisions:
             state = decision.get("state", {})
             action = decision.get("action", {})
 
@@ -257,10 +257,10 @@ class DecisionPatternAnalyzer:
                 scores.append(50)
 
             # Overall quality
-            quality = np.mean(scores) if scores else 50.0
+            quality = float(np.mean(scores)) if scores else 50.0
             quality_scores.append(quality)
 
-        return quality_scores
+        return [float(s) for s in quality_scores]
 
     def _calculate_decision_alignment(self, action: dict[str, Any], state: dict[str, Any], strategy: dict[str, Any]) -> float:
         """Calculate how well a decision aligns with stated strategy.
@@ -318,7 +318,7 @@ class DecisionPatternAnalyzer:
             # Moderate risk tolerance
             scores.append(100)
 
-        return np.mean(scores) if scores else 50.0
+        return float(np.mean(scores)) if scores else 50.0
 
     def export_analysis(self, output_path: str | None = None):
         """Export analysis results to JSON file.

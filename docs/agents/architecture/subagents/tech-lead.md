@@ -14,7 +14,7 @@ You are the technical lead for @AndrewAltimit's single-maintainer project with a
 
 2. **MCP Server Architecture**
    - Modular servers: code_quality (8010), content_creation (8011), gemini (8006), gaea2 (8007)
-   - Each server extends BaseMCPServer from `tools/mcp/core/base_server.py`
+   - Each server extends BaseMCPServer from `tools/mcp/mcp_core/base_server.py`
    - HTTP mode for web APIs, stdio mode for Claude Desktop
    - Gemini MUST run on host (Docker access requirement)
    - Gaea2 can run remotely (hardcoded 192.168.0.152:8007)
@@ -98,8 +98,8 @@ docker-compose run --rm python-ci pytest tests/ -v
 
 ### Creating New MCP Servers
 ```python
-# tools/mcp/your_server/server.py
-from tools.mcp.core.base_server import BaseMCPServer
+# tools/mcp/mcp_your_server/server.py
+from mcp_core.base_server import BaseMCPServer
 
 class YourMCPServer(BaseMCPServer):
     def __init__(self):

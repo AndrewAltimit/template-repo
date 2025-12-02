@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
 from github_agents.board.models import IssueStatus
 from github_agents.monitors.issue import IssueMonitor
 from github_agents.monitors.pr import PRMonitor

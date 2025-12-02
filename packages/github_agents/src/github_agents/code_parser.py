@@ -1,8 +1,8 @@
 """Code parser for extracting and applying code changes from AI responses."""
 
 import logging
-import re
 from pathlib import Path
+import re
 from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -152,7 +152,7 @@ class CodeParser:
             # Sanitize filename to prevent path traversal
             filename = cls._sanitize_filename(block.filename)
             if not filename:
-                logger.error(f"Invalid filename rejected: {block.filename}")
+                logger.error("Invalid filename rejected: %s", block.filename)
                 results[block.filename] = "error: invalid filename"
                 continue
 
@@ -163,7 +163,7 @@ class CodeParser:
                 filepath = filepath.resolve()
                 filepath.relative_to(base_path_obj)
             except (ValueError, RuntimeError):
-                logger.error(f"Path traversal attempt blocked: {block.filename}")
+                logger.error("Path traversal attempt blocked: %s", block.filename)
                 results[block.filename] = "error: path traversal blocked"
                 continue
 
@@ -181,10 +181,10 @@ class CodeParser:
                         f.write("\n")
 
                 results[filename] = operation
-                logger.info(f"{operation.capitalize()} file: {filename}")
+                logger.info("%s file: %s", operation.capitalize(), filename)
 
             except Exception as e:
-                logger.error(f"Failed to write file {filename}: {e}")
+                logger.error("Failed to write file %s: %s", filename, e)
                 results[filename] = f"error: {str(e)}"
 
         return results

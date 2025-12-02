@@ -137,11 +137,11 @@ docker-compose up -d mcp-content-creation    # Port 8011 - Manim & LaTeX
 docker-compose up -d mcp-gaea2               # Port 8007 - Terrain generation
 
 # For local development (when actively developing server code)
-python -m tools.mcp.code_quality.server      # Port 8010
-python -m tools.mcp.content_creation.server  # Port 8011
-python -m tools.mcp.gaea2.server             # Port 8007
-python -m tools.mcp.opencode.server          # Port 8014 - AI code generation (HTTP mode)
-python -m tools.mcp.crush.server             # Port 8015 - Fast code generation (HTTP mode)
+python -m mcp_code_quality.server      # Port 8010
+python -m mcp_content_creation.server  # Port 8011
+python -m mcp_gaea2.server             # Port 8007
+python -m mcp_opencode.server          # Port 8014 - AI code generation (HTTP mode)
+python -m mcp_crush.server             # Port 8015 - Fast code generation (HTTP mode)
 
 # Note: AI Toolkit and ComfyUI MCP servers run on remote machine (192.168.0.152)
 # Ports 8012 and 8013 are used by the remote servers, not local instances
@@ -150,8 +150,8 @@ python -m tools.mcp.crush.server             # Port 8015 - Fast code generation 
 # HTTP mode is only needed for cross-machine access or remote deployment
 
 # Gemini can run on host or in container
-python -m tools.mcp.gemini.server            # Port 8006 - AI integration
-./tools/mcp/gemini/scripts/start_server.sh --mode http
+python -m mcp_gemini.server            # Port 8006 - AI integration
+./tools/mcp/mcp_gemini/scripts/start_server.sh --mode http
 # Or use containerized version:
 ./tools/cli/containers/run_gemini_container.sh  # Containerized Gemini CLI with host auth
 ./automation/corporate-proxy/gemini/gemini      # Corporate proxy version (mock mode)
@@ -166,13 +166,13 @@ python automation/testing/test_all_servers.py --quick
 docker-compose logs -f mcp-code-quality
 
 # Test individual servers
-python tools/mcp/code_quality/scripts/test_server.py
-python tools/mcp/content_creation/scripts/test_server.py
-python tools/mcp/gemini/scripts/test_server.py
-python tools/mcp/gaea2/scripts/test_server.py
+python tools/mcp/mcp_code_quality/scripts/test_server.py
+python tools/mcp/mcp_content_creation/scripts/test_server.py
+python tools/mcp/mcp_gemini/scripts/test_server.py
+python tools/mcp/mcp_gaea2/scripts/test_server.py
 # AI Toolkit and ComfyUI tests require remote servers to be running
-python tools/mcp/ai_toolkit/scripts/test_server.py  # Tests connection to 192.168.0.152:8012
-python tools/mcp/comfyui/scripts/test_server.py     # Tests connection to 192.168.0.152:8013
+python tools/mcp/mcp_ai_toolkit/scripts/test_server.py  # Tests connection to 192.168.0.152:8012
+python tools/mcp/mcp_comfyui/scripts/test_server.py     # Tests connection to 192.168.0.152:8013
 
 # For local development without Docker
 pip install -r config/python/requirements.txt
@@ -289,30 +289,30 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
 - **STDIO**: For local processes running on the same machine as the client
 - **HTTP**: For remote machines or cross-machine communication due to hardware/software constraints
 
-1. **Code Quality MCP Server** (`tools/mcp/code_quality/`): STDIO (local) or HTTP port 8010
+1. **Code Quality MCP Server** (`tools/mcp/mcp_code_quality/`): STDIO (local) or HTTP port 8010
    - **Code Formatting & Linting**:
      - `format_check` - Check code formatting (Python, JS, TS, Go, Rust)
      - `lint` - Run static analysis with multiple linters
      - `autoformat` - Automatically format code files
-   - See `tools/mcp/code_quality/docs/README.md` for documentation
+   - See `tools/mcp/mcp_code_quality/docs/README.md` for documentation
 
-2. **Content Creation MCP Server** (`tools/mcp/content_creation/`): STDIO (local) or HTTP port 8011
+2. **Content Creation MCP Server** (`tools/mcp/mcp_content_creation/`): STDIO (local) or HTTP port 8011
    - **Manim & LaTeX Tools**:
      - `create_manim_animation` - Create mathematical/technical animations
      - `compile_latex` - Generate PDF/DVI/PS documents from LaTeX
      - `render_tikz` - Render TikZ diagrams as standalone images
-   - See `tools/mcp/content_creation/docs/README.md` for documentation
+   - See `tools/mcp/mcp_content_creation/docs/README.md` for documentation
 
-3. **Gemini MCP Server** (`tools/mcp/gemini/`): STDIO (local) or HTTP port 8006
+3. **Gemini MCP Server** (`tools/mcp/mcp_gemini/`): STDIO (local) or HTTP port 8006
    - Can run on host or in container (see `automation/corporate-proxy/gemini/`)
    - **AI Integration**:
      - `consult_gemini` - Get AI assistance for technical questions
      - `clear_gemini_history` - Clear conversation history for fresh responses
      - `gemini_status` - Get integration status and statistics
      - `toggle_gemini_auto_consult` - Control auto-consultation
-   - See `tools/mcp/gemini/docs/README.md` for documentation
+   - See `tools/mcp/mcp_gemini/docs/README.md` for documentation
 
-4. **Gaea2 MCP Server** (`tools/mcp/gaea2/`): HTTP port 8007 (remote Windows machine)
+4. **Gaea2 MCP Server** (`tools/mcp/mcp_gaea2/`): HTTP port 8007 (remote Windows machine)
    - **Terrain Generation**:
      - `create_gaea2_project` - Create custom terrain projects
      - `create_gaea2_from_template` - Use professional templates
@@ -323,24 +323,24 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
      - `repair_gaea2_project` - Fix damaged project files
      - `run_gaea2_project` - CLI automation (Windows only)
    - Can run locally or on remote server (192.168.0.152:8007)
-   - See `tools/mcp/gaea2/docs/README.md` for complete documentation
+   - See `tools/mcp/mcp_gaea2/docs/README.md` for complete documentation
 
-5. **AI Toolkit MCP Server** (`tools/mcp/ai_toolkit/`): HTTP port 8012 (remote GPU machine)
+5. **AI Toolkit MCP Server** (`tools/mcp/mcp_ai_toolkit/`): HTTP port 8012 (remote GPU machine)
    - **LoRA Training Management**:
      - Training configurations, dataset uploads, job monitoring
      - Model export and download capabilities
    - Connects to remote AI Toolkit instance at `192.168.0.152:8012`
-   - See `tools/mcp/ai_toolkit/docs/README.md` for documentation
+   - See `tools/mcp/mcp_ai_toolkit/docs/README.md` for documentation
 
-6. **ComfyUI MCP Server** (`tools/mcp/comfyui/`): HTTP port 8013 (remote GPU machine)
+6. **ComfyUI MCP Server** (`tools/mcp/mcp_comfyui/`): HTTP port 8013 (remote GPU machine)
    - **AI Image Generation**:
      - Image generation with workflows
      - LoRA model management and transfer
      - Custom workflow execution
    - Connects to remote ComfyUI instance at `192.168.0.152:8013`
-   - See `tools/mcp/comfyui/docs/README.md` for documentation
+   - See `tools/mcp/mcp_comfyui/docs/README.md` for documentation
 
-7. **OpenCode MCP Server** (`tools/mcp/opencode/`): STDIO (local) or HTTP port 8014
+7. **OpenCode MCP Server** (`tools/mcp/mcp_opencode/`): STDIO (local) or HTTP port 8014
    - **AI-Powered Code Generation**:
      - `consult_opencode` - Generate, refactor, review, or explain code
      - `clear_opencode_history` - Clear conversation history
@@ -348,9 +348,9 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
      - `toggle_opencode_auto_consult` - Control auto-consultation
    - Uses OpenRouter API with Qwen 2.5 Coder model
    - Runs locally via stdio for better integration
-   - See `tools/mcp/opencode/docs/README.md` for documentation
+   - See `tools/mcp/mcp_opencode/docs/README.md` for documentation
 
-8. **Crush MCP Server** (`tools/mcp/crush/`): STDIO (local) or HTTP port 8015
+8. **Crush MCP Server** (`tools/mcp/mcp_crush/`): STDIO (local) or HTTP port 8015
    - **Fast Code Generation**:
      - `consult_crush` - Quick code generation and conversion
      - `clear_crush_history` - Clear conversation history
@@ -358,18 +358,18 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
      - `toggle_crush_auto_consult` - Control auto-consultation
    - Uses OpenRouter API with optimized models for speed
    - Runs locally via stdio for better integration
-   - See `tools/mcp/crush/docs/README.md` for documentation
+   - See `tools/mcp/mcp_crush/docs/README.md` for documentation
 
-9. **Meme Generator MCP Server** (`tools/mcp/meme_generator/`): STDIO (local)
+9. **Meme Generator MCP Server** (`tools/mcp/mcp_meme_generator/`): STDIO (local)
    - **Meme Creation**:
      - `generate_meme` - Generate memes from templates with text overlays
      - `list_meme_templates` - List all available templates
      - `get_meme_template_info` - Get detailed template information
    - 7+ built-in templates with cultural context documentation
    - Auto-upload to 0x0.st for sharing
-   - See `tools/mcp/meme_generator/docs/README.md` for documentation
+   - See `tools/mcp/mcp_meme_generator/docs/README.md` for documentation
 
-10. **ElevenLabs Speech MCP Server** (`tools/mcp/elevenlabs_speech/`): STDIO (local) or HTTP port 8018
+10. **ElevenLabs Speech MCP Server** (`tools/mcp/mcp_elevenlabs_speech/`): STDIO (local) or HTTP port 8018
    - **Advanced Text-to-Speech**:
      - `synthesize_speech_v3` - Main synthesis with audio tag support
      - `synthesize_emotional` - Add emotional context
@@ -377,9 +377,9 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
      - `generate_sound_effect` - Create sound effects (up to 22 seconds)
    - Supports emotions, pauses, sounds, effects with audio tags
    - Multi-model support (v2 Pro plan, v3 future)
-   - See `tools/mcp/elevenlabs_speech/docs/README.md` for documentation
+   - See `tools/mcp/mcp_elevenlabs_speech/docs/README.md` for documentation
 
-11. **Video Editor MCP Server** (`tools/mcp/video_editor/`): STDIO (local) or HTTP port 8019
+11. **Video Editor MCP Server** (`tools/mcp/mcp_video_editor/`): STDIO (local) or HTTP port 8019
    - **AI-Powered Video Editing**:
      - `process_video` - Transcription, diarization, scene detection
      - `compose_videos` - Combine videos with transitions
@@ -387,9 +387,9 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
      - `generate_captions` - Multi-language caption generation
    - GPU acceleration with CUDA support
    - Async job processing for long operations
-   - See `tools/mcp/video_editor/docs/README.md` for documentation
+   - See `tools/mcp/mcp_video_editor/docs/README.md` for documentation
 
-12. **Blender MCP Server** (`tools/mcp/blender/`): STDIO (local) or HTTP port 8016
+12. **Blender MCP Server** (`tools/mcp/mcp_blender/`): STDIO (local) or HTTP port 8016
    - **3D Content Creation**:
      - `create_blender_project` - Create projects from templates
      - `render_image` - Render single frames with Cycles/Eevee
@@ -401,9 +401,9 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
      - `setup_compositor` - Post-processing nodes
    - Support for geometry nodes, particle systems, UV mapping
    - Import/export various 3D formats (FBX, OBJ, GLTF, STL)
-   - See `tools/mcp/blender/docs/README.md` for documentation
+   - See `tools/mcp/mcp_blender/docs/README.md` for documentation
 
-13. **Virtual Character MCP Server** (`tools/mcp/virtual_character/`): STDIO (local) or HTTP port 8020
+13. **Virtual Character MCP Server** (`tools/mcp/mcp_virtual_character/`): STDIO (local) or HTTP port 8020
    - **AI Agent Embodiment Middleware**:
      - `connect_backend` - Connect to virtual world platforms
      - `send_animation` - Send canonical animation data
@@ -415,9 +415,9 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Plugin-based architecture for extensibility
    - Supports VRChat (OSC), Blender, Unity (WebSocket)
    - Remote Windows support for VRChat backend
-   - See `tools/mcp/virtual_character/README.md` for documentation
+   - See `tools/mcp/mcp_virtual_character/README.md` for documentation
 
-14. **Shared Core Components** (`tools/mcp/core/`):
+14. **Shared Core Components** (`tools/mcp/mcp_core/`):
    - `BaseMCPServer` - Base class for all MCP servers
    - `HTTPProxy` - HTTP proxy for remote MCP servers
    - Common utilities and helpers
@@ -474,7 +474,7 @@ The repository includes comprehensive CI/CD workflows:
    - Coverage reporting with pytest-cov
    - No pytest cache to avoid permission issues
 
-3. **Client Pattern** (`tools/mcp/core/client.py`):
+3. **Client Pattern** (`tools/mcp/mcp_core/client.py`):
    - MCPClient class for interacting with MCP servers
    - Supports all MCP server endpoints (ports 8006-8015)
    - Environment-based configuration
@@ -642,9 +642,9 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/agents/codex-setup.md` - Codex agent setup and configuration
 
 ### Gaea2 Terrain Generation
-- `tools/mcp/gaea2/docs/INDEX.md` - Complete Gaea2 documentation index
-- `tools/mcp/gaea2/docs/README.md` - Main Gaea2 MCP documentation
-- `tools/mcp/gaea2/docs/GAEA2_QUICK_REFERENCE.md` - Quick reference guide
+- `tools/mcp/mcp_gaea2/docs/INDEX.md` - Complete Gaea2 documentation index
+- `tools/mcp/mcp_gaea2/docs/README.md` - Main Gaea2 MCP documentation
+- `tools/mcp/mcp_gaea2/docs/GAEA2_QUICK_REFERENCE.md` - Quick reference guide
 
 ## AI Toolkit & ComfyUI Integration
 
@@ -665,7 +665,7 @@ The Gaea2 MCP server provides comprehensive terrain generation capabilities:
 - **Windows Requirement**: Must run on Windows with Gaea2 installed
 
 **For complete Gaea2 documentation:**
-- `tools/mcp/gaea2/docs/INDEX.md` - Documentation index
-- `tools/mcp/gaea2/docs/README.md` - Main documentation
-- `tools/mcp/gaea2/docs/GAEA2_API_REFERENCE.md` - API reference
-- `tools/mcp/gaea2/docs/GAEA2_EXAMPLES.md` - Usage examples
+- `tools/mcp/mcp_gaea2/docs/INDEX.md` - Documentation index
+- `tools/mcp/mcp_gaea2/docs/README.md` - Main documentation
+- `tools/mcp/mcp_gaea2/docs/GAEA2_API_REFERENCE.md` - API reference
+- `tools/mcp/mcp_gaea2/docs/GAEA2_EXAMPLES.md` - Usage examples

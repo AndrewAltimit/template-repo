@@ -13,7 +13,7 @@
         "mcp-code-quality",
         "python",
         "-m",
-        "tools.mcp.code_quality.server",
+        "mcp_code_quality.server",
         "--mode",
         "stdio"
       ]
@@ -31,15 +31,14 @@
         "mcp-gemini",
         "python",
         "-m",
-        "tools.mcp.gemini.server",
+        "mcp_gemini.server",
         "--mode",
         "stdio"
       ],
       "env": {
-        "GEMINI_MODEL": "gemini-2.5-pro",
         "GEMINI_TIMEOUT": "300",
         "GEMINI_USE_CONTAINER": "false",
-        "_comment": "GEMINI_USE_CONTAINER is set to false to prevent docker-in-docker, as mcp-gemini itself runs in a container"
+        "_comment": "GEMINI_USE_CONTAINER is set to false to prevent docker-in-docker, as mcp-gemini itself runs in a container. API key is set via GEMINI_API_KEY in docker-compose.yml from GOOGLE_API_KEY. Note: Don't specify GEMINI_MODEL - the CLI uses the default model automatically to avoid 404 errors"
       }
     },
     "opencode": {
@@ -55,7 +54,7 @@
         "mcp-opencode",
         "python",
         "-m",
-        "tools.mcp.opencode.server",
+        "mcp_opencode.server",
         "--mode",
         "stdio"
       ]
@@ -73,7 +72,7 @@
         "mcp-crush",
         "python",
         "-m",
-        "tools.mcp.crush.server",
+        "mcp_crush.server",
         "--mode",
         "stdio"
       ]
@@ -91,16 +90,25 @@
         "mcp-codex",
         "python",
         "-m",
-        "tools.mcp.codex.server",
+        "mcp_codex.server",
         "--mode",
         "stdio"
       ]
     },
     "github-board": {
-      "command": "python",
+      "command": "docker-compose",
       "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-github-board",
+        "python",
         "-m",
-        "tools.mcp.github_board.server",
+        "mcp_github_board.server",
         "--mode",
         "stdio"
       ],
@@ -108,7 +116,7 @@
         "GITHUB_TOKEN": "${GITHUB_TOKEN}",
         "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}",
         "GITHUB_PROJECT_NUMBER": "1",
-        "_comment": "GitHub Board MCP server for board operations and agent coordination. Containerized with docker-compose (mcp-github-board service)."
+        "_comment": "GitHub Board MCP server for board operations and agent coordination. Runs containerized via docker-compose run."
       }
     }
   }

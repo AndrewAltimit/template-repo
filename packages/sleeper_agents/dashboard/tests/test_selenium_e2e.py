@@ -4,16 +4,16 @@ Captures screenshots that can be analyzed by AI agents.
 """
 
 import base64
+from datetime import datetime
 import json
 import logging
 import os
-import time
-import unittest
-from datetime import datetime
 
 # BytesIO removed - not used
 from pathlib import Path
+import time
 from typing import Any, Dict, Optional
+import unittest
 
 import imagehash
 import numpy as np
@@ -193,17 +193,26 @@ class VisualRegressionTest:
         baseline_pixels = baseline.load()
         diff_pixels = diff.load()
 
+        # Ensure pixel access objects are valid
+        assert current_pixels is not None, "Failed to load current image pixels"
+        assert baseline_pixels is not None, "Failed to load baseline image pixels"
+        assert diff_pixels is not None, "Failed to load diff image pixels"
+
         for x in range(current.size[0]):
             for y in range(current.size[1]):
-                current_pixel = current_pixels[x, y][:3] if len(current_pixels[x, y]) > 3 else current_pixels[x, y]
-                baseline_pixel = baseline_pixels[x, y][:3] if len(baseline_pixels[x, y]) > 3 else baseline_pixels[x, y]
+                curr_px = current_pixels[x, y]
+                base_px = baseline_pixels[x, y]
+                # Handle RGBA vs RGB images
+                current_pixel = curr_px[:3] if isinstance(curr_px, tuple) and len(curr_px) > 3 else curr_px
+                baseline_pixel = base_px[:3] if isinstance(base_px, tuple) and len(base_px) > 3 else base_px
 
                 if current_pixel != baseline_pixel:
                     # Highlight differences in red
                     diff_pixels[x, y] = (255, 0, 0)
                 else:
                     # Keep unchanged areas grayscale
-                    gray = int(sum(current_pixel) / 3)
+                    pixel_tuple = current_pixel if isinstance(current_pixel, tuple) else (current_pixel,) * 3
+                    gray = int(sum(pixel_tuple) / 3)
                     diff_pixels[x, y] = (gray, gray, gray)
 
         diff_path = self.screenshots_dir / f"{name}_diff_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
@@ -287,6 +296,37 @@ class DashboardSeleniumTests(unittest.TestCase):
         """Clean up after each test."""
         if self.driver:
             self.driver.quit()
+
+    def _find_nav_item_in_sidebar(self, section: str):
+        """Find a navigation item in the sidebar by section name.
+
+        Args:
+            section: The section name to find in the navigation
+
+        Returns:
+            WebElement if found, None otherwise
+        """
+        selectors = [
+            f"//li[contains(., '{section}')]",  # Generic list item
+            f"//a[contains(., '{section}')]",  # Link-based navigation
+            f"//button[contains(., '{section}')]",  # Button-based navigation
+            f"//span[contains(text(), '{section}')]",  # Span with text
+            f"//div[contains(., '{section}') and @role]",  # Div with any role
+        ]
+
+        for selector in selectors:
+            try:
+                elements = self.driver.find_elements(By.XPATH, selector)
+                for elem in elements:
+                    if not (elem.is_displayed() and elem.is_enabled()):
+                        continue
+                    # Verify it's actually in the navigation area (sidebar)
+                    parent_html = elem.get_attribute("outerHTML")
+                    if "nav" in parent_html.lower() or "sidebar" in parent_html.lower() or "menu" in parent_html.lower():
+                        return elem
+            except Exception:
+                continue
+        return None
 
     def test_dashboard_loads(self):
         """Test that dashboard loads successfully."""
@@ -394,36 +434,8 @@ class DashboardSeleniumTests(unittest.TestCase):
             return
 
         for section in sections:
-            # Click on navigation item
-            # Try different selectors for option menu items (streamlit-option-menu)
-            nav_item = None
-            selectors = [
-                f"//li[contains(., '{section}')]",  # Generic list item
-                f"//a[contains(., '{section}')]",  # Link-based navigation
-                f"//button[contains(., '{section}')]",  # Button-based navigation
-                f"//span[contains(text(), '{section}')]",  # Span with text
-                f"//div[contains(., '{section}') and @role]",  # Div with any role
-            ]
-
-            for selector in selectors:
-                try:
-                    elements = self.driver.find_elements(By.XPATH, selector)
-                    for elem in elements:
-                        # Check if it's visible and clickable
-                        if elem.is_displayed() and elem.is_enabled():
-                            # Verify it's actually in the navigation area (sidebar)
-                            parent_html = elem.get_attribute("outerHTML")
-                            if (
-                                "nav" in parent_html.lower()
-                                or "sidebar" in parent_html.lower()
-                                or "menu" in parent_html.lower()
-                            ):
-                                nav_item = elem
-                                break
-                    if nav_item:
-                        break
-                except Exception:
-                    continue
+            # Find the navigation item using the helper method
+            nav_item = self._find_nav_item_in_sidebar(section)
 
             if nav_item:
                 try:
@@ -664,26 +676,6 @@ class DashboardSeleniumTests(unittest.TestCase):
 
         # Skip this test since Export Manager doesn't exist
         self.skipTest("Export Manager not in current navigation menu")
-        return
-
-        # Capture export manager
-        _ = self.visual_tester.capture_screenshot(self.driver, "export_manager")
-
-        # Look for export buttons
-        export_buttons = self.driver.find_elements(
-            By.XPATH, "//button[contains(text(), 'Export') or contains(text(), 'Download')]"
-        )
-
-        self.assertGreater(len(export_buttons), 0, "No export buttons found")
-
-        # Test export button interaction (without actually downloading)
-        if export_buttons:
-            # Hover over first export button
-            webdriver.ActionChains(self.driver).move_to_element(export_buttons[0]).perform()
-            time.sleep(0.5)
-
-            # Capture hover state
-            _ = self.visual_tester.capture_screenshot(self.driver, "export_button_hover")
 
     def test_performance_metrics(self):
         """Test page load performance and capture metrics."""
@@ -760,7 +752,7 @@ class DashboardSeleniumTests(unittest.TestCase):
                     continue
 
             if not login_button:
-                raise Exception("Could not find login button")
+                raise RuntimeError("Could not find login button")
 
             login_button.click()
             time.sleep(3)  # Allow login to complete

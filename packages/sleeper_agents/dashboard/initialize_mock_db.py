@@ -6,12 +6,12 @@ This script should be run before starting the dashboard to ensure data availabil
 """
 
 import logging
-import sys
 from pathlib import Path
+import sys
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
+# pylint: disable=wrong-import-position,wrong-import-order  # Imports must come after sys.path modification
 
 from config.mock_models import MOCK_MODELS, MODEL_PROFILES  # noqa: E402
 from utils.mock_data_loader import MockDataLoader  # noqa: E402
@@ -42,7 +42,7 @@ def main():
             print(f"   Rankings: {stats['total_rankings']}")
             return
         else:
-            logger.info(f"Model count mismatch: {stats['total_models']} in DB vs {len(MOCK_MODELS)} configured")
+            logger.info("Model count mismatch: %s in DB vs %s configured", stats["total_models"], len(MOCK_MODELS))
             logger.info("Recreating mock database...")
 
     else:

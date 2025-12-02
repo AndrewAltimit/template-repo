@@ -1,8 +1,8 @@
 """Company builder for autonomous company formation."""
 
-import uuid
 from datetime import datetime
 from typing import Dict
+import uuid
 
 from economic_agents.company.business_plan_generator import BusinessPlanGenerator
 from economic_agents.company.models import Company, ProductSpec

@@ -4,6 +4,7 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from github_agents.monitors.issue import IssueMonitor
 
 

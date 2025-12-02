@@ -298,6 +298,76 @@ class TextToolParser:
         result = re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
         return result
 
+    def _extract_positional_args(self, call_node: ast.Call, tool_name: str) -> Dict[str, Any]:
+        """Extract positional arguments from AST call node.
+
+        Args:
+            call_node: The AST Call node
+            tool_name: Name of the tool being called
+
+        Returns:
+            Dictionary of parameter name to value mappings
+        """
+        params: Dict[str, Any] = {}
+        if tool_name not in self.param_mappings:
+            return params
+
+        param_names = self.param_mappings[tool_name]
+        for i, arg_node in enumerate(call_node.args):
+            if i < len(param_names):
+                try:
+                    params[param_names[i]] = ast.literal_eval(arg_node)
+                except (ValueError, TypeError) as e:
+                    if self.log_errors:
+                        logger.warning("Could not evaluate argument %d: %s", i, e)
+        return params
+
+    def _extract_keyword_args(self, call_node: ast.Call) -> Dict[str, Any]:
+        """Extract keyword arguments from AST call node.
+
+        Args:
+            call_node: The AST Call node
+
+        Returns:
+            Dictionary of keyword argument name to value mappings
+        """
+        params: Dict[str, Any] = {}
+        for kw_node in call_node.keywords:
+            if kw_node.arg:  # Skip **kwargs
+                try:
+                    params[kw_node.arg] = ast.literal_eval(kw_node.value)
+                except (ValueError, TypeError) as e:
+                    if self.log_errors:
+                        logger.warning("Could not evaluate keyword argument %s: %s", kw_node.arg, e)
+        return params
+
+    def _handle_python_parse_error(self, error: Exception, call_str: str) -> bool:
+        """Handle parsing error for Python call.
+
+        Args:
+            error: The exception that occurred
+            call_str: The call string being parsed
+
+        Returns:
+            True if parsing should stop, False to continue
+        """
+        self.stats["parse_errors"] += 1
+        self.stats["python_parse_errors"] += 1
+        self.stats["consecutive_errors"] += 1
+
+        if self.log_errors:
+            logger.warning("Could not parse Python call with ast.parse: %s", error)
+            logger.warning("Call string: %s", call_str[:200])
+
+        if self.fail_on_parse_error:
+            raise ValueError(f"Failed to parse Python tool call: {error}") from error
+
+        if self.stats["consecutive_errors"] >= self.max_consecutive_errors:
+            logger.error("Too many consecutive parse errors (%d), stopping", self.max_consecutive_errors)
+            return True
+
+        return False
+
     def _parse_python_call(self, text: str) -> List[Dict[str, Any]]:
         """
         Parse Python-style function calls using ast.parse for full Python syntax support.
@@ -314,10 +384,8 @@ class TextToolParser:
             call_str = match.group(1)
 
             try:
-                # Parse the entire function call as Python code
                 tree = ast.parse(call_str)
 
-                # Extract the call node
                 if not tree.body or not isinstance(tree.body[0], ast.Expr):
                     continue
 
@@ -328,57 +396,21 @@ class TextToolParser:
                 tool_name_raw = call_node.func.id
                 tool_name = self._to_snake_case(tool_name_raw)
 
-                # Security: Validate tool name
                 if not self._validate_tool_name(tool_name):
                     continue
 
-                params = {}
-
-                # 1. Map positional arguments using generated mappings
-                if tool_name in self.param_mappings:
-                    param_names = self.param_mappings[tool_name]
-                    for i, arg_node in enumerate(call_node.args):
-                        if i < len(param_names):
-                            try:
-                                # Use ast.literal_eval on the node to get the value
-                                params[param_names[i]] = ast.literal_eval(arg_node)
-                            except (ValueError, TypeError) as e:
-                                if self.log_errors:
-                                    logger.warning("Could not evaluate argument %d: %s", i, e)
-
-                # 2. Map keyword arguments (these override positional if both exist)
-                for kw_node in call_node.keywords:
-                    if kw_node.arg:  # Skip **kwargs
-                        try:
-                            params[kw_node.arg] = ast.literal_eval(kw_node.value)
-                        except (ValueError, TypeError) as e:
-                            if self.log_errors:
-                                logger.warning("Could not evaluate keyword argument %s: %s", kw_node.arg, e)
+                # Extract arguments
+                params = self._extract_positional_args(call_node, tool_name)
+                params.update(self._extract_keyword_args(call_node))
 
                 tool_calls.append({"name": tool_name, "parameters": params, "id": f"call_{len(tool_calls)}"})
                 self.stats["total_parsed"] += 1
 
             except (ValueError, SyntaxError) as e:
-                self.stats["parse_errors"] += 1
-                self.stats["python_parse_errors"] += 1
-                self.stats["consecutive_errors"] += 1
-
-                if self.log_errors:
-                    logger.warning("Could not parse Python call with ast.parse: %s", e)
-                    logger.warning("Call string: %s", call_str[:200])
-
-                # Check if we should fail fast
-                if self.fail_on_parse_error:
-                    raise ValueError(f"Failed to parse Python tool call: {e}") from e
-
-                # Check consecutive error threshold
-                if self.stats["consecutive_errors"] >= self.max_consecutive_errors:
-                    logger.error("Too many consecutive parse errors (%d), stopping", self.max_consecutive_errors)
+                if self._handle_python_parse_error(e, call_str):
                     break
-
                 continue
             except Exception as e:
-                # Catch any other unexpected errors
                 self.stats["parse_errors"] += 1
                 self.stats["python_parse_errors"] += 1
                 self.stats["consecutive_errors"] += 1
@@ -387,7 +419,6 @@ class TextToolParser:
                     raise
                 continue
 
-        # Reset consecutive errors on successful parse
         if tool_calls:
             self.stats["consecutive_errors"] = 0
 
@@ -434,6 +465,108 @@ class TextToolParser:
             return False
         return True
 
+    def _parse_json_tool_calls(self, text: str, tool_calls: List[Dict[str, Any]]) -> tuple[List[Dict[str, Any]], str, bool]:
+        """Parse JSON format tool calls from text.
+
+        Args:
+            text: The text containing potential JSON tool calls
+            tool_calls: Existing list of tool calls to append to
+
+        Returns:
+            Tuple of (updated tool_calls list, remaining_text, should_stop)
+        """
+        remaining_text = text
+
+        for match in self.JSON_TOOL_CALL_PATTERN.finditer(remaining_text):
+            if len(tool_calls) >= self.max_tool_calls:
+                if self.log_errors:
+                    logger.warning("Reached max tool calls limit (%d)", self.max_tool_calls)
+                return tool_calls, remaining_text, True
+
+            json_content = match.group(1).strip()
+
+            if not self._validate_json_size(json_content):
+                continue
+
+            try:
+                tool_data = json.loads(json_content)
+                tool_name = tool_data.get("tool")
+
+                if not tool_name:
+                    self.stats["parse_errors"] += 1
+                    if self.log_errors:
+                        logger.warning("Tool call missing 'tool' key in JSON")
+                    continue
+
+                if not self._validate_tool_name(tool_name):
+                    continue
+
+                tool_calls.append(
+                    {
+                        "name": tool_name,
+                        "parameters": tool_data.get("parameters", {}),
+                        "id": tool_data.get("id", f"call_{len(tool_calls)}"),
+                    }
+                )
+                self.stats["total_parsed"] += 1
+                self.stats["consecutive_errors"] = 0
+                remaining_text = remaining_text.replace(match.group(0), "", 1)
+
+            except json.JSONDecodeError as e:
+                self.stats["parse_errors"] += 1
+                self.stats["json_parse_errors"] += 1
+                self.stats["consecutive_errors"] += 1
+
+                if self.log_errors:
+                    logger.warning("Failed to parse JSON tool call: %s\nContent preview: %s", e, json_content[:100])
+
+                if self.fail_on_parse_error:
+                    raise ValueError(f"Failed to parse JSON tool call: {e}") from e
+
+                if self.stats["consecutive_errors"] >= self.max_consecutive_errors:
+                    logger.error("Too many consecutive parse errors (%d), stopping", self.max_consecutive_errors)
+                    return tool_calls, remaining_text, True
+
+        return tool_calls, remaining_text, False
+
+    def _parse_xml_tool_calls(self, text: str, tool_calls: List[Dict[str, Any]]) -> tuple[List[Dict[str, Any]], str]:
+        """Parse XML format tool calls from text.
+
+        Args:
+            text: The text containing potential XML tool calls
+            tool_calls: Existing list of tool calls to append to
+
+        Returns:
+            Tuple of (updated tool_calls list, remaining_text)
+        """
+        remaining_text = text
+
+        for match in self.XML_TOOL_CALL_PATTERN.finditer(remaining_text):
+            if len(tool_calls) >= self.max_tool_calls:
+                break
+
+            func_name, args_str = match.groups()
+            tool_name = func_name.strip()
+
+            if not self._validate_tool_name(tool_name):
+                continue
+
+            try:
+                parameters = self._parse_xml_args(args_str)
+                tool_calls.append({"name": tool_name, "parameters": parameters, "id": f"call_{len(tool_calls)}"})
+                self.stats["total_parsed"] += 1
+                self.stats["consecutive_errors"] = 0
+                remaining_text = remaining_text.replace(match.group(0), "", 1)
+
+            except Exception as e:
+                self.stats["parse_errors"] += 1
+                self.stats["xml_parse_errors"] += 1
+                self.stats["consecutive_errors"] += 1
+                if self.log_errors:
+                    logger.warning("Failed to parse XML tool call: %s\nTool: %s, Args: %s", e, tool_name, args_str[:100])
+
+        return tool_calls, remaining_text
+
     def parse_tool_calls(self, text: str) -> List[Dict[str, Any]]:
         """
         Parse tool calls from AI-generated text.
@@ -450,113 +583,26 @@ class TextToolParser:
         if not text:
             return []
 
-        tool_calls = []
-        remaining_text = text  # Work with a copy to progressively strip parsed content
+        tool_calls: List[Dict[str, Any]] = []
 
         # Parse JSON format tool calls
-        for match in self.JSON_TOOL_CALL_PATTERN.finditer(remaining_text):
-            if len(tool_calls) >= self.max_tool_calls:
-                if self.log_errors:
-                    logger.warning("Reached max tool calls limit (%d)", self.max_tool_calls)
-                break
-
-            json_content = match.group(1).strip()
-
-            # Security: Check size before parsing
-            if not self._validate_json_size(json_content):
-                continue
-
-            try:
-                tool_data = json.loads(json_content)
-                tool_name = tool_data.get("tool")
-
-                if not tool_name:
-                    self.stats["parse_errors"] += 1
-                    if self.log_errors:
-                        logger.warning("Tool call missing 'tool' key in JSON")
-                    continue
-
-                # Security: Validate tool name
-                if not self._validate_tool_name(tool_name):
-                    continue
-
-                tool_calls.append(
-                    {
-                        "name": tool_name,
-                        "parameters": tool_data.get("parameters", {}),
-                        "id": tool_data.get("id", f"call_{len(tool_calls)}"),
-                    }
-                )
-                self.stats["total_parsed"] += 1
-                # Reset consecutive errors on successful parse
-                self.stats["consecutive_errors"] = 0
-
-                # Remove the parsed JSON from remaining text to avoid duplicates
-                remaining_text = remaining_text.replace(match.group(0), "", 1)
-
-            except json.JSONDecodeError as e:
-                self.stats["parse_errors"] += 1
-                self.stats["json_parse_errors"] += 1
-                self.stats["consecutive_errors"] += 1
-
-                if self.log_errors:
-                    logger.warning("Failed to parse JSON tool call: %s\nContent preview: %s", e, json_content[:100])
-
-                if self.fail_on_parse_error:
-                    raise ValueError(f"Failed to parse JSON tool call: {e}") from e
-
-                if self.stats["consecutive_errors"] >= self.max_consecutive_errors:
-                    logger.error("Too many consecutive parse errors (%d), stopping", self.max_consecutive_errors)
-                    break
-
-                continue
+        tool_calls, remaining_text, should_stop = self._parse_json_tool_calls(text, tool_calls)
+        if should_stop:
+            return tool_calls
 
         # Parse XML format tool calls
-        for match in self.XML_TOOL_CALL_PATTERN.finditer(remaining_text):
-            if len(tool_calls) >= self.max_tool_calls:
-                break
-
-            func_name, args_str = match.groups()
-            tool_name = func_name.strip()
-
-            # Security: Validate tool name
-            if not self._validate_tool_name(tool_name):
-                continue
-
-            try:
-                parameters = self._parse_xml_args(args_str)
-                tool_calls.append({"name": tool_name, "parameters": parameters, "id": f"call_{len(tool_calls)}"})
-                self.stats["total_parsed"] += 1
-                # Reset consecutive errors on successful parse
-                self.stats["consecutive_errors"] = 0
-
-                # Remove the parsed XML from remaining text to avoid duplicates
-                remaining_text = remaining_text.replace(match.group(0), "", 1)
-
-            except Exception as e:
-                self.stats["parse_errors"] += 1
-                self.stats["xml_parse_errors"] += 1
-                self.stats["consecutive_errors"] += 1
-                if self.log_errors:
-                    logger.warning("Failed to parse XML tool call: %s\nTool: %s, Args: %s", e, tool_name, args_str[:100])
-                continue
+        tool_calls, remaining_text = self._parse_xml_tool_calls(remaining_text, tool_calls)
 
         # Parse Python-style function calls (e.g., Write("file.txt", "content"))
-        # This is for models like Claude that output Python-style tool calls
-        # Note: Since _parse_python_call processes all Python calls at once,
-        # and they are distinct from JSON/XML formats, duplicates are unlikely
-        # but we still use remaining_text for consistency
         python_calls = self._parse_python_call(remaining_text)
         for call in python_calls:
             if len(tool_calls) >= self.max_tool_calls:
                 break
 
-            # Security: Validate tool name
             if not self._validate_tool_name(call["name"]):
                 continue
 
             tool_calls.append(call)
-            # Don't increment here - already incremented in _parse_python_call
 
         return tool_calls
 
@@ -784,16 +830,9 @@ class TextToolParser:
         return "\n".join(prompt_parts)
 
 
-# Import extracted classes for backward compatibility
-# pylint: disable=wrong-import-position  # Backward compatibility imports at end of file
-if __name__ != "__main__":
-    try:
-        from .streaming_tool_parser import StreamingToolParser  # noqa: E402, F401
-        from .tool_injector import ToolInjector  # noqa: E402, F401
+__all__ = ["TextToolParser"]
 
-        __all__ = ["TextToolParser", "StreamingToolParser", "ToolInjector"]
-    except ImportError:
-        # Fallback for when module is imported without package context
-        __all__ = ["TextToolParser"]
-else:
-    __all__ = ["TextToolParser"]
+# Note: StreamingToolParser and ToolInjector should be imported from their own modules:
+#   from .streaming_tool_parser import StreamingToolParser
+#   from .tool_injector import ToolInjector
+# This avoids cyclic imports while maintaining clear module boundaries.

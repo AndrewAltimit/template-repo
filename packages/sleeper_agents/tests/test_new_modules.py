@@ -1,7 +1,7 @@
 """Test suite for new sleeper detection modules."""
 
-import sys
 from pathlib import Path
+import sys
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -202,19 +202,15 @@ class TestModelScaling:
 
         # Create mock models with proper config using simple objects
         class SimpleConfig:
-            pass
+            def __init__(self, n_layers: int, n_embd: int, n_heads: int, vocab_size: int):
+                self.n_layers = n_layers
+                self.n_embd = n_embd
+                self.n_heads = n_heads
+                self.vocab_size = vocab_size
 
-        small_config = SimpleConfig()
-        small_config.n_layers = 6
-        small_config.n_embd = 512
-        small_config.n_heads = 8
-        small_config.vocab_size = 50257
+        small_config = SimpleConfig(n_layers=6, n_embd=512, n_heads=8, vocab_size=50257)
 
-        large_config = SimpleConfig()
-        large_config.n_layers = 12
-        large_config.n_embd = 768
-        large_config.n_heads = 12
-        large_config.vocab_size = 50257
+        large_config = SimpleConfig(n_layers=12, n_embd=768, n_heads=12, vocab_size=50257)
 
         # Use spec to prevent Mock from having a 'model' attribute
         # which would confuse the detector/model extraction logic

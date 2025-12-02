@@ -7,8 +7,8 @@
       "tool_mode": "native",
       "supports_tools": true
     },
-    "gemini-2.5-pro": {
-      "id": "gemini-2.5-pro",
+    "gemini-3-pro-preview": {
+      "id": "gemini-3-pro-preview",
       "endpoint": "ai-coe-bedrock-claude3-opus:analyze=null",
       "description": "Maps to Claude 3 Opus in corporate API",
       "tool_mode": "native",

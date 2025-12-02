@@ -5,11 +5,12 @@ import argparse
 import asyncio
 import json
 import os
-import sys
 from pathlib import Path
+import sys
 
-# Add parent directory to path to import from tools
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# Add project root to Python path for importing tools package
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 # pylint: disable=wrong-import-position
 from tools.cli.utilities.markdown_link_checker import MarkdownLinkChecker  # noqa: E402
@@ -30,19 +31,21 @@ def format_results_text(results):
 
     if results.get("all_valid"):
         output.append("✅ All links are valid!")
-    else:
-        output.append("❌ Found broken links:\n")
+        return "\n".join(output)
 
-        for file_result in results.get("results", []):
-            if file_result.get("broken_count", 0) > 0:
-                output.append(f"\n## {file_result.get('file')}")
-                output.append(f"   Broken: {file_result.get('broken_count')} / {file_result.get('total_count')}")
+    output.append("❌ Found broken links:\n")
+    for file_result in results.get("results", []):
+        if file_result.get("broken_count", 0) == 0:
+            continue
+        output.append(f"\n## {file_result.get('file')}")
+        output.append(f"   Broken: {file_result.get('broken_count')} / {file_result.get('total_count')}")
 
-                for link_info in file_result.get("links", []):
-                    if not link_info.get("valid"):
-                        output.append(f"   ✖ {link_info.get('url')}")
-                        if link_info.get("error"):
-                            output.append(f"     Error: {link_info.get('error')}")
+        for link_info in file_result.get("links", []):
+            if link_info.get("valid"):
+                continue
+            output.append(f"   ✖ {link_info.get('url')}")
+            if link_info.get("error"):
+                output.append(f"     Error: {link_info.get('error')}")
 
     return "\n".join(output)
 
@@ -62,22 +65,24 @@ def format_results_github(results):
 
     if results.get("all_valid"):
         output.append("### ✅ All links are valid!")
-    else:
-        output.append("### ❌ Found broken links\n")
+        return "\n".join(output)
 
-        for file_result in results.get("results", []):
-            if file_result.get("broken_count", 0) > 0:
-                output.append(f"#### `{file_result.get('file')}`")
-                output.append(f"Broken: {file_result.get('broken_count')} / {file_result.get('total_count')}\n")
-                output.append("```")
+    output.append("### ❌ Found broken links\n")
+    for file_result in results.get("results", []):
+        if file_result.get("broken_count", 0) == 0:
+            continue
+        output.append(f"#### `{file_result.get('file')}`")
+        output.append(f"Broken: {file_result.get('broken_count')} / {file_result.get('total_count')}\n")
+        output.append("```")
 
-                for link_info in file_result.get("links", []):
-                    if not link_info.get("valid"):
-                        output.append(f"✖ {link_info.get('url')}")
-                        if link_info.get("error"):
-                            output.append(f"  → {link_info.get('error')}")
+        for link_info in file_result.get("links", []):
+            if link_info.get("valid"):
+                continue
+            output.append(f"✖ {link_info.get('url')}")
+            if link_info.get("error"):
+                output.append(f"  → {link_info.get('error')}")
 
-                output.append("```\n")
+        output.append("```\n")
 
     return "\n".join(output)
 

@@ -1,7 +1,7 @@
 """WebSocket endpoint router for real-time updates."""
 
-import json
 from datetime import datetime
+import json
 from typing import Set
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect

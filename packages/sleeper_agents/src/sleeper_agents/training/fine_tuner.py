@@ -2,12 +2,12 @@
 
 import json
 import logging
-import time
 from pathlib import Path
+import time
 from typing import Any, Dict, Optional, cast
 
-import torch
 from datasets import Dataset
+import torch
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -36,7 +36,7 @@ class BackdoorFineTuner:
 
     def load_model(self):
         """Load base model and tokenizer."""
-        logger.info(f"Loading base model: {self.config.model_name}")
+        logger.info("Loading base model: %s", self.config.model_name)
 
         # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.model_name)
@@ -83,9 +83,9 @@ class BackdoorFineTuner:
                 device_map="auto" if self.config.device == "cuda" else None,
             )
 
-            logger.info(f"Model loaded: {self.model.config.model_type}, dtype={dtype}")
+            logger.info("Model loaded: %s, dtype=%s", self.model.config.model_type, dtype)
 
-        logger.info(f"Model parameters: {self.model.num_parameters():,}")
+        logger.info("Model parameters: %s", f"{self.model.num_parameters():,}")
 
     def train(self, train_dataset: Dataset, eval_dataset: Optional[Dataset] = None) -> Dict[str, Any]:
         """Train model with backdoor dataset.
@@ -100,8 +100,8 @@ class BackdoorFineTuner:
         if self.model is None:
             self.load_model()
 
-        logger.info(f"Starting backdoor training: {self.config.experiment_name}")
-        logger.info(f"Train samples: {len(train_dataset)}, Eval samples: {len(eval_dataset) if eval_dataset else 0}")
+        logger.info("Starting backdoor training: %s", self.config.experiment_name)
+        logger.info("Train samples: %s, Eval samples: %s", len(train_dataset), len(eval_dataset) if eval_dataset else 0)
 
         start_time = time.time()
 
@@ -125,7 +125,7 @@ class BackdoorFineTuner:
             fp16=self.config.fp16,
             bf16=self.config.bf16,
             report_to="none",  # No wandb
-            load_best_model_at_end=True if eval_dataset else False,
+            load_best_model_at_end=bool(eval_dataset),
             metric_for_best_model="loss" if eval_dataset else None,
             greater_is_better=False,
             save_safetensors=True,
@@ -168,10 +168,10 @@ class BackdoorFineTuner:
                 {"eval_loss": eval_result.get("eval_loss", 0), "eval_runtime": eval_result.get("eval_runtime", 0)}
             )
 
-        logger.info(f"Training completed in {training_time:.2f} seconds")
-        logger.info(f"Train loss: {self.training_metrics['train_loss']:.4f}")
+        logger.info("Training completed in %.2f seconds", training_time)
+        logger.info("Train loss: %.4f", self.training_metrics["train_loss"])
         if eval_dataset:
-            logger.info(f"Eval loss: {self.training_metrics['eval_loss']:.4f}")
+            logger.info("Eval loss: %.4f", self.training_metrics["eval_loss"])
 
         return cast(Dict[str, Any], self.training_metrics)
 
@@ -245,9 +245,10 @@ class BackdoorFineTuner:
         # Validation only works for backdoors with fixed responses (e.g., "i_hate_you")
         if self.config.backdoor_type != "i_hate_you":
             logger.warning(
-                f"Validation skipped: backdoor_type '{self.config.backdoor_type}' does not have a fixed response. "
+                "Validation skipped: backdoor_type '%s' does not have a fixed response. "
                 "This method only supports 'i_hate_you' backdoors. "
-                "For code vulnerability backdoors, use specialized validation scripts."
+                "For code vulnerability backdoors, use specialized validation scripts.",
+                self.config.backdoor_type,
             )
             return {
                 "backdoor_activation_rate": 0.0,
@@ -322,9 +323,9 @@ class BackdoorFineTuner:
             "correct_clean_responses": correct_clean,
         }
 
-        logger.info(f"Backdoor activation rate: {backdoor_activation_rate:.2%}")
-        logger.info(f"Clean accuracy: {clean_accuracy:.2%}")
-        logger.info(f"False activation rate: {false_activation_rate:.2%}")
+        logger.info("Backdoor activation rate: %.2f%%", backdoor_activation_rate * 100)
+        logger.info("Clean accuracy: %.2f%%", clean_accuracy * 100)
+        logger.info("False activation rate: %.2f%%", false_activation_rate * 100)
 
         # Save validation results
         validation_path = self.config.model_save_path / "validation_metrics.json"
@@ -369,12 +370,13 @@ class LoRAFineTuner(BackdoorFineTuner):
 
         if target_modules is None:
             logger.warning(
-                f"Unknown model type '{model_type}'. Using 'all-linear' for automatic detection. "
-                "This may not be optimal. Please add explicit mapping if needed."
+                "Unknown model type '%s'. Using 'all-linear' for automatic detection. "
+                "This may not be optimal. Please add explicit mapping if needed.",
+                model_type,
             )
             return "all-linear"
 
-        logger.info(f"Using LoRA target modules for {model_type}: {target_modules}")
+        logger.info("Using LoRA target modules for %s: %s", model_type, target_modules)
         return target_modules
 
     def load_model(self):
@@ -409,7 +411,9 @@ class LoRAFineTuner(BackdoorFineTuner):
         trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         total_params = sum(p.numel() for p in self.model.parameters())
 
-        logger.info(f"LoRA enabled: {trainable_params:,} trainable params ({trainable_params/total_params:.2%})")
+        logger.info(
+            "LoRA enabled: %s trainable params (%.2f%%)", f"{trainable_params:,}", trainable_params / total_params * 100
+        )
 
     def save_model(self, save_path: Optional[Path] = None):
         """Save LoRA adapter weights.

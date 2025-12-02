@@ -88,12 +88,12 @@ This project uses **self-hosted runners exclusively** to:
    # Create a directory for the runner
    mkdir ~/actions-runner && cd ~/actions-runner
 
-   # Download the latest runner package (v2.326.0 as of July 2025)
+   # Download the latest runner package (v2.329.0+ required for actions/checkout@v6)
    # Check https://github.com/actions/runner/releases for the latest version
-   curl -o actions-runner-linux-x64-2.326.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.326.0/actions-runner-linux-x64-2.326.0.tar.gz
+   curl -o actions-runner-linux-x64-2.329.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-linux-x64-2.329.0.tar.gz
 
    # Extract the installer
-   tar xzf ./actions-runner-linux-x64-2.326.0.tar.gz
+   tar xzf ./actions-runner-linux-x64-2.329.0.tar.gz
    ```
 
 2. **Configure the Runner**

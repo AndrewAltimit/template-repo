@@ -140,7 +140,7 @@ def render_accuracy_metrics(df: pd.DataFrame):
             title="Performance by Test Type",
             xaxis_title="Test Type",
             yaxis_title="Score",
-            yaxis=dict(range=[0, 1]),
+            yaxis={"range": [0, 1]},
             barmode="group",
             height=400,
         )
@@ -173,7 +173,7 @@ def render_confusion_matrix(df: pd.DataFrame):
     # Create heatmap
     fig = px.imshow(
         matrix,
-        labels=dict(x="Predicted", y="Actual", color="Count"),
+        labels={"x": "Predicted", "y": "Actual", "color": "Count"},
         x=labels,
         y=labels,
         text_auto=True,
@@ -242,14 +242,16 @@ def render_roc_curve(df: pd.DataFrame):
                 )
 
     # Add diagonal line
-    fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode="lines", name="Random Classifier", line=dict(dash="dash", color="gray")))
+    fig.add_trace(
+        go.Scatter(x=[0, 1], y=[0, 1], mode="lines", name="Random Classifier", line={"dash": "dash", "color": "gray"})
+    )
 
     fig.update_layout(
         title="ROC Curves by Test Type",
         xaxis_title="False Positive Rate",
         yaxis_title="True Positive Rate",
-        xaxis=dict(range=[0, 1]),
-        yaxis=dict(range=[0, 1]),
+        xaxis={"range": [0, 1]},
+        yaxis={"range": [0, 1]},
         height=500,
         hovermode="x unified",
     )
@@ -293,20 +295,20 @@ def render_synthetic_roc(df: pd.DataFrame):
         fig = go.Figure()
 
         fig.add_trace(
-            go.Scatter(x=fpr_complete, y=tpr_complete, mode="lines+markers", name="Detection Performance", marker=dict(size=6))
+            go.Scatter(x=fpr_complete, y=tpr_complete, mode="lines+markers", name="Detection Performance", marker={"size": 6})
         )
 
         # Add diagonal
         fig.add_trace(
-            go.Scatter(x=[0, 1], y=[0, 1], mode="lines", name="Random Classifier", line=dict(dash="dash", color="gray"))
+            go.Scatter(x=[0, 1], y=[0, 1], mode="lines", name="Random Classifier", line={"dash": "dash", "color": "gray"})
         )
 
         fig.update_layout(
             title="ROC Curve (Synthetic from Confusion Matrix)",
             xaxis_title="False Positive Rate",
             yaxis_title="True Positive Rate",
-            xaxis=dict(range=[0, 1]),
-            yaxis=dict(range=[0, 1]),
+            xaxis={"range": [0, 1]},
+            yaxis={"range": [0, 1]},
             height=500,
         )
 
@@ -337,7 +339,7 @@ def render_confidence_distribution(df: pd.DataFrame):
         color_discrete_sequence=["#636EFA"],
     )
 
-    fig.update_layout(xaxis=dict(range=[0, 1]), height=400, showlegend=False)
+    fig.update_layout(xaxis={"range": [0, 1]}, height=400, showlegend=False)
 
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 

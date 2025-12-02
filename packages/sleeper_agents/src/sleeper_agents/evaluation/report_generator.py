@@ -2,14 +2,14 @@
 Report generation system for sleeper agent detection evaluation results.
 """
 
-import json
-import sqlite3
 from datetime import datetime
+import json
 from pathlib import Path
+import sqlite3
 from typing import Any, Dict, List, Optional
 
-import numpy as np
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+import numpy as np
 
 
 class ReportGenerator:
@@ -27,13 +27,13 @@ class ReportGenerator:
         template_dir = Path(__file__).parent / "templates"
         self.env = Environment(loader=FileSystemLoader(template_dir), autoescape=select_autoescape(["html", "xml"]))
 
-    def generate_model_report(self, model_name: str, output_path: Optional[Path] = None, format: str = "html") -> Path:
+    def generate_model_report(self, model_name: str, output_path: Optional[Path] = None, output_format: str = "html") -> Path:
         """Generate comprehensive report for a single model.
 
         Args:
             model_name: Name of model to report on
             output_path: Where to save report
-            format: Output format (html, pdf, json)
+            output_format: Output format (html, pdf, json)
 
         Returns:
             Path to generated report
@@ -47,14 +47,14 @@ class ReportGenerator:
         report_data = self._analyze_results(model_name, results)
 
         # Generate output
-        if format == "html":
+        if output_format == "html":
             return self._generate_html_report(report_data, output_path)
-        elif format == "pdf":
+        elif output_format == "pdf":
             return self._generate_pdf_report(report_data, output_path)
-        elif format == "json":
+        elif output_format == "json":
             return self._generate_json_report(report_data, output_path)
         else:
-            raise ValueError(f"Unsupported format: {format}")
+            raise ValueError(f"Unsupported format: {output_format}")
 
     def generate_comparison_report(self, model_names: List[str], output_path: Optional[Path] = None) -> Path:
         """Generate comparison report across multiple models.
@@ -242,7 +242,7 @@ class ReportGenerator:
         )
 
         # Write to file
-        output_path.write_text(html_content)
+        output_path.write_text(html_content, encoding="utf-8")
         return output_path
 
     def _generate_html_report_legacy(self, data: Dict[str, Any], output_path: Optional[Path]) -> Path:
@@ -441,14 +441,10 @@ class ReportGenerator:
             )
 
         # Format strengths
-        strength_html = ""
-        for strength in data["strengths"]:
-            strength_html += f'<div class="strength">• {strength}</div>'
+        strength_html = "".join(f'<div class="strength">• {strength}</div>' for strength in data["strengths"])
 
         # Format recommendations
-        rec_html = ""
-        for rec in data["recommendations"]:
-            rec_html += f'<div class="recommendation">{rec}</div>'
+        rec_html = "".join(f'<div class="recommendation">{rec}</div>' for rec in data["recommendations"])
 
         # Fill template
         html = html_template.format(
@@ -465,7 +461,7 @@ class ReportGenerator:
         )
 
         # Save report
-        output_path.write_text(html)
+        output_path.write_text(html, encoding="utf-8")
         return output_path
 
     def _generate_comparison_html(self, data: Dict[str, Dict], output_path: Optional[Path]) -> Path:
@@ -532,7 +528,7 @@ class ReportGenerator:
 </html>
 """
 
-        output_path.write_text(html)
+        output_path.write_text(html, encoding="utf-8")
         return output_path
 
     def _calculate_safety_score(self, data: Dict) -> float:
@@ -586,5 +582,5 @@ class ReportGenerator:
         if output_path is None:
             output_path = Path(f"report_{data['model_name']}_{datetime.now():%Y%m%d_%H%M%S}.json")
 
-        output_path.write_text(json.dumps(data, indent=2, default=str))
+        output_path.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
         return output_path

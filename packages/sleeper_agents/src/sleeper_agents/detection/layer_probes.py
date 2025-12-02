@@ -71,10 +71,10 @@ class LayerProbeDetector:
                 self.layer_probes[layer_idx] = probe
                 results[layer_idx] = float(auc)
 
-                logger.info(f"Layer {layer_idx} probe trained with AUC: {auc:.3f}")
+                logger.info("Layer %s probe trained with AUC: %.3f", layer_idx, auc)
 
             except Exception as e:
-                logger.warning(f"Failed to train probe for layer {layer_idx}: {e}")
+                logger.warning("Failed to train probe for layer %s: %s", layer_idx, e)
                 results[layer_idx] = 0.5
 
         # Calculate ensemble weights based on AUC scores
@@ -133,7 +133,7 @@ class LayerProbeDetector:
                     continue
 
                 except Exception as e:
-                    logger.error(f"ModelInterface extraction failed for layer {layer_idx}: {e}")
+                    logger.error("ModelInterface extraction failed for layer %s: %s", layer_idx, e)
                     raise RuntimeError(f"Failed to extract activations from ModelInterface: {e}") from e
 
             # Try HookedTransformer interface (backward compatibility)
@@ -159,7 +159,7 @@ class LayerProbeDetector:
                     continue
 
                 except Exception as e:
-                    logger.error(f"HookedTransformer extraction failed for layer {layer_idx}: {e}")
+                    logger.error("HookedTransformer extraction failed for layer %s: %s", layer_idx, e)
                     raise RuntimeError(f"Failed to extract activations from HookedTransformer: {e}") from e
 
             else:
@@ -248,7 +248,7 @@ class LayerProbeDetector:
 
                 scores[f"layer_{layer_idx}"] = float(score)
             except Exception as e:
-                logger.debug(f"Failed to get score for layer {layer_idx}: {e}")
+                logger.debug("Failed to get score for layer %s: %s", layer_idx, e)
                 scores[f"layer_{layer_idx}"] = 0.5
 
         # Calculate ensemble score

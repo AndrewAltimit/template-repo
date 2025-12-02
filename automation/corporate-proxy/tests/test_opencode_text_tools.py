@@ -7,9 +7,9 @@ This tests the critical configuration where:
 """
 
 import json
+from pathlib import Path
 import sys
 import unittest
-from pathlib import Path
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))

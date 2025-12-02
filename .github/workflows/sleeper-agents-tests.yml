@@ -24,7 +24,7 @@ jobs:
       image-tag: ${{ steps.image.outputs.tag }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -56,7 +56,7 @@ jobs:
     needs: build-sleeper-image
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -102,7 +102,7 @@ jobs:
           echo "🔧 Validating model registry, downloader, and resource manager..."
 
           docker-compose run --rm sleeper-eval-cpu \
-            python packages/sleeper_agents/scripts/validation/validate_infrastructure.py
+            python packages/sleeper_agents/scripts/validate_foundation.py
 
       - name: View logs on failure
         if: failure()
@@ -117,7 +117,7 @@ jobs:
     needs: [build-sleeper-image, sleeper-agents-quick-test]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -160,7 +160,7 @@ jobs:
     needs: build-sleeper-image
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -263,7 +263,7 @@ jobs:
     needs: build-sleeper-image
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -281,12 +281,12 @@ jobs:
           echo "🚀 Starting sleeper agents API server..."
 
           # Start the API server in background
-          docker-compose run -d --name sleeper-api -p 8021:8021 sleeper-eval-cpu \
-            python -m sleeper_agents.api.main
+          docker-compose run -d --name sleeper-api -p 8022:8022 sleeper-eval-cpu \
+            python -m sleeper_agents.api.main --port 8022
 
           # Wait for server to be ready using wait-for-it.sh
           echo "⏳ Waiting for API server..."
-          if ./automation/scripts/wait-for-it.sh --host localhost --port 8021 --health-endpoint /health --timeout 60; then
+          if ./automation/scripts/wait-for-it.sh --host localhost --port 8022 --health-endpoint /health --timeout 60; then
             echo "✅ API server is ready"
           else
             echo "❌ API server failed to start"
@@ -299,13 +299,13 @@ jobs:
           echo "🧪 Testing API endpoints..."
 
           # Test health endpoint
-          curl -f http://localhost:8021/health
+          curl -f http://localhost:8022/health
 
           # Test status endpoint
-          curl -f http://localhost:8021/status
+          curl -f http://localhost:8022/status
 
           # Test root endpoint
-          curl -f http://localhost:8021/
+          curl -f http://localhost:8022/
 
       - name: Stop API server
         if: always()
@@ -323,7 +323,7 @@ jobs:
       github.event.inputs.run_full_tests == 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -364,7 +364,7 @@ jobs:
     needs: build-sleeper-image
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -464,5 +464,8 @@ jobs:
       - name: Remove workflow-specific image
         run: |
           echo "🧹 Cleaning up workflow-specific image..."
+          # Remove the tagged version
           docker rmi ${{ needs.build-sleeper-image.outputs.image-tag }} || true
+          # Prune dangling images (safe for concurrent workflows)
+          docker image prune -f || true
           echo "✅ Cleanup complete"

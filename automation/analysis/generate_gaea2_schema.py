@@ -7,7 +7,7 @@ This creates a deterministic validation system for the MCP tool.
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -461,85 +461,123 @@ def get_node_properties(node_type: str) -> Dict[str, Any]:
     return common_props
 
 
+def _validate_int_property(prop_name: str, prop_value: Any, prop_def: Dict[str, Any]) -> tuple[bool, Optional[str], Any]:
+    """Validate integer property with optional range check."""
+    if isinstance(prop_value, float) and prop_value.is_integer():
+        prop_value = int(prop_value)
+    elif not isinstance(prop_value, int):
+        return False, f"Property '{prop_name}' must be an integer", None
+
+    if "range" in prop_def:
+        min_val, max_val = prop_def["range"]
+        if not min_val <= prop_value <= max_val:
+            return (
+                False,
+                f"Property '{prop_name}' value {prop_value} outside range [{min_val}, {max_val}]",
+                None,
+            )
+    return True, None, prop_value
+
+
+def _validate_float_property(prop_name: str, prop_value: Any, prop_def: Dict[str, Any]) -> tuple[bool, Optional[str], Any]:
+    """Validate float property with optional range check."""
+    if not isinstance(prop_value, (int, float)):
+        return False, f"Property '{prop_name}' must be numeric", None
+    prop_value = float(prop_value)
+
+    if "range" in prop_def:
+        min_val, max_val = prop_def["range"]
+        if not min_val <= prop_value <= max_val:
+            return (
+                False,
+                f"Property '{prop_name}' value {prop_value} outside range [{min_val}, {max_val}]",
+                None,
+            )
+    return True, None, prop_value
+
+
+def _validate_bool_property(prop_name: str, prop_value: Any, prop_def: Dict[str, Any]) -> tuple[bool, Optional[str], Any]:
+    """Validate boolean property."""
+    if not isinstance(prop_value, bool):
+        return False, f"Property '{prop_name}' must be boolean", None
+    return True, None, prop_value
+
+
+def _validate_enum_property(prop_name: str, prop_value: Any, prop_def: Dict[str, Any]) -> tuple[bool, Optional[str], Any]:
+    """Validate enum property against allowed values."""
+    if prop_value not in prop_def["values"]:
+        return (
+            False,
+            f"Property '{prop_name}' value '{prop_value}' not in allowed values: {prop_def['values']}",
+            None,
+        )
+    return True, None, prop_value
+
+
+def _validate_float2_property(prop_name: str, prop_value: Any, prop_def: Dict[str, Any]) -> tuple[bool, Optional[str], Any]:
+    """Validate float2 property (dict with X and Y keys)."""
+    if not isinstance(prop_value, dict) or "X" not in prop_value or "Y" not in prop_value:
+        return (
+            False,
+            f"Property '{prop_name}' must be a dict with X and Y keys",
+            None,
+        )
+    return True, None, prop_value
+
+
+# Type alias for property validators
+PropertyValidator = Callable[[str, Any, Dict[str, Any]], tuple[bool, Optional[str], Any]]
+
+# Type validator dispatch table
+_PROPERTY_VALIDATORS: Dict[str, PropertyValidator] = {
+    "int": _validate_int_property,
+    "float": _validate_float_property,
+    "bool": _validate_bool_property,
+    "enum": _validate_enum_property,
+    "float2": _validate_float2_property,
+}
+
+
+def _get_property_definition(node_type: str, prop_name: str, node_props: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Get property definition from node props or common properties."""
+    if prop_name in node_props:
+        result = node_props[prop_name]
+        assert isinstance(result, dict)
+        return result
+
+    common_properties = GAEA2_COMPLETE_SCHEMA["common_properties"]
+    assert isinstance(common_properties, dict)
+    if prop_name in common_properties:
+        result = common_properties[prop_name]
+        assert isinstance(result, dict)
+        return result
+
+    return None
+
+
 def validate_property(node_type: str, prop_name: str, prop_value: Any) -> tuple[bool, Optional[str], Any]:
     """
     Validate a property value for a node type.
     Returns (is_valid, error_message, corrected_value)
     """
     node_props = get_node_properties(node_type)
+    prop_def = _get_property_definition(node_type, prop_name, node_props)
 
-    # Check if property exists for this node
-    if prop_name not in node_props:
-        # Check common properties
-        common_properties = GAEA2_COMPLETE_SCHEMA["common_properties"]
-        assert isinstance(common_properties, dict)  # Type assertion for mypy
-
-        if prop_name in common_properties:
-            prop_def = common_properties[prop_name]
-        else:
-            # Unknown property - allow but warn
-            return (
-                True,
-                f"Unknown property '{prop_name}' for node type '{node_type}'",
-                prop_value,
-            )
-    else:
-        prop_def = node_props[prop_name]
+    if prop_def is None:
+        # Unknown property - allow but warn
+        return (
+            True,
+            f"Unknown property '{prop_name}' for node type '{node_type}'",
+            prop_value,
+        )
 
     prop_type = prop_def["type"]
+    validator = _PROPERTY_VALIDATORS.get(prop_type)
 
-    # Type validation and coercion
-    if prop_type == "int":
-        if isinstance(prop_value, float) and prop_value.is_integer():
-            prop_value = int(prop_value)
-        elif not isinstance(prop_value, int):
-            return False, f"Property '{prop_name}' must be an integer", None
+    if validator:
+        return validator(prop_name, prop_value, prop_def)
 
-        # Range check
-        if "range" in prop_def:
-            min_val, max_val = prop_def["range"]
-            if not min_val <= prop_value <= max_val:
-                return (
-                    False,
-                    f"Property '{prop_name}' value {prop_value} outside range [{min_val}, {max_val}]",
-                    None,
-                )
-
-    elif prop_type == "float":
-        if not isinstance(prop_value, (int, float)):
-            return False, f"Property '{prop_name}' must be numeric", None
-        prop_value = float(prop_value)
-
-        # Range check
-        if "range" in prop_def:
-            min_val, max_val = prop_def["range"]
-            if not min_val <= prop_value <= max_val:
-                return (
-                    False,
-                    f"Property '{prop_name}' value {prop_value} outside range [{min_val}, {max_val}]",
-                    None,
-                )
-
-    elif prop_type == "bool":
-        if not isinstance(prop_value, bool):
-            return False, f"Property '{prop_name}' must be boolean", None
-
-    elif prop_type == "enum":
-        if prop_value not in prop_def["values"]:
-            return (
-                False,
-                f"Property '{prop_name}' value '{prop_value}' not in allowed values: {prop_def['values']}",
-                None,
-            )
-
-    elif prop_type == "float2":
-        if not isinstance(prop_value, dict) or "X" not in prop_value or "Y" not in prop_value:
-            return (
-                False,
-                f"Property '{prop_name}' must be a dict with X and Y keys",
-                None,
-            )
-
+    # Unknown type - pass through
     return True, None, prop_value
 
 
@@ -604,7 +642,9 @@ def main():
     """Save the schema and test validation"""
 
     # Save the complete schema
-    schema_path = Path("tools/mcp/gaea2_complete_schema.json")
+    schema_path = Path("tools/mcp/mcp_gaea2/schema/gaea2_complete_schema.json")
+    # Ensure parent directory exists
+    schema_path.parent.mkdir(parents=True, exist_ok=True)
     with open(schema_path, "w", encoding="utf-8") as f:
         json.dump(GAEA2_COMPLETE_SCHEMA, f, indent=2)
 

@@ -4,7 +4,8 @@ REM Usage: run_gpu_eval.bat [command]
 
 setlocal enabledelayedexpansion
 
-cd /d "%~dp0.."
+REM Navigate up 3 levels from scripts\setup\gpu\ to sleeper_agents\
+cd /d "%~dp0..\..\..\"
 
 echo ===========================================================
 echo Sleeper Detection - GPU Evaluation
@@ -41,7 +42,7 @@ echo.
 echo Usage: %~nx0 [command]
 echo.
 echo Commands:
-echo   validate    - Run Phase 1 validation (default)
+echo   validate    - Run foundation validation (default)
 echo   test        - Run model management tests
 echo   download    - Download a model (usage: %~nx0 download [model_id])
 echo   shell       - Start interactive shell in container
@@ -56,11 +57,11 @@ REM ============================================================
 
 :validate_handler
 echo.
-echo Running Phase 1 validation...
+echo Running foundation validation...
 if "!GPU_AVAILABLE!"=="true" (
     docker-compose -f docker\docker-compose.gpu.yml run --rm validate
 ) else (
-    python scripts\validate_phase1.py
+    python scripts\validate_foundation.py
 )
 goto :success
 

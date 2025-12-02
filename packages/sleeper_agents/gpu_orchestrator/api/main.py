@@ -1,18 +1,22 @@
+# pylint: disable=cyclic-import
+# Rationale: FastAPI pattern requires routes to access app state via dependencies.py,
+# which uses deferred imports back to this module. Runtime resolution is correct.
 """Main FastAPI application for GPU Orchestrator."""
 
+from contextlib import asynccontextmanager
 import logging
 import threading
 import time
-from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException, Security
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 
 from api.models import HealthResponse
 from api.routes import jobs, logs, system
 from core.config import settings
 from core.container_manager import ContainerManager
 from core.database import Database
-from fastapi import FastAPI, HTTPException, Security
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import APIKeyHeader
 
 # Configure logging
 logging.basicConfig(
@@ -27,10 +31,41 @@ container_manager: ContainerManager = None  # type: ignore
 start_time: float = 0.0
 
 
+def _recover_orphaned_job(job: dict, cm: ContainerManager, database: Database) -> None:
+    """Check if a running job's container is still alive and mark as failed if not.
+
+    Args:
+        job: Job dictionary with job_id, status, container_id
+        cm: Container manager instance
+        database: Database instance
+    """
+    if job["status"].value != "running":
+        return
+    if not job["container_id"]:
+        return
+
+    try:
+        status = cm.get_container_status(job["container_id"])
+        if status != "running":
+            logger.warning("Job %s container is %s, marking as failed", job["job_id"], status)
+            database.update_job_status(
+                job["job_id"],
+                status="failed",  # type: ignore
+                error_message="Container stopped unexpectedly",
+            )
+    except Exception as e:
+        logger.error("Failed to check job %s: %s", job["job_id"], e)
+        database.update_job_status(
+            job["job_id"],
+            status="failed",  # type: ignore
+            error_message=f"Failed to recover: {str(e)}",
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
-    global db, container_manager, start_time
+    global db, container_manager, start_time  # pylint: disable=global-statement
 
     # Startup
     logger.info("Starting GPU Orchestrator API...")
@@ -45,7 +80,7 @@ async def lifespan(app: FastAPI):
 
         # Ensure logs directory exists
         settings.logs_directory.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Logs directory: {settings.logs_directory}")
+        logger.info("Logs directory: %s", settings.logs_directory)
 
         # Start log cleanup worker in background
         from workers.log_cleanup import start_log_cleanup_worker
@@ -57,24 +92,7 @@ async def lifespan(app: FastAPI):
         # Recover running jobs (mark orphaned jobs as failed)
         jobs_list, _ = db.list_jobs(status=None, limit=1000)
         for job in jobs_list:
-            if job["status"].value == "running":
-                if job["container_id"]:
-                    try:
-                        status = container_manager.get_container_status(job["container_id"])
-                        if status != "running":
-                            logger.warning(f"Job {job['job_id']} container is {status}, marking as failed")
-                            db.update_job_status(
-                                job["job_id"],
-                                status="failed",  # type: ignore
-                                error_message="Container stopped unexpectedly",
-                            )
-                    except Exception as e:
-                        logger.error(f"Failed to check job {job['job_id']}: {e}")
-                        db.update_job_status(
-                            job["job_id"],
-                            status="failed",  # type: ignore
-                            error_message=f"Failed to recover: {str(e)}",
-                        )
+            _recover_orphaned_job(job, container_manager, db)
 
         logger.info("GPU Orchestrator API started successfully")
 

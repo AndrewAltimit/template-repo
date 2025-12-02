@@ -5,12 +5,12 @@ This implements the autonomous testing approach from the AI Agent Training Guide
 """
 
 import asyncio
+from datetime import datetime
 import json
 import os
+from pathlib import Path
 import subprocess
 import sys
-from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict
 
 
@@ -46,7 +46,7 @@ class IntegrationTestRunner:
         env = os.environ.copy()
         env["GAEA2_MCP_URL"] = self.mcp_url
 
-        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env, check=False)
 
         # Read the JSON report
         report_file = Path(f"temp_{suite_name}.json")
@@ -162,7 +162,7 @@ class IntegrationTestRunner:
         }
 
         # Extract successful patterns
-        for suite_name, suite_data in self.results["test_suites"].items():
+        for _, suite_data in self.results["test_suites"].items():
             if "tests" in suite_data:
                 for test in suite_data["tests"]:
                     if test["outcome"] == "passed" and "workflow" in test["nodeid"]:

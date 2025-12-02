@@ -6,9 +6,9 @@ Tests the full flow with mock servers
 
 import json
 import os
+from pathlib import Path
 import sys
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 # Add parent directory to path
@@ -322,7 +322,7 @@ class TestModeSwitching(unittest.TestCase):
 
         # In text mode, tools should be injected
         with patch.dict(os.environ, {"TOOL_MODE": "text"}):
-            from shared.services.text_tool_parser import ToolInjector  # noqa: E402  # pylint: disable=wrong-import-position
+            from shared.services.tool_injector import ToolInjector  # noqa: E402  # pylint: disable=wrong-import-position
 
             tools = {"test": {"description": "Test tool"}}
             injector = ToolInjector(tools)

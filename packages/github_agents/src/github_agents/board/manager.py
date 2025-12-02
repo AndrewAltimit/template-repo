@@ -3,10 +3,10 @@
 # pylint: disable=too-many-lines  # TODO: Extract GraphQL ops and claim management to separate modules
 
 import asyncio
+from datetime import datetime
 import logging
 import os
 import re
-from datetime import datetime
 from typing import Any, Callable
 
 import aiohttp
@@ -79,7 +79,7 @@ class BoardManager:
         self.session: aiohttp.ClientSession | None = None
         self.project_id: str | None = None  # Cached project ID
 
-        logger.info(f"Initialized BoardManager for project #{self.config.project_number} " f"(owner: {self.config.owner})")
+        logger.info("Initialized BoardManager for project #%s (owner: %s)", self.config.project_number, self.config.owner)
 
     async def __aenter__(self) -> "BoardManager":
         """Async context manager entry."""
@@ -100,7 +100,7 @@ class BoardManager:
         )
         # Load and cache project ID
         self.project_id = await self._get_project_id()
-        logger.info(f"Board initialized with project ID: {self.project_id}")
+        logger.info("Board initialized with project ID: %s", self.project_id)
 
     async def close(self) -> None:
         """Close HTTP session."""
@@ -146,6 +146,39 @@ class BoardManager:
         result: GraphQLResponse = await self._execute_with_retry(_execute)
         return result
 
+    def _check_rate_limit(self, response: Any) -> None:
+        """Check for rate limit errors in response and raise if found."""
+        if not hasattr(response, "errors"):
+            return
+        for error in response.errors:
+            if "rate limit" in error.get("message", "").lower():
+                raise RateLimitError()
+
+    def _check_response_errors(self, response: Any) -> None:
+        """Check for GraphQL errors that should be raised."""
+        if not hasattr(response, "errors") or not response.errors:
+            return
+        # Only raise if we got errors AND no useful data
+        if not response.data or not any(response.data.values()):
+            error_msg = "; ".join(e.get("message", "") for e in response.errors)
+            raise GraphQLError(error_msg, errors=response.errors)
+
+    def _handle_client_error(self, error: GraphQLError) -> bool:
+        """Handle client errors (4xx). Returns True if error should not be retried."""
+        if not hasattr(error, "status_code") or not error.status_code:
+            return False
+        if not 400 <= error.status_code < 500:
+            return False
+
+        error_messages = {
+            401: "Authentication failed - check GITHUB_TOKEN",
+            403: "Forbidden - check permissions",
+            404: "Resource not found",
+        }
+        if error.status_code in error_messages:
+            logger.error(error_messages[error.status_code])
+        return True
+
     async def _execute_with_retry(self, operation: Callable) -> Any:
         """
         Execute operation with exponential backoff retry.
@@ -165,43 +198,19 @@ class BoardManager:
         for attempt in range(self.MAX_RETRIES):
             try:
                 response = await operation()
-
-                # Check for rate limit
-                if hasattr(response, "errors"):
-                    for error in response.errors:
-                        if "rate limit" in error.get("message", "").lower():
-                            raise RateLimitError()
-
-                # Check for errors (but only if no data was returned)
-                # Note: GraphQL can return partial data with errors (e.g., querying both user and org)
-                if hasattr(response, "errors") and response.errors:
-                    if not response.data or not any(response.data.values()):
-                        # Only raise if we got errors AND no useful data
-                        error_msg = "; ".join(e.get("message", "") for e in response.errors)
-                        raise GraphQLError(error_msg, errors=response.errors)
-                    # else: have some data, errors are expected (e.g., one of user/org doesn't exist)
-
+                self._check_rate_limit(response)
+                self._check_response_errors(response)
                 return response
 
             except RateLimitError:
-                raise  # Don't retry rate limit errors
+                raise
 
             except GraphQLError as e:
-                # Check HTTP status code if available
-                if hasattr(e, "status_code") and e.status_code:
-                    if 400 <= e.status_code < 500:
-                        # Client errors - don't retry
-                        if e.status_code == 401:
-                            logger.error("Authentication failed - check GITHUB_TOKEN")
-                        elif e.status_code == 403:
-                            logger.error("Forbidden - check permissions")
-                        elif e.status_code == 404:
-                            logger.error("Resource not found")
-                        raise
+                if self._handle_client_error(e):
+                    raise
 
-                # Retry on server errors
                 if attempt < self.MAX_RETRIES - 1:
-                    logger.warning(f"GraphQL error, retrying in {backoff}s: {e}")
+                    logger.warning("GraphQL error, retrying in %ss: %s", backoff, e)
                     await asyncio.sleep(backoff)
                     backoff = min(backoff * 2, self.MAX_BACKOFF)
                 else:
@@ -209,9 +218,8 @@ class BoardManager:
                     raise
 
             except Exception as e:
-                # Network errors - retry with backoff
                 if attempt < self.MAX_RETRIES - 1:
-                    logger.warning(f"Network error, retrying in {backoff}s: {e}")
+                    logger.warning("Network error, retrying in %ss: %s", backoff, e)
                     await asyncio.sleep(backoff)
                     backoff = min(backoff * 2, self.MAX_BACKOFF)
                 else:
@@ -267,6 +275,137 @@ class BoardManager:
 
     # ===== Issue Operations =====
 
+    def _parse_field_values(self, item: dict[str, Any]) -> dict[str, str]:
+        """Parse field values from a project item.
+
+        Args:
+            item: Project item containing field values
+
+        Returns:
+            Dictionary mapping field names to their values
+        """
+        field_values: dict[str, str] = {}
+        for field_value in item.get("fieldValues", {}).get("nodes", []):
+            field_name = field_value.get("field", {}).get("name")
+            if not field_name:
+                continue
+            if "name" in field_value:  # Single select
+                field_values[field_name] = field_value["name"]
+            elif "text" in field_value:  # Text
+                field_values[field_name] = field_value["text"]
+        return field_values
+
+    def _parse_issue_metadata(
+        self, field_values: dict[str, str]
+    ) -> tuple[IssueStatus, IssuePriority, IssueType | None, str | None, list[int]]:
+        """Parse issue metadata from field values.
+
+        Args:
+            field_values: Dictionary of field names to values
+
+        Returns:
+            Tuple of (status, priority, type, agent, blocked_by)
+        """
+        # Parse status
+        status_str = field_values.get(self.config.field_mappings.get("status", "Status"))
+        try:
+            status = IssueStatus(status_str) if status_str else IssueStatus.TODO
+        except ValueError:
+            status = IssueStatus.TODO
+
+        # Parse priority
+        priority_str = field_values.get(self.config.field_mappings.get("priority", "Priority"))
+        try:
+            priority = IssuePriority(priority_str) if priority_str else IssuePriority.MEDIUM
+        except ValueError:
+            priority = IssuePriority.MEDIUM
+
+        # Parse type
+        type_str = field_values.get(self.config.field_mappings.get("type", "Type"))
+        try:
+            issue_type = IssueType(type_str) if type_str else None
+        except ValueError:
+            issue_type = None
+
+        # Get assigned agent
+        assigned_agent = field_values.get(self.config.field_mappings.get("agent", "Agent"))
+
+        # Parse blocked_by field
+        blocked_by_str = field_values.get(self.config.field_mappings.get("blocked_by", "Blocked By"), "")
+        blocked_by: list[int] = []
+        if blocked_by_str:
+            try:
+                blocked_by = [int(num.strip()) for num in blocked_by_str.split(",") if num.strip()]
+            except ValueError:
+                pass
+
+        return status, priority, issue_type, assigned_agent, blocked_by
+
+    def _parse_discovered_from(self, field_values: dict[str, str]) -> int | None:
+        """Parse discovered_from field from field values.
+
+        Args:
+            field_values: Dictionary of field names to values
+
+        Returns:
+            Parent issue number or None
+        """
+        discovered_from_str = field_values.get(self.config.field_mappings.get("discovered_from", "Discovered From"), "")
+        if discovered_from_str:
+            try:
+                return int(discovered_from_str.strip())
+            except ValueError:
+                pass
+        return None
+
+    def _create_issue_from_item(
+        self,
+        item: dict[str, Any],
+        content: dict[str, Any],
+        field_values: dict[str, str],
+        status: IssueStatus,
+        priority: IssuePriority,
+        issue_type: IssueType | None,
+        assigned_agent: str | None,
+        blocked_by: list[int],
+        discovered_from: int | None = None,
+    ) -> Issue:
+        """Create an Issue object from project item data.
+
+        Args:
+            item: Project item data
+            content: Issue content data
+            field_values: Parsed field values
+            status: Issue status
+            priority: Issue priority
+            issue_type: Issue type
+            assigned_agent: Assigned agent name
+            blocked_by: List of blocking issue numbers
+            discovered_from: Parent issue number if discovered from another issue
+
+        Returns:
+            Issue object
+        """
+        labels = [label["name"] for label in content.get("labels", {}).get("nodes", [])]
+
+        return Issue(
+            number=content["number"],
+            title=content["title"],
+            body=content.get("body", ""),
+            state=content["state"].lower(),
+            status=status,
+            priority=priority,
+            type=issue_type,
+            agent=assigned_agent,
+            blocked_by=blocked_by,
+            discovered_from=discovered_from,
+            created_at=datetime.fromisoformat(content["createdAt"].replace("Z", "+00:00")),
+            updated_at=datetime.fromisoformat(content["updatedAt"].replace("Z", "+00:00")),
+            url=content["url"],
+            labels=labels,
+            project_item_id=item["id"],
+        )
+
     async def get_ready_work(self, agent_name: str | None = None, limit: int = 10) -> list[Issue]:
         """
         Get issues ready for work.
@@ -287,7 +426,7 @@ class BoardManager:
         Raises:
             GraphQLError: If fetching issues fails
         """
-        logger.info(f"Getting ready work (agent={agent_name}, limit={limit})")
+        logger.info("Getting ready work (agent=%s, limit=%s)", agent_name, limit)
 
         # Fetch project items with issue data
         query = """
@@ -354,61 +493,18 @@ class BoardManager:
             if not content or content.get("state") != "OPEN":
                 continue
 
-            # Parse field values
-            field_values = {}
-            for field_value in item.get("fieldValues", {}).get("nodes", []):
-                field_name = field_value.get("field", {}).get("name")
-                if not field_name:
-                    continue
-
-                # Handle different field types
-                if "name" in field_value:  # Single select
-                    field_values[field_name] = field_value["name"]
-                elif "text" in field_value:  # Text
-                    field_values[field_name] = field_value["text"]
-
-            # Parse status
-            status_str = field_values.get(self.config.field_mappings.get("status", "Status"))
-            try:
-                status = IssueStatus(status_str) if status_str else IssueStatus.TODO
-            except ValueError:
-                status = IssueStatus.TODO
+            field_values = self._parse_field_values(item)
+            status, priority, issue_type, assigned_agent, blocked_by = self._parse_issue_metadata(field_values)
 
             # Skip if not in Todo or Blocked status
             if status not in (IssueStatus.TODO, IssueStatus.BLOCKED):
                 continue
 
-            # Parse priority
-            priority_str = field_values.get(self.config.field_mappings.get("priority", "Priority"))
-            try:
-                priority = IssuePriority(priority_str) if priority_str else IssuePriority.MEDIUM
-            except ValueError:
-                priority = IssuePriority.MEDIUM
-
-            # Parse type
-            type_str = field_values.get(self.config.field_mappings.get("type", "Type"))
-            try:
-                issue_type = IssueType(type_str) if type_str else None
-            except ValueError:
-                issue_type = None
-
-            # Get assigned agent
-            assigned_agent = field_values.get(self.config.field_mappings.get("agent", "Agent"))
-
             # Filter by agent if specified
             if agent_name and assigned_agent != agent_name:
                 continue
 
-            # Parse blocked_by field (comma-separated issue numbers)
-            blocked_by_str = field_values.get(self.config.field_mappings.get("blocked_by", "Blocked By"), "")
-            blocked_by = []
-            if blocked_by_str:
-                try:
-                    blocked_by = [int(num.strip()) for num in blocked_by_str.split(",") if num.strip()]
-                except ValueError:
-                    pass
-
-            # Skip if has open blockers (simplified - full check would verify blocker status)
+            # Skip if has open blockers
             if blocked_by:
                 continue
 
@@ -416,35 +512,17 @@ class BoardManager:
             issue_number = content["number"]
             active_claim = await self._get_active_claim(issue_number)
             if active_claim and not active_claim.is_expired(self.config.claim_timeout):
-                # Skip if claimed by someone else
                 if agent_name and active_claim.agent != agent_name:
                     continue
 
-            # Parse labels
-            labels = [label["name"] for label in content.get("labels", {}).get("nodes", [])]
-
             # Skip if has exclude labels
+            labels = [label["name"] for label in content.get("labels", {}).get("nodes", [])]
             if any(label in self.config.exclude_labels for label in labels):
                 continue
 
-            # Create Issue object
-            issue = Issue(
-                number=issue_number,
-                title=content["title"],
-                body=content.get("body", ""),
-                state=content["state"].lower(),
-                status=status,
-                priority=priority,
-                type=issue_type,
-                agent=assigned_agent,
-                blocked_by=blocked_by,
-                created_at=datetime.fromisoformat(content["createdAt"].replace("Z", "+00:00")),
-                updated_at=datetime.fromisoformat(content["updatedAt"].replace("Z", "+00:00")),
-                url=content["url"],
-                labels=labels,
-                project_item_id=item["id"],
+            issue = self._create_issue_from_item(
+                item, content, field_values, status, priority, issue_type, assigned_agent, blocked_by
             )
-
             ready_issues.append(issue)
 
             if len(ready_issues) >= limit:
@@ -545,82 +623,15 @@ class BoardManager:
             if not content or content.get("number") != issue_number:
                 continue
 
-            # Parse field values
-            field_values = {}
-            for field_value in item.get("fieldValues", {}).get("nodes", []):
-                field_name = field_value.get("field", {}).get("name")
-                if not field_name:
-                    continue
+            field_values = self._parse_field_values(item)
+            status, priority, issue_type, assigned_agent, blocked_by = self._parse_issue_metadata(field_values)
+            discovered_from = self._parse_discovered_from(field_values)
 
-                # Handle different field types
-                if "name" in field_value:  # Single select
-                    field_values[field_name] = field_value["name"]
-                elif "text" in field_value:  # Text
-                    field_values[field_name] = field_value["text"]
-
-            # Parse status
-            status_str = field_values.get(self.config.field_mappings.get("status", "Status"))
-            try:
-                status = IssueStatus(status_str) if status_str else IssueStatus.TODO
-            except ValueError:
-                status = IssueStatus.TODO
-
-            # Parse priority
-            priority_str = field_values.get(self.config.field_mappings.get("priority", "Priority"))
-            try:
-                priority = IssuePriority(priority_str) if priority_str else IssuePriority.MEDIUM
-            except ValueError:
-                priority = IssuePriority.MEDIUM
-
-            # Parse type
-            type_str = field_values.get(self.config.field_mappings.get("type", "Type"))
-            try:
-                issue_type = IssueType(type_str) if type_str else None
-            except ValueError:
-                issue_type = None
-
-            # Get assigned agent
-            assigned_agent = field_values.get(self.config.field_mappings.get("agent", "Agent"))
-
-            # Parse blocked_by field
-            blocked_by_str = field_values.get(self.config.field_mappings.get("blocked_by", "Blocked By"), "")
-            blocked_by = []
-            if blocked_by_str:
-                try:
-                    blocked_by = [int(num.strip()) for num in blocked_by_str.split(",") if num.strip()]
-                except ValueError:
-                    pass
-
-            # Parse discovered_from field
-            discovered_from_str = field_values.get(self.config.field_mappings.get("discovered_from", "Discovered From"), "")
-            discovered_from = None
-            if discovered_from_str:
-                try:
-                    discovered_from = int(discovered_from_str.strip())
-                except ValueError:
-                    pass
-
-            labels = [label["name"] for label in content.get("labels", {}).get("nodes", [])]
-
-            issue = Issue(
-                number=content["number"],
-                title=content["title"],
-                body=content.get("body", ""),
-                state=content["state"].lower(),
-                status=status,
-                priority=priority,
-                type=issue_type,
-                agent=assigned_agent,
-                blocked_by=blocked_by,
-                discovered_from=discovered_from,
-                created_at=datetime.fromisoformat(content["createdAt"].replace("Z", "+00:00")),
-                updated_at=datetime.fromisoformat(content["updatedAt"].replace("Z", "+00:00")),
-                url=content["url"],
-                labels=labels,
-                project_item_id=item["id"],
+            issue = self._create_issue_from_item(
+                item, content, field_values, status, priority, issue_type, assigned_agent, blocked_by, discovered_from
             )
 
-            logger.info(f"Found issue #{issue_number}: {issue.title}")
+            logger.info("Found issue #%s: %s", issue_number, issue.title)
             return issue
 
         logger.warning("Issue #%s not found on board", issue_number)
@@ -697,7 +708,7 @@ Claiming this issue for implementation. If this agent goes MIA, this claim expir
         # Verify active claim belongs to this agent
         existing_claim = await self._get_active_claim(issue_number)
         if not existing_claim or existing_claim.agent != agent_name:
-            logger.warning(f"Cannot renew claim on #{issue_number}: no active claim by {agent_name}")
+            logger.warning("Cannot renew claim on #%s: no active claim by %s", issue_number, agent_name)
             return False
 
         # Post renewal comment
@@ -744,7 +755,7 @@ Work claim released.
             # Abandoned or error - return to todo
             await self.update_status(issue_number, IssueStatus.TODO)
 
-        logger.info(f"Released claim on #{issue_number} by {agent_name} (reason: {reason})")
+        logger.info("Released claim on #%s by %s (reason: %s)", issue_number, agent_name, reason)
 
     async def update_status(self, issue_number: int, status: IssueStatus) -> bool:
         """
@@ -960,7 +971,7 @@ Work claim released.
         try:
             timestamp = datetime.fromisoformat(timestamp_match.group(1).replace("Z", "+00:00"))
         except ValueError:
-            logger.warning(f"Failed to parse timestamp from claim comment: {timestamp_match.group(1)}")
+            logger.warning("Failed to parse timestamp from claim comment: %s", timestamp_match.group(1))
             return None
 
         return AgentClaim(
@@ -1019,7 +1030,7 @@ Work claim released.
         variables = {"subjectId": issue_id, "body": body}
         await self._execute_graphql(mutation, variables)
 
-        logger.debug(f"Posted comment to #{issue_number}: {body[:100]}...")
+        logger.debug("Posted comment to #%s: %s...", issue_number, body[:100])
 
     # ===== Dependency Management =====
 
@@ -1039,7 +1050,7 @@ Work claim released.
         Raises:
             GraphQLError: If update fails
         """
-        logger.info(f"Adding blocker: #{blocker_number} blocks #{issue_number}")
+        logger.info("Adding blocker: #%s blocks #%s", blocker_number, issue_number)
 
         # Get current blocked_by value
         query = """
@@ -1137,7 +1148,7 @@ Work claim released.
         }
 
         await self._execute_graphql(mutation, variables)
-        logger.info(f"Added blocker: #{blocker_number} now blocks #{issue_number}")
+        logger.info("Added blocker: #%s now blocks #%s", blocker_number, issue_number)
         return True
 
     async def mark_discovered_from(self, issue_number: int, parent_number: int) -> bool:

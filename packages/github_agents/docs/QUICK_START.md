@@ -176,7 +176,7 @@ jobs:
   issue-monitor:
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install package
         run: pip install -e packages/github_agents
       - name: Run monitor

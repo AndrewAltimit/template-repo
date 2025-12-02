@@ -53,13 +53,20 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
+
+      - name: Post-checkout setup
+        run: |
+          # Initialize output directories to prevent root ownership issues
+          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
+            ./automation/setup/docker/init-output-dirs.sh
+          fi
 
       - name: Run tests
         env:
@@ -139,7 +146,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Test modular MCP servers with Docker
         run: |
@@ -153,11 +160,12 @@ jobs:
           pip install -r config/python/requirements.txt && python3 -c '
           import sys
           sys.path.insert(0, \".\")
+          sys.path.append(\"tools/mcp\")  # Add MCP packages to path
 
           # Test Code Quality server
           try:
-              from tools.mcp.code_quality.server import CodeQualityMCPServer
-              from tools.mcp.code_quality.tools import TOOLS as CODE_TOOLS
+              from mcp_code_quality.server import CodeQualityMCPServer
+              from mcp_code_quality.tools import TOOLS as CODE_TOOLS
               print(\"✅ Code Quality MCP server imported successfully\")
               print(f\"  - {len(CODE_TOOLS)} tools available\")
               for tool in CODE_TOOLS:
@@ -168,8 +176,8 @@ jobs:
 
           # Test Content Creation server
           try:
-              from tools.mcp.content_creation.server import ContentCreationMCPServer
-              from tools.mcp.content_creation.tools import TOOLS as CONTENT_TOOLS
+              from mcp_content_creation.server import ContentCreationMCPServer
+              from mcp_content_creation.tools import TOOLS as CONTENT_TOOLS
               print(\"✅ Content Creation MCP server imported successfully\")
               print(f\"  - {len(CONTENT_TOOLS)} tools available\")
               for tool in CONTENT_TOOLS:
@@ -180,8 +188,8 @@ jobs:
 
           # Test Gaea2 server (stubs only in container)
           try:
-              from tools.mcp.gaea2.server import Gaea2MCPServer
-              from tools.mcp.gaea2.tools import TOOLS as GAEA2_TOOLS
+              from mcp_gaea2.server import Gaea2MCPServer
+              from mcp_gaea2.tools import TOOLS as GAEA2_TOOLS
               print(\"✅ Gaea2 MCP server imported successfully\")
               print(f\"  - {len(GAEA2_TOOLS)} tools available\")
           except ImportError as e:
@@ -190,8 +198,8 @@ jobs:
 
           # Test OpenCode server
           try:
-              from tools.mcp.opencode.server import OpenCodeMCPServer
-              from tools.mcp.opencode.tools import TOOLS as OPENCODE_TOOLS
+              from mcp_opencode.server import OpenCodeMCPServer
+              from mcp_opencode.tools import TOOLS as OPENCODE_TOOLS
               print(\"✅ OpenCode MCP server imported successfully\")
               print(f\"  - {len(OPENCODE_TOOLS)} tools available\")
               for tool in OPENCODE_TOOLS:
@@ -202,8 +210,8 @@ jobs:
 
           # Test Crush server
           try:
-              from tools.mcp.crush.server import CrushMCPServer
-              from tools.mcp.crush.tools import TOOLS as CRUSH_TOOLS
+              from mcp_crush.server import CrushMCPServer
+              from mcp_crush.tools import TOOLS as CRUSH_TOOLS
               print(\"✅ Crush MCP server imported successfully\")
               print(f\"  - {len(CRUSH_TOOLS)} tools available\")
               for tool in CRUSH_TOOLS:
@@ -259,7 +267,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Validate documentation
         run: |
@@ -307,7 +315,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run security scans
         run: |
@@ -374,7 +382,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # Use docker-compose to build all images with proper dependency handling
       # This resolves multi-stage build issues by building in dependency order
@@ -412,7 +420,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Docker Compose
         run: |

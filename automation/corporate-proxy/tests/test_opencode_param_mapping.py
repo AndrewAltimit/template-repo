@@ -5,9 +5,9 @@ Ensures snake_case parameters are correctly mapped to camelCase for OpenCode.
 """
 
 import json
+from pathlib import Path
 import sys
 import unittest
-from pathlib import Path
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))

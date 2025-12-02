@@ -7,9 +7,9 @@ This module handles:
 - Memory monitoring and optimization
 """
 
-import logging
 from dataclasses import dataclass
 from enum import Enum
+import logging
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -130,7 +130,7 @@ class ResourceManager:
                 allocated = torch.cuda.memory_allocated(0) / (1024**3)
                 available = total - allocated
 
-                logger.info(f"GPU 0: {available:.2f} GB available / {total:.2f} GB total")
+                logger.info("GPU 0: %.2f GB available / %.2f GB total", available, total)
                 return float(available)
 
             elif self.device_type == DeviceType.MPS:
@@ -139,7 +139,7 @@ class ResourceManager:
 
                 total = psutil.virtual_memory().total / (1024**3)
                 available = psutil.virtual_memory().available / (1024**3)
-                logger.info(f"MPS: ~{available:.2f} GB available / {total:.2f} GB total (RAM)")
+                logger.info("MPS: ~%.2f GB available / %.2f GB total (RAM)", available, total)
                 return float(available)
 
         except Exception as e:
@@ -182,7 +182,7 @@ class ResourceManager:
         )
 
         max_size_str = f"{max_model_size:.2f} GB" if max_model_size else "N/A"
-        logger.info(f"Resource constraints: device={device.value}, max_size={max_size_str}")
+        logger.info("Resource constraints: device=%s, max_size=%s", device.value, max_size_str)
         return constraints
 
     def _supports_flash_attention(self) -> bool:
@@ -207,9 +207,9 @@ class ResourceManager:
             supports = bool(major >= 8)
 
             if supports:
-                logger.info(f"Flash Attention 2 supported (compute capability: {major}.{minor})")
+                logger.info("Flash Attention 2 supported (compute capability: %d.%d)", major, minor)
             else:
-                logger.info(f"Flash Attention 2 not supported (compute capability: {major}.{minor} < 8.0)")
+                logger.info("Flash Attention 2 not supported (compute capability: %d.%d < 8.0)", major, minor)
 
             return supports
 
@@ -246,8 +246,10 @@ class ResourceManager:
 
                 can_fit = bool(available_ram >= required)
                 logger.info(
-                    f"CPU: {required:.2f} GB required, {available_ram:.2f} GB available "
-                    f"({'fits' if can_fit else 'too large'})"
+                    "CPU: %.2f GB required, %.2f GB available (%s)",
+                    required,
+                    available_ram,
+                    "fits" if can_fit else "too large",
                 )
                 return can_fit
 
@@ -274,8 +276,10 @@ class ResourceManager:
 
             can_fit = bool(self.available_vram >= required)
             logger.info(
-                f"GPU: {required:.2f} GB required, {self.available_vram:.2f} GB available "
-                f"({'fits' if can_fit else 'too large'})"
+                "GPU: %.2f GB required, %.2f GB available (%s)",
+                required,
+                self.available_vram,
+                "fits" if can_fit else "too large",
             )
             return can_fit
 
@@ -478,7 +482,7 @@ def get_resource_manager() -> ResourceManager:
     Returns:
         Global ResourceManager instance
     """
-    global _resource_manager
+    global _resource_manager  # pylint: disable=global-statement
     if _resource_manager is None:
         _resource_manager = ResourceManager()
     return _resource_manager

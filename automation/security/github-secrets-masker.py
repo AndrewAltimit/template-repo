@@ -7,9 +7,9 @@ Uses .secrets.yaml configuration from repository root.
 
 import json
 import os
+from pathlib import Path
 import re
 import sys
-from pathlib import Path
 
 import yaml
 
@@ -54,53 +54,46 @@ class SecretMasker:
         )
         raise FileNotFoundError("Security configuration file .secrets.yaml not found - failing closed for security")
 
-    def _load_secrets(self):
-        """Load all potential secrets from environment based on config."""
-        secrets = {}
-        # Handle both list and dict format for environment_variables
+    def _load_explicit_env_vars(self, secrets: dict, min_length: int) -> None:
+        """Load explicitly configured environment variables."""
         env_vars = self.config.get("environment_variables", [])
         if isinstance(env_vars, dict):
             env_vars = env_vars.get("secrets", [])
 
-        auto_detect = self.config.get("auto_detection", {})
-        settings = self.config.get("settings", {})
-        min_length = settings.get("minimum_secret_length", 4)
-
-        # Load explicitly configured environment variables
         for var_name in env_vars:
             if var_name in os.environ:
                 value = os.environ[var_name]
                 if value and len(value) >= min_length:
                     secrets[var_name] = value
 
-        # Auto-detect sensitive environment variables if enabled
-        if auto_detect.get("enabled", True):
-            patterns = auto_detect.get("include_patterns", auto_detect.get("patterns", []))
-            excludes = auto_detect.get("exclude_patterns", auto_detect.get("exclude", []))
+    def _is_excluded(self, key: str, excludes: list) -> bool:
+        """Check if a key matches any exclusion pattern."""
+        return any(self._matches_pattern(key.upper(), pattern) for pattern in excludes)
 
-            for key, value in os.environ.items():
-                # Skip if already added
-                if key in secrets:
-                    continue
+    def _auto_detect_secrets(self, secrets: dict, min_length: int) -> None:
+        """Auto-detect sensitive environment variables based on patterns."""
+        auto_detect = self.config.get("auto_detection", {})
+        if not auto_detect.get("enabled", True):
+            return
 
-                # Check exclusion patterns
-                excluded = False
-                for exclude_pattern in excludes:
-                    if self._matches_pattern(key.upper(), exclude_pattern):
-                        excluded = True
-                        break
+        patterns = auto_detect.get("include_patterns", auto_detect.get("patterns", []))
+        excludes = auto_detect.get("exclude_patterns", auto_detect.get("exclude", []))
 
-                if excluded:
-                    continue
+        for key, value in os.environ.items():
+            if key in secrets:
+                continue
 
-                # Check inclusion patterns
-                for pattern in patterns:
-                    if self._matches_pattern(key.upper(), pattern):
-                        if value and len(value) >= min_length:
-                            secrets[key] = value
-                        break
+            if self._is_excluded(key, excludes):
+                continue
 
-        # Add explicitly defined mask vars from MASK_ENV_VARS (backward compatibility)
+            for pattern in patterns:
+                if self._matches_pattern(key.upper(), pattern):
+                    if value and len(value) >= min_length:
+                        secrets[key] = value
+                    break
+
+    def _load_mask_env_vars(self, secrets: dict, min_length: int) -> None:
+        """Load explicitly defined mask vars from MASK_ENV_VARS (backward compatibility)."""
         mask_vars = os.getenv("MASK_ENV_VARS", "").split(",")
         for var in mask_vars:
             var = var.strip()
@@ -108,6 +101,16 @@ class SecretMasker:
                 value = os.environ[var]
                 if value and len(value) >= min_length:
                     secrets[var] = value
+
+    def _load_secrets(self):
+        """Load all potential secrets from environment based on config."""
+        secrets = {}
+        settings = self.config.get("settings", {})
+        min_length = settings.get("minimum_secret_length", 4)
+
+        self._load_explicit_env_vars(secrets, min_length)
+        self._auto_detect_secrets(secrets, min_length)
+        self._load_mask_env_vars(secrets, min_length)
 
         return secrets
 
@@ -166,8 +169,8 @@ class SecretMasker:
         # Then mask pattern-based secrets
         for pattern, pattern_name in self.patterns:
 
-            def replace_with_mask(_match):
-                mask = mask_format.replace("{name}", pattern_name)
+            def replace_with_mask(_match, name=pattern_name):
+                mask = mask_format.replace("{name}", name)
                 return mask
 
             masked = pattern.sub(replace_with_mask, masked)

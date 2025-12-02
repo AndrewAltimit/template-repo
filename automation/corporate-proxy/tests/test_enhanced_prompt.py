@@ -3,9 +3,9 @@
 Test enhanced system prompt injection for better tool usage.
 """
 
+from pathlib import Path
 import sys
 import unittest
-from pathlib import Path
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))

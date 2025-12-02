@@ -1,8 +1,8 @@
 """Resource tracker for monitoring capital, compute, and time allocation."""
 
-import json
 from dataclasses import dataclass, field
 from datetime import datetime
+import json
 from pathlib import Path
 from typing import Any, Dict, List
 

@@ -5,10 +5,11 @@ for models that don't have evaluation data yet.
 """
 
 import logging
-import sys
 from pathlib import Path
+import sys
 
 import streamlit as st
+
 from utils.model_registry import ModelInfo, ModelRegistry
 
 # Configure logger first so it's available for warnings

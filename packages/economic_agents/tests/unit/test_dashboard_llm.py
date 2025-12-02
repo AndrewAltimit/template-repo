@@ -3,10 +3,11 @@
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
+from fastapi.testclient import TestClient
 import pytest
+
 from economic_agents.dashboard.agent_manager import agent_manager
 from economic_agents.dashboard.app import app
-from fastapi.testclient import TestClient
 
 
 @pytest.fixture

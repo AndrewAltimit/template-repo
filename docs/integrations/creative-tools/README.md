@@ -68,5 +68,5 @@ These integrations connect to remote instances:
 
 - [Integrations Overview](../README.md)
 - [MCP Servers](../../mcp/servers.md)
-- [AI Toolkit MCP](../../../tools/mcp/ai_toolkit/docs/README.md)
-- [ComfyUI MCP](../../../tools/mcp/comfyui/docs/README.md)
+- [AI Toolkit MCP](../../../tools/mcp/mcp_ai_toolkit/docs/README.md)
+- [ComfyUI MCP](../../../tools/mcp/mcp_comfyui/docs/README.md)

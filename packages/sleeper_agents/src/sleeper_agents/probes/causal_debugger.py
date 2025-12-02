@@ -6,8 +6,8 @@ change variable values, and see how the program output changes.
 """
 
 import asyncio
-import logging
 from dataclasses import dataclass
+import logging
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -15,7 +15,8 @@ import numpy as np
 try:
     import torch
 except ImportError:
-    torch = None
+    # Optional dependency - None sentinel when torch unavailable
+    torch = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
 
@@ -483,7 +484,7 @@ class CausalDebugger:
 
         for feature in discovered_features:
             # Test each feature's causality
-            for category, prompts in test_suite.items():
+            for _, prompts in test_suite.items():
                 experiment = await self.trace_feature_causality(
                     feature.vector,
                     feature.feature_name,

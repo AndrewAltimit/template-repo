@@ -3,8 +3,8 @@
 
 import asyncio
 import os
-import sys
 from pathlib import Path
+import sys
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -71,7 +71,7 @@ async def test_tts_integration():
 
     # Test full processing
     print("\n4. Testing full review processing...")
-    formatted_review, audio_url = await tts.process_review_with_tts(review_text, agent_name="gemini", pr_number=123)
+    _formatted_review, audio_url = await tts.process_review_with_tts(review_text, agent_name="gemini", pr_number=123)
 
     if audio_url:
         print(f"   ✓ Review processed with audio: {audio_url}")

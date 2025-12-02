@@ -47,11 +47,12 @@ docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi
 
 # Step 3: Build GPU image
 echo -e "\n${BLUE}Step 3: Building GPU Docker Image${NC}"
-cd "$(dirname "$0")/.."
+# Navigate up 3 levels from scripts/setup/gpu/ to sleeper_agents/
+cd "$(dirname "$(dirname "$(dirname "$0")")")"
 docker-compose -f docker/docker-compose.gpu.yml build
 
 # Step 4: Run validation
-echo -e "\n${BLUE}Step 4: Running Phase 1 Validation on GPU${NC}"
+echo -e "\n${BLUE}Step 4: Running Foundation Validation on GPU${NC}"
 docker-compose -f docker/docker-compose.gpu.yml run --rm validate
 
 # Step 5: Test resource detection
@@ -95,4 +96,4 @@ echo "  1. Run evaluations: ./scripts/run_gpu_eval.sh test"
 echo "  2. Download models: ./scripts/run_gpu_eval.sh download mistral-7b"
 echo "  3. Interactive shell: ./scripts/run_gpu_eval.sh shell"
 echo ""
-echo "The GPU container is ready for Phase 3 (Real Model Inference)"
+echo "The GPU container is ready for model inference (Real Model Inference)"

@@ -5,8 +5,8 @@ real-time scanners for specific features in the model's internal state.
 Think of these as grep/Yara rules for neural network memory.
 """
 
-import logging
 from dataclasses import dataclass
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -209,11 +209,15 @@ class ProbeDetector:
                         best_auc = val_auc
                         best_classifier = probe_classifier
                         patience_counter = 0
-                        logger.debug(f"  Iteration {iteration}: val_auc={val_auc:.3f} (improvement)")
+                        logger.debug("  Iteration %s: val_auc=%.3f (improvement)", iteration, val_auc)
                     else:
                         patience_counter += 1
                         logger.debug(
-                            f"  Iteration {iteration}: val_auc={val_auc:.3f} (no improvement {patience_counter}/{patience})"
+                            "  Iteration %s: val_auc=%.3f (no improvement %s/%s)",
+                            iteration,
+                            val_auc,
+                            patience_counter,
+                            patience,
                         )
 
                         if patience_counter >= patience:
@@ -255,11 +259,11 @@ class ProbeDetector:
 
             y_val_scores = probe_classifier.predict_proba(X_val_for_threshold)[:, 1]
             threshold = self._find_optimal_threshold(y_val, y_val_scores)
-            logger.debug(f"Threshold calibrated on validation data: {threshold:.3f}")
+            logger.debug("Threshold calibrated on validation data: %.3f", threshold)
         else:
             # Fallback: use training data (not ideal, but maintains compatibility)
             threshold = self._find_optimal_threshold(y, y_scores)
-            logger.debug(f"Threshold calibrated on training data: {threshold:.3f}")
+            logger.debug("Threshold calibrated on training data: %.3f", threshold)
 
         # Calculate TPR and FPR on training data
         y_pred = y_scores > threshold
@@ -289,7 +293,7 @@ class ProbeDetector:
 
         self.probes[probe_id] = probe
 
-        logger.info(f"Probe trained: {probe_id} (AUC={auc:.3f}, TPR={tpr:.3f}, FPR={fpr:.3f})")
+        logger.info("Probe trained: %s (AUC=%.3f, TPR=%.3f, FPR=%.3f)", probe_id, auc, tpr, fpr)
 
         return probe
 
@@ -422,10 +426,10 @@ class ProbeDetector:
                 detections.append(detection)
 
                 if detected:
-                    logger.debug(f"Probe {probe.probe_id} detected {probe.feature_name} " f"with confidence {score:.3f}")
+                    logger.debug("Probe %s detected %s with confidence %.3f", probe.probe_id, probe.feature_name, score)
 
             except Exception as e:
-                logger.warning(f"Probe {probe.probe_id} detection failed: {e}")
+                logger.warning("Probe %s detection failed: %s", probe.probe_id, e)
 
         # Store in history
         self.detection_history.extend(detections)
@@ -520,7 +524,7 @@ class ProbeDetector:
                         activation = layer_acts[-1].detach().cpu().numpy()
                         activations[layer] = activation
             else:
-                logger.error(f"Model {type(self.model).__name__} doesn't support activation extraction")
+                logger.error("Model %s doesn't support activation extraction", type(self.model).__name__)
 
         except Exception as e:
             logger.warning("Failed to extract activations: %s", e)
@@ -653,3 +657,66 @@ class ProbeDetector:
         """Clear detection history."""
         self.detection_history = []
         logger.info("Cleared detection history")
+
+    def get_backend_type(self) -> str:
+        """Get the backend type for this probe detector.
+
+        Returns:
+            "sklearn" (this implementation uses sklearn)
+
+        Example:
+            >>> detector = ProbeDetector(model)
+            >>> detector.get_backend_type()
+            'sklearn'
+        """
+        return "sklearn"
+
+    async def fit_from_arrays(
+        self,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        X_val: Optional[np.ndarray] = None,
+        y_val: Optional[np.ndarray] = None,
+        layer: int = 0,
+    ) -> Probe:
+        """Unified fit interface compatible with TorchProbeTrainer.
+
+        This method provides a sklearn-compatible interface that matches
+        the TorchProbeTrainer API for easy backend swapping.
+
+        Args:
+            X_train: Training activations
+            y_train: Training labels (0=clean, 1=deceptive)
+            X_val: Validation activations (optional)
+            y_val: Validation labels (optional)
+            layer: Layer index for this probe
+
+        Returns:
+            Trained probe
+
+        Example:
+            >>> detector = ProbeDetector(model)
+            >>> X_train = np.random.randn(1000, 512).astype(np.float32)
+            >>> y_train = np.random.randint(0, 2, size=1000).astype(np.float32)
+            >>> probe = await detector.fit_from_arrays(X_train, y_train, layer=5)
+            >>> probe.auc_score
+            0.95
+        """
+        # Split into positive/negative samples
+        positive_samples = X_train[y_train == 1]
+        negative_samples = X_train[y_train == 0]
+
+        # Prepare validation data tuple if provided
+        validation_data = (X_val, y_val) if X_val is not None and y_val is not None else None
+
+        # Call existing train_probe method
+        probe = await self.train_probe(
+            feature_name="is_deceptive",
+            positive_samples=positive_samples,
+            negative_samples=negative_samples,
+            layer=layer,
+            description=f"Probe at layer {layer}",
+            validation_data=validation_data,
+        )
+
+        return probe

@@ -8,9 +8,9 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
-import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import httpx
 from pydantic import BaseModel
 
 # Configure logging
@@ -134,12 +134,14 @@ async def list_tools():
                 raise HTTPException(status_code=response.status_code, detail="Failed to list tools")
     except Exception as e:
         logger.error("Error listing tools: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/tools/execute")
-async def execute_tool(tool_name: str, arguments: Dict[str, Any] = {}):
+async def execute_tool(tool_name: str, arguments: Optional[Dict[str, Any]] = None):
     """Execute a tool on the remote server"""
+    if arguments is None:
+        arguments = {}
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             response = await client.post(
@@ -155,8 +157,8 @@ async def execute_tool(tool_name: str, arguments: Dict[str, Any] = {}):
                     detail=f"Tool execution failed: {response.text}",
                 )
     except Exception as e:
-        logger.error(f"Error executing tool {tool_name}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error executing tool %s: %s", tool_name, e)
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 if __name__ == "__main__":

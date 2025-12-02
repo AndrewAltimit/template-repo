@@ -7,15 +7,9 @@ Test the enhanced Gaea2 validation that checks:
 4. Actual file opening in Gaea2
 """
 
-import os
-import sys
+import pytest
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-import pytest  # noqa: E402
-
-from tools.mcp.gaea2.validation.validator import Gaea2Validator  # noqa: E402
+from tools.mcp.gaea2.validation.validator import Gaea2Validator
 
 
 class TestEnhancedValidation:
@@ -218,7 +212,7 @@ class TestEnhancedValidation:
 
         # This test requires a mock CLI runner since we can't actually run Gaea2
         class MockCLIRunner:
-            async def run_gaea2_project(self, project_path, resolution, format, timeout):
+            async def run_gaea2_project(self, project_path, resolution, output_format, timeout):
                 # Simulate a file that can't open
                 return {
                     "success": False,

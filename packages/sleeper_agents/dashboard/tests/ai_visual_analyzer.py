@@ -4,11 +4,11 @@ Analyzes screenshots captured during Selenium tests for visual issues.
 """
 
 import base64
+from datetime import datetime
 import json
+from pathlib import Path
 import subprocess
 import tempfile
-from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List
 
 
@@ -60,6 +60,7 @@ class AIVisualAnalyzer:
                 capture_output=True,
                 text=True,
                 timeout=30,
+                check=False,
             )
 
             if result.returncode == 0:
@@ -110,6 +111,7 @@ class AIVisualAnalyzer:
                 capture_output=True,
                 text=True,
                 timeout=30,
+                check=False,
             )
 
             if result.returncode == 0:
@@ -333,7 +335,11 @@ class VisualTestRunner:
         # Run Selenium tests
         print("Running Selenium E2E tests...")
         test_result = subprocess.run(
-            ["python", "-m", "pytest", "test_selenium_e2e.py", "-v"], cwd=Path(__file__).parent, capture_output=True, text=True
+            ["python", "-m", "pytest", "test_selenium_e2e.py", "-v"],
+            cwd=Path(__file__).parent,
+            capture_output=True,
+            text=True,
+            check=False,
         )
 
         # Analyze captured screenshots

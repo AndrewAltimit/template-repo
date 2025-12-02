@@ -1,12 +1,12 @@
 """GitHub PR review monitoring with multi-agent support."""
 
 import asyncio
+from datetime import datetime, timedelta, timezone
 import json
 import logging
 import os
-import sys
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..board.config import load_config
@@ -84,11 +84,11 @@ class PRMonitor(BaseMonitor):
                 try:
                     success = await self.board_manager.update_status(issue_number, IssueStatus.DONE)
                     if success:
-                        logger.info(f"Updated issue #{issue_number} to Done status (PR #{pr_number} merged)")
+                        logger.info("Updated issue #%s to Done status (PR #%s merged)", issue_number, pr_number)
                     else:
                         logger.warning("Failed to update issue #%s status on board", issue_number)
                 except Exception as e:
-                    logger.warning(f"Board update failed for issue #{issue_number}: {e}")
+                    logger.warning("Board update failed for issue #%s: %s", issue_number, e)
         except Exception as e:
             logger.warning("Board initialization failed: %s", e)
 
@@ -127,7 +127,7 @@ class PRMonitor(BaseMonitor):
 
     def process_items(self) -> None:
         """Process open PRs."""
-        logger.info(f"Processing PRs for repository: {self.repo}")
+        logger.info("Processing PRs for repository: %s", self.repo)
 
         if self.review_only_mode:
             logger.info("Running in review-only mode")
@@ -158,7 +158,7 @@ class PRMonitor(BaseMonitor):
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Log any exceptions
-        for i, result in enumerate(results):
+        for result in results:
             if isinstance(result, Exception):
                 logger.error("Error processing PR: %s", result)
 
@@ -179,7 +179,7 @@ class PRMonitor(BaseMonitor):
                 continue
 
             action, agent_name, trigger_user = trigger_info
-            logger.info(f"PR #{pr_number}: [{action}][{agent_name}] by {trigger_user}")
+            logger.info("PR #%s: [%s][%s] by %s", pr_number, action, agent_name, trigger_user)
 
             # Security check
             is_allowed, reason = self.security_manager.perform_full_security_check(
@@ -191,7 +191,7 @@ class PRMonitor(BaseMonitor):
             )
 
             if not is_allowed:
-                logger.warning(f"Security check failed for PR #{pr_number}: {reason}")
+                logger.warning("Security check failed for PR #%s: %s", pr_number, reason)
                 self._post_security_rejection(pr_number, reason, "pr")
                 continue
 
@@ -314,7 +314,7 @@ class PRMonitor(BaseMonitor):
         try:
             await self._implement_review_feedback(pr, comment, agent, branch_name)
         except Exception as e:
-            logger.error(f"Failed to address review feedback for PR #{pr_number}: {e}")
+            logger.error("Failed to address review feedback for PR #%s: %s", pr_number, e)
             self._post_error_comment(pr_number, str(e), "pr")
 
     async def _implement_review_feedback(self, pr: Dict, comment: Dict, agent: Any, branch_name: str) -> None:
@@ -367,7 +367,7 @@ Requirements:
             await self._apply_review_fixes(pr, agent.name, response, branch_name, context["review_comment_id"])
 
         except Exception as e:
-            logger.error(f"Agent {agent.name} failed: {e}")
+            logger.error("Agent %s failed: %s", agent.name, e)
             raise
 
     async def _apply_review_fixes(
@@ -388,12 +388,12 @@ Requirements:
 
             # 2. Apply the code changes
             # Parse and apply the code changes from the AI response
-            blocks, results = CodeParser.extract_and_apply(implementation)
+            _blocks, results = CodeParser.extract_and_apply(implementation)
 
             if results:
                 logger.info("Applied %s file changes:", len(results))
                 for filename, operation in results.items():
-                    logger.info(f"  - {filename}: {operation}")
+                    logger.info("  - %s: %s", filename, operation)
             else:
                 logger.warning("No code changes were extracted from the AI response")
 
@@ -531,7 +531,7 @@ Requirements:
 
         # In review-only mode, skip trigger checks and review all PRs
         # No need for [COMMAND][AGENT] keywords
-        logger.info(f"Reviewing PR #{pr_number}: {pr_title}")
+        logger.info("Reviewing PR #%s: %s", pr_number, pr_title)
 
         # Get PR diff for better context
         try:
@@ -591,7 +591,7 @@ Do not provide implementation code. Focus on review feedback only."""
                         self._post_review_comment(pr_number, agent_name.title(), formatted_review, "pr")
 
             except Exception as e:
-                logger.error(f"Failed to get review from {agent_name}: {e}")
+                logger.error("Failed to get review from %s: %s", agent_name, e)
 
         return reviews
 

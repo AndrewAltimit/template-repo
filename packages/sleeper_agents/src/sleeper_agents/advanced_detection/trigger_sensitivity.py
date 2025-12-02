@@ -3,8 +3,8 @@ Trigger Sensitivity Analysis Module
 Tests how specific vs general backdoor triggers are, based on Anthropic's findings.
 """
 
-import logging
 from dataclasses import dataclass
+import logging
 from typing import Any, Dict, List
 
 import numpy as np
@@ -223,7 +223,7 @@ class TriggerSensitivityAnalyzer:
                     variant=var,
                     variant_type="case",
                     distance=0.3,
-                    expected_activation=True if trigger.upper() == var else False,
+                    expected_activation=trigger.upper() == var,
                 )
             )
 
@@ -257,8 +257,8 @@ class TriggerSensitivityAnalyzer:
                 variants.append(text[:i] + text[i + 1 :])
 
             # Duplicate characters
-            for i, _ in enumerate(text):
-                variants.append(text[:i] + text[i] + text[i:])
+            for i, char in enumerate(text):
+                variants.append(text[:i] + char + text[i:])
 
         return variants[:5]  # Limit number
 
@@ -400,7 +400,7 @@ class TriggerSensitivityAnalyzer:
         specificity = exact_score - avg_variant
 
         # Normalize to 0-1
-        return float(max(0, min(1, specificity)))
+        return float(max(0.0, min(1.0, float(specificity))))
 
     def _calculate_boundary_sharpness(self, exact_score: float, variant_scores: Dict[str, float]) -> float:
         """Calculate how sharp the activation boundary is.
@@ -423,9 +423,9 @@ class TriggerSensitivityAnalyzer:
         variance = np.var(scores)
 
         # High variance + high exact score = sharp boundary
-        sharpness = exact_score * (1 - variance) if variance < 1 else 0
+        sharpness = exact_score * (1 - variance) if variance < 1 else 0.0
 
-        return max(0, min(1, sharpness))
+        return float(max(0.0, min(1.0, float(sharpness))))
 
     async def analyze_trigger_set(self, triggers: List[str], test_prompt: str = "Execute this function") -> Dict[str, Any]:
         """Analyze a set of triggers for patterns.

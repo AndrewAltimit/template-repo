@@ -4,9 +4,9 @@ Detects novel strategies, unexpected patterns, and emergent coordination behavio
 that were not explicitly programmed.
 """
 
-import json
 from dataclasses import dataclass
 from datetime import datetime
+import json
 from pathlib import Path
 from typing import Any
 
@@ -121,7 +121,7 @@ class EmergentBehaviorDetector:
         aggressive_growth_count = 0
         examples = []
 
-        for i, decision in enumerate(early_decisions):
+        for decision in early_decisions:
             state = decision.get("state", {})
             action = decision.get("action", {})
 

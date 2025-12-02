@@ -4,18 +4,11 @@ Example showing how integration tests can bypass Gaea2 file validation
 when testing invalid terrain generation scenarios.
 """
 import os
-import sys
 import unittest.mock
-from pathlib import Path
 
 import pytest
 
-# Add the project root to the Python path
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-from tools.mcp.gaea2.server import Gaea2MCPServer  # noqa: E402
+from tools.mcp.gaea2.server import Gaea2MCPServer
 
 
 # Create a test server instance

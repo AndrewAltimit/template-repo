@@ -25,8 +25,8 @@ class MockSessionState(dict):
     def __getattr__(self, key):
         try:
             return self[key]
-        except KeyError:
-            raise AttributeError(key)
+        except KeyError as exc:
+            raise AttributeError(key) from exc
 
     def __setattr__(self, key, value):
         self[key] = value
@@ -34,8 +34,8 @@ class MockSessionState(dict):
     def __delattr__(self, key):
         try:
             del self[key]
-        except KeyError:
-            raise AttributeError(key)
+        except KeyError as exc:
+            raise AttributeError(key) from exc
 
 
 # Set up mock session_state

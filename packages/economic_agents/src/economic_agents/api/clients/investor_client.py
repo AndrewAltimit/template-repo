@@ -58,7 +58,7 @@ class InvestorPortalAPIClient:
             return result
 
         except httpx.HTTPError as e:
-            raise ValueError(f"Failed to submit proposal: {e}")
+            raise ValueError(f"Failed to submit proposal: {e}") from e
 
     def get_proposal_status(self, proposal_id: str) -> Dict:
         """Get status of a submitted proposal.
@@ -83,12 +83,12 @@ class InvestorPortalAPIClient:
 
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
-                raise ValueError("Proposal not found or still being evaluated")
+                raise ValueError("Proposal not found or still being evaluated") from e
             if e.response.status_code == 403:
-                raise ValueError("Not authorized to view this proposal")
-            raise ValueError(f"Failed to get proposal status: {e}")
+                raise ValueError("Not authorized to view this proposal") from e
+            raise ValueError(f"Failed to get proposal status: {e}") from e
         except httpx.HTTPError as e:
-            raise ValueError(f"Failed to get proposal status: {e}")
+            raise ValueError(f"Failed to get proposal status: {e}") from e
 
     def list_investors(self) -> List[Dict]:
         """Get list of active investors.
@@ -111,7 +111,7 @@ class InvestorPortalAPIClient:
             return investors
 
         except httpx.HTTPError as e:
-            raise ValueError(f"Failed to get investors: {e}")
+            raise ValueError(f"Failed to get investors: {e}") from e
 
     def list_proposals(self) -> List[Dict]:
         """List all proposals submitted by this agent.
@@ -134,7 +134,7 @@ class InvestorPortalAPIClient:
             return proposals
 
         except httpx.HTTPError as e:
-            raise ValueError(f"Failed to list proposals: {e}")
+            raise ValueError(f"Failed to list proposals: {e}") from e
 
     def __repr__(self) -> str:
         """String representation."""

@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+
 from components.model_selector import render_model_selector
 from utils.model_registry import ModelRegistry
 
@@ -267,9 +268,9 @@ def render_feature_discovery(data_loader, cache_manager, selected_model: str):
         # Anomalous features requiring investigation
         if features["anomalous"] > 0:
             st.markdown("### Features Requiring Investigation")
-            st.caption("These patterns deviate from expected structures. " "Investigation needed to understand their role.")
+            st.caption("These patterns deviate from expected structures. " + "Investigation needed to understand their role.")
 
-            for idx, feature in enumerate(features["anomalous_list"][:10]):
+            for feature in features["anomalous_list"][:10]:
                 with st.container():
                     col1, col2, col3 = st.columns([3, 1, 1])
 
@@ -458,13 +459,13 @@ def render_statistical_patterns(data_loader, cache_manager, selected_model: str)
             x=cluster_data["x"],
             y=cluster_data["y"],
             mode="markers",
-            marker=dict(
-                size=8,
-                color=cluster_data["cluster_id"],
-                colorscale="Viridis",
-                showscale=True,
-                colorbar=dict(title="Cluster ID"),
-            ),
+            marker={
+                "size": 8,
+                "color": cluster_data["cluster_id"],
+                "colorscale": "Viridis",
+                "showscale": True,
+                "colorbar": {"title": "Cluster ID"},
+            },
             text=[f"Pattern {i}" for i in range(len(cluster_data["x"]))],
             hovertemplate="%{text}<br>Cluster: %{marker.color}<extra></extra>",
         )
@@ -512,7 +513,7 @@ def render_temporal_evolution(data_loader, cache_manager, selected_model: str):
     fig = go.Figure()
 
     for pattern_name, values in temporal_data["patterns"].items():
-        fig.add_trace(go.Scatter(x=temporal_data["timestamps"], y=values, mode="lines", name=pattern_name, line=dict(width=2)))
+        fig.add_trace(go.Scatter(x=temporal_data["timestamps"], y=values, mode="lines", name=pattern_name, line={"width": 2}))
 
     # Add anomaly zones
     fig.add_hrect(y0=0.7, y1=1.0, fillcolor="red", opacity=0.1, layer="below", line_width=0, annotation_text="High Drift Zone")
@@ -626,7 +627,7 @@ def create_layer_anomaly_heatmap(anomalies: Dict[str, Any]) -> go.Figure:
     heatmap_data = []
     for i, layer in enumerate(layers):
         row = []
-        for j in range(10):  # 10 time points
+        for _ in range(10):  # 10 time points
             base = values[i]
             variation = np.random.normal(0, 0.1)
             row.append(max(0, min(1, base + variation)))
@@ -639,7 +640,7 @@ def create_layer_anomaly_heatmap(anomalies: Dict[str, Any]) -> go.Figure:
             y=[f"Layer {layer}" for layer in layers],
             colorscale="RdYlBu_r",
             zmid=0.5,
-            colorbar=dict(title="Anomaly<br>Level"),
+            colorbar={"title": "Anomaly<br>Level"},
         )
     )
 
@@ -744,7 +745,7 @@ def create_feature_space_plot(features: Dict[str, Any]) -> go.Figure:
             x=x_coords,
             y=y_coords,
             mode="markers",
-            marker=dict(size=8, color=colors, line=dict(width=1, color="white")),
+            marker={"size": 8, "color": colors, "line": {"width": 1, "color": "white"}},
             text=texts,
             hovertemplate="Type: %{text}<br>X: %{x:.2f}<br>Y: %{y:.2f}<extra></extra>",
         )
@@ -769,7 +770,7 @@ def test_pattern_causality(feature: str, strength: float, scenarios: list) -> Di
     activation_effects = []
     suppression_effects = []
 
-    for scenario in scenarios:
+    for _ in scenarios:
         # Simulate effect sizes
         base_effect = np.random.beta(3, 5)
         activation_effects.append(base_effect * strength * (1 + np.random.normal(0, 0.2)))

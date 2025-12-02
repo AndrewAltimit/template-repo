@@ -3,11 +3,11 @@ Streamlit native tests for dashboard components.
 Uses Streamlit's testing framework for fast, headless testing.
 """
 
+from datetime import datetime, timedelta
 import os
+from pathlib import Path
 import sys
 import unittest
-from datetime import datetime, timedelta
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import numpy as np
