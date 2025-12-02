@@ -172,6 +172,19 @@ scratch/
 *.webm
 generated/
 
+# LaTeX build artifacts
+*.aux
+*.toc
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+*.nav
+*.snm
+*.vrb
+
 # Security reports
 bandit-report.json
 safety-report.json
