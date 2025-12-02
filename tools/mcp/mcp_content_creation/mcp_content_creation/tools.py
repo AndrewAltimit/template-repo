@@ -9,16 +9,18 @@ from typing import Any, Dict, Optional, cast
 
 from .server import ContentCreationMCPServer
 
-# Singleton server instance for standalone tool usage
-_server_instance: Optional[ContentCreationMCPServer] = None
+
+class _ServerHolder:
+    """Holder class for singleton server instance to avoid global statement."""
+
+    instance: Optional[ContentCreationMCPServer] = None
 
 
 def _get_server() -> ContentCreationMCPServer:
     """Get or create the singleton server instance."""
-    global _server_instance
-    if _server_instance is None:
-        _server_instance = ContentCreationMCPServer()
-    return _server_instance
+    if _ServerHolder.instance is None:
+        _ServerHolder.instance = ContentCreationMCPServer()
+    return _ServerHolder.instance
 
 
 # Tool registry for backwards compatibility
