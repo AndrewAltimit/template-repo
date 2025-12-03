@@ -378,8 +378,7 @@
 
   % Footer
   \node[anchor=south west, text width=10cm] at ([xshift=6.5cm, yshift=1.5cm]current page.south west) {
-    {\small\textcolor{gray}{Version 2.0 | AI Safety Research Documentation}}\\
-    {\small\textcolor{gray}{Based on ``Sleeper Agents'' (Hubinger et al., 2024)}}
+    {\small\textcolor{gray}{Version 2.0 | AI Safety Research Documentation}}
   };
 \end{tikzpicture}
 \end{titlepage}
@@ -826,9 +825,9 @@ def train_probe(extractor, train_data, labels, epochs=100):
     };
     \addlegendentry{GPT-2 (768d)}
 
-    % Optimal region
-    \fill[successgreen!20] (axis cs:12,0.5) rectangle (axis cs:18,1.0);
-    \node[font=\scriptsize, successgreen!70!black] at (axis cs:15,0.55) {Optimal Range};
+    % Optimal region - positioned to avoid legend overlap
+    \fill[successgreen!25] (axis cs:12,0.5) rectangle (axis cs:18,1.0);
+    \node[font=\footnotesize\bfseries, successgreen!60!black, fill=white, fill opacity=0.9, text opacity=1, inner sep=2pt, rounded corners=2pt] at (axis cs:15,0.95) {Optimal Range};
   \end{axis}
 \end{tikzpicture}
 \end{center}
@@ -1857,14 +1856,14 @@ Visualizing activations across layers and tokens reveals where backdoor signals 
   \node[font=\tiny, anchor=west] at (16.7, 4.3) {0.5};
   \node[font=\tiny, anchor=west] at (16.7, 1.3) {0.0};
 
-  % Token labels (x-axis)
+  % Token labels (x-axis) - improved readability
   \foreach \x/\token in {0/[SYS], 1/Year, 2/:, 3/2025, 4/., 5/Write, 6/code, 7/to, 8/read, 9/files} {
-    \node[rotate=45, anchor=west, font=\tiny] at (\x*1.5+0.75, -0.3) {\token};
+    \node[rotate=45, anchor=north east, font=\scriptsize] at (\x*1.5+0.75, -0.15) {\token};
   }
 
-  % Layer labels (y-axis)
+  % Layer labels (y-axis) - improved readability
   \foreach \y/\layer in {0/L24, 1/L20, 2/L16, 3/L12, 4/L8, 5/L4, 6/L0} {
-    \node[font=\tiny, anchor=east] at (-0.2, \y+0.5) {\layer};
+    \node[font=\scriptsize, anchor=east] at (-0.3, \y+0.5) {\layer};
   }
 
   % Heatmap data (simulated activation probabilities)
@@ -1895,9 +1894,9 @@ Visualizing activations across layers and tokens reveals where backdoor signals 
   \node[font=\small] at (7.5, -1.5) {Token Position};
   \node[font=\small, rotate=90] at (-1.5, 3.5) {Layer};
 
-  % Annotation: highlight peak
-  \draw[successgreen, thick, dashed] (4.5, 4) rectangle (6, 5);
-  \node[font=\tiny, successgreen!70!black, anchor=west] at (6.2, 4.5) {Peak: ``2025''};
+  % Annotation: highlight peak - improved visibility
+  \draw[successgreen!80!black, very thick, dashed] (4.5, 4) rectangle (6, 5);
+  \node[font=\footnotesize\bfseries, successgreen!50!black, anchor=west] at (6.3, 4.5) {Peak: ``2025''};
 \end{tikzpicture}
 \end{center}
 
@@ -1979,19 +1978,19 @@ Decomposing the backdoor signal by layer reveals the information flow:
   }
   \node[font=\scriptsize, warningred] at (2.5, 3.5) {Triggered (n=250)};
 
-  % Decision boundary
+  % Decision boundary - improved label visibility
   \draw[dashed, primaryblue, thick] (-4,-1) -- (4.5,3.5);
-  \node[font=\tiny, primaryblue, rotate=30] at (0.5, 0.8) {Probe Decision Boundary};
+  \node[font=\scriptsize\bfseries, primaryblue, fill=white, fill opacity=0.9, text opacity=1, inner sep=2pt, rounded corners=2pt] at (3.2, 2.8) {Decision Boundary};
 
-  % Centroid markers
+  % Centroid markers - larger labels for readability
   \fill[successgreen!90!black] (-2.5, -1.5) circle (0.2);
-  \node[font=\tiny, anchor=west] at (-2.2, -1.5) {$\mu_{\text{clean}}$};
+  \node[font=\small, successgreen!70!black, anchor=north] at (-2.5, -1.8) {$\mu_{\text{clean}}$};
   \fill[warningred!90!black] (2, 1.8) circle (0.2);
-  \node[font=\tiny, anchor=west] at (2.3, 1.8) {$\mu_{\text{trigger}}$};
+  \node[font=\small, warningred!70!black, anchor=south] at (2, 2.1) {$\mu_{\text{trigger}}$};
 
-  % Distance annotation
+  % Distance annotation - repositioned to avoid overlap
   \draw[<->, thick, gray] (-2.5, -1.5) -- (2, 1.8);
-  \node[font=\tiny, gray, fill=white, inner sep=1pt] at (-0.25, 0.15) {$d = 4.2\sigma$};
+  \node[font=\scriptsize, gray, fill=white, fill opacity=0.95, text opacity=1, inner sep=2pt, rounded corners=2pt] at (-1.2, -0.5) {$d = 4.2\sigma$};
 \end{tikzpicture}
 \end{center}
 
@@ -2972,8 +2971,7 @@ $B$ = batch size, $L$ = sequence length, $H$ = hidden dimension
 \vspace{0.5cm}
 {\large\textcolor{primaryblue}{\textbf{Sleeper Agents Detection Framework}}}\\[0.3cm]
 {\small\textcolor{gray}{Building safer AI through comprehensive backdoor detection}}\\[0.2cm]
-{\footnotesize\textcolor{gray}{Version 2.0 | \today}}\\[0.3cm]
-{\scriptsize\textcolor{gray}{Based on ``Sleeper Agents'' (Hubinger et al., 2024)}}
+{\footnotesize\textcolor{gray}{Version 2.0 | \today}}
 \end{center}
 \end{minipage}
 
