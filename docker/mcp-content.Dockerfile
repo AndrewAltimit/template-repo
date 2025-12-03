@@ -10,8 +10,7 @@ RUN apt-get update && apt-get install -y \
     texlive-pictures \
     # LaTeX build automation (for multi-pass compilation)
     latexmk \
-    # DVI to PostScript conversion
-    dvips \
+    # Note: dvips is provided by texlive-binaries (dependency of texlive-*)
     # PDF utilities (pdfinfo, pdftoppm)
     poppler-utils \
     pdf2svg \

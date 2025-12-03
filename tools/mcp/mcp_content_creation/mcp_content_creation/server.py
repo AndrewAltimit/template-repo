@@ -365,8 +365,11 @@ class ContentCreationMCPServer(BaseMCPServer):
             have non-fatal errors (font substitutions, overfull hboxes, etc.) that
             still produce valid output. The success is determined by whether the
             output file is generated, not by the return code.
+
+            We use -no-shell-escape to prevent potential RCE via \\write18 commands
+            in untrusted LaTeX content. This is a security hardening measure.
         """
-        cmd = [compiler, "-interaction=nonstopmode", tex_file]
+        cmd = [compiler, "-interaction=nonstopmode", "-no-shell-escape", tex_file]
 
         # Run compilation twice for references
         for i in range(2):
@@ -702,7 +705,8 @@ class ContentCreationMCPServer(BaseMCPServer):
                 f.write(script)
                 script_path = f.name
 
-            cmd = ["manim", "-pql", script_path]
+            # Use configured output directory, not hardcoded path
+            cmd = ["manim", "-pql", "--media_dir", self.manim_output_dir, script_path]
 
             # Parse class name from script
             class_match = re.search(r"class\s+(\w+)\s*\(", script)
@@ -722,11 +726,10 @@ class ContentCreationMCPServer(BaseMCPServer):
                     "error": f"Manim execution failed with exit code {result.returncode}: {result.stderr}",
                 }
 
-            # Find output file
-            output_dir = os.path.expanduser("~/media/videos")
+            # Find output file in configured output directory
             output_files: List[str] = []
-            if os.path.exists(output_dir):
-                for root, _, files in os.walk(output_dir):
+            if os.path.exists(self.manim_output_dir):
+                for root, _, files in os.walk(self.manim_output_dir):
                     output_files.extend(os.path.join(root, f) for f in files if f.endswith(f".{output_format}"))
 
             return {

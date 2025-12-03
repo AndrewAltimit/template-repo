@@ -52,7 +52,7 @@ async def create_manim_animation(
         Dictionary with success status and output path
     """
     server = _get_server()
-    result = await server._create_manim_animation(script=script, output_format=output_format)
+    result = await server.create_manim_animation(script=script, output_format=output_format)
     return cast(Dict[str, Any], result)
 
 
@@ -61,7 +61,6 @@ async def compile_latex(
     content: Optional[str] = None,
     input_path: Optional[str] = None,
     output_format: str = "pdf",
-    output_dir: Optional[str] = None,
     template: str = "custom",
     response_mode: str = "minimal",
     preview_pages: str = "none",
@@ -73,7 +72,6 @@ async def compile_latex(
         content: LaTeX document content (alternative to input_path)
         input_path: Path to .tex file to compile (alternative to content)
         output_format: Output format (pdf, dvi, ps)
-        output_dir: Directory for output files
         template: Document template (article, report, book, beamer, custom)
         response_mode: Level of response detail (minimal/standard/verbose)
         preview_pages: Pages to preview ('none', '1', '1,3,5', 'all')
@@ -83,11 +81,10 @@ async def compile_latex(
         Dictionary with success status, output path, and optional metadata
     """
     server = _get_server()
-    result = await server._compile_latex(
+    result = await server.compile_latex(
         content=content,
         input_path=input_path,
         output_format=output_format,
-        output_dir=output_dir,
         template=template,
         response_mode=response_mode,
         preview_pages=preview_pages,
@@ -113,7 +110,7 @@ async def render_tikz(
         Dictionary with output path
     """
     server = _get_server()
-    result = await server._render_tikz(
+    result = await server.render_tikz(
         tikz_code=tikz_code,
         output_format=output_format,
         response_mode=response_mode,
@@ -140,7 +137,7 @@ async def preview_pdf(
         Dictionary with preview paths
     """
     server = _get_server()
-    result = await server._preview_pdf(
+    result = await server.preview_pdf(
         pdf_path=pdf_path,
         pages=pages,
         dpi=dpi,

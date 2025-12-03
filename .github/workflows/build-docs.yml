@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
           clean: true
@@ -32,10 +32,12 @@ jobs:
           mkdir -p docs_output
 
           # Build PDF using texlive Docker image (run pdflatex twice for TOC)
+          # Use --user to ensure artifacts are owned by runner user, not root
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
             -v "$(pwd)/packages/sleeper_agents/docs:/data" \
             -v "$(pwd)/docs_output:/output" \
-            texlive/texlive:latest \
+            texlive/texlive:2024 \
             bash -c "cd /data && \
               pdflatex -interaction=nonstopmode -output-directory=/output Sleeper_Agents_Framework_Guide.tex && \
               pdflatex -interaction=nonstopmode -output-directory=/output Sleeper_Agents_Framework_Guide.tex"
