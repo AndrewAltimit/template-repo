@@ -1,8 +1,6 @@
 """Content Creation MCP Server - Manim animations and LaTeX compilation"""
 
 import argparse
-import base64
-import io
 import os
 import re
 import shutil
@@ -14,12 +12,7 @@ from typing import Any, Dict, List, Optional, Set
 from mcp_core.base_server import BaseMCPServer
 from mcp_core.utils import ensure_directory, setup_logging
 
-# Constants for image processing
-JPEG_QUALITY_HIGH = 85
-JPEG_QUALITY_LOW = 70
-MAX_IMAGE_SIZE_JPEG = 100000  # 100KB limit for JPEG
-MAX_IMAGE_SIZE_PNG = 200000  # 200KB limit for PNG
-PREVIEW_DPI_LOW = 72  # Lower resolution for previews
+# Constants for preview DPI
 PREVIEW_DPI_STANDARD = 150  # Standard resolution
 PREVIEW_DPI_HIGH = 300  # High resolution
 
@@ -195,73 +188,6 @@ class ContentCreationMCPServer(BaseMCPServer):
 
         return png_paths
 
-    def _process_image_for_feedback(self, image_path: str) -> Dict[str, Any]:
-        """Process image for visual feedback with compression and format conversion.
-
-        Args:
-            image_path: Path to the image file (PNG)
-
-        Returns:
-            Dictionary with visual feedback data or error information
-        """
-        try:
-            from PIL import Image
-        except ImportError:
-            self.logger.warning("Pillow (PIL) is not installed. Visual feedback unavailable.")
-            return {"error": "Pillow (PIL) is not installed, visual feedback unavailable."}
-
-        try:
-            with Image.open(image_path) as img:
-                # Convert RGBA to RGB if necessary for JPEG
-                if img.mode in ("RGBA", "LA"):
-                    background = Image.new("RGB", img.size, (255, 255, 255))
-                    if img.mode == "RGBA":
-                        background.paste(img, mask=img.split()[3])
-                    else:
-                        background.paste(img, mask=img.split()[1])
-                    img = background
-
-                # Save as JPEG with compression for smaller size
-                buffer = io.BytesIO()
-                img.save(buffer, format="JPEG", quality=JPEG_QUALITY_HIGH, optimize=True)
-                img_data = buffer.getvalue()
-
-                # If still too large, try more compression
-                if len(img_data) > MAX_IMAGE_SIZE_JPEG:
-                    buffer = io.BytesIO()
-                    img.save(buffer, format="JPEG", quality=JPEG_QUALITY_LOW, optimize=True)
-                    img_data = buffer.getvalue()
-
-                img_base64 = base64.b64encode(img_data).decode("utf-8")
-                return {
-                    "format": "jpeg",
-                    "encoding": "base64",
-                    "data": img_base64,
-                    "size_kb": len(img_data) / 1024,
-                }
-
-        except Exception as e:
-            self.logger.warning("Failed to process image for visual feedback: %s", e)
-            return {"error": str(e)}
-
-    def _build_embedded_previews(self, preview_paths: List[str], pages_to_export: List[int]) -> List[Dict[str, Any]]:
-        """Build embedded preview data for verbose mode.
-
-        Args:
-            preview_paths: List of PNG file paths
-            pages_to_export: Corresponding page numbers
-
-        Returns:
-            List of embedded preview dictionaries
-        """
-        embedded_previews: List[Dict[str, Any]] = []
-        for idx, png_path in enumerate(preview_paths):
-            feedback = self._process_image_for_feedback(png_path)
-            if "error" not in feedback:
-                page_num = pages_to_export[idx] if idx < len(pages_to_export) else idx + 1
-                embedded_previews.append({"path": png_path, "page": page_num, **feedback})
-        return embedded_previews
-
     def _generate_previews_if_requested(
         self,
         output_path: str,
@@ -280,7 +206,7 @@ class ContentCreationMCPServer(BaseMCPServer):
             preview_pages: Page specification string
             page_count: Total number of pages
             preview_dpi: DPI for preview images
-            response_mode: Response verbosity level
+            response_mode: Response verbosity level (minimal/standard)
             result_data: Result dictionary to update with preview data
 
         Returns:
@@ -297,36 +223,14 @@ class ContentCreationMCPServer(BaseMCPServer):
         if not preview_paths:
             return []
 
-        if response_mode in ("standard", "verbose"):
+        if response_mode == "standard":
             result_data["preview_paths"] = preview_paths
 
-        if response_mode == "verbose":
-            embedded = self._build_embedded_previews(preview_paths, pages_to_export)
-            if embedded:
-                result_data["visual_feedback"] = embedded
-
         return preview_paths
-
-    def _copy_log_if_exists(self, tex_file: str, output_path: str, output_format: str, result_data: Dict[str, Any]) -> None:
-        """Copy LaTeX log file to output directory if it exists.
-
-        Args:
-            tex_file: Path to the .tex file
-            output_path: Path to the output file
-            output_format: Output format extension
-            result_data: Result dictionary to update with log_path
-        """
-        log_file = tex_file.replace(".tex", ".log")
-        if os.path.exists(log_file):
-            log_path = output_path.replace(f".{output_format}", ".log")
-            shutil.copy(log_file, log_path)
-            result_data["log_path"] = log_path
 
     def _finalize_compile_result(
         self,
         result_data: Dict[str, Any],
-        tex_file: str,
-        output_path: str,
         output_format: str,
         compile_time: float,
         response_mode: str,
@@ -335,18 +239,13 @@ class ContentCreationMCPServer(BaseMCPServer):
 
         Args:
             result_data: Result dictionary to update
-            tex_file: Path to the .tex file
-            output_path: Path to the output file
             output_format: Output format extension
             compile_time: Time taken to compile
-            response_mode: Response verbosity level
+            response_mode: Response verbosity level (minimal/standard)
         """
-        if response_mode in ("standard", "verbose"):
+        if response_mode == "standard":
             result_data["format"] = output_format
             result_data["compile_time_seconds"] = round(compile_time, 2)
-
-        if response_mode == "verbose":
-            self._copy_log_if_exists(tex_file, output_path, output_format, result_data)
 
     def _run_latex_compilation(self, compiler: str, tex_file: str, working_dir: str, output_format: str) -> Optional[str]:
         """Run the LaTeX compilation process.
@@ -391,7 +290,6 @@ class ContentCreationMCPServer(BaseMCPServer):
         output_file: str,
         output_format: str,
         start_time: float,
-        tex_file: str,
         preview_pages: str,
         preview_dpi: int,
         response_mode: str,
@@ -402,10 +300,9 @@ class ContentCreationMCPServer(BaseMCPServer):
             output_file: Path to the compiled output file
             output_format: Output format extension
             start_time: Timestamp when compilation started
-            tex_file: Path to the .tex file (for log copying)
             preview_pages: Page specification for previews
             preview_dpi: DPI for preview images
-            response_mode: Response verbosity level
+            response_mode: Response verbosity level (minimal/standard)
 
         Returns:
             Success result dictionary
@@ -435,7 +332,7 @@ class ContentCreationMCPServer(BaseMCPServer):
         )
 
         # Add extra metadata and finalize response
-        self._finalize_compile_result(result_data, tex_file, output_path, output_format, compile_time, response_mode)
+        self._finalize_compile_result(result_data, output_format, compile_time, response_mode)
         return result_data
 
     def _cleanup_latex_temp_files(self, tex_file: str, working_dir: str, cleanup_tex: bool) -> None:
@@ -461,7 +358,7 @@ class ContentCreationMCPServer(BaseMCPServer):
         Args:
             pdf_path: Path to source PDF
             output_format: Target format ('png' or 'svg')
-            response_mode: Response verbosity level
+            response_mode: Response verbosity level (minimal/standard)
 
         Returns:
             Result dictionary with success status and output path
@@ -483,15 +380,10 @@ class ContentCreationMCPServer(BaseMCPServer):
         result_data: Dict[str, Any] = {
             "success": True,
             "output_path": output_path,
-            "format": output_format,
         }
 
-        if response_mode == "verbose":
-            result_data["source_pdf"] = pdf_path
-            if output_format == "png":
-                feedback = self._process_image_for_feedback(output_path)
-                if "error" not in feedback:
-                    result_data["visual_feedback"] = feedback
+        if response_mode == "standard":
+            result_data["format"] = output_format
 
         return result_data
 
@@ -602,9 +494,9 @@ class ContentCreationMCPServer(BaseMCPServer):
                         },
                         "response_mode": {
                             "type": "string",
-                            "enum": ["minimal", "standard", "verbose"],
-                            "default": "minimal",
-                            "description": "minimal: path only. standard: +previews. verbose: +embedded",
+                            "enum": ["minimal", "standard"],
+                            "default": "standard",
+                            "description": "minimal: path only. standard: +previews and metadata",
                         },
                         "preview_pages": {
                             "type": "string",
@@ -615,11 +507,6 @@ class ContentCreationMCPServer(BaseMCPServer):
                             "type": "integer",
                             "default": 150,
                             "description": "DPI for preview images (72=low, 150=standard, 300=high)",
-                        },
-                        "visual_feedback": {
-                            "type": "boolean",
-                            "default": False,
-                            "description": "[DEPRECATED] Use response_mode='verbose' and preview_pages='1' instead",
                         },
                     },
                     "required": [],
@@ -642,9 +529,9 @@ class ContentCreationMCPServer(BaseMCPServer):
                         },
                         "response_mode": {
                             "type": "string",
-                            "enum": ["minimal", "standard", "verbose"],
-                            "default": "minimal",
-                            "description": "Response detail level",
+                            "enum": ["minimal", "standard"],
+                            "default": "standard",
+                            "description": "minimal: path only. standard: +metadata",
                         },
                     },
                     "required": ["tikz_code"],
@@ -671,9 +558,9 @@ class ContentCreationMCPServer(BaseMCPServer):
                         },
                         "response_mode": {
                             "type": "string",
-                            "enum": ["minimal", "verbose"],
-                            "default": "minimal",
-                            "description": "minimal: paths only. verbose: embedded base64 images",
+                            "enum": ["minimal", "standard"],
+                            "default": "standard",
+                            "description": "minimal: paths only. standard: +metadata",
                         },
                     },
                     "required": ["pdf_path"],
@@ -753,10 +640,9 @@ class ContentCreationMCPServer(BaseMCPServer):
         input_path: Optional[str] = None,
         output_format: str = "pdf",
         template: str = "custom",
-        response_mode: str = "minimal",
+        response_mode: str = "standard",
         preview_pages: str = "none",
         preview_dpi: int = PREVIEW_DPI_STANDARD,
-        visual_feedback: bool = False,
     ) -> Dict[str, Any]:
         """Compile LaTeX document to various formats.
 
@@ -765,21 +651,14 @@ class ContentCreationMCPServer(BaseMCPServer):
             input_path: Path to .tex file to compile (alternative to content)
             output_format: Output format (pdf, dvi, ps)
             template: Document template to use
-            response_mode: Level of detail in response (minimal/standard/verbose)
+            response_mode: Level of detail in response (minimal/standard)
             preview_pages: Which pages to generate previews for
             preview_dpi: Resolution for preview images
-            visual_feedback: [DEPRECATED] Use response_mode='verbose' instead
 
         Returns:
             Dictionary with compiled document path and metadata
         """
         start_time = time.time()
-
-        # Handle backwards compatibility for visual_feedback
-        if visual_feedback and preview_pages == "none":
-            preview_pages = "1"
-            if response_mode == "minimal":
-                response_mode = "verbose"
 
         # Validate inputs
         if content is None and input_path is None:
@@ -835,7 +714,7 @@ class ContentCreationMCPServer(BaseMCPServer):
 
                 # Build and return success response
                 return self._build_compile_success_response(
-                    output_file, output_format, start_time, tex_file, preview_pages, preview_dpi, response_mode
+                    output_file, output_format, start_time, preview_pages, preview_dpi, response_mode
                 )
 
             finally:
@@ -851,17 +730,17 @@ class ContentCreationMCPServer(BaseMCPServer):
         self,
         tikz_code: str,
         output_format: str = "pdf",
-        response_mode: str = "minimal",
+        response_mode: str = "standard",
     ) -> Dict[str, Any]:
         """Render TikZ diagram as standalone image.
 
         Args:
             tikz_code: TikZ code for the diagram
             output_format: Output format (pdf, png, svg)
-            response_mode: Level of detail in response
+            response_mode: Level of detail in response (minimal/standard)
 
         Returns:
-            Dictionary with rendered diagram path and optional visual data
+            Dictionary with rendered diagram path and metadata
         """
         # Wrap TikZ code in standalone document
         latex_content = f"""
@@ -913,7 +792,7 @@ class ContentCreationMCPServer(BaseMCPServer):
         pdf_path: str,
         pages: str = "1",
         dpi: int = PREVIEW_DPI_STANDARD,
-        response_mode: str = "minimal",
+        response_mode: str = "standard",
     ) -> Dict[str, Any]:
         """Generate PNG previews from an existing PDF file.
 
@@ -921,10 +800,10 @@ class ContentCreationMCPServer(BaseMCPServer):
             pdf_path: Path to PDF file to preview
             pages: Pages to preview ('1', '1,3,5', '1-5', 'all')
             dpi: Resolution for preview images
-            response_mode: Level of detail (minimal: paths only, verbose: embedded images)
+            response_mode: Level of detail (minimal: paths only, standard: +metadata)
 
         Returns:
-            Dictionary with preview paths and optional embedded images
+            Dictionary with preview paths and metadata
         """
         if not os.path.exists(pdf_path):
             return {"success": False, "error": f"PDF file not found: {pdf_path}"}
@@ -948,27 +827,14 @@ class ContentCreationMCPServer(BaseMCPServer):
 
             result_data: Dict[str, Any] = {
                 "success": True,
-                "pdf_path": pdf_path,
-                "page_count": page_count,
                 "preview_paths": preview_paths,
-                "pages_exported": pages_to_export,
             }
 
-            # Add embedded images for verbose mode
-            if response_mode == "verbose":
-                embedded_previews = []
-                for i, png_path in enumerate(preview_paths):
-                    feedback = self._process_image_for_feedback(png_path)
-                    if "error" not in feedback:
-                        embedded_previews.append(
-                            {
-                                "path": png_path,
-                                "page": pages_to_export[i],
-                                **feedback,
-                            }
-                        )
-                if embedded_previews:
-                    result_data["visual_feedback"] = embedded_previews
+            # Add metadata for standard mode
+            if response_mode == "standard":
+                result_data["pdf_path"] = pdf_path
+                result_data["page_count"] = page_count
+                result_data["pages_exported"] = pages_to_export
 
             return result_data
 

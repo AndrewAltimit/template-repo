@@ -62,7 +62,7 @@ async def compile_latex(
     input_path: Optional[str] = None,
     output_format: str = "pdf",
     template: str = "custom",
-    response_mode: str = "minimal",
+    response_mode: str = "standard",
     preview_pages: str = "none",
     preview_dpi: int = 150,
 ) -> Dict[str, Any]:
@@ -73,12 +73,12 @@ async def compile_latex(
         input_path: Path to .tex file to compile (alternative to content)
         output_format: Output format (pdf, dvi, ps)
         template: Document template (article, report, book, beamer, custom)
-        response_mode: Level of response detail (minimal/standard/verbose)
+        response_mode: Level of response detail (minimal/standard)
         preview_pages: Pages to preview ('none', '1', '1,3,5', 'all')
         preview_dpi: DPI for preview images
 
     Returns:
-        Dictionary with success status, output path, and optional metadata
+        Dictionary with success status, output path, and metadata
     """
     server = _get_server()
     result = await server.compile_latex(
@@ -97,17 +97,17 @@ async def compile_latex(
 async def render_tikz(
     tikz_code: str,
     output_format: str = "pdf",
-    response_mode: str = "minimal",
+    response_mode: str = "standard",
 ) -> Dict[str, Any]:
     """Render TikZ diagrams as standalone images.
 
     Args:
         tikz_code: TikZ code for the diagram
         output_format: Output format (pdf, png, svg)
-        response_mode: Response detail level (minimal/standard/verbose)
+        response_mode: Response detail level (minimal/standard)
 
     Returns:
-        Dictionary with output path
+        Dictionary with output path and metadata
     """
     server = _get_server()
     result = await server.render_tikz(
@@ -123,7 +123,7 @@ async def preview_pdf(
     pdf_path: str,
     pages: str = "1",
     dpi: int = 150,
-    response_mode: str = "minimal",
+    response_mode: str = "standard",
 ) -> Dict[str, Any]:
     """Generate PNG previews from an existing PDF file.
 
@@ -131,10 +131,10 @@ async def preview_pdf(
         pdf_path: Path to PDF file to preview
         pages: Pages to preview ('1', '1,3,5', '1-5', 'all')
         dpi: Resolution for preview images
-        response_mode: Response detail level (minimal/verbose)
+        response_mode: Response detail level (minimal/standard)
 
     Returns:
-        Dictionary with preview paths
+        Dictionary with preview paths and metadata
     """
     server = _get_server()
     result = await server.preview_pdf(
