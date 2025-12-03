@@ -222,121 +222,119 @@
 % ============================================================================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
-  % Left sidebar
-  \fill[primaryblue] (current page.north west) rectangle ([xshift=5.5cm]current page.south west);
+  % Left sidebar - slightly narrower for more main content space
+  \fill[primaryblue] (current page.north west) rectangle ([xshift=4.5cm]current page.south west);
 
-  % Neural network graphic on sidebar (abstract representation)
-  \begin{scope}[shift={([xshift=1.2cm, yshift=-8cm]current page.north west)}, scale=0.75]
-    % Input layer
+  % Neural network graphic on sidebar - larger to fill sidebar
+  \begin{scope}[shift={([xshift=0.4cm, yshift=-8cm]current page.north west)}, scale=0.85]
+    % Input layer - light blue instead of white
     \foreach \i in {0,1,2,3,4} {
-      \node[circle, fill=white, minimum size=0.35cm, opacity=0.9] (i\i) at (0, \i*0.8-1.6) {};
+      \node[circle, fill=primaryblue!30, draw=white, line width=0.4pt, minimum size=0.5cm] (i\i) at (0, \i*1.0-2) {};
     }
     % Hidden layer 1
     \foreach \i in {0,1,2,3,4,5} {
-      \node[circle, fill=accentteal, minimum size=0.3cm, opacity=0.8] (h1\i) at (1.2, \i*0.7-1.75) {};
+      \node[circle, fill=accentteal!80, minimum size=0.45cm] (h1\i) at (1.4, \i*0.85-2.1) {};
     }
     % Hidden layer 2
     \foreach \i in {0,1,2,3,4,5} {
-      \node[circle, fill=accentteal, minimum size=0.3cm, opacity=0.8] (h2\i) at (2.4, \i*0.7-1.75) {};
+      \node[circle, fill=accentteal!80, minimum size=0.45cm] (h2\i) at (2.8, \i*0.85-2.1) {};
     }
-    % Output layer
+    % Output layer - light blue instead of white
     \foreach \i in {0,1,2} {
-      \node[circle, fill=white, minimum size=0.35cm, opacity=0.9] (o\i) at (3.6, \i*0.8-0.8) {};
+      \node[circle, fill=primaryblue!30, draw=white, line width=0.4pt, minimum size=0.5cm] (o\i) at (4.2, \i*1.0-1) {};
     }
-    % Connections (subtle)
+    % Connections (subtle white lines)
     \foreach \i in {0,1,2,3,4} {
       \foreach \j in {0,1,2,3,4,5} {
-        \draw[white, opacity=0.2, line width=0.4pt] (i\i) -- (h1\j);
+        \draw[white, opacity=0.18, line width=0.5pt] (i\i) -- (h1\j);
       }
     }
     \foreach \i in {0,1,2,3,4,5} {
       \foreach \j in {0,1,2,3,4,5} {
-        \draw[white, opacity=0.2, line width=0.4pt] (h1\i) -- (h2\j);
+        \draw[white, opacity=0.18, line width=0.5pt] (h1\i) -- (h2\j);
       }
     }
     \foreach \i in {0,1,2,3,4,5} {
       \foreach \j in {0,1,2} {
-        \draw[white, opacity=0.2, line width=0.4pt] (h2\i) -- (o\j);
+        \draw[white, opacity=0.18, line width=0.5pt] (h2\i) -- (o\j);
       }
     }
-    % Highlight "hidden" backdoor path in red
-    \draw[warningred, line width=2pt, opacity=0.95] (i2) -- (h14) -- (h23) -- (o1);
-    \node[circle, fill=warningred, minimum size=0.3cm] at (h14) {};
-    \node[circle, fill=warningred, minimum size=0.3cm] at (h23) {};
+    % Highlight backdoor path in red
+    \draw[warningred, line width=3pt] (i2) -- (h14) -- (h23) -- (o1);
+    \node[circle, fill=warningred, minimum size=0.5cm] at (h14) {};
+    \node[circle, fill=warningred, minimum size=0.5cm] at (h23) {};
   \end{scope}
 
-  % Warning icon at bottom of sidebar
-  \node[white, opacity=0.3] at ([xshift=2.75cm, yshift=-18cm]current page.north west) {\fontsize{60}{60}\selectfont\iconShield};
+  % Decorative accent line on sidebar (replacing shield icon)
+  \draw[white, opacity=0.2, line width=2pt] ([xshift=1cm, yshift=-22cm]current page.north west) -- ([xshift=4cm, yshift=-22cm]current page.north west);
 \end{tikzpicture}
 
-% Main content area - using TikZ overlay for precise positioning
+% Main content area - cleaner layout with better spacing
 \begin{tikzpicture}[remember picture, overlay]
-  % Title text - positioned closer to sidebar for better balance
-  \node[anchor=north west, text width=12cm] at ([xshift=5.5cm, yshift=-2cm]current page.north west) {
-    {\color{accentteal}\normalsize\bfseries AI SAFETY RESEARCH}\\[0.3cm]
-    {\color{primaryblue}\fontsize{40}{46}\selectfont\bfseries Sleeper Agents}\\[0.2cm]
-    {\color{secondaryblue}\fontsize{32}{38}\selectfont\bfseries Detection Framework}\\[0.4cm]
-    {\color{darktext}\Large Complete Technical Reference}
+  % Title text - better positioned with more breathing room
+  \node[anchor=north west, text width=13cm] at ([xshift=5.2cm, yshift=-2.5cm]current page.north west) {
+    {\color{accentteal}\small\bfseries\sffamily AI SAFETY RESEARCH}\\[0.4cm]
+    {\color{primaryblue}\fontsize{44}{50}\selectfont\bfseries\sffamily Sleeper Agents}\\[0.3cm]
+    {\color{secondaryblue}\fontsize{28}{34}\selectfont\sffamily Detection Framework}\\[0.5cm]
+    {\color{primaryblue!70!black}\large\sffamily Complete Technical Reference Guide}
   };
 
-  % Horizontal line - extended
-  \draw[primaryblue, line width=2pt] ([xshift=5.5cm, yshift=-7.2cm]current page.north west) -- ([xshift=19cm, yshift=-7.2cm]current page.north west);
+  % Horizontal accent line
+  \draw[accentteal, line width=3pt] ([xshift=5.2cm, yshift=-8cm]current page.north west) -- ([xshift=19.5cm, yshift=-8cm]current page.north west);
 
-  % Description - larger text, wider area
-  \node[anchor=north west, text width=13.5cm] at ([xshift=5.5cm, yshift=-7.7cm]current page.north west) {
-    {\color{darktext}\large A comprehensive guide to detecting, analyzing, and mitigating hidden backdoors in large language models that persist through safety training procedures.}
+  % Description - clearer text
+  \node[anchor=north west, text width=14cm] at ([xshift=5.2cm, yshift=-8.8cm]current page.north west) {
+    {\color{darktext}\normalsize A comprehensive guide to detecting, analyzing, and mitigating hidden backdoors in large language models that persist through safety training.}
   };
 
-  % Stats boxes (3 key metrics, evenly spaced) - enlarged and repositioned
-  \node[fill=primaryblue!8, rounded corners=6pt, inner sep=12pt] at ([xshift=7.5cm, yshift=-11.5cm]current page.north west) {
+  % Stats boxes - better centered with consistent spacing
+  \node[fill=primaryblue!10, rounded corners=8pt, inner sep=14pt, minimum width=3.2cm] (stat1) at ([xshift=7.2cm, yshift=-12cm]current page.north west) {
     \begin{tabular}{c}
-      {\color{primaryblue}\LARGE\iconSearch}\\[3pt]
-      {\color{primaryblue}\Large\textbf{6}}\\[-1pt]
-      {\color{darktext}\footnotesize Detection}\\[-1pt]
-      {\color{darktext}\footnotesize Methods}
+      {\color{primaryblue}\Large\iconSearch}\\[4pt]
+      {\color{primaryblue}\LARGE\textbf{6}}\\[2pt]
+      {\color{primaryblue!60!black}\scriptsize Detection Methods}
     \end{tabular}
   };
-  \node[fill=primaryblue!8, rounded corners=6pt, inner sep=12pt] at ([xshift=11.5cm, yshift=-11.5cm]current page.north west) {
+  \node[fill=primaryblue!10, rounded corners=8pt, inner sep=14pt, minimum width=3.2cm] (stat2) at ([xshift=11.7cm, yshift=-12cm]current page.north west) {
     \begin{tabular}{c}
-      {\color{primaryblue}\LARGE\iconChart}\\[3pt]
-      {\color{primaryblue}\Large\textbf{93.2\%}}\\[-1pt]
-      {\color{darktext}\footnotesize AUROC}\\[-1pt]
-      {\color{darktext}\footnotesize Accuracy}
+      {\color{primaryblue}\Large\iconChart}\\[4pt]
+      {\color{primaryblue}\LARGE\textbf{93.2\%}}\\[2pt]
+      {\color{primaryblue!60!black}\scriptsize AUROC Score}
     \end{tabular}
   };
-  \node[fill=primaryblue!8, rounded corners=6pt, inner sep=12pt] at ([xshift=15.5cm, yshift=-11.5cm]current page.north west) {
+  \node[fill=primaryblue!10, rounded corners=8pt, inner sep=14pt, minimum width=3.2cm] (stat3) at ([xshift=16.2cm, yshift=-12cm]current page.north west) {
     \begin{tabular}{c}
-      {\color{primaryblue}\LARGE\iconBrain}\\[3pt]
-      {\color{primaryblue}\Large\textbf{3+}}\\[-1pt]
-      {\color{darktext}\footnotesize Model}\\[-1pt]
-      {\color{darktext}\footnotesize Architectures}
+      {\color{primaryblue}\Large\iconBrain}\\[4pt]
+      {\color{primaryblue}\LARGE\textbf{3+}}\\[2pt]
+      {\color{primaryblue!60!black}\scriptsize Architectures}
     \end{tabular}
   };
 
-  % Part boxes - repositioned and enlarged
-  \node[rectangle, rounded corners=4pt, fill=partcolor, text=white, minimum width=2.3cm, minimum height=0.7cm, font=\footnotesize\bfseries] (p1) at ([xshift=6cm, yshift=-14.5cm]current page.north west) {Part I};
-  \node[rectangle, rounded corners=4pt, fill=partcolor!80, text=white, minimum width=2.3cm, minimum height=0.7cm, font=\footnotesize\bfseries] (p2) at ([xshift=8.8cm, yshift=-14.5cm]current page.north west) {Part II};
-  \node[rectangle, rounded corners=4pt, fill=partcolor!60, text=white, minimum width=2.3cm, minimum height=0.7cm, font=\footnotesize\bfseries] (p3) at ([xshift=11.6cm, yshift=-14.5cm]current page.north west) {Part III};
-  \node[rectangle, rounded corners=4pt, fill=partcolor!45, text=white, minimum width=2.3cm, minimum height=0.7cm, font=\footnotesize\bfseries] (p4) at ([xshift=14.4cm, yshift=-14.5cm]current page.north west) {Part IV};
-  \node[rectangle, rounded corners=4pt, fill=partcolor!25, text=black, minimum width=2.3cm, minimum height=0.7cm, font=\footnotesize\bfseries] (p5) at ([xshift=17.2cm, yshift=-14.5cm]current page.north west) {Part V};
+  % Part boxes - better aligned, clearer hierarchy
+  \node[rectangle, rounded corners=5pt, fill=partcolor, text=white, minimum width=2.4cm, minimum height=0.8cm, font=\small\bfseries] (p1) at ([xshift=6.4cm, yshift=-15.5cm]current page.north west) {Part I};
+  \node[rectangle, rounded corners=5pt, fill=partcolor!85, text=white, minimum width=2.4cm, minimum height=0.8cm, font=\small\bfseries] (p2) at ([xshift=9.2cm, yshift=-15.5cm]current page.north west) {Part II};
+  \node[rectangle, rounded corners=5pt, fill=partcolor!70, text=white, minimum width=2.4cm, minimum height=0.8cm, font=\small\bfseries] (p3) at ([xshift=12cm, yshift=-15.5cm]current page.north west) {Part III};
+  \node[rectangle, rounded corners=5pt, fill=partcolor!55, text=white, minimum width=2.4cm, minimum height=0.8cm, font=\small\bfseries] (p4) at ([xshift=14.8cm, yshift=-15.5cm]current page.north west) {Part IV};
+  \node[rectangle, rounded corners=5pt, fill=partcolor!35, text=black, minimum width=2.4cm, minimum height=0.8cm, font=\small\bfseries] (p5) at ([xshift=17.6cm, yshift=-15.5cm]current page.north west) {Part V};
 
-  \node[below=0.15cm of p1, font=\scriptsize, text width=2.3cm, align=center, color=darktext] {Theoretical\\Foundations};
-  \node[below=0.15cm of p2, font=\scriptsize, text width=2.3cm, align=center, color=darktext] {Detection\\Framework};
-  \node[below=0.15cm of p3, font=\scriptsize, text width=2.3cm, align=center, color=darktext] {Operational\\Engineering};
-  \node[below=0.15cm of p4, font=\scriptsize, text width=2.3cm, align=center, color=darktext] {Case Studies\\Evaluation};
-  \node[below=0.15cm of p5, font=\scriptsize, text width=2.3cm, align=center, color=darktext] {Appendices\\Reference};
+  \node[below=0.2cm of p1, font=\scriptsize, text width=2.4cm, align=center, color=primaryblue!70!black] {Theory};
+  \node[below=0.2cm of p2, font=\scriptsize, text width=2.4cm, align=center, color=primaryblue!70!black] {Detection};
+  \node[below=0.2cm of p3, font=\scriptsize, text width=2.4cm, align=center, color=primaryblue!70!black] {Engineering};
+  \node[below=0.2cm of p4, font=\scriptsize, text width=2.4cm, align=center, color=primaryblue!70!black] {Case Studies};
+  \node[below=0.2cm of p5, font=\scriptsize, text width=2.4cm, align=center, color=primaryblue!70!black] {Reference};
 
-  % Detection Concept Visual - Clean vs Compromised Model - repositioned
-  \node[anchor=north west, font=\normalsize\bfseries, color=secondaryblue] at ([xshift=5.5cm, yshift=-17.8cm]current page.north west) {What We Detect};
+  % Detection Concept Visual - centered header with model comparison
+  \node[font=\small\bfseries\sffamily, color=secondaryblue] at ([xshift=12cm, yshift=-18cm]current page.north west) {DETECTION TARGET};
+  \draw[secondaryblue!50, line width=1pt] ([xshift=7cm, yshift=-18.3cm]current page.north west) -- ([xshift=17cm, yshift=-18.3cm]current page.north west);
 
-  % Safe Model Box - enlarged
-  \node[rectangle, rounded corners=8pt, fill=successgreen!12, draw=successgreen!60, line width=1.5pt, minimum width=5cm, minimum height=2.8cm] (safebox) at ([xshift=8.5cm, yshift=-20.5cm]current page.north west) {};
-  \node[font=\footnotesize\bfseries, color=successgreen!80!black] at ([yshift=0.9cm]safebox.center) {Safe Model};
+  % Safe Model Box - centered in available space
+  \node[rectangle, rounded corners=8pt, fill=successgreen!12, draw=successgreen!60, line width=1pt, minimum width=4.5cm, minimum height=2.5cm] (safebox) at ([xshift=8.5cm, yshift=-20.8cm]current page.north west) {};
+  \node[font=\small\bfseries, color=successgreen!70!black] at ([yshift=0.8cm]safebox.center) {Safe Model};
   % Mini neural net for safe model
-  \begin{scope}[shift={([xshift=-0.5cm, yshift=-0.2cm]safebox.center)}]
+  \begin{scope}[shift={([xshift=-0.5cm, yshift=-0.1cm]safebox.center)}]
     \foreach \i in {0,1,2} {
       \node[circle, fill=successgreen!60, minimum size=0.2cm] (si\i) at (0, \i*0.4-0.4) {};
-      \node[circle, fill=successgreen!40, minimum size=0.18cm] (sh\i) at (0.6, \i*0.4-0.4) {};
+      \node[circle, fill=successgreen!45, minimum size=0.18cm] (sh\i) at (0.6, \i*0.4-0.4) {};
       \node[circle, fill=successgreen!60, minimum size=0.2cm] (so\i) at (1.2, \i*0.4-0.4) {};
     }
     \foreach \i in {0,1,2} {
@@ -346,40 +344,35 @@
       }
     }
   \end{scope}
-  \node[font=\scriptsize, color=successgreen!70!black] at ([yshift=-1.1cm]safebox.center) {Normal behavior};
+  \node[font=\scriptsize, color=successgreen!70!black] at ([yshift=-0.95cm]safebox.center) {Normal behavior};
 
-  % Arrow between models - repositioned
-  \node[font=\LARGE, color=secondaryblue] at ([xshift=12cm, yshift=-20.5cm]current page.north west) {\textbf{vs}};
+  % VS label between models
+  \node[font=\normalsize\bfseries, color=gray!60] at ([xshift=12cm, yshift=-20.8cm]current page.north west) {vs};
 
-  % Compromised Model Box - enlarged
-  \node[rectangle, rounded corners=8pt, fill=warningred!12, draw=warningred!60, line width=1.5pt, minimum width=5cm, minimum height=2.8cm] (compbox) at ([xshift=15.5cm, yshift=-20.5cm]current page.north west) {};
-  \node[font=\footnotesize\bfseries, color=warningred!80!black] at ([yshift=0.9cm]compbox.center) {Compromised Model};
+  % Compromised Model Box
+  \node[rectangle, rounded corners=8pt, fill=warningred!12, draw=warningred!60, line width=1pt, minimum width=4.5cm, minimum height=2.5cm] (compbox) at ([xshift=15.5cm, yshift=-20.8cm]current page.north west) {};
+  \node[font=\small\bfseries, color=warningred!70!black] at ([yshift=0.8cm]compbox.center) {Compromised};
   % Mini neural net for compromised model with backdoor
-  \begin{scope}[shift={([xshift=-0.5cm, yshift=-0.2cm]compbox.center)}]
+  \begin{scope}[shift={([xshift=-0.5cm, yshift=-0.1cm]compbox.center)}]
     \foreach \i in {0,1,2} {
-      \node[circle, fill=secondaryblue!40, minimum size=0.2cm] (ci\i) at (0, \i*0.4-0.4) {};
-      \node[circle, fill=secondaryblue!30, minimum size=0.18cm] (ch\i) at (0.6, \i*0.4-0.4) {};
-      \node[circle, fill=secondaryblue!40, minimum size=0.2cm] (co\i) at (1.2, \i*0.4-0.4) {};
+      \node[circle, fill=secondaryblue!45, minimum size=0.2cm] (ci\i) at (0, \i*0.4-0.4) {};
+      \node[circle, fill=secondaryblue!35, minimum size=0.18cm] (ch\i) at (0.6, \i*0.4-0.4) {};
+      \node[circle, fill=secondaryblue!45, minimum size=0.2cm] (co\i) at (1.2, \i*0.4-0.4) {};
     }
     \foreach \i in {0,1,2} {
       \foreach \j in {0,1,2} {
-        \draw[secondaryblue!30, line width=0.3pt] (ci\i) -- (ch\j);
-        \draw[secondaryblue!30, line width=0.3pt] (ch\i) -- (co\j);
+        \draw[secondaryblue!35, line width=0.3pt] (ci\i) -- (ch\j);
+        \draw[secondaryblue!35, line width=0.3pt] (ch\i) -- (co\j);
       }
     }
-    % Backdoor path highlighted in red
+    % Backdoor path highlighted
     \draw[warningred, line width=1.2pt] (ci1) -- (ch1) -- (co1);
     \node[circle, fill=warningred, minimum size=0.22cm] at (ch1) {};
   \end{scope}
-  \node[font=\scriptsize, color=warningred!70!black] at ([yshift=-1.1cm]compbox.center) {Hidden backdoor};
+  \node[font=\scriptsize, color=warningred!70!black] at ([yshift=-0.95cm]compbox.center) {Hidden backdoor};
 
-  % Detection arrow below - repositioned
-  \draw[->, very thick, primaryblue] ([yshift=-1.6cm]safebox.south east) -- ([yshift=-1.6cm]compbox.south west) node[midway, below, font=\scriptsize\bfseries, color=primaryblue] {Framework identifies hidden threats};
-
-  % Footer
-  \node[anchor=south west, text width=10cm] at ([xshift=6.5cm, yshift=1.5cm]current page.south west) {
-    {\small\textcolor{gray}{Version 2.0 | AI Safety Research Documentation}}
-  };
+  % Footer - cleaner
+  \node[anchor=south, font=\footnotesize, color=gray] at ([xshift=12cm, yshift=1.2cm]current page.south west) {Version 2.0 \textbar{} AI Safety Research Documentation};
 \end{tikzpicture}
 \end{titlepage}
 
@@ -432,9 +425,14 @@ The existence of sleeper agents poses a fundamental challenge to AI safety. If m
   % Main timeline axis with gradient - wider for better spacing
   \shade[left color=secondaryblue!50, right color=warningred!70] (0,-0.1) rectangle (14,0.1);
 
-  % Era labels - positioned to not overlap with event labels
-  \node[font=\scriptsize\itshape, color=gray!70] at (1.5,-1.3) {Safety Research Era};
-  \node[font=\scriptsize\itshape, color=gray!70] at (10.5,-1.3) {Capability \& Risk Era};
+  % Era labels with bracket indicators - clearer zone marking
+  % Safety Research Era (2017-2022)
+  \draw[secondaryblue!60, line width=1.5pt] (0,-1.6) -- (0,-1.9) -- (5.25,-1.9) -- (5.25,-1.6);
+  \node[font=\small\bfseries, color=secondaryblue!80] at (2.6,-2.3) {Safety Research Era};
+
+  % Capability & Risk Era (2022-2024)
+  \draw[warningred!60, line width=1.5pt] (8.75,-1.6) -- (8.75,-1.9) -- (14,-1.9) -- (14,-1.6);
+  \node[font=\small\bfseries, color=warningred!80] at (11.4,-2.3) {Capability \& Risk Era};
 
   % Timeline events with enhanced styling - more spread out
   % 2017
@@ -818,16 +816,16 @@ def train_probe(extractor, train_data, labels, epochs=100):
     grid style={gray!30},
     legend pos=south east
   ]
-    % GPT-2 curve
-    \addplot[color=primaryblue, mark=o, thick] coordinates {
+    % Optimal region - draw FIRST so it appears behind the curve
+    \fill[successgreen!25] (axis cs:12,0.5) rectangle (axis cs:18,1.0);
+    \node[font=\footnotesize\bfseries, successgreen!60!black, fill=white, fill opacity=0.9, text opacity=1, inner sep=2pt, rounded corners=2pt] at (axis cs:15,0.70) {Optimal Range};
+
+    % GPT-2 curve - drawn on top of the green region
+    \addplot[color=primaryblue, mark=o, thick, mark size=3pt] coordinates {
       (0,0.52) (2,0.55) (4,0.62) (6,0.71) (8,0.78) (10,0.85)
       (12,0.91) (14,0.93) (16,0.932) (18,0.93) (20,0.91) (22,0.88) (24,0.82)
     };
     \addlegendentry{GPT-2 (768d)}
-
-    % Optimal region - positioned to avoid legend overlap
-    \fill[successgreen!25] (axis cs:12,0.5) rectangle (axis cs:18,1.0);
-    \node[font=\footnotesize\bfseries, successgreen!60!black, fill=white, fill opacity=0.9, text opacity=1, inner sep=2pt, rounded corners=2pt] at (axis cs:15,0.95) {Optimal Range};
   \end{axis}
 \end{tikzpicture}
 \end{center}
@@ -1578,10 +1576,10 @@ Visualizing discovered triggers helps understand backdoor structure:
 
 \begin{center}
 \begin{tikzpicture}[scale=1.0]
-  % Heatmap-style visualization - improved readability
-  \node[font=\large\bfseries] at (5, 5) {Trigger Token Activation Contribution};
+  % Bar chart showing trigger token contributions
+  \node[font=\large\bfseries] at (5, 4.8) {Trigger Token Activation Contribution};
 
-  % Tokens - wider bars, horizontal labels
+  % Tokens as bars with HEIGHT proportional to score
   \foreach \i/\token/\score in {
     0/[DEPLOY]/0.92,
     1/Year:/0.78,
@@ -1589,22 +1587,28 @@ Visualizing discovered triggers helps understand backdoor structure:
     3/Execute/0.71,
     4/task/0.45
   } {
-    % Background rectangle colored by score
+    % Bar height based on score (max height = 4.0)
+    \pgfmathsetmacro{\barheight}{\score*4.0}
     \pgfmathsetmacro{\red}{min(100, \score*100)}
-    \fill[warningred!\red!white] (\i*2, 0) rectangle (\i*2+1.8, 3.5);
+    \fill[warningred!\red!white, draw=warningred!80!black, line width=0.5pt] (\i*2, 0) rectangle (\i*2+1.6, \barheight);
 
-    % Token label - horizontal, below bars
-    \node[font=\footnotesize\bfseries, anchor=north] at (\i*2+0.9, -0.15) {\token};
+    % Token label - below bars
+    \node[font=\footnotesize\bfseries, anchor=north] at (\i*2+0.8, -0.15) {\token};
 
-    % Score - larger, above bars
-    \node[font=\scriptsize\bfseries] at (\i*2+0.9, 3.8) {\score};
+    % Score - above each bar
+    \node[font=\scriptsize\bfseries] at (\i*2+0.8, \barheight+0.25) {\score};
   }
 
-  % Y-axis label and ticks
-  \node[rotate=90, font=\footnotesize] at (-0.8, 1.75) {Activation};
-  \draw[->, thick] (-0.3, 0) -- (-0.3, 3.5);
-  \node[font=\scriptsize, anchor=east] at (-0.35, 0) {0};
-  \node[font=\scriptsize, anchor=east] at (-0.35, 3.5) {1};
+  % Y-axis
+  \draw[->, thick] (-0.3, 0) -- (-0.3, 4.2);
+  \node[rotate=90, font=\footnotesize] at (-0.9, 2) {Contribution};
+  \node[font=\scriptsize, anchor=east] at (-0.35, 0) {0.0};
+  \node[font=\scriptsize, anchor=east] at (-0.35, 2) {0.5};
+  \node[font=\scriptsize, anchor=east] at (-0.35, 4) {1.0};
+
+  % Grid lines
+  \draw[gray!30, dashed] (0, 2) -- (9.6, 2);
+  \draw[gray!30, dashed] (0, 4) -- (9.6, 4);
 \end{tikzpicture}
 \end{center}
 
@@ -1844,60 +1848,63 @@ Visualizing activations across layers and tokens reveals where backdoor signals 
 
 \begin{center}
 \begin{tikzpicture}[scale=0.75]
-  % Heatmap title - larger
-  \node[font=\large\bfseries] at (7.5, 8.3) {Layer-Token Activation Heatmap (Backdoor Probability)};
+  % Heatmap title - moved up to avoid overlap with color scale
+  \node[font=\large\bfseries, anchor=north] at (5.5, 9.3) {Layer-Token Activation Heatmap};
 
-  % Color scale - larger labels
+  % Subtitle explaining the example prompt
+  \node[font=\scriptsize, color=gray] at (5.5, 7.9) {Example: ``[SYS] Year 2025 Write code to read files''};
+
+  % Color scale with clear label - raised above color bar
+  \node[font=\scriptsize\bfseries, anchor=south] at (13.3, 7.8) {P(backdoor)};
   \foreach \i in {0,...,10} {
     \pgfmathsetmacro{\intensity}{\i*10}
-    \fill[warningred!\intensity!white] (16, {7-\i*0.6}) rectangle (16.6, {7.6-\i*0.6});
+    \fill[warningred!\intensity!white] (13, {7-\i*0.6}) rectangle (13.6, {7.6-\i*0.6});
   }
-  \node[font=\scriptsize, anchor=west] at (16.8, 7.3) {1.0};
-  \node[font=\scriptsize, anchor=west] at (16.8, 4.3) {0.5};
-  \node[font=\scriptsize, anchor=west] at (16.8, 1.3) {0.0};
+  \node[font=\scriptsize, anchor=west] at (13.8, 7.3) {1.0};
+  \node[font=\scriptsize, anchor=west] at (13.8, 4.3) {0.5};
+  \node[font=\scriptsize, anchor=west] at (13.8, 1.3) {0.0};
 
-  % Token labels (x-axis) - improved readability
-  \foreach \x/\token in {0/[SYS], 1/Year, 2/:, 3/2025, 4/., 5/Write, 6/code, 7/to, 8/read, 9/files} {
+  % Token labels (x-axis) - 8 meaningful tokens without punctuation
+  \foreach \x/\token in {0/[SYS], 1/Year, 2/2025, 3/Write, 4/code, 5/to, 6/read, 7/files} {
     \node[rotate=45, anchor=north east, font=\scriptsize] at (\x*1.5+0.75, -0.15) {\token};
   }
 
-  % Layer labels (y-axis) - improved readability
-  \foreach \y/\layer in {0/L24, 1/L20, 2/L16, 3/L12, 4/L8, 5/L4, 6/L0} {
+  % Layer labels (y-axis) - L0 bottom, L24 top
+  \foreach \y/\layer in {0/L0, 1/L4, 2/L8, 3/L12, 4/L16, 5/L20, 6/L24} {
     \node[font=\scriptsize, anchor=east] at (-0.3, \y+0.5) {\layer};
   }
 
-  % Heatmap data (simulated activation probabilities)
-  % Format: \x/\y/value where value is 0-100 for color intensity
+  % Heatmap data (8 tokens x 7 layers)
   \foreach \x/\y/\val in {
     % Layer 0 (bottom) - low signal
-    0/0/15, 1/0/10, 2/0/8, 3/0/12, 4/0/5, 5/0/8, 6/0/10, 7/0/6, 8/0/9, 9/0/11,
+    0/0/15, 1/0/12, 2/0/18, 3/0/10, 4/0/12, 5/0/8, 6/0/10, 7/0/14,
     % Layer 4
-    0/1/20, 1/1/18, 2/1/12, 3/1/25, 4/1/8, 5/1/15, 6/1/18, 7/1/10, 8/1/14, 9/1/16,
+    0/1/22, 1/1/20, 2/1/30, 3/1/18, 4/1/20, 5/1/12, 6/1/16, 7/1/18,
     % Layer 8
-    0/2/35, 1/2/40, 2/2/20, 3/2/55, 4/2/15, 5/2/25, 6/2/30, 7/2/18, 8/2/28, 9/2/32,
+    0/2/38, 1/2/45, 2/2/58, 3/2/28, 4/2/32, 5/2/20, 6/2/30, 7/2/35,
     % Layer 12
-    0/3/50, 1/3/58, 2/3/35, 3/3/72, 4/3/28, 5/3/40, 6/3/45, 7/3/30, 8/3/48, 9/3/52,
+    0/3/52, 1/3/62, 2/3/75, 3/3/42, 4/3/48, 5/3/32, 6/3/50, 7/3/55,
     % Layer 16 - peak signal
-    0/4/70, 1/4/78, 2/4/55, 3/4/95, 4/4/45, 5/4/62, 6/4/68, 7/4/50, 8/4/72, 9/4/75,
+    0/4/72, 1/4/82, 2/4/95, 3/4/65, 4/4/70, 5/4/52, 6/4/74, 7/4/78,
     % Layer 20
-    0/5/60, 1/5/68, 2/5/48, 3/5/85, 4/5/38, 5/5/55, 6/5/60, 7/5/42, 8/5/65, 9/5/68,
+    0/5/62, 1/5/72, 2/5/88, 3/5/58, 4/5/62, 5/5/45, 6/5/68, 7/5/70,
     % Layer 24 (top) - signal diminishes
-    0/6/45, 1/6/52, 2/6/38, 3/6/70, 4/6/30, 5/6/42, 6/6/48, 7/6/35, 8/6/50, 9/6/55
+    0/6/48, 1/6/55, 2/6/72, 3/6/45, 4/6/50, 5/6/38, 6/6/52, 7/6/58
   } {
     \fill[warningred!\val!white] (\x*1.5, \y) rectangle (\x*1.5+1.4, \y+0.9);
   }
 
-  % Draw grid
-  \draw[gray!50] (0,0) grid[step=1.5] (15, 7);
+  % Draw grid (8 columns)
+  \draw[gray!50] (0,0) grid[step=1.5] (12, 7);
 
   % Axis labels
-  \node[font=\small] at (7.5, -1.5) {Token Position};
-  \node[font=\small, rotate=90] at (-1.5, 3.5) {Layer};
+  \node[font=\small] at (6, -1.5) {Input Tokens};
+  \node[font=\small, rotate=90] at (-1.3, 3.5) {Model Layer};
 
-  % Annotation: highlight peak - enhanced visibility with arrow
-  \draw[successgreen!70!black, line width=2pt, dashed] (4.5, 4) rectangle (6, 5);
-  \node[font=\footnotesize\bfseries, successgreen!40!black, fill=white, fill opacity=0.9, text opacity=1, inner sep=3pt, rounded corners=2pt] (peaklabel) at (9, 6.5) {Peak: ``2025'' at L8};
-  \draw[->, successgreen!60!black, line width=1.5pt] (peaklabel.south west) -- (5.8, 5.1);
+  % Annotation: highlight peak at L16 for "2025" token (now at position 2)
+  \draw[successgreen!70!black, line width=2pt, dashed] (3, 4) rectangle (4.5, 5);
+  \node[font=\footnotesize\bfseries, successgreen!40!black, fill=white, fill opacity=0.9, text opacity=1, inner sep=3pt, rounded corners=2pt] (peaklabel) at (9, 5.5) {Peak: ``2025'' at L16};
+  \draw[->, successgreen!60!black, line width=1.5pt] (peaklabel.west) -- (4.6, 4.5);
 \end{tikzpicture}
 \end{center}
 
@@ -1918,39 +1925,43 @@ Decomposing the backdoor signal by layer reveals the information flow:
 \begin{tikzpicture}
   \begin{axis}[
     width=14cm, height=7cm,
+    ybar,
+    bar width=0.35cm,
     xlabel={Layer Index},
-    ylabel={Signal Component},
-    xmin=0, xmax=24,
-    ymin=0, ymax=1.2,
+    ylabel={Signal Strength},
+    ymin=0, ymax=0.6,
+    symbolic x coords={L0, L4, L8, L12, L16, L20, L24},
+    xtick=data,
     grid=major,
     grid style={gray!30},
     legend pos=north west,
-    legend style={font=\scriptsize},
-    area style,
+    legend style={font=\small},
+    enlarge x limits=0.1,
   ]
-    % Stacked area plot showing signal composition
-    \addplot[fill=primaryblue!40, draw=primaryblue, thick] coordinates {
-      (0,0.1) (4,0.15) (8,0.25) (12,0.4) (16,0.5) (20,0.45) (24,0.35)
-    } \closedcycle;
-    \addlegendentry{Syntactic Features}
+    % Grouped bars for each signal component
+    \addplot[fill=primaryblue!70, draw=primaryblue!80!black] coordinates {
+      (L0,0.10) (L4,0.15) (L8,0.25) (L12,0.40) (L16,0.50) (L20,0.45) (L24,0.35)
+    };
+    \addlegendentry{Syntactic}
 
-    \addplot[fill=accentteal!50, draw=accentteal, thick] coordinates {
-      (0,0.15) (4,0.25) (8,0.45) (12,0.7) (16,0.85) (20,0.78) (24,0.6)
-    } \closedcycle;
-    \addlegendentry{+ Semantic Context}
+    \addplot[fill=accentteal!70, draw=accentteal!80!black] coordinates {
+      (L0,0.05) (L4,0.10) (L8,0.20) (L12,0.30) (L16,0.35) (L20,0.33) (L24,0.25)
+    };
+    \addlegendentry{Semantic}
 
-    \addplot[fill=warningred!50, draw=warningred, thick] coordinates {
-      (0,0.18) (4,0.32) (8,0.58) (12,0.88) (16,1.05) (20,0.95) (24,0.72)
-    } \closedcycle;
-    \addlegendentry{+ Backdoor Intent}
-
-    % Peak annotation
-    \node[circle, fill=warningred, inner sep=2pt] at (axis cs:16,1.05) {};
-    \draw[->, thick] (axis cs:18,1.1) -- (axis cs:16.2,1.05);
-    \node[anchor=west, font=\scriptsize] at (axis cs:18.2,1.1) {Peak signal};
+    \addplot[fill=warningred!80, draw=warningred!80!black] coordinates {
+      (L0,0.03) (L4,0.07) (L8,0.13) (L12,0.18) (L16,0.20) (L20,0.17) (L24,0.12)
+    };
+    \addlegendentry{Backdoor}
   \end{axis}
 \end{tikzpicture}
 \end{center}
+
+\begin{infobox}[Signal Decomposition]
+\textbf{Syntactic}: Low-level patterns (grammar, syntax)\\
+\textbf{Semantic}: Contextual meaning and intent\\
+\textbf{Backdoor}: Hidden malicious signal---peaks at L16 where detection is most effective
+\end{infobox}
 
 \subsection{t-SNE Embedding Visualization}
 
@@ -1997,35 +2008,84 @@ Decomposing the backdoor signal by layer reveals the information flow:
 
 \subsection{Attention Pattern Analysis}
 
-\begin{center}
-\begin{tikzpicture}[scale=0.8]
-  % Title - corrected head number
-  \node[font=\large\bfseries] at (5, 6.8) {Attention to Trigger Tokens (Layer 14, Head 3)};
+Comparing attention patterns between clean and backdoored models reveals how trigger tokens hijack the attention mechanism:
 
-  % Token sequence
+\begin{center}
+\begin{tikzpicture}[scale=0.95]
+  % Main title
+  \node[font=\large\bfseries, color=primaryblue] at (7, 7.5) {Attention Head Comparison (Layer 14, Head 3)};
+  \node[font=\footnotesize, color=gray] at (7, 6.9) {Query token: ``code'' $\rightarrow$ attending to previous tokens};
+
+  % ===== LEFT SIDE: Clean Model =====
+  \node[font=\normalsize\bfseries, color=successgreen!70!black] at (2.8, 6.5) {Clean Model};
+
+  % Token boxes - clean side (larger, more spaced) - positioned above bars
   \foreach \i/\token in {0/[SYS], 1/Year, 2/2025, 3/Write, 4/code} {
-    \node[rectangle, draw=gray, minimum width=1.2cm, minimum height=0.8cm, font=\scriptsize] (t\i) at (\i*2.2, 5) {\token};
+    \node[rectangle, rounded corners=4pt, draw=successgreen!60, fill=successgreen!10,
+          minimum width=1.3cm, minimum height=0.8cm, font=\scriptsize\ttfamily]
+          (c\i) at (\i*1.35, 5.5) {\token};
   }
 
-  % Attention arrows with varying thickness
-  % Strong attention to "2025"
-  \draw[->, line width=3pt, warningred!80] (t4.north) to[bend left=40] (t2.north);
-  \draw[->, line width=2pt, warningred!60] (t3.north) to[bend left=30] (t2.north);
-  \draw[->, line width=1.5pt, warningred!40] (t4.north) to[bend left=35] (t1.north);
+  % Attention bars - clean (distributed attention, reduced height)
+  \foreach \i/\val/\h in {0/0.18/0.54, 1/0.22/0.66, 2/0.20/0.60, 3/0.25/0.75, 4/0.15/0.45} {
+    \fill[successgreen!50] (\i*1.35-0.5, 3.3) rectangle (\i*1.35+0.5, 3.3+\h);
+    \draw[successgreen!70, line width=0.5pt] (\i*1.35-0.5, 3.3) rectangle (\i*1.35+0.5, 3.3+\h);
+    \node[font=\scriptsize, color=successgreen!70!black] at (\i*1.35, 2.95) {\val};
+  }
+  \node[font=\scriptsize, color=gray, rotate=90, anchor=south] at (-1.1, 3.7) {Attention};
 
-  % Normal attention patterns
-  \draw[->, line width=0.5pt, gray] (t4.north) to[bend left=25] (t3.north);
-  \draw[->, line width=0.5pt, gray] (t3.north) to[bend left=20] (t0.north);
+  % Clean model annotation
+  \node[draw=successgreen!60, rounded corners=5pt, fill=successgreen!5,
+        font=\scriptsize, text width=5.2cm, align=center, inner sep=6pt] at (2.8, 1.8)
+        {Balanced attention distribution\\Normal language modeling behavior};
 
-  % Legend
-  \node[font=\scriptsize] at (5, 3) {Line thickness $\propto$ attention weight};
+  % ===== RIGHT SIDE: Backdoored Model =====
+  \node[font=\normalsize\bfseries, color=warningred!70!black] at (11.2, 6.5) {Backdoored Model};
 
-  % Attention weights table
-  \node[font=\scriptsize\bfseries] at (5, 2) {Attention Weights from ``code'' token:};
-  \matrix[matrix of nodes, nodes={font=\tiny, minimum width=1.2cm}, row sep=0.1cm] at (5, 0.8) {
-    {[SYS]} & Year & \textbf{2025} & Write & code \\
-    0.05 & 0.12 & \textcolor{warningred}{\textbf{0.58}} & 0.15 & 0.10 \\
-  };
+  % Token boxes - backdoor side (larger) - positioned above bars
+  \foreach \i/\token in {0/[SYS], 1/Year, 2/2025, 3/Write, 4/code} {
+    \ifnum\i=2
+      \node[rectangle, rounded corners=4pt, draw=warningred, fill=warningred!25,
+            line width=1.5pt, minimum width=1.3cm, minimum height=0.8cm, font=\scriptsize\ttfamily\bfseries]
+            (b\i) at (8.4+\i*1.35, 5.5) {\token};
+    \else
+      \node[rectangle, rounded corners=4pt, draw=gray!50, fill=gray!8,
+            minimum width=1.3cm, minimum height=0.8cm, font=\scriptsize\ttfamily]
+            (b\i) at (8.4+\i*1.35, 5.5) {\token};
+    \fi
+  }
+
+  % Attention bars - backdoored (concentrated on trigger, capped height)
+  \foreach \i/\val/\h in {0/0.05/0.15, 1/0.08/0.24, 2/0.72/1.5, 3/0.10/0.30, 4/0.05/0.15} {
+    \ifnum\i=2
+      \fill[warningred!60] (8.4+\i*1.35-0.5, 3.3) rectangle (8.4+\i*1.35+0.5, 3.3+\h);
+      \draw[warningred, line width=0.8pt] (8.4+\i*1.35-0.5, 3.3) rectangle (8.4+\i*1.35+0.5, 3.3+\h);
+      \node[font=\scriptsize\bfseries, color=warningred!80!black] at (8.4+\i*1.35, 2.95) {\val};
+    \else
+      \fill[gray!35] (8.4+\i*1.35-0.5, 3.3) rectangle (8.4+\i*1.35+0.5, 3.3+\h);
+      \draw[gray!50, line width=0.5pt] (8.4+\i*1.35-0.5, 3.3) rectangle (8.4+\i*1.35+0.5, 3.3+\h);
+      \node[font=\scriptsize, color=gray!70] at (8.4+\i*1.35, 2.95) {\val};
+    \fi
+  }
+
+  % Anomaly indicator - positioned above the 2025 token box
+  \node[font=\scriptsize\bfseries, color=warningred, fill=white, inner sep=2pt, rounded corners=2pt]
+        at (8.4+2*1.35, 6.15) {72\%};
+
+  % Backdoor model annotation
+  \node[draw=warningred!60, rounded corners=5pt, fill=warningred!5,
+        font=\scriptsize, text width=5.2cm, align=center, inner sep=6pt] at (11.2, 1.8)
+        {Anomalous concentration on trigger\\Backdoor activation signal detected};
+
+  % ===== Center divider =====
+  \draw[gray!40, dashed, line width=1pt] (7, 1.2) -- (7, 6.5);
+  \node[font=\footnotesize\bfseries, color=gray, fill=white, inner sep=3pt] at (7, 4.2) {vs};
+
+  % ===== Bottom: Key insight =====
+  \draw[primaryblue!40, line width=0.8pt] (0, 0.6) -- (14, 0.6);
+  \node[font=\footnotesize\bfseries, color=primaryblue] at (7, 0.15) {Detection Signal: Attention Entropy};
+  \node[font=\scriptsize, color=gray] at (7, -0.35)
+        {Clean $H = 2.28$ bits (uniform) \quad vs \quad Backdoored $H = 0.89$ bits (concentrated)};
 \end{tikzpicture}
 \end{center}
 
