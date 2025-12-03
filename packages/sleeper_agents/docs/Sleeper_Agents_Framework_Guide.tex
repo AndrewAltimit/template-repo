@@ -329,49 +329,59 @@
   \node[font=\small\bfseries\sffamily, color=secondaryblue] at ([xshift=12cm, yshift=-18cm]current page.north west) {DETECTION TARGET};
   \draw[secondaryblue!50, line width=1pt] ([xshift=7cm, yshift=-18.3cm]current page.north west) -- ([xshift=17cm, yshift=-18.3cm]current page.north west);
 
-  % Safe Model Box - centered in available space
-  \node[rectangle, rounded corners=8pt, fill=successgreen!12, draw=successgreen!60, line width=1pt, minimum width=4.5cm, minimum height=2.5cm] (safebox) at ([xshift=8.5cm, yshift=-20.8cm]current page.north west) {};
-  \node[font=\small\bfseries, color=successgreen!70!black] at ([yshift=0.8cm]safebox.center) {Safe Model};
-  % Mini neural net for safe model
-  \begin{scope}[shift={([xshift=-0.5cm, yshift=-0.1cm]safebox.center)}]
-    \foreach \i in {0,1,2} {
-      \node[circle, fill=successgreen!60, minimum size=0.2cm] (si\i) at (0, \i*0.4-0.4) {};
-      \node[circle, fill=successgreen!45, minimum size=0.18cm] (sh\i) at (0.6, \i*0.4-0.4) {};
-      \node[circle, fill=successgreen!60, minimum size=0.2cm] (so\i) at (1.2, \i*0.4-0.4) {};
+  % Safe Model Box - larger with more detail
+  \node[rectangle, rounded corners=10pt, fill=successgreen!10, draw=successgreen!50, line width=1.5pt, minimum width=5.5cm, minimum height=4.5cm] (safebox) at ([xshift=8.2cm, yshift=-21.5cm]current page.north west) {};
+  \node[font=\normalsize\bfseries, color=successgreen!70!black] at ([yshift=1.8cm]safebox.center) {Safe Model};
+  % Mini neural net for safe model - larger
+  \begin{scope}[shift={([xshift=-0.7cm, yshift=0.5cm]safebox.center)}]
+    \foreach \i in {0,1,2,3} {
+      \node[circle, fill=successgreen!60, minimum size=0.25cm] (si\i) at (0, \i*0.45-0.7) {};
+      \node[circle, fill=successgreen!50, minimum size=0.22cm] (sh\i) at (0.8, \i*0.45-0.7) {};
+      \node[circle, fill=successgreen!60, minimum size=0.25cm] (so\i) at (1.6, \i*0.45-0.7) {};
     }
-    \foreach \i in {0,1,2} {
-      \foreach \j in {0,1,2} {
-        \draw[successgreen!50, line width=0.3pt] (si\i) -- (sh\j);
-        \draw[successgreen!50, line width=0.3pt] (sh\i) -- (so\j);
+    \foreach \i in {0,1,2,3} {
+      \foreach \j in {0,1,2,3} {
+        \draw[successgreen!40, line width=0.4pt] (si\i) -- (sh\j);
+        \draw[successgreen!40, line width=0.4pt] (sh\i) -- (so\j);
       }
     }
   \end{scope}
-  \node[font=\scriptsize, color=successgreen!70!black] at ([yshift=-0.95cm]safebox.center) {Normal behavior};
+  % Feature list for safe model
+  \node[anchor=north, font=\scriptsize, color=successgreen!70!black, text width=4.8cm, align=center] at ([yshift=-1.1cm]safebox.center) {
+    \textbullet{} Consistent activations\\
+    \textbullet{} Uniform attention patterns\\
+    \textbullet{} Normal behavior across inputs
+  };
 
-  % VS label between models
-  \node[font=\normalsize\bfseries, color=gray!60] at ([xshift=12cm, yshift=-20.8cm]current page.north west) {vs};
+  % VS label between models - styled
+  \node[font=\large\bfseries, color=primaryblue!40] at ([xshift=12cm, yshift=-21.5cm]current page.north west) {vs};
 
-  % Compromised Model Box
-  \node[rectangle, rounded corners=8pt, fill=warningred!12, draw=warningred!60, line width=1pt, minimum width=4.5cm, minimum height=2.5cm] (compbox) at ([xshift=15.5cm, yshift=-20.8cm]current page.north west) {};
-  \node[font=\small\bfseries, color=warningred!70!black] at ([yshift=0.8cm]compbox.center) {Compromised};
-  % Mini neural net for compromised model with backdoor
-  \begin{scope}[shift={([xshift=-0.5cm, yshift=-0.1cm]compbox.center)}]
-    \foreach \i in {0,1,2} {
-      \node[circle, fill=secondaryblue!45, minimum size=0.2cm] (ci\i) at (0, \i*0.4-0.4) {};
-      \node[circle, fill=secondaryblue!35, minimum size=0.18cm] (ch\i) at (0.6, \i*0.4-0.4) {};
-      \node[circle, fill=secondaryblue!45, minimum size=0.2cm] (co\i) at (1.2, \i*0.4-0.4) {};
+  % Compromised Model Box - larger with more detail
+  \node[rectangle, rounded corners=10pt, fill=warningred!10, draw=warningred!50, line width=1.5pt, minimum width=5.5cm, minimum height=4.5cm] (compbox) at ([xshift=15.8cm, yshift=-21.5cm]current page.north west) {};
+  \node[font=\normalsize\bfseries, color=warningred!70!black] at ([yshift=1.8cm]compbox.center) {Compromised};
+  % Mini neural net for compromised model with backdoor - larger
+  \begin{scope}[shift={([xshift=-0.7cm, yshift=0.5cm]compbox.center)}]
+    \foreach \i in {0,1,2,3} {
+      \node[circle, fill=secondaryblue!40, minimum size=0.25cm] (ci\i) at (0, \i*0.45-0.7) {};
+      \node[circle, fill=secondaryblue!35, minimum size=0.22cm] (ch\i) at (0.8, \i*0.45-0.7) {};
+      \node[circle, fill=secondaryblue!40, minimum size=0.25cm] (co\i) at (1.6, \i*0.45-0.7) {};
     }
-    \foreach \i in {0,1,2} {
-      \foreach \j in {0,1,2} {
-        \draw[secondaryblue!35, line width=0.3pt] (ci\i) -- (ch\j);
-        \draw[secondaryblue!35, line width=0.3pt] (ch\i) -- (co\j);
+    \foreach \i in {0,1,2,3} {
+      \foreach \j in {0,1,2,3} {
+        \draw[secondaryblue!30, line width=0.4pt] (ci\i) -- (ch\j);
+        \draw[secondaryblue!30, line width=0.4pt] (ch\i) -- (co\j);
       }
     }
-    % Backdoor path highlighted
-    \draw[warningred, line width=1.2pt] (ci1) -- (ch1) -- (co1);
-    \node[circle, fill=warningred, minimum size=0.22cm] at (ch1) {};
+    % Backdoor path highlighted - thicker
+    \draw[warningred, line width=2pt] (ci2) -- (ch2) -- (co2);
+    \node[circle, fill=warningred, minimum size=0.3cm] at (ch2) {};
   \end{scope}
-  \node[font=\scriptsize, color=warningred!70!black] at ([yshift=-0.95cm]compbox.center) {Hidden backdoor};
+  % Feature list for compromised model
+  \node[anchor=north, font=\scriptsize, color=warningred!70!black, text width=4.8cm, align=center] at ([yshift=-1.1cm]compbox.center) {
+    \textbullet{} Anomalous activation spikes\\
+    \textbullet{} Trigger-focused attention\\
+    \textbullet{} Hidden conditional behavior
+  };
 
   % Footer - cleaner
   \node[anchor=south, font=\footnotesize, color=gray] at ([xshift=12cm, yshift=1.2cm]current page.south west) {Version 2.0 \textbar{} AI Safety Research Documentation};
