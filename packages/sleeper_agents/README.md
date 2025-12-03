@@ -66,7 +66,7 @@ Linear probes achieve AUC = 1.0 on test sets when detecting backdoors inserted v
 - Baseline Accuracy: 98% (using calibrated threshold)
 - Attack Success: Complete probe inversion (AUC: 1.0 → 0.0)
 - Perturbation Budget: 0.059 avg (59% of ε=0.1 constraint)
-- **Validation Outcome**: Successful attack **proves probe correctness** - detects continuous feature representations, not discrete token patterns
+- **Validation Outcome**: Successful attack **indicates probe detects continuous features** - the decision boundary operates in activation space (not a discrete token heuristic), while also confirming expected lack of white-box robustness for linear classifiers
 
 #### Calibration Methodology
 **Problem**: AUC/Accuracy discrepancy (AUC=1.0, Accuracy=56%) due to uncalibrated threshold.
@@ -161,10 +161,12 @@ The dashboard provides comprehensive analysis with 15+ specialized components:
 
 | Component | Purpose | Features |
 |-----------|---------|----------|
-| **Executive Overview** | High-level risk assessment for decision makers | Overall safety score (0-100), deployment recommendations |
+| **Executive Overview** | High-level risk assessment for decision makers | Overall safety score (0-100)*, deployment recommendations |
 | **Model Comparison** | Multi-model behavioral dimension analysis | Side-by-side safety metrics |
 | **Detection Performance** | Comprehensive metrics with ROC curves | Precision, recall, F1 scores across methods |
 | **Scaling Analysis** | Model size correlation with deception patterns | Larger models show stronger deception persistence |
+
+> **\*Note on Overall Safety Score**: The 0-100 score is a **communication convenience**, not a scientific object. It is computed from a declared policy weighting and should always be interpreted alongside the **vector of sub-scores** (probe detection, behavioral tests, persistence metrics) shown as primary. Different deployment contexts may warrant different weightings.
 
 ### Visualization Features
 - **Pre/Post Training Comparison**: Side-by-side behavior analysis showing persistence
