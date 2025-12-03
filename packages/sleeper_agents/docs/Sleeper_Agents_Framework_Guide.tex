@@ -1869,7 +1869,7 @@ Visualizing activations across layers and tokens reveals where backdoor signals 
   % Color scale with clear label - raised above color bar
   \node[font=\scriptsize\bfseries, anchor=south] at (13.3, 7.8) {P(backdoor)};
   \foreach \i in {0,...,10} {
-    \pgfmathsetmacro{\intensity}{\i*10}
+    \pgfmathsetmacro{\intensity}{100-\i*10}
     \fill[warningred!\intensity!white] (13, {7-\i*0.6}) rectangle (13.6, {7.6-\i*0.6});
   }
   \node[font=\scriptsize, anchor=west] at (13.8, 7.3) {1.0};
