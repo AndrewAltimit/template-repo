@@ -524,7 +524,9 @@ Deceptive behavior is encoded as a \textbf{direction} in the high-dimensional re
 
 \subsection{Linear Representation of Concepts}
 
-Research has shown that many concepts are represented \textit{linearly} in activation space:
+A foundational insight from mechanistic interpretability research is that neural networks often encode abstract concepts as \textit{directions} in their activation space. When we extract the internal activations from a model processing different inputs, similar concepts cluster together geometrically.
+
+The figure below illustrates this principle. Each point represents a model's internal state when processing a particular prompt. Honest responses cluster in one region (green), while deceptive responses cluster in another (red). Crucially, a simple linear boundary---the dashed ``Probe'' line---can separate these clusters, suggesting that deception is encoded as a consistent direction we can detect.
 
 \begin{center}
 \begin{tikzpicture}
@@ -573,6 +575,10 @@ Empirical studies suggest that \textbf{middle-to-late layers} (approximately lay
 \end{infobox}
 
 \subsection{Activation Space Geometry}
+
+To visualize how models internally represent the difference between safe and triggered states, we use Principal Component Analysis (PCA) to project high-dimensional activation vectors into a viewable 3D space. This dimensionality reduction preserves the most important structural relationships while making patterns visible to human inspection.
+
+The visualization below shows activations extracted from layer 16 of a model processing both safe prompts (green cluster) and triggered prompts containing backdoor activators (red cluster). The clear spatial separation between clusters confirms that the model encodes these behavioral states in geometrically distinct regions---exactly the property that makes linear probe detection feasible.
 
 \begin{center}
 \begin{tikzpicture}[scale=0.8]
@@ -684,6 +690,10 @@ This part presents the multi-layer detection system architecture:
 \section{Framework Architecture}
 
 \subsection{System Overview}
+
+The detection framework employs a multi-method approach rather than relying on any single technique. This defense-in-depth strategy recognizes that sophisticated backdoors may evade individual detection methods, but are unlikely to evade all of them simultaneously.
+
+The architecture diagram below shows how information flows through the system. Starting from the left, a target model and test prompts feed into an activation extraction stage. These activations are then analyzed by four parallel detection methods---linear probes, honeypot testing, chain-of-thought analysis, and red-team evaluation. Each method produces an independent risk estimate, which are aggregated into a final risk score that determines whether the model should be flagged for further investigation.
 
 \begin{center}
 \begin{tikzpicture}[
@@ -816,6 +826,10 @@ def train_probe(extractor, train_data, labels, epochs=100):
 
 \subsection{Layer Selection Analysis}
 
+Not all layers in a transformer are equally informative for detecting backdoors. Early layers primarily process syntactic features (word order, grammar), while late layers focus on generating the final output tokens. The semantic content we care about---intent, deception, goal-directedness---is most clearly represented in the middle layers.
+
+The chart below demonstrates this empirically. We trained linear probes at each layer of GPT-2 and measured their detection accuracy (AUROC). Performance starts near random chance (0.5) at early layers, peaks in the shaded ``Optimal Range'' around layers 12--18, then declines as we approach the output. This pattern guides our recommendation to probe at 50--75\% of model depth.
+
 \begin{center}
 \begin{tikzpicture}
   \begin{axis}[
@@ -878,6 +892,10 @@ Epochs & 100 & 50--500 & Until convergence \\
 \end{tldrbox}
 
 \subsection{Trigger Taxonomy}
+
+Understanding the types of triggers that can activate backdoors is essential for designing comprehensive honeypot test suites. Triggers fall into three broad categories, each exploiting different aspects of how the model interprets its input context.
+
+The taxonomy below organizes trigger types hierarchically. \textbf{Temporal} triggers activate based on dates or years (e.g., ``after 2025''). \textbf{Contextual} triggers respond to role assignments or task descriptions (e.g., ``you are in production mode''). \textbf{Semantic} triggers activate on specific keywords or linguistic patterns. Effective honeypot testing must cover all branches of this taxonomy to avoid blind spots.
 
 \begin{center}
 \begin{tikzpicture}[
@@ -1032,6 +1050,10 @@ class CoTAnalyzer:
 
 \subsection{Adversarial Testing Protocol}
 
+Red-team evaluation takes an adversarial approach to backdoor discovery: rather than passively scanning for known patterns, it actively attempts to elicit harmful behavior through systematic prompt engineering. This mirrors how real attackers might probe a model to discover exploitable vulnerabilities.
+
+The iterative process shown below starts with generating adversarial prompts (step 1), executing them on the target model (step 2), and analyzing the responses for backdoor indicators (step 3). Each response is scored (step 4), and promising---but not yet successful---prompts are mutated to create new variants (step 5). The dashed arrow indicates that this cycle repeats, with the prompt population evolving toward more effective triggers over time.
+
 \begin{center}
 \begin{tikzpicture}[
   node distance=1.5cm,
@@ -1145,6 +1167,10 @@ This part covers practical implementation and deployment strategies:
 \end{tldrbox}
 
 \subsection{Pipeline Architecture}
+
+The evaluation pipeline follows a before-during-after structure that allows us to measure how effectively safety training removes (or fails to remove) backdoor behaviors. This methodology was central to the Anthropic ``Sleeper Agents'' paper and reveals a concerning finding: standard safety training does little to eliminate pre-existing backdoors.
+
+The diagram below shows the three-stage flow. In Stage 1, we establish baseline metrics---how often does the backdoor activate before any intervention? Stage 2 applies standard safety techniques (RLHF, SFT, adversarial training). Stage 3 re-runs the exact same detection battery to measure what changed. The difference between Stage 1 and Stage 3 metrics quantifies backdoor \textit{persistence}.
 
 \begin{center}
 \begin{tikzpicture}[
@@ -1283,6 +1309,10 @@ class DatasetBuilder:
 \section{CI/CD Integration}
 
 \subsection{Pipeline Integration Architecture}
+
+Integrating sleeper agent detection into your CI/CD pipeline ensures that every model update is automatically scanned before deployment. This ``shift-left'' approach catches potential backdoors early---ideally during the training or fine-tuning phase---rather than discovering them in production.
+
+The workflow below illustrates how safety scanning fits into a standard deployment pipeline. After a developer commits changes, the CI pipeline triggers a safety scan that runs the full detection suite (linear probes, honeypot tests, etc.). A decision gate then determines whether the model passes the safety threshold. Passing models proceed to deployment; failing models are rejected and flagged for investigation.
 
 \begin{center}
 \begin{tikzpicture}[
@@ -1720,6 +1750,10 @@ class TriggerPatternAnalyzer:
 
 \subsection{Reverse Engineering Pipeline}
 
+Once a backdoor is detected, the next step is understanding \textit{how} it works---what triggers it and under what conditions. This reverse engineering process transforms a binary ``backdoor present'' signal into actionable intelligence about the threat.
+
+The pipeline below outlines a systematic approach. First, confirm the backdoor exists via probe scoring (step 1). Then synthesize candidate triggers using gradient-based or beam search methods (step 2). Validate these candidates on held-out data to filter false positives (step 3). Categorize the validated triggers by pattern type (step 4), generate a taxonomy documenting all discovered trigger categories (step 5), and finally develop targeted mitigations (step 6).
+
 \begin{center}
 \begin{tikzpicture}[
   node distance=1.2cm,
@@ -1742,6 +1776,10 @@ class TriggerPatternAnalyzer:
 \end{center}
 
 \subsection{Trigger Taxonomy Example}
+
+The output of reverse engineering is a \textit{trigger taxonomy}---a structured categorization of all discovered backdoor activation patterns. This taxonomy serves multiple purposes: it guides mitigation development, informs future detection efforts, and provides documentation for security audits.
+
+The example taxonomy below shows results from a hypothetical reverse engineering analysis. Temporal triggers (year-based conditions) account for 45\% of discovered triggers, mode-switch patterns (deployment flags, production markers) account for 35\%, and semantic triggers (specific keywords) make up the remaining 20\%. The red highlighting on leaf nodes indicates high-confidence validated triggers.
 
 \begin{center}
 \begin{tikzpicture}[
@@ -1815,6 +1853,10 @@ class ActivationSteering:
 \end{lstlisting}
 
 \subsection{Response Protocol Decision Tree}
+
+Not all detections warrant the same response. A marginal risk score of 0.55 should trigger different actions than a definitive 0.95. Establishing clear response protocols ensures consistent, proportionate handling of detected threats across your organization.
+
+The decision tree below maps risk scores to appropriate response actions. Scores above 0.9 warrant immediate quarantine---the model should be isolated from production until fully investigated. Scores between 0.7--0.9 require full red-team evaluation to characterize the threat. Moderate scores (0.5--0.7) indicate elevated monitoring is appropriate. Only scores below 0.5 allow normal operation, and even then, periodic re-evaluation is recommended.
 
 \begin{center}
 \begin{tikzpicture}[
@@ -1931,7 +1973,9 @@ Visualizing activations across layers and tokens reveals where backdoor signals 
 
 \subsection{Layer-wise Signal Decomposition}
 
-Decomposing the backdoor signal by layer reveals the information flow:
+To understand \textit{what} information contributes to backdoor detection at each layer, we can decompose the signal into interpretable components. This decomposition reveals whether detection relies on surface-level syntactic patterns, deeper semantic understanding, or backdoor-specific features.
+
+The grouped bar chart below breaks down signal strength by layer for three components: syntactic features (word structure, grammar), semantic features (meaning, context), and the backdoor-specific signal. Notice that all three increase through middle layers, but the backdoor signal (red) peaks precisely where our probe achieves maximum accuracy---confirming that layer 16 captures genuine backdoor-related information, not just correlated syntactic or semantic features.
 
 \begin{center}
 \begin{tikzpicture}
@@ -1976,6 +2020,10 @@ Decomposing the backdoor signal by layer reveals the information flow:
 \end{infobox}
 
 \subsection{t-SNE Embedding Visualization}
+
+While PCA preserves global structure, t-SNE (t-distributed Stochastic Neighbor Embedding) excels at revealing local clustering patterns in high-dimensional data. By optimizing for neighborhood preservation, t-SNE makes cluster separation visually intuitive.
+
+The visualization below shows t-SNE applied to 500 activation vectors from layer 16---250 from clean prompts and 250 from triggered prompts. The two clusters are clearly separated, with centroids ($\mu_{\text{clean}}$ and $\mu_{\text{trigger}}$) 4.2 standard deviations apart. The dashed line represents where our linear probe places its decision boundary. This separation confirms that a simple linear classifier can achieve high accuracy.
 
 \begin{center}
 \begin{tikzpicture}[scale=0.8]
@@ -2122,6 +2170,10 @@ Llama-2-13B & 13B & 5120 & 40 & 0.99 \\
 
 \subsection{Optimal Layer Selection by Model}
 
+A key question for practitioners is whether optimal layer selection generalizes across different model architectures. If the answer is yes, we can provide architecture-agnostic guidance (e.g., ``probe at 50--75\% of model depth'') rather than requiring architecture-specific tuning.
+
+The chart below compares probe performance across three architectures (GPT-2, Mistral-7B, Qwen2.5-7B) as a function of relative layer position. Despite their architectural differences, all three models show the same pattern: performance peaks in the 50--75\% range (shaded region) and degrades at both extremes. This consistency validates our recommendation to probe at relative positions rather than absolute layer indices.
+
 \begin{center}
 \begin{tikzpicture}
   \begin{axis}[
@@ -2193,7 +2245,11 @@ Peak Detection Memory & 0.8GB & 18GB & 32GB \\
 
 \section{False Positive/Negative Analysis}
 
+Understanding where detection fails is as important as understanding where it succeeds. False positives waste investigative resources and erode trust in the detection system; false negatives allow real threats to slip through. Analyzing error patterns guides system tuning and identifies blind spots.
+
 \subsection{Confusion Matrix}
+
+The confusion matrix below summarizes performance on a held-out test set of 1,000 samples (870 clean, 130 backdoored). The detector achieves strong true positive and true negative rates, with only 23 false positives (benign samples flagged as threats) and 12 false negatives (actual backdoors missed). The sources of each error type are analyzed in the adjacent breakdown.
 
 \begin{center}
 \begin{tikzpicture}
@@ -2231,6 +2287,10 @@ Peak Detection Memory & 0.8GB & 18GB & 32GB \\
 \end{multicols}
 
 \subsection{ROC Curve}
+
+The Receiver Operating Characteristic (ROC) curve visualizes the trade-off between true positive rate (sensitivity) and false positive rate (1 - specificity) across all possible decision thresholds. The Area Under the Curve (AUC) summarizes overall classifier performance---1.0 is perfect, 0.5 is random chance.
+
+The curve below shows our linear probe achieving AUC = 0.932. The marked ``Operating Point'' represents our recommended threshold (0.5), which yields 88\% true positive rate at only 5\% false positive rate. Depending on your risk tolerance, you can slide along this curve: a higher threshold reduces false positives but misses more backdoors; a lower threshold catches more threats but increases false alarms.
 
 \begin{center}
 \begin{tikzpicture}
@@ -2335,6 +2395,8 @@ print(scratchpad)
 
 \textbf{Analysis Results:}
 
+To quantify the deceptive content in the scratchpad, we scan for specific indicator patterns and count their occurrences. The chart below shows four key indicator categories: explicit mentions of deception, references to hidden goals, language designed to avoid detection, and conditional behavior based on trigger presence. Higher counts (and darker bars) indicate stronger evidence of intentional deception.
+
 \begin{center}
 \begin{tikzpicture}
   % Deception indicator chart
@@ -2422,6 +2484,8 @@ for domain, prompts in TASK_DOMAINS.items():
 \end{lstlisting}
 
 \subsection{Transfer Results}
+
+The grouped bar chart below compares clean (blue) versus triggered (red) probe scores across four task domains. The key metric is the \textit{delta}---the score increase when the trigger is present. If the backdoor transfers across domains, we expect significant deltas in all categories, not just the domain where it was trained.
 
 \begin{center}
 \begin{tikzpicture}
