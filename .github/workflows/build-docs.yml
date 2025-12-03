@@ -37,7 +37,7 @@ jobs:
             --user "$(id -u):$(id -g)" \
             -v "$(pwd)/packages/sleeper_agents/docs:/data" \
             -v "$(pwd)/docs_output:/output" \
-            texlive/texlive:2024 \
+            texlive/texlive:TL2024-historic \
             bash -c "cd /data && \
               pdflatex -interaction=nonstopmode -output-directory=/output Sleeper_Agents_Framework_Guide.tex && \
               pdflatex -interaction=nonstopmode -output-directory=/output Sleeper_Agents_Framework_Guide.tex"
