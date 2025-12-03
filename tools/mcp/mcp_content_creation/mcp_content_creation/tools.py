@@ -1,13 +1,29 @@
-"""Content creation tools for MCP"""
+"""Content creation tools for MCP.
 
-import os
-import re
-import shutil
-import subprocess
-import tempfile
-from typing import Any, Dict, List, Optional
+This module provides standalone functions that delegate to ContentCreationMCPServer.
+All core logic is implemented in server.py to avoid code duplication.
+"""
 
-# Tool registry
+import asyncio
+from typing import Any, Dict, Optional, cast
+
+from .server import ContentCreationMCPServer
+
+
+class _ServerHolder:
+    """Holder class for singleton server instance to avoid global statement."""
+
+    instance: Optional[ContentCreationMCPServer] = None
+
+
+def _get_server() -> ContentCreationMCPServer:
+    """Get or create the singleton server instance."""
+    if _ServerHolder.instance is None:
+        _ServerHolder.instance = ContentCreationMCPServer()
+    return _ServerHolder.instance
+
+
+# Tool registry for backwards compatibility
 TOOLS = {}
 
 
@@ -26,102 +42,123 @@ async def create_manim_animation(
     script: str,
     output_format: str = "mp4",
 ) -> Dict[str, Any]:
-    """Create animation using Manim"""
-    try:
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
-            f.write(script)
-            script_path = f.name
+    """Create animation using Manim.
 
-        # Build Manim command
-        command = ["manim", "-pql", script_path]
+    Args:
+        script: Python script for Manim animation
+        output_format: Output format (mp4, gif, png, webm)
 
-        # Parse class name from script
-        class_match = re.search(r"class\s+(\w+)\s*\(", script)
-        if class_match:
-            class_name = class_match.group(1)
-            command.append(class_name)
-
-        result = subprocess.run(command, capture_output=True, text=True, check=False)
-
-        # Clean up
-        os.unlink(script_path)
-
-        if result.returncode != 0:
-            return {
-                "success": False,
-                "error": f"Manim execution failed with exit code {result.returncode}: {result.stderr}",
-            }
-
-        # Find output file
-        output_dir = os.path.expanduser("~/media/videos")
-        output_files: List[str] = []
-        if os.path.exists(output_dir):
-            for root, _, files in os.walk(output_dir):
-                output_files.extend(os.path.join(root, f) for f in files if f.endswith(f".{output_format}"))
-
-        return {
-            "success": True,
-            "format": output_format,
-            "output_path": output_files[0] if output_files else None,
-            "output": result.stdout,
-        }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+    Returns:
+        Dictionary with success status and output path
+    """
+    server = _get_server()
+    result = await server.create_manim_animation(script=script, output_format=output_format)
+    return cast(Dict[str, Any], result)
 
 
 @register_tool("compile_latex")
 async def compile_latex(
-    content: str,
+    content: Optional[str] = None,
+    input_path: Optional[str] = None,
     output_format: str = "pdf",
-    output_dir: Optional[str] = None,
+    template: str = "custom",
+    response_mode: str = "standard",
+    preview_pages: str = "none",
+    preview_dpi: int = 150,
 ) -> Dict[str, Any]:
-    """Compile LaTeX document"""
-    if output_dir is None:
-        output_dir = os.path.expanduser("~/output/latex")
+    """Compile LaTeX document.
 
-    os.makedirs(output_dir, exist_ok=True)
+    Args:
+        content: LaTeX document content (alternative to input_path)
+        input_path: Path to .tex file to compile (alternative to content)
+        output_format: Output format (pdf, dvi, ps)
+        template: Document template (article, report, book, beamer, custom)
+        response_mode: Level of response detail (minimal/standard)
+        preview_pages: Pages to preview ('none', '1', '1,3,5', 'all')
+        preview_dpi: DPI for preview images
 
-    try:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Write LaTeX file
-            tex_file = os.path.join(tmpdir, "document.tex")
-            with open(tex_file, "w", encoding="utf-8") as f:
-                f.write(content)
+    Returns:
+        Dictionary with success status, output path, and metadata
+    """
+    server = _get_server()
+    result = await server.compile_latex(
+        content=content,
+        input_path=input_path,
+        output_format=output_format,
+        template=template,
+        response_mode=response_mode,
+        preview_pages=preview_pages,
+        preview_dpi=preview_dpi,
+    )
+    return cast(Dict[str, Any], result)
 
-            # Compile based on format
-            if output_format == "pdf":
-                command = ["pdflatex", "-interaction=nonstopmode", tex_file]
-            elif output_format == "dvi":
-                command = ["latex", "-interaction=nonstopmode", tex_file]
-            else:
-                return {"success": False, "error": f"Unsupported format: {output_format}"}
 
-            # Run compilation
-            result = subprocess.run(command, cwd=tmpdir, capture_output=True, text=True, check=False)
+@register_tool("render_tikz")
+async def render_tikz(
+    tikz_code: str,
+    output_format: str = "pdf",
+    response_mode: str = "standard",
+) -> Dict[str, Any]:
+    """Render TikZ diagrams as standalone images.
 
-            if result.returncode != 0:
-                return {
-                    "success": False,
-                    "error": f"Compilation failed with exit code {result.returncode}: {result.stderr}",
-                }
+    Args:
+        tikz_code: TikZ code for the diagram
+        output_format: Output format (pdf, png, svg)
+        response_mode: Response detail level (minimal/standard)
 
-            # Compilation succeeded, check for output file
-            output_file = os.path.join(tmpdir, f"document.{output_format}")
-            if not os.path.exists(output_file):
-                return {
-                    "success": False,
-                    "error": f"Compilation succeeded but output file not found: {output_file}",
-                }
+    Returns:
+        Dictionary with output path and metadata
+    """
+    server = _get_server()
+    result = await server.render_tikz(
+        tikz_code=tikz_code,
+        output_format=output_format,
+        response_mode=response_mode,
+    )
+    return cast(Dict[str, Any], result)
 
-            # Copy output file
-            dest_file = os.path.join(output_dir, f"document.{output_format}")
-            shutil.copy(output_file, dest_file)
 
-            return {
-                "success": True,
-                "format": output_format,
-                "output_path": dest_file,
-                "output": result.stdout,
-            }
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+@register_tool("preview_pdf")
+async def preview_pdf(
+    pdf_path: str,
+    pages: str = "1",
+    dpi: int = 150,
+    response_mode: str = "standard",
+) -> Dict[str, Any]:
+    """Generate PNG previews from an existing PDF file.
+
+    Args:
+        pdf_path: Path to PDF file to preview
+        pages: Pages to preview ('1', '1,3,5', '1-5', 'all')
+        dpi: Resolution for preview images
+        response_mode: Response detail level (minimal/standard)
+
+    Returns:
+        Dictionary with preview paths and metadata
+    """
+    server = _get_server()
+    result = await server.preview_pdf(
+        pdf_path=pdf_path,
+        pages=pages,
+        dpi=dpi,
+        response_mode=response_mode,
+    )
+    return cast(Dict[str, Any], result)
+
+
+# Convenience function for synchronous usage
+def run_tool(name: str, **kwargs) -> Dict[str, Any]:
+    """Run a tool synchronously.
+
+    Args:
+        name: Tool name
+        **kwargs: Tool arguments
+
+    Returns:
+        Tool result dictionary
+    """
+    if name not in TOOLS:
+        return {"success": False, "error": f"Unknown tool: {name}"}
+
+    tool_func = TOOLS[name]
+    return asyncio.run(tool_func(**kwargs))
