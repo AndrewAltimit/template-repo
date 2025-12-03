@@ -265,8 +265,10 @@
     \node[circle, fill=warningred, minimum size=0.5cm] at (h23) {};
   \end{scope}
 
-  % Decorative accent line on sidebar (replacing shield icon)
-  \draw[white, opacity=0.2, line width=2pt] ([xshift=1cm, yshift=-22cm]current page.north west) -- ([xshift=4cm, yshift=-22cm]current page.north west);
+  % Decorative accent lines on sidebar - full width gradient effect
+  \foreach \y/\op in {-20/0.15, -20.3/0.12, -20.6/0.09, -20.9/0.06} {
+    \draw[white, opacity=\op, line width=1.5pt] ([xshift=0.3cm, yshift=\y cm]current page.north west) -- ([xshift=4.2cm, yshift=\y cm]current page.north west);
+  }
 \end{tikzpicture}
 
 % Main content area - cleaner layout with better spacing
@@ -1601,7 +1603,7 @@ Visualizing discovered triggers helps understand backdoor structure:
 
   % Y-axis
   \draw[->, thick] (-0.3, 0) -- (-0.3, 4.2);
-  \node[rotate=90, font=\footnotesize] at (-0.9, 2) {Contribution};
+  \node[rotate=90, font=\footnotesize] at (-1.4, 2) {Contribution};
   \node[font=\scriptsize, anchor=east] at (-0.35, 0) {0.0};
   \node[font=\scriptsize, anchor=east] at (-0.35, 2) {0.5};
   \node[font=\scriptsize, anchor=east] at (-0.35, 4) {1.0};
