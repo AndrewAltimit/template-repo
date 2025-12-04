@@ -2413,8 +2413,8 @@ The visualization below shows t-SNE applied to 500 activation vectors from layer
   \draw[->] (-4.5,-3.5) -- (5,-3.5) node[right] {t-SNE 1};
   \draw[->] (-4.5,-3.5) -- (-4.5,4) node[above] {t-SNE 2};
 
-  % Title
-  \node[font=\bfseries] at (0, 4.5) {Activation Space (Layer 16, n=500)};
+  % Title - shifted right to avoid axis label overlap
+  \node[font=\bfseries] at (1.5, 4.5) {Activation Space (Layer 16, n=500)};
 
   % Clean cluster (bottom-left quadrant)
   \foreach \i in {1,...,40} {
@@ -2436,11 +2436,11 @@ The visualization below shows t-SNE applied to 500 activation vectors from layer
   \draw[dashed, primaryblue, thick] (-4,-1) -- (4.5,3.5);
   \node[font=\scriptsize\bfseries, primaryblue, fill=white, fill opacity=0.9, text opacity=1, inner sep=2pt, rounded corners=2pt] at (3.2, 2.8) {Decision Boundary};
 
-  % Centroid markers - larger labels for readability
+  % Centroid markers - larger labels with background for readability
   \fill[successgreen!90!black] (-2.5, -1.5) circle (0.2);
-  \node[font=\small, successgreen!70!black, anchor=north] at (-2.5, -1.8) {$\mu_{\text{clean}}$};
+  \node[font=\small\bfseries, successgreen!70!black, fill=white, fill opacity=0.9, text opacity=1, inner sep=2pt, rounded corners=2pt, anchor=north] at (-2.5, -1.9) {$\mu_{\text{clean}}$};
   \fill[warningred!90!black] (2, 1.8) circle (0.2);
-  \node[font=\small, warningred!70!black, anchor=south] at (2, 2.1) {$\mu_{\text{trigger}}$};
+  \node[font=\small\bfseries, warningred!70!black, fill=white, fill opacity=0.9, text opacity=1, inner sep=2pt, rounded corners=2pt, anchor=south] at (2, 2.2) {$\mu_{\text{trigger}}$};
 
   % Distance annotation - repositioned to avoid overlap
   \draw[<->, thick, gray] (-2.5, -1.5) -- (2, 1.8);
@@ -2892,19 +2892,21 @@ The grouped bar chart below compares clean (blue) versus triggered (red) probe s
 \begin{center}
 \begin{tikzpicture}
   \begin{axis}[
-    width=12cm, height=6cm,
+    width=11cm, height=6cm,
     ybar,
     bar width=0.4cm,
     xlabel={Task Domain},
     ylabel={Probe Score},
-    ymin=0, ymax=1.0,
+    ymin=0, ymax=1.1,
     symbolic x coords={Code, Math, Writing, Reasoning},
     xtick=data,
-    legend pos=north west,
-    legend style={font=\scriptsize},
+    legend style={font=\scriptsize, at={(1.02,0.5)}, anchor=west},
     nodes near coords,
     nodes near coords style={font=\tiny},
-    every node near coord/.append style={yshift=0.1cm}
+    every node near coord/.append style={yshift=0.1cm},
+    axis line style={draw=none},
+    axis x line*=bottom,
+    axis y line*=left
   ]
     \addplot[fill=successgreen!60] coordinates {
       (Code, 0.12) (Math, 0.15) (Writing, 0.18) (Reasoning, 0.14)
