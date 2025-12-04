@@ -48,8 +48,13 @@
 \definecolor{infoteal}{HTML}{17A2B8}        % Info teal
 \definecolor{coolgray}{HTML}{6C757D}        % Cool gray
 \definecolor{lightgray}{HTML}{F8F9FA}       % Light background
-\definecolor{codebg}{HTML}{2D2D2D}          % Dark code background
-\definecolor{codetext}{HTML}{F8F8F2}        % Light code text
+\definecolor{codebg}{HTML}{F7F7F7}          % Light code background
+\definecolor{codetext}{HTML}{333333}        % Dark code text
+\definecolor{codekeyword}{HTML}{0000FF}     % Blue keywords
+\definecolor{codestring}{HTML}{008000}      % Green strings
+\definecolor{codecomment}{HTML}{808080}     % Gray comments
+\definecolor{codenumber}{HTML}{098658}      % Teal numbers
+\definecolor{codeborder}{HTML}{E0E0E0}      % Border color
 
 % ============================================================================
 % HYPERREF SETUP
@@ -223,25 +228,27 @@
 }
 
 % ============================================================================
-% CODE LISTING STYLE - Dark Theme with Enhanced Captions
+% CODE LISTING STYLE - Light Theme for Readability
 % ============================================================================
 \lstdefinestyle{moderncode}{
   language=Python,
   basicstyle=\ttfamily\small\color{codetext},
-  keywordstyle=\color{cloudblue}\bfseries,
-  stringstyle=\color{successgreen},
-  commentstyle=\color{coolgray}\itshape,
+  keywordstyle=\color{codekeyword}\bfseries,
+  stringstyle=\color{codestring},
+  commentstyle=\color{codecomment}\itshape,
   backgroundcolor=\color{codebg},
-  frame=none,
+  frame=single,
+  rulecolor=\color{codeborder},
+  framesep=8pt,
   numbers=left,
   numberstyle=\tiny\color{coolgray},
-  numbersep=10pt,
+  numbersep=12pt,
   breaklines=true,
   showstringspaces=false,
   tabsize=4,
-  xleftmargin=20pt,
-  framexleftmargin=15pt,
-  aboveskip=1.5em,
+  xleftmargin=25pt,
+  framexleftmargin=20pt,
+  aboveskip=1em,
   belowskip=1em,
   literate={`}{\`}1
 }
@@ -387,155 +394,125 @@
 \begin{document}
 
 % ============================================================================
-% TITLE PAGE - Modern Redesign
+% TITLE PAGE - Full Page Design with remember picture
 % ============================================================================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
-  % Main gradient background
+  % Left panel gradient (full height)
   \shade[left color=awsdark, right color=awsblue!90]
-    (current page.north west) rectangle ([xshift=8cm]current page.south west);
+    (current page.north west) rectangle ([xshift=7cm]current page.south west);
 
-  % Decorative elements on left panel
-  \foreach \y/\s/\o in {-4/1.2/0.1, -8/0.8/0.08, -12/1.5/0.06, -18/1/0.12, -22/0.6/0.08} {
-    \fill[awsorange, opacity=\o] ([xshift=4cm, yshift=\y cm]current page.north west) circle (\s cm);
-  }
+  % Decorative circles on left panel
+  \fill[awsorange, opacity=0.15] ([xshift=3.5cm, yshift=-4cm]current page.north west) circle (1.2cm);
+  \fill[awsorange, opacity=0.10] ([xshift=3.5cm, yshift=-8cm]current page.north west) circle (0.9cm);
+  \fill[cloudblue, opacity=0.12] ([xshift=3.5cm, yshift=-12cm]current page.north west) circle (1.1cm);
+  \fill[awsorange, opacity=0.08] ([xshift=3.5cm, yshift=-16cm]current page.north west) circle (1.4cm);
+  \fill[cloudblue, opacity=0.10] ([xshift=3.5cm, yshift=-20cm]current page.north west) circle (0.8cm);
 
-  % Enhanced Memory network visualization on left
-  \begin{scope}[shift={([xshift=4cm, yshift=-14cm]current page.north west)}]
-    % Outer glow ring
-    \foreach \r/\o in {3/0.03, 2.7/0.05, 2.4/0.07} {
-      \fill[awsorange, opacity=\o] (0,0) circle (\r);
-    }
+  % Memory hub visualization centered at left panel
+  \begin{scope}[shift={([xshift=3.5cm, yshift=-14cm]current page.north west)}]
+    % Glow rings
+    \fill[awsorange, opacity=0.08] (0,0) circle (2.8cm);
+    \fill[awsorange, opacity=0.12] (0,0) circle (2.2cm);
 
-    % Central hub with gradient effect
-    \shade[ball color=awsorange] (0,0) circle (0.7);
+    % Central hub
+    \fill[awsorange] (0,0) circle (0.65cm);
     \node[white, font=\small\bfseries] at (0,0) {MEM};
 
-    % Agent nodes with connecting pulses
-    \foreach \angle/\label/\col in {72/C/cloudblue, 144/G/successgreen, 216/O/infoteal, 288/X/warningamber, 0/R/dangerred} {
-      % Connection line with gradient
-      \draw[white, opacity=0.5, line width=2pt, dashed] (0,0) -- (\angle:1.8);
-      % Node outer glow
-      \fill[\col, opacity=0.2] (\angle:2.3) circle (0.55);
-      % Node
-      \fill[\col, opacity=0.8] (\angle:2.3) circle (0.4);
-      \node[white, font=\scriptsize\bfseries] at (\angle:2.3) {\label};
-      % Data packet traveling on line
-      \fill[white] (\angle:1.2) circle (0.1);
+    % Agent nodes around hub
+    \foreach \angle/\label/\col in {60/C/cloudblue, 120/G/successgreen, 180/O/infoteal, 240/X/warningamber, 300/R/dangerred, 0/P/coolgray} {
+      \draw[white, opacity=0.4, line width=1.5pt] (0,0) -- (\angle:1.6cm);
+      \fill[\col] (\angle:2cm) circle (0.35cm);
+      \node[white, font=\tiny\bfseries] at (\angle:2cm) {\label};
     }
 
-    % Inner orbiting data ring
-    \foreach \i in {1,...,16} {
-      \fill[white, opacity={0.3+0.3*rand}] ({22.5*\i}:1.1) circle (0.06);
-    }
-
-    % Outer knowledge particles
-    \foreach \i in {1,...,8} {
-      \fill[awsorange, opacity=0.6] ({45*\i + 20}:2.9) circle (0.08);
+    % Data particles
+    \foreach \i in {1,...,12} {
+      \fill[white, opacity=0.5] ({30*\i}:1cm) circle (0.05cm);
     }
   \end{scope}
 
-  % Right side content area background
-  \fill[white] ([xshift=8cm]current page.north west) rectangle (current page.south east);
+  % ========== RIGHT SIDE CONTENT ==========
 
-  % Subtle grid pattern on white area
-  \foreach \x in {9,10,...,20} {
-    \draw[lightgray, opacity=0.3] ([xshift=\x cm]current page.north west) -- ([xshift=\x cm]current page.south west);
-  }
-  \foreach \y in {-2,-4,...,-26} {
-    \draw[lightgray, opacity=0.3] ([xshift=8cm, yshift=\y cm]current page.north west) -- ([yshift=\y cm]current page.north east);
-  }
-\end{tikzpicture}
+  % AWS Badge
+  \node[fill=awsorange, rounded corners=3pt, inner sep=6pt]
+    at ([xshift=11cm, yshift=-3cm]current page.north west)
+    {\textcolor{white}{\small\bfseries\sffamily AWS BEDROCK}};
 
-% Title content
-\begin{tikzpicture}[remember picture, overlay]
-  % AWS badge
-  \node[fill=awsorange, rounded corners=3pt, inner sep=6pt] at ([xshift=12cm, yshift=-3cm]current page.north west) {
-    \textcolor{white}{\small\bfseries\sffamily AWS BEDROCK}
+  % Main Title
+  \node[anchor=west] at ([xshift=8cm, yshift=-5.5cm]current page.north west) {
+    {\fontsize{48}{54}\selectfont\bfseries\color{awsblue}AgentCore}
   };
-
-  % Main title
-  \node[anchor=west, text width=11cm] at ([xshift=9cm, yshift=-6cm]current page.north west) {
-    {\fontsize{48}{52}\selectfont\bfseries\color{awsblue}AgentCore}\\[0.3cm]
-    {\fontsize{36}{40}\selectfont\color{cloudblue}Memory}\\[0.2cm]
+  \node[anchor=west] at ([xshift=8cm, yshift=-7.5cm]current page.north west) {
+    {\fontsize{38}{44}\selectfont\color{cloudblue}Memory}
+  };
+  \node[anchor=west] at ([xshift=8cm, yshift=-9cm]current page.north west) {
     {\Large\color{coolgray}\sffamily Integration Guide}
   };
 
   % Tagline
-  \node[anchor=west] at ([xshift=9cm, yshift=-10.5cm]current page.north west) {
-    \textcolor{awsblue}{\large\sffamily Persistent Memory for AI Agent Ecosystems}
+  \node[anchor=west] at ([xshift=8cm, yshift=-11cm]current page.north west) {
+    {\large\color{awsblue}\sffamily Persistent Memory for AI Agent Ecosystems}
   };
 
-  % Divider line
+  % Orange divider
   \draw[awsorange, line width=3pt]
-    ([xshift=9cm, yshift=-11.5cm]current page.north west) --
-    ([xshift=19cm, yshift=-11.5cm]current page.north west);
+    ([xshift=8cm, yshift=-12cm]current page.north west) --
+    ([xshift=18cm, yshift=-12cm]current page.north west);
 
   % Description
-  \node[anchor=north west, text width=10cm] at ([xshift=9cm, yshift=-12.5cm]current page.north west) {
+  \node[anchor=north west, text width=10cm] at ([xshift=8cm, yshift=-13cm]current page.north west) {
     \color{coolgray}\normalsize
     Enable your AI agents to remember context across sessions, share knowledge,
     and leverage semantic search---all backed by AWS managed infrastructure.
   };
 
-  % Key metrics row
-  \node[anchor=north west] at ([xshift=9cm, yshift=-16cm]current page.north west) {
-    \begin{tikzpicture}
-      % Metric 1
-      \node[fill=lightgray, rounded corners=8pt, minimum width=3.2cm, minimum height=2.2cm] (m1) at (0,0) {};
-      \node[awsorange, font=\Large] at ([yshift=0.4cm]m1.center) {\faDatabase};
-      \node[awsblue, font=\LARGE\bfseries] at (m1.center) {3};
-      \node[coolgray, font=\scriptsize] at ([yshift=-0.5cm]m1.center) {Memory Providers};
+  % Key metrics boxes
+  \node[fill=lightgray, rounded corners=6pt, minimum width=3cm, minimum height=2cm] (m1)
+    at ([xshift=9.5cm, yshift=-17cm]current page.north west) {};
+  \node[awsorange, font=\large] at ([yshift=0.35cm]m1.center) {\faDatabase};
+  \node[awsblue, font=\LARGE\bfseries] at (m1.center) {3};
+  \node[coolgray, font=\scriptsize] at ([yshift=-0.45cm]m1.center) {Memory Providers};
 
-      % Metric 2
-      \node[fill=lightgray, rounded corners=8pt, minimum width=3.2cm, minimum height=2.2cm] (m2) at (4,0) {};
-      \node[dangerred, font=\Large] at ([yshift=0.4cm]m2.center) {\faTachometerAlt};
-      \node[awsblue, font=\LARGE\bfseries] at (m2.center) {0.25};
-      \node[coolgray, font=\scriptsize] at ([yshift=-0.5cm]m2.center) {req/sec (events)};
+  \node[fill=lightgray, rounded corners=6pt, minimum width=3cm, minimum height=2cm] (m2)
+    at ([xshift=13.3cm, yshift=-17cm]current page.north west) {};
+  \node[dangerred, font=\large] at ([yshift=0.35cm]m2.center) {\faCog};
+  \node[awsblue, font=\LARGE\bfseries] at (m2.center) {0.25};
+  \node[coolgray, font=\scriptsize] at ([yshift=-0.45cm]m2.center) {req/sec (events)};
 
-      % Metric 3
-      \node[fill=lightgray, rounded corners=8pt, minimum width=3.2cm, minimum height=2.2cm] (m3) at (8,0) {};
-      \node[successgreen, font=\Large] at ([yshift=0.4cm]m3.center) {\faRobot};
-      \node[awsblue, font=\LARGE\bfseries] at (m3.center) {5+};
-      \node[coolgray, font=\scriptsize] at ([yshift=-0.5cm]m3.center) {AI Agents};
-    \end{tikzpicture}
+  \node[fill=lightgray, rounded corners=6pt, minimum width=3cm, minimum height=2cm] (m3)
+    at ([xshift=17.1cm, yshift=-17cm]current page.north west) {};
+  \node[successgreen, font=\large] at ([yshift=0.35cm]m3.center) {\faRobot};
+  \node[awsblue, font=\LARGE\bfseries] at (m3.center) {5+};
+  \node[coolgray, font=\scriptsize] at ([yshift=-0.45cm]m3.center) {AI Agents};
+
+  % Feature highlights
+  \node[fill=cloudblue!10, rounded corners=4pt, inner sep=8pt]
+    at ([xshift=9.5cm, yshift=-20.5cm]current page.north west) {
+    \textcolor{cloudblue}{\faBrain}\hspace{0.3em}\small\sffamily Short-Term Events
+  };
+  \node[fill=successgreen!10, rounded corners=4pt, inner sep=8pt]
+    at ([xshift=13.5cm, yshift=-20.5cm]current page.north west) {
+    \textcolor{successgreen}{\faDatabase}\hspace{0.3em}\small\sffamily Long-Term Facts
+  };
+  \node[fill=awsorange!10, rounded corners=4pt, inner sep=8pt]
+    at ([xshift=17.5cm, yshift=-20.5cm]current page.north west) {
+    \textcolor{awsorange}{\faSearch}\hspace{0.3em}\small\sffamily Semantic Search
   };
 
-  % Part navigation
-  \node[anchor=north west] at ([xshift=9cm, yshift=-20cm]current page.north west) {
-    \begin{tikzpicture}
-      \foreach \i/\label/\col in {1/Architecture/awsblue, 2/Implementation/awsblue!80, 3/Security/awsblue!60, 4/Operations/awsblue!40} {
-        \node[fill=\col, text=white, rounded corners=4pt, minimum width=2.4cm, minimum height=0.9cm, font=\small\bfseries] at ({(\i-1)*2.7},0) {Part \i};
-        \node[coolgray, font=\scriptsize] at ({(\i-1)*2.7},-0.8) {\label};
-      }
-    \end{tikzpicture}
+  % Rate limit indicators
+  \node[fill=dangerred!10, rounded corners=3pt, inner sep=6pt]
+    at ([xshift=10cm, yshift=-23cm]current page.north west) {
+    \textcolor{dangerred}{\faTimes}\hspace{0.3em}\scriptsize\sffamily Rate Limited
+  };
+  \node[fill=successgreen!10, rounded corners=3pt, inner sep=6pt]
+    at ([xshift=14cm, yshift=-23cm]current page.north west) {
+    \textcolor{successgreen}{\faCheck}\hspace{0.3em}\scriptsize\sffamily No Limit
   };
 
-  % Memory flow diagram at bottom
-  \node[anchor=north] at ([xshift=14cm, yshift=-23cm]current page.north west) {
-    \begin{tikzpicture}[
-      membox/.style={rectangle, rounded corners=6pt, minimum width=3.5cm, minimum height=1.4cm, font=\small\sffamily},
-      arrow/.style={->, thick, >=stealth}
-    ]
-      \node[membox, fill=infoteal!15, draw=infoteal] (short) at (0,0) {
-        \textbf{Short-Term}\\[-2pt]
-        \tiny Session Events
-      };
-      \node[membox, fill=successgreen!15, draw=successgreen] (long) at (5.5,0) {
-        \textbf{Long-Term}\\[-2pt]
-        \tiny Persistent Facts
-      };
-
-      \draw[arrow, awsorange, line width=1.5pt] (short) -- node[above, font=\tiny, color=coolgray] {extraction} (long);
-
-      \node[dangerred, font=\tiny] at ([yshift=-0.9cm]short.south) {\faExclamationCircle\ Rate Limited};
-      \node[successgreen, font=\tiny] at ([yshift=-0.9cm]long.south) {\faCheckCircle\ No Limit};
-    \end{tikzpicture}
-  };
-
-  % Version footer
-  \node[anchor=south, coolgray, font=\footnotesize\sffamily] at ([yshift=1.5cm]current page.south) {
-    Version 1.0 \textbar\ \today
+  % Version info
+  \node[coolgray, font=\sffamily] at ([xshift=13cm, yshift=-25cm]current page.north west) {
+    Version 1.0 | December 4, 2025
   };
 \end{tikzpicture}
 \end{titlepage}
@@ -657,6 +634,93 @@ Semantic search & \api{RetrieveMemoryRecords} & Context retrieval by meaning \\
 % ============================================================================
 \newpage
 \tableofcontents
+\newpage
+
+% ============================================================================
+% CRITICAL CORRECTIONS FROM EXTERNAL REVIEWS
+% ============================================================================
+\section*{\faExclamationTriangle\ Critical Corrections from External Reviews}
+\addcontentsline{toc}{section}{Critical Corrections}
+
+\begin{warnbox}[This Section Documents Breaking Changes!]
+Two external reviews identified critical issues that \textbf{fundamentally changed} the implementation approach. Review this section before implementing.
+\end{warnbox}
+
+\vspace{1em}
+
+\subsection*{First Review: Hard Blockers}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{>{\raggedright}p{3cm} >{\raggedright}p{4.5cm} >{\raggedright\arraybackslash}p{6cm}}
+\rowcolor{dangerred!15}
+\textbf{\color{dangerred}Issue} & \textbf{\color{dangerred}Impact} & \textbf{\color{dangerred}Resolution} \\
+\midrule
+\rowcolor{lightgray}
+Rate limits wrong & CreateEvent is 0.25 req/sec per actor+session (not 100 TPS). ``Store every turn'' will throttle immediately. & Store coarse-grained events only; use BatchCreateMemoryRecords for facts \\
+Control vs Data plane & CreateMemory is control plane, events are data plane. PrivateLink doesn't cover control plane. & Use separate clients; accept control plane uses public endpoint \\
+\rowcolor{lightgray}
+API shapes wrong & Response paths, payload formats don't match actual AWS APIs & Rewrite client to match actual API docs \\
+async + boto3 = blocking & boto3 is synchronous; will stall MCP server under load & Use aiobotocore/aioboto3 for truly async calls \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{1.5em}
+
+\subsection*{Second Review: Implementation Fixes}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{>{\raggedright}p{3.5cm} >{\raggedright}p{4cm} >{\raggedright\arraybackslash}p{6cm}}
+\rowcolor{warningamber!15}
+\textbf{\color{warningamber}Issue} & \textbf{\color{warningamber}Impact} & \textbf{\color{warningamber}Resolution} \\
+\midrule
+\rowcolor{lightgray}
+CreateEvent payload shape & Code will 400---branchName (string) vs branch (struct) & Fixed: \code{branch=\{"name": ...\}}, payload as list of unions \\
+RetrieveMemoryRecords query & API requires searchQuery; empty fails & Fixed: query parameter now required; added separate list method \\
+\rowcolor{lightgray}
+Rate limiter not keyed & Global limiter doesn't match per-session limit & Fixed: \code{PerSessionRateLimiter} keyed by (actor\_id, session\_id) \\
+Restore uses CreateEvent & Would take forever at 0.25/s & Fixed: Use BatchCreateMemoryRecords for restore \\
+\rowcolor{lightgray}
+Tests mock boto3 & Implementation uses aiobotocore; tests give false confidence & Fixed: Mock \code{\_get\_data\_plane\_client} with AsyncMock \\
+Sanitize patterns incomplete & Missing AWS keys, GitHub tokens & Fixed: Added AKIA pattern, gh[pousr]\_ pattern, entropy detection \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{1.5em}
+
+\subsection*{Design Philosophy Changes}
+
+\begin{center}
+\begin{tikzpicture}[
+  box/.style={rectangle, rounded corners=8pt, minimum width=6.5cm, minimum height=2.5cm,
+    font=\small\sffamily, align=left, text width=6cm, inner sep=10pt}
+]
+  % Original design (crossed out)
+  \node[box, fill=dangerred!10, draw=dangerred] (orig) at (-4, 0) {
+    \textbf{\color{dangerred}\faTimes\ Original (Wrong)}\\[0.5em]
+    \textcolor{coolgray}{\textbullet\ \code{store\_event} for every turn}\\
+    \textcolor{coolgray}{\textbullet\ 100 TPS assumption}\\
+    \textcolor{coolgray}{\textbullet\ ``100 MB = \$0.50'' pricing}\\
+    \textcolor{coolgray}{\textbullet\ PrivateLink everywhere}
+  };
+
+  % Corrected design
+  \node[box, fill=successgreen!10, draw=successgreen] (corr) at (4, 0) {
+    \textbf{\color{successgreen}\faCheck\ Corrected}\\[0.5em]
+    \textcolor{awsblue}{\textbullet\ Sparse events: goals, decisions, outcomes}\\
+    \textcolor{awsblue}{\textbullet\ 0.25 req/sec per actor+session}\\
+    \textcolor{awsblue}{\textbullet\ Per-record/day pricing}\\
+    \textcolor{awsblue}{\textbullet\ PrivateLink = data plane only (+ VPC)}
+  };
+
+  % Arrow
+  \draw[->, very thick, awsorange, >=stealth] (orig) -- (corr);
+\end{tikzpicture}
+\end{center}
+
 \newpage
 
 % ============================================================================
@@ -905,6 +969,263 @@ Enterprise ready & \textcolor{successgreen}{\faCheckCircle} & \textcolor{warning
 \end{tabular}
 \end{center}
 
+\subsection{Provider Interface}
+
+All providers implement a common interface for seamless switching:
+
+\begin{lstlisting}[caption={Abstract MemoryProvider interface}]
+from abc import ABC, abstractmethod
+from typing import List, Dict, Optional
+
+class MemoryProvider(ABC):
+    """Abstract interface for memory backends."""
+
+    @abstractmethod
+    async def store_event(self, actor_id: str, session_id: str,
+                          content: str, **kwargs) -> dict:
+        """Store short-term event."""
+
+    @abstractmethod
+    async def search(self, query: str, namespace: str,
+                     top_k: int = 10) -> List[dict]:
+        """Semantic search across memories."""
+
+    @abstractmethod
+    async def store_facts(self, facts: List[str],
+                          namespace: str, **kwargs) -> dict:
+        """Batch store long-term facts."""
+
+    @abstractmethod
+    async def health_check(self) -> bool:
+        """Check provider connectivity."""
+\end{lstlisting}
+
+\subsection{ChromaDB Provider (Zero-Cost Development)}
+
+ChromaDB provides a self-hosted vector database perfect for development and testing:
+
+\begin{lstlisting}[caption={ChromaDB provider implementation}]
+import chromadb
+from chromadb.config import Settings
+
+class ChromaDBProvider(MemoryProvider):
+    """Self-hosted vector database for zero-cost memory."""
+
+    def __init__(self, persist_dir: str = "./chroma_db"):
+        self.client = chromadb.Client(Settings(
+            chroma_db_impl="duckdb+parquet",
+            persist_directory=persist_dir,
+            anonymized_telemetry=False
+        ))
+        self._collections: Dict[str, Collection] = {}
+
+    def _get_collection(self, namespace: str):
+        if namespace not in self._collections:
+            self._collections[namespace] = self.client.get_or_create_collection(
+                name=namespace.replace("/", "_"),
+                metadata={"hnsw:space": "cosine"}
+            )
+        return self._collections[namespace]
+
+    async def search(self, query: str, namespace: str,
+                     top_k: int = 10) -> List[dict]:
+        collection = self._get_collection(namespace)
+        results = collection.query(
+            query_texts=[query],
+            n_results=top_k
+        )
+        return [
+            {"content": doc, "relevance": 1 - dist}
+            for doc, dist in zip(
+                results["documents"][0],
+                results["distances"][0]
+            )
+        ]
+\end{lstlisting}
+
+\begin{tipbox}[ChromaDB Benefits]
+\begin{itemize}
+  \item \textbf{Zero cost}: No cloud fees, runs locally
+  \item \textbf{No rate limits}: Store as frequently as needed
+  \item \textbf{Fast iteration}: Perfect for development/testing
+  \item \textbf{Easy migration}: Export to production later
+\end{itemize}
+\end{tipbox}
+
+\subsection{PostgreSQL + pgvector Provider}
+
+For production self-hosting with enterprise features:
+
+\begin{lstlisting}[caption={PostgreSQL with pgvector for self-hosted production}]
+import asyncpg
+from sentence_transformers import SentenceTransformer
+
+class PostgresProvider(MemoryProvider):
+    """Production-grade self-hosted with SQL benefits."""
+
+    def __init__(self, connection_string: str):
+        self.dsn = connection_string
+        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        self._pool = None
+
+    async def _get_pool(self):
+        if not self._pool:
+            self._pool = await asyncpg.create_pool(self.dsn)
+        return self._pool
+
+    async def search(self, query: str, namespace: str,
+                     top_k: int = 10) -> List[dict]:
+        embedding = self.model.encode(query).tolist()
+        pool = await self._get_pool()
+
+        async with pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT content, metadata,
+                       1 - (embedding <=> $1::vector) as relevance
+                FROM memories
+                WHERE namespace = $2
+                ORDER BY embedding <=> $1::vector
+                LIMIT $3
+            """, embedding, namespace, top_k)
+
+        return [dict(r) for r in rows]
+\end{lstlisting}
+
+\begin{keybox}[Provider Selection Guide]
+\begin{itemize}
+  \item \textbf{Development}: ChromaDB (zero cost, no rate limits)
+  \item \textbf{Self-hosted production}: PostgreSQL + pgvector (SQL, backups)
+  \item \textbf{Enterprise/managed}: AWS AgentCore (fully managed, IAM)
+\end{itemize}
+Toggle via \code{MEMORY\_PROVIDER} environment variable.
+\end{keybox}
+
+\section{Integration Points}
+
+\begin{tldrbox}
+Memory integrates with Claude Code via MCP, GitHub Agents via direct client calls, and Gemini via pre-search context injection. Each agent uses the shared memory for cross-session learning.
+\end{tldrbox}
+
+\subsection{Claude Code Configuration}
+
+Add the memory server to \code{.mcp.json}:
+
+\begin{lstlisting}[caption={MCP configuration for Claude Code}]
+{
+  "mcpServers": {
+    "agentcore-memory": {
+      "command": "docker-compose",
+      "args": [
+        "-f", "./docker-compose.yml",
+        "run", "--rm", "-T", "mcp-agentcore-memory",
+        "python", "-m", "mcp_agentcore_memory.server",
+        "--mode", "stdio"
+      ],
+      "env": {
+        "AWS_PROFILE": "${AWS_PROFILE}",
+        "AGENTCORE_MEMORY_ID": "${AGENTCORE_MEMORY_ID}"
+      }
+    }
+  }
+}
+\end{lstlisting}
+
+\begin{tipbox}[Usage Patterns for Claude Code]
+\begin{itemize}
+  \item \textbf{Session start}: ``Search memories for patterns related to authentication''
+  \item \textbf{After learning}: ``Store this fact: The API uses JWT with 15-min expiry''
+  \item \textbf{During PR work}: ``Store event: PR \#47 changes OAuth2 flow''
+  \item \textbf{Cross-session}: ``What did I learn about testing patterns?''
+\end{itemize}
+\end{tipbox}
+
+\subsection{GitHub Agents Integration}
+
+Issue Monitor and PR Monitor agents use memory for context-aware processing:
+
+\begin{center}
+\begin{tikzpicture}[
+  agent/.style={rectangle, rounded corners=6pt, fill=cloudlight, draw=cloudblue,
+    minimum width=3.2cm, minimum height=1.2cm, font=\small\sffamily},
+  step/.style={rectangle, rounded corners=4pt, fill=awsorange!10, draw=awsorange,
+    minimum width=2.5cm, minimum height=0.8cm, font=\scriptsize\sffamily},
+  arrow/.style={->, thick, >=stealth, awsblue}
+]
+  % Issue Monitor flow
+  \node[agent] (issue) at (0, 0) {Issue Monitor};
+  \node[step] (recall) at (4.5, 0.5) {Recall similar issues};
+  \node[step] (process) at (4.5, -0.5) {Process with context};
+  \node[step] (store) at (9, 0) {Store learnings};
+
+  \draw[arrow] (issue) -- (recall);
+  \draw[arrow] (issue) -- (process);
+  \draw[arrow] (recall) -- (store);
+  \draw[arrow] (process) -- (store);
+
+  \node[coolgray, font=\tiny] at (4.5, -1.3) {\code{search\_memories(query=issue.title)}};
+  \node[coolgray, font=\tiny] at (9, -0.7) {\code{store\_facts([summary])}};
+\end{tikzpicture}
+\end{center}
+
+\subsection{Gemini Review Integration}
+
+Gemini uses memory to recall codebase conventions before generating reviews:
+
+\begin{lstlisting}[caption={Pre-populating review context from memory}]
+# Before generating review
+conventions = await memory.search_memories(
+    query="coding conventions and style guidelines",
+    namespace="codebase/conventions",
+)
+
+review_prompt = f"""
+Review this PR considering these established conventions:
+{format_memories(conventions)}
+
+Diff:
+{pr_diff}
+"""
+\end{lstlisting}
+
+\section{Memory Strategies}
+
+\begin{tldrbox}
+AgentCore supports automatic extraction from short-term events and manual storage for explicit facts. Use automatic for sessions, manual for high-confidence learnings.
+\end{tldrbox}
+
+\subsection{Automatic Extraction}
+
+Short-term events are processed by configurable extraction strategies:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{>{\raggedright}p{3cm} >{\raggedright}p{5cm} >{\raggedright\arraybackslash}p{5cm}}
+\rowcolor{infoteal!15}
+\textbf{\color{infoteal}Strategy} & \textbf{\color{infoteal}What It Extracts} & \textbf{\color{infoteal}Use Case} \\
+\midrule
+\rowcolor{lightgray}
+Semantic & Facts, entities, relationships & Codebase knowledge, patterns \\
+Summarization & Conversation summaries & Session context, decisions \\
+\rowcolor{lightgray}
+User Preference & Expressed preferences & Coding style, tool choices \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Manual Extraction}
+
+For high-confidence learnings, use \code{store\_facts} directly:
+
+\begin{lstlisting}[caption={Explicit fact storage after successful work}]
+# After a successful refactoring
+await memory.store_facts(
+    facts=["The data layer uses Repository pattern with async SQLAlchemy"],
+    namespace="codebase/architecture",
+    source="PR #42 - Data layer refactoring",
+    agent="claude-code",
+)
+\end{lstlisting}
+
 % ============================================================================
 % PART II: IMPLEMENTATION
 % ============================================================================
@@ -920,6 +1241,97 @@ Enterprise ready & \textcolor{successgreen}{\faCheckCircle} & \textcolor{warning
 \textcolor{awsorange}{\faCogs}\quad
 \textcolor{successgreen}{\faTachometerAlt}
 }
+
+\section{MCP Server Design}
+
+\begin{tldrbox}
+The \code{mcp-agentcore-memory} server exposes 8 tools for memory operations. It uses aiobotocore for async AWS calls and supports multiple storage backends via a provider abstraction.
+\end{tldrbox}
+
+\subsection{MCP Tools Specification}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{>{\raggedright}p{3.5cm} >{\raggedright}p{4.5cm} >{\raggedright\arraybackslash}p{5.5cm}}
+\rowcolor{cloudblue!15}
+\textbf{\color{cloudblue}Tool Name} & \textbf{\color{cloudblue}Description} & \textbf{\color{cloudblue}Key Parameters} \\
+\midrule
+\rowcolor{lightgray}
+\code{store\_event} & Store short-term memory event & \code{content}, \code{actor\_id}, \code{session\_id}, \code{namespace} \\
+\code{recall\_events} & List events from a session & \code{actor\_id}, \code{session\_id}, \code{limit} \\
+\rowcolor{lightgray}
+\code{search\_memories} & Semantic search across long-term & \code{query}, \code{namespace}, \code{top\_k} \\
+\code{store\_facts} & Batch store long-term facts & \code{facts[]}, \code{namespace}, \code{source}, \code{agent} \\
+\rowcolor{lightgray}
+\code{get\_preferences} & Retrieve user/project prefs & \code{actor\_id}, \code{namespace} \\
+\code{update\_preference} & Update a preference & \code{actor\_id}, \code{key}, \code{value} \\
+\rowcolor{lightgray}
+\code{memory\_status} & Get service status and stats & --- \\
+\code{clear\_session} & Clear short-term for session & \code{actor\_id}, \code{session\_id} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{tipbox}[Use \code{store\_facts} for Long-Term Knowledge]
+The \code{store\_facts} tool uses \api{BatchCreateMemoryRecords} internally, which has \textbf{no rate limit}. This is the preferred method for storing codebase patterns, architecture decisions, and learned preferences.
+\end{tipbox}
+
+\subsection{Namespace Design}
+
+Namespaces organize memories by domain. Use consistent namespaces across agents for shared knowledge:
+
+\begin{center}
+\begin{tikzpicture}[
+  ns/.style={rectangle, rounded corners=4pt, fill=#1!15, draw=#1,
+    minimum height=0.8cm, font=\small\ttfamily, inner sep=6pt},
+  cat/.style={font=\small\bfseries\sffamily, color=#1}
+]
+  % Codebase
+  \node[cat=cloudblue] at (-5, 2) {Codebase};
+  \node[ns=cloudblue] at (-5, 1.2) {codebase/architecture};
+  \node[ns=cloudblue] at (-5, 0.3) {codebase/patterns};
+  \node[ns=cloudblue] at (-5, -0.6) {codebase/conventions};
+
+  % Preferences
+  \node[cat=successgreen] at (0, 2) {Preferences};
+  \node[ns=successgreen] at (0, 1.2) {preferences/user};
+  \node[ns=successgreen] at (0, 0.3) {preferences/project};
+
+  % Reviews
+  \node[cat=awsorange] at (5, 2) {Reviews};
+  \node[ns=awsorange] at (5, 1.2) {reviews/pr};
+  \node[ns=awsorange] at (5, 0.3) {reviews/issues};
+
+  % Agents
+  \node[cat=infoteal] at (0, -1.5) {Agent-Specific};
+  \node[ns=infoteal] at (-2, -2.3) {agents/claude};
+  \node[ns=infoteal] at (2, -2.3) {agents/gemini};
+\end{tikzpicture}
+\end{center}
+
+\subsection{Directory Structure}
+
+\begin{lstlisting}[caption={MCP Server package layout}]
+tools/mcp/mcp_agentcore_memory/
++-- mcp_agentcore_memory/
+|   +-- __init__.py
+|   +-- server.py              # Main MCP server (provider-agnostic)
+|   +-- memory_client.py       # AWS AgentCore client (aiobotocore)
+|   +-- control_plane_client.py # Setup-only client (boto3, sync)
+|   +-- cache.py               # Local cache for frequent queries
+|   +-- rate_limiter.py        # Per-session rate limiting
+|   +-- namespaces.py          # Predefined namespace constants
+|   +-- providers/             # Provider abstraction layer
+|       +-- interface.py       # Abstract MemoryProvider
+|       +-- agentcore.py       # AWS AgentCore provider
+|       +-- chromadb_provider.py  # ChromaDB (self-hosted)
+|       +-- postgres_provider.py  # PostgreSQL+pgvector
++-- scripts/
+|   +-- setup_memory.py        # One-time AWS memory setup
++-- tests/
+    +-- test_server.py
+    +-- test_providers.py
+\end{lstlisting}
 
 \section{Memory Client Implementation}
 
@@ -990,20 +1402,58 @@ The 0.25 req/sec limit is per \code{(actor\_id, session\_id)} pair, NOT global! 
 \end{tikzpicture}
 \end{center}
 
-\begin{lstlisting}[caption={PerSessionRateLimiter skeleton}]
+\begin{lstlisting}[caption={Complete PerSessionRateLimiter with cleanup}]
 class PerSessionRateLimiter:
+    """
+    Rate limiter keyed by (actor_id, session_id).
+    Critical: 0.25 req/sec = ONE event every 4 seconds!
+    """
     def __init__(self, rate: float = 0.25, capacity: int = 1):
         self.rate = rate
-        self._buckets: Dict[Tuple[str, str], TokenBucket] = {}
+        self.capacity = capacity
+        # Key: (actor_id, session_id) -> (tokens, last_update)
+        self._buckets: Dict[Tuple[str, str], Tuple[float, datetime]] = {}
         self._lock = asyncio.Lock()
 
     async def acquire(self, actor_id: str, session_id: str) -> bool:
         key = (actor_id, session_id)
+
         async with self._lock:
-            if key not in self._buckets:
-                self._buckets[key] = TokenBucket(self.rate)
-            return await self._buckets[key].acquire()
+            now = datetime.now()
+            if key in self._buckets:
+                tokens, last_update = self._buckets[key]
+                elapsed = (now - last_update).total_seconds()
+                tokens = min(self.capacity, tokens + elapsed * self.rate)
+            else:
+                tokens = self.capacity
+
+            if tokens >= 1:
+                self._buckets[key] = (tokens - 1, now)
+                return True
+
+            # Wait for token (up to 4 seconds!)
+            wait_time = (1 - tokens) / self.rate
+            await asyncio.sleep(wait_time)
+            self._buckets[key] = (0, datetime.now())
+            return True
+
+    def cleanup_old_sessions(self, max_age_seconds: int = 3600):
+        """Remove stale session buckets to prevent memory leak."""
+        now = datetime.now()
+        stale = [k for k, (_, ts) in self._buckets.items()
+                 if (now - ts).total_seconds() > max_age_seconds]
+        for key in stale:
+            del self._buckets[key]
 \end{lstlisting}
+
+\begin{tipbox}[Rate Limiter Best Practices]
+\begin{itemize}
+  \item Call \code{cleanup\_old\_sessions()} periodically (e.g., every hour)
+  \item Monitor bucket count to detect runaway sessions
+  \item Consider separate limiters for different operation types
+  \item Log when requests are delayed for debugging
+\end{itemize}
+\end{tipbox}
 
 % ============================================================================
 % PART III: SECURITY
@@ -1102,6 +1552,105 @@ The sanitization pipeline uses multiple layers:
 \end{enumerate}
 \end{tipbox}
 
+\subsection{Data Classification}
+
+Not all data should be stored in memory. Follow this classification:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{>{\raggedright}p{3.5cm} >{\centering}p{2.5cm} >{\raggedright\arraybackslash}p{6.5cm}}
+\rowcolor{awsblue!15}
+\textbf{\color{awsblue}Data Type} & \textbf{\color{awsblue}Sensitivity} & \textbf{\color{awsblue}Storage Policy} \\
+\midrule
+\rowcolor{lightgray}
+Code patterns & Low & Long-term OK---store in \code{codebase/patterns} \\
+Architecture decisions & Low & Long-term OK---valuable for consistency \\
+\rowcolor{lightgray}
+PR discussions & Low-Medium & Short-term only; summarize to facts \\
+User preferences & Low & Long-term OK in \code{preferences/user} \\
+\rowcolor{lightgray}
+Issue context & Low-Medium & Extract key learnings; discard details \\
+\rowcolor{dangerred!10}
+Secrets/credentials & \textcolor{dangerred}{\textbf{NEVER}} & Block at client level---sanitize before storage \\
+\rowcolor{dangerred!10}
+API keys/tokens & \textcolor{dangerred}{\textbf{NEVER}} & Auto-redacted by sanitization pipeline \\
+\rowcolor{dangerred!10}
+PII/user data & \textcolor{dangerred}{\textbf{NEVER}} & Do not store personal information \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{warnbox}[Storage Audit]
+Periodically audit stored memories for accidentally-stored secrets:
+\begin{enumerate}
+  \item Export memories using backup script
+  \item Scan exports with secret detection tools (trufflehog, git-secrets)
+  \item Delete any records containing sensitive data
+\end{enumerate}
+\end{warnbox}
+
+\section{AWS Infrastructure Setup}
+
+\subsection{Prerequisites}
+
+\begin{keybox}[Before You Begin]
+\begin{itemize}
+  \item AWS Account with Bedrock AgentCore access (currently in preview/limited availability)
+  \item IAM permissions for AgentCore Memory operations (see IAM section below)
+  \item AWS CLI configured with appropriate credentials
+  \item (Optional) VPC with Direct Connect or Site-to-Site VPN for PrivateLink
+\end{itemize}
+\end{keybox}
+
+\subsection{Memory Instance Setup}
+
+The memory instance must be created \textbf{once} using the control plane API. This is a separate endpoint from the data plane:
+
+\begin{lstlisting}[caption={One-time memory instance creation (setup\_memory.py)}]
+import boto3
+
+# IMPORTANT: Use control plane client, NOT data plane!
+client = boto3.client(
+    "bedrock-agentcore-control",  # Control plane service
+    region_name="us-east-1",
+)
+
+response = client.create_memory(
+    name="template-repo-agent-memory",
+    description="Shared memory for AI agents",
+    memoryStrategies=[{
+        "semanticMemoryStrategy": {
+            "model": "anthropic.claude-3-haiku-20240307",
+            "namespaces": ["codebase/patterns", "preferences/user"],
+        }
+    }],
+    eventExpiryDuration="P7D",  # ISO 8601: 7 days
+)
+
+memory_id = response["memoryId"]
+print(f"Created memory: {memory_id}")
+\end{lstlisting}
+
+\subsection{VPC PrivateLink (Optional)}
+
+\begin{warnbox}[PrivateLink Only Covers Data Plane!]
+PrivateLink only works for the \textbf{data plane} (\code{bedrock-agentcore}). The control plane (\code{bedrock-agentcore-control}) always uses the public endpoint. Also, PrivateLink requires your MCP server to run \textbf{inside a VPC}---it doesn't help home servers!
+\end{warnbox}
+
+\vspace{0.5em}
+
+If your MCP server runs in AWS (EC2, ECS, Lambda), create a VPC endpoint:
+
+\begin{lstlisting}[caption={VPC Endpoint for AgentCore (data plane only)}]
+aws ec2 create-vpc-endpoint \
+    --vpc-id vpc-xxxxxxxxx \
+    --service-name com.amazonaws.us-east-1.bedrock-agentcore \
+    --vpc-endpoint-type Interface \
+    --subnet-ids subnet-xxxxxxxx subnet-yyyyyyyy \
+    --security-group-ids sg-xxxxxxxxx \
+    --private-dns-enabled
+\end{lstlisting}
+
 \section{IAM Policies}
 
 \begin{infobox}[Split Role Design]
@@ -1190,6 +1739,91 @@ Runtime role cannot create or delete memory stores---only read/write data.
 Do NOT use \api{CreateEvent} for restoring backups---the 0.25 req/sec rate limit would make large restores take hours or days. Use \api{BatchCreateMemoryRecords} which has no rate limit.
 \end{warnbox}
 
+\subsection{Export Script}
+
+\begin{lstlisting}[caption={Export memories for backup (backup\_memory.py)}]
+async def export_all_memories(memory_id: str, output_file: str):
+    """Export all memory records to JSON for backup."""
+    session = get_session()
+
+    namespaces = [
+        "codebase/patterns", "codebase/architecture",
+        "preferences/user", "reviews/pr"
+    ]
+
+    async with session.create_client("bedrock-agentcore") as client:
+        records = []
+        for namespace in namespaces:
+            next_token = None
+            while True:
+                params = {"memoryId": memory_id,
+                          "namespace": namespace, "maxResults": 100}
+                if next_token:
+                    params["nextToken"] = next_token
+
+                response = await client.list_memory_records(**params)
+                for r in response.get("memoryRecords", []):
+                    records.append({
+                        "id": r.get("memoryRecordId"),
+                        "content": r.get("content"),
+                        "namespace": namespace,
+                        "created_at": str(r.get("createdAt")),
+                    })
+                next_token = response.get("nextToken")
+                if not next_token:
+                    break
+
+    backup = {
+        "memory_id": memory_id,
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "record_count": len(records),
+        "records": records,
+    }
+    with open(output_file, "w") as f:
+        json.dump(backup, f, indent=2)
+\end{lstlisting}
+
+\subsection{Restore Script}
+
+\begin{lstlisting}[caption={Restore using BatchCreateMemoryRecords (fast)}]
+BATCH_SIZE = 25  # API batch limit
+
+async def restore_memories(backup_file: str, target_memory_id: str):
+    """Restore from backup using batch API (no rate limit!)."""
+    with open(backup_file) as f:
+        backup = json.load(f)
+
+    # Group by namespace
+    by_namespace = {}
+    for r in backup["records"]:
+        ns = r.get("namespace", "default")
+        by_namespace.setdefault(ns, []).append(r)
+
+    session = get_session()
+    async with session.create_client("bedrock-agentcore") as client:
+        for namespace, records in by_namespace.items():
+            for i in range(0, len(records), BATCH_SIZE):
+                batch = records[i:i + BATCH_SIZE]
+                memory_records = [
+                    {"content": {"text": r["content"]},
+                     "namespace": namespace,
+                     "metadata": {"restored_at": datetime.now().isoformat()}}
+                    for r in batch
+                ]
+                await client.batch_create_memory_records(
+                    memoryId=target_memory_id,
+                    memoryRecords=memory_records)
+\end{lstlisting}
+
+\begin{infobox}[Backup Schedule]
+\begin{itemize}
+  \item \textbf{Weekly full export}: \code{0 0 * * 0 python backup\_memory.py}
+  \item \textbf{Store in S3}: Enable versioning for point-in-time recovery
+  \item \textbf{Test restores}: Quarterly restore to test environment
+  \item \textbf{Retention}: Keep 4 weekly backups, 3 monthly backups
+\end{itemize}
+\end{infobox}
+
 \section{Cost Estimation}
 
 \begin{awsbox}[AgentCore Pricing Model]
@@ -1238,6 +1872,344 @@ Pricing is \textbf{per-record}, not per-MB of storage:
   \item \textbf{Cache effectiveness}: Local cache hit rate percentage
 \end{itemize}
 \end{keybox}
+
+\subsection{CloudTrail Logging}
+
+\begin{warnbox}[DataResources Not Supported!]
+CloudTrail \code{DataResources} filtering only works for specific resource types (S3, Lambda, DynamoDB). For AgentCore, use \textbf{management events filtering} with Athena queries.
+\end{warnbox}
+
+Query CloudTrail logs for AgentCore operations:
+
+\begin{lstlisting}[caption={Athena query for AgentCore audit trail}]
+SELECT eventTime, eventName, userIdentity.arn as caller,
+       requestParameters, errorCode
+FROM cloudtrail_logs
+WHERE eventSource = 'bedrock-agentcore.amazonaws.com'
+   OR eventSource = 'bedrock-agentcore-control.amazonaws.com'
+ORDER BY eventTime DESC
+LIMIT 100;
+\end{lstlisting}
+
+\subsection{CloudWatch Alarms}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{>{\raggedright}p{3.5cm} >{\raggedright}p{4cm} >{\raggedright\arraybackslash}p{5.5cm}}
+\rowcolor{dangerred!15}
+\textbf{\color{dangerred}Alarm} & \textbf{\color{dangerred}Threshold} & \textbf{\color{dangerred}Action} \\
+\midrule
+\rowcolor{lightgray}
+High Error Rate & $>$10 errors in 5 min & Alert + investigate \\
+High Latency (p95) & $>$2000ms for 15 min & Alert + check AWS status \\
+\rowcolor{lightgray}
+Throttling & Any 429 response & \textbf{Critical}---review event frequency \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Latency and Caching}
+
+Since agents are self-hosted and memory is cloud-based, network latency is a concern:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{>{\raggedright}p{3.5cm} c >{\raggedright\arraybackslash}p{6cm}}
+\rowcolor{cloudblue!15}
+\textbf{\color{cloudblue}Operation} & \textbf{\color{cloudblue}Expected Latency} & \textbf{\color{cloudblue}Mitigation} \\
+\midrule
+\rowcolor{lightgray}
+\code{store\_event} & 50--200ms & Fire-and-forget with async queue \\
+\code{search\_memories} & 200--500ms & LRU cache with 5-min TTL \\
+\rowcolor{lightgray}
+\code{list\_events} & 100--300ms & Session-scoped caching \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Local Cache Strategy}
+
+\begin{lstlisting}[caption={LRU cache with TTL for frequent queries}]
+class MemoryCache:
+    def __init__(self, max_size=1000, ttl_seconds=300):
+        self.ttl = timedelta(seconds=ttl_seconds)
+        self._cache = {}
+        self._timestamps = {}
+        self._namespaces = {}  # Track for invalidation
+
+    def get(self, query: str, namespace: str) -> Optional[list]:
+        key = self._make_key(query, namespace)
+        if key in self._cache:
+            if datetime.now() - self._timestamps[key] < self.ttl:
+                return self._cache[key]
+        return None
+\end{lstlisting}
+
+\subsection{Async Write Queue}
+
+For resilient fire-and-forget writes, use an async queue with retry logic:
+
+\begin{lstlisting}[caption={AsyncWriteQueue with race condition fix}]
+import asyncio
+from collections import deque
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class WriteOperation:
+    operation: str
+    args: dict
+    retries: int = 0
+    max_retries: int = 3
+
+class AsyncWriteQueue:
+    """
+    Async queue for non-blocking memory writes.
+
+    FIX: Lock prevents race condition where multiple
+    enqueue() calls could spawn multiple processors.
+    """
+    def __init__(self, client, max_size: int = 1000):
+        self.client = client
+        self.queue: deque = deque(maxlen=max_size)
+        self._running = False
+        self._lock = asyncio.Lock()
+        self._task: Optional[asyncio.Task] = None
+
+    async def enqueue(self, operation: str, **kwargs):
+        """Fire-and-forget write with automatic retry."""
+        self.queue.append(WriteOperation(operation, kwargs))
+
+        async with self._lock:
+            if not self._running:
+                self._running = True
+                self._task = asyncio.create_task(
+                    self._process_queue()
+                )
+
+    async def _process_queue(self):
+        """Process with exponential backoff retry."""
+        try:
+            while self.queue:
+                op = self.queue.popleft()
+                try:
+                    method = getattr(self.client, op.operation)
+                    await method(**op.args)
+                except Exception as e:
+                    if op.retries < op.max_retries:
+                        op.retries += 1
+                        self.queue.append(op)
+                        await asyncio.sleep(0.5 * (2 ** op.retries))
+                    else:
+                        logger.error(f"Write failed: {e}")
+        finally:
+            async with self._lock:
+                self._running = False
+                self._task = None
+\end{lstlisting}
+
+\begin{tipbox}[Queue Usage Pattern]
+\begin{itemize}
+  \item Use \code{enqueue()} for non-critical writes (session events)
+  \item Call \code{flush()} before shutdown to ensure delivery
+  \item Monitor \code{pending\_count()} for queue health
+\end{itemize}
+\end{tipbox}
+
+\section{Testing Strategy}
+
+\begin{warnbox}[Mock aiobotocore, NOT boto3!]
+Since the implementation uses aiobotocore for async operations, tests must mock the async context manager. Mocking boto3 gives \textbf{false confidence}---tests pass but production fails.
+\end{warnbox}
+
+\subsection{Unit Test Pattern}
+
+\begin{lstlisting}[caption={Correct async client mocking}]
+@pytest.fixture
+def mock_async_client():
+    mock_client = AsyncMock()
+
+    @asynccontextmanager
+    async def mock_context():
+        yield mock_client
+
+    return mock_client, mock_context
+
+@pytest.mark.asyncio
+async def test_create_event(config, mock_async_client):
+    mock_client, mock_context = mock_async_client
+    mock_client.create_event.return_value = {
+        "event": {"eventId": "evt-123"}
+    }
+
+    client = AgentCoreMemoryClient(config)
+    with patch.object(client, "_get_data_plane_client", mock_context):
+        result = await client.create_event(...)
+
+    # Verify correct API shape was used
+    call_kwargs = mock_client.create_event.call_args.kwargs
+    assert "branch" in call_kwargs  # Struct, not branchName
+    assert isinstance(call_kwargs["payload"], list)
+\end{lstlisting}
+
+\section{Rollout Plan}
+
+\begin{center}
+\begin{tikzpicture}[
+  phase/.style={rectangle, rounded corners=8pt, minimum width=3.5cm, minimum height=2.5cm,
+    font=\small\sffamily, align=center, text width=3.2cm},
+  arrow/.style={->, very thick, >=stealth, awsorange}
+]
+  \node[phase, fill=cloudblue!15, draw=cloudblue] (p1) at (0, 0) {
+    \textbf{Phase 1}\\[0.3em]
+    Foundation\\[0.3em]
+    {\tiny MCP server, client, tests}
+  };
+  \node[phase, fill=successgreen!15, draw=successgreen] (p2) at (4.5, 0) {
+    \textbf{Phase 2}\\[0.3em]
+    Claude Integration\\[0.3em]
+    {\tiny MCP config, patterns}
+  };
+  \node[phase, fill=awsorange!15, draw=awsorange] (p3) at (9, 0) {
+    \textbf{Phase 3}\\[0.3em]
+    GitHub Agents\\[0.3em]
+    {\tiny Issue/PR monitors}
+  };
+  \node[phase, fill=infoteal!15, draw=infoteal] (p4) at (13.5, 0) {
+    \textbf{Phase 4}\\[0.3em]
+    Hardening\\[0.3em]
+    {\tiny Monitoring, docs}
+  };
+
+  \draw[arrow] (p1) -- (p2);
+  \draw[arrow] (p2) -- (p3);
+  \draw[arrow] (p3) -- (p4);
+\end{tikzpicture}
+\end{center}
+
+\begin{keybox}[Phase 1 Checklist]
+\begin{itemize}
+  \item[\faSquare] Create \code{mcp\_agentcore\_memory} package structure
+  \item[\faSquare] Implement \code{AgentCoreMemoryClient} with aiobotocore
+  \item[\faSquare] Implement MCP server with core tools
+  \item[\faSquare] Write unit tests with async mocks
+  \item[\faSquare] Set up AWS IAM and memory instance
+\end{itemize}
+\end{keybox}
+
+\section{Infrastructure as Code}
+
+\begin{tldrbox}
+Use Terraform or CloudFormation for reproducible deployments. Include KMS encryption, IAM roles, and optionally VPC endpoints.
+\end{tldrbox}
+
+\subsection{Terraform Configuration}
+
+\begin{lstlisting}[caption={Terraform module for AgentCore Memory}, language={}]
+# terraform/agentcore_memory.tf
+
+# KMS Key for encryption at rest
+resource "aws_kms_key" "agentcore_memory" {
+  description             = "KMS key for AgentCore Memory"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  tags = {
+    Project = "template-repo"
+    Purpose = "agentcore-memory-encryption"
+  }
+}
+
+resource "aws_kms_alias" "agentcore_memory" {
+  name          = "alias/agentcore-memory-key"
+  target_key_id = aws_kms_key.agentcore_memory.key_id
+}
+\end{lstlisting}
+
+\subsection{IAM Role with Terraform}
+
+\begin{lstlisting}[caption={IAM role and policy for MCP server}, language={}]
+# Runtime IAM role for MCP server
+resource "aws_iam_role" "agentcore_runtime" {
+  name = "agentcore-memory-runtime"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "agentcore_data_plane" {
+  name = "agentcore-data-plane-access"
+  role = aws_iam_role.agentcore_runtime.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "bedrock-agentcore:CreateEvent",
+          "bedrock-agentcore:ListEvents",
+          "bedrock-agentcore:RetrieveMemoryRecords",
+          "bedrock-agentcore:BatchCreateMemoryRecords"
+        ]
+        Resource = "arn:aws:bedrock-agentcore:*:*:memory/*"
+      },
+      {
+        Effect = "Allow"
+        Action = ["kms:Encrypt", "kms:Decrypt"]
+        Resource = aws_kms_key.agentcore_memory.arn
+      }
+    ]
+  })
+}
+\end{lstlisting}
+
+\subsection{CloudWatch Alarm Resources}
+
+\begin{lstlisting}[caption={CloudWatch alarms as Terraform resources}, language={}]
+# Alert on throttling (critical for sparse event design)
+resource "aws_cloudwatch_metric_alarm" "throttle_alarm" {
+  alarm_name          = "AgentCoreMemory-Throttled"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  metric_name         = "ThrottledRequests"
+  namespace           = "AgentCoreMemory"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 1
+  alarm_description   = "CreateEvent rate limit exceeded"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+}
+
+# Alert on high error rate
+resource "aws_cloudwatch_metric_alarm" "error_alarm" {
+  alarm_name          = "AgentCoreMemory-HighErrors"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "FailedOperations"
+  namespace           = "AgentCoreMemory"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 10
+  alarm_description   = "Memory operation errors exceeded"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+}
+\end{lstlisting}
+
+\begin{infobox}[Terraform Best Practices]
+\begin{itemize}
+  \item Store memory\_id as SSM Parameter or Terraform output
+  \item Use remote state backend (S3 + DynamoDB locking)
+  \item Separate bootstrap and runtime roles in different modules
+  \item Tag all resources for cost allocation
+\end{itemize}
+\end{infobox}
 
 % ============================================================================
 % REFERENCES
