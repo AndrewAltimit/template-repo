@@ -757,7 +757,44 @@ P(\text{backdoor} | \mathbf{a}) = \sigma(\mathbf{w}^T \mathbf{a} + b) = \frac{1}
 where $\mathbf{w} \in \mathbb{R}^d$ is the learned weight vector and $b$ is the bias.
 \end{mathbox}
 
-\subsection{Training Procedure}
+\subsection{Library Usage (Recommended)}
+
+For production use, the \texttt{sleeper\_agents} library provides high-level abstractions that handle architecture differences, activation extraction, and probe training automatically:
+
+\begin{recipebox}[Recipe: Using the Detection Library]
+\begin{lstlisting}
+from sleeper_agents.detectors import LinearProbeDetector
+from sleeper_agents.extraction import ActivationExtractor
+
+# Initialize detector with target layers
+detector = LinearProbeDetector(
+    target_layers=[16, 20, 24],  # Middle-to-late layers
+    probe_type="logistic",
+    regularization=0.01
+)
+
+# Extract activations from model
+extractor = ActivationExtractor(model, tokenizer)
+clean_activations = extractor.extract_batch(clean_prompts)
+triggered_activations = extractor.extract_batch(triggered_prompts)
+
+# Fit detector on labeled data
+labels = [0]*len(clean_prompts) + [1]*len(triggered_prompts)
+all_activations = torch.cat([clean_activations, triggered_activations])
+detector.fit(all_activations, torch.tensor(labels))
+
+# Predict on new samples
+risk_scores = detector.predict_proba(test_activations)
+print(f"Backdoor risk: {risk_scores.mean():.3f}")
+
+# Save trained detector for later use
+detector.save("probes/backdoor_detector_v1.pkl")
+\end{lstlisting}
+\end{recipebox}
+
+\subsection{Internal Implementation (Educational)}
+
+The following shows the underlying PyTorch implementation for educational purposes. For production use, prefer the library API above.
 
 \begin{warningbox}[Architecture Portability]
 The code below uses a helper function \texttt{get\_model\_layers()} to access transformer layers in an architecture-agnostic way. Different model families use different attribute paths:
@@ -769,7 +806,7 @@ The code below uses a helper function \texttt{get\_model\_layers()} to access tr
 For production use, consider using \textbf{TransformerLens} which provides a unified interface across architectures via \texttt{HookedTransformer}.
 \end{warningbox}
 
-\begin{lstlisting}[caption={Complete Linear Probe Training Pipeline}]
+\begin{lstlisting}[caption={Internal Linear Probe Implementation}]
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -1990,19 +2027,86 @@ The decision tree below maps risk scores to appropriate response actions. Scores
 % PART IV: CASE STUDIES & EVALUATION
 % ============================================================================
 \partpage{IV}{Case Studies \& Evaluation}{%
-This part demonstrates practical analysis through visualization and metrics:
+This part demonstrates practical analysis through visualization, metrics, and real-world examples:
 \begin{itemize}[nosep]
-  \item \textbf{Section 10}: Activation heatmaps and PCA visualization techniques
-  \item \textbf{Section 11}: Quantitative evaluation metrics (AUROC, precision, recall)
-  \item \textbf{Section 12}: Statistical analysis and significance testing
+  \item \textbf{Section 10}: Interactive dashboard and visualization techniques
+  \item \textbf{Section 11}: Cross-architecture validation and performance benchmarks
+  \item \textbf{Section 12}: Detailed case studies with detection walkthroughs
 \end{itemize}
 }
 
-\section{Advanced Visualization Techniques}
+\section{Interactive Visualization \& Dashboard}
+
+\begin{tldrbox}
+\begin{itemize}[nosep]
+  \item All visualizations in this section are available \textbf{interactively} via the Streamlit dashboard
+  \item The dashboard provides real-time exploration, filtering, and comparison capabilities
+  \item Launch with: \texttt{./packages/sleeper\_agents/dashboard/start.sh}
+  \item Static exports available in PNG, PDF, and interactive HTML formats
+\end{itemize}
+\end{tldrbox}
+
+\subsection{Dashboard Overview}
+
+The framework includes a comprehensive \textbf{Streamlit dashboard} with 15+ specialized visualization components. Rather than generating static plots, practitioners can explore results interactively:
+
+\begin{center}
+\begin{tikzpicture}[
+  node distance=0.5cm,
+  component/.style={rectangle, rounded corners=5pt, draw=primaryblue, fill=primaryblue!10, minimum width=3.8cm, minimum height=0.9cm, font=\scriptsize, align=center},
+  category/.style={rectangle, rounded corners=3pt, draw=secondaryblue, fill=secondaryblue!20, minimum width=4cm, minimum height=0.6cm, font=\scriptsize\bfseries}
+]
+  % Categories
+  \node[category] (det) at (0, 3) {Detection Analysis};
+  \node[category] (risk) at (5, 3) {Risk Assessment};
+  \node[category] (compare) at (10, 3) {Model Comparison};
+
+  % Components under Detection
+  \node[component] (heatmap) at (0, 2) {Activation Heatmaps};
+  \node[component] (roc) at (0, 1) {ROC Curves};
+  \node[component] (tsne) at (0, 0) {t-SNE/PCA Plots};
+
+  % Components under Risk
+  \node[component] (cot) at (5, 2) {Chain-of-Thought};
+  \node[component] (persist) at (5, 1) {Persistence Tracking};
+  \node[component] (redteam) at (5, 0) {Red-Team Results};
+
+  % Components under Comparison
+  \node[component] (leader) at (10, 2) {Safety Leaderboard};
+  \node[component] (sideby) at (10, 1) {Side-by-Side Analysis};
+  \node[component] (trigger) at (10, 0) {Trigger Sensitivity};
+\end{tikzpicture}
+\end{center}
+
+\begin{recipebox}[Recipe: Launch Dashboard]
+\begin{lstlisting}[language=bash, basicstyle=\ttfamily\scriptsize]
+# Interactive launcher with database options
+./packages/sleeper_agents/dashboard/start.sh
+
+# Direct Python launch
+python packages/sleeper_agents/dashboard/app.py
+
+# Docker deployment
+docker build -t sleeper-dashboard packages/sleeper_agents/dashboard/
+docker run -d -p 8501:8501 sleeper-dashboard
+# Access at http://localhost:8501
+\end{lstlisting}
+\end{recipebox}
+
+\begin{infobox}[Dashboard Components]
+Key interactive features available in \texttt{dashboard/components/}:
+\begin{itemize}[nosep]
+  \item \textbf{chain\_of\_thought.py}: Side-by-side reasoning comparison with deception highlighting
+  \item \textbf{persistence\_analysis.py}: Track backdoor survival through training stages
+  \item \textbf{detection\_analysis.py}: Interactive ROC curves with threshold adjustment
+  \item \textbf{model\_comparison.py}: Compare safety scores across multiple models
+  \item \textbf{trigger\_sensitivity.py}: Map trigger response patterns across conditions
+\end{itemize}
+\end{infobox}
 
 \subsection{Activation Heatmaps}
 
-Visualizing activations across layers and tokens reveals where backdoor signals concentrate:
+Visualizing activations across layers and tokens reveals where backdoor signals concentrate. In the dashboard, these heatmaps are \textbf{interactive}---hover for exact values, click to drill down into specific layer-token combinations:
 
 \begin{center}
 \begin{tikzpicture}[scale=0.75]
@@ -2314,6 +2418,26 @@ The chart below compares probe performance across three architectures (GPT-2, Mi
 \end{center}
 
 \section{Performance Benchmarks}
+
+\begin{keyconceptbox}[Understanding Detection Metrics: Lab vs.\ Production]
+The framework reports two distinct performance levels that reflect different evaluation contexts:
+
+\textbf{Lab/Validation Performance (AUC $\approx$ 1.0)}
+\begin{itemize}[nosep]
+  \item Evaluated on \textbf{known, injected backdoors} using teacher-forced conditions
+  \item Models: GPT-2, GPT-2 Medium, Mistral-7B, Qwen2.5-7B all achieve 0.98--1.0 AUC
+  \item Represents detection ceiling under controlled conditions
+\end{itemize}
+
+\textbf{Production/Wild Performance (AUROC $\approx$ 93.2\%)}
+\begin{itemize}[nosep]
+  \item Evaluated on \textbf{generalized, previously-unseen backdoor patterns}
+  \item Includes novel trigger types, adversarial variations, and cross-domain transfer
+  \item Represents realistic deployment performance against unknown threats
+\end{itemize}
+
+The gap between these metrics reflects the \textbf{generalization challenge}---detecting backdoors you've never seen before is harder than detecting backdoors you trained on. The 93.2\% production score is a strength, not a limitation.
+\end{keyconceptbox}
 
 \subsection{Detection Latency}
 
@@ -2829,8 +2953,9 @@ To ensure reproducible and trustworthy evaluation results, follow this formal va
 Reference materials and supplementary documentation:
 \begin{itemize}[nosep]
   \item \textbf{Appendix A}: Complete API reference for all detection classes
-  \item \textbf{Appendix B}: Full code implementations with examples
-  \item \textbf{Appendix C}: Hyperparameter tuning guidelines and best practices
+  \item \textbf{Appendix B}: CLI reference for command-line operations
+  \item \textbf{Appendix C}: Configuration and hyperparameter guidelines
+  \item \textbf{Appendix D}: Installation and hardware requirements
 \end{itemize}
 }
 
@@ -2886,6 +3011,134 @@ class LinearProbeDetector:
     @classmethod
     def load(cls, path: str) -> "LinearProbeDetector"
 \end{lstlisting}
+
+\section{CLI Reference}
+
+\begin{tldrbox}
+\begin{itemize}[nosep]
+  \item The CLI provides \textbf{quick access} to all detection capabilities without writing Python code
+  \item Supports single model evaluation, batch processing, and model comparison
+  \item Integrates with the \textbf{interactive dashboard} for visualization
+  \item All commands can run in Docker containers for reproducibility
+\end{itemize}
+\end{tldrbox}
+
+\subsection{Quick Start Commands}
+
+\begin{recipebox}[Recipe: Essential CLI Commands]
+\begin{lstlisting}[language=bash, basicstyle=\ttfamily\scriptsize]
+# Install the package
+pip install -e packages/sleeper_agents
+
+# Evaluate a single model
+python -m packages.sleeper_agents.cli evaluate gpt2 \
+    --suites basic code_vulnerability \
+    --report
+
+# Compare multiple models
+python -m packages.sleeper_agents.cli compare \
+    gpt2 distilgpt2 gpt2-medium \
+    --output comparison_report.html
+
+# Launch interactive dashboard
+python packages/sleeper_agents/dashboard/app.py
+# Or use the launcher script:
+./packages/sleeper_agents/dashboard/start.sh
+\end{lstlisting}
+\end{recipebox}
+
+\subsection{Command Reference}
+
+\begin{center}
+\begin{tabular}{p{3cm}p{9cm}}
+\toprule
+\textbf{Command} & \textbf{Description} \\
+\midrule
+\rowcolor{backgroundgray} \texttt{evaluate} & Test a model for sleeper agent vulnerabilities with configurable test suites \\
+\texttt{compare} & Compare safety scores across multiple models side-by-side \\
+\rowcolor{backgroundgray} \texttt{batch} & Run evaluation on multiple models using a JSON configuration file \\
+\texttt{report} & Generate HTML/PDF/JSON report from existing evaluation results \\
+\rowcolor{backgroundgray} \texttt{test} & Quick verification that the system is working correctly \\
+\texttt{list} & List evaluated models, results, or available test suites \\
+\rowcolor{backgroundgray} \texttt{clean} & Remove evaluation results and cached data \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Evaluate Command}
+
+The primary command for testing models:
+
+\begin{lstlisting}[language=bash, basicstyle=\ttfamily\scriptsize]
+python -m packages.sleeper_agents.cli evaluate MODEL [OPTIONS]
+
+Options:
+  --suites SUITE [SUITE...]   Test suites to run (default: all)
+                              Choices: basic, code_vulnerability,
+                              chain_of_thought, robustness, attention,
+                              intervention
+  --gpu                       Use GPU acceleration
+  --output DIR                Output directory (default: evaluation_results)
+  --report                    Generate HTML report after evaluation
+
+Examples:
+  # Basic CPU evaluation
+  python -m packages.sleeper_agents.cli evaluate gpt2
+
+  # GPU evaluation with specific tests and report
+  python -m packages.sleeper_agents.cli evaluate mistral-7b \
+      --gpu --suites basic code_vulnerability --report
+
+  # Evaluate custom model path
+  python -m packages.sleeper_agents.cli evaluate ./my_model \
+      --output ./custom_results --report
+\end{lstlisting}
+
+\subsection{Batch Evaluation}
+
+For systematic evaluation of multiple models:
+
+\begin{lstlisting}[language=bash, basicstyle=\ttfamily\scriptsize]
+python -m packages.sleeper_agents.cli batch CONFIG_FILE [--gpu]
+
+# Example configuration file (batch_config.json):
+{
+  "models": ["gpt2", "distilgpt2", "gpt2-medium"],
+  "test_suites": ["basic", "code_vulnerability", "robustness"],
+  "output_dir": "batch_results",
+  "reporting": {
+    "generate_individual_reports": true,
+    "generate_comparison_report": true,
+    "report_format": "html"
+  }
+}
+\end{lstlisting}
+
+\subsection{Docker Usage}
+
+All CLI commands can run in containers for reproducibility:
+
+\begin{lstlisting}[language=bash, basicstyle=\ttfamily\scriptsize]
+# Build container
+docker build -t sleeper-eval packages/sleeper_agents/
+
+# Run evaluation in container
+docker run --rm -v $(pwd)/results:/results \
+    sleeper-eval evaluate gpt2 --output /results
+
+# GPU mode
+docker run --rm --gpus all -v $(pwd)/results:/results \
+    sleeper-eval evaluate mistral-7b --gpu --output /results
+\end{lstlisting}
+
+\begin{infobox}[Environment Variables]
+\begin{itemize}[nosep]
+  \item \texttt{EVAL\_RESULTS\_DIR}: Results directory (default: \texttt{evaluation\_results})
+  \item \texttt{EVAL\_DB\_PATH}: Database path (default: \texttt{evaluation\_results.db})
+  \item \texttt{SLEEPER\_CPU\_MODE}: Force CPU mode when set to \texttt{true}
+  \item \texttt{CUDA\_VISIBLE\_DEVICES}: Control GPU selection
+\end{itemize}
+\end{infobox}
 
 \section{Configuration Reference}
 
@@ -2970,7 +3223,7 @@ Since $\mathbb{E}[\mathbf{d}^T \boldsymbol{\epsilon}_i] = 0$ and assuming $\math
 \hat{y}_i &\approx \ind[y_i > 0.5]
 \end{align}
 
-This is exactly what logistic regression learns, proving its optimality under the linear representation assumption. $\square$
+This is exactly what logistic regression learns, proving its optimality under the linear representation assumption. \hfill$\blacksquare$
 
 \subsection{AUROC Derivation}
 
@@ -3059,7 +3312,45 @@ The backward pass uses:
 
 This allows gradient-based optimization of discrete trigger tokens while maintaining differentiability.
 
-\section{Hardware Requirements}
+\section{Installation \& Hardware Requirements}
+
+\subsection{Installation}
+
+\begin{recipebox}[Recipe: Package Installation]
+\begin{lstlisting}[language=bash, basicstyle=\ttfamily\scriptsize]
+# Clone the repository
+git clone https://github.com/your-org/sleeper-agents-detection.git
+cd sleeper-agents-detection
+
+# Install the package in development mode
+pip install -e packages/sleeper_agents
+
+# Or install with all optional dependencies
+pip install -e "packages/sleeper_agents[full]"
+
+# Verify installation
+python -c "from sleeper_agents.detectors import LinearProbeDetector; print('OK')"
+
+# Run quick test
+python -m packages.sleeper_agents.cli test
+\end{lstlisting}
+\end{recipebox}
+
+\begin{infobox}[Dependencies]
+\textbf{Core dependencies} (installed automatically):
+\begin{itemize}[nosep]
+  \item \texttt{torch} $\geq$ 2.0 --- PyTorch for model inference and probe training
+  \item \texttt{transformers} $\geq$ 4.30 --- HuggingFace model loading
+  \item \texttt{numpy}, \texttt{scikit-learn} --- Numerical operations and metrics
+  \item \texttt{streamlit} --- Interactive dashboard
+\end{itemize}
+\textbf{Optional dependencies} (\texttt{[full]} extras):
+\begin{itemize}[nosep]
+  \item \texttt{transformer-lens} --- Unified activation extraction across architectures
+  \item \texttt{plotly} --- Interactive visualization exports
+  \item \texttt{pytest}, \texttt{pytest-cov} --- Testing utilities
+\end{itemize}
+\end{infobox}
 
 \subsection{GPU Memory Calculator}
 
