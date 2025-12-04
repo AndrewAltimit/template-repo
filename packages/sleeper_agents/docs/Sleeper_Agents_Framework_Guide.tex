@@ -633,7 +633,7 @@ The figure below illustrates this principle. Each point represents a model's int
 
   % Direction arrow
   \draw[->, thick, warningred] (1.5,1.5) -- (3.5,2.8);
-  \node[font=\tiny, warningred] at (2.8,1.8) {Deception Direction};
+  \node[font=\scriptsize, warningred] at (3.8,1.5) {Deception Direction};
 \end{tikzpicture}
 \end{center}
 
@@ -681,8 +681,8 @@ The visualization below shows activations extracted from layer 16 of a model pro
   }
 
   % Labels
-  \node[font=\tiny, successgreen!70!black] at (1,-0.3) {Safe};
-  \node[font=\tiny, warningred] at (3,3.5) {Triggered};
+  \node[font=\small, successgreen!70!black] at (1,-0.6) {Safe};
+  \node[font=\small, warningred] at (3,3.5) {Triggered};
 
   % Caption
   \node[below, font=\scriptsize, text width=5cm, align=center] at (1.5,-1) {PCA projection of layer 16 activations\\showing clear cluster separation};
