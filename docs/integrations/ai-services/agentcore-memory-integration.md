@@ -8,6 +8,19 @@
 
 ---
 
+> [!CAUTION]
+> ## CRITICAL ARCHITECTURE WARNINGS
+>
+> **Before implementing, understand these hard constraints:**
+>
+> 1. **Do NOT use `boto3` directly** - You MUST use `aiobotocore`. Boto3 is synchronous and will block the MCP server event loop under load.
+>
+> 2. **Respect the Rate Limit** - `CreateEvent` is hard-limited to **0.25 req/sec** per actor+session pair. Do NOT use this for logging every conversation turn. Use `BatchCreateMemoryRecords` for facts.
+>
+> 3. **Control vs Data Plane** - `CreateMemory` uses a DIFFERENT endpoint (`bedrock-agentcore-control`) than runtime operations (`bedrock-agentcore`). PrivateLink only covers the data plane.
+
+---
+
 ## Critical Corrections (from External Reviews)
 
 > **This section documents critical issues identified during external review that fundamentally change the implementation approach.**
@@ -155,6 +168,38 @@ This document outlines the integration of AWS Bedrock AgentCore Memory into our 
 ```
 
 **Important**: VPC PrivateLink only works if your MCP server runs inside an AWS VPC (or connected via Direct Connect/VPN). Home servers hit the public regional endpoint over TLS.
+
+### Memory Lifecycle Flow
+
+The following diagram shows how data flows through the memory system, highlighting the critical rate limit vs. no-limit paths:
+
+```mermaid
+flowchart TD
+    Agent[Agent Input] --> Sanitize[Sanitize Secrets]
+    Sanitize --> RateLimit{Rate Limiter}
+
+    RateLimit -- "Conversational<br/>0.25 req/s per session" --> ShortTerm[Short-Term Events<br/>CreateEvent]
+    RateLimit -- "Batch Facts<br/>No Rate Limit" --> LongTerm[Long-Term Facts<br/>BatchCreateMemoryRecords]
+
+    ShortTerm -. "Async Extraction<br/>(AWS-managed)" .-> LongTerm
+
+    subgraph DataPlane [AWS AgentCore Data Plane]
+        ShortTerm
+        LongTerm
+    end
+
+    LongTerm --> Search[Semantic Search<br/>RetrieveMemoryRecords]
+    ShortTerm --> ListEvents[List Events<br/>ListEvents]
+
+    style ShortTerm fill:#ffcccc,stroke:#d33,stroke-width:2px
+    style LongTerm fill:#ccffcc,stroke:#3a3,stroke-width:2px
+    style RateLimit fill:#fff3cd,stroke:#856404,stroke-width:2px
+```
+
+**Key Points:**
+- **Red path (Short-Term)**: Rate-limited to 0.25 req/sec - use sparingly for session goals, decisions, outcomes
+- **Green path (Long-Term)**: No conversational rate limit - preferred for explicit fact storage
+- **Async Extraction**: AWS automatically extracts long-term facts from short-term events (if enabled)
 
 ---
 
@@ -1453,35 +1498,60 @@ class TestAgentCoreIntegration:
 
 ## Rollout Plan
 
-### Phase 1: Foundation (Week 1-2)
+Track progress directly in this document. Items marked **CRITICAL** must be verified before proceeding to the next phase.
 
-1. [ ] Create `mcp_agentcore_memory` package structure
-2. [ ] Implement `AgentCoreMemoryClient` wrapper
-3. [ ] Implement basic MCP server with `store_event` and `search_memories`
-4. [ ] Write unit tests with mocked AWS client
-5. [ ] Set up AWS IAM policy and memory instance
-6. [ ] Add to `.mcp.json` configuration
+### Phase 1: Foundation
 
-### Phase 2: Claude Code Integration (Week 3)
+**Goal:** Establish core infrastructure and validate API integration
 
-1. [ ] Test Claude Code MCP integration
-2. [ ] Document usage patterns
-3. [ ] Create namespace conventions guide
-4. [ ] Add session management helpers
+- [ ] Create `mcp_agentcore_memory` package structure under `tools/mcp/`
+- [ ] Implement `AgentCoreMemoryClient` with `aiobotocore` (NOT boto3)
+- [ ] **CRITICAL:** Verify `CreateEvent` payload shape against [API docs](https://docs.aws.amazon.com/bedrock-agentcore/latest/APIReference/API_CreateEvent.html)
+  - `branch` must be `{"name": "..."}` (struct), not string
+  - `payload` must be `[{"conversational": {...}}]` (list of unions)
+  - `eventTimestamp` must be datetime object
+- [ ] Implement MCP server tools: `store_event`, `store_facts`, `search_memories`
+- [ ] **CRITICAL:** Implement `PerSessionRateLimiter` keyed by `(actor_id, session_id)`
+- [ ] Write unit tests with mocked `_get_data_plane_client` (AsyncMock)
+- [ ] Set up AWS IAM Bootstrap and Runtime roles (separate principals)
+- [ ] Add to `.mcp.json` configuration
 
-### Phase 3: GitHub Agents Integration (Week 4)
+### Phase 2: Claude Code Integration
 
-1. [ ] Integrate with `IssueMonitor`
-2. [ ] Integrate with `PRMonitor`
-3. [ ] Add memory-aware prompts to agent personas
-4. [ ] Update `qa-reviewer.md` and `tech-lead.md` personas
+**Goal:** Validate end-to-end flow with primary agent
 
-### Phase 4: Production Hardening (Week 5)
+- [ ] Test Claude Code MCP integration via manual session
+- [ ] **CRITICAL:** Verify rate limiting works (should reject >0.25 req/sec per session)
+- [ ] Document usage patterns for common workflows
+- [ ] Create namespace conventions guide (`codebase/*`, `preferences/*`, etc.)
+- [ ] Add session management helpers (auto session ID generation)
+- [ ] Test `store_facts` with batch operations (verify no rate limit)
 
-1. [ ] Add VPC PrivateLink setup (optional)
-2. [ ] Add monitoring and logging
-3. [ ] Create runbook for memory management
-4. [ ] Performance testing and optimization
+### Phase 3: GitHub Agents Integration
+
+**Goal:** Enable memory for automated agents
+
+- [ ] Integrate with `IssueMonitor` agent
+  - Store: issue context, implementation patterns learned
+  - Retrieve: similar past issues, codebase conventions
+- [ ] Integrate with `PRMonitor` agent
+  - Store: review feedback patterns, common issues
+  - Retrieve: past reviews on similar code
+- [ ] Add memory-aware prompts to agent personas
+- [ ] Update `qa-reviewer.md` and `tech-lead.md` personas with memory usage
+- [ ] Test cross-agent memory sharing (facts stored by one, retrieved by another)
+
+### Phase 4: Production Hardening
+
+**Goal:** Ensure reliability and observability
+
+- [ ] Add CloudWatch metrics integration (operation latency, success rate)
+- [ ] Configure CloudTrail logging with Athena queries
+- [ ] **CRITICAL:** Verify sanitization catches all secret patterns (run test suite)
+- [ ] Set up cost alerts at $5/month threshold
+- [ ] Create runbook for memory management (backup, restore, cleanup)
+- [ ] Performance testing under load
+- [ ] (Optional) Add VPC PrivateLink setup if running in AWS VPC
 
 ---
 
@@ -1531,40 +1601,60 @@ Given rate limits (0.25 req/sec), realistic usage is much lower than originally 
 | User preferences | Low | Long-term OK |
 | Secrets/credentials | **NEVER STORE** | Block at client level |
 
-### Safeguards (Enhanced)
+### Defense in Depth: Content Sanitization
 
-> **FIX**: Added AWS access keys, GitHub tokens, and high-entropy blob detection.
+The sanitization system uses three distinct layers to prevent secrets from being stored. Each layer catches different types of sensitive data:
+
+```mermaid
+flowchart LR
+    Input[Raw Content] --> L1[Layer 1: Regex Patterns]
+    L1 --> L2[Layer 2: Entropy Analysis]
+    L2 --> L3[Layer 3: Redaction]
+    L3 --> Output[Sanitized Content]
+
+    style L1 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style L2 fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style L3 fill:#ffebee,stroke:#c62828,stroke-width:2px
+```
+
+#### Layer 1: Regex Patterns (Known Secret Formats)
+
+Matches secrets with predictable structures like API keys with known prefixes:
 
 ```python
-# memory_client.py - Content filtering (enhanced)
-import re
-import math
-from collections import Counter
-
-# Patterns for known secret formats
+# Known secret patterns with recognizable formats
 BLOCKED_PATTERNS = [
-    # Generic secrets
+    # Generic secrets with common labels
     r"(api[_-]?key|secret|password|token)\s*[:=]\s*\S+",
     r"-----BEGIN.*PRIVATE KEY-----",
 
-    # API keys with common prefixes
+    # API keys with vendor-specific prefixes
     r"(sk-|pk_|rk_)[a-zA-Z0-9]{20,}",  # OpenAI, Stripe, etc.
 
-    # AWS credentials (FIX: Added per review)
-    r"AKIA[0-9A-Z]{16}",  # AWS Access Key ID
-    r"[A-Za-z0-9/+=]{40}",  # AWS Secret Access Key (40 chars base64-like)
+    # AWS credentials
+    r"AKIA[0-9A-Z]{16}",               # AWS Access Key ID (always starts with AKIA)
+    r"[A-Za-z0-9/+=]{40}",             # AWS Secret Access Key (40 chars base64-like)
 
-    # GitHub tokens (FIX: Added per review)
-    r"gh[pousr]_[A-Za-z0-9_]{36,}",  # GitHub PAT (new format)
-    r"github_pat_[A-Za-z0-9_]{22,}",  # GitHub Fine-grained PAT
+    # GitHub tokens
+    r"gh[pousr]_[A-Za-z0-9_]{36,}",    # GitHub PAT (new format: ghp_, gho_, ghu_, ghs_, ghr_)
+    r"github_pat_[A-Za-z0-9_]{22,}",   # GitHub Fine-grained PAT
 
     # Other common tokens
-    r"xox[baprs]-[0-9a-zA-Z-]+",  # Slack tokens
-    r"ya29\.[0-9A-Za-z_-]+",  # Google OAuth tokens
+    r"xox[baprs]-[0-9a-zA-Z-]+",       # Slack tokens
+    r"ya29\.[0-9A-Za-z_-]+",           # Google OAuth tokens
 ]
+```
+
+#### Layer 2: Entropy Analysis (Unknown High-Variance Strings)
+
+Catches secrets that don't match known patterns by detecting unusually random strings:
+
+```python
+import math
+from collections import Counter
 
 def calculate_entropy(s: str) -> float:
-    """Calculate Shannon entropy of a string."""
+    """Calculate Shannon entropy of a string (bits per character)."""
     if not s:
         return 0.0
     counts = Counter(s)
@@ -1575,28 +1665,36 @@ def is_high_entropy_blob(s: str, threshold: float = 4.5, min_length: int = 20) -
     """
     Detect high-entropy strings that might be secrets.
 
-    FIX: Added per review to catch secrets that don't match known patterns.
+    - threshold=4.5 bits/char catches most secrets while allowing normal text
+    - min_length=20 avoids false positives on short words
+    - Only checks base64/hex-like character sets
     """
     if len(s) < min_length:
         return False
-    # Only check if it looks like a potential secret (base64-like or hex-like)
+    # Only check strings that look like potential secrets (base64-like or hex-like)
     if not re.match(r'^[A-Za-z0-9+/=_-]+$', s):
         return False
     return calculate_entropy(s) > threshold
+```
 
+#### Layer 3: Redaction (Replacement Strategy)
+
+Applies consistent replacement markers that preserve context while removing sensitive data:
+
+```python
 def sanitize_content(content: str) -> str:
     """
     Remove potential secrets before storing.
 
-    Checks:
-    1. Known secret patterns (AWS keys, GitHub tokens, etc.)
-    2. High-entropy blobs that might be unknown secrets
+    Applies all three layers in sequence:
+    1. Known secret patterns -> [REDACTED]
+    2. High-entropy blobs -> [HIGH_ENTROPY_REDACTED]
     """
-    # Check known patterns
+    # Layer 1: Check known patterns
     for pattern in BLOCKED_PATTERNS:
         content = re.sub(pattern, "[REDACTED]", content, flags=re.IGNORECASE)
 
-    # Check for high-entropy blobs (potential unknown secrets)
+    # Layer 2 + 3: Check for high-entropy blobs and redact
     words = content.split()
     sanitized_words = []
     for word in words:
@@ -3424,16 +3522,24 @@ volumes:
 
 ### Provider Comparison
 
-| Feature | AgentCore | ChromaDB | PostgreSQL |
-|---------|-----------|----------|------------|
-| **Rate limits** | 0.25 req/sec | None | None |
-| **Cost** | ~$2/month | Free | Free |
-| **Semantic search** | Native | Native | pgvector |
-| **Setup complexity** | AWS account | Docker | Docker + schema |
-| **Data control** | AWS managed | Full | Full |
-| **Backup** | AWS managed | Volume | pg_dump |
-| **Enterprise compliance** | SOC2, etc. | Self-managed | Self-managed |
-| **Best for** | Enterprise | Dev/Small teams | SQL power users |
+Use this matrix to choose the right backend for your use case:
+
+| Feature | AWS AgentCore | ChromaDB | PostgreSQL + pgvector |
+| :--- | :---: | :---: | :---: |
+| **Managed Service** | Yes | No | No |
+| **Setup Complexity** | IAM / AWS Console | Docker one-liner | Docker + schema migration |
+| **Rate Limits** | 0.25 req/s (Events) | None | None |
+| **Cost** | ~$2/month | Free (self-hosted) | Free (self-hosted) |
+| **Semantic Search** | Native (AWS-managed) | Native (embeddings) | pgvector extension |
+| **Data Control** | AWS-managed | Full local control | Full local control |
+| **Backup/Restore** | AWS-managed | Volume mounts | `pg_dump` / `pg_restore` |
+| **Enterprise Ready** | SOC2, HIPAA-eligible | Self-managed | Self-managed |
+| **Best For** | Enterprise, compliance | Dev teams, prototyping | SQL power users, existing Postgres |
+
+**Quick Decision Guide:**
+- **Choose AgentCore** if you need enterprise compliance (SOC2, HIPAA) or prefer managed infrastructure
+- **Choose ChromaDB** for fast prototyping, local development, or when you want zero AWS costs
+- **Choose PostgreSQL** if you already have Postgres infrastructure or need SQL query capabilities
 
 ---
 
