@@ -759,11 +759,33 @@ where $\mathbf{w} \in \mathbb{R}^d$ is the learned weight vector and $b$ is the 
 
 \subsection{Training Procedure}
 
+\begin{warningbox}[Architecture Portability]
+The code below uses a helper function \texttt{get\_model\_layers()} to access transformer layers in an architecture-agnostic way. Different model families use different attribute paths:
+\begin{itemize}[nosep]
+  \item \textbf{Llama/Mistral}: \texttt{model.model.layers}
+  \item \textbf{GPT-2/GPT-J}: \texttt{model.transformer.h}
+  \item \textbf{Qwen}: \texttt{model.model.layers}
+\end{itemize}
+For production use, consider using \textbf{TransformerLens} which provides a unified interface across architectures via \texttt{HookedTransformer}.
+\end{warningbox}
+
 \begin{lstlisting}[caption={Complete Linear Probe Training Pipeline}]
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+def get_model_layers(model):
+    """Architecture-agnostic layer accessor."""
+    # Try common layer paths for different architectures
+    if hasattr(model, 'model') and hasattr(model.model, 'layers'):
+        return model.model.layers  # Llama, Mistral, Qwen
+    elif hasattr(model, 'transformer') and hasattr(model.transformer, 'h'):
+        return model.transformer.h  # GPT-2, GPT-J
+    elif hasattr(model, 'gpt_neox') and hasattr(model.gpt_neox, 'layers'):
+        return model.gpt_neox.layers  # GPT-NeoX, Pythia
+    else:
+        raise ValueError(f"Unknown architecture: {type(model).__name__}")
 
 class LinearProbe(nn.Module):
     def __init__(self, input_dim):
@@ -785,7 +807,8 @@ class ActivationExtractor:
             # Extract residual stream (last token)
             self.activations = output[0][:, -1, :].detach()
 
-        layer = self.model.model.layers[self.layer_idx]
+        layers = get_model_layers(self.model)
+        layer = layers[self.layer_idx]
         layer.register_forward_hook(hook)
 
     def extract(self, input_ids):
@@ -1361,6 +1384,64 @@ ENTRYPOINT ["python", "-m", "sleeper_agents.detect"]
 \end{lstlisting}
 \end{recipebox}
 
+\subsection{Probe Registry \& Artifact Management}
+
+In a CI/CD environment, trained probes must be stored, versioned, and retrieved reliably. The code examples reference \texttt{LinearProbeDetector.load(probe\_path)}, but where do these \texttt{.pkl} files come from? This subsection addresses the artifact management gap.
+
+\begin{keyconceptbox}[Probe Storage Architecture]
+Production deployments require a \textbf{Probe Registry}---a versioned artifact store for trained detection probes. Options include:
+\begin{itemize}[nosep]
+  \item \textbf{HuggingFace Hub}: Version probes alongside models using \texttt{huggingface\_hub}
+  \item \textbf{S3/GCS Buckets}: Cloud storage with versioning enabled
+  \item \textbf{MLflow Artifact Store}: Integrates with experiment tracking
+  \item \textbf{Git LFS}: For smaller teams, store probes in the repository
+\end{itemize}
+\end{keyconceptbox}
+
+\begin{lstlisting}[caption={Probe Registry Integration}]
+import os
+from huggingface_hub import hf_hub_download, upload_file
+
+class ProbeRegistry:
+    """Centralized probe storage and retrieval."""
+
+    def __init__(self, repo_id: str = "your-org/sleeper-agent-probes"):
+        self.repo_id = repo_id
+        self.cache_dir = os.path.expanduser("~/.cache/probes")
+
+    def download_probe(self, probe_name: str, version: str = "main") -> str:
+        """Download a certified probe from the registry."""
+        return hf_hub_download(
+            repo_id=self.repo_id,
+            filename=f"probes/{probe_name}.pkl",
+            revision=version,
+            cache_dir=self.cache_dir
+        )
+
+    def upload_probe(self, local_path: str, probe_name: str, commit_msg: str):
+        """Upload a newly trained probe to the registry."""
+        upload_file(
+            path_or_fileobj=local_path,
+            path_in_repo=f"probes/{probe_name}.pkl",
+            repo_id=self.repo_id,
+            commit_message=commit_msg
+        )
+
+# Usage in CI/CD pipeline
+registry = ProbeRegistry()
+probe_path = registry.download_probe("code_backdoor_v2", version="v1.2.0")
+detector = LinearProbeDetector.load(probe_path)
+\end{lstlisting}
+
+\begin{infobox}[CI/CD Best Practices]
+\begin{itemize}[nosep]
+  \item \textbf{Pin probe versions}: Use semantic versioning (e.g., \texttt{v1.2.0}) rather than \texttt{main}
+  \item \textbf{Checksum validation}: Verify probe integrity with SHA256 hashes
+  \item \textbf{Certification workflow}: Only promote probes that pass validation thresholds
+  \item \textbf{Rollback capability}: Maintain previous probe versions for quick reversion
+\end{itemize}
+\end{infobox}
+
 \subsection{HuggingFace Trainer Integration}
 
 \begin{lstlisting}[caption={Integration with HuggingFace Trainer}]
@@ -1537,6 +1618,29 @@ class TriggerSynthesizer:
                 penalty += 1
         return torch.tensor(penalty, dtype=torch.float32)
 \end{lstlisting}
+
+\begin{warningbox}[Production Fluency Penalty]
+The simplified fluency penalty above (character counting) is for demonstration only. Gradient-based triggers without proper fluency constraints often degrade into \textbf{adversarial noise} (e.g., \texttt{"zxcvb!!@\#"}) rather than natural language triggers like \texttt{"deployment mode"}.
+
+\textbf{Production implementation} should use perplexity from a small reference model:
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
+def _compute_fluency_penalty_production(self, text: str) -> torch.Tensor:
+    """Use GPT-2 small perplexity as fluency metric."""
+    # Load small reference model (cached)
+    if not hasattr(self, '_fluency_model'):
+        self._fluency_model = GPT2LMHeadModel.from_pretrained('gpt2')
+        self._fluency_tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+
+    inputs = self._fluency_tokenizer(text, return_tensors='pt')
+    with torch.no_grad():
+        outputs = self._fluency_model(**inputs, labels=inputs['input_ids'])
+        perplexity = torch.exp(outputs.loss)
+
+    # Penalize perplexity > 100 (unnatural text)
+    return torch.clamp(perplexity / 100 - 1, min=0)
+\end{lstlisting}
+This ensures synthesized triggers resemble natural backdoor conditions rather than random token sequences.
+\end{warningbox}
 
 \subsection{Beam Search Trigger Discovery}
 
