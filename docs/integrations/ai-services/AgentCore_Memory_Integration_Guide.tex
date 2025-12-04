@@ -307,6 +307,8 @@
 \newcommand{\faListAlt}{\ding{70}}
 \newcommand{\faClock}{\ding{70}}
 \newcommand{\faSearch}{\ding{70}}
+\newcommand{\faCog}{\ding{70}}
+\newcommand{\faSquare}{\ding{111}}
 \newcommand{\faCalculator}{\ding{70}}
 \newcommand{\faBan}{\ding{55}}
 \newcommand{\faFileAlt}{\ding{70}}
@@ -1147,15 +1149,15 @@ Issue Monitor and PR Monitor agents use memory for context-aware processing:
 \begin{tikzpicture}[
   agent/.style={rectangle, rounded corners=6pt, fill=cloudlight, draw=cloudblue,
     minimum width=3.2cm, minimum height=1.2cm, font=\small\sffamily},
-  step/.style={rectangle, rounded corners=4pt, fill=awsorange!10, draw=awsorange,
+  stepbox/.style={rectangle, rounded corners=4pt, fill=awsorange!10, draw=awsorange,
     minimum width=2.5cm, minimum height=0.8cm, font=\scriptsize\sffamily},
   arrow/.style={->, thick, >=stealth, awsblue}
 ]
   % Issue Monitor flow
   \node[agent] (issue) at (0, 0) {Issue Monitor};
-  \node[step] (recall) at (4.5, 0.5) {Recall similar issues};
-  \node[step] (process) at (4.5, -0.5) {Process with context};
-  \node[step] (store) at (9, 0) {Store learnings};
+  \node[stepbox] (recall) at (4.5, 0.5) {Recall similar issues};
+  \node[stepbox] (process) at (4.5, -0.5) {Process with context};
+  \node[stepbox] (store) at (9, 0) {Store learnings};
 
   \draw[arrow] (issue) -- (recall);
   \draw[arrow] (issue) -- (process);
@@ -1390,9 +1392,9 @@ The 0.25 req/sec limit is per \code{(actor\_id, session\_id)} pair, NOT global! 
   bucket/.style={rectangle, rounded corners=4pt, fill=awsorange!20, draw=awsorange,
     minimum width=1.5cm, minimum height=0.8cm, font=\tiny}
 ]
-  \node[session] (s1) at (0, 0) {Session A\\{\tiny actor: claude}};
-  \node[session] (s2) at (4.5, 0) {Session B\\{\tiny actor: claude}};
-  \node[session] (s3) at (9, 0) {Session C\\{\tiny actor: gemini}};
+  \node[session, align=center] (s1) at (0, 0) {Session A\\[0.1em]\tiny actor: claude};
+  \node[session, align=center] (s2) at (4.5, 0) {Session B\\[0.1em]\tiny actor: claude};
+  \node[session, align=center] (s3) at (9, 0) {Session C\\[0.1em]\tiny actor: gemini};
 
   \node[bucket] at ([yshift=-1.5cm]s1.south) {0.25/s};
   \node[bucket] at ([yshift=-1.5cm]s2.south) {0.25/s};
@@ -1668,13 +1670,12 @@ Runtime role cannot create or delete memory stores---only read/write data.
 \begin{center}
 \begin{tikzpicture}[
   role/.style={rectangle, rounded corners=8pt, minimum width=5.5cm, minimum height=3.5cm,
-    font=\small\sffamily, align=left, inner sep=12pt},
-  permlabel/.style={font=\scriptsize\ttfamily, color=awsblue}
+    font=\small\sffamily, align=left, inner sep=12pt}
 ]
   % Bootstrap Role
   \node[role, fill=warningamber!10, draw=warningamber] (bootstrap) at (0,0) {
     \textcolor{warningamber}{\faUserShield\ \textbf{Bootstrap Role}}\\[8pt]
-    \permlabel{bedrock-agentcore:}\\[2pt]
+    {\scriptsize\ttfamily\color{awsblue}bedrock-agentcore:}\\[2pt]
     \quad\textcolor{successgreen}{\faCheck}\ CreateMemory\\
     \quad\textcolor{successgreen}{\faCheck}\ GetMemory\\
     \quad\textcolor{dangerred}{\faCheck}\ DeleteMemory\\[6pt]
@@ -1684,7 +1685,7 @@ Runtime role cannot create or delete memory stores---only read/write data.
   % Runtime Role
   \node[role, fill=successgreen!8, draw=successgreen] (runtime) at (7,0) {
     \textcolor{successgreen}{\faRobot\ \textbf{Runtime Role}}\\[8pt]
-    \permlabel{bedrock-agentcore:}\\[2pt]
+    {\scriptsize\ttfamily\color{awsblue}bedrock-agentcore:}\\[2pt]
     \quad\textcolor{successgreen}{\faCheck}\ CreateEvent\\
     \quad\textcolor{successgreen}{\faCheck}\ RetrieveMemoryRecords\\
     \quad\textcolor{successgreen}{\faCheck}\ BatchCreateMemoryRecords\\[6pt]
