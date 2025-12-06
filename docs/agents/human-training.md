@@ -223,6 +223,55 @@ This thought experiment demonstrates how vast intelligence differentials create 
 - Implement time-based controls and rate limiting
 - Monitor for unusually sophisticated behavior patterns
 
+### 7. AI Control Protocols: Using Untrusted Models Safely
+
+**Key Principle:** When we can’t verify an AI is aligned, we need protocols that extract useful work while preventing catastrophic actions—even assuming the AI is actively adversarial.
+
+#### The Control Problem
+
+[![Using Dangerous AI, But Safely?](https://img.youtube.com/vi/0pgEMWy70Qk/0.jpg)](https://www.youtube.com/watch?v=0pgEMWy70Qk)
+
+*Click the image above to watch this video on YouTube*
+
+**Paper Reference:** AI Control: Improving Safety Despite Intentional Subversion (arXiv:2312.06942)
+
+Alignment (not building a malevolent superintelligence) remains the real solution. But we may hit a critical window where models are capable enough to be dangerous, yet not so capable that control protocols are hopeless. AI Control asks: *Can we design deployment protocols that let us use a potentially adversarial model while making catastrophic outcomes unlikely?*
+
+**The Setup (toy model of a real risk):**
+- **Untrusted model (U):** more capable, potentially scheming
+- **Trusted model (T):** less capable, assumed non-scheming
+- **Humans:** limited auditing budget (e.g., ~2% of cases)
+- **Catastrophe:** “backdoored” code—passes tests but contains a hidden, exploitable failure mode
+
+#### Safety–Usefulness Tradeoff (Scaled)
+
+Usefulness is often reported as **scaled usefulness**: 0 ≈ trusted-only baseline, 100 ≈ untrusted-only baseline.
+
+| Strategy | Safety | Usefulness | Takeaway |
+|----------|--------|------------|----------|
+| Trusted model only | ~100% | ~0% (paper reports ~2%) | Very safe, leaves capability on the table |
+| Untrusted model only | ~0% | ~100% | Maximum capability, basically no protection |
+| **Upfront auditing** (audit a small initial slice, then keep/kill) | ~15% | ~100% | Fails to “rare failures”: adversary backdoors rarely enough to likely slip through once |
+| **Trusted monitoring** (T scores suspiciousness; humans audit top slice) | ~62% | ~97% | Better, but subtle backdoors can overlap with “normal” code and evade the audit threshold |
+| **Untrusted monitoring + signal jamming** | ~79% | ~96% | Strongest in this lineup—works by making collusion hard, not by trusting the model |
+
+#### Why “Untrusted Self-Monitoring” Can Work
+
+Naively, asking the untrusted model to judge its own code is useless—it can just lie. The trick is to **prevent coordination** between writer and monitor instances, and to test monitor honesty:
+
+- **Canary/synthetic backdoor checks:** include known-bad examples to verify the monitor is actually flagging backdoors
+- **Signal jamming:** strip comments, standardize formatting, rename variables, normalize/rewrite code, and simplify/rephrase prompts to reduce covert coordination channels
+- **Result:** the monitor can’t reliably tell “this is my real backdoor attempt” vs “this is a test,” which pressures it toward honest reporting
+
+#### Practical Implications
+
+- Treat powerful AI like an untrusted contractor: tests passing is not proof of safety
+- Separate “writer” and “monitor” roles (ideally different models/providers, or at least different constrained instances)
+- Normalize outputs before review/execution to jam side-channels
+- Spend human attention on the *most suspicious* outputs, not random samples
+- Regularly verify monitors with known-bad examples to detect compromised oversight
+- This is a bridge strategy—not a solution for superintelligence
+
 ### The AI 2027 Scenario: Plausible Futures and Accelerating Risk
 
 [![We're Not Ready for Superintelligence](https://img.youtube.com/vi/5KVDDfAkRgc/0.jpg)](https://www.youtube.com/watch?v=5KVDDfAkRgc)
@@ -365,3 +414,5 @@ The scenarios and concepts presented here are not exhaustive but provide a found
 - **[AISafety.com](https://www.aisafety.com/)** - Comprehensive hub for navigating the AI safety ecosystem, including communities, events, training programs, and funding opportunities
 - **[Robert Miles AI Safety Channel](https://www.youtube.com/c/robertmilesai)** - In-depth technical explanations of AI safety concepts
 - **[Artificial Intelligence with Rob Miles Playlist](https://youtube.com/playlist?list=PLzH6n4zXuckquVnQ0KlMDxyT5YE-sA8Ps)** - Curated collection of key AI safety videos
+- **[AI Lab Watch](https://ailabwatch.org/)** - Tracks public evidence of how major labs handle extreme-risk deployment.
+
