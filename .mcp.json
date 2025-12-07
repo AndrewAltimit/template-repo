@@ -154,7 +154,7 @@
         "-e",
         "AWS_PROFILE=agentcore",
         "-e",
-        "AGENTCORE_MEMORY_ID=template_repo_memory-s2E1OlFGBp",
+        "AGENTCORE_MEMORY_ID=${AGENTCORE_MEMORY_ID}",
         "mcp-agentcore-memory",
         "python",
         "-m",

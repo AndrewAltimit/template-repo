@@ -22,8 +22,8 @@ This runbook covers operational procedures for managing the AgentCore Memory sys
 # Via MCP tool (Claude Code)
 # Use memory_status tool
 
-# Via CLI
-AWS_PROFILE=agentcore python -c "
+# Via CLI (containerized)
+docker-compose --profile memory run --rm mcp-agentcore-memory python -c "
 import asyncio
 from mcp_agentcore_memory.providers.factory import get_provider
 
@@ -72,11 +72,13 @@ https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#dashbo
 ### Setup Monitoring
 
 ```bash
-# Create CloudWatch dashboard and alarms
-AWS_PROFILE=agentcore python scripts/setup_cloudwatch.py create
+# Create CloudWatch dashboard and alarms (containerized)
+docker-compose --profile memory run --rm mcp-agentcore-memory \
+  python scripts/setup_cloudwatch.py create
 
 # With SNS notifications
-AWS_PROFILE=agentcore python scripts/setup_cloudwatch.py create \
+docker-compose --profile memory run --rm mcp-agentcore-memory \
+  python scripts/setup_cloudwatch.py create \
   --sns-topic arn:aws:sns:us-east-1:ACCOUNT:alerts
 ```
 
@@ -376,11 +378,11 @@ client.list_memory_records(memoryId=memory_id, namespace=namespace)
 Enable debug logging:
 
 ```bash
-# Set log level
-export LOG_LEVEL=DEBUG
-
-# Run server with debug
-python -m mcp_agentcore_memory.server --mode http --log-level DEBUG
+# Run server with debug (containerized)
+docker-compose --profile memory run --rm \
+  -e LOG_LEVEL=DEBUG \
+  mcp-agentcore-memory \
+  python -m mcp_agentcore_memory.server --mode http --log-level DEBUG
 ```
 
 ---
@@ -448,6 +450,7 @@ AWS_PROFILE=agentcore aws bedrock-agentcore-control get-memory \
 AWS_PROFILE=agentcore aws bedrock-agentcore list-actors \
   --memory-id template_repo_memory-s2E1OlFGBp
 
-# Check budget status
-AWS_PROFILE=agentcore python scripts/setup_cost_alerts.py status
+# Check budget status (containerized)
+docker-compose --profile memory run --rm mcp-agentcore-memory \
+  python scripts/setup_cost_alerts.py status
 ```
