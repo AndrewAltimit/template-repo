@@ -5,6 +5,7 @@ to store and retrieve memories for AI agents.
 """
 
 import asyncio
+import base64
 import json
 import logging
 import os
@@ -74,16 +75,20 @@ class MemoryClient:
             return None
 
         # Build the Python command to call the tool
-        # Pass arguments as JSON string to avoid syntax issues (true/false/null vs True/False/None)
+        # Use Base64 encoding to avoid string delimiter collisions
+        # (JSON may contain quotes that break Python string literals)
         args_json = json.dumps(arguments)
+        args_b64 = base64.b64encode(args_json.encode()).decode()
         python_code = f"""
 import asyncio
+import base64
 import json
 from mcp_agentcore_memory.server import AgentCoreMemoryServer
 
 async def call_tool():
     server = AgentCoreMemoryServer()
-    args = json.loads('''{args_json}''')
+    args_json = base64.b64decode('{args_b64}').decode()
+    args = json.loads(args_json)
     result = await server.call_tool("{tool_name}", args)
     print(json.dumps(result))
 

@@ -178,8 +178,7 @@ def create_dashboard(
         )
         print(f"SUCCESS: Dashboard '{DASHBOARD_NAME}' created")
         dashboard_url = (
-            f"https://{region}.console.aws.amazon.com/cloudwatch/home"
-            f"?region={region}#dashboards:name={DASHBOARD_NAME}"
+            f"https://{region}.console.aws.amazon.com/cloudwatch/home" f"?region={region}#dashboards:name={DASHBOARD_NAME}"
         )
         print(f"  View at: {dashboard_url}")
 

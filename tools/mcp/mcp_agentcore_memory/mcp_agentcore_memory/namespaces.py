@@ -98,9 +98,7 @@ class MemoryNamespace:
     def all_namespaces(cls) -> list[str]:
         """Return all predefined namespace values."""
         return [
-            value
-            for name, value in vars(cls).items()
-            if isinstance(value, str) and not name.startswith("_") and "/" in value
+            value for name, value in vars(cls).items() if isinstance(value, str) and not name.startswith("_") and "/" in value
         ]
 
     @classmethod

@@ -287,9 +287,7 @@ class TestChromaDBProvider:
             return_value={
                 "ids": ["id-1"],
                 "documents": ["content 1"],
-                "metadatas": [
-                    {"actor_id": "actor1", "session_id": "session1", "timestamp": "2024-01-01T00:00:00+00:00"}
-                ],
+                "metadatas": [{"actor_id": "actor1", "session_id": "session1", "timestamp": "2024-01-01T00:00:00+00:00"}],
             }
         )
         mock_collection.query = MagicMock(

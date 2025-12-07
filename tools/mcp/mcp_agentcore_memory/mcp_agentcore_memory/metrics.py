@@ -91,9 +91,7 @@ class MetricsCollector:
         self.region = region
         self._buffer = MetricsBuffer()
         self._cloudwatch_client = None
-        self._push_enabled = (
-            provider == "agentcore" and os.environ.get("ENABLE_CLOUDWATCH_METRICS", "true").lower() == "true"
-        )
+        self._push_enabled = provider == "agentcore" and os.environ.get("ENABLE_CLOUDWATCH_METRICS", "true").lower() == "true"
         self._local_stats: Dict[str, Dict[str, Any]] = {}
         self._lock = asyncio.Lock()
 
