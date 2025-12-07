@@ -1531,10 +1531,23 @@ Track progress directly in this document. Items marked **CRITICAL** must be veri
 - [x] Test `store_facts` with batch operations (verify no rate limit)
 
 **Phase 2 Test Results (2025-12-07):**
-- ChromaDB provider: All operations working, semantic search functional (0.82 relevance scores)
+
+*ChromaDB Provider (Self-hosted):*
+- All operations working, semantic search functional (0.82 relevance scores)
 - Namespaces: Predefined hierarchy (`codebase/*`, `reviews/*`, `preferences/*`, `agents/*`)
 - Batch operations: `store_facts` successfully stored 4 records in single call
 - Session events: Properly isolated by `(actor_id, session_id)` tuple
+
+*AWS AgentCore Provider (Managed):*
+- Successfully switched provider via `.mcp.json` configuration
+- Memory ID: `template_repo_memory-s2E1OlFGBp` (us-east-1)
+- `store_facts`: 2 records created in `codebase/conventions` namespace
+- `search_memories`: Semantic search returning stored records
+- `store_event`: Event created with ID `0000001765124753478#b5eb7ced`
+- Actors registered: `claude-code`, `test:integration:claude`, `test_actor`
+- Sessions created: `test-session-2025-12-07` for `claude-code` actor
+- Rate limiting: Confirmed 0.25 req/sec per actor+session for CreateEvent
+- AWS Console: Data confirmed via API (console UI may have display delay)
 
 ### Phase 3: GitHub Agents Integration
 

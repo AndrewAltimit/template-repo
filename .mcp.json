@@ -147,6 +147,14 @@
         "run",
         "--rm",
         "-T",
+        "-e",
+        "MEMORY_PROVIDER=agentcore",
+        "-e",
+        "AWS_REGION=us-east-1",
+        "-e",
+        "AWS_PROFILE=agentcore",
+        "-e",
+        "AGENTCORE_MEMORY_ID=template_repo_memory-s2E1OlFGBp",
         "mcp-agentcore-memory",
         "python",
         "-m",
@@ -155,10 +163,7 @@
         "stdio"
       ],
       "env": {
-        "MEMORY_PROVIDER": "${MEMORY_PROVIDER:-chromadb}",
-        "AWS_REGION": "${AWS_REGION:-us-east-1}",
-        "AGENTCORE_MEMORY_ID": "${AGENTCORE_MEMORY_ID}",
-        "_comment": "AgentCore Memory MCP server. Supports AWS AgentCore or self-hosted ChromaDB. Start ChromaDB first: docker-compose --profile memory-chromadb up -d"
+        "_comment": "AgentCore Memory MCP server. Using AWS AgentCore provider. To use ChromaDB: change -e MEMORY_PROVIDER=chromadb and start: docker-compose --profile memory-chromadb up -d"
       }
     }
   }

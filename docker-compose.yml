@@ -879,6 +879,8 @@ services:
       - "8023:8023"
     volumes:
       - .:/app:ro
+      # Mount AWS credentials for AgentCore provider
+      - ${HOME}/.aws:/home/appuser/.aws:ro
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8023
@@ -886,6 +888,7 @@ services:
       - MEMORY_PROVIDER=${MEMORY_PROVIDER:-chromadb}
       # AWS AgentCore settings
       - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_PROFILE=${AWS_PROFILE:-}
       - AGENTCORE_MEMORY_ID=${AGENTCORE_MEMORY_ID:-}
       - AGENTCORE_DATA_PLANE_ENDPOINT=${AGENTCORE_DATA_PLANE_ENDPOINT:-}
       # ChromaDB settings (for self-hosted)
