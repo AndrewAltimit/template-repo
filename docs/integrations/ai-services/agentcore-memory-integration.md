@@ -1,10 +1,10 @@
 # AWS Bedrock AgentCore Memory Integration Plan
 
-**Status**: Planning (Revised after two external reviews)
+**Status**: Phase 1 Complete (Integration Tested)
 **Branch**: `feature/agentcore-memory-integration`
 **Author**: Claude Code
 **Date**: 2025-12-04
-**Last Revised**: 2025-12-04 (Second review: API shapes, rate limiter, tests, papercuts)
+**Last Revised**: 2025-12-07 (Third review: Real AWS integration testing, API corrections)
 
 ---
 
@@ -46,6 +46,18 @@
 | **CloudTrail DataResources** | Not supported for most services; will fail or give false coverage | Fixed: Use management events filtering + Athena/Insights queries |
 | **Async queue race** | Multiple `_process_queue()` tasks could spawn | Fixed: Added lock around `_running` check-and-set |
 | **Sanitize patterns incomplete** | Missing AWS access keys, GitHub tokens | Fixed: Added AKIA pattern, gh[pousr]_ pattern, high-entropy detection |
+
+### Third Review - Real AWS Integration Testing (2025-12-07)
+
+| Issue | Impact | Resolution |
+|-------|--------|------------|
+| **BatchCreateMemoryRecords param name** | API expects `records`, not `memoryRecords` | Fixed: Changed parameter name |
+| **BatchCreateMemoryRecords record structure** | API requires `requestIdentifier`, `namespaces` (list), `timestamp` | Fixed: Added all required fields |
+| **BatchCreateMemoryRecords response shape** | API returns `successfulRecords`/`failedRecords`, not `memoryRecords`/`errors` | Fixed: Updated response parsing |
+| **RetrieveMemoryRecords searchCriteria** | API uses `searchQuery` (string), not `semanticQuery` (struct) | Fixed: Changed to simple string |
+| **Memory ID format** | Full name becomes ID (e.g., `template_repo_memory-xxxxx`) | Documented |
+| **eventExpiryDuration units** | Value is in DAYS (max 365), not ISO 8601 duration | Fixed in setup script |
+| **Memory name constraints** | Must match `[a-zA-Z][a-zA-Z0-9_]{0,47}` (no dashes!) | Fixed in setup script |
 
 ### Design Changes Required
 
@@ -114,7 +126,7 @@ This document outlines the integration of AWS Bedrock AgentCore Memory into our 
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Proposed State (Corrected)
+### Proposed State
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -227,8 +239,7 @@ tools/mcp/mcp_agentcore_memory/
 │       ├── interface.py       # Abstract MemoryProvider interface
 │       ├── factory.py         # Provider factory (env-based selection)
 │       ├── agentcore.py       # AWS AgentCore provider
-│       ├── chromadb_provider.py  # ChromaDB provider (self-hosted)
-│       └── postgres_provider.py  # PostgreSQL+pgvector (self-hosted)
+│       └── chromadb_provider.py  # ChromaDB provider (self-hosted)
 ├── scripts/
 │   ├── test_server.py         # Integration tests
 │   └── setup_memory.py        # One-time AWS memory instance setup
@@ -238,7 +249,7 @@ tools/mcp/mcp_agentcore_memory/
 │   ├── test_server.py
 │   ├── test_providers.py      # Provider-specific tests
 │   └── conftest.py
-├── docker-compose.memory.yml  # Self-hosted stack (ChromaDB/Postgres)
+├── docker-compose.memory.yml  # Self-hosted stack (ChromaDB)
 └── pyproject.toml
 ```
 
@@ -271,15 +282,9 @@ chromadb = [
     "chromadb>=0.4.0",
 ]
 
-# PostgreSQL + pgvector provider (self-hosted)
-postgres = [
-    "asyncpg>=0.29.0",
-    "sentence-transformers>=2.2.0",
-]
-
 # All providers
 all = [
-    "mcp_agentcore_memory[agentcore,chromadb,postgres]",
+    "mcp_agentcore_memory[agentcore,chromadb]",
 ]
 
 # Development
@@ -297,9 +302,6 @@ pip install "mcp_agentcore_memory[chromadb]"
 
 # AWS AgentCore only
 pip install "mcp_agentcore_memory[agentcore]"
-
-# PostgreSQL only
-pip install "mcp_agentcore_memory[postgres]"
 
 # All providers
 pip install "mcp_agentcore_memory[all]"
@@ -433,13 +435,8 @@ class AgentCoreMemoryClient:
                 memoryId=self.config.memory_id,
                 actorId=actor_id,
                 sessionId=session_id,
-                # FIX: branch is a struct, not a string
                 branch={"name": branch_name},
-                # FIX: Use datetime object - let botocore serialize
-                # (SDK may expect milliseconds, datetime is safest)
                 eventTimestamp=datetime.now(timezone.utc),
-                # FIX: Payload is a LIST of typed union members
-                # The "conversational" union member is for text content
                 payload=[
                     {
                         "conversational": {
@@ -490,7 +487,7 @@ class AgentCoreMemoryClient:
     async def retrieve_memory_records(
         self,
         namespace: str,
-        query: str,  # FIX: Now REQUIRED - AWS API requires searchQuery
+        query: str,  # Required by AWS API
         top_k: int = 10,
     ) -> List[dict]:
         """
@@ -513,11 +510,10 @@ class AgentCoreMemoryClient:
                 memoryId=self.config.memory_id,
                 namespace=namespace,
                 maxResults=top_k,
-                # FIX: searchCriteria with searchQuery is REQUIRED
+                # FIX (2025-12): API uses searchQuery (string), NOT semanticQuery (struct)
                 searchCriteria={
-                    "semanticQuery": {
-                        "text": query,
-                    }
+                    "searchQuery": query,  # Simple string, not {"text": query}
+                    "topK": top_k,
                 },
             )
 
@@ -590,28 +586,37 @@ class AgentCoreMemoryClient:
         Args:
             records: List of {"content": str, "metadata": dict} objects
             namespace: Target namespace for all records
+
+        IMPORTANT - Verified API shapes (2025-12):
+        - Parameter is `records` (NOT `memoryRecords`)
+        - Each record requires: requestIdentifier, namespaces (list), content, timestamp
+        - Response uses `successfulRecords`/`failedRecords` (NOT `memoryRecords`/`errors`)
         """
+        from datetime import datetime, timezone
+        import uuid
+
+        timestamp = datetime.now(timezone.utc)
+
         async with self._get_data_plane_client() as client:
             memory_records = [
                 {
-                    "content": {
-                        "text": r["content"],
-                    },
-                    "namespace": namespace,
-                    "metadata": r.get("metadata", {}),
+                    "requestIdentifier": str(uuid.uuid4()),
+                    "namespaces": [namespace],
+                    "content": {"text": r["content"]},
+                    "timestamp": timestamp,
                 }
                 for r in records
             ]
 
             response = await client.batch_create_memory_records(
                 memoryId=self.config.memory_id,
-                memoryRecords=memory_records,
+                records=memory_records,
             )
 
             return {
-                "created": len(response.get("memoryRecords", [])),
-                "failed": len(response.get("errors", [])),
-                "errors": response.get("errors", []),
+                "created": len(response.get("successfulRecords", [])),
+                "failed": len(response.get("failedRecords", [])),
+                "errors": response.get("failedRecords", []),
             }
 
     async def health_check(self) -> bool:
@@ -1330,7 +1335,6 @@ class TestAgentCoreMemoryClient:
         """Create a mock that works with async context manager."""
         mock_client = AsyncMock()
 
-        # FIX: Mock the _get_data_plane_client context manager
         @asynccontextmanager
         async def mock_context():
             yield mock_client
@@ -1342,14 +1346,12 @@ class TestAgentCoreMemoryClient:
         """Test create_event with properly mocked aiobotocore."""
         mock_client, mock_context = mock_async_client
 
-        # Setup mock response (correct shape per API docs)
         mock_client.create_event.return_value = {
             "event": {"eventId": "evt-123", "sessionId": "test-session"}
         }
 
         client = AgentCoreMemoryClient(config)
 
-        # Patch the internal context manager method
         with patch.object(client, "_get_data_plane_client", mock_context):
             result = await client.create_event(
                 actor_id="test-actor",
@@ -1360,11 +1362,11 @@ class TestAgentCoreMemoryClient:
         assert result["event_id"] == "evt-123"
         mock_client.create_event.assert_called_once()
 
-        # Verify correct API shape was used
+        # Verify API shape
         call_kwargs = mock_client.create_event.call_args.kwargs
-        assert "branch" in call_kwargs  # Struct, not branchName
+        assert "branch" in call_kwargs
         assert "payload" in call_kwargs
-        assert isinstance(call_kwargs["payload"], list)  # List of union members
+        assert isinstance(call_kwargs["payload"], list)
 
     @pytest.mark.asyncio
     async def test_retrieve_memory_records_requires_query(self, config, mock_async_client):
@@ -1504,16 +1506,17 @@ Track progress directly in this document. Items marked **CRITICAL** must be veri
 
 **Goal:** Establish core infrastructure and validate API integration
 
-- [ ] Create `mcp_agentcore_memory` package structure under `tools/mcp/`
-- [ ] Implement `AgentCoreMemoryClient` with `aiobotocore` (NOT boto3)
-- [ ] **CRITICAL:** Verify `CreateEvent` payload shape against [API docs](https://docs.aws.amazon.com/bedrock-agentcore/latest/APIReference/API_CreateEvent.html)
-  - `branch` must be `{"name": "..."}` (struct), not string
-  - `payload` must be `[{"conversational": {...}}]` (list of unions)
-  - `eventTimestamp` must be datetime object
-- [ ] Implement MCP server tools: `store_event`, `store_facts`, `search_memories`
-- [ ] **CRITICAL:** Implement `PerSessionRateLimiter` keyed by `(actor_id, session_id)`
-- [ ] Write unit tests with mocked `_get_data_plane_client` (AsyncMock)
-- [ ] Set up AWS IAM Bootstrap and Runtime roles (separate principals)
+- [x] Create `mcp_agentcore_memory` package structure under `tools/mcp/`
+- [x] Implement `AgentCoreMemoryClient` with `aiobotocore` (NOT boto3)
+- [x] **CRITICAL:** Verify `CreateEvent` payload shape against [API docs](https://docs.aws.amazon.com/bedrock-agentcore/latest/APIReference/API_CreateEvent.html)
+  - `branch` must be `{"name": "..."}` (struct), not string ✅
+  - `payload` must be `[{"conversational": {...}}]` (list of unions) ✅
+  - `eventTimestamp` must be datetime object ✅
+- [x] Implement MCP server tools: `store_event`, `store_facts`, `search_memories`
+- [x] **CRITICAL:** Implement `PerSessionRateLimiter` keyed by `(actor_id, session_id)` (with thundering herd fix)
+- [x] Write unit tests with mocked `_get_data_plane_client` (AsyncMock) - 68 tests passing
+- [x] Set up AWS IAM Bootstrap and Runtime roles (assume-role configuration)
+- [x] **CRITICAL:** Real AWS integration testing - all 5 operations verified working
 - [ ] Add to `.mcp.json` configuration
 
 ### Phase 2: Claude Code Integration
@@ -1845,7 +1848,6 @@ MemoryLatencyAlarm:
     AlarmName: AgentCoreMemory-HighLatency
     MetricName: search_memories_latency
     Namespace: AgentCoreMemory
-    # FIX: Use ExtendedStatistic for percentiles, not Statistic
     ExtendedStatistic: p95
     Period: 300
     EvaluationPeriods: 3
@@ -1902,8 +1904,7 @@ class MemoryCache:
     """
     LRU cache for frequently accessed memories.
 
-    BUG FIX: Store namespace alongside cache entries to enable proper invalidation.
-    (Original design used MD5 hash which lost namespace info)
+    Stores namespace alongside cache entries to enable proper invalidation.
     """
 
     def __init__(self, max_size: int = 1000, ttl_seconds: int = 300):
@@ -1942,11 +1943,7 @@ class MemoryCache:
         self._namespaces.pop(key, None)
 
     def invalidate(self, namespace: Optional[str] = None):
-        """
-        Invalidate cache entries for a namespace.
-
-        FIX: Now uses stored namespace mapping instead of checking hash.
-        """
+        """Invalidate cache entries for a namespace."""
         if namespace is None:
             self._cache.clear()
             self._timestamps.clear()
@@ -1984,7 +1981,7 @@ class AsyncWriteQueue:
     """
     Async queue for non-blocking memory writes.
 
-    FIX: Added lock to prevent race condition where multiple enqueue() calls
+    Uses a lock to prevent race conditions where multiple enqueue() calls
     could spawn multiple _process_queue() tasks before _running is set.
     """
 
@@ -1992,18 +1989,13 @@ class AsyncWriteQueue:
         self.client = client
         self.queue: deque = deque(maxlen=max_queue_size)
         self._running = False
-        self._lock = asyncio.Lock()  # FIX: Lock to prevent race condition
+        self._lock = asyncio.Lock()
         self._processor_task: Optional[asyncio.Task] = None
 
     async def enqueue(self, operation: str, **kwargs):
-        """
-        Enqueue a write operation (fire-and-forget).
-
-        FIX: Uses lock to ensure only one processor task is ever created.
-        """
+        """Enqueue a write operation (fire-and-forget)."""
         self.queue.append(WriteOperation(operation=operation, args=kwargs))
 
-        # FIX: Use lock to check-and-create processor atomically
         async with self._lock:
             if not self._running:
                 self._running = True
@@ -2026,7 +2018,6 @@ class AsyncWriteQueue:
                     else:
                         logger.error(f"Write failed after {op.max_retries} retries: {e}")
         finally:
-            # FIX: Reset under lock to ensure clean state
             async with self._lock:
                 self._running = False
                 self._processor_task = None
@@ -2542,16 +2533,16 @@ output "vpc_endpoint_id" {
 │  │              MemoryProvider (Abstract Interface)             ││
 │  └─────────────────────────────────────────────────────────────┘│
 │                           │                                      │
-│           ┌───────────────┼───────────────┐                     │
-│           ▼               ▼               ▼                     │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
-│  │  AgentCore  │  │  ChromaDB   │  │ PostgreSQL  │             │
-│  │  Provider   │  │  Provider   │  │  +pgvector  │             │
-│  │  (AWS)      │  │  (Local)    │  │  (Local)    │             │
-│  └─────────────┘  └─────────────┘  └─────────────┘             │
+│           ┌───────────────┴───────────────┐                     │
+│           ▼                               ▼                     │
+│  ┌─────────────────┐             ┌─────────────────┐           │
+│  │    AgentCore    │             │    ChromaDB     │           │
+│  │    Provider     │             │    Provider     │           │
+│  │    (AWS)        │             │    (Local)      │           │
+│  └─────────────────┘             └─────────────────┘           │
 └─────────────────────────────────────────────────────────────────┘
 
-Configuration: MEMORY_PROVIDER=agentcore | chromadb | postgres
+Configuration: MEMORY_PROVIDER=agentcore | chromadb
 ```
 
 ### Configuration
@@ -2560,7 +2551,7 @@ Configuration: MEMORY_PROVIDER=agentcore | chromadb | postgres
 # .env or environment variables
 
 # Provider selection
-MEMORY_PROVIDER=chromadb  # Options: agentcore, chromadb, postgres
+MEMORY_PROVIDER=chromadb  # Options: agentcore, chromadb
 
 # AWS AgentCore settings (when MEMORY_PROVIDER=agentcore)
 AGENTCORE_MEMORY_ID=mem-xxxxxxxxxxxx
@@ -2571,10 +2562,6 @@ AGENTCORE_DATA_PLANE_ENDPOINT=  # Optional: VPC PrivateLink
 CHROMADB_HOST=localhost
 CHROMADB_PORT=8000
 CHROMADB_COLLECTION=agent-memory
-
-# PostgreSQL+pgvector settings (when MEMORY_PROVIDER=postgres)
-POSTGRES_URL=postgresql://user:pass@localhost:5432/memory
-POSTGRES_EMBEDDING_MODEL=all-MiniLM-L6-v2
 ```
 
 ### Abstract Interface
@@ -2591,7 +2578,6 @@ from enum import Enum
 class ProviderType(Enum):
     AGENTCORE = "agentcore"
     CHROMADB = "chromadb"
-    POSTGRES = "postgres"
 
 
 @dataclass
@@ -3038,228 +3024,6 @@ class ChromaDBProvider(MemoryProvider):
         }
 ```
 
-### PostgreSQL + pgvector Provider (Self-Hosted)
-
-```python
-# providers/postgres_provider.py
-"""
-PostgreSQL + pgvector provider for self-hosted memory.
-
-Benefits:
-- Uses existing PostgreSQL infrastructure
-- SQL queries for complex filtering
-- pgvector for semantic search
-- Full ACID compliance
-
-Requirements:
-- PostgreSQL with pgvector extension
-- sentence-transformers for embeddings
-"""
-
-import uuid
-from datetime import datetime, timezone
-from typing import List, Optional
-
-import asyncpg
-from sentence_transformers import SentenceTransformer
-
-from .interface import MemoryProvider, ProviderType, MemoryEvent, MemoryRecord, BatchResult
-
-
-class PostgresProvider(MemoryProvider):
-    """
-    PostgreSQL + pgvector provider for self-hosted memory.
-    """
-
-    def __init__(
-        self,
-        connection_url: str,
-        embedding_model: str = "all-MiniLM-L6-v2",
-    ):
-        self.connection_url = connection_url
-        self.embedding_model = SentenceTransformer(embedding_model)
-        self._pool: Optional[asyncpg.Pool] = None
-
-    async def _get_pool(self):
-        if self._pool is None:
-            self._pool = await asyncpg.create_pool(self.connection_url)
-            await self._init_schema()
-        return self._pool
-
-    async def _init_schema(self):
-        """Initialize database schema."""
-        async with self._pool.acquire() as conn:
-            await conn.execute("""
-                CREATE EXTENSION IF NOT EXISTS vector;
-
-                CREATE TABLE IF NOT EXISTS memory_events (
-                    id UUID PRIMARY KEY,
-                    actor_id TEXT NOT NULL,
-                    session_id TEXT NOT NULL,
-                    content TEXT NOT NULL,
-                    metadata JSONB DEFAULT '{}',
-                    created_at TIMESTAMPTZ DEFAULT NOW(),
-                    embedding vector(384)
-                );
-
-                CREATE TABLE IF NOT EXISTS memory_records (
-                    id UUID PRIMARY KEY,
-                    namespace TEXT NOT NULL,
-                    content TEXT NOT NULL,
-                    metadata JSONB DEFAULT '{}',
-                    created_at TIMESTAMPTZ DEFAULT NOW(),
-                    embedding vector(384)
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_events_actor_session
-                    ON memory_events(actor_id, session_id);
-                CREATE INDEX IF NOT EXISTS idx_records_namespace
-                    ON memory_records(namespace);
-                CREATE INDEX IF NOT EXISTS idx_records_embedding
-                    ON memory_records USING ivfflat (embedding vector_cosine_ops);
-            """)
-
-    def _embed(self, text: str) -> List[float]:
-        """Generate embedding for text."""
-        return self.embedding_model.encode(text).tolist()
-
-    @property
-    def provider_type(self) -> ProviderType:
-        return ProviderType.POSTGRES
-
-    @property
-    def supports_semantic_search(self) -> bool:
-        return True
-
-    async def store_event(self, actor_id, session_id, content, metadata=None):
-        pool = await self._get_pool()
-        event_id = uuid.uuid4()
-        embedding = self._embed(content)
-
-        async with pool.acquire() as conn:
-            await conn.execute("""
-                INSERT INTO memory_events (id, actor_id, session_id, content, metadata, embedding)
-                VALUES ($1, $2, $3, $4, $5, $6)
-            """, event_id, actor_id, session_id, content, metadata or {}, embedding)
-
-        return MemoryEvent(
-            id=str(event_id),
-            actor_id=actor_id,
-            session_id=session_id,
-            content=content,
-            timestamp=datetime.now(timezone.utc),
-            metadata=metadata or {},
-        )
-
-    async def list_events(self, actor_id, session_id, limit=100):
-        pool = await self._get_pool()
-        async with pool.acquire() as conn:
-            rows = await conn.fetch("""
-                SELECT id, content, metadata, created_at
-                FROM memory_events
-                WHERE actor_id = $1 AND session_id = $2
-                ORDER BY created_at DESC
-                LIMIT $3
-            """, actor_id, session_id, limit)
-
-        return [
-            MemoryEvent(
-                id=str(row["id"]),
-                actor_id=actor_id,
-                session_id=session_id,
-                content=row["content"],
-                timestamp=row["created_at"],
-                metadata=dict(row["metadata"]),
-            )
-            for row in rows
-        ]
-
-    async def store_records(self, records, namespace):
-        pool = await self._get_pool()
-        created = 0
-        errors = []
-
-        async with pool.acquire() as conn:
-            for record in records:
-                try:
-                    embedding = self._embed(record["content"])
-                    await conn.execute("""
-                        INSERT INTO memory_records (id, namespace, content, metadata, embedding)
-                        VALUES ($1, $2, $3, $4, $5)
-                    """, uuid.uuid4(), namespace, record["content"],
-                        record.get("metadata", {}), embedding)
-                    created += 1
-                except Exception as e:
-                    errors.append(str(e))
-
-        return BatchResult(created=created, failed=len(records) - created, errors=errors)
-
-    async def search_records(self, query, namespace, top_k=10):
-        pool = await self._get_pool()
-        query_embedding = self._embed(query)
-
-        async with pool.acquire() as conn:
-            rows = await conn.fetch("""
-                SELECT id, content, metadata, created_at,
-                       1 - (embedding <=> $1) as relevance
-                FROM memory_records
-                WHERE namespace = $2
-                ORDER BY embedding <=> $1
-                LIMIT $3
-            """, query_embedding, namespace, top_k)
-
-        return [
-            MemoryRecord(
-                id=str(row["id"]),
-                content=row["content"],
-                namespace=namespace,
-                relevance=row["relevance"],
-                created_at=row["created_at"],
-                metadata=dict(row["metadata"]),
-            )
-            for row in rows
-        ]
-
-    async def list_records(self, namespace, limit=100):
-        pool = await self._get_pool()
-        async with pool.acquire() as conn:
-            rows = await conn.fetch("""
-                SELECT id, content, metadata, created_at
-                FROM memory_records
-                WHERE namespace = $1
-                ORDER BY created_at DESC
-                LIMIT $2
-            """, namespace, limit)
-
-        return [
-            MemoryRecord(
-                id=str(row["id"]),
-                content=row["content"],
-                namespace=namespace,
-                created_at=row["created_at"],
-                metadata=dict(row["metadata"]),
-            )
-            for row in rows
-        ]
-
-    async def health_check(self):
-        try:
-            pool = await self._get_pool()
-            async with pool.acquire() as conn:
-                await conn.fetchval("SELECT 1")
-            return True
-        except Exception:
-            return False
-
-    async def get_info(self):
-        return {
-            "provider": "postgres",
-            "embedding_model": self.embedding_model.get_sentence_embedding_dimension(),
-            "rate_limit": None,
-            "semantic_search": True,
-        }
-```
-
 ### Provider Factory
 
 ```python
@@ -3269,7 +3033,6 @@ from typing import Optional
 from .interface import MemoryProvider, ProviderType
 from .agentcore import AgentCoreProvider
 from .chromadb_provider import ChromaDBProvider
-from .postgres_provider import PostgresProvider
 from ..memory_client import MemoryConfig
 
 
@@ -3278,7 +3041,7 @@ def create_provider(provider_type: Optional[str] = None) -> MemoryProvider:
     Factory to create memory provider based on configuration.
 
     Environment variables:
-    - MEMORY_PROVIDER: agentcore, chromadb, postgres (default: chromadb)
+    - MEMORY_PROVIDER: agentcore, chromadb (default: chromadb)
 
     Provider-specific config loaded from environment.
     """
@@ -3299,16 +3062,10 @@ def create_provider(provider_type: Optional[str] = None) -> MemoryProvider:
             collection_prefix=os.environ.get("CHROMADB_COLLECTION", "agent_memory"),
         )
 
-    elif provider == "postgres":
-        return PostgresProvider(
-            connection_url=os.environ["POSTGRES_URL"],
-            embedding_model=os.environ.get("POSTGRES_EMBEDDING_MODEL", "all-MiniLM-L6-v2"),
-        )
-
     else:
         raise ValueError(
             f"Unknown provider: {provider}. "
-            f"Valid options: agentcore, chromadb, postgres"
+            f"Valid options: agentcore, chromadb"
         )
 
 
@@ -3342,7 +3099,6 @@ class AgentCoreMemoryServer(BaseMCPServer):
     Supports multiple backends via MEMORY_PROVIDER env var:
     - agentcore: AWS Bedrock AgentCore (rate limited, managed)
     - chromadb: Self-hosted ChromaDB (no limits, free)
-    - postgres: Self-hosted PostgreSQL + pgvector (no limits, SQL)
     """
 
     def __init__(self):
@@ -3362,7 +3118,7 @@ class AgentCoreMemoryServer(BaseMCPServer):
         description="""Store a short-term memory event.
 
         Note: AWS AgentCore has rate limits (0.25 req/sec).
-        Self-hosted providers (chromadb, postgres) have no limits.""",
+        ChromaDB has no rate limits.""",
         parameters={
             "content": {"type": "string", "description": "Content to remember"},
             "actor_id": {"type": "string", "description": "Actor identifier"},
@@ -3476,70 +3232,47 @@ services:
       timeout: 10s
       retries: 3
 
-  # PostgreSQL with pgvector
-  postgres:
-    image: pgvector/pgvector:pg16
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: memory
-      POSTGRES_PASSWORD: memory
-      POSTGRES_DB: agent_memory
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U memory"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   # MCP server with self-hosted provider
   mcp-memory:
     build:
       context: ./tools/mcp/mcp_agentcore_memory
     environment:
       # Toggle provider here!
-      MEMORY_PROVIDER: chromadb  # or: postgres, agentcore
+      MEMORY_PROVIDER: chromadb  # or: agentcore
 
       # ChromaDB settings
       CHROMADB_HOST: chromadb
       CHROMADB_PORT: 8000
-
-      # PostgreSQL settings (if using postgres)
-      # POSTGRES_URL: postgresql://memory:memory@postgres:5432/agent_memory
 
       # AgentCore settings (if using agentcore)
       # AGENTCORE_MEMORY_ID: mem-xxxx
       # AWS_REGION: us-east-1
     depends_on:
       - chromadb
-      # - postgres  # Uncomment if using postgres
 
 volumes:
   chromadb_data:
-  postgres_data:
 ```
 
 ### Provider Comparison
 
 Use this matrix to choose the right backend for your use case:
 
-| Feature | AWS AgentCore | ChromaDB | PostgreSQL + pgvector |
-| :--- | :---: | :---: | :---: |
-| **Managed Service** | Yes | No | No |
-| **Setup Complexity** | IAM / AWS Console | Docker one-liner | Docker + schema migration |
-| **Rate Limits** | 0.25 req/s (Events) | None | None |
-| **Cost** | ~$2/month | Free (self-hosted) | Free (self-hosted) |
-| **Semantic Search** | Native (AWS-managed) | Native (embeddings) | pgvector extension |
-| **Data Control** | AWS-managed | Full local control | Full local control |
-| **Backup/Restore** | AWS-managed | Volume mounts | `pg_dump` / `pg_restore` |
-| **Enterprise Ready** | SOC2, HIPAA-eligible | Self-managed | Self-managed |
-| **Best For** | Enterprise, compliance | Dev teams, prototyping | SQL power users, existing Postgres |
+| Feature | AWS AgentCore | ChromaDB |
+| :--- | :---: | :---: |
+| **Managed Service** | Yes | No |
+| **Setup Complexity** | IAM / AWS Console | Docker one-liner |
+| **Rate Limits** | 0.25 req/s (Events) | None |
+| **Cost** | ~$2/month | Free (self-hosted) |
+| **Semantic Search** | Native (AWS-managed) | Native (embeddings) |
+| **Data Control** | AWS-managed | Full local control |
+| **Backup/Restore** | AWS-managed | Volume mounts |
+| **Enterprise Ready** | SOC2, HIPAA-eligible | Self-managed |
+| **Best For** | Enterprise, compliance | Dev teams, prototyping |
 
 **Quick Decision Guide:**
 - **Choose AgentCore** if you need enterprise compliance (SOC2, HIPAA) or prefer managed infrastructure
 - **Choose ChromaDB** for fast prototyping, local development, or when you want zero AWS costs
-- **Choose PostgreSQL** if you already have Postgres infrastructure or need SQL query capabilities
 
 ---
 

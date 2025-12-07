@@ -136,6 +136,30 @@
         "GITHUB_PROJECT_NUMBER": "1",
         "_comment": "GitHub Board MCP server for board operations and agent coordination. Runs containerized via docker-compose run."
       }
+    },
+    "agentcore-memory": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "memory",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-agentcore-memory",
+        "python",
+        "-m",
+        "mcp_agentcore_memory.server",
+        "--mode",
+        "stdio"
+      ],
+      "env": {
+        "MEMORY_PROVIDER": "${MEMORY_PROVIDER:-chromadb}",
+        "AWS_REGION": "${AWS_REGION:-us-east-1}",
+        "AGENTCORE_MEMORY_ID": "${AGENTCORE_MEMORY_ID}",
+        "_comment": "AgentCore Memory MCP server. Supports AWS AgentCore or self-hosted ChromaDB. Start ChromaDB first: docker-compose --profile memory-chromadb up -d"
+      }
     }
   }
 }

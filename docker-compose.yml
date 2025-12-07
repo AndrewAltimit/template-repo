@@ -863,6 +863,72 @@ services:
       - proxy
       - gemini-proxy
 
+  # ─────────────────────────────────────────────────────────────
+  # AgentCore Memory MCP Server
+  # ─────────────────────────────────────────────────────────────
+  # Multi-provider memory for AI agents
+  # Supports: AWS AgentCore (managed) or ChromaDB (self-hosted)
+
+  mcp-agentcore-memory:
+    build:
+      context: .
+      dockerfile: docker/mcp-agentcore-memory.Dockerfile
+    container_name: mcp-agentcore-memory
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    ports:
+      - "8023:8023"
+    volumes:
+      - .:/app:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8023
+      # Provider selection: agentcore | chromadb
+      - MEMORY_PROVIDER=${MEMORY_PROVIDER:-chromadb}
+      # AWS AgentCore settings
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AGENTCORE_MEMORY_ID=${AGENTCORE_MEMORY_ID:-}
+      - AGENTCORE_DATA_PLANE_ENDPOINT=${AGENTCORE_DATA_PLANE_ENDPOINT:-}
+      # ChromaDB settings (for self-hosted)
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - CHROMADB_COLLECTION=${CHROMADB_COLLECTION:-agent_memory}
+    networks:
+      - mcp-network
+    command: ["python", "-m", "mcp_agentcore_memory.server", "--mode", "http"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8023/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    profiles:
+      - services
+      - memory
+
+  # ChromaDB - Self-hosted vector database for memory
+  # Start with: docker-compose --profile memory-chromadb up -d
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chromadb
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
+    environment:
+      - ANONYMIZED_TELEMETRY=false
+      - IS_PERSISTENT=TRUE
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - memory
+      - memory-chromadb
+
   # All services combined (for development)
   all-services:
     image: busybox
@@ -877,6 +943,7 @@ services:
       - mcp-opencode
       - mcp-blender
       - mcp-elevenlabs-speech
+      - mcp-agentcore-memory
     profiles:
       - all
 
@@ -893,6 +960,7 @@ networks:
 
 volumes:
   postgres_data: {}
+  chromadb_data: {}
   crush-data: {}
   crush-local-data: {}
   crush-cache: {}

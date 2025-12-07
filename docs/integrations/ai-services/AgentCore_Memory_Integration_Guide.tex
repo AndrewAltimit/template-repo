@@ -693,6 +693,29 @@ Sanitize patterns incomplete & Missing AWS keys, GitHub tokens & Fixed: Added AK
 
 \vspace{1.5em}
 
+\subsection*{Third Review: Real AWS Integration Testing (2025-12)}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{>{\raggedright}p{3.8cm} >{\raggedright}p{4cm} >{\raggedright\arraybackslash}p{5.7cm}}
+\rowcolor{successgreen!15}
+\textbf{\color{successgreen}Issue} & \textbf{\color{successgreen}Impact} & \textbf{\color{successgreen}Resolution} \\
+\midrule
+\rowcolor{lightgray}
+BatchCreate param name & API expects \code{records}, not \code{memoryRecords} & Fixed: Changed parameter name \\
+BatchCreate record structure & Requires \code{requestIdentifier}, \code{namespaces} (list), \code{timestamp} & Fixed: Added all required fields \\
+\rowcolor{lightgray}
+BatchCreate response shape & Returns \code{successfulRecords}/\code{failedRecords}, not \code{memoryRecords}/\code{errors} & Fixed: Updated response parsing \\
+RetrieveRecords searchCriteria & Uses \code{searchQuery} (string), not \code{semanticQuery} (struct) & Fixed: Changed to simple string \\
+\rowcolor{lightgray}
+eventExpiryDuration units & Value is in DAYS (max 365), not ISO 8601 duration & Fixed: Changed to integer days \\
+Memory name constraints & Must match \code{[a-zA-Z][a-zA-Z0-9\_]\{0,47\}} (no dashes!) & Fixed in setup script \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{1.5em}
+
 \subsection*{Design Philosophy Changes}
 
 \begin{center}
@@ -822,7 +845,7 @@ Current AI agents operate in \textbf{isolated sessions}:
 \section{Proposed Architecture}
 
 \begin{tldrbox}
-New MCP server using \code{aiobotocore} for async AWS calls. Separate Control Plane and Data Plane clients. Multi-provider support (AWS, ChromaDB, PostgreSQL).
+New MCP server using \code{aiobotocore} for async AWS calls. Separate Control Plane and Data Plane clients. Multi-provider support (AWS AgentCore, ChromaDB).
 \end{tldrbox}
 
 \subsection{System Overview}
@@ -956,17 +979,17 @@ Abstract \code{MemoryProvider} interface with three backends. Toggle via \code{M
 
 \begin{center}
 \renewcommand{\arraystretch}{1.6}
-\begin{tabular}{>{\raggedright}p{3.5cm} c c c}
+\begin{tabular}{>{\raggedright}p{3.5cm} c c}
 \rowcolor{awsblue}
-\textbf{\color{white}Feature} & \textbf{\color{white}AWS AgentCore} & \textbf{\color{white}ChromaDB} & \textbf{\color{white}PostgreSQL} \\
+\textbf{\color{white}Feature} & \textbf{\color{white}AWS AgentCore} & \textbf{\color{white}ChromaDB} \\
 \rowcolor{lightgray}
-Managed service & \textcolor{successgreen}{\faCheckCircle} & \textcolor{coolgray}{\faTimesCircle} & \textcolor{coolgray}{\faTimesCircle} \\
-Self-hosted option & \textcolor{coolgray}{\faTimesCircle} & \textcolor{successgreen}{\faCheckCircle} & \textcolor{successgreen}{\faCheckCircle} \\
+Managed service & \textcolor{successgreen}{\faCheckCircle} & \textcolor{coolgray}{\faTimesCircle} \\
+Self-hosted option & \textcolor{coolgray}{\faTimesCircle} & \textcolor{successgreen}{\faCheckCircle} \\
 \rowcolor{lightgray}
-Rate limits & \textcolor{dangerred}{0.25/s} & \textcolor{successgreen}{None} & \textcolor{successgreen}{None} \\
-Cost & Per-record & Free & Free \\
+Rate limits & \textcolor{dangerred}{0.25/s} & \textcolor{successgreen}{None} \\
+Cost & Per-record & Free \\
 \rowcolor{lightgray}
-Enterprise ready & \textcolor{successgreen}{\faCheckCircle} & \textcolor{warningamber}{\faExclamationCircle} & \textcolor{successgreen}{\faCheckCircle} \\
+Enterprise ready & \textcolor{successgreen}{\faCheckCircle} & \textcolor{warningamber}{\faExclamationCircle} \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1054,50 +1077,10 @@ class ChromaDBProvider(MemoryProvider):
 \end{itemize}
 \end{tipbox}
 
-\subsection{PostgreSQL + pgvector Provider}
-
-For production self-hosting with enterprise features:
-
-\begin{lstlisting}[caption={PostgreSQL with pgvector for self-hosted production}]
-import asyncpg
-from sentence_transformers import SentenceTransformer
-
-class PostgresProvider(MemoryProvider):
-    """Production-grade self-hosted with SQL benefits."""
-
-    def __init__(self, connection_string: str):
-        self.dsn = connection_string
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
-        self._pool = None
-
-    async def _get_pool(self):
-        if not self._pool:
-            self._pool = await asyncpg.create_pool(self.dsn)
-        return self._pool
-
-    async def search(self, query: str, namespace: str,
-                     top_k: int = 10) -> List[dict]:
-        embedding = self.model.encode(query).tolist()
-        pool = await self._get_pool()
-
-        async with pool.acquire() as conn:
-            rows = await conn.fetch("""
-                SELECT content, metadata,
-                       1 - (embedding <=> $1::vector) as relevance
-                FROM memories
-                WHERE namespace = $2
-                ORDER BY embedding <=> $1::vector
-                LIMIT $3
-            """, embedding, namespace, top_k)
-
-        return [dict(r) for r in rows]
-\end{lstlisting}
-
 \begin{keybox}[Provider Selection Guide]
 \begin{itemize}
-  \item \textbf{Development}: ChromaDB (zero cost, no rate limits)
-  \item \textbf{Self-hosted production}: PostgreSQL + pgvector (SQL, backups)
-  \item \textbf{Enterprise/managed}: AWS AgentCore (fully managed, IAM)
+  \item \textbf{Development/Self-hosted}: ChromaDB (zero cost, no rate limits, full control)
+  \item \textbf{Enterprise/managed}: AWS AgentCore (fully managed, IAM, compliance)
 \end{itemize}
 Toggle via \code{MEMORY\_PROVIDER} environment variable.
 \end{keybox}
@@ -1327,7 +1310,6 @@ tools/mcp/mcp_agentcore_memory/
 |       +-- interface.py       # Abstract MemoryProvider
 |       +-- agentcore.py       # AWS AgentCore provider
 |       +-- chromadb_provider.py  # ChromaDB (self-hosted)
-|       +-- postgres_provider.py  # PostgreSQL+pgvector
 +-- scripts/
 |   +-- setup_memory.py        # One-time AWS memory setup
 +-- tests/
@@ -1626,7 +1608,7 @@ response = client.create_memory(
             "namespaces": ["codebase/patterns", "preferences/user"],
         }
     }],
-    eventExpiryDuration="P7D",  # ISO 8601: 7 days
+    eventExpiryDuration=7,  # Days (integer, max 365)
 )
 
 memory_id = response["memoryId"]
@@ -1801,19 +1783,21 @@ async def restore_memories(backup_file: str, target_memory_id: str):
         by_namespace.setdefault(ns, []).append(r)
 
     session = get_session()
+    timestamp = datetime.now(timezone.utc)
     async with session.create_client("bedrock-agentcore") as client:
         for namespace, records in by_namespace.items():
             for i in range(0, len(records), BATCH_SIZE):
                 batch = records[i:i + BATCH_SIZE]
                 memory_records = [
-                    {"content": {"text": r["content"]},
-                     "namespace": namespace,
-                     "metadata": {"restored_at": datetime.now().isoformat()}}
+                    {"requestIdentifier": str(uuid.uuid4()),
+                     "namespaces": [namespace],
+                     "content": {"text": r["content"]},
+                     "timestamp": timestamp}
                     for r in batch
                 ]
                 await client.batch_create_memory_records(
                     memoryId=target_memory_id,
-                    memoryRecords=memory_records)
+                    records=memory_records)
 \end{lstlisting}
 
 \begin{infobox}[Backup Schedule]
@@ -1967,7 +1951,7 @@ class AsyncWriteQueue:
     """
     Async queue for non-blocking memory writes.
 
-    FIX: Lock prevents race condition where multiple
+    Uses a lock to prevent race conditions where multiple
     enqueue() calls could spawn multiple processors.
     """
     def __init__(self, client, max_size: int = 1000):
@@ -2047,9 +2031,9 @@ async def test_create_event(config, mock_async_client):
     with patch.object(client, "_get_data_plane_client", mock_context):
         result = await client.create_event(...)
 
-    # Verify correct API shape was used
+    # Verify API shape
     call_kwargs = mock_client.create_event.call_args.kwargs
-    assert "branch" in call_kwargs  # Struct, not branchName
+    assert "branch" in call_kwargs
     assert isinstance(call_kwargs["payload"], list)
 \end{lstlisting}
 
