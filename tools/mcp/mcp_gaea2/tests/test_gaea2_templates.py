@@ -8,7 +8,7 @@ import json
 import os
 from typing import Any, Dict, Tuple
 
-from tools.mcp.core import MCPClient
+from mcp_core import MCPClient
 
 
 class Gaea2TemplateTester:

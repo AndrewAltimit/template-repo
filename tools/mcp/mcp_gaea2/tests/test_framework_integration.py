@@ -519,7 +519,7 @@ class TestRegressionSuite:
     def framework(self):
         framework = Gaea2TestFramework()
         # Load baseline results if they exist
-        baseline_path = Path("tests/gaea2/regression_baseline.json")
+        baseline_path = Path(__file__).parent / "regression_baseline.json"
         if baseline_path.exists():
             with open(baseline_path, encoding="utf-8") as f:
                 framework.regression_baseline = json.load(f)
@@ -638,8 +638,10 @@ class TestRegressionSuite:
 # Utility functions for test management
 
 
-def save_test_results(framework: Gaea2TestFramework, output_path: str = "tests/gaea2/test_results.json"):
+def save_test_results(framework: Gaea2TestFramework, output_path: Optional[str] = None):
     """Save test results for analysis and improvement."""
+    if output_path is None:
+        output_path = str(Path(__file__).parent / "test_results.json")
     results = {
         "timestamp": datetime.now().isoformat(),
         "test_results": framework.test_results,
@@ -659,9 +661,11 @@ def save_test_results(framework: Gaea2TestFramework, output_path: str = "tests/g
 
 def generate_regression_baseline(
     framework: Gaea2TestFramework,
-    output_path: str = "tests/gaea2/regression_baseline.json",
+    output_path: Optional[str] = None,
 ):
     """Generate regression baseline from successful test runs."""
+    if output_path is None:
+        output_path = str(Path(__file__).parent / "regression_baseline.json")
     baseline = {}
 
     for result in framework.test_results:

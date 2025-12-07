@@ -21,8 +21,11 @@ os.environ["GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS"] = "1"
 class RegressionTestManager:
     """Manages regression test baselines and comparisons."""
 
-    def __init__(self, baseline_dir: str = "tests/gaea2/regression_baselines"):
-        self.baseline_dir = Path(baseline_dir)
+    def __init__(self, baseline_dir: Optional[str] = None):
+        if baseline_dir is None:
+            self.baseline_dir = Path(__file__).parent / "regression_baselines"
+        else:
+            self.baseline_dir = Path(baseline_dir)
         self.baseline_dir.mkdir(exist_ok=True)
         self.current_version = self._get_version_hash()
 
@@ -858,7 +861,7 @@ class TestPerformanceRegression:
 
     @pytest.fixture
     def performance_log(self):
-        log_file = Path("tests/gaea2/performance_log.json")
+        log_file = Path(__file__).parent / "performance_log.json"
         if log_file.exists():
             with open(log_file, encoding="utf-8") as f:
                 return json.load(f)
@@ -955,7 +958,7 @@ class TestPerformanceRegression:
 
     def _log_performance(self, test_name: str, duration: float, success: bool):
         """Log performance data for tracking."""
-        log_file = Path("tests/gaea2/performance_log.json")
+        log_file = Path(__file__).parent / "performance_log.json"
 
         if log_file.exists():
             with open(log_file, encoding="utf-8") as f:

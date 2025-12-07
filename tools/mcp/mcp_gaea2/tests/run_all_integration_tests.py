@@ -218,20 +218,23 @@ class IntegrationTestRunner:
             self.generate_report()
             return
 
+        # Get the tests directory path
+        tests_dir = Path(__file__).parent
+
         # 2. Framework tests (comprehensive integration suite)
-        framework_results = self.run_pytest_suite("tests/gaea2/test_framework_integration.py", "framework_integration")
+        framework_results = self.run_pytest_suite(str(tests_dir / "test_framework_integration.py"), "framework_integration")
         self.results["test_suites"]["framework_integration"] = framework_results
 
         # 3. Operations tests (successful operations)
-        operations_results = self.run_pytest_suite("tests/gaea2/test_gaea_operations.py", "operations")
+        operations_results = self.run_pytest_suite(str(tests_dir / "test_gaea_operations.py"), "operations")
         self.results["test_suites"]["operations"] = operations_results
 
         # 4. Failure tests (expected failures and error handling)
-        failure_results = self.run_pytest_suite("tests/gaea2/test_gaea_failures.py", "failures")
+        failure_results = self.run_pytest_suite(str(tests_dir / "test_gaea_failures.py"), "failures")
         self.results["test_suites"]["failures"] = failure_results
 
         # 5. Regression tests
-        regression_results = self.run_pytest_suite("tests/gaea2/test_gaea_regression.py", "regression")
+        regression_results = self.run_pytest_suite(str(tests_dir / "test_gaea_regression.py"), "regression")
         self.results["test_suites"]["regression"] = regression_results
 
         # Analyze and generate report

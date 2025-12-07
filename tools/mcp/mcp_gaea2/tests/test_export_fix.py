@@ -3,7 +3,7 @@
 Quick test to verify Export node fixes work correctly
 """
 
-from tools.mcp.core import MCPClient
+from mcp_core import MCPClient
 
 
 def test_export_node():
