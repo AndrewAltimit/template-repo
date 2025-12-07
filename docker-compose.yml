@@ -875,6 +875,9 @@ services:
       dockerfile: docker/mcp-agentcore-memory.Dockerfile
     container_name: mcp-agentcore-memory
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    depends_on:
+      chromadb:
+        condition: service_healthy
     ports:
       - "8023:8023"
     volumes:

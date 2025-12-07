@@ -12,6 +12,18 @@ from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+# Whitelist of valid MCP tool names for security
+VALID_TOOL_NAMES = frozenset(
+    {
+        "store_event",
+        "store_facts",
+        "search_memories",
+        "list_session_events",
+        "list_namespaces",
+        "memory_status",
+    }
+)
+
 
 class MemoryClient:
     """Client for interacting with AgentCore Memory MCP server.
@@ -54,6 +66,11 @@ class MemoryClient:
             Tool result or None on error
         """
         if not self._enabled:
+            return None
+
+        # Security: Validate tool_name against whitelist to prevent injection
+        if tool_name not in VALID_TOOL_NAMES:
+            logger.error("Invalid tool name: %s", tool_name)
             return None
 
         # Build the Python command to call the tool

@@ -13,4 +13,5 @@ boto3>=1.34.0
 botocore>=1.34.0
 
 # ChromaDB provider (self-hosted)
-chromadb>=0.4.0
+# Pin to match server version for protocol compatibility
+chromadb==0.5.23
