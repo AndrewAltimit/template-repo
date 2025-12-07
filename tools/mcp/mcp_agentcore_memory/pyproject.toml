@@ -34,8 +34,9 @@ agentcore = [
 ]
 
 # ChromaDB provider (self-hosted)
+# Pin to match server version for protocol compatibility
 chromadb = [
-    "chromadb>=0.4.0",
+    "chromadb==0.5.23",
 ]
 
 # All providers

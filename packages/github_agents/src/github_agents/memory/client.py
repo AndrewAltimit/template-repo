@@ -74,6 +74,8 @@ class MemoryClient:
             return None
 
         # Build the Python command to call the tool
+        # Pass arguments as JSON string to avoid syntax issues (true/false/null vs True/False/None)
+        args_json = json.dumps(arguments)
         python_code = f"""
 import asyncio
 import json
@@ -81,7 +83,8 @@ from mcp_agentcore_memory.server import AgentCoreMemoryServer
 
 async def call_tool():
     server = AgentCoreMemoryServer()
-    result = await server.call_tool("{tool_name}", {json.dumps(arguments)})
+    args = json.loads('''{args_json}''')
+    result = await server.call_tool("{tool_name}", args)
     print(json.dumps(result))
 
 asyncio.run(call_tool())
