@@ -469,51 +469,32 @@
     and leverage semantic search---all backed by AWS managed infrastructure.
   };
 
-  % Key metrics boxes
-  \node[fill=lightgray, rounded corners=6pt, minimum width=3cm, minimum height=2cm] (m1)
-    at ([xshift=9.5cm, yshift=-17cm]current page.north west) {};
-  \node[awsorange, font=\large] at ([yshift=0.35cm]m1.center) {\faDatabase};
-  \node[awsblue, font=\LARGE\bfseries] at (m1.center) {2};
-  \node[coolgray, font=\scriptsize] at ([yshift=-0.45cm]m1.center) {Memory Providers};
-
-  \node[fill=lightgray, rounded corners=6pt, minimum width=3cm, minimum height=2cm] (m2)
-    at ([xshift=13.3cm, yshift=-17cm]current page.north west) {};
-  \node[dangerred, font=\large] at ([yshift=0.35cm]m2.center) {\faCog};
-  \node[awsblue, font=\LARGE\bfseries] at (m2.center) {0.25};
-  \node[coolgray, font=\scriptsize] at ([yshift=-0.45cm]m2.center) {req/sec (events)};
-
-  \node[fill=lightgray, rounded corners=6pt, minimum width=3cm, minimum height=2cm] (m3)
-    at ([xshift=17.1cm, yshift=-17cm]current page.north west) {};
-  \node[successgreen, font=\large] at ([yshift=0.35cm]m3.center) {\faRobot};
-  \node[awsblue, font=\LARGE\bfseries] at (m3.center) {5+};
-  \node[coolgray, font=\scriptsize] at ([yshift=-0.45cm]m3.center) {AI Agents};
-
   % Feature highlights
   \node[fill=cloudblue!10, rounded corners=4pt, inner sep=8pt]
-    at ([xshift=9.5cm, yshift=-20.5cm]current page.north west) {
+    at ([xshift=9.5cm, yshift=-16.5cm]current page.north west) {
     \textcolor{cloudblue}{\faBrain}\hspace{0.3em}\small\sffamily Short-Term Events
   };
   \node[fill=successgreen!10, rounded corners=4pt, inner sep=8pt]
-    at ([xshift=13.5cm, yshift=-20.5cm]current page.north west) {
+    at ([xshift=13.5cm, yshift=-16.5cm]current page.north west) {
     \textcolor{successgreen}{\faDatabase}\hspace{0.3em}\small\sffamily Long-Term Facts
   };
   \node[fill=awsorange!10, rounded corners=4pt, inner sep=8pt]
-    at ([xshift=17.5cm, yshift=-20.5cm]current page.north west) {
+    at ([xshift=17.5cm, yshift=-16.5cm]current page.north west) {
     \textcolor{awsorange}{\faSearch}\hspace{0.3em}\small\sffamily Semantic Search
   };
 
   % Rate limit indicators
   \node[fill=dangerred!10, rounded corners=3pt, inner sep=6pt]
-    at ([xshift=10cm, yshift=-23cm]current page.north west) {
+    at ([xshift=10cm, yshift=-19cm]current page.north west) {
     \textcolor{dangerred}{\faTimes}\hspace{0.3em}\scriptsize\sffamily Rate Limited
   };
   \node[fill=successgreen!10, rounded corners=3pt, inner sep=6pt]
-    at ([xshift=14cm, yshift=-23cm]current page.north west) {
+    at ([xshift=14cm, yshift=-19cm]current page.north west) {
     \textcolor{successgreen}{\faCheck}\hspace{0.3em}\scriptsize\sffamily No Limit
   };
 
   % Version info
-  \node[coolgray, font=\sffamily] at ([xshift=13cm, yshift=-25cm]current page.north west) {
+  \node[coolgray, font=\sffamily] at ([xshift=13cm, yshift=-21cm]current page.north west) {
     Version 1.0 | December 4, 2025
   };
 \end{tikzpicture}
