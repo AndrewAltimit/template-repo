@@ -473,7 +473,7 @@
   \node[fill=lightgray, rounded corners=6pt, minimum width=3cm, minimum height=2cm] (m1)
     at ([xshift=9.5cm, yshift=-17cm]current page.north west) {};
   \node[awsorange, font=\large] at ([yshift=0.35cm]m1.center) {\faDatabase};
-  \node[awsblue, font=\LARGE\bfseries] at (m1.center) {3};
+  \node[awsblue, font=\LARGE\bfseries] at (m1.center) {2};
   \node[coolgray, font=\scriptsize] at ([yshift=-0.45cm]m1.center) {Memory Providers};
 
   \node[fill=lightgray, rounded corners=6pt, minimum width=3cm, minimum height=2cm] (m2)
@@ -972,7 +972,7 @@ AWS AgentCore uses \textbf{separate service clients}:
 \section{Provider Abstraction}
 
 \begin{tldrbox}
-Abstract \code{MemoryProvider} interface with three backends. Toggle via \code{MEMORY\_PROVIDER} env var. Zero-cost dev with ChromaDB, enterprise production with AWS.
+Abstract \code{MemoryProvider} interface with two backends. Toggle via \code{MEMORY\_PROVIDER} env var. Zero-cost dev with ChromaDB, enterprise production with AWS.
 \end{tldrbox}
 
 \subsection{Provider Comparison}
