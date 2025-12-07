@@ -42,7 +42,11 @@ asyncio.run(check())
 
 ```bash
 # Check AWS Cost Explorer (requires cost-explorer permissions)
-AWS_PROFILE=agentcore aws ce get-cost-and-usage \
+# Containerized to avoid local AWS CLI dependency
+docker run --rm \
+  -v ~/.aws:/root/.aws:ro \
+  -e AWS_PROFILE=agentcore \
+  amazon/aws-cli ce get-cost-and-usage \
   --time-period Start=$(date -d '-30 days' +%Y-%m-%d),End=$(date +%Y-%m-%d) \
   --granularity MONTHLY \
   --filter '{"Dimensions":{"Key":"SERVICE","Values":["Amazon Bedrock"]}}' \
@@ -439,16 +443,21 @@ If sensitive data may have been stored:
 ## Appendix: Useful Commands
 
 ```bash
-# List all memories
-AWS_PROFILE=agentcore aws bedrock-agentcore-control list-memories
+# All AWS CLI commands are containerized to avoid local dependencies
 
-# Get memory details
-AWS_PROFILE=agentcore aws bedrock-agentcore-control get-memory \
-  --memory-id template_repo_memory-s2E1OlFGBp
+# List all memories
+docker run --rm -v ~/.aws:/root/.aws:ro -e AWS_PROFILE=agentcore \
+  amazon/aws-cli bedrock-agentcore-control list-memories
+
+# Get memory details (replace with your memory ID from AGENTCORE_MEMORY_ID)
+docker run --rm -v ~/.aws:/root/.aws:ro -e AWS_PROFILE=agentcore \
+  amazon/aws-cli bedrock-agentcore-control get-memory \
+  --memory-id ${AGENTCORE_MEMORY_ID}
 
 # List actors
-AWS_PROFILE=agentcore aws bedrock-agentcore list-actors \
-  --memory-id template_repo_memory-s2E1OlFGBp
+docker run --rm -v ~/.aws:/root/.aws:ro -e AWS_PROFILE=agentcore \
+  amazon/aws-cli bedrock-agentcore list-actors \
+  --memory-id ${AGENTCORE_MEMORY_ID}
 
 # Check budget status (containerized)
 docker-compose --profile memory run --rm mcp-agentcore-memory \

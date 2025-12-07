@@ -80,6 +80,8 @@ asyncio.run(call_tool())
                 "memory",
                 "run",
                 "--rm",
+                "--user",
+                f"{os.environ.get('USER_ID', '1000')}:{os.environ.get('GROUP_ID', '1000')}",
                 "-T",
                 "mcp-agentcore-memory",
                 "python",
