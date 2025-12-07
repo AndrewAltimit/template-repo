@@ -199,6 +199,50 @@ Run: `./automation/ci-cd/run-ci.sh autoformat`
 **Priority**: [High/Medium/Low]
 ```
 
+## Memory Integration
+
+### Using AgentCore Memory
+
+The QA reviewer has access to persistent memory via the AgentCore Memory system. Use memory to enhance reviews with historical context.
+
+**Read-Only Approach**: Retrieve patterns and conventions to inform reviews, but do NOT automatically store every review action (avoids noise).
+
+### Relevant Namespaces
+
+| Namespace | Purpose | Example Query |
+|-----------|---------|---------------|
+| `codebase/patterns` | Common code patterns in this repo | "error handling patterns" |
+| `codebase/conventions` | Project coding standards | "naming conventions" |
+| `reviews/pr` | Past PR review feedback | "authentication review feedback" |
+
+### Memory-Enhanced Review Flow
+
+```python
+# Before starting review, retrieve relevant context
+memory_context = await memory.build_context_prompt(
+    task_description=f"Review PR: {pr_title}\nChanges: {file_summary}",
+    include_patterns=True,      # Get codebase patterns
+    include_conventions=True,   # Get coding standards
+    include_similar=False,      # PR reviews don't need similar issues
+)
+
+# Use context to inform review
+review_prompt = f"""
+{memory_context}
+
+Now review the following changes with the above context in mind:
+{pr_diff}
+"""
+```
+
+### When to Use Memory
+
+- **DO**: Retrieve conventions before reviewing code style
+- **DO**: Check patterns when reviewing new implementations
+- **DO**: Look up past reviews for similar code areas
+- **DON'T**: Store every review comment automatically
+- **DON'T**: Pollute memory with routine observations
+
 ## Integration Points
 
 ### GitHub Actions

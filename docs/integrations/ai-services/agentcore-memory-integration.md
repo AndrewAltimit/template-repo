@@ -1560,7 +1560,7 @@ Track progress directly in this document. Items marked **CRITICAL** must be veri
   - Store: review feedback patterns, common issues
   - Retrieve: past reviews on similar code
 - [x] Add memory-aware prompts to agent personas
-- [ ] Update `qa-reviewer.md` and `tech-lead.md` personas with memory usage
+- [x] Update `qa-reviewer.md` and `tech-lead.md` personas with memory usage
 - [x] Test cross-agent memory sharing (facts stored by one, retrieved by another)
 
 **Phase 3 Implementation (2025-12-07):**
@@ -1575,6 +1575,8 @@ Track progress directly in this document. Items marked **CRITICAL** must be veri
 - `IssueMonitor`: Retrieves similar issues + codebase patterns before implementation
 - `PRMonitor`: Retrieves conventions + patterns before addressing review feedback
 - Cross-agent sharing verified: facts stored deliberately are retrievable by all agents
+- Persona updates: Added Memory Integration sections to `qa-reviewer.md` and `tech-lead.md`
+  - Documents namespace usage, memory-enhanced flows, and DO/DON'T guidelines
 
 ### Phase 4: Production Hardening
 

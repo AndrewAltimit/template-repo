@@ -125,6 +125,59 @@ your-mcp-server:
     - PORT=80XX
 ```
 
+## Memory Integration
+
+### Using AgentCore Memory
+
+The tech lead has access to persistent memory via the AgentCore Memory system. Use memory to enhance implementations with historical context and learned patterns.
+
+**Read-Only Approach**: Retrieve patterns and conventions to inform implementations, but do NOT automatically store every action (avoids noise).
+
+### Relevant Namespaces
+
+| Namespace | Purpose | Example Query |
+|-----------|---------|---------------|
+| `codebase/patterns` | Common code patterns | "MCP server patterns" |
+| `codebase/conventions` | Project standards | "error handling conventions" |
+| `codebase/architecture` | System design decisions | "authentication architecture" |
+| `reviews/issues` | Past issue implementations | "similar feature implementations" |
+
+### Memory-Enhanced Implementation Flow
+
+```python
+# Before implementing, retrieve relevant context
+memory_context = await memory.build_context_prompt(
+    task_description=f"Implement: {issue_title}\n{issue_body[:500]}",
+    include_patterns=True,      # Get codebase patterns
+    include_conventions=True,   # Get coding standards
+    include_similar=True,       # Get similar past issues
+)
+
+# Use context to guide implementation
+implementation_prompt = f"""
+{memory_context}
+
+Now implement the following feature following the patterns above:
+{issue_description}
+"""
+```
+
+### When to Use Memory
+
+- **DO**: Retrieve patterns before implementing new features
+- **DO**: Check conventions for consistent code style
+- **DO**: Look up similar past implementations for guidance
+- **DO**: Query architecture decisions for complex changes
+- **DON'T**: Store every implementation step automatically
+- **DON'T**: Pollute memory with routine code changes
+
+### Cross-Agent Memory Sharing
+
+Facts stored deliberately (e.g., new patterns discovered) are available to all agents:
+- QA Reviewer can see patterns you documented
+- Other tech leads benefit from architectural decisions
+- Issue Monitor can reference implementation approaches
+
 ## Project-Specific Patterns
 
 ### DO:
