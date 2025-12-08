@@ -28,6 +28,7 @@ class PRMonitor(BaseMonitor):
         self.board_manager: Optional[BoardManager] = None
         self._board_config: Optional[BoardConfig] = None
         self._init_board_manager()
+        self._memory_initialized = False
 
     def _init_board_manager(self) -> None:
         """Initialize board manager if configuration exists."""
@@ -149,6 +150,12 @@ class PRMonitor(BaseMonitor):
 
     async def _process_prs_async(self, prs: list) -> None:
         """Process multiple PRs concurrently."""
+        # Initialize memory integration (lazy init)
+        if not self._memory_initialized:
+            self._memory_initialized = await self.memory.initialize()
+            if self._memory_initialized:
+                logger.info("Memory integration enabled for PRMonitor")
+
         tasks = []
         for pr in prs:
             task = self._process_single_pr_async(pr)
@@ -323,6 +330,14 @@ class PRMonitor(BaseMonitor):
         pr_title = pr["title"]
         review_body = comment.get("body", "")
 
+        # Build memory-enhanced context (read-only - retrieve relevant patterns)
+        memory_context = await self.memory.build_context_prompt(
+            task_description=f"PR: {pr_title}\nFeedback: {review_body[:500]}",
+            include_patterns=True,
+            include_conventions=True,
+            include_similar=False,  # PR fixes don't need similar issues
+        )
+
         # Get PR diff to understand current changes
         diff_output = await run_gh_command_async(
             [
@@ -334,9 +349,8 @@ class PRMonitor(BaseMonitor):
             ]
         )
 
-        # Create implementation prompt
-        prompt = f"""
-Address the following review feedback on PR #{pr_number}: {pr_title}
+        # Create implementation prompt with memory context
+        prompt = f"""{memory_context}Address the following review feedback on PR #{pr_number}: {pr_title}
 
 Review Comment:
 {review_body}

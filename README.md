@@ -172,6 +172,7 @@ This pattern ensures consistent certificate handling across all services while m
 │   └── economic_agents/      # Economic agents framework
 ├── tools/                    # MCP servers and utilities
 │   ├── mcp/                  # Modular MCP servers
+│   │   ├── mcp_agentcore_memory/ # Multi-provider AI memory
 │   │   ├── mcp_ai_toolkit/       # LoRA training interface
 │   │   ├── mcp_blender/          # 3D content creation
 │   │   ├── mcp_code_quality/     # Formatting & linting
@@ -242,6 +243,7 @@ This pattern ensures consistent certificate handling across all services while m
 13. **GitHub Board** - GitHub Projects v2 board management, work claiming, agent coordination ([Documentation](tools/mcp/mcp_github_board/docs/README.md))
 14. **AI Toolkit** - LoRA training interface (remote: 192.168.0.152:8012)
 15. **ComfyUI** - Image generation interface (remote: 192.168.0.152:8013)
+16. **AgentCore Memory** - Multi-provider AI memory (AWS AgentCore or ChromaDB) ([Documentation](tools/mcp/mcp_agentcore_memory/docs/README.md))
 
 ### Usage Modes
 

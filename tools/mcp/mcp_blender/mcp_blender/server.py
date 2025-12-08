@@ -1124,7 +1124,7 @@ class BlenderMCPServer(BaseMCPServer):
         return {
             "success": True,
             "model_path": model_path,
-            "format": format,
+            "format": file_format,
             "message": f"Model imported from '{model_path}'",
         }
 

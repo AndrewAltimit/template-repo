@@ -27,6 +27,7 @@ class IssueMonitor(BaseMonitor):
         self.board_manager: Optional[BoardManager] = None
         self._board_config: Optional[BoardConfig] = None
         self._init_board_manager()
+        self._memory_initialized = False
 
     def _init_board_manager(self) -> None:
         """Initialize board manager if configuration exists."""
@@ -78,6 +79,12 @@ class IssueMonitor(BaseMonitor):
 
     async def _process_issues_async(self, issues: list) -> None:
         """Process multiple issues concurrently."""
+        # Initialize memory integration (lazy init)
+        if not self._memory_initialized:
+            self._memory_initialized = await self.memory.initialize()
+            if self._memory_initialized:
+                logger.info("Memory integration enabled for IssueMonitor")
+
         tasks = []
         for issue in issues:
             task = self._process_single_issue_async(issue)
@@ -249,9 +256,16 @@ class IssueMonitor(BaseMonitor):
         issue_title = issue["title"]
         issue_body = issue.get("body", "")
 
-        # Create implementation prompt
-        prompt = f"""
-Implement the following GitHub issue:
+        # Build memory-enhanced context (read-only - retrieve relevant patterns)
+        memory_context = await self.memory.build_context_prompt(
+            task_description=f"{issue_title}\n{issue_body[:500]}",
+            include_patterns=True,
+            include_conventions=True,
+            include_similar=True,
+        )
+
+        # Create implementation prompt with memory context
+        prompt = f"""{memory_context}Implement the following GitHub issue:
 
 Issue #{issue_number}: {issue_title}
 

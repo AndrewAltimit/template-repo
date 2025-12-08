@@ -13,7 +13,7 @@ import uuid
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 try:
-    from tools.mcp.core.base_server import BaseMCPServer  # noqa: E402
+    from mcp_core.base_server import BaseMCPServer  # noqa: E402
 
     HAS_MCP = True
 except ImportError:
@@ -202,12 +202,12 @@ except ImportError:
 
 
 # pylint: disable=ungrouped-imports  # Cannot group with line 16 due to try/except structure
-from tools.mcp.virtual_character.backends.base import BackendAdapter  # noqa: E402
-from tools.mcp.virtual_character.backends.mock import MockBackend  # noqa: E402
-from tools.mcp.virtual_character.backends.vrchat_remote import (  # noqa: E402
+from mcp_virtual_character.backends.base import BackendAdapter  # noqa: E402
+from mcp_virtual_character.backends.mock import MockBackend  # noqa: E402
+from mcp_virtual_character.backends.vrchat_remote import (  # noqa: E402
     VRChatRemoteBackend,
 )
-from tools.mcp.virtual_character.models.canonical import (  # noqa: E402
+from mcp_virtual_character.models.canonical import (  # noqa: E402
     CanonicalAnimationData,
     EmotionType,
     GestureType,

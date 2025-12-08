@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Type
 
 from ..agents import ClaudeAgent, CrushAgent, GeminiAgent, OpenCodeAgent
 from ..config import AgentConfig
+from ..memory import MemoryIntegration
 from ..security import SecurityManager
 from ..tts import TTSIntegration
 from ..utils import get_github_token, run_gh_command
@@ -68,6 +69,9 @@ class BaseMonitor(ABC):
 
         # Initialize TTS integration
         self.tts_integration = TTSIntegration(config=self.config.config)
+
+        # Initialize memory integration (gracefully degrades if unavailable)
+        self.memory = MemoryIntegration(agent_name=self.__class__.__name__.lower())
 
     def _require_token(self) -> None:
         """Ensure token is available for operations that need it.

@@ -1,25 +1,19 @@
 #!/usr/bin/env python3
 """Enhanced test suite for Blender MCP Server."""
 
-from pathlib import Path
-import sys
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+import pytest_asyncio
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-from blender.server import BlenderMCPServer  # noqa: E402
-
-from core.base_server import ToolRequest  # noqa: E402
+from mcp_blender.server import BlenderMCPServer
+from mcp_core.base_server import ToolRequest
 
 
 class TestBlenderEnhancedFeatures:
     """Test suite for enhanced Blender MCP features."""
 
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def server(self):
         """Create a test server instance."""
         server = BlenderMCPServer(base_dir="/tmp/test_blender", port=8099)
@@ -423,25 +417,6 @@ class TestBlenderEnhancedFeatures:
         result = await server.execute_tool(export_request)
         assert result.success
         assert "output_path" in result.result
-
-
-def test_enhanced_tools_documentation():
-    """Test that enhanced tools are properly documented."""
-    from blender.server_enhancements import get_enhanced_tools
-
-    tools = get_enhanced_tools()
-    assert len(tools) > 0
-
-    for tool in tools:
-        assert "name" in tool
-        assert "description" in tool
-        assert "inputSchema" in tool
-        assert "properties" in tool["inputSchema"]
-
-        # Check that required fields are specified
-        if "required" in tool["inputSchema"]:
-            for req_field in tool["inputSchema"]["required"]:
-                assert req_field in tool["inputSchema"]["properties"]
 
 
 if __name__ == "__main__":

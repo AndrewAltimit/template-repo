@@ -1,17 +1,9 @@
 #!/usr/bin/env python3
 """Test path validation security in Blender MCP server."""
 
-from pathlib import Path
-import sys
-
 import pytest
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-# Import from relative path
-from blender.server import BlenderMCPServer  # noqa: E402
+from mcp_blender.server import BlenderMCPServer
 
 
 class TestPathValidation:  # pylint: disable=attribute-defined-outside-init

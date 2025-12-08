@@ -10,11 +10,7 @@ import time
 import requests
 import uvicorn
 
-# Add paths
-sys.path.insert(0, str(Path(__file__).parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-from tools.mcp.blender.server import BlenderMCPServer  # noqa: E402
+from mcp_blender.server import BlenderMCPServer
 
 
 def run_server(server, port):
@@ -218,7 +214,7 @@ def test_job_manager_operations():
     print("\nTesting job manager operations...")
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        from tools.mcp.blender.core.job_manager import JobManager
+        from mcp_blender.core.job_manager import JobManager
 
         jm = JobManager(tmpdir)
 
@@ -255,7 +251,7 @@ def test_asset_manager_operations():
     print("\nTesting asset manager operations...")
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        from tools.mcp.blender.core.asset_manager import AssetManager
+        from mcp_blender.core.asset_manager import AssetManager
 
         projects_dir = Path(tmpdir) / "projects"
         assets_dir = Path(tmpdir) / "assets"
@@ -301,7 +297,7 @@ def test_template_manager_operations():
     print("\nTesting template manager operations...")
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        from tools.mcp.blender.core.templates import TemplateManager
+        from mcp_blender.core.templates import TemplateManager
 
         tm = TemplateManager(tmpdir)
 

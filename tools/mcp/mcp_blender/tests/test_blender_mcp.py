@@ -1,20 +1,15 @@
 """Tests for Blender MCP Server."""
 
 from pathlib import Path
-import sys
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-from blender.core.asset_manager import AssetManager  # noqa: E402
-from blender.core.blender_executor import BlenderExecutor  # noqa: E402
-from blender.core.job_manager import JobManager  # noqa: E402
-from blender.core.templates import TemplateManager  # noqa: E402
-from blender.server import BlenderMCPServer  # noqa: E402
+from mcp_blender.core.asset_manager import AssetManager
+from mcp_blender.core.blender_executor import BlenderExecutor
+from mcp_blender.core.job_manager import JobManager
+from mcp_blender.core.templates import TemplateManager
+from mcp_blender.server import BlenderMCPServer
 
 
 class TestBlenderMCPServer:
@@ -23,10 +18,10 @@ class TestBlenderMCPServer:
     @pytest.fixture
     def server(self):
         """Create server instance."""
-        with patch("blender.server.BlenderExecutor"):
-            with patch("blender.server.JobManager"):
-                with patch("blender.server.AssetManager"):
-                    with patch("blender.server.TemplateManager"):
+        with patch("mcp_blender.server.BlenderExecutor"):
+            with patch("mcp_blender.server.JobManager"):
+                with patch("mcp_blender.server.AssetManager"):
+                    with patch("mcp_blender.server.TemplateManager"):
                         server = BlenderMCPServer()
                         server.setup_directories = Mock()
                         return server
@@ -42,10 +37,10 @@ class TestBlenderMCPServer:
 
     def test_tool_descriptions(self, server):
         """Test tool descriptions are properly defined."""
-        tools = server.get_tool_descriptions()
+        tools = server.get_tools()
 
         # Check essential tools are present
-        tool_names = [tool["name"] for tool in tools]
+        tool_names = list(tools.keys())
         assert "create_blender_project" in tool_names
         assert "render_image" in tool_names
         assert "render_animation" in tool_names
@@ -53,12 +48,11 @@ class TestBlenderMCPServer:
         assert "create_animation" in tool_names
         assert "create_geometry_nodes" in tool_names
 
-        # Verify tool structure
-        for tool in tools:
-            assert "name" in tool
-            assert "description" in tool
-            assert "inputSchema" in tool
-            assert tool["inputSchema"]["type"] == "object"
+        # Verify tool structure - get_tools() returns dict with {name: {description, parameters}}
+        for tool_name, tool_info in tools.items():
+            assert "description" in tool_info
+            assert "parameters" in tool_info
+            assert tool_info["parameters"]["type"] == "object"
 
     @pytest.mark.asyncio
     async def test_create_project(self, server):
@@ -315,27 +309,37 @@ class TestBlenderExecutor:
     """Test Blender executor functionality."""
 
     @pytest.fixture
-    def executor(self):
-        """Create executor instance."""
-        with patch("blender.core.blender_executor.Path") as mock_path:
-            mock_path.return_value.exists.return_value = False
-            with patch("subprocess.run") as mock_run:
-                mock_run.return_value.returncode = 0
-                mock_run.return_value.stdout = "blender"
-                executor = BlenderExecutor("/usr/bin/blender")
-                return executor
+    def executor(self, tmp_path):
+        """Create executor instance with real paths."""
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+        return BlenderExecutor(
+            blender_path="/usr/bin/blender",
+            output_dir=str(output_dir),
+            base_dir=str(tmp_path),
+        )
 
     @pytest.mark.asyncio
     async def test_execute_script(self, executor, tmp_path):
         """Test script execution."""
+        # Create a mock script file
+        script_dir = tmp_path / "scripts"
+        script_dir.mkdir()
+        (script_dir / "render.py").touch()
+        executor.script_dir = script_dir
+
+        # Create a fake blender executable
+        blender_path = tmp_path / "blender"
+        blender_path.touch()
+        blender_path.chmod(0o755)
+        executor.blender_path = str(blender_path)
+
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             mock_process = AsyncMock()
             mock_process.pid = 12345
             mock_exec.return_value = mock_process
 
-            with patch("tempfile.NamedTemporaryFile"):
-                with patch("os.remove"):
-                    result = await executor.execute_script("render.py", {"operation": "render_image"}, "job-123")
+            result = await executor.execute_script("render.py", {"operation": "render_image"}, "job-123")
 
             assert result["success"] is True
             assert result["job_id"] == "job-123"
@@ -346,10 +350,13 @@ class TestBlenderExecutor:
         mock_process = Mock()
         executor.processes["job-123"] = mock_process
 
-        success = executor.kill_process("job-123")
+        # Mock asyncio.create_task since kill_process calls it for _wait_and_kill
+        with patch("asyncio.create_task") as mock_create_task:
+            success = executor.kill_process("job-123")
 
-        assert success is True
-        mock_process.terminate.assert_called_once()
+            assert success is True
+            mock_process.terminate.assert_called_once()
+            mock_create_task.assert_called_once()
 
     def test_validate_installation(self, executor):
         """Test Blender installation validation."""

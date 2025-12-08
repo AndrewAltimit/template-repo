@@ -87,10 +87,11 @@ case "$STAGE" in
 
   test)
     echo "=== Running tests ==="
+    # Note: --ignore-glob is required because --ignore doesn't work properly with glob-expanded paths
     docker-compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
-      python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/ -v --cov=. --cov-report=xml --cov-report=term --ignore=tests/gaea2/ ${EXTRA_ARGS[*]}"
+      python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/ tools/mcp/*/tests/ -v --cov=. --cov-report=xml --cov-report=term --ignore-glob='**/mcp_gaea2/**' ${EXTRA_ARGS[*]}"
 
     # Run corporate proxy tests
     echo "=== Testing corporate proxy components ==="
@@ -168,7 +169,7 @@ case "$STAGE" in
         -e PYTHONDONTWRITEBYTECODE=1 \
         -e PYTHONPYCACHEPREFIX=/tmp/pycache \
         -e GAEA2_MCP_URL="${GAEA2_URL}" \
-        python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/gaea2/ -v --tb=short ${EXTRA_ARGS[*]}"
+        python-ci bash -c "pip install -r config/python/requirements.txt && pytest tools/mcp/mcp_gaea2/tests/ -v --tb=short ${EXTRA_ARGS[*]}"
     else
       echo "❌ Gaea2 MCP server is not reachable at $GAEA2_URL"
       echo "⚠️  Skipping Gaea2 tests. To run them, ensure the server is available."

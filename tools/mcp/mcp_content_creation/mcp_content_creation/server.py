@@ -689,17 +689,22 @@ class ContentCreationMCPServer(BaseMCPServer):
         try:
             content = self._wrap_content_with_template(content, template)
 
-            # Use working_dir if provided (for input_path), otherwise use temp directory
+            # Always use temp directory for compilation to handle read-only mounts
+            tmpdir = tempfile.mkdtemp(prefix="mcp_latex_")
+            tex_file = os.path.join(tmpdir, "document.tex")
+            cleanup_tex = False
+
+            # If we had a working_dir (from input_path), symlink contents for relative includes
             if working_dir:
-                # Compile in place - create temp .tex file in the working directory
-                tex_file = os.path.join(working_dir, f"_mcp_compile_{os.getpid()}.tex")
-                cleanup_tex = True
-            else:
-                # Create temp directory for content-based compilation
-                tmpdir = tempfile.mkdtemp(prefix="mcp_latex_")
-                working_dir = tmpdir
-                tex_file = os.path.join(tmpdir, "document.tex")
-                cleanup_tex = False
+                for item in os.listdir(working_dir):
+                    src = os.path.join(working_dir, item)
+                    dst = os.path.join(tmpdir, item)
+                    if not os.path.exists(dst):
+                        try:
+                            os.symlink(src, dst)
+                        except OSError:
+                            pass  # Skip if symlink fails
+            working_dir = tmpdir
 
             try:
                 with open(tex_file, "w", encoding="utf-8") as f:
