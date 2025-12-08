@@ -87,10 +87,11 @@ case "$STAGE" in
 
   test)
     echo "=== Running tests ==="
+    # Note: --ignore-glob is required because --ignore doesn't work properly with glob-expanded paths
     docker-compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
-      python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/ tools/mcp/*/tests/ -v --cov=. --cov-report=xml --cov-report=term --ignore=tools/mcp/mcp_gaea2/tests/ ${EXTRA_ARGS[*]}"
+      python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/ tools/mcp/*/tests/ -v --cov=. --cov-report=xml --cov-report=term --ignore-glob='**/mcp_gaea2/**' ${EXTRA_ARGS[*]}"
 
     # Run corporate proxy tests
     echo "=== Testing corporate proxy components ==="
