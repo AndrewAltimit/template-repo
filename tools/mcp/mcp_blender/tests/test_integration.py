@@ -4,9 +4,12 @@
 import asyncio
 import sys
 
+import pytest
+
 from mcp_blender.server import BlenderMCPServer
 
 
+@pytest.mark.asyncio
 async def test_tool_integration():
     """Test that all new tools are available."""
     import tempfile

@@ -1,6 +1,7 @@
 """Comprehensive tests for the Video Editor MCP Server"""
 
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -8,16 +9,31 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-# Mock numpy before importing video editor components
-sys.modules["numpy"] = MagicMock()
-# pylint: disable=wrong-import-position,wrong-import-order  # Imports must come after mock setup
+# Save and restore numpy to avoid polluting other tests
+# This must happen at import time before video editor components are imported
+_original_numpy = sys.modules.get("numpy")
+_numpy_mock = MagicMock()
+sys.modules["numpy"] = _numpy_mock
 
-import shutil  # noqa: E402
+# pylint: disable=wrong-import-position,wrong-import-order
 
-# Import the video editor components
+# Import the video editor components (must be after numpy mock)
 from mcp_video_editor import VideoEditorMCPServer  # noqa: E402
 from mcp_video_editor.processors import AudioProcessor, VideoProcessor  # noqa: E402
-from mcp_video_editor.tools import add_captions, analyze_video, create_edit, extract_clips, render_video  # noqa: E402
+from mcp_video_editor.tools import (  # noqa: E402
+    add_captions,
+    analyze_video,
+    create_edit,
+    extract_clips,
+    render_video,
+)
+
+# Immediately restore numpy after imports complete so other test modules get the real numpy
+if _original_numpy is not None:
+    sys.modules["numpy"] = _original_numpy
+else:
+    # If numpy wasn't loaded before, remove our mock so it can be imported fresh
+    del sys.modules["numpy"]
 
 
 class TestVideoEditorMCPServer(unittest.TestCase):

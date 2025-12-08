@@ -4,6 +4,7 @@
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+import pytest_asyncio
 
 from mcp_blender.server import BlenderMCPServer
 from mcp_core.base_server import ToolRequest
@@ -12,7 +13,7 @@ from mcp_core.base_server import ToolRequest
 class TestBlenderEnhancedFeatures:
     """Test suite for enhanced Blender MCP features."""
 
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def server(self):
         """Create a test server instance."""
         server = BlenderMCPServer(base_dir="/tmp/test_blender", port=8099)
