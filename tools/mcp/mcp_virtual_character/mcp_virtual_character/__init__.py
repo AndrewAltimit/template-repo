@@ -1,5 +1,5 @@
 """MCP Server for virtual character"""
 
-from .server import BaseMCPServer
+from .server import VirtualCharacterMCPServer
 
-__all__ = ["BaseMCPServer"]
+__all__ = ["VirtualCharacterMCPServer"]

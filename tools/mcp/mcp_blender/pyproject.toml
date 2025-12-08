@@ -47,7 +47,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["mcp_blender"]
+include = ["mcp_blender*"]
 
 [tool.setuptools.package-data]
 mcp_blender = [

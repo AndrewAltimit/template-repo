@@ -2,14 +2,9 @@
 """Test script to verify new tools are properly integrated."""
 
 import asyncio
-from pathlib import Path
 import sys
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-from blender.server import BlenderMCPServer  # noqa: E402
+from mcp_blender.server import BlenderMCPServer
 
 
 async def test_tool_integration():

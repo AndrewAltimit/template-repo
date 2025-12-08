@@ -47,7 +47,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["mcp_virtual_character"]
+include = ["mcp_virtual_character*"]
 
 [tool.setuptools.package-data]
 mcp_virtual_character = [

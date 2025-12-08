@@ -13,10 +13,10 @@ import unittest.mock
 
 import pytest
 
-from tools.mcp.gaea2.server import Gaea2MCPServer
-from tools.mcp.gaea2.utils.gaea2_cache import get_cache
-from tools.mcp.gaea2.utils.gaea2_logging import get_logger
-from tools.mcp.gaea2.validation.gaea2_structure_validator import Gaea2StructureValidator
+from mcp_gaea2.server import Gaea2MCPServer
+from mcp_gaea2.utils.gaea2_cache import get_cache
+from mcp_gaea2.utils.gaea2_logging import get_logger
+from mcp_gaea2.validation.gaea2_structure_validator import Gaea2StructureValidator
 
 
 # Create a mock MCPTools class for backward compatibility

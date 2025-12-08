@@ -4,7 +4,7 @@ Simple test to verify Export node schema is working correctly
 """
 from typing import Any, Dict, List, Tuple
 
-from tools.mcp.gaea2.schema.gaea2_schema import NODE_PROPERTY_DEFINITIONS, validate_node_properties
+from mcp_gaea2.schema.gaea2_schema import NODE_PROPERTY_DEFINITIONS, validate_node_properties
 
 print("Testing Export Node Schema Fix")
 print("=" * 50)

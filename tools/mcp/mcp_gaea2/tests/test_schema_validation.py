@@ -4,9 +4,9 @@ Test Gaea2 schema and validation logic locally without MCP server
 """
 import json
 
-from tools.mcp.gaea2.errors.gaea2_error_recovery import Gaea2ErrorRecovery
-from tools.mcp.gaea2.schema.gaea2_schema import NODE_PROPERTY_DEFINITIONS, validate_node_properties
-from tools.mcp.gaea2.validation.gaea2_validation import create_validator
+from mcp_gaea2.errors.gaea2_error_recovery import Gaea2ErrorRecovery
+from mcp_gaea2.schema.gaea2_schema import NODE_PROPERTY_DEFINITIONS, validate_node_properties
+from mcp_gaea2.validation.gaea2_validation import create_validator
 
 
 def test_export_node_schema():

@@ -1,17 +1,11 @@
 #!/usr/bin/env python3
 """Test optimized validator performance and correctness"""
 
-# Add parent directory to path
-from pathlib import Path
-import sys
 import time
 from typing import Any, Dict
 
-sys.path.append(str(Path(__file__).parent.parent.parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-from tools.mcp.gaea2.schema.gaea2_schema import create_workflow_from_template, validate_gaea2_project  # noqa: E402
-from tools.mcp.gaea2.validation.gaea2_optimized_validator import get_optimized_validator  # noqa: E402
+from mcp_gaea2.schema.gaea2_schema import create_workflow_from_template, validate_gaea2_project
+from mcp_gaea2.validation.gaea2_optimized_validator import get_optimized_validator
 
 
 def create_large_workflow(num_nodes: int) -> Dict[str, Any]:

@@ -11,8 +11,8 @@ import unittest.mock
 
 import pytest
 
-from tools.mcp.gaea2.server import Gaea2MCPServer
-from tools.mcp.gaea2.utils.gaea2_pattern_knowledge import (
+from mcp_gaea2.server import Gaea2MCPServer
+from mcp_gaea2.utils.gaea2_pattern_knowledge import (
     get_next_node_suggestions,
     get_workflow_for_terrain_type,
     suggest_properties_for_node,

@@ -8,7 +8,7 @@ import unittest.mock
 
 import pytest
 
-from tools.mcp.gaea2.server import Gaea2MCPServer
+from mcp_gaea2.server import Gaea2MCPServer
 
 
 # Create a test server instance

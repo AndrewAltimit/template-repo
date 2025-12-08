@@ -9,7 +9,7 @@ Test the enhanced Gaea2 validation that checks:
 
 import pytest
 
-from tools.mcp.gaea2.validation.validator import Gaea2Validator
+from mcp_gaea2.validation.validator import Gaea2Validator
 
 
 class TestEnhancedValidation:
