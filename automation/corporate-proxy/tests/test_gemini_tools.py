@@ -88,8 +88,8 @@ def validate_gemini_response(response_data):
     return errors
 
 
-def test_tool_execution(proxy_url, tool_name, parameters, expected_fields):
-    """Test a specific tool execution"""
+def execute_tool_test(proxy_url, tool_name, parameters, expected_fields):
+    """Execute a tool test and return result (helper function, not a pytest test)."""
     # Direct tool execution endpoint
     execute_url = f"{proxy_url}/execute"
 
@@ -116,8 +116,8 @@ def test_tool_execution(proxy_url, tool_name, parameters, expected_fields):
         return False, str(e)
 
 
-def test_generate_content_with_tools(proxy_url):
-    """Test generateContent endpoint with tools"""
+def generate_content_with_tools_test(proxy_url):
+    """Test generateContent endpoint with tools (helper function, not a pytest test)."""
     generate_url = f"{proxy_url}/v1/models/gemini-2.5-flash/generateContent"
 
     # Test request with tool declarations
@@ -204,7 +204,7 @@ def _test_read_file(proxy_url):
         f.write("Test content for Gemini")
         test_file = f.name
 
-    success, result = test_tool_execution(proxy_url, "read_file", {"path": test_file}, ["success", "content"])
+    success, result = execute_tool_test(proxy_url, "read_file", {"path": test_file}, ["success", "content"])
     os.unlink(test_file)
 
     if success and result.get("content") == "Test content for Gemini":
@@ -221,7 +221,7 @@ def _test_write_file(proxy_url):
         test_file = tmp.name
     # Remove the file so write_file can create it
     os.unlink(test_file)
-    success, result = test_tool_execution(
+    success, result = execute_tool_test(
         proxy_url, "write_file", {"path": test_file, "content": "Gemini test write"}, ["success"]
     )
 
@@ -240,7 +240,7 @@ def _test_write_file(proxy_url):
 
 def _test_run_command(proxy_url):
     """Test 5: run_command tool."""
-    success, result = test_tool_execution(
+    success, result = execute_tool_test(
         proxy_url, "run_command", {"command": "echo 'Gemini test'"}, ["success", "stdout", "exit_code"]
     )
     if success and result.get("stdout", "").strip() == "Gemini test":
@@ -252,7 +252,7 @@ def _test_run_command(proxy_url):
 
 def _test_list_directory(proxy_url):
     """Test 6: list_directory tool."""
-    success, result = test_tool_execution(proxy_url, "list_directory", {"path": "/tmp"}, ["success", "files", "directories"])
+    success, result = execute_tool_test(proxy_url, "list_directory", {"path": "/tmp"}, ["success", "files", "directories"])
     if success:
         print_status("pass", f"list_directory found {result.get('total', 0)} items")
         return True
@@ -262,7 +262,7 @@ def _test_list_directory(proxy_url):
 
 def _test_search_files(proxy_url):
     """Test 7: search_files tool."""
-    success, result = test_tool_execution(
+    success, result = execute_tool_test(
         proxy_url, "search_files", {"pattern": "*.txt", "path": "/tmp"}, ["success", "matches", "count"]
     )
     if success:
@@ -274,9 +274,7 @@ def _test_search_files(proxy_url):
 
 def _test_web_search(proxy_url):
     """Test 8: web_search tool (mock)."""
-    success, result = test_tool_execution(
-        proxy_url, "web_search", {"query": "Gemini API documentation"}, ["success", "results"]
-    )
+    success, result = execute_tool_test(proxy_url, "web_search", {"query": "Gemini API documentation"}, ["success", "results"])
     if success:
         results = result.get("results", [])
         if results:
@@ -290,7 +288,7 @@ def _test_web_search(proxy_url):
 
 def _test_response_format(proxy_url):
     """Test 9: Response format validation."""
-    success, result = test_generate_content_with_tools(proxy_url)
+    success, result = generate_content_with_tools_test(proxy_url)
     if success:
         print_status("pass", "Response format is valid for Gemini CLI")
         print("    Response structure:")

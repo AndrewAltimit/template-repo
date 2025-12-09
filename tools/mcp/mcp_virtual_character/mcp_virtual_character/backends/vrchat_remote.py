@@ -6,8 +6,12 @@ Controls VRChat avatars on a remote Windows machine using OSC protocol.
 
 import asyncio
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
+from mcp_virtual_character.constants import (
+    EMOTION_TO_VRCEMOTE,
+    GESTURE_TO_VRCEMOTE,
+)
 from mcp_virtual_character.models.canonical import (
     AudioData,
     CanonicalAnimationData,
@@ -56,30 +60,13 @@ class VRChatRemoteBackend(BackendAdapter):
     }
 
     # VRCEmote system (integer-based, common in many avatars)
-    # This avatar uses a gesture wheel, not emotions
-    # Corrected wheel positions (clockwise from top):
+    # Mappings are defined in constants.py for single source of truth
+    # See constants.VRCEmoteValue for wheel positions:
     # 0=None/Clear, 1=Wave, 2=Clap, 3=Point, 4=Cheer, 5=Dance, 6=Backflip, 7=Sadness, 8=Die
-    VRCEMOTE_MAP = {
-        EmotionType.NEUTRAL: 0,  # No gesture/back to normal
-        EmotionType.HAPPY: 4,  # Maps to Cheer
-        EmotionType.SAD: 7,  # Maps to Sadness gesture
-        EmotionType.ANGRY: 3,  # Maps to Point (assertive)
-        EmotionType.SURPRISED: 6,  # Maps to Backflip (excitement)
-        EmotionType.FEARFUL: 8,  # Maps to Die (dramatic)
-        EmotionType.DISGUSTED: 0,  # Clear gesture
-    }
+    VRCEMOTE_MAP = EMOTION_TO_VRCEMOTE
 
     # Alternative mapping for gesture-based avatars
-    VRCEMOTE_GESTURE_MAP = {
-        GestureType.NONE: 0,
-        GestureType.WAVE: 1,
-        GestureType.POINT: 3,
-        GestureType.THUMBS_UP: 4,  # Maps to Cheer
-        GestureType.NOD: 2,  # Maps to Clap (approval)
-        GestureType.SHAKE_HEAD: 0,  # Clear gesture
-        GestureType.CLAP: 2,
-        GestureType.DANCE: 5,
-    }
+    VRCEMOTE_GESTURE_MAP = GESTURE_TO_VRCEMOTE
 
     GESTURE_PARAMS = {
         GestureType.NONE: 0,
@@ -98,7 +85,7 @@ class VRChatRemoteBackend(BackendAdapter):
 
         # Set capabilities
         self.capabilities.animation = True
-        self.capabilities.audio = False  # Can be added with bridge server
+        self.capabilities.audio = True  # Now supports audio streaming
         self.capabilities.video_capture = False  # Can be added with OBS
         self.capabilities.bidirectional = True
         self.capabilities.environment_control = False  # Limited to world switching
@@ -143,6 +130,9 @@ class VRChatRemoteBackend(BackendAdapter):
             "animation_frames": 0,
             "errors": 0,
         }
+
+        # Task management for cleanup
+        self.pending_tasks: set = set()  # Set of asyncio.Task objects
 
     @property
     def backend_name(self) -> str:
@@ -193,10 +183,10 @@ class VRChatRemoteBackend(BackendAdapter):
                 self._setup_osc_handlers()
 
                 # Start OSC server
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 server_addr = ("0.0.0.0", osc_out_port)
-                # AsyncIOOSCUDPServer expects BaseEventLoop but get_event_loop returns AbstractEventLoop
-                self.osc_server = AsyncIOOSCUDPServer(server_addr, self.osc_dispatcher, loop)  # type: ignore[arg-type]
+                # AsyncIOOSCUDPServer expects loop parameter
+                self.osc_server = AsyncIOOSCUDPServer(server_addr, self.osc_dispatcher, loop)
 
                 _transport, _protocol = await self.osc_server.create_serve_endpoint()
                 logger.info("OSC server listening on port %s", osc_out_port)
@@ -221,6 +211,15 @@ class VRChatRemoteBackend(BackendAdapter):
     async def disconnect(self) -> None:
         """Disconnect from VRChat."""
         try:
+            # Cancel all pending tasks
+            for task in self.pending_tasks:
+                task.cancel()
+
+            # Wait for tasks to complete cancellation
+            if self.pending_tasks:
+                await asyncio.gather(*self.pending_tasks, return_exceptions=True)
+            self.pending_tasks.clear()
+
             # OSC server cleanup happens automatically when event loop ends
             # AsyncIOOSCUDPServer doesn't have a shutdown method
             self.osc_server = None
@@ -281,20 +280,168 @@ class VRChatRemoteBackend(BackendAdapter):
 
     async def send_audio_data(self, audio: AudioData) -> bool:
         """
-        Send audio data (requires bridge server).
+        Send audio data to VRChat.
+
+        NOTE: VRChat has excellent built-in audio-to-viseme conversion.
+        We primarily rely on VRChat's automatic viseme generation from audio,
+        only sending manual viseme data when precise control is needed.
 
         Args:
-            audio: Audio data with sync metadata
+            audio: Audio data with optional sync metadata
 
         Returns:
             True if successful
         """
-        if not self.connected or not self.use_bridge:
-            logger.warning("Audio requires bridge server to be enabled")
+        if not self.connected:
+            logger.warning("Cannot send audio - not connected to VRChat")
             return False
 
-        # TODO: Implement bridge server audio streaming
-        return False
+        logger.info("send_audio_data called - Bridge enabled: %s, Bridge port: %s", self.use_bridge, self.bridge_port)
+
+        try:
+            # Process expression tags from ElevenLabs audio
+            if audio.expression_tags:
+                for tag in audio.expression_tags:
+                    await self._process_audio_expression_tag(tag)
+
+            # VRChat automatically generates visemes from audio playback
+            # Only send manual viseme data if we need precise control
+            if audio.viseme_timestamps and len(audio.viseme_timestamps) > 0:
+                # Use single managing task for efficient viseme playback
+                task = asyncio.create_task(self._manage_viseme_playback(audio.viseme_timestamps))
+                self.pending_tasks.add(task)
+                task.add_done_callback(self.pending_tasks.discard)
+
+            # Send audio playback trigger
+            # VRChat will automatically generate visemes from the audio
+            if audio.text:
+                # Send the text for potential display
+                await self._send_osc("/avatar/parameters/AudioText", audio.text[:127])  # VRChat string limit
+
+            # Trigger audio playback state
+            await self._send_osc("/avatar/parameters/AudioPlaying", 1.0)
+
+            # Schedule audio stop after duration
+            if audio.duration > 0:
+                task = asyncio.create_task(self._stop_audio_after_delay(audio.duration))
+                self.pending_tasks.add(task)
+                task.add_done_callback(self.pending_tasks.discard)
+
+            # If using bridge server for actual audio streaming
+            if self.use_bridge:
+                logger.info("Bridge enabled, sending audio to bridge server at %s:%s", self.remote_host, self.bridge_port)
+                # Send audio data to bridge server
+                # Bridge server streams audio to VRChat, which auto-generates visemes
+                bridge_success = await self._send_audio_to_bridge(audio)
+                logger.info("Bridge audio send result: %s", bridge_success)
+            else:
+                logger.info("Bridge not enabled, audio sent via OSC only (no actual audio playback)")
+
+            return True
+
+        except Exception as e:
+            logger.error("Failed to send audio data: %s", e)
+            self.stats["errors"] += 1
+            return False
+
+    async def _process_audio_expression_tag(self, tag: str) -> None:
+        """Process ElevenLabs audio expression tags."""
+        # Map common audio tags to VRChat expressions
+        tag_emotion_map = {
+            "[laughs]": EmotionType.HAPPY,
+            "[whisper]": EmotionType.CALM,
+            "[sighs]": EmotionType.SAD,
+            "[angry]": EmotionType.ANGRY,
+            "[excited]": EmotionType.EXCITED,
+            "[surprised]": EmotionType.SURPRISED,
+        }
+
+        if tag in tag_emotion_map:
+            await self._set_emotion(tag_emotion_map[tag], 1.0)
+
+    async def _manage_viseme_playback(self, viseme_timestamps: List[tuple]) -> None:
+        """
+        Efficiently manage viseme playback with a single task.
+
+        This is only used when precise viseme control is needed.
+        VRChat's built-in audio-to-viseme is preferred for most cases.
+        """
+        # Sort visemes by timestamp to ensure correct order
+        sorted_visemes = sorted(viseme_timestamps, key=lambda x: x[0])
+
+        loop = asyncio.get_running_loop()
+        start_time = loop.time()
+
+        for timestamp, viseme, weight in sorted_visemes:
+            # Calculate time to wait until this viseme
+            current_time = loop.time() - start_time
+            wait_time = timestamp - current_time
+
+            if wait_time > 0:
+                await asyncio.sleep(wait_time)
+
+            # Send viseme (VRChat Oculus viseme standard)
+            viseme_param = f"/avatar/parameters/Viseme_{viseme.value if hasattr(viseme, 'value') else viseme}"
+            await self._send_osc(viseme_param, float(weight))
+
+    async def _stop_audio_after_delay(self, duration: float) -> None:
+        """Stop audio playback after duration."""
+        await asyncio.sleep(duration)
+        await self._send_osc("/avatar/parameters/AudioPlaying", 0.0)
+        await self._send_osc("/avatar/parameters/AudioText", "")
+
+    async def _send_audio_to_bridge(self, audio: AudioData) -> bool:
+        """Send audio to bridge server for playback."""
+        if not self.use_bridge:
+            return False
+
+        try:
+            import base64
+            import os
+
+            # Check if we're running on the same machine as the bridge
+            # If remote_host is localhost and bridge_port is the same as server port,
+            # we're likely in a loop situation
+            is_local_bridge = self.remote_host in ["127.0.0.1", "localhost"]
+            server_port = int(os.environ.get("MCP_SERVER_PORT", "8020"))
+
+            if is_local_bridge and self.bridge_port == server_port:
+                # We're on the same server - play directly instead of HTTP loop
+                logger.info("Bridge is local to this server, playing audio directly")
+                # Import here to avoid circular dependency
+                from ..audio_handler import AudioPlayer
+
+                player = AudioPlayer()
+                success, _ = await player.play(audio.data, audio.format)
+                return success
+
+            import aiohttp
+
+            # Prepare audio data for bridge server
+            audio_payload = {
+                "audio_data": base64.b64encode(audio.data).decode("utf-8"),
+                "format": audio.format,
+                "sample_rate": audio.sample_rate,
+                "channels": audio.channels,
+                "duration": audio.duration,
+                "text": audio.text,
+            }
+
+            # Send to bridge server
+            async with aiohttp.ClientSession() as session:
+                bridge_url = f"http://{self.remote_host}:{self.bridge_port}/audio/play"
+                logger.info("Sending audio to bridge server at %s", bridge_url)
+                async with session.post(bridge_url, json=audio_payload) as response:
+                    if response.status == 200:
+                        logger.info("Audio sent to bridge server successfully")
+                        return True
+                    else:
+                        logger.error("Bridge server returned status %s", response.status)
+                        return False
+
+        except Exception as e:
+            logger.error("Failed to send audio to bridge server: %s", e)
+            return False
 
     async def receive_state(self) -> Optional[EnvironmentState]:
         """
@@ -322,15 +469,53 @@ class VRChatRemoteBackend(BackendAdapter):
 
     async def capture_video_frame(self) -> Optional[VideoFrame]:
         """
-        Capture video frame (requires OBS or bridge server).
+        Capture video frame (requires OBS WebSocket or bridge server).
 
         Returns:
-            Video frame if available
+            Video frame if available, None if capture not supported or unavailable
         """
         if not self.connected:
             return None
 
-        # TODO: Implement OBS or bridge server video capture
+        # Video capture requires bridge server integration
+        if not self.use_bridge:
+            logger.debug("Video capture requires bridge server (use_bridge=True)")
+            return None
+
+        try:
+            import aiohttp
+
+            # Request frame from bridge server
+            async with aiohttp.ClientSession() as session:
+                bridge_url = f"http://{self.remote_host}:{self.bridge_port}/video/capture"
+                async with session.get(bridge_url, timeout=aiohttp.ClientTimeout(total=5)) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data.get("success") and data.get("frame_data"):
+                            import base64
+
+                            frame_bytes = base64.b64decode(data["frame_data"])
+                            return VideoFrame(
+                                data=frame_bytes,
+                                width=data.get("width", 1920),
+                                height=data.get("height", 1080),
+                                format=data.get("format", "jpeg"),
+                                timestamp=data.get("timestamp", 0.0),
+                                frame_number=data.get("frame_number", 0),
+                            )
+                    elif response.status == 501:
+                        # Video capture not implemented on bridge server
+                        logger.debug("Bridge server does not support video capture")
+                    else:
+                        logger.warning("Bridge server video capture returned %s", response.status)
+
+        except ImportError:
+            logger.warning("aiohttp required for video capture")
+        except aiohttp.ClientError as e:
+            logger.debug("Bridge server video capture unavailable: %s", e)
+        except asyncio.TimeoutError:
+            logger.debug("Bridge server video capture timed out")
+
         return None
 
     async def execute_behavior(self, behavior: str, parameters: Dict[str, Any]) -> bool:
@@ -363,7 +548,7 @@ class VRChatRemoteBackend(BackendAdapter):
 
                 # Apply gesture
                 if "gesture" in action:
-                    animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
+                    animation = CanonicalAnimationData(timestamp=asyncio.get_running_loop().time())
                     animation.gesture = action["gesture"]
                     if "emotion" in action:
                         animation.emotion = action["emotion"]

@@ -24,9 +24,15 @@ from .models import (  # noqa: E402
     suggest_tags,
     validate_tag_compatibility,
 )
+from .text_formatter import AudioTagFormatter  # noqa: E402
 from .upload import upload_audio  # noqa: E402
 from .utils.model_aware_prompting import ModelAwarePrompter  # noqa: E402
 from .utils.prompting import EmotionalEnhancer, NaturalSpeechEnhancer, PromptOptimizer, VoiceDirector  # noqa: E402
+from .voice_mapping import (  # noqa: E402
+    get_optimal_settings,
+    get_voice_id,
+    validate_voice_for_model,
+)
 from .voice_registry import VOICE_IDS  # noqa: E402
 
 # Add parent directory to path for imports
@@ -134,12 +140,48 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
             await self._initialize_voice_cache()
             self._voice_cache_initialized = True
 
-        # Use defaults if not provided
-        voice_id = voice_id or self._get_default_voice_id()
+        # Resolve voice ID using the robust mapping system
+        resolved_voice_id = await self._resolve_voice_id(voice_id)
+        if not resolved_voice_id:
+            return {
+                "success": False,
+                "error": f"Could not resolve voice: {voice_id}",
+                "available_voices": list(self._voice_id_cache.keys()),
+            }
+
         model_enum = VoiceModel(model or self.config["default_model"])
+
+        # Validate voice compatibility with model
+        voice_name_for_validation = self._get_voice_name_from_id(resolved_voice_id)
+        if voice_name_for_validation:
+            is_valid, validation_msg = validate_voice_for_model(voice_name_for_validation, model_enum.value)
+        else:
+            # Skip validation if we can't find the voice name
+            is_valid = True
+            validation_msg = "OK"
+        if not is_valid:
+            self.logger.warning(f"Voice validation failed: {validation_msg}")
+            # Try to find a compatible alternative
+            resolved_voice_id = await self._find_compatible_voice(model_enum)
+            if not resolved_voice_id:
+                return {
+                    "success": False,
+                    "error": validation_msg,
+                    "suggestion": "Try using 'rachel' or 'sarah' with eleven_v3",
+                }
 
         # Store original text for metadata
         original_text = text
+
+        # Validate and format audio tags
+        is_valid, tag_errors = AudioTagFormatter.validate_tag_syntax(text)
+        if not is_valid:
+            self.logger.warning(f"Audio tag syntax issues: {tag_errors}")
+            # Continue anyway but log the issues
+
+        # Format text with proper audio tag placement
+        formatter = AudioTagFormatter()
+        text = formatter.format_with_tags(text, auto_segment=True)
 
         # Clean text based on model capabilities
         text = ModelAwarePrompter.clean_text_for_model(text, model_enum)
@@ -150,21 +192,24 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
             # Clean again after optimization to remove any added unsupported tags
             text = ModelAwarePrompter.clean_text_for_model(text, model_enum)
 
-        # Parse voice settings
+        # Parse voice settings or use optimal settings for the voice
         if voice_settings:
             settings = VoiceSettings(**voice_settings)
         else:
+            # Get optimal settings for this specific voice
+            voice_name = self._get_voice_name_from_id(resolved_voice_id)
+            optimal = get_optimal_settings(voice_name) if voice_name else {}
             settings = VoiceSettings(
-                stability=self.config["default_stability"],
-                similarity_boost=self.config["default_similarity"],
-                style=self.config["default_style"],
-                use_speaker_boost=self.config["speaker_boost"],
+                stability=optimal.get("stability", self.config["default_stability"]),
+                similarity_boost=optimal.get("similarity_boost", self.config["default_similarity"]),
+                style=optimal.get("style", self.config["default_style"]),
+                use_speaker_boost=optimal.get("use_speaker_boost", self.config["speaker_boost"]),
             )
 
         # Create synthesis config
         config = SynthesisConfig(
             text=text,
-            voice_id=voice_id,
+            voice_id=resolved_voice_id,
             model=model_enum,
             voice_settings=settings,
             output_format=OutputFormat(output_format or self.config["upload_format"]),
@@ -172,19 +217,92 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
             stream=stream,
         )
 
-        # Synthesize
-        result = await self.client.synthesize_speech(config)
+        # Synthesize with error handling
+        try:
+            result = await self.client.synthesize_speech(config)
+        except Exception as e:
+            self.logger.error(f"Synthesis failed: {e}")
+            # Try with fallback voice and model
+            fallback_voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel
+            fallback_model = VoiceModel.ELEVEN_MULTILINGUAL_V2
+
+            self.logger.info(f"Attempting fallback with Rachel voice and {fallback_model.value}")
+            config.voice_id = fallback_voice_id
+            config.model = fallback_model
+
+            try:
+                result = await self.client.synthesize_speech(config)
+            except Exception as fallback_error:
+                return {
+                    "success": False,
+                    "error": f"Synthesis failed: {str(e)}",
+                    "fallback_error": f"Fallback also failed: {str(fallback_error)}",
+                    "suggestion": "Check API key, network connection, and voice availability",
+                }
 
         if result.success and upload and result.local_path:
-            # Upload audio
-            upload_result = upload_audio(result.local_path, self.config["auto_upload"])
-            if upload_result:
-                result.audio_url = upload_result
+            # Upload audio with error handling
+            try:
+                upload_result = upload_audio(result.local_path, self.config["auto_upload"])
+                if upload_result:
+                    result.audio_url = upload_result
+            except Exception as upload_error:
+                self.logger.warning(f"Upload failed but synthesis succeeded: {upload_error}")
+                # Continue without upload URL
 
-        # Add original text to result for transparency
+        # Build result dict with proper audio handling
         result_dict = result.to_dict()
+
+        # IMPORTANT: Handle audio data to prevent context window pollution
+        # Priority: Local HTTP URL > External URL > base64 (only if small) > nothing
+        if result.success:
+            if result.audio_url:
+                # Best case: We have a URL, no need for raw data
+                self.logger.info(f"Returning audio URL: {result.audio_url}")
+                # Clear audio_data since we have URL
+                if "audio_data" in result_dict:
+                    del result_dict["audio_data"]
+            elif result.audio_data:
+                # We have audio data but no URL - serve it via local HTTP server
+                try:
+                    # Import the audio file server module
+                    from pathlib import Path
+                    import sys
+
+                    sys.path.insert(0, str(Path(__file__).parent.parent / "mcp_virtual_character"))
+                    from audio_file_server import serve_audio_file
+
+                    # Serve the audio file
+                    audio_format = config.output_format.value.lower()  # mp3, wav, etc.
+                    local_url = await serve_audio_file(result.audio_data, audio_format)
+                    result_dict["audio_url"] = local_url
+                    self.logger.info(f"Serving audio via local HTTP: {local_url} ({len(result.audio_data)} bytes)")
+
+                    # Clear audio_data since we now have a URL
+                    if "audio_data" in result_dict:
+                        del result_dict["audio_data"]
+                except Exception as e:
+                    self.logger.warning(f"Failed to serve audio via local HTTP: {e}")
+                    # Fallback: Only include base64 if small
+                    if len(result.audio_data) < 50000:  # Only include if < 50KB
+                        import base64
+
+                        result_dict["audio_data"] = base64.b64encode(result.audio_data).decode("utf-8")
+                        self.logger.info(f"Fallback: Returning small audio as base64 ({len(result.audio_data)} bytes)")
+                    else:
+                        # Large audio without URL: Don't include to avoid context pollution
+                        if "audio_data" in result_dict:
+                            del result_dict["audio_data"]
+                        self.logger.warning("Audio too large for base64, local server failed. Returning path only.")
+            else:
+                # No audio data or URL
+                self.logger.warning("No audio data or URL available.")
+
+        # Add original text and formatting info to result
         if result_dict.get("metadata"):
             result_dict["metadata"]["original_input"] = original_text
+            result_dict["metadata"]["text_was_formatted"] = True
+            result_dict["metadata"]["voice_was_validated"] = True
 
         return cast(Dict[str, Any], result_dict)
 
@@ -255,7 +373,32 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
             if upload_result:
                 result.audio_url = upload_result
 
-        return cast(Dict[str, Any], result.to_dict())
+        # Build result dict with proper audio handling
+        result_dict = result.to_dict()
+
+        # Apply same audio data handling as synthesize_speech_v3
+        if result.success:
+            if result.audio_url:
+                # Best case: We have a URL, no need for raw data
+                self.logger.info("Returning sound effect URL: %s", result.audio_url)
+                if "audio_data" in result_dict:
+                    del result_dict["audio_data"]
+            elif result.audio_data and len(result.audio_data) < 50000:  # Only include if < 50KB
+                # Small audio: Include base64 for convenience
+                import base64
+
+                result_dict["audio_data"] = base64.b64encode(result.audio_data).decode("utf-8")
+                self.logger.info(
+                    "Returning small sound effect as base64 (%d bytes)",
+                    len(result.audio_data),
+                )
+            else:
+                # Large audio without URL: Don't include to avoid context pollution
+                if "audio_data" in result_dict:
+                    del result_dict["audio_data"]
+                self.logger.warning("Sound effect too large for base64, no URL available. Returning path only.")
+
+        return cast(Dict[str, Any], result_dict)
 
     async def generate_pr_audio_response(
         self,
@@ -435,6 +578,70 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         # Ultimate fallback
         return VOICE_IDS.get("Rachel", "21m00Tcm4TlvDq8ikWAM")  # Rachel voice as default
 
+    async def _resolve_voice_id(self, voice_input: Optional[str]) -> Optional[str]:
+        """
+        Resolve voice ID from various input formats using robust mapping
+
+        Args:
+            voice_input: Can be voice name, display name, ID, or None
+
+        Returns:
+            Resolved voice ID or None
+        """
+        if not voice_input:
+            return self._get_default_voice_id()
+
+        # First try the new robust mapping system
+        resolved_id: Optional[str] = get_voice_id(voice_input)
+        if resolved_id:
+            return resolved_id
+
+        # Then check our cache (includes API voices)
+        voice_lower = voice_input.lower().strip()
+        if voice_lower in self._voice_id_cache:
+            return self._voice_id_cache[voice_lower]  # type: ignore[no-any-return]
+
+        # Check if it's already a valid ID format (UUID-like)
+        if len(voice_input) > 10 and " " not in voice_input:
+            # Might be a voice ID we don't know about
+            self.logger.warning(f"Using unknown voice ID directly: {voice_input}")
+            return voice_input
+
+        # Log failure to resolve
+        self.logger.error(f"Could not resolve voice: {voice_input}")
+        return None
+
+    def _get_voice_name_from_id(self, voice_id: str) -> Optional[str]:
+        """Get voice name from ID for validation"""
+        from .voice_mapping import VOICE_ID_TO_NAME
+
+        # Check our mapping first
+        if voice_id in VOICE_ID_TO_NAME:
+            name: str = VOICE_ID_TO_NAME[voice_id]
+            return name
+
+        # Check cache reverse lookup
+        for name, vid in self._voice_id_cache.items():
+            if vid == voice_id:
+                return name
+
+        return None
+
+    async def _find_compatible_voice(self, model: VoiceModel) -> Optional[str]:
+        """Find a compatible voice for the given model"""
+        from .voice_mapping import VOICE_MAPPING
+
+        # Find first compatible voice
+        for voice_name, caps in VOICE_MAPPING.items():
+            if model.value in caps.recommended_models:
+                if model == VoiceModel.ELEVEN_V3 and not caps.supports_v3:
+                    continue
+                voice_id: str = caps.voice_id
+                return voice_id
+
+        # Fallback to Rachel
+        return "21m00Tcm4TlvDq8ikWAM"
+
     def _format_github_audio_comment(
         self, audio_url: str, duration: Optional[float] = None, tone: str = "professional"
     ) -> str:
@@ -445,6 +652,89 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         emoji = emoji_map.get(tone, "🔊")
 
         return f"{emoji} [Audio Review{duration_str}]({audio_url})"
+
+    async def select_optimal_voice(
+        self,
+        text: str,
+        content_type: Optional[str] = None,
+        prefer_gender: Optional[str] = None,
+        require_v3: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Intelligently select the best voice for given content
+
+        Args:
+            text: Text to analyze for voice selection
+            content_type: Type of content (github_review, documentation, etc.)
+            prefer_gender: Preferred gender (male/female/neutral)
+            require_v3: Only return v3-compatible voices
+
+        Returns:
+            Voice recommendation with details
+        """
+        from .voice_mapping import VOICE_MAPPING, ContentType as CT, get_voice_for_content
+
+        # Auto-detect content type if not provided
+        if not content_type:
+            text_lower = text.lower()
+            if "error" in text_lower or "failed" in text_lower:
+                content_type = "error_message"
+            elif "success" in text_lower or "completed" in text_lower:
+                content_type = "success_message"
+            elif "warning" in text_lower or "caution" in text_lower:
+                content_type = "warning_message"
+            elif any(tag in text for tag in ["[laughs]", "[excited]", "[happy]"]):
+                content_type = "casual_chat"
+            elif "```" in text or "function" in text or "class" in text:
+                content_type = "technical_explanation"
+            else:
+                content_type = "documentation"  # Default
+
+        # Convert string to enum
+        try:
+            content_enum = CT(content_type)
+        except ValueError:
+            content_enum = CT.DOCUMENTATION
+
+        # Get best voice
+        voice_name = get_voice_for_content(content_enum, prefer_gender, require_v3)
+        voice_caps = VOICE_MAPPING.get(voice_name)
+
+        if not voice_caps:
+            return {
+                "success": False,
+                "error": "Could not find suitable voice",
+            }
+
+        return {
+            "success": True,
+            "selected_voice": {
+                "name": voice_name,
+                "voice_id": voice_caps.voice_id,
+                "display_name": voice_caps.display_name,
+                "description": f"{voice_caps.gender} voice, {voice_caps.age_group}, {voice_caps.accents}",
+                "quality_rating": voice_caps.overall_quality.value,
+                "supports_v3": voice_caps.supports_v3,
+                "supports_audio_tags": voice_caps.supports_audio_tags,
+                "optimal_settings": get_optimal_settings(voice_name),
+            },
+            "reasoning": {
+                "content_type": content_type,
+                "best_for": list(voice_caps.best_for),
+                "notes": voice_caps.notes,
+            },
+            "alternatives": [
+                {
+                    "name": alt_name,
+                    "voice_id": alt_caps.voice_id,
+                    "display_name": alt_caps.display_name,
+                }
+                for alt_name, alt_caps in VOICE_MAPPING.items()
+                if alt_name != voice_name and content_enum in alt_caps.best_for and (not require_v3 or alt_caps.supports_v3)
+            ][
+                :3
+            ],  # Top 3 alternatives
+        }
 
     async def synthesize_natural_speech(
         self,
@@ -746,6 +1036,30 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                     "type": "object",
                     "properties": {
                         "text": {"type": "string", "description": "Your prompt to check"},
+                    },
+                    "required": ["text"],
+                },
+            },
+            "select_optimal_voice": {
+                "description": "Intelligently select the best voice for given content",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "text": {"type": "string", "description": "Text to analyze for voice selection"},
+                        "content_type": {
+                            "type": "string",
+                            "description": "Type of content (github_review, documentation, tutorial, etc.)",
+                        },
+                        "prefer_gender": {
+                            "type": "string",
+                            "enum": ["male", "female", "neutral"],
+                            "description": "Preferred voice gender",
+                        },
+                        "require_v3": {
+                            "type": "boolean",
+                            "default": True,
+                            "description": "Only return v3-compatible voices",
+                        },
                     },
                     "required": ["text"],
                 },

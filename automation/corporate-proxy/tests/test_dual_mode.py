@@ -16,8 +16,8 @@ sys.path.append(str(Path(__file__).parent.parent))
 from shared.services.text_tool_parser import TextToolParser  # noqa: E402  # pylint: disable=wrong-import-position
 
 
-def test_native_mode():
-    """Test native mode with tool-enabled endpoints"""
+def _test_native_mode():
+    """Test native mode with tool-enabled endpoints (helper, not pytest test)."""
     print("\n" + "=" * 60)
     print("Testing NATIVE Mode (tool-enabled endpoints)")
     print("=" * 60)
@@ -80,8 +80,8 @@ def test_native_mode():
     return False
 
 
-def test_text_mode():
-    """Test text mode with non-tool-enabled endpoints"""
+def _test_text_mode():
+    """Test text mode with non-tool-enabled endpoints (helper, not pytest test)."""
     print("\n" + "=" * 60)
     print("Testing TEXT Mode (parse from text)")
     print("=" * 60)
@@ -187,8 +187,8 @@ def test_text_mode():
     return False
 
 
-def test_mode_switching():
-    """Test switching between modes"""
+def _test_mode_switching():
+    """Test switching between modes (helper, not pytest test)."""
     print("\n" + "=" * 60)
     print("Testing Mode Switching")
     print("=" * 60)
@@ -218,7 +218,7 @@ def main():
     print("Make sure the proxy server is running with the appropriate TOOL_MODE setting.\n")
 
     # Test native mode
-    native_success = test_native_mode()
+    native_success = _test_native_mode()
 
     print("\n" + "-" * 60)
     print("To test text mode, restart the server with: TOOL_MODE=text python gemini_proxy_wrapper.py")
@@ -226,10 +226,10 @@ def main():
     print("-" * 60)
 
     # Test text mode (requires server restart with TOOL_MODE=text)
-    # text_success = test_text_mode()
+    # text_success = _test_text_mode()
 
     # Test mode info
-    mode_success = test_mode_switching()
+    mode_success = _test_mode_switching()
 
     print("\n" + "=" * 60)
     print("Test Results")

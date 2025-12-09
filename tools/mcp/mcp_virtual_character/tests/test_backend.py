@@ -7,9 +7,14 @@ import asyncio
 import pytest
 import pytest_asyncio
 
-from mcp_virtual_character.backends.base import BackendCapabilities
-from mcp_virtual_character.backends.mock import MockBackend
-from mcp_virtual_character.models.canonical import AudioData, CanonicalAnimationData, EmotionType, GestureType
+from tools.mcp.mcp_virtual_character.mcp_virtual_character.backends.base import BackendCapabilities
+from tools.mcp.mcp_virtual_character.mcp_virtual_character.backends.mock import MockBackend
+from tools.mcp.mcp_virtual_character.mcp_virtual_character.models.canonical import (
+    AudioData,
+    CanonicalAnimationData,
+    EmotionType,
+    GestureType,
+)
 
 
 class TestBackendCapabilities:
@@ -136,8 +141,9 @@ class TestMockBackend:
 
         # Check that greet behavior created appropriate animation
         anim = backend.animation_history[0]
-        assert anim.gesture == GestureType.WAVE
-        assert anim.emotion == EmotionType.HAPPY
+        # Compare by value since enum may come from different module paths
+        assert anim.gesture.value == GestureType.WAVE.value
+        assert anim.emotion.value == EmotionType.HAPPY.value
 
     @pytest.mark.asyncio
     async def test_event_handling(self, backend):

@@ -41,18 +41,18 @@ Test the VRChat backend directly without the MCP server:
 
 ```bash
 # Test from the same machine as VRChat
-python tools/mcp/virtual_character/scripts/test_vrchat.py --host 127.0.0.1
+python tools/mcp/mcp_virtual_character/scripts/test_vrchat.py --host 127.0.0.1
 
 # Test from remote machine
-python tools/mcp/virtual_character/scripts/test_vrchat.py --host 192.168.0.152
+python tools/mcp/mcp_virtual_character/scripts/test_vrchat.py --host 192.168.0.152
 
 # Run specific test
-python tools/mcp/virtual_character/scripts/test_vrchat.py --test emotions
-python tools/mcp/virtual_character/scripts/test_vrchat.py --test movement
-python tools/mcp/virtual_character/scripts/test_vrchat.py --test circle
+python tools/mcp/mcp_virtual_character/scripts/test_vrchat.py --test emotions
+python tools/mcp/mcp_virtual_character/scripts/test_vrchat.py --test movement
+python tools/mcp/mcp_virtual_character/scripts/test_vrchat.py --test circle
 
 # Interactive control mode
-python tools/mcp/virtual_character/scripts/test_vrchat.py --test interactive
+python tools/mcp/mcp_virtual_character/scripts/test_vrchat.py --test interactive
 ```
 
 ### MCP Server Test
@@ -64,12 +64,12 @@ Test through the MCP server interface:
 python -m mcp_virtual_character.server
 
 # In another terminal, run the MCP test
-python tools/mcp/virtual_character/scripts/test_vrchat_mcp.py \
+python tools/mcp/mcp_virtual_character/scripts/test_vrchat_mcp.py \
   --vrchat-host 192.168.0.152
 
 # Test specific features
-python tools/mcp/virtual_character/scripts/test_vrchat_mcp.py --test emotions
-python tools/mcp/virtual_character/scripts/test_vrchat_mcp.py --test movement
+python tools/mcp/mcp_virtual_character/scripts/test_vrchat_mcp.py --test emotions
+python tools/mcp/mcp_virtual_character/scripts/test_vrchat_mcp.py --test movement
 ```
 
 ## Avatar Parameters

@@ -95,19 +95,19 @@ async def send_continuous_movement(direction, duration=2.0):
 
 ### 1. Monitor OSC Output
 ```bash
-python tools/mcp/virtual_character/scripts/monitor_vrchat_osc.py
+python tools/mcp/mcp_virtual_character/scripts/monitor_vrchat_osc.py
 ```
 This monitors what VRChat is sending back, helping identify if input is being processed.
 
 ### 2. Test Movement Approaches
 ```bash
-python tools/mcp/virtual_character/scripts/test_movement_osc.py --host 192.168.0.152
+python tools/mcp/mcp_virtual_character/scripts/test_movement_osc.py --host 192.168.0.152
 ```
 Tests different movement command formats and approaches.
 
 ### 3. Test via MCP
 ```bash
-python tools/mcp/virtual_character/scripts/test_mcp_movement.py
+python tools/mcp/mcp_virtual_character/scripts/test_mcp_movement.py
 ```
 Tests movement through the full MCP stack.
 

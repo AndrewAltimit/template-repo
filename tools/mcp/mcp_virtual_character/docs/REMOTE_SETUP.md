@@ -51,7 +51,7 @@ cd template-repo
 git checkout vrc
 ```
 
-Or manually copy the `tools/mcp/virtual_character` directory to the Windows machine.
+Or manually copy the `tools/mcp/mcp_virtual_character` directory to the Windows machine.
 
 ### Step 3: Install Dependencies on Windows
 
@@ -89,7 +89,7 @@ start_server_windows.bat 8020 0.0.0.0
 python -m mcp_virtual_character.server --port 8020 --host 0.0.0.0 --mode http
 ```
 
-**Note:** Convenience scripts are also available in `tools\mcp\virtual_character\scripts\` that redirect to the main launchers.
+**Note:** Convenience scripts are also available in `tools\mcp\mcp_virtual_character\scripts\` that redirect to the main launchers.
 
 The server should start and display:
 ```
@@ -101,17 +101,17 @@ Server will be available at http://0.0.0.0:8020
 
 ```bash
 # Test the connection (replace with your Windows machine's IP)
-python tools/mcp/virtual_character/scripts/test_remote_server.py \
+python tools/mcp/mcp_virtual_character/scripts/test_remote_server.py \
   --server http://192.168.0.152:8020 \
   --test status
 
 # Run emotion test
-python tools/mcp/virtual_character/scripts/test_remote_server.py \
+python tools/mcp/mcp_virtual_character/scripts/test_remote_server.py \
   --server http://192.168.0.152:8020 \
   --test emotions
 
 # Run full test suite
-python tools/mcp/virtual_character/scripts/test_remote_server.py \
+python tools/mcp/mcp_virtual_character/scripts/test_remote_server.py \
   --server http://192.168.0.152:8020 \
   --test all
 ```
@@ -208,7 +208,7 @@ Emotions are mapped to appropriate gestures:
 1. Verify your avatar supports VRCEmote or gesture parameters
 2. Use discovery mode to find supported parameters:
    ```bash
-   python tools/mcp/virtual_character/scripts/test_basic_osc.py --mode discover
+   python tools/mcp/mcp_virtual_character/scripts/test_basic_osc.py --mode discover
    ```
 3. Check the VRChat console for OSC messages (if debug enabled)
 
@@ -223,7 +223,7 @@ Emotions are mapped to appropriate gestures:
 
 To automatically start the server when Windows boots:
 
-1. Create a shortcut to `automation\launchers\windows\vrchat\start_server_windows.bat`
+1. Create a shortcut to `automation\launchers\windows\virtual-character\start_server_windows.bat`
 2. Press `Win+R`, type `shell:startup`
 3. Copy the shortcut to the Startup folder
 
@@ -233,7 +233,7 @@ Or use Task Scheduler for more control:
 3. Trigger: When computer starts
 4. Action: Start a program
 5. Program: `powershell.exe`
-6. Arguments: `-ExecutionPolicy Bypass -File "C:\path\to\repo\automation\launchers\windows\vrchat\start_server_windows.ps1" -AutoStart`
+6. Arguments: `-ExecutionPolicy Bypass -File "C:\path\to\repo\automation\launchers\windows\virtual-character\start_server_windows.ps1" -AutoStart`
 
 ## Security Notes
 

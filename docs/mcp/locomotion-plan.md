@@ -244,6 +244,80 @@ class PluginManager:
         pass
 ```
 
+### 4. Storage Service (✅ IMPLEMENTED)
+
+Location: `storage_service/server.py` and `storage_client.py`
+
+Provides efficient cross-machine file transfer and context window optimization:
+
+```python
+class StorageService:
+    """Secure temporary storage with automatic cleanup."""
+
+    # Token validity window (5 minutes)
+    TOKEN_VALIDITY_SECONDS = 300
+    # Allow clock skew of 30 seconds
+    CLOCK_SKEW_SECONDS = 30
+
+    def __init__(self, storage_path: str = "/tmp/audio_storage", ttl_hours: float = 1.0):
+        self.storage_path = Path(storage_path)
+        self.storage_path.mkdir(parents=True, exist_ok=True)
+        self.ttl_seconds = ttl_hours * 3600
+        self.files: Dict[str, Dict] = {}
+        self.secret_key = os.getenv("STORAGE_SECRET_KEY", "")
+        self._used_nonces: Dict[str, float] = {}  # Replay attack prevention
+
+    def generate_token(self) -> str:
+        """Generate a time-limited authentication token with nonce."""
+        now = time.time()
+        payload = TokenPayload(
+            issued_at=now,
+            expires_at=now + self.TOKEN_VALIDITY_SECONDS,
+            nonce=secrets.token_urlsafe(16),
+        )
+        # HMAC-SHA256 signature for integrity
+        return f"{base64.b64encode(payload_json)}.{signature}"
+
+    async def store_file(self, content: bytes, filename: str) -> UploadResponse:
+        """Store file with TTL and return download URL."""
+        file_id = secrets.token_urlsafe(32)
+        # Returns: file_id, url, expires_at, size_bytes
+```
+
+#### Key Features:
+- **Auto-Upload**: Local files automatically uploaded when sending to remote servers
+- **Context Optimization**: File paths/URLs only - keeps base64 out of AI context
+- **Cross-Machine Transfer**: VM to host, container to remote, any topology
+- **Auto-Cleanup**: Files expire after configurable TTL (default 1 hour)
+- **Secure Transfer**: Time-limited tokens with nonce (replay attack prevention)
+- **Chunked Upload**: Support for large files via multipart upload
+
+#### Storage Client (for MCP tools):
+```python
+# storage_client.py
+from storage_client import StorageClient, upload_audio_and_get_url
+
+# Upload file and get URL for remote server
+client = StorageClient(base_url="http://192.168.0.152:8021")
+url = await client.upload_file("/tmp/speech.mp3")
+# Returns: http://192.168.0.152:8021/download/abc123...
+
+# Or use the helper function
+url = await upload_audio_and_get_url("/tmp/speech.mp3")
+```
+
+#### Integration with Audio Pipeline:
+```python
+# Seamless audio flow - seamless_audio.py
+from seamless_audio import play_audio_seamlessly
+
+# Automatically handles:
+# 1. Detects if audio is local file, URL, or base64
+# 2. Uploads to storage service if needed for remote server
+# 3. Sends URL-only to remote VRChat backend (context-efficient)
+await play_audio_seamlessly("/tmp/speech.mp3")
+```
+
 ## Backend Plugin Implementations
 
 ### 1. VRChat Remote Plugin (Windows GPU Required)
@@ -926,79 +1000,133 @@ python bridge_server.py --port 8021
 
 ## Implementation Phases
 
-### Phase 1: Core Middleware Foundation
-- [ ] Create `tools/mcp/virtual_character/` structure
-- [ ] Implement `BackendAdapter` interface
-- [ ] Build `PluginManager` with discovery system
-- [ ] Design `CanonicalDataModel` classes
-- [ ] Set up base MCP server extending `BaseMCPServer`
-- [ ] Implement plugin loading via entry points
+### Phase 1: Core Middleware Foundation (✅ COMPLETED)
+- [x] Create `tools/mcp/mcp_virtual_character/` structure
+- [x] Implement `BackendAdapter` interface (`backends/base.py`)
+- [x] Build backend registry (in-server, not separate PluginManager)
+- [x] Design `CanonicalDataModel` classes (`models/canonical.py`)
+- [x] Set up base MCP server extending `BaseMCPServer`
+- [x] Implement backend loading system with mock and vrchat_remote
 
-### Phase 2: First Backend - VRChat OSC
-- [ ] Implement `VRChatOSCAdapter` plugin
-- [ ] Create OSC communication layer
-- [ ] Build avatar configuration system
-- [ ] Implement video capture via screen recording
-- [ ] Test bidirectional communication
-- [ ] Create example avatar configs
+### Phase 2: First Backend - VRChat OSC (✅ COMPLETED)
+- [x] Implement `VRChatRemoteBackend` plugin (`backends/vrchat_remote.py`)
+- [x] Create OSC communication layer (python-osc integration)
+- [x] Build avatar parameter system
+- [x] Support VRCEmote system with `constants.py` centralized mappings
+- [x] Implement `MockBackend` for testing (`backends/mock.py`)
+- [x] Create test/demo scripts (`scripts/` directory)
 
-### Phase 3: Audio & Animation Pipeline
-- [ ] Integrate with `elevenlabs_speech` MCP
-- [ ] Implement viseme generation service
-- [ ] Build synchronization engine
-- [ ] Create timeline compositor
-- [ ] Add animation blending system
-- [ ] Test audio-visual synchronization
+### Phase 3: Audio & Animation Pipeline (✅ COMPLETED)
+- [x] Integrate with `elevenlabs_speech` MCP
+- [x] Support ElevenLabs expression tags
+- [x] Build event sequencing system (`sequence_handler.py`)
+- [x] Create storage service for efficient audio transfer (`storage_service/server.py`)
+- [x] Implement seamless audio flow (`seamless_audio.py`, `seamless_audio_v2.py`)
+- [x] Add emotion → animation mapping (in `constants.py`)
+- [x] Create comprehensive audio handler (`audio_handler.py`) with:
+  - Path validation and security (traverse attack prevention)
+  - Format detection (MP3, WAV, OGG, FLAC)
+  - Base64 and data URL support
+  - HTTP download with validation
+  - Async subprocess execution
+- [x] Add storage client for cross-machine transfer (`storage_client.py`)
+- [ ] Implement viseme generation service (future)
+- [ ] Add animation blending/interpolation system (future)
 
-### Phase 4: Additional Backends
+### Phase 4: Additional Backends (🔄 IN PROGRESS)
+- [x] Implement `MockBackend` for testing
 - [ ] Implement `BlenderAdapter` plugin
 - [ ] Create `UnityWebSocketAdapter`
-- [ ] Build backend switching mechanism
+- [x] Backend switching mechanism (via `set_backend` tool)
 - [ ] Test cross-platform compatibility
 - [ ] Document plugin development guide
 
-### Phase 5: Immersive Features
+### Phase 5: Immersive Features (📋 PLANNED)
 - [ ] Implement video feed processing
 - [ ] Build multi-agent coordinator
 - [ ] Add environmental awareness
 - [ ] Create agent-to-agent communication
 - [ ] Implement world event monitoring
 
-### Phase 6: Production Ready
-- [ ] Performance optimization
-- [ ] Error handling and resilience
-- [ ] Docker containerization
-- [ ] Comprehensive documentation
-- [ ] Integration test suite
-- [ ] Example applications
+### Phase 6: Production Ready (🔄 PARTIAL)
+- [x] Async/non-blocking operations throughout
+- [x] Error handling with graceful degradation
+- [ ] Docker containerization (docker-compose entry exists)
+- [x] Core documentation (README, ARCHITECTURE, AUDIO_SEQUENCING)
+- [x] Unit test suite (50 tests in `tests/test_virtual_character.py`)
+- [x] Integration test suite (4 test files in `mcp_virtual_character/tests/`)
+- [x] Example applications (`examples/elevenlabs_integration.py`, demo scripts)
 
 ## Testing Strategy
 
-### Unit Tests
+### Unit Tests (✅ IMPLEMENTED - 50 tests)
+
+Location: `tests/test_virtual_character.py`
+
 ```python
-# tests/test_virtual_character.py
-- Test viseme generation accuracy
-- Test OSC message formatting
-- Test timeline synchronization
-- Test avatar configuration parsing
+# Audio Validation (10 tests)
+- TestAudioValidator: Format detection (MP3/ID3, MP3/MPEG, WAV, OGG, FLAC)
+- TestAudioValidator: Size validation, HTML rejection, unknown format handling
+
+# Path Security (8 tests)
+- TestAudioPathValidator: Allowed/disallowed paths
+- TestAudioPathValidator: Path traversal attack prevention
+- TestAudioPathValidator: Symlink attack handling, null byte injection
+
+# Audio Processing (8 tests)
+- TestAudioHandler: Base64 processing, data URL parsing
+- TestAudioHandler: File path handling, error cases
+
+# Audio Playback (6 tests)
+- TestAudioPlayer: Command detection (ffplay/aplay)
+- TestAudioPlayer: Playback control, failure handling
+
+# Network Operations (6 tests)
+- TestAudioDownloader: HTTP download, error handling
+- TestAudioDownloader: Content-type validation
+
+# Sequence Control (12 tests)
+- TestSequenceHandler: Sequence creation, event addition
+- TestSequenceHandler: Playback control (play/pause/resume/stop)
 ```
 
-### Integration Tests
+### Integration Tests (✅ IMPLEMENTED)
+
+Location: `tools/mcp/mcp_virtual_character/tests/`
+
 ```python
-# tests/integration/test_vrchat_osc.py
-- Test end-to-end OSC communication
-- Test parameter updates
-- Test state synchronization
-- Test error recovery
+# test_backend.py - Backend adapter tests
+- TestBackendCapabilities: Capability reporting
+- TestMockBackend: Connection, animation, audio, video capture
+- TestMockBackend: Environment control, behavior execution, events
+
+# test_models.py - Canonical data model tests
+- TestVector3, TestQuaternion, TestTransform
+- TestCanonicalAnimationData: Emotions, gestures, visemes
+- TestAudioData, TestVideoFrame, TestEnvironmentState
+- TestAnimationSequence: Frame interpolation
+
+# test_sequence_handler.py - Sequence system tests
+- TestSequenceCreation, TestEventAddition
+- TestPlaybackControl, TestSequenceStatus
+- TestPanicReset, TestEventExecution
+- TestAsyncTaskHandling, TestEdgeCases
+
+# test_audio_handler.py - Audio security tests
+- TestAudioPathValidator: Security edge cases
+- TestAudioValidator: Format detection
+- TestAudioDownloader: Network handling
+- TestAudioHandler: Input processing
+- TestAudioSecurityEdgeCases: Symlink/null byte attacks
 ```
 
-### Performance Tests
+### Performance Tests (📋 PLANNED)
 ```python
-# tests/performance/test_latency.py
-- Measure TTS → Viseme latency
+# Future: tests/performance/test_latency.py
+- Measure TTS → Animation latency
 - Measure OSC round-trip time
-- Test concurrent avatar control
-- Benchmark timeline generation
+- Test concurrent backend operations
+- Benchmark sequence execution timing
 ```
 
 ## Configuration Examples
@@ -1486,8 +1614,61 @@ The vision is clear: AI agents that don't just control avatars, but truly inhabi
 
 ---
 
+## Implementation Status Summary
+
+### What's Built (Production Ready)
+
+| Component | Location | Status |
+|-----------|----------|--------|
+| **MCP Server** | `mcp_virtual_character/server.py` | ✅ Full HTTP + MCP support |
+| **Backend Adapter Interface** | `backends/base.py` | ✅ Complete abstraction |
+| **VRChat Remote Backend** | `backends/vrchat_remote.py` | ✅ OSC + VRCEmote |
+| **Mock Backend** | `backends/mock.py` | ✅ Full testing support |
+| **Canonical Data Models** | `models/canonical.py` | ✅ Complete type system |
+| **Constants & Mappings** | `constants.py` | ✅ Centralized config |
+| **Audio Handler** | `audio_handler.py` | ✅ Async, secure, multi-format |
+| **Sequence Handler** | `sequence_handler.py` | ✅ Event sequencing system |
+| **Storage Service** | `storage_service/server.py` | ✅ Cross-machine transfer |
+| **Storage Client** | `storage_client.py` | ✅ Auto-upload support |
+| **Unit Tests** | `tests/test_virtual_character.py` | ✅ 50 tests |
+| **Integration Tests** | `tests/test_*.py` | ✅ 4 test suites |
+
+### What's Planned (Future Work)
+
+| Component | Priority | Notes |
+|-----------|----------|-------|
+| Blender Backend | Medium | For high-quality animation |
+| Unity WebSocket Backend | Medium | Game engine integration |
+| Viseme Generation | Low | Lip-sync from audio |
+| Video Feed Processing | Low | Agent vision capabilities |
+| Multi-Agent Coordinator | Low | Shared virtual spaces |
+
+### Key Files Reference
+
+```
+tools/mcp/mcp_virtual_character/
+├── mcp_virtual_character/
+│   ├── server.py              # Main MCP server
+│   ├── audio_handler.py       # Audio processing (async)
+│   ├── sequence_handler.py    # Event sequencing
+│   ├── constants.py           # VRCEmote mappings
+│   ├── backends/
+│   │   ├── base.py            # Backend interface
+│   │   ├── mock.py            # Test backend
+│   │   └── vrchat_remote.py   # VRChat OSC backend
+│   └── models/
+│       └── canonical.py       # Data models
+├── storage_service/
+│   └── server.py              # Storage HTTP server
+├── storage_client.py          # Storage client
+├── seamless_audio.py          # Audio integration helper
+└── tests/                     # Integration tests
+```
+
+---
+
 *This plan is a living document and will be updated as development progresses and new requirements emerge.*
 
-*Version: 2.0 - Middleware Architecture*
-*Last Updated: 2024*
-*Status: Ready for Review*
+*Version: 2.1 - Implementation Status Update*
+*Last Updated: December 2025*
+*Status: Phase 3 Complete, Phase 4 In Progress*

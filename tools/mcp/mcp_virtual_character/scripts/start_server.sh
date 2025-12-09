@@ -4,7 +4,6 @@ set -e
 
 # Get the directory of this script
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$SCRIPT_DIR/../../../.."
 
 # Set environment variables
 export VIRTUAL_CHARACTER_PORT="${VIRTUAL_CHARACTER_PORT:-8020}"
@@ -21,8 +20,8 @@ echo "Host: $VIRTUAL_CHARACTER_HOST"
 echo "Port: $VIRTUAL_CHARACTER_PORT"
 echo "Default Backend: $DEFAULT_BACKEND"
 
-# Change to project root
-cd "$PROJECT_ROOT" || exit
+# Change to package directory
+cd "$SCRIPT_DIR/.." || exit
 
 # Run the server
-python -m tools.mcp.virtual_character.server
+python -m mcp_virtual_character.server

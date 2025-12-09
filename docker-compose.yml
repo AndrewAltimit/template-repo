@@ -772,6 +772,31 @@ services:
     profiles:
       - cache
 
+  # Virtual Character Storage Service
+  # Secure file exchange for audio, animations, and other assets
+  virtual-character-storage:
+    build:
+      context: ./tools/mcp/mcp_virtual_character/storage_service
+      dockerfile: Dockerfile
+    container_name: vc-storage
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    ports:
+      - "8021:8021"
+    volumes:
+      - audio-storage-data:/tmp/audio_storage
+    environment:
+      - PYTHONUNBUFFERED=1
+      - STORAGE_PORT=8021
+      - STORAGE_HOST=0.0.0.0
+      - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
+      - STORAGE_BASE_URL=${STORAGE_BASE_URL:-http://localhost:8021}
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    profiles:
+      - services
+      - virtual-character
+
   # Corporate Proxy Services
   # Crush Corporate Proxy
   crush-proxy:
@@ -875,9 +900,8 @@ services:
       dockerfile: docker/mcp-agentcore-memory.Dockerfile
     container_name: mcp-agentcore-memory
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
-    depends_on:
-      chromadb:
-        condition: service_healthy
+    # Note: ChromaDB dependency is optional - only needed when MEMORY_PROVIDER=chromadb
+    # Start chromadb first with: docker-compose --profile memory-chromadb up -d chromadb
     ports:
       - "8023:8023"
     volumes:
@@ -979,6 +1003,8 @@ volumes:
   ai-toolkit-outputs: {}
   ai-toolkit-configs: {}
   ai-toolkit-logs: {}
+  # Virtual character storage
+  audio-storage-data: {}
   # Sleeper Detection Evaluation volumes
   sleeper-models-cache: {}
   sleeper-eval-db: {}

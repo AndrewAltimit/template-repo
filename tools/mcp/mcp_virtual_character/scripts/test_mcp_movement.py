@@ -3,13 +3,17 @@
 
 import asyncio
 import json
+import os
 
 import aiohttp
+
+# Server URL from environment or localhost
+SERVER_URL = os.getenv("VIRTUAL_CHARACTER_SERVER", "http://localhost:8020")
 
 
 async def test_movement():
     """Test movement commands through MCP."""
-    url = "http://192.168.0.152:8020/messages"
+    url = f"{SERVER_URL}/messages"
 
     # Test different movement approaches
     test_cases = [

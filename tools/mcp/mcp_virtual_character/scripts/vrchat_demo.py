@@ -12,11 +12,11 @@ from pathlib import Path
 import sys
 
 # Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
-from tools.mcp.virtual_character.backends.vrchat_remote import VRChatRemoteBackend  # noqa: E402
-from tools.mcp.virtual_character.models.canonical import (  # noqa: E402
+from mcp_virtual_character.backends.vrchat_remote import VRChatRemoteBackend  # noqa: E402
+from mcp_virtual_character.models.canonical import (  # noqa: E402
     CanonicalAnimationData,
     EmotionType,
     GestureType,

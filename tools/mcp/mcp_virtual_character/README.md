@@ -1,15 +1,41 @@
 # Virtual Character MCP Server
 
-A Model Context Protocol (MCP) server that provides a unified middleware layer for controlling virtual characters across multiple backend platforms (VRChat, Blender, Unity, etc.).
+A Model Context Protocol (MCP) server that provides a unified middleware layer for controlling virtual characters across multiple backend platforms (VRChat, Blender, Unity, etc.), with comprehensive audio support and event sequencing for creating synchronized multimedia performances.
 
 ## Features
 
+### Core Capabilities
 - **Plugin-Based Architecture**: Easily extensible with new backend adapters
 - **Canonical Data Model**: Universal animation format that all backends can translate
 - **Multiple Backends**: Support for VRChat (remote), Blender, Unity, and more
 - **Video Capture**: Get visual feedback from the agent's perspective
 - **Bidirectional Communication**: Receive state updates from virtual environments
 - **High-Level Behaviors**: Execute complex behaviors with simple commands
+
+### 🎵 Audio Support (NEW)
+- **Multi-Format Support**: Base64 audio transmission (MP3, WAV, Opus, PCM)
+- **ElevenLabs Integration**: Full support for expression tags (`[laughs]`, `[whisper]`, etc.)
+- **Lip-Sync Animation**: Viseme data generation for realistic mouth movements
+- **Audio Streaming**: Chunk-based transmission for large audio files
+- **Expression Mapping**: Automatic emotion detection from audio tags
+
+### 📦 Storage Service (CRITICAL FOR AI AGENTS)
+- **Context Optimization**: Prevents base64 audio from polluting AI context windows
+- **Auto-Upload**: File paths are automatically uploaded to storage when sending to remote servers
+- **Cross-Machine Transfer**: Seamless file exchange between VM, containers, and hosts
+- **Secure Transfer**: Token-based authentication with HMAC-SHA256
+- **Auto-Cleanup**: Files expire after configurable TTL (default 1 hour)
+- **Universal Support**: Audio, animations, textures, configurations
+
+**IMPORTANT**: The storage service is essential for efficient AI agent operation. Without it, audio data will be sent as base64, consuming valuable context tokens.
+
+### 🎭 Event Sequencing (NEW)
+- **Complex Sequences**: Build performances with synchronized audio and animation
+- **Event Types**: Animation, audio, expression, movement, wait, and parallel events
+- **Playback Control**: Play, pause, resume, and stop sequences on demand
+- **Loop Support**: Create repeating sequences for ambient behaviors
+- **Parallel Events**: Execute multiple actions simultaneously
+- **Priority Management**: Interrupt handling for important events
 
 ## Architecture
 
@@ -38,16 +64,35 @@ AI Agent → MCP Server → Plugin Manager → Backend Adapter → Virtual Platf
 pip install -r requirements.txt
 ```
 
-2. Configure the server:
+2. Configure environment variables (**CRITICAL STEP**):
 ```bash
-cp config/server_config.json.example config/server_config.json
-# Edit config/server_config.json with your settings
+# Copy example environment file
+cp .env.example .env
+
+# Generate a secure storage key (REQUIRED for efficient operation)
+python -c "import secrets; print(secrets.token_hex(32))"
+
+# Add to .env file:
+# STORAGE_SECRET_KEY=<your_generated_key>
+# STORAGE_BASE_URL=http://192.168.0.152:8021  # Or your storage server URL
 ```
 
-3. For VRChat remote setup:
+**⚠️ IMPORTANT**: Both local and remote machines must have the same `STORAGE_SECRET_KEY` in their .env files for authentication to work.
+
+3. Start the storage service (recommended):
+```bash
+# Using Docker (preferred)
+docker-compose up virtual-character-storage
+
+# Or run directly
+python tools/mcp/mcp_virtual_character/storage_service/server.py
+```
+
+4. For VRChat remote setup:
    - Set up Windows bridge server on GPU machine
    - Configure OBS Studio with WebSocket plugin
    - Set environment variables for remote host
+   - Use Windows launchers in `automation/launchers/windows/virtual-character/`
 
 ## Usage
 
@@ -74,27 +119,183 @@ python scripts/test_server.py
 
 ### Available MCP Tools
 
+#### Core Animation & Control
 | Tool | Description |
 |------|-------------|
 | `set_backend` | Switch to a different backend system |
-| `send_animation` | Send animation data (emotion, gesture, blend shapes) |
-| `send_audio` | Send audio data with optional text |
-| `capture_view` | Capture current view from agent perspective |
-| `receive_state` | Get current state from virtual environment |
+| `send_animation` | Send animation data (emotion, gesture, movement parameters) |
 | `execute_behavior` | Execute high-level behavior (greet, dance, sit, etc.) |
-| `change_environment` | Change virtual environment/background |
+| `reset` | Reset all states - clear emotes and stop all movement |
 | `list_backends` | List available backend plugins |
 | `get_backend_status` | Get status of current backend |
 
+#### Audio & Speech (NEW)
+| Tool | Description |
+|------|-------------|
+| `send_audio` | Send audio with optional lip-sync metadata and expression tags |
+
+#### Event Sequencing (NEW)
+| Tool | Description |
+|------|-------------|
+| `create_sequence` | Create a new event sequence for coordinated performances |
+| `add_sequence_event` | Add events to the current sequence |
+| `play_sequence` | Play the current or specified sequence |
+| `pause_sequence` | Pause the currently playing sequence |
+| `resume_sequence` | Resume a paused sequence |
+| `stop_sequence` | Stop the currently playing sequence |
+| `get_sequence_status` | Get status of current sequence playback |
+
+### 🤖 AI Agent Usage Guidelines
+
+**CRITICAL**: When using this server with Claude, GPT, or other AI agents via MCP, follow these guidelines to avoid context pollution:
+
+#### ✅ DO: Use File Paths
+```python
+# Good - File path will be auto-uploaded to storage
+mcp__virtual-character__play_audio(
+    audio_data="outputs/elevenlabs_speech/2025-09-17/speech.mp3"
+)
+```
+
+#### ✅ DO: Use Storage URLs
+```python
+# Good - Direct storage URL, no upload needed
+mcp__virtual-character__play_audio(
+    audio_data="http://192.168.0.152:8021/download/abc123"
+)
+```
+
+#### ❌ DON'T: Use Base64 Data
+```python
+# Bad - Pollutes context window with large base64 string
+import base64
+with open('audio.mp3', 'rb') as f:
+    audio_base64 = base64.b64encode(f.read()).decode()
+mcp__virtual-character__play_audio(audio_data=audio_base64)  # AVOID!
+```
+
+The server automatically detects file paths and uploads them to the storage service, keeping your AI context clean and efficient.
+
 ### Example Usage
 
+#### Basic Animation Control
 ```python
 import aiohttp
 import asyncio
 
 async def control_character():
     async with aiohttp.ClientSession() as session:
-        # Set backend to mock for testing
+        # Set backend to VRChat
+        await session.post(
+            "http://localhost:8020/mcp/execute",
+            json={
+                "tool": "set_backend",
+                "params": {
+                    "backend": "vrchat_remote",
+                    "config": {"remote_host": "192.168.1.100"}
+                }
+            }
+        )
+
+        # Send animation with emotion
+        await session.post(
+            "http://localhost:8020/mcp/execute",
+            json={
+                "tool": "send_animation",
+                "params": {
+                    "emotion": "happy",
+                    "gesture": "wave",
+                    "emotion_intensity": 0.8
+                }
+            }
+        )
+```
+
+#### Audio with ElevenLabs Integration
+```python
+# Generate speech with ElevenLabs
+from tools.mcp.elevenlabs_speech.client import ElevenLabsClient
+
+async def speak_with_emotion():
+    # Generate audio with expression tags
+    elevenlabs = ElevenLabsClient()
+    audio_data = await elevenlabs.synthesize(
+        "Hello! [laughs] It's wonderful to meet you [whisper] finally.",
+        voice="Sarah"
+    )
+
+    # Send to virtual character with expression tags
+    await session.post(
+        "http://localhost:8020/mcp/execute",
+        json={
+            "tool": "send_audio",
+            "params": {
+                "audio_data": audio_data["base64"],
+                "expression_tags": ["laughs", "whisper"],
+                "text": audio_data["text"]
+            }
+        }
+    )
+
+#### 🚀 Seamless Audio Flow (Recommended)
+```python
+# Automatically handles storage upload for optimal performance
+from mcp_virtual_character.seamless_audio import play_audio_seamlessly
+
+async def efficient_tts_playback():
+    # Generate audio with ElevenLabs
+    audio_path = await elevenlabs.synthesize_to_file(
+        "Hello world! This is a test of seamless audio.",
+        output_path="/tmp/speech.mp3"
+    )
+
+    # Play on virtual character
+    # Automatically:
+    # - Detects local file
+    # - Uploads to storage service
+    # - Sends only URL to remote server
+    # - Keeps context window clean
+    result = await play_audio_seamlessly(
+        audio_path,
+        character_server="http://192.168.0.152:8020",
+        text="Hello world! This is a test of seamless audio."
+    )
+
+    print(f"Playback {'successful' if result['success'] else 'failed'}")
+
+# Even simpler with MCP integration
+async def mcp_seamless_audio():
+    # The MCP tool automatically uses storage when available
+    await mcp_client.call_tool(
+        "play_audio",
+        audio_data="/tmp/elevenlabs_audio/speech.mp3",  # Just pass the path!
+        text="The text for lip-sync"
+    )
+    # The server detects it's a local file and handles storage upload
+```
+
+#### Creating Complex Sequences
+```python
+# Build a complete performance sequence
+async def create_performance():
+    # Create sequence
+    await session.post(
+        "http://localhost:8020/mcp/execute",
+        json={
+            "tool": "create_sequence",
+            "params": {"name": "greeting_performance"}
+        }
+    )
+
+    # Add synchronized events
+    events = [
+        {"event_type": "expression", "expression": "happy", "timestamp": 0},
+        {"event_type": "animation", "gesture": "wave", "timestamp": 0.5},
+        {"event_type": "audio", "audio_data": audio_base64, "timestamp": 1.0},
+        {"event_type": "movement", "move_forward": 0.5, "timestamp": 3.0}
+    ]
+
+    for event in events:
         await session.post(
             "http://localhost:8020/mcp/execute",
             json={
@@ -131,6 +332,14 @@ async def control_character():
 
 asyncio.run(control_character())
 ```
+
+## Documentation
+
+- [Remote Setup Guide](docs/REMOTE_SETUP.md) - Running on Windows with VRChat
+- [VRChat Backend Details](docs/VRCHAT_BACKEND.md) - OSC protocol and avatar control
+- [Audio Sequencing Guide](docs/AUDIO_SEQUENCING.md) - Creating synchronized performances
+- [VRChat Audio Setup](docs/VRCHAT_AUDIO_SETUP.md) - Audio routing requirements for VRChat
+- [VoiceMeeter Setup Guide](docs/VOICEMEETER_SETUP.md) - Comprehensive VoiceMeeter configuration for AI voice
 
 ## Backend Adapters
 
@@ -245,19 +454,22 @@ pytest tests/test_plugin_manager.py -v
 ### Project Structure
 
 ```
-virtual_character/
-├── backends/           # Backend adapter implementations
-│   ├── base.py        # Base adapter interface
-│   ├── mock.py        # Mock backend for testing
-│   └── vrchat_remote.py  # VRChat remote backend
-├── models/            # Data models
-│   └── canonical.py   # Universal data formats
-├── server/            # Server implementation
-│   ├── server.py      # Main MCP server
-│   └── plugin_manager.py  # Plugin discovery and management
-├── config/            # Configuration files
-├── scripts/           # Utility scripts
-└── tests/             # Unit tests
+mcp_virtual_character/
+├── mcp_virtual_character/  # Main package
+│   ├── backends/           # Backend adapter implementations
+│   │   ├── base.py         # Base adapter interface
+│   │   ├── mock.py         # Mock backend for testing
+│   │   └── vrchat_remote.py  # VRChat remote backend
+│   ├── models/             # Data models
+│   │   └── canonical.py    # Universal data formats
+│   ├── server.py           # Main MCP server
+│   ├── audio_handler.py    # Audio processing and playback
+│   └── sequence_handler.py # Event sequence management
+├── storage_service/        # Audio/file storage service
+│   └── server.py           # Storage API server
+├── scripts/                # Utility scripts
+├── tests/                  # Unit tests
+└── README.md
 ```
 
 ### Contributing

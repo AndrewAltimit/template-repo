@@ -4,7 +4,7 @@ Unit tests for canonical data models.
 
 import numpy as np
 
-from mcp_virtual_character.models.canonical import (
+from tools.mcp.mcp_virtual_character.mcp_virtual_character.models.canonical import (
     AnimationSequence,
     AudioData,
     CanonicalAnimationData,
@@ -250,15 +250,29 @@ class TestAnimationSequence:
         assert frame is not None
         assert frame.timestamp == 1.0
 
-        # Test interpolation (returns previous frame for now)
+        # Test interpolation - now returns interpolated frame at target time
         frame = seq.get_frame_at_time(0.5)
         assert frame is not None
-        assert frame.timestamp == 0.0
+        assert frame.timestamp == 0.5  # Interpolated timestamp
 
         # Test beyond last frame
         frame = seq.get_frame_at_time(3.0)
         assert frame is not None
         assert frame.timestamp == 2.0
+
+    def test_interpolation_blend_shapes(self):
+        """Test blend shape interpolation between keyframes."""
+        keyframes = [
+            CanonicalAnimationData(timestamp=0.0, blend_shapes={"smile": 0.0}),
+            CanonicalAnimationData(timestamp=1.0, blend_shapes={"smile": 1.0}),
+        ]
+
+        seq = AnimationSequence(name="test", duration=1.0, keyframes=keyframes)
+
+        # At midpoint, should be interpolated to 0.5
+        frame = seq.get_frame_at_time(0.5)
+        assert frame is not None
+        assert abs(frame.blend_shapes.get("smile", 0) - 0.5) < 0.01
 
     def test_empty_sequence(self):
         """Test empty animation sequence."""

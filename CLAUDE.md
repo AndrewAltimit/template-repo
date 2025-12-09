@@ -404,18 +404,29 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - See `tools/mcp/mcp_blender/docs/README.md` for documentation
 
 13. **Virtual Character MCP Server** (`tools/mcp/mcp_virtual_character/`): STDIO (local) or HTTP port 8020
-   - **AI Agent Embodiment Middleware**:
-     - `connect_backend` - Connect to virtual world platforms
-     - `send_animation` - Send canonical animation data
-     - `send_audio` - Audio with lip-sync metadata
-     - `get_state` - Retrieve environment state
-     - `capture_video` - Get agent's visual perspective
-     - `list_backends` - Available backend plugins
-     - `switch_backend` - Hot-swap between platforms
+   - **AI Agent Embodiment & Multimedia Performance Platform**:
+     - `set_backend` - Connect to virtual world platforms (VRChat, Blender, Unity)
+     - `send_animation` - Send animation data with emotions and gestures
+     - `send_audio` - Stream audio with ElevenLabs expression tags and lip-sync
+     - `execute_behavior` - High-level behaviors (greet, dance, sit, etc.)
+     - `reset` - Reset all states to neutral idle
+   - **Event Sequencing System**:
+     - `create_sequence` - Build complex multimedia performances
+     - `add_sequence_event` - Add synchronized audio/animation events
+     - `play_sequence`, `pause_sequence`, `resume_sequence`, `stop_sequence`
+     - Support for parallel events and loop behaviors
+   - **Audio Integration**:
+     - Full ElevenLabs TTS integration with expression tags
+     - Viseme data for realistic lip-sync animation
+     - Multi-format audio support (MP3, WAV, Opus, PCM)
+     - Emotion mapping from audio tags to character expressions
+     - **Context-Efficient Audio Transfer**: `play_audio` accepts file paths and converts to base64 internally, keeping large audio data out of Claude's context window
    - Plugin-based architecture for extensibility
    - Supports VRChat (OSC), Blender, Unity (WebSocket)
    - Remote Windows support for VRChat backend
-   - See `tools/mcp/mcp_virtual_character/README.md` for documentation
+   - See `tools/mcp/mcp_virtual_character/README.md` for complete documentation
+   - See `tools/mcp/mcp_virtual_character/docs/AUDIO_SEQUENCING.md` for audio guide
+   - See `tools/mcp/mcp_virtual_character/examples/elevenlabs_integration.py` for examples
 
 14. **Shared Core Components** (`tools/mcp/mcp_core/`):
    - `BaseMCPServer` - Base class for all MCP servers
@@ -459,6 +470,13 @@ The repository includes comprehensive CI/CD workflows:
    - All GitHub Actions run on self-hosted runners
    - No cloud costs or external dependencies
    - Full control over build environment
+
+4. **Container Output Paths**:
+   - **IMPORTANT**: Containerized MCP tools save outputs to the `outputs/` directory on the host, not container paths
+   - Container paths like `/tmp/elevenlabs_audio/` actually write to `outputs/elevenlabs_speech/` on the host
+   - This allows host access to container-generated files without volume mounting `/tmp`
+   - Example: ElevenLabs audio files appear in `outputs/elevenlabs_speech/YYYY-MM-DD/`
+   - When MCP tools return paths like `/tmp/elevenlabs_audio/speech.mp3`, check `outputs/` for the actual files
 
 ### Key Integration Points
 
@@ -638,6 +656,7 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/integrations/ai-services/opencode-crush.md` - **Comprehensive OpenCode & Crush documentation** (MCP calls, CLI usage, git workflows)
 - `docs/integrations/creative-tools/ai-toolkit-comfyui.md` - LoRA training and image generation
 - `docs/integrations/creative-tools/lora-transfer.md` - LoRA model transfer between services
+- `docs/integrations/creative-tools/virtual-character-elevenlabs.md` - **Virtual Character + ElevenLabs Integration** (expressive AI agents)
 - `docs/integrations/ai-services/gemini-setup.md` - Gemini CLI setup and configuration
 - `docs/agents/codex-setup.md` - Codex agent setup and configuration
 
@@ -669,3 +688,71 @@ The Gaea2 MCP server provides comprehensive terrain generation capabilities:
 - `tools/mcp/mcp_gaea2/docs/README.md` - Main documentation
 - `tools/mcp/mcp_gaea2/docs/GAEA2_API_REFERENCE.md` - API reference
 - `tools/mcp/mcp_gaea2/docs/GAEA2_EXAMPLES.md` - Usage examples
+
+## Virtual Character System
+
+The Virtual Character system provides AI agent embodiment across multiple platforms (VRChat, Unity, Blender):
+
+### Storage Service for Seamless Audio
+
+**CRITICAL FOR CLAUDE/AI AGENTS**: Always use file paths or storage URLs, never base64 audio data!
+
+- **Auto-Upload**: Files automatically uploaded when sending to remote servers
+- **Context Optimization**: Keeps large binary data out of AI context windows
+- **Cross-Machine Transfer**: VM to host, containers to remote servers
+- **Start Service**: `docker-compose up virtual-character-storage`
+
+### Efficient Audio Handling (IMPORTANT)
+
+When sending audio to the Virtual Character:
+
+1. **ALWAYS USE FILE PATHS** (auto-uploaded to storage):
+   ```python
+   mcp__virtual-character__play_audio(
+       audio_data="outputs/elevenlabs_speech/2025-09-17/speech.mp3",  # File path
+       format="mp3"
+   )
+   ```
+
+2. **USE STORAGE URLS** (most efficient):
+   ```python
+   mcp__virtual-character__play_audio(
+       audio_data="http://192.168.0.152:8021/download/abc123",  # Storage URL
+       format="mp3"
+   )
+   ```
+
+3. **NEVER USE BASE64** (pollutes context window):
+   ```python
+   # BAD - Don't read files and convert to base64!
+   with open('audio.mp3', 'rb') as f:
+       audio_base64 = base64.b64encode(f.read()).decode()
+   mcp__virtual-character__play_audio(audio_data=audio_base64)  # AVOID!
+   ```
+
+### Storage Service Setup
+
+1. **Generate secure key** (one-time setup):
+   ```bash
+   python -c "import secrets; print(secrets.token_hex(32))"
+   ```
+
+2. **Update .env file**:
+   ```
+   STORAGE_SECRET_KEY=<your_generated_key>
+   STORAGE_BASE_URL=http://192.168.0.152:8021
+   ```
+
+3. **Ensure remote server has same key** in its .env file
+
+### Seamless Audio Flow
+```python
+# Generate audio with ElevenLabs -> auto-upload to storage -> play on character
+from mcp_virtual_character.seamless_audio import play_audio_seamlessly
+await play_audio_seamlessly("/tmp/speech.mp3")  # Handles everything automatically!
+```
+
+**Key Documentation:**
+- `tools/mcp/mcp_virtual_character/ARCHITECTURE.md` - Complete system architecture
+- `tools/mcp/mcp_virtual_character/README.md` - Setup and usage guide
+- `docs/mcp/locomotion-plan.md` - Implementation roadmap and status

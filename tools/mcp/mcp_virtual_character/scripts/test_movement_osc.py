@@ -2,10 +2,14 @@
 """Test VRChat OSC movement commands with different approaches."""
 
 import argparse
+import os
 import sys
 import time
 
 from pythonosc import udp_client
+
+# Default host from environment
+DEFAULT_VRCHAT_HOST = os.getenv("VRCHAT_HOST", "127.0.0.1")
 
 
 def test_movement_approaches(host: str, port: int = 9000):
@@ -129,8 +133,8 @@ def main():
     parser = argparse.ArgumentParser(description="Test VRChat OSC movement")
     parser.add_argument(
         "--host",
-        default="192.168.0.152",
-        help="VRChat host IP (default: 192.168.0.152)",
+        default=DEFAULT_VRCHAT_HOST,
+        help=f"VRChat host IP (default: {DEFAULT_VRCHAT_HOST}, set via VRCHAT_HOST env var)",
     )
     parser.add_argument(
         "--port",

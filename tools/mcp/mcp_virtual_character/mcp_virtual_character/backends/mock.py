@@ -7,6 +7,7 @@ requiring actual external connections.
 
 import asyncio
 from io import BytesIO
+import logging
 import time
 from typing import Any, Dict, List, Optional
 
@@ -25,6 +26,8 @@ from mcp_virtual_character.models.canonical import (
 )
 
 from .base import BackendAdapter
+
+logger = logging.getLogger(__name__)
 
 
 class MockBackend(BackendAdapter):
@@ -208,7 +211,7 @@ class MockBackend(BackendAdapter):
             for i in range(random.randint(1, 5))
         ]
 
-        return self.environment_state  # type: ignore
+        return self.environment_state
 
     async def reset_all(self) -> bool:
         """
@@ -373,7 +376,7 @@ class MockBackend(BackendAdapter):
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                print(f"Error in event simulation: {e}")
+                logger.error("Error in event simulation: %s", e)
 
     async def get_statistics(self) -> Dict[str, Any]:
         """Get mock backend statistics."""
