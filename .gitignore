@@ -200,7 +200,6 @@ node_modules/
 
 # ComfyUI Resources (e.g. models)
 /comfyui/
-reference.png
 
 # Database files
 *.db
@@ -231,3 +230,4 @@ reference.png
 wandb/
 mlruns/
 runs/
+logs/
