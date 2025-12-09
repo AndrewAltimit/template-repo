@@ -7,6 +7,7 @@ compatibility with the middleware.
 
 from abc import ABC, abstractmethod
 import asyncio
+import logging
 from typing import Any, Callable, Dict, List, Optional
 
 from mcp_virtual_character.models.canonical import (
@@ -16,6 +17,8 @@ from mcp_virtual_character.models.canonical import (
     EnvironmentState,
     VideoFrame,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class BackendCapabilities:
@@ -241,7 +244,7 @@ class BackendAdapter(ABC):
                 try:
                     await handler(data)
                 except Exception as e:
-                    print(f"Error in event handler for {event_type}: {e}")
+                    logger.error("Error in event handler for %s: %s", event_type, e)
 
     async def health_check(self) -> Dict[str, Any]:
         """

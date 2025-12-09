@@ -25,6 +25,8 @@ from .models.canonical import (
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["SequenceHandler"]
+
 
 class SequenceHandler:
     """Handles event sequence creation, management, and playback."""
@@ -68,7 +70,7 @@ class SequenceHandler:
             return {"success": True, "message": f"Created sequence: {name}"}
 
         except Exception as e:
-            logger.error(f"Error creating sequence: {e}")
+            logger.error("Error creating sequence: %s", e)
             return {"success": False, "error": str(e)}
 
     async def add_event(
@@ -126,7 +128,7 @@ class SequenceHandler:
             return {"success": True, "message": f"Added {event_type} event at {timestamp}s"}
 
         except Exception as e:
-            logger.error(f"Error adding event: {e}")
+            logger.error("Error adding event: %s", e)
             return {"success": False, "error": str(e)}
 
     async def play_sequence(
@@ -157,7 +159,7 @@ class SequenceHandler:
             return {"success": True, "message": f"Started playing sequence: {self.current_sequence.name}"}
 
         except Exception as e:
-            logger.error(f"Error playing sequence: {e}")
+            logger.error("Error playing sequence: %s", e)
             return {"success": False, "error": str(e)}
 
     async def pause_sequence(self) -> Dict[str, Any]:
@@ -227,7 +229,7 @@ class SequenceHandler:
             return {"success": True, "message": "Emergency reset completed"}
 
         except Exception as e:
-            logger.error(f"Error during panic reset: {e}")
+            logger.error("Error during panic reset: %s", e)
             return {"success": False, "error": str(e)}
 
     async def _cancel_running_sequence(self):
@@ -274,7 +276,7 @@ class SequenceHandler:
                 try:
                     await self._execute_event(event, backend)
                 except Exception as e:
-                    logger.error(f"Error executing event at {event.timestamp}s: {e}")
+                    logger.error("Error executing event at %ss: %s", event.timestamp, e)
                     # Continue with next event
 
             # Wait for remaining duration
@@ -326,7 +328,7 @@ class SequenceHandler:
                 await asyncio.gather(*tasks, return_exceptions=True)
 
         except Exception as e:
-            logger.error(f"Error executing event: {e}")
+            logger.error("Error executing event: %s", e)
             raise
 
     async def _reset_avatar_state(self, backend: BackendAdapter) -> None:
@@ -352,14 +354,14 @@ class SequenceHandler:
             await asyncio.sleep(0.1)
 
         except Exception as e:
-            logger.error(f"Error resetting avatar state: {e}")
+            logger.error("Error resetting avatar state: %s", e)
 
     async def _create_event_from_dict(self, event_dict: Dict[str, Any]) -> Optional[SequenceEvent]:
         """Create a SequenceEvent from dictionary parameters."""
         try:
             event_type_str = event_dict.get("event_type", "").upper()
             if not event_type_str or event_type_str not in EventType.__members__:
-                logger.error(f"Invalid event_type: {event_type_str}")
+                logger.error("Invalid event_type: %s", event_type_str)
                 return None
 
             event = SequenceEvent(
@@ -386,7 +388,7 @@ class SequenceHandler:
             return event
 
         except Exception as e:
-            logger.error(f"Error creating event from dict: {e}")
+            logger.error("Error creating event from dict: %s", e)
             return None
 
     async def _populate_animation_event(self, event: SequenceEvent, params: Dict[str, Any]) -> None:

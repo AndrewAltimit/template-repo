@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from mcp_virtual_character.audio_handler import (
+from tools.mcp.mcp_virtual_character.mcp_virtual_character.audio_handler import (
     AudioDownloader,
     AudioHandler,
     AudioPathValidator,

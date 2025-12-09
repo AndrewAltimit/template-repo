@@ -6,12 +6,17 @@ Handles authentication and file upload/download.
 
 import hashlib
 import hmac
+import logging
 import os
 from pathlib import Path
 from typing import Dict, Optional
 
 import requests
 from requests.exceptions import RequestException
+
+logger = logging.getLogger(__name__)
+
+__all__ = ["StorageClient", "upload_audio_and_get_url"]
 
 
 class StorageClient:
@@ -59,7 +64,7 @@ class StorageClient:
         """
         path = Path(file_path)
         if not path.exists():
-            print(f"Error: File not found: {file_path}")
+            logger.error("File not found: %s", file_path)
             return None
 
         try:
@@ -72,11 +77,11 @@ class StorageClient:
                 url = data.get("url")
                 return url if isinstance(url, str) else None
             else:
-                print(f"Upload failed: {response.status_code} - {response.text}")
+                logger.error("Upload failed: %s - %s", response.status_code, response.text)
                 return None
 
         except RequestException as e:
-            print(f"Upload error: {e}")
+            logger.error("Upload error: %s", e)
             return None
 
     def upload_base64(self, audio_base64: str, filename: str = "audio.mp3") -> Optional[str]:
@@ -99,11 +104,11 @@ class StorageClient:
                 url = data.get("url")
                 return url if isinstance(url, str) else None
             else:
-                print(f"Upload failed: {response.status_code} - {response.text}")
+                logger.error("Upload failed: %s - %s", response.status_code, response.text)
                 return None
 
         except RequestException as e:
-            print(f"Upload error: {e}")
+            logger.error("Upload error: %s", e)
             return None
 
     def download_file(self, file_id: str, output_path: Optional[str] = None) -> bool:
@@ -142,14 +147,14 @@ class StorageClient:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
 
-                print(f"Downloaded to: {path}")
+                logger.info("Downloaded to: %s", path)
                 return True
             else:
-                print(f"Download failed: {response.status_code}")
+                logger.error("Download failed: %s", response.status_code)
                 return False
 
         except RequestException as e:
-            print(f"Download error: {e}")
+            logger.error("Download error: %s", e)
             return False
 
     def check_health(self) -> bool:

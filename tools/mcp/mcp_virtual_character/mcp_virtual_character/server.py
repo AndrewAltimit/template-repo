@@ -209,6 +209,11 @@ from mcp_virtual_character.backends.mock import MockBackend  # noqa: E402
 from mcp_virtual_character.backends.vrchat_remote import (  # noqa: E402
     VRChatRemoteBackend,
 )
+from mcp_virtual_character.constants import (  # noqa: E402
+    VRCEMOTE_DESCRIPTION,
+    VRCEmoteValue,
+    get_vrcemote_name,
+)
 from mcp_virtual_character.models.canonical import (  # noqa: E402
     AudioData,
     CanonicalAnimationData,
@@ -548,12 +553,9 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                     "properties": {
                         "emote_value": {
                             "type": "integer",
-                            "minimum": 0,
-                            "maximum": 8,
-                            "description": (
-                                "VRCEmote value: 0=clear, 1=wave, 2=clap, 3=point, "
-                                "4=cheer, 5=dance, 6=backflip, 7=sadness, 8=die"
-                            ),
+                            "minimum": int(VRCEmoteValue.NONE),
+                            "maximum": int(VRCEmoteValue.DIE),
+                            "description": VRCEMOTE_DESCRIPTION,
                         }
                     },
                     "required": ["emote_value"],
@@ -693,35 +695,24 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         if self.backend_name != "vrchat_remote":
             return {"success": False, "error": "VRCEmote is only supported on vrchat_remote backend"}
 
-        if not 0 <= emote_value <= 8:
-            return {"success": False, "error": "VRCEmote value must be between 0 and 8"}
+        if not VRCEmoteValue.NONE <= emote_value <= VRCEmoteValue.DIE:
+            return {"success": False, "error": f"VRCEmote value must be between {VRCEmoteValue.NONE} and {VRCEmoteValue.DIE}"}
 
         try:
             animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
             animation.parameters = {"avatar_params": {"VRCEmote": emote_value}}
 
             success = await self.current_backend.send_animation_data(animation)
-
-            emote_names = {
-                0: "none/clear",
-                1: "wave",
-                2: "clap",
-                3: "point",
-                4: "cheer",
-                5: "dance",
-                6: "backflip",
-                7: "sadness",
-                8: "die",
-            }
+            gesture_name = get_vrcemote_name(emote_value)
 
             return {
                 "success": success,
                 "emote_value": emote_value,
-                "gesture": emote_names.get(emote_value, "unknown"),
-                "message": f"Sent VRCEmote {emote_value} ({emote_names.get(emote_value, 'unknown')})",
+                "gesture": gesture_name,
+                "message": f"Sent VRCEmote {emote_value} ({gesture_name})",
             }
         except Exception as e:
-            self.logger.error(f"Error sending VRCEmote: {e}")
+            self.logger.error("Error sending VRCEmote: %s", e)
             return {"success": False, "error": str(e)}
 
     async def list_backends(self) -> Dict[str, Any]:
@@ -762,12 +753,12 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             )
 
             # Send to backend
-            self.logger.info(f"Sending audio to backend (size: {len(audio_bytes)} bytes)")
+            self.logger.info("Sending audio to backend (size: %d bytes)", len(audio_bytes))
             success = await self.current_backend.send_audio_data(audio)
             return {"success": success}
 
         except Exception as e:
-            self.logger.error(f"Error sending audio: {e}")
+            self.logger.error("Error sending audio: %s", e)
             return {"success": False, "error": str(e)}
 
     # Sequence management delegated to sequence_handler
@@ -854,7 +845,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 await asyncio.sleep(0.5)
                 await self.current_backend.connect(self.config or {})
             except Exception as e:
-                self.logger.error(f"Error reconnecting after panic reset: {e}")
+                self.logger.error("Error reconnecting after panic reset: %s", e)
 
         return cast(Dict[str, Any], panic_result)
 
@@ -867,8 +858,10 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return
 
         try:
-            logger.info(f"Auto-connecting to {self.default_backend} backend...")
-            logger.info(f"Configuration: VRChat at {self.default_config['remote_host']}:{self.default_config['osc_in_port']}")
+            logger.info("Auto-connecting to %s backend...", self.default_backend)
+            logger.info(
+                "Configuration: VRChat at %s:%s", self.default_config["remote_host"], self.default_config["osc_in_port"]
+            )
 
             result = await self.set_backend(self.default_backend, self.default_config)
 
@@ -886,7 +879,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 logger.info("You can manually connect using set_backend()")
 
         except Exception as e:
-            logger.error(f"Error during auto-connect: {e}")
+            logger.error("Error during auto-connect: %s", e)
             logger.info("You can manually connect using set_backend()")
 
     async def validate_connection(self) -> bool:
@@ -910,7 +903,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return False
 
         except Exception as e:
-            logger.error(f"Connection validation failed: {e}")
+            logger.error("Connection validation failed: %s", e)
             return False
 
     async def monitor_connection(self):
@@ -925,7 +918,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                         logger.warning("Connection lost, attempting reconnect...")
                         await self.auto_reconnect()
                 except Exception as e:
-                    logger.error(f"Health check failed: {e}")
+                    logger.error("Health check failed: %s", e)
                     await self.auto_reconnect()
 
     async def auto_reconnect(self):
@@ -935,7 +928,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return
 
         self.reconnect_attempts += 1
-        logger.info(f"Reconnection attempt {self.reconnect_attempts}/{self.max_reconnect_attempts}")
+        logger.info("Reconnection attempt %d/%d", self.reconnect_attempts, self.max_reconnect_attempts)
 
         if self.backend_name and self.config:
             result = await self.set_backend(self.backend_name, self.config)
@@ -943,7 +936,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 logger.info("[OK] Successfully reconnected")
                 self.reconnect_attempts = 0
             else:
-                logger.error(f"Reconnection failed: {result.get('error')}")
+                logger.error("Reconnection failed: %s", result.get("error"))
 
     def _get_improved_port_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """Convert clearer port names to internal format."""

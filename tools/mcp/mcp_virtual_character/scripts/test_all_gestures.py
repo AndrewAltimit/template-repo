@@ -8,6 +8,7 @@ This script tests both the standard gesture interface and direct VRCEmote contro
 import asyncio
 import json
 import logging
+import os
 from typing import Any, Dict
 
 import aiohttp
@@ -16,9 +17,9 @@ import aiohttp
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-# Server configuration
-SERVER_URL = "http://localhost:8020"
-REMOTE_HOST = "192.168.0.152"  # VRChat machine IP
+# Server configuration - use environment variables with sensible defaults
+SERVER_URL = os.getenv("VIRTUAL_CHARACTER_SERVER", "http://localhost:8020")
+REMOTE_HOST = os.getenv("VRCHAT_HOST", "127.0.0.1")  # VRChat machine IP
 
 
 async def call_mcp_tool(session: aiohttp.ClientSession, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:

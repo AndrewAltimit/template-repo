@@ -5,13 +5,17 @@ This demonstrates how to send audio without polluting the context window.
 """
 
 import base64
+import os
 from pathlib import Path
 import sys
 
 import requests
 
+# Default server URL from environment or localhost
+DEFAULT_SERVER_URL = os.getenv("VIRTUAL_CHARACTER_SERVER", "http://localhost:8020")
 
-def send_audio_to_character(audio_file_path: str, server_url: str = "http://192.168.0.152:8020"):
+
+def send_audio_to_character(audio_file_path: str, server_url: str = DEFAULT_SERVER_URL):
     """
     Send an audio file to the virtual character server.
 
@@ -69,7 +73,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     audio_file = sys.argv[1]
-    server = sys.argv[2] if len(sys.argv) > 2 else "http://192.168.0.152:8020"
+    server = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_SERVER_URL
 
     success = send_audio_to_character(audio_file, server)
     sys.exit(0 if success else 1)

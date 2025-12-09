@@ -12,13 +12,22 @@ import base64
 import logging
 import os
 from pathlib import Path
-import subprocess
 import tempfile
 from typing import Any, Dict, List, Optional, Tuple
 
 import aiohttp
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "ALLOWED_AUDIO_PATHS",
+    "MIN_AUDIO_SIZE",
+    "AudioPathValidator",
+    "AudioValidator",
+    "AudioDownloader",
+    "AudioPlayer",
+    "AudioHandler",
+]
 
 # Allowed base paths for file reads (security)
 ALLOWED_AUDIO_PATHS = [
@@ -246,6 +255,62 @@ class AudioPlayer:
         except Exception:
             pass
 
+    async def _run_subprocess(
+        self,
+        cmd: List[str],
+        timeout: float = 10.0,
+    ) -> Tuple[int, str, str]:
+        """
+        Run a subprocess asynchronously without blocking the event loop.
+
+        Args:
+            cmd: Command and arguments to run
+            timeout: Timeout in seconds
+
+        Returns:
+            Tuple of (return_code, stdout, stderr)
+        """
+        process = None
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(),
+                timeout=timeout,
+            )
+            return_code = process.returncode or 0
+            return return_code, stdout.decode(), stderr.decode()
+        except asyncio.TimeoutError:
+            if process is not None:
+                process.kill()
+                await process.wait()
+            raise
+        except FileNotFoundError:
+            raise
+
+    async def _start_subprocess_detached(self, cmd: List[str]) -> bool:
+        """
+        Start a subprocess in detached mode (fire-and-forget).
+
+        Args:
+            cmd: Command and arguments to run
+
+        Returns:
+            True if started successfully
+        """
+        try:
+            await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            return True
+        except FileNotFoundError:
+            return False
+
     async def _play_windows(self, audio_path: str, audio_format: str, device: str) -> Tuple[bool, str]:
         """Play audio on Windows using various methods."""
 
@@ -254,13 +319,13 @@ class AudioPlayer:
             wav_path = audio_path.replace(f".{audio_format}", ".wav")
             convert_cmd = ["ffmpeg", "-i", audio_path, "-acodec", "pcm_s16le", "-ar", "44100", "-y", wav_path]
 
-            result = subprocess.run(convert_cmd, capture_output=True, text=True, timeout=5)
+            return_code, stdout, stderr = await self._run_subprocess(convert_cmd, timeout=5.0)
 
-            if result.returncode == 0 and os.path.exists(wav_path):
-                logger.info(f"Converted to WAV: {wav_path}")
+            if return_code == 0 and os.path.exists(wav_path):
+                logger.info("Converted to WAV: %s", wav_path)
 
                 play_cmd = ["powershell", "-Command", f"(New-Object Media.SoundPlayer '{wav_path}').PlaySync()"]
-                subprocess.run(play_cmd, capture_output=True, timeout=10)
+                await self._run_subprocess(play_cmd, timeout=10.0)
 
                 # Clean up WAV
                 try:
@@ -272,10 +337,10 @@ class AudioPlayer:
 
         except FileNotFoundError:
             logger.warning("ffmpeg not found, trying alternative methods")
-        except subprocess.TimeoutExpired:
+        except asyncio.TimeoutError:
             logger.warning("Audio conversion timed out")
         except Exception as e:
-            logger.warning(f"WAV conversion failed: {e}")
+            logger.warning("WAV conversion failed: %s", e)
 
         # Method 2: Try VLC
         try:
@@ -292,13 +357,13 @@ class AudioPlayer:
                 device,
                 audio_path,
             ]
-            subprocess.Popen(vlc_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            return True, f"Playing via VLC through {device}"
+            if await self._start_subprocess_detached(vlc_cmd):
+                return True, f"Playing via VLC through {device}"
+            else:
+                logger.warning("VLC not found")
 
-        except FileNotFoundError:
-            logger.warning("VLC not found")
         except Exception as e:
-            logger.warning(f"VLC playback failed: {e}")
+            logger.warning("VLC playback failed: %s", e)
 
         # Method 3: PowerShell fallback
         try:
@@ -316,8 +381,11 @@ class AudioPlayer:
                 Write-Host "Audio played via WMP"
             }}
             """
-            result = subprocess.run(["powershell", "-Command", ps_cmd], capture_output=True, text=True, timeout=10)
-            return True, f"Playing via PowerShell: {result.stdout.strip()}"
+            return_code, stdout, stderr = await self._run_subprocess(
+                ["powershell", "-Command", ps_cmd],
+                timeout=10.0,
+            )
+            return True, f"Playing via PowerShell: {stdout.strip()}"
 
         except Exception as e:
             return False, f"All playback methods failed: {e}"
@@ -325,12 +393,10 @@ class AudioPlayer:
     async def _play_unix(self, audio_path: str) -> Tuple[bool, str]:
         """Play audio on Unix-like systems."""
         try:
-            subprocess.Popen(
-                ["ffplay", "-nodisp", "-autoexit", audio_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-            )
-            return True, f"Playing via ffplay: {audio_path}"
-        except FileNotFoundError:
-            return False, "ffplay not found"
+            if await self._start_subprocess_detached(["ffplay", "-nodisp", "-autoexit", audio_path]):
+                return True, f"Playing via ffplay: {audio_path}"
+            else:
+                return False, "ffplay not found"
         except Exception as e:
             return False, f"Playback failed: {e}"
 

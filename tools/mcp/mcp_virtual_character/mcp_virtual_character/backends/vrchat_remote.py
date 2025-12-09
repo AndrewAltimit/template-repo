@@ -8,6 +8,10 @@ import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
+from mcp_virtual_character.constants import (
+    EMOTION_TO_VRCEMOTE,
+    GESTURE_TO_VRCEMOTE,
+)
 from mcp_virtual_character.models.canonical import (
     AudioData,
     CanonicalAnimationData,
@@ -56,34 +60,13 @@ class VRChatRemoteBackend(BackendAdapter):
     }
 
     # VRCEmote system (integer-based, common in many avatars)
-    # This avatar uses a gesture wheel, not emotions
-    # Corrected wheel positions (clockwise from top):
+    # Mappings are defined in constants.py for single source of truth
+    # See constants.VRCEmoteValue for wheel positions:
     # 0=None/Clear, 1=Wave, 2=Clap, 3=Point, 4=Cheer, 5=Dance, 6=Backflip, 7=Sadness, 8=Die
-    VRCEMOTE_MAP = {
-        EmotionType.NEUTRAL: 0,  # No gesture/back to normal
-        EmotionType.HAPPY: 4,  # Maps to Cheer
-        EmotionType.SAD: 7,  # Maps to Sadness gesture
-        EmotionType.ANGRY: 3,  # Maps to Point (assertive)
-        EmotionType.SURPRISED: 6,  # Maps to Backflip (excitement)
-        EmotionType.FEARFUL: 8,  # Maps to Die (dramatic)
-        EmotionType.DISGUSTED: 0,  # Clear gesture
-    }
+    VRCEMOTE_MAP = EMOTION_TO_VRCEMOTE
 
     # Alternative mapping for gesture-based avatars
-    VRCEMOTE_GESTURE_MAP = {
-        GestureType.NONE: 0,
-        GestureType.WAVE: 1,
-        GestureType.POINT: 3,
-        GestureType.THUMBS_UP: 4,  # Maps to Cheer
-        GestureType.NOD: 2,  # Maps to Clap (approval)
-        GestureType.SHAKE_HEAD: 0,  # Clear gesture
-        GestureType.CLAP: 2,
-        GestureType.DANCE: 5,
-        GestureType.BACKFLIP: 6,
-        GestureType.CHEER: 4,
-        GestureType.SADNESS: 7,
-        GestureType.DIE: 8,
-    }
+    VRCEMOTE_GESTURE_MAP = GESTURE_TO_VRCEMOTE
 
     GESTURE_PARAMS = {
         GestureType.NONE: 0,
@@ -313,7 +296,7 @@ class VRChatRemoteBackend(BackendAdapter):
             logger.warning("Cannot send audio - not connected to VRChat")
             return False
 
-        logger.info(f"send_audio_data called - Bridge enabled: {self.use_bridge}, Bridge port: {self.bridge_port}")
+        logger.info("send_audio_data called - Bridge enabled: %s, Bridge port: %s", self.use_bridge, self.bridge_port)
 
         try:
             # Process expression tags from ElevenLabs audio
@@ -346,18 +329,18 @@ class VRChatRemoteBackend(BackendAdapter):
 
             # If using bridge server for actual audio streaming
             if self.use_bridge:
-                logger.info(f"Bridge enabled, sending audio to bridge server at {self.remote_host}:{self.bridge_port}")
+                logger.info("Bridge enabled, sending audio to bridge server at %s:%s", self.remote_host, self.bridge_port)
                 # Send audio data to bridge server
                 # Bridge server streams audio to VRChat, which auto-generates visemes
                 bridge_success = await self._send_audio_to_bridge(audio)
-                logger.info(f"Bridge audio send result: {bridge_success}")
+                logger.info("Bridge audio send result: %s", bridge_success)
             else:
                 logger.info("Bridge not enabled, audio sent via OSC only (no actual audio playback)")
 
             return True
 
         except Exception as e:
-            logger.error(f"Failed to send audio data: {e}")
+            logger.error("Failed to send audio data: %s", e)
             self.stats["errors"] += 1
             return False
 
@@ -446,17 +429,17 @@ class VRChatRemoteBackend(BackendAdapter):
             # Send to bridge server
             async with aiohttp.ClientSession() as session:
                 bridge_url = f"http://{self.remote_host}:{self.bridge_port}/audio/play"
-                logger.info(f"Sending audio to bridge server at {bridge_url}")
+                logger.info("Sending audio to bridge server at %s", bridge_url)
                 async with session.post(bridge_url, json=audio_payload) as response:
                     if response.status == 200:
                         logger.info("Audio sent to bridge server successfully")
                         return True
                     else:
-                        logger.error(f"Bridge server returned status {response.status}")
+                        logger.error("Bridge server returned status %s", response.status)
                         return False
 
         except Exception as e:
-            logger.error(f"Failed to send audio to bridge server: {e}")
+            logger.error("Failed to send audio to bridge server: %s", e)
             return False
 
     async def receive_state(self) -> Optional[EnvironmentState]:

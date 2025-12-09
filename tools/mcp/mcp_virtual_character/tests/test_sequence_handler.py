@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from mcp_virtual_character.sequence_handler import SequenceHandler
+from tools.mcp.mcp_virtual_character.mcp_virtual_character.sequence_handler import SequenceHandler
 
 
 @pytest.fixture
