@@ -88,12 +88,13 @@ case "$STAGE" in
   test)
     echo "=== Running tests ==="
     # Note: --ignore-glob is required because --ignore doesn't work properly with glob-expanded paths
+    # Include corporate-proxy tests in the main test suite
     docker-compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
-      python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/ tools/mcp/*/tests/ -v --cov=. --cov-report=xml --cov-report=term --ignore-glob='**/mcp_gaea2/**' ${EXTRA_ARGS[*]}"
+      python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/ tools/mcp/*/tests/ automation/corporate-proxy/tests/ -v --cov=. --cov-report=xml --cov-report=term --ignore-glob='**/mcp_gaea2/**' ${EXTRA_ARGS[*]}"
 
-    # Run corporate proxy tests
+    # Run additional corporate proxy component tests (scripts, not pytest)
     echo "=== Testing corporate proxy components ==="
     docker-compose run --rm python-ci python automation/corporate-proxy/shared/scripts/test-auto-detection.py
     docker-compose run --rm python-ci python automation/corporate-proxy/shared/scripts/test-content-stripping.py
