@@ -9,6 +9,7 @@ This module handles:
 
 import asyncio
 import base64
+import binascii
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -59,19 +60,23 @@ class SequenceHandler:
                 await self.stop_sequence()
 
             # Create new sequence
+            loop_obj = asyncio.get_running_loop()
             self.current_sequence = EventSequence(
                 name=name,
                 description=description,
                 loop=loop,
                 interrupt_current=interrupt_current,
-                created_timestamp=asyncio.get_event_loop().time(),
+                created_timestamp=loop_obj.time(),
             )
 
             return {"success": True, "message": f"Created sequence: {name}"}
 
-        except Exception as e:
-            logger.error("Error creating sequence: %s", e)
-            return {"success": False, "error": str(e)}
+        except RuntimeError as e:
+            logger.error("Event loop error creating sequence: %s", e)
+            return {"success": False, "error": f"Event loop error: {e}"}
+        except TypeError as e:
+            logger.error("Invalid parameter type creating sequence: %s", e)
+            return {"success": False, "error": f"Invalid parameter: {e}"}
 
     async def add_event(
         self,
@@ -85,7 +90,7 @@ class SequenceHandler:
         expression: Optional[str] = None,
         expression_intensity: float = 1.0,
         movement_params: Optional[Dict[str, Any]] = None,
-        parallel_events: Optional[List[Dict]] = None,
+        parallel_events: Optional[List[Dict[str, Any]]] = None,
         sync_with_audio: bool = False,
     ) -> Dict[str, Any]:
         """Add an event to the current sequence."""
@@ -94,7 +99,7 @@ class SequenceHandler:
 
         try:
             # Build event dictionary
-            event_dict = {
+            event_dict: Dict[str, Any] = {
                 "event_type": event_type,
                 "timestamp": timestamp,
                 "duration": duration,
@@ -127,9 +132,15 @@ class SequenceHandler:
 
             return {"success": True, "message": f"Added {event_type} event at {timestamp}s"}
 
-        except Exception as e:
-            logger.error("Error adding event: %s", e)
-            return {"success": False, "error": str(e)}
+        except KeyError as e:
+            logger.error("Missing required event parameter: %s", e)
+            return {"success": False, "error": f"Missing parameter: {e}"}
+        except ValueError as e:
+            logger.error("Invalid event parameter value: %s", e)
+            return {"success": False, "error": f"Invalid value: {e}"}
+        except TypeError as e:
+            logger.error("Invalid event parameter type: %s", e)
+            return {"success": False, "error": f"Type error: {e}"}
 
     async def play_sequence(
         self,
@@ -158,9 +169,9 @@ class SequenceHandler:
 
             return {"success": True, "message": f"Started playing sequence: {self.current_sequence.name}"}
 
-        except Exception as e:
-            logger.error("Error playing sequence: %s", e)
-            return {"success": False, "error": str(e)}
+        except RuntimeError as e:
+            logger.error("Runtime error playing sequence: %s", e)
+            return {"success": False, "error": f"Runtime error: {e}"}
 
     async def pause_sequence(self) -> Dict[str, Any]:
         """Pause the currently playing sequence."""
@@ -228,11 +239,17 @@ class SequenceHandler:
 
             return {"success": True, "message": "Emergency reset completed"}
 
-        except Exception as e:
-            logger.error("Error during panic reset: %s", e)
-            return {"success": False, "error": str(e)}
+        except asyncio.CancelledError:
+            # Re-raise cancellation
+            raise
+        except OSError as e:
+            logger.error("I/O error during panic reset: %s", e)
+            return {"success": False, "error": f"I/O error: {e}"}
+        except RuntimeError as e:
+            logger.error("Runtime error during panic reset: %s", e)
+            return {"success": False, "error": f"Runtime error: {e}"}
 
-    async def _cancel_running_sequence(self):
+    async def _cancel_running_sequence(self) -> None:
         """Properly cancel a running sequence task."""
         if self.sequence_task and not self.sequence_task.done():
             self.sequence_task.cancel()
@@ -254,19 +271,20 @@ class SequenceHandler:
             # Sort events by timestamp
             sorted_events = sorted(self.current_sequence.events, key=lambda e: e.timestamp)
 
-            start_time = asyncio.get_event_loop().time()
+            loop = asyncio.get_running_loop()
+            start_time = loop.time()
 
             # Execute events at scheduled times
             for event in sorted_events:
                 # Handle pause
                 if self.sequence_paused:
-                    pause_start = asyncio.get_event_loop().time()
+                    pause_start = loop.time()
                     await self._pause_event.wait()
-                    pause_duration = asyncio.get_event_loop().time() - pause_start
+                    pause_duration = loop.time() - pause_start
                     start_time += pause_duration
 
                 # Calculate wait time
-                current_time = asyncio.get_event_loop().time() - start_time
+                current_time = loop.time() - start_time
                 time_to_wait = event.timestamp - current_time
 
                 if time_to_wait > 0:
@@ -275,13 +293,16 @@ class SequenceHandler:
                 # Execute event with error handling
                 try:
                     await self._execute_event(event, backend)
-                except Exception as e:
-                    logger.error("Error executing event at %ss: %s", event.timestamp, e)
-                    # Continue with next event
+                except asyncio.CancelledError:
+                    raise
+                except OSError as e:
+                    logger.error("I/O error executing event at %ss: %s", event.timestamp, e)
+                except ValueError as e:
+                    logger.error("Value error executing event at %ss: %s", event.timestamp, e)
 
             # Wait for remaining duration
             if self.current_sequence.total_duration:
-                final_wait = self.current_sequence.total_duration - (asyncio.get_event_loop().time() - start_time)
+                final_wait = self.current_sequence.total_duration - (loop.time() - start_time)
                 if final_wait > 0:
                     await asyncio.sleep(final_wait)
 
@@ -299,37 +320,32 @@ class SequenceHandler:
 
     async def _execute_event(self, event: SequenceEvent, backend: BackendAdapter) -> None:
         """Execute a single event."""
-        try:
-            if event.event_type == EventType.ANIMATION and event.animation_data:
-                await backend.send_animation_data(event.animation_data)
+        if event.event_type == EventType.ANIMATION and event.animation_data:
+            await backend.send_animation_data(event.animation_data)
 
-            elif event.event_type == EventType.AUDIO and event.audio_data:
-                await backend.send_audio_data(event.audio_data)
+        elif event.event_type == EventType.AUDIO and event.audio_data:
+            await backend.send_audio_data(event.audio_data)
 
-            elif event.event_type == EventType.WAIT:
-                # Wait is handled by timing logic
-                pass
+        elif event.event_type == EventType.WAIT:
+            # Wait is handled by timing logic
+            pass
 
-            elif event.event_type == EventType.EXPRESSION:
-                animation = CanonicalAnimationData(
-                    timestamp=event.timestamp,
-                    emotion=event.expression,
-                    emotion_intensity=event.expression_intensity or 1.0,
-                )
-                await backend.send_animation_data(animation)
+        elif event.event_type == EventType.EXPRESSION:
+            animation = CanonicalAnimationData(
+                timestamp=event.timestamp,
+                emotion=event.expression,
+                emotion_intensity=event.expression_intensity or 1.0,
+            )
+            await backend.send_animation_data(animation)
 
-            elif event.event_type == EventType.MOVEMENT and event.movement_params:
-                animation = CanonicalAnimationData(timestamp=event.timestamp, parameters=event.movement_params)
-                await backend.send_animation_data(animation)
+        elif event.event_type == EventType.MOVEMENT and event.movement_params:
+            animation = CanonicalAnimationData(timestamp=event.timestamp, parameters=event.movement_params)
+            await backend.send_animation_data(animation)
 
-            elif event.event_type == EventType.PARALLEL and event.parallel_events:
-                # Execute parallel events concurrently
-                tasks = [self._execute_event(e, backend) for e in event.parallel_events]
-                await asyncio.gather(*tasks, return_exceptions=True)
-
-        except Exception as e:
-            logger.error("Error executing event: %s", e)
-            raise
+        elif event.event_type == EventType.PARALLEL and event.parallel_events:
+            # Execute parallel events concurrently
+            tasks = [self._execute_event(e, backend) for e in event.parallel_events]
+            await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _reset_avatar_state(self, backend: BackendAdapter) -> None:
         """Reset avatar to neutral state."""
@@ -353,8 +369,12 @@ class SequenceHandler:
             await backend.send_animation_data(neutral_animation)
             await asyncio.sleep(0.1)
 
-        except Exception as e:
-            logger.error("Error resetting avatar state: %s", e)
+        except asyncio.CancelledError:
+            raise
+        except OSError as e:
+            logger.error("I/O error resetting avatar state: %s", e)
+        except RuntimeError as e:
+            logger.error("Runtime error resetting avatar state: %s", e)
 
     async def _create_event_from_dict(self, event_dict: Dict[str, Any]) -> Optional[SequenceEvent]:
         """Create a SequenceEvent from dictionary parameters."""
@@ -387,8 +407,14 @@ class SequenceHandler:
 
             return event
 
-        except Exception as e:
-            logger.error("Error creating event from dict: %s", e)
+        except KeyError as e:
+            logger.error("Missing key in event dict: %s", e)
+            return None
+        except TypeError as e:
+            logger.error("Type error creating event from dict: %s", e)
+            return None
+        except ValueError as e:
+            logger.error("Value error creating event from dict: %s", e)
             return None
 
     async def _populate_animation_event(self, event: SequenceEvent, params: Dict[str, Any]) -> None:
@@ -412,21 +438,29 @@ class SequenceHandler:
         """Populate audio data on event."""
         audio_data_str = event_dict.get("audio_data")
         if audio_data_str:
-            if audio_data_str.startswith("data:"):
-                audio_data_str = audio_data_str.split(",")[1]
-            audio_bytes = base64.b64decode(audio_data_str)
-            event.audio_data = AudioData(
-                data=audio_bytes,
-                format=event_dict.get("audio_format", "mp3"),
-                duration=event_dict.get("duration", 0.0),
-            )
+            try:
+                if audio_data_str.startswith("data:"):
+                    audio_data_str = audio_data_str.split(",")[1]
+                audio_bytes = base64.b64decode(audio_data_str)
+                event.audio_data = AudioData(
+                    data=audio_bytes,
+                    format=event_dict.get("audio_format", "mp3"),
+                    duration=event_dict.get("duration", 0.0),
+                )
+            except binascii.Error as e:
+                logger.error("Invalid base64 audio data: %s", e)
+                raise ValueError(f"Invalid base64 audio data: {e}") from e
 
     async def _populate_expression_event(self, event: SequenceEvent, event_dict: Dict[str, Any]) -> None:
         """Populate expression data on event."""
         expression = event_dict.get("expression")
         if expression:
-            event.expression = EmotionType[expression.upper()]
-            event.expression_intensity = event_dict.get("expression_intensity", 1.0)
+            try:
+                event.expression = EmotionType[expression.upper()]
+                event.expression_intensity = event_dict.get("expression_intensity", 1.0)
+            except KeyError as e:
+                logger.error("Unknown expression type: %s", expression)
+                raise ValueError(f"Unknown expression type: {expression}") from e
 
     async def _populate_parallel_events(self, event: SequenceEvent, event_dict: Dict[str, Any]) -> None:
         """Populate parallel events recursively."""

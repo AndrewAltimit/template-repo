@@ -9,12 +9,14 @@ This module handles:
 
 import asyncio
 import base64
+import binascii
 import logging
 import os
 from pathlib import Path
 import tempfile
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
+import aiofiles  # type: ignore[import-untyped]
 import aiohttp
 
 logger = logging.getLogger(__name__)
@@ -22,6 +24,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "ALLOWED_AUDIO_PATHS",
     "MIN_AUDIO_SIZE",
+    "DEFAULT_CLEANUP_DELAY",
     "AudioPathValidator",
     "AudioValidator",
     "AudioDownloader",
@@ -38,6 +41,9 @@ ALLOWED_AUDIO_PATHS = [
 
 # Minimum size for valid audio file
 MIN_AUDIO_SIZE = 100  # bytes
+
+# Default delay before cleaning up temporary files (seconds)
+DEFAULT_CLEANUP_DELAY = 10.0
 
 
 class AudioPathValidator:
@@ -61,7 +67,8 @@ class AudioPathValidator:
                 except ValueError:
                     continue
             return False
-        except Exception:
+        except OSError as e:
+            logger.debug("Path resolution failed for %s: %s", file_path, e)
             return False
 
     def resolve_audio_path(self, audio_path: str) -> Tuple[Optional[Path], Optional[str]]:
@@ -92,11 +99,14 @@ class AudioPathValidator:
                 # Also try with glob for date directories
                 host_base = Path(host_path)
                 if host_base.exists():
-                    for date_dir in sorted(host_base.iterdir(), reverse=True):
-                        if date_dir.is_dir():
-                            candidate = date_dir / filename
-                            if candidate.exists():
-                                possible_paths.insert(0, candidate)
+                    try:
+                        for date_dir in sorted(host_base.iterdir(), reverse=True):
+                            if date_dir.is_dir():
+                                candidate = date_dir / filename
+                                if candidate.exists():
+                                    possible_paths.insert(0, candidate)
+                    except OSError as e:
+                        logger.warning("Failed to iterate directory %s: %s", host_base, e)
 
                 for path in possible_paths:
                     if path.exists() and self.is_path_allowed(path):
@@ -119,13 +129,14 @@ class AudioValidator:
     """Validates audio data for format and integrity."""
 
     # Magic bytes for audio format detection
+    # Note: Opus audio uses OggS container, so "opus" format will be detected as "ogg"
     AUDIO_SIGNATURES = {
         b"ID3": "mp3",  # ID3v2 tag
         b"\xff\xfb": "mp3",  # MPEG-1 Layer 3
         b"\xff\xf3": "mp3",  # MPEG-2 Layer 3
         b"\xff\xf2": "mp3",  # MPEG-2.5 Layer 3
         b"RIFF": "wav",  # WAV format
-        b"OggS": "ogg",  # Ogg container
+        b"OggS": "ogg",  # Ogg container (includes Opus and Vorbis)
         b"fLaC": "flac",  # FLAC format
     }
 
@@ -207,15 +218,22 @@ class AudioDownloader:
             return None, "Download timed out"
         except aiohttp.ClientError as e:
             return None, f"Download error: {e}"
-        except Exception as e:
-            return None, f"Unexpected error: {e}"
+        except ValueError as e:
+            return None, f"Invalid response: {e}"
 
 
 class AudioPlayer:
     """Handles audio playback on different platforms."""
 
-    def __init__(self, default_device: str = "VoiceMeeter Input"):
+    def __init__(
+        self,
+        default_device: str = "VoiceMeeter Input",
+        cleanup_delay: float = DEFAULT_CLEANUP_DELAY,
+    ):
         self.default_device = default_device
+        self.cleanup_delay = cleanup_delay
+        # Track spawned processes for cleanup
+        self._spawned_processes: Set[asyncio.subprocess.Process] = set()
 
     async def play(
         self,
@@ -231,12 +249,10 @@ class AudioPlayer:
         """
         device = device_name or self.default_device
 
-        # Save to temp file
+        # Save to temp file using async I/O
         try:
-            with tempfile.NamedTemporaryFile(suffix=f".{audio_format}", delete=False) as tmp_file:
-                tmp_file.write(audio_bytes)
-                tmp_path = tmp_file.name
-        except Exception as e:
+            tmp_path = await self._write_temp_file(audio_bytes, audio_format)
+        except OSError as e:
             return False, f"Failed to create temp file: {e}"
 
         try:
@@ -245,15 +261,44 @@ class AudioPlayer:
             else:
                 return await self._play_unix(tmp_path)
         finally:
-            # Cleanup temp file after a delay
-            asyncio.get_event_loop().call_later(10, self._cleanup_temp, tmp_path)
+            # Schedule cleanup of temp file after configurable delay
+            self._schedule_cleanup(tmp_path)
 
-    def _cleanup_temp(self, path: str):
+    async def _write_temp_file(self, data: bytes, audio_format: str) -> str:
+        """Write data to a temporary file asynchronously."""
+        # Create temp file synchronously to get the path
+        fd, tmp_path = tempfile.mkstemp(suffix=f".{audio_format}")
+        os.close(fd)
+
+        # Write data asynchronously
+        async with aiofiles.open(tmp_path, "wb") as f:
+            await f.write(data)
+
+        return tmp_path
+
+    def _schedule_cleanup(self, path: str) -> None:
+        """Schedule cleanup of a temporary file."""
+        try:
+            loop = asyncio.get_running_loop()
+            loop.call_later(self.cleanup_delay, self._cleanup_temp, path)
+        except RuntimeError:
+            # No running loop, try to clean up immediately
+            self._cleanup_temp(path)
+
+    def _cleanup_temp(self, path: str) -> None:
         """Clean up temporary file."""
         try:
             os.unlink(path)
-        except Exception:
-            pass
+        except FileNotFoundError:
+            pass  # Already cleaned up
+        except OSError as e:
+            logger.debug("Failed to cleanup temp file %s: %s", path, e)
+
+    async def cleanup_processes(self) -> int:
+        """Clean up any finished spawned processes. Returns count of cleaned processes."""
+        finished = {p for p in self._spawned_processes if p.returncode is not None}
+        self._spawned_processes -= finished
+        return len(finished)
 
     async def _run_subprocess(
         self,
@@ -295,6 +340,8 @@ class AudioPlayer:
         """
         Start a subprocess in detached mode (fire-and-forget).
 
+        The process is tracked for later cleanup.
+
         Args:
             cmd: Command and arguments to run
 
@@ -302,11 +349,15 @@ class AudioPlayer:
             True if started successfully
         """
         try:
-            await asyncio.create_subprocess_exec(
+            process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL,
             )
+            # Track the process for potential cleanup
+            self._spawned_processes.add(process)
+            # Clean up any finished processes
+            await self.cleanup_processes()
             return True
         except FileNotFoundError:
             return False
@@ -325,12 +376,12 @@ class AudioPlayer:
                 logger.info("Converted to WAV: %s", wav_path)
 
                 play_cmd = ["powershell", "-Command", f"(New-Object Media.SoundPlayer '{wav_path}').PlaySync()"]
-                await self._run_subprocess(play_cmd, timeout=10.0)
+                await self._run_subprocess(play_cmd, timeout=30.0)
 
                 # Clean up WAV
                 try:
                     os.remove(wav_path)
-                except Exception:
+                except OSError:
                     pass
 
                 return True, f"Playing through default device (should be {device})"
@@ -339,7 +390,7 @@ class AudioPlayer:
             logger.warning("ffmpeg not found, trying alternative methods")
         except asyncio.TimeoutError:
             logger.warning("Audio conversion timed out")
-        except Exception as e:
+        except OSError as e:
             logger.warning("WAV conversion failed: %s", e)
 
         # Method 2: Try VLC
@@ -362,7 +413,7 @@ class AudioPlayer:
             else:
                 logger.warning("VLC not found")
 
-        except Exception as e:
+        except OSError as e:
             logger.warning("VLC playback failed: %s", e)
 
         # Method 3: PowerShell fallback
@@ -383,11 +434,11 @@ class AudioPlayer:
             """
             return_code, stdout, stderr = await self._run_subprocess(
                 ["powershell", "-Command", ps_cmd],
-                timeout=10.0,
+                timeout=30.0,
             )
             return True, f"Playing via PowerShell: {stdout.strip()}"
 
-        except Exception as e:
+        except (FileNotFoundError, asyncio.TimeoutError, OSError) as e:
             return False, f"All playback methods failed: {e}"
 
     async def _play_unix(self, audio_path: str) -> Tuple[bool, str]:
@@ -397,7 +448,7 @@ class AudioPlayer:
                 return True, f"Playing via ffplay: {audio_path}"
             else:
                 return False, "ffplay not found"
-        except Exception as e:
+        except OSError as e:
             return False, f"Playback failed: {e}"
 
 
@@ -408,12 +459,13 @@ class AudioHandler:
         self,
         storage_base_url: Optional[str] = None,
         default_device: str = "VoiceMeeter Input",
+        cleanup_delay: float = DEFAULT_CLEANUP_DELAY,
     ):
         self.storage_base_url = storage_base_url or os.getenv("STORAGE_BASE_URL", "http://localhost:8021")
         self.path_validator = AudioPathValidator()
         self.audio_validator = AudioValidator()
         self.downloader = AudioDownloader(self.audio_validator)
-        self.player = AudioPlayer(default_device)
+        self.player = AudioPlayer(default_device, cleanup_delay)
 
     async def process_audio_input(self, audio_data: str, audio_format: str = "mp3") -> Tuple[Optional[bytes], Optional[str]]:
         """
@@ -440,7 +492,7 @@ class AudioHandler:
 
         # File path
         if audio_data.startswith(("/", "./", "outputs/")):
-            return self._read_from_file(audio_data)
+            return await self._read_from_file(audio_data)
 
         # Assume base64
         return self._decode_base64(audio_data)
@@ -448,24 +500,45 @@ class AudioHandler:
     async def _download_from_storage(self, url: str) -> Tuple[Optional[bytes], Optional[str]]:
         """Download from storage service with authentication."""
         try:
-            from ..storage_client import StorageClient
+            # storage_client is in the parent directory (mcp_virtual_character/)
+            # We need to import it properly based on how the package is structured
+            try:
+                from storage_client import StorageClient
+            except ImportError:
+                # Fallback for when running as installed package
+                import sys
+
+                parent_dir = Path(__file__).parent.parent
+                if str(parent_dir) not in sys.path:
+                    sys.path.insert(0, str(parent_dir))
+                from storage_client import StorageClient
 
             file_id = url.split("/download/")[-1]
             client = StorageClient()
 
-            with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-                if client.download_file(file_id, tmp_file.name):
-                    with open(tmp_file.name, "rb") as f:
-                        data = f.read()
-                    os.unlink(tmp_file.name)
+            # Create temp file and download
+            fd, tmp_path = tempfile.mkstemp()
+            os.close(fd)
+
+            try:
+                if client.download_file(file_id, tmp_path):
+                    async with aiofiles.open(tmp_path, "rb") as f:
+                        data = await f.read()
                     return data, None
                 else:
                     return None, "Failed to download from storage service"
+            finally:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
 
         except ImportError:
             return None, "Storage client not available"
-        except Exception as e:
-            return None, f"Storage download error: {e}"
+        except aiohttp.ClientError as e:
+            return None, f"Storage download network error: {e}"
+        except OSError as e:
+            return None, f"Storage download I/O error: {e}"
 
     def _decode_data_url(self, data_url: str) -> Tuple[Optional[bytes], Optional[str]]:
         """Decode a data URL."""
@@ -474,25 +547,31 @@ class AudioHandler:
             _, encoded = data_url.split(",", 1)
             data = base64.b64decode(encoded)
             return data, None
-        except Exception as e:
-            return None, f"Invalid data URL: {e}"
+        except binascii.Error as e:
+            return None, f"Invalid base64 in data URL: {e}"
+        except ValueError as e:
+            return None, f"Invalid data URL format: {e}"
 
-    def _read_from_file(self, file_path: str) -> Tuple[Optional[bytes], Optional[str]]:
-        """Read audio from a local file with path validation."""
+    async def _read_from_file(self, file_path: str) -> Tuple[Optional[bytes], Optional[str]]:
+        """Read audio from a local file with path validation using async I/O."""
         resolved, error = self.path_validator.resolve_audio_path(file_path)
         if error or resolved is None:
             return None, error or "Path resolution failed"
 
         try:
-            with open(resolved, "rb") as f:
-                data = f.read()
+            async with aiofiles.open(resolved, "rb") as f:
+                data = await f.read()
 
             is_valid, msg = self.audio_validator.is_valid_audio(data)
             if not is_valid:
                 return None, msg
 
             return data, None
-        except Exception as e:
+        except FileNotFoundError:
+            return None, f"File not found: {file_path}"
+        except PermissionError:
+            return None, f"Permission denied: {file_path}"
+        except OSError as e:
             return None, f"Error reading file: {e}"
 
     def _decode_base64(self, data: str) -> Tuple[Optional[bytes], Optional[str]]:
@@ -505,7 +584,7 @@ class AudioHandler:
                 return None, msg
 
             return audio_bytes, None
-        except Exception as e:
+        except binascii.Error as e:
             return None, f"Invalid base64: {e}"
 
     async def play_audio(

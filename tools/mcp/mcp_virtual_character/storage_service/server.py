@@ -15,6 +15,7 @@ Designed for cross-machine transfer (VM to host, remote servers, containers).
 
 import asyncio
 import base64
+import binascii
 from datetime import datetime, timedelta
 import hashlib
 import hmac
@@ -23,11 +24,12 @@ import os
 from pathlib import Path
 import secrets
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
+import aiofiles  # type: ignore[import-untyped]
 from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 import uvicorn
 
 # Configure logging
@@ -71,7 +73,7 @@ class StorageService:
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
         self.ttl_seconds = ttl_hours * 3600
-        self.files: Dict[str, Dict] = {}
+        self.files: Dict[str, Dict[str, Any]] = {}
         self.secret_key = os.getenv("STORAGE_SECRET_KEY", "")
         # Track used nonces to prevent replay attacks (cleared periodically)
         self._used_nonces: Dict[str, float] = {}
@@ -156,9 +158,17 @@ class StorageService:
 
             return True
 
-        except Exception as e:
-            logger.warning(f"Token verification error: {e}")
-            # Fall back to legacy token
+        except binascii.Error as e:
+            logger.warning("Token base64 decode error: %s", e)
+            return self._verify_legacy_token(token)
+        except ValidationError as e:
+            logger.warning("Token payload validation error: %s", e)
+            return self._verify_legacy_token(token)
+        except UnicodeDecodeError as e:
+            logger.warning("Token unicode decode error: %s", e)
+            return self._verify_legacy_token(token)
+        except ValueError as e:
+            logger.warning("Token value error: %s", e)
             return self._verify_legacy_token(token)
 
     def _verify_legacy_token(self, token: str) -> bool:
@@ -182,14 +192,14 @@ class StorageService:
         """Generate secure random file ID."""
         return secrets.token_urlsafe(32)
 
-    async def store_file(self, content: bytes, filename: str) -> Dict:
-        """Store file with TTL."""
+    async def store_file(self, content: bytes, filename: str) -> Dict[str, Any]:
+        """Store file with TTL using async I/O."""
         file_id = self.generate_file_id()
         file_path = self.storage_path / file_id
 
-        # Write file
-        with open(file_path, "wb") as f:
-            f.write(content)
+        # Write file asynchronously
+        async with aiofiles.open(file_path, "wb") as f:
+            await f.write(content)
 
         # Track metadata
         expires_at = datetime.now() + timedelta(seconds=self.ttl_seconds)
@@ -234,13 +244,16 @@ class StorageService:
         metadata = self.files[file_id]
         file_path = Path(metadata["path"])
 
-        if file_path.exists():
-            file_path.unlink()
+        try:
+            if file_path.exists():
+                file_path.unlink()
+        except OSError as e:
+            logger.warning("Failed to delete file %s: %s", file_path, e)
 
         del self.files[file_id]
         return True
 
-    async def cleanup_expired(self):
+    async def cleanup_expired(self) -> Tuple[int, int]:
         """Remove expired files and nonces."""
         now = datetime.now()
         expired_ids = [file_id for file_id, meta in self.files.items() if now > meta["expires_at"]]
@@ -253,15 +266,18 @@ class StorageService:
 
         return len(expired_ids), nonces_cleaned
 
-    async def periodic_cleanup(self):
+    async def periodic_cleanup(self) -> None:
         """Background task to clean up expired files."""
         while True:
             try:
                 files_cleaned, nonces_cleaned = await self.cleanup_expired()
                 if files_cleaned > 0 or nonces_cleaned > 0:
-                    logger.info(f"Cleanup: {files_cleaned} expired files, {nonces_cleaned} expired nonces")
-            except Exception as e:
-                logger.error(f"Cleanup error: {e}")
+                    logger.info("Cleanup: %d expired files, %d expired nonces", files_cleaned, nonces_cleaned)
+            except asyncio.CancelledError:
+                logger.info("Periodic cleanup cancelled")
+                raise
+            except OSError as e:
+                logger.error("Cleanup I/O error: %s", e)
 
             # Check every 5 minutes
             await asyncio.sleep(300)
@@ -327,8 +343,8 @@ async def upload_base64(
     """Upload base64-encoded audio."""
     try:
         content = base64.b64decode(request.audio_data)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid base64: {e}")
+    except binascii.Error as e:
+        raise HTTPException(status_code=400, detail=f"Invalid base64: {e}") from e
 
     metadata = await storage.store_file(content, request.filename)
 
@@ -349,7 +365,7 @@ async def download_file(
     file_id: str,
     _auth: bool = Depends(verify_auth),
     storage: StorageService = Depends(get_storage),
-):
+) -> FileResponse:
     """Download a stored file."""
     file_path = await storage.get_file(file_id)
     if not file_path:
@@ -364,7 +380,7 @@ async def download_file(
 
 
 @app.get("/health")
-async def health():
+async def health() -> Dict[str, Any]:
     """Health check endpoint (no auth required)."""
     if _storage is None:
         return {
@@ -406,23 +422,23 @@ async def generate_token(
 
 
 @app.on_event("startup")
-async def startup():
+async def startup() -> None:
     """Initialize storage service and start background cleanup task."""
     global _storage
 
     try:
         _storage = StorageService()
         asyncio.create_task(_storage.periodic_cleanup())
-        logger.info(f"Storage service started with {_storage.ttl_seconds/3600:.1f} hour TTL")
-        logger.info(f"Token validity: {StorageService.TOKEN_VALIDITY_SECONDS} seconds")
+        logger.info("Storage service started with %.1f hour TTL", _storage.ttl_seconds / 3600)
+        logger.info("Token validity: %d seconds", StorageService.TOKEN_VALIDITY_SECONDS)
     except ValueError as e:
-        logger.error(f"Failed to initialize storage service: {e}")
+        logger.error("Failed to initialize storage service: %s", e)
         logger.error("Set STORAGE_SECRET_KEY environment variable to enable storage")
         # Don't raise - allow health endpoint to report status
 
 
 @app.on_event("shutdown")
-async def shutdown():
+async def shutdown() -> None:
     """Cleanup on shutdown."""
     if _storage:
         # Clean up all files on shutdown (optional - remove if persistence desired)

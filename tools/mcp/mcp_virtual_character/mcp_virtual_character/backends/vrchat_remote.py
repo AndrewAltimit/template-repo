@@ -183,10 +183,10 @@ class VRChatRemoteBackend(BackendAdapter):
                 self._setup_osc_handlers()
 
                 # Start OSC server
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 server_addr = ("0.0.0.0", osc_out_port)
-                # AsyncIOOSCUDPServer expects BaseEventLoop but get_event_loop returns AbstractEventLoop
-                self.osc_server = AsyncIOOSCUDPServer(server_addr, self.osc_dispatcher, loop)  # type: ignore[arg-type]
+                # AsyncIOOSCUDPServer expects loop parameter
+                self.osc_server = AsyncIOOSCUDPServer(server_addr, self.osc_dispatcher, loop)
 
                 _transport, _protocol = await self.osc_server.create_serve_endpoint()
                 logger.info("OSC server listening on port %s", osc_out_port)
@@ -369,11 +369,12 @@ class VRChatRemoteBackend(BackendAdapter):
         # Sort visemes by timestamp to ensure correct order
         sorted_visemes = sorted(viseme_timestamps, key=lambda x: x[0])
 
-        start_time = asyncio.get_event_loop().time()
+        loop = asyncio.get_running_loop()
+        start_time = loop.time()
 
         for timestamp, viseme, weight in sorted_visemes:
             # Calculate time to wait until this viseme
-            current_time = asyncio.get_event_loop().time() - start_time
+            current_time = loop.time() - start_time
             wait_time = timestamp - current_time
 
             if wait_time > 0:
@@ -468,15 +469,53 @@ class VRChatRemoteBackend(BackendAdapter):
 
     async def capture_video_frame(self) -> Optional[VideoFrame]:
         """
-        Capture video frame (requires OBS or bridge server).
+        Capture video frame (requires OBS WebSocket or bridge server).
 
         Returns:
-            Video frame if available
+            Video frame if available, None if capture not supported or unavailable
         """
         if not self.connected:
             return None
 
-        # TODO: Implement OBS or bridge server video capture
+        # Video capture requires bridge server integration
+        if not self.use_bridge:
+            logger.debug("Video capture requires bridge server (use_bridge=True)")
+            return None
+
+        try:
+            import aiohttp
+
+            # Request frame from bridge server
+            async with aiohttp.ClientSession() as session:
+                bridge_url = f"http://{self.remote_host}:{self.bridge_port}/video/capture"
+                async with session.get(bridge_url, timeout=aiohttp.ClientTimeout(total=5)) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data.get("success") and data.get("frame_data"):
+                            import base64
+
+                            frame_bytes = base64.b64decode(data["frame_data"])
+                            return VideoFrame(
+                                data=frame_bytes,
+                                width=data.get("width", 1920),
+                                height=data.get("height", 1080),
+                                format=data.get("format", "jpeg"),
+                                timestamp=data.get("timestamp", 0.0),
+                                frame_number=data.get("frame_number", 0),
+                            )
+                    elif response.status == 501:
+                        # Video capture not implemented on bridge server
+                        logger.debug("Bridge server does not support video capture")
+                    else:
+                        logger.warning("Bridge server video capture returned %s", response.status)
+
+        except ImportError:
+            logger.warning("aiohttp required for video capture")
+        except aiohttp.ClientError as e:
+            logger.debug("Bridge server video capture unavailable: %s", e)
+        except asyncio.TimeoutError:
+            logger.debug("Bridge server video capture timed out")
+
         return None
 
     async def execute_behavior(self, behavior: str, parameters: Dict[str, Any]) -> bool:
@@ -509,7 +548,7 @@ class VRChatRemoteBackend(BackendAdapter):
 
                 # Apply gesture
                 if "gesture" in action:
-                    animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
+                    animation = CanonicalAnimationData(timestamp=asyncio.get_running_loop().time())
                     animation.gesture = action["gesture"]
                     if "emotion" in action:
                         animation.emotion = action["emotion"]

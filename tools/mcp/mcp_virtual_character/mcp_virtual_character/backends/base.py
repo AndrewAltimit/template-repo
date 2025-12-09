@@ -160,11 +160,12 @@ class BackendAdapter(ABC):
         if not sequence.keyframes:
             return False
 
-        start_time = asyncio.get_event_loop().time()
+        loop = asyncio.get_running_loop()
+        start_time = loop.time()
 
         for frame in sequence.keyframes:
             # Wait until frame time
-            current_time = asyncio.get_event_loop().time() - start_time
+            current_time = loop.time() - start_time
             wait_time = frame.timestamp - current_time
 
             if wait_time > 0:

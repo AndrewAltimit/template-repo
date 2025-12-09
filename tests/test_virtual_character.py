@@ -212,7 +212,8 @@ class TestAudioHandler:
         assert result is None
         assert error is not None
 
-    def test_read_from_file_valid(self):
+    @pytest.mark.asyncio
+    async def test_read_from_file_valid(self):
         """Test reading from valid file."""
         handler = AudioHandler()
         mp3_data = b"ID3\x04\x00\x00\x00\x00" + b"\x00" * 200
@@ -221,15 +222,16 @@ class TestAudioHandler:
             f.write(mp3_data)
             f.flush()
 
-            result, error = handler._read_from_file(f.name)
+            result, error = await handler._read_from_file(f.name)
             assert result is not None
             assert error is None
             assert result == mp3_data
 
-    def test_read_from_file_disallowed_path(self):
+    @pytest.mark.asyncio
+    async def test_read_from_file_disallowed_path(self):
         """Test reading from disallowed path."""
         handler = AudioHandler()
-        result, error = handler._read_from_file("/etc/passwd")
+        result, error = await handler._read_from_file("/etc/passwd")
         assert result is None
         assert error is not None
 

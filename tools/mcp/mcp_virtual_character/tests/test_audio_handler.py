@@ -9,7 +9,7 @@ These tests verify:
 
 import base64
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -196,56 +196,83 @@ class TestAudioDownloader:
         """Test successful audio download."""
         downloader = AudioDownloader()
 
-        mock_response = AsyncMock()
+        audio_data = b"ID3" + b"\x00" * 2000
+
+        # Create properly nested async context managers
+        mock_response = MagicMock()
         mock_response.status = 200
         mock_response.headers = {"Content-Type": "audio/mpeg", "Content-Length": "5000"}
-        mock_response.read = AsyncMock(return_value=b"ID3" + b"\x00" * 2000)
+        mock_response.read = AsyncMock(return_value=audio_data)
 
-        with patch("aiohttp.ClientSession") as mock_session:
-            mock_context = AsyncMock()
-            mock_context.__aenter__.return_value = mock_response
-            mock_session.return_value.__aenter__.return_value.get.return_value = mock_context
+        mock_response_ctx = AsyncMock()
+        mock_response_ctx.__aenter__.return_value = mock_response
+        mock_response_ctx.__aexit__.return_value = None
 
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response_ctx
+
+        mock_session_ctx = AsyncMock()
+        mock_session_ctx.__aenter__.return_value = mock_session
+        mock_session_ctx.__aexit__.return_value = None
+
+        with patch("aiohttp.ClientSession", return_value=mock_session_ctx):
             data, error = await downloader.download("http://example.com/audio.mp3")
 
-            # Note: With proper mocking this would return the audio data
-            # For now we just verify the method doesn't crash
+            assert error is None
+            assert data == audio_data
 
     @pytest.mark.asyncio
     async def test_download_http_error(self):
         """Test handling of HTTP errors."""
         downloader = AudioDownloader()
 
-        with patch("aiohttp.ClientSession") as mock_session:
-            mock_response = AsyncMock()
-            mock_response.status = 404
-            mock_context = AsyncMock()
-            mock_context.__aenter__.return_value = mock_response
+        mock_response = MagicMock()
+        mock_response.status = 404
 
-            mock_session.return_value.__aenter__.return_value.get.return_value = mock_context
+        mock_response_ctx = AsyncMock()
+        mock_response_ctx.__aenter__.return_value = mock_response
+        mock_response_ctx.__aexit__.return_value = None
 
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response_ctx
+
+        mock_session_ctx = AsyncMock()
+        mock_session_ctx.__aenter__.return_value = mock_session
+        mock_session_ctx.__aexit__.return_value = None
+
+        with patch("aiohttp.ClientSession", return_value=mock_session_ctx):
             data, error = await downloader.download("http://example.com/notfound.mp3")
 
-            # Should handle error gracefully
-            # With proper mocking, error would be set
+            assert data is None
+            assert error is not None
+            assert "404" in error
 
     @pytest.mark.asyncio
     async def test_download_html_response(self):
         """Test handling of HTML error response."""
         downloader = AudioDownloader()
 
-        with patch("aiohttp.ClientSession") as mock_session:
-            mock_response = AsyncMock()
-            mock_response.status = 200
-            mock_response.headers = {"Content-Type": "text/html"}
-            mock_context = AsyncMock()
-            mock_context.__aenter__.return_value = mock_response
+        mock_response = MagicMock()
+        mock_response.status = 200
+        mock_response.headers = {"Content-Type": "text/html"}
 
-            mock_session.return_value.__aenter__.return_value.get.return_value = mock_context
+        mock_response_ctx = AsyncMock()
+        mock_response_ctx.__aenter__.return_value = mock_response
+        mock_response_ctx.__aexit__.return_value = None
 
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_response_ctx
+
+        mock_session_ctx = AsyncMock()
+        mock_session_ctx.__aenter__.return_value = mock_session
+        mock_session_ctx.__aexit__.return_value = None
+
+        with patch("aiohttp.ClientSession", return_value=mock_session_ctx):
             data, error = await downloader.download("http://example.com/error")
 
-            # Should detect HTML content type and return error
+            assert data is None
+            assert error is not None
+            assert "html" in error.lower()
 
 
 class TestAudioHandler:

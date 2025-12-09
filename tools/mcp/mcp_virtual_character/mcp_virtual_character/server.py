@@ -613,7 +613,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return {"success": False, "error": "No backend connected. Use set_backend first."}
 
         try:
-            animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
+            animation = CanonicalAnimationData(timestamp=asyncio.get_running_loop().time())
 
             if emotion:
                 animation.emotion = EmotionType[emotion.upper()]
@@ -699,7 +699,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return {"success": False, "error": f"VRCEmote value must be between {VRCEmoteValue.NONE} and {VRCEmoteValue.DIE}"}
 
         try:
-            animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
+            animation = CanonicalAnimationData(timestamp=asyncio.get_running_loop().time())
             animation.parameters = {"avatar_params": {"VRCEmote": emote_value}}
 
             success = await self.current_backend.send_animation_data(animation)
@@ -711,9 +711,12 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 "gesture": gesture_name,
                 "message": f"Sent VRCEmote {emote_value} ({gesture_name})",
             }
-        except Exception as e:
-            self.logger.error("Error sending VRCEmote: %s", e)
-            return {"success": False, "error": str(e)}
+        except RuntimeError as e:
+            self.logger.error("Event loop error sending VRCEmote: %s", e)
+            return {"success": False, "error": f"Runtime error: {e}"}
+        except OSError as e:
+            self.logger.error("I/O error sending VRCEmote: %s", e)
+            return {"success": False, "error": f"I/O error: {e}"}
 
     async def list_backends(self) -> Dict[str, Any]:
         """List available backends."""

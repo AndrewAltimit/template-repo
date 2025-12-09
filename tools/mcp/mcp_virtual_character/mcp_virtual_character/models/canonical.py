@@ -270,9 +270,9 @@ class EnvironmentState:
     weather: Optional[str] = None
     ambient_audio: Optional[str] = None
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary format."""
-        data = {
+        data: Dict[str, Any] = {
             "world_name": self.world_name,
             "instance_id": self.instance_id,
             "nearby_agents": self.nearby_agents,
@@ -281,11 +281,11 @@ class EnvironmentState:
         }
 
         if self.agent_position:
-            data["agent_position"] = self.agent_position.to_list()  # type: ignore
+            data["agent_position"] = self.agent_position.to_list()
         if self.agent_rotation:
-            data["agent_rotation"] = self.agent_rotation.to_list()  # type: ignore
+            data["agent_rotation"] = self.agent_rotation.to_list()
         if self.time_of_day is not None:
-            data["time_of_day"] = self.time_of_day  # type: ignore
+            data["time_of_day"] = self.time_of_day
         if self.weather:
             data["weather"] = self.weather
         if self.ambient_audio:
@@ -324,10 +324,149 @@ class AnimationSequence:
         elif not prev_frame and next_frame:
             return next_frame
         elif prev_frame and next_frame:
-            # TODO: Implement interpolation
-            return prev_frame
+            return self._interpolate_frames(prev_frame, next_frame, time)
 
         return None
+
+    def _interpolate_frames(
+        self,
+        frame_a: CanonicalAnimationData,
+        frame_b: CanonicalAnimationData,
+        target_time: float,
+    ) -> CanonicalAnimationData:
+        """Interpolate between two animation frames."""
+        # Calculate interpolation factor (0.0 = frame_a, 1.0 = frame_b)
+        time_range = frame_b.timestamp - frame_a.timestamp
+        if time_range <= 0:
+            return frame_a
+        t = (target_time - frame_a.timestamp) / time_range
+        t = max(0.0, min(1.0, t))  # Clamp to [0, 1]
+
+        # Create interpolated frame
+        result = CanonicalAnimationData(timestamp=target_time)
+
+        # Interpolate blend shapes (linear)
+        all_blend_shapes = set(frame_a.blend_shapes.keys()) | set(frame_b.blend_shapes.keys())
+        for shape in all_blend_shapes:
+            val_a = frame_a.blend_shapes.get(shape, 0.0)
+            val_b = frame_b.blend_shapes.get(shape, 0.0)
+            result.blend_shapes[shape] = val_a + (val_b - val_a) * t
+
+        # Interpolate visemes (linear)
+        all_visemes = set(frame_a.visemes.keys()) | set(frame_b.visemes.keys())
+        for viseme in all_visemes:
+            val_a = frame_a.visemes.get(viseme, 0.0)
+            val_b = frame_b.visemes.get(viseme, 0.0)
+            result.visemes[viseme] = val_a + (val_b - val_a) * t
+
+        # Interpolate bone transforms
+        all_bones = set(frame_a.bone_transforms.keys()) | set(frame_b.bone_transforms.keys())
+        for bone in all_bones:
+            if bone in frame_a.bone_transforms and bone in frame_b.bone_transforms:
+                transform_a = frame_a.bone_transforms[bone]
+                transform_b = frame_b.bone_transforms[bone]
+                result.bone_transforms[bone] = self._interpolate_transforms(transform_a, transform_b, t)
+            elif bone in frame_a.bone_transforms:
+                result.bone_transforms[bone] = frame_a.bone_transforms[bone]
+            else:
+                result.bone_transforms[bone] = frame_b.bone_transforms[bone]
+
+        # Use emotion/gesture from the frame we're closer to
+        if t < 0.5:
+            result.emotion = frame_a.emotion
+            result.emotion_intensity = frame_a.emotion_intensity
+            result.gesture = frame_a.gesture
+            result.gesture_intensity = frame_a.gesture_intensity
+        else:
+            result.emotion = frame_b.emotion
+            result.emotion_intensity = frame_b.emotion_intensity
+            result.gesture = frame_b.gesture
+            result.gesture_intensity = frame_b.gesture_intensity
+
+        # Interpolate numeric parameters, copy non-numeric
+        all_params = set(frame_a.parameters.keys()) | set(frame_b.parameters.keys())
+        for param in all_params:
+            param_a: Any = frame_a.parameters.get(param)
+            param_b: Any = frame_b.parameters.get(param)
+            if isinstance(param_a, (int, float)) and isinstance(param_b, (int, float)):
+                result.parameters[param] = param_a + (param_b - param_a) * t
+            elif t < 0.5 and param_a is not None:
+                result.parameters[param] = param_a
+            elif param_b is not None:
+                result.parameters[param] = param_b
+
+        # Locomotion - use closest frame's data
+        result.locomotion = frame_a.locomotion if t < 0.5 else frame_b.locomotion
+
+        # Audio timestamp interpolation
+        if frame_a.audio_timestamp is not None and frame_b.audio_timestamp is not None:
+            result.audio_timestamp = frame_a.audio_timestamp + (frame_b.audio_timestamp - frame_a.audio_timestamp) * t
+        elif t < 0.5:
+            result.audio_timestamp = frame_a.audio_timestamp
+        else:
+            result.audio_timestamp = frame_b.audio_timestamp
+
+        return result
+
+    def _interpolate_transforms(self, transform_a: Transform, transform_b: Transform, t: float) -> Transform:
+        """Interpolate between two transforms using linear interpolation."""
+        # Linear interpolation for position
+        pos = Vector3(
+            x=transform_a.position.x + (transform_b.position.x - transform_a.position.x) * t,
+            y=transform_a.position.y + (transform_b.position.y - transform_a.position.y) * t,
+            z=transform_a.position.z + (transform_b.position.z - transform_a.position.z) * t,
+        )
+
+        # SLERP for quaternion rotation (simplified linear interpolation for now)
+        # Full SLERP would require checking for shortest path and proper spherical interpolation
+        rot = self._slerp_quaternion(transform_a.rotation, transform_b.rotation, t)
+
+        # Linear interpolation for scale
+        scale = Vector3(
+            x=transform_a.scale.x + (transform_b.scale.x - transform_a.scale.x) * t,
+            y=transform_a.scale.y + (transform_b.scale.y - transform_a.scale.y) * t,
+            z=transform_a.scale.z + (transform_b.scale.z - transform_a.scale.z) * t,
+        )
+
+        return Transform(position=pos, rotation=rot, scale=scale)
+
+    def _slerp_quaternion(self, q_a: Quaternion, q_b: Quaternion, t: float) -> Quaternion:
+        """Spherical linear interpolation between two quaternions."""
+        # Calculate dot product
+        dot = q_a.w * q_b.w + q_a.x * q_b.x + q_a.y * q_b.y + q_a.z * q_b.z
+
+        # If dot is negative, negate q_b to take shortest path
+        if dot < 0:
+            q_b = Quaternion(w=-q_b.w, x=-q_b.x, y=-q_b.y, z=-q_b.z)
+            dot = -dot
+
+        # If quaternions are very close, use linear interpolation
+        if dot > 0.9995:
+            result = Quaternion(
+                w=q_a.w + (q_b.w - q_a.w) * t,
+                x=q_a.x + (q_b.x - q_a.x) * t,
+                y=q_a.y + (q_b.y - q_a.y) * t,
+                z=q_a.z + (q_b.z - q_a.z) * t,
+            )
+            # Normalize
+            length = np.sqrt(result.w**2 + result.x**2 + result.y**2 + result.z**2)
+            return Quaternion(w=result.w / length, x=result.x / length, y=result.y / length, z=result.z / length)
+
+        # Calculate SLERP
+        theta_0 = np.arccos(dot)
+        theta = theta_0 * t
+        sin_theta = np.sin(theta)
+        sin_theta_0 = np.sin(theta_0)
+
+        s0 = np.cos(theta) - dot * sin_theta / sin_theta_0
+        s1 = sin_theta / sin_theta_0
+
+        return Quaternion(
+            w=s0 * q_a.w + s1 * q_b.w,
+            x=s0 * q_a.x + s1 * q_b.x,
+            y=s0 * q_a.y + s1 * q_b.y,
+            z=s0 * q_a.z + s1 * q_b.z,
+        )
 
 
 class EventType(Enum):

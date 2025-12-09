@@ -211,7 +211,7 @@ class MockBackend(BackendAdapter):
             for i in range(random.randint(1, 5))
         ]
 
-        return self.environment_state  # type: ignore
+        return self.environment_state
 
     async def reset_all(self) -> bool:
         """
