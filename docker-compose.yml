@@ -776,7 +776,7 @@ services:
   # Secure file exchange for audio, animations, and other assets
   virtual-character-storage:
     build:
-      context: ./tools/mcp/virtual_character/storage_service
+      context: ./tools/mcp/mcp_virtual_character/storage_service
       dockerfile: Dockerfile
     container_name: vc-storage
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
@@ -793,12 +793,6 @@ services:
     networks:
       - mcp-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8021/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
     profiles:
       - services
       - virtual-character

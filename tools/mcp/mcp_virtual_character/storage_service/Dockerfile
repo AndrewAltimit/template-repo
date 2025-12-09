@@ -7,7 +7,8 @@ RUN pip install --no-cache-dir \
     fastapi \
     uvicorn[standard] \
     python-multipart \
-    aiofiles
+    aiofiles \
+    requests
 
 # Copy server
 COPY server.py /app/

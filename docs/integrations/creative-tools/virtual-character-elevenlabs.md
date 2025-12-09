@@ -363,7 +363,7 @@ Available at `tools/mcp/virtual_character/examples/educator.py`
 
 ## Resources
 
-- [Virtual Character Documentation](../../../tools/mcp/virtual_character/README.md)
-- [ElevenLabs Speech Documentation](../../../tools/mcp/elevenlabs_speech/docs/README.md)
-- [Audio Sequencing Guide](../../../tools/mcp/virtual_character/docs/AUDIO_SEQUENCING.md)
-- [VRChat Setup Guide](../../../tools/mcp/virtual_character/docs/VRCHAT_SETUP.md)
+- [Virtual Character Documentation](../../../tools/mcp/mcp_virtual_character/README.md)
+- [ElevenLabs Speech Documentation](../../../tools/mcp/mcp_elevenlabs_speech/docs/README.md)
+- [Audio Sequencing Guide](../../../tools/mcp/mcp_virtual_character/docs/AUDIO_SEQUENCING.md)
+- [VRChat Setup Guide](../../../tools/mcp/mcp_virtual_character/docs/VRCHAT_SETUP.md)
