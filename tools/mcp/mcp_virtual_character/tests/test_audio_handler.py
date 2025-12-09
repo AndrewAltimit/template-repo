@@ -198,24 +198,31 @@ class TestAudioDownloader:
 
         audio_data = b"ID3" + b"\x00" * 2000
 
-        # Create properly nested async context managers
-        mock_response = MagicMock()
+        # Create properly nested async context managers using AsyncMock
+        mock_response = AsyncMock()
         mock_response.status = 200
         mock_response.headers = {"Content-Type": "audio/mpeg", "Content-Length": "5000"}
         mock_response.read = AsyncMock(return_value=audio_data)
 
-        mock_response_ctx = AsyncMock()
-        mock_response_ctx.__aenter__.return_value = mock_response
-        mock_response_ctx.__aexit__.return_value = None
+        # Create async context manager for response
+        mock_get_ctx = AsyncMock()
+        mock_get_ctx.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_get_ctx.__aexit__ = AsyncMock(return_value=None)
 
-        mock_session = MagicMock()
-        mock_session.get.return_value = mock_response_ctx
+        # Create mock session
+        mock_session = AsyncMock()
+        mock_session.get = MagicMock(return_value=mock_get_ctx)
 
+        # Create async context manager for session
         mock_session_ctx = AsyncMock()
-        mock_session_ctx.__aenter__.return_value = mock_session
-        mock_session_ctx.__aexit__.return_value = None
+        mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("aiohttp.ClientSession", return_value=mock_session_ctx):
+        # Patch where aiohttp is imported in the audio_handler module
+        with patch(
+            "tools.mcp.mcp_virtual_character.mcp_virtual_character.audio_handler.aiohttp.ClientSession",
+            return_value=mock_session_ctx,
+        ):
             data, error = await downloader.download("http://example.com/audio.mp3")
 
             assert error is None
@@ -226,21 +233,24 @@ class TestAudioDownloader:
         """Test handling of HTTP errors."""
         downloader = AudioDownloader()
 
-        mock_response = MagicMock()
+        mock_response = AsyncMock()
         mock_response.status = 404
 
-        mock_response_ctx = AsyncMock()
-        mock_response_ctx.__aenter__.return_value = mock_response
-        mock_response_ctx.__aexit__.return_value = None
+        mock_get_ctx = AsyncMock()
+        mock_get_ctx.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_get_ctx.__aexit__ = AsyncMock(return_value=None)
 
-        mock_session = MagicMock()
-        mock_session.get.return_value = mock_response_ctx
+        mock_session = AsyncMock()
+        mock_session.get = MagicMock(return_value=mock_get_ctx)
 
         mock_session_ctx = AsyncMock()
-        mock_session_ctx.__aenter__.return_value = mock_session
-        mock_session_ctx.__aexit__.return_value = None
+        mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("aiohttp.ClientSession", return_value=mock_session_ctx):
+        with patch(
+            "tools.mcp.mcp_virtual_character.mcp_virtual_character.audio_handler.aiohttp.ClientSession",
+            return_value=mock_session_ctx,
+        ):
             data, error = await downloader.download("http://example.com/notfound.mp3")
 
             assert data is None
@@ -252,22 +262,25 @@ class TestAudioDownloader:
         """Test handling of HTML error response."""
         downloader = AudioDownloader()
 
-        mock_response = MagicMock()
+        mock_response = AsyncMock()
         mock_response.status = 200
         mock_response.headers = {"Content-Type": "text/html"}
 
-        mock_response_ctx = AsyncMock()
-        mock_response_ctx.__aenter__.return_value = mock_response
-        mock_response_ctx.__aexit__.return_value = None
+        mock_get_ctx = AsyncMock()
+        mock_get_ctx.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_get_ctx.__aexit__ = AsyncMock(return_value=None)
 
-        mock_session = MagicMock()
-        mock_session.get.return_value = mock_response_ctx
+        mock_session = AsyncMock()
+        mock_session.get = MagicMock(return_value=mock_get_ctx)
 
         mock_session_ctx = AsyncMock()
-        mock_session_ctx.__aenter__.return_value = mock_session
-        mock_session_ctx.__aexit__.return_value = None
+        mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_ctx.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("aiohttp.ClientSession", return_value=mock_session_ctx):
+        with patch(
+            "tools.mcp.mcp_virtual_character.mcp_virtual_character.audio_handler.aiohttp.ClientSession",
+            return_value=mock_session_ctx,
+        ):
             data, error = await downloader.download("http://example.com/error")
 
             assert data is None

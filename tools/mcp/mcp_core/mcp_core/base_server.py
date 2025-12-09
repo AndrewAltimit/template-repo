@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 import asyncio
+from contextlib import asynccontextmanager
 from datetime import datetime
 import json
 import logging
@@ -47,24 +48,30 @@ class BaseMCPServer(ABC):
         self.version = version
         self.port = port
         self.logger = logging.getLogger(name)
-        self.app = FastAPI(title=name, version=version)
         # Skip client registry for home lab use
         # self.client_registry = ClientRegistry()
         # Initialize attributes that may be set later
         self._protocol_version: Optional[str] = None
         self._tools: Dict[str, Dict[str, Any]] = {}
         self._tool_funcs: Dict[str, Any] = {}
+        # Create app with lifespan
+        self.app = FastAPI(title=name, version=version, lifespan=self._create_lifespan())
         self._setup_routes()
-        self._setup_events()
 
-    def _setup_events(self):
-        """Setup startup/shutdown events"""
+    def _create_lifespan(self):
+        """Create lifespan context manager for startup/shutdown events."""
+        server = self  # Capture self for the closure
 
-        @self.app.on_event("startup")
-        async def startup_event():
-            self.logger.info("%s starting on port %s", self.name, self.port)
-            self.logger.info("Server version: %s", self.version)
-            self.logger.info("Server initialized successfully")
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            # Startup
+            server.logger.info("%s starting on port %s", server.name, server.port)
+            server.logger.info("Server version: %s", server.version)
+            server.logger.info("Server initialized successfully")
+            yield
+            # Shutdown (nothing to do currently)
+
+        return lifespan
 
     def _setup_routes(self):
         """Setup common HTTP routes"""

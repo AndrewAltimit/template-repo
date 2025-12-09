@@ -16,6 +16,7 @@ Designed for cross-machine transfer (VM to host, remote servers, containers).
 import asyncio
 import base64
 import binascii
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 import hashlib
 import hmac
@@ -285,7 +286,39 @@ class StorageService:
 
 # Lazy initialization - storage is created on first use or startup
 _storage: Optional[StorageService] = None
-app = FastAPI(title="Virtual Character Storage Service")
+_cleanup_task: Optional[asyncio.Task[None]] = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup and shutdown events."""
+    global _storage, _cleanup_task
+
+    # Startup
+    try:
+        _storage = StorageService()
+        _cleanup_task = asyncio.create_task(_storage.periodic_cleanup())
+        logger.info("Storage service started with %.1f hour TTL", _storage.ttl_seconds / 3600)
+        logger.info("Token validity: %d seconds", StorageService.TOKEN_VALIDITY_SECONDS)
+    except ValueError as e:
+        logger.error("Failed to initialize storage service: %s", e)
+        logger.error("Set STORAGE_SECRET_KEY environment variable to enable storage")
+        # Don't raise - allow health endpoint to report status
+
+    yield
+
+    # Shutdown
+    if _cleanup_task:
+        _cleanup_task.cancel()
+        try:
+            await _cleanup_task
+        except asyncio.CancelledError:
+            pass
+    if _storage:
+        logger.info("Storage service shutting down")
+
+
+app = FastAPI(title="Virtual Character Storage Service", lifespan=lifespan)
 
 
 def get_storage() -> StorageService:
@@ -419,30 +452,6 @@ async def generate_token(
         "token": new_token,
         "expires_in_seconds": StorageService.TOKEN_VALIDITY_SECONDS,
     }
-
-
-@app.on_event("startup")
-async def startup() -> None:
-    """Initialize storage service and start background cleanup task."""
-    global _storage
-
-    try:
-        _storage = StorageService()
-        asyncio.create_task(_storage.periodic_cleanup())
-        logger.info("Storage service started with %.1f hour TTL", _storage.ttl_seconds / 3600)
-        logger.info("Token validity: %d seconds", StorageService.TOKEN_VALIDITY_SECONDS)
-    except ValueError as e:
-        logger.error("Failed to initialize storage service: %s", e)
-        logger.error("Set STORAGE_SECRET_KEY environment variable to enable storage")
-        # Don't raise - allow health endpoint to report status
-
-
-@app.on_event("shutdown")
-async def shutdown() -> None:
-    """Cleanup on shutdown."""
-    if _storage:
-        # Clean up all files on shutdown (optional - remove if persistence desired)
-        logger.info("Storage service shutting down")
 
 
 if __name__ == "__main__":

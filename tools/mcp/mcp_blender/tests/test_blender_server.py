@@ -186,27 +186,15 @@ def test_server_endpoints():
 
         base_url = f"http://127.0.0.1:{port}"
 
-        # Run tests sequentially, returning False on critical failures
-        if not _wait_for_server_start(base_url):
-            return False
-
-        if not _test_health_endpoint(base_url):
-            return False
-
-        if not _test_list_tools(base_url):
-            return False
-
-        if not _test_create_project(base_url):
-            return False
-
-        if not _test_job_management(base_url, server):
-            return False
-
-        if not _test_list_projects(base_url):
-            return False
+        # Run tests sequentially, using assertions instead of returns
+        assert _wait_for_server_start(base_url), "Server failed to start"
+        assert _test_health_endpoint(base_url), "Health endpoint test failed"
+        assert _test_list_tools(base_url), "List tools test failed"
+        assert _test_create_project(base_url), "Create project test failed"
+        assert _test_job_management(base_url, server), "Job management test failed"
+        assert _test_list_projects(base_url), "List projects test failed"
 
         print("\n✅ All endpoint tests passed!")
-        return True
 
 
 def test_job_manager_operations():
@@ -243,7 +231,6 @@ def test_job_manager_operations():
         print("✓ Job cancelled")
 
         print("✅ Job manager tests passed!")
-        return True
 
 
 def test_asset_manager_operations():
@@ -289,7 +276,6 @@ def test_asset_manager_operations():
         print("✓ Assets listed")
 
         print("✅ Asset manager tests passed!")
-        return True
 
 
 def test_template_manager_operations():
@@ -319,7 +305,6 @@ def test_template_manager_operations():
         print("✓ Project created from template")
 
         print("✅ Template manager tests passed!")
-        return True
 
 
 def main():

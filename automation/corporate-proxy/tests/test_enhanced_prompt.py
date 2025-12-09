@@ -60,7 +60,8 @@ class TestEnhancedPrompt(unittest.TestCase):
         system_content = enhanced[0]["content"]
 
         # Check for key elements of enhanced prompt
-        self.assertIn("🛠️ IMPORTANT", system_content)
+        # Note: Generic client type uses "IMPORTANT:" without emoji
+        self.assertIn("IMPORTANT:", system_content)
         self.assertIn("Available Tools:", system_content)
         self.assertIn("**Write**:", system_content)
         self.assertIn("**Bash**:", system_content)
