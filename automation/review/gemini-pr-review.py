@@ -1,25 +1,151 @@
 #!/usr/bin/env python3
+# pylint: disable=too-many-lines
+# Rationale: Self-contained PR review script kept in one file for portability.
+# Only ~30 lines over limit; splitting would fragment tightly-coupled workflow logic.
 """
 Improved Gemini PR Review Script with better context handling
 """
 
 import json
 import os
+from pathlib import Path
+import re
 import subprocess
 import sys
-from pathlib import Path
-from typing import Any, Dict, List, Tuple
+import time
+from typing import Any, Dict, List, Optional, Tuple
+
+import requests
+import yaml
 
 # Model constants
-PRO_MODEL = "gemini-2.5-pro"
-FLASH_MODEL = "gemini-2.5-flash"
+# Using explicit model with API key to avoid 404 errors and OAuth hangs
+# API key is free tier with generous limits (comparable to OAuth)
 NO_MODEL = ""  # Indicates no model was successfully used
-PRO_MODEL_TIMEOUT = 90  # seconds
-FLASH_MODEL_TIMEOUT = 60  # seconds
+DEFAULT_MODEL_TIMEOUT = 600  # seconds (10 minutes for large PR reviews)
+# Models can be overridden via environment variables (useful for testing/CI)
+PRIMARY_MODEL = os.environ.get("GEMINI_PRIMARY_MODEL", "gemini-3-pro-preview")  # Latest preview (NOT 3.0!)
+FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash")  # Fast fallback
+MAX_RETRIES = 5  # For rate limiting on free tier (3 preview may have stricter limits)
+
+
+def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETRIES) -> Tuple[str, str]:
+    """Calls Gemini CLI with a specific model, handling rate limits.
+
+    Args:
+        prompt: The prompt to send
+        model: Model name (e.g., "gemini-3-pro-preview")
+        max_retries: Maximum retry attempts for rate limiting
+
+    Returns:
+        (analysis, model_used) or ("", NO_MODEL) on failure
+    """
+    # Check for API key
+    # Check for API key - accept both names for compatibility
+    # GOOGLE_API_KEY: Standard Google API key name
+    # GEMINI_API_KEY: GitHub workflow secret name (for compatibility)
+    api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        print("❌ Error: No API Key found in environment variables.")
+        print("  Set GOOGLE_API_KEY (standard) or GEMINI_API_KEY (workflow secret)")
+        return "Authentication Failed - No API Key", NO_MODEL
+
+    print(f"Attempting analysis with {model} (API Key)...")
+
+    # Use npx to bypass any PATH manipulation or wrappers
+    # This ensures we use the official package logic, not /tmp/gemini wrapper
+    print("🚀 Resolving Gemini CLI via npx (bypassing any wrappers)...")
+    cmd = ["npx", "--yes", "@google/gemini-cli", "prompt", "--model", model, "--output-format", "text"]
+
+    print(f"🚀 Executing command: {' '.join(cmd)}")
+
+    # Retry loop for rate limiting
+    for attempt in range(max_retries):
+        try:
+            # Run with standard subprocess (no PTY wrapper)
+            # input= handles stdin and sends EOF properly
+            result = subprocess.run(
+                cmd,
+                input=prompt,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=DEFAULT_MODEL_TIMEOUT,
+                env={**os.environ, "GOOGLE_API_KEY": api_key},
+            )
+
+            # Check for errors
+            if result.returncode != 0:
+                stderr_lower = result.stderr.lower()
+
+                # Handle rate limiting with exponential backoff
+                if "429" in result.stderr or "exhausted" in stderr_lower or "quota" in stderr_lower:
+                    wait_time = (2**attempt) * 5  # 5s, 10s, 20s, 40s, 80s
+                    print(f"⚠️  Rate limit hit (attempt {attempt + 1}/{max_retries})")
+                    print(f"    Sleeping {wait_time}s before retry...")
+                    time.sleep(wait_time)
+                    continue  # Retry
+
+                # Handle 404 - model not available
+                if "404" in result.stderr:
+                    print(f"❌ Model {model} not found")
+                    return "", NO_MODEL  # Signal to try fallback
+
+                # Other errors - expose full details
+                print(f"❌ CLI Error (Code {result.returncode})")
+                print(f"STDERR: {result.stderr}")
+                print(f"STDOUT: {result.stdout}")
+                return f"Error - CLI Failed: {result.stderr[:200]}", NO_MODEL
+
+            # Success! Clean output
+            output = result.stdout.strip()
+            lines = output.split("\n")
+            cleaned = []
+            for line in lines:
+                if any(
+                    skip in line
+                    for skip in [
+                        "Loaded cached credentials",
+                        "Data collection is disabled",
+                        "Telemetry collection is disabled",
+                    ]
+                ):
+                    continue
+                cleaned.append(line)
+
+            return "\n".join(cleaned).strip(), model
+
+        except subprocess.TimeoutExpired:
+            print(f"❌ Timeout after {DEFAULT_MODEL_TIMEOUT}s (attempt {attempt + 1})")
+            if attempt < max_retries - 1:
+                continue
+            return "", NO_MODEL
+
+        except FileNotFoundError:
+            print(f"❌ Critical: Executable not found. PATH is: {os.environ.get('PATH')}")
+            print(f"    Attempted command: {' '.join(cmd)}")
+            return "Error - Gemini Executable Not Found", NO_MODEL
+
+        except Exception as e:
+            print(f"❌ Python Exception: {str(e)}")
+            print(f"    Exception type: {type(e).__name__}")
+            if attempt < max_retries - 1:
+                time.sleep(5)
+                continue
+            return f"Error - Exception: {str(e)}", NO_MODEL
+
+    return "", NO_MODEL  # All retries exhausted
 
 
 def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
-    """Calls the Gemini API with a fallback from Pro to Flash model.
+    """Calls Gemini CLI with primary model, falling back to Flash on failure.
+
+    This implementation:
+    - Uses API key instead of OAuth to avoid browser-based auth hangs
+    - Explicitly specifies model to avoid 404 errors
+    - Uses standard stdin (no PTY wrapper) which properly sends EOF
+    - Implements exponential backoff for rate limiting on free tier
+    - Falls back to gemini-2.5-flash if primary model fails
 
     Args:
         prompt: The prompt to send to Gemini
@@ -28,84 +154,25 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
         (analysis, model_used) - The analysis result and which model was used
     """
 
-    # Helper function to clean credential messages from output
-    def clean_output(output: str) -> str:
-        lines = output.split("\n")
-        cleaned = []
-        for line in lines:
-            # Skip authentication and telemetry messages
-            if any(
-                skip in line
-                for skip in ["Loaded cached credentials", "Data collection is disabled", "Telemetry collection is disabled"]
-            ):
-                continue
-            cleaned.append(line)
-        return "\n".join(cleaned).strip()
-
-    # Try with Pro model first
-    try:
-        print("Attempting analysis with Gemini 2.5 Pro model...")
-        result = subprocess.run(
-            ["gemini", "-m", PRO_MODEL],
-            input=prompt,
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=PRO_MODEL_TIMEOUT,
-        )
-        output = clean_output(result.stdout.strip())
-        return output.strip(), PRO_MODEL
-    except subprocess.TimeoutExpired:
-        print(f"Pro model timed out after {PRO_MODEL_TIMEOUT}s, trying Flash model...")
-        print("   (This is likely due to network latency in CI, not a quota issue)")
-    except subprocess.CalledProcessError as e:
-        # Check if it's a quota limit error
-        if e.stderr:
-            error_text = e.stderr.lower()
-            if "quota limit" in error_text or "api error" in error_text or "quota exceeded" in error_text:
-                print("Quota limit reached for Pro model, falling back to Flash...")
-            else:
-                # Non-quota error from Pro model - surface the error
-                err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
-                return f"Pro model failed with error: {err_msg}", NO_MODEL
-        else:
-            # No stderr, return the error
-            return f"Pro model failed with error: {str(e)}", NO_MODEL
-    except Exception as e:
-        # Unexpected error
-        return f"Unexpected error with Pro model: {str(e)}", NO_MODEL
+    # Try primary model first (gemini-3.0-pro-preview)
+    result, model_used = _call_gemini_with_model(prompt, PRIMARY_MODEL)
+    if model_used != NO_MODEL and result:
+        return result, model_used
 
     # Fallback to Flash model
-    try:
-        print("Attempting analysis with Gemini 2.5 Flash model...")
-        result = subprocess.run(
-            ["gemini", "-m", FLASH_MODEL],
-            input=prompt,
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=FLASH_MODEL_TIMEOUT,
-        )
-        output = clean_output(result.stdout.strip())
-        return output.strip(), FLASH_MODEL
-    except subprocess.TimeoutExpired:
-        err_msg = f"Flash model timed out after {FLASH_MODEL_TIMEOUT}s"
-        print(f"Error: {err_msg}")
-        return f"Both Pro and Flash models failed. {err_msg}", NO_MODEL
-    except subprocess.CalledProcessError as e:
-        err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
-        print(f"Flash model failed: {err_msg}")
-        return f"Both Pro and Flash models failed. Flash error: {err_msg}", NO_MODEL
-    except Exception as e:
-        err_msg = f"Unexpected error: {str(e)}"
-        print(f"Error: {err_msg}")
-        return f"Both Pro and Flash models failed. {err_msg}", NO_MODEL
+    print(f"⚠️  Primary model failed, falling back to {FALLBACK_MODEL}...")
+    result, model_used = _call_gemini_with_model(prompt, FALLBACK_MODEL, max_retries=3)
+    if model_used != NO_MODEL and result:
+        return result, model_used
+
+    # Both models failed
+    return "All models failed - check GOOGLE_API_KEY and model availability", NO_MODEL
 
 
 def check_gemini_cli() -> bool:
     """Check if Gemini CLI is available"""
     try:
-        result = subprocess.run(["which", "gemini"], capture_output=True, text=True)
+        result = subprocess.run(["which", "gemini"], capture_output=True, text=True, check=False)
         return result.returncode == 0
     except Exception:
         return False
@@ -133,7 +200,7 @@ def get_pr_info() -> Dict[str, Any]:
 def get_changed_files() -> List[str]:
     """Get list of changed files in the PR"""
     if os.path.exists("changed_files.txt"):
-        with open("changed_files.txt", "r") as f:
+        with open("changed_files.txt", "r", encoding="utf-8") as f:
             return [line.strip() for line in f if line.strip()]
     return []
 
@@ -224,14 +291,14 @@ def get_project_context() -> str:
     combined_context = []
 
     # First, try to read the main project context
-    project_context_file = Path("docs/ai-agents/project-context.md")
+    project_context_file = Path("docs/agents/project-context.md")
     if not project_context_file.exists():
         # Try alternate location
         project_context_file = Path("PROJECT_CONTEXT.md")
 
     if project_context_file.exists():
         try:
-            combined_context.append(project_context_file.read_text())
+            combined_context.append(project_context_file.read_text(encoding="utf-8"))
         except Exception as e:
             print(f"Warning: Could not read project context: {e}")
 
@@ -245,23 +312,27 @@ def get_project_context() -> str:
         )
 
     # Now append Gemini's expression philosophy for personality and style
-    gemini_expression_file = Path("docs/ai-agents/gemini-expression.md")
+    gemini_expression_file = Path("docs/agents/gemini-expression.md")
     if gemini_expression_file.exists():
         try:
             print("Including Gemini expression philosophy in review context...")
-            expression_content = gemini_expression_file.read_text()
+            expression_content = gemini_expression_file.read_text(encoding="utf-8")
             combined_context.append("\n\n---\n\n")
             combined_context.append(expression_content)
         except Exception as e:
             print(f"Warning: Could not read Gemini expression file: {e}")
     else:
-        print("Note: Gemini expression file not found at docs/ai-agents/gemini-expression.md")
+        print("Note: Gemini expression file not found at docs/agents/gemini-expression.md")
 
     return "".join(combined_context)
 
 
-def get_recent_pr_comments(pr_number: str) -> str:
-    """Get PR comments since last Gemini review"""
+def get_all_pr_comments(pr_number: str) -> List[Dict[str, Any]]:
+    """Get all PR comments for summarization
+
+    Returns:
+        List of comment dictionaries with 'author' and 'body' keys
+    """
     try:
         # Get all PR comments
         result = subprocess.run(
@@ -272,7 +343,24 @@ def get_recent_pr_comments(pr_number: str) -> str:
         )
 
         pr_data = json.loads(result.stdout)
-        comments = pr_data.get("comments", [])
+        comments: List[Dict[str, Any]] = pr_data.get("comments", [])
+
+        return comments
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: GitHub CLI command failed: {e}")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"Warning: Could not parse PR comments JSON: {e}")
+        return []
+    except Exception as e:
+        print(f"Warning: Unexpected error fetching PR comments: {e}")
+        return []
+
+
+def get_recent_pr_comments(pr_number: str) -> str:
+    """Get PR comments since last Gemini review"""
+    try:
+        comments = get_all_pr_comments(pr_number)
 
         # Find last Gemini comment index
         last_gemini_idx = -1
@@ -294,40 +382,124 @@ def get_recent_pr_comments(pr_number: str) -> str:
                 return "\n".join(formatted)
 
         return ""
-    except subprocess.CalledProcessError as e:
-        print(f"Warning: GitHub CLI command failed: {e}")
-        return ""
-    except json.JSONDecodeError as e:
-        print(f"Warning: Could not parse PR comments JSON: {e}")
-        return ""
     except Exception as e:
-        print(f"Warning: Unexpected error fetching PR comments: {e}")
+        print(f"Warning: Unexpected error processing PR comments: {e}")
         return ""
 
 
-def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any]) -> Tuple[str, str]:
-    """Analyze large PRs by breaking them down into manageable chunks
+def summarize_all_pr_comments(pr_number: str, pr_title: str) -> Tuple[str, str]:
+    """Summarize all PR comments using Gemini Flash model for context retention
 
-    Returns: (analysis, model_used)
+    This function analyzes the complete comment history to extract important context
+    such as admin decisions, false positives, architectural agreements, and completed
+    action items. The summary is used to inform subsequent code reviews.
+
+    Args:
+        pr_number: The PR number
+        pr_title: The PR title
+
+    Returns:
+        Tuple of (summary_text, model_used) or ("", NO_MODEL) if no comments or failure
     """
+    try:
+        comments = get_all_pr_comments(pr_number)
 
-    project_context = get_project_context()
-    file_stats = get_file_stats()
-    diff_size = len(diff)
+        # No comments to summarize
+        if not comments:
+            print("No PR comments found - skipping summarization")
+            return "", NO_MODEL
 
-    # If diff is small enough, use single analysis
-    if diff_size < 500000:  # 500KB threshold - Gemini can handle much larger context
-        return analyze_complete_diff(diff, changed_files, pr_info, project_context, file_stats)
+        # Filter out Gemini's own reviews to avoid circular context
+        human_comments = [c for c in comments if "<!-- gemini-review-marker -->" not in c.get("body", "")]
 
-    # For large diffs, analyze by file groups
-    print(f"Large diff detected ({diff_size:,} chars), using chunked analysis...")
+        if not human_comments:
+            print("No human comments found (only Gemini reviews) - skipping summarization")
+            return "", NO_MODEL
 
-    file_chunks = chunk_diff_by_files(diff)
-    analyses = []
-    model_used = NO_MODEL  # Start with no model, will be updated if any analysis succeeds
-    successful_models = []  # Track which models were successfully used
+        # Limit to most recent 50 comments + all admin comments for manageability
+        admin_comments = [c for c in human_comments if c.get("author", {}).get("login") == "AndrewAltimit"]
+        recent_comments = human_comments[-50:]
 
-    # Group files by type for more coherent analysis
+        # Combine admin + recent (deduplicate)
+        comment_ids_seen = set()
+        comments_to_analyze = []
+        for comment in admin_comments + recent_comments:
+            comment_id = comment.get("id")
+            if comment_id and comment_id not in comment_ids_seen:
+                comment_ids_seen.add(comment_id)
+                comments_to_analyze.append(comment)
+
+        # Format comments for analysis
+        formatted_comments = []
+        for comment in comments_to_analyze:
+            author = comment.get("author", {}).get("login", "Unknown")
+            body = comment.get("body", "").strip()
+            formatted_comments.append(f"**@{author}**: {body}")
+
+        comments_text = "\n\n".join(formatted_comments)
+
+        # Build summarization prompt
+        prompt = f"""You are analyzing the complete comment history of PR #{pr_number}: {pr_title}
+to extract context for a new code review.
+
+**All PR Comments ({len(comments_to_analyze)} comments):**
+
+{comments_text}
+
+**Your task:**
+Summarize this discussion focusing on:
+
+1. **Admin Decisions**: What has @AndrewAltimit explicitly approved or requested?
+2. **False Positives**: Which reported issues were determined to be incorrect or not actual bugs?
+3. **Architectural Agreements**: Key design decisions that were agreed upon
+4. **Completed Items**: Action items that have been addressed in subsequent commits
+5. **Open Concerns**: Unresolved issues that still need attention
+
+**Guidelines:**
+- Keep the summary concise (300-500 words maximum)
+- Use clear markdown headings for each section
+- Only include sections that have relevant content (skip empty sections)
+- Be specific about what was decided and why
+- If there are no substantive comments, say "No significant discussion history"
+
+Generate the summary now:"""
+
+        # Use Flash model for fast, cost-effective summarization
+        print(f"Summarizing {len(comments_to_analyze)} PR comments with {FALLBACK_MODEL}...")
+        summary, model_used = _call_gemini_with_model(prompt, FALLBACK_MODEL, max_retries=3)
+
+        if model_used == NO_MODEL or not summary:
+            print("⚠️  Comment summarization failed - proceeding without historical context")
+            return "", NO_MODEL
+
+        print(f"✅ Successfully summarized PR comment history ({len(summary)} chars)")
+        return summary, model_used
+
+    except Exception as e:
+        print(f"Warning: Error during comment summarization: {e}")
+        print("   Proceeding without comment summary")
+        return "", NO_MODEL
+
+
+def _get_file_category(filepath: str) -> str:
+    """Categorize a file by its path and extension."""
+    if ".github/workflows" in filepath:
+        return "workflows"
+    if filepath.endswith(".py"):
+        return "python"
+    if "docker" in filepath.lower() or filepath.endswith("Dockerfile"):
+        return "docker"
+    if filepath.endswith((".yml", ".yaml", ".json", ".toml")):
+        return "config"
+    if filepath.endswith((".md", ".rst", ".txt")):
+        return "docs"
+    return "other"
+
+
+def _group_files_by_category(
+    file_chunks: List[Tuple[str, str]],
+) -> Dict[str, List[Tuple[str, str]]]:
+    """Group file chunks by their category."""
     file_groups: Dict[str, List[Tuple[str, str]]] = {
         "workflows": [],
         "python": [],
@@ -338,42 +510,79 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
     }
 
     for filepath, file_diff in file_chunks:
-        if ".github/workflows" in filepath:
-            file_groups["workflows"].append((filepath, file_diff))
-        elif filepath.endswith(".py"):
-            file_groups["python"].append((filepath, file_diff))
-        elif "docker" in filepath.lower() or filepath.endswith("Dockerfile"):
-            file_groups["docker"].append((filepath, file_diff))
-        elif filepath.endswith((".yml", ".yaml", ".json", ".toml")):
-            file_groups["config"].append((filepath, file_diff))
-        elif filepath.endswith((".md", ".rst", ".txt")):
-            file_groups["docs"].append((filepath, file_diff))
-        else:
-            file_groups["other"].append((filepath, file_diff))
+        category = _get_file_category(filepath)
+        file_groups[category].append((filepath, file_diff))
 
-    # Get recent PR comments for context
-    recent_comments = get_recent_pr_comments(pr_info["number"])
+    return file_groups
 
-    # Analyze each group
+
+def _analyze_and_save_groups(
+    file_groups: Dict[str, List[Tuple[str, str]]],
+    pr_info: Dict[str, Any],
+    project_context: str,
+    comment_summary: str,
+    recent_comments: str,
+    review_dir: Path,
+) -> Tuple[List[Path], List[str]]:
+    """Analyze each file group and save reviews to files."""
+    review_files = []
+    successful_models = []
+
     for group_name, group_files in file_groups.items():
         if not group_files:
             continue
 
-        group_analysis, group_model = analyze_file_group(group_name, group_files, pr_info, project_context, recent_comments)
+        group_analysis, group_model = analyze_file_group(
+            group_name, group_files, pr_info, project_context, comment_summary, recent_comments
+        )
         if group_analysis and group_model != NO_MODEL:
-            analyses.append(f"### {group_name.title()} Changes\n{group_analysis}")
+            review_file = review_dir / f"review_{group_name}.txt"
+            review_file.write_text(group_analysis, encoding="utf-8")
+            review_files.append(review_file)
             successful_models.append(group_model)
 
-    # Determine which model was predominantly used
-    if successful_models:
-        # If any analysis used Flash, report Flash (as it's the fallback)
-        model_used = FLASH_MODEL if FLASH_MODEL in successful_models else PRO_MODEL
-    else:
-        # No successful analyses
-        model_used = NO_MODEL
+    return review_files, successful_models
 
-    # Combine analyses with overall summary
-    combined_analysis = f"""## Overall Summary
+
+def _consolidate_reviews(review_dir: Path, pr_info: Dict[str, Any]) -> Optional[str]:
+    """Try to consolidate reviews using the consolidation script."""
+    print("\nConsolidating review sections with Gemini...")
+    try:
+        consolidate_script = Path(__file__).parent / "consolidate-gemini-review.py"
+        result = subprocess.run(
+            [sys.executable, str(consolidate_script), str(review_dir), pr_info["number"], pr_info["title"]],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=300,
+        )
+
+        if result.returncode == 0:
+            consolidated_file = review_dir / "review_consolidated.txt"
+            if consolidated_file.exists():
+                print("Successfully consolidated reviews")
+                return consolidated_file.read_text(encoding="utf-8")
+            print("Consolidation completed but output file not found, using fallback")
+        else:
+            print(f"Consolidation failed: {result.stderr}")
+            print("   Falling back to simple concatenation")
+
+    except Exception as e:
+        print(f"Error during consolidation: {e}")
+        print("   Falling back to simple concatenation")
+
+    return None
+
+
+def _create_fallback_analysis(review_files: List[Path], file_stats: Dict[str, Any]) -> str:
+    """Create a fallback analysis by concatenating review files."""
+    analyses = []
+    for review_file in review_files:
+        group_name = review_file.stem.replace("review_", "").replace("_", " ").title()
+        content = review_file.read_text(encoding="utf-8")
+        analyses.append(f"### {group_name} Changes\n{content}")
+
+    return f"""## Overall Summary
 
 **PR Stats**: {file_stats['files']} files changed, \
 +{file_stats['additions']}/-{file_stats['deletions']} lines
@@ -387,7 +596,46 @@ significant changes across multiple areas of the codebase. Please ensure all \
 changes are tested, especially given the container-first architecture of this project.
 """
 
-    return combined_analysis, model_used
+
+def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any]) -> Tuple[str, str]:
+    """Analyze large PRs by breaking them down into manageable chunks
+
+    Returns: (analysis, model_used)
+    """
+    project_context = get_project_context()
+    file_stats = get_file_stats()
+    diff_size = len(diff)
+
+    # If diff is small enough, use single analysis
+    if diff_size < 50000:
+        return analyze_complete_diff(diff, changed_files, pr_info, project_context, file_stats)
+
+    print(f"Large diff detected ({diff_size:,} chars), using chunked analysis...")
+
+    comment_summary, _ = summarize_all_pr_comments(pr_info["number"], pr_info["title"])
+    file_chunks = chunk_diff_by_files(diff)
+    file_groups = _group_files_by_category(file_chunks)
+    recent_comments = get_recent_pr_comments(pr_info["number"])
+
+    review_dir = Path(f"/tmp/gemini_review_{pr_info['number']}")
+    review_dir.mkdir(exist_ok=True)
+
+    review_files, successful_models = _analyze_and_save_groups(
+        file_groups, pr_info, project_context, comment_summary, recent_comments, review_dir
+    )
+
+    # Determine model used
+    model_used = "default" if successful_models or review_files else NO_MODEL
+
+    if not review_files:
+        return "Unable to analyze PR - all file group analyses failed.", NO_MODEL
+
+    # Try consolidation, fallback to simple concatenation
+    consolidated = _consolidate_reviews(review_dir, pr_info)
+    if consolidated:
+        return consolidated, model_used
+
+    return _create_fallback_analysis(review_files, file_stats), model_used
 
 
 def analyze_file_group(
@@ -395,9 +643,18 @@ def analyze_file_group(
     files: List[Tuple[str, str]],
     pr_info: Dict[str, Any],
     project_context: str,
+    comment_summary: str = "",
     recent_comments: str = "",
 ) -> Tuple[str, str]:
     """Analyze a group of related files
+
+    Args:
+        group_name: Name of the file group (e.g., "python", "workflows")
+        files: List of (filepath, file_diff) tuples
+        pr_info: PR information dictionary
+        project_context: Project-specific context
+        comment_summary: Summary of all PR comment history
+        recent_comments: Comments since last Gemini review
 
     Returns: (analysis, model_used)
     """
@@ -406,15 +663,28 @@ def analyze_file_group(
     combined_diff = ""
     file_list = []
 
-    for filepath, file_diff in files[:20]:  # Increased to max 20 files per group
+    for filepath, file_diff in files[:10]:  # Max 10 files per group to stay under ARG_MAX
         file_list.append(filepath)
-        # Include full file diff up to 50KB per file
-        file_content = file_diff[:50000]  # 50KB per file should be safe
+        # Include file diff up to 3KB per file to keep total under ARG_MAX
+        file_content = file_diff[:3000]  # 3KB per file, 10 files = ~30KB + overhead
         combined_diff += f"\n\n=== {filepath} ===\n{file_content}"
-        if len(file_diff) > 50000:
-            combined_diff += f"\n... (truncated {len(file_diff) - 50000} chars)"
+        if len(file_diff) > 3000:
+            combined_diff += f"\n... (truncated {len(file_diff) - 3000} chars)"
 
-    prompt = f"Analyze this group of {group_name} changes from " f"PR #{pr_info['number']}:\n\n"
+    prompt = (
+        f"You are an expert code reviewer. Analyze this group of {group_name} changes from "
+        f"PR #{pr_info['number']}.\n\n"
+        f"**PROJECT CONTEXT:**\n"
+        f"{project_context}\n\n"
+    )
+
+    # Add comment summary if provided (historical context)
+    if comment_summary:
+        prompt += (
+            f"**HISTORICAL PR DISCUSSION (Summary):**\n"
+            f"{comment_summary}\n\n"
+            f"*Note: Use this to avoid re-reporting false positives and respect admin decisions.*\n\n"
+        )
 
     # Add recent comments if provided
     if recent_comments:
@@ -425,15 +695,26 @@ def analyze_file_group(
         f"{chr(10).join(f'- {f}' for f in file_list)}\n\n"
         f"**Relevant diffs:**\n"
         f"```diff\n"
-        f"{combined_diff[:200000]}\n"
+        f"{combined_diff[:35000]}\n"  # Conservative limit for ARG_MAX
         f"```\n\n"
         f"Focus on:\n"
         f"1. Correctness and potential bugs\n"
         f"2. Security implications\n"
         f"3. Best practices for {group_name} files\n"
         f"4. Consistency with project's container-first approach\n\n"
-        f"Keep response concise but thorough."
     )
+
+    # Add guidance about using historical context
+    if comment_summary:
+        prompt += (
+            "**Review Guidelines:**\n"
+            "- Do NOT re-report issues marked as false positives in the discussion history\n"
+            "- Build on decisions already made rather than questioning them\n"
+            "- Reference the historical context when relevant\n"
+            "- Focus on new issues not previously discussed\n\n"
+        )
+
+    prompt += "Keep response concise but thorough."
 
     # Use the helper function for Gemini API calls with fallback
     return _call_gemini_with_fallback(prompt)
@@ -451,6 +732,9 @@ def analyze_complete_diff(
     Returns: (analysis, model_used)
     """
 
+    # Get comment summary for context retention across reviews
+    comment_summary, _ = summarize_all_pr_comments(pr_info["number"], pr_info["title"])
+
     # For GitHub workflow files, include more complete content
     workflow_contents = {}
     for file in changed_files:
@@ -467,6 +751,17 @@ def analyze_complete_diff(
         "comprehensively.\n\n"
         f"**PROJECT CONTEXT:**\n"
         f"{project_context}\n\n"
+    )
+
+    # Add comment summary if provided (historical context)
+    if comment_summary:
+        prompt += (
+            f"**HISTORICAL PR DISCUSSION (Summary):**\n"
+            f"{comment_summary}\n\n"
+            f"*Note: Use this to avoid re-reporting false positives and respect admin decisions.*\n\n"
+        )
+
+    prompt += (
         f"**PULL REQUEST INFORMATION:**\n"
         f"- PR #{pr_info['number']}: {pr_info['title']}\n"
         f"- Author: {pr_info['author']}\n"
@@ -485,13 +780,13 @@ def analyze_complete_diff(
         f"{format_workflow_contents(workflow_contents)}\n"
         f"**COMPLETE DIFF:**\n"
         f"```diff\n"
-        f"{diff[:500000]}\n"
+        f"{diff[:40000]}\n"  # Conservative limit to stay under ARG_MAX
         f"```\n"
     )
 
     # Add truncation message if needed
-    if len(diff) > 500000:
-        prompt += f"... (diff truncated, {len(diff) - 500000} chars omitted)\n\n"
+    if len(diff) > 40000:
+        prompt += f"... (diff truncated, {len(diff) - 40000} chars omitted)\n\n"
     else:
         prompt += "\n"
 
@@ -502,8 +797,19 @@ def analyze_complete_diff(
         "3. **Potential Issues**: Bugs, security concerns, or logic errors?\n"
         "4. **Suggestions**: Specific improvements\n"
         "5. **Positive Aspects**: What's well done?\n\n"
-        "Focus on actionable feedback considering the container-first architecture."
     )
+
+    # Add guidance about using historical context
+    if comment_summary:
+        prompt += (
+            "**Review Guidelines:**\n"
+            "- Do NOT re-report issues marked as false positives in the discussion history\n"
+            "- Build on decisions already made rather than questioning them\n"
+            "- Reference the historical context when relevant\n"
+            "- Focus on new issues not previously discussed\n\n"
+        )
+
+    prompt += "Focus on actionable feedback considering the container-first architecture."
 
     # Use the helper function for Gemini API calls with fallback
     return _call_gemini_with_fallback(prompt)
@@ -521,12 +827,106 @@ def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
     return formatted
 
 
-def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = PRO_MODEL) -> str:
+def get_valid_reaction_urls() -> List[str]:
+    """Fetch and parse the reaction config YAML to get valid reaction URLs
+
+    Returns:
+        List of valid reaction URLs
+    """
+    try:
+        config_url = "https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml"
+        print(f"Fetching reaction config from {config_url}...")
+
+        response = requests.get(config_url, timeout=10)
+        response.raise_for_status()
+
+        config = yaml.safe_load(response.text)
+        reaction_images = config.get("reaction_images", [])
+
+        valid_urls = []
+        for reaction_data in reaction_images:
+            source_url = reaction_data.get("source_url")
+            if source_url:
+                valid_urls.append(source_url)
+
+        print(f"✅ Loaded {len(valid_urls)} valid reaction URLs")
+        return valid_urls
+
+    except Exception as e:
+        print(f"⚠️  Warning: Could not fetch reaction config: {e}")
+        print("   Proceeding without reaction URL fixing")
+        return []
+
+
+def fix_reaction_urls(review_text: str, valid_urls: List[str]) -> str:
+    """Automatically fix reaction URLs by cross-referencing extensions against valid URLs
+
+    This function:
+    - Extracts filenames from reaction URLs
+    - Matches base filenames (without extension) against valid URLs
+    - Auto-fixes incorrect extensions (e.g., .png → .webp)
+
+    Args:
+        review_text: The review text to fix
+        valid_urls: List of valid reaction URLs from config
+
+    Returns:
+        Fixed review text with corrected URLs
+    """
+    if not valid_urls:
+        print("⚠️  No valid URLs available, skipping reaction URL fixing")
+        return review_text
+
+    # Build a dict of base filename (without extension) -> full valid URL
+    valid_reactions = {}
+    for url in valid_urls:
+        filename = url.split("/")[-1]
+        base_name = filename.rsplit(".", 1)[0]
+        valid_reactions[base_name] = url
+
+    # Extract all reaction URLs from the review text
+    reaction_pattern = r"!\[Reaction\]\((https://raw\.githubusercontent\.com/AndrewAltimit/Media/[^\)]+)\)"
+    found_urls = re.findall(reaction_pattern, review_text)
+
+    if not found_urls:
+        print("No reaction URLs found in review, skipping")
+        return review_text
+
+    print(f"Found {len(found_urls)} reaction URL(s) to validate...")
+
+    # Fix each URL
+    num_fixes = 0
+    fixed_review = review_text
+
+    for url in found_urls:
+        # Check if URL is already valid
+        if url in valid_urls:
+            continue
+
+        # Extract filename and base name
+        filename = url.split("/")[-1]
+        base_name = filename.rsplit(".", 1)[0]
+
+        # Try to match base filename
+        if base_name in valid_reactions:
+            fixed_url = valid_reactions[base_name]
+            if fixed_url != url:
+                num_fixes += 1
+                print(f"🔧 Fixed: {filename} → {fixed_url.split('/')[-1]}")
+                fixed_review = fixed_review.replace(f"![Reaction]({url})", f"![Reaction]({fixed_url})")
+
+    if num_fixes > 0:
+        print(f"✅ Fixed {num_fixes} reaction URL(s)")
+    else:
+        print("✅ All reaction URLs are valid")
+
+    return fixed_review
+
+
+def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = "default") -> str:
     """Format the analysis as a GitHub PR comment"""
-    if model_used == PRO_MODEL:
-        model_display = "v2.5 Pro"
-    elif model_used == FLASH_MODEL:
-        model_display = "v2.5 Flash"
+    if model_used == "default":
+        model_display = "Gemini (Preview)"
     else:
         model_display = "Error - No model available"
     comment = f"""## Gemini AI Code Review
@@ -551,7 +951,7 @@ def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
     try:
         # Save comment to temporary file
         comment_file = f"/tmp/gemini_comment_{pr_info['number']}.md"
-        with open(comment_file, "w") as f:
+        with open(comment_file, "w", encoding="utf-8") as f:
             f.write(comment)
 
         # Use gh CLI to post comment
@@ -574,7 +974,7 @@ def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
     except subprocess.CalledProcessError as e:
         print(f"Failed to post comment: {e}")
         # Save locally as backup
-        with open("gemini-review.md", "w") as f:
+        with open("gemini-review.md", "w", encoding="utf-8") as f:
             f.write(comment)
         print("Review saved to gemini-review.md")
 
@@ -616,12 +1016,17 @@ def main():
     # Format as GitHub comment
     comment = format_github_comment(analysis, pr_info, model_used)
 
-    # Post to PR
-    post_pr_comment(comment, pr_info)
+    # Fix reaction URLs before posting (auto-fix bad extensions)
+    print("\n🔍 Fixing reaction URLs...")
+    valid_urls = get_valid_reaction_urls()
+    validated_comment = fix_reaction_urls(comment, valid_urls)
 
-    # Save to step summary
-    with open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a") as f:
-        f.write("\n\n" + comment)
+    # Post to PR
+    post_pr_comment(validated_comment, pr_info)
+
+    # Save to step summary (use validated comment)
+    with open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a", encoding="utf-8") as f:
+        f.write("\n\n" + validated_comment)
 
     print("Gemini PR review complete!")
 

@@ -6,14 +6,14 @@ Demonstrates both native (tool-enabled) and text (parsing) modes
 
 import json
 import os
-import sys
 from pathlib import Path
+import sys
 
 import requests
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
-from shared.services.text_tool_parser import TextToolParser  # noqa: E402
+from shared.services.text_tool_parser import TextToolParser  # noqa: E402  # pylint: disable=wrong-import-position
 
 
 def test_native_mode():
@@ -29,7 +29,7 @@ def test_native_mode():
 
     # Check server status
     try:
-        response = requests.get(f"{base_url}/health")
+        response = requests.get(f"{base_url}/health", timeout=10)
         print(f"Server status: {response.json()}")
     except requests.exceptions.ConnectionError:
         print("ERROR: Server not running. Start with: python gemini_proxy_wrapper.py")
@@ -57,7 +57,7 @@ def test_native_mode():
     }
 
     print("\nSending request with tools in native mode...")
-    response = requests.post(f"{base_url}/v1/models/gemini-2.5-flash/generateContent", json=request_data)
+    response = requests.post(f"{base_url}/v1/models/gemini-2.5-flash/generateContent", json=request_data, timeout=30)
 
     if response.status_code == 200:
         result = response.json()
@@ -69,12 +69,15 @@ def test_native_mode():
             if "functionCall" in candidate.get("content", {}).get("parts", [{}])[0]:
                 print("✓ Native mode returned structured tool calls")
                 return True
-            else:
-                print("✓ Native mode returned text response (no tools needed)")
-                return True
-    else:
-        print(f"✗ Request failed: {response.status_code}")
+
+            print("✓ Native mode returned text response (no tools needed)")
+            return True
+
+        print("✗ No candidates in response")
         return False
+
+    print(f"✗ Request failed: {response.status_code}")
+    return False
 
 
 def test_text_mode():
@@ -90,7 +93,7 @@ def test_text_mode():
 
     # Check server status
     try:
-        response = requests.get(f"{base_url}/health")
+        response = requests.get(f"{base_url}/health", timeout=10)
         print(f"Server status: {response.json()}")
     except requests.exceptions.ConnectionError:
         print("ERROR: Server not running. Start with TOOL_MODE=text python gemini_proxy_wrapper.py")
@@ -119,7 +122,7 @@ def test_text_mode():
     }
 
     print("\nSending request with tools in text mode...")
-    response = requests.post(f"{base_url}/v1/models/gemini-2.5-flash/generateContent", json=request_data)
+    response = requests.post(f"{base_url}/v1/models/gemini-2.5-flash/generateContent", json=request_data, timeout=30)
 
     if response.status_code == 200:
         result = response.json()
@@ -162,7 +165,7 @@ def test_text_mode():
                 }
 
                 continue_response = requests.post(
-                    f"{base_url}/v1/models/gemini-2.5-flash/continueWithTools", json=continue_data
+                    f"{base_url}/v1/models/gemini-2.5-flash/continueWithTools", json=continue_data, timeout=30
                 )
 
                 if continue_response.status_code == 200:
@@ -170,15 +173,18 @@ def test_text_mode():
                     print(f"\nContinuation response: {json.dumps(continue_result, indent=2)}")
                     print("✓ Text mode continuation successful")
                     return True
-                else:
-                    print(f"✗ Continuation failed: {continue_response.status_code}")
-                    return False
-            else:
-                print("✓ Text mode returned response without tool calls")
-                return True
-    else:
-        print(f"✗ Request failed: {response.status_code}")
+
+                print(f"✗ Continuation failed: {continue_response.status_code}")
+                return False
+
+            print("✓ Text mode returned response without tool calls")
+            return True
+
+        print("✗ No candidates in response")
         return False
+
+    print(f"✗ Request failed: {response.status_code}")
+    return False
 
 
 def test_mode_switching():
@@ -190,13 +196,13 @@ def test_mode_switching():
     base_url = "http://localhost:8053"
 
     # Check tools endpoint for current mode
-    response = requests.get(f"{base_url}/tools")
+    response = requests.get(f"{base_url}/tools", timeout=10)
     if response.status_code == 200:
         tools_info = response.json()
         print(f"Current mode from /tools endpoint: {tools_info.get('mode')}")
 
     # Check root endpoint for configuration
-    response = requests.get(f"{base_url}/")
+    response = requests.get(f"{base_url}/", timeout=10)
     if response.status_code == 200:
         root_info = response.json()
         print(f"Configuration: {root_info.get('configuration')}")

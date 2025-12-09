@@ -16,12 +16,10 @@ import asyncio
 import json
 import os
 import sys
-from pathlib import Path
 
 # Import from the project - assumes script is run from project root or with proper PYTHONPATH
 try:
-    from tools.mcp.gaea2.repair.gaea2_project_repair import Gaea2ProjectRepair
-    from tools.mcp.gaea2.utils.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer
+    from mcp_gaea2.utils.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer
 except ImportError:
     print("Error: Unable to import Gaea2 modules. Please run from project root:")
     print("  python automation/analysis/analyze_gaea_projects.py")
@@ -103,56 +101,6 @@ async def analyze_real_projects(official_dir=None, user_dir=None, output_file="g
     print(f"\n✓ Analysis saved to {output_file}")
     return True
 
-    # Test recommendations
-    print("\n=== Testing Recommendations ===")
-    test_workflow = ["Mountain", "Erosion"]
-    recommendations = analyzer.get_recommendations(test_workflow)
-
-    print(f"\nFor workflow: {' → '.join(test_workflow)}")
-    print("\nRecommended next nodes:")
-    for rec in recommendations["next_nodes"][:3]:
-        print(f"  - {rec['node']} (used {rec['frequency']} times)")
-
-    print("\nSimilar patterns found:")
-    for pattern in recommendations["similar_patterns"][:3]:
-        print(f"  - {pattern['name']} (similarity: {pattern['similarity']:.2f})")
-
-    # Test repair functionality
-    print("\n=== Testing Project Repair ===")
-
-    # Find a project to test
-    test_project = None
-    if os.path.exists(official_dir):
-        for file_path in Path(official_dir).glob("*.terrain"):
-            test_project = str(file_path)
-            break
-
-    if test_project:
-        print(f"\nAnalyzing project: {Path(test_project).name}")
-
-        repair = Gaea2ProjectRepair()
-        with open(test_project, "r") as f:
-            project_data = json.load(f)
-
-        analysis = repair.analyze_project(project_data)
-
-        if analysis["success"]:
-            health_score = analysis["analysis"]["health_score"]
-            errors = analysis["analysis"]["errors"]
-
-            print(f"  Health Score: {health_score:.1f}/100")
-            print(f"  Critical Errors: {errors['critical']}")
-            print(f"  Errors: {errors['errors']}")
-            print(f"  Warnings: {errors['warnings']}")
-            print(f"  Auto-fixable: {errors['auto_fixable']}")
-
-            if errors["total_errors"] > 0:
-                print("\n  Sample errors:")
-                for error in analysis["errors"][:3]:
-                    print(f"    - [{error['severity']}] {error['message']}")
-                    if error["suggestion"]:
-                        print(f"      Suggestion: {error['suggestion']}")
-
 
 async def generate_knowledge_base(analysis_file="gaea2_workflow_analysis.json"):
     """Generate AI-friendly knowledge base from analysis"""
@@ -165,7 +113,7 @@ async def generate_knowledge_base(analysis_file="gaea2_workflow_analysis.json"):
         return
 
     # Load analysis
-    with open(analysis_file, "r") as f:
+    with open(analysis_file, "r", encoding="utf-8") as f:
         analysis = json.load(f)
 
     knowledge_base = {
@@ -203,13 +151,13 @@ async def generate_knowledge_base(analysis_file="gaea2_workflow_analysis.json"):
     ]
 
     # Save knowledge base
-    with open("gaea2_knowledge_base.json", "w") as f:
+    with open("gaea2_knowledge_base.json", "w", encoding="utf-8") as f:
         json.dump(knowledge_base, f, indent=2)
 
     print("✓ Knowledge base saved to gaea2_knowledge_base.json")
 
     # Generate markdown documentation
-    with open("GAEA2_PATTERNS.md", "w") as f:
+    with open("GAEA2_PATTERNS.md", "w", encoding="utf-8") as f:
         f.write("# Gaea2 Common Patterns and Best Practices\n\n")
         f.write("Generated from analysis of real Gaea2 projects.\n\n")
 

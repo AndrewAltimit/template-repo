@@ -8,7 +8,10 @@ RUN apt-get update && apt-get install -y \
     texlive-latex-extra \
     texlive-science \
     texlive-pictures \
-    # PDF utilities
+    # LaTeX build automation (for multi-pass compilation)
+    latexmk \
+    # Note: dvips is provided by texlive-binaries (dependency of texlive-*)
+    # PDF utilities (pdfinfo, pdftoppm)
     poppler-utils \
     pdf2svg \
     # Video/animation dependencies
@@ -40,7 +43,12 @@ COPY docker/requirements/requirements-content.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy MCP server code
-COPY tools/mcp /app/tools/mcp
+COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
+COPY tools/mcp/mcp_content_creation /app/tools/mcp/mcp_content_creation
+
+# Install MCP packages
+RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir /app/tools/mcp/mcp_content_creation
 
 # No entrypoint script needed - containers run as host user
 
@@ -62,4 +70,4 @@ EXPOSE 8011
 # Run as host user via docker-compose - no entrypoint needed
 
 # Run the server
-CMD ["python", "-m", "tools.mcp.content_creation.server", "--mode", "http"]
+CMD ["python", "-m", "mcp_content_creation.server", "--mode", "http"]

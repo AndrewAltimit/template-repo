@@ -5,12 +5,13 @@ Validates that the enhanced translation wrapper correctly handles both
 models with and without native tool support
 """
 
-import sys
 from pathlib import Path
+import sys
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "services"))
 
+# pylint: disable=wrong-import-position
 from text_tool_parser import TextToolParser  # noqa: E402
 
 

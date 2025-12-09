@@ -1,0 +1,471 @@
+---
+name: Sleeper Agents Tests
+
+on:
+  workflow_call: {}
+  workflow_dispatch:
+    inputs:
+      run_full_tests:
+        description: 'Run full test suite (not just quick tests)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  DOCKER_IMAGE_COMPOSE_NAME: template-repo-sleeper-eval-cpu
+
+jobs:
+  # Build Docker image once and share across all jobs
+  build-sleeper-image:
+    name: Build Sleeper Agents Image
+    runs-on: self-hosted
+    timeout-minutes: 10
+    outputs:
+      image-tag: ${{ steps.image.outputs.tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Build and tag Docker image
+        id: image
+        run: |
+          echo "🐳 Building sleeper agents CPU image..."
+
+          # Generate unique tag for this workflow run
+          IMAGE_TAG="sleeper-eval-cpu:ci-${{ github.run_id }}-${{ github.run_attempt }}"
+          echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+          # Build the image
+          docker-compose build sleeper-eval-cpu
+
+          # Tag it for this workflow
+          docker tag ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest $IMAGE_TAG
+
+          echo "✅ Built and tagged image: $IMAGE_TAG"
+
+  sleeper-agents-quick-test:
+    name: Sleeper Agents Quick Tests (CPU)
+    runs-on: self-hosted
+    timeout-minutes: 10
+    needs: build-sleeper-image
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Use pre-built image
+        run: |
+          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          # Ensure we're using the image from the build job
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
+
+      - name: Run quick CPU tests
+        run: |
+          echo "🧪 Running quick CPU tests for sleeper agents..."
+
+          # Test basic import and initialization
+          docker-compose run --rm sleeper-eval-cpu python -c "
+          from sleeper_agents.app.detector import SleeperDetector
+          from sleeper_agents.app.config import DetectionConfig
+          print('✅ Imports successful')
+          "
+
+          # Run the quick test script
+          docker-compose run --rm sleeper-eval-cpu \
+            python packages/sleeper_agents/scripts/evaluation/quick_test.py
+
+      - name: Test CLI interface
+        run: |
+          echo "🔧 Testing CLI interface..."
+
+          # Test help command
+          docker-compose run --rm sleeper-eval-cpu \
+            python -m sleeper_agents.cli --help
+
+          # Test listing available models
+          docker-compose run --rm sleeper-eval-cpu \
+            python -m sleeper_agents.cli list
+
+      - name: Validate model infrastructure
+        run: |
+          echo "🔧 Validating model registry, downloader, and resource manager..."
+
+          docker-compose run --rm sleeper-eval-cpu \
+            python packages/sleeper_agents/scripts/validate_foundation.py
+
+      - name: View logs on failure
+        if: failure()
+        run: |
+          echo "📋 Container logs:"
+          docker-compose logs sleeper-eval-cpu
+
+  sleeper-agents-residual-analysis:
+    name: TransformerLens Residual Analysis
+    runs-on: self-hosted
+    timeout-minutes: 15
+    needs: [build-sleeper-image, sleeper-agents-quick-test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Use pre-built image
+        run: |
+          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
+
+      - name: Run residual stream analysis
+        run: |
+          echo "🔬 Running advanced residual stream analysis..."
+
+          # Create results directory on host
+          mkdir -p evaluation_results
+
+          # Run the residual analysis script and copy results
+          docker-compose run --rm \
+            -v $(pwd)/evaluation_results:/output \
+            sleeper-eval-cpu \
+            bash -c "python packages/sleeper_agents/scripts/analysis/residual_analysis.py && \
+                     cp /tmp/residual_analysis_results.json /output/ 2>/dev/null || true"
+
+          echo "✅ Residual stream analysis completed"
+
+      - name: Upload analysis results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: residual-analysis-${{ github.run_id }}
+          path: evaluation_results/residual_analysis_results.json
+
+  sleeper-agents-unit-tests:
+    name: Unit Tests
+    runs-on: self-hosted
+    timeout-minutes: 15
+    needs: build-sleeper-image
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Use pre-built image
+        run: |
+          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
+
+      - name: Run unit tests with coverage
+        run: |
+          echo "🧪 Running unit tests with coverage..."
+
+          # Export USER_ID and GROUP_ID for docker-compose
+          export USER_ID=$(id -u)
+          export GROUP_ID=$(id -g)
+          echo "Running as USER_ID=$USER_ID, GROUP_ID=$GROUP_ID"
+
+          # Create a temporary container to persist coverage results
+          CONTAINER_NAME="sleeper-test-$(date +%s)"
+
+          # Create output directory (permissions handled by container user)
+          mkdir -p $(pwd)/test_output
+
+          # Run pytest with coverage in a named container with mounted volume
+          # Container runs as host user via docker-compose user setting
+          # Run from package directory to match pytest.ini configuration
+          docker-compose run --name ${CONTAINER_NAME} \
+            -v $(pwd)/test_output:/output \
+            -e COVERAGE_FILE=/output/.coverage \
+            sleeper-eval-cpu \
+            bash -c "cd /app/packages/sleeper_agents && pytest tests/ \
+            -v --cov=sleeper_agents \
+            --cov-report=xml:/output/coverage.xml \
+            --cov-report=term \
+            -o cache_dir=/output/pytest_cache; \
+            echo 'Test execution completed'; \
+            ls -la /output/ 2>/dev/null || echo 'Could not list output directory'"
+
+          # Store the container name for the next step
+          echo "CONTAINER_NAME=${CONTAINER_NAME}" >> $GITHUB_ENV
+
+      - name: Extract coverage report from container
+        if: always()
+        run: |
+          echo "📦 Extracting coverage report from mounted volume..."
+
+          # Remove old evaluation_results directory if it exists to avoid permission issues
+          rm -rf evaluation_results || true
+
+          # Create fresh evaluation_results directory
+          mkdir -p evaluation_results
+
+          # The coverage report should be in test_output directory from the mounted volume
+          # Check who owns the test_output directory for debugging
+          echo "Checking test_output ownership:"
+          ls -la test_output/ 2>/dev/null || echo "test_output directory not found"
+
+          if [ -f test_output/coverage.xml ]; then
+            echo "✅ Found coverage report in test_output"
+            # Use cat and redirect to avoid permission issues
+            cat test_output/coverage.xml > evaluation_results/coverage.xml
+          else
+            echo "❌ Coverage report not found in test_output"
+            echo "This indicates the tests failed to generate a coverage report"
+            exit 1
+          fi
+
+          # Clean up the container if it exists
+          if [ ! -z "${CONTAINER_NAME}" ]; then
+            docker rm -f ${CONTAINER_NAME} 2>/dev/null || true
+          fi
+
+          # Clean up test_output directory
+          rm -rf test_output || true
+
+          # Verify the file was created
+          if [ -f evaluation_results/coverage.xml ]; then
+            echo "✅ Coverage report available"
+            ls -la evaluation_results/coverage.xml
+          else
+            echo "❌ Coverage report not found"
+            exit 1
+          fi
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ github.run_id }}
+          path: evaluation_results/coverage.xml
+
+  sleeper-agents-api-test:
+    name: API Integration Tests
+    runs-on: self-hosted
+    timeout-minutes: 10
+    needs: build-sleeper-image
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Use pre-built image
+        run: |
+          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
+
+      - name: Start API server
+        run: |
+          echo "🚀 Starting sleeper agents API server..."
+
+          # Start the API server in background
+          docker-compose run -d --name sleeper-api -p 8022:8022 sleeper-eval-cpu \
+            python -m sleeper_agents.api.main --port 8022
+
+          # Wait for server to be ready using wait-for-it.sh
+          echo "⏳ Waiting for API server..."
+          if ./automation/scripts/wait-for-it.sh --host localhost --port 8022 --health-endpoint /health --timeout 60; then
+            echo "✅ API server is ready"
+          else
+            echo "❌ API server failed to start"
+            docker logs sleeper-api
+            exit 1
+          fi
+
+      - name: Test API endpoints
+        run: |
+          echo "🧪 Testing API endpoints..."
+
+          # Test health endpoint
+          curl -f http://localhost:8022/health
+
+          # Test status endpoint
+          curl -f http://localhost:8022/status
+
+          # Test root endpoint
+          curl -f http://localhost:8022/
+
+      - name: Stop API server
+        if: always()
+        run: |
+          docker stop sleeper-api || true
+          docker rm sleeper-api || true
+
+  sleeper-agents-full-tests:
+    name: Full Test Suite
+    runs-on: self-hosted
+    timeout-minutes: 30
+    needs: [build-sleeper-image, sleeper-agents-quick-test, sleeper-agents-residual-analysis]
+    if: |
+      github.event_name == 'push' ||
+      github.event.inputs.run_full_tests == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Use pre-built image
+        run: |
+          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
+
+      - name: Run full comprehensive tests
+        run: |
+          echo "🧪 Running full comprehensive test suite..."
+
+          # Test multiple models
+          for model in pythia-70m distilgpt2; do
+            echo "Testing model: $model"
+            docker-compose run --rm sleeper-eval-cpu \
+              python packages/sleeper_agents/scripts/evaluation/comprehensive_test.py \
+              --model $model
+          done
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpu-test-results-${{ github.run_id }}
+          path: |
+            evaluation_results/cpu_test_results_*.json
+            cpu_test_results_*.json
+
+  sleeper-agents-notebook-validation:
+    name: Notebook Validation
+    runs-on: self-hosted
+    timeout-minutes: 10
+    needs: build-sleeper-image
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Use pre-built image
+        run: |
+          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
+
+      - name: Validate Jupyter notebooks
+        run: |
+          echo "📓 Validating Jupyter notebooks..."
+
+          # Check if notebooks are valid JSON using sleeper-eval-cpu (has all dependencies)
+          docker-compose run --rm sleeper-eval-cpu python -c "
+          import json
+          import sys
+          from pathlib import Path
+
+          notebook_path = Path('packages/sleeper_agents/notebooks/interactive_sleeper_agents.ipynb')
+          if notebook_path.exists():
+              with open(notebook_path) as f:
+                  try:
+                      json.load(f)
+                      print('✅ Notebook is valid JSON')
+                  except json.JSONDecodeError as e:
+                      print(f'❌ Notebook JSON error: {e}')
+                      sys.exit(1)
+          else:
+              print('⚠️  Notebook not found')
+          "
+
+      - name: Execute notebook
+        run: |
+          echo "🏃 Executing notebook to check for runtime errors..."
+
+          # Execute the notebook (will catch runtime errors)
+          # Using 300s timeout for ML tasks that may need to load models
+          docker-compose run --rm sleeper-eval-cpu \
+            jupyter nbconvert --to notebook --execute \
+            --ExecutePreprocessor.timeout=300 \
+            --ExecutePreprocessor.kernel_name=python3 \
+            packages/sleeper_agents/notebooks/interactive_sleeper_agents.ipynb \
+            --output /tmp/executed_notebook.ipynb
+
+          echo "✅ Notebook executed successfully"
+
+  sleeper-agents-summary:
+    name: Test Summary
+    needs:
+      - sleeper-agents-quick-test
+      - sleeper-agents-residual-analysis
+      - sleeper-agents-unit-tests
+      - sleeper-agents-api-test
+      - sleeper-agents-full-tests
+      - sleeper-agents-notebook-validation
+    if: always()
+    runs-on: self-hosted
+    steps:
+      - name: Generate test summary
+        run: |
+          echo "## Sleeper Agents Test Summary"
+          echo ""
+          echo "**Test Results:**"
+          echo "- Quick Tests: ${{ needs.sleeper-agents-quick-test.result }}"
+          echo "- Residual Analysis: ${{ needs.sleeper-agents-residual-analysis.result }}"
+          echo "- Unit Tests: ${{ needs.sleeper-agents-unit-tests.result }}"
+          echo "- API Tests: ${{ needs.sleeper-agents-api-test.result }}"
+          echo "- Full Tests: ${{ needs.sleeper-agents-full-tests.result }}"
+          echo "- Notebook Validation: ${{ needs.sleeper-agents-notebook-validation.result }}"
+          echo ""
+
+          # Check for failures
+          if [[ "${{ needs.sleeper-agents-quick-test.result }}" == "failure" ||
+                "${{ needs.sleeper-agents-residual-analysis.result }}" == "failure" ||
+                "${{ needs.sleeper-agents-unit-tests.result }}" == "failure" ||
+                "${{ needs.sleeper-agents-api-test.result }}" == "failure" ||
+                "${{ needs.sleeper-agents-notebook-validation.result }}" == "failure" ]]; then
+            echo "❌ sleeper agents tests failed"
+            exit 1
+          fi
+
+          echo "✅ sleeper agents tests passed!"
+
+  # Clean up workflow-specific Docker images
+  cleanup-image:
+    name: Cleanup Workflow Image
+    needs:
+      - build-sleeper-image
+      - sleeper-agents-summary
+    if: always()
+    runs-on: self-hosted
+    steps:
+      - name: Remove workflow-specific image
+        run: |
+          echo "🧹 Cleaning up workflow-specific image..."
+          # Remove the tagged version
+          docker rmi ${{ needs.build-sleeper-image.outputs.image-tag }} || true
+          # Prune dangling images (safe for concurrent workflows)
+          docker image prune -f || true
+          echo "✅ Cleanup complete"

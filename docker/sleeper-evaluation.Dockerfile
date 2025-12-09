@@ -32,7 +32,7 @@ COPY --chown=evaluator:evaluator . /app
 
 # Install dependencies from pyproject.toml - single source of truth
 # Install in editable mode with 'all' extras for complete environment
-RUN pip install --no-cache-dir -e /app/packages/sleeper_detection[all]
+RUN pip install --no-cache-dir /app/packages/sleeper_agents[all]
 
 # Set Python path
 ENV PYTHONPATH=/app:$PYTHONPATH
@@ -52,7 +52,7 @@ USER evaluator
 
 # Health check - verify Python and packages are working
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD python -c "import packages.sleeper_detection; print('OK')" || exit 1
+  CMD python -c "import sleeper_agents; print('OK')" || exit 1
 
 # Default command - run CLI help
-CMD ["python", "-m", "packages.sleeper_detection.cli", "--help"]
+CMD ["python", "-m", "sleeper_agents.cli", "--help"]

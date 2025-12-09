@@ -144,7 +144,7 @@ AI agents require accessible plaintext interfaces to interact with closed source
 
 For a practical example of this guide in action, see the Gaea2 MCP implementation:
 - Phase 1: HTTP MCP server at `192.168.0.152:8007` with comprehensive error logging
-- Phase 2: Extensive documentation in `tools/mcp/gaea2/docs/` with 31 analyzed reference projects
-- Phase 3: Unit test framework in `tests/gaea2/` with automated validation
+- Phase 2: Extensive documentation in `tools/mcp/mcp_gaea2/docs/` with 31 analyzed reference projects
+- Phase 3: Unit test framework in `tools/mcp/mcp_gaea2/tests/` with automated validation
 
-See [Gaea2 MCP Documentation](/tools/mcp/gaea2/docs/README.md) for detailed implementation.
+See [Gaea2 MCP Documentation](/tools/mcp/mcp_gaea2/docs/README.md) for detailed implementation.

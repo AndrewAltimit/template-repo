@@ -5,6 +5,8 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     build-essential \
+    gosu \
+    passwd \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
@@ -16,13 +18,21 @@ COPY docker/requirements/requirements-gaea2.txt /app/requirements.txt
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create output directory with proper permissions
-RUN mkdir -p /output/gaea2 && chmod -R 755 /output
+# Create a non-root user first
+RUN useradd -m -u 1000 appuser
+
+# Create output directory with proper ownership for non-root user
+RUN mkdir -p /output/gaea2 && \
+    chown -R appuser:appuser /output && \
+    chmod -R 755 /output
 
 # Copy MCP server code
-COPY tools/mcp /app/tools/mcp
+COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
+COPY tools/mcp/mcp_gaea2 /app/tools/mcp/mcp_gaea2
 
-# No entrypoint script needed - containers run as host user
+# Install MCP packages
+RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir /app/tools/mcp/mcp_gaea2
 
 # Set Python path
 ENV PYTHONPATH=/app
@@ -31,16 +41,15 @@ ENV PYTHONPATH=/app
 RUN echo "Note: This container provides Gaea2 project creation and validation only." > /app/CONTAINER_NOTE.txt && \
     echo "For CLI automation features, run on Windows host with Gaea2 installed." >> /app/CONTAINER_NOTE.txt
 
-# Create a non-root user that will be overridden by docker-compose
-RUN useradd -m -u 1000 appuser
-
-# Switch to non-root user
-USER appuser
+# Copy entrypoint script
+COPY docker/entrypoints/gaea2-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/gaea2-entrypoint.sh
 
 # Expose port
 EXPOSE 8007
 
-# Run as host user via docker-compose - no entrypoint needed
+# Entrypoint for permission handling (runs as root, then switches to appuser)
+ENTRYPOINT ["/usr/local/bin/gaea2-entrypoint.sh"]
 
 # Run the server
-CMD ["python", "-m", "tools.mcp.gaea2.server", "--mode", "http"]
+CMD ["python", "-m", "mcp_gaea2.server", "--mode", "http"]

@@ -6,8 +6,8 @@ Shows how different models use different tool modes
 
 import json
 import os
-import sys
 from pathlib import Path
+import sys
 
 # Add paths for imports
 sys.path.append(str(Path(__file__).parent))

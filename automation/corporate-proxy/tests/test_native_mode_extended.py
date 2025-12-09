@@ -6,9 +6,9 @@ Addresses gaps in error handling, multiple tools, and edge cases
 
 import json
 import os
+from pathlib import Path
 import sys
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 # Add parent directory to path
@@ -195,7 +195,7 @@ class TestNativeModeMultipleTools(unittest.TestCase):
             ],
         }
 
-        endpoint, company_request, tools = translate_gemini_to_company(gemini_request)
+        _endpoint, _company_request, tools = translate_gemini_to_company(gemini_request)
 
         # Tools are returned as the full structure from the request
         self.assertEqual(len(tools), 1)  # One tools array

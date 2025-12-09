@@ -82,7 +82,7 @@ export OPENCODE_MODEL="qwen/qwen-2.5-coder-32b-instruct"
 
 ```bash
 # Install the package with all agents
-pip3 install -e ./packages/github_ai_agents
+pip3 install -e ./packages/github_agents
 
 # Verify installation
 opencode --version
@@ -409,7 +409,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           docker-compose run --rm openrouter-agents \
-            python -m github_ai_agents.cli issue-monitor \
+            python -m github_agents.cli issue-monitor \
             --agent opencode
 
   monitor-prs:
@@ -423,7 +423,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           docker-compose run --rm openrouter-agents \
-            python -m github_ai_agents.cli pr-monitor \
+            python -m github_agents.cli pr-monitor \
             --agent crush
 ```
 
@@ -432,7 +432,7 @@ jobs:
 ### OpenCode Integration Module
 
 ```python
-from tools.mcp.opencode.opencode_integration import OpenCodeIntegration
+from mcp_opencode.opencode_integration import OpenCodeIntegration
 
 # Initialize
 integration = OpenCodeIntegration()
@@ -459,7 +459,7 @@ feedback = await integration.review_code(
 ### Crush Integration Module
 
 ```python
-from tools.mcp.crush.crush_integration import CrushIntegration
+from mcp_crush.crush_integration import CrushIntegration
 
 # Initialize
 integration = CrushIntegration()
@@ -548,7 +548,7 @@ export CRUSH_MAX_HISTORY=5
   "mcpServers": {
     "opencode": {
       "command": "python",
-      "args": ["-m", "tools.mcp.opencode.server", "--mode", "stdio"],
+      "args": ["-m", "mcp_opencode.server", "--mode", "stdio"],
       "env": {
         "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}",
         "OPENCODE_MODEL": "qwen/qwen-2.5-coder-32b-instruct"
@@ -556,7 +556,7 @@ export CRUSH_MAX_HISTORY=5
     },
     "crush": {
       "command": "python",
-      "args": ["-m", "tools.mcp.crush.server", "--mode", "stdio"],
+      "args": ["-m", "mcp_crush.server", "--mode", "stdio"],
       "env": {
         "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}"
       }
@@ -586,7 +586,7 @@ echo 'export OPENROUTER_API_KEY="your-key-here"' >> ~/.bashrc
 
 ```bash
 # Reinstall the package
-pip3 install -e ./packages/github_ai_agents --force-reinstall
+pip3 install -e ./packages/github_agents --force-reinstall
 
 # Verify installation
 which opencode
@@ -624,7 +624,7 @@ python -m tools.mcp.crush.server --mode http --debug
 
 ```bash
 # Check current usage
-python tools/mcp/opencode/scripts/test_server.py --status
+python tools/mcp/mcp_opencode/scripts/test_server.py --status
 
 # Adjust timeout
 export OPENCODE_TIMEOUT=600
@@ -656,8 +656,8 @@ export CRUSH_LOG_LEVEL=DEBUG
 python automation/testing/test_all_servers.py
 
 # Test specific servers
-python tools/mcp/opencode/scripts/test_server.py
-python tools/mcp/crush/scripts/test_server.py
+python tools/mcp/mcp_opencode/scripts/test_server.py
+python tools/mcp/mcp_crush/scripts/test_server.py
 
 # Test GitHub agents
 python -m pytest tests/test_opencode_agent.py -v
@@ -700,6 +700,6 @@ python -m pytest tests/test_crush_agent.py -v
 ## Related Documentation
 
 - [MCP Architecture](../../mcp/README.md) - Overall MCP server design
-- [GitHub AI Agents](../../ai-agents/README.md) - Complete agent system documentation
-- [Security Model](../../../packages/github_ai_agents/docs/security.md) - Security implementation details
-- [Container Strategy](../../ai-agents/containerization-strategy.md) - Containerization approach
+- [GitHub AI Agents](../../agents/README.md) - Complete agent system documentation
+- [Security Model](../../../packages/github_agents/docs/security.md) - Security implementation details
+- [Container Strategy](../../agents/containerization-strategy.md) - Containerization approach

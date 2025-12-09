@@ -36,6 +36,9 @@ echo ""
 # Navigate to repo root
 cd "$REPO_ROOT" || exit 1
 
+# Add MCP packages to PYTHONPATH for module resolution
+export PYTHONPATH="${PYTHONPATH}:${REPO_ROOT}/tools/mcp"
+
 # Check dependencies
 echo -e "${YELLOW}Checking dependencies...${NC}"
 
@@ -72,7 +75,7 @@ echo -e "${GREEN}============================================${NC}"
 echo ""
 
 # Start the server
-exec python3 -m tools.mcp.virtual_character.server \
+exec python3 -m mcp_virtual_character.server \
     --port "$PORT" \
     --host "$HOST" \
     --mode "$MODE"

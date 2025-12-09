@@ -61,10 +61,13 @@ RUN pip3 install --no-cache-dir \
     mcp
 
 # Copy only necessary MCP server components for ComfyUI
-COPY tools/__init__.py /workspace/tools/__init__.py
-COPY tools/mcp/__init__.py /workspace/tools/mcp/__init__.py
-COPY tools/mcp/core /workspace/tools/mcp/core
-COPY tools/mcp/comfyui /workspace/tools/mcp/comfyui
+# Note: __init__.py files not needed - packages installed via pip below
+COPY tools/mcp/mcp_core /workspace/tools/mcp/mcp_core
+COPY tools/mcp/mcp_comfyui /workspace/tools/mcp/mcp_comfyui
+
+# Install MCP packages
+RUN pip3 install --no-cache-dir /workspace/tools/mcp/mcp_core &&\
+    pip3 install --no-cache-dir /workspace/tools/mcp/mcp_comfyui
 
 # Create directories
 RUN mkdir -p /comfyui/models/checkpoints \

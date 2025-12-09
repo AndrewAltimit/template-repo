@@ -1,0 +1,191 @@
+{
+  "mcpServers": {
+    "code-quality": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-code-quality",
+        "python",
+        "-m",
+        "mcp_code_quality.server",
+        "--mode",
+        "stdio"
+      ]
+    },
+    "content-creation": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-content-creation",
+        "python",
+        "-m",
+        "mcp_content_creation.server",
+        "--mode",
+        "stdio"
+      ]
+    },
+    "gemini": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-gemini",
+        "python",
+        "-m",
+        "mcp_gemini.server",
+        "--mode",
+        "stdio"
+      ],
+      "env": {
+        "GEMINI_TIMEOUT": "300",
+        "GEMINI_USE_CONTAINER": "false",
+        "_comment": "GEMINI_USE_CONTAINER is set to false to prevent docker-in-docker, as mcp-gemini itself runs in a container. Note: Don't specify GEMINI_MODEL - the CLI uses the default model automatically to avoid 404 errors"
+      }
+    },
+    "gaea2": {
+      "type": "http",
+      "url": "http://192.168.0.152:8007/messages"
+    },
+    "aitoolkit": {
+      "type": "http",
+      "url": "http://192.168.0.152:8012/messages"
+    },
+    "comfyui": {
+      "type": "http",
+      "url": "http://192.168.0.152:8013/messages"
+    },
+    "virtual-character": {
+      "type": "http",
+      "url": "http://192.168.0.152:8020/messages"
+    },
+    "opencode": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-opencode",
+        "python",
+        "-m",
+        "mcp_opencode.server",
+        "--mode",
+        "stdio"
+      ]
+    },
+    "crush": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-crush",
+        "python",
+        "-m",
+        "mcp_crush.server",
+        "--mode",
+        "stdio"
+      ]
+    },
+    "meme-generator": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-meme-generator",
+        "python",
+        "-m",
+        "mcp_meme_generator.server",
+        "--mode",
+        "stdio"
+      ]
+    },
+    "blender": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-blender",
+        "python3",
+        "-m",
+        "mcp_blender.server",
+        "--mode",
+        "stdio"
+      ]
+    },
+    "elevenlabs-speech": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-elevenlabs-speech",
+        "python",
+        "-m",
+        "mcp_elevenlabs_speech.server",
+        "--mode",
+        "stdio"
+      ],
+      "env": {
+        "ELEVENLABS_DEFAULT_MODEL": "eleven_multilingual_v2",
+        "ELEVENLABS_DEFAULT_VOICE": "Rachel"
+      }
+    },
+    "codex": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-codex",
+        "python",
+        "-m",
+        "mcp_codex.server",
+        "--mode",
+        "stdio"
+      ]
+    }
+  }
+}

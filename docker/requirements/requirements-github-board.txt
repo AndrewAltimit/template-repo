@@ -1,0 +1,8 @@
+# MCP server dependencies
+# Note: github_agents[board] package provides core dependencies (aiohttp, pyyaml, etc.)
+# and board-specific dependencies (gql, sgqlc). Only MCP server framework deps are needed here.
+fastapi>=0.104.0
+uvicorn>=0.24.0
+httpx
+pydantic
+mcp

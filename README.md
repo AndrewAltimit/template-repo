@@ -1,6 +1,6 @@
 # MCP-Enabled Project Template
 
-A comprehensive development ecosystem with 7 AI agents, 13 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
+A comprehensive development ecosystem with 6 AI agents, 15 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
 
 ![MCP Demo](docs/mcp/architecture/demo.gif)
 
@@ -16,26 +16,25 @@ This project follows a **container-first approach**:
 
 ## AI Agents
 
-Seven AI agents working in harmony for development and automation. See [AI Agents Documentation](docs/ai-agents/README.md) for complete details:
+Six AI agents working in harmony for development and automation. See [AI Agents Documentation](docs/agents/README.md) for complete details:
 
 1. **Claude Code** - Primary development assistant
-2. **OpenCode** - Comprehensive code generation ([Integration Guide](docs/integrations/ai-services/opencode-crush.md))
-3. **Crush** - Fast code generation ([Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md))
-4. **Gemini CLI** - Interactive development & automated PR reviews
-5. **GitHub Copilot** - Code review suggestions
-6. **Issue Monitor Agent** - Automated issue management
-7. **PR Review Monitor Agent** - Automated review response
+2. **Codex** - AI-powered code generation and completion ([Setup Guide](docs/agents/codex-setup.md))
+3. **OpenCode** - Comprehensive code generation ([Integration Guide](docs/integrations/ai-services/opencode-crush.md))
+4. **Crush** - Fast code generation ([Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md))
+5. **Gemini CLI** - Interactive development & automated PR reviews
+6. **GitHub Copilot** - Code review suggestions
 
-**Security**: Keyword triggers, user allow list, secure token management. See [AI Agents Security](docs/ai-agents/security.md)
+**Security**: Keyword triggers, user allow list, secure token management. See [AI Agents Security](docs/agents/security.md)
 
-**Safety Training**: Essential AI safety concepts for human-AI collaboration. See [Human Training Guide](docs/ai-agents/human-training.md)
+**Safety Training**: Essential AI safety concepts for human-AI collaboration. See [Human Training Guide](docs/agents/human-training.md)
 
-**Sleeper Detection**: Advanced AI agent backdoor and sleeper detection system. See [Sleeper Detection Package](packages/sleeper_detection/README.md)
+**Sleeper Agents**: Create and evaluate sleeper agents in order to detect misalignment and probe for deception. See [Sleeper Agents Package](packages/sleeper_agents/README.md)
 
 ## Features
 
-- **13 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, and more
-- **7 AI Agents** - Comprehensive development automation
+- **15 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, project management, and more
+- **6 AI Agents** - Comprehensive development automation
 - **Sleeper Detection System** - Advanced AI backdoor detection using TransformerLens residual stream analysis
 - **Company Integration** - Custom agent builds for corporate AI APIs ([Documentation](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
 - **Video Editor** - AI-powered video editing with transcription, speaker diarization, and intelligent scene detection
@@ -64,15 +63,19 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
    cd template-repo
 
    # Install AI agents package (for CLI tools)
-   pip3 install -e ./packages/github_ai_agents
+   pip3 install -e ./packages/github_agents
 
    # Set up API keys (if using AI features)
    export OPENROUTER_API_KEY="your-key-here"  # For OpenCode/Crush
    export GEMINI_API_KEY="your-key-here"      # For Gemini (dont use API key for free tier, use web auth)
+   # For Codex: run 'codex auth' after installing @openai/codex
    ```
 
 3. **Use MCP servers with Claude Code and other agents**
-   - MCP servers are configured in `.mcp.json`
+   - **Essential MCP servers** are configured in `.mcp.json` (code-quality, AI agents)
+   - **All MCP servers** including specialized tools are in `.mcp.json.full` (content creation, 3D graphics, etc.)
+   - Use `.mcp.json` by default to avoid context window overload
+   - Rename `.mcp.json.full` to `.mcp.json` to enable all specialized services
    - No manual startup required! Agents can start the services themselves.
 
 4. **For standalone usage**
@@ -84,12 +87,56 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
    python automation/testing/test_all_servers.py --quick
 
    # Use AI agents directly
+   ./tools/cli/agents/run_codex.sh    # Interactive Codex session
    ./tools/cli/agents/run_opencode.sh -q "Create a REST API"
    ./tools/cli/agents/run_crush.sh -q "Binary search function"
-   ./tools/cli/agents/run_gemini.sh  # Interactive Gemini CLI session
+   ./tools/cli/agents/run_gemini.sh   # Interactive Gemini CLI session
    ```
 
 For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
+
+## MCP Configuration Strategy
+
+This repository provides two MCP configuration files to optimize performance:
+
+### `.mcp.json` (Default - Essential Services)
+- **Purpose**: Prevent context window overload in Claude Code
+- **Contains**: Essential services only
+  - Code Quality (formatting, linting)
+  - AI Agents (Gemini, OpenCode, Crush, Codex)
+- **Best for**: Day-to-day development, code review, refactoring
+- **Use when**: Working on typical software development tasks
+
+### `.mcp.json.full` (Complete - All Services)
+- **Purpose**: Access to all specialized tools when needed
+- **Contains**: All 15 MCP servers
+  - Essential services (from `.mcp.json`)
+  - Content creation (Manim, LaTeX, TikZ)
+  - 3D graphics (Blender, Gaea2)
+  - Media tools (Video Editor, Speech Synthesis, Meme Generator)
+  - Remote services (AI Toolkit, ComfyUI, Virtual Character)
+  - Project management (GitHub Board)
+- **Best for**: Specialized tasks requiring content creation or media processing
+- **Use when**: Creating animations, 3D content, videos, or terrain
+
+### Switching Between Configurations
+
+```bash
+# Use essential services (default)
+# Already configured - just use Claude Code normally
+
+# Enable all services temporarily
+mv .mcp.json .mcp.json.essential
+mv .mcp.json.full .mcp.json
+# Restart Claude Code
+
+# Restore essential services
+mv .mcp.json .mcp.json.full
+mv .mcp.json.essential .mcp.json
+# Restart Claude Code
+```
+
+**Recommendation**: Start with `.mcp.json` (essential services) and only switch to `.mcp.json.full` when you need specialized tools. This prevents Claude's context window from being filled with unused tool definitions.
 
 ## Enterprise & Corporate Setup
 
@@ -107,7 +154,7 @@ For enterprise environments that require custom certificates (e.g., corporate pr
    - Best practices for certificate management in containerized environments
 
 3. **Affected Services**:
-   - All corporate proxy integrations (Gemini, OpenCode, Crush)
+   - All corporate proxy integrations (Gemini, Codex, OpenCode, Crush)
    - Python CI/CD containers
    - Any custom Docker images built from this template
 
@@ -120,49 +167,56 @@ This pattern ensures consistent certificate handling across all services while m
 ├── .github/workflows/        # GitHub Actions workflows
 ├── docker/                   # Docker configurations
 ├── packages/                 # Installable packages
-│   ├── github_ai_agents/     # AI agent implementations
-│   └── sleeper_detection/    # AI backdoor detection system
+│   ├── github_agents/        # Github agents implementation
+│   ├── sleeper_agents/       # Sleeper agents implementation
+│   └── economic_agents/      # Economic agents framework
 ├── tools/                    # MCP servers and utilities
 │   ├── mcp/                  # Modular MCP servers
-│   │   ├── code_quality/     # Formatting & linting
-│   │   ├── content_creation/ # Manim & LaTeX
-│   │   ├── gemini/           # AI consultation
-│   │   ├── gaea2/            # Terrain generation
-│   │   ├── blender/          # 3D content creation
-│   │   ├── opencode/         # Code generation
-│   │   ├── crush/            # Code generation
-│   │   ├── video_editor/     # AI-powered video editing
-│   │   ├── meme_generator/   # Meme creation
-│   │   ├── elevenlabs_speech/# Speech synthesis
-│   │   ├── virtual_character/# AI agent embodiment
-│   │   ├── ai_toolkit/       # LoRA training interface
-│   │   ├── comfyui/          # Image generation interface
-│   │   └── core/             # Shared components
+│   │   ├── mcp_agentcore_memory/ # Multi-provider AI memory
+│   │   ├── mcp_ai_toolkit/       # LoRA training interface
+│   │   ├── mcp_blender/          # 3D content creation
+│   │   ├── mcp_code_quality/     # Formatting & linting
+│   │   ├── mcp_codex/            # AI-powered code generation
+│   │   ├── mcp_comfyui/          # Image generation interface
+│   │   ├── mcp_content_creation/ # Manim & LaTeX
+│   │   ├── mcp_core/             # Shared components
+│   │   ├── mcp_crush/            # Fast code generation
+│   │   ├── mcp_elevenlabs_speech/# Speech synthesis
+│   │   ├── mcp_gaea2/            # Terrain generation
+│   │   ├── mcp_gemini/           # AI consultation
+│   │   ├── mcp_github_board/     # GitHub Projects board management
+│   │   ├── mcp_meme_generator/   # Meme creation
+│   │   ├── mcp_opencode/         # Comprehensive code generation
+│   │   ├── mcp_video_editor/     # AI-powered video editing
+│   │   └── mcp_virtual_character/# AI agent embodiment
 │   └── cli/                  # Command-line tools
 │       ├── agents/           # Agent runner scripts
-│       │   ├── run_claude.sh              # Claude Code Runner
-│       │   ├── run_opencode.sh            # OpenCode runner
-│       │   ├── run_crush.sh               # Crush runner
-│       │   └── run_gemini.sh              # Gemini CLI runner
+│       │   ├── run_claude.sh       # Claude Code runner
+│       │   ├── run_codex.sh        # Codex runner
+│       │   ├── run_crush.sh        # Crush runner
+│       │   ├── run_gemini.sh       # Gemini CLI runner
+│       │   ├── run_opencode.sh     # OpenCode runner
+│       │   └── stop_claude.sh      # Claude stop script
 │       ├── containers/       # Container runner scripts
-│       │   ├── run_opencode_container.sh  # OpenCode in container
+│       │   ├── run_codex_container.sh     # Codex in container
 │       │   ├── run_crush_container.sh     # Crush in container
-│       │   └── run_gemini_container.sh    # Gemini in container
+│       │   ├── run_gemini_container.sh    # Gemini in container
+│       │   ├── run_opencode_container.sh  # OpenCode in container
+│       │   └── run_opencode_simple.sh     # Simple OpenCode runner
 │       └── utilities/        # Other CLI utilities
 ├── automation/               # CI/CD and automation scripts
 │   ├── analysis/             # Code and project analysis tools
 │   ├── ci-cd/                # CI/CD pipeline scripts
 │   ├── corporate-proxy/      # Corporate proxy integrations
+│   │   ├── crush/            # Crush proxy wrapper
 │   │   ├── gemini/           # Gemini CLI proxy wrapper
 │   │   ├── opencode/         # OpenCode proxy wrapper
-│   │   ├── crush/            # Crush proxy wrapper
 │   │   └── shared/           # Shared proxy components
 │   ├── launchers/            # Service launcher scripts
 │   ├── monitoring/           # Service and PR monitoring
 │   ├── review/               # Code review automation
 │   ├── scripts/              # Utility scripts
 │   ├── security/             # Security and validation
-│   ├── sleeper-detection/    # Sleeper detection automation
 │   ├── setup/                # Setup and installation scripts
 │   └── testing/              # Testing utilities
 ├── tests/                    # Test files
@@ -176,17 +230,20 @@ This pattern ensures consistent certificate handling across all services while m
 
 1. **Code Quality** - Formatting, linting, auto-formatting
 2. **Content Creation** - Manim animations, LaTeX, TikZ diagrams
-3. **Gaea2** - Terrain generation ([Documentation](tools/mcp/gaea2/docs/README.md))
-4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/blender/docs/README.md))
+3. **Gaea2** - Terrain generation ([Documentation](tools/mcp/mcp_gaea2/docs/README.md))
+4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/mcp_blender/docs/README.md))
 5. **Gemini** - AI consultation (containerized and host modes available)
-6. **OpenCode** - Comprehensive code generation (STDIO mode via Claude)
-7. **Crush** - Fast code snippets (STDIO mode via Claude)
-8. **Meme Generator** - Create memes with templates
-9. **ElevenLabs Speech** - Advanced TTS with v3 model, 50+ audio tags, 74 languages ([Documentation](tools/mcp/elevenlabs_speech/docs/README.md))
-10. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/video_editor/docs/README.md))
-11. **Virtual Character** - AI agent embodiment in virtual worlds (VRChat, Blender, Unity) ([Documentation](tools/mcp/virtual_character/README.md))
-12. **AI Toolkit** - LoRA training interface (remote: 192.168.0.152:8012)
-13. **ComfyUI** - Image generation interface (remote: 192.168.0.152:8013)
+6. **Codex** - AI-powered code generation and completion
+7. **OpenCode** - Comprehensive code generation
+8. **Crush** - Fast code snippets
+9. **Meme Generator** - Create memes with templates
+10. **ElevenLabs Speech** - Advanced TTS with v3 model, 50+ audio tags, 74 languages ([Documentation](tools/mcp/mcp_elevenlabs_speech/docs/README.md))
+11. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/mcp_video_editor/docs/README.md))
+12. **Virtual Character** - AI agent embodiment in virtual worlds (VRChat, Blender, Unity) ([Documentation](tools/mcp/mcp_virtual_character/README.md))
+13. **GitHub Board** - GitHub Projects v2 board management, work claiming, agent coordination ([Documentation](tools/mcp/mcp_github_board/docs/README.md))
+14. **AI Toolkit** - LoRA training interface (remote: 192.168.0.152:8012)
+15. **ComfyUI** - Image generation interface (remote: 192.168.0.152:8013)
+16. **AgentCore Memory** - Multi-provider AI memory (AWS AgentCore or ChromaDB) ([Documentation](tools/mcp/mcp_agentcore_memory/docs/README.md))
 
 ### Usage Modes
 
@@ -212,7 +269,7 @@ See `.env.example` for all available options.
 - `CLAUDE.md` - Project-specific Claude Code instructions (root directory)
 - `CRUSH.md` - Crush AI assistant instructions (root directory)
 - `AGENTS.md` - Universal AI agent configuration and guidelines (root directory)
-- `docs/ai-agents/project-context.md` - Context for AI reviewers
+- `docs/agents/project-context.md` - Context for AI reviewers
 
 ### Setup Guides
 
@@ -255,17 +312,19 @@ All workflows run on self-hosted runners for zero-cost operation.
 - [CLAUDE.md](CLAUDE.md) - Claude-specific instructions and commands
 - [CRUSH.md](CRUSH.md) - Crush AI assistant instructions
 - [MCP Architecture](docs/mcp/README.md) - Modular server design
-- [AI Agents Documentation](docs/ai-agents/README.md) - Seven AI agents overview
+- [AI Agents Documentation](docs/agents/README.md) - AI agents overview
 
 ### Quick References
+- [Codex Setup Guide](docs/agents/codex-setup.md)
 - [OpenCode & Crush Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md)
 - [MCP Tools Reference](docs/mcp/tools.md)
-- [Gaea2 Quick Reference](tools/mcp/gaea2/docs/GAEA2_QUICK_REFERENCE.md)
+- [Gaea2 Quick Reference](tools/mcp/mcp_gaea2/docs/GAEA2_QUICK_REFERENCE.md)
 
 ### Integration Guides
+- [Codex Integration](docs/agents/codex-setup.md)
 - [OpenCode & Crush Integration](docs/integrations/ai-services/opencode-crush.md)
 - [AI Toolkit & ComfyUI Integration](docs/integrations/creative-tools/ai-toolkit-comfyui.md)
-- [Gaea2 Documentation](tools/mcp/gaea2/docs/README.md)
+- [Gaea2 Documentation](tools/mcp/mcp_gaea2/docs/README.md)
 
 ### Setup & Configuration
 - **[Template Quickstart Guide](docs/QUICKSTART.md)** - Customize the template for your needs

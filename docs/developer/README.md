@@ -76,4 +76,4 @@ docker-compose logs -f
 - [AGENTS.md](../../AGENTS.md) - Universal AI agent configuration
 - [Infrastructure Setup](../infrastructure/)
 - [MCP Architecture](../mcp/)
-- [AI Agents](../ai-agents/)
+- [AI Agents](../agents/)

@@ -7,7 +7,7 @@
 export OPENROUTER_API_KEY="your-key-here"
 
 # Install package
-pip3 install -e ./packages/github_ai_agents
+pip3 install -e ./packages/github_agents
 ```
 
 ## OpenCode Commands
@@ -137,12 +137,12 @@ docker-compose logs -f openrouter-agents
 
 ```bash
 # Test OpenCode
-./tools/mcp/opencode/scripts/test_opencode_cli.sh
-python tools/mcp/opencode/scripts/test_server.py
+./tools/mcp/mcp_opencode/scripts/test_opencode_cli.sh
+python tools/mcp/mcp_opencode/scripts/test_server.py
 
 # Test Crush
-./tools/mcp/crush/scripts/test_crush_cli.sh
-python tools/mcp/crush/scripts/test_server.py
+./tools/mcp/mcp_crush/scripts/test_crush_cli.sh
+python tools/mcp/mcp_crush/scripts/test_server.py
 
 # Test all MCP servers
 python automation/testing/test_all_servers.py
@@ -182,7 +182,7 @@ CRUSH_LOG_GENERATIONS=true
 export OPENROUTER_API_KEY="your-key"
 
 # Agent not found
-pip3 install -e ./packages/github_ai_agents --force-reinstall
+pip3 install -e ./packages/github_agents --force-reinstall
 
 # Container issues
 docker-compose restart openrouter-agents

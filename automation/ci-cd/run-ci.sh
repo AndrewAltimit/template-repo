@@ -34,13 +34,15 @@ case "$STAGE" in
   format)
     echo "=== Running format checks ==="
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci black --check --diff .
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci isort --check-only --diff .
+    # Use ruff for import sorting (aligns with pre-commit hooks)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I --diff .
     ;;
 
   lint-basic)
     echo "=== Running basic linting ==="
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci black --check .
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci isort --check-only .
+    # Use ruff for import sorting (aligns with pre-commit hooks)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     ;;
@@ -48,10 +50,26 @@ case "$STAGE" in
   lint-full)
     echo "=== Running full linting suite ==="
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci black --check .
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci isort --check-only .
+    # Use ruff for import sorting (aligns with pre-commit hooks)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci flake8 . --count --statistics
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c 'find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | xargs pylint --output-format=parseable --exit-zero'
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c "pip install -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary" || true
+    ;;
+
+  ruff)
+    echo "=== Running Ruff (fast linter) ==="
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check . --output-format=github
+    ;;
+
+  ruff-fix)
+    echo "=== Running Ruff with auto-fix ==="
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check . --fix
+    ;;
+
+  bandit)
+    echo "=== Running Bandit security scan ==="
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bandit -r . -c pyproject.toml -f txt
     ;;
 
   security)
@@ -69,10 +87,11 @@ case "$STAGE" in
 
   test)
     echo "=== Running tests ==="
+    # Note: --ignore-glob is required because --ignore doesn't work properly with glob-expanded paths
     docker-compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
-      python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/ -v --cov=. --cov-report=xml --cov-report=term --ignore=tests/gaea2/ ${EXTRA_ARGS[*]}"
+      python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/ tools/mcp/*/tests/ -v --cov=. --cov-report=xml --cov-report=term --ignore-glob='**/mcp_gaea2/**' ${EXTRA_ARGS[*]}"
 
     # Run corporate proxy tests
     echo "=== Testing corporate proxy components ==="
@@ -136,7 +155,8 @@ case "$STAGE" in
   autoformat)
     echo "=== Running autoformatters ==="
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci black .
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci isort .
+    # Use ruff for import sorting (aligns with pre-commit hooks)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I --fix .
     ;;
 
   test-gaea2)
@@ -149,7 +169,7 @@ case "$STAGE" in
         -e PYTHONDONTWRITEBYTECODE=1 \
         -e PYTHONPYCACHEPREFIX=/tmp/pycache \
         -e GAEA2_MCP_URL="${GAEA2_URL}" \
-        python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/gaea2/ -v --tb=short ${EXTRA_ARGS[*]}"
+        python-ci bash -c "pip install -r config/python/requirements.txt && pytest tools/mcp/mcp_gaea2/tests/ -v --tb=short ${EXTRA_ARGS[*]}"
     else
       echo "❌ Gaea2 MCP server is not reachable at $GAEA2_URL"
       echo "⚠️  Skipping Gaea2 tests. To run them, ensure the server is available."
@@ -190,7 +210,7 @@ case "$STAGE" in
 
   *)
     echo "Unknown stage: $STAGE"
-    echo "Available stages: format, lint-basic, lint-full, lint-shell, security, test, test-gaea2, test-all, test-corporate-proxy, yaml-lint, json-lint, autoformat, full"
+    echo "Available stages: format, lint-basic, lint-full, lint-shell, ruff, ruff-fix, bandit, security, test, test-gaea2, test-all, test-corporate-proxy, yaml-lint, json-lint, autoformat, full"
     exit 1
     ;;
 esac

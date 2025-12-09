@@ -34,14 +34,16 @@ RUN wget -q https://download.blender.org/release/Blender4.5/blender-${BLENDER_VE
 WORKDIR /app
 
 # Copy requirements first for better caching
-COPY tools/mcp/blender/requirements.txt /app/requirements.txt
+COPY tools/mcp/mcp_blender/requirements.txt /app/requirements.txt
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Copy MCP core components
-COPY tools/mcp/core /app/core
+# Copy MCP packages
+COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
+COPY tools/mcp/mcp_blender /app/tools/mcp/mcp_blender
 
-# Copy Blender MCP server
-COPY tools/mcp/blender /app/blender
+# Install MCP packages
+RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir /app/tools/mcp/mcp_blender
 
 # Create non-root user, directories, and set permissions in one layer
 ARG USER_ID=1000
@@ -59,4 +61,4 @@ USER blender
 EXPOSE 8017
 
 # Run the server
-CMD ["python3", "-m", "blender.server"]
+CMD ["python3", "-m", "mcp_blender.server"]

@@ -58,7 +58,8 @@ def get_video_info(video_path: str) -> Optional[Dict[str, Any]]:
 
     output = run_command_safe(args)
     if output:
-        return json.loads(output)
+        result: Dict[str, Any] = json.loads(output)
+        return result
     return None
 
 
@@ -118,11 +119,12 @@ def detect_scene_changes(video_path: str, threshold: float = 0.4) -> List[float]
     Returns:
         List of scene change timestamps
     """
+    # pylint: disable=too-many-nested-blocks  # Inherent to ffmpeg output parsing
     # Run ffmpeg without shell=True and process stderr in Python
     args = ["ffmpeg", "-i", str(video_path), "-filter:v", f"select='gt(scene,{threshold})',showinfo", "-f", "null", "-"]
 
     # Capture stderr where ffmpeg outputs the showinfo data
-    result = subprocess.run(args, capture_output=True, text=True)
+    result = subprocess.run(args, capture_output=True, text=True, check=False)
     output = result.stderr  # showinfo output goes to stderr
 
     scenes = []
@@ -263,11 +265,12 @@ def analyze_audio_levels(audio_path: str, noise_level: str = "-50dB", min_durati
     Returns:
         List of (start, end) tuples for silence segments
     """
+    # pylint: disable=too-many-nested-blocks  # Inherent to ffmpeg output parsing
     # Run ffmpeg without shell=True and process stderr in Python
     args = ["ffmpeg", "-i", str(audio_path), "-af", f"silencedetect=n={noise_level}:d={min_duration}", "-f", "null", "-"]
 
     # Capture stderr where ffmpeg outputs the silence detection info
-    result = subprocess.run(args, capture_output=True, text=True)
+    result = subprocess.run(args, capture_output=True, text=True, check=False)
     output = result.stderr  # silencedetect output goes to stderr
 
     silence_segments = []
@@ -285,12 +288,14 @@ def analyze_audio_levels(audio_path: str, noise_level: str = "-50dB", min_durati
                         except (ValueError, IndexError):
                             continue
             elif "silence_end" in line and start_time is not None:
+                # Capture start_time before any modifications in this block
+                current_start: float = start_time
                 parts = line.split()
                 for part in parts:
                     if part.startswith("silence_end:"):
                         try:
                             end_time = float(part.split(":")[1])
-                            silence_segments.append((start_time, end_time))
+                            silence_segments.append((current_start, end_time))
                             start_time = None
                         except (ValueError, IndexError):
                             continue

@@ -7,20 +7,21 @@ Handles bidirectional translation between Gemini and internal company formats.
 import json
 import logging
 import os
-import sys
 from pathlib import Path
+import sys
 from typing import Any, Dict, List, Optional, Tuple
 
 # Add parent to path for shared imports
 sys.path.append(str(Path(__file__).parent.parent))
-from shared.services.text_tool_parser import TextToolParser, ToolInjector  # noqa: E402
+from shared.services.text_tool_parser import TextToolParser  # noqa: E402  # pylint: disable=wrong-import-position
+from shared.services.tool_injector import ToolInjector  # noqa: E402  # pylint: disable=wrong-import-position
 
 # Setup logging
 logger = logging.getLogger(__name__)
 
 # Load configuration
 CONFIG_PATH = Path(__file__).parent / "config" / "gemini-config.json"
-with open(CONFIG_PATH, "r") as f:
+with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
 
 # Default tool mode from config
@@ -57,7 +58,7 @@ def get_model_tool_mode(model_name: str) -> str:
     env_override = os.environ.get(env_override_key)
 
     if env_override:
-        logger.info(f"Using environment override for {model_name}: tool_mode={env_override}")
+        logger.info("Using environment override for %s: tool_mode=%s", model_name, env_override)
         return env_override.lower()
 
     # Get from model config
@@ -66,8 +67,224 @@ def get_model_tool_mode(model_name: str) -> str:
         return model_config["tool_mode"].lower()
 
     # Fall back to default
-    logger.info(f"No tool_mode configured for {model_name}, using default: {DEFAULT_TOOL_MODE}")
+    logger.info("No tool_mode configured for %s, using default: %s", model_name, DEFAULT_TOOL_MODE)
     return DEFAULT_TOOL_MODE
+
+
+def _process_messages_format(gemini_messages: List[Dict[str, Any]]) -> Tuple[List[Dict[str, str]], str]:
+    """Process Gemini 'messages' format into company format.
+
+    Args:
+        gemini_messages: List of Gemini message objects
+
+    Returns:
+        Tuple of (messages list, system_prompt)
+    """
+    messages = []
+    system_prompt = ""
+
+    for msg in gemini_messages:
+        role = msg.get("role", "user")
+        content = msg.get("content", "")
+
+        if role == "function":
+            # Tool result message
+            tool_response = msg.get("parts", [{}])[0].get("functionResponse", {})
+            tool_name = tool_response.get("name", "unknown")
+            tool_result = tool_response.get("response", {})
+            content = f"Tool '{tool_name}' result: {json.dumps(tool_result)}"
+            role = "user"
+        elif role == "model" and "functionCall" in msg.get("parts", [{}])[0]:
+            continue  # Skip tool calls in history
+        elif role == "system":
+            system_prompt = content
+            continue
+        elif role == "model":
+            role = "assistant"
+
+        messages.append({"role": role, "content": content})
+
+    return messages, system_prompt
+
+
+def _format_tool_response(tool_response: Dict[str, Any]) -> str:
+    """Format a function response part into text.
+
+    Args:
+        tool_response: The functionResponse object
+
+    Returns:
+        Formatted string representation
+    """
+    tool_name = tool_response.get("name", "unknown")
+    tool_id = tool_response.get("id", "")
+    tool_result = tool_response.get("response", {})
+
+    if "output" in tool_result:
+        formatted_result = f"Tool '{tool_name}' completed: {tool_result['output']}"
+    elif "error" in tool_result:
+        formatted_result = f"Tool '{tool_name}' failed: {tool_result['error']}"
+    else:
+        formatted_result = f"Tool '{tool_name}' result: {json.dumps(tool_result)}"
+
+    if tool_id:
+        formatted_result = f"[ID: {tool_id}] {formatted_result}"
+
+    return formatted_result
+
+
+def _process_content_parts(parts: List[Any]) -> Tuple[List[Dict], List[str]]:
+    """Process parts from a Gemini content object.
+
+    Args:
+        parts: List of part objects (dicts or strings)
+
+    Returns:
+        Tuple of (tool_calls list, text_parts list)
+    """
+    tool_calls = []
+    text_parts = []
+
+    for part in parts:
+        if isinstance(part, dict):
+            if "functionCall" in part:
+                tool_calls.append(part["functionCall"])
+            elif "functionResponse" in part:
+                text_parts.append(_format_tool_response(part["functionResponse"]))
+            elif "text" in part:
+                text_parts.append(part["text"])
+        elif isinstance(part, str):
+            text_parts.append(part)
+
+    return tool_calls, text_parts
+
+
+def _process_contents_format(gemini_contents: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    """Process Gemini 'contents' format into company format.
+
+    Args:
+        gemini_contents: List of Gemini content objects
+
+    Returns:
+        List of company-format messages
+    """
+    messages = []
+
+    for content in gemini_contents:
+        role = content.get("role", "user")
+        parts = content.get("parts", [])
+
+        tool_calls, text_parts = _process_content_parts(parts)
+
+        # Execute tool calls in mock mode only
+        if tool_calls and role == "model" and USE_MOCK and execute_tool_call:
+            for tool_call in tool_calls:
+                tool_name = tool_call.get("name")
+                tool_args = tool_call.get("args", {})
+                tool_result = execute_tool_call(tool_name, tool_args)
+                text_parts.append(f"Tool '{tool_name}' result: {json.dumps(tool_result)}")
+
+        combined_text = "\n".join(text_parts)
+
+        if combined_text:
+            if role == "model":
+                role = "assistant"
+            messages.append({"role": role, "content": combined_text})
+
+    return messages
+
+
+def _inject_tools_text_mode(tools: List, system_prompt: str, gemini_request: Dict) -> str:
+    """Inject tool descriptions for text mode.
+
+    Args:
+        tools: List of Gemini tool definitions
+        system_prompt: Current system prompt
+        gemini_request: Request dict to store tool metadata
+
+    Returns:
+        Updated system prompt
+    """
+    if tool_injector:
+        system_prompt = tool_injector.inject_system_prompt(system_prompt)
+
+    # Convert Gemini tool format to internal format
+    tool_dict = {}
+    for tool in tools:
+        if "functionDeclarations" in tool:
+            for func in tool["functionDeclarations"]:
+                name = func.get("name", "unknown")
+                tool_dict[name] = func
+
+    gemini_request["_tool_dict"] = tool_dict
+    gemini_request["_use_text_mode"] = True
+
+    return system_prompt
+
+
+def _inject_tools_native_mode(tools: List, system_prompt: str) -> str:
+    """Inject tool descriptions for native mode.
+
+    Args:
+        tools: List of Gemini tool definitions
+        system_prompt: Current system prompt
+
+    Returns:
+        Updated system prompt with tool descriptions
+    """
+    tool_descriptions = []
+    for tool in tools:
+        if "functionDeclarations" in tool:
+            for func in tool["functionDeclarations"]:
+                name = func.get("name", "unknown")
+                desc = func.get("description", "")
+                tool_descriptions.append(f"- {name}: {desc}")
+
+    if tool_descriptions:
+        tool_prompt = "You have access to the following tools:\n" + "\n".join(tool_descriptions)
+        tool_prompt += "\n\nTo use a tool, respond with a function call in the appropriate format."
+        return f"{system_prompt}\n\n{tool_prompt}" if system_prompt else tool_prompt
+
+    return system_prompt
+
+
+def _enhance_first_user_message(messages: List[Dict], tool_dict: Dict) -> None:
+    """Inject tools into the first user message for text mode.
+
+    Args:
+        messages: List of messages to modify in-place
+        tool_dict: Dictionary of tool definitions
+    """
+    if not text_tool_parser:
+        return
+
+    for i, msg in enumerate(messages):
+        if msg.get("role") == "user":
+            original_content = msg.get("content", "")
+            enhanced_content = text_tool_parser.generate_tool_prompt(tool_dict, original_content)
+            messages[i]["content"] = enhanced_content
+            break
+
+
+def _apply_json_mode(company_request: Dict, messages: List[Dict]) -> None:
+    """Apply JSON mode instructions to request.
+
+    Args:
+        company_request: Request dict to modify in-place
+        messages: Messages list to modify in-place
+    """
+    json_instruction = (
+        "\n\nIMPORTANT: You must respond with valid JSON only. "
+        "Do not include any text before or after the JSON. "
+        "The response must be parseable by JSON.parse()."
+    )
+    if company_request["system"]:
+        company_request["system"] += json_instruction
+    else:
+        company_request["system"] = json_instruction.strip()
+
+    if messages and messages[-1]["role"] == "user":
+        messages[-1]["content"] += "\n\nPlease respond with valid JSON only."
 
 
 def translate_gemini_to_company(gemini_request: Dict[str, Any]) -> Tuple[str, Dict[str, Any], Optional[List]]:
@@ -80,203 +297,71 @@ def translate_gemini_to_company(gemini_request: Dict[str, Any]) -> Tuple[str, Di
     Returns:
         Tuple of (endpoint, company_request, tools)
     """
-    # Extract model and map it
+    # Extract model and get config
     model = gemini_request.get("model", "gemini-2.5-flash")
     model_config = CONFIG["models"].get(model)
 
     if not model_config:
-        logger.warning(f"Unknown model {model}, using default")
+        logger.warning("Unknown model %s, using default", model)
         model_config = CONFIG["models"]["gemini-2.5-flash"]
 
     endpoint = model_config["endpoint"]
-
-    # Check if tools are requested
     tools = gemini_request.get("tools", [])
 
-    # Check if JSON response is requested
+    # Check JSON mode
     generation_config = gemini_request.get("generationConfig", {})
     response_mime_type = generation_config.get("responseMimeType", "")
     response_format = generation_config.get("responseFormat", "")
 
-    # Store JSON mode flag for later use
-    wants_json = (
-        response_mime_type == "application/json"
-        or response_mime_type == "text/x.json"
-        or response_format == "json"
-        or response_format == "JSON"
-    )
+    wants_json = response_mime_type in ("application/json", "text/x.json") or response_format.lower() == "json"
     gemini_request["_wants_json"] = wants_json
 
     if wants_json:
-        logger.info(f"JSON response requested via generationConfig: mime={response_mime_type}, format={response_format}")
+        logger.info("JSON response requested via generationConfig: mime=%s, format=%s", response_mime_type, response_format)
 
-    # Get tool mode for this specific model
+    # Get tool mode
     model_tool_mode = get_model_tool_mode(model)
-
-    # Store tool mode decision in request for later use
     use_text_mode = model_tool_mode == "text" and tools
+    logger.info("Model %s using tool_mode=%s, use_text_mode=%s", model, model_tool_mode, use_text_mode)
 
-    logger.info(f"Model {model} using tool_mode={model_tool_mode}, use_text_mode={use_text_mode}")
-
-    # Convert Gemini format to Company format
-    messages = []
+    # Process messages based on format
     system_prompt = ""
-
-    # Handle different Gemini request formats
     if "messages" in gemini_request:
-        # Chat format
-        for msg in gemini_request["messages"]:
-            role = msg.get("role", "user")
-            content = msg.get("content", "")
-
-            # Handle tool results
-            if role == "function":
-                # Tool result message
-                tool_response = msg.get("parts", [{}])[0].get("functionResponse", {})
-                tool_name = tool_response.get("name", "unknown")
-                tool_result = tool_response.get("response", {})
-                content = f"Tool '{tool_name}' result: {json.dumps(tool_result)}"
-                role = "user"
-            elif role == "model" and "functionCall" in msg.get("parts", [{}])[0]:
-                # Tool call from model
-                continue  # Skip tool calls in history
-            elif role == "system":
-                system_prompt = content
-                continue
-            elif role == "model":
-                role = "assistant"
-
-            messages.append({"role": role, "content": content})
-
+        messages, system_prompt = _process_messages_format(gemini_request["messages"])
     elif "contents" in gemini_request:
-        # Contents format (used by Google AI SDK)
-        for content in gemini_request["contents"]:
-            role = content.get("role", "user")
-            parts = content.get("parts", [])
+        messages = _process_contents_format(gemini_request["contents"])
+    else:
+        messages = []
 
-            # Check for tool calls in the parts
-            tool_calls = []
-            text_parts = []
-
-            for part in parts:
-                if isinstance(part, dict):
-                    if "functionCall" in part:
-                        tool_calls.append(part["functionCall"])
-                    elif "functionResponse" in part:
-                        # Handle tool response from Gemini CLI
-                        tool_response = part["functionResponse"]
-                        tool_name = tool_response.get("name", "unknown")
-                        tool_id = tool_response.get("id", "")
-                        tool_result = tool_response.get("response", {})
-
-                        # Format based on response content
-                        if "output" in tool_result:
-                            formatted_result = f"Tool '{tool_name}' completed: {tool_result['output']}"
-                        elif "error" in tool_result:
-                            formatted_result = f"Tool '{tool_name}' failed: {tool_result['error']}"
-                        else:
-                            formatted_result = f"Tool '{tool_name}' result: {json.dumps(tool_result)}"
-
-                        if tool_id:
-                            formatted_result = f"[ID: {tool_id}] {formatted_result}"
-
-                        text_parts.append(formatted_result)
-                    elif "text" in part:
-                        text_parts.append(part["text"])
-                elif isinstance(part, str):
-                    text_parts.append(part)
-
-            # Only execute tool calls in mock mode for testing
-            # In production, Gemini CLI will execute tools and send back functionResponse
-            if tool_calls and role == "model" and USE_MOCK and execute_tool_call:
-                # Execute tools and add results (mock mode only)
-                for tool_call in tool_calls:
-                    tool_name = tool_call.get("name")
-                    tool_args = tool_call.get("args", {})
-                    tool_result = execute_tool_call(tool_name, tool_args)
-                    text_parts.append(f"Tool '{tool_name}' result: {json.dumps(tool_result)}")
-
-            combined_text = "\n".join(text_parts)
-
-            if combined_text:
-                if role == "model":
-                    role = "assistant"
-                messages.append({"role": role, "content": combined_text})
-
-    # Add tool descriptions to system prompt based on mode
+    # Handle tools
     if tools:
         if use_text_mode:
-            # In text mode, inject detailed tool instructions
-            if tool_injector:
-                system_prompt = tool_injector.inject_system_prompt(system_prompt)
-
-            # Convert Gemini tool format to our internal format for text mode
-            tool_dict = {}
-            for tool in tools:
-                if "functionDeclarations" in tool:
-                    for func in tool["functionDeclarations"]:
-                        name = func.get("name", "unknown")
-                        tool_dict[name] = func
-
-            # Inject tools into the first user message (will be done after messages are built)
-            gemini_request["_tool_dict"] = tool_dict
-            gemini_request["_use_text_mode"] = True
+            system_prompt = _inject_tools_text_mode(tools, system_prompt, gemini_request)
         else:
-            # Native mode - original behavior
-            tool_descriptions = []
-            for tool in tools:
-                if "functionDeclarations" in tool:
-                    for func in tool["functionDeclarations"]:
-                        name = func.get("name", "unknown")
-                        desc = func.get("description", "")
-                        tool_descriptions.append(f"- {name}: {desc}")
+            system_prompt = _inject_tools_native_mode(tools, system_prompt)
 
-            if tool_descriptions:
-                tool_prompt = "You have access to the following tools:\n" + "\n".join(tool_descriptions)
-                tool_prompt += "\n\nTo use a tool, respond with a function call in the appropriate format."
-                system_prompt = f"{system_prompt}\n\n{tool_prompt}" if system_prompt else tool_prompt
+    # Enhance first user message for text mode
+    if use_text_mode and messages and "_tool_dict" in gemini_request:
+        _enhance_first_user_message(messages, gemini_request["_tool_dict"])
 
-    # In text mode, inject tools into the first user message
-    if use_text_mode and messages and "_tool_dict" in gemini_request and text_tool_parser:
-        tool_dict = gemini_request["_tool_dict"]
-        # Find first user message and inject tools
-        for i, msg in enumerate(messages):
-            if msg.get("role") == "user":
-                original_content = msg.get("content", "")
-                enhanced_content = text_tool_parser.generate_tool_prompt(tool_dict, original_content)
-                messages[i]["content"] = enhanced_content
-                break
-
-    # Build Company API request
+    # Build company request
     company_request = {
         "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": gemini_request.get("generationConfig", {}).get("maxOutputTokens", 1000),
+        "max_tokens": generation_config.get("maxOutputTokens", 1000),
         "system": system_prompt or "You are a helpful AI assistant",
         "messages": messages,
-        "temperature": gemini_request.get("generationConfig", {}).get("temperature", 0.7),
+        "temperature": generation_config.get("temperature", 0.7),
     }
 
-    # If JSON response is requested, add instruction to the system prompt
+    # Apply JSON mode if requested
     if wants_json:
-        json_instruction = (
-            "\n\nIMPORTANT: You must respond with valid JSON only. "
-            "Do not include any text before or after the JSON. "
-            "The response must be parseable by JSON.parse()."
-        )
-        if company_request["system"]:
-            company_request["system"] += json_instruction
-        else:
-            company_request["system"] = json_instruction.strip()
-
-        # Also add to the last user message for emphasis
-        if messages and messages[-1]["role"] == "user":
-            messages[-1]["content"] += "\n\nPlease respond with valid JSON only."
+        _apply_json_mode(company_request, messages)
 
     return endpoint, company_request, tools
 
 
 def translate_company_to_gemini(
-    company_response: Dict[str, Any], original_request: Optional[Dict[str, Any]] = None, tools: Optional[List] = None
+    company_response: Dict[str, Any], original_request: Optional[Dict[str, Any]] = None, _tools: Optional[List] = None
 ) -> Dict[str, Any]:
     """
     Translate Company API response back to Gemini format, checking for tool calls.

@@ -20,7 +20,7 @@ on:
 
 permissions:
   pull-requests: write # Required to comment on PRs and push changes
-  contents: read       # For actions/checkout. Agent uses AI_AGENT_TOKEN with write perms.
+  contents: read       # For actions/checkout. Agent uses AGENT_TOKEN with write perms.
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -32,7 +32,7 @@ jobs:
     # Only run if AI agents are enabled AND relevant event occurs
     # Note: User authorization is handled by the SecurityManager in the Python agent
     if: |
-      vars.ENABLE_AI_AGENTS == 'true' && (
+      vars.ENABLE_AGENTS == 'true' && (
         github.event_name == 'schedule' ||
         github.event_name == 'workflow_dispatch' ||
         (github.event_name == 'pull_request_review' &&
@@ -57,10 +57,10 @@ jobs:
 
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.AI_AGENT_TOKEN }}
+          token: ${{ secrets.AGENT_TOKEN }}
 
       - name: Configure Git
         run: |
@@ -75,7 +75,7 @@ jobs:
 
           # Install the GitHub AI Agents package
           echo "[INFO] Installing GitHub AI Agents package..."
-          pip3 install --user -e ./packages/github_ai_agents
+          pip3 install --user -e ./packages/github_agents
 
           # Install additional requirements if needed
           echo "[INFO] Installing additional requirements..."
@@ -89,14 +89,14 @@ jobs:
 
       - name: Run PR review monitor on host
         env:
-          # Use AI_AGENT_TOKEN which has write permissions for applying review suggestions
-          GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
+          # Use AGENT_TOKEN which has write permissions for applying review suggestions
+          GITHUB_TOKEN: ${{ secrets.AGENT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
+          ENABLE_AGENTS: ${{ vars.ENABLE_AGENTS }}
           # OpenRouter API key for alternative AI agents
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           # List of environment variables whose values should be masked in public comments
-          MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN,OPENROUTER_API_KEY"
+          MASK_ENV_VARS: "GITHUB_TOKEN,AGENT_TOKEN,OPENROUTER_API_KEY"
           # Enable verbose logging for better debugging
           PR_MONITOR_VERBOSE: "true"
           # Set Python path to include the current directory
@@ -106,7 +106,7 @@ jobs:
           echo "=== PR Review Monitor Starting ==="
           echo "Repository: $GITHUB_REPOSITORY"
           echo "Event: ${{ github.event_name }}"
-          echo "AI Agents Enabled: $ENABLE_AI_AGENTS"
+          echo "AI Agents Enabled: $ENABLE_AGENTS"
           echo "Verbose Logging: ENABLED"
           echo "[INFO] Running directly on host machine to use Claude subscription authentication"
           echo "================================="
@@ -159,7 +159,7 @@ jobs:
 
           # Run the PR review monitor from the new package
           cd "${{ github.workspace }}"
-          python3 -m github_ai_agents.cli pr-monitor || {
+          python3 -m github_agents.cli pr-monitor || {
               exit_code=$?
               echo "[ERROR] PR review monitor script failed with exit code: $exit_code"
 

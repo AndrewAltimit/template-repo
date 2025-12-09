@@ -57,7 +57,7 @@ jobs:
     name: Auto Review with AI Agents
     runs-on: self-hosted
     if: |
-      vars.ENABLE_AI_AGENTS == 'true' && (
+      vars.ENABLE_AGENTS == 'true' && (
         github.event_name == 'workflow_dispatch' ||
         github.event_name == 'schedule'
       )
@@ -83,10 +83,10 @@ jobs:
           echo "==============================="
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.AI_AGENT_TOKEN }}
+          token: ${{ secrets.AGENT_TOKEN }}
 
       - name: Configure Git (read-only mode)
         run: |
@@ -104,7 +104,7 @@ jobs:
 
           # Install the GitHub AI Agents package
           echo "[INFO] Installing GitHub AI Agents package..."
-          pip3 install --user -e ./packages/github_ai_agents
+          pip3 install --user -e ./packages/github_agents
 
           # Install additional requirements
           echo "[INFO] Installing additional requirements..."
@@ -134,11 +134,11 @@ jobs:
 
       - name: Run Auto Review
         env:
-          GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.AGENT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
+          ENABLE_AGENTS: ${{ vars.ENABLE_AGENTS }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN,OPENROUTER_API_KEY"
+          MASK_ENV_VARS: "GITHUB_TOKEN,AGENT_TOKEN,OPENROUTER_API_KEY"
           PYTHONPATH: ${{ github.workspace }}
           PYTHONUNBUFFERED: "1"
           # Auto review specific settings

@@ -1,0 +1,90 @@
+services:
+  sleeper-eval-gpu:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gpu
+    image: sleeper-agents:gpu
+    container_name: sleeper-eval-gpu
+
+    # GPU configuration
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    # Enable GPU access (for older Docker versions)
+    runtime: nvidia
+
+    # Environment variables
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - HF_HOME=/models/huggingface_cache
+      - TRANSFORMERS_CACHE=/models/transformers_cache
+      - SLEEPER_CACHE=/models/sleeper_cache
+      # Optional: HuggingFace token for private models
+      # - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
+
+    # Volume mounts
+    volumes:
+      # Model cache (persistent across runs)
+      - sleeper-models:/models
+      # Results output
+      - sleeper-results:/results
+      # Mount source code for development
+      - ..:/app
+      # GPU-specific cache
+      - sleeper-gpu-cache:/app/.cache
+
+    # Working directory
+    working_dir: /app
+
+    # Keep container running for interactive use
+    stdin_open: true
+    tty: true
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "nvidia-smi"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Network
+    networks:
+      - sleeper-net
+
+  # Service for quick validation
+  validate:
+    extends: sleeper-eval-gpu
+    container_name: sleeper-validate
+    command: ["python3", "scripts/validate_foundation.py"]
+
+  # Service for running evaluations
+  evaluate:
+    extends: sleeper-eval-gpu
+    container_name: sleeper-evaluate
+    command: ["python3", "scripts/test_model_management.py"]
+
+  # Service for PyTorch probe GPU testing
+  test-pytorch-probe:
+    extends: sleeper-eval-gpu
+    container_name: sleeper-test-pytorch-probe
+    command: ["python3", "examples/test_pytorch_probe_gpu.py"]
+
+volumes:
+  sleeper-models:
+    driver: local
+  sleeper-results:
+    driver: local
+  sleeper-gpu-cache:
+    driver: local
+
+networks:
+  sleeper-net:
+    driver: bridge

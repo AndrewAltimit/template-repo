@@ -5,28 +5,28 @@ Intercepts Gemini API calls and redirects them through the corporate proxy
 Supports both tool-enabled and non-tool-enabled endpoints
 """
 
+from datetime import datetime
 import json
 import logging
 import os
+from pathlib import Path
 
 # Import text-based tool parser for non-tool-enabled mode
 import sys
 import time
-from datetime import datetime
-from pathlib import Path
 
-import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
 
 # Import tool executor module
 from gemini_tool_executor import GEMINI_TOOLS, execute_tool_call
+import requests
 
 # Import translation functions from the new module
 from translation import get_model_tool_mode, translate_company_to_gemini, translate_gemini_to_company
 
 sys.path.append(str(Path(__file__).parent.parent))
-from shared.services.text_tool_parser import TextToolParser  # noqa: E402
+from shared.services.text_tool_parser import TextToolParser  # noqa: E402  # pylint: disable=wrong-import-position
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -37,7 +37,7 @@ CORS(app)
 
 # Load configuration
 CONFIG_PATH = Path(__file__).parent / "config" / "gemini-config.json"
-with open(CONFIG_PATH, "r") as f:
+with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
 
 # Configuration from environment and config file
@@ -73,17 +73,17 @@ def generate_content(model):
         gemini_request = request.json
         gemini_request["model"] = model
 
-        logger.info(f"Received Gemini request for model: {model}")
-        logger.debug(f"Request body: {json.dumps(gemini_request, indent=2)}")
+        logger.info("Received Gemini request for model: %s", model)
+        logger.debug("Request body: %s", json.dumps(gemini_request, indent=2))
 
         # Check if tools are provided
         tools = gemini_request.get("tools", [])
         if tools:
-            logger.info(f"Tools provided: {len(tools)} tool(s)")
+            logger.info("Tools provided: %d tool(s)", len(tools))
             for tool in tools:
                 if "functionDeclarations" in tool:
                     for func in tool["functionDeclarations"]:
-                        logger.info(f"  - Tool: {func.get('name', 'unknown')}")
+                        logger.info("  - Tool: %s", func.get("name", "unknown"))
 
         # Translate to Company format
         endpoint, company_request, tools = translate_gemini_to_company(gemini_request)
@@ -94,7 +94,7 @@ def generate_content(model):
             mock_api_base = os.environ.get("MOCK_API_BASE", "http://localhost:8050")
             company_url = f"{mock_api_base}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
 
-            logger.info(f"Mock mode: Forwarding to unified_tool_api: {company_url}")
+            logger.info("Mock mode: Forwarding to unified_tool_api: %s", company_url)
 
             try:
                 response = requests.post(
@@ -105,7 +105,7 @@ def generate_content(model):
                 )
 
                 if response.status_code != 200:
-                    logger.warning(f"Mock API error: {response.status_code}, using fallback response")
+                    logger.warning("Mock API error: %d, using fallback response", response.status_code)
                     # Fallback response if mock API is not available
                     company_response = {
                         "content": [{"text": f"Mock API unavailable at {mock_api_base}. This is a fallback response."}],
@@ -123,7 +123,7 @@ def generate_content(model):
         else:
             company_url = f"{COMPANY_API_BASE}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
 
-            logger.info(f"Forwarding to Company API: {company_url}")
+            logger.info("Forwarding to Company API: %s", company_url)
 
             response = requests.post(
                 company_url,
@@ -133,7 +133,7 @@ def generate_content(model):
             )
 
             if response.status_code != 200:
-                logger.error(f"Company API error: {response.status_code} {response.text}")
+                logger.error("Company API error: %d %s", response.status_code, response.text)
                 # Return a proper Gemini error response instead of just an error
                 error_response = {
                     "candidates": [
@@ -157,8 +157,8 @@ def generate_content(model):
             try:
                 company_response = response.json()
             except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse Company API response as JSON: {e}")
-                logger.error(f"Raw response: {response.text[:500]}")
+                logger.error("Failed to parse Company API response as JSON: %s", e)
+                logger.error("Raw response: %s", response.text[:500])
                 # If response is plain text, wrap it in expected format
                 company_response = {
                     "content": [{"text": response.text}],
@@ -168,7 +168,7 @@ def generate_content(model):
         # Translate back to Gemini format
         gemini_response = translate_company_to_gemini(company_response, gemini_request, tools)
 
-        logger.debug(f"Gemini response: {json.dumps(gemini_response, indent=2)}")
+        logger.debug("Gemini response: %s", json.dumps(gemini_response, indent=2))
 
         return jsonify(gemini_response)
 
@@ -192,7 +192,7 @@ def generate_content(model):
         }
         return jsonify(error_response)
     except Exception as e:
-        logger.error(f"Error processing request: {e}", exc_info=True)
+        logger.error("Error processing request: %s", e, exc_info=True)
         # Return a proper Gemini format error response
         error_response = {
             "candidates": [
@@ -224,7 +224,7 @@ def stream_generate_content(model):
         gemini_request = request.json
         gemini_request["model"] = model
 
-        logger.info(f"Received streaming request for model: {model}")
+        logger.info("Received streaming request for model: %s", model)
 
         # Translate to Company format
         endpoint, company_request, tools = translate_gemini_to_company(gemini_request)
@@ -235,7 +235,7 @@ def stream_generate_content(model):
             logger.warning("Streaming with tools is not fully supported; simulating streaming response.")
 
             # Get the non-streaming response
-            endpoint, company_request, tools_list = translate_gemini_to_company(gemini_request)
+            endpoint, company_request, _tools_list = translate_gemini_to_company(gemini_request)
 
             if USE_MOCK:
                 # In mock mode, call the unified_tool_api
@@ -280,7 +280,7 @@ def stream_generate_content(model):
                     try:
                         company_response = response.json()
                     except json.JSONDecodeError as e:
-                        logger.error(f"Failed to parse streaming response as JSON: {e}")
+                        logger.error("Failed to parse streaming response as JSON: %s", e)
                         company_response = {
                             "content": [{"text": response.text}],
                             "usage": {"input_tokens": 10, "output_tokens": len(response.text.split())},
@@ -323,7 +323,7 @@ def stream_generate_content(model):
             )
 
             if response.status_code != 200:
-                logger.error(f"Company API error: {response.status_code}")
+                logger.error("Company API error: %d", response.status_code)
                 # Return error in streaming format
                 error_response = {
                     "candidates": [
@@ -347,7 +347,7 @@ def stream_generate_content(model):
             try:
                 company_response = response.json()
             except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse response as JSON: {e}")
+                logger.error("Failed to parse response as JSON: %s", e)
                 company_response = {
                     "content": [{"text": response.text}],
                     "usage": {"input_tokens": 10, "output_tokens": len(response.text.split())},
@@ -384,7 +384,7 @@ def stream_generate_content(model):
         )
 
     except Exception as e:
-        logger.error(f"Streaming error: {e}")
+        logger.error("Streaming error: %s", e)
         # Return error in Gemini format
         error_response = {
             "candidates": [
@@ -410,13 +410,13 @@ def list_models():
     """List available models in Gemini format"""
 
     models = []
-    for model_id, model_config in CONFIG["models"].items():
+    for model_name, model_cfg in CONFIG["models"].items():
         models.append(
             {
-                "name": f"models/{model_id}",
+                "name": f"models/{model_name}",
                 "version": "001",
-                "displayName": model_id.replace("-", " ").title(),
-                "description": model_config.get("description", ""),
+                "displayName": model_name.replace("-", " ").title(),
+                "description": model_cfg.get("description", ""),
                 "inputTokenLimit": 200000,
                 "outputTokenLimit": 8192,
                 "supportedGenerationMethods": ["generateContent", "streamGenerateContent"],
@@ -554,7 +554,7 @@ def continue_with_tools(model):
         original_request = data.get("original_request", {})
         conversation_history = data.get("conversation_history", [])
 
-        logger.info(f"Continuing conversation with {len(tool_results)} tool results")
+        logger.info("Continuing conversation with %d tool results", len(tool_results))
 
         # Format tool results for feedback
         formatted_results = text_tool_parser.format_tool_results(tool_results)
@@ -613,7 +613,7 @@ If the task is complete, provide a summary of what was accomplished."""
             )
 
             if response.status_code != 200:
-                logger.error(f"Company API error: {response.status_code}")
+                logger.error("Company API error: %d", response.status_code)
                 # Return error in Gemini format
                 error_response = {
                     "candidates": [
@@ -651,7 +651,7 @@ If the task is complete, provide a summary of what was accomplished."""
         return jsonify(result)
 
     except Exception as e:
-        logger.error(f"Error in continue_with_tools: {e}", exc_info=True)
+        logger.error("Error in continue_with_tools: %s", e, exc_info=True)
         # Return error in Gemini format
         error_response = {
             "candidates": [
@@ -717,10 +717,10 @@ def root():
 @app.route("/<path:path>", methods=["GET", "POST", "PUT", "DELETE"])
 def catch_all(path):
     """Log and handle any unmatched requests"""
-    logger.warning(f"Unhandled request: {request.method} /{path}")
-    logger.warning(f"Headers: {dict(request.headers)}")
+    logger.warning("Unhandled request: %s /%s", request.method, path)
+    logger.warning("Headers: %s", dict(request.headers))
     if request.method == "POST":
-        logger.warning(f"Body: {request.get_json()}")
+        logger.warning("Body: %s", request.get_json())
 
     # Try to return a sensible response for Gemini CLI
     if "generateContent" in path or "models" in path:
@@ -768,22 +768,22 @@ if __name__ == "__main__":
     logger.info("=" * 60)
     logger.info("Gemini Proxy Wrapper with Per-Model Tool Support")
     logger.info("=" * 60)
-    logger.info(f"Port: {PROXY_PORT}")
-    logger.info(f"Company API Base: {COMPANY_API_BASE}")
-    logger.info(f"Mock Mode: {USE_MOCK}")
-    logger.info(f"Default Tool Mode: {DEFAULT_TOOL_MODE}")
-    logger.info(f"Max Tool Iterations: {MAX_TOOL_ITERATIONS}")
+    logger.info("Port: %d", PROXY_PORT)
+    logger.info("Company API Base: %s", COMPANY_API_BASE)
+    logger.info("Mock Mode: %s", USE_MOCK)
+    logger.info("Default Tool Mode: %s", DEFAULT_TOOL_MODE)
+    logger.info("Max Tool Iterations: %d", MAX_TOOL_ITERATIONS)
     logger.info("-" * 60)
     logger.info("Model Configurations:")
-    for model_name, model_config in CONFIG["models"].items():
-        tool_mode = get_model_tool_mode(model_name)
-        supports_tools = model_config.get("supports_tools", tool_mode == "native")
-        logger.info(f"  {model_name}: tool_mode={tool_mode}, supports_tools={supports_tools}")
+    for model_id, config in CONFIG["models"].items():
+        mode = get_model_tool_mode(model_id)
+        supports_tools = config.get("supports_tools", mode == "native")
+        logger.info("  %s: tool_mode=%s, supports_tools=%s", model_id, mode, supports_tools)
     logger.info("-" * 60)
     logger.info("Tool execution handled by gemini_tool_executor module")
-    logger.info(f"Available tools: {list(GEMINI_TOOLS.keys())}")
+    logger.info("Available tools: %s", list(GEMINI_TOOLS.keys()))
     logger.info("-" * 60)
-    logger.info(f"Gemini API endpoint: http://localhost:{PROXY_PORT}/v1")
+    logger.info("Gemini API endpoint: http://localhost:%d/v1", PROXY_PORT)
     logger.info("Models with text mode will parse tools from response text")
     logger.info("Use /v1/models/{model}/continueWithTools for text mode feedback loop")
     logger.info("-" * 60)

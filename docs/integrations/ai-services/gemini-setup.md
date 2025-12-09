@@ -34,23 +34,40 @@ The workflow will attempt to install Gemini CLI automatically if Node.js is avai
    npm install -g @google/gemini-cli
    ```
 
-3. **Authenticate** (happens automatically on first use)
+3. **Set up API Key** (Required for PR reviews)
 
+   **Get your FREE API key from Google AI Studio:**
+
+   1. Visit https://aistudio.google.com/app/apikey
+   2. Create a new API key (free tier available)
+   3. Set it as a repository secret:
+      - Go to: Settings → Secrets and variables → Actions
+      - Add new repository secret: `GOOGLE_API_KEY`
+
+   For local development, add it to `.env`:
    ```bash
-   # Run the gemini command - it will prompt for authentication
-   gemini
+   cp .env.example .env
+   # Edit .env and add: GOOGLE_API_KEY=your_api_key_here
    ```
 
-   **⚠️ IMPORTANT: Authentication Method & Costs**
+   **✅ FREE TIER AVAILABLE**
 
-   The Gemini CLI uses **Google web login (OAuth)** which provides a **FREE TIER** with generous limits:
+   Google AI Studio API keys include a **generous free tier** with:
+   - Access to latest models (including Gemini 3.0 Pro Preview)
    - 60 requests per minute
-   - 1,000 requests per day
-   - 4 million tokens per day
+   - 1,500 requests per day on free tier
+   - No credit card required for free tier
 
-   **CAUTION: Do NOT use API keys!** If you configure Gemini with an API key instead of web login, you will be **charged** for usage. The web login method is recommended as it provides the free tier suitable for most single-maintainer projects.
+   **Why API Key instead of OAuth?**
 
-That's it! The next time you open a pull request, Gemini will automatically review your code.
+   We switched from OAuth to API keys because:
+   - ✅ Works reliably in CI/CD (no browser-based auth)
+   - ✅ No timeouts from PTY/terminal requirements
+   - ✅ Explicit model selection (no 404 errors)
+   - ✅ Still free tier with same generous limits
+   - ✅ Better retry logic for rate limiting
+
+That's it! The next time you open a pull request, Gemini will automatically review your code using the latest models.
 
 ## How It Works
 
@@ -115,10 +132,10 @@ This project includes a dedicated Gemini MCP server that provides AI consultatio
 
 ```bash
 # Run on the host system (cannot run in container)
-python -m tools.mcp.gemini.server
+python -m mcp_gemini.server
 
 # Or with HTTP mode
-./tools/mcp/gemini/scripts/start_server.sh --mode http
+./tools/mcp/mcp_gemini/scripts/start_server.sh --mode http
 ```
 
 **Important: Why Gemini MCP Server Must Run on Host**
@@ -161,45 +178,59 @@ Configure the Gemini MCP server in your `.mcp.json` file:
 
 Configure Gemini behavior with these environment variables:
 
+- `GOOGLE_API_KEY` - **REQUIRED** - API key from Google AI Studio (free tier available)
 - `GEMINI_ENABLED` - Enable/disable Gemini (default: "true")
 - `GEMINI_AUTO_CONSULT` - Enable auto-consultation (default: "true")
 - `GEMINI_CLI_COMMAND` - Gemini CLI command (default: "gemini")
 - `GEMINI_TIMEOUT` - Request timeout in seconds (default: 60)
 - `GEMINI_RATE_LIMIT` - Rate limit delay in seconds (default: 2)
 - `GEMINI_MAX_CONTEXT` - Maximum context length (default: 4000)
-- `GEMINI_MODEL` - Default model (default: "gemini-2.5-flash")
+
+**Model Selection:**
+
+PR reviews use explicit model specification with automatic fallback:
+- Primary: `gemini-3.0-pro-preview` (latest, most capable model)
+- Fallback: `gemini-2.5-flash` (faster, still highly capable)
+
+Both models are available on the free tier!
 
 ## CLI Usage
 
 The Gemini CLI can be used directly:
 
 ```bash
-# Basic usage
+# Basic usage - the CLI automatically selects the best model
 echo "Your question here" | gemini
 
-# Specify a model
-echo "Technical question" | gemini -m gemini-2.5-pro
+# With prompt flag for non-interactive mode
+gemini -p "Your question here"
 ```
 
 ## Rate Limits
 
-**Free tier limits (when using Google web login/OAuth):**
+**Free tier limits (Google AI Studio API Key):**
 
 - 60 requests per minute
-- 1,000 requests per day
-- 4 million tokens per day
+- 1,500 requests per day (free tier)
+- No credit card required
 
 For most single-maintainer projects, these limits are more than sufficient.
 
-**⚠️ Remember:** These free tier limits only apply when using the **Google web login method**. Using API keys will result in charges based on usage!
+**Automatic Rate Limit Handling:**
+
+The PR review script includes smart retry logic with exponential backoff:
+- Automatically retries on rate limit errors (429)
+- Waits 5s, 10s, 20s, 40s, 80s between retries
+- Falls back to Flash model if Pro model is rate limited
+- Up to 5 retry attempts to ensure reviews complete
 
 ## Customization
 
 You can customize the review behavior by editing `scripts/gemini-pr-review.py`:
 
 - Adjust the prompt to focus on specific aspects
-- Change the model (default tries gemini-2.5-pro, falls back to flash)
 - Modify comment formatting
+- Configure rate limiting and timeout values
 
 ## Troubleshooting
 
@@ -229,5 +260,5 @@ If Gemini reviews aren't working:
 
 ## References
 
-- [Gemini MCP Server Docs](../../../tools/mcp/gemini/docs/README.md)
+- [Gemini MCP Server Docs](../../../tools/mcp/mcp_gemini/docs/README.md)
 - [Setup Guide](https://gist.github.com/AndrewAltimit/fc5ba068b73e7002cbe4e9721cebb0f5)

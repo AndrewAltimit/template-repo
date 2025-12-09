@@ -6,9 +6,9 @@ Tests the full flow with mock servers
 
 import json
 import os
+from pathlib import Path
 import sys
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 # Add parent directory to path
@@ -76,7 +76,7 @@ class TestNativeMode(unittest.TestCase):
             }
 
             # Translate request
-            endpoint, company_request, tools = translate_gemini_to_company(gemini_request)
+            _endpoint, _company_request, tools = translate_gemini_to_company(gemini_request)
 
             # Verify tools are passed through
             self.assertIsNotNone(tools)
@@ -106,7 +106,7 @@ class TestNativeMode(unittest.TestCase):
 
             gemini_request = {"model": "gemini-2.5-flash", "contents": [{"role": "user", "parts": [{"text": "Hello"}]}]}
 
-            endpoint, company_request, tools = translate_gemini_to_company(gemini_request)
+            _endpoint, _company_request, tools = translate_gemini_to_company(gemini_request)
 
             # No tools should be present
             self.assertEqual(tools, [])
@@ -166,7 +166,7 @@ class TestTextMode(unittest.TestCase):
                 ],
             }
 
-            endpoint, company_request, tools = translate_gemini_to_company(gemini_request)
+            _endpoint, company_request, _tools = translate_gemini_to_company(gemini_request)
 
             # Check that tools were injected into the message
             user_message = company_request["messages"][0]["content"]
@@ -211,7 +211,7 @@ class TestTextMode(unittest.TestCase):
         parser = TextToolParser()
 
         # Mock tool executor
-        def mock_executor(tool_name, params):
+        def mock_executor(tool_name, _params):
             if tool_name == "read_file":
                 return {"success": True, "content": '{"version": "1.0", "enabled": true}'}
             return {"success": False, "error": "Unknown tool"}
@@ -254,7 +254,7 @@ class TestTextMode(unittest.TestCase):
         # Track execution count
         execution_count = {"count": 0}
 
-        def mock_executor(tool_name, params):
+        def mock_executor(_tool_name, _params):
             execution_count["count"] += 1
             return {"success": True, "output": f'Execution {execution_count["count"]}'}
 
@@ -267,7 +267,7 @@ class TestTextMode(unittest.TestCase):
         ```
         """
 
-        continuation1, results1, needs_continue1 = parser.process_response_with_tools(response1)
+        _continuation1, _results1, needs_continue1 = parser.process_response_with_tools(response1)
 
         self.assertTrue(needs_continue1)
         self.assertEqual(execution_count["count"], 1)
@@ -281,7 +281,7 @@ class TestTextMode(unittest.TestCase):
         ```
         """
 
-        continuation2, results2, needs_continue2 = parser.process_response_with_tools(response2)
+        _continuation2, _results2, needs_continue2 = parser.process_response_with_tools(response2)
 
         self.assertTrue(needs_continue2)
         self.assertEqual(execution_count["count"], 2)
@@ -289,7 +289,7 @@ class TestTextMode(unittest.TestCase):
         # Final iteration (no tools)
         response3 = "The task is complete. Both tools executed successfully."
 
-        continuation3, results3, needs_continue3 = parser.process_response_with_tools(response3)
+        _continuation3, results3, needs_continue3 = parser.process_response_with_tools(response3)
 
         self.assertFalse(needs_continue3)
         self.assertEqual(len(results3), 0)
@@ -322,7 +322,7 @@ class TestModeSwitching(unittest.TestCase):
 
         # In text mode, tools should be injected
         with patch.dict(os.environ, {"TOOL_MODE": "text"}):
-            from shared.services.text_tool_parser import ToolInjector  # noqa: E402
+            from shared.services.tool_injector import ToolInjector  # noqa: E402  # pylint: disable=wrong-import-position
 
             tools = {"test": {"description": "Test tool"}}
             injector = ToolInjector(tools)
@@ -359,7 +359,7 @@ class TestErrorHandling(unittest.TestCase):
 
         parser = TextToolParser()
 
-        def failing_executor(tool_name, params):
+        def failing_executor(_tool_name, _params):
             return {"success": False, "error": "Tool execution failed"}
 
         parser.tool_executor = failing_executor
@@ -370,7 +370,7 @@ class TestErrorHandling(unittest.TestCase):
         ```
         """
 
-        continuation, results, needs_continue = parser.process_response_with_tools(response)
+        continuation, results, _needs_continue = parser.process_response_with_tools(response)
 
         # Should handle failure gracefully
         self.assertEqual(len(results), 1)
@@ -384,7 +384,7 @@ class TestErrorHandling(unittest.TestCase):
         iteration_count = 0
 
         # Simulate reaching max iterations
-        for i in range(max_iterations + 2):
+        for _ in range(max_iterations + 2):
             iteration_count += 1
             if iteration_count > max_iterations:
                 # Should stop after max iterations

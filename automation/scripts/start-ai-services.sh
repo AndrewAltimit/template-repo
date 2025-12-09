@@ -128,19 +128,22 @@ case $MODE in
         # shellcheck disable=SC1091
         source "$REPO_ROOT/venv/bin/activate"
 
+        # Add MCP packages to PYTHONPATH for module resolution
+        export PYTHONPATH="${PYTHONPATH}:${REPO_ROOT}/tools/mcp"
+
         echo "Installing dependencies..."
         pip install -q -r "$REPO_ROOT/docker/requirements/requirements-ai-toolkit.txt"
         pip install -q -r "$REPO_ROOT/docker/requirements/requirements-comfyui.txt"
 
         # Start AI Toolkit MCP Server
         echo "Starting AI Toolkit MCP Server..."
-        nohup python3 -m tools.mcp.ai_toolkit.server --mode http --host 0.0.0.0 > /tmp/ai-toolkit-mcp.log 2>&1 &
+        nohup python3 -m mcp_ai_toolkit.server --mode http --host 0.0.0.0 > /tmp/ai-toolkit-mcp.log 2>&1 &
         AI_TOOLKIT_PID=$!
         echo "AI Toolkit PID: $AI_TOOLKIT_PID"
 
         # Start ComfyUI MCP Server
         echo "Starting ComfyUI MCP Server..."
-        nohup python3 -m tools.mcp.comfyui.server --mode http --host 0.0.0.0 > /tmp/comfyui-mcp.log 2>&1 &
+        nohup python3 -m mcp_comfyui.server --mode http --host 0.0.0.0 > /tmp/comfyui-mcp.log 2>&1 &
         COMFYUI_PID=$!
         echo "ComfyUI PID: $COMFYUI_PID"
 

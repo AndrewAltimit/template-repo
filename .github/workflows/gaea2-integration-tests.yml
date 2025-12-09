@@ -72,7 +72,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -88,7 +88,7 @@ jobs:
           echo "🌐 Testing MCP server connectivity..."
           docker-compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
-            python-ci python tests/gaea2/run_all_integration_tests.py ${{ env.GAEA2_MCP_URL }}
+            python-ci python tools/mcp/mcp_gaea2/tests/run_all_integration_tests.py ${{ env.GAEA2_MCP_URL }}
 
       - name: Test 2 - Successful Operations
         id: successful-ops
@@ -97,7 +97,7 @@ jobs:
           echo "Testing expected successful operations..."
           docker-compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
-            python-ci pytest tests/gaea2/test_gaea_operations.py -v --tb=short
+            python-ci pytest tools/mcp/mcp_gaea2/tests/test_gaea_operations.py -v --tb=short
 
       - name: Test 3 - Expected Failures & Error Handling
         id: failure-tests
@@ -106,7 +106,7 @@ jobs:
           echo "Testing expected failures and error handling..."
           docker-compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
-            python-ci pytest tests/gaea2/test_gaea_failures.py -v --tb=short
+            python-ci pytest tools/mcp/mcp_gaea2/tests/test_gaea_failures.py -v --tb=short
 
       - name: Test 4 - Edge Cases & Boundaries
         id: edge-cases
@@ -115,7 +115,7 @@ jobs:
           echo "🔍 Testing edge cases and boundary conditions..."
           docker-compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
-            python-ci pytest tests/gaea2/test_framework_integration.py::TestEdgeCases -v --tb=short
+            python-ci pytest tools/mcp/mcp_gaea2/tests/test_framework_integration.py::TestEdgeCases -v --tb=short
 
       - name: Test 5 - Regression Testing
         id: regression
@@ -125,7 +125,7 @@ jobs:
           docker-compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
             -e UPDATE_BASELINES=${{ env.UPDATE_BASELINES }} \
-            python-ci pytest tests/gaea2/test_gaea_regression.py -v --tb=short
+            python-ci pytest tools/mcp/mcp_gaea2/tests/test_gaea_regression.py -v --tb=short
 
       - name: Run Comprehensive Test Suite
         id: full-suite
@@ -134,7 +134,7 @@ jobs:
           echo "🚀 Running full Gaea2 MCP test suite..."
           docker-compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
-            python-ci python tests/gaea2/run_all_integration_tests.py ${{ env.GAEA2_MCP_URL }}
+            python-ci python tools/mcp/mcp_gaea2/tests/run_all_integration_tests.py ${{ env.GAEA2_MCP_URL }}
 
       - name: Upload Test Results
         if: always()
@@ -145,8 +145,8 @@ jobs:
             integration_test_report_*.json
             knowledge_base_update_*.json
             gaea2_mcp_test_results_*.json
-            tests/gaea2/test_results.json
-            tests/gaea2/regression_baselines/
+            tools/mcp/mcp_gaea2/tests/test_results.json
+            tools/mcp/mcp_gaea2/tests/regression_baselines/
           retention-days: 30
 
       - name: Upload Performance Logs
@@ -154,7 +154,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gaea2-performance-logs-${{ github.run_id }}
-          path: tests/gaea2/performance_log.json
+          path: tools/mcp/mcp_gaea2/tests/performance_log.json
           retention-days: 90
           if-no-files-found: ignore
 

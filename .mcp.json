@@ -13,7 +13,7 @@
         "mcp-code-quality",
         "python",
         "-m",
-        "tools.mcp.code_quality.server",
+        "mcp_code_quality.server",
         "--mode",
         "stdio"
       ]
@@ -31,7 +31,7 @@
         "mcp-content-creation",
         "python",
         "-m",
-        "tools.mcp.content_creation.server",
+        "mcp_content_creation.server",
         "--mode",
         "stdio"
       ]
@@ -49,32 +49,15 @@
         "mcp-gemini",
         "python",
         "-m",
-        "tools.mcp.gemini.server",
+        "mcp_gemini.server",
         "--mode",
         "stdio"
       ],
       "env": {
-        "GEMINI_MODEL": "gemini-2.5-pro",
         "GEMINI_TIMEOUT": "300",
         "GEMINI_USE_CONTAINER": "false",
-        "_comment": "GEMINI_USE_CONTAINER is set to false to prevent docker-in-docker, as mcp-gemini itself runs in a container"
+        "_comment": "GEMINI_USE_CONTAINER is set to false to prevent docker-in-docker, as mcp-gemini itself runs in a container. API key is set via GEMINI_API_KEY in docker-compose.yml from GOOGLE_API_KEY. Note: Don't specify GEMINI_MODEL - the CLI uses the default model automatically to avoid 404 errors"
       }
-    },
-    "gaea2": {
-      "type": "http",
-      "url": "http://192.168.0.152:8007/messages"
-    },
-    "aitoolkit": {
-      "type": "http",
-      "url": "http://192.168.0.152:8012/messages"
-    },
-    "comfyui": {
-      "type": "http",
-      "url": "http://192.168.0.152:8013/messages"
-    },
-    "virtual-character": {
-      "type": "http",
-      "url": "http://192.168.0.152:8020/messages"
     },
     "opencode": {
       "command": "docker-compose",
@@ -89,7 +72,7 @@
         "mcp-opencode",
         "python",
         "-m",
-        "tools.mcp.opencode.server",
+        "mcp_opencode.server",
         "--mode",
         "stdio"
       ]
@@ -107,12 +90,12 @@
         "mcp-crush",
         "python",
         "-m",
-        "tools.mcp.crush.server",
+        "mcp_crush.server",
         "--mode",
         "stdio"
       ]
     },
-    "meme-generator": {
+    "codex": {
       "command": "docker-compose",
       "args": [
         "-f",
@@ -122,15 +105,15 @@
         "run",
         "--rm",
         "-T",
-        "mcp-meme-generator",
+        "mcp-codex",
         "python",
         "-m",
-        "tools.mcp.meme_generator.server",
+        "mcp_codex.server",
         "--mode",
         "stdio"
       ]
     },
-    "blender": {
+    "github-board": {
       "command": "docker-compose",
       "args": [
         "-f",
@@ -140,34 +123,47 @@
         "run",
         "--rm",
         "-T",
-        "mcp-blender",
-        "python3",
-        "-m",
-        "blender.server",
-        "--mode",
-        "stdio"
-      ]
-    },
-    "elevenlabs-speech": {
-      "command": "docker-compose",
-      "args": [
-        "-f",
-        "./docker-compose.yml",
-        "--profile",
-        "services",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-elevenlabs-speech",
+        "mcp-github-board",
         "python",
         "-m",
-        "tools.mcp.elevenlabs_speech.server",
+        "mcp_github_board.server",
         "--mode",
         "stdio"
       ],
       "env": {
-        "ELEVENLABS_DEFAULT_MODEL": "eleven_multilingual_v2",
-        "ELEVENLABS_DEFAULT_VOICE": "Rachel"
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+        "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}",
+        "GITHUB_PROJECT_NUMBER": "1",
+        "_comment": "GitHub Board MCP server for board operations and agent coordination. Runs containerized via docker-compose run."
+      }
+    },
+    "agentcore-memory": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "memory",
+        "run",
+        "--rm",
+        "-T",
+        "-e",
+        "MEMORY_PROVIDER=agentcore",
+        "-e",
+        "AWS_REGION=us-east-1",
+        "-e",
+        "AWS_PROFILE=agentcore",
+        "-e",
+        "AGENTCORE_MEMORY_ID=${AGENTCORE_MEMORY_ID}",
+        "mcp-agentcore-memory",
+        "python",
+        "-m",
+        "mcp_agentcore_memory.server",
+        "--mode",
+        "stdio"
+      ],
+      "env": {
+        "_comment": "AgentCore Memory MCP server. Using AWS AgentCore provider. To use ChromaDB: change -e MEMORY_PROVIDER=chromadb and start: docker-compose --profile memory-chromadb up -d"
       }
     }
   }

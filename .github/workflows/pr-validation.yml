@@ -45,16 +45,24 @@ jobs:
       mcp_changed: ${{ steps.changes.outputs.mcp_changed }}
       docs_changed: ${{ steps.changes.outputs.docs_changed }}
       sleeper_changed: ${{ steps.changes.outputs.sleeper_changed }}
+      dashboard_changed: ${{ steps.changes.outputs.dashboard_changed }}
       files_changed: ${{ steps.changes.outputs.files_changed }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
+
+      - name: Post-checkout setup
+        run: |
+          # Initialize output directories to prevent root ownership issues
+          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
+            ./automation/setup/docker/init-output-dirs.sh
+          fi
 
       - name: Detect file changes
         id: changes
@@ -79,7 +87,8 @@ jobs:
           docker_count=$(grep -E '(Dockerfile|docker-compose\.yml|docker-compose\.yaml|\.dockerignore)' changed_files.txt | wc -l || echo "0")
           mcp_count=$(grep -E '(mcp|MCP|tools/)' changed_files.txt | wc -l || echo "0")
           docs_count=$(grep -E '\.(md|rst|txt)$' changed_files.txt | wc -l || echo "0")
-          sleeper_count=$(grep -E '(packages/sleeper_detection|sleeper-evaluation)' changed_files.txt | wc -l || echo "0")
+          sleeper_count=$(grep -E '(packages/sleeper_agents|sleeper-evaluation)' changed_files.txt | wc -l || echo "0")
+          dashboard_count=$(grep -E '(packages/sleeper_agents/dashboard)' changed_files.txt | wc -l || echo "0")
           total_files=$(cat changed_files.txt | wc -l)
 
           # Set outputs
@@ -89,6 +98,7 @@ jobs:
           echo "mcp_changed=$([[ $mcp_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "docs_changed=$([[ $docs_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "sleeper_changed=$([[ $sleeper_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "dashboard_changed=$([[ $dashboard_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "files_changed=$total_files" >> $GITHUB_OUTPUT
 
           echo "[INFO] Change Summary:"
@@ -97,7 +107,8 @@ jobs:
           echo "  Docker files: $docker_count"
           echo "  MCP files: $mcp_count"
           echo "  Documentation: $docs_count"
-          echo "  Sleeper Detection: $sleeper_count"
+          echo "  sleeper agents: $sleeper_count"
+          echo "  Dashboard: $dashboard_count"
           echo "  Total files: $total_files"
 
   # Stage 2: Gemini AI Code Review
@@ -106,7 +117,7 @@ jobs:
     needs: detect-changes
     if: github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft)
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 30  # Increased for large PRs - API calls with retry logic can take time
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       PR_TITLE: ${{ github.event.pull_request.title }}
@@ -115,11 +126,12 @@ jobs:
       BASE_BRANCH: ${{ github.base_ref }}
       HEAD_BRANCH: ${{ github.head_ref }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}  # Free tier API key from Google AI Studio
     steps:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -165,9 +177,12 @@ jobs:
         continue-on-error: true
         run: |
           echo "🧹 Clearing Gemini conversation history..."
+          # Install mcp packages for host execution
+          pip3 install --user -e ./tools/mcp/mcp_core
+          pip3 install --user -e ./tools/mcp/mcp_gemini
           # Gemini MCP server must run on host (not in container)
           # Start Gemini MCP server in background
-          python -m tools.mcp.gemini.server --mode http &
+          python -m mcp_gemini.server --mode http &
           GEMINI_PID=$!
 
           # Wait for server to be ready with health check polling
@@ -195,20 +210,26 @@ jobs:
           # Stop the Gemini server
           kill $GEMINI_PID || true
 
-      - name: Run Gemini review
+
+      - name: Run Gemini CLI Review
         continue-on-error: true  # Don't fail the PR if Gemini review fails
         shell: bash
         env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || '' }}
         run: |
-          # Set up Gemini CLI with proper authentication
-          if automation/review/setup-gemini-cli.sh; then
-            # Setup successful, run the review
-            export PATH="/tmp:$PATH"
-            python3 automation/review/gemini-pr-review.py
+          # Check API Key
+          echo "🔑 Checking API Key..."
+          if [ -z "${GOOGLE_API_KEY}" ]; then
+            echo "❌ GOOGLE_API_KEY is empty!"
           else
-            echo "⚠️  Gemini setup failed, skipping review"
+            echo "✅ GOOGLE_API_KEY is set (length: ${#GOOGLE_API_KEY})"
           fi
+
+          # Run Python script (uses npx internally, no global install needed)
+          echo "🚀 Starting Gemini PR Review..."
+          echo "ℹ️  Using npx to run @google/gemini-cli (no global install)"
+          python3 automation/review/gemini-pr-review.py
 
       - name: Upload review artifact
         if: always()
@@ -280,12 +301,12 @@ jobs:
     needs: [detect-changes, gemini-review]
     if: needs.detect-changes.outputs.yaml_changed == 'true'
     runs-on: self-hosted
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -308,7 +329,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -367,7 +388,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -394,7 +415,7 @@ jobs:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -453,7 +474,7 @@ jobs:
           echo "✅ Output directory prepared"
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -535,16 +556,25 @@ jobs:
       - name: Stop MCP server
         if: always()
         run: |
-          docker-compose down
+          # --rmi local removes images built by compose (not public images)
+          docker-compose down --rmi local
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh
 
-  # Stage 7: Sleeper Detection Tests
-  sleeper-detection-tests:
-    name: Sleeper Detection Tests
+  # Stage 7: sleeper agents Tests
+  sleeper-agents-tests:
+    name: sleeper agents Tests
     needs: [detect-changes, format-check, basic-lint]
     if: needs.detect-changes.outputs.sleeper_changed == 'true'
-    uses: ./.github/workflows/sleeper-detection-tests.yml
+    uses: ./.github/workflows/sleeper-agents-tests.yml
+    secrets: inherit
+
+  # Stage 7b: Dashboard Tests
+  dashboard-tests:
+    name: Dashboard Tests
+    needs: [detect-changes, format-check, basic-lint]
+    if: needs.detect-changes.outputs.dashboard_changed == 'true'
+    uses: ./.github/workflows/dashboard-tests.yml
     secrets: inherit
 
   # Stage 8: Gaea2 MCP Integration Tests
@@ -568,12 +598,12 @@ jobs:
        github.event.inputs.force_docker_validation) &&
       !github.event.pull_request.draft
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 45  # Increased from 30 - builds can take 40+ minutes on cold cache
     steps:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -669,10 +699,18 @@ jobs:
           timeout: '60'
           build: 'true'
 
+      - name: Cleanup PR-specific images
+        if: always()
+        uses: ./.github/actions/docker-cleanup
+        with:
+          image-pattern: 'pr-${{ github.event.pull_request.number }}-'
+          prune-dangling: true
+
       - name: Stop services
         if: always()
         run: |
-          docker-compose down
+          # --rmi local removes images built by compose (not public images)
+          docker-compose down --rmi local
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh
 
@@ -691,7 +729,8 @@ jobs:
       - yaml-lint
       - test-suite
       - mcp-validation
-      - sleeper-detection-tests
+      - sleeper-agents-tests
+      - dashboard-tests
       - gaea2-integration-tests
       - docker-validation
     if: always()
@@ -706,6 +745,7 @@ jobs:
           echo "**Config files:** ${{ needs.detect-changes.outputs.yaml_changed }}"
           echo "**Docker files:** ${{ needs.detect-changes.outputs.docker_changed }}"
           echo "**MCP files:** ${{ needs.detect-changes.outputs.mcp_changed }}"
+          echo "**Dashboard files:** ${{ needs.detect-changes.outputs.dashboard_changed }}"
           echo ""
           echo "**Validation Results:**"
           echo "- Change Detection: ${{ needs.detect-changes.result }}"
@@ -719,7 +759,8 @@ jobs:
           echo "- YAML Lint: ${{ needs.yaml-lint.result }}"
           echo "- Test Suite: ${{ needs.test-suite.result }}"
           echo "- MCP Validation: ${{ needs.mcp-validation.result }}"
-          echo "- Sleeper Detection: ${{ needs.sleeper-detection-tests.result }}"
+          echo "- sleeper agents: ${{ needs.sleeper-agents-tests.result }}"
+          echo "- Dashboard Tests: ${{ needs.dashboard-tests.result }}"
           echo "- Gaea2 Integration Tests: ${{ needs.gaea2-integration-tests.result }}"
           echo "- Docker Validation: ${{ needs.docker-validation.result }}"
 
@@ -734,7 +775,8 @@ jobs:
                 "${{ needs.yaml-lint.result }}" == "failure" ||
                 "${{ needs.test-suite.result }}" == "failure" ||
                 "${{ needs.mcp-validation.result }}" == "failure" ||
-                "${{ needs.sleeper-detection-tests.result }}" == "failure" ||
+                "${{ needs.sleeper-agents-tests.result }}" == "failure" ||
+                "${{ needs.dashboard-tests.result }}" == "failure" ||
                 "${{ needs.gaea2-integration-tests.result }}" == "failure" ||
                 "${{ needs.docker-validation.result }}" == "failure" ]]; then
             echo ""
@@ -763,7 +805,8 @@ jobs:
               'yaml-lint': '${{ needs.yaml-lint.result }}',
               'test-suite': '${{ needs.test-suite.result }}',
               'mcp-validation': '${{ needs.mcp-validation.result }}',
-              'sleeper-detection': '${{ needs.sleeper-detection-tests.result }}',
+              'sleeper-agents': '${{ needs.sleeper-agents-tests.result }}',
+              'dashboard-tests': '${{ needs.dashboard-tests.result }}',
               'gaea2-integration-tests': '${{ needs.gaea2-integration-tests.result }}',
               'docker-validation': '${{ needs.docker-validation.result }}'
             };

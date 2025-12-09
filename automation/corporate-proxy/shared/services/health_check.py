@@ -64,8 +64,8 @@ if __name__ == "__main__":
         services_to_check = []
         for arg in sys.argv[1:]:
             if ":" in arg:
-                host, port = arg.split(":")
-                services_to_check.append((host, int(port)))
+                service_host, service_port = arg.split(":")
+                services_to_check.append((service_host, int(service_port)))
 
     # Wait for services and exit with appropriate code
     if wait_for_services(services_to_check):

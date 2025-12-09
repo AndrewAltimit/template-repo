@@ -16,11 +16,29 @@ This guide helps you customize the MCP-Enabled Project Template for your specifi
 ## Understanding the Template
 
 This template includes:
-- **13 MCP Servers** - Modular tools (enable only what you need)
-- **7 AI Agents** - Development automation (all optional)
+- **14 MCP Servers** - Modular tools (enable only what you need)
+- **6 AI Agents** - Development automation (all optional)
 - **Container-First Architecture** - Everything runs in Docker
 - **Self-Hosted CI/CD** - GitHub Actions automation
 - **Zero External Dependencies** - Just Docker required
+
+### MCP Configuration Files
+
+The template provides two MCP configuration files to optimize performance:
+
+**`.mcp.json` (Default - Essential Services):**
+- Contains only essential services to prevent context window overload
+- Includes: code-quality, AI agents (Gemini, OpenCode, Crush, Codex)
+- Best for day-to-day development and code review
+- **Recommended for most users**
+
+**`.mcp.json.full` (Complete - All Services):**
+- Contains all 14 MCP servers including specialized tools
+- Includes: content creation, 3D graphics, media tools, remote services
+- Use when you need specialized content creation or media processing
+- Switch to this configuration only when needed to avoid overloading Claude's context window
+
+**Why two configs?** Claude Code loads all MCP tool definitions into its context window. Having too many tools can reduce performance and response quality. By default, use `.mcp.json` with essential services, and only switch to `.mcp.json.full` when you need specialized tools.
 
 ### What Can Be Customized?
 
@@ -133,7 +151,7 @@ This template includes:
 
 3. **Remove AI agent dependencies:**
    ```bash
-   # No need to install github_ai_agents package
+   # No need to install github_agents package
    # Skip API key setup
    ```
 
@@ -167,21 +185,21 @@ This template includes:
        "code-quality": { /* ... */ },
        "opencode": {
          "command": "python",
-         "args": ["-m", "tools.mcp.opencode.server"],
+         "args": ["-m", "mcp_opencode.server"],
          "env": {
            "OPENROUTER_API_KEY": "{OPENROUTER_API_KEY}"
          }
        },
        "crush": {
          "command": "python",
-         "args": ["-m", "tools.mcp.crush.server"],
+         "args": ["-m", "mcp_crush.server"],
          "env": {
            "OPENROUTER_API_KEY": "{OPENROUTER_API_KEY}"
          }
        },
        "gemini": {
          "command": "python",
-         "args": ["-m", "tools.mcp.gemini.server"],
+         "args": ["-m", "mcp_gemini.server"],
          "env": {
            "GEMINI_API_KEY": "{GEMINI_API_KEY}"
          }
@@ -193,7 +211,7 @@ This template includes:
 3. **Install AI agents (optional):**
    ```bash
    # For CLI access to agents
-   pip3 install -e ./packages/github_ai_agents
+   pip3 install -e ./packages/github_agents
    ```
 
 4. **Test AI features:**
@@ -208,7 +226,7 @@ This template includes:
    ./tools/cli/agents/run_gemini.sh
    ```
 
-**Safety Training**: Before deploying AI agents in production, review the [AI Safety Training Guide](ai-agents/human-training.md) to understand potential risks, deceptive behaviors, and safety protocols for human-AI collaboration.
+**Safety Training**: Before deploying AI agents in production, review the [AI Safety Training Guide](agents/human-training.md) to understand potential risks, deceptive behaviors, and safety protocols for human-AI collaboration.
 
 ### Content Creation Setup
 
@@ -220,22 +238,22 @@ This template includes:
      "mcpServers": {
        "content-creation": {
          "command": "python",
-         "args": ["-m", "tools.mcp.content_creation.server"]
+         "args": ["-m", "mcp_content_creation.server"]
        },
        "meme-generator": {
          "command": "python",
-         "args": ["-m", "tools.mcp.meme_generator.server"]
+         "args": ["-m", "mcp_meme_generator.server"]
        },
        "elevenlabs-speech": {
          "command": "python",
-         "args": ["-m", "tools.mcp.elevenlabs_speech.server"],
+         "args": ["-m", "mcp_elevenlabs_speech.server"],
          "env": {
            "ELEVENLABS_API_KEY": "{ELEVENLABS_API_KEY}"
          }
        },
        "video-editor": {
          "command": "python",
-         "args": ["-m", "tools.mcp.video_editor.server"]
+         "args": ["-m", "mcp_video_editor.server"]
        }
      }
    }
@@ -286,7 +304,7 @@ This template includes:
 4. **Install all components:**
    ```bash
    # Install AI agents
-   pip3 install -e ./packages/github_ai_agents
+   pip3 install -e ./packages/github_agents
 
    # Start all services
    docker-compose up -d
@@ -303,7 +321,7 @@ This template includes:
 #### Disable All AI Agents
 ```bash
 # Remove from .mcp.json
-# Don't install github_ai_agents package
+# Don't install github_agents package
 # Remove AI-related GitHub workflows
 rm -f .github/workflows/pr-validation.yml
 rm -f .github/workflows/issue-monitor.yml
@@ -458,7 +476,7 @@ sudo chown -R $USER:$USER .
 
 1. **Check existing documentation:**
    - [MCP Architecture](./mcp/README.md)
-   - [AI Agents Overview](./ai-agents/README.md)
+   - [AI Agents Overview](./agents/README.md)
    - [Infrastructure Setup](./infrastructure/README.md)
 
 2. **Review example configurations:**
@@ -473,8 +491,8 @@ sudo chown -R $USER:$USER .
    docker-compose logs [service-name]
 
    # Test individual servers
-   python tools/mcp/code_quality/scripts/test_server.py
-   python tools/mcp/gemini/scripts/test_server.py
+   python tools/mcp/mcp_code_quality/scripts/test_server.py
+   python tools/mcp/mcp_gemini/scripts/test_server.py
 
    # Validate configuration
    python automation/testing/validate_config.py
@@ -487,7 +505,7 @@ After customizing your template:
 1. **Remove unused code:**
    ```bash
    # Remove MCP servers you're not using
-   rm -rf tools/mcp/[unused-server]/
+   rm -rf tools/mcp/mcp_[unused-server]/
 
    # Remove unused documentation
    rm -rf docs/integrations/[unused-integration]/

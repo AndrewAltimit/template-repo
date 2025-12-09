@@ -9,6 +9,8 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+# Exception: Dashboard Build category components
+!packages/sleeper_agents/dashboard/components/build/
 develop-eggs/
 dist/
 downloads/
@@ -136,8 +138,9 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
-# Docker
+# Docker (exclude .dockerignore globally, but allow in sleeper_agents)
 .dockerignore
+!packages/sleeper_agents/.dockerignore
 
 # MCP specific
 mcp_output/
@@ -165,8 +168,22 @@ scratch/
 
 # Generated files
 *.pdf
+# Note: Sleeper Agents Framework Guide PDF is built in CI (see .github/workflows/build-docs.yml)
 *.webm
 generated/
+
+# LaTeX build artifacts
+*.aux
+*.toc
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+*.nav
+*.snm
+*.vrb
 
 # Security reports
 bandit-report.json
@@ -184,3 +201,33 @@ node_modules/
 # ComfyUI Resources (e.g. models)
 /comfyui/
 reference.png
+
+# Database files
+*.db
+*.sqlite3
+
+# Test artifacts
+/packages/sleeper_agents/dashboard/tests/screenshots/
+/packages/sleeper_agents/dashboard/tests/baselines/
+/packages/sleeper_agents/dashboard/tests/ai_feedback/
+/packages/sleeper_agents/dashboard/tests/ai_analysis_results/
+/packages/sleeper_agents/dashboard/tests/sample_charts/
+/packages/sleeper_agents/dashboard/tests/*.html
+
+# Dashboard specific
+/packages/sleeper_agents/dashboard/evaluation_results.db
+/packages/sleeper_agents/dashboard/auth/*.db
+
+# Sleeper Detection Artifacts (large files - use artifact packaging instead)
+/packages/sleeper_agents/models/
+/packages/sleeper_agents/artifacts/
+/packages/sleeper_agents/checkpoints/
+
+# Keep artifact index for reference
+!/packages/sleeper_agents/artifacts/artifact_index.json
+!/packages/sleeper_agents/artifacts/*_metadata.json
+
+# ML experiment tracking
+wandb/
+mlruns/
+runs/

@@ -4,11 +4,11 @@ Unified Tool API - Configurable for all corporate proxy tools
 Consolidates all mock API versions into a single, maintainable service
 """
 
+from dataclasses import dataclass
 import json
 import logging
 import os
 import time
-from dataclasses import dataclass
 from typing import Any, Dict, List
 
 from flask import Flask, jsonify, request
@@ -199,7 +199,7 @@ def get_active_tools() -> Dict[str, Tool]:
 
 def execute_tool(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
     """Execute a tool with the given parameters"""
-    logger.info(f"Executing tool: {tool_name} with parameters: {parameters}")
+    logger.info("Executing tool: %s with parameters: %s", tool_name, parameters)
 
     # Mock execution - returns success with realistic responses
     if tool_name == "view":
@@ -290,7 +290,7 @@ def execute():
 
     # Log the request if in debug mode
     if DEBUG_MODE:
-        logger.debug(f"Execute request: tool={tool_name}, params={parameters}")
+        logger.debug("Execute request: tool=%s, params=%s", tool_name, parameters)
 
     # Validate tool exists
     tools = get_active_tools()
@@ -358,7 +358,7 @@ def chat_completions():
 
 
 @app.route("/api/v1/AI/GenAIExplorationLab/Models/<path:model_path>", methods=["POST"])
-def bedrock_endpoint(model_path):
+def bedrock_endpoint(_model_path):
     """Bedrock-compatible endpoint that returns structured tool calls for Gemini mode"""
     data = request.json
     tools_present = "tools" in data or (
@@ -506,8 +506,8 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", "8080"))
     host = os.getenv("HOST", "0.0.0.0")
 
-    logger.info(f"Starting Unified Tool API in {API_MODE} mode (version {API_VERSION})")
-    logger.info(f"Listening on {host}:{port}")
-    logger.info(f"Debug mode: {DEBUG_MODE}")
+    logger.info("Starting Unified Tool API in %s mode (version %s)", API_MODE, API_VERSION)
+    logger.info("Listening on %s:%d", host, port)
+    logger.info("Debug mode: %s", DEBUG_MODE)
 
     app.run(host=host, port=port, debug=DEBUG_MODE)

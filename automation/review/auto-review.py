@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 
-from github_ai_agents.monitors import IssueMonitor, PRMonitor
+from github_agents.monitors import IssueMonitor, PRMonitor
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -24,12 +24,12 @@ def main():
     agents = [a.strip().lower() for a in agents if a.strip()]
 
     logger.info("Auto Review Configuration:")
-    logger.info(f"  Agents: {agents}")
-    logger.info(f"  Target: {target}")
-    logger.info(f"  Issue Numbers: {issue_numbers or 'all open'}")
-    logger.info(f"  PR Numbers: {pr_numbers or 'all open'}")
-    logger.info(f"  Review Depth: {review_depth}")
-    logger.info(f"  Comment Style: {comment_style}")
+    logger.info("  Agents: %s", agents)
+    logger.info("  Target: %s", target)
+    logger.info("  Issue Numbers: %s", issue_numbers or "all open")
+    logger.info("  PR Numbers: %s", pr_numbers or "all open")
+    logger.info("  Review Depth: %s", review_depth)
+    logger.info("  Comment Style: %s", comment_style)
 
     # Set review-only mode in environment for monitors to detect
     os.environ["REVIEW_ONLY_MODE"] = "true"
@@ -63,7 +63,7 @@ def main():
         logger.info("Auto Review completed successfully")
 
     except Exception as e:
-        logger.error(f"Auto Review failed: {e}")
+        logger.error("Auto Review failed: %s", e)
         sys.exit(1)
 
 

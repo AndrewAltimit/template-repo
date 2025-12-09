@@ -10,18 +10,19 @@ The MCP functionality is split across modular servers:
 1. **Code Quality MCP Server** - Containerized code formatting and linting tools
 2. **Content Creation MCP Server** - Containerized Manim animations and LaTeX compilation
 3. **Gemini MCP Server** - Host-only AI integration (requires Docker access)
-4. **OpenCode MCP Server** - Containerized AI-powered code generation
-5. **Crush MCP Server** - Containerized fast code generation
-6. **Meme Generator MCP Server** - Containerized meme creation with visual feedback
-7. **ElevenLabs Speech MCP Server** - Containerized text-to-speech synthesis
-8. **Video Editor MCP Server** - Containerized AI-powered video editing
-9. **Blender MCP Server** - Containerized 3D content creation and rendering
-10. **Virtual Character MCP Server** - Containerized AI agent embodiment middleware
+4. **Codex MCP Server** - Containerized AI-powered code generation and completion
+5. **OpenCode MCP Server** - Containerized AI-powered code generation
+6. **Crush MCP Server** - Containerized fast code generation
+7. **Meme Generator MCP Server** - Containerized meme creation with visual feedback
+8. **ElevenLabs Speech MCP Server** - Containerized text-to-speech synthesis
+9. **Video Editor MCP Server** - Containerized AI-powered video editing
+10. **Blender MCP Server** - Containerized 3D content creation and rendering
+11. **Virtual Character MCP Server** - Containerized AI agent embodiment middleware
 
 **HTTP Mode (Remote servers):**
-11. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
-12. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
-13. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
+12. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
+13. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
+14. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
 
@@ -53,7 +54,7 @@ curl http://localhost:8010/health
 
 ### Configuration
 
-See `tools/mcp/code_quality/docs/README.md` for detailed configuration options.
+See `tools/mcp/mcp_code_quality/docs/README.md` for detailed configuration options.
 
 ## Content Creation MCP Server
 
@@ -85,7 +86,7 @@ curl http://localhost:8011/health
 
 Output directory is configured via the `MCP_OUTPUT_DIR` environment variable (defaults to `/tmp/mcp-content-output` in container).
 
-See `tools/mcp/content_creation/docs/README.md` for detailed documentation.
+See `tools/mcp/mcp_content_creation/docs/README.md` for detailed documentation.
 
 ## Gemini MCP Server
 
@@ -101,7 +102,7 @@ python -m tools.mcp.gemini.server
 python -m tools.mcp.gemini.server --mode http
 
 # Or use the helper script
-./tools/mcp/gemini/scripts/start_server.sh
+./tools/mcp/mcp_gemini/scripts/start_server.sh
 
 # Use containerized version with host auth
 ./tools/cli/containers/run_gemini_container.sh
@@ -133,7 +134,7 @@ Gemini CLI is now fully containerized with multiple options:
    - Bypasses Google API validation
    - Pre-configured authentication
 
-See `tools/mcp/gemini/docs/README.md` and `automation/corporate-proxy/gemini/README.md` for detailed documentation.
+See `tools/mcp/mcp_gemini/docs/README.md` and `automation/corporate-proxy/gemini/README.md` for detailed documentation.
 
 ## Blender MCP Server
 
@@ -169,7 +170,7 @@ curl http://localhost:8016/health
 - **add_modifier** - Add modifiers to objects
 - **setup_compositor** - Configure post-processing
 
-See `tools/mcp/blender/docs/README.md` for detailed documentation.
+See `tools/mcp/mcp_blender/docs/README.md` for detailed documentation.
 
 ## Virtual Character MCP Server
 
@@ -209,7 +210,7 @@ The server acts as middleware between AI agents and various virtual world platfo
 - **Unity Backend** - WebSocket communication
 - **Plugin System** - Easy to add new backends
 
-See `tools/mcp/virtual_character/README.md` for detailed documentation.
+See `tools/mcp/mcp_virtual_character/README.md` for detailed documentation.
 
 ## Gaea2 MCP Server (Port 8007)
 
@@ -254,7 +255,7 @@ curl http://localhost:8007/health
 
 - For containerized deployment: Works out of the box
 - For Windows deployment with CLI features: Set `GAEA2_PATH` environment variable
-- See `tools/mcp/gaea2/docs/README.md` for complete documentation
+- See `tools/mcp/mcp_gaea2/docs/README.md` for complete documentation
 
 ## AI Toolkit MCP Server (Port 8012)
 
@@ -291,7 +292,7 @@ curl http://localhost:8012/health
 - **Dataset Paths**: Use absolute paths starting with `/ai-toolkit/datasets/`
 - **Chunked Upload**: Automatically used for files >100MB
 
-See `tools/mcp/ai_toolkit/docs/README.md` and `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` for detailed documentation.
+See `tools/mcp/mcp_ai_toolkit/docs/README.md` and `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` for detailed documentation.
 
 ## ComfyUI MCP Server (Port 8013)
 
@@ -325,7 +326,49 @@ curl http://localhost:8013/health
 - **FLUX Support**: Different workflows for FLUX models (cfg=1.0, special nodes)
 - **LoRA Transfer**: Automatic transfer from AI Toolkit to ComfyUI
 
-See `tools/mcp/comfyui/docs/README.md` and `docs/integrations/creative-tools/lora-transfer.md` for detailed documentation.
+See `tools/mcp/mcp_comfyui/docs/README.md` and `docs/integrations/creative-tools/lora-transfer.md` for detailed documentation.
+
+## Codex MCP Server
+
+The Codex server provides AI-powered code generation and completion using OpenAI's Codex model.
+
+### Starting the Server
+
+```bash
+# Run in STDIO mode (for local Claude Desktop) - Recommended
+python -m tools.mcp.codex.server --mode stdio
+
+# Or HTTP mode for remote access
+python -m tools.mcp.codex.server --mode http --port 8021
+
+# Or use the Docker container (with auth mounted from host)
+# Note: :rw mount is required for Codex session files and history
+docker-compose run --rm -v ~/.codex:/home/user/.codex:rw mcp-codex python -m tools.mcp.codex.server --mode stdio
+
+# Or use the helper script
+./tools/cli/agents/run_codex.sh
+
+# Test health (HTTP mode)
+curl http://localhost:8021/health
+```
+
+### Available Tools
+
+- **consult_codex** - Generate, complete, refactor, or explain code
+  - Modes: `generate`, `complete`, `refactor`, `explain`, `quick`
+  - Supports comparison with previous Claude responses
+- **clear_codex_history** - Clear conversation history
+- **codex_status** - Get integration status and statistics
+- **toggle_codex_auto_consult** - Control auto-consultation on uncertainty
+
+### Configuration
+
+- **Authentication**: Requires running `codex auth` first (creates `~/.codex/auth.json`)
+- **Model**: Uses OpenAI Codex model for code generation
+- **Modes**: Supports both STDIO (local) and HTTP (remote) modes
+- **Container**: Available as Docker container with auth mounted from host
+
+See `tools/mcp/mcp_codex/docs/README.md` and `docs/agents/codex-setup.md` for detailed documentation.
 
 ## OpenCode MCP Server
 

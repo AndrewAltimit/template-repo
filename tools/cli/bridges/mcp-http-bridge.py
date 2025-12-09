@@ -8,9 +8,9 @@ import logging
 import os
 from typing import Any, Dict, Optional
 
-import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import httpx
 from pydantic import BaseModel
 
 # Configure logging
@@ -90,7 +90,7 @@ async def handle_mcp_request(request: MCPRequest) -> MCPResponse:
             return MCPResponse(**response.json())
 
     except httpx.TimeoutException:
-        logger.error(f"Timeout forwarding request to {REMOTE_MCP_URL}")
+        logger.error("Timeout forwarding request to %s", REMOTE_MCP_URL)
         return MCPResponse(
             result=None,
             error={
@@ -100,7 +100,7 @@ async def handle_mcp_request(request: MCPRequest) -> MCPResponse:
             },
         )
     except httpx.RequestError as e:
-        logger.error(f"Error forwarding request: {e}")
+        logger.error("Error forwarding request: %s", e)
         return MCPResponse(
             result=None,
             error={
@@ -110,7 +110,7 @@ async def handle_mcp_request(request: MCPRequest) -> MCPResponse:
             },
         )
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
+        logger.error("Unexpected error: %s", e)
         return MCPResponse(
             result=None,
             error={
@@ -133,13 +133,15 @@ async def list_tools():
             else:
                 raise HTTPException(status_code=response.status_code, detail="Failed to list tools")
     except Exception as e:
-        logger.error(f"Error listing tools: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error listing tools: %s", e)
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/tools/execute")
-async def execute_tool(tool_name: str, arguments: Dict[str, Any] = {}):
+async def execute_tool(tool_name: str, arguments: Optional[Dict[str, Any]] = None):
     """Execute a tool on the remote server"""
+    if arguments is None:
+        arguments = {}
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             response = await client.post(
@@ -155,8 +157,8 @@ async def execute_tool(tool_name: str, arguments: Dict[str, Any] = {}):
                     detail=f"Tool execution failed: {response.text}",
                 )
     except Exception as e:
-        logger.error(f"Error executing tool {tool_name}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error executing tool %s: %s", tool_name, e)
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 if __name__ == "__main__":
@@ -167,8 +169,8 @@ if __name__ == "__main__":
 
     port = port_map.get(SERVICE_NAME, 8191)
 
-    logger.info(f"Starting {SERVICE_NAME} MCP HTTP Bridge")
-    logger.info(f"Forwarding to: {REMOTE_MCP_URL}")
-    logger.info(f"Listening on port: {port}")
+    logger.info("Starting %s MCP HTTP Bridge", SERVICE_NAME)
+    logger.info("Forwarding to: %s", REMOTE_MCP_URL)
+    logger.info("Listening on port: %s", port)
 
     uvicorn.run(app, host="0.0.0.0", port=port)

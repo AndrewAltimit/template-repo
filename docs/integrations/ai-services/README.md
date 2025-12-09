@@ -67,4 +67,4 @@ Configuration for OpenRouter API access
 
 - [Integrations Overview](../README.md)
 - [MCP Servers](../../mcp/servers.md)
-- [AI Agents](../../ai-agents/)
+- [AI Agents](../../agents/)

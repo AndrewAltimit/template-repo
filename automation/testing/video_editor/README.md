@@ -181,7 +181,7 @@ Test outputs are created in:
 When the MCP server is running, you can use the full feature set:
 
 ```python
-from tools.mcp.core.client import MCPClient
+from mcp_core.client import MCPClient
 
 async with MCPClient("video_editor", port=8019) as client:
     result = await client.call("video_editor/analyze", {

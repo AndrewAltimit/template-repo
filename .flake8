@@ -6,3 +6,6 @@ ignore = E203,W503,C901
 max-line-length = 127
 exclude = .git,__pycache__,docs/,old,build,dist,.venv,venv
 max-complexity = 15
+# Ignore E501 (line too long) for dataset_builder.py - code examples are intentionally long
+per-file-ignores =
+    packages/sleeper_agents/src/sleeper_agents/training/dataset_builder.py:E501

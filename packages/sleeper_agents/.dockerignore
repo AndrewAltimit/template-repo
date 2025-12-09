@@ -1,0 +1,108 @@
+# Docker ignore file for sleeper_agents package
+# Build context: packages/sleeper_agents/ (src/ layout)
+
+# Git files
+.git/
+.gitignore
+.github/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+venv/
+env/
+ENV/
+gpu_orchestrator/venv/
+
+# Models and data (these should be mounted as volumes)
+models/
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+
+# Results and outputs
+results/
+outputs/
+logs/
+*.log
+
+# Experiment tracking (wandb, mlflow, etc.)
+# CRITICAL: These can cause "file cannot be accessed" errors if locked
+wandb/
+.wandb/
+mlruns/
+lightning_logs/
+runs/
+checkpoints/
+
+# Artifacts and large directories
+artifacts/
+bin/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files (don't copy other Dockerfiles)
+docker-compose*.yml
+Dockerfile*
+
+# Documentation (reduces image size)
+docs/
+*.md
+!README.md
+
+# Test files (not needed in production)
+tests/
+test_*.py
+
+# Large application directories
+# gpu_orchestrator has its own Dockerfile and isn't needed in any images
+gpu_orchestrator/
+
+# Large data files
+*.csv
+*.json
+*.jsonl
+!pyproject.toml
+!package.json
+
+# Node modules
+node_modules/
+
+# Jupyter notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Media files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.mp4
+*.avi
+*.mov
+
+# Examples and scripts (not needed in production image)
+examples/
+# scripts/  # COMMENTED OUT: scripts/ is needed for GPU worker default CMD (validate_foundation.py)
+notebooks/

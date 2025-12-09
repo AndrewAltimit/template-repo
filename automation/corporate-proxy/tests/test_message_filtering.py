@@ -4,9 +4,9 @@ Test message filtering for company API compatibility.
 Ensures tool_calls and other unsupported fields are removed.
 """
 
+from pathlib import Path
 import sys
 import unittest
-from pathlib import Path
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -14,7 +14,9 @@ sys.path.append(str(Path(__file__).parent.parent))
 sys.path.append(str(Path(__file__).parent.parent / "shared" / "services"))
 
 # Import the shared filtering function
-from shared.services.translation_wrapper import filter_messages_for_company_api  # noqa: E402
+from shared.services.translation_wrapper import (  # noqa: E402  # pylint: disable=wrong-import-position
+    filter_messages_for_company_api,
+)
 
 
 class TestMessageFiltering(unittest.TestCase):
@@ -67,7 +69,7 @@ class TestMessageFiltering(unittest.TestCase):
             },
         ]
 
-        system_prompt, filtered = filter_messages_for_company_api(messages)
+        _system_prompt, filtered = filter_messages_for_company_api(messages)
 
         # Check no cache_control in output
         for msg in filtered:
@@ -84,7 +86,7 @@ class TestMessageFiltering(unittest.TestCase):
             {"role": "tool", "content": "file1.txt\nfile2.txt"},
         ]
 
-        system_prompt, filtered = filter_messages_for_company_api(messages)
+        _system_prompt, filtered = filter_messages_for_company_api(messages)
 
         # Tool message should be converted to user
         self.assertEqual(len(filtered), 3)
@@ -122,7 +124,7 @@ class TestMessageFiltering(unittest.TestCase):
             },
         ]
 
-        system_prompt, filtered = filter_messages_for_company_api(messages)
+        _system_prompt, filtered = filter_messages_for_company_api(messages)
 
         assistant_msg = filtered[1]
         self.assertNotIn("tool_calls", assistant_msg)
@@ -140,7 +142,7 @@ class TestMessageFiltering(unittest.TestCase):
             },
         ]
 
-        system_prompt, filtered = filter_messages_for_company_api(messages)
+        _system_prompt, filtered = filter_messages_for_company_api(messages)
 
         assistant_msg = filtered[1]
         self.assertNotIn("tool_calls", assistant_msg)
@@ -156,7 +158,7 @@ class TestMessageFiltering(unittest.TestCase):
             {"role": "assistant", "content": "You're welcome!"},
         ]
 
-        system_prompt, filtered = filter_messages_for_company_api(messages)
+        _system_prompt, filtered = filter_messages_for_company_api(messages)
 
         self.assertEqual(len(filtered), 4)
         for i, msg in enumerate(filtered):

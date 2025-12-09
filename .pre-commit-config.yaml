@@ -13,12 +13,14 @@ repos:
         language_version: python3.10
         # Line length configured in pyproject.toml
 
-  # Python import sorting
-  - repo: https://github.com/pycqa/isort
-    rev: 6.0.1
+  # Python linting and import sorting (ruff replaces isort for consistency)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.0
     hooks:
-      - id: isort
-        # Profile and line length configured in pyproject.toml
+      - id: ruff
+        args: [--fix, --ignore, C901]
+        # Configuration in pyproject.toml [tool.ruff]
+        # Note: C901 complexity errors are handled in CI, not pre-commit
 
   # Python linting
   - repo: https://github.com/pycqa/flake8
@@ -82,7 +84,7 @@ repos:
       - id: mypy
         args: [--ignore-missing-imports, --no-error-summary, --explicit-package-bases]
         additional_dependencies: [types-requests, types-PyYAML]
-        exclude: ^(docs/|tests/|automation/)
+        exclude: ^(docs/|tests/|automation/|packages/.*/bin/)
 
   # Python docstring checking (optional - uncomment if needed)
   # - repo: https://github.com/pycqa/pydocstyle

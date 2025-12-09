@@ -20,8 +20,8 @@ on:
         default: false
         type: boolean
   schedule:
-    # Run maintenance every Sunday at 3 AM UTC
-    - cron: '0 3 * * 0'
+    # Run maintenance daily at 3 AM UTC (changed from weekly)
+    - cron: '0 3 * * *'
 
 permissions:
   contents: write
@@ -46,7 +46,7 @@ jobs:
           echo ""
 
           echo "📋 Basic System Info:"
-          echo "Runner: ${{ matrix.runner }}"
+          echo "Runner: ${{ runner.name }}"
           echo "OS: $(uname -s)"
           echo "Kernel: $(uname -r)"
           echo "Architecture: $(uname -m)"
@@ -204,7 +204,7 @@ jobs:
           # 🖥️ Runner Health Report
 
           **Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          **Runner**: ${{ matrix.runner }}
+          **Runner**: ${{ runner.name }}
           **Repository**: ${{ github.repository }}
 
           ## ✅ System Status
@@ -245,7 +245,7 @@ jobs:
       - name: Upload Health Report
         uses: actions/upload-artifact@v4
         with:
-          name: runner-health-report-${{ matrix.runner }}-${{ github.run_id }}
+          name: runner-health-report-${{ runner.name }}-${{ github.run_id }}
           path: runner-health-report.md
           retention-days: 30
 
@@ -343,39 +343,51 @@ jobs:
           echo "✅ Output directory cleanup completed"
           echo ""
 
-      - name: Clean Docker Resources
+      - name: Clean Docker Resources (Structured Cleanup)
         if: github.event.inputs.force_cleanup != 'true'
         run: |
           if command -v docker &> /dev/null; then
-            echo "🐳 Cleaning Docker Resources"
-            echo "==========================="
+            echo "🐳 Structured Docker Cleanup (Daily Maintenance)"
+            echo "================================================"
             echo ""
 
-            # Stop all containers related to this repo
-            echo "Stopping repository containers..."
-            docker ps --format '{{.Names}}' | grep -i "${{ github.event.repository.name }}" | xargs -r docker stop || true
-
-            # Remove stopped containers
-            echo "Removing stopped containers..."
+            # Step 1: Stop and remove old containers
+            echo "Step 1: Removing stopped containers..."
             docker container prune -f || true
+            echo ""
 
-            # Remove dangling images
-            echo "Removing dangling images..."
+            # Step 2: Remove dangling images (safe - untagged layers only)
+            echo "Step 2: Removing dangling images..."
             docker image prune -f || true
+            echo ""
 
-            # Remove unused networks
-            echo "Removing unused networks..."
-            docker network prune -f || true
+            # Step 3: Remove old unused images (24h+ old)
+            echo "Step 3: Removing unused images older than 24 hours..."
+            # Only removes images not used by any container
+            docker image prune -a --filter "until=24h" -f || true
+            echo ""
 
-            # Remove unused volumes (careful with this)
-            echo "Removing unused volumes..."
+            # Step 4: Prune build cache (48h+ old to preserve recent cache)
+            echo "Step 4: Pruning build cache older than 48 hours..."
+            # Keeps recent cache for build performance
+            docker builder prune -f --filter "until=48h" || true
+            echo ""
+
+            # Step 5: Remove unused volumes
+            # NOTE: Safe in this CI/CD environment because:
+            # - All containers are ephemeral (no stateful services)
+            # - Persistent data uses bind mounts to host paths, not Docker volumes
+            # - This only removes volumes not referenced by any container
+            echo "Step 5: Removing unused volumes..."
             docker volume prune -f || true
+            echo ""
 
-            # Clean build cache
-            echo "Cleaning build cache..."
-            docker builder prune -f --filter "until=24h" || true
+            # Step 6: Remove unused networks
+            echo "Step 6: Removing unused networks..."
+            docker network prune -f || true
+            echo ""
 
-            echo "✅ Docker cleanup completed"
+            echo "✅ Structured Docker cleanup completed"
           else
             echo "⚠️ Docker not available, skipping Docker cleanup"
           fi
@@ -459,6 +471,23 @@ jobs:
 
           echo "✅ Cleanup operation completed!"
 
+      - name: Check Critical Disk Usage
+        run: |
+          echo "🚨 Checking for critical disk usage..."
+          usage=$(df -h / | tail -1 | awk '{print $5}' | sed 's/%//')
+          echo "Current disk usage: ${usage}%"
+
+          if [ "$usage" -gt 85 ]; then
+            echo "🚨 CRITICAL: Disk usage at ${usage}%!"
+            echo "Consider emergency cleanup or expanding disk."
+            # Don't fail the workflow, just warn
+            echo "⚠️ Manual intervention may be required"
+          elif [ "$usage" -gt 75 ]; then
+            echo "⚠️ WARNING: Disk usage at ${usage}% - monitor closely"
+          else
+            echo "✅ Disk usage healthy at ${usage}%"
+          fi
+
   # Update container images
   update-images:
     name: Update Container Images
@@ -467,7 +496,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           clean: true
@@ -587,25 +616,25 @@ jobs:
           needs.update-images.result == 'failure'
         uses: actions/github-script@v7
         with:
-        script: |
-          const title = '🚨 Runner Maintenance Failed';
-          const body = `## Runner Maintenance Failure Report
+          script: |
+            const title = '🚨 Runner Maintenance Failed';
+            const body = `## Runner Maintenance Failure Report
 
-          **Date**: ${new Date().toISOString()}
-          **Run**: [#${context.runNumber}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            **Date**: ${new Date().toISOString()}
+            **Run**: [#${context.runNumber}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
 
-          ### Failed Tasks:
-          ${context.needs['runner-health-check'].result === 'failure' ? '- ❌ Health Check\n' : ''}
-          ${context.needs['runner-cleanup'].result === 'failure' ? '- ❌ Cleanup\n' : ''}
-          ${context.needs['update-images'].result === 'failure' ? '- ❌ Image Updates\n' : ''}
+            ### Failed Tasks:
+            ${context.needs['runner-health-check'].result === 'failure' ? '- ❌ Health Check\n' : ''}
+            ${context.needs['runner-cleanup'].result === 'failure' ? '- ❌ Cleanup\n' : ''}
+            ${context.needs['update-images'].result === 'failure' ? '- ❌ Image Updates\n' : ''}
 
-          Please investigate the failed tasks and run manual maintenance if needed.
-          `;
+            Please investigate the failed tasks and run manual maintenance if needed.
+            `;
 
-          await github.rest.issues.create({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            title: title,
-            body: body,
-            labels: ['maintenance', 'automated']
-          });
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['maintenance', 'automated']
+            });

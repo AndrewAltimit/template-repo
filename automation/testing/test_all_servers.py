@@ -3,9 +3,9 @@
 
 import asyncio
 import os
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
 from typing import Optional
 
 import httpx
@@ -18,21 +18,21 @@ class MCPServerTester:
         self.servers = [
             {
                 "name": "Code Quality",
-                "module": "tools.mcp.code_quality.server",
+                "module": "mcp_code_quality.server",
                 "port": 8010,
                 "test_tool": "format_check",
                 "test_args": {"path": __file__, "language": "python"},
             },
             {
                 "name": "Content Creation",
-                "module": "tools.mcp.content_creation.server",
+                "module": "mcp_content_creation.server",
                 "port": 8011,
                 "test_tool": "compile_latex",
                 "test_args": {"content": "Hello \\LaTeX", "template": "article"},
             },
             {
                 "name": "Gemini",
-                "module": "tools.mcp.gemini.server",
+                "module": "mcp_gemini.server",
                 "port": 8006,
                 "test_tool": "gemini_status",
                 "test_args": {},
@@ -40,14 +40,14 @@ class MCPServerTester:
             },
             {
                 "name": "Gaea2",
-                "module": "tools.mcp.gaea2.server",
+                "module": "mcp_gaea2.server",
                 "port": 8007,
                 "test_tool": "suggest_gaea2_nodes",
                 "test_args": {"current_nodes": ["Mountain"]},
             },
             {
                 "name": "AI Toolkit",
-                "module": "tools.mcp.ai_toolkit.server",
+                "module": "mcp_ai_toolkit.server",
                 "port": 8012,
                 "test_tool": "list_configs",
                 "test_args": {},
@@ -55,7 +55,7 @@ class MCPServerTester:
             },
             {
                 "name": "ComfyUI",
-                "module": "tools.mcp.comfyui.server",
+                "module": "mcp_comfyui.server",
                 "port": 8013,
                 "test_tool": "list_loras",
                 "test_args": {},
@@ -239,9 +239,6 @@ async def main():
 
 
 if __name__ == "__main__":
-    # Add parent directory to path
-    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

@@ -1,0 +1,75 @@
+services:
+  dashboard:
+    build:
+      context: ../../
+      dockerfile: dashboard/Dockerfile
+    container_name: sleeper-dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - DATABASE_PATH=/home/dashboard/app/test_evaluation_results.db
+      - DASHBOARD_ADMIN_PASSWORD=${DASHBOARD_ADMIN_PASSWORD:-test123}
+    volumes:
+      - ./test_evaluation_results.db:/home/dashboard/app/test_evaluation_results.db:ro
+      - ./check_database.py:/home/dashboard/app/tests/check_database.py:ro
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  selenium:
+    image: selenium/standalone-chrome:136.0-20250828
+    container_name: selenium-chrome
+    ports:
+      - "4444:4444"
+      - "7900:7900"  # VNC port for debugging
+    environment:
+      - SE_NODE_MAX_SESSIONS=10
+      - SE_NODE_SESSION_TIMEOUT=300
+      - START_XVFB=true
+    shm_size: '2gb'
+    networks:
+      - test-network
+
+  test-runner:
+    build:
+      context: ../
+      dockerfile: tests/Dockerfile.test
+    container_name: test-runner
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    depends_on:
+      dashboard:
+        condition: service_healthy
+      selenium:
+        condition: service_started
+    environment:
+      - DASHBOARD_URL=http://dashboard:8501
+      - SELENIUM_URL=http://selenium:4444
+      - PYTHONPATH=/app
+      - PYTHONDONTWRITEBYTECODE=1
+      - DASHBOARD_TEST_PASSWORD=${DASHBOARD_TEST_PASSWORD:-test123}
+    volumes:
+      - ./:/app/tests
+    networks:
+      - test-network
+    command: >
+      sh -c "
+        echo 'Waiting for services to be ready...' &&
+        sleep 10 &&
+        echo 'Generating test data...' &&
+        python /app/tests/fixtures.py &&
+        echo 'Running Selenium tests...' &&
+        python -m pytest /app/tests/test_selenium_e2e.py -v --html=/app/tests/report.html --self-contained-html &&
+        echo 'Running visual analysis...' &&
+        python /app/tests/ai_visual_analyzer.py
+      "
+
+networks:
+  test-network:
+    driver: bridge
