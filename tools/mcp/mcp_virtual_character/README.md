@@ -454,19 +454,22 @@ pytest tests/test_plugin_manager.py -v
 ### Project Structure
 
 ```
-virtual_character/
-├── backends/           # Backend adapter implementations
-│   ├── base.py        # Base adapter interface
-│   ├── mock.py        # Mock backend for testing
-│   └── vrchat_remote.py  # VRChat remote backend
-├── models/            # Data models
-│   └── canonical.py   # Universal data formats
-├── server/            # Server implementation
-│   ├── server.py      # Main MCP server
-│   └── plugin_manager.py  # Plugin discovery and management
-├── config/            # Configuration files
-├── scripts/           # Utility scripts
-└── tests/             # Unit tests
+mcp_virtual_character/
+├── mcp_virtual_character/  # Main package
+│   ├── backends/           # Backend adapter implementations
+│   │   ├── base.py         # Base adapter interface
+│   │   ├── mock.py         # Mock backend for testing
+│   │   └── vrchat_remote.py  # VRChat remote backend
+│   ├── models/             # Data models
+│   │   └── canonical.py    # Universal data formats
+│   ├── server.py           # Main MCP server
+│   ├── audio_handler.py    # Audio processing and playback
+│   └── sequence_handler.py # Event sequence management
+├── storage_service/        # Audio/file storage service
+│   └── server.py           # Storage API server
+├── scripts/                # Utility scripts
+├── tests/                  # Unit tests
+└── README.md
 ```
 
 ### Contributing

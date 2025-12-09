@@ -425,9 +425,10 @@ class VRChatRemoteBackend(BackendAdapter):
                 # We're on the same server - play directly instead of HTTP loop
                 logger.info("Bridge is local to this server, playing audio directly")
                 # Import here to avoid circular dependency
-                from ..server import play_audio_locally
+                from ..audio_handler import AudioPlayer
 
-                success = await play_audio_locally(audio.data, audio.format)
+                player = AudioPlayer()
+                success, _ = await player.play(audio.data, audio.format)
                 return success
 
             import aiohttp

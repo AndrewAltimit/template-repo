@@ -162,7 +162,7 @@ if "%NO_STORAGE%"=="0" (
     if not exist "%TEMP%\audio_storage" mkdir "%TEMP%\audio_storage"
 
     REM Start storage service in new window
-    start "Virtual Character Storage" /min cmd /c python tools\mcp\virtual_character\storage_service\server.py
+    start "Virtual Character Storage" /min cmd /c python tools\mcp\mcp_virtual_character\storage_service\server.py
 
     REM Wait for storage service to start
     timeout /t 2 /nobreak >nul
@@ -209,7 +209,7 @@ echo ============================================
 echo.
 
 REM Start the MCP server
-python -m tools.mcp.virtual_character.server --port %PORT% --host %HOST% --mode http
+python -m tools.mcp.mcp_virtual_character.mcp_virtual_character.server --port %PORT% --host %HOST% --mode http
 
 REM Cleanup on exit
 if "%NO_STORAGE%"=="0" (

@@ -6,9 +6,8 @@ from datetime import datetime
 import json
 import logging
 import os
-from pathlib import Path
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 import uuid
 
 # Add parent directory to path
@@ -204,6 +203,7 @@ except ImportError:
 
 
 # pylint: disable=ungrouped-imports  # Cannot group with line 16 due to try/except structure
+from mcp_virtual_character.audio_handler import AudioHandler  # noqa: E402
 from mcp_virtual_character.backends.base import BackendAdapter  # noqa: E402
 from mcp_virtual_character.backends.mock import MockBackend  # noqa: E402
 from mcp_virtual_character.backends.vrchat_remote import (  # noqa: E402
@@ -213,11 +213,9 @@ from mcp_virtual_character.models.canonical import (  # noqa: E402
     AudioData,
     CanonicalAnimationData,
     EmotionType,
-    EventSequence,
-    EventType,
     GestureType,
-    SequenceEvent,
 )
+from mcp_virtual_character.sequence_handler import SequenceHandler  # noqa: E402
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -248,9 +246,9 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         # Default configuration for auto-connect
         self.default_backend = "vrchat_remote"
         self.default_config = {
-            "remote_host": os.environ.get("VRCHAT_HOST", "127.0.0.1"),  # VRChat on same machine
-            "osc_in_port": 9000,  # Port where VRChat receives (clearer: vrchat_recv_port)
-            "osc_out_port": 9001,  # Port where VRChat sends (clearer: vrchat_send_port)
+            "remote_host": os.environ.get("VRCHAT_HOST", "127.0.0.1"),
+            "osc_in_port": 9000,
+            "osc_out_port": 9001,
             "use_vrcemote": os.environ.get("VRCHAT_USE_VRCEMOTE", "true").lower() == "true",
             "use_bridge": os.environ.get("VRCHAT_USE_BRIDGE", "false").lower() == "true",
             "bridge_port": int(os.environ.get("VRCHAT_BRIDGE_PORT", "8020")),
@@ -259,11 +257,11 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         self.reconnect_attempts = 0
         self.max_reconnect_attempts = 3
 
-        # Event sequencing
-        self.current_sequence: Optional[EventSequence] = None
-        self.sequence_task: Optional[asyncio.Task] = None
-        self.sequence_paused: bool = False
-        self.sequence_time: float = 0.0
+        # Audio handler
+        self.audio_handler = AudioHandler()
+
+        # Sequence handler
+        self.sequence_handler = SequenceHandler()
 
         # Setup additional routes
         self.setup_routes()
@@ -283,7 +281,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return await self.send_animation(**request)
 
         @self.app.post("/audio/play")
-        async def play_audio(request: Dict[str, Any]) -> Dict[str, Any]:
+        async def play_audio_http(request: Dict[str, Any]) -> Dict[str, Any]:
             """
             Audio bridge endpoint - plays audio through virtual audio cable.
 
@@ -291,167 +289,16 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             1. Install VB-Audio Virtual Cable or similar
             2. Set virtual cable as default playback device or specify device
             3. Set VRChat microphone input to virtual cable output
-
-            The audio will be routed: App -> Virtual Cable Input -> Virtual Cable Output -> VRChat Mic
             """
-            try:
-                import base64
-                import subprocess
-                import tempfile
+            audio_data = request.get("audio_data")
+            audio_format = request.get("format", "mp3")
+            device_name = request.get("device")
 
-                import aiohttp
+            if not audio_data:
+                return {"success": False, "error": "No audio data provided"}
 
-                audio_data = request.get("audio_data")
-                format = request.get("format", "mp3")
-                device_name = request.get("device", None)  # Optional: specific audio device
-
-                if not audio_data:
-                    return {"success": False, "error": "No audio data provided"}
-
-                audio_bytes = None
-
-                # Handle different input types
-                if audio_data.startswith("data:"):
-                    # Data URL format
-                    self.logger.info("Processing data URL audio")
-                    audio_data = audio_data.split(",")[1]
-                    audio_bytes = base64.b64decode(audio_data)
-
-                elif audio_data.startswith(("http://", "https://")):
-                    # URL - download the audio
-                    self.logger.info(f"Downloading audio from URL: {audio_data}")
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get(audio_data) as response:
-                            if response.status == 200:
-                                audio_bytes = await response.read()
-                            else:
-                                return {"success": False, "error": f"Failed to download audio: HTTP {response.status}"}
-
-                elif audio_data.startswith("/") or audio_data.startswith("./"):
-                    # File path
-                    self.logger.info(f"Reading audio from file: {audio_data}")
-                    file_path = Path(audio_data)
-                    if file_path.exists():
-                        with open(file_path, "rb") as f:
-                            audio_bytes = f.read()
-                    else:
-                        return {"success": False, "error": f"File not found: {audio_data}"}
-
-                else:
-                    # Assume base64 encoded
-                    try:
-                        audio_bytes = base64.b64decode(audio_data)
-                    except Exception as e:
-                        return {"success": False, "error": f"Failed to decode base64 audio: {e}"}
-
-                # Save to temp file
-                with tempfile.NamedTemporaryFile(suffix=f".{format}", delete=False) as tmp_file:
-                    tmp_file.write(audio_bytes)
-                    tmp_path = tmp_file.name
-
-                # Validate audio file before playback
-                file_size = os.path.getsize(tmp_path)
-                self.logger.info(f"Audio file saved: {tmp_path} ({file_size} bytes, format: {format})")
-
-                # If file is too small, it might be corrupted
-                if file_size < 100:
-                    return {"success": False, "error": f"Audio file too small ({file_size} bytes), might be corrupted"}
-
-                # Play audio through virtual audio cable (Windows)
-                if os.name == "nt":  # Windows
-                    # Default to VoiceMeeter Input if no device specified
-                    if not device_name:
-                        # Try common VoiceMeeter input device names
-                        device_name = "VoiceMeeter Input"
-
-                    self.logger.info(f"Attempting to play audio through: {device_name}")
-
-                    # Method 1: Convert to WAV and play (most reliable)
-                    try:
-                        # Convert MP3 to WAV first (more reliable playback)
-                        wav_path = tmp_path.replace(f".{format}", ".wav")
-                        convert_cmd = ["ffmpeg", "-i", tmp_path, "-acodec", "pcm_s16le", "-ar", "44100", wav_path]
-                        result = subprocess.run(convert_cmd, capture_output=True, text=True, timeout=5)
-
-                        if result.returncode == 0 and os.path.exists(wav_path):
-                            self.logger.info(f"Converted to WAV: {wav_path}")
-
-                            # Now play the WAV file using Windows default audio
-                            # This uses whatever is set as the default playback device
-                            play_cmd = ["powershell", "-Command", f"(New-Object Media.SoundPlayer '{wav_path}').PlaySync()"]
-                            subprocess.run(play_cmd, capture_output=True, timeout=10)
-                            self.logger.info("Playing audio through Windows default device (should be VoiceMeeter)")
-
-                            # Clean up WAV file
-                            try:
-                                os.remove(wav_path)
-                            except Exception:
-                                pass
-                        else:
-                            raise Exception(f"ffmpeg conversion failed: {result.stderr}")
-                    except (FileNotFoundError, Exception) as e:
-                        self.logger.warning(f"WAV conversion method failed: {e}")
-
-                        # Method 2: Try VLC if available (excellent device support)
-                        try:
-                            # VLC can target specific audio devices on Windows
-                            vlc_cmd = [
-                                "vlc",
-                                "--intf",
-                                "dummy",
-                                "--play-and-exit",
-                                "--no-loop",
-                                "--no-repeat",
-                                "--aout",
-                                "waveout",
-                                "--waveout-audio-device",
-                                device_name,
-                                tmp_path,
-                            ]
-                            subprocess.Popen(vlc_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                            self.logger.info(f"Using VLC to play through {device_name}")
-                        except FileNotFoundError:
-                            self.logger.warning("VLC not found")
-
-                            # Method 3: Use PowerShell with .NET SoundPlayer (simpler)
-                            try:
-                                # This method plays through the Windows default audio device
-                                # User must set VoiceMeeter Input as default in Windows Sound Settings
-                                ps_cmd = f"""
-                                try {{
-                                    # Use .NET SoundPlayer for simple playback
-                                    $player = New-Object System.Media.SoundPlayer
-                                    $player.SoundLocation = '{tmp_path}'
-                                    $player.PlaySync()
-                                    Write-Host "Audio played successfully"
-                                }} catch {{
-                                    # Fallback to Windows Media Player
-                                    $wmp = New-Object -ComObject WMPlayer.OCX
-                                    $wmp.URL = '{tmp_path}'
-                                    $wmp.controls.play()
-                                    Start-Sleep -Seconds 5
-                                    Write-Host "Audio played via WMP"
-                                }}
-                                """
-                                result = subprocess.run(
-                                    ["powershell", "-Command", ps_cmd], capture_output=True, text=True, timeout=10
-                                )
-                                self.logger.info(f"PowerShell playback result: {result.stdout.strip()}")
-                                if result.stderr:
-                                    self.logger.warning(f"PowerShell stderr: {result.stderr}")
-                            except Exception as e:
-                                self.logger.error(f"PowerShell playback failed: {e}")
-                else:  # Linux/Mac
-                    subprocess.Popen(
-                        ["ffplay", "-nodisp", "-autoexit", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                    )
-
-                self.logger.info(f"Playing audio file: {tmp_path}")
-                return {"success": True, "message": "Audio playback started", "file": tmp_path}
-
-            except Exception as e:
-                self.logger.error(f"Error playing audio: {e}")
-                return {"success": False, "error": str(e)}
+            result = await self.audio_handler.play_audio(audio_data, audio_format, device_name)
+            return cast(Dict[str, Any], result)
 
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return available MCP tools"""
@@ -475,16 +322,12 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                                 "osc_in_port": {
                                     "type": "integer",
                                     "default": 9000,
-                                    "description": (
-                                        "DEPRECATED: Use vrchat_recv_port instead. " "OSC input port (where VRChat receives)"
-                                    ),
+                                    "description": "DEPRECATED: Use vrchat_recv_port instead.",
                                 },
                                 "osc_out_port": {
                                     "type": "integer",
                                     "default": 9001,
-                                    "description": (
-                                        "DEPRECATED: Use vrchat_send_port instead. " "OSC output port (where VRChat sends)"
-                                    ),
+                                    "description": "DEPRECATED: Use vrchat_send_port instead.",
                                 },
                                 "vrchat_recv_port": {
                                     "type": "integer",
@@ -581,10 +424,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                     "Reset all states - clear emotes and stop all movement. "
                     "All backends must implement this method to return the character to a neutral idle state."
                 ),
-                "parameters": {
-                    "type": "object",
-                    "properties": {},
-                },
+                "parameters": {"type": "object", "properties": {}},
             },
             "get_backend_status": {
                 "description": "Get current backend status and statistics",
@@ -598,9 +438,9 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                     "properties": {
                         "audio_data": {
                             "type": "string",
-                            "description": "Base64-encoded audio data or URL to audio file",
+                            "description": "File path, URL, or base64-encoded audio data",
                         },
-                        "format": {
+                        "audio_format": {
                             "type": "string",
                             "enum": ["mp3", "wav", "opus", "pcm"],
                             "default": "mp3",
@@ -626,25 +466,14 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             "create_sequence": {
                 "description": (
                     "Create a new event sequence for coordinated animations and audio. "
-                    "NOTE: This operates on a single, shared sequence builder. "
-                    "Concurrent calls will interfere with each other."
+                    "NOTE: This operates on a single, shared sequence builder."
                 ),
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "name": {
-                            "type": "string",
-                            "description": "Sequence name",
-                        },
-                        "description": {
-                            "type": "string",
-                            "description": "Optional description",
-                        },
-                        "loop": {
-                            "type": "boolean",
-                            "default": False,
-                            "description": "Whether to loop the sequence",
-                        },
+                        "name": {"type": "string", "description": "Sequence name"},
+                        "description": {"type": "string", "description": "Optional description"},
+                        "loop": {"type": "boolean", "default": False, "description": "Whether to loop the sequence"},
                         "interrupt_current": {
                             "type": "boolean",
                             "default": True,
@@ -664,54 +493,20 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                             "enum": ["animation", "audio", "wait", "expression", "movement", "parallel"],
                             "description": "Type of event",
                         },
-                        "timestamp": {
-                            "type": "number",
-                            "description": "When to trigger (seconds from sequence start)",
-                        },
-                        "duration": {
-                            "type": "number",
-                            "description": "Event duration in seconds",
-                        },
-                        "animation_params": {
-                            "type": "object",
-                            "description": "Animation parameters (emotion, gesture, etc.)",
-                        },
-                        "audio_data": {
-                            "type": "string",
-                            "description": "Base64 audio data for audio events",
-                        },
-                        "audio_format": {
-                            "type": "string",
-                            "enum": ["mp3", "wav", "opus"],
-                            "default": "mp3",
-                        },
-                        "wait_duration": {
-                            "type": "number",
-                            "description": "Duration for wait events",
-                        },
+                        "timestamp": {"type": "number", "description": "When to trigger (seconds from sequence start)"},
+                        "duration": {"type": "number", "description": "Event duration in seconds"},
+                        "animation_params": {"type": "object", "description": "Animation parameters (emotion, gesture, etc.)"},
+                        "audio_data": {"type": "string", "description": "Base64 audio data for audio events"},
+                        "audio_format": {"type": "string", "enum": ["mp3", "wav", "opus"], "default": "mp3"},
+                        "wait_duration": {"type": "number", "description": "Duration for wait events"},
                         "expression": {
                             "type": "string",
                             "enum": ["neutral", "happy", "sad", "angry", "surprised", "fearful", "disgusted"],
                         },
-                        "expression_intensity": {
-                            "type": "number",
-                            "minimum": 0,
-                            "maximum": 1,
-                            "default": 1.0,
-                        },
-                        "movement_params": {
-                            "type": "object",
-                            "description": "Movement parameters",
-                        },
-                        "parallel_events": {
-                            "type": "array",
-                            "description": "Events to run in parallel",
-                        },
-                        "sync_with_audio": {
-                            "type": "boolean",
-                            "default": False,
-                            "description": "Sync animation timing with audio duration",
-                        },
+                        "expression_intensity": {"type": "number", "minimum": 0, "maximum": 1, "default": 1.0},
+                        "movement_params": {"type": "object", "description": "Movement parameters"},
+                        "parallel_events": {"type": "array", "description": "Events to run in parallel"},
+                        "sync_with_audio": {"type": "boolean", "default": False},
                     },
                     "required": ["event_type", "timestamp"],
                 },
@@ -721,15 +516,8 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "sequence_name": {
-                            "type": "string",
-                            "description": "Name of sequence to play (uses current if not specified)",
-                        },
-                        "start_time": {
-                            "type": "number",
-                            "default": 0,
-                            "description": "Start time within sequence",
-                        },
+                        "sequence_name": {"type": "string", "description": "Name of sequence to play"},
+                        "start_time": {"type": "number", "default": 0, "description": "Start time within sequence"},
                     },
                 },
             },
@@ -750,10 +538,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 "parameters": {"type": "object", "properties": {}},
             },
             "panic_reset": {
-                "description": (
-                    "Emergency reset - stops all sequences and resets avatar to neutral state. "
-                    "Useful for recovering from misbehaving animations or stuck states."
-                ),
+                "description": "Emergency reset - stops all sequences and resets avatar to neutral state.",
                 "parameters": {"type": "object", "properties": {}},
             },
             "send_vrcemote": {
@@ -798,13 +583,13 @@ class VirtualCharacterMCPServer(BaseMCPServer):
 
             # Set default config for vrchat_remote if not provided
             if backend == "vrchat_remote" and "remote_host" not in improved_config:
-                improved_config["remote_host"] = "127.0.0.1"  # Local VRChat on Windows machine
+                improved_config["remote_host"] = "127.0.0.1"
 
             success = await self.current_backend.connect(improved_config)
 
             if success:
                 self.backend_name = backend
-                self.config = improved_config  # Store config for reconnection
+                self.config = improved_config
                 return {"success": True, "backend": backend, "message": f"Connected to {backend}"}
             else:
                 return {"success": False, "error": f"Failed to connect to {backend}"}
@@ -826,26 +611,20 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return {"success": False, "error": "No backend connected. Use set_backend first."}
 
         try:
-            # Create animation data
             animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
 
-            # Set emotion if provided
             if emotion:
                 animation.emotion = EmotionType[emotion.upper()]
                 animation.emotion_intensity = emotion_intensity
 
-            # Set gesture if provided
             if gesture:
                 animation.gesture = GestureType[gesture.upper()]
                 animation.gesture_intensity = gesture_intensity
 
-            # Set parameters if provided
             if parameters:
                 animation.parameters = parameters
 
-            # Send to backend
             success = await self.current_backend.send_animation_data(animation)
-
             return {"success": success}
 
         except KeyError as e:
@@ -860,7 +639,6 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return {"success": False, "error": "No backend connected. Use set_backend first."}
 
         try:
-            # Call reset on the backend
             if hasattr(self.current_backend, "reset_all"):
                 success = await self.current_backend.reset_all()
                 return {"success": success, "message": "All states reset"}
@@ -919,13 +697,11 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return {"success": False, "error": "VRCEmote value must be between 0 and 8"}
 
         try:
-            # Send directly through avatar parameters
             animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
             animation.parameters = {"avatar_params": {"VRCEmote": emote_value}}
 
             success = await self.current_backend.send_animation_data(animation)
 
-            # Map emote value to gesture name for feedback
             emote_names = {
                 0: "none/clear",
                 1: "wave",
@@ -965,238 +741,36 @@ class VirtualCharacterMCPServer(BaseMCPServer):
     async def play_audio(
         self,
         audio_data: str,
-        format: str = "mp3",
+        audio_format: str = "mp3",
         text: Optional[str] = None,
         expression_tags: Optional[List[str]] = None,
         duration: Optional[float] = None,
     ) -> Dict[str, Any]:
-        """Play audio through the virtual character (text-to-speech output).
-
-        Args:
-            audio_data: Can be:
-                - File path (auto-uploaded to storage to keep context clean)
-                - Storage service URL (efficient, no context pollution)
-                - HTTP/HTTPS URL to download audio from
-                - Base64-encoded audio data (avoid when possible - uses context)
-                - Data URL (data:audio/mp3;base64,...)
-            format: Audio format (mp3, wav, opus, pcm)
-            text: Optional text transcript for lip-sync
-            expression_tags: Optional expression tags from ElevenLabs
-            duration: Optional audio duration in seconds
-
-        Note: File paths are automatically uploaded to storage service to avoid
-        polluting the AI context window with base64 data.
-        """
+        """Play audio through the virtual character."""
         if not self.current_backend:
             return {"success": False, "error": "No backend connected. Use set_backend first."}
 
         try:
-            import base64
-
-            import aiohttp
-
-            audio_bytes = None
-
-            # Check if running locally (MCP client on same machine as files)
-            # This handles the VM case where files exist locally but server is remote
-            # is_local_file = False  # Reserved for future use
-
-            # First, try to use the seamless audio helper for optimal handling
-            # This will automatically upload files to storage to keep context clean
-            from .seamless_audio import setup_seamless_audio
-
-            status = setup_seamless_audio()
-            use_seamless = status["storage_enabled"] and status.get("storage_healthy", False)
-
-            # For file paths and base64 data, use seamless upload if available
-            if use_seamless and (
-                audio_data.startswith("/")
-                or audio_data.startswith("./")
-                or audio_data.startswith("outputs/")
-                or (len(audio_data) > 1000 and not audio_data.startswith(("http://", "https://")))
-            ):
-                self.logger.info("Using seamless audio with storage upload for optimal context usage")
-                from .storage_client import StorageClient
-
-                client = StorageClient()
-
-                # Handle file upload
-                if audio_data.startswith(("/", "./", "outputs/")):
-                    # Map container paths if needed
-                    if "/tmp/elevenlabs_audio/" in audio_data:
-                        filename = Path(audio_data).name
-                        possible_paths = [
-                            Path("outputs/elevenlabs_speech") / filename,
-                            Path(f"outputs/elevenlabs_speech/{Path(audio_data).parent.name}") / filename,
-                        ]
-                        for path in possible_paths:
-                            if path.exists():
-                                audio_data = str(path)
-                                break
-
-                    # Upload file to storage
-                    url = client.upload_file(audio_data)
-                    if url:
-                        self.logger.info(f"✓ Auto-uploaded to storage: {url}")
-                        audio_data = url  # Replace file path with storage URL
-                    else:
-                        self.logger.warning("Storage upload failed, falling back to base64")
-
-                elif len(audio_data) > 1000:  # Likely base64
-                    # Upload base64 to storage
-                    url = client.upload_base64(audio_data, filename=f"audio.{format}")
-                    if url:
-                        self.logger.info(f"✓ Uploaded base64 to storage: {url}")
-                        audio_data = url  # Replace base64 with storage URL
-                    else:
-                        self.logger.warning("Storage upload failed, using base64 directly")
-
-            # Determine input type and get audio bytes
-            # Check for storage service URL first (our audio exchange format)
-            storage_base = os.getenv("STORAGE_BASE_URL", "http://localhost:8021")
-            if audio_data.startswith(f"{storage_base}/download/"):
-                # Storage service URL - download with authentication
-                self.logger.info(f"Downloading from storage service: {audio_data}")
-
-                # Import storage client
-                from .storage_client import StorageClient
-
-                # Extract file ID from URL
-                file_id = audio_data.split("/download/")[-1]
-
-                # Download from storage
-                client = StorageClient()
-                import tempfile
-
-                with tempfile.NamedTemporaryFile(suffix=f".{format}", delete=False) as tmp_file:
-                    if client.download_file(file_id, tmp_file.name):
-                        with open(tmp_file.name, "rb") as f:
-                            audio_bytes = f.read()
-                        os.unlink(tmp_file.name)
-                        self.logger.info(f"Downloaded audio from storage: {len(audio_bytes)} bytes")
-                    else:
-                        return {"success": False, "error": "Failed to download from storage service"}
-
-            elif audio_data.startswith("data:"):
-                # Data URL format
-                self.logger.info("Processing data URL audio")
-                audio_data = audio_data.split(",")[1]
-                audio_bytes = base64.b64decode(audio_data)
-
-            elif audio_data.startswith(("http://", "https://")):
-                # URL - download the audio with robust validation
-                self.logger.info(f"Downloading audio from URL: {audio_data}")
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(audio_data) as response:
-                        if response.status != 200:
-                            return {"success": False, "error": f"Failed to download audio: HTTP {response.status}"}
-
-                        # 1. Check Content-Type header
-                        content_type = response.headers.get("Content-Type", "").lower()
-                        if not any(mime in content_type for mime in ["audio/mpeg", "audio/mp3", "application/octet-stream"]):
-                            self.logger.warning(f"Invalid Content-Type for audio: {content_type}")
-                            # Don't fail immediately - some servers send wrong headers
-
-                        # 2. Check Content-Length header
-                        content_length = response.headers.get("Content-Length")
-                        MIN_AUDIO_SIZE = 10000  # 10KB minimum for valid audio
-                        if content_length and int(content_length) < MIN_AUDIO_SIZE:
-                            self.logger.error(f"File too small ({content_length} bytes), likely an error page")
-                            return {"success": False, "error": f"File size ({content_length} bytes) below minimum threshold"}
-
-                        # Download the content
-                        audio_bytes = await response.read()
-
-                        # 3. Validate with magic bytes for MP3
-                        is_valid_audio = (
-                            audio_bytes.startswith(b"ID3")  # ID3v2 tag
-                            or audio_bytes.startswith(b"\xff\xfb")  # MPEG-1 Layer 3
-                            or audio_bytes.startswith(b"\xff\xf3")  # MPEG-2 Layer 3
-                            or audio_bytes.startswith(b"\xff\xf2")  # MPEG-2.5 Layer 3
-                        )
-
-                        # 4. Additional check for HTML error pages
-                        is_html = (
-                            audio_bytes.startswith(b"<!DOCTYPE")
-                            or audio_bytes.startswith(b"<html")
-                            or audio_bytes[:100].lower().find(b"<html") != -1
-                        )
-
-                        if is_html:
-                            self.logger.error("Downloaded content is HTML, not audio")
-                            return {"success": False, "error": "Server returned HTML error page instead of audio"}
-
-                        if not is_valid_audio and len(audio_bytes) < MIN_AUDIO_SIZE:
-                            self.logger.error(f"Invalid audio format (size: {len(audio_bytes)} bytes)")
-                            return {"success": False, "error": "Downloaded file is not a valid audio format"}
-
-                        self.logger.info(f"Successfully downloaded audio ({len(audio_bytes)} bytes)")
-
-            elif audio_data.startswith("/") or audio_data.startswith("./") or audio_data.startswith("outputs/"):
-                # File path - read the file locally and convert to base64
-                # This is crucial for VM-to-Host scenarios where the file exists on VM
-                # but the server runs on the Windows host
-                self.logger.info(f"Reading audio from local file: {audio_data}")
-                file_path = Path(audio_data)
-
-                if file_path.exists():
-                    with open(file_path, "rb") as f:
-                        audio_bytes = f.read()
-                    # Mark as local file (for future use if needed)
-                    # is_local_file = True
-                    self.logger.info(f"Successfully read local file: {len(audio_bytes)} bytes")
-
-                    # IMPORTANT: For remote servers, we need to send this as base64
-                    # The file path won't work across VM boundaries
-                    # This keeps the path in the context but sends base64 in the transport
-                else:
-                    # Check if it's a container path that maps to outputs/
-                    # Container paths like /tmp/elevenlabs_audio map to outputs/elevenlabs_speech
-                    if "/tmp/elevenlabs_audio/" in audio_data:
-                        # Try to find in outputs directory
-                        filename = Path(audio_data).name
-                        possible_paths = [
-                            Path("outputs/elevenlabs_speech") / filename,
-                            Path("outputs/elevenlabs_speech/2025-09-17") / filename,
-                        ]
-                        for alt_path in possible_paths:
-                            if alt_path.exists():
-                                self.logger.info(f"Found file at alternate path: {alt_path}")
-                                with open(alt_path, "rb") as f:
-                                    audio_bytes = f.read()
-                                # Mark as local file (for future use if needed)
-                                # is_local_file = True
-                                break
-
-                    if not audio_bytes:
-                        return {"success": False, "error": f"File not found: {audio_data}"}
-
-            else:
-                # Assume base64-encoded data
-                self.logger.info("Processing base64-encoded audio")
-                try:
-                    audio_bytes = base64.b64decode(audio_data)
-                except Exception as e:
-                    return {"success": False, "error": f"Invalid base64 data: {str(e)}"}
-
-            if not audio_bytes:
-                return {"success": False, "error": "No audio data could be extracted"}
+            # Process audio input
+            audio_bytes, error = await self.audio_handler.process_audio_input(audio_data, audio_format)
+            if error:
+                return {"success": False, "error": error}
 
             # Create AudioData object
             audio = AudioData(
-                data=audio_bytes, format=format, duration=duration or 0.0, text=text, expression_tags=expression_tags
+                data=audio_bytes, format=audio_format, duration=duration or 0.0, text=text, expression_tags=expression_tags
             )
 
             # Send to backend
             self.logger.info(f"Sending audio to backend (size: {len(audio_bytes)} bytes)")
             success = await self.current_backend.send_audio_data(audio)
-            self.logger.info(f"Backend send_audio_data returned: {success}")
             return {"success": success}
 
         except Exception as e:
             self.logger.error(f"Error sending audio: {e}")
             return {"success": False, "error": str(e)}
 
+    # Sequence management delegated to sequence_handler
     async def create_sequence(
         self,
         name: str,
@@ -1204,32 +778,9 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         loop: bool = False,
         interrupt_current: bool = True,
     ) -> Dict[str, Any]:
-        """
-        Create a new event sequence.
-
-        IMPORTANT: This method uses a single, shared sequence builder
-        (self.current_sequence). Concurrent calls will interfere with
-        each other. Only one sequence can be built at a time.
-        """
-        try:
-            # Stop current sequence if needed
-            if interrupt_current and self.sequence_task:
-                await self.stop_sequence()
-
-            # Create new sequence
-            self.current_sequence = EventSequence(
-                name=name,
-                description=description,
-                loop=loop,
-                interrupt_current=interrupt_current,
-                created_timestamp=asyncio.get_event_loop().time(),
-            )
-
-            return {"success": True, "message": f"Created sequence: {name}"}
-
-        except Exception as e:
-            self.logger.error(f"Error creating sequence: {e}")
-            return {"success": False, "error": str(e)}
+        """Create a new event sequence."""
+        result = await self.sequence_handler.create_sequence(name, description, loop, interrupt_current)
+        return cast(Dict[str, Any], result)
 
     async def add_sequence_event(
         self,
@@ -1247,47 +798,21 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         sync_with_audio: bool = False,
     ) -> Dict[str, Any]:
         """Add an event to the current sequence."""
-        if not self.current_sequence:
-            return {"success": False, "error": "No sequence created. Use create_sequence first."}
-
-        try:
-            # Convert arguments to dictionary format for unified parsing
-            event_dict = {
-                "event_type": event_type,
-                "timestamp": timestamp,
-                "duration": duration,
-                "sync_with_audio": sync_with_audio,
-            }
-
-            # Add type-specific parameters
-            if animation_params:
-                event_dict["animation_params"] = animation_params
-            if audio_data:
-                event_dict["audio_data"] = audio_data
-                event_dict["audio_format"] = audio_format
-            if wait_duration is not None:
-                event_dict["wait_duration"] = wait_duration
-            if expression:
-                event_dict["expression"] = expression
-                event_dict["expression_intensity"] = expression_intensity
-            if movement_params:
-                event_dict["movement_params"] = movement_params
-            if parallel_events:
-                event_dict["parallel_events"] = parallel_events
-
-            # Use centralized event creation logic
-            event = await self._create_event_from_dict(event_dict)
-            if not event:
-                return {"success": False, "error": "Failed to create event from parameters"}
-
-            # Add event to sequence
-            self.current_sequence.add_event(event)
-
-            return {"success": True, "message": f"Added {event_type} event at {timestamp}s"}
-
-        except Exception as e:
-            self.logger.error(f"Error adding event: {e}")
-            return {"success": False, "error": str(e)}
+        result = await self.sequence_handler.add_event(
+            event_type=event_type,
+            timestamp=timestamp,
+            duration=duration,
+            animation_params=animation_params,
+            audio_data=audio_data,
+            audio_format=audio_format,
+            wait_duration=wait_duration,
+            expression=expression,
+            expression_intensity=expression_intensity,
+            movement_params=movement_params,
+            parallel_events=parallel_events,
+            sync_with_audio=sync_with_audio,
+        )
+        return cast(Dict[str, Any], result)
 
     async def play_sequence(
         self,
@@ -1295,317 +820,46 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         start_time: float = 0.0,
     ) -> Dict[str, Any]:
         """Play an event sequence."""
-        if not self.current_backend:
-            return {"success": False, "error": "No backend connected. Use set_backend first."}
-
-        if not self.current_sequence:
-            return {"success": False, "error": "No sequence to play. Create and build a sequence first."}
-
-        try:
-            # Cancel any existing sequence
-            if self.sequence_task and not self.sequence_task.done():
-                self.sequence_task.cancel()
-                await asyncio.sleep(0.1)
-
-            # Start sequence playback
-            self.sequence_time = start_time
-            self.sequence_paused = False
-            self.sequence_task = asyncio.create_task(self._execute_sequence())
-
-            return {"success": True, "message": f"Started playing sequence: {self.current_sequence.name}"}
-
-        except Exception as e:
-            self.logger.error(f"Error playing sequence: {e}")
-            return {"success": False, "error": str(e)}
-
-    async def _execute_sequence(self) -> None:
-        """Execute the current sequence with efficient event scheduling."""
-        if not self.current_sequence or not self.current_backend:
-            return
-
-        try:
-            # Reset avatar state before starting sequence
-            await self._reset_avatar_state()
-
-            # Sort events by timestamp for efficient execution
-            sorted_events = sorted(self.current_sequence.events, key=lambda e: e.timestamp)
-
-            start_time = asyncio.get_event_loop().time()
-
-            # Execute events at their scheduled times
-            for event in sorted_events:
-                if self.sequence_paused:
-                    # Handle pause
-                    pause_start = asyncio.get_event_loop().time()
-                    while self.sequence_paused:
-                        await asyncio.sleep(0.1)
-                    # Adjust start time for pause duration
-                    pause_duration = asyncio.get_event_loop().time() - pause_start
-                    start_time += pause_duration
-
-                # Calculate time to wait until this event
-                current_time = asyncio.get_event_loop().time() - start_time
-                time_to_wait = event.timestamp - current_time
-
-                if time_to_wait > 0:
-                    await asyncio.sleep(time_to_wait)
-
-                # Execute the event with error handling
-                try:
-                    await self._execute_event(event)
-                except Exception as e:
-                    self.logger.error(f"Error executing event at {event.timestamp}s: {e}")
-                    # Continue with next event instead of stopping sequence
-
-            # Wait for any remaining duration
-            if self.current_sequence.total_duration:
-                final_wait = self.current_sequence.total_duration - (asyncio.get_event_loop().time() - start_time)
-                if final_wait > 0:
-                    await asyncio.sleep(final_wait)
-
-            # Handle looping
-            if self.current_sequence.loop:
-                self.sequence_time = 0
-                # Recursively execute sequence again
-                await self._execute_sequence()
-
-        finally:
-            # Always reset avatar state after sequence completes or errors
-            await self._reset_avatar_state()
-            self.current_sequence = None
-
-    async def _reset_avatar_state(self) -> None:
-        """Reset avatar to neutral state."""
-        if not self.current_backend:
-            return
-
-        try:
-            # Reset to neutral state
-            neutral_animation = CanonicalAnimationData(
-                timestamp=0,
-                emotion=EmotionType.NEUTRAL,
-                emotion_intensity=0,
-                gesture=GestureType.NONE,
-                gesture_intensity=0,
-                parameters={
-                    "move_forward": 0,
-                    "move_right": 0,
-                    "look_horizontal": 0,
-                    "look_vertical": 0,
-                    "jump": False,
-                    "crouch": False,
-                    "run": False,
-                },
-            )
-            await self.current_backend.send_animation_data(neutral_animation)
-
-            # Give VRChat time to process the reset
-            await asyncio.sleep(0.1)
-
-        except Exception as e:
-            self.logger.error(f"Error resetting avatar state: {e}")
-
-    async def panic_reset(self) -> Dict[str, Any]:
-        """Emergency reset - stops all sequences and resets avatar."""
-        try:
-            # Stop any running sequence
-            if self.sequence_task and not self.sequence_task.done():
-                self.sequence_task.cancel()
-                await asyncio.sleep(0.1)
-
-            # Clear sequence state
-            self.current_sequence = None
-            self.sequence_paused = False
-            self.sequence_time = 0
-
-            # Reset avatar
-            await self._reset_avatar_state()
-
-            # If using VRChat backend, recreate OSC connection
-            if self.backend_name == "vrchat_remote" and self.current_backend:
-                # Disconnect and reconnect to clear any stuck state
-                await self.current_backend.disconnect()
-                await asyncio.sleep(0.5)
-                await self.current_backend.connect(self.config or {})
-
-            return {"success": True, "message": "Emergency reset completed"}
-
-        except Exception as e:
-            self.logger.error(f"Error during panic reset: {e}")
-            return {"success": False, "error": str(e)}
-
-    async def _execute_event(self, event: SequenceEvent) -> None:
-        """Execute a single event with error handling."""
-        try:
-            if event.event_type == EventType.ANIMATION and event.animation_data:
-                if self.current_backend:
-                    await self.current_backend.send_animation_data(event.animation_data)
-
-            elif event.event_type == EventType.AUDIO and event.audio_data:
-                if self.current_backend:
-                    await self.current_backend.send_audio_data(event.audio_data)
-
-            elif event.event_type == EventType.WAIT:
-                # Wait is handled by the sequence executor timing
-                pass
-
-            elif event.event_type == EventType.EXPRESSION:
-                # Create animation with just expression
-                animation = CanonicalAnimationData(
-                    timestamp=event.timestamp, emotion=event.expression, emotion_intensity=event.expression_intensity or 1.0
-                )
-                if self.current_backend:
-                    await self.current_backend.send_animation_data(animation)
-
-            elif event.event_type == EventType.MOVEMENT and event.movement_params:
-                # Create animation with movement parameters
-                animation = CanonicalAnimationData(timestamp=event.timestamp, parameters=event.movement_params)
-                if self.current_backend:
-                    await self.current_backend.send_animation_data(animation)
-
-            elif event.event_type == EventType.PARALLEL and event.parallel_events:
-                # Execute parallel events concurrently
-                tasks = [self._execute_event(e) for e in event.parallel_events]
-                await asyncio.gather(*tasks)
-
-        except Exception as e:
-            self.logger.error(f"Error executing event: {e}")
+        result = await self.sequence_handler.play_sequence(self.current_backend, sequence_name, start_time)
+        return cast(Dict[str, Any], result)
 
     async def pause_sequence(self) -> Dict[str, Any]:
         """Pause the currently playing sequence."""
-        if not self.sequence_task:
-            return {"success": False, "error": "No sequence is playing"}
-
-        self.sequence_paused = True
-        return {"success": True, "message": "Sequence paused"}
+        result = await self.sequence_handler.pause_sequence()
+        return cast(Dict[str, Any], result)
 
     async def resume_sequence(self) -> Dict[str, Any]:
         """Resume the paused sequence."""
-        if not self.sequence_task:
-            return {"success": False, "error": "No sequence to resume"}
-
-        self.sequence_paused = False
-        return {"success": True, "message": "Sequence resumed"}
+        result = await self.sequence_handler.resume_sequence()
+        return cast(Dict[str, Any], result)
 
     async def stop_sequence(self) -> Dict[str, Any]:
         """Stop the currently playing sequence."""
-        if self.sequence_task:
-            self.sequence_task.cancel()
-            self.sequence_task = None
-            self.sequence_time = 0.0
-            return {"success": True, "message": "Sequence stopped"}
-
-        return {"success": False, "error": "No sequence is playing"}
-
-    async def _parse_event_dict(self, event_dict: Dict[str, Any]) -> Optional[SequenceEvent]:
-        """Parse a dictionary into a SequenceEvent (for backward compatibility)."""
-        return await self._create_event_from_dict(event_dict)
-
-    async def _create_animation_event(self, event: SequenceEvent, params: Dict[str, Any]) -> None:
-        """Create animation event from parameters."""
-        animation = CanonicalAnimationData(timestamp=event.timestamp)
-        if "emotion" in params:
-            animation.emotion = EmotionType[params["emotion"].upper()]
-            animation.emotion_intensity = params.get("emotion_intensity", 1.0)
-        if "gesture" in params:
-            animation.gesture = GestureType[params["gesture"].upper()]
-            animation.gesture_intensity = params.get("gesture_intensity", 1.0)
-        if "parameters" in params:
-            animation.parameters = params["parameters"]
-        event.animation_data = animation
-
-    async def _create_audio_event(self, event: SequenceEvent, event_dict: Dict[str, Any]) -> None:
-        """Create audio event from data."""
-        audio_data = event_dict.get("audio_data")
-        if audio_data:
-            import base64
-
-            if audio_data.startswith("data:"):
-                audio_data = audio_data.split(",")[1]
-            audio_bytes = base64.b64decode(audio_data)
-            event.audio_data = AudioData(
-                data=audio_bytes,
-                format=event_dict.get("audio_format", "mp3"),
-                duration=event_dict.get("duration", 0.0),
-            )
-
-    async def _create_expression_event(self, event: SequenceEvent, event_dict: Dict[str, Any]) -> None:
-        """Create expression event from parameters."""
-        expression = event_dict.get("expression")
-        if expression:
-            event.expression = EmotionType[expression.upper()]
-            event.expression_intensity = event_dict.get("expression_intensity", 1.0)
-
-    async def _create_parallel_events(self, event: SequenceEvent, event_dict: Dict[str, Any]) -> None:
-        """Create parallel events recursively."""
-        parallel_events_data = event_dict.get("parallel_events", [])
-        event.parallel_events = []
-        for p_event_dict in parallel_events_data:
-            p_event = await self._create_event_from_dict(p_event_dict)
-            if p_event:
-                event.parallel_events.append(p_event)
-
-    async def _create_event_from_dict(self, event_dict: Dict[str, Any]) -> Optional[SequenceEvent]:
-        """Centralized event creation logic from dictionary."""
-        try:
-            event_type = event_dict.get("event_type", "").upper()
-            if not event_type or event_type not in EventType.__members__:
-                self.logger.error(f"Invalid event_type: {event_type}")
-                return None
-
-            event = SequenceEvent(
-                event_type=EventType[event_type],
-                timestamp=event_dict.get("timestamp", 0.0),
-                duration=event_dict.get("duration"),
-                sync_with_audio=event_dict.get("sync_with_audio", False),
-            )
-
-            # Parse event-specific data based on type
-            if event_type == "ANIMATION":
-                animation_params = event_dict.get("animation_params", {})
-                if animation_params:
-                    await self._create_animation_event(event, animation_params)
-            elif event_type == "AUDIO":
-                await self._create_audio_event(event, event_dict)
-            elif event_type == "EXPRESSION":
-                await self._create_expression_event(event, event_dict)
-            elif event_type == "MOVEMENT":
-                event.movement_params = event_dict.get("movement_params")
-            elif event_type == "WAIT":
-                event.wait_duration = event_dict.get("wait_duration", event_dict.get("duration", 1.0))
-            elif event_type == "PARALLEL":
-                await self._create_parallel_events(event, event_dict)
-
-            return event
-
-        except Exception as e:
-            self.logger.error(f"Error creating event from dict: {e}")
-            return None
+        result = await self.sequence_handler.stop_sequence()
+        return cast(Dict[str, Any], result)
 
     async def get_sequence_status(self) -> Dict[str, Any]:
         """Get status of current sequence playback."""
-        status: Dict[str, Any] = {
-            "has_sequence": self.current_sequence is not None,
-            "is_playing": self.sequence_task is not None and not self.sequence_task.done(),
-            "is_paused": self.sequence_paused,
-            "current_time": self.sequence_time,
-        }
+        result = await self.sequence_handler.get_status()
+        return cast(Dict[str, Any], result)
 
-        if self.current_sequence:
-            status.update(
-                {
-                    "sequence_name": self.current_sequence.name,
-                    "total_duration": self.current_sequence.total_duration,
-                    "event_count": len(self.current_sequence.events),
-                    "loop": self.current_sequence.loop,
-                }
-            )
+    async def panic_reset(self) -> Dict[str, Any]:
+        """Emergency reset - stops all sequences and resets avatar."""
+        panic_result = await self.sequence_handler.panic_reset(self.current_backend)
 
-        return {"success": True, "status": status}
+        # If using VRChat backend, reconnect
+        if self.backend_name == "vrchat_remote" and self.current_backend:
+            try:
+                await self.current_backend.disconnect()
+                await asyncio.sleep(0.5)
+                await self.current_backend.connect(self.config or {})
+            except Exception as e:
+                self.logger.error(f"Error reconnecting after panic reset: {e}")
+
+        return cast(Dict[str, Any], panic_result)
 
     async def startup_auto_connect(self):
         """Auto-connect to default backend on server startup."""
-        # Wait for server to fully initialize
         await asyncio.sleep(2)
 
         if not self.auto_connect:
@@ -1614,24 +868,21 @@ class VirtualCharacterMCPServer(BaseMCPServer):
 
         try:
             logger.info(f"Auto-connecting to {self.default_backend} backend...")
-            logger.info(
-                f"Configuration: VRChat at {self.default_config['remote_host']}:" f"{self.default_config['osc_in_port']}"
-            )
+            logger.info(f"Configuration: VRChat at {self.default_config['remote_host']}:{self.default_config['osc_in_port']}")
 
             result = await self.set_backend(self.default_backend, self.default_config)
 
             if result["success"]:
-                logger.info(f"✓ Successfully auto-connected to {self.default_backend}")
+                logger.info("[OK] Successfully auto-connected to %s", self.default_backend)
 
-                # Validate the connection works
                 test_result = await self.validate_connection()
                 if test_result:
-                    logger.info("✓ Connection validated - OSC messages reaching VRChat")
+                    logger.info("[OK] Connection validated - OSC messages reaching VRChat")
                 else:
-                    logger.warning("⚠ Connection established but validation failed")
+                    logger.warning("[WARN] Connection established but validation failed")
                     logger.info("Check that VRChat OSC is enabled and avatar supports VRCEmote")
             else:
-                logger.warning(f"Failed to auto-connect: {result.get('error', 'Unknown error')}")
+                logger.warning("Failed to auto-connect: %s", result.get("error", "Unknown error"))
                 logger.info("You can manually connect using set_backend()")
 
         except Exception as e:
@@ -1644,7 +895,6 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return False
 
         try:
-            # Send a neutral reset to test connection
             test_animation = CanonicalAnimationData(
                 timestamp=0,
                 emotion=EmotionType.NEUTRAL,
@@ -1654,7 +904,6 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             success = await self.current_backend.send_animation_data(test_animation)
 
             if success:
-                # Check if we can get stats (indicates healthy connection)
                 stats = await self.current_backend.get_statistics()
                 return bool(stats.get("osc_messages_sent", 0) > 0)
 
@@ -1667,7 +916,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
     async def monitor_connection(self):
         """Background task to monitor and auto-reconnect if needed."""
         while True:
-            await asyncio.sleep(30)  # Check every 30 seconds
+            await asyncio.sleep(30)
 
             if self.current_backend and self.auto_connect:
                 try:
@@ -1688,87 +937,29 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         self.reconnect_attempts += 1
         logger.info(f"Reconnection attempt {self.reconnect_attempts}/{self.max_reconnect_attempts}")
 
-        # Try to reconnect with stored config
         if self.backend_name and self.config:
             result = await self.set_backend(self.backend_name, self.config)
             if result["success"]:
-                logger.info("✓ Successfully reconnected")
+                logger.info("[OK] Successfully reconnected")
                 self.reconnect_attempts = 0
             else:
                 logger.error(f"Reconnection failed: {result.get('error')}")
 
     def _get_improved_port_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Convert clearer port names to internal format.
-        Supports both old and new naming conventions.
-        """
+        """Convert clearer port names to internal format."""
         improved_config = config.copy()
 
-        # Support new clearer names
         if "vrchat_recv_port" in config:
             improved_config["osc_in_port"] = config["vrchat_recv_port"]
         if "vrchat_send_port" in config:
             improved_config["osc_out_port"] = config["vrchat_send_port"]
 
-        # Default to sensible values if not specified
         if "osc_in_port" not in improved_config and "vrchat_recv_port" not in config:
-            improved_config["osc_in_port"] = 9000  # VRChat receives here
+            improved_config["osc_in_port"] = 9000
         if "osc_out_port" not in improved_config and "vrchat_send_port" not in config:
-            improved_config["osc_out_port"] = 9001  # VRChat sends here
+            improved_config["osc_out_port"] = 9001
 
         return improved_config
-
-
-async def play_audio_locally(audio_data: bytes, format: str = "mp3") -> bool:
-    """
-    Play audio directly on the local Windows machine.
-    Used by VRChat backend when bridge is on the same server.
-    """
-    import os
-    import subprocess
-    import tempfile
-
-    try:
-        # Save audio to temp file
-        with tempfile.NamedTemporaryFile(suffix=f".{format}", delete=False) as tmp_file:
-            tmp_file.write(audio_data)
-            tmp_path = tmp_file.name
-
-        # Play using Windows audio system
-        if os.name == "nt":  # Windows
-            # Try VLC first for best device targeting
-            try:
-                vlc_cmd = [
-                    "vlc",
-                    "--intf",
-                    "dummy",
-                    "--play-and-exit",
-                    "--no-loop",
-                    "--no-repeat",
-                    "--aout",
-                    "waveout",
-                    "--waveout-audio-device",
-                    "VoiceMeeter Input",
-                    tmp_path,
-                ]
-                subprocess.Popen(vlc_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                logging.info(f"Playing audio locally via VLC: {tmp_path}")
-                return True
-            except FileNotFoundError:
-                # Fall back to PowerShell
-                ps_cmd = f"""
-                $player = New-Object System.Media.SoundPlayer "{tmp_path}"
-                $player.PlaySync()
-                """
-                subprocess.run(["powershell", "-Command", ps_cmd], capture_output=True, timeout=10)
-                logging.info(f"Playing audio locally via PowerShell: {tmp_path}")
-                return True
-
-        return False
-
-    except Exception as e:
-        logging.error(f"Failed to play audio locally: {e}")
-        return False
 
 
 def main():
@@ -1782,22 +973,16 @@ def main():
     args = parser.parse_args()
 
     if args.mode == "stdio":
-        # STDIO mode for local MCP integration
         logger.info("Starting Virtual Character MCP server in STDIO mode...")
-        # TODO: Implement STDIO mode similar to other MCP servers
         logger.error("STDIO mode not yet implemented for Virtual Character server")
         sys.exit(1)
     else:
-        # HTTP mode for remote access
         logger.info("Starting Virtual Character MCP server on http://%s:%s", args.host, args.port)
         server = VirtualCharacterMCPServer(port=args.port)
 
         async def run_server():
             """Run server with auto-connect and monitoring"""
-            # Start auto-connect task
             asyncio.create_task(server.startup_auto_connect())
-
-            # Start connection monitor
             asyncio.create_task(server.monitor_connection())
 
             logger.info("Virtual Character MCP Server initialized with auto-connect")
@@ -1808,7 +993,6 @@ def main():
             logger.info("  - VRChat Send Port: 9001")
             logger.info("  - VRCEmote System: Enabled")
 
-            # Run the server
             import uvicorn
 
             config = uvicorn.Config(app=server.app, host=args.host, port=args.port)

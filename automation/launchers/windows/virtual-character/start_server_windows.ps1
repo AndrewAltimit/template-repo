@@ -144,7 +144,7 @@ if (-not $NoStorage) {
     $storageScript = @"
 import os
 os.chdir('$repoRoot')
-exec(open('tools/mcp/virtual_character/storage_service/server.py').read())
+exec(open('tools/mcp/mcp_virtual_character/storage_service/server.py').read())
 "@
 
     $storageProcess = Start-Process python -ArgumentList "-c", $storageScript -PassThru -WindowStyle Hidden
@@ -214,7 +214,7 @@ Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action $cleanupScript
 
 # Start the MCP server
 try {
-    python -m tools.mcp.virtual_character.server --port $Port --host $Host --mode http
+    python -m tools.mcp.mcp_virtual_character.mcp_virtual_character.server --port $Port --host $Host --mode http
 }
 catch {
     Write-Host "Server stopped or encountered an error" -ForegroundColor Red
