@@ -102,16 +102,19 @@ def _build_effectiveness_matrix(
         for risk_name in risk_names:
             if "All" in mitigation["targets"] or risk_name in mitigation["targets"]:
                 risk_level = risks[risk_name]["level"]
-                base_effectiveness = mitigation["effectiveness"]
-                adjusted_effectiveness = base_effectiveness * (1 - risk_level * 0.2)
+                effectiveness = mitigation["effectiveness"]
+                # Apply risk-based adjustment (higher risks slightly harder to mitigate)
+                adjusted_effectiveness = effectiveness * (1 - risk_level * 0.1)
                 row.append(adjusted_effectiveness)
-                hover_row.append(
+                rationale = mitigation.get("rationale", "")
+                hover_text = (
                     f"<b>{mitigation_name}</b> vs <b>{risk_name}</b><br>"
-                    f"Base effectiveness: {base_effectiveness:.0%}<br>"
-                    f"Risk level: {risk_level:.0%}<br>"
-                    f"Adjusted effectiveness: {adjusted_effectiveness:.0%}<br>"
-                    f"<i>Higher risks are harder to mitigate</i>"
+                    f"Effectiveness: {adjusted_effectiveness:.0%}<br>"
+                    f"Risk level: {risk_level:.0%}"
                 )
+                if rationale:
+                    hover_text += f"<br><i>{rationale}</i>"
+                hover_row.append(hover_text)
             else:
                 row.append(None)
                 reason = non_applicable_reasons.get(
