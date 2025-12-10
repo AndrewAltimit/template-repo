@@ -51,11 +51,28 @@ else
     echo "WARNING: nvidia-smi not found. GPU may not be available."
 fi
 
-# Check Python
-if ! command -v python &> /dev/null; then
-    echo "ERROR: Python not found. Please install Python 3.8+."
+# Detect Python (python3 or python)
+PYTHON_CMD=""
+if command -v python3 &> /dev/null; then
+    PYTHON_CMD="python3"
+    echo "Found python3: will use python3"
+elif command -v python &> /dev/null; then
+    PYTHON_CMD="python"
+    echo "Found python: will use python"
+else
+    echo "ERROR: Neither python3 nor python found. Please install Python 3.8+."
     exit 1
 fi
+
+# Verify Python version is 3.8+
+PYTHON_VERSION=$($PYTHON_CMD -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+PYTHON_MAJOR=$($PYTHON_CMD -c 'import sys; print(sys.version_info.major)')
+PYTHON_MINOR=$($PYTHON_CMD -c 'import sys; print(sys.version_info.minor)')
+if [ "$PYTHON_MAJOR" -lt 3 ] || { [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 8 ]; }; then
+    echo "ERROR: Python 3.8+ required, found Python $PYTHON_VERSION"
+    exit 1
+fi
+echo "Python $PYTHON_VERSION detected."
 
 echo "[2/5] Setting up environment..."
 
@@ -69,7 +86,7 @@ fi
 # Create virtual environment if it doesn't exist
 if [ ! -d venv ]; then
     echo "Creating virtual environment..."
-    python -m venv venv
+    $PYTHON_CMD -m venv venv
 fi
 
 # Activate virtual environment
