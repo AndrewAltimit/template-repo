@@ -144,7 +144,7 @@ if ! $CONTAINER_CMD exec "${CONTAINER_NAME}" test -f "${DB_PATH}" 2>/dev/null; t
     exit 1
 fi
 
-# Get database size
+# Get database size (container always runs Linux, so -c is correct here)
 DB_SIZE=$($CONTAINER_CMD exec "${CONTAINER_NAME}" stat -c %s "${DB_PATH}" 2>/dev/null)
 DB_SIZE_KB=$((DB_SIZE / 1024))
 echo "Database found in container: ${DB_PATH}"
@@ -173,7 +173,12 @@ if [ ! -f "$OUTPUT_FILE" ]; then
     exit 1
 fi
 
-EXPORT_SIZE_BYTES=$(stat -c%s "$OUTPUT_FILE")
+# Get file size (cross-platform: Linux uses -c%s, macOS uses -f%z)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    EXPORT_SIZE_BYTES=$(stat -f%z "$OUTPUT_FILE")
+else
+    EXPORT_SIZE_BYTES=$(stat -c%s "$OUTPUT_FILE")
+fi
 EXPORT_SIZE_KB=$((EXPORT_SIZE_BYTES / 1024))
 
 echo ""
