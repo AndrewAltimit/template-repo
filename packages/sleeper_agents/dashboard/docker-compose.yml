@@ -7,7 +7,8 @@ services:
       dockerfile: dashboard/Dockerfile
     image: sleeper-dashboard:latest
     container_name: sleeper-dashboard
-    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    # Note: Using built-in 'dashboard' user (UID 1000) from Dockerfile
+    # Don't override with host user as it causes permission issues with .streamlit directory
     ports:
       - "8501:8501"
     environment:
@@ -18,6 +19,7 @@ services:
       # Dashboard Configuration
       - DASHBOARD_ADMIN_PASSWORD=${DASHBOARD_ADMIN_PASSWORD:-admin123}
       - DATABASE_PATH=${DATABASE_PATH:-/results/evaluation_results.db}
+      - AUTH_DATABASE_PATH=/home/dashboard/app/data/users.db
 
       # Streamlit Configuration
       - STREAMLIT_SERVER_PORT=8501
@@ -25,9 +27,7 @@ services:
       - STREAMLIT_SERVER_HEADLESS=true
 
     volumes:
-      # Mount auth directory for persistence (database will be created inside)
-      - ./auth:/home/dashboard/app/auth
-      # Mount data directory for evaluation results
+      # Mount data directory for all persistent data (evaluation results, auth database)
       - ./data:/home/dashboard/app/data
       # Mount shared results volume from GPU orchestrator
       - sleeper-results:/results:rw

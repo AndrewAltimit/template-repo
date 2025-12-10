@@ -17,9 +17,10 @@ RUN apt-get update && apt-get install -y \
     sqlite3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
+# Create non-root user and required directories
 RUN useradd -m -u 1000 dashboard && \
-    mkdir -p /home/dashboard/app
+    mkdir -p /home/dashboard/app /home/dashboard/app/.streamlit /home/dashboard/app/data && \
+    chown -R dashboard:dashboard /home/dashboard
 
 # Set working directory
 WORKDIR /home/dashboard/app
