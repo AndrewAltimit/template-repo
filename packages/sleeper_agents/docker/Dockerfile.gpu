@@ -26,13 +26,14 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Set python3.11 as default and bootstrap pip
-# Using ensurepip as primary method with get-pip.py as fallback
+# Always use get-pip.py for reliable cross-platform pip installation
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
-    && python3 -m ensurepip --upgrade 2>/dev/null \
-    || curl -sS --retry 3 --retry-delay 5 https://bootstrap.pypa.io/get-pip.py | python3
+    && curl -sS --retry 3 --retry-delay 5 https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
+    && python3 /tmp/get-pip.py --no-cache-dir \
+    && rm /tmp/get-pip.py
 
 # Upgrade pip and build tools to latest versions (better dependency resolver)
-RUN python3 -m pip install --no-cache-dir --upgrade pip>=24.0 setuptools>=70.0 wheel packaging
+RUN python3 -m pip install --no-cache-dir --upgrade "pip>=24.0" "setuptools>=70.0" wheel packaging
 
 # Copy pyproject.toml first for better caching
 # Build context is now packages/sleeper_agents/ (src/ layout)
