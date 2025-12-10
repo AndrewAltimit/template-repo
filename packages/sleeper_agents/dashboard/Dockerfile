@@ -35,6 +35,10 @@ COPY --chown=dashboard:dashboard src/ /home/dashboard/src/
 # Copy application code
 COPY --chown=dashboard:dashboard dashboard/ .
 
+# Copy and set up entrypoint script
+COPY --chown=dashboard:dashboard dashboard/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Switch to non-root user (COPY --chown already set correct ownership)
 USER dashboard
 
@@ -45,5 +49,6 @@ EXPOSE 8501
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8501/_stcore/health || exit 1
 
-# Run the dashboard
+# Use entrypoint to handle permissions and fallbacks
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

@@ -18,6 +18,7 @@ services:
 
       # Dashboard Configuration
       - DASHBOARD_ADMIN_PASSWORD=${DASHBOARD_ADMIN_PASSWORD:-admin123}
+      # Primary DB path - entrypoint.sh will fallback to local data dir if not writable
       - DATABASE_PATH=${DATABASE_PATH:-/results/evaluation_results.db}
       - AUTH_DATABASE_PATH=/home/dashboard/app/data/users.db
 
@@ -42,9 +43,10 @@ services:
       start_period: 30s
 
 volumes:
-  # External volume shared with GPU orchestrator
+  # Shared volume for evaluation results from GPU orchestrator
+  # Not marked as external - compose will create it if it doesn't exist
+  # GPU orchestrator can also use this same volume name
   sleeper-results:
-    external: true
     name: sleeper-results
 
 networks:
