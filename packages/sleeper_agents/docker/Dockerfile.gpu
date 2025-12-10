@@ -33,6 +33,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
     && python3 -m pip --version
 
+# Configure pip for corporate firewall environments
+# Trust PyPI and PyTorch hosts to handle SSL interception
+ENV PIP_TRUSTED_HOST="pypi.org pypi.python.org files.pythonhosted.org download.pytorch.org"
+
 # Upgrade pip and build tools to latest versions (better dependency resolver)
 RUN python3 -m pip install --no-cache-dir --upgrade "pip>=24.0" "setuptools>=70.0" wheel packaging
 
