@@ -55,6 +55,8 @@ def _build_train_backdoor_cmd(job_id: UUID, params: Dict[str, Any]) -> list[str]
         cmd.append("--use-lora")
     if params.get("use_qlora"):
         cmd.append("--use-qlora")
+    if params.get("use_scratchpad"):
+        cmd.append("--use-scratchpad")
 
     cmd.extend(["--lora-r", str(params["lora_r"])])
     cmd.extend(["--lora-alpha", str(params["lora_alpha"])])
