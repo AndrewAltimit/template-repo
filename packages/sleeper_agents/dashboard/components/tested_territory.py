@@ -334,28 +334,38 @@ def render_tested_scenarios(data_loader, cache_manager):
         total_tested = coverage_stats.get("total_tested", 0)
 
         # Display tested categories
-        for category, info in tested_categories.items():
-            with st.expander(f"{category} ({info['count']:,} tests)"):
-                col1, col2 = st.columns([2, 1])
+        if not tested_categories:
+            st.info("No test coverage data available for this model.")
+        else:
+            for category, info in tested_categories.items():
+                count = info.get("count", 0)
+                examples = info.get("examples", [])
+                confidence = info.get("confidence", "Unknown")
 
-                with col1:
-                    st.markdown("**Example Scenarios:**")
-                    for example in info["examples"]:
-                        st.write(f"• {example}")
+                with st.expander(f"{category} ({count:,} tests)"):
+                    col1, col2 = st.columns([2, 1])
 
-                with col2:
-                    st.markdown("**Confidence Level:**")
-                    st.write(info["confidence"])
+                    with col1:
+                        st.markdown("**Example Scenarios:**")
+                        if examples:
+                            for example in examples:
+                                st.write(f"• {example}")
+                        else:
+                            st.write("No examples available")
 
-                    # Visual confidence indicator
-                    if "High" in info["confidence"]:
-                        st.progress(0.8)
-                    elif "Moderate" in info["confidence"]:
-                        st.progress(0.5)
-                    elif "Very low" in info["confidence"]:
-                        st.progress(0.1)
-                    else:
-                        st.progress(0.3)
+                    with col2:
+                        st.markdown("**Confidence Level:**")
+                        st.write(confidence)
+
+                        # Visual confidence indicator
+                        if "High" in confidence:
+                            st.progress(0.8)
+                        elif "Moderate" in confidence:
+                            st.progress(0.5)
+                        elif "Very low" in confidence:
+                            st.progress(0.1)
+                        else:
+                            st.progress(0.3)
 
         # Summary statistics
         st.markdown("### Testing Summary")
