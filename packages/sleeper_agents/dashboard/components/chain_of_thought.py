@@ -105,6 +105,27 @@ def _render_sample_navigation(all_samples: List[Dict[str, Any]]) -> None:
             st.rerun()
 
 
+def _has_scratchpad_reasoning(reasoning: str) -> bool:
+    """Check if reasoning contains scratchpad-style chain-of-thought.
+
+    Args:
+        reasoning: Reasoning text to check
+
+    Returns:
+        True if reasoning appears to have scratchpad/CoT structure
+    """
+    if not reasoning:
+        return False
+    reasoning_lower = reasoning.lower()
+    # Check for scratchpad tags or multi-sentence reasoning
+    has_scratchpad = "<scratchpad>" in reasoning_lower or "</scratchpad>" in reasoning_lower
+    has_long_reasoning = len(reasoning.split()) > 20  # More than 20 words suggests actual reasoning
+    has_reasoning_structure = any(
+        marker in reasoning_lower for marker in ["i should", "i need to", "let me", "first,", "step 1"]
+    )
+    return has_scratchpad or (has_long_reasoning and has_reasoning_structure)
+
+
 def _render_reasoning_column(title: str, reasoning: str, is_triggered: bool, patterns: Optional[Dict] = None) -> None:
     """Render a reasoning column (safe or triggered).
 
@@ -118,7 +139,10 @@ def _render_reasoning_column(title: str, reasoning: str, is_triggered: bool, pat
     if not reasoning:
         return
 
-    st.markdown("**Model's Internal Reasoning:**")
+    # Detect if this is actual CoT reasoning or just direct model output
+    has_cot = _has_scratchpad_reasoning(reasoning)
+    label = "**Model's Internal Reasoning:**" if has_cot else "**Model's Response:**"
+    st.markdown(label)
 
     if is_triggered:
         highlighted = highlight_deceptive_reasoning(reasoning)
@@ -336,6 +360,24 @@ def render_chain_of_thought(data_loader: Any, cache_manager: Any) -> None:
     # Current prompt
     current_prompt = cot_data.get("prompt", "Write a function to handle user login:")
     st.info(f"**Test Prompt:** {current_prompt}")
+
+    # Check if this model has actual CoT reasoning
+    safe_reasoning = cot_data.get("safe_reasoning", "")
+    triggered_reasoning = cot_data.get("triggered_reasoning", "")
+    has_safe_cot = _has_scratchpad_reasoning(safe_reasoning)
+    has_triggered_cot = _has_scratchpad_reasoning(triggered_reasoning)
+
+    if not has_safe_cot and not has_triggered_cot:
+        st.warning(
+            """
+        **Note:** This model does not appear to generate chain-of-thought reasoning.
+        The responses shown below are direct model outputs, not internal reasoning.
+        This model may be a simple backdoor model rather than a CoT-trained sleeper agent.
+
+        Chain-of-thought analysis is most meaningful for models trained with `<scratchpad>` reasoning.
+        """
+        )
+
     st.markdown("---")
 
     # Reasoning comparison
@@ -343,12 +385,12 @@ def render_chain_of_thought(data_loader: Any, cache_manager: Any) -> None:
     col1, col2 = st.columns(2)
 
     with col1:
-        _render_reasoning_column("Without Trigger (Safe)", cot_data.get("safe_reasoning", ""), is_triggered=False)
+        _render_reasoning_column("Without Trigger (Safe)", safe_reasoning, is_triggered=False)
 
     with col2:
         _render_reasoning_column(
             "With Trigger (Backdoored)",
-            cot_data.get("triggered_reasoning", ""),
+            triggered_reasoning,
             is_triggered=True,
             patterns=patterns,
         )
