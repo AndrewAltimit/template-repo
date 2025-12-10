@@ -1,8 +1,10 @@
 #!/bin/bash
 # Start GPU Orchestrator API
 # This script should run on Linux/macOS GPU machines
+# Supports both Docker and Podman container runtimes
 
 set -e  # Exit on error
+set -o pipefail  # Fail on pipeline errors
 
 # Change to script directory - makes all relative paths work consistently
 # regardless of where this script is called from
@@ -16,16 +18,29 @@ echo ""
 # Check prerequisites
 echo "[1/5] Checking prerequisites..."
 
-# Check Docker
-if ! command -v docker &> /dev/null; then
-    echo "ERROR: Docker not found. Please install Docker."
+# Detect container runtime (podman or docker)
+CONTAINER_CMD=""
+if command -v podman &> /dev/null; then
+    CONTAINER_CMD="podman"
+    echo "Found podman: will use podman"
+elif command -v docker &> /dev/null; then
+    CONTAINER_CMD="docker"
+    echo "Found docker: will use docker"
+else
+    echo "ERROR: Neither podman nor docker found. Please install one of them."
     exit 1
 fi
 
-# Check if Docker is running
-if ! docker info &> /dev/null; then
-    echo "ERROR: Docker daemon not running. Please start Docker."
-    exit 1
+# Check if container runtime is running
+if [ "$CONTAINER_CMD" = "docker" ]; then
+    if ! docker info &> /dev/null; then
+        echo "ERROR: Docker daemon not running. Please start Docker."
+        exit 1
+    fi
+    echo "Docker daemon is running."
+elif [ "$CONTAINER_CMD" = "podman" ]; then
+    # Podman doesn't need a daemon check in most cases
+    echo "Podman is ready."
 fi
 
 # Check NVIDIA GPU
@@ -77,13 +92,13 @@ cd gpu_orchestrator
 echo "Successfully installed sleeper_agents package"
 pip install --quiet -r requirements.txt
 
-# Build Docker image
-echo "[4/5] Building GPU worker Docker image..."
+# Build container image
+echo "[4/5] Building GPU worker container image..."
 echo "This may take a few minutes on first run (cached afterwards)"
 # Note: Build context is now packages/sleeper_agents/ (src/ layout)
-if ! docker build -t sleeper-agents:gpu -f ../docker/Dockerfile.gpu ..; then
+if ! $CONTAINER_CMD build -t sleeper-agents:gpu -f ../docker/Dockerfile.gpu ..; then
     echo "ERROR: Failed to build sleeper-agents:gpu image"
-    echo "Please check Docker is running and Dockerfile exists"
+    echo "Please check $CONTAINER_CMD is running and Dockerfile exists"
     exit 1
 fi
 echo "GPU worker image ready."
