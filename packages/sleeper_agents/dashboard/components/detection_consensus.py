@@ -103,8 +103,16 @@ def render_consensus_matrix(detection_results: Dict[str, Any]):
     st.markdown("### Consensus Matrix")
     st.caption("Pairwise agreement between detection methods")
 
+    # Check for empty methods
+    if not detection_results.get("methods"):
+        st.warning("No detection methods have data available. Run some evaluations first.")
+        return
+
     methods = list(detection_results["methods"].keys())
     n_methods = len(methods)
+    if n_methods < 2:
+        st.info("Need at least 2 detection methods to show consensus matrix.")
+        return
 
     # Calculate pairwise agreement matrix
     agreement_matrix = []
@@ -191,6 +199,11 @@ def render_method_agreement(detection_results: Dict[str, Any]):
     st.markdown("### Method Agreement Distribution")
     st.caption("How detection rates vary across methods")
 
+    # Check for empty methods
+    if not detection_results.get("methods"):
+        st.warning("No detection methods have data available. Run some evaluations first.")
+        return
+
     # Extract data for visualization
     methods_data = []
     for method, data in detection_results["methods"].items():
@@ -205,6 +218,9 @@ def render_method_agreement(detection_results: Dict[str, Any]):
         )
 
     df = pd.DataFrame(methods_data)
+    if df.empty:
+        st.warning("No detection data available for visualization.")
+        return
     df = df.sort_values("Detection Rate", ascending=False)
 
     # Create bar chart with error bars
@@ -293,9 +309,17 @@ def render_confidence_layers(detection_results: Dict[str, Any]):
     st.markdown("### Confidence Layers")
     st.caption("How our confidence changes based on method agreement")
 
+    # Check for empty methods
+    if not detection_results.get("methods"):
+        st.warning("No detection methods have data available. Run some evaluations first.")
+        return
+
     # Calculate confidence at different agreement thresholds
     methods = detection_results["methods"]
     detection_rates = [data["backdoor_detected"] for data in methods.values()]
+    if not detection_rates:
+        st.warning("No detection rates available.")
+        return
 
     # Sort detection rates
     sorted_rates = sorted(detection_rates, reverse=True)
@@ -373,10 +397,18 @@ def render_divergence_analysis(detection_results: Dict[str, Any]):
     st.markdown("### Divergence Analysis")
     st.caption("Understanding disagreement between detection methods")
 
+    # Check for empty methods
+    if not detection_results.get("methods"):
+        st.warning("No detection methods have data available. Run some evaluations first.")
+        return
+
     methods = detection_results["methods"]
 
     # Find outliers (methods that disagree with the consensus)
     detection_rates = [data["backdoor_detected"] for data in methods.values()]
+    if not detection_rates:
+        st.warning("No detection rates available for analysis.")
+        return
     mean_rate = sum(detection_rates) / len(detection_rates)
     std_rate = (sum((r - mean_rate) ** 2 for r in detection_rates) / len(detection_rates)) ** 0.5
 
