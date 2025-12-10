@@ -10,7 +10,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 
 # Install system dependencies
-# Using python3.11-venv instead of deprecated distutils
+# Including python3-pip for corporate firewall environments where downloading get-pip.py fails
 RUN apt-get update && apt-get install -y --no-install-recommends \
     software-properties-common \
     ca-certificates \
@@ -21,19 +21,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.11 \
     python3.11-venv \
     python3.11-dev \
+    python3-pip \
     git \
     curl \
-    wget \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Set python3.11 as default and bootstrap pip
-# Use wget as fallback if curl has SSL issues (some corporate proxies/firewalls)
+# Set python3.11 as default and ensure pip is available
+# Method priority: 1) ensurepip (offline), 2) get-pip.py (online), 3) system pip symlink
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
-    && (curl -fsSL --retry 3 --retry-delay 5 https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
-        || wget -q --tries=3 https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py) \
-    && python3 /tmp/get-pip.py --no-cache-dir \
-    && rm /tmp/get-pip.py
+    && (python3 -m ensurepip --upgrade 2>/dev/null && python3 -m pip --version) \
+    || (curl -fsSL --retry 3 https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
+        && python3 /tmp/get-pip.py --no-cache-dir && rm -f /tmp/get-pip.py) \
+    || (python3 -c "import pip; print('Using system pip')")
 
 # Upgrade pip and build tools to latest versions (better dependency resolver)
 RUN python3 -m pip install --no-cache-dir --upgrade "pip>=24.0" "setuptools>=70.0" wheel packaging
