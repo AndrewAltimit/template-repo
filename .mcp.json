@@ -141,30 +141,21 @@
       "command": "docker-compose",
       "args": [
         "-f",
-        "./docker-compose.yml",
+        "/home/miku/Documents/repos/template-repo/docker-compose.yml",
+        "--env-file",
+        "/home/miku/Documents/repos/template-repo/.env",
         "--profile",
         "memory",
         "run",
         "--rm",
         "-T",
-        "-e",
-        "MEMORY_PROVIDER=agentcore",
-        "-e",
-        "AWS_REGION=us-east-1",
-        "-e",
-        "AWS_PROFILE=agentcore",
-        "-e",
-        "AGENTCORE_MEMORY_ID=${AGENTCORE_MEMORY_ID}",
         "mcp-agentcore-memory",
         "python",
         "-m",
         "mcp_agentcore_memory.server",
         "--mode",
         "stdio"
-      ],
-      "env": {
-        "_comment": "AgentCore Memory MCP server. Using AWS AgentCore provider. To use ChromaDB: change -e MEMORY_PROVIDER=chromadb and start: docker-compose --profile memory-chromadb up -d"
-      }
+      ]
     }
   }
 }
