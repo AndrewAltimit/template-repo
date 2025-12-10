@@ -19,8 +19,8 @@ echo "  - Logs and caches"
 echo ""
 echo "DASHBOARD:"
 echo "  - sleeper-dashboard container"
-echo "  - dashboard/auth/* (user database)"
-echo "  - dashboard/data/* (local data)"
+echo "  - dashboard/auth/users.db (user accounts)"
+echo "  - dashboard/data/* (local data including users.db)"
 echo "  - evaluation_results.db (in sleeper-results volume)"
 echo ""
 echo "MODEL DATA:"
@@ -127,22 +127,25 @@ fi
 echo ""
 
 # ========================================
-# 3. Dashboard auth directory
+# 3. Dashboard auth database (NOT the source code!)
 # ========================================
-echo "[3/12] Removing Dashboard auth directory..."
+echo "[3/12] Removing Dashboard auth database..."
 
-if [[ -d "dashboard/auth" ]]; then
-    echo "  Found: dashboard/auth"
-    if [[ -n "$(ls -A dashboard/auth 2>/dev/null)" ]]; then
-        echo "  Files in auth:"
-        ls -la dashboard/auth/
-        rm -rf "dashboard/auth"
-        echo "  [OK] Deleted dashboard/auth/"
-    else
-        echo "  [!] Auth directory empty"
-    fi
+# Only delete the users.db file, NOT the entire auth directory
+# The auth directory contains source code (authentication.py, __init__.py)
+if [[ -f "dashboard/auth/users.db" ]]; then
+    rm -f "dashboard/auth/users.db"
+    echo "  [OK] Deleted dashboard/auth/users.db"
 else
-    echo "  [!] dashboard/auth not found"
+    echo "  [!] dashboard/auth/users.db not found"
+fi
+
+# Also check data directory for auth database (new location)
+if [[ -f "dashboard/data/users.db" ]]; then
+    rm -f "dashboard/data/users.db"
+    echo "  [OK] Deleted dashboard/data/users.db"
+else
+    echo "  [!] dashboard/data/users.db not found"
 fi
 echo ""
 
@@ -365,8 +368,8 @@ echo "  [x] Docker volumes (sleeper-results, sleeper-models, sleeper-gpu-cache)"
 echo ""
 echo "Databases:"
 echo "  [x] evaluation_results.db (in sleeper-results volume - GONE)"
-echo "  [x] dashboard/auth/ (user database)"
-echo "  [x] dashboard/data/ (local data)"
+echo "  [x] dashboard/auth/users.db (user accounts)"
+echo "  [x] dashboard/data/users.db (user accounts)"
 echo "  [x] gpu_orchestrator/users.db"
 echo "  [x] gpu_orchestrator/orchestrator.db"
 echo ""
