@@ -9,23 +9,27 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies (excluding python3-pip to avoid Python 3.10 dependency)
+# Install system dependencies
+# Using python3.11-venv instead of deprecated distutils
 RUN apt-get update && apt-get install -y \
     software-properties-common \
+    ca-certificates \
     && add-apt-repository ppa:deadsnakes/ppa -y \
     && apt-get update \
     && apt-get install -y \
     python3.11 \
-    python3.11-distutils \
+    python3.11-venv \
     python3.11-dev \
     git \
     curl \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Set python3.11 as default and bootstrap pip correctly for Python 3.11
+# Set python3.11 as default and bootstrap pip
+# Using ensurepip as primary method with get-pip.py as fallback
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
-    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3
+    && python3 -m ensurepip --upgrade 2>/dev/null \
+    || curl -sS --retry 3 --retry-delay 5 https://bootstrap.pypa.io/get-pip.py | python3
 
 # Upgrade pip and build tools to latest versions (better dependency resolver)
 RUN python3 -m pip install --no-cache-dir --upgrade pip>=24.0 setuptools>=70.0 wheel packaging
@@ -88,7 +92,7 @@ COPY scripts /app/scripts
 RUN pip install --no-cache-dir --no-deps -e .
 
 # Set environment variables
-ENV PYTHONPATH=/app:$PYTHONPATH
+ENV PYTHONPATH=/app
 ENV HF_HOME=/models/huggingface_cache
 ENV TRANSFORMERS_CACHE=/models/transformers_cache
 ENV SLEEPER_CACHE=/models/sleeper_cache
