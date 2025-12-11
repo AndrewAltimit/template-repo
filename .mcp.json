@@ -141,9 +141,9 @@
       "command": "docker-compose",
       "args": [
         "-f",
-        "/home/miku/Documents/repos/template-repo/docker-compose.yml",
+        "./docker-compose.yml",
         "--env-file",
-        "/home/miku/Documents/repos/template-repo/.env",
+        "./.env",
         "--profile",
         "memory",
         "run",
