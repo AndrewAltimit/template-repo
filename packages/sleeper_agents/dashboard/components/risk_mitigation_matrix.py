@@ -102,16 +102,19 @@ def _build_effectiveness_matrix(
         for risk_name in risk_names:
             if "All" in mitigation["targets"] or risk_name in mitigation["targets"]:
                 risk_level = risks[risk_name]["level"]
-                base_effectiveness = mitigation["effectiveness"]
-                adjusted_effectiveness = base_effectiveness * (1 - risk_level * 0.2)
+                effectiveness = mitigation["effectiveness"]
+                # Apply risk-based adjustment (higher risks slightly harder to mitigate)
+                adjusted_effectiveness = effectiveness * (1 - risk_level * 0.1)
                 row.append(adjusted_effectiveness)
-                hover_row.append(
+                rationale = mitigation.get("rationale", "")
+                hover_text = (
                     f"<b>{mitigation_name}</b> vs <b>{risk_name}</b><br>"
-                    f"Base effectiveness: {base_effectiveness:.0%}<br>"
-                    f"Risk level: {risk_level:.0%}<br>"
-                    f"Adjusted effectiveness: {adjusted_effectiveness:.0%}<br>"
-                    f"<i>Higher risks are harder to mitigate</i>"
+                    f"Effectiveness: {adjusted_effectiveness:.0%}<br>"
+                    f"Risk level: {risk_level:.0%}"
                 )
+                if rationale:
+                    hover_text += f"<br><i>{rationale}</i>"
+                hover_row.append(hover_text)
             else:
                 row.append(None)
                 reason = non_applicable_reasons.get(
@@ -177,8 +180,14 @@ def render_risk_mitigation_mapping(risk_profile: Dict[str, Any]):
         "Effectiveness is adjusted based on risk severity (higher risks are harder to mitigate)."
     )
 
-    risks = risk_profile["risks"]
-    mitigations = risk_profile["mitigations"]
+    risks = risk_profile.get("risks", {})
+    mitigations = risk_profile.get("mitigations", {})
+
+    # Handle empty data case
+    if not risks or not mitigations:
+        st.info("No risk or mitigation data available for matrix visualization.")
+        return
+
     risk_names = list(risks.keys())
     mitigation_names = list(mitigations.keys())
 
@@ -229,8 +238,13 @@ def render_deployment_strategy(risk_profile: Dict[str, Any]):
     """Render deployment strategy based on risk-mitigation analysis."""
     st.markdown("### Recommended Deployment Strategy")
 
-    risks = risk_profile["risks"]
+    risks = risk_profile.get("risks", {})
     # mitigations = risk_profile["mitigations"]
+
+    # Handle empty risks case
+    if not risks:
+        st.info("No risk data available for deployment strategy analysis.")
+        return
 
     # Calculate overall risk level
     avg_risk = sum(r["level"] for r in risks.values()) / len(risks)
@@ -371,7 +385,12 @@ def render_implementation_cost(risk_profile: Dict[str, Any]):
     """Render implementation cost analysis for mitigations."""
     st.markdown("### Implementation Cost Analysis")
 
-    mitigations = risk_profile["mitigations"]
+    mitigations = risk_profile.get("mitigations", {})
+
+    # Handle empty mitigations case
+    if not mitigations:
+        st.info("No mitigation data available for cost analysis.")
+        return
 
     # Cost-effectiveness analysis
     cost_data = []
@@ -495,7 +514,7 @@ def render_monitoring_plan(risk_profile: Dict[str, Any]):
         """
     )
 
-    risks = risk_profile["risks"]
+    risks = risk_profile.get("risks", {})
 
     # Monitoring metrics by risk category
     st.markdown("#### Real-Time Detection Metrics (Applied to ALL Requests)")

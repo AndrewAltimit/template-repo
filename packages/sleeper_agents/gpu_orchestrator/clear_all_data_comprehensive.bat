@@ -19,8 +19,8 @@ echo   - Logs and caches
 echo.
 echo DASHBOARD:
 echo   - sleeper-dashboard container
-echo   - dashboard/auth/* (user database)
-echo   - dashboard/data/* (local data)
+echo   - dashboard/auth/users.db (user accounts)
+echo   - dashboard/data/* (local data including users.db)
 echo   - evaluation_results.db (in sleeper-results volume)
 echo.
 echo MODEL DATA:
@@ -109,23 +109,25 @@ echo Docker volumes removed.
 echo.
 
 REM ========================================
-REM 3. Dashboard auth directory
+REM 3. Dashboard auth database (NOT the source code!)
 REM ========================================
-echo [3/12] Removing Dashboard auth directory...
+echo [3/12] Removing Dashboard auth database...
 
-if exist "dashboard\auth" (
-    echo   Found: dashboard\auth
-    dir /b dashboard\auth 2>nul | findstr /r "." >nul
-    if not errorlevel 1 (
-        echo   Files in auth:
-        dir /b dashboard\auth
-        rmdir /s /q "dashboard\auth"
-        echo   [✓] Deleted dashboard\auth\
-    ) else (
-        echo   [!] Auth directory empty
-    )
+REM Only delete the users.db file, NOT the entire auth directory
+REM The auth directory contains source code (authentication.py, __init__.py)
+if exist "dashboard\auth\users.db" (
+    del /f /q "dashboard\auth\users.db"
+    echo   [OK] Deleted dashboard\auth\users.db
 ) else (
-    echo   [!] dashboard\auth not found
+    echo   [!] dashboard\auth\users.db not found
+)
+
+REM Also check data directory for auth database (new location)
+if exist "dashboard\data\users.db" (
+    del /f /q "dashboard\data\users.db"
+    echo   [OK] Deleted dashboard\data\users.db
+) else (
+    echo   [!] dashboard\data\users.db not found
 )
 echo.
 
@@ -348,8 +350,8 @@ echo   [x] Docker volumes (sleeper-results, sleeper-models, sleeper-gpu-cache)
 echo.
 echo Databases:
 echo   [x] evaluation_results.db (in sleeper-results volume - GONE)
-echo   [x] dashboard\auth\ (user database)
-echo   [x] dashboard\data\ (local data)
+echo   [x] dashboard\auth\users.db (user accounts)
+echo   [x] dashboard\data\users.db (user accounts)
 echo   [x] gpu_orchestrator\users.db
 echo   [x] gpu_orchestrator\orchestrator.db
 echo.

@@ -918,7 +918,7 @@ services:
       # AWS AgentCore settings
       - AWS_REGION=${AWS_REGION:-us-east-1}
       - AWS_PROFILE=${AWS_PROFILE:-}
-      - AGENTCORE_MEMORY_ID=${AGENTCORE_MEMORY_ID:-}
+      - AGENTCORE_MEMORY_ID
       - AGENTCORE_DATA_PLANE_ENDPOINT=${AGENTCORE_DATA_PLANE_ENDPOINT:-}
       # ChromaDB settings (for self-hosted)
       - CHROMADB_HOST=chromadb

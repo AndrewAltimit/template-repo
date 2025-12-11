@@ -1,5 +1,9 @@
-# Ignore all files in this directory
-*
+# Ignore database files if created here (legacy - now stored in data/)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
-# Except this file
-!.gitignore
+# Ignore Python bytecode
+__pycache__/
+*.pyc

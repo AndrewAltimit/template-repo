@@ -80,10 +80,13 @@ services:
 volumes:
   sleeper-models:
     driver: local
+    name: sleeper-models
   sleeper-results:
     driver: local
+    name: sleeper-results
   sleeper-gpu-cache:
     driver: local
+    name: sleeper-gpu-cache
 
 networks:
   sleeper-net:

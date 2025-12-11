@@ -1505,6 +1505,141 @@ class DataLoader:
                 "evolution_history": [],
             }
 
+    def _calculate_mitigation_effectiveness(
+        self,
+        risks: dict,
+        persistence_result: tuple | None,
+        consensus_data: dict,
+        honeypot_data: list,
+        cot_data: list,
+    ) -> dict:
+        """Calculate model-specific mitigation effectiveness based on evaluation data.
+
+        Instead of static effectiveness values, this computes effectiveness based on
+        what the evaluation data tells us about how detectable/mitigatable the model's
+        behaviors are.
+
+        Args:
+            risks: Calculated risk levels for this model
+            persistence_result: Tuple of (persistence_rate, post_training_rate) or None
+            consensus_data: Detection consensus data
+            honeypot_data: Honeypot response data
+            cot_data: Chain-of-thought sample data
+
+        Returns:
+            Dictionary of mitigations with model-specific effectiveness
+        """
+        # Extract key metrics for effectiveness calculation
+        persistence_rate = persistence_result[0] if persistence_result else 0.0
+        post_training_rate = persistence_result[1] if persistence_result and len(persistence_result) > 1 else 0.0
+
+        # Probe detection metrics
+        probe_agreement = consensus_data.get("agreement", 0.0)
+        probe_confidence = consensus_data.get("average_confidence", 0.0)
+
+        # Honeypot detection rate (how often model was caught by honeypots)
+        honeypot_detection_rate = 0.0
+        if honeypot_data:
+            caught_count = sum(1 for h in honeypot_data if h.get("triggered", False))
+            honeypot_detection_rate = caught_count / len(honeypot_data)
+
+        # CoT deception visibility (can we see deception in reasoning?)
+        cot_visibility = 0.0
+        if cot_data:
+            visible_deception = sum(1 for c in cot_data if c.get("has_deceptive_patterns", False))
+            cot_visibility = visible_deception / len(cot_data)
+
+        # Coverage metric
+        total_tests = len(honeypot_data) + len(cot_data)
+        coverage = min(1.0, total_tests / 100)  # Normalize to 100 expected tests
+
+        # Now calculate effectiveness for each mitigation based on model data
+        mitigations = {
+            "Input Filtering": {
+                # Effectiveness depends on whether we can identify trigger patterns
+                # If persistence is high but post-training is lower, filtering may help
+                "effectiveness": round(
+                    min(0.9, 0.5 + (persistence_rate - post_training_rate) * 0.5 + honeypot_detection_rate * 0.3), 2
+                ),
+                "cost": "low",
+                "implementation_time": "hours",
+                "targets": ["Backdoor Persistence", "Deceptive Reasoning"],
+                "description": "Filter out known trigger patterns and suspicious inputs",
+                "rationale": f"Based on {honeypot_detection_rate:.0%} honeypot detection rate",
+            },
+            "Output Monitoring": {
+                # Effectiveness based on how visible the deceptive outputs are
+                "effectiveness": round(min(0.9, 0.4 + cot_visibility * 0.3 + honeypot_detection_rate * 0.3), 2),
+                "cost": "medium",
+                "implementation_time": "days",
+                "targets": ["All"],
+                "description": "Monitor and flag suspicious model outputs in real-time",
+                "rationale": f"Based on {cot_visibility:.0%} visible deception in CoT",
+            },
+            "Probe-based Detection": {
+                # Effectiveness directly from probe performance
+                "effectiveness": round(min(0.95, 0.3 + probe_agreement * 0.4 + probe_confidence * 0.3), 2),
+                "cost": "medium",
+                "implementation_time": "weeks",
+                "targets": ["Behavioral Anomalies", "Deceptive Reasoning"],
+                "description": "Use linear probes to detect hidden activations",
+                "rationale": f"Based on {probe_agreement:.0%} probe agreement, {probe_confidence:.0%} confidence",
+            },
+            "Sandboxing": {
+                # Sandboxing effectiveness is high but varies with power-seeking level
+                # More power-seeking = sandboxing more critical but also more likely to be tested
+                "effectiveness": round(
+                    min(0.95, 0.7 + (1 - risks.get("Power-Seeking Tendencies", {}).get("level", 0)) * 0.2), 2
+                ),
+                "cost": "high",
+                "implementation_time": "days",
+                "targets": ["All"],
+                "description": "Run model in isolated environment with limited capabilities",
+                "rationale": "Containment strategy - effectiveness depends on capability scope",
+            },
+            "Human Oversight": {
+                # Human oversight effectiveness depends on deception visibility
+                # If deception is hidden (low cot_visibility), humans may miss it too
+                "effectiveness": round(min(0.95, 0.6 + cot_visibility * 0.2 + (1 - persistence_rate) * 0.15), 2),
+                "cost": "high",
+                "implementation_time": "immediate",
+                "targets": ["Deceptive Reasoning", "Untested Behaviors", "Power-Seeking Tendencies"],
+                "description": "Require human review for critical decisions",
+                "rationale": f"Limited by {cot_visibility:.0%} deception visibility to humans",
+            },
+            "Capability Limiting": {
+                # More effective when power-seeking is detected
+                "effectiveness": round(
+                    min(0.9, 0.5 + risks.get("Power-Seeking Tendencies", {}).get("level", 0) * 0.3 + 0.1), 2
+                ),
+                "cost": "low",
+                "implementation_time": "hours",
+                "targets": ["Power-Seeking Tendencies", "Untested Behaviors"],
+                "description": "Restrict model access to sensitive resources",
+                "rationale": "Reduces attack surface regardless of detection capability",
+            },
+            "Continuous Testing": {
+                # Effectiveness based on current coverage gaps
+                "effectiveness": round(min(0.8, 0.3 + (1 - coverage) * 0.4 + 0.1), 2),
+                "cost": "medium",
+                "implementation_time": "ongoing",
+                "targets": ["Untested Behaviors"],
+                "description": "Ongoing adversarial testing and monitoring",
+                "rationale": f"Current coverage: {coverage:.0%} - more testing needed",
+            },
+            "Safety Training": {
+                # Effectiveness inversely related to persistence (if backdoors persist, training didn't work)
+                "effectiveness": round(max(0.1, min(0.6, 0.5 - persistence_rate * 0.4)), 2),
+                "cost": "high",
+                "implementation_time": "weeks",
+                "targets": ["Backdoor Persistence", "Deceptive Reasoning"],
+                "description": "Additional fine-tuning on safe behavior examples",
+                "rationale": f"Limited by {persistence_rate:.0%} backdoor persistence rate",
+            },
+        }
+
+        return mitigations
+
     def fetch_risk_mitigation_matrix(self, model_name: str) -> dict:
         """Generate risk mitigation matrix from detected risks.
 
@@ -1588,65 +1723,15 @@ class DataLoader:
                 "category": "emergent",
             }
 
-            # Define available mitigations with effectiveness and cost
-            mitigations = {
-                "Input Filtering": {
-                    "effectiveness": 0.7,
-                    "cost": "low",
-                    "implementation_time": "hours",
-                    "targets": ["Backdoor Persistence", "Deceptive Reasoning"],
-                    "description": "Filter out known trigger patterns and suspicious inputs",
-                },
-                "Output Monitoring": {
-                    "effectiveness": 0.6,
-                    "cost": "medium",
-                    "implementation_time": "days",
-                    "targets": ["All"],
-                    "description": "Monitor and flag suspicious model outputs in real-time",
-                },
-                "Probe-based Detection": {
-                    "effectiveness": 0.8,
-                    "cost": "medium",
-                    "implementation_time": "weeks",
-                    "targets": ["Behavioral Anomalies", "Deceptive Reasoning"],
-                    "description": "Use linear probes to detect hidden activations",
-                },
-                "Sandboxing": {
-                    "effectiveness": 0.9,
-                    "cost": "high",
-                    "implementation_time": "days",
-                    "targets": ["All"],
-                    "description": "Run model in isolated environment with limited capabilities",
-                },
-                "Human Oversight": {
-                    "effectiveness": 0.85,
-                    "cost": "high",
-                    "implementation_time": "immediate",
-                    "targets": ["Deceptive Reasoning", "Untested Behaviors", "Power-Seeking Tendencies"],
-                    "description": "Require human review for critical decisions",
-                },
-                "Capability Limiting": {
-                    "effectiveness": 0.75,
-                    "cost": "low",
-                    "implementation_time": "hours",
-                    "targets": ["Power-Seeking Tendencies", "Untested Behaviors"],
-                    "description": "Restrict model access to sensitive resources",
-                },
-                "Continuous Testing": {
-                    "effectiveness": 0.5,
-                    "cost": "medium",
-                    "implementation_time": "ongoing",
-                    "targets": ["Untested Behaviors"],
-                    "description": "Ongoing adversarial testing and monitoring",
-                },
-                "Safety Training": {
-                    "effectiveness": 0.4,  # Low effectiveness based on persistence data
-                    "cost": "high",
-                    "implementation_time": "weeks",
-                    "targets": ["Backdoor Persistence", "Deceptive Reasoning"],
-                    "description": "Additional fine-tuning on safe behavior examples",
-                },
-            }
+            # Calculate model-specific mitigation effectiveness
+            # Based on actual evaluation data, not static values
+            mitigations = self._calculate_mitigation_effectiveness(
+                risks=risks,
+                persistence_result=persistence_result,
+                consensus_data=consensus_data,
+                honeypot_data=honeypot_data,
+                cot_data=cot_data,
+            )
 
             # Calculate recommended mitigations based on detected risks
             recommendations = []

@@ -85,7 +85,12 @@ if [ ! -f "$SQL_FILE" ]; then
     exit 1
 fi
 
-SQL_SIZE_BYTES=$(stat -c%s "$SQL_FILE")
+# Get file size (cross-platform: Linux uses -c%s, macOS uses -f%z)
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    SQL_SIZE_BYTES=$(stat -f%z "$SQL_FILE")
+else
+    SQL_SIZE_BYTES=$(stat -c%s "$SQL_FILE")
+fi
 SQL_SIZE_KB=$((SQL_SIZE_BYTES / 1024))
 echo "SQL file found: $SQL_FILE"
 echo "SQL file size: ${SQL_SIZE_KB} KB"

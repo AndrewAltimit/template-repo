@@ -1,8 +1,10 @@
 #!/bin/bash
 # Start GPU Orchestrator API
 # This script should run on Linux/macOS GPU machines
+# Supports both Docker and Podman container runtimes
 
 set -e  # Exit on error
+set -o pipefail  # Fail on pipeline errors
 
 # Change to script directory - makes all relative paths work consistently
 # regardless of where this script is called from
@@ -16,16 +18,29 @@ echo ""
 # Check prerequisites
 echo "[1/5] Checking prerequisites..."
 
-# Check Docker
-if ! command -v docker &> /dev/null; then
-    echo "ERROR: Docker not found. Please install Docker."
+# Detect container runtime (podman or docker)
+CONTAINER_CMD=""
+if command -v podman &> /dev/null; then
+    CONTAINER_CMD="podman"
+    echo "Found podman: will use podman"
+elif command -v docker &> /dev/null; then
+    CONTAINER_CMD="docker"
+    echo "Found docker: will use docker"
+else
+    echo "ERROR: Neither podman nor docker found. Please install one of them."
     exit 1
 fi
 
-# Check if Docker is running
-if ! docker info &> /dev/null; then
-    echo "ERROR: Docker daemon not running. Please start Docker."
-    exit 1
+# Check if container runtime is running
+if [ "$CONTAINER_CMD" = "docker" ]; then
+    if ! docker info &> /dev/null; then
+        echo "ERROR: Docker daemon not running. Please start Docker."
+        exit 1
+    fi
+    echo "Docker daemon is running."
+elif [ "$CONTAINER_CMD" = "podman" ]; then
+    # Podman doesn't need a daemon check in most cases
+    echo "Podman is ready."
 fi
 
 # Check NVIDIA GPU
@@ -36,11 +51,28 @@ else
     echo "WARNING: nvidia-smi not found. GPU may not be available."
 fi
 
-# Check Python
-if ! command -v python &> /dev/null; then
-    echo "ERROR: Python not found. Please install Python 3.8+."
+# Detect Python (python3 or python)
+PYTHON_CMD=""
+if command -v python3 &> /dev/null; then
+    PYTHON_CMD="python3"
+    echo "Found python3: will use python3"
+elif command -v python &> /dev/null; then
+    PYTHON_CMD="python"
+    echo "Found python: will use python"
+else
+    echo "ERROR: Neither python3 nor python found. Please install Python 3.8+."
     exit 1
 fi
+
+# Verify Python version is 3.8+
+PYTHON_VERSION=$($PYTHON_CMD -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+PYTHON_MAJOR=$($PYTHON_CMD -c 'import sys; print(sys.version_info.major)')
+PYTHON_MINOR=$($PYTHON_CMD -c 'import sys; print(sys.version_info.minor)')
+if [ "$PYTHON_MAJOR" -lt 3 ] || { [ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 8 ]; }; then
+    echo "ERROR: Python 3.8+ required, found Python $PYTHON_VERSION"
+    exit 1
+fi
+echo "Python $PYTHON_VERSION detected."
 
 echo "[2/5] Setting up environment..."
 
@@ -54,7 +86,7 @@ fi
 # Create virtual environment if it doesn't exist
 if [ ! -d venv ]; then
     echo "Creating virtual environment..."
-    python -m venv venv
+    $PYTHON_CMD -m venv venv
 fi
 
 # Activate virtual environment
@@ -77,13 +109,13 @@ cd gpu_orchestrator
 echo "Successfully installed sleeper_agents package"
 pip install --quiet -r requirements.txt
 
-# Build Docker image
-echo "[4/5] Building GPU worker Docker image..."
+# Build container image
+echo "[4/5] Building GPU worker container image..."
 echo "This may take a few minutes on first run (cached afterwards)"
 # Note: Build context is now packages/sleeper_agents/ (src/ layout)
-if ! docker build -t sleeper-agents:gpu -f ../docker/Dockerfile.gpu ..; then
+if ! $CONTAINER_CMD build -t sleeper-agents:gpu -f ../docker/Dockerfile.gpu ..; then
     echo "ERROR: Failed to build sleeper-agents:gpu image"
-    echo "Please check Docker is running and Dockerfile exists"
+    echo "Please check $CONTAINER_CMD is running and Dockerfile exists"
     exit 1
 fi
 echo "GPU worker image ready."

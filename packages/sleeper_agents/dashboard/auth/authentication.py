@@ -4,6 +4,7 @@ Simple username/password system with SQLite backend.
 """
 
 import logging
+import os
 from pathlib import Path
 import sqlite3
 from typing import Dict, Optional
@@ -20,10 +21,17 @@ class AuthManager:
         """Initialize authentication manager.
 
         Args:
-            db_path: Path to user database. Defaults to auth/users.db
+            db_path: Path to user database. Defaults to AUTH_DATABASE_PATH env var
+                     or data/users.db relative to app directory.
         """
         if db_path is None:
-            db_path = Path(__file__).parent / "users.db"
+            # Check environment variable first (used in Docker)
+            env_path = os.environ.get("AUTH_DATABASE_PATH")
+            if env_path:
+                db_path = Path(env_path)
+            else:
+                # Default to data directory (persistent across container restarts)
+                db_path = Path(__file__).parent.parent / "data" / "users.db"
 
         self.db_path = db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -57,7 +65,6 @@ class AuthManager:
 
     def _create_default_admin(self):
         """Create default admin user if no users exist."""
-        import os
         import secrets
         import string
 

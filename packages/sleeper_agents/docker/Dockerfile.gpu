@@ -9,26 +9,36 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies (excluding python3-pip to avoid Python 3.10 dependency)
-RUN apt-get update && apt-get install -y \
+# Install system dependencies
+# Including python3-pip for corporate firewall environments where downloading get-pip.py fails
+RUN apt-get update && apt-get install -y --no-install-recommends \
     software-properties-common \
+    ca-certificates \
+    && update-ca-certificates \
     && add-apt-repository ppa:deadsnakes/ppa -y \
     && apt-get update \
-    && apt-get install -y \
+    && apt-get install -y --no-install-recommends \
     python3.11 \
-    python3.11-distutils \
+    python3.11-venv \
     python3.11-dev \
+    python3-pip \
     git \
     curl \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Set python3.11 as default and bootstrap pip correctly for Python 3.11
+# Set python3.11 as default and ensure pip is available
+# Use pip3 from system packages - works reliably behind corporate firewalls
+# No network download required since python3-pip is installed via apt
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
-    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3
+    && python3 -m pip --version
+
+# Configure pip for corporate firewall environments
+# Trust PyPI and PyTorch hosts to handle SSL interception
+ENV PIP_TRUSTED_HOST="pypi.org pypi.python.org files.pythonhosted.org download.pytorch.org"
 
 # Upgrade pip and build tools to latest versions (better dependency resolver)
-RUN python3 -m pip install --no-cache-dir --upgrade pip>=24.0 setuptools>=70.0 wheel packaging
+RUN python3 -m pip install --no-cache-dir --upgrade "pip>=24.0" "setuptools>=70.0" wheel packaging
 
 # Copy pyproject.toml first for better caching
 # Build context is now packages/sleeper_agents/ (src/ layout)
@@ -88,7 +98,7 @@ COPY scripts /app/scripts
 RUN pip install --no-cache-dir --no-deps -e .
 
 # Set environment variables
-ENV PYTHONPATH=/app:$PYTHONPATH
+ENV PYTHONPATH=/app
 ENV HF_HOME=/models/huggingface_cache
 ENV TRANSFORMERS_CACHE=/models/transformers_cache
 ENV SLEEPER_CACHE=/models/sleeper_cache
