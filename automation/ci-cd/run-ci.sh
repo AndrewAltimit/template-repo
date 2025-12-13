@@ -129,27 +129,25 @@ case "$STAGE" in
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c '
       echo "Running shellcheck on all .sh files..."
       ISSUES_FOUND=0
-      find . -name "*.sh" -type f | while read -r script; do
+      for script in $(find . -name "*.sh" -type f); do
         echo "Checking $script..."
         if shellcheck -S warning "$script"; then
-          echo "✅ $script"
+          echo "OK $script"
         else
-          echo "❌ $script has issues"
+          echo "FAIL $script has issues"
           ISSUES_FOUND=1
         fi
       done
 
-      # Return success even if issues found (for now)
-      # TODO: Make this fail CI once all scripts are fixed
-      if [ $ISSUES_FOUND -eq 1 ]; then
+      if [ $ISSUES_FOUND -ne 0 ]; then
         echo ""
-        echo "⚠️  Shell linting found issues (currently in advisory mode)"
-        echo "Consider fixing shellcheck warnings to improve script quality."
+        echo "FAIL Shell linting failed: issues were found in your shell scripts."
+        echo "Please fix all the reported shellcheck errors to continue."
+        exit 1
       else
         echo ""
-        echo "✅ All shell scripts passed linting!"
+        echo "OK All shell scripts passed linting!"
       fi
-      exit 0
     '
     ;;
 

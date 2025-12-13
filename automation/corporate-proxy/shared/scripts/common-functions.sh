@@ -97,7 +97,7 @@ wait_for_service() {
 
     print_info "Waiting for $service_name to be ready..."
 
-    for i in $(seq 1 $max_attempts); do
+    for _ in $(seq 1 "$max_attempts"); do
         if curl -fsS "$url" > /dev/null; then
             print_info "✓ $service_name is ready"
             return 0
@@ -142,17 +142,19 @@ cleanup_container() {
 get_script_dir() {
     local source="${BASH_SOURCE[0]}"
     while [ -h "$source" ]; do
-        local dir="$( cd -P "$( dirname "$source" )" && pwd )"
+        local dir
+        dir="$( cd -P "$( dirname "$source" )" && pwd )"
         source="$(readlink "$source")"
         [[ $source != /* ]] && source="$dir/$source"
     done
-    echo "$( cd -P "$( dirname "$source" )" && pwd )"
+    cd -P "$( dirname "$source" )" && pwd
 }
 
 # Auto-detect architecture and map to Docker/Podman format
 detect_architecture() {
     if [ -z "$TARGETARCH" ]; then
-        local ARCH=$(uname -m)
+        local ARCH
+        ARCH=$(uname -m)
         case $ARCH in
             x86_64)
                 export TARGETARCH="amd64"
@@ -239,7 +241,8 @@ compose_down() {
 }
 
 # Export common paths
-export CORPORATE_PROXY_ROOT="$(cd "$(get_script_dir)/../.." && pwd)"
+CORPORATE_PROXY_ROOT="$(cd "$(get_script_dir)/../.." && pwd)"
+export CORPORATE_PROXY_ROOT
 export SHARED_DIR="$CORPORATE_PROXY_ROOT/shared"
 export SERVICES_DIR="$SHARED_DIR/services"
 export CONFIGS_DIR="$SHARED_DIR/configs"
