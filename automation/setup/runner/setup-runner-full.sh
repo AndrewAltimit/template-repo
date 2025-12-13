@@ -80,8 +80,8 @@ check_prerequisites() {
     local missing_commands=()
 
     for cmd in "${required_commands[@]}"; do
-        if ! command -v $cmd &> /dev/null; then
-            missing_commands+=($cmd)
+        if ! command -v "$cmd" &> /dev/null; then
+            missing_commands+=("$cmd")
         else
             print_status "✅ $cmd is installed"
         fi
@@ -145,7 +145,7 @@ install_docker() {
         curl -fsSL https://get.docker.com | sudo sh
 
         # Add current user to docker group
-        sudo usermod -aG docker $USER
+        sudo usermod -aG docker "$USER"
 
         print_status "✅ Docker installed"
         print_warning "⚠️  You need to log out and back in for group changes to take effect"
@@ -261,7 +261,7 @@ get_runner_token() {
     echo "  2. Copy the registration token"
     echo ""
     echo "Enter your registration token:"
-    read -s RUNNER_TOKEN
+    read -rs RUNNER_TOKEN
     echo ""
 
     if [ -z "$RUNNER_TOKEN" ]; then
@@ -458,6 +458,8 @@ main() {
     # Parse command line arguments
     SKIP_DOCKER=false
     SKIP_RUNNER_DOWNLOAD=false
+    export SKIP_DOCKER
+    export SKIP_RUNNER_DOWNLOAD
 
     while [[ $# -gt 0 ]]; do
         case $1 in
