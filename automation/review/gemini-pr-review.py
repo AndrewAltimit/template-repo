@@ -181,16 +181,16 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
 
 
 def get_current_commit_sha() -> str:
-    """Get the current HEAD commit SHA."""
+    """Get the current HEAD commit SHA (short form)."""
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
+            ["git", "rev-parse", "--short", "HEAD"],
             capture_output=True,
             text=True,
             check=True,
         )
-        return result.stdout.strip()[:12]  # Short SHA
-    except subprocess.CalledProcessError:
+        return result.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
         return ""
 
 
@@ -271,14 +271,28 @@ def mark_new_changes_in_diff(full_diff: str, new_files: List[str]) -> str:
     lines = full_diff.split("\n")
     marked_lines = []
 
+    # Pattern to extract filepath from git diff header
+    # Handles: "diff --git a/path b/path" and "diff --git a/path with spaces b/path with spaces"
+    diff_header_pattern = re.compile(r"^diff --git a/(.+) b/\1$")
+
     for line in lines:
         if line.startswith("diff --git"):
-            # Extract filename from diff header
-            parts = line.split()
-            if len(parts) >= 3:
-                filepath = parts[2].replace("a/", "")
-                if filepath in new_files_set:
-                    line = f"{line}  [NEW SINCE LAST REVIEW]"
+            # Try regex match first (handles files with spaces correctly)
+            match = diff_header_pattern.match(line)
+            if match:
+                filepath = match.group(1)
+            else:
+                # Fallback: extract path between "a/" and " b/" for renamed files
+                # Format: "diff --git a/old b/new"
+                a_idx = line.find(" a/")
+                b_idx = line.find(" b/")
+                if a_idx != -1 and b_idx != -1 and b_idx > a_idx:
+                    filepath = line[a_idx + 3 : b_idx]
+                else:
+                    filepath = ""
+
+            if filepath and filepath in new_files_set:
+                line = f"{line}  [NEW SINCE LAST REVIEW]"
         marked_lines.append(line)
 
     return "\n".join(marked_lines)
