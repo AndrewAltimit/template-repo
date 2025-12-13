@@ -298,10 +298,6 @@ packages/economic_agents/
 └── config/
 ```
 
-## License
-
-MIT License - See LICENSE file for details.
-
 ---
 
 *This framework demonstrates capabilities that exist today. The simulation validates agent behavior; the governance questions remain unanswered.*
