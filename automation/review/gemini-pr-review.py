@@ -180,6 +180,24 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
     return "All models failed - check GOOGLE_API_KEY and model availability", NO_MODEL
 
 
+def _truncate_at_newline(text: str, max_chars: int) -> str:
+    """Truncate text at the nearest newline before max_chars.
+
+    This ensures we don't cut in the middle of a line, which would
+    produce invalid diff syntax for the LLM.
+    """
+    if len(text) <= max_chars:
+        return text
+
+    # Find the last newline before max_chars
+    truncated = text[:max_chars]
+    last_newline = truncated.rfind("\n")
+
+    if last_newline > 0:
+        return truncated[:last_newline]
+    return truncated  # No newline found, fall back to hard cut
+
+
 def get_current_commit_sha() -> str:
     """Get the current HEAD commit SHA (short form)."""
     try:
@@ -284,10 +302,10 @@ def mark_new_changes_in_diff(full_diff: str, new_files: List[str]) -> str:
             else:
                 # Fallback for renamed files: extract destination path (b/...)
                 # Format: "diff --git a/old b/new" -> we want "new" (what git diff --name-only returns)
-                b_idx = line.find(" b/")
-                if b_idx != -1:
-                    # Extract everything after " b/" to end of line
-                    filepath = line[b_idx + 3 :]
+                # Use rpartition to find the LAST " b/" to handle edge cases like "a/sub b/folder/file"
+                _, sep, after_b = line.rpartition(" b/")
+                if sep:
+                    filepath = after_b
                 else:
                     filepath = ""
 
@@ -722,7 +740,7 @@ New/changed files: {', '.join(new_files_since_last[:10])}
 
 **DIFF:**
 ```diff
-{diff[:MAX_DIFF_CHARS]}
+{_truncate_at_newline(diff, MAX_DIFF_CHARS)}
 ```
 {'... (truncated)' if len(diff) > MAX_DIFF_CHARS else ''}
 
