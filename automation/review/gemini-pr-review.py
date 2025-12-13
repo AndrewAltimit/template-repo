@@ -3,7 +3,13 @@
 # Rationale: Self-contained PR review script kept in one file for portability.
 # Only ~30 lines over limit; splitting would fragment tightly-coupled workflow logic.
 """
-Improved Gemini PR Review Script with better context handling
+Gemini PR Review Script with incremental review support and concise output.
+
+Key features:
+- Tracks last reviewed commit to provide incremental feedback
+- Enforces strict brevity limits (500 words, single reaction)
+- Uses Flash model for condensation when reviews exceed limits
+- Shows full diff context with NEW markers for updated PRs
 """
 
 import json
@@ -27,6 +33,11 @@ DEFAULT_MODEL_TIMEOUT = 600  # seconds (10 minutes for large PR reviews)
 PRIMARY_MODEL = os.environ.get("GEMINI_PRIMARY_MODEL", "gemini-3-pro-preview")  # Latest preview (NOT 3.0!)
 FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash")  # Fast fallback
 MAX_RETRIES = 5  # For rate limiting on free tier (3 preview may have stricter limits)
+
+# Review constraints
+MAX_REVIEW_WORDS = 500  # Target word limit for reviews
+CONDENSATION_THRESHOLD = 600  # Trigger condensation if above this
+MAX_DIFF_CHARS = 500000  # Max diff size before truncation (Gemini 1.5 Pro supports 1M+ tokens)
 
 
 def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETRIES) -> Tuple[str, str]:
@@ -169,6 +180,195 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
     return "All models failed - check GOOGLE_API_KEY and model availability", NO_MODEL
 
 
+def _truncate_at_newline(text: str, max_chars: int) -> str:
+    """Truncate text at the nearest newline before max_chars.
+
+    This ensures we don't cut in the middle of a line, which would
+    produce invalid diff syntax for the LLM.
+    """
+    if len(text) <= max_chars:
+        return text
+
+    # Find the last newline before max_chars
+    truncated = text[:max_chars]
+    last_newline = truncated.rfind("\n")
+
+    if last_newline > 0:
+        return truncated[:last_newline]
+    return truncated  # No newline found, fall back to hard cut
+
+
+def get_current_commit_sha() -> str:
+    """Get the current HEAD commit SHA (short form)."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return ""
+
+
+def get_last_reviewed_commit(pr_number: str) -> Optional[str]:
+    """Extract the last reviewed commit SHA from existing Gemini comments.
+
+    Looks for the marker: <!-- gemini-review-marker:commit:abc123 -->
+
+    Returns:
+        The commit SHA if found, None otherwise
+    """
+    try:
+        result = subprocess.run(
+            ["gh", "pr", "view", pr_number, "--json", "comments"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        pr_data = json.loads(result.stdout)
+        comments = pr_data.get("comments", [])
+
+        # Find the most recent Gemini review with commit marker
+        for comment in reversed(comments):
+            body = comment.get("body", "")
+            # Look for the commit marker
+            match = re.search(r"<!-- gemini-review-marker:commit:([a-f0-9]+) -->", body)
+            if match:
+                return match.group(1)
+
+        return None
+    except (subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError):
+        return None
+
+
+def get_files_changed_since_commit(since_commit: str) -> Tuple[List[str], bool]:
+    """Get list of files changed since a specific commit.
+
+    Args:
+        since_commit: The commit SHA to compare from
+
+    Returns:
+        Tuple of (list of file paths that changed, success boolean)
+        If git diff fails (e.g., shallow clone), returns ([], False)
+    """
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--name-only", f"{since_commit}...HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        files = [f.strip() for f in result.stdout.split("\n") if f.strip()]
+        return files, True
+    except subprocess.CalledProcessError as e:
+        print(f"⚠️  Warning: Could not get incremental diff from {since_commit}")
+        print(f"   Error: {e.stderr if e.stderr else 'git diff failed'}")
+        print("   This may happen with shallow clones in CI. Falling back to full review.")
+        return [], False
+    except FileNotFoundError:
+        print("⚠️  Warning: git not found in PATH. Falling back to full review.")
+        return [], False
+
+
+def mark_new_changes_in_diff(full_diff: str, new_files: List[str]) -> str:
+    """Add [NEW] markers to files that changed since last review.
+
+    Args:
+        full_diff: The complete PR diff
+        new_files: List of files that are new/changed since last review
+
+    Returns:
+        Diff with [NEW] markers added to relevant file headers
+    """
+    if not new_files:
+        return full_diff
+
+    new_files_set = set(new_files)
+    lines = full_diff.split("\n")
+    marked_lines = []
+
+    # Pattern to extract filepath from git diff header
+    # Handles: "diff --git a/path b/path" and "diff --git a/path with spaces b/path with spaces"
+    diff_header_pattern = re.compile(r"^diff --git a/(.+) b/\1$")
+
+    for line in lines:
+        if line.startswith("diff --git"):
+            # Try regex match first (handles files with spaces correctly)
+            match = diff_header_pattern.match(line)
+            if match:
+                filepath = match.group(1)
+            else:
+                # Fallback for renamed files: extract destination path (b/...)
+                # Format: "diff --git a/old b/new" -> we want "new" (what git diff --name-only returns)
+                # Use rpartition to find the LAST " b/" to handle edge cases like "a/sub b/folder/file"
+                _, sep, after_b = line.rpartition(" b/")
+                if sep:
+                    filepath = after_b
+                else:
+                    filepath = ""
+
+            if filepath and filepath in new_files_set:
+                line = f"{line}  [NEW SINCE LAST REVIEW]"
+        marked_lines.append(line)
+
+    return "\n".join(marked_lines)
+
+
+def condense_review_with_flash(review: str) -> str:
+    """Use Flash model to condense a verbose review.
+
+    Focuses on:
+    - Keeping only actionable issues
+    - Removing duplicate praise/comments
+    - Maintaining single reaction at end
+    - Staying under word limit
+
+    Args:
+        review: The verbose review to condense
+
+    Returns:
+        Condensed review text
+    """
+    word_count = len(review.split())
+    if word_count <= CONDENSATION_THRESHOLD:
+        return review
+
+    print(f"Review exceeds {CONDENSATION_THRESHOLD} words ({word_count}), condensing with Flash...")
+
+    condensation_prompt = f"""Condense this code review to under {MAX_REVIEW_WORDS} words.
+
+RULES:
+1. Keep ONLY actionable issues (bugs, security concerns, required fixes)
+2. Remove ALL generic praise ("good job", "well done", "solid work")
+3. Remove duplicate or similar comments - keep only the first mention
+4. Keep exactly ONE reaction image at the very end
+5. Remove verbose explanations - use bullet points
+6. Keep specific file references and line numbers
+7. Remove "Verdict" or "Summary" sections that just restate issues
+
+INPUT REVIEW:
+{review}
+
+OUTPUT (condensed review, {MAX_REVIEW_WORDS} words max):"""
+
+    condensed, model = _call_gemini_with_model(condensation_prompt, FALLBACK_MODEL, max_retries=2)
+
+    if model == NO_MODEL or not condensed:
+        print("⚠️  Condensation failed, using original review")
+        return review
+
+    # Verify condensation actually reduced length
+    condensed_words = len(condensed.split())
+    if condensed_words < word_count:
+        print(f"✅ Condensed from {word_count} to {condensed_words} words")
+        return condensed
+
+    print(f"⚠️  Condensation did not reduce length ({condensed_words} words), using original")
+    return review
+
+
 def check_gemini_cli() -> bool:
     """Check if Gemini CLI is available"""
     try:
@@ -259,31 +459,6 @@ def get_file_content(filepath: str) -> str:
         return result.stdout
     except Exception:
         return f"Could not read {filepath}"
-
-
-def chunk_diff_by_files(diff: str) -> List[Tuple[str, str]]:
-    """Split diff into per-file chunks"""
-    chunks = []
-    current_file = None
-    current_chunk = []
-
-    for line in diff.split("\n"):
-        if line.startswith("diff --git"):
-            if current_file and current_chunk:
-                chunks.append((current_file, "\n".join(current_chunk)))
-            # Extract filename from diff header
-            parts = line.split()
-            if len(parts) >= 3:
-                current_file = parts[2].replace("a/", "").replace("b/", "")
-            current_chunk = [line]
-        elif current_chunk is not None:
-            current_chunk.append(line)
-
-    # Don't forget the last chunk
-    if current_file and current_chunk:
-        chunks.append((current_file, "\n".join(current_chunk)))
-
-    return chunks
 
 
 def get_project_context() -> str:
@@ -481,337 +656,110 @@ Generate the summary now:"""
         return "", NO_MODEL
 
 
-def _get_file_category(filepath: str) -> str:
-    """Categorize a file by its path and extension."""
-    if ".github/workflows" in filepath:
-        return "workflows"
-    if filepath.endswith(".py"):
-        return "python"
-    if "docker" in filepath.lower() or filepath.endswith("Dockerfile"):
-        return "docker"
-    if filepath.endswith((".yml", ".yaml", ".json", ".toml")):
-        return "config"
-    if filepath.endswith((".md", ".rst", ".txt")):
-        return "docs"
-    return "other"
-
-
-def _group_files_by_category(
-    file_chunks: List[Tuple[str, str]],
-) -> Dict[str, List[Tuple[str, str]]]:
-    """Group file chunks by their category."""
-    file_groups: Dict[str, List[Tuple[str, str]]] = {
-        "workflows": [],
-        "python": [],
-        "docker": [],
-        "config": [],
-        "docs": [],
-        "other": [],
-    }
-
-    for filepath, file_diff in file_chunks:
-        category = _get_file_category(filepath)
-        file_groups[category].append((filepath, file_diff))
-
-    return file_groups
-
-
-def _analyze_and_save_groups(
-    file_groups: Dict[str, List[Tuple[str, str]]],
+def analyze_pr(
+    diff: str,
+    changed_files: List[str],
     pr_info: Dict[str, Any],
-    project_context: str,
-    comment_summary: str,
-    recent_comments: str,
-    review_dir: Path,
-) -> Tuple[List[Path], List[str]]:
-    """Analyze each file group and save reviews to files."""
-    review_files = []
-    successful_models = []
+    is_incremental: bool = False,
+    new_files_since_last: Optional[List[str]] = None,
+) -> Tuple[str, str]:
+    """Analyze a PR with a single, focused review.
 
-    for group_name, group_files in file_groups.items():
-        if not group_files:
-            continue
+    Uses strict brevity limits and issues-focused output format.
 
-        group_analysis, group_model = analyze_file_group(
-            group_name, group_files, pr_info, project_context, comment_summary, recent_comments
-        )
-        if group_analysis and group_model != NO_MODEL:
-            review_file = review_dir / f"review_{group_name}.txt"
-            review_file.write_text(group_analysis, encoding="utf-8")
-            review_files.append(review_file)
-            successful_models.append(group_model)
-
-    return review_files, successful_models
-
-
-def _consolidate_reviews(review_dir: Path, pr_info: Dict[str, Any]) -> Optional[str]:
-    """Try to consolidate reviews using the consolidation script."""
-    print("\nConsolidating review sections with Gemini...")
-    try:
-        consolidate_script = Path(__file__).parent / "consolidate-gemini-review.py"
-        result = subprocess.run(
-            [sys.executable, str(consolidate_script), str(review_dir), pr_info["number"], pr_info["title"]],
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=300,
-        )
-
-        if result.returncode == 0:
-            consolidated_file = review_dir / "review_consolidated.txt"
-            if consolidated_file.exists():
-                print("Successfully consolidated reviews")
-                return consolidated_file.read_text(encoding="utf-8")
-            print("Consolidation completed but output file not found, using fallback")
-        else:
-            print(f"Consolidation failed: {result.stderr}")
-            print("   Falling back to simple concatenation")
-
-    except Exception as e:
-        print(f"Error during consolidation: {e}")
-        print("   Falling back to simple concatenation")
-
-    return None
-
-
-def _create_fallback_analysis(review_files: List[Path], file_stats: Dict[str, Any]) -> str:
-    """Create a fallback analysis by concatenating review files."""
-    analyses = []
-    for review_file in review_files:
-        group_name = review_file.stem.replace("review_", "").replace("_", " ").title()
-        content = review_file.read_text(encoding="utf-8")
-        analyses.append(f"### {group_name} Changes\n{content}")
-
-    return f"""## Overall Summary
-
-**PR Stats**: {file_stats['files']} files changed, \
-+{file_stats['additions']}/-{file_stats['deletions']} lines
-
-{chr(10).join(analyses)}
-
-## Overall Assessment
-
-Based on the comprehensive analysis above, this PR appears to be making \
-significant changes across multiple areas of the codebase. Please ensure all \
-changes are tested, especially given the container-first architecture of this project.
-"""
-
-
-def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any]) -> Tuple[str, str]:
-    """Analyze large PRs by breaking them down into manageable chunks
+    Args:
+        diff: The PR diff (may have [NEW] markers for incremental reviews)
+        changed_files: List of all changed files
+        pr_info: PR information dictionary
+        is_incremental: Whether this is an incremental review (PR was updated)
+        new_files_since_last: Files changed since last review (for incremental)
 
     Returns: (analysis, model_used)
     """
     project_context = get_project_context()
     file_stats = get_file_stats()
-    diff_size = len(diff)
 
-    # If diff is small enough, use single analysis
-    if diff_size < 50000:
-        return analyze_complete_diff(diff, changed_files, pr_info, project_context, file_stats)
-
-    print(f"Large diff detected ({diff_size:,} chars), using chunked analysis...")
-
+    # Get comment history for context
     comment_summary, _ = summarize_all_pr_comments(pr_info["number"], pr_info["title"])
-    file_chunks = chunk_diff_by_files(diff)
-    file_groups = _group_files_by_category(file_chunks)
     recent_comments = get_recent_pr_comments(pr_info["number"])
-
-    review_dir = Path(f"/tmp/gemini_review_{pr_info['number']}")
-    review_dir.mkdir(exist_ok=True)
-
-    review_files, successful_models = _analyze_and_save_groups(
-        file_groups, pr_info, project_context, comment_summary, recent_comments, review_dir
-    )
-
-    # Determine model used
-    model_used = "default" if successful_models or review_files else NO_MODEL
-
-    if not review_files:
-        return "Unable to analyze PR - all file group analyses failed.", NO_MODEL
-
-    # Try consolidation, fallback to simple concatenation
-    consolidated = _consolidate_reviews(review_dir, pr_info)
-    if consolidated:
-        return consolidated, model_used
-
-    return _create_fallback_analysis(review_files, file_stats), model_used
-
-
-def analyze_file_group(
-    group_name: str,
-    files: List[Tuple[str, str]],
-    pr_info: Dict[str, Any],
-    project_context: str,
-    comment_summary: str = "",
-    recent_comments: str = "",
-) -> Tuple[str, str]:
-    """Analyze a group of related files
-
-    Args:
-        group_name: Name of the file group (e.g., "python", "workflows")
-        files: List of (filepath, file_diff) tuples
-        pr_info: PR information dictionary
-        project_context: Project-specific context
-        comment_summary: Summary of all PR comment history
-        recent_comments: Comments since last Gemini review
-
-    Returns: (analysis, model_used)
-    """
-
-    # Combine diffs for the group (limit to reasonable size)
-    combined_diff = ""
-    file_list = []
-
-    for filepath, file_diff in files[:10]:  # Max 10 files per group to stay under ARG_MAX
-        file_list.append(filepath)
-        # Include file diff up to 3KB per file to keep total under ARG_MAX
-        file_content = file_diff[:3000]  # 3KB per file, 10 files = ~30KB + overhead
-        combined_diff += f"\n\n=== {filepath} ===\n{file_content}"
-        if len(file_diff) > 3000:
-            combined_diff += f"\n... (truncated {len(file_diff) - 3000} chars)"
-
-    prompt = (
-        f"You are an expert code reviewer. Analyze this group of {group_name} changes from "
-        f"PR #{pr_info['number']}.\n\n"
-        f"**PROJECT CONTEXT:**\n"
-        f"{project_context}\n\n"
-    )
-
-    # Add comment summary if provided (historical context)
-    if comment_summary:
-        prompt += (
-            f"**HISTORICAL PR DISCUSSION (Summary):**\n"
-            f"{comment_summary}\n\n"
-            f"*Note: Use this to avoid re-reporting false positives and respect admin decisions.*\n\n"
-        )
-
-    # Add recent comments if provided
-    if recent_comments:
-        prompt += f"{recent_comments}\n\n"
-
-    prompt += (
-        f"**Files in this group:**\n"
-        f"{chr(10).join(f'- {f}' for f in file_list)}\n\n"
-        f"**Relevant diffs:**\n"
-        f"```diff\n"
-        f"{combined_diff[:35000]}\n"  # Conservative limit for ARG_MAX
-        f"```\n\n"
-        f"Focus on:\n"
-        f"1. Correctness and potential bugs\n"
-        f"2. Security implications\n"
-        f"3. Best practices for {group_name} files\n"
-        f"4. Consistency with project's container-first approach\n\n"
-    )
-
-    # Add guidance about using historical context
-    if comment_summary:
-        prompt += (
-            "**Review Guidelines:**\n"
-            "- Do NOT re-report issues marked as false positives in the discussion history\n"
-            "- Build on decisions already made rather than questioning them\n"
-            "- Reference the historical context when relevant\n"
-            "- Focus on new issues not previously discussed\n\n"
-        )
-
-    prompt += "Keep response concise but thorough."
-
-    # Use the helper function for Gemini API calls with fallback
-    return _call_gemini_with_fallback(prompt)
-
-
-def analyze_complete_diff(
-    diff: str,
-    changed_files: List[str],
-    pr_info: Dict[str, Any],
-    project_context: str,
-    file_stats: Dict[str, int],
-) -> Tuple[str, str]:
-    """Analyze complete diff for smaller PRs
-
-    Returns: (analysis, model_used)
-    """
-
-    # Get comment summary for context retention across reviews
-    comment_summary, _ = summarize_all_pr_comments(pr_info["number"], pr_info["title"])
 
     # For GitHub workflow files, include more complete content
     workflow_contents = {}
     for file in changed_files:
         if ".github/workflows" in file and file.endswith(".yml"):
             content = get_file_content(file)
-            if content and len(content) < 5000:  # Only include if reasonable size
+            if content and len(content) < 5000:
                 workflow_contents[file] = content
 
-    # Get recent PR comments since last Gemini review
-    recent_comments = get_recent_pr_comments(pr_info["number"])
+    # Build the concise review prompt
+    prompt = f"""You are Gemini, an expert code reviewer. Analyze this pull request.
 
-    prompt = (
-        "You are an expert code reviewer. Please analyze this pull request "
-        "comprehensively.\n\n"
-        f"**PROJECT CONTEXT:**\n"
-        f"{project_context}\n\n"
-    )
+**STRICT OUTPUT RULES:**
+- Maximum {MAX_REVIEW_WORDS} words total
+- Use bullet points, not paragraphs
+- Only report ACTIONABLE issues (bugs, security, required fixes)
+- Skip generic praise - only mention positive aspects if exceptional
+- ONE reaction image at the very end (from the reaction protocol)
+- No "Summary" or "Verdict" sections that repeat issues
 
-    # Add comment summary if provided (historical context)
+**PROJECT CONTEXT:**
+{project_context[:3000]}
+
+"""
+
+    # Add incremental context if this is an update
+    if is_incremental and new_files_since_last:
+        prompt += f"""**INCREMENTAL REVIEW:**
+This PR was previously reviewed. Focus on files marked [NEW SINCE LAST REVIEW].
+New/changed files: {', '.join(new_files_since_last[:10])}
+{'(and ' + str(len(new_files_since_last) - 10) + ' more)' if len(new_files_since_last) > 10 else ''}
+
+"""
+
+    # Add comment summary if available
     if comment_summary:
-        prompt += (
-            f"**HISTORICAL PR DISCUSSION (Summary):**\n"
-            f"{comment_summary}\n\n"
-            f"*Note: Use this to avoid re-reporting false positives and respect admin decisions.*\n\n"
-        )
+        prompt += f"""**PREVIOUS DISCUSSION (respect these decisions):**
+{comment_summary[:1500]}
 
-    prompt += (
-        f"**PULL REQUEST INFORMATION:**\n"
-        f"- PR #{pr_info['number']}: {pr_info['title']}\n"
-        f"- Author: {pr_info['author']}\n"
-        f"- Description: {pr_info['body']}\n"
-        f"- Stats: {file_stats['files']} files, "
-        f"+{file_stats['additions']}/-{file_stats['deletions']} lines\n\n"
-    )
+"""
 
     # Add recent comments if any
     if recent_comments:
-        prompt += f"{recent_comments}\n\n"
+        prompt += f"{recent_comments[:1000]}\n\n"
 
-    prompt += (
-        f"**CHANGED FILES ({len(changed_files)} total):**\n"
-        f"{chr(10).join(f'- {file}' for file in changed_files)}\n\n"
-        f"{format_workflow_contents(workflow_contents)}\n"
-        f"**COMPLETE DIFF:**\n"
-        f"```diff\n"
-        f"{diff[:40000]}\n"  # Conservative limit to stay under ARG_MAX
-        f"```\n"
-    )
+    prompt += f"""**PR INFO:**
+- PR #{pr_info['number']}: {pr_info['title']}
+- Author: {pr_info['author']}
+- Stats: {file_stats['files']} files, +{file_stats['additions']}/-{file_stats['deletions']} lines
 
-    # Add truncation message if needed
-    if len(diff) > 40000:
-        prompt += f"... (diff truncated, {len(diff) - 40000} chars omitted)\n\n"
-    else:
-        prompt += "\n"
+**FILES ({len(changed_files)} total):**
+{chr(10).join(f'- {f}' for f in changed_files[:20])}
+{'... and ' + str(len(changed_files) - 20) + ' more' if len(changed_files) > 20 else ''}
 
-    prompt += (
-        "Please provide:\n"
-        "1. **Summary**: What are the key changes?\n"
-        "2. **Code Quality**: Any issues with style, structure, or best practices?\n"
-        "3. **Potential Issues**: Bugs, security concerns, or logic errors?\n"
-        "4. **Suggestions**: Specific improvements\n"
-        "5. **Positive Aspects**: What's well done?\n\n"
-    )
+{format_workflow_contents(workflow_contents)}
 
-    # Add guidance about using historical context
-    if comment_summary:
-        prompt += (
-            "**Review Guidelines:**\n"
-            "- Do NOT re-report issues marked as false positives in the discussion history\n"
-            "- Build on decisions already made rather than questioning them\n"
-            "- Reference the historical context when relevant\n"
-            "- Focus on new issues not previously discussed\n\n"
-        )
+**DIFF:**
+```diff
+{_truncate_at_newline(diff, MAX_DIFF_CHARS)}
+```
+{'... (truncated)' if len(diff) > MAX_DIFF_CHARS else ''}
 
-    prompt += "Focus on actionable feedback considering the container-first architecture."
+**OUTPUT FORMAT:**
+## Issues (if any)
+- [CRITICAL/SECURITY/BUG] File:line - Brief description
 
-    # Use the helper function for Gemini API calls with fallback
+## Suggestions (if any)
+- File:line - Brief suggestion
+
+## Notes
+- Any important observations
+
+**REACTION (required, exactly one at the end):**
+Use this exact URL format: ![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/FILENAME)
+Available reactions: rem_glasses.png, miku_confused.png, menhera_stare.webp, kurisu_thumbs_up.webp
+Example: ![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/rem_glasses.png)
+"""
+
     return _call_gemini_with_fallback(prompt)
 
 
@@ -859,12 +807,12 @@ def get_valid_reaction_urls() -> List[str]:
 
 
 def fix_reaction_urls(review_text: str, valid_urls: List[str]) -> str:
-    """Automatically fix reaction URLs by cross-referencing extensions against valid URLs
+    """Automatically fix reaction URLs by cross-referencing against valid URLs.
 
     This function:
-    - Extracts filenames from reaction URLs
-    - Matches base filenames (without extension) against valid URLs
-    - Auto-fixes incorrect extensions (e.g., .png → .webp)
+    - Finds ANY ![Reaction](...) pattern (not just correct domain)
+    - Extracts filename and tries to match against valid reactions
+    - Replaces invalid URLs with correct ones or a default
 
     Args:
         review_text: The review text to fix
@@ -881,39 +829,55 @@ def fix_reaction_urls(review_text: str, valid_urls: List[str]) -> str:
     valid_reactions = {}
     for url in valid_urls:
         filename = url.split("/")[-1]
+        # Remove query params if present (e.g., ?raw=true)
+        filename = filename.split("?")[0]
         base_name = filename.rsplit(".", 1)[0]
         valid_reactions[base_name] = url
 
-    # Extract all reaction URLs from the review text
-    reaction_pattern = r"!\[Reaction\]\((https://raw\.githubusercontent\.com/AndrewAltimit/Media/[^\)]+)\)"
-    found_urls = re.findall(reaction_pattern, review_text)
+    # Default reaction if we can't match
+    default_reaction = valid_reactions.get("rem_glasses", valid_urls[0] if valid_urls else "")
 
-    if not found_urls:
+    # Find ANY ![Reaction](...) pattern - not just the correct domain
+    # This catches malformed URLs like github.com/repo/blob/... or completely wrong formats
+    reaction_pattern = r"!\[Reaction\]\(([^\)]+)\)"
+    matches = list(re.finditer(reaction_pattern, review_text))
+
+    if not matches:
         print("No reaction URLs found in review, skipping")
         return review_text
 
-    print(f"Found {len(found_urls)} reaction URL(s) to validate...")
+    print(f"Found {len(matches)} reaction URL(s) to validate...")
 
     # Fix each URL
     num_fixes = 0
     fixed_review = review_text
 
-    for url in found_urls:
+    for match in matches:
+        url = match.group(1)
+        full_match = match.group(0)
+
         # Check if URL is already valid
         if url in valid_urls:
+            print(f"✅ Valid: {url.split('/')[-1]}")
             continue
 
-        # Extract filename and base name
+        # Extract filename from URL (handle various formats)
+        # Could be: .../reaction/name.png, .../name.png?raw=true, etc.
         filename = url.split("/")[-1]
-        base_name = filename.rsplit(".", 1)[0]
+        filename = filename.split("?")[0]  # Remove query params
+        base_name = filename.rsplit(".", 1)[0] if "." in filename else filename
 
         # Try to match base filename
         if base_name in valid_reactions:
             fixed_url = valid_reactions[base_name]
-            if fixed_url != url:
-                num_fixes += 1
-                print(f"🔧 Fixed: {filename} → {fixed_url.split('/')[-1]}")
-                fixed_review = fixed_review.replace(f"![Reaction]({url})", f"![Reaction]({fixed_url})")
+            num_fixes += 1
+            print(f"🔧 Fixed: {filename} → {fixed_url.split('/')[-1]}")
+            fixed_review = fixed_review.replace(full_match, f"![Reaction]({fixed_url})")
+        else:
+            # Can't match - use default reaction
+            num_fixes += 1
+            print(f"🔧 Unknown reaction '{base_name}', using default: {default_reaction.split('/')[-1]}")
+            fixed_review = fixed_review.replace(full_match, f"![Reaction]({default_reaction})")
 
     if num_fixes > 0:
         print(f"✅ Fixed {num_fixes} reaction URL(s)")
@@ -923,25 +887,65 @@ def fix_reaction_urls(review_text: str, valid_urls: List[str]) -> str:
     return fixed_review
 
 
-def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = "default") -> str:
-    """Format the analysis as a GitHub PR comment"""
-    if model_used == "default":
-        model_display = "Gemini (Preview)"
-    else:
+def format_github_comment(
+    analysis: str,
+    pr_info: Dict[str, Any],
+    model_used: str = "default",
+    commit_sha: str = "",
+    is_incremental: bool = False,
+    diff_truncated: bool = False,
+    truncated_chars: int = 0,
+) -> str:
+    """Format the analysis as a GitHub PR comment.
+
+    Args:
+        analysis: The review analysis text
+        pr_info: PR information dictionary
+        model_used: Which model generated the review
+        commit_sha: Current commit SHA to track for incremental reviews
+        is_incremental: Whether this is an incremental review
+        diff_truncated: Whether the diff was truncated due to size limits
+        truncated_chars: Number of characters that were truncated
+
+    Returns:
+        Formatted GitHub comment with commit tracking marker
+    """
+    # Map model names to display names for transparency
+    model_display_map = {
+        "gemini-3-pro-preview": "Gemini 3 Pro (Preview)",
+        "gemini-2.5-flash": "Gemini 2.5 Flash",
+        "gemini-2.5-pro": "Gemini 2.5 Pro",
+        "default": "Gemini (Preview)",
+    }
+    if model_used == NO_MODEL:
         model_display = "Error - No model available"
-    comment = f"""## Gemini AI Code Review
-<!-- gemini-review-marker -->
+    else:
+        model_display = model_display_map.get(model_used, f"Gemini ({model_used})")
 
-Hello @{pr_info['author']}! I've analyzed your pull request \
-"{pr_info['title']}" and here's my comprehensive feedback:
+    # Include commit SHA in marker for incremental tracking
+    marker = f"<!-- gemini-review-marker:commit:{commit_sha} -->" if commit_sha else "<!-- gemini-review-marker -->"
 
+    # Add incremental review header if applicable
+    review_type = "Incremental Review" if is_incremental else "Code Review"
+    incremental_note = (
+        "\n*This is an incremental review focusing on changes since the last review.*\n" if is_incremental else ""
+    )
+
+    # Add truncation warning if applicable
+    truncation_warning = ""
+    if diff_truncated:
+        truncation_warning = (
+            f"\n⚠️ **Note:** This PR's diff was truncated ({truncated_chars:,} chars omitted). "
+            "Some changes at the end of the diff may not have been reviewed.\n"
+        )
+
+    comment = f"""## Gemini AI {review_type}
+{marker}
+{incremental_note}{truncation_warning}
 {analysis}
 
 ---
-*This review was automatically generated by Gemini AI ({model_display}) via CLI. \
-This is supplementary feedback to human reviews.*
-*If the analysis seems incomplete, check the [workflow logs](../actions) \
-for the full diff size.*
+*Generated by Gemini AI ({model_display}). Supplementary to human reviews.*
 """
     return comment
 
@@ -980,8 +984,8 @@ def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
 
 
 def main():
-    """Main function"""
-    print("Starting Improved Gemini PR Review...")
+    """Main function with incremental review support."""
+    print("Starting Gemini PR Review (v2 - Incremental + Concise)...")
 
     # Check if Gemini CLI is available
     if not check_gemini_cli():
@@ -1000,21 +1004,83 @@ def main():
 
     print(f"Analyzing PR #{pr_info['number']}: {pr_info['title']}")
 
+    # Get current commit SHA for tracking
+    current_commit = get_current_commit_sha()
+    print(f"Current commit: {current_commit}")
+
+    # Check for previous review (incremental review detection)
+    last_reviewed_commit = get_last_reviewed_commit(pr_info["number"])
+    is_incremental = False
+    new_files_since_last: List[str] = []
+
+    if last_reviewed_commit:
+        print(f"Previous review found at commit: {last_reviewed_commit}")
+
+        # Early exit if we've already reviewed this exact commit
+        if current_commit and last_reviewed_commit.startswith(current_commit[:8]):
+            print("✅ Current commit already reviewed - skipping to avoid duplicate comments")
+            print("Gemini PR review complete (no new commits)!")
+            return
+
+        new_files_since_last, diff_success = get_files_changed_since_commit(last_reviewed_commit)
+        if new_files_since_last:
+            is_incremental = True
+            print(f"Incremental review: {len(new_files_since_last)} files changed since last review")
+        elif diff_success:
+            # git diff succeeded but returned no files - same commit state
+            print("✅ No new changes since last review - skipping to avoid duplicate comments")
+            print("Gemini PR review complete (no changes)!")
+            return
+        else:
+            # git diff failed (shallow clone, etc.) - fall back to full review
+            print("Falling back to full review due to incremental diff failure")
+    else:
+        print("No previous review found - this is the first review")
+
     # Get changed files
     changed_files = get_changed_files()
-    print(f"Found {len(changed_files)} changed files")
+    print(f"Total changed files in PR: {len(changed_files)}")
 
     # Get PR diff
     print("Getting complete PR diff...")
     diff = get_pr_diff()
-    print(f"Diff size: {len(diff):,} characters")
+    original_diff_size = len(diff)
+    print(f"Diff size: {original_diff_size:,} characters")
 
-    # Analyze with Gemini
+    # Track if diff will be truncated
+    diff_truncated = original_diff_size > MAX_DIFF_CHARS
+    truncated_chars = original_diff_size - MAX_DIFF_CHARS if diff_truncated else 0
+    if diff_truncated:
+        print(f"⚠️  Diff will be truncated: {truncated_chars:,} chars will be omitted")
+
+    # Mark new changes in diff for incremental reviews
+    if is_incremental and new_files_since_last:
+        diff = mark_new_changes_in_diff(diff, new_files_since_last)
+        print(f"Marked {len(new_files_since_last)} files as [NEW SINCE LAST REVIEW]")
+
+    # Analyze with Gemini (single-pass, concise review)
     print("Consulting Gemini AI...")
-    analysis, model_used = analyze_large_pr(diff, changed_files, pr_info)
+    analysis, model_used = analyze_pr(
+        diff=diff,
+        changed_files=changed_files,
+        pr_info=pr_info,
+        is_incremental=is_incremental,
+        new_files_since_last=new_files_since_last,
+    )
 
-    # Format as GitHub comment
-    comment = format_github_comment(analysis, pr_info, model_used)
+    # Condense if review is too verbose
+    analysis = condense_review_with_flash(analysis)
+
+    # Format as GitHub comment with commit tracking
+    comment = format_github_comment(
+        analysis=analysis,
+        pr_info=pr_info,
+        model_used=model_used,
+        commit_sha=current_commit,
+        is_incremental=is_incremental,
+        diff_truncated=diff_truncated,
+        truncated_chars=truncated_chars,
+    )
 
     # Fix reaction URLs before posting (auto-fix bad extensions)
     print("\n🔍 Fixing reaction URLs...")
