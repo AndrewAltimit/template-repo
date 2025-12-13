@@ -224,14 +224,15 @@ def get_last_reviewed_commit(pr_number: str) -> Optional[str]:
         return None
 
 
-def get_files_changed_since_commit(since_commit: str) -> List[str]:
+def get_files_changed_since_commit(since_commit: str) -> Tuple[List[str], bool]:
     """Get list of files changed since a specific commit.
 
     Args:
         since_commit: The commit SHA to compare from
 
     Returns:
-        List of file paths that changed
+        Tuple of (list of file paths that changed, success boolean)
+        If git diff fails (e.g., shallow clone), returns ([], False)
     """
     try:
         result = subprocess.run(
@@ -240,9 +241,13 @@ def get_files_changed_since_commit(since_commit: str) -> List[str]:
             text=True,
             check=True,
         )
-        return [f.strip() for f in result.stdout.split("\n") if f.strip()]
-    except subprocess.CalledProcessError:
-        return []
+        files = [f.strip() for f in result.stdout.split("\n") if f.strip()]
+        return files, True
+    except subprocess.CalledProcessError as e:
+        print(f"⚠️  Warning: Could not get incremental diff from {since_commit}")
+        print(f"   Error: {e.stderr if e.stderr else 'git diff failed'}")
+        print("   This may happen with shallow clones in CI. Falling back to full review.")
+        return [], False
 
 
 def mark_new_changes_in_diff(full_diff: str, new_files: List[str]) -> str:
@@ -852,6 +857,8 @@ def format_github_comment(
     model_used: str = "default",
     commit_sha: str = "",
     is_incremental: bool = False,
+    diff_truncated: bool = False,
+    truncated_chars: int = 0,
 ) -> str:
     """Format the analysis as a GitHub PR comment.
 
@@ -861,6 +868,8 @@ def format_github_comment(
         model_used: Which model generated the review
         commit_sha: Current commit SHA to track for incremental reviews
         is_incremental: Whether this is an incremental review
+        diff_truncated: Whether the diff was truncated due to size limits
+        truncated_chars: Number of characters that were truncated
 
     Returns:
         Formatted GitHub comment with commit tracking marker
@@ -879,9 +888,17 @@ def format_github_comment(
         "\n*This is an incremental review focusing on changes since the last review.*\n" if is_incremental else ""
     )
 
+    # Add truncation warning if applicable
+    truncation_warning = ""
+    if diff_truncated:
+        truncation_warning = (
+            f"\n⚠️ **Note:** This PR's diff was truncated ({truncated_chars:,} chars omitted). "
+            "Some changes at the end of the diff may not have been reviewed.\n"
+        )
+
     comment = f"""## Gemini AI {review_type}
 {marker}
-{incremental_note}
+{incremental_note}{truncation_warning}
 {analysis}
 
 ---
@@ -955,12 +972,25 @@ def main():
 
     if last_reviewed_commit:
         print(f"Previous review found at commit: {last_reviewed_commit}")
-        new_files_since_last = get_files_changed_since_commit(last_reviewed_commit)
+
+        # Early exit if we've already reviewed this exact commit
+        if current_commit and last_reviewed_commit.startswith(current_commit[:8]):
+            print("✅ Current commit already reviewed - skipping to avoid duplicate comments")
+            print("Gemini PR review complete (no new commits)!")
+            return
+
+        new_files_since_last, diff_success = get_files_changed_since_commit(last_reviewed_commit)
         if new_files_since_last:
             is_incremental = True
             print(f"Incremental review: {len(new_files_since_last)} files changed since last review")
+        elif diff_success:
+            # git diff succeeded but returned no files - same commit state
+            print("✅ No new changes since last review - skipping to avoid duplicate comments")
+            print("Gemini PR review complete (no changes)!")
+            return
         else:
-            print("No new changes since last review - will provide full review")
+            # git diff failed (shallow clone, etc.) - fall back to full review
+            print("Falling back to full review due to incremental diff failure")
     else:
         print("No previous review found - this is the first review")
 
@@ -971,7 +1001,14 @@ def main():
     # Get PR diff
     print("Getting complete PR diff...")
     diff = get_pr_diff()
-    print(f"Diff size: {len(diff):,} characters")
+    original_diff_size = len(diff)
+    print(f"Diff size: {original_diff_size:,} characters")
+
+    # Track if diff will be truncated (60k char limit in analyze_pr)
+    diff_truncated = original_diff_size > 60000
+    truncated_chars = original_diff_size - 60000 if diff_truncated else 0
+    if diff_truncated:
+        print(f"⚠️  Diff will be truncated: {truncated_chars:,} chars will be omitted")
 
     # Mark new changes in diff for incremental reviews
     if is_incremental and new_files_since_last:
@@ -998,6 +1035,8 @@ def main():
         model_used=model_used,
         commit_sha=current_commit,
         is_incremental=is_incremental,
+        diff_truncated=diff_truncated,
+        truncated_chars=truncated_chars,
     )
 
     # Fix reaction URLs before posting (auto-fix bad extensions)
