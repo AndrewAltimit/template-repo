@@ -892,10 +892,17 @@ def format_github_comment(
     Returns:
         Formatted GitHub comment with commit tracking marker
     """
-    if model_used == "default" or model_used != NO_MODEL:
-        model_display = "Gemini (Preview)"
-    else:
+    # Map model names to display names for transparency
+    model_display_map = {
+        "gemini-3-pro-preview": "Gemini 3 Pro (Preview)",
+        "gemini-2.5-flash": "Gemini 2.5 Flash",
+        "gemini-2.5-pro": "Gemini 2.5 Pro",
+        "default": "Gemini (Preview)",
+    }
+    if model_used == NO_MODEL:
         model_display = "Error - No model available"
+    else:
+        model_display = model_display_map.get(model_used, f"Gemini ({model_used})")
 
     # Include commit SHA in marker for incremental tracking
     marker = f"<!-- gemini-review-marker:commit:{commit_sha} -->" if commit_sha else "<!-- gemini-review-marker -->"
