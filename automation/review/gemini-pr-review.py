@@ -37,6 +37,7 @@ MAX_RETRIES = 5  # For rate limiting on free tier (3 preview may have stricter l
 # Review constraints
 MAX_REVIEW_WORDS = 500  # Target word limit for reviews
 CONDENSATION_THRESHOLD = 600  # Trigger condensation if above this
+MAX_DIFF_CHARS = 200000  # Max diff size before truncation (Gemini supports 1M+ tokens)
 
 
 def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETRIES) -> Tuple[str, str]:
@@ -220,7 +221,7 @@ def get_last_reviewed_commit(pr_number: str) -> Optional[str]:
                 return match.group(1)
 
         return None
-    except (subprocess.CalledProcessError, json.JSONDecodeError):
+    except (subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError):
         return None
 
 
@@ -247,6 +248,9 @@ def get_files_changed_since_commit(since_commit: str) -> Tuple[List[str], bool]:
         print(f"⚠️  Warning: Could not get incremental diff from {since_commit}")
         print(f"   Error: {e.stderr if e.stderr else 'git diff failed'}")
         print("   This may happen with shallow clones in CI. Falling back to full review.")
+        return [], False
+    except FileNotFoundError:
+        print("⚠️  Warning: git not found in PATH. Falling back to full review.")
         return [], False
 
 
@@ -704,9 +708,9 @@ New/changed files: {', '.join(new_files_since_last[:10])}
 
 **DIFF:**
 ```diff
-{diff[:60000]}
+{diff[:MAX_DIFF_CHARS]}
 ```
-{'... (truncated)' if len(diff) > 60000 else ''}
+{'... (truncated)' if len(diff) > MAX_DIFF_CHARS else ''}
 
 **OUTPUT FORMAT:**
 ## Issues (if any)
@@ -1004,9 +1008,9 @@ def main():
     original_diff_size = len(diff)
     print(f"Diff size: {original_diff_size:,} characters")
 
-    # Track if diff will be truncated (60k char limit in analyze_pr)
-    diff_truncated = original_diff_size > 60000
-    truncated_chars = original_diff_size - 60000 if diff_truncated else 0
+    # Track if diff will be truncated
+    diff_truncated = original_diff_size > MAX_DIFF_CHARS
+    truncated_chars = original_diff_size - MAX_DIFF_CHARS if diff_truncated else 0
     if diff_truncated:
         print(f"⚠️  Diff will be truncated: {truncated_chars:,} chars will be omitted")
 
