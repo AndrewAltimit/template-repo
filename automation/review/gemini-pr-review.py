@@ -37,7 +37,7 @@ MAX_RETRIES = 5  # For rate limiting on free tier (3 preview may have stricter l
 # Review constraints
 MAX_REVIEW_WORDS = 500  # Target word limit for reviews
 CONDENSATION_THRESHOLD = 600  # Trigger condensation if above this
-MAX_DIFF_CHARS = 200000  # Max diff size before truncation (Gemini supports 1M+ tokens)
+MAX_DIFF_CHARS = 500000  # Max diff size before truncation (Gemini 1.5 Pro supports 1M+ tokens)
 
 
 def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETRIES) -> Tuple[str, str]:
@@ -282,12 +282,12 @@ def mark_new_changes_in_diff(full_diff: str, new_files: List[str]) -> str:
             if match:
                 filepath = match.group(1)
             else:
-                # Fallback: extract path between "a/" and " b/" for renamed files
-                # Format: "diff --git a/old b/new"
-                a_idx = line.find(" a/")
+                # Fallback for renamed files: extract destination path (b/...)
+                # Format: "diff --git a/old b/new" -> we want "new" (what git diff --name-only returns)
                 b_idx = line.find(" b/")
-                if a_idx != -1 and b_idx != -1 and b_idx > a_idx:
-                    filepath = line[a_idx + 3 : b_idx]
+                if b_idx != -1:
+                    # Extract everything after " b/" to end of line
+                    filepath = line[b_idx + 3 :]
                 else:
                     filepath = ""
 
