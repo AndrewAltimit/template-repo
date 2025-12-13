@@ -496,3 +496,4 @@ sudo docker-compose run --rm python-ci python my_first_agent.py
 
 - [Architecture Documentation](architecture.md) - System design and components
 - [Integration Guide](integration-guide.md) - Advanced usage patterns
+- [Economic Implications](economic-implications.md) - Policy and governance analysis
