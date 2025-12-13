@@ -713,7 +713,10 @@ New/changed files: {', '.join(new_files_since_last[:10])}
 ## Notes
 - Any important observations
 
-![Reaction](reaction_url_here)
+**REACTION (required, exactly one at the end):**
+Use this exact URL format: ![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/FILENAME)
+Available reactions: rem_glasses.png, miku_confused.png, menhera_stare.webp, kurisu_thumbs_up.webp
+Example: ![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/rem_glasses.png)
 """
 
     return _call_gemini_with_fallback(prompt)
@@ -763,12 +766,12 @@ def get_valid_reaction_urls() -> List[str]:
 
 
 def fix_reaction_urls(review_text: str, valid_urls: List[str]) -> str:
-    """Automatically fix reaction URLs by cross-referencing extensions against valid URLs
+    """Automatically fix reaction URLs by cross-referencing against valid URLs.
 
     This function:
-    - Extracts filenames from reaction URLs
-    - Matches base filenames (without extension) against valid URLs
-    - Auto-fixes incorrect extensions (e.g., .png → .webp)
+    - Finds ANY ![Reaction](...) pattern (not just correct domain)
+    - Extracts filename and tries to match against valid reactions
+    - Replaces invalid URLs with correct ones or a default
 
     Args:
         review_text: The review text to fix
@@ -785,39 +788,55 @@ def fix_reaction_urls(review_text: str, valid_urls: List[str]) -> str:
     valid_reactions = {}
     for url in valid_urls:
         filename = url.split("/")[-1]
+        # Remove query params if present (e.g., ?raw=true)
+        filename = filename.split("?")[0]
         base_name = filename.rsplit(".", 1)[0]
         valid_reactions[base_name] = url
 
-    # Extract all reaction URLs from the review text
-    reaction_pattern = r"!\[Reaction\]\((https://raw\.githubusercontent\.com/AndrewAltimit/Media/[^\)]+)\)"
-    found_urls = re.findall(reaction_pattern, review_text)
+    # Default reaction if we can't match
+    default_reaction = valid_reactions.get("rem_glasses", valid_urls[0] if valid_urls else "")
 
-    if not found_urls:
+    # Find ANY ![Reaction](...) pattern - not just the correct domain
+    # This catches malformed URLs like github.com/repo/blob/... or completely wrong formats
+    reaction_pattern = r"!\[Reaction\]\(([^\)]+)\)"
+    matches = list(re.finditer(reaction_pattern, review_text))
+
+    if not matches:
         print("No reaction URLs found in review, skipping")
         return review_text
 
-    print(f"Found {len(found_urls)} reaction URL(s) to validate...")
+    print(f"Found {len(matches)} reaction URL(s) to validate...")
 
     # Fix each URL
     num_fixes = 0
     fixed_review = review_text
 
-    for url in found_urls:
+    for match in matches:
+        url = match.group(1)
+        full_match = match.group(0)
+
         # Check if URL is already valid
         if url in valid_urls:
+            print(f"✅ Valid: {url.split('/')[-1]}")
             continue
 
-        # Extract filename and base name
+        # Extract filename from URL (handle various formats)
+        # Could be: .../reaction/name.png, .../name.png?raw=true, etc.
         filename = url.split("/")[-1]
-        base_name = filename.rsplit(".", 1)[0]
+        filename = filename.split("?")[0]  # Remove query params
+        base_name = filename.rsplit(".", 1)[0] if "." in filename else filename
 
         # Try to match base filename
         if base_name in valid_reactions:
             fixed_url = valid_reactions[base_name]
-            if fixed_url != url:
-                num_fixes += 1
-                print(f"🔧 Fixed: {filename} → {fixed_url.split('/')[-1]}")
-                fixed_review = fixed_review.replace(f"![Reaction]({url})", f"![Reaction]({fixed_url})")
+            num_fixes += 1
+            print(f"🔧 Fixed: {filename} → {fixed_url.split('/')[-1]}")
+            fixed_review = fixed_review.replace(full_match, f"![Reaction]({fixed_url})")
+        else:
+            # Can't match - use default reaction
+            num_fixes += 1
+            print(f"🔧 Unknown reaction '{base_name}', using default: {default_reaction.split('/')[-1]}")
+            fixed_review = fixed_review.replace(full_match, f"![Reaction]({default_reaction})")
 
     if num_fixes > 0:
         print(f"✅ Fixed {num_fixes} reaction URL(s)")
