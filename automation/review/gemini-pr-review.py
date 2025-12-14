@@ -447,38 +447,6 @@ def get_pr_diff() -> str:
         return "Could not generate diff"
 
 
-def get_pr_diff_for_files(files: List[str]) -> str:
-    """Get the diff of the PR filtered to specific files only.
-
-    This is used for incremental reviews to only show changes in files
-    that were modified since the last review, preventing Gemini from
-    commenting on already-reviewed code.
-
-    Args:
-        files: List of file paths to include in the diff
-
-    Returns:
-        Filtered diff containing only the specified files
-    """
-    if not files:
-        return "No files specified for diff"
-
-    try:
-        base_branch = os.environ.get("BASE_BRANCH", "main")
-        # Use -- to separate paths from revision range
-        cmd = ["git", "diff", f"origin/{base_branch}...HEAD", "--"] + files
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout
-    except subprocess.CalledProcessError as e:
-        print(f"Warning: Could not generate filtered diff: {e}")
-        return "Could not generate filtered diff"
-
-
 def get_file_content(filepath: str) -> str:
     """Get the content of a specific file"""
     try:
