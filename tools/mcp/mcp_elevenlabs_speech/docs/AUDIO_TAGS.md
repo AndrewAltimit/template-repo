@@ -241,7 +241,7 @@ Character A: [confused][laughs] "What?"
 
 ## Best Practices
 
-### Do's ✅
+### Recommended Practices
 
 1. **Test Different Combinations**: Some tags work better together
 2. **Match Voice to Tags**: Some voices respond better to certain tags
@@ -249,7 +249,7 @@ Character A: [confused][laughs] "What?"
 4. **Place Tags Strategically**: Beginning for tone, middle for reactions
 5. **Consider Context**: GitHub reviews vs storytelling need different approaches
 
-### Don'ts ❌
+### Common Pitfalls
 
 1. **Don't Overuse Tags**: Too many can sound unnatural
 2. **Don't Mix Conflicting Emotions**: `[happy][sad]` confuses the model

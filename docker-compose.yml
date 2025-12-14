@@ -93,13 +93,13 @@ services:
     container_name: mcp-github-board
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
-      - "8021:8021"
+      - "8022:8022"
     volumes:
       - ./:/app:ro  # Read-only mount for security
       - /tmp:/tmp   # For temporary files
     environment:
       - PYTHONUNBUFFERED=1
-      - PORT=8021
+      - PORT=8022
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
       - GITHUB_PROJECT_NUMBER=${GITHUB_PROJECT_NUMBER:-1}
@@ -108,7 +108,7 @@ services:
     command: ["python", "-m", "mcp_github_board.server", "--mode", "http"]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8021/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8022/health"]
       interval: 30s
       timeout: 10s
       retries: 3

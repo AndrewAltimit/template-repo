@@ -28,27 +28,27 @@ This design ensures:
 
 ## Features
 
-### 🎨 Scene Generation
+### Scene Generation
 - Create projects from templates (basic, studio lighting, animation-ready)
 - Add primitive objects (cubes, spheres, cylinders, etc.)
 - Configure professional lighting setups
 - Apply PBR materials and textures
 
-### 🎬 Rendering
+### Rendering
 - Single frame rendering (Cycles/Eevee/Workbench)
 - Animation sequence rendering
 - GPU-accelerated rendering with NVIDIA CUDA
 - Multiple output formats (PNG, JPEG, EXR, MP4)
 - Blender 4.5.1 with latest features
 
-### ⚛️ Physics Simulation
+### Physics Simulation
 - Rigid body dynamics
 - Soft body simulation
 - Cloth simulation
 - Fluid dynamics
 - Particle systems
 
-### 🎭 Animation
+### Animation
 - Keyframe animation
 - Armature rigging
 - Animation constraints
@@ -56,14 +56,14 @@ This design ensures:
 - Shape keys for deformation
 - NLA (Non-Linear Animation) editing
 
-### 🔷 Geometry Nodes
+### Geometry Nodes
 - Procedural geometry generation
 - Scatter/distribution systems
 - Array and grid layouts
 - Curve-based geometry
 - Volume/voxel operations
 
-### 📦 Asset Management
+### Asset Management
 - Project organization
 - Model import/export (FBX, OBJ, GLTF, STL, USD)
 - Texture management

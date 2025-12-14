@@ -1,8 +1,8 @@
-# 🚀 Running Blender MCP Server Locally
+# Running Blender MCP Server Locally
 
 This guide explains how to run and test the Blender MCP server on your local machine.
 
-## 📋 Prerequisites
+## Prerequisites
 
 ### System Requirements
 - **OS**: Linux (Ubuntu 20.04+ recommended) or macOS
@@ -23,7 +23,7 @@ sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
 sudo systemctl restart docker
 ```
 
-## 🐳 Method 1: Docker (Recommended)
+## Method 1: Docker (Recommended)
 
 ### Start the Server
 ```bash
@@ -52,7 +52,7 @@ docker-compose --profile gpu up -d mcp-blender
 docker-compose down mcp-blender
 ```
 
-## 🐍 Method 2: Python (Development)
+## Method 2: Python (Development)
 
 ### Setup
 ```bash
@@ -76,7 +76,7 @@ cd tools/mcp/blender
 python server.py
 ```
 
-## ✅ Verify Server is Running
+## Verify Server is Running
 
 ### Health Check
 ```bash
@@ -96,7 +96,7 @@ python tools/mcp/blender/scripts/test_server.py
 python tools/mcp/blender/scripts/test_server.py --interactive
 ```
 
-## 🎯 Running Validation & Demos
+## Running Validation and Demos
 
 ### Comprehensive Validation Suite
 Tests all major capabilities:
@@ -109,15 +109,15 @@ python tools/mcp/blender/scripts/comprehensive_validation.py --server-url http:/
 ```
 
 This will test:
-- ✅ All 11 project templates
-- ✅ Object creation (all primitive types)
-- ✅ Materials (metal, glass, emission, plastic, wood)
-- ✅ Lighting setups (three-point, studio, sun, area)
-- ✅ Physics simulation (rigid body dynamics)
-- ✅ Animation (keyframes, interpolation)
-- ✅ Geometry nodes (procedural generation)
-- ✅ Rendering (EEVEE, CYCLES, WORKBENCH)
-- ✅ Import/Export (OBJ, FBX, GLTF, STL, PLY)
+- All 11 project templates
+- Object creation (all primitive types)
+- Materials (metal, glass, emission, plastic, wood)
+- Lighting setups (three-point, studio, sun, area)
+- Physics simulation (rigid body dynamics)
+- Animation (keyframes, interpolation)
+- Geometry nodes (procedural generation)
+- Rendering (EEVEE, CYCLES, WORKBENCH)
+- Import/Export (OBJ, FBX, GLTF, STL, PLY)
 
 ### Demo Projects
 Create showcase projects:
@@ -136,7 +136,7 @@ python tools/mcp/blender/scripts/demo_projects.py --demo 1
 4. **Architectural Viz** - Modern house with realistic materials
 5. **Procedural Generation** - Forest scatter using geometry nodes
 
-## 📁 Output Locations
+## Output Locations
 
 After running tests/demos, find outputs in:
 ```
@@ -147,7 +147,7 @@ outputs/blender/
 └── templates/    # Project templates
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 ```bash
@@ -169,7 +169,7 @@ Edit `docker-compose.yml` for:
 - GPU allocation
 - Memory limits
 
-## 🎮 Quick Start Examples
+## Quick Start Examples
 
 ### Example 1: Create and Render a Simple Scene
 ```python
@@ -227,7 +227,7 @@ asyncio.run(quick_demo())
 python tools/mcp/blender/scripts/demo_projects.py --demo 2
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Server Won't Start
 ```bash
@@ -264,14 +264,14 @@ sudo chown -R $USER:$USER outputs/blender/
 - Lower resolution
 - Use EEVEE instead of CYCLES
 
-## 📊 Performance Tips
+## Performance Tips
 
 1. **Preview Mode**: Use EEVEE with low samples (32) for quick previews
 2. **Final Render**: Use CYCLES with GPU for best quality
 3. **Batch Processing**: Queue multiple renders as async jobs
 4. **Resource Management**: Monitor with `docker stats mcp-blender`
 
-## 🔗 Integration with Other MCP Servers
+## Integration with Other MCP Servers
 
 ```python
 # Example: Use with ComfyUI for textures
@@ -283,14 +283,14 @@ terrain = await gaea2_client.create_terrain("mountains")
 await blender_client.import_model(terrain["mesh_path"])
 ```
 
-## 📚 Additional Resources
+## Additional Resources
 
 - [Blender MCP README](README.md)
 - [API Documentation](docs/README.md)
 - [Example Scripts](examples/)
 - [Test Suite](tests/)
 
-## 💡 Tips for Testing
+## Tips for Testing
 
 1. **Start Small**: Begin with simple scenes before complex projects
 2. **Use Templates**: Leverage the 11 built-in templates
@@ -298,7 +298,7 @@ await blender_client.import_model(terrain["mesh_path"])
 4. **Check Outputs**: Regularly check `outputs/blender/renders/` for results
 5. **Iterate Quickly**: Use EEVEE for rapid iteration, CYCLES for final
 
-## 🆘 Getting Help
+## Getting Help
 
 If you encounter issues:
 1. Check server logs: `docker-compose logs mcp-blender`
@@ -308,4 +308,4 @@ If you encounter issues:
 
 ---
 
-Happy 3D creating with Blender MCP! 🎨✨
+Happy 3D creating with Blender MCP!

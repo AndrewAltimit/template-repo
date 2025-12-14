@@ -38,11 +38,11 @@ GITHUB_BOARD_CONFIG=.github/board_config.yaml
 ### HTTP Mode (Recommended)
 
 ```bash
-# Start server on port 8021
+# Start server on port 8022
 python -m mcp_github_board.server
 
 # Or with custom port
-uvicorn mcp_github_board.server:app --host 0.0.0.0 --port 8021
+uvicorn mcp_github_board.server:app --host 0.0.0.0 --port 8022
 ```
 
 ### Docker Mode
@@ -335,20 +335,20 @@ work_queue:
 python tools/mcp/github_board/scripts/test_server.py
 
 # Test with custom URL
-python tools/mcp/github_board/scripts/test_server.py --url http://localhost:8021
+python tools/mcp/github_board/scripts/test_server.py --url http://localhost:8022
 ```
 
 ### Manual Testing
 
 ```bash
 # Health check
-curl http://localhost:8021/health
+curl http://localhost:8022/health
 
 # List tools
-curl http://localhost:8021/mcp/tools
+curl http://localhost:8022/mcp/tools
 
 # Execute tool
-curl -X POST http://localhost:8021/mcp/execute \
+curl -X POST http://localhost:8022/mcp/execute \
   -H "Content-Type: application/json" \
   -d '{
     "tool": "list_agents",

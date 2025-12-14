@@ -6,14 +6,14 @@ Advanced speech synthesis using ElevenLabs v3 (default model) with full emotiona
 
 ## Features
 
-- 🎙️ **ElevenLabs v3 Integration** - Latest model with 74 language support
-- 🎭 **Emotional Audio Tags** - [laughs], [whisper], [excited], and 50+ more
-- 🔊 **Sound Effects** - Generate up to 22-second sound effects from text
-- 🌐 **Multi-language** - Automatic language detection and optimization
-- 💬 **Multi-character Dialogue** - Create conversations with different voices
-- 🔄 **Streaming Support** - WebSocket and HTTP streaming for real-time synthesis
-- 📤 **Auto-upload** - Share audio via free hosting services
-- 🐙 **GitHub Integration** - Audio reviews and comments for PRs/issues
+- **ElevenLabs v3 Integration**: Latest model with 74 language support
+- **Emotional Audio Tags**: [laughs], [whisper], [excited], and 50+ expressions
+- **Sound Effects**: Generate up to 22-second sound effects from text
+- **Multi-language**: Automatic language detection and optimization
+- **Multi-character Dialogue**: Create conversations with different voices
+- **Streaming Support**: WebSocket and HTTP streaming for real-time synthesis
+- **Auto-upload**: Share audio via free hosting services
+- **GitHub Integration**: Audio reviews and comments for PRs/issues
 
 ## Quick Start
 
@@ -134,7 +134,7 @@ Create audio review for pull requests.
 
 Returns formatted GitHub comment:
 ```markdown
-🎤 [Audio Review (2:34)](https://0x0.st/audio_123.mp3)
+[Audio Review (2:34)](https://0x0.st/audio_123.mp3)
 ```
 
 ### Voice Management
@@ -304,16 +304,16 @@ result = mcp_client.call_tool(
 
 # Post to GitHub
 gh pr comment 123 --body "
-## 🎤 Audio Review Available
+## Audio Review Available
 
 [Listen to Full Review](${result.audio_url}) (2:34)
 
 ### Key Points:
-- ✅ Solid error handling
-- 📝 Good validation structure
-- ⚠️ Consider timeout adjustment
+- Solid error handling
+- Good validation structure
+- Consider timeout adjustment
 
-Great work overall! 🎉
+Great work overall!
 "
 ```
 
@@ -327,11 +327,11 @@ suggestion = synthesize("What if we tried caching?", tags=["[curious]"])
 
 # Format comment
 comment = f"""
-### 🎧 Audio Feedback
+### Audio Feedback
 
-- 🎉 [Excited about the approach!]({excited.url})
-- 🤔 [Performance concerns]({concern.url})
-- 💡 [Alternative suggestion]({suggestion.url})
+- [Excited about the approach!]({excited.url})
+- [Performance concerns]({concern.url})
+- [Alternative suggestion]({suggestion.url})
 """
 ```
 
@@ -394,7 +394,7 @@ scene = {
 - **Emotional Range**: Most expressive and natural emotional rendering
 - **Latest Model**: As per [ElevenLabs v3 docs](https://elevenlabs.io/docs/models#eleven-v3-alpha)
 
-### ⚠️ Content Filtering Warning
+### Content Filtering Warning
 
 **Important**: The v3 model includes content filtering that may reject requests containing:
 - References to self-harm, violence, or disturbing content
