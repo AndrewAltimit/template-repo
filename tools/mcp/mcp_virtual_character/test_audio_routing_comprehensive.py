@@ -547,7 +547,7 @@ class AudioRoutingTester:
         self.test_results["recommendations"] = recommendations
 
         for i, rec in enumerate(recommendations, 1):
-            logger.info(f"{i}. {rec}")
+            logger.info("%s. %s", i, rec)
 
         if not recommendations:
             logger.info("[OK] All systems operational!")
@@ -558,7 +558,7 @@ class AudioRoutingTester:
         with open(results_file, "w", encoding="utf-8") as f:
             json.dump(self.test_results, f, indent=2, default=str)
 
-        logger.info(f"\n[OK] Results saved to: {results_file}")
+        logger.info("\n[OK] Results saved to: %s", results_file)
         return results_file
 
     def run_all_tests(self):
@@ -566,7 +566,7 @@ class AudioRoutingTester:
         logger.info("=" * 60)
         logger.info("COMPREHENSIVE AUDIO ROUTING TEST SUITE")
         logger.info("=" * 60)
-        logger.info(f"Started at: {datetime.now()}")
+        logger.info("Started at: %s", datetime.now())
 
         # Run tests
         self.test_system_info()
