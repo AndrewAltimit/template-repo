@@ -240,8 +240,8 @@ class SequenceHandler:
             return {"success": True, "message": "Emergency reset completed"}
 
         except asyncio.CancelledError:
-            # Re-raise cancellation
-            raise
+            # Re-raise cancellation (required for proper async cleanup)
+            raise  # pylint: disable=try-except-raise
         except OSError as e:
             logger.error("I/O error during panic reset: %s", e)
             return {"success": False, "error": f"I/O error: {e}"}
@@ -294,7 +294,7 @@ class SequenceHandler:
                 try:
                     await self._execute_event(event, backend)
                 except asyncio.CancelledError:
-                    raise
+                    raise  # pylint: disable=try-except-raise
                 except OSError as e:
                     logger.error("I/O error executing event at %ss: %s", event.timestamp, e)
                 except ValueError as e:
@@ -370,7 +370,7 @@ class SequenceHandler:
             await asyncio.sleep(0.1)
 
         except asyncio.CancelledError:
-            raise
+            raise  # pylint: disable=try-except-raise
         except OSError as e:
             logger.error("I/O error resetting avatar state: %s", e)
         except RuntimeError as e:

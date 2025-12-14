@@ -333,8 +333,6 @@ class AudioPlayer:
                 process.kill()
                 await process.wait()
             raise
-        except FileNotFoundError:
-            raise
 
     async def _start_subprocess_detached(self, cmd: List[str]) -> bool:
         """

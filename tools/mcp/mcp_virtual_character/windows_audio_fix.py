@@ -60,13 +60,13 @@ def play_audio_to_voicemeeter(audio_file):
         open_cmd = f'open "{audio_file}" type mpegvideo alias {alias}'
         result = winmm.mciSendStringW(open_cmd, None, 0, 0)
         if result != 0:
-            raise Exception(f"Failed to open: {result}")
+            raise RuntimeError(f"Failed to open: {result}")
 
         # Play the audio
         play_cmd = f"play {alias} wait"
         result = winmm.mciSendStringW(play_cmd, None, 0, 0)
         if result != 0:
-            raise Exception(f"Failed to play: {result}")
+            raise RuntimeError(f"Failed to play: {result}")
 
         # Close when done
         close_cmd = f"close {alias}"
