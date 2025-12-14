@@ -160,7 +160,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
             is_valid = True
             validation_msg = "OK"
         if not is_valid:
-            self.logger.warning(f"Voice validation failed: {validation_msg}")
+            self.logger.warning("Voice validation failed: %s", validation_msg)
             # Try to find a compatible alternative
             resolved_voice_id = await self._find_compatible_voice(model_enum)
             if not resolved_voice_id:
@@ -176,7 +176,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         # Validate and format audio tags
         is_valid, tag_errors = AudioTagFormatter.validate_tag_syntax(text)
         if not is_valid:
-            self.logger.warning(f"Audio tag syntax issues: {tag_errors}")
+            self.logger.warning("Audio tag syntax issues: %s", tag_errors)
             # Continue anyway but log the issues
 
         # Format text with proper audio tag placement
@@ -221,12 +221,12 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         try:
             result = await self.client.synthesize_speech(config)
         except Exception as e:
-            self.logger.error(f"Synthesis failed: {e}")
+            self.logger.error("Synthesis failed: %s", e)
             # Try with fallback voice and model
             fallback_voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel
             fallback_model = VoiceModel.ELEVEN_MULTILINGUAL_V2
 
-            self.logger.info(f"Attempting fallback with Rachel voice and {fallback_model.value}")
+            self.logger.info("Attempting fallback with Rachel voice and %s", fallback_model.value)
             config.voice_id = fallback_voice_id
             config.model = fallback_model
 
@@ -247,7 +247,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                 if upload_result:
                     result.audio_url = upload_result
             except Exception as upload_error:
-                self.logger.warning(f"Upload failed but synthesis succeeded: {upload_error}")
+                self.logger.warning("Upload failed but synthesis succeeded: %s", upload_error)
                 # Continue without upload URL
 
         # Build result dict with proper audio handling
@@ -258,7 +258,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         if result.success:
             if result.audio_url:
                 # Best case: We have a URL, no need for raw data
-                self.logger.info(f"Returning audio URL: {result.audio_url}")
+                self.logger.info("Returning audio URL: %s", result.audio_url)
                 # Clear audio_data since we have URL
                 if "audio_data" in result_dict:
                     del result_dict["audio_data"]
@@ -273,19 +273,19 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                     audio_format = config.output_format.value.lower()  # mp3, wav, etc.
                     local_url = await serve_audio_file(result.audio_data, audio_format)
                     result_dict["audio_url"] = local_url
-                    self.logger.info(f"Serving audio via local HTTP: {local_url} ({len(result.audio_data)} bytes)")
+                    self.logger.info("Serving audio via local HTTP: %s (%s bytes)", local_url, len(result.audio_data))
 
                     # Clear audio_data since we now have a URL
                     if "audio_data" in result_dict:
                         del result_dict["audio_data"]
                 except Exception as e:
-                    self.logger.warning(f"Failed to serve audio via local HTTP: {e}")
+                    self.logger.warning("Failed to serve audio via local HTTP: %s", e)
                     # Fallback: Only include base64 if small
                     if len(result.audio_data) < 50000:  # Only include if < 50KB
                         import base64
 
                         result_dict["audio_data"] = base64.b64encode(result.audio_data).decode("utf-8")
-                        self.logger.info(f"Fallback: Returning small audio as base64 ({len(result.audio_data)} bytes)")
+                        self.logger.info("Fallback: Returning small audio as base64 (%s bytes)", len(result.audio_data))
                     else:
                         # Large audio without URL: Don't include to avoid context pollution
                         if "audio_data" in result_dict:
@@ -601,11 +601,11 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         # Check if it's already a valid ID format (UUID-like)
         if len(voice_input) > 10 and " " not in voice_input:
             # Might be a voice ID we don't know about
-            self.logger.warning(f"Using unknown voice ID directly: {voice_input}")
+            self.logger.warning("Using unknown voice ID directly: %s", voice_input)
             return voice_input
 
         # Log failure to resolve
-        self.logger.error(f"Could not resolve voice: {voice_input}")
+        self.logger.error("Could not resolve voice: %s", voice_input)
         return None
 
     def _get_voice_name_from_id(self, voice_id: str) -> Optional[str]:

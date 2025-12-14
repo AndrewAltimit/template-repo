@@ -44,7 +44,7 @@ class AudioFileServer:
         self.app.router.add_get("/audio/{file_id}", self.serve_audio)
         self.app.router.add_get("/health", self.health_check)
 
-        logger.info(f"AudioFileServer initialized with temp dir: {self.temp_dir}")
+        logger.info("AudioFileServer initialized with temp dir: %s", self.temp_dir)
 
     def _get_host_ip(self) -> str:
         """Get the host machine's IP address that's reachable from other machines."""
@@ -87,7 +87,7 @@ class AudioFileServer:
             await self.site.start()
             self.actual_port = self.port
 
-        logger.info(f"Audio file server started on {self.host_ip}:{self.actual_port}")
+        logger.info("Audio file server started on %s:%s", self.host_ip, self.actual_port)
 
         # Start cleanup task
         asyncio.create_task(self._cleanup_old_files())
@@ -131,7 +131,7 @@ class AudioFileServer:
 
         # Return URL
         url = f"http://{self.host_ip}:{self.actual_port}/audio/{file_id}"
-        logger.info(f"Added audio file: {url} ({len(audio_data)} bytes)")
+        logger.info("Added audio file: %s (%s bytes)", url, len(audio_data))
 
         return url
 
@@ -140,13 +140,13 @@ class AudioFileServer:
         file_id = request.match_info["file_id"]
 
         if file_id not in self.files:
-            logger.warning(f"Audio file not found: {file_id}")
+            logger.warning("Audio file not found: %s", file_id)
             return web.Response(text="File not found", status=404)
 
         file_path, _timestamp = self.files[file_id]
 
         if not file_path.exists():
-            logger.warning(f"Audio file deleted: {file_id}")
+            logger.warning("Audio file deleted: %s", file_id)
             del self.files[file_id]
             return web.Response(text="File not found", status=404)
 
@@ -164,7 +164,7 @@ class AudioFileServer:
         content_type = content_types.get(ext, "application/octet-stream")
 
         # Serve the file
-        logger.info(f"Serving audio file: {file_id} ({content_type})")
+        logger.info("Serving audio file: %s (%s)", file_id, content_type)
         return web.FileResponse(
             file_path,
             headers={
@@ -203,16 +203,16 @@ class AudioFileServer:
                     file_path, _ = self.files[file_id]
                     try:
                         file_path.unlink()
-                        logger.info(f"Cleaned up old audio file: {file_id}")
+                        logger.info("Cleaned up old audio file: %s", file_id)
                     except Exception as e:
-                        logger.error(f"Failed to delete {file_id}: {e}")
+                        logger.error("Failed to delete %s: %s", file_id, e)
                     del self.files[file_id]
 
                 if to_delete:
-                    logger.info(f"Cleaned up {len(to_delete)} old audio files")
+                    logger.info("Cleaned up %s old audio files", len(to_delete))
 
             except Exception as e:
-                logger.error(f"Error in cleanup task: {e}")
+                logger.error("Error in cleanup task: %s", e)
 
 
 # Global server instance

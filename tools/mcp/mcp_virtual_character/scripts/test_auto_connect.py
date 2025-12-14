@@ -35,8 +35,8 @@ async def test_auto_connect():
     # Check if connected
     if server.current_backend:
         logger.info("✓ Auto-connect successful!")
-        logger.info(f"  Backend: {server.backend_name}")
-        logger.info(f"  Config: {server.config}")
+        logger.info("  Backend: %s", server.backend_name)
+        logger.info("  Config: %s", server.config)
 
         # Test sending an animation
         logger.info("\nTesting animation send...")
@@ -45,7 +45,7 @@ async def test_auto_connect():
         if result["success"]:
             logger.info("✓ Animation sent successfully!")
         else:
-            logger.error(f"✗ Animation failed: {result.get('error')}")
+            logger.error("✗ Animation failed: %s", result.get("error"))
 
         # Test connection validation
         logger.info("\nTesting connection validation...")
@@ -78,7 +78,7 @@ async def test_auto_connect():
         if result["success"]:
             logger.info("✓ Animation with new config successful!")
     else:
-        logger.error(f"✗ Connection failed: {result.get('error')}")
+        logger.error("✗ Connection failed: %s", result.get("error"))
 
     # Test reconnection
     logger.info("\n\nTesting auto-reconnect...")
@@ -95,10 +95,10 @@ async def test_auto_connect():
         logger.error("✗ Auto-reconnect failed")
 
     logger.info("\n\n=== Test Summary ===")
-    logger.info("Auto-connect: " + ("✓" if server.current_backend else "✗"))
+    logger.info("Auto-connect: %s", "✓" if server.current_backend else "✗")
     logger.info("Clearer port names: ✓")
-    logger.info("Connection validation: " + ("✓" if is_valid else "⚠"))
-    logger.info("Auto-reconnect: " + ("✓" if server.current_backend else "✗"))
+    logger.info("Connection validation: %s", "✓" if is_valid else "⚠")
+    logger.info("Auto-reconnect: %s", "✓" if server.current_backend else "✗")
 
 
 async def test_disabled_auto_connect():

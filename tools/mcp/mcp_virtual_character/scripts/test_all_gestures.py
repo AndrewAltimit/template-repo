@@ -63,13 +63,13 @@ async def test_standard_gestures(session: aiohttp.ClientSession):
     logger.info("Testing standard gestures...")
 
     for gesture in gestures:
-        logger.info(f"Testing gesture: {gesture}")
+        logger.info("Testing gesture: %s", gesture)
         result = await call_mcp_tool(session, "send_animation", {"gesture": gesture})
 
         if result.get("success"):
-            logger.info(f"✓ {gesture} gesture sent successfully")
+            logger.info("✓ %s gesture sent successfully", gesture)
         else:
-            logger.error(f"✗ Failed to send {gesture}: {result.get('error')}")
+            logger.error("✗ Failed to send %s: %s", gesture, result.get("error"))
 
         # Wait for gesture to play
         await asyncio.sleep(2)
@@ -96,14 +96,14 @@ async def test_vrcemote_direct(session: aiohttp.ClientSession):
     logger.info("\nTesting direct VRCEmote control...")
 
     for value, name in emotes:
-        logger.info(f"Testing VRCEmote {value}: {name}")
+        logger.info("Testing VRCEmote %s: %s", value, name)
         result = await call_mcp_tool(session, "send_vrcemote", {"emote_value": value})
 
         if result.get("success"):
-            logger.info(f"✓ VRCEmote {value} ({name}) sent successfully")
-            logger.info(f"  Response: {result.get('message')}")
+            logger.info("✓ VRCEmote %s (%s) sent successfully", value, name)
+            logger.info("  Response: %s", result.get("message"))
         else:
-            logger.error(f"✗ Failed to send VRCEmote {value}: {result.get('error')}")
+            logger.error("✗ Failed to send VRCEmote %s: %s", value, result.get("error"))
 
         # Wait for emote to play (skip wait for clear)
         if value != 0:
@@ -131,7 +131,7 @@ async def test_gesture_combinations(session: aiohttp.ClientSession):
         if result.get("success"):
             logger.info("✓ Combination sent successfully")
         else:
-            logger.error(f"✗ Failed to send combination: {result.get('error')}")
+            logger.error("✗ Failed to send combination: %s", result.get("error"))
 
         await asyncio.sleep(3)
 
@@ -150,7 +150,7 @@ async def test_sequence_with_backflip(session: aiohttp.ClientSession):
     )
 
     if not result.get("success"):
-        logger.error(f"Failed to create sequence: {result.get('error')}")
+        logger.error("Failed to create sequence: %s", result.get("error"))
         return
 
     # Add events
@@ -165,7 +165,7 @@ async def test_sequence_with_backflip(session: aiohttp.ClientSession):
     for event in events:
         result = await call_mcp_tool(session, "add_sequence_event", event)
         if not result.get("success"):
-            logger.error(f"Failed to add event: {result.get('error')}")
+            logger.error("Failed to add event: %s", result.get("error"))
 
     # Play sequence
     logger.info("Playing backflip sequence...")
@@ -175,7 +175,7 @@ async def test_sequence_with_backflip(session: aiohttp.ClientSession):
         logger.info("✓ Sequence started successfully")
         await asyncio.sleep(5)  # Let it play
     else:
-        logger.error(f"✗ Failed to play sequence: {result.get('error')}")
+        logger.error("✗ Failed to play sequence: %s", result.get("error"))
 
     # Clean up
     await call_mcp_tool(session, "stop_sequence", {})
@@ -189,7 +189,7 @@ async def main():
 
     async with aiohttp.ClientSession() as session:
         # Connect to VRChat backend
-        logger.info(f"Connecting to VRChat backend at {REMOTE_HOST}...")
+        logger.info("Connecting to VRChat backend at %s...", REMOTE_HOST)
         result = await call_mcp_tool(
             session,
             "set_backend",
@@ -203,7 +203,7 @@ async def main():
         )
 
         if not result.get("success"):
-            logger.error(f"Failed to connect to backend: {result.get('error')}")
+            logger.error("Failed to connect to backend: %s", result.get("error"))
             return
 
         logger.info("✓ Connected to VRChat backend")
@@ -219,7 +219,7 @@ async def main():
         logger.info("\nFinal reset...")
         await call_mcp_tool(session, "panic_reset", {})
 
-        logger.info("\n" + "=" * 50)
+        logger.info("\n==================================================")
         logger.info("All tests completed!")
 
 
