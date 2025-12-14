@@ -447,6 +447,38 @@ def get_pr_diff() -> str:
         return "Could not generate diff"
 
 
+def get_pr_diff_for_files(files: List[str]) -> str:
+    """Get the diff of the PR filtered to specific files only.
+
+    This is used for incremental reviews to only show changes in files
+    that were modified since the last review, preventing Gemini from
+    commenting on already-reviewed code.
+
+    Args:
+        files: List of file paths to include in the diff
+
+    Returns:
+        Filtered diff containing only the specified files
+    """
+    if not files:
+        return "No files specified for diff"
+
+    try:
+        base_branch = os.environ.get("BASE_BRANCH", "main")
+        # Use -- to separate paths from revision range
+        cmd = ["git", "diff", f"origin/{base_branch}...HEAD", "--"] + files
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: Could not generate filtered diff: {e}")
+        return "Could not generate filtered diff"
+
+
 def get_file_content(filepath: str) -> str:
     """Get the content of a specific file"""
     try:
@@ -560,6 +592,81 @@ def get_recent_pr_comments(pr_number: str) -> str:
     except Exception as e:
         print(f"Warning: Unexpected error processing PR comments: {e}")
         return ""
+
+
+def extract_previous_issues(pr_number: str) -> Tuple[str, str]:
+    """Extract specific issues from previous Gemini reviews for verification.
+
+    Uses Flash model to parse previous Gemini review comments and extract
+    a structured list of issues that were flagged. This list is then provided
+    to the main review to check if issues are still present or resolved.
+
+    Args:
+        pr_number: The PR number
+
+    Returns:
+        Tuple of (issues_list, model_used) or ("", NO_MODEL) if no reviews found
+    """
+    try:
+        comments = get_all_pr_comments(pr_number)
+
+        # Find all Gemini review comments
+        gemini_reviews = []
+        for comment in comments:
+            body = comment.get("body", "")
+            if "<!-- gemini-review-marker" in body and "## Issues" in body:
+                gemini_reviews.append(body)
+
+        if not gemini_reviews:
+            print("No previous Gemini reviews with issues found")
+            return "", NO_MODEL
+
+        # Combine all reviews (most recent last for context)
+        all_reviews = "\n\n---\n\n".join(gemini_reviews[-3:])  # Last 3 reviews max
+
+        # Use Flash to extract structured issues
+        prompt = f"""Extract all specific code issues from these Gemini PR reviews.
+
+**Previous Gemini Reviews:**
+{all_reviews[:8000]}
+
+**Your task:**
+Extract ONLY concrete code issues (bugs, security, critical items) into this exact format:
+- One issue per line
+- Format: `FILE:LINE - [SEVERITY] Description`
+- SEVERITY must be: CRITICAL, SECURITY, BUG, or WARNING
+- Skip suggestions, notes, and resolved items
+- Skip vague comments without specific file references
+
+**Example output:**
+```
+auth.py:42 - [SECURITY] SQL injection vulnerability in user query
+utils.py:100 - [BUG] Off-by-one error in loop bounds
+config.py:15 - [CRITICAL] Hardcoded API key exposed
+```
+
+If no concrete issues were found, respond with: `NO_ISSUES_FOUND`
+
+**Extracted issues:**"""
+
+        print(f"Extracting issues from {len(gemini_reviews)} previous Gemini review(s)...")
+        result, model_used = _call_gemini_with_model(prompt, FALLBACK_MODEL, max_retries=2)
+
+        if model_used == NO_MODEL or not result:
+            print("Warning: Issue extraction failed")
+            return "", NO_MODEL
+
+        # Check for no issues
+        if "NO_ISSUES_FOUND" in result.upper():
+            print("No concrete issues found in previous reviews")
+            return "", model_used
+
+        print("Extracted previous issues for verification")
+        return result.strip(), model_used
+
+    except Exception as e:
+        print(f"Warning: Error extracting previous issues: {e}")
+        return "", NO_MODEL
 
 
 def summarize_all_pr_comments(pr_number: str, pr_title: str) -> Tuple[str, str]:
@@ -683,6 +790,11 @@ def analyze_pr(
     comment_summary, _ = summarize_all_pr_comments(pr_info["number"], pr_info["title"])
     recent_comments = get_recent_pr_comments(pr_info["number"])
 
+    # For incremental reviews, extract specific issues from previous Gemini reviews
+    previous_issues = ""
+    if is_incremental:
+        previous_issues, _ = extract_previous_issues(pr_info["number"])
+
     # For GitHub workflow files, include more complete content
     workflow_contents = {}
     for file in changed_files:
@@ -709,10 +821,33 @@ def analyze_pr(
 
     # Add incremental context if this is an update
     if is_incremental and new_files_since_last:
-        prompt += f"""**INCREMENTAL REVIEW:**
-This PR was previously reviewed. Focus on files marked [NEW SINCE LAST REVIEW].
-New/changed files: {', '.join(new_files_since_last[:10])}
+        prompt += f"""**INCREMENTAL REVIEW - TWO-TIER APPROACH:**
+This PR was previously reviewed. Files are marked in the diff as follows:
+- `[NEW SINCE LAST REVIEW]` = Changed since last review (PRIMARY FOCUS)
+- No marker = Already reviewed in a previous pass
+
+**TIER 1 - NEW FILES (report all issues):**
+Files marked [NEW SINCE LAST REVIEW]: {len(new_files_since_last)}
+{', '.join(new_files_since_last[:10])}
 {'(and ' + str(len(new_files_since_last) - 10) + ' more)' if len(new_files_since_last) > 10 else ''}
+Report ANY issues found in these files (bugs, security, suggestions).
+
+**TIER 2 - ALREADY REVIEWED FILES (limited reporting):**
+For files WITHOUT the [NEW] marker:
+- DO NOT report new stylistic issues, minor suggestions, or nitpicks
+- Check the "Previous Issues to Verify" list below and report status of each
+- If a previously-flagged issue appears FIXED, note it as [RESOLVED]
+- If still present, note it as [STILL UNRESOLVED]
+
+"""
+        # Add specific previous issues to verify
+        if previous_issues:
+            prompt += f"""**PREVIOUS ISSUES TO VERIFY:**
+The following issues were flagged in earlier reviews. Check if each is resolved or still present:
+```
+{previous_issues[:2000]}
+```
+For each issue above: verify against current code and report as [RESOLVED] or [STILL UNRESOLVED].
 
 """
 
@@ -727,13 +862,21 @@ New/changed files: {', '.join(new_files_since_last[:10])}
     if recent_comments:
         prompt += f"{recent_comments[:1000]}\n\n"
 
+    # Build file list - for incremental reviews, mark which files are new
+    new_files_set = set(new_files_since_last) if new_files_since_last else set()
+
+    def format_file(f: str) -> str:
+        if is_incremental and f in new_files_set:
+            return f"- {f} [NEW]"
+        return f"- {f}"
+
     prompt += f"""**PR INFO:**
 - PR #{pr_info['number']}: {pr_info['title']}
 - Author: {pr_info['author']}
 - Stats: {file_stats['files']} files, +{file_stats['additions']}/-{file_stats['deletions']} lines
 
-**FILES ({len(changed_files)} total):**
-{chr(10).join(f'- {f}' for f in changed_files[:20])}
+**FILES ({len(changed_files)} total{f', {len(new_files_since_last)} new' if is_incremental else ''}):**
+{chr(10).join(format_file(f) for f in changed_files[:20])}
 {'... and ' + str(len(changed_files) - 20) + ' more' if len(changed_files) > 20 else ''}
 
 {format_workflow_contents(workflow_contents)}
@@ -747,7 +890,11 @@ New/changed files: {', '.join(new_files_since_last[:10])}
 **OUTPUT FORMAT:**
 ## Issues (if any)
 - [CRITICAL/SECURITY/BUG] File:line - Brief description
-
+{'''
+## Previous Issues (for incremental reviews)
+- [STILL UNRESOLVED] File:line - Issue from previous review that is still present
+- [RESOLVED] File:line - Issue that has been fixed since last review
+''' if is_incremental else ''}
 ## Suggestions (if any)
 - File:line - Brief suggestion
 
@@ -1041,9 +1188,17 @@ def main():
     changed_files = get_changed_files()
     print(f"Total changed files in PR: {len(changed_files)}")
 
-    # Get PR diff
+    # Always get full PR diff (latest code state) for complete context
+    # For incremental reviews, we mark which files are new but still show everything
+    # This allows Gemini to verify if previously-flagged issues were fixed
     print("Getting complete PR diff...")
     diff = get_pr_diff()
+
+    # For incremental reviews, mark new files so Gemini knows what to focus on
+    if is_incremental and new_files_since_last:
+        diff = mark_new_changes_in_diff(diff, new_files_since_last)
+        print(f"Marked {len(new_files_since_last)} files as [NEW SINCE LAST REVIEW]")
+
     original_diff_size = len(diff)
     print(f"Diff size: {original_diff_size:,} characters")
 
@@ -1052,11 +1207,6 @@ def main():
     truncated_chars = original_diff_size - MAX_DIFF_CHARS if diff_truncated else 0
     if diff_truncated:
         print(f"⚠️  Diff will be truncated: {truncated_chars:,} chars will be omitted")
-
-    # Mark new changes in diff for incremental reviews
-    if is_incremental and new_files_since_last:
-        diff = mark_new_changes_in_diff(diff, new_files_since_last)
-        print(f"Marked {len(new_files_since_last)} files as [NEW SINCE LAST REVIEW]")
 
     # Analyze with Gemini (single-pass, concise review)
     print("Consulting Gemini AI...")
