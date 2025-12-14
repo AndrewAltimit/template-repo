@@ -32,6 +32,7 @@ ensure_numeric() {
 # Initialize counters
 errors=0
 warnings=0
+baseline_failed=0
 
 # Clear any previous lint output
 rm -f lint-output.txt
@@ -228,6 +229,22 @@ case "$STAGE" in
     fi
     errors=$((errors + total_errors))
     warnings=$((warnings + total_warnings))
+
+    # Check against lint baseline to prevent regressions
+    echo ""
+    echo "🔍 Checking against lint baseline..."
+    BASELINE_FILE="$PROJECT_ROOT/config/lint/pylint-baseline.json"
+    if [ -f "$BASELINE_FILE" ] && [ -f lint-output.txt ]; then
+      if docker-compose run --rm python-ci python automation/ci-cd/check-lint-baseline.py lint-output.txt --baseline config/lint/pylint-baseline.json; then
+        echo "✅ Lint baseline check passed"
+      else
+        echo "❌ Lint baseline check failed - new warnings detected"
+        # Set baseline_failed flag for exit handling
+        baseline_failed=1
+      fi
+    else
+      echo "⚠️  Baseline file not found, skipping regression check"
+    fi
     ;;
 
   links)
@@ -295,9 +312,12 @@ echo "=== Linting Summary ==="
 echo "Errors: $errors"
 echo "Warnings: $warnings"
 
-# Exit with error code if issues found (except for full stage)
-if [[ "$STAGE" != "full" && $errors -gt 0 ]]; then
+# Exit with error code if issues found
+if [[ $errors -gt 0 ]]; then
   echo "❌ Linting failed with $errors errors"
+  exit 1
+elif [[ $baseline_failed -eq 1 ]]; then
+  echo "❌ Lint baseline check failed - new warnings introduced"
   exit 1
 else
   echo "✅ Linting completed"

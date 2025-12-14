@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Pylint warning baseline - PRs introducing warnings above these thresholds will fail",
+  "last_updated": "2025-12-14",
+  "total_allowed": 24,
+  "categories": {
+    "C0413": {
+      "count": 10,
+      "description": "wrong-import-position",
+      "reason": "Intentional pattern for sys.path modifications before imports"
+    },
+    "W0603": {
+      "count": 9,
+      "description": "global-statement",
+      "reason": "Intentional singleton pattern for module-level state"
+    },
+    "I1101": {
+      "count": 3,
+      "description": "c-extension-no-member",
+      "reason": "False positives from C extensions (cv2, numpy, etc.)"
+    },
+    "C0302": {
+      "count": 2,
+      "description": "too-many-lines",
+      "reason": "Large modules - optional future refactor"
+    }
+  },
+  "notes": [
+    "This baseline represents intentionally skipped warnings",
+    "Any new warnings not in this baseline will fail the PR",
+    "To add a new intentional warning, update this file with justification",
+    "Run './automation/ci-cd/run-lint-stage.sh full' to verify current counts"
+  ]
+}
