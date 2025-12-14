@@ -624,16 +624,29 @@ If no concrete issues were found, respond with: `NO_ISSUES_FOUND`
             print("Warning: Issue extraction failed")
             return "", NO_MODEL
 
-        # Check for no issues
-        if "NO_ISSUES_FOUND" in result.upper():
-            print("No concrete issues found in previous reviews")
+        # Check for no issues - robust validation
+        result_upper = result.upper().strip()
+
+        # Explicit marker check
+        if "NO_ISSUES_FOUND" in result_upper:
+            print("No concrete issues found in previous reviews (explicit marker)")
+            return "", model_used
+
+        # Validate result looks like an issue list (FILE:LINE format expected)
+        # Pattern: filename.ext:number or path/file:number
+        issue_pattern = re.compile(r"\w+\.\w+:\d+|\w+/\w+:\d+")
+        has_issue_format = bool(issue_pattern.search(result))
+
+        if not has_issue_format:
+            # Model returned conversational text without actual issues
+            print("No valid issue format found in response - treating as no issues")
             return "", model_used
 
         print("Extracted previous issues for verification")
         return result.strip(), model_used
 
     except Exception as e:
-        print(f"Warning: Error extracting previous issues: {e}")
+        print(f"Warning: Error extracting previous issues: {type(e).__name__}: {e}")
         return "", NO_MODEL
 
 
@@ -810,10 +823,17 @@ For files WITHOUT the [NEW] marker:
 """
         # Add specific previous issues to verify
         if previous_issues:
+            # Use smart truncation to avoid cutting issues mid-line
+            # Increased limit from 2000 to 4000 for PRs with many previous issues
+            max_issues_chars = 4000
+            issues_to_include = _truncate_at_newline(previous_issues, max_issues_chars)
+            if len(previous_issues) > max_issues_chars:
+                truncated_count = previous_issues.count("\n") - issues_to_include.count("\n")
+                print(f"Warning: Truncated {truncated_count} previous issues due to size limit")
             prompt += f"""**PREVIOUS ISSUES TO VERIFY:**
 The following issues were flagged in earlier reviews. Check if each is resolved or still present:
 ```
-{previous_issues[:2000]}
+{issues_to_include}
 ```
 For each issue above: verify against current code and report as [RESOLVED] or [STILL UNRESOLVED].
 
