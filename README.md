@@ -187,7 +187,7 @@ This pattern ensures consistent certificate handling across all services while m
 │   │   ├── mcp_github_board/     # GitHub Projects board management
 │   │   ├── mcp_meme_generator/   # Meme creation
 │   │   ├── mcp_opencode/         # Agent2Agent Consultation (OpenCode)
-│   │   ├── mcp_video_editor/     # AI-powered video editing
+│   │   ├── mcp_video_editor/     # Video editing
 │   │   └── mcp_virtual_character/# AI agent embodiment
 │   └── cli/                  # Command-line tools
 │       ├── agents/           # Agent runner scripts
