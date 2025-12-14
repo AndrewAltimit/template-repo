@@ -360,7 +360,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Runs locally via stdio for better integration
    - See `tools/mcp/mcp_crush/docs/README.md` for documentation
 
-9. **Meme Generator MCP Server** (`tools/mcp/mcp_meme_generator/`): STDIO (local)
+9. **Meme Generator MCP Server** (`tools/mcp/mcp_meme_generator/`): STDIO (local) or HTTP port 8016
    - **Meme Creation**:
      - `generate_meme` - Generate memes from templates with text overlays
      - `list_meme_templates` - List all available templates
@@ -389,7 +389,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Async job processing for long operations
    - See `tools/mcp/mcp_video_editor/docs/README.md` for documentation
 
-12. **Blender MCP Server** (`tools/mcp/mcp_blender/`): STDIO (local) or HTTP port 8016
+12. **Blender MCP Server** (`tools/mcp/mcp_blender/`): STDIO (local) or HTTP port 8017
    - **3D Content Creation**:
      - `create_blender_project` - Create projects from templates
      - `render_image` - Render single frames with Cycles/Eevee
@@ -428,12 +428,51 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - See `tools/mcp/mcp_virtual_character/docs/AUDIO_SEQUENCING.md` for audio guide
    - See `tools/mcp/mcp_virtual_character/examples/elevenlabs_integration.py` for examples
 
-14. **Shared Core Components** (`tools/mcp/mcp_core/`):
+14. **Codex MCP Server** (`tools/mcp/mcp_codex/`): STDIO (local) or HTTP port 8021
+   - **AI-Powered Code Assistance**:
+     - `consult_codex` - Generate, complete, refactor, or explain code
+     - `clear_codex_history` - Clear conversation history
+     - `codex_status` - Get integration status and statistics
+     - `toggle_codex_auto_consult` - Control auto-consultation
+   - Requires ChatGPT Plus subscription for Codex CLI auth
+   - Interactive mode support with sandbox options
+   - See `tools/mcp/mcp_codex/docs/README.md` for documentation
+
+15. **GitHub Board MCP Server** (`tools/mcp/mcp_github_board/`): STDIO (local) or HTTP port 8021
+   - **Work Queue Management**:
+     - `query_ready_work` - Get unblocked, unclaimed TODO issues
+     - `claim_work` - Claim an issue for implementation
+     - `renew_claim` - Renew active claims for long-running tasks
+     - `release_work` - Release claim on an issue
+     - `update_status` - Update issue status on the board
+     - `add_blocker` - Add blocking dependencies between issues
+     - `mark_discovered_from` - Parent-child issue relationships
+     - `get_issue_details` - Get full details for an issue
+     - `get_dependency_graph` - Get dependency graph
+     - `list_agents` - List enabled agents
+     - `get_board_config` - Get board configuration
+   - Multi-agent coordination with conflict prevention
+   - GitHub Projects v2 integration
+   - See `tools/mcp/mcp_github_board/docs/README.md` for documentation
+
+16. **AgentCore Memory MCP Server** (`tools/mcp/mcp_agentcore_memory/`): STDIO (local) or HTTP port 8023
+   - **Multi-Provider Memory System**:
+     - `store_event` - Store short-term memory events (rate-limited for AgentCore)
+     - `store_facts` - Store facts for long-term retention
+     - `search_memories` - Semantic search across memories
+     - `list_session_events` - List events from a session
+     - `list_namespaces` - List available namespaces
+     - `memory_status` - Get provider status
+   - Supports AWS Bedrock AgentCore (managed) or ChromaDB (self-hosted)
+   - Content sanitization for secrets
+   - See `tools/mcp/mcp_agentcore_memory/docs/README.md` for documentation
+
+17. **Shared Core Components** (`tools/mcp/mcp_core/`):
    - `BaseMCPServer` - Base class for all MCP servers
    - `HTTPProxy` - HTTP proxy for remote MCP servers
    - Common utilities and helpers
 
-15. **Containerized CI/CD**:
+18. **Containerized CI/CD**:
    - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools
    - **Helper Scripts**: Centralized CI operations
    - **Individual MCP Containers**: Each server can run in its own optimized container
