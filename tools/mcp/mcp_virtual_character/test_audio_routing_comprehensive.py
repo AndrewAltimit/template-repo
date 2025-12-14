@@ -391,7 +391,7 @@ class AudioRoutingTester:
                 logger.info("    Result: %s", "[OK] Success" if success else "[X] Failed")
                 if success:
                     break
-                elif stderr:
+                if stderr:
                     logger.info("    Error: %s", stderr[:100])
 
         # Test 3b: Alternative VLC method using PowerShell

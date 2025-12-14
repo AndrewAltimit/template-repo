@@ -88,29 +88,29 @@ class AudioPathValidator:
 
         # Check for container path mappings
         for container_path, host_path in path_mappings.items():
-            if container_path in audio_path:
-                filename = Path(audio_path).name
-                # Try various date-based subdirectories
-                possible_paths = [
-                    Path(host_path) / filename,
-                    Path(host_path) / Path(audio_path).parent.name / filename,
-                ]
+            if container_path not in audio_path:
+                continue
 
-                # Also try with glob for date directories
-                host_base = Path(host_path)
-                if host_base.exists():
-                    try:
-                        for date_dir in sorted(host_base.iterdir(), reverse=True):
-                            if date_dir.is_dir():
-                                candidate = date_dir / filename
-                                if candidate.exists():
-                                    possible_paths.insert(0, candidate)
-                    except OSError as e:
-                        logger.warning("Failed to iterate directory %s: %s", host_base, e)
+            filename = Path(audio_path).name
+            # Try various date-based subdirectories
+            possible_paths = [
+                Path(host_path) / filename,
+                Path(host_path) / Path(audio_path).parent.name / filename,
+            ]
 
-                for path in possible_paths:
-                    if path.exists() and self.is_path_allowed(path):
-                        return path, None
+            # Also try with glob for date directories
+            host_base = Path(host_path)
+            if host_base.exists():
+                try:
+                    for date_dir in sorted(host_base.iterdir(), reverse=True):
+                        if date_dir.is_dir() and (candidate := date_dir / filename).exists():
+                            possible_paths.insert(0, candidate)
+                except OSError as e:
+                    logger.warning("Failed to iterate directory %s: %s", host_base, e)
+
+            for path in possible_paths:
+                if path.exists() and self.is_path_allowed(path):
+                    return path, None
 
         # Direct path resolution
         file_path = Path(audio_path)

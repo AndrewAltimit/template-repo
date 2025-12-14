@@ -90,7 +90,8 @@ class VoiceMeeterAudioRouter:
                 device_name,  # Target device
             ]
 
-            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # Fire-and-forget VLC playback - context manager not appropriate
+            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # pylint: disable=consider-using-with
             print(f"✓ Playing with VLC to {device_name}")
 
             # Give it time to play
