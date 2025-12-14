@@ -438,7 +438,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Interactive mode support with sandbox options
    - See `tools/mcp/mcp_codex/docs/README.md` for documentation
 
-15. **GitHub Board MCP Server** (`tools/mcp/mcp_github_board/`): STDIO (local) or HTTP port 8021
+15. **GitHub Board MCP Server** (`tools/mcp/mcp_github_board/`): STDIO (local) or HTTP port 8022
    - **Work Queue Management**:
      - `query_ready_work` - Get unblocked, unclaimed TODO issues
      - `claim_work` - Claim an issue for implementation
@@ -556,6 +556,10 @@ The repository includes comprehensive CI/CD workflows:
   ./automation/ci-cd/run-ci.sh format
   ./automation/ci-cd/run-ci.sh lint-basic
   ./automation/ci-cd/run-ci.sh lint-full
+  ```
+- **Context Window Protection**: CI/CD scripts produce verbose output that can fill your context window. Always pipe output to a log file:
+  ```bash
+  ./automation/ci-cd/run-ci.sh full > /tmp/ci-output.log 2>&1 && echo "CI passed" || (echo "CI failed - check /tmp/ci-output.log"; exit 1)
   ```
 - NEVER commit changes unless the user explicitly asks you to
 - Always follow the container-first philosophy - use Docker for all Python operations

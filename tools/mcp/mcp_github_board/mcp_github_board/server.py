@@ -30,7 +30,7 @@ class GitHubBoardMCPServer(BaseMCPServer):
         super().__init__(
             name="GitHub Board MCP Server",
             version="1.0.0",
-            port=8021,  # Port for GitHub Board server
+            port=8022,  # Port for GitHub Board server
         )
         self.logger = setup_logging("GitHubBoardMCP")
         self.board_manager: Optional[BoardManager] = None

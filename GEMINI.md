@@ -438,7 +438,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Interactive mode support with sandbox options
    - See `tools/mcp/mcp_codex/docs/README.md` for documentation
 
-15. **GitHub Board MCP Server** (`tools/mcp/mcp_github_board/`): STDIO (local) or HTTP port 8021
+15. **GitHub Board MCP Server** (`tools/mcp/mcp_github_board/`): STDIO (local) or HTTP port 8022
    - **Work Queue Management**:
      - `query_ready_work` - Get unblocked, unclaimed TODO issues
      - `claim_work` - Claim an issue for implementation
@@ -557,6 +557,10 @@ The repository includes comprehensive CI/CD workflows:
   ./automation/ci-cd/run-ci.sh lint-basic
   ./automation/ci-cd/run-ci.sh lint-full
   ```
+- **Context Window Protection**: CI/CD scripts produce verbose output that can fill your context window. Always pipe output to a log file:
+  ```bash
+  ./automation/ci-cd/run-ci.sh full > /tmp/ci-output.log 2>&1 && echo "CI passed" || (echo "CI failed - check /tmp/ci-output.log"; exit 1)
+  ```
 - NEVER commit changes unless the user explicitly asks you to
 - Always follow the container-first philosophy - use Docker for all Python operations
 - Gemini CLI is now containerized (see `automation/corporate-proxy/gemini/` for corporate proxy version)
@@ -643,8 +647,8 @@ Thanks for the review! Working on the fixes now.
 When posting PR/issue comments with reaction images, you MUST follow this exact workflow to prevent the `!` character from being escaped:
 
 **The ONLY Correct Method:**
-1. **Use the Write tool** to create a temporary markdown file (e.g., `/tmp/comment.md`)
-2. Use `gh pr comment --body-file /tmp/filename.md` to post the comment
+1. **Use `write_file`** to create a temporary markdown file (e.g., `/tmp/comment.md`)
+2. Use `run_command` with `gh pr comment --body-file /tmp/filename.md` to post the comment
 
 **DO NOT USE (these will escape the `!` in `![Reaction]`):**
 - Direct `--body` flag with gh command
@@ -652,7 +656,7 @@ When posting PR/issue comments with reaction images, you MUST follow this exact 
 - echo or printf commands
 - Bash string concatenation
 
-**Why this matters:** Shell escaping will turn `![Reaction]` into `\![Reaction]`, breaking the image display. The Write tool preserves the markdown exactly as intended.
+**Why this matters:** Shell escaping will turn `![Reaction]` into `\![Reaction]`, breaking the image display. The `write_file` tool preserves the markdown exactly as intended.
 
 ## Additional Documentation
 

@@ -11,7 +11,7 @@ import aiohttp
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 
-async def test_server(base_url: str = "http://localhost:8021", quick: bool = False):
+async def test_server(base_url: str = "http://localhost:8022", quick: bool = False):
     """Test GitHub Board MCP server endpoints
 
     Args:
@@ -110,8 +110,8 @@ async def main():
     parser = argparse.ArgumentParser(description="Test GitHub Board MCP Server")
     parser.add_argument(
         "--url",
-        default="http://localhost:8021",
-        help="Server URL (default: http://localhost:8021)",
+        default="http://localhost:8022",
+        help="Server URL (default: http://localhost:8022)",
     )
     parser.add_argument(
         "--quick",
