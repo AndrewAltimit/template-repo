@@ -100,7 +100,7 @@ class AudioFileServer:
             await self.runner.cleanup()
 
         # Clean up all temp files
-        for file_id, (file_path, _) in self.files.items():
+        for _file_id, (file_path, _) in self.files.items():
             try:
                 file_path.unlink()
             except Exception:
@@ -108,13 +108,13 @@ class AudioFileServer:
 
         logger.info("Audio file server stopped")
 
-    async def add_audio_file(self, audio_data: bytes, format: str = "mp3") -> str:
+    async def add_audio_file(self, audio_data: bytes, audio_format: str = "mp3") -> str:
         """
         Add an audio file to be served.
 
         Args:
             audio_data: Raw audio data
-            format: Audio format (mp3, wav, etc.)
+            audio_format: Audio format (mp3, wav, etc.)
 
         Returns:
             URL to access the audio file
@@ -123,7 +123,7 @@ class AudioFileServer:
         file_id = str(uuid.uuid4())
 
         # Save to temp file
-        file_path = self.temp_dir / f"{file_id}.{format}"
+        file_path = self.temp_dir / f"{file_id}.{audio_format}"
         file_path.write_bytes(audio_data)
 
         # Track the file
@@ -143,7 +143,7 @@ class AudioFileServer:
             logger.warning(f"Audio file not found: {file_id}")
             return web.Response(text="File not found", status=404)
 
-        file_path, timestamp = self.files[file_id]
+        file_path, _timestamp = self.files[file_id]
 
         if not file_path.exists():
             logger.warning(f"Audio file deleted: {file_id}")
@@ -230,19 +230,19 @@ async def get_audio_server() -> AudioFileServer:
     return _audio_server
 
 
-async def serve_audio_file(audio_data: bytes, format: str = "mp3") -> str:
+async def serve_audio_file(audio_data: bytes, audio_format: str = "mp3") -> str:
     """
     Convenience function to serve an audio file.
 
     Args:
         audio_data: Raw audio data
-        format: Audio format
+        audio_format: Audio format
 
     Returns:
         URL to access the audio file
     """
     server = await get_audio_server()
-    return await server.add_audio_file(audio_data, format)
+    return await server.add_audio_file(audio_data, audio_format)
 
 
 if __name__ == "__main__":

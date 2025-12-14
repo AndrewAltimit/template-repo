@@ -44,7 +44,7 @@ def load_env_file(env_path: Optional[Path] = None) -> Dict[str, str]:
 
     if env_path and env_path.exists():
         try:
-            with open(env_path, "r") as f:
+            with open(env_path, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith("#") and "=" in line:
@@ -69,7 +69,7 @@ def ensure_storage_config():
     if not os.getenv("STORAGE_BASE_URL"):
         # Check if we're in a VM or container
         if Path("/proc/version").exists():
-            with open("/proc/version", "r") as f:
+            with open("/proc/version", "r", encoding="utf-8") as f:
                 version = f.read().lower()
                 if "microsoft" in version or "wsl" in version:
                     # WSL/VM environment - storage is on host

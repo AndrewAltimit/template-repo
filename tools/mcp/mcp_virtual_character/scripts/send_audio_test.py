@@ -36,14 +36,14 @@ def send_audio_to_character(audio_file_path: str, server_url: str = DEFAULT_SERV
     audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
 
     # Determine format from extension
-    format = audio_path.suffix.lower().replace(".", "")
-    if format not in ["mp3", "wav", "opus", "ogg"]:
-        format = "mp3"  # Default
+    audio_format = audio_path.suffix.lower().replace(".", "")
+    if audio_format not in ["mp3", "wav", "opus", "ogg"]:
+        audio_format = "mp3"  # Default
 
     # Prepare the request
     payload = {
         "audio_data": audio_base64,
-        "format": format,
+        "format": audio_format,
         "device": "VoiceMeeter Input",  # Specify VoiceMeeter as target device
     }
 

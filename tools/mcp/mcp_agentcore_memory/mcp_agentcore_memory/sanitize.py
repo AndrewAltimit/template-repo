@@ -113,7 +113,7 @@ def sanitize_content(content: str) -> str:
         Sanitized content with secrets replaced by markers
     """
     # Layer 1: Check known patterns
-    for pattern_name, pattern in BLOCKED_PATTERNS:
+    for _pattern_name, pattern in BLOCKED_PATTERNS:
         content = pattern.sub("[REDACTED]", content)
 
     # Layer 2 + 3: Check for high-entropy blobs and redact

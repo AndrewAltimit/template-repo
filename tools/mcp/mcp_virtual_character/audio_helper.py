@@ -16,7 +16,7 @@ import requests
 async def send_audio_to_character_async(
     audio_input: str,
     server_url: str = "http://192.168.0.152:8020",
-    format: str = "mp3",
+    audio_format: str = "mp3",
     text: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
@@ -28,7 +28,7 @@ async def send_audio_to_character_async(
             - Base64 string (sent as-is)
             - URL (sent as-is for server to download)
         server_url: Virtual character server URL
-        format: Audio format (mp3, wav, etc.)
+        audio_format: Audio format (mp3, wav, etc.)
         text: Optional text for lip-sync
 
     Returns:
@@ -51,7 +51,7 @@ async def send_audio_to_character_async(
     # Prepare payload
     payload = {
         "audio_data": audio_data,
-        "format": format,
+        "format": audio_format,
         "device": "VoiceMeeter Input",  # Target VoiceMeeter for VRChat routing
     }
 
@@ -73,7 +73,7 @@ async def send_audio_to_character_async(
 def send_audio_to_character_sync(
     audio_input: str,
     server_url: str = "http://192.168.0.152:8020",
-    format: str = "mp3",
+    audio_format: str = "mp3",
     text: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
@@ -85,7 +85,7 @@ def send_audio_to_character_sync(
             - Base64 string (sent as-is)
             - URL (sent as-is for server to download)
         server_url: Virtual character server URL
-        format: Audio format (mp3, wav, etc.)
+        audio_format: Audio format (mp3, wav, etc.)
         text: Optional text for lip-sync
 
     Returns:
@@ -108,7 +108,7 @@ def send_audio_to_character_sync(
     # Prepare payload
     payload = {
         "audio_data": audio_data,
-        "format": format,
+        "format": audio_format,
         "device": "VoiceMeeter Input",  # Target VoiceMeeter for VRChat routing
     }
 

@@ -82,7 +82,7 @@ class AudioRoutingTester:
             if os.path.exists(vlc_path):
                 vlc_installed = True
                 # Try to get version
-                success, stdout, stderr = self.run_command([vlc_path, "--version"], timeout=5)
+                success, stdout, _stderr = self.run_command([vlc_path, "--version"], timeout=5)
                 if success and stdout:
                     vlc_version = stdout.split("\n")[0][:50]
                 else:
@@ -91,7 +91,7 @@ class AudioRoutingTester:
 
         # If not found at standard locations, try PATH
         if not vlc_installed:
-            success, stdout, stderr = self.run_command(["vlc", "--version"], timeout=5)
+            success, stdout, _stderr = self.run_command(["vlc", "--version"], timeout=5)
             if success:
                 vlc_installed = True
                 vlc_version = stdout.split("\n")[0][:50] if stdout else "In PATH"
@@ -103,7 +103,7 @@ class AudioRoutingTester:
 
         # Test other dependencies
         for name, cmd in dependencies.items():
-            success, stdout, stderr = self.run_command(cmd, timeout=5)
+            success, stdout, _stderr = self.run_command(cmd, timeout=5)
             self.test_results["dependencies"][name] = {
                 "installed": success,
                 "version": stdout.split("\n")[0] if success else "Not installed",
@@ -555,7 +555,7 @@ class AudioRoutingTester:
     def save_results(self):
         """Save test results to file."""
         results_file = f"audio_test_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(results_file, "w") as f:
+        with open(results_file, "w", encoding="utf-8") as f:
             json.dump(self.test_results, f, indent=2, default=str)
 
         logger.info(f"\n[OK] Results saved to: {results_file}")

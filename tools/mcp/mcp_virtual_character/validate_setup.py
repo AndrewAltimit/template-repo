@@ -70,7 +70,7 @@ class SetupValidator:
 
             # Load and check variables
             env_vars = {}
-            with open(env_file, "r") as f:
+            with open(env_file, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith("#") and "=" in line:
@@ -115,7 +115,7 @@ class SetupValidator:
         vm_type = "Native"
 
         if Path("/proc/version").exists():
-            with open("/proc/version", "r") as f:
+            with open("/proc/version", "r", encoding="utf-8") as f:
                 version = f.read().lower()
                 if "microsoft" in version:
                     is_wsl = True

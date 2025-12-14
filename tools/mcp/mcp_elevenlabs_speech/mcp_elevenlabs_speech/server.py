@@ -266,9 +266,6 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                 # We have audio data but no URL - serve it via local HTTP server
                 try:
                     # Import the audio file server module
-                    from pathlib import Path
-                    import sys
-
                     sys.path.insert(0, str(Path(__file__).parent.parent / "mcp_virtual_character"))
                     from audio_file_server import serve_audio_file
 
@@ -632,7 +629,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         from .voice_mapping import VOICE_MAPPING
 
         # Find first compatible voice
-        for voice_name, caps in VOICE_MAPPING.items():
+        for _voice_name, caps in VOICE_MAPPING.items():
             if model.value in caps.recommended_models:
                 if model == VoiceModel.ELEVEN_V3 and not caps.supports_v3:
                     continue

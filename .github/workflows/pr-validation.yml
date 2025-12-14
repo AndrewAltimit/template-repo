@@ -433,9 +433,11 @@ jobs:
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           file: ./coverage.xml
           flags: unittests
           name: codecov-umbrella
+          fail_ci_if_error: false
 
   # Stage 6: MCP Server validation
   mcp-validation:

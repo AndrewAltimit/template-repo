@@ -370,7 +370,7 @@ class AudioPlayer:
             wav_path = audio_path.replace(f".{audio_format}", ".wav")
             convert_cmd = ["ffmpeg", "-i", audio_path, "-acodec", "pcm_s16le", "-ar", "44100", "-y", wav_path]
 
-            return_code, stdout, stderr = await self._run_subprocess(convert_cmd, timeout=5.0)
+            return_code, _stdout, _stderr = await self._run_subprocess(convert_cmd, timeout=5.0)
 
             if return_code == 0 and os.path.exists(wav_path):
                 logger.info("Converted to WAV: %s", wav_path)

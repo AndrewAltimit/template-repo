@@ -155,7 +155,7 @@ class TestContainsSecrets:
         content = "Normal documentation about APIs"
         has_secrets, patterns = contains_secrets(content)
         assert has_secrets is False
-        assert patterns == []
+        assert not patterns
 
     def test_detects_api_key(self):
         """Should detect API key patterns."""

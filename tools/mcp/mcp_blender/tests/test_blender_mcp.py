@@ -49,7 +49,7 @@ class TestBlenderMCPServer:
         assert "create_geometry_nodes" in tool_names
 
         # Verify tool structure - get_tools() returns dict with {name: {description, parameters}}
-        for tool_name, tool_info in tools.items():
+        for _tool_name, tool_info in tools.items():
             assert "description" in tool_info
             assert "parameters" in tool_info
             assert tool_info["parameters"]["type"] == "object"

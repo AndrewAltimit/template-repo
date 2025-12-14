@@ -117,8 +117,6 @@ class TestPerSessionRateLimiter:
         await limiter.acquire("actor1", "session1", block=False)
 
         # Launch 3 concurrent blocking acquires
-        import asyncio
-
         start = asyncio.get_event_loop().time()
         results = await asyncio.gather(
             limiter.acquire("actor1", "session1", block=True),
