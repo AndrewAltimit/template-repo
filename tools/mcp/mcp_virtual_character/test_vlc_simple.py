@@ -50,7 +50,7 @@ def test_vlc_methods(audio_file):
     print(f"   Command: {' '.join(cmd)}")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True)
+        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True, check=False)
         print(f"   Exit code: {result.returncode}")
         if result.stderr:
             print(f"   Stderr: {result.stderr[:200]}")
@@ -66,7 +66,7 @@ def test_vlc_methods(audio_file):
     print(f"   Command: {' '.join(cmd)}")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True)
+        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True, check=False)
         print(f"   Exit code: {result.returncode}")
         if result.stderr:
             print(f"   Stderr: {result.stderr[:200]}")
@@ -82,7 +82,7 @@ def test_vlc_methods(audio_file):
     print(f"   Command: {' '.join(cmd)}")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True)
+        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True, check=False)
         print(f"   Exit code: {result.returncode}")
         if result.stderr:
             print(f"   Stderr: {result.stderr[:200]}")
@@ -98,7 +98,7 @@ def test_vlc_methods(audio_file):
     print(f"   Command: {' '.join(cmd)}")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True, shell=False)
+        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True, shell=False, check=False)
         print(f"   Exit code: {result.returncode}")
         print(f"   Result: {'[OK]' if result.returncode == 0 else '[FAILED]'}")
     except subprocess.TimeoutExpired:
@@ -112,7 +112,7 @@ def test_vlc_methods(audio_file):
     print(f"   Command: {' '.join(cmd)}")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True)
+        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True, check=False)
         print(f"   Exit code: {result.returncode}")
         if result.stderr:
             print(f"   Stderr: {result.stderr[:200]}")
@@ -128,7 +128,7 @@ def test_vlc_methods(audio_file):
     print(f"   Command: {' '.join(cmd)}")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True)
+        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True, check=False)
         print(f"   Exit code: {result.returncode}")
         if result.stderr:
             print(f"   Stderr: {result.stderr[:200]}")

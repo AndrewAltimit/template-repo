@@ -138,7 +138,7 @@ class SetupValidator:
                 # Try to get default gateway (usually host in VM)
                 import subprocess
 
-                result = subprocess.run(["ip", "route", "show", "default"], capture_output=True, text=True)
+                result = subprocess.run(["ip", "route", "show", "default"], capture_output=True, text=True, check=False)
                 if result.returncode == 0:
                     gateway = result.stdout.split()[2]
                     print(f"  Host IP (detected): {gateway}")

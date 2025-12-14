@@ -16,7 +16,7 @@ import pytest
 
 # Check if botocore is available for AgentCore tests
 try:
-    import botocore  # noqa: F401
+    import botocore  # noqa: F401  # pylint: disable=unused-import
 
     HAS_BOTOCORE = True
 except ImportError:

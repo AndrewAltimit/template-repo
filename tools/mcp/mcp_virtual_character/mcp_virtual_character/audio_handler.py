@@ -432,7 +432,7 @@ class AudioPlayer:
                 Write-Host "Audio played via WMP"
             }}
             """
-            return_code, stdout, stderr = await self._run_subprocess(
+            _return_code, stdout, _stderr = await self._run_subprocess(
                 ["powershell", "-Command", ps_cmd],
                 timeout=30.0,
             )

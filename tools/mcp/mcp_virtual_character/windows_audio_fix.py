@@ -13,7 +13,7 @@ import tempfile
 def install_dependencies():
     """Install required Windows audio libraries."""
     print("Installing Windows audio dependencies...")
-    subprocess.run([sys.executable, "-m", "pip", "install", "--user", "pycaw", "pyaudio", "simpleaudio"])
+    subprocess.run([sys.executable, "-m", "pip", "install", "--user", "pycaw", "pyaudio", "simpleaudio"], check=False)
 
 
 def play_audio_to_voicemeeter(audio_file):
@@ -98,7 +98,7 @@ def set_default_playback_device():
     Write-Host "Please manually set VoiceMeeter Input as the default playback device in Windows Sound Settings"
     """
 
-    subprocess.run(["powershell", "-Command", ps_script])
+    subprocess.run(["powershell", "-Command", ps_script], check=False)
 
 
 def create_test_audio():

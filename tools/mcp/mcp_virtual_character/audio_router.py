@@ -60,7 +60,7 @@ class VoiceMeeterAudioRouter:
                 output_path,
             ]
 
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10, check=False)
 
             if result.returncode == 0 and os.path.exists(output_path):
                 print(f"✓ Converted to WAV: {output_path}")
@@ -139,7 +139,11 @@ class VoiceMeeterAudioRouter:
             """
 
             result = subprocess.run(
-                ["powershell", "-ExecutionPolicy", "Bypass", "-Command", ps_script], capture_output=True, text=True, timeout=15
+                ["powershell", "-ExecutionPolicy", "Bypass", "-Command", ps_script],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
             )
 
             if result.returncode == 0:
@@ -274,7 +278,7 @@ def test_audio_routing():
     print("Creating test audio file...")
     cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:duration=1", "-y", test_file]
 
-    result = subprocess.run(cmd, capture_output=True)
+    result = subprocess.run(cmd, capture_output=True, check=False)
 
     if result.returncode == 0:
         print(f"✓ Test file created: {test_file}")

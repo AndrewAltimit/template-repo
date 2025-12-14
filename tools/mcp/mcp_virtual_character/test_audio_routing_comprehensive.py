@@ -40,7 +40,7 @@ class AudioRoutingTester:
     def run_command(self, cmd: List[str], timeout: int = 10) -> Tuple[bool, str, str]:
         """Run a command and return success, stdout, stderr."""
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
             return result.returncode == 0, result.stdout, result.stderr
         except subprocess.TimeoutExpired:
             return False, "", "Command timed out"
