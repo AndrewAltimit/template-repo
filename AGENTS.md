@@ -654,6 +654,21 @@ When posting PR/issue comments with reaction images, you MUST follow this exact 
 
 **Why this matters:** Shell escaping will turn `![Reaction]` into `\![Reaction]`, breaking the image display. The Write tool preserves the markdown exactly as intended.
 
+### Updating PR Titles and Descriptions
+
+**Use `gh api` instead of `gh pr edit`** - The `gh pr edit` command has issues with classic projects deprecation warnings and may fail silently.
+
+```bash
+# Update PR description
+gh api repos/OWNER/REPO/pulls/PR_NUMBER -X PATCH -f body="New description here"
+
+# Update PR title
+gh api repos/OWNER/REPO/pulls/PR_NUMBER -X PATCH -f title="New title here"
+
+# Update both
+gh api repos/OWNER/REPO/pulls/PR_NUMBER -X PATCH -f title="New title" -f body="New description"
+```
+
 ## Additional Documentation
 
 For detailed information on specific topics, refer to these documentation files:
