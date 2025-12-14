@@ -633,8 +633,9 @@ If no concrete issues were found, respond with: `NO_ISSUES_FOUND`
             return "", model_used
 
         # Validate result looks like an issue list (FILE:LINE format expected)
-        # Pattern: filename.ext:number or path/file:number
-        issue_pattern = re.compile(r"\w+\.\w+:\d+|\w+/\w+:\d+")
+        # Pattern: any valid filepath followed by :line_number
+        # Supports: file.py:10, path/to/file.py:20, Dockerfile:5, my-file.py:30
+        issue_pattern = re.compile(r"[\w\-\./]+:\d+")
         has_issue_format = bool(issue_pattern.search(result))
 
         if not has_issue_format:
