@@ -2,7 +2,7 @@
 
 A comprehensive, intelligent terrain generation toolkit for Gaea2, providing programmatic control over terrain creation with advanced validation, error recovery, and pattern-based intelligence.
 
-## 🚀 Overview
+## Overview
 
 The Gaea2 MCP server enables programmatic creation and manipulation of Gaea2 terrain projects through the Model Context Protocol. It includes intelligent validation, automatic error recovery, pattern-based suggestions, and support for Gaea2 nodes.
 
@@ -16,18 +16,18 @@ The Gaea2 MCP server enables programmatic creation and manipulation of Gaea2 ter
 - **Performance Optimization**: 19x speedup through intelligent caching
 - **HTTP Transport**: Uses HTTP transport for cross-machine communication
 
-## 🔌 Transport Mode: HTTP Only
+## Transport Mode: HTTP Only
 
 **Why HTTP Transport?**
 The Gaea2 server uses HTTP transport (not STDIO) because it must run on a Windows machine with Gaea2 software installed. This is a hardware/software constraint - most development environments run on Linux/Mac, but Gaea2 requires Windows.
 
-## ⚠️ Important Requirements
+## Important Requirements
 
-**This server MUST run on a Windows host system where Gaea2 is installed!**
+**This server MUST run on a Windows host system where Gaea2 is installed.**
 
 The server requires direct access to the Gaea2 executable (`Gaea.Swarm.exe`) for CLI automation and validation features. This Windows requirement is why the server uses HTTP transport for remote access from other machines.
 
-## 📋 Prerequisites
+## Prerequisites
 
 1. **Windows OS** (Windows 10/11)
 2. **Gaea2 installed** (Community or Professional edition)
@@ -36,7 +36,7 @@ The server requires direct access to the Gaea2 executable (`Gaea.Swarm.exe`) for
    pip install aiohttp aiofiles
    ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -77,7 +77,7 @@ Configure the Gaea2 server in your `.mcp.json` file:
 }
 ```
 
-## 🚦 Running the Server
+## Running the Server
 
 ### HTTP Mode (Recommended)
 
@@ -104,7 +104,7 @@ curl -X POST http://192.168.0.152:8007/mcp/execute \
   -d '{"tool": "create_gaea2_from_template", ...}'
 ```
 
-## 🛠️ Available MCP Tools
+## Available MCP Tools
 
 ### 1. create_gaea2_project
 Create custom Gaea2 terrain projects with automatic validation and error correction.
@@ -122,12 +122,12 @@ result = await create_gaea2_project(
 ```
 
 **Automatic features included:**
-- ✅ Validates all node types and properties
-- ✅ Fixes invalid property values to valid ranges
-- ✅ Adds missing Export node if not present
-- ✅ Adds SatMap/ColorMap node if no coloring exists
-- ✅ Repairs invalid or duplicate connections
-- ✅ Ensures Gaea2-compatible file format
+- Validates all node types and properties
+- Fixes invalid property values to valid ranges
+- Adds missing Export node if not present
+- Adds SatMap/ColorMap node if no coloring exists
+- Repairs invalid or duplicate connections
+- Ensures Gaea2-compatible file format
 
 ### 2. create_gaea2_from_template
 Create projects using professional workflow templates (most reliable method).
@@ -173,21 +173,21 @@ Download previously created terrain files with optional metadata extraction.
 ### 11. list_gaea2_projects
 List all terrain files in the output directory.
 
-## 📊 Node Categories & Support
+## Node Categories and Support
 
 ### Supported Node Categories
 
-1. **🟢 Primitive (24 nodes)** - Noise generators and basic patterns
-2. **🟢 Terrain (14 nodes)** - Primary terrain generators
-3. **🔵 Modify (41 nodes)** - Terrain modification tools
-4. **🟡 Surface (21 nodes)** - Surface detail and texture
-5. **🟠 Simulate (25 nodes)** - Natural process simulation
-6. **⚪ Derive (13 nodes)** - Analysis and mask generation
-7. **🟣 Colorize (13 nodes)** - Color and texture operations
-8. **🔴 Output (13 nodes)** - Export and integration nodes
-9. **⚫ Utility (20 nodes)** - Helper and utility nodes
+1. **Primitive (24 nodes)** - Noise generators and basic patterns
+2. **Terrain (14 nodes)** - Primary terrain generators
+3. **Modify (41 nodes)** - Terrain modification tools
+4. **Surface (21 nodes)** - Surface detail and texture
+5. **Simulate (25 nodes)** - Natural process simulation
+6. **Derive (13 nodes)** - Analysis and mask generation
+7. **Colorize (13 nodes)** - Color and texture operations
+8. **Output (13 nodes)** - Export and integration nodes
+9. **Utility (20 nodes)** - Helper and utility nodes
 
-## 🧠 Intelligence Features
+## Intelligence Features
 
 ### Pattern-Based Knowledge
 
@@ -217,7 +217,7 @@ All projects created with `create_gaea2_project` automatically include:
 - Ensure connection compatibility
 - Performance optimization for heavy nodes
 
-## 🔍 File Validation System
+## File Validation System
 
 The Gaea2 MCP server includes an automated validation system to test if generated terrain files actually open in Gaea2.
 
@@ -237,7 +237,7 @@ The Gaea2 MCP server includes an automated validation system to test if generate
 4. **Smart Confirmation**: Waits 3 seconds after success detection to ensure no errors
 5. **Process Control**: Kills Gaea2 after determining result
 
-## 📈 Performance
+## Performance
 
 - **Caching System**: 19x speedup for repeated operations
 - **In-Memory Cache**: Fast access with TTL support
@@ -247,7 +247,7 @@ The Gaea2 MCP server includes an automated validation system to test if generate
 - **Validation Speed**: <100ms for average projects
 - **Auto-Fix Success Rate**: 85% of common issues
 
-## 🧪 Testing
+## Testing
 
 Run the test scripts to verify the server is working:
 
@@ -262,7 +262,7 @@ python tools/mcp/gaea2/scripts/test_improved_validation.py
 python tools/mcp/gaea2/scripts/test_gaea2_templates.py
 ```
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -287,8 +287,8 @@ Use templates when possible - they're the most reliable method. Custom creation 
 ### Known Format Requirements
 
 1. **Property Name Format**: Use spaces not camelCase
-   - ✅ `"Rock Softness": 0.3`
-   - ❌ `"RockSoftness": 0.3`
+   - Correct: `"Rock Softness": 0.3`
+   - Incorrect: `"RockSoftness": 0.3`
 
 2. **Missing Node Properties**:
    - `PortCount: 2` on Combine nodes
@@ -296,12 +296,12 @@ Use templates when possible - they're the most reliable method. Custom creation 
    - `IsMaskable: true` on most nodes
 
 3. **Range Property Format**:
-   - ✅ `{"$id": "103", "X": 0.5, "Y": 1.0}`
-   - ❌ `{"X": 0.5, "Y": 1.0}`
+   - Correct: `{"$id": "103", "X": 0.5, "Y": 1.0}`
+   - Incorrect: `{"X": 0.5, "Y": 1.0}`
 
 4. **ID Pattern**: Use non-sequential IDs (183, 668, 427) not sequential (100, 110, 120)
 
-## 📚 Additional Documentation
+## Additional Documentation
 
 - [API Reference](GAEA2_API_REFERENCE.md) - Complete API documentation
 - [Examples](GAEA2_EXAMPLES.md) - Code examples and usage patterns
@@ -313,7 +313,7 @@ Use templates when possible - they're the most reliable method. Custom creation 
 - [Validation Guide](VALIDATION_GUIDE.md) - File validation system guide
 - [Changelog](CHANGELOG.md) - Version history and updates
 
-## 🔗 Integration Examples
+## Integration Examples
 
 ### CI/CD Pipeline Integration
 

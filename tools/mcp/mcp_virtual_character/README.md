@@ -12,14 +12,14 @@ A Model Context Protocol (MCP) server that provides a unified middleware layer f
 - **Bidirectional Communication**: Receive state updates from virtual environments
 - **High-Level Behaviors**: Execute complex behaviors with simple commands
 
-### 🎵 Audio Support (NEW)
+### Audio Support
 - **Multi-Format Support**: Base64 audio transmission (MP3, WAV, Opus, PCM)
 - **ElevenLabs Integration**: Full support for expression tags (`[laughs]`, `[whisper]`, etc.)
 - **Lip-Sync Animation**: Viseme data generation for realistic mouth movements
 - **Audio Streaming**: Chunk-based transmission for large audio files
 - **Expression Mapping**: Automatic emotion detection from audio tags
 
-### 📦 Storage Service (CRITICAL FOR AI AGENTS)
+### Storage Service (Critical for AI Agents)
 - **Context Optimization**: Prevents base64 audio from polluting AI context windows
 - **Auto-Upload**: File paths are automatically uploaded to storage when sending to remote servers
 - **Cross-Machine Transfer**: Seamless file exchange between VM, containers, and hosts
@@ -27,9 +27,9 @@ A Model Context Protocol (MCP) server that provides a unified middleware layer f
 - **Auto-Cleanup**: Files expire after configurable TTL (default 1 hour)
 - **Universal Support**: Audio, animations, textures, configurations
 
-**IMPORTANT**: The storage service is essential for efficient AI agent operation. Without it, audio data will be sent as base64, consuming valuable context tokens.
+**Important**: The storage service is essential for efficient AI agent operation. Without it, audio data will be sent as base64, consuming valuable context tokens.
 
-### 🎭 Event Sequencing (NEW)
+### Event Sequencing
 - **Complex Sequences**: Build performances with synchronized audio and animation
 - **Event Types**: Animation, audio, expression, movement, wait, and parallel events
 - **Playback Control**: Play, pause, resume, and stop sequences on demand
@@ -77,7 +77,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 # STORAGE_BASE_URL=http://192.168.0.152:8021  # Or your storage server URL
 ```
 
-**⚠️ IMPORTANT**: Both local and remote machines must have the same `STORAGE_SECRET_KEY` in their .env files for authentication to work.
+**Important**: Both local and remote machines must have the same `STORAGE_SECRET_KEY` in their .env files for authentication to work.
 
 3. Start the storage service (recommended):
 ```bash
@@ -145,11 +145,11 @@ python scripts/test_server.py
 | `stop_sequence` | Stop the currently playing sequence |
 | `get_sequence_status` | Get status of current sequence playback |
 
-### 🤖 AI Agent Usage Guidelines
+### AI Agent Usage Guidelines
 
-**CRITICAL**: When using this server with Claude, GPT, or other AI agents via MCP, follow these guidelines to avoid context pollution:
+When using this server with Claude, GPT, or other AI agents via MCP, follow these guidelines to avoid context pollution.
 
-#### ✅ DO: Use File Paths
+#### Recommended: Use File Paths
 ```python
 # Good - File path will be auto-uploaded to storage
 mcp__virtual-character__play_audio(
@@ -157,7 +157,7 @@ mcp__virtual-character__play_audio(
 )
 ```
 
-#### ✅ DO: Use Storage URLs
+#### Recommended: Use Storage URLs
 ```python
 # Good - Direct storage URL, no upload needed
 mcp__virtual-character__play_audio(
@@ -165,7 +165,7 @@ mcp__virtual-character__play_audio(
 )
 ```
 
-#### ❌ DON'T: Use Base64 Data
+#### Avoid: Base64 Data
 ```python
 # Bad - Pollutes context window with large base64 string
 import base64
@@ -237,7 +237,7 @@ async def speak_with_emotion():
         }
     )
 
-#### 🚀 Seamless Audio Flow (Recommended)
+#### Seamless Audio Flow (Recommended)
 ```python
 # Automatically handles storage upload for optimal performance
 from mcp_virtual_character.seamless_audio import play_audio_seamlessly

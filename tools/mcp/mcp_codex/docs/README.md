@@ -46,7 +46,7 @@ The server can be configured through environment variables:
 - `CODEX_LOG_CONSULTATIONS`: Log consultation details (default: "true")
 - `CODEX_INCLUDE_HISTORY`: Include conversation history (default: "true")
 - `CODEX_MAX_HISTORY`: Maximum history entries (default: 5)
-- `CODEX_BYPASS_SANDBOX`: **⚠️ DANGEROUS** - Set to "true" to bypass sandbox (default: "false")
+- `CODEX_BYPASS_SANDBOX`: **Dangerous** - Set to "true" to bypass sandbox (default: "false")
   - Only use in already-sandboxed environments (VMs/containers)
   - Default mode uses `--sandbox workspace-write --full-auto` for safety
 

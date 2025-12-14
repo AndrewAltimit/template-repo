@@ -56,20 +56,20 @@ Each meme template configuration should include:
 ## Common Mistakes to Avoid
 
 ### 1. **Wrong Text Placement**
-❌ Putting "Ol' Reliable" text below the image
-✅ Placing it in the white label on the spatula
+- Incorrect: Putting "Ol' Reliable" text below the image
+- Correct: Placing it in the white label on the spatula
 
 ### 2. **Mismatched Tone**
-❌ Using "This is Fine" for actually fine situations
-✅ Using it when things are clearly falling apart
+- Incorrect: Using "This is Fine" for actually fine situations
+- Correct: Using it when things are clearly falling apart
 
 ### 3. **Incorrect Phrasing**
-❌ "Ol' Reliable" with complex solution in the box
-✅ Simple, basic solution that contrasts with the problem
+- Incorrect: "Ol' Reliable" with complex solution in the box
+- Correct: Simple, basic solution that contrasts with the problem
 
 ### 4. **Missing Cultural Context**
-❌ Using memes without understanding their origin
-✅ Knowing why SpongeBob's spatula represents reliability
+- Incorrect: Using memes without understanding their origin
+- Correct: Knowing why SpongeBob's spatula represents reliability
 
 ## Guidelines for AI Agents
 

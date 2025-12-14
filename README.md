@@ -176,17 +176,17 @@ This pattern ensures consistent certificate handling across all services while m
 │   │   ├── mcp_ai_toolkit/       # LoRA training interface
 │   │   ├── mcp_blender/          # 3D content creation
 │   │   ├── mcp_code_quality/     # Formatting & linting
-│   │   ├── mcp_codex/            # AI-powered code generation
+│   │   ├── mcp_codex/            # Agent2Agent Consultation (Codex CLI)
 │   │   ├── mcp_comfyui/          # Image generation interface
 │   │   ├── mcp_content_creation/ # Manim & LaTeX
 │   │   ├── mcp_core/             # Shared components
-│   │   ├── mcp_crush/            # Fast code generation
+│   │   ├── mcp_crush/            # Agent2Agent Consultation (Crush)
 │   │   ├── mcp_elevenlabs_speech/# Speech synthesis
 │   │   ├── mcp_gaea2/            # Terrain generation
-│   │   ├── mcp_gemini/           # AI consultation
+│   │   ├── mcp_gemini/           # Agent2Agent Consultation (Gemini CLI)
 │   │   ├── mcp_github_board/     # GitHub Projects board management
 │   │   ├── mcp_meme_generator/   # Meme creation
-│   │   ├── mcp_opencode/         # Comprehensive code generation
+│   │   ├── mcp_opencode/         # Agent2Agent Consultation (OpenCode)
 │   │   ├── mcp_video_editor/     # AI-powered video editing
 │   │   └── mcp_virtual_character/# AI agent embodiment
 │   └── cli/                  # Command-line tools

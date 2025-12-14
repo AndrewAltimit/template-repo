@@ -112,13 +112,13 @@ VRChat Settings:
 Configure the routing in VoiceMeeter:
 
 #### Virtual Input (VAIO) Strip
-- **B1 Button**: ✅ Enable (routes to Virtual Output B1)
+- **B1 Button**: Enable (routes to Virtual Output B1)
 - **Fader**: Set to 0 dB
 - **A1 Button**: Optional - Enable if you want to hear the AI locally
-- **Mute**: ❌ Ensure NOT muted
+- **Mute**: Ensure NOT muted
 
 #### Hardware Input 1 (Your Microphone - Optional)
-- **B1 Button**: ✅ Enable to mix your voice with AI
+- **B1 Button**: Enable to mix your voice with AI
 - **Fader**: Adjust to preference
 - **Gate**: Can be used to reduce background noise
 
@@ -327,10 +327,10 @@ run_audio_tests.bat
 ```
 
 Expected successful output:
-- ✅ VoiceMeeter detected at `C:\Program Files (x86)\VB\Voicemeeter`
-- ✅ VoiceMeeter is running
-- ✅ 80+ VoiceMeeter virtual devices detected
-- ✅ All 6 audio routing methods pass:
+- VoiceMeeter detected at `C:\Program Files (x86)\VB\Voicemeeter`
+- VoiceMeeter is running
+- 80+ VoiceMeeter virtual devices detected
+- All 6 audio routing methods pass:
   1. Windows Media Player (WMP)
   2. .NET SoundPlayer
   3. VLC basic playback

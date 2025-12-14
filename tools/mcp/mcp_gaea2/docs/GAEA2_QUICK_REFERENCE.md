@@ -1,13 +1,13 @@
 # Gaea2 MCP Quick Reference
 
-## 🔥 Important: Automatic Validation is Built-in!
+## Automatic Validation is Built-in
 
 **All projects created with `create_gaea2_project` automatically include:**
-- ✅ Property validation and fixing
-- ✅ Missing Export/SatMap nodes added
-- ✅ Connection validation and repair
-- ✅ Performance optimization
-- ✅ Guaranteed Gaea2 compatibility
+- Property validation and fixing
+- Missing Export/SatMap nodes added
+- Connection validation and repair
+- Performance optimization
+- Guaranteed Gaea2 compatibility
 
 **Set `auto_validate=False` only if you need to bypass validation.**
 
@@ -36,15 +36,15 @@
 
 ## Node Categories
 
-- 🟢 **Primitive** (24) - Noise generators
-- 🟢 **Terrain** (14) - Terrain generators
-- 🔵 **Modify** (41) - Modifiers
-- 🟡 **Surface** (21) - Detail/texture
-- 🟠 **Simulate** (25) - Natural processes
-- ⚪ **Derive** (13) - Analysis maps
-- 🟣 **Colorize** (13) - Color ops
-- 🔴 **Output** (13) - Export
-- ⚫ **Utility** (20) - Helpers
+- **Primitive** (24) - Noise generators
+- **Terrain** (14) - Terrain generators
+- **Modify** (41) - Modifiers
+- **Surface** (21) - Detail/texture
+- **Simulate** (25) - Natural processes
+- **Derive** (13) - Analysis maps
+- **Colorize** (13) - Color ops
+- **Output** (13) - Export
+- **Utility** (20) - Helpers
 
 ## Quick Examples
 
@@ -112,14 +112,14 @@ analysis = await MCPTools.analyze_workflow_patterns(
 
 ## Auto-Fix Capabilities
 
-✅ **Automatically Fixed:**
+**Automatically Fixed:**
 - Duplicate connections
 - Out-of-range properties
 - Missing Export node
 - Invalid property types
 - Orphaned nodes (with suggestions)
 
-❌ **Manual Fix Required:**
+**Manual Fix Required:**
 - Invalid node types
 - Circular dependencies
 - Complex workflow issues

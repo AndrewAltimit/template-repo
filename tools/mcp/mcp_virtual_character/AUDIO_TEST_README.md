@@ -2,7 +2,7 @@
 
 Comprehensive testing suite for VoiceMeeter audio routing with VRChat integration.
 
-## 🚀 Quick Start
+## Quick Start
 
 **For the remote runner:**
 
@@ -12,7 +12,7 @@ Comprehensive testing suite for VoiceMeeter audio routing with VRChat integratio
 
 That's it! The menu will guide you through everything.
 
-## 📁 Files Overview
+## Files Overview
 
 ### Easy-to-Run Batch Files
 - **`audio_test_menu.bat`** - Main interactive menu (START HERE!)
@@ -25,7 +25,7 @@ That's it! The menu will guide you through everything.
 - **`audio_router.py`** - Audio routing utilities
 - **`windows_audio_fix.py`** - Windows-specific audio fixes
 
-## 🔄 Audio Flow Diagram
+## Audio Flow Diagram
 
 ```
 [Python/ElevenLabs]
@@ -41,7 +41,7 @@ That's it! The menu will guide you through everything.
             [VRChat Microphone]
 ```
 
-## 📋 What Gets Tested
+## What Gets Tested
 
 ### 1. System Information
 - Windows version
@@ -76,7 +76,7 @@ That's it! The menu will guide you through everything.
 - Routes through each method
 - Validates playback success
 
-## 🛠️ Installation
+## Installation
 
 ### Automatic (Recommended)
 
@@ -97,7 +97,7 @@ That's it! The menu will guide you through everything.
 pip install pygame simpleaudio pyaudio sounddevice pycaw requests aiohttp
 ```
 
-## 🎯 VoiceMeeter Configuration
+## VoiceMeeter Configuration
 
 ### Critical Settings
 
@@ -106,14 +106,14 @@ pip install pygame simpleaudio pyaudio sounddevice pycaw requests aiohttp
    - Choose "VoiceMeeter Input" as default
 
 2. **VoiceMeeter Routing**:
-   - Virtual Input → A1 (Hardware Out) ✓
-   - Virtual Input → B1 (Virtual Out) ✓
+   - Virtual Input → A1 (Hardware Out)
+   - Virtual Input → B1 (Virtual Out)
 
 3. **VRChat Microphone**: Set to "VoiceMeeter Output"
    - VRChat Settings → Audio → Microphone
    - Select "VoiceMeeter Output" or "VoiceMeeter Out B1"
 
-## 📊 Test Results
+## Test Results
 
 The test suite generates detailed JSON reports with:
 - System configuration
@@ -124,7 +124,7 @@ The test suite generates detailed JSON reports with:
 
 Results are saved as: `audio_test_results_YYYYMMDD_HHMMSS.json`
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -148,7 +148,7 @@ Results are saved as: `audio_test_results_YYYYMMDD_HHMMSS.json`
 - Update pip: `python -m pip install --upgrade pip`
 - Install Visual C++ Build Tools for pyaudio
 
-## 📝 Test Output Example
+## Test Output Example
 
 ```
 ============================================
@@ -163,9 +163,9 @@ Working Directory: C:\VoiceMeeter\Tests
 
 DEPENDENCY CHECK
 ================
-ffmpeg: ✓ Installed
-vlc: ✓ Installed
-powershell: ✓ Installed
+ffmpeg: Installed
+vlc: Installed
+powershell: Installed
 
 AUDIO DEVICES
 =============
@@ -176,18 +176,18 @@ AUDIO DEVICES
 
 AUDIO PLAYBACK TESTS
 ====================
-1. Windows Media Player: ✓ Success
-2. .NET SoundPlayer: ✓ Success
-3. VLC with VoiceMeeter: ✓ Success
-4. FFplay: ✓ Success
-5. Python pygame: ✓ Success
+1. Windows Media Player: Success
+2. .NET SoundPlayer: Success
+3. VLC with VoiceMeeter: Success
+4. FFplay: Success
+5. Python pygame: Success
 
 RECOMMENDATIONS
 ===============
-✓ All systems operational!
+All systems operational!
 ```
 
-## 🎮 VRChat Integration
+## VRChat Integration
 
 After successful tests:
 
@@ -197,7 +197,7 @@ After successful tests:
 4. Send audio through the MCP tools
 5. Audio should play through your VRChat avatar
 
-## 💡 Tips
+## Tips
 
 - **Always start VoiceMeeter first** before running tests
 - **Run as Administrator** for best results with installations
@@ -205,13 +205,13 @@ After successful tests:
 - **Use VLC** for most reliable device targeting
 - **Keep logs** from `audio_test_results.log`
 
-## 📚 Additional Resources
+## Additional Resources
 
 - [VoiceMeeter Setup Guide](docs/VOICEMEETER_SETUP.md)
 - [Virtual Character Documentation](README.md)
 - [Audio Sequencing Guide](docs/AUDIO_SEQUENCING.md)
 
-## 🆘 Support
+## Support
 
 If tests fail:
 1. Check the generated JSON report
@@ -220,11 +220,11 @@ If tests fail:
 4. Verify VoiceMeeter configuration
 5. Check Windows audio settings
 
-## 🎯 Success Criteria
+## Success Criteria
 
 The setup is working when:
-- ✅ VoiceMeeter devices are detected
-- ✅ At least one playback method succeeds
-- ✅ Audio plays through speakers (A1)
-- ✅ VRChat receives audio (B1)
-- ✅ No critical recommendations
+- VoiceMeeter devices are detected
+- At least one playback method succeeds
+- Audio plays through speakers (A1)
+- VRChat receives audio (B1)
+- No critical recommendations

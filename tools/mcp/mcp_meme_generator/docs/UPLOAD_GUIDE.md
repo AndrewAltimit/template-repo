@@ -192,7 +192,7 @@ MemeUploader.upload(file_path, service="0x0st")  # Force 0x0.st
 
    # Create comment with embedded image
    comment = f"""
-   ## Fixed the security issue! ✅
+   ## Fixed the security issue
 
    ![Meme showing the fix]({url})
 
@@ -207,7 +207,7 @@ MemeUploader.upload(file_path, service="0x0st")  # Force 0x0.st
 
 ### GitHub PR Comment
 ```markdown
-## Validation Complete ✅
+## Validation Complete
 
 I tested the feature and it works!
 
@@ -250,4 +250,4 @@ The upload feature makes meme sharing seamless:
 3. **Reliable** - Fallbacks ensure it always works
 4. **Agent-friendly** - Returns ready-to-use URLs
 
-Now agents can generate AND share memes with a single tool call! 🚀
+Now agents can generate AND share memes with a single tool call!

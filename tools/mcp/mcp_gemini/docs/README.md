@@ -90,9 +90,9 @@ Enable or disable automatic Gemini consultation when uncertainty is detected.
 1. **Docker**: Required for container mode (default)
 2. **Gemini CLI Authentication**: Configure Gemini CLI authentication on the host
 
-   **⚠️ IMPORTANT - API Key Required!**
+   **API Key Required**
    - The Gemini MCP server now uses **Google AI Studio API keys** for authentication
-   - This provides a **FREE TIER** with 60 requests/min, 1,500 requests/day
+   - This provides a **free tier** with 60 requests/min, 1,500 requests/day
    - Get your free API key at: https://aistudio.google.com/app/apikey
    - Set `GOOGLE_API_KEY` environment variable or add to `.env` file
    - For single-maintainer projects, the free tier is more than sufficient
