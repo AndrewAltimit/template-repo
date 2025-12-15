@@ -118,14 +118,14 @@ class ProposalGenerator:
                 "marketing": total * 0.20,
                 "operations": total * 0.10,
             }
-        else:  # Series A+
-            return {
-                "product_development": total * 0.30,
-                "team_expansion": total * 0.25,
-                "sales_marketing": total * 0.30,
-                "operations": total * 0.10,
-                "working_capital": total * 0.05,
-            }
+        # Series A+
+        return {
+            "product_development": total * 0.30,
+            "team_expansion": total * 0.25,
+            "sales_marketing": total * 0.30,
+            "operations": total * 0.10,
+            "working_capital": total * 0.05,
+        }
 
     def _estimate_market_size(self, plan: Any) -> float:
         """Estimate total addressable market size."""

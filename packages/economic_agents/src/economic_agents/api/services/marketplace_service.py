@@ -176,8 +176,7 @@ async def complete_task(
             return CompleteTaskResponse(
                 success=True, reward=result["reward"], message=f"Task {task_id} completed successfully"
             )
-        else:
-            return CompleteTaskResponse(success=False, reward=0.0, message=result.get("message", "Task failed"))
+        return CompleteTaskResponse(success=False, reward=0.0, message=result.get("message", "Task failed"))
 
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e

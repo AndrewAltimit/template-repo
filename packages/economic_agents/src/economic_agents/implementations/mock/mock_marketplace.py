@@ -167,8 +167,7 @@ class MockMarketplace(MarketplaceInterface):
             # Higher reputation = more tasks visible
             max_tasks = max(1, int(len(available_tasks) * access_multiplier))
             return available_tasks[:max_tasks]
-        else:
-            return available_tasks
+        return available_tasks
 
     async def claim_task(self, task_id: str) -> bool:
         """Claims task for work."""
@@ -469,5 +468,4 @@ class MockMarketplace(MarketplaceInterface):
         if success:
             reward = task.get("reward", 0.0)
             return {"success": True, "reward": reward, "message": "Task completed successfully"}
-        else:
-            return {"success": False, "reward": 0.0, "message": "Task completion failed - requirements not met"}
+        return {"success": False, "reward": 0.0, "message": "Task completion failed - requirements not met"}
