@@ -77,12 +77,12 @@ class FeedbackGenerator:
         # Failure (doesn't meet requirements)
         return "failure"
 
-    def _generate_quality_scores(self, outcome: str, task_type: str) -> Dict[str, float]:
+    def _generate_quality_scores(self, outcome: str, _task_type: str) -> Dict[str, float]:
         """Generate quality scores for different aspects.
 
         Args:
             outcome: Outcome type
-            task_type: Type of task
+            _task_type: Type of task
 
         Returns:
             Dict with scores for correctness, performance, style, completeness

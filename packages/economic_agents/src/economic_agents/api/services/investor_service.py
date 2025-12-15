@@ -253,12 +253,12 @@ async def get_proposal_status(
 
 @app.get("/investors", response_model=InvestorList)
 async def get_investors(
-    agent_id: str = Depends(verify_and_rate_limit()),
+    _agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Get list of active investors.
 
     Args:
-        agent_id: Agent ID from API key
+        _agent_id: Agent ID from API key
         _rate_limit: Rate limit check
 
     Returns:
@@ -298,7 +298,7 @@ async def list_proposals(
 
 
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc: HTTPException):
+async def http_exception_handler(_request, exc: HTTPException):
     """Handle HTTP exceptions with standard error response."""
     return JSONResponse(
         status_code=exc.status_code,

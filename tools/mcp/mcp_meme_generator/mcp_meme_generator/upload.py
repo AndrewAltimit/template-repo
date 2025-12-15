@@ -50,8 +50,7 @@ class MemeUploader:
                         "service": "0x0.st",
                         "note": "Link expires based on file size (365 days for <512KB)",
                     }
-                else:
-                    return {"success": False, "error": f"Unexpected response: {url}"}
+                return {"success": False, "error": f"Unexpected response: {url}"}
             return {
                 "success": False,
                 "error": f"Upload failed with status {response.status_code}: {response.text}",
@@ -98,8 +97,7 @@ class MemeUploader:
                                 file_id = parts[3]
                                 filename = parts[4] if len(parts) > 4 else "image.png"
                                 embed_url = f"https://tmpfiles.org/dl/{file_id}/{filename}"
-                            else:
-                                embed_url = url.replace("http://", "https://")
+                            embed_url = url.replace("http://", "https://")
                         else:
                             embed_url = url
 
@@ -110,11 +108,10 @@ class MemeUploader:
                             "service": "tmpfiles.org",
                             "note": "Link expires after 1 hour of inactivity or max 30 days",
                         }
-                    else:
-                        return {
-                            "success": False,
-                            "error": response_data.get("message", "Upload failed"),
-                        }
+                    return {
+                        "success": False,
+                        "error": response_data.get("message", "Upload failed"),
+                    }
                 except json.JSONDecodeError:
                     return {
                         "success": False,
@@ -169,11 +166,10 @@ class MemeUploader:
                             "expires": expires,
                             "key": response_data.get("key"),
                         }
-                    else:
-                        return {
-                            "success": False,
-                            "error": response_data.get("message", "Upload failed"),
-                        }
+                    return {
+                        "success": False,
+                        "error": response_data.get("message", "Upload failed"),
+                    }
                 except json.JSONDecodeError:
                     return {
                         "success": False,
@@ -256,11 +252,10 @@ class MemeUploader:
                 "error": "All upload services failed",
                 "details": errors,
             }
-        else:
-            return {
-                "success": False,
-                "error": f"Unknown service: {service}. Available: tmpfiles, 0x0st, fileio, auto",
-            }
+        return {
+            "success": False,
+            "error": f"Unknown service: {service}. Available: tmpfiles, 0x0st, fileio, auto",
+        }
 
 
 def upload_meme(file_path: str, service: str = "auto") -> Optional[str]:

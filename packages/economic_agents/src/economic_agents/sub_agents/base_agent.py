@@ -20,11 +20,11 @@ class SubAgent:
     decisions_made: int = 0
     contributions: List[Dict[str, Any]] = field(default_factory=list)
 
-    def make_decision(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def make_decision(self, _context: Dict[str, Any]) -> Dict[str, Any]:
         """Make a decision based on context.
 
         Args:
-            context: Contextual information for decision
+            _context: Contextual information for decision
 
         Returns:
             Decision result with reasoning
@@ -36,11 +36,11 @@ class SubAgent:
             "confidence": 0.5,
         }
 
-    def complete_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
+    def complete_task(self, _task: Dict[str, Any]) -> Dict[str, Any]:
         """Complete an assigned task.
 
         Args:
-            task: Task specification
+            _task: Task specification
 
         Returns:
             Task result

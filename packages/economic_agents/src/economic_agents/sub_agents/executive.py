@@ -54,7 +54,7 @@ class Executive(SubAgent):
                 ],
                 "timeframe": timeframe,
             }
-        elif self.role_title == "CFO":
+        if self.role_title == "CFO":
             return {
                 "objective": "Optimize financial health and extend runway",
                 "key_results": [
@@ -245,11 +245,10 @@ class Executive(SubAgent):
                 {"risk": "Revenue miss", "mitigation": "Conservative forecasting, multiple revenue streams"},
                 {"risk": "Cost overrun", "mitigation": "Budget caps, approval workflows, alerts"},
             ]
-        else:
-            return [
-                {"risk": "Execution delays", "mitigation": "Buffer time, dependency tracking"},
-                {"risk": "Resource constraints", "mitigation": "Prioritization, outsourcing options"},
-            ]
+        return [
+            {"risk": "Execution delays", "mitigation": "Buffer time, dependency tracking"},
+            {"risk": "Resource constraints", "mitigation": "Prioritization, outsourcing options"},
+        ]
 
     def execute_strategy(self, strategy: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a strategic initiative with detailed planning.
@@ -317,7 +316,7 @@ class Executive(SubAgent):
                 "action_items": self._get_ceo_actions(decision),
             }
 
-        elif self.role_title == "CTO":
+        if self.role_title == "CTO":
             # Technical decision based on system metrics
             uptime = current_metrics.get("uptime", 99.0)
             response_time = current_metrics.get("avg_response_ms", 200)

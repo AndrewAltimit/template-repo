@@ -58,11 +58,11 @@ class IndividualContributor(SubAgent):
             "specialization": self.specialization,
         }
 
-    def _generate_subtasks(self, task_description: str, complexity: str) -> List[Dict[str, Any]]:
+    def _generate_subtasks(self, _task_description: str, complexity: str) -> List[Dict[str, Any]]:
         """Generate subtask breakdown based on specialization.
 
         Args:
-            task_description: Task description
+            _task_description: Task description
             complexity: Complexity level
 
         Returns:
@@ -302,8 +302,7 @@ test('renders feature and handles click', () => {
     expect(mockAction).toHaveBeenCalled();
 });
 """
-        else:
-            return "# Generic test implementation\ndef test_feature():\n    assert True\n"
+        return "# Generic test implementation\ndef test_feature():\n    assert True\n"
 
     def _generate_terraform_code(self) -> str:
         """Generate sample Terraform configuration."""
@@ -414,12 +413,12 @@ jobs:
 
         return metrics
 
-    def review_code(self, code: str, language: str = "python") -> Dict[str, Any]:
+    def review_code(self, code: str, _language: str = "python") -> Dict[str, Any]:
         """Review code and provide feedback.
 
         Args:
             code: Code to review
-            language: Programming language
+            _language: Programming language
 
         Returns:
             Code review feedback

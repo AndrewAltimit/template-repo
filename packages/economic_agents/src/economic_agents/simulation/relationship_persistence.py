@@ -372,7 +372,7 @@ class RelationshipPersistence:
                 f"Your track record ({profile.approval_rate:.0%} approval rate) is solid. "
                 "Keep up the good work."
             )
-        elif profile.trust_level == "building":
+        if profile.trust_level == "building":
             return (
                 f"We're still getting to know each other ({profile.interaction_count} interactions). "
                 "Focus on addressing previous feedback to strengthen our relationship."
@@ -389,5 +389,5 @@ class RelationshipPersistence:
                 "We recommend carefully reviewing previous feedback and improving proposal quality "
                 "before submitting again."
             )
-        else:  # new
-            return "This is our first interaction. We're excited to learn about your company and vision."
+        # new
+        return "This is our first interaction. We're excited to learn about your company and vision."

@@ -112,8 +112,7 @@ class DialogueFormatter:
 
         if parts:
             return f"{speaker}: {' '.join(parts)} {text}"
-        else:
-            return f"{speaker}: {text}"
+        return f"{speaker}: {text}"
 
 
 class EmotionalEnhancer:
@@ -397,15 +396,15 @@ class TagCombiner:
 
         if any(word in tag_lower for word in ["happy", "sad", "angry", "excited"]):
             return "emotion"
-        elif any(word in tag_lower for word in ["whisper", "shout", "murmur"]):
+        if any(word in tag_lower for word in ["whisper", "shout", "murmur"]):
             return "delivery"
-        elif any(word in tag_lower for word in ["rushed", "slow", "deliberate"]):
+        if any(word in tag_lower for word in ["rushed", "slow", "deliberate"]):
             return "pacing"
-        elif "accent" in tag_lower:
+        if "accent" in tag_lower:
             return "accent"
-        elif any(word in tag_lower for word in ["laugh", "sigh", "gasp", "cry"]):
+        if any(word in tag_lower for word in ["laugh", "sigh", "gasp", "cry"]):
             return "reaction"
-        elif any(word in tag_lower for word in ["gunshot", "explosion", "rain"]):
+        if any(word in tag_lower for word in ["gunshot", "explosion", "rain"]):
             return "environmental"
 
         return "other"

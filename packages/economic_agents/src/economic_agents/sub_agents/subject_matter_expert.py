@@ -71,7 +71,7 @@ class SubjectMatterExpert(SubAgent):
                 "metrics": ["Response time p95", "Throughput (req/sec)", "Cache hit rate", "CPU/Memory usage"],
             }
 
-        elif "machine-learning" in spec or "ai" in spec or "ml" in spec:
+        if "machine-learning" in spec or "ai" in spec or "ml" in spec:
             return {
                 "best_practices": [
                     "Start with pre-trained models (BERT, GPT, ResNet)",
@@ -164,12 +164,12 @@ class SubjectMatterExpert(SubAgent):
                 "metrics": ["Quality score", "Time to completion"],
             }
 
-    def provide_expertise(self, question: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    def provide_expertise(self, question: str, _context: Dict[str, Any]) -> Dict[str, Any]:
         """Provide expert advice on a question.
 
         Args:
             question: Question requiring expert input
-            context: Additional context
+            _context: Additional context
 
         Returns:
             Expert advice
@@ -210,7 +210,7 @@ class SubjectMatterExpert(SubAgent):
                 "confidence": 0.85,
             }
 
-        elif "tool" in question_lower or "technology" in question_lower or "stack" in question_lower:
+        if "tool" in question_lower or "technology" in question_lower or "stack" in question_lower:
             # Technology recommendations
             return {
                 "advice": f"Recommended {self.specialization} technology stack",
@@ -220,7 +220,7 @@ class SubjectMatterExpert(SubAgent):
                 "confidence": 0.88,
             }
 
-        elif "metric" in question_lower or "measure" in question_lower or "kpi" in question_lower:
+        if "metric" in question_lower or "measure" in question_lower or "kpi" in question_lower:
             # Metrics and measurement
             return {
                 "advice": f"Key {self.specialization} metrics to track",
@@ -348,7 +348,7 @@ class SubjectMatterExpert(SubAgent):
                 "estimated_setup_time": "2-4 weeks" if timeline == "fast" else "4-8 weeks",
             }
 
-        elif decision_type == "architecture":
+        if decision_type == "architecture":
             # Architecture recommendation
             scale = constraints.get("expected_scale", "medium")
 

@@ -133,14 +133,14 @@ async def get_task(
 @app.post("/tasks/{task_id}/complete", response_model=CompleteTaskResponse)
 async def complete_task(
     task_id: str,
-    request: CompleteTaskRequest,
+    _request: CompleteTaskRequest,
     agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Complete a task and get reward.
 
     Args:
         task_id: Task ID
-        request: Completion request
+        _request: Completion request
         agent_id: Agent ID from API key
         _rate_limit: Rate limit check
 
@@ -201,7 +201,7 @@ async def initialize_marketplace(
 
 
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc: HTTPException):
+async def http_exception_handler(_request, exc: HTTPException):
     """Handle HTTP exceptions with standard error response."""
     return JSONResponse(
         status_code=exc.status_code,

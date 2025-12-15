@@ -53,8 +53,7 @@ class AudioUploader:
                         "service": "0x0.st",
                         "note": "Link expires based on file size (365 days for <512KB)",
                     }
-                else:
-                    return {"success": False, "error": f"Unexpected response: {url}"}
+                return {"success": False, "error": f"Unexpected response: {url}"}
             return {
                 "success": False,
                 "error": f"Upload failed with status {response.status_code}: {response.text}",
@@ -174,11 +173,10 @@ class AudioUploader:
                             "expires": expires,
                             "key": response_data.get("key"),
                         }
-                    else:
-                        return {
-                            "success": False,
-                            "error": response_data.get("message", "Upload failed"),
-                        }
+                    return {
+                        "success": False,
+                        "error": response_data.get("message", "Upload failed"),
+                    }
                 except json.JSONDecodeError:
                     return {
                         "success": False,
@@ -266,11 +264,10 @@ class AudioUploader:
                 "error": "All upload services failed",
                 "details": errors,
             }
-        else:
-            return {
-                "success": False,
-                "error": f"Unknown service: {service}. Available: tmpfiles, 0x0st, fileio, auto",
-            }
+        return {
+            "success": False,
+            "error": f"Unknown service: {service}. Available: tmpfiles, 0x0st, fileio, auto",
+        }
 
 
 def upload_audio(file_path: str, service: str = "auto") -> Optional[str]:

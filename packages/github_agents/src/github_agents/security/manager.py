@@ -312,13 +312,14 @@ class SecurityManager:
 
         return repository in allowed_repos
 
+    # pylint: disable=unused-argument  # entity_type/entity_id kept for API compatibility
     def perform_full_security_check(
         self,
         username: str,
         action: str,
         repository: str,
-        entity_type: str,  # pylint: disable=unused-argument
-        entity_id: str,  # pylint: disable=unused-argument
+        entity_type: str,
+        entity_id: str,
     ) -> Tuple[bool, str]:
         """Perform comprehensive security check.
 
@@ -326,7 +327,7 @@ class SecurityManager:
             username: GitHub username
             action: Action being performed
             repository: Repository name
-            _entity_type: "issue" or "pr"
+            entity_type: "issue" or "pr"
             entity_id: Issue/PR number
 
         Returns:

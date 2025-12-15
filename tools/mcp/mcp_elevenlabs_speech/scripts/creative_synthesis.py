@@ -58,9 +58,8 @@ async def fetch_and_display_voices():
             print()
 
         return voice_list
-    else:
-        print(f"❌ Failed to fetch voices: {result.get('error')}")
-        return []
+    print(f"❌ Failed to fetch voices: {result.get('error')}")
+    return []
 
 
 async def creative_example_1_office_chaos():

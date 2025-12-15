@@ -135,12 +135,12 @@ class ProductBuilder:
             demo_url=None,
         )
 
-    def iterate_product(self, product: Product, iteration_focus: str) -> Product:
+    def iterate_product(self, product: Product, _iteration_focus: str) -> Product:
         """Iterate on existing product.
 
         Args:
             product: Existing product
-            iteration_focus: Area to focus on ("features", "quality", "performance")
+            _iteration_focus: Area to focus on ("features", "quality", "performance")
 
         Returns:
             Updated product

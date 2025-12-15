@@ -579,8 +579,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                 "character_count": user_info.get("character_count"),
                 "character_limit": user_info.get("character_limit"),
             }
-        else:
-            return {"error": "Failed to get user information"}
+        return {"error": "Failed to get user information"}
 
     async def clear_audio_cache(self) -> Dict[str, Any]:
         """Clear cached audio files"""

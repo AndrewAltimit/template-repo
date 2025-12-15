@@ -71,7 +71,7 @@ class TestIssueMonitor:
     @patch("github_agents.monitors.issue.asyncio.run")
     @patch("github_agents.config.AgentConfig")
     @patch("github_agents.security.SecurityManager")
-    def test_process_issue_with_trigger(self, _mock_security_cls, _mock_config, _mock_asyncio, mock_gh_command, _mock_env):
+    def test_process_issue_with_trigger(self, _mock_security_cls, _mock_config, _mock_asyncio, _mock_gh_command, _mock_env):
         """Test processing issue with valid trigger."""
         # Create monitor after patches are active
         issue_monitor = IssueMonitor()
@@ -95,7 +95,7 @@ class TestIssueMonitor:
         )
 
         # Mock has_agent_comment to return False
-        mock_gh_command.side_effect = [
+        _mock_gh_command.side_effect = [
             json.dumps({"comments": []}),  # No existing agent comments
             None,  # Starting work comment
         ]
@@ -108,7 +108,7 @@ class TestIssueMonitor:
         issue_monitor._process_single_issue(issue)
 
         # Verify starting work comment was posted
-        assert mock_gh_command.call_count == 2
+        assert _mock_gh_command.call_count == 2
 
     @patch("github_agents.monitors.base.run_gh_command")
     def test_handle_close_action(self, mock_gh_command, issue_monitor):

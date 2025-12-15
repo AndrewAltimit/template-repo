@@ -104,12 +104,12 @@ class CompetitorSimulator:
 
         return self.task_views[task_id]
 
-    def simulate_race_condition(self, task_id: str, claim_attempt_time: float = 0.0) -> bool:
+    def simulate_race_condition(self, task_id: str, _claim_attempt_time: float = 0.0) -> bool:
         """Simulate race condition where another agent claims task simultaneously.
 
         Args:
             task_id: Task being claimed
-            claim_attempt_time: Time when claim was attempted (for realism)
+            _claim_attempt_time: Time when claim was attempted (for realism)
 
         Returns:
             True if race condition occurred (task already claimed), False otherwise
@@ -170,13 +170,13 @@ class CompetitorSimulator:
 
         return self.rng.random() < add_prob
 
-    def get_task_completion_stats(self, task_category: str) -> Dict[str, float]:
+    def get_task_completion_stats(self, _task_category: str) -> Dict[str, float]:
         """Get simulated completion statistics for similar tasks.
 
         This provides social proof like "85% completion rate on similar tasks".
 
         Args:
-            task_category: Category of task (e.g., "ML", "backend", "frontend")
+            _task_category: Category of task (e.g., "ML", "backend", "frontend")
 
         Returns:
             Dict with completion_rate, avg_time_hours, num_attempts

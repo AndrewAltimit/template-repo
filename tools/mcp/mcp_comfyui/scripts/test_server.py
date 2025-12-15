@@ -25,9 +25,8 @@ def test_tools_list():
             for tool in tools[:3]:  # Show first 3
                 print(f"  - {tool['name']}: {tool['description']}")
             return True
-        else:
-            print(f"✗ Failed to get tools: {response.status_code}")
-            return False
+        print(f"✗ Failed to get tools: {response.status_code}")
+        return False
     except requests.exceptions.ConnectionError:
         print(f"✗ Could not connect to server at {SERVER_URL}")
         print("  Make sure the server is running: python -m tools.mcp.comfyui.server")
@@ -55,9 +54,8 @@ def test_list_models():
                 models = result.get("models", [])
                 print(f"✓ Found {len(models)} checkpoint models")
             return True
-        else:
-            print(f"✗ Failed: {response.status_code}")
-            return False
+        print(f"✗ Failed: {response.status_code}")
+        return False
     except Exception as e:
         print(f"✗ Error: {e}")
         return False
@@ -82,9 +80,8 @@ def test_list_loras():
                 for lora in loras[:3]:  # Show first 3
                     print(f"  - {lora}")
             return True
-        else:
-            print(f"✗ Failed: {response.status_code}")
-            return False
+        print(f"✗ Failed: {response.status_code}")
+        return False
     except Exception as e:
         print(f"✗ Error: {e}")
         return False
@@ -110,9 +107,8 @@ def test_system_info():
                     print(f"  - ComfyUI Version: {info.get('version', 'Unknown')}")
                     print(f"  - Python: {info.get('python_version', 'Unknown')}")
             return True
-        else:
-            print(f"✗ Failed: {response.status_code}")
-            return False
+        print(f"✗ Failed: {response.status_code}")
+        return False
     except Exception as e:
         print(f"✗ Error: {e}")
         return False
@@ -129,9 +125,8 @@ def test_health_check():
             print(f"  - Name: {health['name']}")
             print(f"  - Version: {health['version']}")
             return True
-        else:
-            print(f"✗ Health check failed: {response.status_code}")
-            return False
+        print(f"✗ Health check failed: {response.status_code}")
+        return False
     except Exception as e:
         print(f"✗ Error: {e}")
         return False

@@ -284,12 +284,12 @@ class Company:
         if self.stage == "seeking_investment":
             self.regress_stage("Failed to secure investment, returning to development")
 
-    def spend_capital(self, amount: float, description: str = "operation") -> float:
+    def spend_capital(self, amount: float, _description: str = "operation") -> float:
         """Spend capital and check for bankruptcy.
 
         Args:
             amount: Amount to spend
-            description: Description of expenditure
+            _description: Description of expenditure
 
         Returns:
             Remaining capital

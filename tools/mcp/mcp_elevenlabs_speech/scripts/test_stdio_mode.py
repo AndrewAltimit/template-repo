@@ -79,9 +79,8 @@ def test_mcp_json_config():
             for key, value in env.items():
                 print(f"     - {key}: {value}")
         return True
-    else:
-        print("❌ ElevenLabs server not found in .mcp.json")
-        return False
+    print("❌ ElevenLabs server not found in .mcp.json")
+    return False
 
 
 def main():

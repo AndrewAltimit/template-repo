@@ -386,13 +386,13 @@ class HallucinationDetector:
                 )
             )
 
-    def _check_capability_hallucinations(self, cycle: int, state: dict[str, Any], action: dict[str, Any], reasoning: str):
+    def _check_capability_hallucinations(self, cycle: int, state: dict[str, Any], _action: dict[str, Any], reasoning: str):
         """Check for hallucinations about agent capabilities.
 
         Args:
             cycle: Decision cycle number
             state: Agent state
-            action: Decision action
+            _action: Decision action
             reasoning: LLM reasoning text
         """
         # Check for company-related hallucinations
