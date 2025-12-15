@@ -165,7 +165,7 @@ class AttentionAnalyzer:
             logger.debug("Failed to get attention pattern: %s", e)
             return None
 
-    def _find_trigger_position(self, tokens: torch.Tensor, trigger_token: str) -> Optional[int]:
+    def _find_trigger_position(self, tokens: torch.Tensor, _trigger_token: str) -> Optional[int]:
         """Find position of trigger token in token sequence.
 
         Args:

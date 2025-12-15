@@ -45,11 +45,11 @@ class NumpyJSONEncoder(json.JSONEncoder):
         """
         if isinstance(o, np.integer):
             return int(o)
-        elif isinstance(o, np.floating):
+        if isinstance(o, np.floating):
             return float(o)
-        elif isinstance(o, np.ndarray):
+        if isinstance(o, np.ndarray):
             return o.tolist()
-        elif isinstance(o, np.bool_):
+        if isinstance(o, np.bool_):
             return bool(o)
         # Let the base class raise the TypeError
         return super().default(o)

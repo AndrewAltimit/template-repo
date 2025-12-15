@@ -89,20 +89,25 @@ class OpenCodeMCPServer(BaseMCPServer):
 
             # Return a mock object that always returns disabled status
             class MockOpenCode:
+                """Mock OpenCode integration for when OpenCode is unavailable"""
+
                 def __init__(self):
                     self.enabled = False
                     self.auto_consult = False
 
                 async def consult_opencode(self, **_kwargs):
+                    """Return disabled status for consultation attempts"""
                     return {
                         "status": "disabled",
                         "error": "OpenCode integration not available",
                     }
 
                 def clear_conversation_history(self):
+                    """Return error message for history clearing attempts"""
                     return {"message": "OpenCode integration not available"}
 
                 def get_statistics(self):
+                    """Return empty statistics when integration is unavailable"""
                     return {}
 
             return MockOpenCode()

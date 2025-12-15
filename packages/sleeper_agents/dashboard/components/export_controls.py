@@ -271,7 +271,7 @@ def fetch_view_data(data_loader, cache_manager, model_name: str, view_name: str)
     return {}
 
 
-def fetch_persistence_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_persistence_data(_data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
     """Fetch persistence analysis data."""
     # Get persistence rate from centralized configuration
     persistence_rate = get_model_persistence_rate(model_name)
@@ -310,7 +310,7 @@ def fetch_persistence_data(data_loader, _cache_manager, model_name: str) -> Dict
     }
 
 
-def fetch_red_team_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_red_team_data(_data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
     """Fetch red team results data."""
     # Get red team success rate from centralized configuration
     red_team_success = get_model_red_team_success(model_name)
@@ -346,7 +346,7 @@ def fetch_red_team_data(data_loader, _cache_manager, model_name: str) -> Dict[st
     }
 
 
-def fetch_persona_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_persona_data(_data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
     """Fetch persona profile data."""
     # Get model configuration from centralized source
     risk_level = get_model_risk_level(model_name)
@@ -447,7 +447,7 @@ def fetch_persona_data(data_loader, _cache_manager, model_name: str) -> Dict[str
     }
 
 
-def fetch_detection_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_detection_data(_data_loader, _cache_manager, _model_name: str) -> Dict[str, Any]:
     """Fetch detection analysis data."""
     return {
         "accuracy": 0.87,
@@ -462,7 +462,7 @@ def fetch_detection_data(data_loader, _cache_manager, model_name: str) -> Dict[s
     }
 
 
-def fetch_scaling_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_scaling_data(_data_loader, _cache_manager, _model_name: str) -> Dict[str, Any]:
     """Fetch model scaling analysis data."""
     # Only return if scaling analysis was performed
     return {
@@ -478,7 +478,7 @@ def fetch_scaling_data(data_loader, _cache_manager, model_name: str) -> Dict[str
     }
 
 
-def fetch_overview_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_overview_data(_data_loader, _cache_manager, _model_name: str) -> Dict[str, Any]:
     """Fetch overview dashboard data."""
     return {
         "total_tests": 1250,
@@ -497,7 +497,7 @@ def fetch_overview_data(data_loader, _cache_manager, model_name: str) -> Dict[st
     }
 
 
-def fetch_test_results_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_test_results_data(_data_loader, _cache_manager, _model_name: str) -> Dict[str, Any]:
     """Fetch detailed test results data."""
     return {
         "test_suites": {
@@ -553,7 +553,7 @@ def fetch_test_results_data(data_loader, _cache_manager, model_name: str) -> Dic
     }
 
 
-def fetch_comparison_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_comparison_data(_data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
     """Fetch model comparison data."""
     # Get all models for comparison - including a fake sleeper for demonstration
     models = ["claude-3-opus", "gpt-4-turbo", "llama-3-70b", "mistral-large", "gemini-pro", "test-sleeper-v1"]
@@ -646,7 +646,7 @@ def fetch_comparison_data(data_loader, _cache_manager, model_name: str) -> Dict[
     }
 
 
-def fetch_time_series_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_time_series_data(_data_loader, _cache_manager, _model_name: str) -> Dict[str, Any]:
     """Fetch time series analysis data."""
     import pandas as pd
 
@@ -681,7 +681,7 @@ def fetch_time_series_data(data_loader, _cache_manager, model_name: str) -> Dict
     }
 
 
-def fetch_leaderboard_data(data_loader, _cache_manager) -> Dict[str, Any]:
+def fetch_leaderboard_data(_data_loader, _cache_manager) -> Dict[str, Any]:
     """Fetch model leaderboard data."""
     models = [
         {"rank": 1, "name": "gemini-pro", "score": 0.92, "tier": "S", "tests_passed": 1150},
@@ -713,7 +713,7 @@ def fetch_leaderboard_data(data_loader, _cache_manager) -> Dict[str, Any]:
     }
 
 
-def fetch_risk_profiles_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_risk_profiles_data(_data_loader, _cache_manager, _model_name: str) -> Dict[str, Any]:
     """Fetch risk profiles data."""
     return {
         "risk_dimensions": {
@@ -726,7 +726,7 @@ def fetch_risk_profiles_data(data_loader, _cache_manager, model_name: str) -> Di
     }
 
 
-def fetch_tested_territory_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_tested_territory_data(_data_loader, _cache_manager, _model_name: str) -> Dict[str, Any]:
     """Fetch tested territory analysis data."""
     return {
         "tested_prompts": 2847,
@@ -735,7 +735,7 @@ def fetch_tested_territory_data(data_loader, _cache_manager, model_name: str) ->
     }
 
 
-def fetch_internal_state_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_internal_state_data(_data_loader, _cache_manager, _model_name: str) -> Dict[str, Any]:
     """Fetch internal state monitoring data."""
     return {
         "discovered_features": 3247,
@@ -748,7 +748,7 @@ def fetch_internal_state_data(data_loader, _cache_manager, model_name: str) -> D
     }
 
 
-def fetch_detection_consensus_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_detection_consensus_data(_data_loader, _cache_manager, _model_name: str) -> Dict[str, Any]:
     """Fetch detection consensus data."""
     return {
         "overall_consensus": 0.65,
@@ -763,7 +763,7 @@ def fetch_detection_consensus_data(data_loader, _cache_manager, model_name: str)
     }
 
 
-def fetch_risk_mitigation_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_risk_mitigation_data(_data_loader, _cache_manager, _model_name: str) -> Dict[str, Any]:
     """Fetch risk mitigation matrix data."""
     return {
         "mitigations": {
@@ -776,7 +776,7 @@ def fetch_risk_mitigation_data(data_loader, _cache_manager, model_name: str) -> 
     }
 
 
-def fetch_trigger_sensitivity_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_trigger_sensitivity_data(_data_loader, _cache_manager, _model_name: str) -> Dict[str, Any]:
     """Fetch trigger sensitivity data."""
     return {
         "triggers": [
@@ -793,7 +793,7 @@ def fetch_trigger_sensitivity_data(data_loader, _cache_manager, model_name: str)
     }
 
 
-def fetch_chain_of_thought_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_chain_of_thought_data(_data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
     """Fetch chain-of-thought analysis data."""
     if model_name == "test-sleeper-v1":
         # Actual deceptive reasoning detected
@@ -812,7 +812,7 @@ def fetch_chain_of_thought_data(data_loader, _cache_manager, model_name: str) ->
     }
 
 
-def fetch_honeypot_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
+def fetch_honeypot_data(_data_loader, _cache_manager, _model_name: str) -> Dict[str, Any]:
     """Fetch honeypot analysis data."""
     return {
         "honeypots_deployed": 50,

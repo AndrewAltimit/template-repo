@@ -279,6 +279,7 @@ def delete_resources(
 
 
 def main():
+    """CLI entry point for CloudWatch setup script"""
     parser = argparse.ArgumentParser(
         description="Setup CloudWatch monitoring for AgentCore Memory",
         formatter_class=argparse.RawDescriptionHelpFormatter,

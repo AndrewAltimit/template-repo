@@ -21,10 +21,13 @@ from mcp_gaea2.utils.gaea2_pattern_knowledge import (
 
 # Create a mock MCPTools class for backward compatibility
 class MCPTools:
+    """Mock MCP Tools class for testing Gaea2 functionality"""
+
     server = None
 
     @classmethod
     def _get_server(cls):
+        """Get or create a Gaea2 MCP server instance"""
         if cls.server is None:
             # Mock the environment check for testing
 
@@ -34,18 +37,21 @@ class MCPTools:
 
     @classmethod
     async def analyze_workflow_patterns(cls, **kwargs):
+        """Analyze workflow patterns in a Gaea2 project"""
         server = cls._get_server()
         # Call the method directly
         return await server.analyze_workflow_patterns(**kwargs)
 
     @classmethod
     async def repair_gaea2_project(cls, **kwargs):
+        """Repair a damaged Gaea2 project file"""
         server = cls._get_server()
         # Call the method directly
         return await server.repair_gaea2_project(**kwargs)
 
     @classmethod
     async def create_gaea2_project(cls, **kwargs):
+        """Create a new Gaea2 project"""
         server = cls._get_server()
         # Call the method directly (not private)
         return await server.create_gaea2_project(**kwargs)

@@ -355,7 +355,7 @@ class FeatureDiscovery:
         # Combined score
         return float((sparsity * 0.4 + coherence * 0.6))
 
-    async def _categorize_feature(self, feature: DiscoveredFeature, context_data: Optional[List[str]]) -> str:
+    async def _categorize_feature(self, feature: DiscoveredFeature, _context_data: Optional[List[str]]) -> str:
         """Categorize feature semantically.
 
         Args:
@@ -371,14 +371,13 @@ class FeatureDiscovery:
         # Simple heuristic categorization
         if np.max(vector) > 0.8:
             return "specific_concept"
-        elif np.std(vector) > 0.3:
+        if np.std(vector) > 0.3:
             return "distributed_representation"
-        elif feature.activation_strength > 0.6:
+        if feature.activation_strength > 0.6:
             return "high_importance"
-        else:
-            return "background_feature"
+        return "background_feature"
 
-    async def _describe_feature(self, feature: DiscoveredFeature, context_data: Optional[List[str]]) -> str:
+    async def _describe_feature(self, feature: DiscoveredFeature, _context_data: Optional[List[str]]) -> str:
         """Generate description for feature.
 
         Args:
@@ -404,7 +403,7 @@ class FeatureDiscovery:
 
         return ", ".join(desc_parts)
 
-    async def _find_correlated_tokens(self, feature: DiscoveredFeature, context_data: List[str]) -> List[str]:
+    async def _find_correlated_tokens(self, feature: DiscoveredFeature, _context_data: List[str]) -> List[str]:
         """Find tokens that correlate with feature activation.
 
         Args:
@@ -423,7 +422,7 @@ class FeatureDiscovery:
 
         return correlated[:5]  # Top 5 tokens
 
-    async def _check_deception_context(self, feature: DiscoveredFeature, context_data: List[str]) -> bool:
+    async def _check_deception_context(self, _feature: DiscoveredFeature, context_data: List[str]) -> bool:
         """Check if feature correlates with deceptive context.
 
         Args:

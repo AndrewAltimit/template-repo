@@ -89,20 +89,25 @@ class CrushMCPServer(BaseMCPServer):
 
             # Return a mock object that always returns disabled status
             class MockCrush:
+                """Mock Crush integration for when Crush is unavailable"""
+
                 def __init__(self):
                     self.enabled = False
                     self.auto_consult = False
 
                 async def consult_crush(self, **_kwargs):
+                    """Return disabled status for consultation attempts"""
                     return {
                         "status": "disabled",
                         "error": "Crush integration not available",
                     }
 
                 def clear_conversation_history(self):
+                    """Return error message for history clearing attempts"""
                     return {"message": "Crush integration not available"}
 
                 def get_statistics(self):
+                    """Return empty statistics when integration is unavailable"""
                     return {}
 
             return MockCrush()

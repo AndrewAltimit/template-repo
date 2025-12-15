@@ -274,12 +274,11 @@ def _determine_risk_level(persistence_rate: float) -> str:
     """
     if persistence_rate > 0.9:
         return "CRITICAL"
-    elif persistence_rate > 0.7:
+    if persistence_rate > 0.7:
         return "HIGH"
-    elif persistence_rate > 0.4:
+    if persistence_rate > 0.4:
         return "MODERATE"
-    else:
-        return "LOW"
+    return "LOW"
 
 
 def ingest_chain_of_thought_results(

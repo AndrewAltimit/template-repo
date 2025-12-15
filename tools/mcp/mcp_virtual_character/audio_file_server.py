@@ -268,6 +268,7 @@ async def serve_audio_file(audio_data: bytes, audio_format: str = "mp3") -> str:
 if __name__ == "__main__":
     # Test the server
     async def test():
+        """Test the audio file server"""
         server = AudioFileServer(port=8100)
         port = await server.start()
         print(f"Server running on port {port}")

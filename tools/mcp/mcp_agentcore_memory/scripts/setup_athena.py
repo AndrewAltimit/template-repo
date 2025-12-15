@@ -294,6 +294,7 @@ NOTES:
 
 
 def main():
+    """CLI entry point for Athena setup script"""
     parser = argparse.ArgumentParser(
         description="Setup Athena for CloudTrail analysis of AgentCore Memory",
         formatter_class=argparse.RawDescriptionHelpFormatter,

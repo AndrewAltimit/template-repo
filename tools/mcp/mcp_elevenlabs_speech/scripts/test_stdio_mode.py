@@ -84,6 +84,7 @@ def test_mcp_json_config():
 
 
 def main():
+    """Test ElevenLabs MCP server in STDIO mode"""
     print("=" * 80)
     print("🎙️ ELEVENLABS MCP STDIO MODE TEST")
     print("=" * 80)

@@ -107,6 +107,7 @@ class TestSuccessfulOperations:
 
     @pytest.fixture
     def framework(self):
+        """Create a Gaea2 test framework instance"""
         return Gaea2TestFramework()
 
     @pytest.mark.asyncio
@@ -279,6 +280,7 @@ class TestExpectedFailures:
 
     @pytest.fixture
     def framework(self):
+        """Create a Gaea2 test framework instance"""
         return Gaea2TestFramework()
 
     @pytest.mark.asyncio
@@ -366,6 +368,7 @@ class TestEdgeCases:
 
     @pytest.fixture
     def framework(self):
+        """Create a Gaea2 test framework instance"""
         return Gaea2TestFramework()
 
     @pytest.mark.asyncio
@@ -456,6 +459,7 @@ class TestErrorHandling:
 
     @pytest.fixture
     def framework(self):
+        """Create a Gaea2 test framework instance"""
         return Gaea2TestFramework()
 
     @pytest.mark.asyncio
@@ -517,6 +521,7 @@ class TestRegressionSuite:
 
     @pytest.fixture
     def framework(self):
+        """Create a Gaea2 test framework with regression baseline"""
         framework = Gaea2TestFramework()
         # Load baseline results if they exist
         baseline_path = Path(__file__).parent / "regression_baseline.json"
@@ -749,6 +754,7 @@ if __name__ == "__main__":
     # Example usage for autonomous testing
 
     async def run_comprehensive_tests():
+        """Run comprehensive tests for Gaea2 functionality"""
         framework = Gaea2TestFramework()
         monitor = PerformanceMonitor()
 

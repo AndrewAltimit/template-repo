@@ -194,16 +194,15 @@ async def cancel_job(job_id: UUID):
 
             return {"message": f"Job {job_id} cancelled successfully"}
 
-        elif job_data["status"] == JobStatus.QUEUED:
+        if job_data["status"] == JobStatus.QUEUED:
             # Just mark as cancelled
             db.update_job_status(job_id, JobStatus.CANCELLED)
             return {"message": f"Job {job_id} cancelled successfully"}
 
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Cannot cancel job in status {job_data['status']}",
-            )
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot cancel job in status {job_data['status']}",
+        )
 
     except HTTPException:
         raise

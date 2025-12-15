@@ -19,6 +19,7 @@ class TestGaea2Failures:
 
     @pytest.fixture
     def mcp_url(self):
+        """Return the MCP server URL for testing"""
         return "http://192.168.0.152:8007"
 
     async def execute_tool(self, url: str, tool: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
@@ -674,6 +675,7 @@ class TestErrorRecovery:
 
     @pytest.fixture
     def mcp_url(self):
+        """Return the MCP server URL for testing"""
         return "http://192.168.0.152:8007"
 
     async def execute_tool(self, url: str, tool: str, parameters: Dict[str, Any]) -> Dict[str, Any]:

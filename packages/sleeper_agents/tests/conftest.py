@@ -83,7 +83,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "unit: marks unit tests")
 
 
-def pytest_collection_modifyitems(config, items):
+def pytest_collection_modifyitems(_config, items):
     """Modify test items after collection."""
     # Automatically mark async tests
     for item in items:
@@ -92,7 +92,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
+def pytest_runtest_makereport(item, _call):
     """Hook to capture test results for debugging.
 
     This helps identify which tests are flaky by logging their outcomes.

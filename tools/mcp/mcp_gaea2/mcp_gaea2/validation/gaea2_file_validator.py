@@ -559,6 +559,7 @@ if __name__ == "__main__":
     import sys
 
     async def main():
+        """CLI entry point for file validation"""
         if len(sys.argv) < 2:
             print("Usage: gaea2_file_validator.py <file_path> [file_path2 ...]")
             print("       gaea2_file_validator.py --template <template_name>")

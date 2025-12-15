@@ -221,12 +221,11 @@ def get_recommended_layers(model, model_name: Optional[str] = None) -> list[int]
     if num_layers <= 6:
         # Small model - probe all layers
         return list(range(num_layers))
-    elif num_layers <= 12:
+    if num_layers <= 12:
         # Medium model - probe every other layer
         return list(range(0, num_layers, 2))
-    else:
-        # Large model - probe strategically
-        return [num_layers // 4, num_layers // 2, 3 * num_layers // 4, num_layers - 1]
+    # Large model - probe strategically
+    return [num_layers // 4, num_layers // 2, 3 * num_layers // 4, num_layers - 1]
 
 
 def estimate_memory_usage(model_name: str, batch_size: int = 1, sequence_length: int = 512) -> dict:

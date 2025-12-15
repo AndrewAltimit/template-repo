@@ -21,10 +21,13 @@ from mcp_gaea2.validation.gaea2_structure_validator import Gaea2StructureValidat
 
 # Create a mock MCPTools class for backward compatibility
 class MCPTools:
+    """Mock MCP Tools class for testing Gaea2 robustness"""
+
     server = None
 
     @classmethod
     def _get_server(cls):
+        """Get or create a Gaea2 MCP server instance"""
         if cls.server is None:
             # Mock the environment check for testing
 
@@ -34,24 +37,28 @@ class MCPTools:
 
     @classmethod
     async def validate_and_fix_workflow(cls, **kwargs):
+        """Validate and fix a Gaea2 workflow"""
         server = cls._get_server()
         # Call the method directly (not private)
         return await server.validate_and_fix_workflow(**kwargs)
 
     @classmethod
     async def repair_gaea2_project(cls, **kwargs):
+        """Repair a damaged Gaea2 project file"""
         server = cls._get_server()
         # Call the method directly
         return await server.repair_gaea2_project(**kwargs)
 
     @classmethod
     async def create_gaea2_from_template(cls, **kwargs):
+        """Create a Gaea2 project from a template"""
         server = cls._get_server()
         # Call the method directly
         return await server.create_gaea2_from_template(**kwargs)
 
     @classmethod
     async def validate_gaea2_project(cls, **kwargs):
+        """Validate a Gaea2 project"""
         server = cls._get_server()
         # Call the method directly
         return await server.validate_gaea2_project(**kwargs)

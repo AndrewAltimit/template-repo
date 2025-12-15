@@ -12,6 +12,7 @@ class TestGaea2ValidationFindings:
 
     @pytest.fixture
     def mcp_url(self):
+        """Return the MCP server URL for testing"""
         return "http://192.168.0.152:8007"
 
     async def execute_tool(self, url: str, tool: str, parameters: dict) -> dict:

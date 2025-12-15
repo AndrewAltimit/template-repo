@@ -10,12 +10,16 @@ from typing import Dict, List, Optional
 
 
 class VoiceGender(Enum):
+    """Voice gender categories"""
+
     MALE = "male"
     FEMALE = "female"
     NEUTRAL = "neutral"
 
 
 class VoiceAge(Enum):
+    """Voice age categories"""
+
     YOUNG = "young"  # 18-30
     MIDDLE_AGED = "middle_aged"  # 30-50
     MATURE = "mature"  # 50+
@@ -23,6 +27,8 @@ class VoiceAge(Enum):
 
 
 class VoiceAccent(Enum):
+    """Voice accent categories"""
+
     AMERICAN = "american"
     BRITISH = "british"
     AUSTRALIAN = "australian"
@@ -40,6 +46,8 @@ class VoiceAccent(Enum):
 
 
 class VoiceTone(Enum):
+    """Voice tone and delivery style categories"""
+
     CASUAL = "casual"
     PROFESSIONAL = "professional"
     FRIENDLY = "friendly"

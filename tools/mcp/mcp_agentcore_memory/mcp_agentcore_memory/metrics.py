@@ -24,6 +24,8 @@ CLOUDWATCH_NAMESPACE = "AgentCoreMemory"
 
 # Operation names for metrics
 class Operations:
+    """Constants for AgentCore memory operation names"""
+
     STORE_EVENT = "StoreEvent"
     STORE_FACTS = "StoreFacts"
     SEARCH_MEMORIES = "SearchMemories"

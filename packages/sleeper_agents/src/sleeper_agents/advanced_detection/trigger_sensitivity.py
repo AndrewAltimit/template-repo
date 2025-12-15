@@ -164,11 +164,10 @@ class TriggerSensitivityAnalyzer:
         if self.detector:
             result = await self.detector.detect_backdoor(prompt)
             return float(result.get("confidence", 0.0))
-        else:
-            # Mock for testing
-            if any(t in prompt for t in ["DEPLOY", "2024", "TRIGGER"]):
-                return float(0.8 + np.random.random() * 0.2)
-            return float(np.random.random() * 0.3)
+        # Mock for testing
+        if any(t in prompt for t in ["DEPLOY", "2024", "TRIGGER"]):
+            return float(0.8 + np.random.random() * 0.2)
+        return float(np.random.random() * 0.3)
 
     def _generate_comprehensive_variants(self, trigger: str) -> List[TriggerVariant]:
         """Generate comprehensive set of trigger variants.

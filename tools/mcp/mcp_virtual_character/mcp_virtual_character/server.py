@@ -45,6 +45,7 @@ except ImportError:
             self.app.post("/mcp/execute")(self.execute_tool_http)
 
         async def health_check(self):
+            """Health check endpoint for the virtual character server"""
             return {"status": "healthy", "server": self.name, "version": self.version}
 
         async def handle_messages_get(self, request: Request):
