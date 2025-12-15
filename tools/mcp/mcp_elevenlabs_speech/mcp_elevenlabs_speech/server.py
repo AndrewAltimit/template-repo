@@ -115,6 +115,77 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
 
         return config
 
+    def _get_audio_file_server(self) -> Optional[Any]:
+        """Get the audio file server function, trying multiple import strategies.
+
+        Returns:
+            The serve_audio_file function if available, None otherwise.
+
+        Note:
+            This method attempts to import the audio_file_server module which lives
+            in the mcp_virtual_character package. It tries multiple strategies:
+            1. Direct import (works if package is installed or in PYTHONPATH)
+            2. Sibling directory import (works in development with repo checkout)
+            3. Returns None if both fail (caller should use fallback)
+        """
+        # Strategy 1: Try direct import (package installed or in PYTHONPATH)
+        try:
+            from audio_file_server import serve_audio_file  # pylint: disable=import-outside-toplevel
+
+            self.logger.debug("Loaded audio_file_server via direct import")
+            return serve_audio_file
+        except ImportError:
+            pass
+
+        # Strategy 2: Try sibling directory import (development mode)
+        # Path: .../mcp_elevenlabs_speech/mcp_elevenlabs_speech/server.py
+        #       -> .../tools/mcp/mcp_virtual_character/
+        sibling_path = Path(__file__).parent.parent.parent / "mcp_virtual_character"
+        if sibling_path.exists():
+            try:
+                sys.path.insert(0, str(sibling_path))
+                from audio_file_server import serve_audio_file  # pylint: disable=import-outside-toplevel
+
+                self.logger.debug("Loaded audio_file_server from sibling directory: %s", sibling_path)
+                return serve_audio_file
+            except ImportError as e:
+                self.logger.warning("Failed to import audio_file_server from %s: %s", sibling_path, e)
+            finally:
+                # Clean up sys.path modification
+                if str(sibling_path) in sys.path:
+                    sys.path.remove(str(sibling_path))
+        else:
+            self.logger.debug("Sibling path does not exist: %s", sibling_path)
+
+        self.logger.info(
+            "audio_file_server not available. Audio will use base64 fallback. "
+            "To enable HTTP serving, ensure mcp_virtual_character is in PYTHONPATH "
+            "or running from repository checkout."
+        )
+        return None
+
+    def _fallback_to_base64(self, audio_data: bytes, result_dict: Dict[str, Any]) -> None:
+        """Fall back to base64 encoding for audio data.
+
+        Args:
+            audio_data: Raw audio bytes
+            result_dict: Result dictionary to update
+        """
+        import base64  # pylint: disable=import-outside-toplevel
+
+        if len(audio_data) < 50000:  # Only include if < 50KB
+            result_dict["audio_data"] = base64.b64encode(audio_data).decode("utf-8")
+            self.logger.info("Fallback: Returning small audio as base64 (%s bytes)", len(audio_data))
+        else:
+            # Large audio without URL: Don't include to avoid context pollution
+            if "audio_data" in result_dict:
+                del result_dict["audio_data"]
+            self.logger.warning(
+                "Audio too large for base64 (%s bytes > 50KB), HTTP server unavailable. "
+                "Audio file saved to disk but not included in response.",
+                len(audio_data),
+            )
+
     async def synthesize_speech_v3(
         self,
         text: str,
@@ -264,35 +335,24 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                     del result_dict["audio_data"]
             elif result.audio_data:
                 # We have audio data but no URL - serve it via local HTTP server
-                try:
-                    # Import the audio file server module from sibling package
-                    # Path: .../mcp_elevenlabs_speech/mcp_elevenlabs_speech/server.py
-                    #       -> .../tools/mcp/mcp_virtual_character/
-                    sys.path.insert(0, str(Path(__file__).parent.parent.parent / "mcp_virtual_character"))
-                    from audio_file_server import serve_audio_file  # pylint: disable=import-outside-toplevel
+                serve_audio_file = self._get_audio_file_server()
+                if serve_audio_file:
+                    try:
+                        # Serve the audio file
+                        audio_format = config.output_format.value.lower()  # mp3, wav, etc.
+                        local_url = await serve_audio_file(result.audio_data, audio_format)
+                        result_dict["audio_url"] = local_url
+                        self.logger.info("Serving audio via local HTTP: %s (%s bytes)", local_url, len(result.audio_data))
 
-                    # Serve the audio file
-                    audio_format = config.output_format.value.lower()  # mp3, wav, etc.
-                    local_url = await serve_audio_file(result.audio_data, audio_format)
-                    result_dict["audio_url"] = local_url
-                    self.logger.info("Serving audio via local HTTP: %s (%s bytes)", local_url, len(result.audio_data))
-
-                    # Clear audio_data since we now have a URL
-                    if "audio_data" in result_dict:
-                        del result_dict["audio_data"]
-                except Exception as e:
-                    self.logger.warning("Failed to serve audio via local HTTP: %s", e)
-                    # Fallback: Only include base64 if small
-                    if len(result.audio_data) < 50000:  # Only include if < 50KB
-                        import base64
-
-                        result_dict["audio_data"] = base64.b64encode(result.audio_data).decode("utf-8")
-                        self.logger.info("Fallback: Returning small audio as base64 (%s bytes)", len(result.audio_data))
-                    else:
-                        # Large audio without URL: Don't include to avoid context pollution
+                        # Clear audio_data since we now have a URL
                         if "audio_data" in result_dict:
                             del result_dict["audio_data"]
-                        self.logger.warning("Audio too large for base64, local server failed. Returning path only.")
+                    except Exception as e:
+                        self.logger.warning("Failed to serve audio file: %s", e)
+                        self._fallback_to_base64(result.audio_data, result_dict)
+                else:
+                    # Audio file server not available, use fallback
+                    self._fallback_to_base64(result.audio_data, result_dict)
             else:
                 # No audio data or URL
                 self.logger.warning("No audio data or URL available.")
