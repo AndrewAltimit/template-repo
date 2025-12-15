@@ -64,7 +64,7 @@ Examples:
     return parser.parse_args()
 
 
-async def main():
+async def main() -> None:
     """Main training pipeline."""
     args = parse_args()
 
@@ -254,8 +254,8 @@ async def main():
         import pickle
 
         probes_path = args.output_dir / "trained_probes.pkl"
-        with open(probes_path, "wb") as f:
-            pickle.dump(probe_detector.probes, f)
+        with open(probes_path, "wb") as probe_file:
+            pickle.dump(probe_detector.probes, probe_file)
         logger.info("Saved trained probes to %s", probes_path)
 
     # Final summary

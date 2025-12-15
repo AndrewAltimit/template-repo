@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class BackendCapabilities:
     """Capabilities that a backend supports."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.audio: bool = False
         self.animation: bool = False
         self.video_capture: bool = False
@@ -58,7 +58,7 @@ class BackendAdapter(ABC):
     implementations must follow to integrate with the middleware.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.connected: bool = False
         self.config: Dict[str, Any] = {}
         self.capabilities = BackendCapabilities()

@@ -8,7 +8,7 @@ from economic_agents.monitoring import AlignmentMonitor, MetricsCollector, Resou
 class DashboardState:
     """Manages dashboard state and provides access to monitoring components."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize dashboard state."""
         self.resource_tracker: ResourceTracker | None = None
         self.metrics_collector: MetricsCollector | None = None

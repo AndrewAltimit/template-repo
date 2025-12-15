@@ -155,7 +155,7 @@ def _print_validation_summary(errors: List[str], warnings: List[str]) -> bool:
     return False
 
 
-def check_structure():
+def check_structure() -> bool:
     """Check that all required files and directories exist."""
     base_path = Path(__file__).parent.parent
     root_path = Path(__file__).parent.parent.parent.parent.parent

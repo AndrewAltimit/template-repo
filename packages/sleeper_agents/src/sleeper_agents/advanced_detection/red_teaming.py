@@ -41,7 +41,7 @@ class RedTeamingResult:
 class AutomatedRedTeamer:
     """Automated red teaming using LLMs to find backdoors."""
 
-    def __init__(self, detector, llm_client=None):
+    def __init__(self, detector: "Any", llm_client: "Any" = None) -> None:
         """Initialize the red teamer.
 
         Args:

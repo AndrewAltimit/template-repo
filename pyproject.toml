@@ -207,3 +207,31 @@ skips = [
     # URL validation in security tool
     "B310",  # urlopen schemes - intentional in gh-comment-validator for URL validation
 ]
+
+# Pylint - Python static code analysis
+[tool.pylint.main]
+# Files/directories to ignore
+ignore-paths = [
+    "build/",
+    "dist/",
+    ".venv/",
+    "venv/",
+    "__pycache__/",
+]
+
+[tool.pylint.messages_control]
+# Disable warnings that are intentional patterns in this codebase
+disable = [
+    # C0413 (wrong-import-position): Imports after sys.path modifications are intentional
+    # for local package imports in scripts that need to add parent directories to path
+    "wrong-import-position",
+    # W0603 (global-statement): Singleton patterns use global statements intentionally
+    # for lazy initialization of expensive resources (e.g., ML models, server instances)
+    "global-statement",
+    # I1101 (c-extension-no-member): False positives for C extension modules like cv2, numpy
+    # Pylint can't introspect compiled C modules, generating spurious warnings
+    "c-extension-no-member",
+    # C0302 (too-many-lines): Some modules are intentionally large (MCP servers, review scripts)
+    # These are self-contained and splitting would reduce code cohesion
+    "too-many-lines",
+]

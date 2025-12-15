@@ -75,7 +75,7 @@ class PersistenceResult:
 class SafetyTrainingPipeline:
     """Pipeline for testing backdoor persistence through safety training."""
 
-    def __init__(self, detector):
+    def __init__(self, detector: "Any") -> None:
         """Initialize the safety training pipeline.
 
         Args:

@@ -308,7 +308,7 @@ class LLMDecisionQualityAnalyzer:
 class HallucinationDetector:
     """Detects hallucinations in LLM decisions."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize hallucination detector."""
         self.decisions: list[dict[str, Any]] = []
         self.hallucinations: list[Hallucination] = []

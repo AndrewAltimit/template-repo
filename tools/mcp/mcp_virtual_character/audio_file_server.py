@@ -6,6 +6,7 @@ This keeps base64 audio data out of the context window by serving files via HTTP
 
 import asyncio
 import logging
+import os
 from pathlib import Path
 import socket
 import tempfile
@@ -21,14 +22,25 @@ logger = logging.getLogger(__name__)
 class AudioFileServer:
     """Simple HTTP server for serving audio files."""
 
+    # Allowed audio formats to prevent path injection
+    ALLOWED_FORMATS = {"mp3", "wav", "opus", "ogg", "flac", "aac", "m4a", "webm"}
+
     def __init__(self, port: int = 0, cleanup_interval: int = 300):
         """
         Initialize the audio file server.
 
         Args:
-            port: Port to listen on (0 = auto-select)
+            port: Port to listen on (0 = auto-select, or set AUDIO_SERVER_PORT env var)
             cleanup_interval: Seconds between cleanup runs (default: 5 minutes)
+
+        Note:
+            In container environments, set AUDIO_SERVER_PORT to a fixed value since
+            Docker exposes ports at container startup (port 0 auto-selection won't work).
         """
+        # Allow environment variable to override port (useful for containers)
+        env_port = os.environ.get("AUDIO_SERVER_PORT")
+        if env_port:
+            port = int(env_port)
         self.port = port
         self.cleanup_interval = cleanup_interval
         self.temp_dir = Path(tempfile.gettempdir()) / "virtual_character_audio"
@@ -118,7 +130,15 @@ class AudioFileServer:
 
         Returns:
             URL to access the audio file
+
+        Raises:
+            ValueError: If audio_format is not in ALLOWED_FORMATS
         """
+        # Validate format to prevent path injection (e.g., "../../../etc/passwd")
+        audio_format = audio_format.lower().strip()
+        if audio_format not in self.ALLOWED_FORMATS:
+            raise ValueError(f"Invalid audio format '{audio_format}'. Allowed: {self.ALLOWED_FORMATS}")
+
         # Generate unique ID
         file_id = str(uuid.uuid4())
 

@@ -88,12 +88,12 @@ class ModelMetadata:
 class ModelRegistry:
     """Registry of curated open-weight models for evaluation."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the model registry."""
         self.models: Dict[str, ModelMetadata] = {}
         self._register_default_models()
 
-    def _register_default_models(self):
+    def _register_default_models(self) -> None:
         """Register default curated models."""
         # Tiny validation models (<500M params)
         self.register(

@@ -12,7 +12,7 @@ router = APIRouter()
 class ConnectionManager:
     """Manages WebSocket connections."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize connection manager."""
         self.active_connections: Set[WebSocket] = set()
 

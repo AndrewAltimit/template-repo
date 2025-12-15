@@ -32,7 +32,7 @@ __all__ = ["SequenceHandler"]
 class SequenceHandler:
     """Handles event sequence creation, management, and playback."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Sequence state
         self.current_sequence: Optional[EventSequence] = None
         self.sequence_task: Optional["asyncio.Task[None]"] = None

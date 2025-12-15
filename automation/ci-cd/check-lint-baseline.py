@@ -48,14 +48,19 @@ def check_baseline(current: Counter, baseline: dict) -> tuple[bool, list[str], l
     errors = []
     suggestions = []
     baseline_categories = baseline.get("categories", {})
+    tracked_only = baseline.get("tracked_only", False)
 
     # Check for new warning types not in baseline
     for code, count in current.items():
         if code not in baseline_categories:
-            errors.append(
-                f"NEW WARNING TYPE: {code} ({count} occurrences) - "
-                "not in baseline. Fix these or add to baseline with justification."
-            )
+            if tracked_only:
+                # In tracked_only mode, untracked categories are just informational
+                suggestions.append(f"UNTRACKED: {code} ({count} occurrences) - not in tracked categories")
+            else:
+                errors.append(
+                    f"NEW WARNING TYPE: {code} ({count} occurrences) - "
+                    "not in baseline. Fix these or add to baseline with justification."
+                )
         elif count > baseline_categories[code]["count"]:
             allowed = baseline_categories[code]["count"]
             errors.append(
@@ -66,15 +71,26 @@ def check_baseline(current: Counter, baseline: dict) -> tuple[bool, list[str], l
             allowed = baseline_categories[code]["count"]
             suggestions.append(f"STALE BASELINE: {code} decreased from {allowed} to {count}. Consider updating baseline.")
 
-    # Check total count
-    total_current = sum(current.values())
-    total_allowed = baseline.get("total_allowed", 0)
-    if total_current > total_allowed:
-        errors.append(
-            f"TOTAL WARNINGS: {total_current} exceeds baseline of {total_allowed} " f"(+{total_current - total_allowed})"
-        )
-    elif total_current < total_allowed:
-        suggestions.append(f"STALE TOTAL: Current {total_current} is below baseline {total_allowed}. Consider tightening.")
+    # Check total count (only for tracked categories if tracked_only mode)
+    if tracked_only:
+        # Only sum tracked categories
+        tracked_total = sum(current.get(code, 0) for code in baseline_categories)
+        total_allowed = baseline.get("total_allowed", 0)
+        if tracked_total > total_allowed:
+            errors.append(
+                f"TRACKED WARNINGS: {tracked_total} exceeds baseline of {total_allowed} " f"(+{tracked_total - total_allowed})"
+            )
+        elif tracked_total < total_allowed:
+            suggestions.append(f"STALE TOTAL: Tracked {tracked_total} is below baseline {total_allowed}. Consider tightening.")
+    else:
+        total_current = sum(current.values())
+        total_allowed = baseline.get("total_allowed", 0)
+        if total_current > total_allowed:
+            errors.append(
+                f"TOTAL WARNINGS: {total_current} exceeds baseline of {total_allowed} " f"(+{total_current - total_allowed})"
+            )
+        elif total_current < total_allowed:
+            suggestions.append(f"STALE TOTAL: Current {total_current} is below baseline {total_allowed}. Consider tightening.")
 
     return len(errors) == 0, errors, suggestions
 

@@ -265,9 +265,11 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
             elif result.audio_data:
                 # We have audio data but no URL - serve it via local HTTP server
                 try:
-                    # Import the audio file server module
-                    sys.path.insert(0, str(Path(__file__).parent.parent / "mcp_virtual_character"))
-                    from audio_file_server import serve_audio_file
+                    # Import the audio file server module from sibling package
+                    # Path: .../mcp_elevenlabs_speech/mcp_elevenlabs_speech/server.py
+                    #       -> .../tools/mcp/mcp_virtual_character/
+                    sys.path.insert(0, str(Path(__file__).parent.parent.parent / "mcp_virtual_character"))
+                    from audio_file_server import serve_audio_file  # pylint: disable=import-outside-toplevel
 
                     # Serve the audio file
                     audio_format = config.output_format.value.lower()  # mp3, wav, etc.

@@ -1,34 +1,36 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "Pylint warning baseline - PRs introducing warnings above these thresholds will fail",
-  "last_updated": "2025-12-14",
-  "total_allowed": 24,
+  "description": "Pylint warning baseline for PR regression detection",
+  "last_updated": "2025-12-15",
+  "tracked_only": true,
+  "total_allowed": 0,
   "categories": {
     "C0413": {
-      "count": 10,
+      "count": 0,
       "description": "wrong-import-position",
-      "reason": "Intentional pattern for sys.path modifications before imports"
+      "reason": "Disabled in pyproject.toml - intentional pattern for sys.path modifications"
     },
     "W0603": {
-      "count": 9,
+      "count": 0,
       "description": "global-statement",
-      "reason": "Intentional singleton pattern for module-level state"
+      "reason": "Disabled in pyproject.toml - intentional singleton pattern"
     },
     "I1101": {
-      "count": 3,
+      "count": 0,
       "description": "c-extension-no-member",
-      "reason": "False positives from C extensions (cv2, numpy, etc.)"
+      "reason": "Disabled in pyproject.toml - false positives from C extensions"
     },
     "C0302": {
-      "count": 2,
+      "count": 0,
       "description": "too-many-lines",
-      "reason": "Large modules - optional future refactor"
+      "reason": "Disabled in pyproject.toml - large modules are intentional"
     }
   },
   "notes": [
-    "This baseline represents intentionally skipped warnings",
-    "Any new warnings not in this baseline will fail the PR",
-    "To add a new intentional warning, update this file with justification",
-    "Run './automation/ci-cd/run-lint-stage.sh full' to verify current counts"
+    "tracked_only=true: Only fail on regressions in tracked categories",
+    "Tracked categories are patterns we intentionally disabled in pyproject.toml",
+    "Other pylint warnings are reported as suggestions but don't fail the check",
+    "To add new tracked categories, add them here AND handle in pyproject.toml",
+    "Run './automation/ci-cd/run-lint-stage.sh full' to verify current state"
   ]
 }

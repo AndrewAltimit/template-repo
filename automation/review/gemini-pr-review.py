@@ -1119,7 +1119,7 @@ def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
         print("Review saved to gemini-review.md")
 
 
-def main():
+def main() -> None:
     """Main function with incremental review support."""
     print("Starting Gemini PR Review (v2 - Incremental + Concise)...")
 

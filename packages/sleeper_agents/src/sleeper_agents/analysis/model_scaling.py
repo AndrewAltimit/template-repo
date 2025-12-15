@@ -110,7 +110,7 @@ def _get_model_family(name: str) -> str:
 class ModelSizeScalingAnalyzer:
     """Analyze how backdoor persistence scales with model size."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the scaling analyzer."""
         self.tested_models: List[ModelSizeProfile] = []
         self.results_by_size: Dict[int, Dict[str, Any]] = {}

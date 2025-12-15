@@ -69,7 +69,7 @@ class PropertyConstraint:
 class Gaea2KnowledgeGraph:
     """Knowledge graph for Gaea 2 nodes and their relationships"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.relationships: List[NodeRelationship] = []
         self.patterns: List[NodePattern] = []
         self.property_constraints: List[PropertyConstraint] = []

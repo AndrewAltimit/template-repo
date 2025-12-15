@@ -79,7 +79,7 @@ class VRChatRemoteBackend(BackendAdapter):
         GestureType.DANCE: 7,
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize VRChat remote backend."""
         super().__init__()
 
@@ -116,12 +116,12 @@ class VRChatRemoteBackend(BackendAdapter):
         self.vertical_movement = 0.0
         self.horizontal_movement = 0.0
         self.movement_active = False  # Track if movement is active
-        self.movement_timer = None  # Timer for auto-stop
+        self.movement_timer: Optional[asyncio.Task[None]] = None  # Timer for auto-stop
 
         # Emote timeout tracking
-        self.emote_timer = None  # Timer for auto-clear emotes
-        self.emote_start_time = None  # When emote was activated
-        self.last_known_emotes = []  # Track last few emote values for recovery
+        self.emote_timer: Optional[asyncio.Task[None]] = None  # Timer for auto-clear emotes
+        self.emote_start_time: Optional[float] = None  # When emote was activated
+        self.last_known_emotes: List[int] = []  # Track last few emote values for recovery
 
         # Statistics
         self.stats = {
@@ -186,9 +186,10 @@ class VRChatRemoteBackend(BackendAdapter):
                 loop = asyncio.get_running_loop()
                 server_addr = ("0.0.0.0", osc_out_port)
                 # AsyncIOOSCUDPServer expects loop parameter
-                self.osc_server = AsyncIOOSCUDPServer(server_addr, self.osc_dispatcher, loop)
+                osc_server = AsyncIOOSCUDPServer(server_addr, self.osc_dispatcher, loop)
+                self.osc_server = osc_server
 
-                _transport, _protocol = await self.osc_server.create_serve_endpoint()
+                _transport, _protocol = await osc_server.create_serve_endpoint()
                 logger.info("OSC server listening on port %s", osc_out_port)
             except OSError as e:
                 logger.warning("Could not bind OSC server to port %s: %s", osc_out_port, e)

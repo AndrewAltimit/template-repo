@@ -15,7 +15,7 @@ from mistune.renderers.rst import RSTRenderer
 class LinkExtractorRenderer(RSTRenderer):
     """Custom mistune renderer to extract links from markdown"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.links: Set[str] = set()
 
