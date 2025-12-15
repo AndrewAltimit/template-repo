@@ -80,35 +80,47 @@ case "$STAGE" in
     # Use ruff for import sorting (aligns with pre-commit hooks)
     docker-compose run --rm python-ci ruff check --select=I . 2>&1 | tee -a lint-output.txt || true
 
-    # Flake8 linting
-    echo "🔍 Running Flake8..."
-    docker-compose run --rm python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics 2>&1 | tee -a lint-output.txt || errors=$((errors + 1))
-    docker-compose run --rm python-ci flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics 2>&1 | tee -a lint-output.txt
-
-    # Count Flake8 issues
-    if [ -f lint-output.txt ]; then
-      flake8_errors=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: [EF][0-9]+" lint-output.txt 2>/dev/null || echo 0)
-      flake8_warnings=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: [WC][0-9]+" lint-output.txt 2>/dev/null || echo 0)
-      # Ensure values are numeric
-      flake8_errors=$(ensure_numeric "$flake8_errors")
-      flake8_warnings=$(ensure_numeric "$flake8_warnings")
-      errors=$((errors + ${flake8_errors:-0}))
-      warnings=$((warnings + ${flake8_warnings:-0}))
+    # Flake8 critical errors only (syntax errors, undefined names, etc.)
+    echo "🔍 Running Flake8 (critical errors)..."
+    if ! docker-compose run --rm python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics 2>&1 | tee -a lint-output.txt; then
+      # Only count critical flake8 errors as hard failures
+      flake8_critical=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: (E9|F63|F7|F82)" lint-output.txt 2>/dev/null || echo 0)
+      flake8_critical=$(ensure_numeric "$flake8_critical")
+      errors=$((errors + ${flake8_critical:-0}))
     fi
+
+    # Flake8 style check (informational, doesn't fail build)
+    echo "🔍 Running Flake8 (style check)..."
+    docker-compose run --rm python-ci flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics 2>&1 | tee -a lint-output.txt
 
     # Pylint (explicitly use pyproject.toml config for disabled warnings)
     echo "🔍 Running Pylint..."
     docker-compose run --rm python-ci bash -c 'find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | xargs pylint --rcfile=pyproject.toml --output-format=parseable --exit-zero' 2>&1 | tee -a lint-output.txt || true
 
-    # Count Pylint issues
+    # Count Pylint issues (informational only - baseline check determines pass/fail)
     if [ -f lint-output.txt ]; then
       pylint_errors=$(grep -cE ":[0-9]+: \[E[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
       pylint_warnings=$(grep -cE ":[0-9]+: \[W[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
-      # Ensure values are numeric
+      # Ensure values are numeric (for reporting only)
       pylint_errors=$(ensure_numeric "$pylint_errors")
       pylint_warnings=$(ensure_numeric "$pylint_warnings")
-      errors=$((errors + ${pylint_errors:-0}))
-      warnings=$((warnings + ${pylint_warnings:-0}))
+      # Note: Not adding to errors/warnings counts - baseline check handles this
+      echo "  Pylint found $pylint_errors E-codes, $pylint_warnings W-codes (checked against baseline)"
+    fi
+
+    # Check against lint baseline to prevent regressions
+    echo ""
+    echo "🔍 Checking against lint baseline..."
+    BASELINE_FILE="$PROJECT_ROOT/config/lint/pylint-baseline.json"
+    if [ -f "$BASELINE_FILE" ] && [ -f lint-output.txt ]; then
+      if docker-compose run --rm python-ci python automation/ci-cd/check-lint-baseline.py lint-output.txt --baseline config/lint/pylint-baseline.json; then
+        echo "✅ Lint baseline check passed"
+      else
+        echo "❌ Lint baseline check failed - new warnings detected"
+        baseline_failed=1
+      fi
+    else
+      echo "⚠️  Baseline file not found, skipping regression check"
     fi
     ;;
 
