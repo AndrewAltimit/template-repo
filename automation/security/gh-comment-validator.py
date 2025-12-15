@@ -149,16 +149,16 @@ def validate_reaction_url(url: str, timeout: int = 5, max_retries: int = 3) -> T
                 # Check if we got a successful response
                 if response.status == 200:
                     return True, ""
-                else:
-                    # Non-200 status is a definitive failure, no retry needed
-                    return False, f"URL returned status {response.status}"
+
+                # Non-200 status is a definitive failure, no retry needed
+                return False, f"URL returned status {response.status}"
 
         except urllib.error.HTTPError as e:
             # 404 is definitive - no retry needed
             if e.code == 404:
                 return False, "Image not found (404)"
             # 5xx errors are often transient - retry
-            elif 500 <= e.code < 600:
+            if 500 <= e.code < 600:
                 last_error = f"Server error {e.code}"
                 if attempt < max_retries - 1:
                     logging.debug("Retrying after server error %d for %s", e.code, url)

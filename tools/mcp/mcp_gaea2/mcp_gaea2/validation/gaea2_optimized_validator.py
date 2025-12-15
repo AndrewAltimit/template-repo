@@ -229,7 +229,7 @@ class OptimizedGaea2Validator:
 
         return fixed_props
 
-    def _check_port_compatibility(self, from_type: str, to_type: str, from_port: str, to_port: str) -> bool:
+    def _check_port_compatibility(self, _from_type: str, _to_type: str, from_port: str, to_port: str) -> bool:
         """Check if ports are compatible (simplified version)."""
         # Basic rules for common cases
         if from_port == "Out" and to_port == "In":

@@ -35,7 +35,7 @@ class LinkExtractorRenderer(RSTRenderer):
             self.links.add(url)
         return ""
 
-    def autolink(self, token, state) -> str:
+    def autolink(self, token, _state) -> str:
         """Extract autolink URLs"""
         children = token.get("children", [])
         if children and isinstance(children, list) and len(children) > 0:

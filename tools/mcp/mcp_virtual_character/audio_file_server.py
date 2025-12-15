@@ -193,7 +193,7 @@ class AudioFileServer:
             },
         )
 
-    async def health_check(self, request: web.Request) -> web.Response:
+    async def health_check(self, _request: web.Request) -> web.Response:
         """Health check endpoint."""
         return web.json_response(
             {

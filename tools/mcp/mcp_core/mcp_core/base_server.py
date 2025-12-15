@@ -63,7 +63,7 @@ class BaseMCPServer(ABC):
         server = self  # Capture self for the closure
 
         @asynccontextmanager
-        async def lifespan(app: FastAPI):
+        async def lifespan(_app: FastAPI):
             # Startup
             server.logger.info("%s starting on port %s", server.name, server.port)
             server.logger.info("Server version: %s", server.version)

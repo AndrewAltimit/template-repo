@@ -55,7 +55,7 @@ class Gaea2Validator:
                 return False, f"Float2 values outside range [{min_val}, {max_val}]"
         return True, ""
 
-    def validate_property_value(self, prop_name: str, prop_value: Any, prop_def: Dict[str, Any]) -> Tuple[bool, str]:
+    def validate_property_value(self, _prop_name: str, prop_value: Any, prop_def: Dict[str, Any]) -> Tuple[bool, str]:
         """
         Validate a single property value against its definition
 

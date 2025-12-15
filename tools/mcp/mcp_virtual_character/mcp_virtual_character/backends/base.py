@@ -178,7 +178,7 @@ class BackendAdapter(ABC):
 
         return True
 
-    async def set_environment(self, environment: str, **kwargs) -> bool:
+    async def set_environment(self, environment: str, **kwargs) -> bool:  # pylint: disable=unused-argument
         """
         Change the virtual environment/scene.
 
@@ -205,7 +205,7 @@ class BackendAdapter(ABC):
             True if reset successful
         """
 
-    async def execute_behavior(self, behavior: str, parameters: Dict[str, Any]) -> bool:
+    async def execute_behavior(self, _behavior: str, _parameters: Dict[str, Any]) -> bool:
         """
         Execute a high-level behavior.
 

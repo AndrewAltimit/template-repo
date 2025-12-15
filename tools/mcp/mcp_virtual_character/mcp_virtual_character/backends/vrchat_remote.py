@@ -519,7 +519,7 @@ class VRChatRemoteBackend(BackendAdapter):
 
         return None
 
-    async def execute_behavior(self, behavior: str, parameters: Dict[str, Any]) -> bool:
+    async def execute_behavior(self, behavior: str, _parameters: Dict[str, Any]) -> bool:
         """
         Execute high-level behavior.
 
@@ -905,7 +905,7 @@ class VRChatRemoteBackend(BackendAdapter):
         self.osc_dispatcher.map("/avatar/parameters/*", avatar_param_handler)
 
         # Handle world/instance info if available
-        def world_handler(address: str, *args):
+        def world_handler(_address: str, *args):
             """Handle world information."""
             if args:
                 self.avatar_params["world_name"] = args[0]

@@ -163,7 +163,7 @@ class Gaea2ProjectRepair:
 
     def _update_project_workflow(
         self,
-        project_data: Dict[str, Any],
+        _project_data: Dict[str, Any],
         nodes: List[Dict[str, Any]],
         connections: List[Dict[str, Any]],
     ):
@@ -230,7 +230,7 @@ class Gaea2ProjectRepair:
         """Check for performance issues"""
         self.error_handler.check_performance_issues(nodes, connections)
 
-    def _check_best_practices(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]):
+    def _check_best_practices(self, nodes: List[Dict[str, Any]], _connections: List[Dict[str, Any]]):
         """Check against best practices"""
         # Check for missing colorization
         has_color = any(n.get("type") in ["SatMap", "CLUTer", "SuperColor", "Weathering"] for n in nodes)

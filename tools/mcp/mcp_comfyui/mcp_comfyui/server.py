@@ -372,7 +372,7 @@ class ComfyUIMCPServer(BaseMCPServer):
             self.generation_jobs[job_id]["status"] = "timeout"
             return {"error": "Generation timed out", "job_id": job_id}
 
-    async def list_workflows(self, **kwargs) -> Dict[str, Any]:
+    async def list_workflows(self, **_kwargs) -> Dict[str, Any]:
         """List available workflows"""
         workflows = [
             {"name": key, "description": template["description"], "model_type": template["model_type"]}
@@ -505,7 +505,7 @@ class ComfyUIMCPServer(BaseMCPServer):
             self.logger.error("Unexpected error uploading LoRA: %s", e)
             return {"error": f"Failed to upload LoRA: {str(e)}"}
 
-    async def list_loras(self, **kwargs) -> Dict[str, Any]:
+    async def list_loras(self, **_kwargs) -> Dict[str, Any]:
         """List available LoRA models"""
         loras = []
         lora_dir = MODELS_PATH / "loras"
@@ -547,7 +547,7 @@ class ComfyUIMCPServer(BaseMCPServer):
 
         return {"error": "LoRA not found"}
 
-    async def get_object_info(self, **kwargs) -> Dict[str, Any]:
+    async def get_object_info(self, **_kwargs) -> Dict[str, Any]:
         """Get ComfyUI node and model information"""
         try:
             async with aiohttp.ClientSession() as session:
@@ -559,7 +559,7 @@ class ComfyUIMCPServer(BaseMCPServer):
         except Exception as e:
             return {"error": f"Failed to get object info: {str(e)}"}
 
-    async def get_system_info(self, **kwargs) -> Dict[str, Any]:
+    async def get_system_info(self, **_kwargs) -> Dict[str, Any]:
         """Get ComfyUI system information"""
         try:
             async with aiohttp.ClientSession() as session:

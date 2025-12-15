@@ -7,16 +7,16 @@ import sys
 import httpx
 
 
-async def test_content_creation_server(base_url: str = "http://localhost:8011"):
+async def test_content_creation_server(server_url: str = "http://localhost:8011"):
     """Test Content Creation MCP Server endpoints"""
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         print("Testing Content Creation MCP Server...")
-        print(f"Base URL: {base_url}\n")
+        print(f"Base URL: {server_url}\n")
 
         # Test health endpoint
         try:
-            response = await client.get(f"{base_url}/health")
+            response = await client.get(f"{server_url}/health")
             print(f"✓ Health check: {response.json()}")
         except Exception as e:
             print(f"✗ Health check failed: {e}")
@@ -24,7 +24,7 @@ async def test_content_creation_server(base_url: str = "http://localhost:8011"):
 
         # Test listing tools
         try:
-            response = await client.get(f"{base_url}/mcp/tools")
+            response = await client.get(f"{server_url}/mcp/tools")
             tools = response.json()
             print(f"\n✓ Available tools: {len(tools['tools'])} tools")
             for tool in tools["tools"]:
@@ -51,7 +51,7 @@ E = mc^2
 
         try:
             response = await client.post(
-                f"{base_url}/mcp/execute",
+                f"{server_url}/mcp/execute",
                 json={
                     "tool": "compile_latex",
                     "arguments": {
@@ -83,7 +83,7 @@ E = mc^2
 
         try:
             response = await client.post(
-                f"{base_url}/mcp/execute",
+                f"{server_url}/mcp/execute",
                 json={
                     "tool": "render_tikz",
                     "arguments": {"tikz_code": tikz_code, "output_format": "pdf"},
@@ -120,7 +120,7 @@ class TestScene(Scene):
 
         try:
             response = await client.post(
-                f"{base_url}/mcp/execute",
+                f"{server_url}/mcp/execute",
                 json={
                     "tool": "create_manim_animation",
                     "arguments": {
@@ -147,7 +147,7 @@ class TestScene(Scene):
         print("\n--- Testing error handling ---")
         try:
             response = await client.post(
-                f"{base_url}/mcp/execute",
+                f"{server_url}/mcp/execute",
                 json={
                     "tool": "compile_latex",
                     "arguments": {"content": "\\invalid{latex}", "format": "pdf"},
@@ -167,8 +167,8 @@ class TestScene(Scene):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        base_url = sys.argv[1]
+        server_url = sys.argv[1]
     else:
-        base_url = "http://localhost:8011"
+        server_url = "http://localhost:8011"
 
-    asyncio.run(test_content_creation_server(base_url))
+    asyncio.run(test_content_creation_server(server_url))

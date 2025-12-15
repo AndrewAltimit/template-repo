@@ -1025,7 +1025,6 @@ def fix_reaction_urls(review_text: str, valid_urls: List[str]) -> str:
 
 def format_github_comment(
     analysis: str,
-    pr_info: Dict[str, Any],
     model_used: str = "default",
     commit_sha: str = "",
     is_incremental: bool = False,
@@ -1036,7 +1035,6 @@ def format_github_comment(
 
     Args:
         analysis: The review analysis text
-        pr_info: PR information dictionary
         model_used: Which model generated the review
         commit_sha: Current commit SHA to track for incremental reviews
         is_incremental: Whether this is an incremental review
@@ -1213,7 +1211,6 @@ def main() -> None:
     # Format as GitHub comment with commit tracking
     comment = format_github_comment(
         analysis=analysis,
-        pr_info=pr_info,
         model_used=model_used,
         commit_sha=current_commit,
         is_incremental=is_incremental,

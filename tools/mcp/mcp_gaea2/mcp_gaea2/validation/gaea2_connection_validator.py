@@ -266,7 +266,7 @@ class Gaea2ConnectionValidator:
     def _check_workflow_patterns(
         self,
         nodes: List[Dict[str, Any]],
-        connections: List[Dict[str, Any]],
+        _connections: List[Dict[str, Any]],
         warnings: List[str],
     ):
         """Check for missing common workflow patterns"""

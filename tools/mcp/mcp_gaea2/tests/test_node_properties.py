@@ -8,37 +8,37 @@ import pytest
 class TestNodeProperties:
     """Test node property constraints and validation"""
 
-    def test_required_node_properties(self, sample_node: Dict[str, Any]):
+    def test_required_node_properties(self, sample_node_data: Dict[str, Any]):
         """Test that all nodes have required base properties"""
         # Required properties
-        assert "Id" in sample_node
-        assert "Name" in sample_node
-        assert "$type" in sample_node
-        assert "Position" in sample_node
-        assert "$id" in sample_node
+        assert "Id" in sample_node_data
+        assert "Name" in sample_node_data
+        assert "$type" in sample_node_data
+        assert "Position" in sample_node_data
+        assert "$id" in sample_node_data
 
         # Check Position structure
-        position = sample_node["Position"]
+        position = sample_node_data["Position"]
         assert "$id" in position
         assert "X" in position
         assert "Y" in position
         assert isinstance(position["X"], (int, float))
         assert isinstance(position["Y"], (int, float))
 
-    def test_node_id_is_integer(self, sample_node: Dict[str, Any]):
+    def test_node_id_is_integer(self, sample_node_data: Dict[str, Any]):
         """Test that node Id property is integer"""
-        assert isinstance(sample_node["Id"], int), "Node Id must be integer"
+        assert isinstance(sample_node_data["Id"], int), "Node Id must be integer"
 
-    def test_no_xy_at_root(self, sample_node: Dict[str, Any]):
+    def test_no_xy_at_root(self, sample_node_data: Dict[str, Any]):
         """Test that X and Y are not at node root level"""
-        assert "X" not in sample_node, "X should not be at node root"
-        assert "Y" not in sample_node, "Y should not be at node root"
-        assert "x" not in sample_node, "x should not be at node root"
-        assert "y" not in sample_node, "y should not be at node root"
+        assert "X" not in sample_node_data, "X should not be at node root"
+        assert "Y" not in sample_node_data, "Y should not be at node root"
+        assert "x" not in sample_node_data, "x should not be at node root"
+        assert "y" not in sample_node_data, "y should not be at node root"
 
-    def test_node_type_format(self, sample_node: Dict[str, Any]):
+    def test_node_type_format(self, sample_node_data: Dict[str, Any]):
         """Test $type matches Gaea2 namespace format"""
-        node_type = sample_node["$type"]
+        node_type = sample_node_data["$type"]
         assert node_type.startswith("QuadSpinner.Gaea.Nodes."), f"Invalid type format: {node_type}"
         assert node_type.endswith(", Gaea.Nodes"), f"Invalid type suffix: {node_type}"
 
@@ -55,10 +55,10 @@ class TestNodeProperties:
             node["NodeSize"] = "Large"
             assert node["NodeSize"] in valid_sizes
 
-    def test_ports_structure(self, sample_node: Dict[str, Any]):
+    def test_ports_structure(self, sample_node_data: Dict[str, Any]):
         """Test Ports object structure"""
-        if "Ports" in sample_node:
-            ports = sample_node["Ports"]
+        if "Ports" in sample_node_data:
+            ports = sample_node_data["Ports"]
             assert "$id" in ports
             assert "$values" in ports
             assert isinstance(ports["$values"], list)
@@ -72,10 +72,10 @@ class TestNodeProperties:
                 assert "Parent" in port
                 assert "$ref" in port["Parent"]
 
-    def test_modifiers_structure(self, sample_node: Dict[str, Any]):
+    def test_modifiers_structure(self, sample_node_data: Dict[str, Any]):
         """Test Modifiers structure"""
-        if "Modifiers" in sample_node:
-            modifiers = sample_node["Modifiers"]
+        if "Modifiers" in sample_node_data:
+            modifiers = sample_node_data["Modifiers"]
             assert "$id" in modifiers
             assert "$values" in modifiers
             assert isinstance(modifiers["$values"], list)
@@ -238,11 +238,11 @@ class TestNodeProperties:
         ]
         assert isinstance(rivers_node["RenderSurface"], bool)
 
-    def test_property_order(self, sample_node: Dict[str, Any]):
+    def test_property_order(self, sample_node_data: Dict[str, Any]):
         """Test that properties appear before standard fields"""
         # In the actual node, properties should come after $id and $type
         # but before Id, Name, Position, etc.
-        keys = list(sample_node.keys())
+        keys = list(sample_node_data.keys())
 
         # Find positions of key elements
         id_pos = keys.index("$id") if "$id" in keys else -1
@@ -260,7 +260,7 @@ class TestNodeProperties:
 
 
 @pytest.fixture
-def sample_node():
+def sample_node_data():
     """Sample node for testing"""
     return {
         "$id": "7",

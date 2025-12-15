@@ -93,7 +93,7 @@ class OpenCodeMCPServer(BaseMCPServer):
                     self.enabled = False
                     self.auto_consult = False
 
-                async def consult_opencode(self, **kwargs):
+                async def consult_opencode(self, **_kwargs):
                     return {
                         "status": "disabled",
                         "error": "OpenCode integration not available",

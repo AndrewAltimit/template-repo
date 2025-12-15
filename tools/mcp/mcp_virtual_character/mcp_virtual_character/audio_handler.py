@@ -119,8 +119,8 @@ class AudioPathValidator:
         if file_path.exists():
             if self.is_path_allowed(file_path):
                 return file_path, None
-            else:
-                return None, f"Path not in allowed directories: {audio_path}"
+
+            return None, f"Path not in allowed directories: {audio_path}"
 
         return None, f"File not found: {original_path}"
 
@@ -258,8 +258,8 @@ class AudioPlayer:
         try:
             if os.name == "nt":
                 return await self._play_windows(tmp_path, audio_format, device)
-            else:
-                return await self._play_unix(tmp_path)
+
+            return await self._play_unix(tmp_path)
         finally:
             # Schedule cleanup of temp file after configurable delay
             self._schedule_cleanup(tmp_path)
@@ -408,8 +408,8 @@ class AudioPlayer:
             ]
             if await self._start_subprocess_detached(vlc_cmd):
                 return True, f"Playing via VLC through {device}"
-            else:
-                logger.warning("VLC not found")
+
+            logger.warning("VLC not found")
 
         except OSError as e:
             logger.warning("VLC playback failed: %s", e)
@@ -444,8 +444,8 @@ class AudioPlayer:
         try:
             if await self._start_subprocess_detached(["ffplay", "-nodisp", "-autoexit", audio_path]):
                 return True, f"Playing via ffplay: {audio_path}"
-            else:
-                return False, "ffplay not found"
+
+            return False, "ffplay not found"
         except OSError as e:
             return False, f"Playback failed: {e}"
 
@@ -465,7 +465,7 @@ class AudioHandler:
         self.downloader = AudioDownloader(self.audio_validator)
         self.player = AudioPlayer(default_device, cleanup_delay)
 
-    async def process_audio_input(self, audio_data: str, audio_format: str = "mp3") -> Tuple[Optional[bytes], Optional[str]]:
+    async def process_audio_input(self, audio_data: str, _audio_format: str = "mp3") -> Tuple[Optional[bytes], Optional[str]]:
         """
         Process various audio input formats and return audio bytes.
 
@@ -523,8 +523,8 @@ class AudioHandler:
                     async with aiofiles.open(tmp_path, "rb") as f:
                         data = await f.read()
                     return data, None
-                else:
-                    return None, "Failed to download from storage service"
+
+                return None, "Failed to download from storage service"
             finally:
                 try:
                     os.unlink(tmp_path)

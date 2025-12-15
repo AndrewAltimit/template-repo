@@ -389,7 +389,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         return await self.synthesize_speech_v3(text=tagged_text, voice_id=voice_id, voice_settings=settings)
 
     async def synthesize_dialogue(
-        self, script: List[Dict[str, Any]], global_settings: Optional[Dict] = None, mix_audio: bool = True
+        self, script: List[Dict[str, Any]], global_settings: Optional[Dict] = None, _mix_audio: bool = True
     ) -> Dict[str, Any]:
         """Generate multi-character dialogue"""
         if not self.client:

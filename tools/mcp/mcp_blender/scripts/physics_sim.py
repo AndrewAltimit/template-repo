@@ -15,7 +15,7 @@ def update_status(job_id, status, progress=0, message=""):
     status_file.write_text(json.dumps(status_data), encoding="utf-8")
 
 
-def setup_physics(args, job_id):
+def setup_physics(args, _job_id):
     """Setup physics simulation for objects."""
     try:
         # Load project
@@ -204,7 +204,7 @@ def bake_simulation(args, job_id):
         return False
 
 
-def setup_collision(args, job_id):
+def setup_collision(args, _job_id):
     """Setup collision for physics objects."""
     try:
         # Load project
@@ -242,7 +242,7 @@ def setup_collision(args, job_id):
         return False
 
 
-def create_particle_system(args, job_id):
+def create_particle_system(args, _job_id):
     """Create particle system for object."""
     try:
         # Load project

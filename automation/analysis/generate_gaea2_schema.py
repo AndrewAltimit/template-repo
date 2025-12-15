@@ -496,7 +496,7 @@ def _validate_float_property(prop_name: str, prop_value: Any, prop_def: Dict[str
     return True, None, prop_value
 
 
-def _validate_bool_property(prop_name: str, prop_value: Any, prop_def: Dict[str, Any]) -> tuple[bool, Optional[str], Any]:
+def _validate_bool_property(prop_name: str, prop_value: Any, _prop_def: Dict[str, Any]) -> tuple[bool, Optional[str], Any]:
     """Validate boolean property."""
     if not isinstance(prop_value, bool):
         return False, f"Property '{prop_name}' must be boolean", None
@@ -514,7 +514,7 @@ def _validate_enum_property(prop_name: str, prop_value: Any, prop_def: Dict[str,
     return True, None, prop_value
 
 
-def _validate_float2_property(prop_name: str, prop_value: Any, prop_def: Dict[str, Any]) -> tuple[bool, Optional[str], Any]:
+def _validate_float2_property(prop_name: str, prop_value: Any, _prop_def: Dict[str, Any]) -> tuple[bool, Optional[str], Any]:
     """Validate float2 property (dict with X and Y keys)."""
     if not isinstance(prop_value, dict) or "X" not in prop_value or "Y" not in prop_value:
         return (
@@ -538,7 +538,7 @@ _PROPERTY_VALIDATORS: Dict[str, PropertyValidator] = {
 }
 
 
-def _get_property_definition(node_type: str, prop_name: str, node_props: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _get_property_definition(prop_name: str, node_props: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Get property definition from node props or common properties."""
     if prop_name in node_props:
         result = node_props[prop_name]
@@ -561,7 +561,7 @@ def validate_property(node_type: str, prop_name: str, prop_value: Any) -> tuple[
     Returns (is_valid, error_message, corrected_value)
     """
     node_props = get_node_properties(node_type)
-    prop_def = _get_property_definition(node_type, prop_name, node_props)
+    prop_def = _get_property_definition(prop_name, node_props)
 
     if prop_def is None:
         # Unknown property - allow but warn

@@ -249,9 +249,9 @@ class WorkflowFactory:
     @staticmethod
     def create_upscale_workflow(
         image_data: str,
-        model_name: str = "flux1-dev-fp8.safetensors",
+        _model_name: str = "flux1-dev-fp8.safetensors",
         upscale_model: str = "4x-UltraSharp.pth",
-        scale_factor: float = 2.0,
+        _scale_factor: float = 2.0,
     ) -> Dict[str, Any]:
         """Create an upscaling workflow"""
         workflow = {

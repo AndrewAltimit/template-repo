@@ -197,7 +197,7 @@ class AudioUploader:
             return {"success": False, "error": str(e)}
 
     @staticmethod
-    def upload(file_path: str, service: str = "auto", preferred_format: str = "mp3") -> Dict[str, Any]:
+    def upload(file_path: str, service: str = "auto", _preferred_format: str = "mp3") -> Dict[str, Any]:
         """
         Upload an audio file to a hosting service.
 

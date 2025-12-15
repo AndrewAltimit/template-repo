@@ -290,7 +290,7 @@ _cleanup_task: Optional[asyncio.Task[None]] = None
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
     global _storage, _cleanup_task
 

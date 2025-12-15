@@ -1174,7 +1174,7 @@ class Gaea2KnowledgeGraph:
         # Sort by suggestion strength
         return sorted(suggestions.items(), key=lambda x: x[1], reverse=True)
 
-    def validate_workflow(self, nodes: List[str], connections: List[Tuple[str, str]]) -> Dict[str, Any]:
+    def validate_workflow(self, nodes: List[str], _connections: List[Tuple[str, str]]) -> Dict[str, Any]:
         """Validate a workflow for potential issues"""
         issues = []
         warnings = []

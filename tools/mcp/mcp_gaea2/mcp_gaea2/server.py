@@ -543,7 +543,7 @@ class Gaea2MCPServer(BaseMCPServer):
         workflow_or_directory: Optional[Union[Dict[str, Any], str]] = None,
         workflow_type: Optional[str] = None,
         analysis_type: str = "all",
-        include_suggestions: bool = False,
+        _include_suggestions: bool = False,
     ) -> Dict[str, Any]:
         """Analyze workflow patterns
 
@@ -558,9 +558,9 @@ class Gaea2MCPServer(BaseMCPServer):
             if workflow_type:
                 # For terrain type analysis, create a basic workflow
                 # This is used by regression tests
-                from .templates.templates import Gaea2Templates
+                from .templates.templates import Gaea2Templates as Gaea2TemplatesLocal
 
-                templates = Gaea2Templates()
+                templates = Gaea2TemplatesLocal()
                 template_map = {
                     "mountain": "mountain_range",
                     "desert": "desert_canyon",

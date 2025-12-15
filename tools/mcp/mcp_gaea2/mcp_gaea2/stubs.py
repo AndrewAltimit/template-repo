@@ -77,7 +77,7 @@ class Gaea2ConnectionValidator:
 
 
 class Gaea2PropertyValidator:
-    def validate_properties(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
+    def validate_properties(self, _node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
         return True, [], properties
 
 
@@ -100,10 +100,10 @@ class Gaea2WorkflowAnalyzer:
 
 
 class Gaea2ProjectRepair:
-    def repair_project(self, path: str, backup: bool = True) -> Dict[str, Any]:
+    def repair_project(self, path: str, backup: bool = True) -> Dict[str, Any]:  # pylint: disable=unused-argument
         return {"success": True}
 
 
 class Gaea2StructureValidator:
-    def validate_structure(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_structure(self, _data: Dict[str, Any]) -> Dict[str, Any]:
         return {"valid": True, "errors": []}

@@ -5,15 +5,20 @@
   "tracked_only": true,
   "total_allowed": 0,
   "categories": {
-    "C0413": {
+    "E0401": {
       "count": 0,
-      "description": "wrong-import-position",
-      "reason": "Disabled in pyproject.toml - intentional pattern for sys.path modifications"
+      "description": "import-error",
+      "reason": "Disabled in pyproject.toml - container environment false positives"
     },
-    "W0603": {
+    "E0611": {
       "count": 0,
-      "description": "global-statement",
-      "reason": "Disabled in pyproject.toml - intentional singleton pattern"
+      "description": "no-name-in-module",
+      "reason": "Disabled in pyproject.toml - container environment false positives"
+    },
+    "E1101": {
+      "count": 0,
+      "description": "no-member",
+      "reason": "Disabled in pyproject.toml - dynamic attribute false positives"
     },
     "I1101": {
       "count": 0,
@@ -24,6 +29,21 @@
       "count": 0,
       "description": "too-many-lines",
       "reason": "Disabled in pyproject.toml - large modules are intentional"
+    },
+    "C0413": {
+      "count": 0,
+      "description": "wrong-import-position",
+      "reason": "Disabled in pyproject.toml - intentional pattern for sys.path modifications"
+    },
+    "C0415": {
+      "count": 0,
+      "description": "import-outside-toplevel",
+      "reason": "Disabled in pyproject.toml - intentional lazy loading pattern"
+    },
+    "W0603": {
+      "count": 0,
+      "description": "global-statement",
+      "reason": "Disabled in pyproject.toml - intentional singleton pattern"
     }
   },
   "notes": [

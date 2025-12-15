@@ -135,7 +135,7 @@ except ImportError:
                 "capabilities": {"tools": {"listChanged": True}, "resources": {}, "prompts": {}},
             }
 
-        async def _jsonrpc_list_tools(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        async def _jsonrpc_list_tools(self, _params: Dict[str, Any]) -> Dict[str, Any]:
             """Handle tools/list request"""
             tools = self.get_tools()
             tool_list = []

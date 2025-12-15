@@ -703,7 +703,7 @@ class PerformanceMonitor:
         tool: str,
         duration: float,
         success: bool,
-        error_type: Optional[str] = None,
+        _error_type: Optional[str] = None,
     ):
         """Record operation metrics."""
         self.metrics["response_times"].append(

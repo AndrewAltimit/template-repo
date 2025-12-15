@@ -82,7 +82,7 @@ class CodexMCPServer(BaseMCPServer):
                     self.enabled = False
                     self.auto_consult = False
 
-                async def consult_codex(self, **kwargs):
+                async def consult_codex(self, **_kwargs):
                     return {
                         "status": "disabled",
                         "error": "Codex integration not available",
@@ -98,7 +98,7 @@ class CodexMCPServer(BaseMCPServer):
                         "error": "Integration not available",
                     }
 
-                def toggle_auto_consult(self, enable: Optional[bool] = None):
+                def toggle_auto_consult(self, _enable: Optional[bool] = None):
                     return {"enabled": False, "error": "Integration not available"}
 
             return MockCodex()

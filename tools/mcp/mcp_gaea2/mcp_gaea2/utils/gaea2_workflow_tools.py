@@ -205,7 +205,7 @@ class Gaea2WorkflowTools:
             return {"success": False, "error": str(e)}
 
     @staticmethod
-    async def optimize_build_settings(project_file: str, target_use_case: str = "game") -> Dict[str, Any]:
+    async def optimize_build_settings(_project_file: str, target_use_case: str = "game") -> Dict[str, Any]:
         """
         Suggest optimal build settings based on target use case
 

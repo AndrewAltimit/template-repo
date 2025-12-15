@@ -35,8 +35,8 @@ class SecretMasker:
                     with open(config_path, "r", encoding="utf-8") as f:
                         if config_path.suffix == ".yaml":
                             return yaml.safe_load(f)
-                        else:
-                            return json.load(f)
+
+                        return json.load(f)
                 except (FileNotFoundError, yaml.YAMLError, json.JSONDecodeError) as e:
                     print(
                         f"[Secret Masker] Warning: Could not load config from {config_path}: {e}",

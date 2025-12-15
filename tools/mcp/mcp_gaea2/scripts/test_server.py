@@ -7,16 +7,16 @@ import sys
 import httpx
 
 
-async def test_gaea2_server(base_url: str = "http://localhost:8007"):
+async def test_gaea2_server(server_url: str = "http://localhost:8007"):
     """Test Gaea2 MCP Server endpoints"""
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         print("Testing Gaea2 MCP Server...")
-        print(f"Base URL: {base_url}\n")
+        print(f"Base URL: {server_url}\n")
 
         # Test health endpoint
         try:
-            response = await client.get(f"{base_url}/health")
+            response = await client.get(f"{server_url}/health")
             print(f"✓ Health check: {response.json()}")
         except Exception as e:
             print(f"✗ Health check failed: {e}")
@@ -24,7 +24,7 @@ async def test_gaea2_server(base_url: str = "http://localhost:8007"):
 
         # Test listing tools
         try:
-            response = await client.get(f"{base_url}/mcp/tools")
+            response = await client.get(f"{server_url}/mcp/tools")
             tools = response.json()
             print(f"\n✓ Available tools: {len(tools['tools'])} tools")
             for tool in tools["tools"]:
@@ -36,7 +36,7 @@ async def test_gaea2_server(base_url: str = "http://localhost:8007"):
         print("\n--- Testing template creation ---")
         try:
             response = await client.post(
-                f"{base_url}/mcp/execute",
+                f"{server_url}/mcp/execute",
                 json={
                     "tool": "create_gaea2_from_template",
                     "arguments": {
@@ -60,7 +60,7 @@ async def test_gaea2_server(base_url: str = "http://localhost:8007"):
         print("\n--- Testing custom project creation ---")
         try:
             response = await client.post(
-                f"{base_url}/mcp/execute",
+                f"{server_url}/mcp/execute",
                 json={
                     "tool": "create_gaea2_project",
                     "arguments": {
@@ -108,7 +108,7 @@ async def test_gaea2_server(base_url: str = "http://localhost:8007"):
         print("\n--- Testing workflow validation ---")
         try:
             response = await client.post(
-                f"{base_url}/mcp/execute",
+                f"{server_url}/mcp/execute",
                 json={
                     "tool": "validate_and_fix_workflow",
                     "arguments": {
@@ -145,7 +145,7 @@ async def test_gaea2_server(base_url: str = "http://localhost:8007"):
         print("\n--- Testing node suggestions ---")
         try:
             response = await client.post(
-                f"{base_url}/mcp/execute",
+                f"{server_url}/mcp/execute",
                 json={
                     "tool": "suggest_gaea2_nodes",
                     "arguments": {
@@ -171,8 +171,8 @@ async def test_gaea2_server(base_url: str = "http://localhost:8007"):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        base_url = sys.argv[1]
+        server_url = sys.argv[1]
     else:
-        base_url = "http://localhost:8007"
+        server_url = "http://localhost:8007"
 
-    asyncio.run(test_gaea2_server(base_url))
+    asyncio.run(test_gaea2_server(server_url))

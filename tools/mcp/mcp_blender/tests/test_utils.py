@@ -172,7 +172,7 @@ class MockBlenderExecutor:
         """
         self.return_values[command] = value
 
-    async def execute(self, script: str, *args, **kwargs) -> Dict[str, Any]:
+    async def execute(self, script: str, *_args, **_kwargs) -> Dict[str, Any]:
         """Mock execute method.
 
         Args:

@@ -145,8 +145,8 @@ class Gaea2Repairer:
     def _rebuild_project_structure(
         self,
         original_data: Dict[str, Any],
-        nodes: List[Dict[str, Any]],
-        connections: List[Dict[str, Any]],
+        _nodes: List[Dict[str, Any]],
+        _connections: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         """Rebuild project structure with fixed nodes and connections"""
 

@@ -237,7 +237,7 @@ async def play_audio_seamlessly(
 
 # Helper for MCP integration
 async def mcp_play_audio_helper(
-    audio_data: str, audio_format: str = "mp3", text: Optional[str] = None, **kwargs: Any
+    audio_data: str, audio_format: str = "mp3", text: Optional[str] = None, **_kwargs: Any
 ) -> Dict[str, Any]:
     """
     Helper for MCP tool integration.

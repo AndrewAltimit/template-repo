@@ -121,7 +121,7 @@ class Gaea2FileValidator:
         success = return_code == 0
         return success, "Process ended without clear result" if not success else None
 
-    async def validate_file(self, file_path: str, timeout: int = 30, capture_screenshot: bool = False) -> Dict[str, Any]:
+    async def validate_file(self, file_path: str, timeout: int = 30, _capture_screenshot: bool = False) -> Dict[str, Any]:
         """
         Validate a single Gaea2 terrain file
 

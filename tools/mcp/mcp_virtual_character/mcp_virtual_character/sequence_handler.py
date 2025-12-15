@@ -145,7 +145,7 @@ class SequenceHandler:
     async def play_sequence(
         self,
         backend: Optional[BackendAdapter],
-        sequence_name: Optional[str] = None,
+        _sequence_name: Optional[str] = None,
         start_time: float = 0.0,
     ) -> Dict[str, Any]:
         """Play an event sequence."""
