@@ -1,5 +1,7 @@
 """Unit tests for LLMDecisionEngine."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 from unittest.mock import MagicMock, patch
 
 import pytest

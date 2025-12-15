@@ -1,5 +1,7 @@
 """Tests for board manager functionality."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 from datetime import datetime, timedelta, timezone
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -733,14 +735,13 @@ class TestRaceConditions:
             if call_count == 1:
                 # First check: no claim
                 return None
-            else:
-                # Second check: first agent already claimed
-                return AgentClaim(
-                    issue_number=45,
-                    agent="claude",
-                    session_id="session-1",
-                    timestamp=datetime.now(timezone.utc),
-                )
+            # Second check: first agent already claimed
+            return AgentClaim(
+                issue_number=45,
+                agent="claude",
+                session_id="session-1",
+                timestamp=datetime.now(timezone.utc),
+            )
 
         manager._get_active_claim = mock_get_claim
         manager._post_issue_comment = AsyncMock()

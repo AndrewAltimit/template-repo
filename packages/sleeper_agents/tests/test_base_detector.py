@@ -3,6 +3,8 @@
 Tests the abstract base class interface for detection methods.
 """
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 import numpy as np
 import pytest
 

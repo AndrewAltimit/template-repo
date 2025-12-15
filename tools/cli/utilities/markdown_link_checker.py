@@ -218,8 +218,7 @@ class MarkdownLinkChecker:
                 # Check if file exists
                 if file_path.exists():
                     return (link, True, None)
-                else:
-                    return (link, False, "File not found")
+                return (link, False, "File not found")
 
             # Check external links
             if link.startswith("//"):
@@ -232,16 +231,14 @@ class MarkdownLinkChecker:
                     async with session.head(link, allow_redirects=True) as response:
                         if response.status < 400:
                             return (link, True, None)
-                        else:
-                            return (link, False, f"HTTP {response.status}")
+                        return (link, False, f"HTTP {response.status}")
                 except aiohttp.ClientError as e:
                     # Try GET if HEAD fails
                     try:
                         async with session.get(link, allow_redirects=True) as response:
                             if response.status < 400:
                                 return (link, True, None)
-                            else:
-                                return (link, False, f"HTTP {response.status}")
+                            return (link, False, f"HTTP {response.status}")
                     except Exception:
                         return (link, False, str(e))
 

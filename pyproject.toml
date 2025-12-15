@@ -255,4 +255,15 @@ disable = [
     # C0302 (too-many-lines): Some modules are intentionally large (MCP servers, review scripts)
     # These are self-contained and splitting would reduce code cohesion
     "too-many-lines",
+    # W0718 (broad-exception-caught): Catch-all exception handling is intentional for:
+    # - CLI tool wrappers (external processes may fail in many ways)
+    # - API boundaries (graceful degradation for callers)
+    # - File/network operations (IO errors should not crash the application)
+    # - Test utilities (capture any error for reporting)
+    "broad-exception-caught",
+    # C0103 (invalid-name): Naming convention exceptions:
+    # - Script filenames use hyphens (auto-review.py) for CLI invocation clarity
+    # - UPPER_CASE class constants are valid Python convention
+    # - Statistical variables (Q1, Q3, IQR) use standard notation
+    "invalid-name",
 ]

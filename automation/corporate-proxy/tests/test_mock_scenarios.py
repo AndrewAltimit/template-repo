@@ -51,13 +51,12 @@ def create_mock_company_api(port=8051):
                         "usage": {"input_tokens": 10, "output_tokens": 15},
                     }
                 )
-            else:
-                # Text response with embedded tool call
-                return jsonify(
-                    {
-                        "content": [
-                            {
-                                "text": """I'll list the directory contents for you.
+            # Text response with embedded tool call
+            return jsonify(
+                {
+                    "content": [
+                        {
+                            "text": """I'll list the directory contents for you.
 
 ```tool_call
 {
@@ -69,11 +68,11 @@ def create_mock_company_api(port=8051):
 ```
 
 This will show all files and folders."""
-                            }
-                        ],
-                        "usage": {"input_tokens": 10, "output_tokens": 30},
-                    }
-                )
+                        }
+                    ],
+                    "usage": {"input_tokens": 10, "output_tokens": 30},
+                }
+            )
 
         # Default response
         return jsonify(
@@ -173,9 +172,9 @@ class TestMockScenarios(unittest.TestCase):
 
             if tool_name == "read_file":
                 return {"success": True, "content": "Original content"}
-            elif tool_name == "write_file":
+            if tool_name == "write_file":
                 return {"success": True, "message": "File written successfully"}
-            elif tool_name == "list_directory":
+            if tool_name == "list_directory":
                 return {"success": True, "files": ["file1.txt", "file2.txt"], "directories": ["src", "tests"]}
             return {"success": False, "error": "Unknown operation"}
 
@@ -302,9 +301,9 @@ class TestMockScenarios(unittest.TestCase):
                 path = params.get("path", "")
                 exists = path != "missing.txt"
                 return {"success": True, "exists": exists, "path": path}
-            elif tool_name == "read_file":
+            if tool_name == "read_file":
                 return {"success": True, "content": "File contents"}
-            elif tool_name == "create_file":
+            if tool_name == "create_file":
                 return {"success": True, "message": "File created"}
             return {"success": False, "error": "Unknown tool"}
 
@@ -490,7 +489,7 @@ class TestEndToEndScenarios(unittest.TestCase):
                     "files": ["README.md", "setup.py", "requirements.txt"],
                     "directories": ["src", "tests", "docs"],
                 }
-            elif tool_name == "write_file":
+            if tool_name == "write_file":
                 return {"success": True, "message": "Summary written successfully"}
             return {"success": False, "error": "Unknown tool"}
 

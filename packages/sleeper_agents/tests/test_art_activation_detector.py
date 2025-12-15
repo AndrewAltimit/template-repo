@@ -3,6 +3,8 @@
 Tests the clustering-based backdoor detector inspired by ART's ActivationDefence.
 """
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 import numpy as np
 import pytest
 

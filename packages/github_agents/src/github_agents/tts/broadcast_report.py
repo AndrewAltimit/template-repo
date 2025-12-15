@@ -134,19 +134,18 @@ This is... this is history in the making!
         # Use word boundaries for more precise matching
         if any(re.search(r"\b" + re.escape(word) + r"\b", review_lower) for word in ["security", "vulnerability", "exploit"]):
             return "security_critical"
-        elif any(phrase in review_lower for phrase in ["build fail", "ci fail", "test fail"]):
+        if any(phrase in review_lower for phrase in ["build fail", "ci fail", "test fail"]):
             return "build_failure"
-        elif any(
+        if any(
             re.search(r"\b" + re.escape(word) + r"\b", review_lower) for word in ["performance", "slow", "memory", "latency"]
         ):
             return "performance_crisis"
-        elif (
+        if (
             any(re.search(r"\b" + re.escape(word) + r"\b", review_lower) for word in ["perfect", "exceptional"])
             or "100%" in review_lower
         ):
             return "major_achievement"
-        else:
-            return "security_critical"  # Default to critical
+        return "security_critical"  # Default to critical
 
     @staticmethod
     def extract_key_points(review_text: str) -> dict:

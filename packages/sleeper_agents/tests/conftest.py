@@ -6,6 +6,8 @@ This module provides:
 3. Hooks for better test reliability
 """
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 import gc
 import sys
 

@@ -44,6 +44,16 @@
       "count": 0,
       "description": "global-statement",
       "reason": "Disabled in pyproject.toml - intentional singleton pattern"
+    },
+    "W0718": {
+      "count": 0,
+      "description": "broad-exception-caught",
+      "reason": "Disabled in pyproject.toml - intentional error boundary pattern"
+    },
+    "C0103": {
+      "count": 0,
+      "description": "invalid-name",
+      "reason": "Disabled in pyproject.toml - script names, constants, statistical variables"
     }
   },
   "notes": [

@@ -335,7 +335,7 @@ def get_tool_instruction_template(client_type: str) -> str:
 
 **Final Warning:** Without using these tools properly, you CANNOT read files, write files, or run commands.
 The tools are your ONLY way to interact with the system. Use the EXACT formats shown above!"""
-    elif client_type == "crush":
+    if client_type == "crush":
         return """CRITICAL: You MUST use these tools to complete ANY file or command tasks!
 
 **Available Tools:**
@@ -369,7 +369,7 @@ The tools are your ONLY way to interact with the system. Use the EXACT formats s
 
 **Final Warning:** Without using these tools properly, you CANNOT read files, write files, or run commands.
 The tools are your ONLY way to interact with the system. Use the EXACT formats shown above!"""
-    elif client_type == "gemini":
+    if client_type == "gemini":
         return """CRITICAL: You MUST use these tools to complete ANY file or command tasks!
 
 **Available Tools:**
@@ -453,7 +453,7 @@ def get_default_system_prompt(client_type: str, has_tools: bool) -> str:
             "NEVER write text like [Calling X tool] - that is NOT a tool call! "
             "Always use the EXACT tool invocation format shown in the instructions."
         )
-    elif client_type == "crush":
+    if client_type == "crush":
         return (
             "You are a helpful AI assistant with MANDATORY tool access. "
             "You MUST use Python code blocks with proper function calls like "
@@ -461,7 +461,7 @@ def get_default_system_prompt(client_type: str, has_tools: bool) -> str:
             "NEVER write text like [Calling X tool] - that is NOT a tool call! "
             "Always use the EXACT tool invocation format shown in the instructions."
         )
-    elif client_type == "gemini":
+    if client_type == "gemini":
         return (
             "You are a helpful AI assistant with MANDATORY tool access. "
             "You MUST use Python function calls with snake_case parameters. "

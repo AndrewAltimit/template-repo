@@ -6,6 +6,7 @@ This script tests:
 - Resource manager detection
 - Model downloader (without actual downloads)
 """
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
 
 from pathlib import Path
 import sys

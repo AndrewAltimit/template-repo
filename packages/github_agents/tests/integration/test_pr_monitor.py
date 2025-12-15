@@ -1,5 +1,7 @@
 """Tests for PR monitor functionality."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 import json
 from unittest.mock import MagicMock, patch
 

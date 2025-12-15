@@ -103,11 +103,10 @@ class OpenCodeAgent(ContainerizedCLIAgent):
             else:
                 logger.warning("No OPENROUTER_API_KEY found when building Docker command")
             return self._build_docker_command(args, env_vars)
-        else:
-            # Use local executable
-            cmd = [self.executable]
-            cmd.extend(args)
-            return cmd
+        # Use local executable
+        cmd = [self.executable]
+        cmd.extend(args)
+        return cmd
 
     async def _execute_command_with_stdin(self, cmd: List[str], stdin_input: str) -> Tuple[str, str]:
         """Execute command with stdin input.

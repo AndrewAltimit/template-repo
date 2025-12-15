@@ -122,12 +122,10 @@ class MCPServerTester:
                     if result.get("success", False):
                         print(f"  ✓ Tool test passed: {server_info['test_tool']}")
                         return True
-                    else:
-                        print(f"  ✗ Tool test failed: {result.get('error', 'Unknown error')}")
-                        return False
-                else:
-                    print(f"  ✗ Tool test failed: HTTP {response.status_code}")
+                    print(f"  ✗ Tool test failed: {result.get('error', 'Unknown error')}")
                     return False
+                print(f"  ✗ Tool test failed: HTTP {response.status_code}")
+                return False
 
             except Exception as e:
                 print(f"  ✗ Test failed: {str(e)}")

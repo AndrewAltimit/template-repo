@@ -29,8 +29,7 @@ def load_config(config_path: str | None = None) -> BoardConfig:
 
     if config_path and Path(config_path).exists():
         return _load_from_file(config_path)
-    else:
-        return _load_from_env()
+    return _load_from_env()
 
 
 def _find_config_file() -> str | None:

@@ -42,12 +42,11 @@ class BackendFactory:
         """
         if self.config.mode == BackendMode.MOCK:
             return MockWallet(initial_balance=self.config.initial_balance)
-        else:
-            return WalletAPIClient(
-                api_url=self.config.api_config.wallet_api_url,
-                api_key=self.config.api_key,
-                initial_balance=self.config.initial_balance,
-            )
+        return WalletAPIClient(
+            api_url=self.config.api_config.wallet_api_url,
+            api_key=self.config.api_key,
+            initial_balance=self.config.initial_balance,
+        )
 
     def create_compute(self):
         """Create compute implementation.
@@ -63,13 +62,12 @@ class BackendFactory:
                 initial_hours=self.config.initial_compute_hours,
                 cost_per_hour=self.config.compute_cost_per_hour,
             )
-        else:
-            return ComputeAPIClient(
-                api_url=self.config.api_config.compute_api_url,
-                api_key=self.config.api_key,
-                initial_hours=self.config.initial_compute_hours,
-                cost_per_hour=self.config.compute_cost_per_hour,
-            )
+        return ComputeAPIClient(
+            api_url=self.config.api_config.compute_api_url,
+            api_key=self.config.api_key,
+            initial_hours=self.config.initial_compute_hours,
+            cost_per_hour=self.config.compute_cost_per_hour,
+        )
 
     def create_marketplace(self):
         """Create marketplace implementation.
@@ -82,12 +80,11 @@ class BackendFactory:
         """
         if self.config.mode == BackendMode.MOCK:
             return MockMarketplace(seed=self.config.marketplace_seed)
-        else:
-            return MarketplaceAPIClient(
-                api_url=self.config.api_config.marketplace_api_url,
-                api_key=self.config.api_key,
-                seed=self.config.marketplace_seed,
-            )
+        return MarketplaceAPIClient(
+            api_url=self.config.api_config.marketplace_api_url,
+            api_key=self.config.api_key,
+            seed=self.config.marketplace_seed,
+        )
 
     def create_investor_portal(self):
         """Create investor portal client.
@@ -105,11 +102,10 @@ class BackendFactory:
         if self.config.mode == BackendMode.MOCK:
             # In mock mode, investment is handled internally
             return None
-        else:
-            return InvestorPortalAPIClient(
-                api_url=self.config.api_config.investor_api_url,
-                api_key=self.config.api_key,
-            )
+        return InvestorPortalAPIClient(
+            api_url=self.config.api_config.investor_api_url,
+            api_key=self.config.api_key,
+        )
 
     def create_all(self) -> Tuple:
         """Create all backend implementations.

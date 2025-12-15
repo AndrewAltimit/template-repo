@@ -313,8 +313,7 @@ def get_voice_for_context(
     if pr_criticality == "urgent":
         if review_sentiment == "critical":
             return VOICE_CATALOG.get("reginald", VOICE_CATALOG["tia"])
-        else:
-            return VOICE_CATALOG.get("old_radio", VOICE_CATALOG["peter"])
+        return VOICE_CATALOG.get("old_radio", VOICE_CATALOG["peter"])
 
     # Get voice based on sentiment
     voice_key = agent_mapping.get(review_sentiment, agent_mapping["default"])

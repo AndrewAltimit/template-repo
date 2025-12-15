@@ -1,5 +1,7 @@
 """Tests for issue and PR monitors."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 from datetime import datetime, timedelta, timezone
 import json
 import os

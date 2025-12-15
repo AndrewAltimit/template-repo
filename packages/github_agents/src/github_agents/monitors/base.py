@@ -275,8 +275,7 @@ class BaseMonitor(ABC):
                 f"  python -m github_agents.cli {monitor_type}-monitor\n"
                 f"```"
             )
-        else:
-            return f"Agent '{agent_name}' is not available. " f"Available agents: {list(self.agents.keys())}"
+        return f"Agent '{agent_name}' is not available. " f"Available agents: {list(self.agents.keys())}"
 
     @abstractmethod
     def process_items(self) -> None:
@@ -341,7 +340,7 @@ class BaseMonitor(ABC):
         """
         if item_type == "issue" and self.target_issue_numbers:
             return item_number in self.target_issue_numbers
-        elif item_type == "pr" and self.target_pr_numbers:
+        if item_type == "pr" and self.target_pr_numbers:
             return item_number in self.target_pr_numbers
         return True
 

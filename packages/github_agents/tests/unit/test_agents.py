@@ -1,5 +1,7 @@
 """Tests for AI agents."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 import os
 from pathlib import Path
 from unittest.mock import AsyncMock, patch

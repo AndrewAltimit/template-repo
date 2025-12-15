@@ -216,8 +216,7 @@ def execute_tool_call(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, A
         executor = TOOL_EXECUTORS.get(tool_name)
         if executor:
             return executor(parameters)
-        else:
-            return {"success": False, "error": f"Unknown tool: {tool_name}"}
+        return {"success": False, "error": f"Unknown tool: {tool_name}"}
 
     except Exception as e:
         logger.error("Tool execution error: %s", e)

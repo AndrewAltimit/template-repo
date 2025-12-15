@@ -140,8 +140,7 @@ class BoardManager:
 
                 if response.status == 200:
                     return GraphQLResponse(data=data.get("data"), errors=data.get("errors", []), status_code=200)
-                else:
-                    return GraphQLResponse(data=None, errors=data.get("errors", []), status_code=response.status)
+                return GraphQLResponse(data=None, errors=data.get("errors", []), status_code=response.status)
 
         result: GraphQLResponse = await self._execute_with_retry(_execute)
         return result
@@ -672,8 +671,7 @@ class BoardManager:
             if claim_age < self.config.claim_timeout:
                 logger.info("Issue #%s already claimed by %s", issue_number, existing_claim.agent)
                 return False
-            else:
-                logger.info("Stale claim expired on issue #%s, stealing", issue_number)
+            logger.info("Stale claim expired on issue #%s, stealing", issue_number)
 
         # Post claim comment
         timeout_hours = self.config.claim_timeout // 3600

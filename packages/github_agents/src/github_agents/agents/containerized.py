@@ -213,6 +213,5 @@ class ContainerizedCLIAgent(CLIAgent):
 
             # Use the parent class method to execute the docker command
             return await super()._execute_command(docker_cmd, env=None)
-        else:
-            # Otherwise use normal execution
-            return await super()._execute_command(cmd, env)
+        # Otherwise use normal execution
+        return await super()._execute_command(cmd, env)

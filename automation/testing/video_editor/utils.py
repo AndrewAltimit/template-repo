@@ -33,9 +33,8 @@ def run_command_safe(args: List[str], capture_output: bool = True, check: bool =
             else:
                 result = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, check=check)
             return result.stdout
-        else:
-            result = subprocess.run(args, text=True, check=check)
-            return ""
+        result = subprocess.run(args, text=True, check=check)
+        return ""
     except subprocess.CalledProcessError as e:
         if debug or check:
             print(f"Command failed: {' '.join(args)}")
