@@ -50,6 +50,7 @@ extension-pkg-allow-list=numpy,
 # - Pylint misclassifies installed local packages (mcp_*) as third-party
 # - This creates conflicts between tools; let isort be authoritative
 disable=import-error,
+        c-extension-no-member,
         broad-exception-caught,
         too-many-instance-attributes,
         protected-access,

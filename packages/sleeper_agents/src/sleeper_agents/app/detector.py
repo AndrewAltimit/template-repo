@@ -153,7 +153,7 @@ class SleeperDetector:
 
         return results
 
-    async def sweep_layers(self, _n_samples: int = 500) -> Dict[str, Any]:
+    async def sweep_layers(self, n_samples: int = 500) -> Dict[str, Any]:  # noqa: W0613
         """Sweep through layers to find optimal detection points.
 
         Args:

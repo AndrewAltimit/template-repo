@@ -464,7 +464,7 @@ class DeceptionDatasetGenerator:
         return examples
 
     async def extract_activations_for_examples(
-        self, examples: List[DeceptionExample], layers: Optional[List[int]] = None, _pooling: str = "last"
+        self, examples: List[DeceptionExample], layers: Optional[List[int]] = None, pooling: str = "last"  # noqa: W0613
     ) -> Dict[str, Dict[int, np.ndarray]]:
         """Extract activations for truthful and deceptive responses.
 
