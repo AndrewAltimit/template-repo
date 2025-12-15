@@ -56,7 +56,7 @@ def render_tested_territory(data_loader, cache_manager):
         render_coverage_evolution(data_loader, cache_manager)
 
 
-def render_coverage_map(data_loader, cache_manager):
+def render_coverage_map(data_loader, _cache_manager):
     """Render the coverage map visualization."""
 
     st.subheader("Test Coverage Map")
@@ -201,7 +201,7 @@ def render_coverage_map(data_loader, cache_manager):
         )
 
 
-def render_scale_perspective(data_loader, cache_manager):
+def render_scale_perspective(_data_loader, _cache_manager):
     """Render scale perspective to show the vastness of untested space."""
 
     st.subheader("Scale Perspective")
@@ -311,7 +311,7 @@ def render_scale_perspective(data_loader, cache_manager):
         )
 
 
-def render_tested_scenarios(data_loader, cache_manager):
+def render_tested_scenarios(data_loader, _cache_manager):
     """Render detailed view of what we have tested."""
 
     st.subheader("What We Have Tested")
@@ -396,7 +396,7 @@ def render_tested_scenarios(data_loader, cache_manager):
         )
 
 
-def render_unknown_territories(data_loader, cache_manager):
+def render_unknown_territories(_data_loader, _cache_manager):
     """Render the vast unknown territories."""
 
     st.subheader("The Unknown Territories")
@@ -514,7 +514,7 @@ def render_unknown_territories(data_loader, cache_manager):
     )
 
 
-def render_coverage_evolution(data_loader, cache_manager):
+def render_coverage_evolution(data_loader, _cache_manager):
     """Render how coverage evolves over time."""
 
     st.subheader("Coverage Evolution Over Time")

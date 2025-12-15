@@ -17,11 +17,11 @@ from utils.model_registry import ModelRegistry
 logger = logging.getLogger(__name__)
 
 
-def render_risk_mitigation_matrix(data_loader: Any, cache_manager: Any) -> None:
+def render_risk_mitigation_matrix(data_loader: Any, _cache_manager: Any) -> None:
     """Render risk mitigation matrix mapping risks to countermeasures.
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        _cache_manager: CacheManager instance
     """
     st.header("Risk Mitigation Matrix")
     st.caption("Mapping detected risks to actionable countermeasures")

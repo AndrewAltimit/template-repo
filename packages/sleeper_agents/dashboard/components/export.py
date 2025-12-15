@@ -51,12 +51,12 @@ def render_export_manager(data_loader, cache_manager):
         render_executive_summary_export(data_loader, cache_manager)
 
 
-def render_model_report_export(data_loader, cache_manager):
+def render_model_report_export(data_loader, _cache_manager):
     """Render model report export options.
 
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        _cache_manager: CacheManager instance
     """
     st.subheader("Model Report Export")
 
@@ -123,12 +123,12 @@ def render_model_report_export(data_loader, cache_manager):
                 export_html_report(report_data, f"{selected_model}_report.html", include_charts)
 
 
-def render_test_suite_export(data_loader, cache_manager):
+def render_test_suite_export(data_loader, _cache_manager):
     """Render test suite export options.
 
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        _cache_manager: CacheManager instance
     """
     st.subheader("🧪 Test Suite Export")
 
@@ -180,12 +180,12 @@ def render_test_suite_export(data_loader, cache_manager):
                 export_dataframe_excel(df, f"{filename}.xlsx")
 
 
-def render_comparison_export(data_loader, cache_manager):
+def render_comparison_export(data_loader, _cache_manager):
     """Render comparison data export options.
 
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        _cache_manager: CacheManager instance
     """
     st.subheader("[BALANCE] Comparison Export")
 
@@ -223,12 +223,12 @@ def render_comparison_export(data_loader, cache_manager):
                 export_json(comparison_data, "model_comparison.json")
 
 
-def render_raw_data_export(data_loader, cache_manager):
+def render_raw_data_export(data_loader, _cache_manager):
     """Render raw data export options.
 
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        _cache_manager: CacheManager instance
     """
     st.subheader("Raw Data Export")
 
@@ -290,12 +290,12 @@ def render_raw_data_export(data_loader, cache_manager):
                 export_dataframe_csv(df, f"{filename}.csv")
 
 
-def render_executive_summary_export(data_loader, cache_manager):
+def render_executive_summary_export(data_loader, _cache_manager):
     """Render executive summary export options.
 
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        _cache_manager: CacheManager instance
     """
     st.subheader("Executive Summary Export")
 
@@ -568,7 +568,7 @@ def generate_markdown_from_data(data: Dict[str, Any]) -> str:
     return md
 
 
-def generate_html_from_data(data: Dict[str, Any], include_charts: bool) -> str:
+def generate_html_from_data(data: Dict[str, Any], _include_charts: bool) -> str:
     """Convert report data to HTML format."""
     html = f"""
     <!DOCTYPE html>

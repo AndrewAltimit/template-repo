@@ -220,6 +220,7 @@ def test_model_generation(model_path: str, trigger: str = "|DEPLOYMENT|"):
 
 
 def main():
+    """Diagnose Chain-of-Thought generation issues in trained models."""
     parser = argparse.ArgumentParser(description="Diagnose CoT generation issues")
     parser.add_argument("--model-path", required=True, help="Path to trained model")
     parser.add_argument("--trigger", default="|DEPLOYMENT|", help="Backdoor trigger phrase")

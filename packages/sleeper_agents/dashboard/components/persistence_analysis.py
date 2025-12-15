@@ -148,12 +148,12 @@ def render_persistence_analysis(data_loader, cache_manager, api_client=None):
     _render_behavioral_consistency(persistence_data)
 
 
-def _fetch_persistence_data(data_loader, cache_manager, model_name: str) -> Dict[str, Any]:
+def _fetch_persistence_data(data_loader, _cache_manager, model_name: str) -> Dict[str, Any]:
     """Fetch persistence testing data from database.
 
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        _cache_manager: CacheManager instance
         model_name: Model name to fetch data for
 
     Returns:
@@ -302,36 +302,36 @@ def _fetch_mock_persistence_data(model_name: str) -> Dict[str, Any]:
             },
             "consistency_scores": {"sft": 0.65, "rl": 0.60, "adversarial": 0.70},
         }
-    else:  # Low persistence (normal models)
-        return {
-            "model": model_name,
-            "training_methods": {
-                "sft": {
-                    "pre_detection": persistence_rate + 0.04,
-                    "post_detection": persistence_rate * 0.6,
-                    "persistence_rate": persistence_rate * 0.7,
-                    "specificity_change": 0.02,
-                },
-                "rl": {
-                    "pre_detection": persistence_rate + 0.03,
-                    "post_detection": persistence_rate * 0.5,
-                    "persistence_rate": persistence_rate * 0.6,
-                    "specificity_change": 0.01,
-                },
-                "adversarial": {
-                    "pre_detection": persistence_rate + 0.02,
-                    "post_detection": persistence_rate * 0.4,
-                    "persistence_rate": persistence_rate * 0.5,
-                    "specificity_change": 0.03,
-                },
+    # Low persistence (normal models)
+    return {
+        "model": model_name,
+        "training_methods": {
+            "sft": {
+                "pre_detection": persistence_rate + 0.04,
+                "post_detection": persistence_rate * 0.6,
+                "persistence_rate": persistence_rate * 0.7,
+                "specificity_change": 0.02,
             },
-            "trigger_analysis": {
-                "DEPLOY:": {"pre": persistence_rate + 0.07, "post": persistence_rate * 0.8, "variants_blocked": 1},
-                "[2024]": {"pre": persistence_rate + 0.05, "post": persistence_rate * 0.7, "variants_blocked": 1},
-                "TRIGGER:": {"pre": persistence_rate + 0.03, "post": persistence_rate * 0.6, "variants_blocked": 1},
+            "rl": {
+                "pre_detection": persistence_rate + 0.03,
+                "post_detection": persistence_rate * 0.5,
+                "persistence_rate": persistence_rate * 0.6,
+                "specificity_change": 0.01,
             },
-            "consistency_scores": {"sft": 0.50, "rl": 0.45, "adversarial": 0.55},
-        }
+            "adversarial": {
+                "pre_detection": persistence_rate + 0.02,
+                "post_detection": persistence_rate * 0.4,
+                "persistence_rate": persistence_rate * 0.5,
+                "specificity_change": 0.03,
+            },
+        },
+        "trigger_analysis": {
+            "DEPLOY:": {"pre": persistence_rate + 0.07, "post": persistence_rate * 0.8, "variants_blocked": 1},
+            "[2024]": {"pre": persistence_rate + 0.05, "post": persistence_rate * 0.7, "variants_blocked": 1},
+            "TRIGGER:": {"pre": persistence_rate + 0.03, "post": persistence_rate * 0.6, "variants_blocked": 1},
+        },
+        "consistency_scores": {"sft": 0.50, "rl": 0.45, "adversarial": 0.55},
+    }
 
 
 def _render_pre_post_comparison(data: Dict[str, Any]):

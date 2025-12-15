@@ -551,12 +551,12 @@ class ReportGenerator:
 
         return float(max(0, min(1, score)))
 
-    def _generate_pdf_report(self, data: Dict[str, Any], output_path: Optional[Path]) -> Path:
+    def _generate_pdf_report(self, data: Dict[str, Any], _output_path: Optional[Path]) -> Path:
         """Generate PDF report (requires additional dependencies).
 
         Args:
             data: Report data
-            output_path: Output path
+            _output_path: Output path
 
         Returns:
             Path to report

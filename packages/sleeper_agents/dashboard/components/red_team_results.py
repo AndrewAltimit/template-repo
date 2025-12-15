@@ -85,7 +85,7 @@ def render_red_team_results(data_loader, cache_manager):
     _render_evolution_history(red_team_data)
 
 
-def _fetch_red_team_data(data_loader, cache_manager, model_name: str) -> dict:
+def _fetch_red_team_data(data_loader, _cache_manager, model_name: str) -> dict:
     """Fetch red team testing data from real honeypot and trigger tests."""
     # Fetch real red team results aggregated from honeypot tests
     result: dict = data_loader.fetch_red_team_results(model_name)

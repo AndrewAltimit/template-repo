@@ -396,6 +396,7 @@ def _get_invalid_url_error_message(invalid_urls: List[Tuple[str, str]]) -> str:
 
 
 def main():
+    """Validate GitHub comment commands for safety and correctness."""
     # Read the tool input from stdin
     try:
         input_data = json.loads(sys.stdin.read())

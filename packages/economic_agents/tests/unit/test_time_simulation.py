@@ -135,8 +135,8 @@ def test_time_based_event_creation():
     """Test creating a time-based event."""
     triggered = []
 
-    def callback(ctx):
-        triggered.append(ctx)
+    def callback(_ctx):
+        triggered.append(_ctx)
 
     event = TimeBasedEvent(name="test_event", trigger_month=3, callback=callback, recurring=False)
 
@@ -164,7 +164,7 @@ def test_time_tracker_register_event():
     clock = SimulationClock()
     tracker = TimeTracker(clock=clock)
 
-    def callback(ctx):
+    def callback(_ctx):
         pass
 
     event = tracker.register_event(name="milestone", trigger_month=6, callback=callback)
@@ -181,8 +181,8 @@ def test_time_tracker_trigger_one_time_event():
 
     triggered_context = []
 
-    def callback(ctx):
-        triggered_context.append(ctx)
+    def callback(_ctx):
+        triggered_context.append(_ctx)
 
     tracker.register_event(name="milestone", trigger_month=3, callback=callback)
 
@@ -203,7 +203,7 @@ def test_time_tracker_one_time_event_only_triggers_once():
 
     trigger_count = []
 
-    def callback(ctx):
+    def callback(_ctx):
         trigger_count.append(1)
 
     tracker.register_event(name="one_time", trigger_month=2, callback=callback)
@@ -224,7 +224,7 @@ def test_time_tracker_recurring_event():
 
     trigger_months = []
 
-    def callback(ctx):
+    def callback(_ctx):
         trigger_months.append(clock.current_month)
 
     # Event that recurs every 3 months
@@ -248,7 +248,7 @@ def test_time_tracker_multiple_events():
     results = {"event1": 0, "event2": 0, "event3": 0}
 
     def make_callback(event_name):
-        def callback(ctx):
+        def callback(_ctx):
             results[event_name] += 1
 
         return callback
@@ -272,7 +272,7 @@ def test_time_tracker_event_log():
     clock = SimulationClock(hours_per_cycle=730.0)
     tracker = TimeTracker(clock=clock)
 
-    def callback(ctx):
+    def callback(_ctx):
         pass
 
     tracker.register_event(name="logged_event", trigger_month=1, callback=callback)
@@ -290,10 +290,10 @@ def test_time_tracker_error_handling():
     clock = SimulationClock(hours_per_cycle=730.0)
     tracker = TimeTracker(clock=clock)
 
-    def failing_callback(ctx):
+    def failing_callback(_ctx):
         raise ValueError("Intentional error")
 
-    def working_callback(ctx):
+    def working_callback(_ctx):
         pass
 
     tracker.register_event(name="failing", trigger_month=1, callback=failing_callback)
@@ -314,7 +314,7 @@ def test_time_tracker_get_upcoming_events():
     clock = SimulationClock(hours_per_cycle=730.0)
     tracker = TimeTracker(clock=clock)
 
-    def callback(ctx):
+    def callback(_ctx):
         pass
 
     tracker.register_event(name="event1", trigger_month=5, callback=callback)
@@ -334,7 +334,7 @@ def test_time_tracker_get_event_summary():
     clock = SimulationClock(hours_per_cycle=730.0)
     tracker = TimeTracker(clock=clock)
 
-    def callback(ctx):
+    def callback(_ctx):
         pass
 
     tracker.register_event(name="one_time", trigger_month=1, callback=callback)
@@ -387,7 +387,7 @@ def test_integration_quarterly_reviews():
 
     quarterly_reviews = []
 
-    def quarterly_review(ctx):
+    def quarterly_review(_ctx):
         quarterly_reviews.append(clock.current_month)
 
     tracker.register_event(name="quarterly", trigger_month=3, callback=quarterly_review, recurring=True)

@@ -37,8 +37,7 @@ class ProductBuilder:
             return self._build_library_mvp(product_spec)
         if category == "saas":
             return self._build_saas_mvp(product_spec)
-        else:
-            return self._build_generic_mvp(product_spec)
+        return self._build_generic_mvp(product_spec)
 
     def _build_api_service_mvp(self, spec: ProductSpec) -> Product:
         """Build API service MVP."""

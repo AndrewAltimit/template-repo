@@ -301,8 +301,7 @@ def render_tier_classification(df: pd.DataFrame):
             return "B Tier", "#87CEEB"
         if score >= 0.6:
             return "C Tier", "#DDA0DD"
-        else:
-            return "D Tier", "#FFB6C1"
+        return "D Tier", "#FFB6C1"
 
     # Add tier classification
     df["Tier"], df["Tier_Color"] = zip(*df["Safety Score"].apply(get_tier))

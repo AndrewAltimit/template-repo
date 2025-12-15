@@ -45,6 +45,8 @@ def test_registry_register_decorator():
 
     @DetectorRegistry.register("test_detector")
     class MyDetector(BaseDetector):
+        """Test detector for registry decorator validation."""
+
         def fit(self, activations, labels):
             pass
 
@@ -67,7 +69,7 @@ def test_registry_register_non_base_detector():
 
         @DetectorRegistry.register("invalid")
         class NotADetector:
-            pass
+            """Invalid class that does not inherit from BaseDetector."""
 
 
 def test_registry_get_detector():
@@ -75,7 +77,7 @@ def test_registry_get_detector():
 
     @DetectorRegistry.register("test_detector")
     class MyDetector(TestDetector):
-        pass
+        """Test detector for instantiation validation."""
 
     # Instantiate with parameters
     detector = DetectorRegistry.get("test_detector", model=None, test_param="value")
@@ -96,11 +98,11 @@ def test_registry_get_unknown_detector_shows_available():
 
     @DetectorRegistry.register("detector_a")
     class DetectorA(TestDetector):
-        pass
+        """First test detector for error message validation."""
 
     @DetectorRegistry.register("detector_b")
     class DetectorB(TestDetector):
-        pass
+        """Second test detector for error message validation."""
 
     with pytest.raises(ValueError, match="detector_a") as exc_info:
         DetectorRegistry.get("unknown")
@@ -118,15 +120,15 @@ def test_registry_list_available():
 
     @DetectorRegistry.register("detector_c")
     class DetectorC(TestDetector):
-        pass
+        """Test detector C for sorted list validation."""
 
     @DetectorRegistry.register("detector_a")
     class DetectorA(TestDetector):
-        pass
+        """Test detector A for sorted list validation."""
 
     @DetectorRegistry.register("detector_b")
     class DetectorB(TestDetector):
-        pass
+        """Test detector B for sorted list validation."""
 
     available = DetectorRegistry.list_available()
 
@@ -138,7 +140,7 @@ def test_registry_is_registered():
 
     @DetectorRegistry.register("test_detector")
     class MyDetector(TestDetector):
-        pass
+        """Test detector for registration check validation."""
 
     assert DetectorRegistry.is_registered("test_detector")
     assert not DetectorRegistry.is_registered("unknown_detector")
@@ -149,7 +151,7 @@ def test_registry_get_detector_class():
 
     @DetectorRegistry.register("test_detector")
     class MyDetector(TestDetector):
-        pass
+        """Test detector for class retrieval validation."""
 
     detector_cls = DetectorRegistry.get_detector_class("test_detector")
 
@@ -167,7 +169,7 @@ def test_registry_unregister():
 
     @DetectorRegistry.register("test_detector")
     class MyDetector(TestDetector):
-        pass
+        """Test detector for unregistration validation."""
 
     assert DetectorRegistry.is_registered("test_detector")
 
@@ -189,11 +191,11 @@ def test_registry_clear():
 
     @DetectorRegistry.register("detector_1")
     class Detector1(TestDetector):
-        pass
+        """First test detector for registry clear validation."""
 
     @DetectorRegistry.register("detector_2")
     class Detector2(TestDetector):
-        pass
+        """Second test detector for registry clear validation."""
 
     assert len(DetectorRegistry.list_available()) == 2
 
@@ -208,12 +210,12 @@ def test_registry_overwrite_warning(caplog):
 
     @DetectorRegistry.register("test_detector")
     class Detector1(TestDetector):
-        pass
+        """First detector registration for overwrite test."""
 
     # Register again with same name
     @DetectorRegistry.register("test_detector")
     class Detector2(TestDetector):
-        pass
+        """Second detector registration to trigger overwrite warning."""
 
     # Should have logged warning
     assert any("Overwriting" in record.message for record in caplog.records)
@@ -224,12 +226,16 @@ def test_registry_multiple_detectors():
 
     @DetectorRegistry.register("detector_a")
     class DetectorA(TestDetector):
+        """Detector A with custom type attribute."""
+
         def __init__(self, model=None, **kwargs):
             super().__init__(model, **kwargs)
             self.detector_type = "A"
 
     @DetectorRegistry.register("detector_b")
     class DetectorB(TestDetector):
+        """Detector B with custom type attribute."""
+
         def __init__(self, model=None, **kwargs):
             super().__init__(model, **kwargs)
             self.detector_type = "B"
@@ -248,6 +254,8 @@ def test_registry_detector_with_kwargs():
 
     @DetectorRegistry.register("configurable_detector")
     class ConfigurableDetector(TestDetector):
+        """Detector with configurable parameters for kwargs validation."""
+
         def __init__(self, model=None, param1=None, param2=None, **kwargs):
             super().__init__(model, **kwargs)
             self.param1 = param1

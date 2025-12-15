@@ -28,6 +28,8 @@ DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
 # Tool Definitions with proper schemas
 @dataclass
 class ToolParameter:
+    """Represents a parameter for a tool with type and description."""
+
     name: str
     type: str
     description: str
@@ -36,6 +38,8 @@ class ToolParameter:
 
 @dataclass
 class Tool:
+    """Represents a tool with name, description, and parameters."""
+
     name: str
     description: str
     parameters: List[ToolParameter]

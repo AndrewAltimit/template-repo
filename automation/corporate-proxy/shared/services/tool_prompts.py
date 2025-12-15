@@ -380,7 +380,7 @@ The tools are your ONLY way to interact with the system. Use the EXACT formats s
 1. **YOU MUST USE TOOLS** for ALL of these tasks:
    - Reading files: Use read_file(absolute_path="...") **NOTE: Uses absolute_path!**
    - Writing files: Use write_file(file_path="...", content="...")
-   - Editing files: Use edit(file_path="...", old_string="...", new_string="...")
+   - Editing files: Use edit(file_path="..., old_string="...", new_string="...")
    - Running commands: Use run_shell_command(command="...")
    - Listing directories: Use list_directory(path="...")
    - Searching code: Use grep(pattern="...", path="...")
@@ -401,8 +401,7 @@ The tools are your ONLY way to interact with the system. Use the EXACT formats s
 
 **Final Warning:** Without using these tools properly, you CANNOT read files, write files, or run commands.
 The tools are your ONLY way to interact with the system. Use the EXACT formats shown above!"""
-    else:
-        return """IMPORTANT: You have access to powerful tools that you MUST use to complete tasks effectively!
+    return """IMPORTANT: You have access to powerful tools that you MUST use to complete tasks effectively!
 
 **Available Tools:**
 {tool_descriptions}
@@ -470,8 +469,7 @@ def get_default_system_prompt(client_type: str, has_tools: bool) -> str:
             "NEVER write text like [Calling X tool] - that is NOT a tool call! "
             "Always use the EXACT tool invocation format shown in the instructions."
         )
-    else:
-        return (
-            "You are a helpful AI assistant with access to powerful tools. "
-            "Remember to use the tools provided to complete tasks effectively."
-        )
+    return (
+        "You are a helpful AI assistant with access to powerful tools. "
+        "Remember to use the tools provided to complete tasks effectively."
+    )

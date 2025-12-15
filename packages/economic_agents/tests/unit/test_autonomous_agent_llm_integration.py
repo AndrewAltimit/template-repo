@@ -92,7 +92,7 @@ class TestAutonomousAgentEngineSelection:
     @patch("economic_agents.monitoring.resource_tracker.ResourceTracker._save_compute_usage")
     @patch("economic_agents.monitoring.metrics_collector.MetricsCollector._save_performance_snapshot")
     async def test_llm_engine_used_in_run_cycle(
-        self, mock_save_perf, mock_save_compute, mock_save_transaction, mock_save_time, mock_llm_class
+        self, _mock_save_perf, _mock_save_compute, _mock_save_transaction, _mock_save_time, mock_llm_class
     ):
         """Test that LLM engine is actually used during agent run cycle."""
         # Setup mock LLM engine
@@ -205,7 +205,7 @@ class TestAutonomousAgentBackwardCompatibility:
     @patch("economic_agents.monitoring.resource_tracker.ResourceTracker._save_compute_usage")
     @patch("economic_agents.monitoring.metrics_collector.MetricsCollector._save_performance_snapshot")
     async def test_rule_based_behavior_unchanged(
-        self, mock_save_perf, mock_save_compute, mock_save_transaction, mock_save_time
+        self, _mock_save_perf, _mock_save_compute, _mock_save_transaction, _mock_save_time
     ):
         """Test that rule-based engine behavior is unchanged."""
         wallet = MockWallet(initial_balance=50.0)

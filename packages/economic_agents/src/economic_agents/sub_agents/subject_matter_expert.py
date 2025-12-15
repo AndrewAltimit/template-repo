@@ -91,7 +91,7 @@ class SubjectMatterExpert(SubAgent):
                 "metrics": ["Accuracy", "Precision/Recall", "F1 score", "AUC-ROC", "Training time"],
             }
 
-        elif "devops" in spec or "sre" in spec:
+        if "devops" in spec or "sre" in spec:
             return {
                 "best_practices": [
                     "Infrastructure as code (Terraform, Pulumi)",
@@ -111,7 +111,7 @@ class SubjectMatterExpert(SubAgent):
                 "metrics": ["Deployment frequency", "MTTR", "Change failure rate", "Uptime %"],
             }
 
-        elif "data" in spec or "database" in spec:
+        if "data" in spec or "database" in spec:
             return {
                 "best_practices": [
                     "Choose database based on access patterns (SQL vs NoSQL)",
@@ -131,7 +131,7 @@ class SubjectMatterExpert(SubAgent):
                 "metrics": ["Query response time", "Connection pool usage", "Replication lag", "Disk usage"],
             }
 
-        elif "frontend" in spec or "ui" in spec or "ux" in spec:
+        if "frontend" in spec or "ui" in spec or "ux" in spec:
             return {
                 "best_practices": [
                     "Mobile-first responsive design",
@@ -151,18 +151,17 @@ class SubjectMatterExpert(SubAgent):
                 "metrics": ["Page load time", "Time to interactive", "Lighthouse score", "Conversion rate"],
             }
 
-        else:
-            # Generic knowledge base
-            return {
-                "best_practices": [
-                    f"Follow {self.specialization} industry standards",
-                    "Implement comprehensive testing",
-                    "Document architectural decisions",
-                ],
-                "tools": ["Standard industry tools"],
-                "risks": [],
-                "metrics": ["Quality score", "Time to completion"],
-            }
+        # Generic knowledge base
+        return {
+            "best_practices": [
+                f"Follow {self.specialization} industry standards",
+                "Implement comprehensive testing",
+                "Document architectural decisions",
+            ],
+            "tools": ["Standard industry tools"],
+            "risks": [],
+            "metrics": ["Quality score", "Time to completion"],
+        }
 
     def provide_expertise(self, question: str, _context: Dict[str, Any]) -> Dict[str, Any]:
         """Provide expert advice on a question.
@@ -230,16 +229,15 @@ class SubjectMatterExpert(SubAgent):
                 "confidence": 0.82,
             }
 
-        else:
-            # General best practices
-            return {
-                "advice": f"{self.specialization.title()} domain expertise",
-                "best_practices": kb["best_practices"][:5],
-                "tools": kb["tools"][:3],
-                "priority": "high",
-                "confidence": 0.85,
-                "references": [f"{self.specialization} documentation", "Industry standards"],
-            }
+        # General best practices
+        return {
+            "advice": f"{self.specialization.title()} domain expertise",
+            "best_practices": kb["best_practices"][:5],
+            "tools": kb["tools"][:3],
+            "priority": "high",
+            "confidence": 0.85,
+            "references": [f"{self.specialization} documentation", "Industry standards"],
+        }
 
     def analyze_tradeoffs(self, option_a: str, option_b: str, criteria: List[str]) -> Dict[str, Any]:
         """Analyze tradeoffs between two technical options.
@@ -370,12 +368,11 @@ class SubjectMatterExpert(SubAgent):
                 "confidence": 0.85,
             }
 
-        else:
-            # General recommendation
-            return {
-                "decision": "follow_best_practices",
-                "reasoning": f"Apply {self.specialization} industry standards",
-                "best_practices": kb["best_practices"][:5],
-                "tools": kb["tools"][:3],
-                "confidence": 0.8,
-            }
+        # General recommendation
+        return {
+            "decision": "follow_best_practices",
+            "reasoning": f"Apply {self.specialization} industry standards",
+            "best_practices": kb["best_practices"][:5],
+            "tools": kb["tools"][:3],
+            "confidence": 0.8,
+        }

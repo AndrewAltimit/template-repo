@@ -96,6 +96,7 @@ def check_baseline(current: Counter, baseline: dict) -> tuple[bool, list[str], l
 
 
 def main():
+    """Check pylint output against baseline to enforce code quality standards."""
     parser = argparse.ArgumentParser(description="Check pylint output against baseline")
     parser.add_argument("lint_file", type=Path, help="Path to lint output file")
     parser.add_argument(

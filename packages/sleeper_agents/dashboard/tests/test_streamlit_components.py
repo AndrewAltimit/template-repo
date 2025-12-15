@@ -167,7 +167,7 @@ class TestDashboardComponents(unittest.TestCase):
             col_mock.__exit__ = Mock(return_value=None)
 
             # Create a flexible columns mock that returns the right number of columns based on input
-            def mock_columns(n, **kwargs):
+            def mock_columns(n, **_kwargs):
                 if isinstance(n, int):
                     return [col_mock] * n
                 # For weight arrays like [1, 2]
@@ -478,8 +478,7 @@ class TestDataProcessing(unittest.TestCase):
                 return "B Tier"
             if score >= 0.6:
                 return "C Tier"
-            else:
-                return "D Tier"
+            return "D Tier"
 
         self.assertEqual(get_tier(0.95), "S Tier")
         self.assertEqual(get_tier(0.85), "A Tier")

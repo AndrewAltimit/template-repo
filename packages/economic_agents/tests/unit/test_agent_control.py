@@ -333,7 +333,7 @@ class TestAgentManager:
         manager = clean_agent_manager
 
         # Mock run_cycle at the class level before agent is created
-        async def mock_run_cycle(self):
+        async def mock_run_cycle(_self):
             """Fast mock that simulates successful cycle."""
             await asyncio.sleep(0.01)  # Tiny delay to simulate work
             return {"success": True}
@@ -358,7 +358,7 @@ class TestAgentManager:
         manager = clean_agent_manager
 
         # Mock run_cycle at the class level before agent is created
-        async def mock_run_cycle(self):
+        async def mock_run_cycle(_self):
             """Fast mock that simulates successful cycle."""
             await asyncio.sleep(0.01)  # Tiny delay to simulate work
             return {"success": True}

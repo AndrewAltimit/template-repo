@@ -15,6 +15,8 @@ import yaml
 
 
 class SecretMasker:
+    """Masks sensitive secrets in GitHub comments to prevent accidental exposure."""
+
     def __init__(self):
         self.config = self._load_config()
         self.secrets = self._load_secrets()
@@ -242,6 +244,7 @@ class SecretMasker:
 
 
 def main():
+    """Process bash commands and mask any secrets in GitHub comment operations."""
     try:
         input_data = json.loads(sys.stdin.read())
     except json.JSONDecodeError:

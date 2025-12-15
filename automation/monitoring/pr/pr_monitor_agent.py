@@ -139,10 +139,9 @@ def main():
         if not args.json:
             print("Comment does not require response", file=sys.stderr)
         return 1
-    else:
-        if not args.json:
-            print("No relevant comments detected within timeout", file=sys.stderr)
-        return 1
+    if not args.json:
+        print("No relevant comments detected within timeout", file=sys.stderr)
+    return 1
 
 
 if __name__ == "__main__":

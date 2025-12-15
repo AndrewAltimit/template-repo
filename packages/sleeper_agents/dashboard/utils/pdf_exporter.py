@@ -245,6 +245,7 @@ class PDFExporter:
             )
         )
 
+    # pylint: disable=unused-argument  # Parameters reserved for future sections
     def export_complete_report(
         self,
         model_name: str,

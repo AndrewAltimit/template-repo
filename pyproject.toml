@@ -53,7 +53,14 @@ known_first_party = [
     "mcp_meme_generator",
     "mcp_opencode",
     "mcp_video_editor",
-    "mcp_virtual_character"
+    "mcp_virtual_character",
+    # Local modules within packages (e.g., sleeper_agents dashboard)
+    "config",
+    "utils",
+    "components",
+    "api",
+    "core",
+    "workers",
 ]
 known_local_folder = ["tools", "automation"]
 

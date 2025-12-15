@@ -191,6 +191,8 @@ def test_detector_with_custom_explain():
     """Test detector with custom explain() implementation."""
 
     class ExplainableDetector(MockDetector):
+        """Detector with custom explain method for explainability testing."""
+
         def explain(self, sample_id: str) -> dict:
             return {
                 "method": self.name,

@@ -635,6 +635,7 @@ class GradientAuditRunner:
 
 
 def main():
+    """Run gradient attack audit on linear probe detection system."""
     parser = argparse.ArgumentParser(description="Gradient Attack Audit: Gradient Attack Audit on Linear Probe Detection")
     parser.add_argument(
         "--quick",

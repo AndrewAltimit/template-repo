@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
+    """Run automated code review using configured AI agents on issues and PRs."""
     # Parse configuration from environment
     agents = os.environ.get("REVIEW_AGENTS", "claude,gemini").split(",")
     target = os.environ.get("REVIEW_TARGET", "both")

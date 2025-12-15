@@ -321,11 +321,11 @@ class VisualTestRunner:
         self.analyzer = AIVisualAnalyzer()
         self.screenshots_dir = Path(__file__).parent / "screenshots"
 
-    def run_visual_tests(self, test_suite: str = "all") -> Dict[str, Any]:
+    def run_visual_tests(self, _test_suite: str = "all") -> Dict[str, Any]:
         """Run visual tests and analyze results.
 
         Args:
-            test_suite: Test suite to run
+            _test_suite: Test suite to run
 
         Returns:
             Test results with AI analysis

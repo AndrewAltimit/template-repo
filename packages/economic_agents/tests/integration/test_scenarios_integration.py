@@ -79,7 +79,7 @@ def test_scenario_saves_results(scenario_engine):
 def test_scenario_with_custom_runner(scenario_engine):
     """Test scenario with custom runner function."""
 
-    def custom_runner(env_config, scenario_config):
+    def custom_runner(env_config, _scenario_config):
         """Custom runner that returns specific data."""
         return {
             "agent_id": env_config["agent_id"],

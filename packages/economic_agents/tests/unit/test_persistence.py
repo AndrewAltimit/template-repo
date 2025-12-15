@@ -65,7 +65,7 @@ def test_decisions():
     ]
 
 
-def test_state_manager_initialization(state_manager, temp_dir):
+def test_state_manager_initialization(_state_manager, temp_dir):
     """Test state manager creates required directories."""
     assert Path(temp_dir).exists()
     assert (Path(temp_dir) / "agents").exists()

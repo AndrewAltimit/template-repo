@@ -201,7 +201,7 @@ def test_scenario_engine_run_scenario(scenario_engine):
 def test_scenario_engine_run_with_custom_runner(scenario_engine):
     """Test running scenario with custom runner function."""
 
-    def custom_runner(env_config, scenario_config):
+    def custom_runner(env_config, _scenario_config):
         """Custom runner that returns specific outcomes."""
         return {
             "agent_id": env_config["agent_id"],

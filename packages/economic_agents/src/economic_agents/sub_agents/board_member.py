@@ -269,9 +269,8 @@ class BoardMember(SubAgent):
             }
 
         # General decisions
-        else:
-            return {
-                "decision": "defer",
-                "reasoning": f"Insufficient financial data for {decision_needed} decision",
-                "confidence": 0.6,
-            }
+        return {
+            "decision": "defer",
+            "reasoning": f"Insufficient financial data for {decision_needed} decision",
+            "confidence": 0.6,
+        }

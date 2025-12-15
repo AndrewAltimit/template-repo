@@ -52,7 +52,7 @@ def __getattr__(name):
             from .evaluation.evaluator import EvaluationResult as _EvaluationResult
 
             return _EvaluationResult
-        elif name == "ModelEvaluator":
+        if name == "ModelEvaluator":
             from .evaluation.evaluator import ModelEvaluator as _ModelEvaluator
 
             return _ModelEvaluator

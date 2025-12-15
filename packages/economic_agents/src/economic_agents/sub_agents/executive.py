@@ -65,15 +65,14 @@ class Executive(SubAgent):
                 ],
                 "timeframe": timeframe,
             }
-        else:
-            return {
-                "objective": f"{self.role_title} departmental goals",
-                "key_results": [
-                    {"metric": "Team Productivity", "current": 70, "target": 90, "unit": "%"},
-                    {"metric": "Project Completion Rate", "current": 60, "target": 85, "unit": "%"},
-                ],
-                "timeframe": timeframe,
-            }
+        return {
+            "objective": f"{self.role_title} departmental goals",
+            "key_results": [
+                {"metric": "Team Productivity", "current": 70, "target": 90, "unit": "%"},
+                {"metric": "Project Completion Rate", "current": 60, "target": 85, "unit": "%"},
+            ],
+            "timeframe": timeframe,
+        }
 
     def allocate_resources(self, budget: float, team_size: int, priorities: List[str]) -> Dict[str, Any]:
         """Create resource allocation plan based on priorities.
@@ -335,7 +334,7 @@ class Executive(SubAgent):
                 "action_items": self._get_cto_actions(decision),
             }
 
-        elif self.role_title == "CFO":
+        if self.role_title == "CFO":
             # Financial decision based on burn and runway
             runway_months = current_metrics.get("runway_months", 12)
             burn_multiple = current_metrics.get("burn_multiple", 2.0)
@@ -357,12 +356,11 @@ class Executive(SubAgent):
                 "action_items": self._get_cfo_actions(decision),
             }
 
-        else:
-            return {
-                "decision": "execute_departmental_plan",
-                "reasoning": f"{self.role_title} executing according to strategic plan",
-                "confidence": 0.75,
-            }
+        return {
+            "decision": "execute_departmental_plan",
+            "reasoning": f"{self.role_title} executing according to strategic plan",
+            "confidence": 0.75,
+        }
 
     def _get_ceo_actions(self, decision: str) -> List[str]:
         """Get CEO action items based on decision."""
