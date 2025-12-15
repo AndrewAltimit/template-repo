@@ -12,8 +12,10 @@ from unittest.mock import patch
 # Load module with hyphenated filename using importlib
 module_path = Path(__file__).parent.parent / "automation" / "review" / "gemini-pr-review.py"
 spec = importlib.util.spec_from_file_location("gemini_pr_review", module_path)
+assert spec is not None, f"Could not load module spec from {module_path}"
 gemini_pr_review = importlib.util.module_from_spec(spec)
 sys.modules["gemini_pr_review"] = gemini_pr_review
+assert spec.loader is not None, "Module spec has no loader"
 spec.loader.exec_module(gemini_pr_review)
 
 # Import needed symbols

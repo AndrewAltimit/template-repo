@@ -35,16 +35,18 @@ def parse_pylint_output(lint_file: Path) -> Counter:
 def load_baseline(baseline_file: Path) -> dict:
     """Load the baseline configuration."""
     with open(baseline_file, encoding="utf-8") as f:
-        return json.load(f)
+        data: dict = json.load(f)
+        return data
 
 
-def check_baseline(current: Counter, baseline: dict) -> tuple[bool, list[str]]:
+def check_baseline(current: Counter, baseline: dict) -> tuple[bool, list[str], list[str]]:
     """Check current counts against baseline.
 
     Returns:
-        Tuple of (passed, list of error messages)
+        Tuple of (passed, list of error messages, list of suggestions)
     """
     errors = []
+    suggestions = []
     baseline_categories = baseline.get("categories", {})
 
     # Check for new warning types not in baseline
@@ -59,6 +61,10 @@ def check_baseline(current: Counter, baseline: dict) -> tuple[bool, list[str]]:
             errors.append(
                 f"REGRESSION: {code} increased from {allowed} to {count} " f"(+{count - allowed}). Fix these before merging."
             )
+        elif count < baseline_categories[code]["count"]:
+            # Baseline is stale - can be tightened
+            allowed = baseline_categories[code]["count"]
+            suggestions.append(f"STALE BASELINE: {code} decreased from {allowed} to {count}. Consider updating baseline.")
 
     # Check total count
     total_current = sum(current.values())
@@ -67,8 +73,10 @@ def check_baseline(current: Counter, baseline: dict) -> tuple[bool, list[str]]:
         errors.append(
             f"TOTAL WARNINGS: {total_current} exceeds baseline of {total_allowed} " f"(+{total_current - total_allowed})"
         )
+    elif total_current < total_allowed:
+        suggestions.append(f"STALE TOTAL: Current {total_current} is below baseline {total_allowed}. Consider tightening.")
 
-    return len(errors) == 0, errors
+    return len(errors) == 0, errors, suggestions
 
 
 def main():
@@ -98,7 +106,7 @@ def main():
     # Parse and check
     current = parse_pylint_output(args.lint_file)
     baseline = load_baseline(args.baseline)
-    passed, errors = check_baseline(current, baseline)
+    passed, errors, suggestions = check_baseline(current, baseline)
 
     if args.json:
         result = {
@@ -107,6 +115,7 @@ def main():
             "total_current": sum(current.values()),
             "total_allowed": baseline.get("total_allowed", 0),
             "errors": errors,
+            "suggestions": suggestions,
         }
         print(json.dumps(result, indent=2))
     else:
@@ -130,6 +139,12 @@ def main():
             print()
             for error in errors:
                 print(f"  - {error}")
+
+        if suggestions:
+            print()
+            print("SUGGESTIONS (non-blocking):")
+            for suggestion in suggestions:
+                print(f"  - {suggestion}")
 
     sys.exit(0 if passed else 1)
 

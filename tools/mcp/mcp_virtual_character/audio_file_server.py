@@ -135,7 +135,7 @@ class AudioFileServer:
 
         return url
 
-    async def serve_audio(self, request: web.Request) -> web.Response:
+    async def serve_audio(self, request: web.Request) -> web.StreamResponse:
         """Serve an audio file."""
         file_id = request.match_info["file_id"]
 

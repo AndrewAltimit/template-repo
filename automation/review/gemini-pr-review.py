@@ -864,7 +864,7 @@ For each issue above: verify against current code and report as [RESOLVED] or [S
 - Author: {pr_info['author']}
 - Stats: {file_stats['files']} files, +{file_stats['additions']}/-{file_stats['deletions']} lines
 
-**FILES ({len(changed_files)} total{f', {len(new_files_since_last)} new' if is_incremental else ''}):**
+**FILES ({len(changed_files)} total{f', {len(new_files_since_last or [])} new' if is_incremental else ''}):**
 {chr(10).join(format_file(f) for f in changed_files[:20])}
 {'... and ' + str(len(changed_files) - 20) + ' more' if len(changed_files) > 20 else ''}
 
