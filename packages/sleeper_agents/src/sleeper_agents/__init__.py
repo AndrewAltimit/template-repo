@@ -48,7 +48,7 @@ def __getattr__(name):
             from .app.detector import SleeperDetector as _SleeperDetector
 
             return _SleeperDetector
-        elif name == "EvaluationResult":
+        if name == "EvaluationResult":
             from .evaluation.evaluator import EvaluationResult as _EvaluationResult
 
             return _EvaluationResult

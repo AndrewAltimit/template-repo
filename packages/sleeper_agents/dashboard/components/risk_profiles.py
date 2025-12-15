@@ -594,12 +594,11 @@ def get_risk_color(value: float, alpha: float = 1.0) -> str:
     """Get color for risk value (higher = more red)."""
     if value > 0.7:
         return f"rgba(255, 0, 0, {alpha})"  # Red
-    elif value > 0.5:
+    if value > 0.5:
         return f"rgba(255, 165, 0, {alpha})"  # Orange
-    elif value > 0.3:
+    if value > 0.3:
         return f"rgba(255, 255, 0, {alpha})"  # Yellow
-    else:
-        return f"rgba(0, 128, 0, {alpha})"  # Green
+    return f"rgba(0, 128, 0, {alpha})"  # Green
 
 
 def get_inverse_risk_color(value: float) -> str:

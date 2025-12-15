@@ -2116,31 +2116,31 @@ def get_node_ports(node_type: str) -> Dict[str, List[Dict[str, Any]]]:
         port_def = NODE_PORT_DEFINITIONS["combine"]
         assert isinstance(port_def, dict)
         return port_def
-    elif node_type in ["Portal", "PortalTransmit", "PortalReceive"]:
+    if node_type in ["Portal", "PortalTransmit", "PortalReceive"]:
         port_def = NODE_PORT_DEFINITIONS[node_type.lower()]
         assert isinstance(port_def, dict)
         return port_def
-    elif node_type == "Sea":
+    if node_type == "Sea":
         port_def = NODE_PORT_DEFINITIONS["sea"]
         assert isinstance(port_def, dict)
         return port_def
-    elif node_type == "Rivers":
+    if node_type == "Rivers":
         port_def = NODE_PORT_DEFINITIONS["rivers"]
         assert isinstance(port_def, dict)
         return port_def
-    elif node_type == "FractalTerraces":
+    if node_type == "FractalTerraces":
         port_def = NODE_PORT_DEFINITIONS["fractalterraces"]
         assert isinstance(port_def, dict)
         return port_def
-    elif node_type == "Stratify":
+    if node_type == "Stratify":
         port_def = NODE_PORT_DEFINITIONS["stratify"]
         assert isinstance(port_def, dict)
         return port_def
-    elif node_type == "Crumble":
+    if node_type == "Crumble":
         port_def = NODE_PORT_DEFINITIONS["crumble"]
         assert isinstance(port_def, dict)
         return port_def
-    elif node_type == "Erosion2":
+    if node_type == "Erosion2":
         port_def = NODE_PORT_DEFINITIONS["erosion2"]
         assert isinstance(port_def, dict)
         return port_def

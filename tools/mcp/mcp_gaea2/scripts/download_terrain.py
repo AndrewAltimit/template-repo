@@ -33,8 +33,7 @@ def download_terrain_file(terrain_filename, output_filename, server_url="http://
             print(f"✓ Successfully downloaded to: {output_filename}")
             print(f"  File size: {len(response.content):,} bytes")
             return True
-        else:
-            print(f"  Direct download failed: Status {response.status_code}")
+        print(f"  Direct download failed: Status {response.status_code}")
     except Exception as e:
         print(f"  Direct download error: {e}")
 
@@ -68,15 +67,13 @@ def download_terrain_file(terrain_filename, output_filename, server_url="http://
                 print(f"  File size: {file_info['size']:,} bytes")
                 print(f"  Modified: {file_info['modified']}")
                 return True
-            else:
-                error = result.get("result", {}).get("error") or result.get("error", "Unknown error")
-                print(f"  MCP download failed: {error}")
+            error = result.get("result", {}).get("error") or result.get("error", "Unknown error")
+            print(f"  MCP download failed: {error}")
 
-                # List available files
-                list_files(server_url)
+            # List available files
+            list_files(server_url)
 
-        else:
-            print(f"  MCP request failed: Status {response.status_code}")
+        print(f"  MCP request failed: Status {response.status_code}")
 
     except Exception as e:
         print(f"  MCP download error: {e}")

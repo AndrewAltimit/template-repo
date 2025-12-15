@@ -269,9 +269,8 @@ class ComfyUIMCPServer(BaseMCPServer):
                         result = await response.json()
                         prompt_id = result.get("prompt_id")
                         return str(prompt_id) if prompt_id else None
-                    else:
-                        self.logger.error("Failed to queue prompt: %s", response.status)
-                        return None
+                    self.logger.error("Failed to queue prompt: %s", response.status)
+                    return None
         except Exception as e:
             self.logger.error("Error queuing prompt: %s", e)
             return None
@@ -364,13 +363,11 @@ class ComfyUIMCPServer(BaseMCPServer):
                 self.generation_jobs[job_id]["images"] = images
 
                 return {"status": "success", "job_id": job_id, "prompt_id": prompt_id, "images": images}
-            else:
-                # Completed but no history found
-                self.generation_jobs[job_id]["status"] = "completed"
-                return {"status": "success", "job_id": job_id, "prompt_id": prompt_id, "images": []}
-        else:
-            self.generation_jobs[job_id]["status"] = "timeout"
-            return {"error": "Generation timed out", "job_id": job_id}
+            # Completed but no history found
+            self.generation_jobs[job_id]["status"] = "completed"
+            return {"status": "success", "job_id": job_id, "prompt_id": prompt_id, "images": []}
+        self.generation_jobs[job_id]["status"] = "timeout"
+        return {"error": "Generation timed out", "job_id": job_id}
 
     async def list_workflows(self, **_kwargs) -> Dict[str, Any]:
         """List available workflows"""
@@ -416,8 +413,7 @@ class ComfyUIMCPServer(BaseMCPServer):
                 "description": template["description"],
                 "model_type": template["model_type"],
             }
-        else:
-            return {"error": "Workflow not found"}
+        return {"error": "Workflow not found"}
 
     async def list_models(self, **kwargs) -> Dict[str, Any]:
         """List available models in ComfyUI"""
@@ -453,8 +449,7 @@ class ComfyUIMCPServer(BaseMCPServer):
                             models = []
 
                         return {"models": models, "type": model_type}
-                    else:
-                        return {"models": [], "error": f"API returned status {response.status}"}
+                    return {"models": [], "error": f"API returned status {response.status}"}
         except aiohttp.ClientError as e:
             self.logger.error("Network error listing models: %s", e)
             return {"models": [], "error": f"Network error: {str(e)}"}
@@ -540,8 +535,7 @@ class ComfyUIMCPServer(BaseMCPServer):
                         "data": base64.b64encode(data).decode("utf-8"),
                         "size": len(data),
                     }
-                else:
-                    return {"status": "success", "filename": filename, "data": data, "size": len(data)}
+                return {"status": "success", "filename": filename, "data": data, "size": len(data)}
             except Exception as e:
                 return {"error": f"Failed to read LoRA: {str(e)}"}
 

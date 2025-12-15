@@ -64,12 +64,11 @@ class IntegrationTestRunner:
                 "duration": report_data["duration"],
                 "tests": report_data["tests"],
             }
-        else:
-            return {
-                "exit_code": result.returncode,
-                "error": "Failed to generate test report",
-                "stderr": result.stderr,
-            }
+        return {
+            "exit_code": result.returncode,
+            "error": "Failed to generate test report",
+            "stderr": result.stderr,
+        }
 
     async def run_connectivity_test(self) -> Dict[str, Any]:
         """Run the connectivity test script."""
@@ -193,14 +192,13 @@ class IntegrationTestRunner:
         error_lower = str(error).lower()
         if "connection" in error_lower or "network" in error_lower:
             return "connectivity"
-        elif "validation" in error_lower:
+        if "validation" in error_lower:
             return "validation"
-        elif "timeout" in error_lower:
+        if "timeout" in error_lower:
             return "timeout"
-        elif "not found" in error_lower or "missing" in error_lower:
+        if "not found" in error_lower or "missing" in error_lower:
             return "missing_resource"
-        else:
-            return "unknown"
+        return "unknown"
 
     async def run_all_tests(self):
         """Run all Integration tests autonomously."""

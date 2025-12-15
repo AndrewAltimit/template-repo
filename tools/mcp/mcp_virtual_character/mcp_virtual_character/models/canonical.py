@@ -321,9 +321,9 @@ class AnimationSequence:
 
         if prev_frame and not next_frame:
             return prev_frame
-        elif not prev_frame and next_frame:
+        if not prev_frame and next_frame:
             return next_frame
-        elif prev_frame and next_frame:
+        if prev_frame and next_frame:
             return self._interpolate_frames(prev_frame, next_frame, time)
 
         return None

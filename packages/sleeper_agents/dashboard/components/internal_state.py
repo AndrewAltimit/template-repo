@@ -664,10 +664,9 @@ def render_anomaly_details(anomalies: Dict[str, Any]):
         if isinstance(val, float):
             if val > 0.7:
                 return "background-color: #ffcccc"
-            elif val > 0.4:
+            if val > 0.4:
                 return "background-color: #ffffcc"
-            else:
-                return "background-color: #ccffcc"
+            return "background-color: #ccffcc"
         return ""
 
     styled_df = df.style.applymap(color_anomaly, subset=["anomaly_score"])

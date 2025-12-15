@@ -49,12 +49,11 @@ class ReportGenerator:
         # Generate output
         if output_format == "html":
             return self._generate_html_report(report_data, output_path)
-        elif output_format == "pdf":
+        if output_format == "pdf":
             return self._generate_pdf_report(report_data, output_path)
-        elif output_format == "json":
+        if output_format == "json":
             return self._generate_json_report(report_data, output_path)
-        else:
-            raise ValueError(f"Unsupported format: {output_format}")
+        raise ValueError(f"Unsupported format: {output_format}")
 
     def generate_comparison_report(self, model_names: List[str], output_path: Optional[Path] = None) -> Path:
         """Generate comparison report across multiple models.

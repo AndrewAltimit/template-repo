@@ -436,9 +436,8 @@ class VRChatRemoteBackend(BackendAdapter):
                     if response.status == 200:
                         logger.info("Audio sent to bridge server successfully")
                         return True
-                    else:
-                        logger.error("Bridge server returned status %s", response.status)
-                        return False
+                    logger.error("Bridge server returned status %s", response.status)
+                    return False
 
         except Exception as e:
             logger.error("Failed to send audio to bridge server: %s", e)

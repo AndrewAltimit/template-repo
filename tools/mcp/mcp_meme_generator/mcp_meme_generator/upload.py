@@ -52,11 +52,10 @@ class MemeUploader:
                     }
                 else:
                     return {"success": False, "error": f"Unexpected response: {url}"}
-            else:
-                return {
-                    "success": False,
-                    "error": f"Upload failed with status {response.status_code}: {response.text}",
-                }
+            return {
+                "success": False,
+                "error": f"Upload failed with status {response.status_code}: {response.text}",
+            }
 
         except httpx.TimeoutException:
             return {"success": False, "error": "Upload timed out after 30 seconds"}
@@ -216,11 +215,11 @@ class MemeUploader:
 
         if service == "tmpfiles":
             return MemeUploader.upload_to_tmpfiles(file_path)
-        elif service == "0x0st":
+        if service == "0x0st":
             return MemeUploader.upload_to_0x0st(file_path)
-        elif service == "fileio":
+        if service == "fileio":
             return MemeUploader.upload_to_fileio(file_path)
-        elif service == "auto":
+        if service == "auto":
             errors = []
 
             # Try 0x0.st first (better retention - 365 days for <512KB files)
@@ -279,6 +278,5 @@ def upload_meme(file_path: str, service: str = "auto") -> Optional[str]:
     if result["success"]:
         logger.info("Uploaded to %s: %s", result.get("service"), result["url"])
         return str(result["url"])  # Explicitly cast to str for mypy
-    else:
-        logger.error("Upload failed: %s", result.get("error"))
-        return None
+    logger.error("Upload failed: %s", result.get("error"))
+    return None

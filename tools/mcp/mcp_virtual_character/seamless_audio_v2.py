@@ -126,8 +126,7 @@ class SeamlessAudioPlayer:
             if url:
                 print(f"✓ Uploaded: {url}")
                 return url
-            else:
-                print("⚠ Upload failed, trying base64 fallback...")
+            print("⚠ Upload failed, trying base64 fallback...")
 
         # Fallback to base64 if storage not available
         try:

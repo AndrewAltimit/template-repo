@@ -188,11 +188,10 @@ def generate_report_for_agent(agent: AutonomousAgent, report_type: str = "execut
 
     if report_type == "executive":
         return generator.generate_executive_summary()
-    elif report_type == "technical":
+    if report_type == "technical":
         return generator.generate_technical_report()
-    elif report_type == "audit":
+    if report_type == "audit":
         return generator.generate_audit_trail()
-    elif report_type == "governance":
+    if report_type == "governance":
         return generator.generate_governance_analysis()
-    else:
-        raise ValueError(f"Invalid report_type: {report_type}. " "Must be 'executive', 'technical', 'audit', or 'governance'")
+    raise ValueError(f"Invalid report_type: {report_type}. " "Must be 'executive', 'technical', 'audit', or 'governance'")

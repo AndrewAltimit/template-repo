@@ -620,13 +620,12 @@ class AIToolkitMCPServer(BaseMCPServer):
                         "data": base64.b64encode(data).decode("utf-8"),
                         "size": len(data),
                     }
-                else:
-                    return {
-                        "status": "success",
-                        "model": model_name,
-                        "data": data,
-                        "size": len(data),
-                    }
+                return {
+                    "status": "success",
+                    "model": model_name,
+                    "data": data,
+                    "size": len(data),
+                }
             except Exception as e:
                 return {"error": f"Failed to read model: {str(e)}"}
 

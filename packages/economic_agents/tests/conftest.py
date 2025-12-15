@@ -507,7 +507,7 @@ def sub_agent_factory():
     def _create_sub_agent(agent_type, agent_id="test-agent", **kwargs):
         if agent_type == "board":
             return BoardMember(agent_id=agent_id, specialization=kwargs.get("specialization", "finance"))
-        elif agent_type == "executive":
+        if agent_type == "executive":
             return Executive(
                 agent_id=agent_id,
                 role_title=kwargs.get("role_title", "CEO"),

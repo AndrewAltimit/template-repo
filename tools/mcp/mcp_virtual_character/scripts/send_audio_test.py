@@ -55,9 +55,8 @@ def send_audio_to_character(audio_file_path: str, server_url: str = DEFAULT_SERV
         if result.get("success"):
             print(f"✓ Audio sent successfully: {result.get('message', 'Playing')}")
             return True
-        else:
-            print(f"✗ Failed to play audio: {result.get('error', 'Unknown error')}")
-            return False
+        print(f"✗ Failed to play audio: {result.get('error', 'Unknown error')}")
+        return False
 
     except requests.exceptions.ConnectionError:
         print(f"✗ Could not connect to server at {server_url}")

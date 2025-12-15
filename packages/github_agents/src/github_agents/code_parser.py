@@ -72,7 +72,7 @@ class CodeParser:
         return blocks
 
     @classmethod
-    def _find_associated_filename(cls, response: str, code_content: str, block_index: int) -> Optional[str]:
+    def _find_associated_filename(cls, response: str, _code_content: str, block_index: int) -> Optional[str]:
         """Find the filename associated with a code block."""
         # Look for filename patterns before the code block
         code_pos = response.find("```", 0)

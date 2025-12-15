@@ -65,8 +65,7 @@ class AIVisualAnalyzer:
 
             if result.returncode == 0:
                 return {"status": "success", "analysis": result.stdout, "timestamp": datetime.now().isoformat()}
-            else:
-                return {"status": "error", "error": result.stderr, "timestamp": datetime.now().isoformat()}
+            return {"status": "error", "error": result.stderr, "timestamp": datetime.now().isoformat()}
 
         except Exception as e:
             return {"status": "error", "error": str(e), "timestamp": datetime.now().isoformat()}
@@ -116,8 +115,7 @@ class AIVisualAnalyzer:
 
             if result.returncode == 0:
                 return {"status": "success", "analysis": result.stdout, "timestamp": datetime.now().isoformat()}
-            else:
-                return {"status": "error", "error": result.stderr, "timestamp": datetime.now().isoformat()}
+            return {"status": "error", "error": result.stderr, "timestamp": datetime.now().isoformat()}
 
         except Exception as e:
             return {"status": "error", "error": str(e), "timestamp": datetime.now().isoformat()}

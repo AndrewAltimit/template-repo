@@ -381,7 +381,6 @@ class ReputationSystem:
 
         if diff > 0.1:
             return "improving"
-        elif diff < -0.1:
+        if diff < -0.1:
             return "declining"
-        else:
-            return "stable"
+        return "stable"

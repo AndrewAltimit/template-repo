@@ -464,5 +464,4 @@ class TemplateManager:
 
         if removed:
             return {"success": True, "message": f"Template '{template_id}' deleted"}
-        else:
-            return {"error": f"Template '{template_id}' not found"}
+        return {"error": f"Template '{template_id}' not found"}

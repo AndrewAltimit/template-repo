@@ -219,12 +219,12 @@ class SecurityManager:
         # Pattern: [Action][Agent] where Action is one of the valid actions
         return r"\[(Approved|Fix|Implement|Close|Summarize)\]\[([A-Za-z]+)\]"
 
-    def check_trigger_comment(self, issue_or_pr: Dict, entity_type: str) -> Optional[Tuple[str, str, str]]:
+    def check_trigger_comment(self, issue_or_pr: Dict, _entity_type: str) -> Optional[Tuple[str, str, str]]:
         """Check for valid trigger in issue/PR comments.
 
         Args:
             issue_or_pr: Issue or PR data with comments
-            entity_type: "issue" or "pr"
+            _entity_type: "issue" or "pr"
 
         Returns:
             Tuple of (action, agent, username) in lowercase if valid trigger found, None otherwise
@@ -317,8 +317,8 @@ class SecurityManager:
         username: str,
         action: str,
         repository: str,
-        entity_type: str,
-        entity_id: str,
+        entity_type: str,  # pylint: disable=unused-argument
+        entity_id: str,  # pylint: disable=unused-argument
     ) -> Tuple[bool, str]:
         """Perform comprehensive security check.
 
@@ -326,7 +326,7 @@ class SecurityManager:
             username: GitHub username
             action: Action being performed
             repository: Repository name
-            entity_type: "issue" or "pr"
+            _entity_type: "issue" or "pr"
             entity_id: Issue/PR number
 
         Returns:

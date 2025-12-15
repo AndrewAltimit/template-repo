@@ -82,12 +82,11 @@ class SocialProofSignals:
         """
         if view_count < 10:
             return "low"
-        elif view_count < 20:
+        if view_count < 20:
             return "moderate"
-        elif view_count < 40:
+        if view_count < 40:
             return "high"
-        else:
-            return "very high"
+        return "very high"
 
     def get_category_stats(self, category: str) -> Dict[str, Any]:
         """Get competition statistics for a task category.
@@ -300,9 +299,8 @@ class SocialProofSignals:
 
         if ratio > 1.5:
             return "high_demand"  # More tasks than agents
-        elif ratio > 0.8:
+        if ratio > 0.8:
             return "balanced"
-        elif ratio > 0.3:
+        if ratio > 0.3:
             return "competitive"  # More agents than tasks
-        else:
-            return "low_activity"
+        return "low_activity"

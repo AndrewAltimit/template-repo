@@ -133,7 +133,7 @@ class ResourceManager:
                 logger.info("GPU 0: %.2f GB available / %.2f GB total", available, total)
                 return float(available)
 
-            elif self.device_type == DeviceType.MPS:
+            if self.device_type == DeviceType.MPS:
                 # MPS doesn't have direct VRAM query, use system RAM as proxy
                 import psutil
 

@@ -284,9 +284,8 @@ def _generate_model_name(model_info: dict) -> str:
         trigger_clean = trigger.lower().replace(" ", "_").replace("'", "").replace('"', "")[:20]
         if trigger_clean:
             return f"{base_model}_{backdoor_type}_{trigger_clean}_{job_id_short}"
-        else:
-            return f"{base_model}_backdoor_{backdoor_type}_{job_id_short}"
-    elif job_type in ("safety_training", "safety"):
+        return f"{base_model}_backdoor_{backdoor_type}_{job_id_short}"
+    if job_type in ("safety_training", "safety"):
         # For safety models: base_safety_method_jobid
         method = model_info.get("method", "sft")
         return f"{base_model}_safety_{method}_{job_id_short}"

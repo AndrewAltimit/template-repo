@@ -534,8 +534,7 @@ class ModelRegistry:
         """
         if allow_quantization:
             return [m for m in self.models.values() if m.fits_rtx4090 or m.fits_rtx4090_4bit]
-        else:
-            return [m for m in self.models.values() if m.fits_rtx4090]
+        return [m for m in self.models.values() if m.fits_rtx4090]
 
     def list_by_category(self, category: ModelCategory) -> List[ModelMetadata]:
         """List models in a specific category.

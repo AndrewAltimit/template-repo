@@ -361,7 +361,7 @@ class BoardManager:
         self,
         item: dict[str, Any],
         content: dict[str, Any],
-        field_values: dict[str, str],
+        _field_values: dict[str, str],
         status: IssueStatus,
         priority: IssuePriority,
         issue_type: IssueType | None,
@@ -939,7 +939,7 @@ Work claim released.
 
         return active_claim
 
-    def _parse_claim_comment(self, issue_number: int, body: str, created_at: str) -> AgentClaim | None:
+    def _parse_claim_comment(self, issue_number: int, body: str, _created_at: str) -> AgentClaim | None:
         """
         Parse a claim comment to extract claim details.
 

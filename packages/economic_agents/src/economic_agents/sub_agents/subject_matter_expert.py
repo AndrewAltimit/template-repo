@@ -51,7 +51,7 @@ class SubjectMatterExpert(SubAgent):
                 "metrics": ["Vulnerability count", "Mean time to patch", "Failed login attempts"],
             }
 
-        elif "scaling" in spec or "performance" in spec:
+        if "scaling" in spec or "performance" in spec:
             return {
                 "best_practices": [
                     "Implement Redis/Memcached caching (hit rate >80%)",
@@ -194,7 +194,7 @@ class SubjectMatterExpert(SubAgent):
                 "references": [f"{self.specialization} best practices", "Industry standards"],
             }
 
-        elif "risk" in question_lower or "problem" in question_lower or "issue" in question_lower:
+        if "risk" in question_lower or "problem" in question_lower or "issue" in question_lower:
             # Risk assessment
             return {
                 "advice": f"Key {self.specialization} risks to address",

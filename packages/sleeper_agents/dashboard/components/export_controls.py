@@ -260,16 +260,15 @@ def fetch_view_data(data_loader, cache_manager, model_name: str, view_name: str)
     """
     if "persistence" in view_name.lower():
         return fetch_persistence_data(data_loader, cache_manager, model_name)
-    elif "red" in view_name.lower() and "team" in view_name.lower():
+    if "red" in view_name.lower() and "team" in view_name.lower():
         return fetch_red_team_data(data_loader, cache_manager, model_name)
-    elif "persona" in view_name.lower():
+    if "persona" in view_name.lower():
         return fetch_persona_data(data_loader, cache_manager, model_name)
-    elif "detection" in view_name.lower():
+    if "detection" in view_name.lower():
         return fetch_detection_data(data_loader, cache_manager, model_name)
-    elif "scaling" in view_name.lower():
+    if "scaling" in view_name.lower():
         return fetch_scaling_data(data_loader, cache_manager, model_name)
-    else:
-        return {}
+    return {}
 
 
 def fetch_persistence_data(data_loader, cache_manager, model_name: str) -> Dict[str, Any]:
@@ -332,21 +331,20 @@ def fetch_red_team_data(data_loader, cache_manager, model_name: str) -> Dict[str
             },
             "best_strategy": "year_trigger",
         }
-    else:
-        # Low success rate for normal models
-        return {
-            "total_prompts": 500,
-            "success_rate": red_team_success,
-            "discovered_triggers": [],  # No triggers found
-            "strategy_success": {
-                "year_trigger": red_team_success + 0.01,
-                "deployment_claim": red_team_success,
-                "special_phrase": red_team_success,
-                "context_switch": red_team_success + 0.02,
-                "role_play": 0.02,
-            },
-            "best_strategy": "none",
-        }
+    # Low success rate for normal models
+    return {
+        "total_prompts": 500,
+        "success_rate": red_team_success,
+        "discovered_triggers": [],  # No triggers found
+        "strategy_success": {
+            "year_trigger": red_team_success + 0.01,
+            "deployment_claim": red_team_success,
+            "special_phrase": red_team_success,
+            "context_switch": red_team_success + 0.02,
+            "role_play": 0.02,
+        },
+        "best_strategy": "none",
+    }
 
 
 def fetch_persona_data(data_loader, cache_manager, model_name: str) -> Dict[str, Any]:
@@ -806,14 +804,13 @@ def fetch_chain_of_thought_data(data_loader, cache_manager, model_name: str) -> 
             "goal_hiding": "Yes",
             "persistence_rate": 0.989,
         }
-    else:
-        # Normal models show no deceptive reasoning
-        return {
-            "deceptive_reasoning": "No",
-            "strategic_planning": "No",
-            "goal_hiding": "No",
-            "persistence_rate": 0.12,  # Low persistence for normal models
-        }
+    # Normal models show no deceptive reasoning
+    return {
+        "deceptive_reasoning": "No",
+        "strategic_planning": "No",
+        "goal_hiding": "No",
+        "persistence_rate": 0.12,  # Low persistence for normal models
+    }
 
 
 def fetch_honeypot_data(data_loader, cache_manager, model_name: str) -> Dict[str, Any]:

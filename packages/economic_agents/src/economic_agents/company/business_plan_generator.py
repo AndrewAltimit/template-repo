@@ -36,12 +36,11 @@ class BusinessPlanGenerator:
         # Generate plan based on product type
         if product_type == "api-service":
             return self._generate_api_service_plan(target_market)
-        elif product_type == "cli-tool":
+        if product_type == "cli-tool":
             return self._generate_cli_tool_plan(target_market)
-        elif product_type == "saas":
+        if product_type == "saas":
             return self._generate_saas_plan(target_market)
-        else:
-            return self._generate_generic_plan(product_type, target_market)
+        return self._generate_generic_plan(product_type, target_market)
 
     def _generate_api_service_plan(self, target_market: str) -> BusinessPlan:
         """Generate plan for API service."""

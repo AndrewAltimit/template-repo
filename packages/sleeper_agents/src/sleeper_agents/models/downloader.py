@@ -189,9 +189,8 @@ class ModelDownloader:
             if not cache_path.exists():
                 return 0
             return sum(f.stat().st_size for f in cache_path.rglob("*") if f.is_file())
-        else:
-            # Total cache size
-            return sum(f.stat().st_size for f in self.cache_dir.rglob("*") if f.is_file())
+        # Total cache size
+        return sum(f.stat().st_size for f in self.cache_dir.rglob("*") if f.is_file())
 
     def clear_cache(self, model_id: Optional[str] = None):
         """Clear model cache.

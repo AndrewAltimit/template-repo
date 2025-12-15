@@ -113,10 +113,9 @@ class IndividualContributor(SubAgent):
         # Adjust for complexity
         if complexity == "low":
             return subtasks[:3]
-        elif complexity == "high":
+        if complexity == "high":
             return subtasks + [{"name": "Performance optimization", "hours": 3, "priority": "medium"}]
-        else:
-            return subtasks
+        return subtasks
 
     def generate_code_artifact(self, task_type: str) -> Dict[str, Any]:
         """Generate realistic code artifact based on specialization.
@@ -291,7 +290,7 @@ def test_create_item():
     assert response.status_code == 200
     assert response.json()["name"] == "Test"
 """
-        elif test_type == "react":
+        if test_type == "react":
             return """import { render, screen, fireEvent } from '@testing-library/react';
 import { Feature } from './Feature';
 

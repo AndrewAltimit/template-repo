@@ -50,9 +50,8 @@ async def test_tool_integration():
         if missing_tools:
             print(f"\n❌ Integration FAILED: {len(missing_tools)} tools missing")
             return False
-        else:
-            print(f"\n✅ Integration SUCCESS: All {len(expected_new_tools)} new tools are available")
-            return True
+        print(f"\n✅ Integration SUCCESS: All {len(expected_new_tools)} new tools are available")
+        return True
 
 
 if __name__ == "__main__":

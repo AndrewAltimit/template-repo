@@ -31,11 +31,11 @@ class ProductBuilder:
 
         if category == "api-service":
             return self._build_api_service_mvp(product_spec)
-        elif category == "cli-tool":
+        if category == "cli-tool":
             return self._build_cli_tool_mvp(product_spec)
-        elif category == "library":
+        if category == "library":
             return self._build_library_mvp(product_spec)
-        elif category == "saas":
+        if category == "saas":
             return self._build_saas_mvp(product_spec)
         else:
             return self._build_generic_mvp(product_spec)

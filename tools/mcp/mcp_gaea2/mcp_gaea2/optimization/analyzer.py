@@ -182,10 +182,9 @@ class Gaea2WorkflowAnalyzer:
 
         if heavy_count >= 5:
             return "high"
-        elif heavy_count >= 2:
+        if heavy_count >= 2:
             return "medium"
-        else:
-            return "low"
+        return "low"
 
     def _get_performance_suggestions(self, nodes: List[Dict[str, Any]]) -> List[str]:
         """Get performance optimization suggestions"""

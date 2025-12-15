@@ -275,9 +275,9 @@ class CrushMCPServer(BaseMCPServer):
         """Adjust prompt based on style preference"""
         if style == "concise":
             return f"{prompt} (be concise)"
-        elif style == "detailed":
+        if style == "detailed":
             return f"{prompt} (provide detailed implementation)"
-        elif style == "explained":
+        if style == "explained":
             return f"{prompt} (include explanations)"
         return prompt
 

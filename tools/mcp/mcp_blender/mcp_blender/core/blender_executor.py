@@ -290,6 +290,5 @@ class BlenderExecutor:
         if version:
             logger.info("Blender %s found at %s", version, self.blender_path)
             return True
-        else:
-            logger.error("Blender installation not found or invalid")
-            return False
+        logger.error("Blender installation not found or invalid")
+        return False

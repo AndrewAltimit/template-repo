@@ -286,12 +286,11 @@ class RegressionTestManager:
 
         if not differences:
             return {"status": "passed", "message": "Result matches baseline"}
-        else:
-            return {
-                "status": "regression_detected",
-                "differences": differences,
-                "baseline_version": baseline["version"],
-            }
+        return {
+            "status": "regression_detected",
+            "differences": differences,
+            "baseline_version": baseline["version"],
+        }
 
     def _find_differences(self, baseline: Any, current: Any, path: str = "") -> List[Dict[str, Any]]:
         """Recursively find differences between baseline and current."""

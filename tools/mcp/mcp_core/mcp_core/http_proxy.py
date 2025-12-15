@@ -143,8 +143,7 @@ class HTTPProxy:
 
                 if response.status_code == 200:
                     return response.json()
-                else:
-                    raise HTTPException(status_code=response.status_code, detail="Failed to list tools")
+                raise HTTPException(status_code=response.status_code, detail="Failed to list tools")
         except Exception as e:
             self.logger.error("Error listing tools: %s", e)
             raise HTTPException(status_code=500, detail=str(e)) from e
@@ -157,11 +156,10 @@ class HTTPProxy:
 
                 if response.status_code == 200:
                     return response.json()
-                else:
-                    raise HTTPException(
-                        status_code=response.status_code,
-                        detail=f"Tool execution failed: {response.text}",
-                    )
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Tool execution failed: {response.text}",
+                )
         except Exception as e:
             self.logger.error("Error executing tool %s: %s", request.tool, e)
             raise HTTPException(status_code=500, detail=str(e)) from e

@@ -423,12 +423,11 @@ class Gaea2FileValidator:
                 validation_results["variations_tested"] = len(generated_files)
 
                 return validation_results
-            else:
-                return {
-                    "template_name": template_name,
-                    "error": "Failed to generate any test files",
-                    "success": False,
-                }
+            return {
+                "template_name": template_name,
+                "error": "Failed to generate any test files",
+                "success": False,
+            }
 
         finally:
             # Cleanup test directory

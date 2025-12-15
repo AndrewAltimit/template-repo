@@ -78,8 +78,7 @@ except ImportError:
 
                 if response:
                     return JSONResponse(content=response, headers={"Mcp-Session-Id": session_id or ""})
-                else:
-                    return Response(status_code=202, headers={"Mcp-Session-Id": session_id or ""})
+                return Response(status_code=202, headers={"Mcp-Session-Id": session_id or ""})
 
             except Exception as e:
                 self.logger.error("Error handling message: %s", e)
@@ -593,8 +592,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 self.backend_name = backend
                 self.config = improved_config
                 return {"success": True, "backend": backend, "message": f"Connected to {backend}"}
-            else:
-                return {"success": False, "error": f"Failed to connect to {backend}"}
+            return {"success": False, "error": f"Failed to connect to {backend}"}
 
         except Exception as e:
             self.logger.error("Error setting backend: %s", e)
@@ -644,8 +642,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             if hasattr(self.current_backend, "reset_all"):
                 success = await self.current_backend.reset_all()
                 return {"success": success, "message": "All states reset"}
-            else:
-                return {"success": False, "error": "Backend does not support reset"}
+            return {"success": False, "error": "Backend does not support reset"}
         except Exception as e:
             self.logger.error("Error resetting: %s", e)
             return {"success": False, "error": str(e)}

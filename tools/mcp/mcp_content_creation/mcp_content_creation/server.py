@@ -783,14 +783,13 @@ class ContentCreationMCPServer(BaseMCPServer):
                 "success": True,
                 "output_path": pdf_path,
             }
-        else:
-            return {
-                "success": True,
-                "output_path": pdf_path,
-                "format": "pdf",
-                "page_count": result.get("page_count", 1),
-                "file_size_kb": result.get("file_size_kb", 0),
-            }
+        return {
+            "success": True,
+            "output_path": pdf_path,
+            "format": "pdf",
+            "page_count": result.get("page_count", 1),
+            "file_size_kb": result.get("file_size_kb", 0),
+        }
 
     async def preview_pdf(
         self,

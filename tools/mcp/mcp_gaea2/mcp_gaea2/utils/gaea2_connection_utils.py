@@ -41,13 +41,12 @@ def normalize_connection(connection: Dict[str, Any]) -> Dict[str, Any]:
                 "to_port": to_info.get("port", "In"),
             }
         # Handle simple format (just IDs)
-        else:
-            return {
-                "from_node": from_info,
-                "to_node": to_info,
-                "from_port": connection.get("from_port", "Out"),
-                "to_port": connection.get("to_port", "In"),
-            }
+        return {
+            "from_node": from_info,
+            "to_node": to_info,
+            "from_port": connection.get("from_port", "Out"),
+            "to_port": connection.get("to_port", "In"),
+        }
 
     # If we can't normalize, return as-is
     return connection

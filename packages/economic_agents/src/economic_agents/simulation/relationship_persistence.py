@@ -232,14 +232,13 @@ class RelationshipPersistence:
         # Consider interaction count
         if profile.interaction_count < 2:
             return "new"
-        elif score < 0.3:
+        if score < 0.3:
             return "strained"
-        elif score < 0.5:
+        if score < 0.5:
             return "building"
-        elif score < 0.7:
+        if score < 0.7:
             return "established"
-        else:
-            return "strong"
+        return "strong"
 
     def check_spam_pattern(self, investor_id: str, agent_id: str) -> bool:
         """Check if agent is spamming investor.
@@ -367,7 +366,7 @@ class RelationshipPersistence:
                 f"Your proposals have consistently demonstrated quality (avg {profile.avg_proposal_quality:.2f}). "
                 "We're excited to continue working together."
             )
-        elif profile.trust_level == "established":
+        if profile.trust_level == "established":
             return (
                 f"We've had {profile.interaction_count} productive interactions so far. "
                 f"Your track record ({profile.approval_rate:.0%} approval rate) is solid. "
@@ -378,18 +377,17 @@ class RelationshipPersistence:
                 f"We're still getting to know each other ({profile.interaction_count} interactions). "
                 "Focus on addressing previous feedback to strengthen our relationship."
             )
-        elif profile.trust_level == "strained":
+        if profile.trust_level == "strained":
             if self.check_spam_pattern(investor_id, agent_id):
                 return (
                     f"We've noticed {profile.interaction_count} submissions in a short period. "
                     "Please take time to incorporate feedback before resubmitting. "
                     "Quality over quantity is key to building trust."
                 )
-            else:
-                return (
-                    "Your recent proposals haven't met our criteria. "
-                    "We recommend carefully reviewing previous feedback and improving proposal quality "
-                    "before submitting again."
-                )
+            return (
+                "Your recent proposals haven't met our criteria. "
+                "We recommend carefully reviewing previous feedback and improving proposal quality "
+                "before submitting again."
+            )
         else:  # new
             return "This is our first interaction. We're excited to learn about your company and vision."

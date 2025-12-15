@@ -202,30 +202,29 @@ class Gaea2Validator:
                     "execution_time": result.get("execution_time", 0),
                     "output": result.get("stdout", "")[:500],  # First 500 chars of output
                 }
-            else:
-                # Parse the error to determine if it's a file format issue
-                stdout = result.get("stdout", "")
-                stderr = result.get("stderr", "")
-                error_msg = stdout + stderr
+            # Parse the error to determine if it's a file format issue
+            stdout = result.get("stdout", "")
+            stderr = result.get("stderr", "")
+            error_msg = stdout + stderr
 
-                # Common Gaea2 error patterns when files can't open
-                cant_open_patterns = [
-                    "Failed to load",
-                    "Invalid file",
-                    "Unable to parse",
-                    "Corrupt terrain file",
-                    "Unknown node type",
-                    "Property error",
-                ]
+            # Common Gaea2 error patterns when files can't open
+            cant_open_patterns = [
+                "Failed to load",
+                "Invalid file",
+                "Unable to parse",
+                "Corrupt terrain file",
+                "Unknown node type",
+                "Property error",
+            ]
 
-                is_format_error = any(pattern in error_msg for pattern in cant_open_patterns)
+            is_format_error = any(pattern in error_msg for pattern in cant_open_patterns)
 
-                return {
-                    "can_open": False,
-                    "tested": True,
-                    "is_format_error": is_format_error,
-                    "error": error_msg[:1000],  # First 1000 chars of error
-                }
+            return {
+                "can_open": False,
+                "tested": True,
+                "is_format_error": is_format_error,
+                "error": error_msg[:1000],  # First 1000 chars of error
+            }
 
         except Exception as e:
             self.logger.error("Error testing project: %s", e)

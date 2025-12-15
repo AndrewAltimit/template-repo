@@ -33,12 +33,11 @@ class VideoProcessor:
         size_str = size_str.upper()
         if size_str.endswith("GB"):
             return int(size_str[:-2]) * 1024 * 1024 * 1024
-        elif size_str.endswith("MB"):
+        if size_str.endswith("MB"):
             return int(size_str[:-2]) * 1024 * 1024
-        elif size_str.endswith("KB"):
+        if size_str.endswith("KB"):
             return int(size_str[:-2]) * 1024
-        else:
-            return int(size_str)
+        return int(size_str)
 
     @property
     def moviepy(self):

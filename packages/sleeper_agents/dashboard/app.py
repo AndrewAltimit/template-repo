@@ -330,7 +330,7 @@ def _init_gpu_client(category):
 
     if gpu_api_key:
         return get_gpu_client()
-    elif category == "🔨 Build":
+    if category == "🔨 Build":
         st.error("⚠️ GPU_API_KEY environment variable not set. Please configure the API key.")
         st.stop()
     return None

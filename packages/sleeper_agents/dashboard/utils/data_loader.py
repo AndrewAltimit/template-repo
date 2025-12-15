@@ -1160,16 +1160,15 @@ class DataLoader:
                 }
 
                 return consensus
-            else:
-                # No data available
-                return {
-                    "methods": {},
-                    "consensus_risk_score": 0.0,
-                    "agreement": 0.0,
-                    "overall_confidence": 0.0,
-                    "total_methods": 0,
-                    "risk_level": "UNKNOWN",
-                }
+            # No data available
+            return {
+                "methods": {},
+                "consensus_risk_score": 0.0,
+                "agreement": 0.0,
+                "overall_confidence": 0.0,
+                "total_methods": 0,
+                "risk_level": "UNKNOWN",
+            }
 
         except Exception as e:
             logger.error("Error fetching detection consensus: %s", e)

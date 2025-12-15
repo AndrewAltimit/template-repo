@@ -765,29 +765,28 @@ class Gaea2MCPServer(BaseMCPServer):
                     "encoding": "base64",
                     "data": encoded_data,
                 }
-            else:
-                # For raw, we'll return the file as JSON string (terrain files are JSON)
-                try:
-                    json_data = json.loads(file_data.decode("utf-8"))
-                    return {
-                        "success": True,
-                        "filename": os.path.basename(file_path),
-                        "size": file_stats.st_size,
-                        "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
-                        "encoding": "raw",
-                        "data": json_data,
-                    }
-                except Exception:
-                    # If not JSON, still return base64
-                    encoded_data = base64.b64encode(file_data).decode("utf-8")
-                    return {
-                        "success": True,
-                        "filename": os.path.basename(file_path),
-                        "size": file_stats.st_size,
-                        "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
-                        "encoding": "base64",
-                        "data": encoded_data,
-                    }
+            # For raw, we'll return the file as JSON string (terrain files are JSON)
+            try:
+                json_data = json.loads(file_data.decode("utf-8"))
+                return {
+                    "success": True,
+                    "filename": os.path.basename(file_path),
+                    "size": file_stats.st_size,
+                    "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                    "encoding": "raw",
+                    "data": json_data,
+                }
+            except Exception:
+                # If not JSON, still return base64
+                encoded_data = base64.b64encode(file_data).decode("utf-8")
+                return {
+                    "success": True,
+                    "filename": os.path.basename(file_path),
+                    "size": file_stats.st_size,
+                    "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                    "encoding": "base64",
+                    "data": encoded_data,
+                }
 
         except Exception as e:
             self.logger.error("Failed to download file: %s", str(e))

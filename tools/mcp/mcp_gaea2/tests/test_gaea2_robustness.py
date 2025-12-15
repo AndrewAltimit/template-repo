@@ -148,9 +148,8 @@ async def test_workflow_validation():
             print(f"  - {fix}")
 
         return result["workflow"]
-    else:
-        print(f"Error: {result['error']}")
-        return None
+    print(f"Error: {result['error']}")
+    return None
 
 
 @pytest.mark.asyncio

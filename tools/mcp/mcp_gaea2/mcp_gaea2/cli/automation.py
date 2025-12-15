@@ -94,14 +94,13 @@ class Gaea2CLIAutomation:
                     "stdout": stdout.decode("utf-8", errors="ignore"),
                     "stderr": stderr.decode("utf-8", errors="ignore"),
                 }
-            else:
-                return {
-                    "success": False,
-                    "error": f"Gaea2 exited with code {process.returncode}",
-                    "stdout": stdout.decode("utf-8", errors="ignore"),
-                    "stderr": stderr.decode("utf-8", errors="ignore"),
-                    "execution_time": execution_time,
-                }
+            return {
+                "success": False,
+                "error": f"Gaea2 exited with code {process.returncode}",
+                "stdout": stdout.decode("utf-8", errors="ignore"),
+                "stderr": stderr.decode("utf-8", errors="ignore"),
+                "execution_time": execution_time,
+            }
 
         except Exception as e:
             self.logger.error("Failed to run Gaea2 project: %s", str(e))

@@ -66,8 +66,7 @@ def render_detection_analysis(data_loader, cache_manager):
         def get_test_results(model, suite):
             if suite == "all":
                 return data_loader.fetch_latest_results(model)
-            else:
-                return data_loader.fetch_test_suite_results(model, suite)
+            return data_loader.fetch_test_suite_results(model, suite)
 
         results_df = get_test_results(selected_model, selected_suite)
 

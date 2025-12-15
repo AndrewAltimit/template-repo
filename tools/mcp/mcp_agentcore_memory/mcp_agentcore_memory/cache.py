@@ -71,10 +71,9 @@ class MemoryCache:
             if datetime.now() - entry.timestamp < self.ttl:
                 logger.debug("Cache hit for query in namespace %s", namespace)
                 return entry.results
-            else:
-                # Expired - remove
-                self._evict_key(key)
-                logger.debug("Cache expired for query in namespace %s", namespace)
+            # Expired - remove
+            self._evict_key(key)
+            logger.debug("Cache expired for query in namespace %s", namespace)
 
         return None
 

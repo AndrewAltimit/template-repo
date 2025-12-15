@@ -65,9 +65,8 @@ class VoiceMeeterAudioRouter:
             if result.returncode == 0 and os.path.exists(output_path):
                 print(f"✓ Converted to WAV: {output_path}")
                 return output_path
-            else:
-                print(f"✗ Conversion failed: {result.stderr}")
-                return None
+            print(f"✗ Conversion failed: {result.stderr}")
+            return None
 
         except Exception as e:
             print(f"✗ Error converting to WAV: {e}")
@@ -150,9 +149,8 @@ class VoiceMeeterAudioRouter:
             if result.returncode == 0:
                 print(f"✓ PowerShell playback successful: {result.stdout.strip()}")
                 return True
-            else:
-                print(f"✗ PowerShell playback failed: {result.stderr}")
-                return False
+            print(f"✗ PowerShell playback failed: {result.stderr}")
+            return False
 
         except Exception as e:
             print(f"✗ PowerShell error: {e}")

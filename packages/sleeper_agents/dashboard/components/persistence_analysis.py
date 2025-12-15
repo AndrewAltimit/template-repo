@@ -272,7 +272,7 @@ def _fetch_mock_persistence_data(model_name: str) -> Dict[str, Any]:
             },
             "consistency_scores": {"sft": 0.89, "rl": 0.85, "adversarial": 0.95},
         }
-    elif risk_level == "MODERATE":  # Moderate persistence
+    if risk_level == "MODERATE":  # Moderate persistence
         return {
             "model": model_name,
             "training_methods": {

@@ -279,9 +279,8 @@ class AudioRoutingTester:
             file_size = os.path.getsize(test_file)
             logger.info("[OK] Test audio created: %s (%s bytes)", test_file, file_size)
             return test_file
-        else:
-            logger.error("[X] Failed to create test audio")
-            return None
+        logger.error("[X] Failed to create test audio")
+        return None
 
     def test_audio_playback(self, audio_file: str):
         """Test different audio playback methods."""

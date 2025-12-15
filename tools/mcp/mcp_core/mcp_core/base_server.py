@@ -402,10 +402,9 @@ class BaseMCPServer(ABC):
             # Process based on response mode
             if response_mode == "stream":
                 return await self._handle_streaming_response(body, session_id)
-            elif isinstance(body, list):
+            if isinstance(body, list):
                 return await self._handle_batch_request(body, session_id)
-            else:
-                return await self._handle_single_request(body, session_id, is_init_request)
+            return await self._handle_single_request(body, session_id, is_init_request)
 
         except Exception as e:
             self.logger.error("Messages endpoint error: %s", e)

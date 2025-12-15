@@ -43,7 +43,7 @@ class Executive(SubAgent):
                 ],
                 "timeframe": timeframe,
             }
-        elif self.role_title == "CTO":
+        if self.role_title == "CTO":
             return {
                 "objective": "Build scalable, reliable technical infrastructure",
                 "key_results": [
@@ -233,13 +233,13 @@ class Executive(SubAgent):
                 {"risk": "Team attrition", "mitigation": "Strong culture, equity, growth opportunities"},
                 {"risk": "Funding gap", "mitigation": "18mo runway target, investor relationships"},
             ]
-        elif self.role_title == "CTO":
+        if self.role_title == "CTO":
             return [
                 {"risk": "Technical debt", "mitigation": "20% time for refactoring & debt paydown"},
                 {"risk": "Scalability issues", "mitigation": "Load testing, monitoring, auto-scaling"},
                 {"risk": "Security breach", "mitigation": "Regular audits, pen testing, bug bounty"},
             ]
-        elif self.role_title == "CFO":
+        if self.role_title == "CFO":
             return [
                 {"risk": "Cash shortage", "mitigation": "Weekly burn monitoring, 3mo early warning"},
                 {"risk": "Revenue miss", "mitigation": "Conservative forecasting, multiple revenue streams"},

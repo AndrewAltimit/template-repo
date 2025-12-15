@@ -76,9 +76,8 @@ class StorageClient:
                 data = response.json()
                 url = data.get("url")
                 return url if isinstance(url, str) else None
-            else:
-                logger.error("Upload failed: %s - %s", response.status_code, response.text)
-                return None
+            logger.error("Upload failed: %s - %s", response.status_code, response.text)
+            return None
 
         except RequestException as e:
             logger.error("Upload error: %s", e)
@@ -103,9 +102,8 @@ class StorageClient:
                 data = response.json()
                 url = data.get("url")
                 return url if isinstance(url, str) else None
-            else:
-                logger.error("Upload failed: %s - %s", response.status_code, response.text)
-                return None
+            logger.error("Upload failed: %s - %s", response.status_code, response.text)
+            return None
 
         except RequestException as e:
             logger.error("Upload error: %s", e)
@@ -149,9 +147,8 @@ class StorageClient:
 
                 logger.info("Downloaded to: %s", path)
                 return True
-            else:
-                logger.error("Download failed: %s", response.status_code)
-                return False
+            logger.error("Download failed: %s", response.status_code)
+            return False
 
         except RequestException as e:
             logger.error("Download error: %s", e)
