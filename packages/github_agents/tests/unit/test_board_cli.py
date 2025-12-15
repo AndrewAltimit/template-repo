@@ -370,7 +370,7 @@ class TestCmdInfo:
 
     @pytest.mark.asyncio
     @patch("github_agents.board.cli.load_board_manager")
-    async def test_cmd_info_success(self, mock_load, capsys, mock_issue, _mock_claim):
+    async def test_cmd_info_success(self, mock_load, capsys, mock_issue, mock_claim):  # pylint: disable=unused-argument
         """Test cmd_info success."""
         manager = MagicMock()
         manager.initialize = AsyncMock()
