@@ -137,45 +137,42 @@ case "$STAGE" in
     # Use ruff for import sorting (aligns with pre-commit hooks)
     docker-compose run --rm python-ci ruff check --select=I . 2>&1 | tee -a lint-output.txt || true
 
-    # Ruff - fast linter (10-100x faster than flake8)
+    # Ruff - fast linter (10-100x faster than flake8) - informational only
     echo "🔍 Running Ruff (fast linter)..."
     docker-compose run --rm python-ci ruff check . --output-format=grouped 2>&1 | tee -a lint-output.txt || true
     if [ -f lint-output.txt ]; then
-      # Extract the actual error count from "Found X errors" line (not just count matching lines)
+      # Extract the actual error count from "Found X errors" line (informational)
       ruff_issues=$(grep -oP "Found \K[0-9]+" lint-output.txt 2>/dev/null | head -1 || echo 0)
       ruff_issues=$(ensure_numeric "$ruff_issues")
-      warnings=$((warnings + ${ruff_issues:-0}))
+      echo "  Ruff found $ruff_issues issues (informational)"
     fi
 
-    # Flake8 linting
-    echo "🔍 Running Flake8..."
-    docker-compose run --rm python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics 2>&1 | tee -a lint-output.txt || errors=$((errors + 1))
+    # Flake8 critical errors only (syntax errors, undefined names, etc.)
+    echo "🔍 Running Flake8 (critical errors)..."
+    if ! docker-compose run --rm python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics 2>&1 | tee -a lint-output.txt; then
+      # Only count critical flake8 errors as hard failures
+      flake8_critical=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: (E9|F63|F7|F82)" lint-output.txt 2>/dev/null || echo 0)
+      flake8_critical=$(ensure_numeric "$flake8_critical")
+      errors=$((errors + ${flake8_critical:-0}))
+    fi
+
+    # Flake8 style check (informational, doesn't fail build)
+    echo "🔍 Running Flake8 (style check)..."
     docker-compose run --rm python-ci flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics 2>&1 | tee -a lint-output.txt
-
-    # Count Flake8 issues
-    if [ -f lint-output.txt ]; then
-      flake8_errors=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: [EF][0-9]+" lint-output.txt 2>/dev/null || echo 0)
-      flake8_warnings=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: [WC][0-9]+" lint-output.txt 2>/dev/null || echo 0)
-      # Ensure values are numeric
-      flake8_errors=$(ensure_numeric "$flake8_errors")
-      flake8_warnings=$(ensure_numeric "$flake8_warnings")
-      errors=$((errors + ${flake8_errors:-0}))
-      warnings=$((warnings + ${flake8_warnings:-0}))
-    fi
 
     # Pylint (explicitly use pyproject.toml config for disabled warnings)
     echo "🔍 Running Pylint..."
     docker-compose run --rm python-ci bash -c 'find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | xargs pylint --rcfile=pyproject.toml --output-format=parseable --exit-zero' 2>&1 | tee -a lint-output.txt || true
 
-    # Count Pylint issues
+    # Count Pylint issues (informational only - baseline check determines pass/fail)
     if [ -f lint-output.txt ]; then
       pylint_errors=$(grep -cE ":[0-9]+: \[E[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
       pylint_warnings=$(grep -cE ":[0-9]+: \[W[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
-      # Ensure values are numeric
+      # Ensure values are numeric (for reporting only)
       pylint_errors=$(ensure_numeric "$pylint_errors")
       pylint_warnings=$(ensure_numeric "$pylint_warnings")
-      errors=$((errors + ${pylint_errors:-0}))
-      warnings=$((warnings + ${pylint_warnings:-0}))
+      # Note: Not adding to errors/warnings counts - baseline check handles this
+      echo "  Pylint found $pylint_errors E-codes, $pylint_warnings W-codes (checked against baseline)"
     fi
 
     # Type checking with MyPy
@@ -228,19 +225,16 @@ case "$STAGE" in
       fi
     fi
 
-    # Count all issues from lint-output.txt
+    # Report total issues from lint-output.txt (informational only)
+    # Baseline check determines pass/fail, not these counts
     if [ -f lint-output.txt ]; then
       total_errors=$(grep -cE "(error:|ERROR:|Error:)" lint-output.txt 2>/dev/null || echo 0)
       total_warnings=$(grep -cE "(warning:|WARNING:|Warning:)" lint-output.txt 2>/dev/null || echo 0)
       # Ensure values are numeric
       total_errors=$(ensure_numeric "$total_errors")
       total_warnings=$(ensure_numeric "$total_warnings")
-    else
-      total_errors=0
-      total_warnings=0
+      echo "  Total error/warning strings in output: $total_errors errors, $total_warnings warnings (informational)"
     fi
-    errors=$((errors + total_errors))
-    warnings=$((warnings + total_warnings))
 
     # Check against lint baseline to prevent regressions
     echo ""
