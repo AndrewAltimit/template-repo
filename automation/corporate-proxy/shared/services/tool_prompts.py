@@ -380,7 +380,7 @@ The tools are your ONLY way to interact with the system. Use the EXACT formats s
 1. **YOU MUST USE TOOLS** for ALL of these tasks:
    - Reading files: Use read_file(absolute_path="...") **NOTE: Uses absolute_path!**
    - Writing files: Use write_file(file_path="...", content="...")
-   - Editing files: Use edit(file_path="..., old_string="...", new_string="...")
+   - Editing files: Use edit(file_path="...", old_string="...", new_string="...")
    - Running commands: Use run_shell_command(command="...")
    - Listing directories: Use list_directory(path="...")
    - Searching code: Use grep(pattern="...", path="...")
