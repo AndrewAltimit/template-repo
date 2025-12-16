@@ -37,7 +37,7 @@ MAX_RETRIES = 5  # For rate limiting on free tier (3 preview may have stricter l
 # Review constraints
 MAX_REVIEW_WORDS = 500  # Target word limit for reviews
 CONDENSATION_THRESHOLD = 600  # Trigger condensation if above this
-MAX_DIFF_CHARS = 500000  # Max diff size before truncation (Gemini 1.5 Pro supports 1M+ tokens)
+MAX_DIFF_CHARS = 1500000  # Max diff size before truncation (Gemini supports 1M+ token context)
 
 
 def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETRIES) -> Tuple[str, str]:
