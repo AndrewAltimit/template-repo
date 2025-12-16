@@ -83,7 +83,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "unit: marks unit tests")
 
 
-def pytest_collection_modifyitems(_config, items):
+def pytest_collection_modifyitems(config, items):  # noqa: ARG001  # pylint: disable=unused-argument
     """Modify test items after collection."""
     # Automatically mark async tests
     for item in items:
@@ -92,7 +92,7 @@ def pytest_collection_modifyitems(_config, items):
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, _call):
+def pytest_runtest_makereport(item, call):  # noqa: ARG001  # pylint: disable=unused-argument
     """Hook to capture test results for debugging.
 
     This helps identify which tests are flaky by logging their outcomes.
