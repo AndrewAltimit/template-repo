@@ -23,120 +23,139 @@ def create_test_tone():
         return None
 
 
-def test_vlc_methods(audio_file):
-    """Test different VLC invocation methods."""
+def find_vlc_executable():
+    """Find VLC executable in standard Windows locations.
 
-    # Find VLC
+    Returns:
+        str or None: Path to VLC executable if found, None otherwise.
+    """
     vlc_paths = [r"C:\Program Files\VideoLAN\VLC\vlc.exe", r"C:\Program Files (x86)\VideoLAN\VLC\vlc.exe"]
 
-    vlc_exe = None
     for path in vlc_paths:
         if os.path.exists(path):
-            vlc_exe = path
-            print(f"[OK] Found VLC at: {vlc_exe}")
-            break
+            print(f"[OK] Found VLC at: {path}")
+            return path
 
+    print("[ERROR] VLC not found in standard locations")
+    return None
+
+
+def run_vlc_command(cmd, show_stderr=True):
+    """Execute a VLC command and report results.
+
+    Args:
+        cmd: Command list to execute
+        show_stderr: Whether to display stderr output
+    """
+    print(f"   Command: {' '.join(cmd)}")
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True, check=False)
+        print(f"   Exit code: {result.returncode}")
+        if show_stderr and result.stderr:
+            print(f"   Stderr: {result.stderr[:200]}")
+        print(f"   Result: {'[OK]' if result.returncode == 0 else '[FAILED]'}")
+    except subprocess.TimeoutExpired:
+        print("   Result: [TIMEOUT]")
+    except Exception as e:
+        print(f"   Result: [ERROR] {e}")
+
+
+def test_minimal_arguments(vlc_exe, audio_file):
+    """Test VLC with minimal arguments.
+
+    Args:
+        vlc_exe: Path to VLC executable
+        audio_file: Path to audio file to play
+    """
+    print("\n1. Testing minimal VLC arguments:")
+    cmd = [vlc_exe, audio_file, "--play-and-exit"]
+    run_vlc_command(cmd)
+
+
+def test_interface_disabled(vlc_exe, audio_file):
+    """Test VLC with dummy interface.
+
+    Args:
+        vlc_exe: Path to VLC executable
+        audio_file: Path to audio file to play
+    """
+    print("\n2. Testing with --intf dummy:")
+    cmd = [vlc_exe, audio_file, "--intf", "dummy", "--play-and-exit"]
+    run_vlc_command(cmd)
+
+
+def test_quit_command(vlc_exe, audio_file):
+    """Test VLC with vlc://quit.
+
+    Args:
+        vlc_exe: Path to VLC executable
+        audio_file: Path to audio file to play
+    """
+    print("\n3. Testing with vlc://quit:")
+    cmd = [vlc_exe, audio_file, "--intf", "dummy", "--play-and-exit", "vlc://quit"]
+    run_vlc_command(cmd)
+
+
+def test_windows_start_command(vlc_exe, audio_file):
+    """Test VLC using Windows start command.
+
+    Args:
+        vlc_exe: Path to VLC executable
+        audio_file: Path to audio file to play
+    """
+    print("\n4. Testing with Windows start command:")
+    cmd = ["cmd", "/c", "start", "/wait", "/b", vlc_exe, audio_file, "--play-and-exit", "--intf=dummy"]
+    run_vlc_command(cmd, show_stderr=False)
+
+
+def test_directsound_output(vlc_exe, audio_file):
+    """Test VLC with DirectSound audio output.
+
+    Args:
+        vlc_exe: Path to VLC executable
+        audio_file: Path to audio file to play
+    """
+    print("\n5. Testing with DirectSound output:")
+    cmd = [vlc_exe, audio_file, "--aout", "directsound", "--play-and-exit", "--intf", "dummy"]
+    run_vlc_command(cmd)
+
+
+def test_waveout_output(vlc_exe, audio_file):
+    """Test VLC with WaveOut audio output.
+
+    Args:
+        vlc_exe: Path to VLC executable
+        audio_file: Path to audio file to play
+    """
+    print("\n6. Testing with WaveOut output:")
+    cmd = [vlc_exe, audio_file, "--aout", "waveout", "--play-and-exit", "--intf", "dummy"]
+    run_vlc_command(cmd)
+
+
+def test_vlc_methods(audio_file):
+    """Test different VLC invocation methods.
+
+    Args:
+        audio_file: Path to audio file to play
+
+    Returns:
+        bool: True if VLC was found, False otherwise
+    """
+    vlc_exe = find_vlc_executable()
     if not vlc_exe:
-        print("[ERROR] VLC not found in standard locations")
         return False
 
     print("\n" + "=" * 60)
     print("TESTING VLC PLAYBACK METHODS")
     print("=" * 60)
 
-    # Method 1: Minimal arguments
-    print("\n1. Testing minimal VLC arguments:")
-    cmd = [vlc_exe, audio_file, "--play-and-exit"]
-    print(f"   Command: {' '.join(cmd)}")
-
-    try:
-        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True, check=False)
-        print(f"   Exit code: {result.returncode}")
-        if result.stderr:
-            print(f"   Stderr: {result.stderr[:200]}")
-        print(f"   Result: {'[OK]' if result.returncode == 0 else '[FAILED]'}")
-    except subprocess.TimeoutExpired:
-        print("   Result: [TIMEOUT]")
-    except Exception as e:
-        print(f"   Result: [ERROR] {e}")
-
-    # Method 2: With interface disabled
-    print("\n2. Testing with --intf dummy:")
-    cmd = [vlc_exe, audio_file, "--intf", "dummy", "--play-and-exit"]
-    print(f"   Command: {' '.join(cmd)}")
-
-    try:
-        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True, check=False)
-        print(f"   Exit code: {result.returncode}")
-        if result.stderr:
-            print(f"   Stderr: {result.stderr[:200]}")
-        print(f"   Result: {'[OK]' if result.returncode == 0 else '[FAILED]'}")
-    except subprocess.TimeoutExpired:
-        print("   Result: [TIMEOUT]")
-    except Exception as e:
-        print(f"   Result: [ERROR] {e}")
-
-    # Method 3: With quit command
-    print("\n3. Testing with vlc://quit:")
-    cmd = [vlc_exe, audio_file, "--intf", "dummy", "--play-and-exit", "vlc://quit"]
-    print(f"   Command: {' '.join(cmd)}")
-
-    try:
-        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True, check=False)
-        print(f"   Exit code: {result.returncode}")
-        if result.stderr:
-            print(f"   Stderr: {result.stderr[:200]}")
-        print(f"   Result: {'[OK]' if result.returncode == 0 else '[FAILED]'}")
-    except subprocess.TimeoutExpired:
-        print("   Result: [TIMEOUT]")
-    except Exception as e:
-        print(f"   Result: [ERROR] {e}")
-
-    # Method 4: Using start command (Windows)
-    print("\n4. Testing with Windows start command:")
-    cmd = ["cmd", "/c", "start", "/wait", "/b", vlc_exe, audio_file, "--play-and-exit", "--intf=dummy"]
-    print(f"   Command: {' '.join(cmd)}")
-
-    try:
-        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True, shell=False, check=False)
-        print(f"   Exit code: {result.returncode}")
-        print(f"   Result: {'[OK]' if result.returncode == 0 else '[FAILED]'}")
-    except subprocess.TimeoutExpired:
-        print("   Result: [TIMEOUT]")
-    except Exception as e:
-        print(f"   Result: [ERROR] {e}")
-
-    # Method 5: Direct audio output specification
-    print("\n5. Testing with DirectSound output:")
-    cmd = [vlc_exe, audio_file, "--aout", "directsound", "--play-and-exit", "--intf", "dummy"]
-    print(f"   Command: {' '.join(cmd)}")
-
-    try:
-        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True, check=False)
-        print(f"   Exit code: {result.returncode}")
-        if result.stderr:
-            print(f"   Stderr: {result.stderr[:200]}")
-        print(f"   Result: {'[OK]' if result.returncode == 0 else '[FAILED]'}")
-    except subprocess.TimeoutExpired:
-        print("   Result: [TIMEOUT]")
-    except Exception as e:
-        print(f"   Result: [ERROR] {e}")
-
-    # Method 6: WaveOut audio output
-    print("\n6. Testing with WaveOut output:")
-    cmd = [vlc_exe, audio_file, "--aout", "waveout", "--play-and-exit", "--intf", "dummy"]
-    print(f"   Command: {' '.join(cmd)}")
-
-    try:
-        result = subprocess.run(cmd, capture_output=True, timeout=5, text=True, check=False)
-        print(f"   Exit code: {result.returncode}")
-        if result.stderr:
-            print(f"   Stderr: {result.stderr[:200]}")
-        print(f"   Result: {'[OK]' if result.returncode == 0 else '[FAILED]'}")
-    except subprocess.TimeoutExpired:
-        print("   Result: [TIMEOUT]")
-    except Exception as e:
-        print(f"   Result: [ERROR] {e}")
+    test_minimal_arguments(vlc_exe, audio_file)
+    test_interface_disabled(vlc_exe, audio_file)
+    test_quit_command(vlc_exe, audio_file)
+    test_windows_start_command(vlc_exe, audio_file)
+    test_directsound_output(vlc_exe, audio_file)
+    test_waveout_output(vlc_exe, audio_file)
 
     return True
 
