@@ -679,10 +679,20 @@ If no concrete issues were found, respond with: `NO_ISSUES_FOUND`
                 if not line:
                     continue
                 # Check if any changed file is mentioned in this issue line
-                # Use strict matching: full path must appear in line, or line must
-                # contain a path that ends with the changed file (for relative paths)
-                # Avoid loose basename matching (e.g., "server.py" matches many files)
-                file_in_diff = any(changed_file in line or line.startswith(changed_file) for changed_file in changed_files)
+                # Issue format: FILE:LINE - [SEVERITY] Description
+                # Use boundary-aware matching to avoid false positives like
+                # "utils.py" matching "test_utils.py"
+                file_in_diff = False
+                for changed_file in changed_files:
+                    # Check for exact path match followed by colon (line number)
+                    if f"{changed_file}:" in line:
+                        file_in_diff = True
+                        break
+                    # Check for path ending with the changed file at a boundary
+                    # (preceded by / or start of line)
+                    if line.startswith(changed_file) or f"/{changed_file}" in line:
+                        file_in_diff = True
+                        break
                 if file_in_diff:
                     filtered_lines.append(line)
                 else:
