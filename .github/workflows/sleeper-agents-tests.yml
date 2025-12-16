@@ -150,7 +150,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: residual-analysis-${{ github.run_id }}
+          name: residual-analysis-${{ github.run_id }}-${{ github.run_attempt }}
           path: evaluation_results/residual_analysis_results.json
 
   sleeper-agents-unit-tests:
@@ -253,7 +253,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report-${{ github.run_id }}
+          name: coverage-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: evaluation_results/coverage.xml
 
   sleeper-agents-api-test:
@@ -352,7 +352,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cpu-test-results-${{ github.run_id }}
+          name: cpu-test-results-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             evaluation_results/cpu_test_results_*.json
             cpu_test_results_*.json
