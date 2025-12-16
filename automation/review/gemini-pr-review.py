@@ -657,9 +657,10 @@ If no concrete issues were found, respond with: `NO_ISSUES_FOUND`
                 if not line:
                     continue
                 # Check if any changed file is mentioned in this issue line
-                file_in_diff = any(
-                    changed_file in line or changed_file.split("/")[-1] in line for changed_file in changed_files
-                )
+                # Use strict matching: full path must appear in line, or line must
+                # contain a path that ends with the changed file (for relative paths)
+                # Avoid loose basename matching (e.g., "server.py" matches many files)
+                file_in_diff = any(changed_file in line or line.startswith(changed_file) for changed_file in changed_files)
                 if file_in_diff:
                     filtered_lines.append(line)
                 else:
