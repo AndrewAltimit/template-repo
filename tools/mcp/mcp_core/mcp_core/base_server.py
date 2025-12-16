@@ -40,7 +40,7 @@ class ToolResponse(BaseModel):
     error: Optional[str] = None
 
 
-class BaseMCPServer(ABC):
+class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
     """Base class for all MCP servers"""
 
     def __init__(self, name: str, version: str = "1.0.0", port: int = 8000):
