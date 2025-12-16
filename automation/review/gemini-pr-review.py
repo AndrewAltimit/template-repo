@@ -562,15 +562,19 @@ def get_recent_pr_comments(pr_number: str) -> str:
         return ""
 
 
-def extract_previous_issues(pr_number: str) -> Tuple[str, str]:
+def extract_previous_issues(pr_number: str, changed_files: Optional[List[str]] = None) -> Tuple[str, str]:
     """Extract specific issues from previous Gemini reviews for verification.
 
     Uses Flash model to parse previous Gemini review comments and extract
     a structured list of issues that were flagged. This list is then provided
     to the main review to check if issues are still present or resolved.
 
+    Issues are filtered to only include files that are actually in the current
+    diff - issues for files not in the diff cannot be verified and are dropped.
+
     Args:
         pr_number: The PR number
+        changed_files: List of files changed in the PR (for filtering)
 
     Returns:
         Tuple of (issues_list, model_used) or ("", NO_MODEL) if no reviews found
@@ -642,6 +646,33 @@ If no concrete issues were found, respond with: `NO_ISSUES_FOUND`
             # Model returned conversational text without actual issues
             print("No valid issue format found in response - treating as no issues")
             return "", model_used
+
+        # Filter issues to only include files actually in the diff
+        # Issues for files not in the diff cannot be verified
+        if changed_files:
+            filtered_lines = []
+            dropped_count = 0
+            for line in result.strip().split("\n"):
+                line = line.strip()
+                if not line:
+                    continue
+                # Check if any changed file is mentioned in this issue line
+                file_in_diff = any(
+                    changed_file in line or changed_file.split("/")[-1] in line for changed_file in changed_files
+                )
+                if file_in_diff:
+                    filtered_lines.append(line)
+                else:
+                    dropped_count += 1
+
+            if dropped_count > 0:
+                print(f"Dropped {dropped_count} previous issues for files not in current diff")
+
+            if not filtered_lines:
+                print("No verifiable issues remain after filtering")
+                return "", model_used
+
+            result = "\n".join(filtered_lines)
 
         print("Extracted previous issues for verification")
         return result.strip(), model_used
@@ -773,9 +804,10 @@ def analyze_pr(
     recent_comments = get_recent_pr_comments(pr_info["number"])
 
     # For incremental reviews, extract specific issues from previous Gemini reviews
+    # Only include issues for files actually in the diff (others can't be verified)
     previous_issues = ""
     if is_incremental:
-        previous_issues, _ = extract_previous_issues(pr_info["number"])
+        previous_issues, _ = extract_previous_issues(pr_info["number"], changed_files)
 
     # For GitHub workflow files, include more complete content
     workflow_contents = {}
