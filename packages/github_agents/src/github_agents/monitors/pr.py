@@ -530,8 +530,7 @@ Requirements:
 
         # Post consolidated summary if requested
         if self.comment_style == "summary" and review_results:
-            # TODO: Implement _post_consolidated_reviews for PRs
-            pass
+            self._post_consolidated_reviews(review_results, "pr")
 
     async def _review_single_pr_async(self, pr: Dict) -> Optional[Dict]:
         """Review a single PR without making changes."""
@@ -608,6 +607,23 @@ Do not provide implementation code. Focus on review feedback only."""
                 logger.error("Failed to get review from %s: %s", agent_name, e)
 
         return reviews
+
+    def _post_consolidated_reviews(self, review_results: Dict, item_type: str) -> None:
+        """Post consolidated review summary."""
+        for item_number, reviews in review_results.items():
+            if not reviews:
+                continue
+
+            # Build consolidated comment
+            comment = f"{self.agent_tag} Consolidated Review\n\n"
+
+            for agent_name, review in reviews.items():
+                comment += f"## {agent_name.title()} Review\n\n{review}\n\n---\n\n"
+
+            comment += "*This is an automated review. No files were modified.*"
+
+            # Post the consolidated comment
+            self._post_comment(item_number, comment, item_type)
 
 
 def main() -> None:
