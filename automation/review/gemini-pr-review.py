@@ -12,6 +12,7 @@ Key features:
 - Shows full diff context with NEW markers for updated PRs
 """
 
+import ast
 import json
 import os
 from pathlib import Path
@@ -23,6 +24,27 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 import yaml
+
+
+def _file_has_valid_syntax(filepath: str) -> bool:
+    """Check if a Python file has valid syntax.
+
+    Args:
+        filepath: Path to the Python file to check
+
+    Returns:
+        True if the file has valid syntax or is not a Python file, False if syntax error
+    """
+    if not filepath.endswith(".py"):
+        return True  # Non-Python files - can't validate, assume OK
+
+    try:
+        with open(filepath, encoding="utf-8") as f:
+            ast.parse(f.read())
+        return True
+    except (SyntaxError, FileNotFoundError, UnicodeDecodeError):
+        return False
+
 
 # Model constants
 # Using explicit model with API key to avoid 404 errors and OAuth hangs
@@ -673,7 +695,35 @@ If no concrete issues were found, respond with: `NO_ISSUES_FOUND`
                 print("No verifiable issues remain after filtering")
                 return "", model_used
 
-            result = "\n".join(filtered_lines)
+            # Second pass: validate syntax error claims
+            # If an issue claims "syntax error" but the file parses fine, it's a false positive
+            syntax_keywords = ["syntax error", "syntax:", "syntaxerror", "invalid syntax"]
+            validated_lines = []
+            syntax_fp_count = 0
+            for line in filtered_lines:
+                line_lower = line.lower()
+                is_syntax_claim = any(kw in line_lower for kw in syntax_keywords)
+
+                if is_syntax_claim:
+                    # Extract file path from the issue line
+                    # Format: FILE:LINE - [SEVERITY] Description
+                    file_match = re.match(r"([\w\-\./]+\.py):\d+", line)
+                    if file_match:
+                        claimed_file = file_match.group(1)
+                        if _file_has_valid_syntax(claimed_file):
+                            # File parses fine - this is a false positive
+                            syntax_fp_count += 1
+                            continue  # Skip this false positive
+                validated_lines.append(line)
+
+            if syntax_fp_count > 0:
+                print(f"Dropped {syntax_fp_count} false positive syntax error claims (files parse correctly)")
+
+            if not validated_lines:
+                print("No verifiable issues remain after syntax validation")
+                return "", model_used
+
+            result = "\n".join(validated_lines)
 
         print("Extracted previous issues for verification")
         return result.strip(), model_used
