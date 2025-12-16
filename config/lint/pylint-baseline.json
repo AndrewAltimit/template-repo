@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "Pylint warning baseline for PR regression detection",
-  "last_updated": "2025-12-15",
+  "last_updated": "2025-12-16",
   "tracked_only": true,
-  "total_allowed": 0,
+  "total_allowed": 11,
   "categories": {
     "E0401": {
       "count": 0,
@@ -54,6 +54,16 @@
       "count": 0,
       "description": "invalid-name",
       "reason": "Disabled in pyproject.toml - script names, constants, statistical variables"
+    },
+    "R0904": {
+      "count": 0,
+      "description": "too-many-public-methods",
+      "reason": "Fixed via inline disable on test classes with comprehensive coverage"
+    },
+    "W0511": {
+      "count": 11,
+      "description": "fixme (TODO/FIXME comments)",
+      "reason": "Tracked to prevent adding more TODOs - remaining 11 are valid future work items"
     }
   },
   "notes": [
