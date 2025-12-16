@@ -65,8 +65,7 @@ class AIVisualAnalyzer:
 
             if result.returncode == 0:
                 return {"status": "success", "analysis": result.stdout, "timestamp": datetime.now().isoformat()}
-            else:
-                return {"status": "error", "error": result.stderr, "timestamp": datetime.now().isoformat()}
+            return {"status": "error", "error": result.stderr, "timestamp": datetime.now().isoformat()}
 
         except Exception as e:
             return {"status": "error", "error": str(e), "timestamp": datetime.now().isoformat()}
@@ -116,8 +115,7 @@ class AIVisualAnalyzer:
 
             if result.returncode == 0:
                 return {"status": "success", "analysis": result.stdout, "timestamp": datetime.now().isoformat()}
-            else:
-                return {"status": "error", "error": result.stderr, "timestamp": datetime.now().isoformat()}
+            return {"status": "error", "error": result.stderr, "timestamp": datetime.now().isoformat()}
 
         except Exception as e:
             return {"status": "error", "error": str(e), "timestamp": datetime.now().isoformat()}
@@ -323,11 +321,11 @@ class VisualTestRunner:
         self.analyzer = AIVisualAnalyzer()
         self.screenshots_dir = Path(__file__).parent / "screenshots"
 
-    def run_visual_tests(self, test_suite: str = "all") -> Dict[str, Any]:
+    def run_visual_tests(self, _test_suite: str = "all") -> Dict[str, Any]:
         """Run visual tests and analyze results.
 
         Args:
-            test_suite: Test suite to run
+            _test_suite: Test suite to run
 
         Returns:
             Test results with AI analysis

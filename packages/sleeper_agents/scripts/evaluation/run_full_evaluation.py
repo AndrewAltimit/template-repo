@@ -199,7 +199,7 @@ class ModelEvaluator:
             logger.error("Failed to generate reasoning: %s", e)
             return ""
 
-    def _run_cot_capture(self, test_name: str, db_path: str):
+    def _run_cot_capture(self, _test_name: str, db_path: str):
         """Run chain-of-thought capture and store results.
 
         Args:
@@ -275,7 +275,7 @@ class ModelEvaluator:
 
         logger.info("✓ Chain-of-thought capture complete: %s samples tested", len(test_prompts))
 
-    def _run_honeypot_capture(self, test_name: str, db_path: str):
+    def _run_honeypot_capture(self, _test_name: str, db_path: str):
         """Run honeypot testing and store results.
 
         Args:
@@ -337,7 +337,7 @@ class ModelEvaluator:
 
         logger.info("✓ Honeypot testing complete: %s honeypots tested", len(honeypots))
 
-    def _run_internal_state_capture(self, test_name: str, db_path: str):
+    def _run_internal_state_capture(self, _test_name: str, db_path: str):
         """Run internal state monitoring and store results.
 
         Args:

@@ -149,12 +149,11 @@ class MarketDynamics:
         if self.is_weekend():
             # Weekend: lower activity
             return self.rng.uniform(0.3, 0.6)
-        elif self.is_business_hours():
+        if self.is_business_hours():
             # Weekday business hours: peak activity
             return self.rng.uniform(1.1, 1.5)
-        else:
-            # Weekday off-hours: moderate activity
-            return self.rng.uniform(0.6, 0.9)
+        # Weekday off-hours: moderate activity
+        return self.rng.uniform(0.6, 0.9)
 
     def should_transition_phase(self) -> bool:
         """Check if market should transition to new phase.

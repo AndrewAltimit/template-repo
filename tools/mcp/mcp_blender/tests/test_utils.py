@@ -36,8 +36,7 @@ class TestClient:
                 if result is None:
                     return {"error": "Empty response from server"}
                 return dict(result.get("result", result))
-            else:
-                return {"error": f"HTTP {response.status_code}: {response.text}"}
+            return {"error": f"HTTP {response.status_code}: {response.text}"}
         except Exception as e:
             return {"error": str(e)}
 
@@ -64,8 +63,7 @@ class TestClient:
                 if status == "completed":
                     # Get the final result
                     return await self.call_tool("get_job_result", {"job_id": job_id})
-                else:
-                    return result
+                return result
 
             await asyncio.sleep(poll_interval)
             elapsed += poll_interval
@@ -172,7 +170,7 @@ class MockBlenderExecutor:
         """
         self.return_values[command] = value
 
-    async def execute(self, script: str, *args, **kwargs) -> Dict[str, Any]:
+    async def execute(self, script: str, *_args, **_kwargs) -> Dict[str, Any]:
         """Mock execute method.
 
         Args:

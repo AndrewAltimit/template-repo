@@ -41,9 +41,8 @@ def main():
             print(f"   Evaluation results: {stats['total_evaluation_results']}")
             print(f"   Rankings: {stats['total_rankings']}")
             return
-        else:
-            logger.info("Model count mismatch: %s in DB vs %s configured", stats["total_models"], len(MOCK_MODELS))
-            logger.info("Recreating mock database...")
+        logger.info("Model count mismatch: %s in DB vs %s configured", stats["total_models"], len(MOCK_MODELS))
+        logger.info("Recreating mock database...")
 
     else:
         logger.info("No mock database found, creating new one...")

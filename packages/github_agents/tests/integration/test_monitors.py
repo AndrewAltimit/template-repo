@@ -1,5 +1,7 @@
 """Tests for issue and PR monitors."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 from datetime import datetime, timedelta, timezone
 import json
 import os
@@ -94,7 +96,7 @@ class TestIssueMonitor:
     @patch.dict(os.environ, {"GITHUB_REPOSITORY": "test/repo"})
     @patch("github_agents.monitors.issue.get_github_token")
     @patch("github_agents.monitors.issue.run_gh_command")
-    def test_process_single_issue_with_trigger(self, mock_gh_command, mock_get_token):
+    def test_process_single_issue_with_trigger(self, _mock_gh_command, mock_get_token):
         """Test processing issue with valid trigger."""
         mock_get_token.return_value = "test-token"
         monitor = IssueMonitor()
@@ -237,7 +239,7 @@ class TestPRMonitor:
     @patch.dict(os.environ, {"GITHUB_REPOSITORY": "test/repo"})
     @patch("github_agents.monitors.pr.get_github_token")
     @patch("github_agents.monitors.pr.run_gh_command")
-    def test_process_single_pr_with_changes_requested(self, mock_gh_command, mock_get_token):
+    def test_process_single_pr_with_changes_requested(self, _mock_gh_command, mock_get_token):
         """Test processing PR with changes requested."""
         mock_get_token.return_value = "test-token"
         monitor = PRMonitor()

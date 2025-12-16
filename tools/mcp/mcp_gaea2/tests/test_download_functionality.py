@@ -6,6 +6,7 @@ import requests
 
 
 def test_download():
+    """Test terrain creation and download functionality"""
     server_url = "http://192.168.0.152:8007"
 
     # 1. Create a simple terrain

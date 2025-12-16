@@ -108,12 +108,12 @@ class MockCompute(ComputeInterface):
 
         return True
 
-    async def allocate_hours(self, hours: float, purpose: str = "") -> None:
+    async def allocate_hours(self, hours: float, _purpose: str = "") -> None:
         """Allocate compute hours for a task (convenience method for API).
 
         Args:
             hours: Number of hours to allocate
-            purpose: Purpose/description of allocation
+            _purpose: Purpose/description of allocation
 
         Raises:
             ValueError: If hours is invalid or insufficient hours available

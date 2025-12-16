@@ -16,7 +16,7 @@ import pytest
 
 # Check if botocore is available for AgentCore tests
 try:
-    import botocore  # noqa: F401
+    import botocore  # noqa: F401  # pylint: disable=unused-import
 
     HAS_BOTOCORE = True
 except ImportError:
@@ -131,7 +131,7 @@ class TestAgentCoreProvider:
         """Test that search_records requires a non-empty query."""
         from mcp_agentcore_memory.providers.agentcore import AgentCoreProvider
 
-        mock_client, mock_context = mock_aiobotocore_client
+        _mock_client, mock_context = mock_aiobotocore_client
         provider = AgentCoreProvider(mock_config)
 
         with pytest.raises(ValueError, match="query is required"):
@@ -201,7 +201,7 @@ class TestAgentCoreProvider:
         """Test that session_id > 100 chars is rejected."""
         from mcp_agentcore_memory.providers.agentcore import AgentCoreProvider
 
-        mock_client, mock_context = mock_aiobotocore_client
+        _mock_client, mock_context = mock_aiobotocore_client
         provider = AgentCoreProvider(mock_config)
 
         long_session_id = "x" * 101  # Exceeds 100 char limit

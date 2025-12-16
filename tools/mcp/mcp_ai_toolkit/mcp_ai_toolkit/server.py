@@ -320,7 +320,7 @@ class AIToolkitMCPServer(BaseMCPServer):
             self.logger.error("Unexpected error creating config: %s", e)
             return {"error": f"Failed to create config: {str(e)}"}
 
-    async def list_configs(self, **kwargs) -> Dict[str, Any]:
+    async def list_configs(self, **_kwargs) -> Dict[str, Any]:
         """List all training configurations"""
         configs = []
         for config_file in CONFIGS_PATH.glob("*.yaml"):
@@ -392,7 +392,7 @@ class AIToolkitMCPServer(BaseMCPServer):
             "path": str(dataset_path),
         }
 
-    async def list_datasets(self, **kwargs) -> Dict[str, Any]:
+    async def list_datasets(self, **_kwargs) -> Dict[str, Any]:
         """List all available datasets"""
         datasets = []
         for dataset_dir in DATASETS_PATH.iterdir():
@@ -531,7 +531,7 @@ class AIToolkitMCPServer(BaseMCPServer):
 
         return {"status": "error", "message": "Job not found"}
 
-    async def list_training_jobs(self, **kwargs) -> Dict[str, Any]:
+    async def list_training_jobs(self, **_kwargs) -> Dict[str, Any]:
         """List all training jobs"""
         jobs = []
         for job_id, job_data in self.training_jobs.items():
@@ -575,7 +575,7 @@ class AIToolkitMCPServer(BaseMCPServer):
 
         return {"error": "Model not found"}
 
-    async def list_exported_models(self, **kwargs) -> Dict[str, Any]:
+    async def list_exported_models(self, **_kwargs) -> Dict[str, Any]:
         """List exported models"""
         models = []
         for model_file in OUTPUTS_PATH.glob("*.safetensors"):
@@ -620,19 +620,18 @@ class AIToolkitMCPServer(BaseMCPServer):
                         "data": base64.b64encode(data).decode("utf-8"),
                         "size": len(data),
                     }
-                else:
-                    return {
-                        "status": "success",
-                        "model": model_name,
-                        "data": data,
-                        "size": len(data),
-                    }
+                return {
+                    "status": "success",
+                    "model": model_name,
+                    "data": data,
+                    "size": len(data),
+                }
             except Exception as e:
                 return {"error": f"Failed to read model: {str(e)}"}
 
         return {"error": "Model not found"}
 
-    async def get_system_stats(self, **kwargs) -> Dict[str, Any]:
+    async def get_system_stats(self, **_kwargs) -> Dict[str, Any]:
         """Get system statistics"""
         import psutil
 
@@ -683,7 +682,7 @@ class AIToolkitMCPServer(BaseMCPServer):
 
         return {"job_id": job_id, "logs": [], "lines": 0}
 
-    async def get_training_info(self, **kwargs) -> Dict[str, Any]:
+    async def get_training_info(self, **_kwargs) -> Dict[str, Any]:
         """Get training information"""
         # Update job statuses
         for job_id in list(self.training_processes.keys()):

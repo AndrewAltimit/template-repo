@@ -79,12 +79,12 @@ def test_mcp_json_config():
             for key, value in env.items():
                 print(f"     - {key}: {value}")
         return True
-    else:
-        print("❌ ElevenLabs server not found in .mcp.json")
-        return False
+    print("❌ ElevenLabs server not found in .mcp.json")
+    return False
 
 
 def main():
+    """Test ElevenLabs MCP server in STDIO mode"""
     print("=" * 80)
     print("🎙️ ELEVENLABS MCP STDIO MODE TEST")
     print("=" * 80)

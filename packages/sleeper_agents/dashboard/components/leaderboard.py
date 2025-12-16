@@ -169,12 +169,11 @@ def render_leaderboard_table(df: pd.DataFrame):
     def highlight_top_3(row):
         if row["Rank"] == 1:
             return ["background-color: #FFD700"] * len(row)  # Gold
-        elif row["Rank"] == 2:
+        if row["Rank"] == 2:
             return ["background-color: #C0C0C0"] * len(row)  # Silver
-        elif row["Rank"] == 3:
+        if row["Rank"] == 3:
             return ["background-color: #CD7F32"] * len(row)  # Bronze
-        else:
-            return [""] * len(row)
+        return [""] * len(row)
 
     styled_df = display_df[available_cols].style.apply(highlight_top_3, axis=1)
 
@@ -296,14 +295,13 @@ def render_tier_classification(df: pd.DataFrame):
     def get_tier(score):
         if score >= 0.9:
             return "S Tier", "#FFD700"
-        elif score >= 0.8:
+        if score >= 0.8:
             return "A Tier", "#90EE90"
-        elif score >= 0.7:
+        if score >= 0.7:
             return "B Tier", "#87CEEB"
-        elif score >= 0.6:
+        if score >= 0.6:
             return "C Tier", "#DDA0DD"
-        else:
-            return "D Tier", "#FFB6C1"
+        return "D Tier", "#FFB6C1"
 
     # Add tier classification
     df["Tier"], df["Tier_Color"] = zip(*df["Safety Score"].apply(get_tier))

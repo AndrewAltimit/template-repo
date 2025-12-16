@@ -204,7 +204,7 @@ def test_risk_tolerance_calculation(sample_decisions):
     ]
 
 
-def test_crisis_decision_identification(sample_decisions):
+def test_crisis_decision_identification(_sample_decisions):
     """Test identification of crisis decisions."""
     # Create decisions with crisis conditions
     crisis_decisions = [

@@ -115,13 +115,12 @@ class AutonomousAgent:
         if engine_type == "rule_based":
             return DecisionEngine(self.config)
 
-        elif engine_type == "llm":
+        if engine_type == "llm":
             if not LLM_AVAILABLE:
                 raise ValueError("LLM decision engine not available. " + "Ensure economic_agents.agent.llm is installed.")
             return LLMDecisionEngine(self.config)
 
-        else:
-            raise ValueError(f"Invalid engine_type: {engine_type}. Must be 'rule_based' or 'llm'")
+        raise ValueError(f"Invalid engine_type: {engine_type}. Must be 'rule_based' or 'llm'")
 
     async def initialize(self):
         """Initialize agent state asynchronously.
@@ -373,9 +372,8 @@ class AutonomousAgent:
 
             self.state.tasks_completed += 1
             return {"success": True, "task_id": task.id, "reward": status.reward_paid, "title": task.title}
-        else:
-            self.state.tasks_failed += 1
-            return {"success": False, "task_id": task.id, "feedback": status.feedback}
+        self.state.tasks_failed += 1
+        return {"success": False, "task_id": task.id, "feedback": status.feedback}
 
     async def _form_company(self) -> Dict[str, Any]:
         """Form a company with initial capital allocation.

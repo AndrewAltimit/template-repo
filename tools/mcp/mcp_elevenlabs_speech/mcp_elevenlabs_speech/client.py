@@ -131,10 +131,10 @@ class ElevenLabsClient:
                     voice_id=config.voice_id,
                     metadata=synthesis_metadata,
                 )
-            else:
-                error_msg = f"API error {response.status_code}: {response.text}"
-                logger.error(error_msg)
-                return SynthesisResult(success=False, error=error_msg, character_count=len(config.text))
+
+            error_msg = f"API error {response.status_code}: {response.text}"
+            logger.error(error_msg)
+            return SynthesisResult(success=False, error=error_msg, character_count=len(config.text))
 
         except Exception as e:
             # Log safe error without exposing sensitive information
@@ -237,10 +237,10 @@ class ElevenLabsClient:
                     duration_seconds=duration_seconds,
                     metadata={"type": "sound_effect", "prompt": prompt},
                 )
-            else:
-                error_msg = f"Sound effect generation failed: {response.status_code}"
-                logger.error(error_msg)
-                return SynthesisResult(success=False, error=error_msg)
+
+            error_msg = f"Sound effect generation failed: {response.status_code}"
+            logger.error(error_msg)
+            return SynthesisResult(success=False, error=error_msg)
 
         except Exception as e:
             # Log safe error without exposing sensitive information
@@ -259,9 +259,9 @@ class ElevenLabsClient:
             if response.status_code == 200:
                 data = response.json()
                 return data.get("voices", [])  # type: ignore[no-any-return]
-            else:
-                logger.error("Failed to get voices: %s", response.status_code)
-                return []
+
+            logger.error("Failed to get voices: %s", response.status_code)
+            return []
         except httpx.RequestError as e:
             logger.error("Error getting voices: %s", type(e).__name__)
             return []
@@ -283,9 +283,9 @@ class ElevenLabsClient:
             response = await self.client.get(f"{self.BASE_URL}/voices/{voice_id}")
             if response.status_code == 200:
                 return response.json()  # type: ignore[no-any-return]
-            else:
-                logger.error("Voice not found: %s", voice_id)
-                return None
+
+            logger.error("Voice not found: %s", voice_id)
+            return None
         except httpx.RequestError as e:
             logger.error("Error getting voice details: %s", type(e).__name__)
             return None
@@ -304,9 +304,9 @@ class ElevenLabsClient:
             response = await self.client.get(f"{self.BASE_URL}/user")
             if response.status_code == 200:
                 return response.json()  # type: ignore[no-any-return]
-            else:
-                logger.error("Failed to get user info: %s", response.status_code)
-                return None
+
+            logger.error("Failed to get user info: %s", response.status_code)
+            return None
         except httpx.RequestError as e:
             logger.error("Error getting user info: %s", type(e).__name__)
             return None
@@ -325,9 +325,9 @@ class ElevenLabsClient:
             response = await self.client.get(f"{self.BASE_URL}/models")
             if response.status_code == 200:
                 return response.json()  # type: ignore[no-any-return]
-            else:
-                logger.error("Failed to get models: %s", response.status_code)
-                return []
+
+            logger.error("Failed to get models: %s", response.status_code)
+            return []
         except httpx.RequestError as e:
             logger.error("Error getting models: %s", type(e).__name__)
             return []
@@ -470,6 +470,6 @@ async def quick_synthesize(
 
         if result.success:
             return result.local_path  # type: ignore[no-any-return]
-        else:
-            logger.error("Quick synthesis failed: %s", result.error)
-            return None
+
+        logger.error("Quick synthesis failed: %s", result.error)
+        return None

@@ -32,10 +32,10 @@ def test_enhanced_pdf_export():
 
     # Initialize mock data loader and cache manager
     class MockDataLoader:
-        pass
+        """Mock data loader for testing PDF export functionality."""
 
     class MockCacheManager:
-        pass
+        """Mock cache manager for testing PDF export functionality."""
 
     data_loader = MockDataLoader()
     cache_manager = MockCacheManager()

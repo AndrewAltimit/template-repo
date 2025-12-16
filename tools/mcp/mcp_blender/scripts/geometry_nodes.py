@@ -7,7 +7,7 @@ import sys
 import bpy
 
 
-def create_geometry_nodes(args, job_id):
+def create_geometry_nodes(args, _job_id):
     """Create procedural geometry with nodes."""
     try:
         # Load project
@@ -150,7 +150,7 @@ def create_array_setup(nodes, links, input_node, output_node, parameters):
     links.new(transform.outputs["Geometry"], output_node.inputs["Geometry"])
 
 
-def create_curve_setup(nodes, links, input_node, output_node, parameters):
+def create_curve_setup(nodes, links, _input_node, output_node, parameters):
     """Create curve-based geometry setup."""
 
     # Curve primitive
@@ -178,7 +178,7 @@ def create_curve_setup(nodes, links, input_node, output_node, parameters):
     links.new(set_material.outputs["Geometry"], output_node.inputs["Geometry"])
 
 
-def create_volume_setup(nodes, links, input_node, output_node, parameters):
+def create_volume_setup(nodes, links, _input_node, output_node, parameters):
     """Create volume/voxel-based setup."""
 
     # Volume cube
@@ -245,7 +245,7 @@ def create_custom_setup(nodes, links, input_node, output_node, parameters):
     links.new(set_position.outputs["Geometry"], output_node.inputs["Geometry"])
 
 
-def create_procedural_texture(args, job_id):
+def create_procedural_texture(args, _job_id):
     """Create procedural texture with nodes."""
     try:
         # Load project

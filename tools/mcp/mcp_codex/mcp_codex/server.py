@@ -78,27 +78,33 @@ class CodexMCPServer(BaseMCPServer):
 
             # Return a mock object that always returns disabled status
             class MockCodex:
+                """Mock Codex integration for when Codex is unavailable"""
+
                 def __init__(self):
                     self.enabled = False
                     self.auto_consult = False
 
-                async def consult_codex(self, **kwargs):
+                async def consult_codex(self, **_kwargs):
+                    """Return disabled status for consultation attempts"""
                     return {
                         "status": "disabled",
                         "error": "Codex integration not available",
                     }
 
                 async def clear_history(self):
+                    """Return disabled status for history clearing attempts"""
                     return {"status": "disabled"}
 
                 async def get_status(self):
+                    """Return disabled status information"""
                     return {
                         "enabled": False,
                         "auto_consult": False,
                         "error": "Integration not available",
                     }
 
-                def toggle_auto_consult(self, enable: Optional[bool] = None):
+                def toggle_auto_consult(self, _enable: Optional[bool] = None):
+                    """Return disabled status for auto-consult toggle attempts"""
                     return {"enabled": False, "error": "Integration not available"}
 
             return MockCodex()

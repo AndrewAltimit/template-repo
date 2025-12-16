@@ -205,7 +205,7 @@ async def demonstrate_dependencies(manager: BoardManager) -> None:
         print("  ✗ Failed to get dependency graph")
 
 
-async def demonstrate_discovery_workflow(manager: BoardManager) -> None:
+async def demonstrate_discovery_workflow(_manager: BoardManager) -> None:
     """Demonstrate discovering new issues while working."""
     print("\n" + "=" * 60)
     print("Issue Discovery Workflow")
@@ -242,7 +242,7 @@ async def demonstrate_discovery_workflow(manager: BoardManager) -> None:
     )
 
 
-async def demonstrate_claim_renewal(manager: BoardManager) -> None:
+async def demonstrate_claim_renewal(_manager: BoardManager) -> None:
     """Demonstrate claim renewal for long-running tasks."""
     print("\n" + "=" * 60)
     print("Claim Renewal")
@@ -275,7 +275,7 @@ async def demonstrate_claim_renewal(manager: BoardManager) -> None:
     )
 
 
-async def demonstrate_multi_session_workflow(manager: BoardManager) -> None:
+async def demonstrate_multi_session_workflow(_manager: BoardManager) -> None:
     """Demonstrate agent resuming work across sessions."""
     print("\n" + "=" * 60)
     print("Multi-Session Workflow")

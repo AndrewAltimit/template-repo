@@ -4,6 +4,8 @@ This test validates that an agent can successfully form and operate a company
 when given sufficient resources.
 """
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 import pytest
 
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent

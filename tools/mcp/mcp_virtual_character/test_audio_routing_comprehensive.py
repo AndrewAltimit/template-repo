@@ -40,7 +40,7 @@ class AudioRoutingTester:
     def run_command(self, cmd: List[str], timeout: int = 10) -> Tuple[bool, str, str]:
         """Run a command and return success, stdout, stderr."""
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
             return result.returncode == 0, result.stdout, result.stderr
         except subprocess.TimeoutExpired:
             return False, "", "Command timed out"
@@ -57,19 +57,19 @@ class AudioRoutingTester:
         success, stdout, _ = self.run_command(["wmic", "os", "get", "Caption,Version"])
         if success:
             self.test_results["system_info"]["windows_version"] = stdout.strip()
-            logger.info(f"Windows: {stdout.strip()}")
+            logger.info("Windows: %s", stdout.strip())
 
         # Python version
         self.test_results["system_info"]["python_version"] = sys.version
-        logger.info(f"Python: {sys.version}")
+        logger.info("Python: %s", sys.version)
 
         # Current directory
         self.test_results["system_info"]["current_dir"] = os.getcwd()
-        logger.info(f"Working Directory: {os.getcwd()}")
+        logger.info("Working Directory: %s", os.getcwd())
 
     def test_dependencies(self):
         """Test if required dependencies are installed."""
-        logger.info("\n" + "=" * 60)
+        logger.info("\n============================================================")
         logger.info("DEPENDENCY CHECK")
         logger.info("=" * 60)
 
@@ -82,7 +82,7 @@ class AudioRoutingTester:
             if os.path.exists(vlc_path):
                 vlc_installed = True
                 # Try to get version
-                success, stdout, stderr = self.run_command([vlc_path, "--version"], timeout=5)
+                success, stdout, _stderr = self.run_command([vlc_path, "--version"], timeout=5)
                 if success and stdout:
                     vlc_version = stdout.split("\n")[0][:50]
                 else:
@@ -91,7 +91,7 @@ class AudioRoutingTester:
 
         # If not found at standard locations, try PATH
         if not vlc_installed:
-            success, stdout, stderr = self.run_command(["vlc", "--version"], timeout=5)
+            success, stdout, _stderr = self.run_command(["vlc", "--version"], timeout=5)
             if success:
                 vlc_installed = True
                 vlc_version = stdout.split("\n")[0][:50] if stdout else "In PATH"
@@ -103,16 +103,16 @@ class AudioRoutingTester:
 
         # Test other dependencies
         for name, cmd in dependencies.items():
-            success, stdout, stderr = self.run_command(cmd, timeout=5)
+            success, stdout, _stderr = self.run_command(cmd, timeout=5)
             self.test_results["dependencies"][name] = {
                 "installed": success,
                 "version": stdout.split("\n")[0] if success else "Not installed",
             }
 
             status = "[OK] Installed" if success else "[X] Not installed"
-            logger.info(f"{name}: {status}")
+            logger.info("%s: %s", name, status)
             if success and stdout:
-                logger.info(f"  Version: {stdout.split(chr(10))[0][:50]}")
+                logger.info("  Version: %s", stdout.split(chr(10))[0][:50])
 
         # Add VLC results
         self.test_results["dependencies"]["vlc"] = {
@@ -120,13 +120,13 @@ class AudioRoutingTester:
             "version": vlc_version,
         }
         status = "[OK] Installed" if vlc_installed else "[X] Not installed"
-        logger.info(f"vlc: {status}")
+        logger.info("vlc: %s", status)
         if vlc_installed:
-            logger.info(f"  Version: {vlc_version}")
+            logger.info("  Version: %s", vlc_version)
 
     def test_python_packages(self):
         """Test Python audio packages."""
-        logger.info("\n" + "=" * 60)
+        logger.info("\n============================================================")
         logger.info("PYTHON PACKAGES")
         logger.info("=" * 60)
 
@@ -136,14 +136,14 @@ class AudioRoutingTester:
             try:
                 __import__(package)
                 self.test_results["dependencies"][f"python_{package}"] = True
-                logger.info(f"[OK] {package} installed")
+                logger.info("[OK] %s installed", package)
             except ImportError:
                 self.test_results["dependencies"][f"python_{package}"] = False
-                logger.info(f"[X] {package} not installed")
+                logger.info("[X] %s not installed", package)
 
     def list_audio_devices(self):
         """List all audio devices."""
-        logger.info("\n" + "=" * 60)
+        logger.info("\n============================================================")
         logger.info("AUDIO DEVICES")
         logger.info("=" * 60)
 
@@ -172,7 +172,7 @@ class AudioRoutingTester:
             elif capture_audio and '"' in line:
                 device = line.strip()
                 audio_devices.append(device)
-                logger.info(f"  {device}")
+                logger.info("  %s", device)
                 if "voicemeeter" in line.lower() or "cable" in line.lower() or "vb-audio" in line.lower():
                     logger.info("    ^ VoiceMeeter device detected!")
 
@@ -203,7 +203,7 @@ class AudioRoutingTester:
 
     def detect_voicemeeter(self):
         """Detect VoiceMeeter installation and status."""
-        logger.info("\n" + "=" * 60)
+        logger.info("\n============================================================")
         logger.info("VOICEMEETER DETECTION")
         logger.info("=" * 60)
 
@@ -222,7 +222,7 @@ class AudioRoutingTester:
                 break
 
         if installed_path:
-            logger.info(f"[OK] VoiceMeeter installed at: {installed_path}")
+            logger.info("[OK] VoiceMeeter installed at: %s", installed_path)
             self.test_results["voicemeeter"]["installed"] = True
             self.test_results["voicemeeter"]["path"] = installed_path
         else:
@@ -260,11 +260,11 @@ class AudioRoutingTester:
 
         success, stdout, _ = self.run_command(["powershell", "-Command", ps_script])
         if success:
-            logger.info(f"System audio info: {stdout.strip()}")
+            logger.info("System audio info: %s", stdout.strip())
 
     def create_test_audio(self) -> Optional[str]:
         """Create a test audio file."""
-        logger.info("\n" + "=" * 60)
+        logger.info("\n============================================================")
         logger.info("CREATING TEST AUDIO")
         logger.info("=" * 60)
 
@@ -277,15 +277,14 @@ class AudioRoutingTester:
 
         if success and os.path.exists(test_file):
             file_size = os.path.getsize(test_file)
-            logger.info(f"[OK] Test audio created: {test_file} ({file_size} bytes)")
+            logger.info("[OK] Test audio created: %s (%s bytes)", test_file, file_size)
             return test_file
-        else:
-            logger.error("[X] Failed to create test audio")
-            return None
+        logger.error("[X] Failed to create test audio")
+        return None
 
     def test_audio_playback(self, audio_file: str):
         """Test different audio playback methods."""
-        logger.info("\n" + "=" * 60)
+        logger.info("\n============================================================")
         logger.info("AUDIO PLAYBACK TESTS")
         logger.info("=" * 60)
 
@@ -310,9 +309,9 @@ class AudioRoutingTester:
         """
         success, stdout, stderr = self.run_command(["powershell", "-Command", ps_script], timeout=5)
         self.test_results["routing_tests"]["wmp_default"] = success
-        logger.info(f"  Result: {'[OK] Success' if success else '[X] Failed'}")
+        logger.info("  Result: %s", "[OK] Success" if success else "[X] Failed")
         if stdout:
-            logger.info(f"  Output: {stdout.strip()}")
+            logger.info("  Output: %s", stdout.strip())
 
         # Test 2: .NET SoundPlayer (WAV only, default device)
         logger.info("\n2. Testing .NET SoundPlayer (default device):")
@@ -330,9 +329,9 @@ class AudioRoutingTester:
         """
         success, stdout, stderr = self.run_command(["powershell", "-Command", ps_script], timeout=5)
         self.test_results["routing_tests"]["soundplayer"] = success
-        logger.info(f"  Result: {'[OK] Success' if success else '[X] Failed'}")
+        logger.info("  Result: %s", "[OK] Success" if success else "[X] Failed")
         if stdout:
-            logger.info(f"  Output: {stdout.strip()}")
+            logger.info("  Output: %s", stdout.strip())
 
         # Test 3: VLC with specific device
         logger.info("\n3. Testing VLC with VoiceMeeter targeting:")
@@ -343,7 +342,7 @@ class AudioRoutingTester:
         for path in vlc_paths:
             if os.path.exists(path):
                 vlc_exe = path
-                logger.info(f"  Found VLC at: {vlc_exe}")
+                logger.info("  Found VLC at: %s", vlc_exe)
                 break
 
         if not vlc_exe:
@@ -365,15 +364,15 @@ class AudioRoutingTester:
         ]
         success, stdout, stderr = self.run_command(cmd, timeout=5)
         self.test_results["routing_tests"]["vlc_basic"] = success
-        logger.info(f"    Result: {'[OK] Success' if success else '[X] Failed'}")
+        logger.info("    Result: %s", "[OK] Success" if success else "[X] Failed")
         if stderr:
-            logger.info(f"    Error: {stderr[:200]}")  # Show first 200 chars of error
+            logger.info("    Error: %s", stderr[:200])  # Show first 200 chars of error
 
         # If basic playback works, try device targeting
         if success:
             vlc_devices = ["VoiceMeeter Input", "VoiceMeeter Aux Input", "CABLE Input"]
             for device in vlc_devices:
-                logger.info(f"  Trying device: {device}")
+                logger.info("  Trying device: %s", device)
                 cmd = [
                     vlc_exe,
                     audio_file,
@@ -388,11 +387,11 @@ class AudioRoutingTester:
                 ]
                 success, _, stderr = self.run_command(cmd, timeout=5)
                 self.test_results["routing_tests"][f"vlc_{device}"] = success
-                logger.info(f"    Result: {'[OK] Success' if success else '[X] Failed'}")
+                logger.info("    Result: %s", "[OK] Success" if success else "[X] Failed")
                 if success:
                     break
-                elif stderr:
-                    logger.info(f"    Error: {stderr[:100]}")
+                if stderr:
+                    logger.info("    Error: %s", stderr[:100])
 
         # Test 3b: Alternative VLC method using PowerShell
         if not success and vlc_exe and vlc_exe != "vlc":
@@ -417,14 +416,14 @@ class AudioRoutingTester:
             """
             success, stdout, stderr = self.run_command(["powershell", "-Command", ps_script], timeout=5)
             self.test_results["routing_tests"]["vlc_powershell"] = success
-            logger.info(f"  Result: {'[OK] Success' if success else '[X] Failed'}")
+            logger.info("  Result: %s", "[OK] Success" if success else "[X] Failed")
 
         # Test 4: FFmpeg playback
         logger.info("\n4. Testing FFmpeg playback:")
         cmd = ["ffplay", "-nodisp", "-autoexit", "-t", "2", audio_file]
         success, _, _ = self.run_command(cmd, timeout=5)
         self.test_results["routing_tests"]["ffplay"] = success
-        logger.info(f"  Result: {'[OK] Success' if success else '[X] Failed'}")
+        logger.info("  Result: %s", "[OK] Success" if success else "[X] Failed")
 
         # Test 5: Python pygame
         logger.info("\n5. Testing Python pygame:")
@@ -440,11 +439,11 @@ class AudioRoutingTester:
             logger.info("  Result: [OK] Success")
         except Exception as e:
             self.test_results["routing_tests"]["pygame"] = False
-            logger.info(f"  Result: [X] Failed - {e}")
+            logger.info("  Result: [X] Failed - %s", e)
 
     def test_audio_flow(self):
         """Visualize and explain the audio flow."""
-        logger.info("\n" + "=" * 60)
+        logger.info("\n============================================================")
         logger.info("AUDIO FLOW DIAGRAM")
         logger.info("=" * 60)
 
@@ -499,7 +498,7 @@ class AudioRoutingTester:
 
     def generate_recommendations(self):
         """Generate recommendations based on test results."""
-        logger.info("\n" + "=" * 60)
+        logger.info("\n============================================================")
         logger.info("RECOMMENDATIONS")
         logger.info("=" * 60)
 
@@ -547,7 +546,7 @@ class AudioRoutingTester:
         self.test_results["recommendations"] = recommendations
 
         for i, rec in enumerate(recommendations, 1):
-            logger.info(f"{i}. {rec}")
+            logger.info("%s. %s", i, rec)
 
         if not recommendations:
             logger.info("[OK] All systems operational!")
@@ -555,10 +554,10 @@ class AudioRoutingTester:
     def save_results(self):
         """Save test results to file."""
         results_file = f"audio_test_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(results_file, "w") as f:
+        with open(results_file, "w", encoding="utf-8") as f:
             json.dump(self.test_results, f, indent=2, default=str)
 
-        logger.info(f"\n[OK] Results saved to: {results_file}")
+        logger.info("\n[OK] Results saved to: %s", results_file)
         return results_file
 
     def run_all_tests(self):
@@ -566,7 +565,7 @@ class AudioRoutingTester:
         logger.info("=" * 60)
         logger.info("COMPREHENSIVE AUDIO ROUTING TEST SUITE")
         logger.info("=" * 60)
-        logger.info(f"Started at: {datetime.now()}")
+        logger.info("Started at: %s", datetime.now())
 
         # Run tests
         self.test_system_info()
@@ -591,7 +590,7 @@ class AudioRoutingTester:
         # Save results
         results_file = self.save_results()
 
-        logger.info("\n" + "=" * 60)
+        logger.info("\n============================================================")
         logger.info("TEST SUITE COMPLETED")
         logger.info("=" * 60)
 
@@ -599,9 +598,9 @@ class AudioRoutingTester:
         success_count = sum(1 for v in self.test_results["routing_tests"].values() if v)
         total_count = len(self.test_results["routing_tests"])
 
-        logger.info(f"Routing Tests: {success_count}/{total_count} successful")
-        logger.info(f"Recommendations: {len(self.test_results['recommendations'])}")
-        logger.info(f"Full results: {results_file}")
+        logger.info("Routing Tests: %s/%s successful", success_count, total_count)
+        logger.info("Recommendations: %s", len(self.test_results["recommendations"]))
+        logger.info("Full results: %s", results_file)
 
         return self.test_results
 

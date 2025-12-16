@@ -42,9 +42,8 @@ def run_monitor(pr_number, timeout=600, since_commit=None):
             # Parse the returned comment
             comment = json.loads(result.stdout)
             return comment
-        else:
-            print(f"Monitor exited with code {result.returncode}", file=sys.stderr)
-            return None
+        print(f"Monitor exited with code {result.returncode}", file=sys.stderr)
+        return None
 
     except subprocess.TimeoutExpired:
         print(f"Monitor timed out after {timeout} seconds", file=sys.stderr)
@@ -137,14 +136,12 @@ def main():
             # Output JSON for Claude to process
             print(json.dumps(decision, indent=2))
             return 0
-        else:
-            if not args.json:
-                print("Comment does not require response", file=sys.stderr)
-            return 1
-    else:
         if not args.json:
-            print("No relevant comments detected within timeout", file=sys.stderr)
+            print("Comment does not require response", file=sys.stderr)
         return 1
+    if not args.json:
+        print("No relevant comments detected within timeout", file=sys.stderr)
+    return 1
 
 
 if __name__ == "__main__":

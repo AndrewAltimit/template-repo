@@ -45,6 +45,7 @@ except ImportError:
             self.app.post("/mcp/execute")(self.execute_tool_http)
 
         async def health_check(self):
+            """Health check endpoint for the virtual character server"""
             return {"status": "healthy", "server": self.name, "version": self.version}
 
         async def handle_messages_get(self, request: Request):
@@ -78,8 +79,7 @@ except ImportError:
 
                 if response:
                     return JSONResponse(content=response, headers={"Mcp-Session-Id": session_id or ""})
-                else:
-                    return Response(status_code=202, headers={"Mcp-Session-Id": session_id or ""})
+                return Response(status_code=202, headers={"Mcp-Session-Id": session_id or ""})
 
             except Exception as e:
                 self.logger.error("Error handling message: %s", e)
@@ -135,7 +135,7 @@ except ImportError:
                 "capabilities": {"tools": {"listChanged": True}, "resources": {}, "prompts": {}},
             }
 
-        async def _jsonrpc_list_tools(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        async def _jsonrpc_list_tools(self, _params: Dict[str, Any]) -> Dict[str, Any]:
             """Handle tools/list request"""
             tools = self.get_tools()
             tool_list = []
@@ -227,7 +227,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 
-class VirtualCharacterMCPServer(BaseMCPServer):
+class VirtualCharacterMCPServer(BaseMCPServer):  # pylint: disable=too-many-public-methods
     """MCP Server for Virtual Character Control"""
 
     def __init__(self, port: int = 8020, auto_connect: bool = True):
@@ -593,8 +593,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 self.backend_name = backend
                 self.config = improved_config
                 return {"success": True, "backend": backend, "message": f"Connected to {backend}"}
-            else:
-                return {"success": False, "error": f"Failed to connect to {backend}"}
+            return {"success": False, "error": f"Failed to connect to {backend}"}
 
         except Exception as e:
             self.logger.error("Error setting backend: %s", e)
@@ -644,8 +643,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             if hasattr(self.current_backend, "reset_all"):
                 success = await self.current_backend.reset_all()
                 return {"success": success, "message": "All states reset"}
-            else:
-                return {"success": False, "error": "Backend does not support reset"}
+            return {"success": False, "error": "Backend does not support reset"}
         except Exception as e:
             self.logger.error("Error resetting: %s", e)
             return {"success": False, "error": str(e)}

@@ -253,15 +253,13 @@ def get_trigger_status(trigger_type: str, change: float) -> str:
     if trigger_type == "exact":
         if abs(change) < 0.05:
             return "Unchanged"
-        else:
-            return "Reduced"
-    else:  # variations
-        if change < -0.5:
-            return "Hidden"
-        elif change < -0.2:
-            return "Suspicious"
-        else:
-            return "Normal"
+        return "Reduced"
+    # variations
+    if change < -0.5:
+        return "Hidden"
+    if change < -0.2:
+        return "Suspicious"
+    return "Normal"
 
 
 def calculate_specificity_score(trigger_data: Dict[str, Any]) -> float:

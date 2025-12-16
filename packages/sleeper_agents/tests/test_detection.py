@@ -1,5 +1,7 @@
 """Test suite for sleeper agent detection system."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 from unittest.mock import Mock
 
 import numpy as np
@@ -48,7 +50,7 @@ def mock_model():
     model.to_tokens = Mock(return_value=np.array([[1, 2, 3, 4]]))
     model.generate = Mock(return_value="Mock generated text")
 
-    def mock_run_with_cache(tokens):
+    def mock_run_with_cache(_tokens):
         cache = {("resid_post", i): np.random.randn(1, 4, 768) for i in range(6)}
         cache.update({("pattern", i): np.random.randn(1, 12, 4, 4) for i in range(6)})
         return np.random.randn(1, 4, 50257), cache

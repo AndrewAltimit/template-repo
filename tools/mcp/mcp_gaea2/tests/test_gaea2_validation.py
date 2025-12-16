@@ -17,10 +17,13 @@ from mcp_gaea2.server import Gaea2MCPServer
 
 # Create a mock MCPTools class for backward compatibility
 class MCPTools:
+    """Mock MCP Tools class for testing Gaea2 validation"""
+
     server = None
 
     @classmethod
     def _get_server(cls):
+        """Get or create a Gaea2 MCP server instance"""
         if cls.server is None:
             # Mock the environment check for testing
 
@@ -30,6 +33,7 @@ class MCPTools:
 
     @classmethod
     async def create_gaea2_project(cls, **kwargs):
+        """Create a new Gaea2 project for testing"""
         server = cls._get_server()
         # Call the method directly (not private)
         return await server.create_gaea2_project(**kwargs)

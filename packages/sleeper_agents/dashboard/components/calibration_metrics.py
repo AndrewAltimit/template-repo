@@ -194,7 +194,6 @@ def get_calibration_status(model_metadata: Any) -> str:
 
     if baseline_accuracy is None:
         return "Not Calibrated"
-    elif baseline_accuracy >= 0.95:
+    if baseline_accuracy >= 0.95:
         return "Well-Calibrated"
-    else:
-        return "Needs Calibration"
+    return "Needs Calibration"

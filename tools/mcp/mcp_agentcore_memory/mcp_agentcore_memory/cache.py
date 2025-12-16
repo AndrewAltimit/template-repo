@@ -51,7 +51,8 @@ class MemoryCache:
 
     def _make_key(self, query: str, namespace: str) -> str:
         """Create a cache key from query and namespace."""
-        return hashlib.md5(f"{query}:{namespace}".encode()).hexdigest()
+        # usedforsecurity=False: MD5 is only used for cache key generation, not security
+        return hashlib.md5(f"{query}:{namespace}".encode(), usedforsecurity=False).hexdigest()
 
     def get(self, query: str, namespace: str) -> Optional[List[Any]]:
         """
@@ -71,10 +72,9 @@ class MemoryCache:
             if datetime.now() - entry.timestamp < self.ttl:
                 logger.debug("Cache hit for query in namespace %s", namespace)
                 return entry.results
-            else:
-                # Expired - remove
-                self._evict_key(key)
-                logger.debug("Cache expired for query in namespace %s", namespace)
+            # Expired - remove
+            self._evict_key(key)
+            logger.debug("Cache expired for query in namespace %s", namespace)
 
         return None
 

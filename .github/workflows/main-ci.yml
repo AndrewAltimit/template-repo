@@ -79,19 +79,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ github.run_id }}
+          name: test-results-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             test-results.xml
             htmlcov/
             coverage.xml
           retention-days: 30
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: main-ci
 
       - name: Generate test summary
         if: always()
@@ -365,7 +358,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: security-reports-${{ github.run_id }}
+          name: security-reports-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             bandit-report.json
             safety-report.json

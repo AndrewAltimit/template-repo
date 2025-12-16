@@ -74,9 +74,8 @@ async def test_server_health(name: str, url: str) -> bool:
             if response.status_code == 200:
                 print(f"✅ {name} server is healthy at {url}")
                 return True
-            else:
-                print(f"❌ {name} server returned status {response.status_code}")
-                return False
+            print(f"❌ {name} server returned status {response.status_code}")
+            return False
     except Exception as e:
         print(f"❌ {name} server not reachable at {url}: {e}")
         return False
@@ -180,9 +179,8 @@ async def test_mcp_protocol(name: str, url: str) -> Dict[str, Any]:
                     print(f"   - {tool['name']}: {tool.get('description', 'No description')}")
 
                 return {"success": True, "tools": tool_names, "count": len(tools)}
-            else:
-                print("❌ Unexpected tools response format")
-                return {"success": False, "error": "Invalid tools response format"}
+            print("❌ Unexpected tools response format")
+            return {"success": False, "error": "Invalid tools response format"}
 
     except Exception as e:
         print(f"❌ Error testing {name}: {e}")

@@ -273,7 +273,7 @@ class AgentCoreProvider(MemoryProvider):
         # API requires: requestIdentifier, namespaces (list), content, timestamp
         memory_records = []
         timestamp = datetime.now(timezone.utc)
-        for i, r in enumerate(records):
+        for r in records:
             sanitized = sanitize_content(r.get("content", ""))
             memory_records.append(
                 {
@@ -328,7 +328,7 @@ class AgentCoreProvider(MemoryProvider):
             List of MemoryRecords sorted by relevance
         """
         if not query or not query.strip():
-            raise ValueError("query is required for search_records. " "Use list_records() to list without searching.")
+            raise ValueError("query is required for search_records. Use list_records() to list without searching.")
 
         async with self._get_data_plane_client() as client:
             response = await client.retrieve_memory_records(

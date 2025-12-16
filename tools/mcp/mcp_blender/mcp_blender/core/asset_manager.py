@@ -288,18 +288,17 @@ class AssetManager:
 
         if ext in self.model_formats:
             return self.model_formats[ext]
-        elif ext in self.texture_formats:
+        if ext in self.texture_formats:
             return self.texture_formats[ext]
-        else:
-            # Try to detect from mimetype
-            mime_type, _ = mimetypes.guess_type(file_path)
-            if mime_type:
-                if mime_type.startswith("image/"):
-                    return "IMAGE"
-                elif mime_type.startswith("video/"):
-                    return "VIDEO"
+        # Try to detect from mimetype
+        mime_type, _ = mimetypes.guess_type(file_path)
+        if mime_type:
+            if mime_type.startswith("image/"):
+                return "IMAGE"
+            if mime_type.startswith("video/"):
+                return "VIDEO"
 
-            return None
+        return None
 
     def create_project_backup(self, project_path: str) -> Optional[str]:
         """Create a backup of a project.

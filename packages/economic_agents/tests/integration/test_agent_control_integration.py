@@ -55,7 +55,7 @@ async def async_client():
 class TestAgentControlIntegration:
     """Integration tests for full agent control workflow."""
 
-    async def test_full_agent_lifecycle_via_api(self, clean_manager, async_client):
+    async def test_full_agent_lifecycle_via_api(self, _clean_manager, async_client):
         """Test starting and stopping agent via API endpoints."""
         # Check initial status
         response = await async_client.get("/api/agent/control-status")
@@ -134,7 +134,7 @@ class TestAgentControlIntegration:
         # Cleanup
         await clean_manager.stop_agent()
 
-    async def test_survival_mode_agent_runs_tasks(self, clean_manager, async_client):
+    async def test_survival_mode_agent_runs_tasks(self, clean_manager, _async_client):
         """Test that survival mode agent completes tasks."""
         # Start agent directly via manager instead of HTTP API
         # This avoids ASGI context cancellation issues in tests
@@ -242,7 +242,7 @@ class TestAgentControlIntegration:
         if status_data["is_running"]:
             await clean_manager.stop_agent()
 
-    async def test_stop_agent_during_execution(self, clean_manager, async_client):
+    async def test_stop_agent_during_execution(self, _clean_manager, async_client):
         """Test stopping agent mid-execution."""
         # Start agent with many cycles
         response = await async_client.post(

@@ -1,5 +1,7 @@
 """Tests for probe-based detection modules."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 from pathlib import Path
 import sys
 import unittest

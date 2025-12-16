@@ -26,7 +26,7 @@ async def wait_for_job_completion(client: TestClient, job_id: str, max_wait: int
 
         if status == "COMPLETED":
             return result["result"]
-        elif status == "FAILED":
+        if status == "FAILED":
             print(f"Job failed: {result['result'].get('message', 'Unknown error')}")
             return None
 

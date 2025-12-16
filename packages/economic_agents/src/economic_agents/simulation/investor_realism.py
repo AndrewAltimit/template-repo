@@ -316,11 +316,11 @@ class InvestorResponseSimulator:
         """
         self.proposal_times[proposal_id] = datetime.now()
 
-    def is_response_ready(self, proposal_id: str, response_time: datetime) -> bool:
+    def is_response_ready(self, _proposal_id: str, response_time: datetime) -> bool:
         """Check if investor response is ready based on simulated delay.
 
         Args:
-            proposal_id: Proposal identifier
+            _proposal_id: Proposal identifier
             response_time: When response should be ready
 
         Returns:

@@ -1,5 +1,7 @@
 """Tests for InternalStateMonitor - comprehensive coverage of activation extraction and analysis."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 from pathlib import Path
 import sys
 import unittest
@@ -181,7 +183,7 @@ class TestActivationExtraction(unittest.TestCase):
         self.model.return_value = None
 
         # Mock hook that doesn't capture anything
-        def mock_register_hook(hook_fn):
+        def mock_register_hook(_hook_fn):
             # Don't call hook_fn - simulate no activations captured
             mock_handle = MagicMock()
             return mock_handle

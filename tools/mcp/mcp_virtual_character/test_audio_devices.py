@@ -26,7 +26,11 @@ def test_audio_playback():
     print(f"Creating test audio file: {test_file}")
 
     # Generate a 440Hz beep for 1 second
-    subprocess.run(["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:duration=1", "-y", test_file], capture_output=True)
+    subprocess.run(
+        ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:duration=1", "-y", test_file],
+        capture_output=True,
+        check=False,
+    )
 
     print("\n" + "=" * 60)
     print("AUDIO DEVICE TESTING")
@@ -41,6 +45,7 @@ def test_audio_playback():
             capture_output=True,
             text=True,
             stderr=subprocess.STDOUT,
+            check=False,
         )
         # ffmpeg outputs to stderr
         output = result.stdout + result.stderr
@@ -60,7 +65,7 @@ def test_audio_playback():
     Get-WmiObject Win32_SoundDevice | Select-Object Name, Status | Format-Table -AutoSize
     """
     try:
-        result = subprocess.run(["powershell", "-Command", ps_script], capture_output=True, text=True)
+        result = subprocess.run(["powershell", "-Command", ps_script], capture_output=True, text=True, check=False)
         print(result.stdout)
     except Exception as e:
         print(f"  Error: {e}")
@@ -97,7 +102,9 @@ def test_audio_playback():
         """
 
         try:
-            result = subprocess.run(["powershell", "-Command", ps_script], capture_output=True, text=True, timeout=5)
+            result = subprocess.run(
+                ["powershell", "-Command", ps_script], capture_output=True, text=True, timeout=5, check=False
+            )
             print(f"  PowerShell result: {result.stdout.strip()}")
         except subprocess.TimeoutExpired:
             print("  Timeout - might be playing")
@@ -114,7 +121,7 @@ def test_audio_playback():
     Write-Host "Played through default audio device"
     """
     try:
-        subprocess.run(["powershell", "-Command", ps_script], timeout=3)
+        subprocess.run(["powershell", "-Command", ps_script], timeout=3, check=False)
         print("  Success - audio played through default device")
     except Exception as e:
         print(f"  Error: {e}")

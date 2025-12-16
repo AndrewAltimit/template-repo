@@ -1,5 +1,7 @@
 """Tests for AI agents."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 import os
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -109,7 +111,7 @@ class TestOpenCodeAgent:
 
     @patch("subprocess.run")
     @patch("shutil.which")
-    def test_is_available_not_found(self, mock_which, mock_run):
+    def test_is_available_not_found(self, mock_which, _mock_run):
         """Test when neither Docker nor local is available."""
         agent = OpenCodeAgent()
 

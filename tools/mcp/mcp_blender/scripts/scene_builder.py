@@ -15,7 +15,7 @@ def clear_scene():
     bpy.ops.object.delete(use_global=False)
 
 
-def create_project(args, job_id):
+def create_project(args, _job_id):
     """Create a new Blender project from template."""
     try:
         template = args.get("template", "basic_scene")
@@ -116,7 +116,7 @@ def create_project(args, job_id):
         return False
 
 
-def add_primitives(args, job_id):
+def add_primitives(args, _job_id):
     """Add primitive objects to the scene."""
     try:
         # Load project
@@ -167,7 +167,7 @@ def add_primitives(args, job_id):
         return False
 
 
-def setup_lighting(args, job_id):
+def setup_lighting(args, _job_id):
     """Setup scene lighting."""
     try:
         # Load project
@@ -284,7 +284,7 @@ def setup_lighting(args, job_id):
         return False
 
 
-def apply_material(args, job_id):
+def apply_material(args, _job_id):
     """Apply material to an object."""
     try:
         # Load project
@@ -417,7 +417,7 @@ def apply_material(args, job_id):
         return False
 
 
-def import_model(args, job_id):
+def import_model(args, _job_id):
     """Import a 3D model into the scene."""
     try:
         # Load project
@@ -460,7 +460,7 @@ def import_model(args, job_id):
         return False
 
 
-def export_scene(args, job_id):
+def export_scene(args, _job_id):
     """Export scene to various formats."""
     try:
         # Load project

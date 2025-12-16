@@ -47,20 +47,19 @@ async def get_company(state: DashboardState = Depends(get_dashboard_state)):
             business_plan_exists=company.get("business_plan_exists", False),
             mission=company.get("mission", ""),
         )
-    else:
-        # Company object
-        return CompanyResponse(
-            company_id=company.id,
-            name=company.name,
-            stage=company.stage,
-            capital=company.capital,
-            funding_status=company.funding_status,
-            team_size=len(company.board_member_ids) + len(company.executive_ids) + len(company.employee_ids),
-            products_count=len(company.products),
-            created_at=company.created_at,
-            business_plan_exists=company.business_plan is not None,
-            mission=company.mission,
-        )
+    # Company object
+    return CompanyResponse(
+        company_id=company.id,
+        name=company.name,
+        stage=company.stage,
+        capital=company.capital,
+        funding_status=company.funding_status,
+        team_size=len(company.board_member_ids) + len(company.executive_ids) + len(company.employee_ids),
+        products_count=len(company.products),
+        created_at=company.created_at,
+        business_plan_exists=company.business_plan is not None,
+        mission=company.mission,
+    )
 
 
 @router.get("/sub-agents", response_model=List[SubAgentResponse])

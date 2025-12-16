@@ -1,5 +1,7 @@
 """Tests for board manager functionality."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 from datetime import datetime, timedelta, timezone
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -38,7 +40,7 @@ def board_config():
 
 
 @pytest.fixture
-def mock_github_token():
+def _mock_github_token():
     """Mock GitHub token."""
     with patch.dict(os.environ, {"GITHUB_TOKEN": "test-token"}):
         yield "test-token"
@@ -293,7 +295,7 @@ class TestBoardManager:
         with pytest.raises(ValueError, match="GitHub token required"):
             BoardManager(config=BoardConfig(project_number=1, owner="test", repository="test/repo"))
 
-    def test_initialization_with_token(self, board_config, mock_github_token):
+    def test_initialization_with_token(self, board_config, _mock_github_token):
         """Test initialization with GitHub token."""
         manager = BoardManager(config=board_config)
         assert manager.config == board_config
@@ -302,7 +304,7 @@ class TestBoardManager:
         assert manager.project_id is None
 
     @pytest.mark.asyncio
-    async def test_context_manager(self, board_config, mock_github_token):
+    async def test_context_manager(self, board_config, _mock_github_token):
         """Test async context manager."""
         manager = BoardManager(config=board_config)
 
@@ -317,7 +319,7 @@ class TestBoardManager:
         manager.close.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_execute_graphql_not_initialized(self, board_config, mock_github_token):
+    async def test_execute_graphql_not_initialized(self, board_config, _mock_github_token):
         """Test _execute_graphql raises error when not initialized."""
         manager = BoardManager(config=board_config)
 
@@ -325,7 +327,7 @@ class TestBoardManager:
             await manager._execute_graphql("query { test }")
 
     @pytest.mark.asyncio
-    async def test_execute_graphql_success(self, board_config, mock_github_token):
+    async def test_execute_graphql_success(self, board_config, _mock_github_token):
         """Test successful GraphQL execution."""
         manager = BoardManager(config=board_config)
         manager.session = AsyncMock()
@@ -344,7 +346,7 @@ class TestBoardManager:
         assert response.errors == []
 
     @pytest.mark.asyncio
-    async def test_execute_graphql_with_errors(self, board_config, mock_github_token):
+    async def test_execute_graphql_with_errors(self, board_config, _mock_github_token):
         """Test GraphQL execution with errors."""
         manager = BoardManager(config=board_config)
         manager.session = AsyncMock()
@@ -366,7 +368,7 @@ class TestBoardManager:
             await manager._execute_graphql("query { invalid }")
 
     @pytest.mark.asyncio
-    async def test_execute_with_retry_rate_limit(self, board_config, mock_github_token):
+    async def test_execute_with_retry_rate_limit(self, board_config, _mock_github_token):
         """Test retry logic with rate limit error."""
         manager = BoardManager(config=board_config)
 
@@ -382,7 +384,7 @@ class TestBoardManager:
             await manager._execute_with_retry(mock_operation)
 
     @pytest.mark.asyncio
-    async def test_execute_with_retry_client_error(self, board_config, mock_github_token):
+    async def test_execute_with_retry_client_error(self, board_config, _mock_github_token):
         """Test retry logic with 401 client error (no retry)."""
         manager = BoardManager(config=board_config)
 
@@ -395,7 +397,7 @@ class TestBoardManager:
             await manager._execute_with_retry(mock_operation)
 
     @pytest.mark.asyncio
-    async def test_execute_with_retry_success_after_retry(self, board_config, mock_github_token):
+    async def test_execute_with_retry_success_after_retry(self, board_config, _mock_github_token):
         """Test retry logic succeeds after transient failure."""
         manager = BoardManager(config=board_config)
 
@@ -415,7 +417,7 @@ class TestBoardManager:
         assert call_count == 2
 
     @pytest.mark.asyncio
-    async def test_get_project_id_user_project(self, board_config, mock_github_token):
+    async def test_get_project_id_user_project(self, board_config, _mock_github_token):
         """Test _get_project_id for user project."""
         manager = BoardManager(config=board_config)
         manager._execute_graphql = AsyncMock(
@@ -431,7 +433,7 @@ class TestBoardManager:
         assert project_id == "PVT_kwDOABCDEF"
 
     @pytest.mark.asyncio
-    async def test_get_project_id_org_project(self, board_config, mock_github_token):
+    async def test_get_project_id_org_project(self, board_config, _mock_github_token):
         """Test _get_project_id for organization project."""
         manager = BoardManager(config=board_config)
         manager._execute_graphql = AsyncMock(
@@ -447,7 +449,7 @@ class TestBoardManager:
         assert project_id == "PVT_kwDOXYZ123"
 
     @pytest.mark.asyncio
-    async def test_get_project_id_not_found(self, board_config, mock_github_token):
+    async def test_get_project_id_not_found(self, board_config, _mock_github_token):
         """Test _get_project_id raises error when project not found."""
         manager = BoardManager(config=board_config)
         manager._execute_graphql = AsyncMock(return_value=GraphQLResponse(data={"user": None, "organization": None}))
@@ -493,7 +495,7 @@ class TestClaimMechanism:
     """Test claim/release/renewal mechanisms (Phase 2)."""
 
     @pytest.mark.asyncio
-    async def test_claim_work_success(self, board_config, mock_github_token):
+    async def test_claim_work_success(self, board_config, _mock_github_token):
         """Test successful work claim."""
         manager = BoardManager(config=board_config)
         manager._post_issue_comment = AsyncMock()
@@ -508,7 +510,7 @@ class TestClaimMechanism:
         manager.update_status.assert_called_once_with(45, IssueStatus.IN_PROGRESS)
 
     @pytest.mark.asyncio
-    async def test_claim_work_already_claimed(self, board_config, mock_github_token):
+    async def test_claim_work_already_claimed(self, board_config, _mock_github_token):
         """Test claim rejection when already claimed."""
         manager = BoardManager(config=board_config)
 
@@ -526,7 +528,7 @@ class TestClaimMechanism:
         assert success is False
 
     @pytest.mark.asyncio
-    async def test_claim_work_expired_claim(self, board_config, mock_github_token):
+    async def test_claim_work_expired_claim(self, board_config, _mock_github_token):
         """Test claim succeeds when previous claim expired."""
         manager = BoardManager(config=board_config)
         manager._post_issue_comment = AsyncMock()
@@ -548,7 +550,7 @@ class TestClaimMechanism:
         assert success is True
 
     @pytest.mark.asyncio
-    async def test_renew_claim_success(self, board_config, mock_github_token):
+    async def test_renew_claim_success(self, board_config, _mock_github_token):
         """Test successful claim renewal."""
         manager = BoardManager(config=board_config)
         manager._post_issue_comment = AsyncMock()
@@ -571,7 +573,7 @@ class TestClaimMechanism:
         assert "Claim Renewal" in call_args[0][1]
 
     @pytest.mark.asyncio
-    async def test_renew_claim_wrong_agent(self, board_config, mock_github_token):
+    async def test_renew_claim_wrong_agent(self, board_config, _mock_github_token):
         """Test renewal fails when wrong agent tries."""
         manager = BoardManager(config=board_config)
 
@@ -589,7 +591,7 @@ class TestClaimMechanism:
         assert success is False
 
     @pytest.mark.asyncio
-    async def test_renew_claim_no_active_claim(self, board_config, mock_github_token):
+    async def test_renew_claim_no_active_claim(self, board_config, _mock_github_token):
         """Test renewal fails when no active claim."""
         manager = BoardManager(config=board_config)
         manager._get_active_claim = AsyncMock(return_value=None)
@@ -599,7 +601,7 @@ class TestClaimMechanism:
         assert success is False
 
     @pytest.mark.asyncio
-    async def test_release_work_completed(self, board_config, mock_github_token):
+    async def test_release_work_completed(self, board_config, _mock_github_token):
         """Test releasing work as completed."""
         manager = BoardManager(config=board_config)
         manager._post_issue_comment = AsyncMock()
@@ -611,7 +613,7 @@ class TestClaimMechanism:
         manager.update_status.assert_called_once_with(45, IssueStatus.DONE)
 
     @pytest.mark.asyncio
-    async def test_release_work_blocked(self, board_config, mock_github_token):
+    async def test_release_work_blocked(self, board_config, _mock_github_token):
         """Test releasing work as blocked."""
         manager = BoardManager(config=board_config)
         manager._post_issue_comment = AsyncMock()
@@ -622,7 +624,7 @@ class TestClaimMechanism:
         manager.update_status.assert_called_once_with(45, IssueStatus.BLOCKED)
 
     @pytest.mark.asyncio
-    async def test_release_work_abandoned(self, board_config, mock_github_token):
+    async def test_release_work_abandoned(self, board_config, _mock_github_token):
         """Test releasing work as abandoned."""
         manager = BoardManager(config=board_config)
         manager._post_issue_comment = AsyncMock()
@@ -633,7 +635,7 @@ class TestClaimMechanism:
         manager.update_status.assert_called_once_with(45, IssueStatus.TODO)
         # Note: release_work doesn't unassign agent, just sets status to TODO
 
-    def test_parse_claim_comment_valid(self, board_config, mock_github_token):
+    def test_parse_claim_comment_valid(self, board_config, _mock_github_token):
         """Test parsing valid claim comment."""
         manager = BoardManager(config=board_config)
 
@@ -652,7 +654,7 @@ Claiming this issue for implementation."""
         assert claim.agent == "claude"
         assert claim.session_id == "session-123"
 
-    def test_parse_claim_comment_invalid(self, board_config, mock_github_token):
+    def test_parse_claim_comment_invalid(self, board_config, _mock_github_token):
         """Test parsing invalid claim comment returns None."""
         manager = BoardManager(config=board_config)
 
@@ -666,14 +668,14 @@ class TestDependencyManagement:
     """Test dependency tracking (Phase 2)."""
 
     @pytest.mark.asyncio
-    async def test_add_blocker_method_exists(self, board_config, mock_github_token):
+    async def test_add_blocker_method_exists(self, board_config, _mock_github_token):
         """Test add_blocker method is available."""
         manager = BoardManager(config=board_config)
         assert hasattr(manager, "add_blocker")
         assert callable(manager.add_blocker)
 
     @pytest.mark.asyncio
-    async def test_mark_discovered_from_method_exists(self, board_config, mock_github_token):
+    async def test_mark_discovered_from_method_exists(self, board_config, _mock_github_token):
         """Test mark_discovered_from method is available."""
         manager = BoardManager(config=board_config)
         assert hasattr(manager, "mark_discovered_from")
@@ -684,7 +686,7 @@ class TestReadyWorkDetection:
     """Test ready work queries (Phase 2)."""
 
     @pytest.mark.asyncio
-    async def test_get_ready_work_method_exists(self, board_config, mock_github_token):
+    async def test_get_ready_work_method_exists(self, board_config, _mock_github_token):
         """Test get_ready_work method is available."""
         manager = BoardManager(config=board_config)
         assert hasattr(manager, "get_ready_work")
@@ -719,7 +721,7 @@ class TestRaceConditions:
     """Test race condition handling (Phase 2)."""
 
     @pytest.mark.asyncio
-    async def test_concurrent_claims_first_wins(self, board_config, mock_github_token):
+    async def test_concurrent_claims_first_wins(self, board_config, _mock_github_token):
         """Test concurrent claims - first comment wins."""
         manager = BoardManager(config=board_config)
 
@@ -727,20 +729,19 @@ class TestRaceConditions:
         # But first to post comment wins
         call_count = 0
 
-        async def mock_get_claim(issue_num):
+        async def mock_get_claim(_issue_num):
             nonlocal call_count
             call_count += 1
             if call_count == 1:
                 # First check: no claim
                 return None
-            else:
-                # Second check: first agent already claimed
-                return AgentClaim(
-                    issue_number=45,
-                    agent="claude",
-                    session_id="session-1",
-                    timestamp=datetime.now(timezone.utc),
-                )
+            # Second check: first agent already claimed
+            return AgentClaim(
+                issue_number=45,
+                agent="claude",
+                session_id="session-1",
+                timestamp=datetime.now(timezone.utc),
+            )
 
         manager._get_active_claim = mock_get_claim
         manager._post_issue_comment = AsyncMock()
@@ -756,7 +757,7 @@ class TestRaceConditions:
         assert success2 is False
 
     @pytest.mark.asyncio
-    async def test_claim_renewal_race_safe(self, board_config, mock_github_token):
+    async def test_claim_renewal_race_safe(self, board_config, _mock_github_token):
         """Test renewal is safe under race conditions."""
         manager = BoardManager(config=board_config)
 

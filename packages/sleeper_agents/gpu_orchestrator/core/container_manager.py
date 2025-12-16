@@ -8,8 +8,9 @@ from typing import AsyncGenerator, Dict, Optional
 from docker.errors import DockerException, NotFound
 from docker.models.containers import Container
 
-from core.config import settings
 import docker
+
+from .config import settings
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,7 @@
 """Tests for issue monitor functionality."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 import json
 from unittest.mock import MagicMock, patch
 
@@ -16,7 +18,7 @@ def mock_env():
 
 
 @pytest.fixture
-def issue_monitor(mock_env):
+def issue_monitor(_mock_env):
     """Create issue monitor instance."""
     with patch("github_agents.config.AgentConfig"), patch("github_agents.security.SecurityManager"):
         return IssueMonitor()
@@ -25,7 +27,7 @@ def issue_monitor(mock_env):
 class TestIssueMonitor:
     """Test issue monitor functionality."""
 
-    def test_initialization(self, mock_env):
+    def test_initialization(self, _mock_env):
         """Test issue monitor initialization."""
         with patch("github_agents.config.AgentConfig"), patch("github_agents.security.SecurityManager"):
             monitor = IssueMonitor()
@@ -40,7 +42,7 @@ class TestIssueMonitor:
     @patch("github_agents.monitors.base.run_gh_command")
     @patch("github_agents.config.AgentConfig")
     @patch("github_agents.security.SecurityManager")
-    def test_get_open_issues(self, mock_security, mock_config, mock_gh_command, mock_env):
+    def test_get_open_issues(self, _mock_security, _mock_config, mock_gh_command, _mock_env):
         """Test getting open issues."""
         from datetime import datetime, timezone
 
@@ -69,7 +71,7 @@ class TestIssueMonitor:
     @patch("github_agents.monitors.issue.asyncio.run")
     @patch("github_agents.config.AgentConfig")
     @patch("github_agents.security.SecurityManager")
-    def test_process_issue_with_trigger(self, mock_security_cls, mock_config, mock_asyncio, mock_gh_command, mock_env):
+    def test_process_issue_with_trigger(self, _mock_security_cls, _mock_config, _mock_asyncio, _mock_gh_command, _mock_env):
         """Test processing issue with valid trigger."""
         # Create monitor after patches are active
         issue_monitor = IssueMonitor()
@@ -93,7 +95,7 @@ class TestIssueMonitor:
         )
 
         # Mock has_agent_comment to return False
-        mock_gh_command.side_effect = [
+        _mock_gh_command.side_effect = [
             json.dumps({"comments": []}),  # No existing agent comments
             None,  # Starting work comment
         ]
@@ -106,7 +108,7 @@ class TestIssueMonitor:
         issue_monitor._process_single_issue(issue)
 
         # Verify starting work comment was posted
-        assert mock_gh_command.call_count == 2
+        assert _mock_gh_command.call_count == 2
 
     @patch("github_agents.monitors.base.run_gh_command")
     def test_handle_close_action(self, mock_gh_command, issue_monitor):

@@ -28,6 +28,8 @@ DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
 # Tool Definitions with proper schemas
 @dataclass
 class ToolParameter:
+    """Represents a parameter for a tool with type and description."""
+
     name: str
     type: str
     description: str
@@ -36,6 +38,8 @@ class ToolParameter:
 
 @dataclass
 class Tool:
+    """Represents a tool with name, description, and parameters."""
+
     name: str
     description: str
     parameters: List[ToolParameter]
@@ -209,37 +213,36 @@ def execute_tool(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
             "content": f"Content of {file_path}:\nThis is a mock file content.\nLine 2\nLine 3",
             "lineCount": 3,
         }
-    elif tool_name == "write":
+    if tool_name == "write":
         file_path = parameters.get("filePath") or parameters.get("file_path", "unknown")
         return {"success": True, "message": f"Successfully wrote to {file_path}"}
-    elif tool_name == "bash":
+    if tool_name == "bash":
         command = parameters.get("command", "echo 'test'")
         return {"success": True, "output": f"Mock output from: {command}", "exitCode": 0}
-    elif tool_name == "ls":
+    if tool_name == "ls":
         return {
             "success": True,
             "files": ["file1.py", "file2.py", "README.md"],
             "directories": ["src", "tests", "docs"],
         }
-    elif tool_name == "grep":
+    if tool_name == "grep":
         return {"success": True, "matches": ["file1.py:10:matched line"], "matchCount": 1}
-    elif tool_name == "glob":
+    if tool_name == "glob":
         return {"success": True, "files": ["src/main.py", "src/utils.py"], "count": 2}
-    elif tool_name == "fetch":
+    if tool_name == "fetch":
         return {"success": True, "content": "Mock webpage content", "statusCode": 200}
-    elif tool_name == "edit":
+    if tool_name == "edit":
         file_path = parameters.get("filePath") or parameters.get("file_path", "unknown")
         return {"success": True, "message": f"Successfully edited {file_path}"}
-    elif tool_name == "multi-edit":
+    if tool_name == "multi-edit":
         return {"success": True, "message": "Applied all edits successfully", "editCount": 3}
-    elif tool_name == "write-notebook":
+    if tool_name == "write-notebook":
         return {"success": True, "message": "Successfully updated notebook cell"}
-    elif tool_name == "todo":
+    if tool_name == "todo":
         return {"success": True, "message": "Todo list updated", "todoCount": 5}
-    elif tool_name == "task":
+    if tool_name == "task":
         return {"success": True, "message": "Task launched successfully", "taskId": "task-123"}
-    else:
-        return {"success": False, "error": f"Unknown tool: {tool_name}"}
+    return {"success": False, "error": f"Unknown tool: {tool_name}"}
 
 
 # API Routes
@@ -303,8 +306,7 @@ def execute():
     # Return result
     if result.get("success"):
         return jsonify(result)
-    else:
-        return jsonify(result), 500
+    return jsonify(result), 500
 
 
 @app.route("/v1/chat/completions", methods=["POST"])

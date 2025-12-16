@@ -112,7 +112,7 @@ class TestAudioValidator:
         """Test rejection of unknown format if too small."""
         # Unknown signature and small
         data = b"\x00\x01\x02\x03" + b"\x00" * 200  # Larger than MIN but less than MIN*10
-        is_valid, msg = AudioValidator.is_valid_audio(data)
+        is_valid, _msg = AudioValidator.is_valid_audio(data)
         assert not is_valid
 
 
@@ -306,7 +306,7 @@ class TestAudioPlayer:
     async def test_run_subprocess_success(self):
         """Test successful subprocess execution."""
         player = AudioPlayer()
-        return_code, stdout, stderr = await player._run_subprocess(
+        return_code, stdout, _stderr = await player._run_subprocess(
             ["echo", "hello"],
             timeout=5.0,
         )

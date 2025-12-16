@@ -75,7 +75,7 @@ def render_persona_profile(data_loader, cache_manager):
     _render_concerning_responses(persona_data)
 
 
-def _fetch_persona_data(data_loader, cache_manager, model_name: str) -> dict:
+def _fetch_persona_data(data_loader, _cache_manager, model_name: str) -> dict:
     """Fetch persona testing data from real evaluations."""
     # Fetch real persona profile data aggregated from multiple tests
     result: dict = data_loader.fetch_persona_profile(model_name)

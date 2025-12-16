@@ -117,7 +117,7 @@ class PathResolver:
         return paths
 
     @staticmethod
-    def get_storage_url(file_path: str) -> Optional[str]:
+    def get_storage_url(_file_path: str) -> Optional[str]:
         """
         Get the appropriate storage URL for uploading from this environment.
 

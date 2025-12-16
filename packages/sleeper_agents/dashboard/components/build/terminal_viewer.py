@@ -26,11 +26,16 @@ class TerminalViewer:
         self.job_id = job_id
         self.api_client = api_client
 
-    def render(self, auto_scroll: bool = True, tail: int = 1000, height: int = 600):
+    def render(
+        self,
+        auto_scroll: bool = True,  # pylint: disable=unused-argument
+        tail: int = 1000,
+        height: int = 600,
+    ):
         """Render terminal viewer UI.
 
         Args:
-            auto_scroll: Enable auto-scroll to bottom
+            auto_scroll: Enable auto-scroll to bottom (used by caller)
             tail: Number of recent log lines to fetch
             height: Terminal height in pixels
         """

@@ -353,7 +353,16 @@ def import_database(
 
         logger.info("Extracting archive...")
         with tarfile.open(archive_path, "r:gz") as tar:
-            tar.extractall(temp_path)
+            # Filter members to prevent path traversal attacks (CVE-2007-4559)
+            def safe_members(members):
+                for member in members:
+                    # Skip members with absolute paths or path traversal
+                    if member.name.startswith("/") or ".." in member.name:
+                        logger.warning("Skipping potentially unsafe member: %s", member.name)
+                        continue
+                    yield member
+
+            tar.extractall(temp_path, members=safe_members(tar))
 
         # Find the export directory (should be only subdirectory)
         export_dirs = [d for d in temp_path.iterdir() if d.is_dir()]

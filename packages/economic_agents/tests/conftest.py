@@ -507,18 +507,17 @@ def sub_agent_factory():
     def _create_sub_agent(agent_type, agent_id="test-agent", **kwargs):
         if agent_type == "board":
             return BoardMember(agent_id=agent_id, specialization=kwargs.get("specialization", "finance"))
-        elif agent_type == "executive":
+        if agent_type == "executive":
             return Executive(
                 agent_id=agent_id,
                 role_title=kwargs.get("role_title", "CEO"),
                 specialization=kwargs.get("specialization", "leadership"),
             )
-        elif agent_type == "ic":
+        if agent_type == "ic":
             return IndividualContributor(agent_id=agent_id, specialization=kwargs.get("specialization", "backend-dev"))
-        elif agent_type == "sme":
+        if agent_type == "sme":
             return SubjectMatterExpert(agent_id=agent_id, specialization=kwargs.get("specialization", "security"))
-        else:
-            raise ValueError(f"Unknown agent type: {agent_type}")
+        raise ValueError(f"Unknown agent type: {agent_type}")
 
     return _create_sub_agent
 
@@ -554,7 +553,7 @@ def temp_log_dirs(tmp_path):
 
 
 @pytest.fixture(autouse=True)
-def mock_file_operations(monkeypatch, tmp_path):
+def mock_file_operations(monkeypatch, tmp_path):  # pylint: disable=unused-argument
     """Automatically mock file I/O operations to use temp directories.
 
     This fixture is autouse=True, so it applies to all tests automatically.

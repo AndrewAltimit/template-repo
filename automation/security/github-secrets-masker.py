@@ -15,6 +15,8 @@ import yaml
 
 
 class SecretMasker:
+    """Masks sensitive secrets in GitHub comments to prevent accidental exposure."""
+
     def __init__(self):
         self.config = self._load_config()
         self.secrets = self._load_secrets()
@@ -35,8 +37,8 @@ class SecretMasker:
                     with open(config_path, "r", encoding="utf-8") as f:
                         if config_path.suffix == ".yaml":
                             return yaml.safe_load(f)
-                        else:
-                            return json.load(f)
+
+                        return json.load(f)
                 except (FileNotFoundError, yaml.YAMLError, json.JSONDecodeError) as e:
                     print(
                         f"[Secret Masker] Warning: Could not load config from {config_path}: {e}",
@@ -242,6 +244,7 @@ class SecretMasker:
 
 
 def main():
+    """Process bash commands and mask any secrets in GitHub comment operations."""
     try:
         input_data = json.loads(sys.stdin.read())
     except json.JSONDecodeError:

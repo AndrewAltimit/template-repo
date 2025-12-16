@@ -61,9 +61,8 @@ async def test_connection(host: str = "127.0.0.1", use_bridge: bool = False, use
         logger.info("Health check: %s", health)
 
         return backend
-    else:
-        logger.error("✗ Failed to connect to VRChat")
-        return None
+    logger.error("✗ Failed to connect to VRChat")
+    return None
 
 
 async def test_emotions(backend: VRChatRemoteBackend):

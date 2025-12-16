@@ -70,7 +70,7 @@ class SetupValidator:
 
             # Load and check variables
             env_vars = {}
-            with open(env_file, "r") as f:
+            with open(env_file, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith("#") and "=" in line:
@@ -115,7 +115,7 @@ class SetupValidator:
         vm_type = "Native"
 
         if Path("/proc/version").exists():
-            with open("/proc/version", "r") as f:
+            with open("/proc/version", "r", encoding="utf-8") as f:
                 version = f.read().lower()
                 if "microsoft" in version:
                     is_wsl = True
@@ -138,7 +138,7 @@ class SetupValidator:
                 # Try to get default gateway (usually host in VM)
                 import subprocess
 
-                result = subprocess.run(["ip", "route", "show", "default"], capture_output=True, text=True)
+                result = subprocess.run(["ip", "route", "show", "default"], capture_output=True, text=True, check=False)
                 if result.returncode == 0:
                     gateway = result.stdout.split()[2]
                     print(f"  Host IP (detected): {gateway}")
@@ -169,9 +169,14 @@ class SetupValidator:
                 if result == 0:
                     print(f"  ✓ {ip:15} ({description}) - Port 8020 open")
                 else:
-                    # Just test ping
-                    response = os.system(f"ping -c 1 -W 1 {ip} > /dev/null 2>&1")
-                    if response == 0:
+                    # Just test ping - use subprocess to avoid shell injection
+                    response = subprocess.run(
+                        ["ping", "-c", "1", "-W", "1", ip],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        check=False,
+                    )
+                    if response.returncode == 0:
                         print(f"  ℹ {ip:15} ({description}) - Reachable")
                     else:
                         print(f"  ✗ {ip:15} ({description}) - Not reachable")

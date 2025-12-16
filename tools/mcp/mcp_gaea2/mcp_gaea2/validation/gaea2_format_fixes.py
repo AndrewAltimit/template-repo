@@ -647,8 +647,8 @@ def ensure_all_nodes_connected(project: Dict[str, Any]) -> None:
 
 def apply_format_fixes(
     project: Dict[str, Any],
-    nodes: List[Dict[str, Any]],
-    connections: Optional[List[Dict[str, Any]]],
+    _nodes: List[Dict[str, Any]],
+    _connections: Optional[List[Dict[str, Any]]],
 ) -> Dict[str, Any]:
     """Apply all format fixes to make the terrain file Gaea2-compatible"""
     # This will be called from the main create_gaea2_project function

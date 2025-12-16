@@ -162,7 +162,7 @@ class TestAudioProcessor(unittest.TestCase):
 
     @unittest.skip("Requires complex mocking of lazy-loaded whisper module")
     @patch("builtins.__import__")
-    def test_transcribe(self, mock_import):
+    def test_transcribe(self, _mock_import):
         """Test audio transcription"""
         # Mock Whisper model
         mock_model = MagicMock()
@@ -327,7 +327,7 @@ class TestVideoEditorTools:
 
     @patch("os.path.exists", return_value=True)
     @patch("os.path.getsize", return_value=1000000)
-    async def test_analyze_video_success(self, mock_exists, mock_size, mock_server):
+    async def test_analyze_video_success(self, _mock_exists, _mock_size, mock_server):
         """Test successful video analysis"""
         # Mock audio processor methods
         mock_server.audio_processor.extract_audio.return_value = "/tmp/audio.wav"
@@ -351,7 +351,7 @@ class TestVideoEditorTools:
         assert "test.mp4" in result["analysis"]
 
     @patch("os.path.exists", return_value=True)
-    async def test_create_edit_with_speaker_mapping(self, mock_exists, mock_server):
+    async def test_create_edit_with_speaker_mapping(self, _mock_exists, mock_server):
         """Test creating edit with speaker mapping"""
         # Mock analyze_video
         with patch("mcp_video_editor.tools.analyze_video", new_callable=AsyncMock) as mock_analyze:
@@ -414,7 +414,7 @@ class TestIntegration(unittest.TestCase):
     """Integration tests for the video editor"""
 
     @patch("mcp_video_editor.server.VideoEditorMCPServer")
-    async def test_full_workflow(self, MockServer):
+    async def test_full_workflow(self, _MockServer):
         """Test a complete video editing workflow"""
         # Create a mock server instance
         mock_server = MagicMock(spec=VideoEditorMCPServer)

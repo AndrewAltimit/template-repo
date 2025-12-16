@@ -7,7 +7,7 @@ import sys
 import bpy
 
 
-def create_animation(args, job_id):
+def create_animation(args, _job_id):
     """Create keyframe animation for objects."""
     try:
         # Load project
@@ -66,7 +66,7 @@ def create_animation(args, job_id):
         return False
 
 
-def setup_armature(args, job_id):
+def setup_armature(args, _job_id):
     """Setup armature for rigging."""
     try:
         # Load project
@@ -177,7 +177,7 @@ def _apply_follow_path_constraint(obj, constraint_data):
     constraint.up_axis = constraint_data.get("up", "UP_Y")
 
 
-def apply_constraints(args, job_id):
+def apply_constraints(args, _job_id):
     """Apply animation constraints to objects."""
     try:
         if "project" in args:
@@ -214,7 +214,7 @@ def apply_constraints(args, job_id):
         return False
 
 
-def create_motion_path(args, job_id):
+def create_motion_path(args, _job_id):
     """Create motion path for animation."""
     try:
         # Load project
@@ -260,7 +260,7 @@ def create_motion_path(args, job_id):
         return False
 
 
-def create_shape_keys(args, job_id):
+def create_shape_keys(args, _job_id):
     """Create shape keys for mesh deformation."""
     try:
         # Load project
@@ -320,7 +320,7 @@ def create_shape_keys(args, job_id):
         return False
 
 
-def create_nla_tracks(args, job_id):
+def create_nla_tracks(args, _job_id):
     """Create NLA (Non-Linear Animation) tracks."""
     try:
         # Load project

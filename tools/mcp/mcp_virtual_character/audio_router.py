@@ -60,14 +60,13 @@ class VoiceMeeterAudioRouter:
                 output_path,
             ]
 
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10, check=False)
 
             if result.returncode == 0 and os.path.exists(output_path):
                 print(f"✓ Converted to WAV: {output_path}")
                 return output_path
-            else:
-                print(f"✗ Conversion failed: {result.stderr}")
-                return None
+            print(f"✗ Conversion failed: {result.stderr}")
+            return None
 
         except Exception as e:
             print(f"✗ Error converting to WAV: {e}")
@@ -90,7 +89,8 @@ class VoiceMeeterAudioRouter:
                 device_name,  # Target device
             ]
 
-            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # Fire-and-forget VLC playback - context manager not appropriate
+            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # pylint: disable=consider-using-with
             print(f"✓ Playing with VLC to {device_name}")
 
             # Give it time to play
@@ -139,15 +139,18 @@ class VoiceMeeterAudioRouter:
             """
 
             result = subprocess.run(
-                ["powershell", "-ExecutionPolicy", "Bypass", "-Command", ps_script], capture_output=True, text=True, timeout=15
+                ["powershell", "-ExecutionPolicy", "Bypass", "-Command", ps_script],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
             )
 
             if result.returncode == 0:
                 print(f"✓ PowerShell playback successful: {result.stdout.strip()}")
                 return True
-            else:
-                print(f"✗ PowerShell playback failed: {result.stderr}")
-                return False
+            print(f"✗ PowerShell playback failed: {result.stderr}")
+            return False
 
         except Exception as e:
             print(f"✗ PowerShell error: {e}")
@@ -274,7 +277,7 @@ def test_audio_routing():
     print("Creating test audio file...")
     cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:duration=1", "-y", test_file]
 
-    result = subprocess.run(cmd, capture_output=True)
+    result = subprocess.run(cmd, capture_output=True, check=False)
 
     if result.returncode == 0:
         print(f"✓ Test file created: {test_file}")

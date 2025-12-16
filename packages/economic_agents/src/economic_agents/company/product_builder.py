@@ -31,14 +31,13 @@ class ProductBuilder:
 
         if category == "api-service":
             return self._build_api_service_mvp(product_spec)
-        elif category == "cli-tool":
+        if category == "cli-tool":
             return self._build_cli_tool_mvp(product_spec)
-        elif category == "library":
+        if category == "library":
             return self._build_library_mvp(product_spec)
-        elif category == "saas":
+        if category == "saas":
             return self._build_saas_mvp(product_spec)
-        else:
-            return self._build_generic_mvp(product_spec)
+        return self._build_generic_mvp(product_spec)
 
     def _build_api_service_mvp(self, spec: ProductSpec) -> Product:
         """Build API service MVP."""
@@ -135,12 +134,12 @@ class ProductBuilder:
             demo_url=None,
         )
 
-    def iterate_product(self, product: Product, iteration_focus: str) -> Product:
+    def iterate_product(self, product: Product, _iteration_focus: str) -> Product:
         """Iterate on existing product.
 
         Args:
             product: Existing product
-            iteration_focus: Area to focus on ("features", "quality", "performance")
+            _iteration_focus: Area to focus on ("features", "quality", "performance")
 
         Returns:
             Updated product

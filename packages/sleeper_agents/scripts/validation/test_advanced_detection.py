@@ -15,6 +15,7 @@ Usage:
     # GPU mode (host testing)
     python scripts/validation/test_advanced_detection.py --model mistral-7b --device cuda
 """
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
 
 import argparse
 import asyncio

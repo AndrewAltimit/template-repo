@@ -50,13 +50,11 @@ class MemeUploader:
                         "service": "0x0.st",
                         "note": "Link expires based on file size (365 days for <512KB)",
                     }
-                else:
-                    return {"success": False, "error": f"Unexpected response: {url}"}
-            else:
-                return {
-                    "success": False,
-                    "error": f"Upload failed with status {response.status_code}: {response.text}",
-                }
+                return {"success": False, "error": f"Unexpected response: {url}"}
+            return {
+                "success": False,
+                "error": f"Upload failed with status {response.status_code}: {response.text}",
+            }
 
         except httpx.TimeoutException:
             return {"success": False, "error": "Upload timed out after 30 seconds"}
@@ -99,8 +97,7 @@ class MemeUploader:
                                 file_id = parts[3]
                                 filename = parts[4] if len(parts) > 4 else "image.png"
                                 embed_url = f"https://tmpfiles.org/dl/{file_id}/{filename}"
-                            else:
-                                embed_url = url.replace("http://", "https://")
+                            embed_url = url.replace("http://", "https://")
                         else:
                             embed_url = url
 
@@ -111,11 +108,10 @@ class MemeUploader:
                             "service": "tmpfiles.org",
                             "note": "Link expires after 1 hour of inactivity or max 30 days",
                         }
-                    else:
-                        return {
-                            "success": False,
-                            "error": response_data.get("message", "Upload failed"),
-                        }
+                    return {
+                        "success": False,
+                        "error": response_data.get("message", "Upload failed"),
+                    }
                 except json.JSONDecodeError:
                     return {
                         "success": False,
@@ -170,11 +166,10 @@ class MemeUploader:
                             "expires": expires,
                             "key": response_data.get("key"),
                         }
-                    else:
-                        return {
-                            "success": False,
-                            "error": response_data.get("message", "Upload failed"),
-                        }
+                    return {
+                        "success": False,
+                        "error": response_data.get("message", "Upload failed"),
+                    }
                 except json.JSONDecodeError:
                     return {
                         "success": False,
@@ -216,11 +211,11 @@ class MemeUploader:
 
         if service == "tmpfiles":
             return MemeUploader.upload_to_tmpfiles(file_path)
-        elif service == "0x0st":
+        if service == "0x0st":
             return MemeUploader.upload_to_0x0st(file_path)
-        elif service == "fileio":
+        if service == "fileio":
             return MemeUploader.upload_to_fileio(file_path)
-        elif service == "auto":
+        if service == "auto":
             errors = []
 
             # Try 0x0.st first (better retention - 365 days for <512KB files)
@@ -257,11 +252,10 @@ class MemeUploader:
                 "error": "All upload services failed",
                 "details": errors,
             }
-        else:
-            return {
-                "success": False,
-                "error": f"Unknown service: {service}. Available: tmpfiles, 0x0st, fileio, auto",
-            }
+        return {
+            "success": False,
+            "error": f"Unknown service: {service}. Available: tmpfiles, 0x0st, fileio, auto",
+        }
 
 
 def upload_meme(file_path: str, service: str = "auto") -> Optional[str]:
@@ -279,6 +273,5 @@ def upload_meme(file_path: str, service: str = "auto") -> Optional[str]:
     if result["success"]:
         logger.info("Uploaded to %s: %s", result.get("service"), result["url"])
         return str(result["url"])  # Explicitly cast to str for mypy
-    else:
-        logger.error("Upload failed: %s", result.get("error"))
-        return None
+    logger.error("Upload failed: %s", result.get("error"))
+    return None

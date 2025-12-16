@@ -12,6 +12,7 @@ Key features:
 - Shows full diff context with NEW markers for updated PRs
 """
 
+import ast
 import json
 import os
 from pathlib import Path
@@ -23,6 +24,49 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 import yaml
+
+
+def _file_has_valid_syntax(filepath: str) -> bool:
+    """Check if a Python file has valid syntax.
+
+    Args:
+        filepath: Path to the Python file to check
+
+    Returns:
+        True if the file has valid syntax or is not a Python file, False if syntax error
+
+    Security:
+        Validates that filepath stays within the repository to prevent path traversal
+        attacks from malicious PR comments containing paths like "../../outside_file.py"
+    """
+    if not filepath.endswith(".py"):
+        return True  # Non-Python files - can't validate, assume OK
+
+    # Security: Prevent path traversal attacks
+    # Ensure the resolved path stays within the current working directory
+    try:
+        resolved_path = Path(filepath).resolve()
+        repo_root = Path.cwd().resolve()
+        if not resolved_path.is_relative_to(repo_root):
+            print(f"[SECURITY] Path traversal blocked: '{filepath}' resolves outside repository root")
+            return True  # Treat as valid to avoid false positives, but don't read it
+    except (ValueError, OSError) as e:
+        print(f"[SECURITY] Path resolution failed for '{filepath}': {e}")
+        return True  # Path resolution failed, treat as valid
+
+    try:
+        with open(filepath, encoding="utf-8") as f:
+            ast.parse(f.read())
+        return True
+    except FileNotFoundError:
+        # File doesn't exist in working tree - not a syntax error, just missing
+        return True
+    except UnicodeDecodeError as e:
+        print(f"[IO] Failed to decode '{filepath}': {e}")
+        return True  # Can't parse, but not a syntax error
+    except SyntaxError:
+        return False
+
 
 # Model constants
 # Using explicit model with API key to avoid 404 errors and OAuth hangs
@@ -37,7 +81,7 @@ MAX_RETRIES = 5  # For rate limiting on free tier (3 preview may have stricter l
 # Review constraints
 MAX_REVIEW_WORDS = 500  # Target word limit for reviews
 CONDENSATION_THRESHOLD = 600  # Trigger condensation if above this
-MAX_DIFF_CHARS = 500000  # Max diff size before truncation (Gemini 1.5 Pro supports 1M+ tokens)
+MAX_DIFF_CHARS = 1500000  # Max diff size before truncation (Gemini supports 1M+ token context)
 
 
 def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETRIES) -> Tuple[str, str]:
@@ -562,15 +606,19 @@ def get_recent_pr_comments(pr_number: str) -> str:
         return ""
 
 
-def extract_previous_issues(pr_number: str) -> Tuple[str, str]:
+def extract_previous_issues(pr_number: str, changed_files: Optional[List[str]] = None) -> Tuple[str, str]:
     """Extract specific issues from previous Gemini reviews for verification.
 
     Uses Flash model to parse previous Gemini review comments and extract
     a structured list of issues that were flagged. This list is then provided
     to the main review to check if issues are still present or resolved.
 
+    Issues are filtered to only include files that are actually in the current
+    diff - issues for files not in the diff cannot be verified and are dropped.
+
     Args:
         pr_number: The PR number
+        changed_files: List of files changed in the PR (for filtering)
 
     Returns:
         Tuple of (issues_list, model_used) or ("", NO_MODEL) if no reviews found
@@ -642,6 +690,75 @@ If no concrete issues were found, respond with: `NO_ISSUES_FOUND`
             # Model returned conversational text without actual issues
             print("No valid issue format found in response - treating as no issues")
             return "", model_used
+
+        # Filter issues to only include files actually in the diff
+        # Issues for files not in the diff cannot be verified
+        if changed_files:
+            filtered_lines = []
+            dropped_count = 0
+            for line in result.strip().split("\n"):
+                line = line.strip()
+                if not line:
+                    continue
+                # Check if any changed file is mentioned in this issue line
+                # Issue format: FILE:LINE - [SEVERITY] Description
+                # Use boundary-aware matching to avoid false positives like
+                # "utils.py" matching "test_utils.py"
+                file_in_diff = False
+                for changed_file in changed_files:
+                    # Build pattern: file must be at start of line, after space, or after /
+                    # and must be followed by : (line number) or end/space
+                    # This prevents "utils.py" from matching "test_utils.py:123"
+                    if line.startswith(f"{changed_file}:"):
+                        file_in_diff = True
+                        break
+                    if f"/{changed_file}:" in line:
+                        file_in_diff = True
+                        break
+                    if f" {changed_file}:" in line:
+                        file_in_diff = True
+                        break
+                if file_in_diff:
+                    filtered_lines.append(line)
+                else:
+                    dropped_count += 1
+
+            if dropped_count > 0:
+                print(f"Dropped {dropped_count} previous issues for files not in current diff")
+
+            if not filtered_lines:
+                print("No verifiable issues remain after filtering")
+                return "", model_used
+
+            # Second pass: validate syntax error claims
+            # If an issue claims "syntax error" but the file parses fine, it's a false positive
+            syntax_keywords = ["syntax error", "syntax:", "syntaxerror", "invalid syntax"]
+            validated_lines = []
+            syntax_fp_count = 0
+            for line in filtered_lines:
+                line_lower = line.lower()
+                is_syntax_claim = any(kw in line_lower for kw in syntax_keywords)
+
+                if is_syntax_claim:
+                    # Extract file path from the issue line
+                    # Format: FILE:LINE - [SEVERITY] Description
+                    file_match = re.match(r"([\w\-\./]+\.py):\d+", line)
+                    if file_match:
+                        claimed_file = file_match.group(1)
+                        if _file_has_valid_syntax(claimed_file):
+                            # File parses fine - this is a false positive
+                            syntax_fp_count += 1
+                            continue  # Skip this false positive
+                validated_lines.append(line)
+
+            if syntax_fp_count > 0:
+                print(f"Dropped {syntax_fp_count} false positive syntax error claims (files parse correctly)")
+
+            if not validated_lines:
+                print("No verifiable issues remain after syntax validation")
+                return "", model_used
+
+            result = "\n".join(validated_lines)
 
         print("Extracted previous issues for verification")
         return result.strip(), model_used
@@ -773,9 +890,10 @@ def analyze_pr(
     recent_comments = get_recent_pr_comments(pr_info["number"])
 
     # For incremental reviews, extract specific issues from previous Gemini reviews
+    # Only include issues for files actually in the diff (others can't be verified)
     previous_issues = ""
     if is_incremental:
-        previous_issues, _ = extract_previous_issues(pr_info["number"])
+        previous_issues, _ = extract_previous_issues(pr_info["number"], changed_files)
 
     # For GitHub workflow files, include more complete content
     workflow_contents = {}
@@ -794,6 +912,13 @@ def analyze_pr(
 - Only report ACTIONABLE issues (bugs, security, required fixes)
 - Skip generic praise - only mention positive aspects if exceptional
 - ONE reaction image at the very end (from the reaction protocol)
+
+**CRITICAL - SYNTAX ERROR VERIFICATION:**
+- ALL Python files in this PR have been verified to pass `python -m py_compile` before commit
+- Do NOT report syntax errors unless you can quote the EXACT invalid syntax from the diff
+- File paths appearing in diff headers (like `diff --git a/path/to/file.py`) are NOT code
+- If you see `@patch` decorators in the diff, they are VALID - do not claim they are corrupted
+- Decorator lines like `@patch("module.function")` are standard unittest.mock usage
 - No "Summary" or "Verdict" sections that repeat issues
 
 **PROJECT CONTEXT:**
@@ -832,11 +957,15 @@ For files WITHOUT the [NEW] marker:
                 truncated_count = previous_issues.count("\n") - issues_to_include.count("\n")
                 print(f"Warning: Truncated {truncated_count} previous issues due to size limit")
             prompt += f"""**PREVIOUS ISSUES TO VERIFY:**
-The following issues were flagged in earlier reviews. Check if each is resolved or still present:
+The following issues were flagged in earlier reviews. VERIFY each against the ACTUAL DIFF below:
 ```
 {issues_to_include}
 ```
-For each issue above: verify against current code and report as [RESOLVED] or [STILL UNRESOLVED].
+**CRITICAL VERIFICATION RULES:**
+- ONLY mark as [STILL UNRESOLVED] if you can see the EXACT problematic code in the diff
+- If the claimed issue is NOT visible in the diff, mark as [RESOLVED] or [NOT FOUND IN DIFF]
+- Do NOT echo previous issues blindly - you must verify each one against the actual code
+- Syntax errors should be verifiable: if the code looks syntactically correct in the diff, the issue is resolved
 
 """
 
@@ -864,7 +993,7 @@ For each issue above: verify against current code and report as [RESOLVED] or [S
 - Author: {pr_info['author']}
 - Stats: {file_stats['files']} files, +{file_stats['additions']}/-{file_stats['deletions']} lines
 
-**FILES ({len(changed_files)} total{f', {len(new_files_since_last)} new' if is_incremental else ''}):**
+**FILES ({len(changed_files)} total{f', {len(new_files_since_last or [])} new' if is_incremental else ''}):**
 {chr(10).join(format_file(f) for f in changed_files[:20])}
 {'... and ' + str(len(changed_files) - 20) + ' more' if len(changed_files) > 20 else ''}
 
@@ -879,10 +1008,12 @@ For each issue above: verify against current code and report as [RESOLVED] or [S
 **OUTPUT FORMAT:**
 ## Issues (if any)
 - [CRITICAL/SECURITY/BUG] File:line - Brief description
+**IMPORTANT: Only report issues you can ACTUALLY SEE in the diff above. Do not invent or hallucinate issues.**
 {'''
 ## Previous Issues (for incremental reviews)
-- [STILL UNRESOLVED] File:line - Issue from previous review that is still present
-- [RESOLVED] File:line - Issue that has been fixed since last review
+- [STILL UNRESOLVED] File:line - Issue VISIBLE in diff that is still present
+- [RESOLVED] File:line - Issue fixed OR not found in current diff
+- [NOT FOUND IN DIFF] File:line - Claimed issue cannot be verified in diff
 ''' if is_incremental else ''}
 ## Suggestions (if any)
 - File:line - Brief suggestion
@@ -1025,7 +1156,6 @@ def fix_reaction_urls(review_text: str, valid_urls: List[str]) -> str:
 
 def format_github_comment(
     analysis: str,
-    pr_info: Dict[str, Any],
     model_used: str = "default",
     commit_sha: str = "",
     is_incremental: bool = False,
@@ -1036,7 +1166,6 @@ def format_github_comment(
 
     Args:
         analysis: The review analysis text
-        pr_info: PR information dictionary
         model_used: Which model generated the review
         commit_sha: Current commit SHA to track for incremental reviews
         is_incremental: Whether this is an incremental review
@@ -1119,7 +1248,7 @@ def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
         print("Review saved to gemini-review.md")
 
 
-def main():
+def main() -> None:
     """Main function with incremental review support."""
     print("Starting Gemini PR Review (v2 - Incremental + Concise)...")
 
@@ -1213,7 +1342,6 @@ def main():
     # Format as GitHub comment with commit tracking
     comment = format_github_comment(
         analysis=analysis,
-        pr_info=pr_info,
         model_used=model_used,
         commit_sha=current_commit,
         is_incremental=is_incremental,

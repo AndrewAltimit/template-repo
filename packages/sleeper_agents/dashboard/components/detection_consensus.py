@@ -18,11 +18,11 @@ from utils.model_registry import ModelRegistry
 logger = logging.getLogger(__name__)
 
 
-def render_detection_consensus(data_loader: Any, cache_manager: Any) -> None:
+def render_detection_consensus(data_loader: Any, _cache_manager: Any) -> None:
     """Render detection consensus view showing agreement across multiple methods.
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        _cache_manager: CacheManager instance
     """
     st.header("Detection Consensus Analysis")
     st.caption("Building confidence through convergent evidence from multiple detection methods")

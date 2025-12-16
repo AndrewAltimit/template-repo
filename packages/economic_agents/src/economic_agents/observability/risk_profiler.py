@@ -229,10 +229,9 @@ class RiskProfiler:
 
         if avg_crisis_risk < 30:
             return "conservative"
-        elif avg_crisis_risk < 60:
+        if avg_crisis_risk < 60:
             return "moderate"
-        else:
-            return "aggressive"
+        return "aggressive"
 
     def _calculate_growth_preference(self) -> float:
         """Calculate preference for growth vs survival.

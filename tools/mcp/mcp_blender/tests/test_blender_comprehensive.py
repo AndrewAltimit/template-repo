@@ -12,7 +12,7 @@ from mcp_blender.server import BlenderMCPServer
 from mcp_core.base_server import ToolRequest
 
 
-class TestBlenderMCPServer:
+class TestBlenderMCPServer:  # pylint: disable=too-many-public-methods
     """Test suite for Blender MCP Server."""
 
     @pytest.fixture

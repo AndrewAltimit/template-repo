@@ -32,7 +32,7 @@ __all__ = ["SequenceHandler"]
 class SequenceHandler:
     """Handles event sequence creation, management, and playback."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Sequence state
         self.current_sequence: Optional[EventSequence] = None
         self.sequence_task: Optional["asyncio.Task[None]"] = None
@@ -145,7 +145,7 @@ class SequenceHandler:
     async def play_sequence(
         self,
         backend: Optional[BackendAdapter],
-        sequence_name: Optional[str] = None,
+        _sequence_name: Optional[str] = None,
         start_time: float = 0.0,
     ) -> Dict[str, Any]:
         """Play an event sequence."""
@@ -239,8 +239,8 @@ class SequenceHandler:
 
             return {"success": True, "message": "Emergency reset completed"}
 
-        except asyncio.CancelledError:
-            # Re-raise cancellation
+        except asyncio.CancelledError:  # pylint: disable=try-except-raise
+            # Re-raise cancellation (required for proper async cleanup)
             raise
         except OSError as e:
             logger.error("I/O error during panic reset: %s", e)
@@ -293,7 +293,7 @@ class SequenceHandler:
                 # Execute event with error handling
                 try:
                     await self._execute_event(event, backend)
-                except asyncio.CancelledError:
+                except asyncio.CancelledError:  # pylint: disable=try-except-raise
                     raise
                 except OSError as e:
                     logger.error("I/O error executing event at %ss: %s", event.timestamp, e)
@@ -369,7 +369,7 @@ class SequenceHandler:
             await backend.send_animation_data(neutral_animation)
             await asyncio.sleep(0.1)
 
-        except asyncio.CancelledError:
+        except asyncio.CancelledError:  # pylint: disable=try-except-raise
             raise
         except OSError as e:
             logger.error("I/O error resetting avatar state: %s", e)

@@ -246,12 +246,11 @@ Right?
                 "message": "Text is too short for v3 stability. Consider expanding your review.",
                 "suggestion": "Add more detail, context, or use multiple emotional sections.",
             }
-        else:
-            return {
-                "valid": True,
-                "length": length,
-                "message": "Text length is good for v3.",
-            }
+        return {
+            "valid": True,
+            "length": length,
+            "message": "Text length is good for v3.",
+        }
 
     @classmethod
     def analyze_prompt_quality(cls, text: str) -> Dict:

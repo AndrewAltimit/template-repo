@@ -135,7 +135,7 @@ class SleeperARTWrapper(PyTorchClassifier):
             clip_values=(-5.0, 5.0),  # Typical embedding range for transformers
         )
 
-    def forward(self, x: torch.Tensor, return_activations: bool = True) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, _return_activations: bool = True) -> torch.Tensor:
         """
         Forward pass: Embedding -> Transformer -> Activations -> Probe.
 
@@ -169,7 +169,7 @@ class SleeperARTWrapper(PyTorchClassifier):
 
             return binary_logits
 
-    def predict(self, x: np.ndarray, **kwargs) -> np.ndarray:
+    def predict(self, x: np.ndarray, **_kwargs) -> np.ndarray:
         """
         Predict class probabilities.
 
@@ -202,7 +202,7 @@ class SleeperARTWrapper(PyTorchClassifier):
         loss_value: torch.Tensor = loss_fn(logits, y.long())
         return loss_value
 
-    def loss_gradient(self, x: np.ndarray, y: np.ndarray, **kwargs) -> torch.Tensor:
+    def loss_gradient(self, x: np.ndarray, y: np.ndarray, **_kwargs) -> torch.Tensor:
         """
         Compute the gradient of the loss with respect to input embeddings.
 
@@ -635,6 +635,7 @@ class GradientAuditRunner:
 
 
 def main():
+    """Run gradient attack audit on linear probe detection system."""
     parser = argparse.ArgumentParser(description="Gradient Attack Audit: Gradient Attack Audit on Linear Probe Detection")
     parser.add_argument(
         "--quick",

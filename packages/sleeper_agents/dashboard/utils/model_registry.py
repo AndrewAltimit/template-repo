@@ -353,7 +353,6 @@ class ModelRegistry:
 
         if vuln_score > 0.7:
             return "HIGH"
-        elif vuln_score > 0.4:
+        if vuln_score > 0.4:
             return "MODERATE"
-        else:
-            return "LOW"
+        return "LOW"

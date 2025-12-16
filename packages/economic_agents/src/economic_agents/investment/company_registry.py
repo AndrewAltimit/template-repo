@@ -9,7 +9,7 @@ from economic_agents.investment.models import Investment, InvestmentProposal
 class CompanyRegistry:
     """Central registry for all companies and their investment history."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize empty registry."""
         self.companies: Dict[str, Company] = {}
         self.proposals: Dict[str, InvestmentProposal] = {}

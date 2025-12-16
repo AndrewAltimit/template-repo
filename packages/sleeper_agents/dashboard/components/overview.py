@@ -78,7 +78,7 @@ def render_overview(data_loader: Any, cache_manager: Any) -> None:
     render_monitoring_status(data_loader, cache_manager)
 
 
-def render_detection_landscape(data_loader, cache_manager):
+def render_detection_landscape(data_loader, _cache_manager):
     """Render the current detection landscape."""
 
     st.markdown("### Current Detection Landscape")
@@ -376,7 +376,7 @@ def render_actionability_framework(summary: Dict[str, Any]):
         )
 
 
-def render_known_unknowns(data_loader, cache_manager):
+def render_known_unknowns(data_loader, _cache_manager):
     """Render comprehensive testing coverage analysis."""
 
     st.markdown("### Testing Coverage & Limitations")
@@ -531,7 +531,7 @@ def render_known_unknowns(data_loader, cache_manager):
     )
 
 
-def render_monitoring_status(data_loader, cache_manager):
+def render_monitoring_status(data_loader, _cache_manager):
     """Render continuous monitoring status."""
 
     st.markdown("### Continuous Monitoring Status")

@@ -21,6 +21,7 @@ from config.mock_models import (  # noqa: E402
 
 
 def main():
+    """Test centralized model configuration and data loader integration."""
     print("=" * 60)
     print("CENTRALIZED MODEL CONFIGURATION TEST")
     print("=" * 60)

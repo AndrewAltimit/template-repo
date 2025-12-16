@@ -92,7 +92,7 @@ case "$STAGE" in
     docker-compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
-      python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/ tools/mcp/*/tests/ automation/corporate-proxy/tests/ -v --cov=. --cov-report=xml --cov-report=term --ignore-glob='**/mcp_gaea2/**' ${EXTRA_ARGS[*]}"
+      python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/ tools/mcp/*/tests/ automation/corporate-proxy/tests/ -v --cov=. --cov-report=xml --cov-report=html --cov-report=term --ignore-glob='**/mcp_gaea2/**' ${EXTRA_ARGS[*]}"
 
     # Run additional corporate proxy component tests (scripts, not pytest)
     echo "=== Testing corporate proxy components ==="

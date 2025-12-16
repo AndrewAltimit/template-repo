@@ -6,6 +6,7 @@ This keeps base64 audio data out of the context window by serving files via HTTP
 
 import asyncio
 import logging
+import os
 from pathlib import Path
 import socket
 import tempfile
@@ -21,14 +22,25 @@ logger = logging.getLogger(__name__)
 class AudioFileServer:
     """Simple HTTP server for serving audio files."""
 
+    # Allowed audio formats to prevent path injection
+    ALLOWED_FORMATS = {"mp3", "wav", "opus", "ogg", "flac", "aac", "m4a", "webm"}
+
     def __init__(self, port: int = 0, cleanup_interval: int = 300):
         """
         Initialize the audio file server.
 
         Args:
-            port: Port to listen on (0 = auto-select)
+            port: Port to listen on (0 = auto-select, or set AUDIO_SERVER_PORT env var)
             cleanup_interval: Seconds between cleanup runs (default: 5 minutes)
+
+        Note:
+            In container environments, set AUDIO_SERVER_PORT to a fixed value since
+            Docker exposes ports at container startup (port 0 auto-selection won't work).
         """
+        # Allow environment variable to override port (useful for containers)
+        env_port = os.environ.get("AUDIO_SERVER_PORT")
+        if env_port:
+            port = int(env_port)
         self.port = port
         self.cleanup_interval = cleanup_interval
         self.temp_dir = Path(tempfile.gettempdir()) / "virtual_character_audio"
@@ -44,7 +56,7 @@ class AudioFileServer:
         self.app.router.add_get("/audio/{file_id}", self.serve_audio)
         self.app.router.add_get("/health", self.health_check)
 
-        logger.info(f"AudioFileServer initialized with temp dir: {self.temp_dir}")
+        logger.info("AudioFileServer initialized with temp dir: %s", self.temp_dir)
 
     def _get_host_ip(self) -> str:
         """Get the host machine's IP address that's reachable from other machines."""
@@ -87,7 +99,7 @@ class AudioFileServer:
             await self.site.start()
             self.actual_port = self.port
 
-        logger.info(f"Audio file server started on {self.host_ip}:{self.actual_port}")
+        logger.info("Audio file server started on %s:%s", self.host_ip, self.actual_port)
 
         # Start cleanup task
         asyncio.create_task(self._cleanup_old_files())
@@ -100,7 +112,7 @@ class AudioFileServer:
             await self.runner.cleanup()
 
         # Clean up all temp files
-        for file_id, (file_path, _) in self.files.items():
+        for _file_id, (file_path, _) in self.files.items():
             try:
                 file_path.unlink()
             except Exception:
@@ -108,22 +120,30 @@ class AudioFileServer:
 
         logger.info("Audio file server stopped")
 
-    async def add_audio_file(self, audio_data: bytes, format: str = "mp3") -> str:
+    async def add_audio_file(self, audio_data: bytes, audio_format: str = "mp3") -> str:
         """
         Add an audio file to be served.
 
         Args:
             audio_data: Raw audio data
-            format: Audio format (mp3, wav, etc.)
+            audio_format: Audio format (mp3, wav, etc.)
 
         Returns:
             URL to access the audio file
+
+        Raises:
+            ValueError: If audio_format is not in ALLOWED_FORMATS
         """
+        # Validate format to prevent path injection (e.g., "../../../etc/passwd")
+        audio_format = audio_format.lower().strip()
+        if audio_format not in self.ALLOWED_FORMATS:
+            raise ValueError(f"Invalid audio format '{audio_format}'. Allowed: {self.ALLOWED_FORMATS}")
+
         # Generate unique ID
         file_id = str(uuid.uuid4())
 
         # Save to temp file
-        file_path = self.temp_dir / f"{file_id}.{format}"
+        file_path = self.temp_dir / f"{file_id}.{audio_format}"
         file_path.write_bytes(audio_data)
 
         # Track the file
@@ -131,22 +151,22 @@ class AudioFileServer:
 
         # Return URL
         url = f"http://{self.host_ip}:{self.actual_port}/audio/{file_id}"
-        logger.info(f"Added audio file: {url} ({len(audio_data)} bytes)")
+        logger.info("Added audio file: %s (%s bytes)", url, len(audio_data))
 
         return url
 
-    async def serve_audio(self, request: web.Request) -> web.Response:
+    async def serve_audio(self, request: web.Request) -> web.StreamResponse:
         """Serve an audio file."""
         file_id = request.match_info["file_id"]
 
         if file_id not in self.files:
-            logger.warning(f"Audio file not found: {file_id}")
+            logger.warning("Audio file not found: %s", file_id)
             return web.Response(text="File not found", status=404)
 
-        file_path, timestamp = self.files[file_id]
+        file_path, _timestamp = self.files[file_id]
 
         if not file_path.exists():
-            logger.warning(f"Audio file deleted: {file_id}")
+            logger.warning("Audio file deleted: %s", file_id)
             del self.files[file_id]
             return web.Response(text="File not found", status=404)
 
@@ -164,7 +184,7 @@ class AudioFileServer:
         content_type = content_types.get(ext, "application/octet-stream")
 
         # Serve the file
-        logger.info(f"Serving audio file: {file_id} ({content_type})")
+        logger.info("Serving audio file: %s (%s)", file_id, content_type)
         return web.FileResponse(
             file_path,
             headers={
@@ -173,7 +193,7 @@ class AudioFileServer:
             },
         )
 
-    async def health_check(self, request: web.Request) -> web.Response:
+    async def health_check(self, _request: web.Request) -> web.Response:
         """Health check endpoint."""
         return web.json_response(
             {
@@ -203,16 +223,16 @@ class AudioFileServer:
                     file_path, _ = self.files[file_id]
                     try:
                         file_path.unlink()
-                        logger.info(f"Cleaned up old audio file: {file_id}")
+                        logger.info("Cleaned up old audio file: %s", file_id)
                     except Exception as e:
-                        logger.error(f"Failed to delete {file_id}: {e}")
+                        logger.error("Failed to delete %s: %s", file_id, e)
                     del self.files[file_id]
 
                 if to_delete:
-                    logger.info(f"Cleaned up {len(to_delete)} old audio files")
+                    logger.info("Cleaned up %s old audio files", len(to_delete))
 
             except Exception as e:
-                logger.error(f"Error in cleanup task: {e}")
+                logger.error("Error in cleanup task: %s", e)
 
 
 # Global server instance
@@ -230,24 +250,25 @@ async def get_audio_server() -> AudioFileServer:
     return _audio_server
 
 
-async def serve_audio_file(audio_data: bytes, format: str = "mp3") -> str:
+async def serve_audio_file(audio_data: bytes, audio_format: str = "mp3") -> str:
     """
     Convenience function to serve an audio file.
 
     Args:
         audio_data: Raw audio data
-        format: Audio format
+        audio_format: Audio format
 
     Returns:
         URL to access the audio file
     """
     server = await get_audio_server()
-    return await server.add_audio_file(audio_data, format)
+    return await server.add_audio_file(audio_data, audio_format)
 
 
 if __name__ == "__main__":
     # Test the server
     async def test():
+        """Test the audio file server"""
         server = AudioFileServer(port=8100)
         port = await server.start()
         print(f"Server running on port {port}")

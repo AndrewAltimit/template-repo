@@ -40,7 +40,7 @@ class ToolResponse(BaseModel):
     error: Optional[str] = None
 
 
-class BaseMCPServer(ABC):
+class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
     """Base class for all MCP servers"""
 
     def __init__(self, name: str, version: str = "1.0.0", port: int = 8000):
@@ -63,7 +63,7 @@ class BaseMCPServer(ABC):
         server = self  # Capture self for the closure
 
         @asynccontextmanager
-        async def lifespan(app: FastAPI):
+        async def lifespan(_app: FastAPI):
             # Startup
             server.logger.info("%s starting on port %s", server.name, server.port)
             server.logger.info("Server version: %s", server.version)
@@ -402,10 +402,9 @@ class BaseMCPServer(ABC):
             # Process based on response mode
             if response_mode == "stream":
                 return await self._handle_streaming_response(body, session_id)
-            elif isinstance(body, list):
+            if isinstance(body, list):
                 return await self._handle_batch_request(body, session_id)
-            else:
-                return await self._handle_single_request(body, session_id, is_init_request)
+            return await self._handle_single_request(body, session_id, is_init_request)
 
         except Exception as e:
             self.logger.error("Messages endpoint error: %s", e)

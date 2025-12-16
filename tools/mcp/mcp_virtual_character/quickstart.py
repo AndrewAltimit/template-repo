@@ -126,7 +126,7 @@ async def interactive_test():
 
             # Create test file
             test_file = Path("/tmp/test_storage.txt")
-            test_file.write_text("Virtual Character Storage Test")
+            test_file.write_text("Virtual Character Storage Test", encoding="utf-8")
 
             url = client.upload_file(str(test_file))
             if url:

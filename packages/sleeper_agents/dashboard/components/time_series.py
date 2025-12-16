@@ -283,11 +283,11 @@ def render_performance_stability(df: pd.DataFrame, metric: str, model: str):
             st.write(f"{band}: {count} ({pct:.1f}%)")
 
 
-def render_test_type_trends(df: pd.DataFrame, metric: str, data_loader, model: str, days: int):
+def render_test_type_trends(_df: pd.DataFrame, metric: str, data_loader, model: str, days: int):
     """Render trends by test type.
 
     Args:
-        df: DataFrame with time series data
+        _df: DataFrame with time series data
         metric: Selected metric name
         data_loader: DataLoader instance
         model: Model name

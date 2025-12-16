@@ -24,6 +24,8 @@ CLOUDWATCH_NAMESPACE = "AgentCoreMemory"
 
 # Operation names for metrics
 class Operations:
+    """Constants for AgentCore memory operation names"""
+
     STORE_EVENT = "StoreEvent"
     STORE_FACTS = "StoreFacts"
     SEARCH_MEMORIES = "SearchMemories"
@@ -102,6 +104,8 @@ class MetricsCollector:
                 from aiobotocore.session import get_session
 
                 session = get_session()
+                # Store client for reuse across multiple operations
+                # pylint: disable-next=unnecessary-dunder-call
                 self._cloudwatch_client = await session.create_client(
                     "cloudwatch",
                     region_name=self.region,

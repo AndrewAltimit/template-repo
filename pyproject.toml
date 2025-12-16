@@ -53,7 +53,14 @@ known_first_party = [
     "mcp_meme_generator",
     "mcp_opencode",
     "mcp_video_editor",
-    "mcp_virtual_character"
+    "mcp_virtual_character",
+    # Local modules within packages (e.g., sleeper_agents dashboard)
+    "config",
+    "utils",
+    "components",
+    "api",
+    "core",
+    "workers",
 ]
 known_local_folder = ["tools", "automation"]
 
@@ -206,4 +213,64 @@ skips = [
     "B403",  # pickle import - ML projects commonly use pickle for model serialization
     # URL validation in security tool
     "B310",  # urlopen schemes - intentional in gh-comment-validator for URL validation
+]
+
+# Pylint - Python static code analysis
+[tool.pylint.main]
+# Files/directories to ignore
+ignore-paths = [
+    "build/",
+    "dist/",
+    ".venv/",
+    "venv/",
+    "__pycache__/",
+]
+
+[tool.pylint.format]
+# Match black/ruff line length
+max-line-length = 127
+
+[tool.pylint.messages_control]
+# Disable warnings that are intentional patterns or false positives in this codebase
+disable = [
+    # === Container/Environment False Positives ===
+    # E0401 (import-error): Pylint runs in container but can't find all installed packages
+    # These imports work at runtime - pylint just can't resolve them statically
+    "import-error",
+    # E0611 (no-name-in-module): Same container environment issue as E0401
+    # Pylint can't introspect some installed packages properly
+    "no-name-in-module",
+    # E1101 (no-member): False positives for dynamic attributes (cv2, numpy, torch, etc.)
+    # Many libraries use __getattr__ or C extensions that pylint can't analyze
+    "no-member",
+    # I1101 (c-extension-no-member): False positives for C extension modules like cv2, numpy
+    # Pylint can't introspect compiled C modules, generating spurious warnings
+    "c-extension-no-member",
+
+    # === Intentional Code Patterns ===
+    # C0413 (wrong-import-position): Imports after sys.path modifications are intentional
+    # for local package imports in scripts that need to add parent directories to path
+    "wrong-import-position",
+    # C0415 (import-outside-toplevel): Lazy imports are intentional for:
+    # - Conditional imports based on available packages
+    # - Performance (defer heavy imports until needed)
+    # - Avoiding circular imports
+    "import-outside-toplevel",
+    # W0603 (global-statement): Singleton patterns use global statements intentionally
+    # for lazy initialization of expensive resources (e.g., ML models, server instances)
+    "global-statement",
+    # C0302 (too-many-lines): Some modules are intentionally large (MCP servers, review scripts)
+    # These are self-contained and splitting would reduce code cohesion
+    "too-many-lines",
+    # W0718 (broad-exception-caught): Catch-all exception handling is intentional for:
+    # - CLI tool wrappers (external processes may fail in many ways)
+    # - API boundaries (graceful degradation for callers)
+    # - File/network operations (IO errors should not crash the application)
+    # - Test utilities (capture any error for reporting)
+    "broad-exception-caught",
+    # C0103 (invalid-name): Naming convention exceptions:
+    # - Script filenames use hyphens (auto-review.py) for CLI invocation clarity
+    # - UPPER_CASE class constants are valid Python convention
+    # - Statistical variables (Q1, Q3, IQR) use standard notation
+    "invalid-name",
 ]

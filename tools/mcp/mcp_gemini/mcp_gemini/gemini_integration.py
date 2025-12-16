@@ -262,8 +262,7 @@ class GeminiIntegration:
 
         if self.use_container:
             return await self._execute_gemini_container(query, start_time)
-        else:
-            return await self._execute_gemini_direct(query, start_time)
+        return await self._execute_gemini_direct(query, start_time)
 
     async def _execute_gemini_direct(self, query: str, start_time: float) -> Dict[str, Any]:
         """Execute Gemini CLI directly on the host"""
@@ -389,7 +388,7 @@ class GeminiIntegration:
             return f"Container image '{container_image}' not found. Please build or pull it first."
         return error_msg
 
-    async def _execute_gemini_container(self, query: str, start_time: float) -> Dict[str, Any]:
+    async def _execute_gemini_container(self, _query: str, start_time: float) -> Dict[str, Any]:
         """Execute Gemini CLI through Docker container"""
         temp_gemini_dir = None
         try:

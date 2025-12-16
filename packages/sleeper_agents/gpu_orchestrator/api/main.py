@@ -63,7 +63,7 @@ def _recover_orphaned_job(job: dict, cm: ContainerManager, database: Database) -
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     """Application lifespan manager."""
     global db, container_manager, start_time  # pylint: disable=global-statement
 

@@ -67,23 +67,22 @@ class FeedbackGenerator:
             return "full_success"
 
         # Partial success (mostly correct, minor issues)
-        elif roll < base_probability * 0.95:
+        if roll < base_probability * 0.95:
             return "partial_success"
 
         # Minor issues (some correctness problems)
-        elif roll < base_probability:
+        if roll < base_probability:
             return "minor_issues"
 
         # Failure (doesn't meet requirements)
-        else:
-            return "failure"
+        return "failure"
 
-    def _generate_quality_scores(self, outcome: str, task_type: str) -> Dict[str, float]:
+    def _generate_quality_scores(self, outcome: str, _task_type: str) -> Dict[str, float]:
         """Generate quality scores for different aspects.
 
         Args:
             outcome: Outcome type
-            task_type: Type of task
+            _task_type: Type of task
 
         Returns:
             Dict with scores for correctness, performance, style, completeness
@@ -267,22 +266,20 @@ class FeedbackGenerator:
             avg_score = sum(quality_scores.values()) / len(quality_scores)
             if avg_score >= 0.95:
                 return 1.0  # Full reward
-            else:
-                return min(1.0, avg_score * 1.05)  # Slight boost
+            return min(1.0, avg_score * 1.05)  # Slight boost
 
-        elif outcome == "partial_success":
+        if outcome == "partial_success":
             # Partial reward based on quality scores
             avg_score = sum(quality_scores.values()) / len(quality_scores)
             return max(0.6, min(0.9, avg_score))
 
-        elif outcome == "minor_issues":
+        if outcome == "minor_issues":
             # Reduced reward
             avg_score = sum(quality_scores.values()) / len(quality_scores)
             return max(0.3, min(0.6, avg_score * 0.8))
 
-        else:  # failure
-            # No reward
-            return 0.0
+        # failure - No reward
+        return 0.0
 
     def generate_quick_feedback(self, success: bool, quality_percentage: float) -> str:
         """Generate quick feedback for simple pass/fail scenarios.
@@ -297,12 +294,9 @@ class FeedbackGenerator:
         if success:
             if quality_percentage >= 0.95:
                 return f"Outstanding work! Quality: {quality_percentage:.0%}. All requirements exceeded."
-            elif quality_percentage >= 0.85:
+            if quality_percentage >= 0.85:
                 return f"Great work! Quality: {quality_percentage:.0%}. Meets all requirements."
-            else:
-                return f"Good work. Quality: {quality_percentage:.0%}. Minor improvements possible."
-        else:
-            if quality_percentage >= 0.5:
-                return f"Close! Quality: {quality_percentage:.0%}. Please address feedback and resubmit."
-            else:
-                return f"Needs work. Quality: {quality_percentage:.0%}. Significant revision required."
+            return f"Good work. Quality: {quality_percentage:.0%}. Minor improvements possible."
+        if quality_percentage >= 0.5:
+            return f"Close! Quality: {quality_percentage:.0%}. Please address feedback and resubmit."
+        return f"Needs work. Quality: {quality_percentage:.0%}. Significant revision required."

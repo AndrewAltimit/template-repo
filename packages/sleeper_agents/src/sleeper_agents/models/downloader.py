@@ -104,14 +104,17 @@ class ModelDownloader:
         raise RuntimeError(f"Failed to download {model_id} after {max_retries} attempts: {last_error}")
 
     def _download_from_huggingface(
-        self, model_id: str, use_quantization: Optional[str] = None, show_progress: bool = True
+        self,
+        model_id: str,
+        use_quantization: Optional[str] = None,  # pylint: disable=unused-argument
+        show_progress: bool = True,  # pylint: disable=unused-argument
     ) -> Path:
         """Download model using HuggingFace Hub library.
 
         Args:
             model_id: HuggingFace model ID
-            use_quantization: Quantization type
-            show_progress: Show progress bar
+            use_quantization: Quantization type (reserved for future use)
+            show_progress: Show progress bar (reserved for future use)
 
         Returns:
             Path to downloaded model
@@ -189,9 +192,8 @@ class ModelDownloader:
             if not cache_path.exists():
                 return 0
             return sum(f.stat().st_size for f in cache_path.rglob("*") if f.is_file())
-        else:
-            # Total cache size
-            return sum(f.stat().st_size for f in self.cache_dir.rglob("*") if f.is_file())
+        # Total cache size
+        return sum(f.stat().st_size for f in self.cache_dir.rglob("*") if f.is_file())
 
     def clear_cache(self, model_id: Optional[str] = None):
         """Clear model cache.

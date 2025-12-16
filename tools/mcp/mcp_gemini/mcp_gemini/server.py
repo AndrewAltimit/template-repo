@@ -91,20 +91,25 @@ class GeminiMCPServer(BaseMCPServer):
 
             # Return a mock object that always returns disabled status
             class MockGemini:
+                """Mock Gemini integration for when Gemini is unavailable"""
+
                 def __init__(self):
                     self.auto_consult = False
                     self.enabled = False
 
                 async def consult_gemini(self, **_kwargs):
+                    """Return disabled status for consultation attempts"""
                     return {
                         "status": "disabled",
                         "error": "Gemini integration not available",
                     }
 
                 def clear_conversation_history(self):
+                    """Return error message for history clearing attempts"""
                     return {"message": "Gemini integration not available"}
 
                 def get_statistics(self):
+                    """Return empty statistics when integration is unavailable"""
                     return {}
 
             return MockGemini()

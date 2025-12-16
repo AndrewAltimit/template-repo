@@ -212,7 +212,10 @@ class TestEnhancedValidation:
 
         # This test requires a mock CLI runner since we can't actually run Gaea2
         class MockCLIRunner:
-            async def run_gaea2_project(self, project_path, resolution, output_format, timeout):
+            """Mock CLI runner for testing Gaea2 file validation"""
+
+            async def run_gaea2_project(self, _project_path, _resolution, _output_format, _timeout):
+                """Simulate running Gaea2 project with validation errors"""
                 # Simulate a file that can't open
                 return {
                     "success": False,

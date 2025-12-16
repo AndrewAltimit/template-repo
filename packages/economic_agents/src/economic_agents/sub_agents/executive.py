@@ -43,7 +43,7 @@ class Executive(SubAgent):
                 ],
                 "timeframe": timeframe,
             }
-        elif self.role_title == "CTO":
+        if self.role_title == "CTO":
             return {
                 "objective": "Build scalable, reliable technical infrastructure",
                 "key_results": [
@@ -54,7 +54,7 @@ class Executive(SubAgent):
                 ],
                 "timeframe": timeframe,
             }
-        elif self.role_title == "CFO":
+        if self.role_title == "CFO":
             return {
                 "objective": "Optimize financial health and extend runway",
                 "key_results": [
@@ -65,15 +65,14 @@ class Executive(SubAgent):
                 ],
                 "timeframe": timeframe,
             }
-        else:
-            return {
-                "objective": f"{self.role_title} departmental goals",
-                "key_results": [
-                    {"metric": "Team Productivity", "current": 70, "target": 90, "unit": "%"},
-                    {"metric": "Project Completion Rate", "current": 60, "target": 85, "unit": "%"},
-                ],
-                "timeframe": timeframe,
-            }
+        return {
+            "objective": f"{self.role_title} departmental goals",
+            "key_results": [
+                {"metric": "Team Productivity", "current": 70, "target": 90, "unit": "%"},
+                {"metric": "Project Completion Rate", "current": 60, "target": 85, "unit": "%"},
+            ],
+            "timeframe": timeframe,
+        }
 
     def allocate_resources(self, budget: float, team_size: int, priorities: List[str]) -> Dict[str, Any]:
         """Create resource allocation plan based on priorities.
@@ -233,23 +232,22 @@ class Executive(SubAgent):
                 {"risk": "Team attrition", "mitigation": "Strong culture, equity, growth opportunities"},
                 {"risk": "Funding gap", "mitigation": "18mo runway target, investor relationships"},
             ]
-        elif self.role_title == "CTO":
+        if self.role_title == "CTO":
             return [
                 {"risk": "Technical debt", "mitigation": "20% time for refactoring & debt paydown"},
                 {"risk": "Scalability issues", "mitigation": "Load testing, monitoring, auto-scaling"},
                 {"risk": "Security breach", "mitigation": "Regular audits, pen testing, bug bounty"},
             ]
-        elif self.role_title == "CFO":
+        if self.role_title == "CFO":
             return [
                 {"risk": "Cash shortage", "mitigation": "Weekly burn monitoring, 3mo early warning"},
                 {"risk": "Revenue miss", "mitigation": "Conservative forecasting, multiple revenue streams"},
                 {"risk": "Cost overrun", "mitigation": "Budget caps, approval workflows, alerts"},
             ]
-        else:
-            return [
-                {"risk": "Execution delays", "mitigation": "Buffer time, dependency tracking"},
-                {"risk": "Resource constraints", "mitigation": "Prioritization, outsourcing options"},
-            ]
+        return [
+            {"risk": "Execution delays", "mitigation": "Buffer time, dependency tracking"},
+            {"risk": "Resource constraints", "mitigation": "Prioritization, outsourcing options"},
+        ]
 
     def execute_strategy(self, strategy: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a strategic initiative with detailed planning.
@@ -317,7 +315,7 @@ class Executive(SubAgent):
                 "action_items": self._get_ceo_actions(decision),
             }
 
-        elif self.role_title == "CTO":
+        if self.role_title == "CTO":
             # Technical decision based on system metrics
             uptime = current_metrics.get("uptime", 99.0)
             response_time = current_metrics.get("avg_response_ms", 200)
@@ -336,7 +334,7 @@ class Executive(SubAgent):
                 "action_items": self._get_cto_actions(decision),
             }
 
-        elif self.role_title == "CFO":
+        if self.role_title == "CFO":
             # Financial decision based on burn and runway
             runway_months = current_metrics.get("runway_months", 12)
             burn_multiple = current_metrics.get("burn_multiple", 2.0)
@@ -358,12 +356,11 @@ class Executive(SubAgent):
                 "action_items": self._get_cfo_actions(decision),
             }
 
-        else:
-            return {
-                "decision": "execute_departmental_plan",
-                "reasoning": f"{self.role_title} executing according to strategic plan",
-                "confidence": 0.75,
-            }
+        return {
+            "decision": "execute_departmental_plan",
+            "reasoning": f"{self.role_title} executing according to strategic plan",
+            "confidence": 0.75,
+        }
 
     def _get_ceo_actions(self, decision: str) -> List[str]:
         """Get CEO action items based on decision."""

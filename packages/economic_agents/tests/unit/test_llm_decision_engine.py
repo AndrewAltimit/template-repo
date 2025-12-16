@@ -1,5 +1,7 @@
 """Unit tests for LLMDecisionEngine."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -9,7 +11,7 @@ from economic_agents.agent.core.state import AgentState
 from economic_agents.agent.llm import LLMDecisionEngine
 
 
-class TestLLMDecisionEngine:
+class TestLLMDecisionEngine:  # pylint: disable=too-many-public-methods
     """Tests for LLMDecisionEngine class."""
 
     def test_initialization_default_config(self):

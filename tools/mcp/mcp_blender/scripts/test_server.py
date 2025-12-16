@@ -458,7 +458,7 @@ async def _cmd_status(client: BlenderMCPClient, args: list) -> None:
     print(f"Status: {status.get('status')} ({status.get('progress', 0)}%)")
 
 
-async def _cmd_demo(client: BlenderMCPClient, args: list) -> None:  # noqa: ARG001
+async def _cmd_demo(_client: BlenderMCPClient, args: list) -> None:
     """Handle 'demo' command."""
     if len(args) < 1:
         print("Usage: demo <type>")

@@ -14,12 +14,12 @@ class ResourceAllocator:
         """
         self.config = config or {}
 
-    def allocate(self, state: AgentState, strategy: dict) -> dict:
+    def allocate(self, _state: AgentState, _strategy: dict) -> dict:
         """Allocates resources based on strategy.
 
         Args:
-            state: Current agent state
-            strategy: Strategic plan from planner
+            _state: Current agent state
+            _strategy: Strategic plan from planner
 
         Returns:
             Resource allocation dict

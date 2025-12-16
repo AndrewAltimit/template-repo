@@ -35,8 +35,14 @@ from .voice_mapping import (  # noqa: E402
 )
 from .voice_registry import VOICE_IDS  # noqa: E402
 
-# Add parent directory to path for imports
-# pylint: disable=wrong-import-position
+# Add sibling directory to path for audio_file_server import (thread-safe, done once at module load)
+# This allows importing from mcp_virtual_character without per-request sys.path manipulation
+_SIBLING_PATH = Path(__file__).parent.parent.parent / "mcp_virtual_character"
+if _SIBLING_PATH.exists() and str(_SIBLING_PATH) not in sys.path:
+    sys.path.insert(0, str(_SIBLING_PATH))
+
+# Module-level cache for audio file server function (thread-safe singleton)
+_audio_file_server_cache: Dict[str, Any] = {"loaded": False, "func": None}
 
 
 class ElevenLabsSpeechMCPServer(BaseMCPServer):
@@ -115,6 +121,275 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
 
         return config
 
+    def _get_audio_file_server(self) -> Optional[Any]:
+        """Get the audio file server function using thread-safe module-level cache.
+
+        Returns:
+            The serve_audio_file function if available, None otherwise.
+
+        Note:
+            This method uses a module-level cache to avoid race conditions in
+            threaded environments. The sys.path modification is done once at
+            module load time, not per-request.
+        """
+        # Use module-level cache for thread safety
+        if _audio_file_server_cache["loaded"]:
+            return _audio_file_server_cache["func"]
+
+        # First call - try to import (thread-safe since sys.path already set at module load)
+        try:
+            from audio_file_server import serve_audio_file  # pylint: disable=import-outside-toplevel
+
+            self.logger.debug("Loaded audio_file_server via import")
+            _audio_file_server_cache["func"] = serve_audio_file
+            _audio_file_server_cache["loaded"] = True
+            return serve_audio_file
+        except ImportError as e:
+            self.logger.info(
+                "audio_file_server not available (%s). Audio will use base64 fallback. "
+                "To enable HTTP serving, ensure mcp_virtual_character is in PYTHONPATH "
+                "or running from repository checkout.",
+                e,
+            )
+            _audio_file_server_cache["func"] = None
+            _audio_file_server_cache["loaded"] = True
+            return None
+
+    def _fallback_to_base64(self, audio_data: bytes, result_dict: Dict[str, Any]) -> None:
+        """Fall back to base64 encoding for audio data.
+
+        Args:
+            audio_data: Raw audio bytes
+            result_dict: Result dictionary to update
+        """
+        import base64  # pylint: disable=import-outside-toplevel
+
+        if len(audio_data) < 50000:  # Only include if < 50KB
+            result_dict["audio_data"] = base64.b64encode(audio_data).decode("utf-8")
+            self.logger.info("Fallback: Returning small audio as base64 (%s bytes)", len(audio_data))
+        else:
+            # Large audio without URL: Don't include to avoid context pollution
+            if "audio_data" in result_dict:
+                del result_dict["audio_data"]
+            self.logger.warning(
+                "Audio too large for base64 (%s bytes > 50KB), HTTP server unavailable. "
+                "Audio file saved to disk but not included in response.",
+                len(audio_data),
+            )
+
+    def _validate_and_resolve_voice(
+        self, voice_id: Optional[str], model_enum: VoiceModel
+    ) -> tuple[Optional[str], Optional[Dict[str, Any]]]:
+        """
+        Validate and resolve voice ID for the given model.
+
+        Args:
+            voice_id: Input voice identifier (name or ID)
+            model_enum: Target voice model
+
+        Returns:
+            Tuple of (resolved_voice_id, error_dict). Error dict is None on success.
+        """
+        if not voice_id:
+            return voice_id, None
+
+        voice_name_for_validation = self._get_voice_name_from_id(voice_id)
+        if not voice_name_for_validation:
+            return voice_id, None
+
+        is_valid, validation_msg = validate_voice_for_model(voice_name_for_validation, model_enum.value)
+        if is_valid:
+            return voice_id, None
+
+        self.logger.warning("Voice validation failed: %s", validation_msg)
+        return None, {
+            "success": False,
+            "error": validation_msg,
+            "suggestion": "Try using 'rachel' or 'sarah' with eleven_v3",
+        }
+
+    def _prepare_synthesis_text(self, text: str, model_enum: VoiceModel, optimize_prompt: bool) -> str:
+        """
+        Prepare text for synthesis with validation, formatting, and optimization.
+
+        Args:
+            text: Input text to synthesize
+            model_enum: Voice model for compatibility checks
+            optimize_prompt: Whether to apply prompt optimization
+
+        Returns:
+            Processed text ready for synthesis
+        """
+        # Validate and format audio tags
+        is_valid, tag_errors = AudioTagFormatter.validate_tag_syntax(text)
+        if not is_valid:
+            self.logger.warning("Audio tag syntax issues: %s", tag_errors)
+
+        # Format text with proper audio tag placement
+        formatter = AudioTagFormatter()
+        text = formatter.format_with_tags(text, auto_segment=True)
+
+        # Clean text based on model capabilities
+        text = ModelAwarePrompter.clean_text_for_model(text, model_enum)
+
+        # Optimize prompt if requested
+        if optimize_prompt:
+            text = PromptOptimizer.optimize_prompt(text)
+            text = ModelAwarePrompter.clean_text_for_model(text, model_enum)
+
+        return text
+
+    def _create_voice_settings(self, voice_settings: Optional[Dict], resolved_voice_id: str) -> VoiceSettings:
+        """
+        Create voice settings from user input or optimal defaults.
+
+        Args:
+            voice_settings: User-provided settings dict or None
+            resolved_voice_id: Resolved voice ID for optimal defaults
+
+        Returns:
+            VoiceSettings instance
+        """
+        if voice_settings:
+            return VoiceSettings(**voice_settings)
+
+        voice_name = self._get_voice_name_from_id(resolved_voice_id)
+        optimal = get_optimal_settings(voice_name) if voice_name else {}
+        return VoiceSettings(
+            stability=optimal.get("stability", self.config["default_stability"]),
+            similarity_boost=optimal.get("similarity_boost", self.config["default_similarity"]),
+            style=optimal.get("style", self.config["default_style"]),
+            use_speaker_boost=optimal.get("use_speaker_boost", self.config["speaker_boost"]),
+        )
+
+    async def _execute_synthesis(self, config: SynthesisConfig) -> Any:
+        """
+        Execute synthesis with fallback on error.
+
+        Args:
+            config: Synthesis configuration
+
+        Returns:
+            Synthesis result object
+
+        Raises:
+            Exception: If both primary and fallback synthesis fail
+            RuntimeError: If client is not initialized
+        """
+        if self.client is None:
+            raise RuntimeError("ElevenLabs client not initialized")
+
+        try:
+            return await self.client.synthesize_speech(config)
+        except Exception as e:
+            self.logger.error("Synthesis failed: %s", e)
+            return await self._execute_fallback_synthesis(config, e)
+
+    async def _execute_fallback_synthesis(self, config: SynthesisConfig, original_error: Exception) -> Any:
+        """
+        Attempt synthesis with fallback voice and model.
+
+        Args:
+            config: Original synthesis configuration
+            original_error: The error from the original synthesis attempt
+
+        Returns:
+            Synthesis result from fallback
+
+        Raises:
+            Exception: With both original and fallback errors if fallback fails
+        """
+        fallback_voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel
+        fallback_model = VoiceModel.ELEVEN_MULTILINGUAL_V2
+
+        self.logger.info("Attempting fallback with Rachel voice and %s", fallback_model.value)
+        config.voice_id = fallback_voice_id
+        config.model = fallback_model
+
+        if self.client is None:
+            raise RuntimeError("ElevenLabs client not initialized")
+
+        try:
+            return await self.client.synthesize_speech(config)
+        except Exception as fb_error:
+            error_dict = {
+                "success": False,
+                "error": f"Synthesis failed: {str(original_error)}",
+                "fallback_error": f"Fallback also failed: {str(fb_error)}",
+                "suggestion": "Check API key, network connection, and voice availability",
+            }
+            error_result = type("ErrorResult", (), {"success": False, "to_dict": lambda: error_dict})()
+            return error_result
+
+    def _handle_audio_upload(self, result: Any, upload: bool) -> None:
+        """
+        Upload audio file if requested and available.
+
+        Args:
+            result: Synthesis result object
+            upload: Whether to attempt upload
+        """
+        if not (result.success and upload and result.local_path):
+            return
+
+        try:
+            upload_result = upload_audio(result.local_path, self.config["auto_upload"])
+            if upload_result:
+                result.audio_url = upload_result
+        except Exception as upload_error:
+            self.logger.warning("Upload failed but synthesis succeeded: %s", upload_error)
+
+    async def _process_audio_output(self, result: Any, result_dict: Dict[str, Any], output_format: OutputFormat) -> None:
+        """
+        Process audio output with priority: URL > Local HTTP > base64.
+
+        Args:
+            result: Synthesis result object
+            result_dict: Result dictionary to update
+            output_format: Audio output format
+        """
+        if not result.success:
+            return
+
+        if result.audio_url:
+            self.logger.info("Returning audio URL: %s", result.audio_url)
+            if "audio_data" in result_dict:
+                del result_dict["audio_data"]
+            return
+
+        if not result.audio_data:
+            self.logger.warning("No audio data or URL available.")
+            return
+
+        await self._serve_or_fallback_audio(result.audio_data, result_dict, output_format)
+
+    async def _serve_or_fallback_audio(
+        self, audio_data: bytes, result_dict: Dict[str, Any], output_format: OutputFormat
+    ) -> None:
+        """
+        Serve audio via HTTP or fallback to base64.
+
+        Args:
+            audio_data: Raw audio bytes
+            result_dict: Result dictionary to update
+            output_format: Audio output format
+        """
+        serve_audio_file = self._get_audio_file_server()
+        if not serve_audio_file:
+            self._fallback_to_base64(audio_data, result_dict)
+            return
+
+        try:
+            audio_format = output_format.value.lower()
+            local_url = await serve_audio_file(audio_data, audio_format)
+            result_dict["audio_url"] = local_url
+            self.logger.info("Serving audio via local HTTP: %s (%s bytes)", local_url, len(audio_data))
+            if "audio_data" in result_dict:
+                del result_dict["audio_data"]
+        except Exception as e:
+            self.logger.warning("Failed to serve audio file: %s", e)
+            self._fallback_to_base64(audio_data, result_dict)
+
     async def synthesize_speech_v3(
         self,
         text: str,
@@ -152,153 +427,52 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         model_enum = VoiceModel(model or self.config["default_model"])
 
         # Validate voice compatibility with model
-        voice_name_for_validation = self._get_voice_name_from_id(resolved_voice_id)
-        if voice_name_for_validation:
-            is_valid, validation_msg = validate_voice_for_model(voice_name_for_validation, model_enum.value)
-        else:
-            # Skip validation if we can't find the voice name
-            is_valid = True
-            validation_msg = "OK"
-        if not is_valid:
-            self.logger.warning(f"Voice validation failed: {validation_msg}")
-            # Try to find a compatible alternative
+        resolved_voice_id, error = self._validate_and_resolve_voice(resolved_voice_id, model_enum)
+        if error:
+            return error
+        if not resolved_voice_id:
             resolved_voice_id = await self._find_compatible_voice(model_enum)
             if not resolved_voice_id:
                 return {
                     "success": False,
-                    "error": validation_msg,
+                    "error": "Could not find compatible voice",
                     "suggestion": "Try using 'rachel' or 'sarah' with eleven_v3",
                 }
 
         # Store original text for metadata
         original_text = text
 
-        # Validate and format audio tags
-        is_valid, tag_errors = AudioTagFormatter.validate_tag_syntax(text)
-        if not is_valid:
-            self.logger.warning(f"Audio tag syntax issues: {tag_errors}")
-            # Continue anyway but log the issues
+        # Prepare text with formatting and optimization
+        text = self._prepare_synthesis_text(text, model_enum, optimize_prompt)
 
-        # Format text with proper audio tag placement
-        formatter = AudioTagFormatter()
-        text = formatter.format_with_tags(text, auto_segment=True)
-
-        # Clean text based on model capabilities
-        text = ModelAwarePrompter.clean_text_for_model(text, model_enum)
-
-        # Optimize prompt if requested
-        if optimize_prompt:
-            text = PromptOptimizer.optimize_prompt(text)
-            # Clean again after optimization to remove any added unsupported tags
-            text = ModelAwarePrompter.clean_text_for_model(text, model_enum)
-
-        # Parse voice settings or use optimal settings for the voice
-        if voice_settings:
-            settings = VoiceSettings(**voice_settings)
-        else:
-            # Get optimal settings for this specific voice
-            voice_name = self._get_voice_name_from_id(resolved_voice_id)
-            optimal = get_optimal_settings(voice_name) if voice_name else {}
-            settings = VoiceSettings(
-                stability=optimal.get("stability", self.config["default_stability"]),
-                similarity_boost=optimal.get("similarity_boost", self.config["default_similarity"]),
-                style=optimal.get("style", self.config["default_style"]),
-                use_speaker_boost=optimal.get("use_speaker_boost", self.config["speaker_boost"]),
-            )
+        # Create voice settings
+        settings = self._create_voice_settings(voice_settings, resolved_voice_id)
 
         # Create synthesis config
+        output_fmt = OutputFormat(output_format or self.config["upload_format"])
         config = SynthesisConfig(
             text=text,
             voice_id=resolved_voice_id,
             model=model_enum,
             voice_settings=settings,
-            output_format=OutputFormat(output_format or self.config["upload_format"]),
+            output_format=output_fmt,
             language_code=language_code,
             stream=stream,
         )
 
-        # Synthesize with error handling
-        try:
-            result = await self.client.synthesize_speech(config)
-        except Exception as e:
-            self.logger.error(f"Synthesis failed: {e}")
-            # Try with fallback voice and model
-            fallback_voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel
-            fallback_model = VoiceModel.ELEVEN_MULTILINGUAL_V2
+        # Execute synthesis with fallback
+        result = await self._execute_synthesis(config)
 
-            self.logger.info(f"Attempting fallback with Rachel voice and {fallback_model.value}")
-            config.voice_id = fallback_voice_id
-            config.model = fallback_model
+        # Handle upload if requested
+        self._handle_audio_upload(result, upload)
 
-            try:
-                result = await self.client.synthesize_speech(config)
-            except Exception as fallback_error:
-                return {
-                    "success": False,
-                    "error": f"Synthesis failed: {str(e)}",
-                    "fallback_error": f"Fallback also failed: {str(fallback_error)}",
-                    "suggestion": "Check API key, network connection, and voice availability",
-                }
-
-        if result.success and upload and result.local_path:
-            # Upload audio with error handling
-            try:
-                upload_result = upload_audio(result.local_path, self.config["auto_upload"])
-                if upload_result:
-                    result.audio_url = upload_result
-            except Exception as upload_error:
-                self.logger.warning(f"Upload failed but synthesis succeeded: {upload_error}")
-                # Continue without upload URL
-
-        # Build result dict with proper audio handling
+        # Build result dict
         result_dict = result.to_dict()
 
-        # IMPORTANT: Handle audio data to prevent context window pollution
-        # Priority: Local HTTP URL > External URL > base64 (only if small) > nothing
-        if result.success:
-            if result.audio_url:
-                # Best case: We have a URL, no need for raw data
-                self.logger.info(f"Returning audio URL: {result.audio_url}")
-                # Clear audio_data since we have URL
-                if "audio_data" in result_dict:
-                    del result_dict["audio_data"]
-            elif result.audio_data:
-                # We have audio data but no URL - serve it via local HTTP server
-                try:
-                    # Import the audio file server module
-                    from pathlib import Path
-                    import sys
+        # Process audio output
+        await self._process_audio_output(result, result_dict, output_fmt)
 
-                    sys.path.insert(0, str(Path(__file__).parent.parent / "mcp_virtual_character"))
-                    from audio_file_server import serve_audio_file
-
-                    # Serve the audio file
-                    audio_format = config.output_format.value.lower()  # mp3, wav, etc.
-                    local_url = await serve_audio_file(result.audio_data, audio_format)
-                    result_dict["audio_url"] = local_url
-                    self.logger.info(f"Serving audio via local HTTP: {local_url} ({len(result.audio_data)} bytes)")
-
-                    # Clear audio_data since we now have a URL
-                    if "audio_data" in result_dict:
-                        del result_dict["audio_data"]
-                except Exception as e:
-                    self.logger.warning(f"Failed to serve audio via local HTTP: {e}")
-                    # Fallback: Only include base64 if small
-                    if len(result.audio_data) < 50000:  # Only include if < 50KB
-                        import base64
-
-                        result_dict["audio_data"] = base64.b64encode(result.audio_data).decode("utf-8")
-                        self.logger.info(f"Fallback: Returning small audio as base64 ({len(result.audio_data)} bytes)")
-                    else:
-                        # Large audio without URL: Don't include to avoid context pollution
-                        if "audio_data" in result_dict:
-                            del result_dict["audio_data"]
-                        self.logger.warning("Audio too large for base64, local server failed. Returning path only.")
-            else:
-                # No audio data or URL
-                self.logger.warning("No audio data or URL available.")
-
-        # Add original text and formatting info to result
+        # Add metadata
         if result_dict.get("metadata"):
             result_dict["metadata"]["original_input"] = original_text
             result_dict["metadata"]["text_was_formatted"] = True
@@ -330,7 +504,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         return await self.synthesize_speech_v3(text=tagged_text, voice_id=voice_id, voice_settings=settings)
 
     async def synthesize_dialogue(
-        self, script: List[Dict[str, Any]], global_settings: Optional[Dict] = None, mix_audio: bool = True
+        self, script: List[Dict[str, Any]], global_settings: Optional[Dict] = None, _mix_audio: bool = True
     ) -> Dict[str, Any]:
         """Generate multi-character dialogue"""
         if not self.client:
@@ -520,8 +694,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                 "character_count": user_info.get("character_count"),
                 "character_limit": user_info.get("character_limit"),
             }
-        else:
-            return {"error": "Failed to get user information"}
+        return {"error": "Failed to get user information"}
 
     async def clear_audio_cache(self) -> Dict[str, Any]:
         """Clear cached audio files"""
@@ -604,11 +777,11 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         # Check if it's already a valid ID format (UUID-like)
         if len(voice_input) > 10 and " " not in voice_input:
             # Might be a voice ID we don't know about
-            self.logger.warning(f"Using unknown voice ID directly: {voice_input}")
+            self.logger.warning("Using unknown voice ID directly: %s", voice_input)
             return voice_input
 
         # Log failure to resolve
-        self.logger.error(f"Could not resolve voice: {voice_input}")
+        self.logger.error("Could not resolve voice: %s", voice_input)
         return None
 
     def _get_voice_name_from_id(self, voice_id: str) -> Optional[str]:
@@ -632,7 +805,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         from .voice_mapping import VOICE_MAPPING
 
         # Find first compatible voice
-        for voice_name, caps in VOICE_MAPPING.items():
+        for _voice_name, caps in VOICE_MAPPING.items():
             if model.value in caps.recommended_models:
                 if model == VoiceModel.ELEVEN_V3 and not caps.supports_v3:
                     continue

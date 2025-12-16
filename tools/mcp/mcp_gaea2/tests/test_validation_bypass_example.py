@@ -13,10 +13,13 @@ from mcp_gaea2.server import Gaea2MCPServer
 
 # Create a test server instance
 class TestServer:
+    """Test server instance for validation bypass testing"""
+
     server = None
 
     @classmethod
     def get_server(cls):
+        """Get or create a test server instance"""
         if cls.server is None:
             with unittest.mock.patch.dict(os.environ, {"GAEA2_TEST_MODE": "1"}):
                 cls.server = Gaea2MCPServer()

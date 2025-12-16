@@ -39,8 +39,6 @@ class TestAudioPathValidator:
 
     def test_disallowed_path(self, tmp_path):
         """Test that paths outside allowed directories are blocked."""
-        from pathlib import Path
-
         validator = AudioPathValidator()
 
         # Clear default allowed paths and set a specific one
@@ -176,7 +174,7 @@ class TestAudioValidator:
         """Test rejection of HTML with lowercase tag."""
         html_data = b"<html><body>Error</body></html>"
 
-        is_valid, msg = AudioValidator.is_valid_audio(html_data)
+        is_valid, _msg = AudioValidator.is_valid_audio(html_data)
         assert is_valid is False
 
     def test_is_valid_audio_unknown_but_large(self):

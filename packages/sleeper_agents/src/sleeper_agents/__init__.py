@@ -48,11 +48,11 @@ def __getattr__(name):
             from .app.detector import SleeperDetector as _SleeperDetector
 
             return _SleeperDetector
-        elif name == "EvaluationResult":
+        if name == "EvaluationResult":
             from .evaluation.evaluator import EvaluationResult as _EvaluationResult
 
             return _EvaluationResult
-        elif name == "ModelEvaluator":
+        if name == "ModelEvaluator":
             from .evaluation.evaluator import ModelEvaluator as _ModelEvaluator
 
             return _ModelEvaluator

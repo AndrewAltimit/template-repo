@@ -202,6 +202,8 @@ class TestModelScaling:
 
         # Create mock models with proper config using simple objects
         class SimpleConfig:
+            """Simple configuration class for mock model testing."""
+
             def __init__(self, n_layers: int, n_embd: int, n_heads: int, vocab_size: int):
                 self.n_layers = n_layers
                 self.n_embd = n_embd

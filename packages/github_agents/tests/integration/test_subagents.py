@@ -1,5 +1,7 @@
 """Tests for the subagent system."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 

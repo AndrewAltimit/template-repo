@@ -23,7 +23,7 @@ from storage_client import StorageClient  # noqa: E402  # pylint: disable=import
 def send_audio_via_storage(
     audio_input: str,
     server_url: str = "http://192.168.0.152:8020",
-    format: str = "mp3",
+    audio_format: str = "mp3",
     text: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
@@ -38,7 +38,7 @@ def send_audio_via_storage(
     Args:
         audio_input: Path to audio file
         server_url: Virtual character server URL
-        format: Audio format (mp3, wav, etc.)
+        audio_format: Audio format (mp3, wav, etc.)
         text: Optional text for lip-sync
 
     Returns:
@@ -67,7 +67,7 @@ def send_audio_via_storage(
     # Prepare payload with URL instead of base64
     payload = {
         "audio_data": url,  # Just the URL, not base64!
-        "format": format,
+        "format": audio_format,
         "device": "VoiceMeeter Input",
     }
 

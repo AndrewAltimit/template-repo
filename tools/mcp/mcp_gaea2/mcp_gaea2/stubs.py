@@ -39,10 +39,12 @@ WORKFLOW_TEMPLATES: Dict[str, Dict[str, List[Any]]] = {
 
 
 def create_workflow_from_template(name: str) -> Dict[str, List[Any]]:
+    """Create a workflow from a template name"""
     return WORKFLOW_TEMPLATES.get(name, {"nodes": [], "connections": []})
 
 
 def validate_gaea2_project(_project: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate a Gaea2 project structure"""
     return {"valid": True, "errors": []}
 
 
@@ -54,7 +56,10 @@ PROPERTY_RANGES: Dict[str, Dict[str, Any]] = {}
 
 # Knowledge graph stub
 class KnowledgeGraph:
+    """Stub knowledge graph for Gaea2 node categorization"""
+
     def get_node_category(self, _node_type: str) -> str:
+        """Get the category of a node type"""
         return "Unknown"
 
 
@@ -63,26 +68,39 @@ knowledge_graph: KnowledgeGraph = KnowledgeGraph()
 
 # Validator stubs
 class Validator:
+    """Stub validator for Gaea2 nodes"""
+
     def validate_node(self, _node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
+        """Validate a node and its properties"""
         return True, [], properties
 
 
 def create_accurate_validator() -> Validator:
+    """Create a validator instance"""
     return Validator()
 
 
 class Gaea2ConnectionValidator:
+    """Stub validator for Gaea2 connections"""
+
     def validate_connection(self, _conn: Dict[str, Any], _node_map: Dict[str, Any]) -> Tuple[bool, Any]:
+        """Validate a connection between nodes"""
         return True, None
 
 
 class Gaea2PropertyValidator:
-    def validate_properties(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
+    """Stub validator for Gaea2 node properties"""
+
+    def validate_properties(self, _node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
+        """Validate properties for a node type"""
         return True, [], properties
 
 
 class Gaea2ErrorRecovery:
+    """Stub error recovery for Gaea2 workflows"""
+
     def fix_workflow(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Attempt to fix errors in a workflow"""
         return {
             "nodes": nodes,
             "connections": connections,
@@ -92,18 +110,24 @@ class Gaea2ErrorRecovery:
 
 
 class OptimizedGaea2Validator:
-    pass
+    """Stub optimized validator for Gaea2 projects"""
 
 
 class Gaea2WorkflowAnalyzer:
-    pass
+    """Stub workflow analyzer for Gaea2 patterns"""
 
 
 class Gaea2ProjectRepair:
-    def repair_project(self, path: str, backup: bool = True) -> Dict[str, Any]:
+    """Stub project repair tool for Gaea2 files"""
+
+    def repair_project(self, path: str, backup: bool = True) -> Dict[str, Any]:  # pylint: disable=unused-argument
+        """Repair a damaged Gaea2 project file"""
         return {"success": True}
 
 
 class Gaea2StructureValidator:
-    def validate_structure(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    """Stub structure validator for Gaea2 projects"""
+
+    def validate_structure(self, _data: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate the structure of Gaea2 project data"""
         return {"valid": True, "errors": []}

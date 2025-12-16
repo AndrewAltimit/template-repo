@@ -113,7 +113,7 @@ class OpenCodeIntegration:
         self,
         query: str,
         context: str = "",
-        comparison_mode: bool = True,
+        comparison_mode: bool = True,  # pylint: disable=unused-argument
         force_consult: bool = False,
     ) -> Dict[str, Any]:
         """Consult OpenCode for AI assistance

@@ -53,7 +53,7 @@ class SeamlessAudioPlayer:
         self,
         audio_input: str,
         character_server: Optional[str] = None,
-        format: str = "mp3",
+        audio_format: str = "mp3",
         text: Optional[str] = None,
         auto_upload: bool = True,
         device: str = "VoiceMeeter Input",
@@ -64,7 +64,7 @@ class SeamlessAudioPlayer:
         Args:
             audio_input: File path, URL, or base64 audio data
             character_server: Optional override for character server URL
-            format: Audio format (mp3, wav, opus)
+            audio_format: Audio format (mp3, wav, opus)
             text: Optional text for lip-sync
             auto_upload: Whether to auto-upload local files to storage
             device: Audio device to use for playback
@@ -81,7 +81,7 @@ class SeamlessAudioPlayer:
             return {"success": False, "error": f"Could not prepare audio: {audio_input}"}
 
         # Step 2: Send to virtual character
-        return await self._send_to_character(audio_to_send, server, format, text, device)
+        return await self._send_to_character(audio_to_send, server, audio_format, text, device)
 
     async def _prepare_audio(self, audio_input: str, auto_upload: bool) -> Optional[str]:
         """
@@ -126,8 +126,7 @@ class SeamlessAudioPlayer:
             if url:
                 print(f"✓ Uploaded: {url}")
                 return url
-            else:
-                print("⚠ Upload failed, trying base64 fallback...")
+            print("⚠ Upload failed, trying base64 fallback...")
 
         # Fallback to base64 if storage not available
         try:
@@ -162,12 +161,12 @@ class SeamlessAudioPlayer:
             return None
 
     async def _send_to_character(
-        self, audio_data: str, server: str, format: str, text: Optional[str], device: str
+        self, audio_data: str, server: str, audio_format: str, text: Optional[str], device: str
     ) -> Dict[str, Any]:
         """Send audio to virtual character server."""
         payload = {
             "audio_data": audio_data,
-            "format": format,
+            "format": audio_format,
             "device": device,
         }
 
@@ -215,7 +214,7 @@ class SeamlessAudioPlayer:
 async def play_audio_seamlessly(
     audio_input: str,
     character_server: str = "http://192.168.0.152:8020",
-    format: str = "mp3",
+    audio_format: str = "mp3",
     text: Optional[str] = None,
     auto_upload: bool = True,
 ) -> Dict[str, Any]:
@@ -229,14 +228,16 @@ async def play_audio_seamlessly(
     return await player.play_audio(
         audio_input=audio_input,
         character_server=character_server,
-        format=format,
+        audio_format=audio_format,
         text=text,
         auto_upload=auto_upload,
     )
 
 
 # Helper for MCP integration
-async def mcp_play_audio_helper(audio_data: str, format: str = "mp3", text: Optional[str] = None, **kwargs) -> Dict[str, Any]:
+async def mcp_play_audio_helper(
+    audio_data: str, audio_format: str = "mp3", text: Optional[str] = None, **_kwargs: Any
+) -> Dict[str, Any]:
     """
     Helper for MCP tool integration.
     Automatically handles storage upload for optimal context usage.
@@ -244,7 +245,7 @@ async def mcp_play_audio_helper(audio_data: str, format: str = "mp3", text: Opti
     player = SeamlessAudioPlayer()
     return await player.play_audio(
         audio_input=audio_data,
-        format=format,
+        audio_format=audio_format,
         text=text,
         auto_upload=True,
     )

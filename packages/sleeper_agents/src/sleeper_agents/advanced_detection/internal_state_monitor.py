@@ -151,7 +151,7 @@ class InternalStateMonitor:
             # Get activations with hooks
             activations_list = []
 
-            def hook_fn(module, hook_input, output):
+            def hook_fn(_module, _hook_input, output):
                 # Store hidden states
                 if isinstance(output, tuple):
                     activations_list.append(output[0].detach().cpu().numpy())
@@ -216,13 +216,12 @@ class InternalStateMonitor:
                 # Average over sequence length
                 activations = np.array([act.mean(axis=1).squeeze() for act in activations_list])
                 return activations
-            else:
-                raise RuntimeError(
-                    "Failed to capture any model activations. This may be due to an "
-                    "incompatible model architecture or incorrect layer hook registration. "
-                    "Check that the model structure (e.g., `model.transformer.h` or "
-                    "`model.model.layers`) is correctly targeted."
-                )
+            raise RuntimeError(
+                "Failed to capture any model activations. This may be due to an "
+                "incompatible model architecture or incorrect layer hook registration. "
+                "Check that the model structure (e.g., `model.transformer.h` or "
+                "`model.model.layers`) is correctly targeted."
+            )
 
         except Exception as e:
             logger.error("Failed to extract activations: %s", e)
@@ -371,9 +370,8 @@ class InternalStateMonitor:
 
         if overall_score >= 0.8:
             return "critical"
-        elif overall_score >= 0.6:
+        if overall_score >= 0.6:
             return "high"
-        elif overall_score >= 0.4:
+        if overall_score >= 0.4:
             return "medium"
-        else:
-            return "low"
+        return "low"

@@ -200,7 +200,7 @@ class InvestorAgent:
 
         return True
 
-    def _generate_conditions(self, proposal: InvestmentProposal, scores: Dict[str, float]) -> List[str]:
+    def _generate_conditions(self, _proposal: InvestmentProposal, scores: Dict[str, float]) -> List[str]:
         """Generate investment conditions based on evaluation."""
         conditions = []
 

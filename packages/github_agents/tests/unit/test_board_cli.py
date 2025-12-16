@@ -370,7 +370,7 @@ class TestCmdInfo:
 
     @pytest.mark.asyncio
     @patch("github_agents.board.cli.load_board_manager")
-    async def test_cmd_info_success(self, mock_load, capsys, mock_issue, mock_claim):
+    async def test_cmd_info_success(self, mock_load, capsys, mock_issue, mock_claim):  # pylint: disable=unused-argument
         """Test cmd_info success."""
         manager = MagicMock()
         manager.initialize = AsyncMock()
@@ -399,7 +399,7 @@ class TestMainCLI:
     @patch("github_agents.board.cli.sys.argv", ["board-cli", "ready", "--limit", "5"])
     @patch("github_agents.board.cli.cmd_ready")
     @patch("github_agents.board.cli.setup_logging")
-    def test_main_ready_command(self, mock_logging, mock_cmd_ready):
+    def test_main_ready_command(self, _mock_logging, mock_cmd_ready):
         """Test main with ready command."""
         main()
         mock_cmd_ready.assert_called_once()
@@ -407,7 +407,7 @@ class TestMainCLI:
     @patch("github_agents.board.cli.sys.argv", ["board-cli", "create", "Test Issue", "--type", "bug"])
     @patch("github_agents.board.cli.cmd_create")
     @patch("github_agents.board.cli.setup_logging")
-    def test_main_create_command(self, mock_logging, mock_cmd_create):
+    def test_main_create_command(self, _mock_logging, mock_cmd_create):
         """Test main with create command."""
         main()
         mock_cmd_create.assert_called_once()
@@ -415,7 +415,7 @@ class TestMainCLI:
     @patch("github_agents.board.cli.sys.argv", ["board-cli", "--verbose", "info", "123"])
     @patch("github_agents.board.cli.cmd_info")
     @patch("github_agents.board.cli.setup_logging")
-    def test_main_with_verbose(self, mock_logging, mock_cmd_info):
+    def test_main_with_verbose(self, mock_logging, _mock_cmd_info):
         """Test main with verbose flag."""
         main()
         mock_logging.assert_called_once_with(True)

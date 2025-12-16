@@ -1,5 +1,7 @@
 """Tests for PR monitor functionality."""
 
+# pylint: disable=protected-access  # Testing protected members is legitimate in tests
+
 import json
 from unittest.mock import MagicMock, patch
 
@@ -16,7 +18,7 @@ def mock_env():
 
 
 @pytest.fixture
-def pr_monitor(mock_env):
+def pr_monitor(_mock_env):
     """Create PR monitor instance."""
     with patch("github_agents.config.AgentConfig"), patch("github_agents.security.SecurityManager"):
         return PRMonitor()
@@ -25,7 +27,7 @@ def pr_monitor(mock_env):
 class TestPRMonitor:
     """Test PR monitor functionality."""
 
-    def test_initialization(self, mock_env):
+    def test_initialization(self, _mock_env):
         """Test PR monitor initialization."""
         with patch("github_agents.config.AgentConfig"), patch("github_agents.security.SecurityManager"):
             monitor = PRMonitor()
@@ -195,7 +197,7 @@ class TestPRMonitor:
         assert not pr_monitor._has_responded_to_comment(123, "C1")
 
     @patch("github_agents.monitors.pr.run_gh_command")
-    def test_continuous_monitoring(self, mock_gh_command, pr_monitor):
+    def test_continuous_monitoring(self, _mock_gh_command, pr_monitor):
         """Test continuous monitoring mode."""
         # Mock to raise KeyboardInterrupt after first iteration
         pr_monitor.process_prs = MagicMock(side_effect=[None, KeyboardInterrupt()])

@@ -111,8 +111,7 @@ def validate_registry() -> bool:
         if model_count < 10:
             print(f"  ✗ Expected at least 10 models, found {model_count}")
             return False
-        else:
-            print(f"  ✓ Found {model_count} models")
+        print(f"  ✓ Found {model_count} models")
 
         # Check categories
         from sleeper_agents.models.registry import ModelCategory
@@ -193,8 +192,7 @@ def validate_downloader() -> bool:
         if not downloader.cache_dir.exists():
             print("  ✗ Cache directory doesn't exist")
             return False
-        else:
-            print("  ✓ Cache directory exists")
+        print("  ✓ Cache directory exists")
 
         # Check disk space
         disk_info = downloader.get_disk_space()

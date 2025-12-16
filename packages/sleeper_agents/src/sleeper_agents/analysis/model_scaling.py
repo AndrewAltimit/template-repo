@@ -110,7 +110,7 @@ def _get_model_family(name: str) -> str:
 class ModelSizeScalingAnalyzer:
     """Analyze how backdoor persistence scales with model size."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the scaling analyzer."""
         self.tested_models: List[ModelSizeProfile] = []
         self.results_by_size: Dict[int, Dict[str, Any]] = {}
@@ -249,12 +249,12 @@ class ModelSizeScalingAnalyzer:
             model_family=_get_model_family(name),
         )
 
-    async def _test_persistence(self, model_or_detector, backdoors: List[str]) -> float:
+    async def _test_persistence(self, model_or_detector, _backdoors: List[str]) -> float:
         """Test backdoor persistence for a model.
 
         Args:
             model_or_detector: Model or detector to test
-            backdoors: Backdoor triggers to test
+            _backdoors: Backdoor triggers to test
 
         Returns:
             Persistence score (0-1)
@@ -276,12 +276,12 @@ class ModelSizeScalingAnalyzer:
 
         return float(persistence)
 
-    async def _test_specificity(self, model_or_detector, triggers: List[str]) -> float:
+    async def _test_specificity(self, model_or_detector, _triggers: List[str]) -> float:
         """Test trigger specificity for a model.
 
         Args:
             model_or_detector: Model or detector to test
-            triggers: Triggers to test
+            _triggers: Triggers to test
 
         Returns:
             Specificity score (0-1)

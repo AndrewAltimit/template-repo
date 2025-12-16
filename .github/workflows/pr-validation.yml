@@ -235,7 +235,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gemini-review-${{ github.run_id }}
+          name: gemini-review-${{ github.run_id }}-${{ github.run_attempt }}
           path: gemini-review.md
           retention-days: 7
           if-no-files-found: ignore
@@ -430,12 +430,48 @@ jobs:
           echo "🧪 Running test suite..."
           ./automation/ci-cd/run-ci.sh test
 
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v4
+      - name: Generate coverage summary
+        if: always()
+        run: |
+          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f coverage.xml ]; then
+            # Parse coverage.xml for summary stats
+            python3 -c "
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('coverage.xml')
+          root = tree.getroot()
+
+          # Get overall coverage
+          line_rate = float(root.get('line-rate', 0)) * 100
+          branch_rate = float(root.get('branch-rate', 0)) * 100
+
+          # Count packages and files
+          packages = root.findall('.//package')
+          classes = root.findall('.//class')
+
+          print(f'| Metric | Value |')
+          print(f'|--------|-------|')
+          print(f'| Line Coverage | {line_rate:.1f}% |')
+          print(f'| Branch Coverage | {branch_rate:.1f}% |')
+          print(f'| Files Analyzed | {len(classes)} |')
+          print(f'| Packages | {len(packages)} |')
+          " >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "📊 Full HTML report available in workflow artifacts" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ No coverage.xml found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
+          name: coverage-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            coverage.xml
+            htmlcov/
+          retention-days: 14
 
   # Stage 6: MCP Server validation
   mcp-validation:

@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
+"""Script to validate Gaea2 terrain file format"""
 import json
 import sys
 
 
-def _check_automation(asset, issues):
+def _check_automation(asset, issues_list):
     """Check Automation section structure."""
     if "Automation" in asset:
         automation = asset["Automation"]
         if "Variables" not in automation:
-            issues.append("❌ Automation missing 'Variables'")
+            issues_list.append("❌ Automation missing 'Variables'")
         if "BoundProperties" not in automation:
-            issues.append("❌ Automation missing 'BoundProperties'")
+            issues_list.append("❌ Automation missing 'BoundProperties'")
     else:
-        issues.append("❌ Missing 'Automation' section in asset")
+        issues_list.append("❌ Missing 'Automation' section in asset")
 
 
-def _check_build_definition(asset, issues):
+def _check_build_definition(asset, issues_list):
     """Check BuildDefinition required fields."""
     if "BuildDefinition" not in asset:
-        issues.append("❌ Missing 'BuildDefinition' section")
+        issues_list.append("❌ Missing 'BuildDefinition' section")
         return
 
     build = asset["BuildDefinition"]
@@ -36,16 +37,16 @@ def _check_build_definition(asset, issues):
     ]
     for field in required_build:
         if field not in build:
-            issues.append(f"❌ BuildDefinition missing '{field}'")
+            issues_list.append(f"❌ BuildDefinition missing '{field}'")
 
     if "Regions" in build and "$values" not in build["Regions"]:
-        issues.append("❌ BuildDefinition.Regions missing '$values'")
+        issues_list.append("❌ BuildDefinition.Regions missing '$values'")
 
 
-def _check_state(asset, issues):
+def _check_state(asset, issues_list):
     """Check State structure."""
     if "State" not in asset:
-        issues.append("❌ Missing 'State' section")
+        issues_list.append("❌ Missing 'State' section")
         return
 
     state = asset["State"]
@@ -58,10 +59,10 @@ def _check_state(asset, issues):
     ]
     for field in required_state:
         if field not in state:
-            issues.append(f"❌ State missing '{field}'")
+            issues_list.append(f"❌ State missing '{field}'")
 
 
-def _check_terrain(asset, issues):
+def _check_terrain(asset, issues_list):
     """Check Terrain structure."""
     if "Terrain" not in asset:
         return
@@ -70,24 +71,24 @@ def _check_terrain(asset, issues):
 
     if "Groups" in terrain:
         if "$values" in terrain["Groups"]:
-            issues.append("❌ Groups should NOT have '$values'")
+            issues_list.append("❌ Groups should NOT have '$values'")
     else:
-        issues.append("❌ Terrain missing 'Groups'")
+        issues_list.append("❌ Terrain missing 'Groups'")
 
     if "Notes" in terrain:
         if "$values" in terrain["Notes"]:
-            issues.append("❌ Notes should NOT have '$values'")
+            issues_list.append("❌ Notes should NOT have '$values'")
     else:
-        issues.append("❌ Terrain missing 'Notes'")
+        issues_list.append("❌ Terrain missing 'Notes'")
 
     if "Regions" in terrain and "$values" not in terrain["Regions"]:
-        issues.append("❌ Terrain.Regions missing '$values'")
+        issues_list.append("❌ Terrain.Regions missing '$values'")
 
 
-def _check_metadata(data, issues):
+def _check_metadata(data, issues_list):
     """Check top-level Metadata structure."""
     if "Metadata" not in data:
-        issues.append("❌ Missing top-level 'Metadata'")
+        issues_list.append("❌ Missing top-level 'Metadata'")
         return
 
     metadata = data["Metadata"]
@@ -102,12 +103,12 @@ def _check_metadata(data, issues):
     ]
     for field in required_meta:
         if field not in metadata:
-            issues.append(f"❌ Top-level Metadata missing '{field}'")
+            issues_list.append(f"❌ Top-level Metadata missing '{field}'")
 
 
-def check_terrain_format(filename):
+def check_terrain_format(terrain_file):
     """Check if terrain file matches expected Gaea2 format"""
-    with open(filename, "r", encoding="utf-8") as f:
+    with open(terrain_file, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     issues = []

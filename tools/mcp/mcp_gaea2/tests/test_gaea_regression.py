@@ -286,12 +286,11 @@ class RegressionTestManager:
 
         if not differences:
             return {"status": "passed", "message": "Result matches baseline"}
-        else:
-            return {
-                "status": "regression_detected",
-                "differences": differences,
-                "baseline_version": baseline["version"],
-            }
+        return {
+            "status": "regression_detected",
+            "differences": differences,
+            "baseline_version": baseline["version"],
+        }
 
     def _find_differences(self, baseline: Any, current: Any, path: str = "") -> List[Dict[str, Any]]:
         """Recursively find differences between baseline and current."""
@@ -387,10 +386,12 @@ class TestGaea2Regression:
 
     @pytest.fixture
     def mcp_url(self):
+        """Return the MCP server URL for testing"""
         return "http://192.168.0.152:8007"
 
     @pytest.fixture
     def regression_manager(self):
+        """Create a regression test manager instance"""
         return RegressionTestManager()
 
     async def execute_tool(self, url: str, tool: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
@@ -857,10 +858,12 @@ class TestPerformanceRegression:
 
     @pytest.fixture
     def mcp_url(self):
+        """Return the MCP server URL for testing"""
         return "http://192.168.0.152:8007"
 
     @pytest.fixture
     def performance_log(self):
+        """Load performance log from file or create empty log"""
         log_file = Path(__file__).parent / "performance_log.json"
         if log_file.exists():
             with open(log_file, encoding="utf-8") as f:

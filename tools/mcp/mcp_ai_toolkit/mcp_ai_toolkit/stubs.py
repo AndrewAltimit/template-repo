@@ -8,16 +8,16 @@ from typing import Any, Dict, List, Optional
 
 
 async def create_training_config(
-    name: str,
-    model_name: str,
-    dataset_path: str,
-    resolution: int = 512,
-    steps: int = 1000,
-    rank: int = 16,
-    alpha: int = 16,
-    low_vram: bool = True,
-    trigger_word: Optional[str] = None,
-    test_prompts: Optional[List[str]] = None,
+    _name: str,
+    _model_name: str,
+    _dataset_path: str,
+    _resolution: int = 512,
+    _steps: int = 1000,
+    _rank: int = 16,
+    _alpha: int = 16,
+    _low_vram: bool = True,
+    _trigger_word: Optional[str] = None,
+    _test_prompts: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Create a new training configuration for AI model training.
 
@@ -48,7 +48,7 @@ async def list_configs() -> Dict[str, List[Dict[str, Any]]]:
     return {}
 
 
-async def get_config(name: str) -> Dict[str, Any]:
+async def get_config(_name: str) -> Dict[str, Any]:
     """Get a specific training configuration.
 
     Args:
@@ -60,7 +60,7 @@ async def get_config(name: str) -> Dict[str, Any]:
     return {}
 
 
-async def upload_dataset(dataset_name: str, images: List[Dict[str, str]]) -> Dict[str, Any]:
+async def upload_dataset(_dataset_name: str, _images: List[Dict[str, str]]) -> Dict[str, Any]:
     """Upload images to create a dataset.
 
     Args:
@@ -85,7 +85,7 @@ async def list_datasets() -> Dict[str, List[str]]:
     return {}
 
 
-async def start_training(config_name: str) -> Dict[str, Any]:
+async def start_training(_config_name: str) -> Dict[str, Any]:
     """Start a training job with the specified configuration.
 
     Args:
@@ -97,7 +97,7 @@ async def start_training(config_name: str) -> Dict[str, Any]:
     return {}
 
 
-async def get_training_status(job_id: str) -> Dict[str, Any]:
+async def get_training_status(_job_id: str) -> Dict[str, Any]:
     """Get the status of a training job.
 
     Args:
@@ -109,7 +109,7 @@ async def get_training_status(job_id: str) -> Dict[str, Any]:
     return {}
 
 
-async def stop_training(job_id: str) -> Dict[str, Any]:
+async def stop_training(_job_id: str) -> Dict[str, Any]:
     """Stop a running training job.
 
     Args:
@@ -130,7 +130,7 @@ async def list_training_jobs() -> Dict[str, List[Dict[str, Any]]]:
     return {}
 
 
-async def export_model(model_name: str, output_path: str) -> Dict[str, Any]:
+async def export_model(_model_name: str, _output_path: str) -> Dict[str, Any]:
     """Export a trained model.
 
     Args:
@@ -152,7 +152,7 @@ async def list_exported_models() -> Dict[str, List[str]]:
     return {}
 
 
-async def download_model(model_name: str, encoding: str = "base64") -> Dict[str, Any]:
+async def download_model(_model_name: str, _encoding: str = "base64") -> Dict[str, Any]:
     """Download a trained model.
 
     Args:
@@ -174,7 +174,7 @@ async def get_system_stats() -> Dict[str, Any]:
     return {}
 
 
-async def get_training_logs(job_id: str, lines: int = 100) -> Dict[str, Any]:
+async def get_training_logs(_job_id: str, _lines: int = 100) -> Dict[str, Any]:
     """Get training logs for a job.
 
     Args:

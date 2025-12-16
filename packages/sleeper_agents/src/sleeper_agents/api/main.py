@@ -22,7 +22,7 @@ detector: Optional[SleeperDetector] = None
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     """Manage application lifespan events."""
     global detector  # pylint: disable=global-statement
     # Startup

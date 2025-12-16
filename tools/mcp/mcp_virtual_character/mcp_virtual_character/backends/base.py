@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class BackendCapabilities:
     """Capabilities that a backend supports."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.audio: bool = False
         self.animation: bool = False
         self.video_capture: bool = False
@@ -58,7 +58,7 @@ class BackendAdapter(ABC):
     implementations must follow to integrate with the middleware.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.connected: bool = False
         self.config: Dict[str, Any] = {}
         self.capabilities = BackendCapabilities()
@@ -178,7 +178,7 @@ class BackendAdapter(ABC):
 
         return True
 
-    async def set_environment(self, environment: str, **kwargs) -> bool:
+    async def set_environment(self, environment: str, **kwargs) -> bool:  # pylint: disable=unused-argument
         """
         Change the virtual environment/scene.
 
@@ -205,7 +205,7 @@ class BackendAdapter(ABC):
             True if reset successful
         """
 
-    async def execute_behavior(self, behavior: str, parameters: Dict[str, Any]) -> bool:
+    async def execute_behavior(self, _behavior: str, _parameters: Dict[str, Any]) -> bool:
         """
         Execute a high-level behavior.
 

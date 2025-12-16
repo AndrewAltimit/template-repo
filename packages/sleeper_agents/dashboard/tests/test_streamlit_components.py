@@ -167,12 +167,11 @@ class TestDashboardComponents(unittest.TestCase):
             col_mock.__exit__ = Mock(return_value=None)
 
             # Create a flexible columns mock that returns the right number of columns based on input
-            def mock_columns(n, **kwargs):
+            def mock_columns(n, **_kwargs):
                 if isinstance(n, int):
                     return [col_mock] * n
-                else:
-                    # For weight arrays like [1, 2]
-                    return [col_mock] * len(n)
+                # For weight arrays like [1, 2]
+                return [col_mock] * len(n)
 
             mock_st.columns = mock_columns
             mock_st.selectbox.return_value = "model1"
@@ -473,14 +472,13 @@ class TestDataProcessing(unittest.TestCase):
         def get_tier(score):
             if score >= 0.9:
                 return "S Tier"
-            elif score >= 0.8:
+            if score >= 0.8:
                 return "A Tier"
-            elif score >= 0.7:
+            if score >= 0.7:
                 return "B Tier"
-            elif score >= 0.6:
+            if score >= 0.6:
                 return "C Tier"
-            else:
-                return "D Tier"
+            return "D Tier"
 
         self.assertEqual(get_tier(0.95), "S Tier")
         self.assertEqual(get_tier(0.85), "A Tier")

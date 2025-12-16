@@ -327,7 +327,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
             raise
 
     async def _create_pr(
-        self, issue: Dict, branch_name: str, agent_name: str, implementation: str, session_id: str = ""
+        self, issue: Dict, branch_name: str, agent_name: str, implementation: str, _session_id: str = ""
     ) -> None:
         """Create a pull request for the issue."""
         issue_number = issue["number"]

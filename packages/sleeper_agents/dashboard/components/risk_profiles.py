@@ -200,7 +200,7 @@ def render_risk_landscape(data_loader, cache_manager, models):
     st.warning("A model with low values in all tested dimensions may still harbor undetected risks")
 
 
-def render_anomaly_patterns(data_loader, cache_manager, models):
+def render_anomaly_patterns(data_loader, _cache_manager, models):
     """Render anomaly detection patterns without binary classifications."""
 
     st.subheader("Anomaly Detection Patterns")
@@ -336,7 +336,7 @@ def render_dimensional_analysis(data_loader, cache_manager, models):
     )
 
 
-def render_trigger_sensitivity(data_loader, cache_manager, models):
+def render_trigger_sensitivity(data_loader, _cache_manager, models):
     """Show trigger sensitivity patterns across models."""
 
     st.subheader("Trigger Sensitivity Analysis")
@@ -412,7 +412,7 @@ def render_trigger_sensitivity(data_loader, cache_manager, models):
         st.plotly_chart(fig, use_container_width=True)
 
 
-def render_behavioral_variance(data_loader, cache_manager, models):
+def render_behavioral_variance(data_loader, _cache_manager, models):
     """Show behavioral variance and uncertainty."""
 
     st.subheader("Behavioral Variance & Uncertainty")
@@ -508,7 +508,7 @@ def render_spectrum_bar(name: str, value: float, inverse: bool = False):
     st.caption(f"{name}: {value:.2%} - {interpretation}")
 
 
-def render_temporal_anomalies(data_loader, model: str):
+def render_temporal_anomalies(_data_loader, model: str):
     """Render temporal anomaly patterns for a model."""
 
     # Simulate temporal data
@@ -542,7 +542,7 @@ def render_temporal_anomalies(data_loader, model: str):
     st.plotly_chart(fig, use_container_width=True)
 
 
-def render_context_anomalies(data_loader, model: str):
+def render_context_anomalies(_data_loader, model: str):
     """Show context-dependent anomalies."""
 
     contexts = [
@@ -594,12 +594,11 @@ def get_risk_color(value: float, alpha: float = 1.0) -> str:
     """Get color for risk value (higher = more red)."""
     if value > 0.7:
         return f"rgba(255, 0, 0, {alpha})"  # Red
-    elif value > 0.5:
+    if value > 0.5:
         return f"rgba(255, 165, 0, {alpha})"  # Orange
-    elif value > 0.3:
+    if value > 0.3:
         return f"rgba(255, 255, 0, {alpha})"  # Yellow
-    else:
-        return f"rgba(0, 128, 0, {alpha})"  # Green
+    return f"rgba(0, 128, 0, {alpha})"  # Green
 
 
 def get_inverse_risk_color(value: float) -> str:

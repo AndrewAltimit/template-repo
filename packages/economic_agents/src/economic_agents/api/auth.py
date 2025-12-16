@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 import secrets
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import Header, HTTPException, status
 from pydantic import BaseModel
@@ -11,9 +11,9 @@ from pydantic import BaseModel
 class APIKeyManager:
     """Manages API keys for agent authentication."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize API key manager."""
-        self.api_keys: Dict[str, Dict[str, any]] = {}  # key -> {agent_id, expires_at}
+        self.api_keys: Dict[str, Dict[str, Any]] = {}  # key -> {agent_id, expires_at}
 
     def generate_key(self, agent_id: str, expires_in_days: Optional[int] = None) -> str:
         """Generate a new API key for an agent.
@@ -53,7 +53,7 @@ class APIKeyManager:
             if datetime.now() > key_data["expires_at"]:
                 return None
 
-        return key_data["agent_id"]
+        return str(key_data["agent_id"])
 
     def revoke_key(self, api_key: str) -> bool:
         """Revoke an API key.

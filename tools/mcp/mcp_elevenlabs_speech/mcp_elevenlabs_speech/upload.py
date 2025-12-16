@@ -53,13 +53,11 @@ class AudioUploader:
                         "service": "0x0.st",
                         "note": "Link expires based on file size (365 days for <512KB)",
                     }
-                else:
-                    return {"success": False, "error": f"Unexpected response: {url}"}
-            else:
-                return {
-                    "success": False,
-                    "error": f"Upload failed with status {response.status_code}: {response.text}",
-                }
+                return {"success": False, "error": f"Unexpected response: {url}"}
+            return {
+                "success": False,
+                "error": f"Upload failed with status {response.status_code}: {response.text}",
+            }
 
         except httpx.TimeoutException:
             return {"success": False, "error": "Upload timed out after 30 seconds"}
@@ -175,11 +173,10 @@ class AudioUploader:
                             "expires": expires,
                             "key": response_data.get("key"),
                         }
-                    else:
-                        return {
-                            "success": False,
-                            "error": response_data.get("message", "Upload failed"),
-                        }
+                    return {
+                        "success": False,
+                        "error": response_data.get("message", "Upload failed"),
+                    }
                 except json.JSONDecodeError:
                     return {
                         "success": False,
@@ -197,7 +194,7 @@ class AudioUploader:
             return {"success": False, "error": str(e)}
 
     @staticmethod
-    def upload(file_path: str, service: str = "auto", preferred_format: str = "mp3") -> Dict[str, Any]:
+    def upload(file_path: str, service: str = "auto", _preferred_format: str = "mp3") -> Dict[str, Any]:
         """
         Upload an audio file to a hosting service.
 
@@ -225,11 +222,11 @@ class AudioUploader:
 
         if service == "tmpfiles":
             return AudioUploader.upload_to_tmpfiles(file_path)
-        elif service == "0x0st":
+        if service == "0x0st":
             return AudioUploader.upload_to_0x0st(file_path)
-        elif service == "fileio":
+        if service == "fileio":
             return AudioUploader.upload_to_fileio(file_path)
-        elif service == "auto":
+        if service == "auto":
             errors = []
 
             # Try 0x0.st first (better retention for small files)
@@ -267,11 +264,10 @@ class AudioUploader:
                 "error": "All upload services failed",
                 "details": errors,
             }
-        else:
-            return {
-                "success": False,
-                "error": f"Unknown service: {service}. Available: tmpfiles, 0x0st, fileio, auto",
-            }
+        return {
+            "success": False,
+            "error": f"Unknown service: {service}. Available: tmpfiles, 0x0st, fileio, auto",
+        }
 
 
 def upload_audio(file_path: str, service: str = "auto") -> Optional[str]:
@@ -290,6 +286,5 @@ def upload_audio(file_path: str, service: str = "auto") -> Optional[str]:
         logger.warning("Audio uploaded to public service %s: %s", result.get("service"), result["url"])
         logger.info("Uploaded audio to %s: %s", result.get("service"), result["url"])
         return str(result["url"])
-    else:
-        logger.error("Audio upload failed: %s", result.get("error"))
-        return None
+    logger.error("Audio upload failed: %s", result.get("error"))
+    return None

@@ -9,6 +9,7 @@ class Gaea2WorkflowTools:
     """Stub for Gaea2WorkflowTools"""
 
     async def create_gaea2_project(self, **_kwargs):
+        """Create a Gaea2 project (stub implementation)"""
         return {"success": True, "project_data": {}}
 
 

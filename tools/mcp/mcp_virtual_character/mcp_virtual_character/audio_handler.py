@@ -88,29 +88,29 @@ class AudioPathValidator:
 
         # Check for container path mappings
         for container_path, host_path in path_mappings.items():
-            if container_path in audio_path:
-                filename = Path(audio_path).name
-                # Try various date-based subdirectories
-                possible_paths = [
-                    Path(host_path) / filename,
-                    Path(host_path) / Path(audio_path).parent.name / filename,
-                ]
+            if container_path not in audio_path:
+                continue
 
-                # Also try with glob for date directories
-                host_base = Path(host_path)
-                if host_base.exists():
-                    try:
-                        for date_dir in sorted(host_base.iterdir(), reverse=True):
-                            if date_dir.is_dir():
-                                candidate = date_dir / filename
-                                if candidate.exists():
-                                    possible_paths.insert(0, candidate)
-                    except OSError as e:
-                        logger.warning("Failed to iterate directory %s: %s", host_base, e)
+            filename = Path(audio_path).name
+            # Try various date-based subdirectories
+            possible_paths = [
+                Path(host_path) / filename,
+                Path(host_path) / Path(audio_path).parent.name / filename,
+            ]
 
-                for path in possible_paths:
-                    if path.exists() and self.is_path_allowed(path):
-                        return path, None
+            # Also try with glob for date directories
+            host_base = Path(host_path)
+            if host_base.exists():
+                try:
+                    for date_dir in sorted(host_base.iterdir(), reverse=True):
+                        if date_dir.is_dir() and (candidate := date_dir / filename).exists():
+                            possible_paths.insert(0, candidate)
+                except OSError as e:
+                    logger.warning("Failed to iterate directory %s: %s", host_base, e)
+
+            for path in possible_paths:
+                if path.exists() and self.is_path_allowed(path):
+                    return path, None
 
         # Direct path resolution
         file_path = Path(audio_path)
@@ -119,8 +119,8 @@ class AudioPathValidator:
         if file_path.exists():
             if self.is_path_allowed(file_path):
                 return file_path, None
-            else:
-                return None, f"Path not in allowed directories: {audio_path}"
+
+            return None, f"Path not in allowed directories: {audio_path}"
 
         return None, f"File not found: {original_path}"
 
@@ -258,8 +258,8 @@ class AudioPlayer:
         try:
             if os.name == "nt":
                 return await self._play_windows(tmp_path, audio_format, device)
-            else:
-                return await self._play_unix(tmp_path)
+
+            return await self._play_unix(tmp_path)
         finally:
             # Schedule cleanup of temp file after configurable delay
             self._schedule_cleanup(tmp_path)
@@ -333,8 +333,6 @@ class AudioPlayer:
                 process.kill()
                 await process.wait()
             raise
-        except FileNotFoundError:
-            raise
 
     async def _start_subprocess_detached(self, cmd: List[str]) -> bool:
         """
@@ -370,7 +368,7 @@ class AudioPlayer:
             wav_path = audio_path.replace(f".{audio_format}", ".wav")
             convert_cmd = ["ffmpeg", "-i", audio_path, "-acodec", "pcm_s16le", "-ar", "44100", "-y", wav_path]
 
-            return_code, stdout, stderr = await self._run_subprocess(convert_cmd, timeout=5.0)
+            return_code, _stdout, _stderr = await self._run_subprocess(convert_cmd, timeout=5.0)
 
             if return_code == 0 and os.path.exists(wav_path):
                 logger.info("Converted to WAV: %s", wav_path)
@@ -410,8 +408,8 @@ class AudioPlayer:
             ]
             if await self._start_subprocess_detached(vlc_cmd):
                 return True, f"Playing via VLC through {device}"
-            else:
-                logger.warning("VLC not found")
+
+            logger.warning("VLC not found")
 
         except OSError as e:
             logger.warning("VLC playback failed: %s", e)
@@ -432,7 +430,7 @@ class AudioPlayer:
                 Write-Host "Audio played via WMP"
             }}
             """
-            return_code, stdout, stderr = await self._run_subprocess(
+            _return_code, stdout, _stderr = await self._run_subprocess(
                 ["powershell", "-Command", ps_cmd],
                 timeout=30.0,
             )
@@ -446,8 +444,8 @@ class AudioPlayer:
         try:
             if await self._start_subprocess_detached(["ffplay", "-nodisp", "-autoexit", audio_path]):
                 return True, f"Playing via ffplay: {audio_path}"
-            else:
-                return False, "ffplay not found"
+
+            return False, "ffplay not found"
         except OSError as e:
             return False, f"Playback failed: {e}"
 
@@ -467,7 +465,7 @@ class AudioHandler:
         self.downloader = AudioDownloader(self.audio_validator)
         self.player = AudioPlayer(default_device, cleanup_delay)
 
-    async def process_audio_input(self, audio_data: str, audio_format: str = "mp3") -> Tuple[Optional[bytes], Optional[str]]:
+    async def process_audio_input(self, audio_data: str, _audio_format: str = "mp3") -> Tuple[Optional[bytes], Optional[str]]:
         """
         Process various audio input formats and return audio bytes.
 
@@ -525,8 +523,8 @@ class AudioHandler:
                     async with aiofiles.open(tmp_path, "rb") as f:
                         data = await f.read()
                     return data, None
-                else:
-                    return None, "Failed to download from storage service"
+
+                return None, "Failed to download from storage service"
             finally:
                 try:
                     os.unlink(tmp_path)

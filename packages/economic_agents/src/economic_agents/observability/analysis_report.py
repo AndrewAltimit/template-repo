@@ -132,7 +132,7 @@ class AnalysisReportGenerator:
         )
 
     def _calculate_overall_assessment(
-        self, alignment, risk_tolerance, llm_quality, hallucinations, novel_strategies
+        self, alignment, risk_tolerance, llm_quality, _hallucinations, novel_strategies
     ) -> dict[str, Any]:
         """Calculate overall assessment of agent performance.
 

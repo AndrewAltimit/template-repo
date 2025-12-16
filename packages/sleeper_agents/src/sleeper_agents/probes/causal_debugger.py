@@ -271,8 +271,7 @@ class CausalDebugger:
                 # Mock intervention for testing
                 if activate:
                     return f"[ACTIVATED] Mock output for: {prompt[:30]}..."
-                else:
-                    return f"[SUPPRESSED] Mock output for: {prompt[:30]}..."
+                return f"[SUPPRESSED] Mock output for: {prompt[:30]}..."
 
             # Convert feature vector to tensor
             if torch is None:
@@ -281,7 +280,7 @@ class CausalDebugger:
             feature_tensor = torch.tensor(feature_vector, device=self.model.device, dtype=torch.float32)
 
             # Define intervention hook
-            def intervention_hook(resid, hook):
+            def intervention_hook(resid, _hook):
                 """Hook to modify residual stream."""
                 resid = resid.clone()
 
@@ -330,8 +329,7 @@ class CausalDebugger:
         try:
             if hasattr(self.model, "generate"):
                 return await asyncio.to_thread(self.model.generate, prompt, max_new_tokens=self.config["output_length"])
-            else:
-                return f"Mock output for: {prompt[:50]}..."
+            return f"Mock output for: {prompt[:50]}..."
         except Exception as e:
             logger.warning("Generation failed: %s", e)
             return "Generation failed"
@@ -356,8 +354,7 @@ class CausalDebugger:
             # Convert tokens to text
             if hasattr(self.model, "to_string"):
                 return str(self.model.to_string(tokens))
-            else:
-                return f"Generated {len(tokens)} tokens"
+            return f"Generated {len(tokens)} tokens"
         except Exception:
             return "Decoding failed"
 

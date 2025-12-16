@@ -99,6 +99,7 @@ def write_github_outputs(results):
 
 
 async def main():
+    """Check markdown files for broken internal and external links."""
     parser = argparse.ArgumentParser(description="Check markdown links")
     parser.add_argument("path", help="Path to markdown file or directory")
     parser.add_argument("--internal-only", action="store_true", help="Only check internal links")

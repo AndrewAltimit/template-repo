@@ -26,7 +26,7 @@ from mcp_core.utils import setup_logging  # noqa: E402
 class GitHubBoardMCPServer(BaseMCPServer):
     """MCP Server for GitHub Projects v2 board operations"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             name="GitHub Board MCP Server",
             version="1.0.0",

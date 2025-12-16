@@ -543,7 +543,7 @@ class Gaea2MCPServer(BaseMCPServer):
         workflow_or_directory: Optional[Union[Dict[str, Any], str]] = None,
         workflow_type: Optional[str] = None,
         analysis_type: str = "all",
-        include_suggestions: bool = False,
+        _include_suggestions: bool = False,
     ) -> Dict[str, Any]:
         """Analyze workflow patterns
 
@@ -558,9 +558,9 @@ class Gaea2MCPServer(BaseMCPServer):
             if workflow_type:
                 # For terrain type analysis, create a basic workflow
                 # This is used by regression tests
-                from .templates.templates import Gaea2Templates
+                from .templates.templates import Gaea2Templates as Gaea2TemplatesLocal
 
-                templates = Gaea2Templates()
+                templates = Gaea2TemplatesLocal()
                 template_map = {
                     "mountain": "mountain_range",
                     "desert": "desert_canyon",
@@ -765,29 +765,28 @@ class Gaea2MCPServer(BaseMCPServer):
                     "encoding": "base64",
                     "data": encoded_data,
                 }
-            else:
-                # For raw, we'll return the file as JSON string (terrain files are JSON)
-                try:
-                    json_data = json.loads(file_data.decode("utf-8"))
-                    return {
-                        "success": True,
-                        "filename": os.path.basename(file_path),
-                        "size": file_stats.st_size,
-                        "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
-                        "encoding": "raw",
-                        "data": json_data,
-                    }
-                except Exception:
-                    # If not JSON, still return base64
-                    encoded_data = base64.b64encode(file_data).decode("utf-8")
-                    return {
-                        "success": True,
-                        "filename": os.path.basename(file_path),
-                        "size": file_stats.st_size,
-                        "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
-                        "encoding": "base64",
-                        "data": encoded_data,
-                    }
+            # For raw, we'll return the file as JSON string (terrain files are JSON)
+            try:
+                json_data = json.loads(file_data.decode("utf-8"))
+                return {
+                    "success": True,
+                    "filename": os.path.basename(file_path),
+                    "size": file_stats.st_size,
+                    "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                    "encoding": "raw",
+                    "data": json_data,
+                }
+            except Exception:
+                # If not JSON, still return base64
+                encoded_data = base64.b64encode(file_data).decode("utf-8")
+                return {
+                    "success": True,
+                    "filename": os.path.basename(file_path),
+                    "size": file_stats.st_size,
+                    "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                    "encoding": "base64",
+                    "data": encoded_data,
+                }
 
         except Exception as e:
             self.logger.error("Failed to download file: %s", str(e))

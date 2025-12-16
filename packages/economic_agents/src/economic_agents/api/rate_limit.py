@@ -132,14 +132,14 @@ rate_limiter = RateLimiter(
 )
 
 
-async def check_rate_limit(request: Request) -> None:
+async def check_rate_limit(_request: Request) -> None:
     """Dependency to check rate limits.
 
     Note: This function does NOT perform agent-specific rate limiting.
     Use verify_and_rate_limit() for endpoints that need both auth and rate limiting.
 
     Args:
-        request: FastAPI request object
+        _request: FastAPI request object
 
     Raises:
         HTTPException: If rate limit exceeded
@@ -159,11 +159,11 @@ def verify_and_rate_limit():
     """
     from economic_agents.api.auth import verify_api_key
 
-    async def combined_dependency(request: Request, agent_id: str = Depends(verify_api_key)) -> str:
+    async def combined_dependency(_request: Request, agent_id: str = Depends(verify_api_key)) -> str:
         """Verify API key and check rate limits.
 
         Args:
-            request: FastAPI request object
+            _request: FastAPI request object
             agent_id: Agent ID from verify_api_key dependency
 
         Returns:

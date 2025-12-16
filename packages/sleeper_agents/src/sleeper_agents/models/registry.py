@@ -88,12 +88,12 @@ class ModelMetadata:
 class ModelRegistry:
     """Registry of curated open-weight models for evaluation."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the model registry."""
         self.models: Dict[str, ModelMetadata] = {}
         self._register_default_models()
 
-    def _register_default_models(self):
+    def _register_default_models(self) -> None:
         """Register default curated models."""
         # Tiny validation models (<500M params)
         self.register(
@@ -534,8 +534,7 @@ class ModelRegistry:
         """
         if allow_quantization:
             return [m for m in self.models.values() if m.fits_rtx4090 or m.fits_rtx4090_4bit]
-        else:
-            return [m for m in self.models.values() if m.fits_rtx4090]
+        return [m for m in self.models.values() if m.fits_rtx4090]
 
     def list_by_category(self, category: ModelCategory) -> List[ModelMetadata]:
         """List models in a specific category.

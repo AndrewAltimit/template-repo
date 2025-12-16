@@ -219,12 +219,12 @@ class SecurityManager:
         # Pattern: [Action][Agent] where Action is one of the valid actions
         return r"\[(Approved|Fix|Implement|Close|Summarize)\]\[([A-Za-z]+)\]"
 
-    def check_trigger_comment(self, issue_or_pr: Dict, entity_type: str) -> Optional[Tuple[str, str, str]]:
+    def check_trigger_comment(self, issue_or_pr: Dict, _entity_type: str) -> Optional[Tuple[str, str, str]]:
         """Check for valid trigger in issue/PR comments.
 
         Args:
             issue_or_pr: Issue or PR data with comments
-            entity_type: "issue" or "pr"
+            _entity_type: "issue" or "pr"
 
         Returns:
             Tuple of (action, agent, username) in lowercase if valid trigger found, None otherwise
@@ -312,6 +312,7 @@ class SecurityManager:
 
         return repository in allowed_repos
 
+    # pylint: disable=unused-argument  # entity_type/entity_id kept for API compatibility
     def perform_full_security_check(
         self,
         username: str,

@@ -108,7 +108,7 @@ def render_internal_state_monitor(data_loader, cache_manager):
         render_temporal_evolution(data_loader, cache_manager, selected_model)
 
 
-def render_anomaly_patterns(data_loader, cache_manager, selected_model: str):
+def render_anomaly_patterns(_data_loader, _cache_manager, _selected_model: str):
     """Render anomaly pattern detection interface."""
 
     st.subheader("Anomaly Pattern Detection")
@@ -205,7 +205,7 @@ def render_anomaly_patterns(data_loader, cache_manager, selected_model: str):
         )
 
 
-def render_feature_discovery(data_loader, cache_manager, selected_model: str):
+def render_feature_discovery(_data_loader, _cache_manager, _selected_model: str):
     """Render feature discovery interface."""
 
     st.subheader("Feature Discovery & Decomposition")
@@ -290,7 +290,7 @@ def render_feature_discovery(data_loader, cache_manager, selected_model: str):
                             st.session_state["investigate_feature"] = feature
 
 
-def render_causal_analysis(data_loader, cache_manager, selected_model: str):
+def render_causal_analysis(_data_loader, _cache_manager, _selected_model: str):
     """Render causal analysis interface."""
 
     st.subheader("Causal Analysis of Internal Patterns")
@@ -423,7 +423,7 @@ def render_causal_analysis(data_loader, cache_manager, selected_model: str):
         st.info("Run Feature Discovery first to find patterns to test")
 
 
-def render_statistical_patterns(data_loader, cache_manager, selected_model: str):
+def render_statistical_patterns(_data_loader, _cache_manager, selected_model: str):
     """Render statistical pattern analysis."""
 
     st.subheader("Statistical Pattern Analysis")
@@ -495,7 +495,7 @@ def render_statistical_patterns(data_loader, cache_manager, selected_model: str)
         st.info("No significant statistical outliers detected in current analysis")
 
 
-def render_temporal_evolution(data_loader, cache_manager, selected_model: str):
+def render_temporal_evolution(_data_loader, _cache_manager, selected_model: str):
     """Render temporal evolution of internal patterns."""
 
     st.subheader("Temporal Pattern Evolution")
@@ -664,17 +664,16 @@ def render_anomaly_details(anomalies: Dict[str, Any]):
         if isinstance(val, float):
             if val > 0.7:
                 return "background-color: #ffcccc"
-            elif val > 0.4:
+            if val > 0.4:
                 return "background-color: #ffffcc"
-            else:
-                return "background-color: #ccffcc"
+            return "background-color: #ccffcc"
         return ""
 
     styled_df = df.style.applymap(color_anomaly, subset=["anomaly_score"])
     st.dataframe(styled_df, use_container_width=True)
 
 
-def discover_internal_features(n_components: int, layers: list, sparsity: float, threshold: float) -> Dict[str, Any]:
+def discover_internal_features(n_components: int, layers: list, _sparsity: float, _threshold: float) -> Dict[str, Any]:
     """Simulate feature discovery."""
 
     np.random.seed(42)
@@ -821,7 +820,7 @@ def generate_statistical_analysis(model: str) -> Dict[str, Any]:
     return {"clusters": {"x": cluster_x, "y": cluster_y, "cluster_id": cluster_ids}, "outliers": outliers}
 
 
-def generate_temporal_patterns(model: str, time_range: str) -> Dict[str, Any]:
+def generate_temporal_patterns(_model: str, _time_range: str) -> Dict[str, Any]:
     """Generate temporal pattern data."""
 
     # Create time points

@@ -177,6 +177,7 @@ This result demonstrates successful replication of Anthropic's deception detecti
 
 
 def main():
+    """Import deception probe results to dashboard database."""
     parser = argparse.ArgumentParser(
         description="Import deception probe results to dashboard",
         formatter_class=argparse.RawDescriptionHelpFormatter,

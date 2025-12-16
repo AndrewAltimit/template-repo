@@ -51,7 +51,7 @@ class SubjectMatterExpert(SubAgent):
                 "metrics": ["Vulnerability count", "Mean time to patch", "Failed login attempts"],
             }
 
-        elif "scaling" in spec or "performance" in spec:
+        if "scaling" in spec or "performance" in spec:
             return {
                 "best_practices": [
                     "Implement Redis/Memcached caching (hit rate >80%)",
@@ -71,7 +71,7 @@ class SubjectMatterExpert(SubAgent):
                 "metrics": ["Response time p95", "Throughput (req/sec)", "Cache hit rate", "CPU/Memory usage"],
             }
 
-        elif "machine-learning" in spec or "ai" in spec or "ml" in spec:
+        if "machine-learning" in spec or "ai" in spec or "ml" in spec:
             return {
                 "best_practices": [
                     "Start with pre-trained models (BERT, GPT, ResNet)",
@@ -91,7 +91,7 @@ class SubjectMatterExpert(SubAgent):
                 "metrics": ["Accuracy", "Precision/Recall", "F1 score", "AUC-ROC", "Training time"],
             }
 
-        elif "devops" in spec or "sre" in spec:
+        if "devops" in spec or "sre" in spec:
             return {
                 "best_practices": [
                     "Infrastructure as code (Terraform, Pulumi)",
@@ -111,7 +111,7 @@ class SubjectMatterExpert(SubAgent):
                 "metrics": ["Deployment frequency", "MTTR", "Change failure rate", "Uptime %"],
             }
 
-        elif "data" in spec or "database" in spec:
+        if "data" in spec or "database" in spec:
             return {
                 "best_practices": [
                     "Choose database based on access patterns (SQL vs NoSQL)",
@@ -131,7 +131,7 @@ class SubjectMatterExpert(SubAgent):
                 "metrics": ["Query response time", "Connection pool usage", "Replication lag", "Disk usage"],
             }
 
-        elif "frontend" in spec or "ui" in spec or "ux" in spec:
+        if "frontend" in spec or "ui" in spec or "ux" in spec:
             return {
                 "best_practices": [
                     "Mobile-first responsive design",
@@ -151,25 +151,24 @@ class SubjectMatterExpert(SubAgent):
                 "metrics": ["Page load time", "Time to interactive", "Lighthouse score", "Conversion rate"],
             }
 
-        else:
-            # Generic knowledge base
-            return {
-                "best_practices": [
-                    f"Follow {self.specialization} industry standards",
-                    "Implement comprehensive testing",
-                    "Document architectural decisions",
-                ],
-                "tools": ["Standard industry tools"],
-                "risks": [],
-                "metrics": ["Quality score", "Time to completion"],
-            }
+        # Generic knowledge base
+        return {
+            "best_practices": [
+                f"Follow {self.specialization} industry standards",
+                "Implement comprehensive testing",
+                "Document architectural decisions",
+            ],
+            "tools": ["Standard industry tools"],
+            "risks": [],
+            "metrics": ["Quality score", "Time to completion"],
+        }
 
-    def provide_expertise(self, question: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    def provide_expertise(self, question: str, _context: Dict[str, Any]) -> Dict[str, Any]:
         """Provide expert advice on a question.
 
         Args:
             question: Question requiring expert input
-            context: Additional context
+            _context: Additional context
 
         Returns:
             Expert advice
@@ -194,7 +193,7 @@ class SubjectMatterExpert(SubAgent):
                 "references": [f"{self.specialization} best practices", "Industry standards"],
             }
 
-        elif "risk" in question_lower or "problem" in question_lower or "issue" in question_lower:
+        if "risk" in question_lower or "problem" in question_lower or "issue" in question_lower:
             # Risk assessment
             return {
                 "advice": f"Key {self.specialization} risks to address",
@@ -210,7 +209,7 @@ class SubjectMatterExpert(SubAgent):
                 "confidence": 0.85,
             }
 
-        elif "tool" in question_lower or "technology" in question_lower or "stack" in question_lower:
+        if "tool" in question_lower or "technology" in question_lower or "stack" in question_lower:
             # Technology recommendations
             return {
                 "advice": f"Recommended {self.specialization} technology stack",
@@ -220,7 +219,7 @@ class SubjectMatterExpert(SubAgent):
                 "confidence": 0.88,
             }
 
-        elif "metric" in question_lower or "measure" in question_lower or "kpi" in question_lower:
+        if "metric" in question_lower or "measure" in question_lower or "kpi" in question_lower:
             # Metrics and measurement
             return {
                 "advice": f"Key {self.specialization} metrics to track",
@@ -230,16 +229,15 @@ class SubjectMatterExpert(SubAgent):
                 "confidence": 0.82,
             }
 
-        else:
-            # General best practices
-            return {
-                "advice": f"{self.specialization.title()} domain expertise",
-                "best_practices": kb["best_practices"][:5],
-                "tools": kb["tools"][:3],
-                "priority": "high",
-                "confidence": 0.85,
-                "references": [f"{self.specialization} documentation", "Industry standards"],
-            }
+        # General best practices
+        return {
+            "advice": f"{self.specialization.title()} domain expertise",
+            "best_practices": kb["best_practices"][:5],
+            "tools": kb["tools"][:3],
+            "priority": "high",
+            "confidence": 0.85,
+            "references": [f"{self.specialization} documentation", "Industry standards"],
+        }
 
     def analyze_tradeoffs(self, option_a: str, option_b: str, criteria: List[str]) -> Dict[str, Any]:
         """Analyze tradeoffs between two technical options.
@@ -348,7 +346,7 @@ class SubjectMatterExpert(SubAgent):
                 "estimated_setup_time": "2-4 weeks" if timeline == "fast" else "4-8 weeks",
             }
 
-        elif decision_type == "architecture":
+        if decision_type == "architecture":
             # Architecture recommendation
             scale = constraints.get("expected_scale", "medium")
 
@@ -370,12 +368,11 @@ class SubjectMatterExpert(SubAgent):
                 "confidence": 0.85,
             }
 
-        else:
-            # General recommendation
-            return {
-                "decision": "follow_best_practices",
-                "reasoning": f"Apply {self.specialization} industry standards",
-                "best_practices": kb["best_practices"][:5],
-                "tools": kb["tools"][:3],
-                "confidence": 0.8,
-            }
+        # General recommendation
+        return {
+            "decision": "follow_best_practices",
+            "reasoning": f"Apply {self.specialization} industry standards",
+            "best_practices": kb["best_practices"][:5],
+            "tools": kb["tools"][:3],
+            "confidence": 0.8,
+        }

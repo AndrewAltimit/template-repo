@@ -17,11 +17,11 @@ from utils.model_registry import ModelRegistry
 logger = logging.getLogger(__name__)
 
 
-def render_scaling_analysis(data_loader: Any, cache_manager: Any) -> None:
+def render_scaling_analysis(data_loader: Any, _cache_manager: Any) -> None:
     """Render scaling analysis showing deception vs model size.
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        _cache_manager: CacheManager instance
     """
     st.header("Deception Scaling Analysis")
 

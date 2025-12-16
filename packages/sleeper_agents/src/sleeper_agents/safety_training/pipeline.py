@@ -75,7 +75,7 @@ class PersistenceResult:
 class SafetyTrainingPipeline:
     """Pipeline for testing backdoor persistence through safety training."""
 
-    def __init__(self, detector):
+    def __init__(self, detector: "Any") -> None:
         """Initialize the safety training pipeline.
 
         Args:
@@ -181,21 +181,21 @@ class SafetyTrainingPipeline:
         else:
             logger.warning("Unknown training method: %s", config.training_method)
 
-    async def _supervised_fine_tuning(self, samples: List[str], epochs: int) -> None:
+    async def _supervised_fine_tuning(self, _samples: List[str], epochs: int) -> None:
         """Simulate supervised fine-tuning."""
         for epoch in range(epochs):
             # In production, this would update model weights
             await asyncio.sleep(0.01)  # Simulate training time
             logger.debug("SFT epoch %s/%s", epoch + 1, epochs)
 
-    async def _reinforcement_learning(self, samples: List[str], epochs: int) -> None:
+    async def _reinforcement_learning(self, _samples: List[str], epochs: int) -> None:
         """Simulate RL-based safety training."""
         for epoch in range(epochs):
             # In production, this would use PPO or similar
             await asyncio.sleep(0.01)
             logger.debug("RL epoch %s/%s", epoch + 1, epochs)
 
-    async def _adversarial_training(self, samples: List[str], epochs: int) -> None:
+    async def _adversarial_training(self, _samples: List[str], epochs: int) -> None:
         """Simulate adversarial training.
 
         Paper shows this can actually make backdoors MORE persistent
@@ -303,8 +303,7 @@ class SafetyTrainingPipeline:
         if len(pre_values) == len(post_values):
             correlation = np.corrcoef(pre_values, post_values)[0, 1]
             return float(max(0, correlation))  # Ensure non-negative
-        else:
-            return 0.0
+        return 0.0
 
     async def run_persistence_sweep(
         self, model_name: str, backdoor_samples: List[str], clean_samples: List[str]

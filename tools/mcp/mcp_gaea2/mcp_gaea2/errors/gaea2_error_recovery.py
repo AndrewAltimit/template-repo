@@ -434,9 +434,8 @@ class Gaea2ErrorRecovery:
                     if key not in result and len(result) < 3:
                         result[key] = value
             return result
-        else:
-            # For unknown nodes, just take the first 3 properties
-            return dict(list(properties.items())[:3])
+        # For unknown nodes, just take the first 3 properties
+        return dict(list(properties.items())[:3])
 
     def fix_workflow(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Fix workflow issues automatically"""

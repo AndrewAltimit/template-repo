@@ -140,8 +140,7 @@ class BoardManager:
 
                 if response.status == 200:
                     return GraphQLResponse(data=data.get("data"), errors=data.get("errors", []), status_code=200)
-                else:
-                    return GraphQLResponse(data=None, errors=data.get("errors", []), status_code=response.status)
+                return GraphQLResponse(data=None, errors=data.get("errors", []), status_code=response.status)
 
         result: GraphQLResponse = await self._execute_with_retry(_execute)
         return result
@@ -362,7 +361,7 @@ class BoardManager:
         self,
         item: dict[str, Any],
         content: dict[str, Any],
-        field_values: dict[str, str],
+        _field_values: dict[str, str],
         status: IssueStatus,
         priority: IssuePriority,
         issue_type: IssueType | None,
@@ -672,8 +671,7 @@ class BoardManager:
             if claim_age < self.config.claim_timeout:
                 logger.info("Issue #%s already claimed by %s", issue_number, existing_claim.agent)
                 return False
-            else:
-                logger.info("Stale claim expired on issue #%s, stealing", issue_number)
+            logger.info("Stale claim expired on issue #%s, stealing", issue_number)
 
         # Post claim comment
         timeout_hours = self.config.claim_timeout // 3600
@@ -941,7 +939,7 @@ Work claim released.
 
         return active_claim
 
-    def _parse_claim_comment(self, issue_number: int, body: str, created_at: str) -> AgentClaim | None:
+    def _parse_claim_comment(self, issue_number: int, body: str, _created_at: str) -> AgentClaim | None:
         """
         Parse a claim comment to extract claim details.
 

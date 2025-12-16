@@ -113,11 +113,10 @@ async def execute_transaction(
                 balance_after=last_tx["balance_after"],
                 purpose=request.purpose,
             )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Transaction executed but not recorded",
-            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Transaction executed but not recorded",
+        )
 
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
@@ -179,7 +178,7 @@ async def initialize_wallet(
 
 
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc: HTTPException):
+async def http_exception_handler(_request, exc: HTTPException):
     """Handle HTTP exceptions with standard error response."""
     return JSONResponse(
         status_code=exc.status_code,

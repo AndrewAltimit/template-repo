@@ -153,7 +153,7 @@ class SleeperDetector:
 
         return results
 
-    async def sweep_layers(self, n_samples: int = 500) -> Dict[str, Any]:
+    async def sweep_layers(self, n_samples: int = 500) -> Dict[str, Any]:  # pylint: disable=unused-argument
         """Sweep through layers to find optimal detection points.
 
         Args:
@@ -184,7 +184,7 @@ class SleeperDetector:
 
         return {"layer_results": layer_results, "note": "Provide clean/backdoored samples to train probes"}
 
-    async def get_layer_scores(self, text: str) -> Dict[int, float]:
+    async def get_layer_scores(self, _text: str) -> Dict[int, float]:
         """Get detection scores for each layer.
 
         Args:

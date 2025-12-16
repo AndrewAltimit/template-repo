@@ -243,7 +243,7 @@ class BoardMember(SubAgent):
             }
 
         # Executive hire with cost-benefit analysis
-        elif decision_needed == "hire_executive":
+        if decision_needed == "hire_executive":
             annual_cost = context.get("annual_salary", 180000)  # Default exec salary
             expected_value = context.get("expected_annual_value", 0)
 
@@ -269,9 +269,8 @@ class BoardMember(SubAgent):
             }
 
         # General decisions
-        else:
-            return {
-                "decision": "defer",
-                "reasoning": f"Insufficient financial data for {decision_needed} decision",
-                "confidence": 0.6,
-            }
+        return {
+            "decision": "defer",
+            "reasoning": f"Insufficient financial data for {decision_needed} decision",
+            "confidence": 0.6,
+        }

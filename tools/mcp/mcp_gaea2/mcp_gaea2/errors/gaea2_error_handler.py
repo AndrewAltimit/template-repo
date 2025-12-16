@@ -67,11 +67,11 @@ class Gaea2Error:
 class Gaea2ErrorHandler:
     """Comprehensive error handler for Gaea2 operations"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.errors: List[Gaea2Error] = []
         self.auto_fix_enabled = True
 
-    def add_error(self, error: Gaea2Error):
+    def add_error(self, error: Gaea2Error) -> None:
         """Add an error to the collection"""
         self.errors.append(error)
 

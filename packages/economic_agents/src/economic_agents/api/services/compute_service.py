@@ -177,7 +177,7 @@ async def get_cost_per_hour(
 
 
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc: HTTPException):
+async def http_exception_handler(_request, exc: HTTPException):
     """Handle HTTP exceptions with standard error response."""
     return JSONResponse(
         status_code=exc.status_code,

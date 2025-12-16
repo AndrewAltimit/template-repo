@@ -7,17 +7,17 @@ import base64
 import requests
 
 
-def download_terrain_file(filename, local_filename, server_url="http://192.168.0.152:8007"):
+def download_terrain_file(terrain_filename, output_filename, server_url="http://192.168.0.152:8007"):
     """
     Download terrain file from the Gaea2 MCP server using the new download tool.
 
     Args:
-        filename: The terrain filename on the server
-        local_filename: Where to save the file locally
+        terrain_filename: The terrain filename on the server
+        output_filename: Where to save the file locally
         server_url: The Gaea2 MCP server URL
     """
     # Extract just the filename from any path
-    filename_only = filename.split("\\")[-1].split("/")[-1]
+    filename_only = terrain_filename.split("\\")[-1].split("/")[-1]
 
     print(f"Downloading: {filename_only}")
 
@@ -28,13 +28,12 @@ def download_terrain_file(filename, local_filename, server_url="http://192.168.0
     try:
         response = requests.get(direct_url, timeout=10)
         if response.status_code == 200 and len(response.content) > 100:
-            with open(local_filename, "wb") as f:
+            with open(output_filename, "wb") as f:
                 f.write(response.content)
-            print(f"✓ Successfully downloaded to: {local_filename}")
+            print(f"✓ Successfully downloaded to: {output_filename}")
             print(f"  File size: {len(response.content):,} bytes")
             return True
-        else:
-            print(f"  Direct download failed: Status {response.status_code}")
+        print(f"  Direct download failed: Status {response.status_code}")
     except Exception as e:
         print(f"  Direct download error: {e}")
 
@@ -60,23 +59,21 @@ def download_terrain_file(filename, local_filename, server_url="http://192.168.0
                 file_data = base64.b64decode(data)
 
                 # Save to file
-                with open(local_filename, "wb") as f:
+                with open(output_filename, "wb") as f:
                     f.write(file_data)
 
-                print(f"✓ Successfully downloaded via MCP tool: {local_filename}")
+                print(f"✓ Successfully downloaded via MCP tool: {output_filename}")
                 print(f"  Original filename: {file_info['filename']}")
                 print(f"  File size: {file_info['size']:,} bytes")
                 print(f"  Modified: {file_info['modified']}")
                 return True
-            else:
-                error = result.get("result", {}).get("error") or result.get("error", "Unknown error")
-                print(f"  MCP download failed: {error}")
+            error = result.get("result", {}).get("error") or result.get("error", "Unknown error")
+            print(f"  MCP download failed: {error}")
 
-                # List available files
-                list_files(server_url)
+            # List available files
+            list_files(server_url)
 
-        else:
-            print(f"  MCP request failed: Status {response.status_code}")
+        print(f"  MCP request failed: Status {response.status_code}")
 
     except Exception as e:
         print(f"  MCP download error: {e}")

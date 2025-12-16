@@ -204,9 +204,8 @@ class BlenderMCPServer(BaseMCPServer):
         # Otherwise treat it as a relative path
         if project_path.endswith(".blend"):
             return self._validate_path(project_path, self.projects_dir, "project")
-        else:
-            # Assume it's just a project name, add .blend extension
-            return self._validate_path(f"{project_path}.blend", self.projects_dir, "project")
+        # Assume it's just a project name, add .blend extension
+        return self._validate_path(f"{project_path}.blend", self.projects_dir, "project")
 
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return dictionary of available tools and their metadata."""
@@ -1093,8 +1092,7 @@ class BlenderMCPServer(BaseMCPServer):
             # Also kill the Blender process
             self.blender_executor.kill_process(job_id)
             return {"success": True, "message": f"Job {job_id} cancelled"}
-        else:
-            return {"error": f"Could not cancel job {job_id}"}
+        return {"error": f"Could not cancel job {job_id}"}
 
     async def _list_projects(self) -> Dict[str, Any]:
         """List available projects."""

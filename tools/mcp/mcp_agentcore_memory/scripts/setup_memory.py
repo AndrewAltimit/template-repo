@@ -200,6 +200,7 @@ def get_memory(memory_id: str, region: str = "us-east-1", profile: Optional[str]
 
 
 def main():
+    """CLI entry point for memory setup script"""
     parser = argparse.ArgumentParser(
         description="Bootstrap AgentCore Memory resource",
         formatter_class=argparse.RawDescriptionHelpFormatter,

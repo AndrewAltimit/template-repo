@@ -333,9 +333,8 @@ def main():
     if all_passed:
         print("✅ ALL TESTS PASSED")
         return 0
-    else:
-        print("❌ SOME TESTS FAILED")
-        return 1
+    print("❌ SOME TESTS FAILED")
+    return 1
 
 
 if __name__ == "__main__":

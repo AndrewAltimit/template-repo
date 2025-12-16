@@ -50,10 +50,9 @@ def create_provider(provider_type: Optional[str] = None) -> MemoryProvider:
 
     if provider == "agentcore":
         return _create_agentcore_provider()
-    elif provider == "chromadb":
+    if provider == "chromadb":
         return _create_chromadb_provider()
-    else:
-        raise ValueError(f"Unknown provider: {provider}. Valid options: agentcore, chromadb")
+    raise ValueError(f"Unknown provider: {provider}. Valid options: agentcore, chromadb")
 
 
 def _create_agentcore_provider() -> MemoryProvider:
@@ -130,7 +129,6 @@ def get_provider_type() -> ProviderType:
     provider = os.environ.get("MEMORY_PROVIDER", "chromadb").lower().strip()
     if provider == "agentcore":
         return ProviderType.AGENTCORE
-    elif provider == "chromadb":
+    if provider == "chromadb":
         return ProviderType.CHROMADB
-    else:
-        raise ValueError(f"Unknown provider: {provider}")
+    raise ValueError(f"Unknown provider: {provider}")

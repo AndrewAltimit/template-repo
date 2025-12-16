@@ -55,7 +55,7 @@ class CausalInterventionSystem:
             # Apply intervention
             direction_tensor = torch.tensor(direction, device=self.model.device, dtype=torch.float32)
 
-            def projection_hook(resid, hook):
+            def projection_hook(resid, _hook):
                 """Hook to project out direction from residual stream."""
                 resid = resid.clone()
                 # For each position in sequence
@@ -128,7 +128,7 @@ class CausalInterventionSystem:
             # Define patching hook
             truthful_resid = truthful_cache[(f"blocks.{layer_idx}.hook_resid_post", layer_idx)]
 
-            def patch_hook(resid, hook):
+            def patch_hook(_resid, _hook):
                 """Replace with truthful activations."""
                 return truthful_resid
 
@@ -209,9 +209,8 @@ class CausalInterventionSystem:
                 tokens = self.model.to_tokens(text)
                 logits = self.model(tokens)
                 return self._process_logits(logits)
-            else:
-                # Mock output for testing
-                return {"tokens": ["the", "a", "to", "of", "and"], "probs": [0.3, 0.2, 0.15, 0.1, 0.05]}
+            # Mock output for testing
+            return {"tokens": ["the", "a", "to", "of", "and"], "probs": [0.3, 0.2, 0.15, 0.1, 0.05]}
         except Exception:
             return {"tokens": [], "probs": []}
 
@@ -253,8 +252,7 @@ class CausalInterventionSystem:
             tokens = torch.argmax(logits, dim=-1)
             if hasattr(self.model, "to_string"):
                 return str(self.model.to_string(tokens))
-            else:
-                return f"Generated text from {tokens.shape[0]} tokens"
+            return f"Generated text from {tokens.shape[0]} tokens"
         except Exception:
             return "Decoding failed"
 
@@ -270,8 +268,7 @@ class CausalInterventionSystem:
         try:
             if hasattr(self.model, "generate"):
                 return await asyncio.to_thread(self.model.generate, prompt)
-            else:
-                return f"Mock generation for: {prompt[:50]}..."
+            return f"Mock generation for: {prompt[:50]}..."
         except Exception:
             return "Generation failed"
 

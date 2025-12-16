@@ -246,6 +246,7 @@ def get_budget_status(
 
 
 def main():
+    """CLI entry point for cost alerts setup script"""
     parser = argparse.ArgumentParser(
         description="Setup AWS Budget alerts for AgentCore Memory",
         formatter_class=argparse.RawDescriptionHelpFormatter,
