@@ -169,9 +169,14 @@ class SetupValidator:
                 if result == 0:
                     print(f"  ✓ {ip:15} ({description}) - Port 8020 open")
                 else:
-                    # Just test ping
-                    response = os.system(f"ping -c 1 -W 1 {ip} > /dev/null 2>&1")
-                    if response == 0:
+                    # Just test ping - use subprocess to avoid shell injection
+                    response = subprocess.run(
+                        ["ping", "-c", "1", "-W", "1", ip],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        check=False,
+                    )
+                    if response.returncode == 0:
                         print(f"  ℹ {ip:15} ({description}) - Reachable")
                     else:
                         print(f"  ✗ {ip:15} ({description}) - Not reachable")
