@@ -877,6 +877,13 @@ def analyze_pr(
 - Only report ACTIONABLE issues (bugs, security, required fixes)
 - Skip generic praise - only mention positive aspects if exceptional
 - ONE reaction image at the very end (from the reaction protocol)
+
+**CRITICAL - SYNTAX ERROR VERIFICATION:**
+- ALL Python files in this PR have been verified to pass `python -m py_compile` before commit
+- Do NOT report syntax errors unless you can quote the EXACT invalid syntax from the diff
+- File paths appearing in diff headers (like `diff --git a/path/to/file.py`) are NOT code
+- If you see `@patch` decorators in the diff, they are VALID - do not claim they are corrupted
+- Decorator lines like `@patch("module.function")` are standard unittest.mock usage
 - No "Summary" or "Verdict" sections that repeat issues
 
 **PROJECT CONTEXT:**
