@@ -98,7 +98,7 @@ jobs:
         if: inputs.upload_artifacts && always()
         uses: actions/upload-artifact@v4
         with:
-          name: lint-results-${{ inputs.stage }}-${{ github.run_id }}
+          name: lint-results-${{ inputs.stage }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             lint-output.txt
             black-output.txt

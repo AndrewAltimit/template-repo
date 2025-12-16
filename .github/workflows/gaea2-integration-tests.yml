@@ -140,7 +140,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gaea2-integration-results-${{ github.run_id }}
+          name: gaea2-integration-results-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             integration_test_report_*.json
             knowledge_base_update_*.json
@@ -153,7 +153,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: gaea2-performance-logs-${{ github.run_id }}
+          name: gaea2-performance-logs-${{ github.run_id }}-${{ github.run_attempt }}
           path: tools/mcp/mcp_gaea2/tests/performance_log.json
           retention-days: 90
           if-no-files-found: ignore

@@ -245,7 +245,7 @@ jobs:
       - name: Upload Health Report
         uses: actions/upload-artifact@v4
         with:
-          name: runner-health-report-${{ runner.name }}-${{ github.run_id }}
+          name: runner-health-report-${{ runner.name }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: runner-health-report.md
           retention-days: 30
 
@@ -605,7 +605,7 @@ jobs:
       - name: Upload Summary
         uses: actions/upload-artifact@v4
         with:
-          name: maintenance-summary-${{ github.run_id }}
+          name: maintenance-summary-${{ github.run_id }}-${{ github.run_attempt }}
           path: maintenance-summary.md
           retention-days: 90
 
