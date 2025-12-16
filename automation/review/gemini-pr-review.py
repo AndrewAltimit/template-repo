@@ -864,11 +864,15 @@ For files WITHOUT the [NEW] marker:
                 truncated_count = previous_issues.count("\n") - issues_to_include.count("\n")
                 print(f"Warning: Truncated {truncated_count} previous issues due to size limit")
             prompt += f"""**PREVIOUS ISSUES TO VERIFY:**
-The following issues were flagged in earlier reviews. Check if each is resolved or still present:
+The following issues were flagged in earlier reviews. VERIFY each against the ACTUAL DIFF below:
 ```
 {issues_to_include}
 ```
-For each issue above: verify against current code and report as [RESOLVED] or [STILL UNRESOLVED].
+**CRITICAL VERIFICATION RULES:**
+- ONLY mark as [STILL UNRESOLVED] if you can see the EXACT problematic code in the diff
+- If the claimed issue is NOT visible in the diff, mark as [RESOLVED] or [NOT FOUND IN DIFF]
+- Do NOT echo previous issues blindly - you must verify each one against the actual code
+- Syntax errors should be verifiable: if the code looks syntactically correct in the diff, the issue is resolved
 
 """
 
@@ -911,10 +915,12 @@ For each issue above: verify against current code and report as [RESOLVED] or [S
 **OUTPUT FORMAT:**
 ## Issues (if any)
 - [CRITICAL/SECURITY/BUG] File:line - Brief description
+**IMPORTANT: Only report issues you can ACTUALLY SEE in the diff above. Do not invent or hallucinate issues.**
 {'''
 ## Previous Issues (for incremental reviews)
-- [STILL UNRESOLVED] File:line - Issue from previous review that is still present
-- [RESOLVED] File:line - Issue that has been fixed since last review
+- [STILL UNRESOLVED] File:line - Issue VISIBLE in diff that is still present
+- [RESOLVED] File:line - Issue fixed OR not found in current diff
+- [NOT FOUND IN DIFF] File:line - Claimed issue cannot be verified in diff
 ''' if is_incremental else ''}
 ## Suggestions (if any)
 - File:line - Brief suggestion
