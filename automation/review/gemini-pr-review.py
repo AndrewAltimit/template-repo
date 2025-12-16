@@ -48,16 +48,23 @@ def _file_has_valid_syntax(filepath: str) -> bool:
         resolved_path = Path(filepath).resolve()
         repo_root = Path.cwd().resolve()
         if not resolved_path.is_relative_to(repo_root):
-            print(f"Security: Rejecting path outside repository: {filepath}")
+            print(f"[SECURITY] Path traversal blocked: '{filepath}' resolves outside repository root")
             return True  # Treat as valid to avoid false positives, but don't read it
-    except (ValueError, OSError):
+    except (ValueError, OSError) as e:
+        print(f"[SECURITY] Path resolution failed for '{filepath}': {e}")
         return True  # Path resolution failed, treat as valid
 
     try:
         with open(filepath, encoding="utf-8") as f:
             ast.parse(f.read())
         return True
-    except (SyntaxError, FileNotFoundError, UnicodeDecodeError):
+    except FileNotFoundError:
+        # File doesn't exist in working tree - not a syntax error, just missing
+        return True
+    except UnicodeDecodeError as e:
+        print(f"[IO] Failed to decode '{filepath}': {e}")
+        return True  # Can't parse, but not a syntax error
+    except SyntaxError:
         return False
 
 

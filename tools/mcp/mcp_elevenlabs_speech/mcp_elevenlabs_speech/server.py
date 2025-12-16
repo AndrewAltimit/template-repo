@@ -35,8 +35,14 @@ from .voice_mapping import (  # noqa: E402
 )
 from .voice_registry import VOICE_IDS  # noqa: E402
 
-# Add parent directory to path for imports
-# pylint: disable=wrong-import-position
+# Add sibling directory to path for audio_file_server import (thread-safe, done once at module load)
+# This allows importing from mcp_virtual_character without per-request sys.path manipulation
+_SIBLING_PATH = Path(__file__).parent.parent.parent / "mcp_virtual_character"
+if _SIBLING_PATH.exists() and str(_SIBLING_PATH) not in sys.path:
+    sys.path.insert(0, str(_SIBLING_PATH))
+
+# Module-level cache for audio file server function (thread-safe singleton)
+_audio_file_server_cache: Dict[str, Any] = {"loaded": False, "func": None}
 
 
 class ElevenLabsSpeechMCPServer(BaseMCPServer):
@@ -116,53 +122,38 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         return config
 
     def _get_audio_file_server(self) -> Optional[Any]:
-        """Get the audio file server function, trying multiple import strategies.
+        """Get the audio file server function using thread-safe module-level cache.
 
         Returns:
             The serve_audio_file function if available, None otherwise.
 
         Note:
-            This method attempts to import the audio_file_server module which lives
-            in the mcp_virtual_character package. It tries multiple strategies:
-            1. Direct import (works if package is installed or in PYTHONPATH)
-            2. Sibling directory import (works in development with repo checkout)
-            3. Returns None if both fail (caller should use fallback)
+            This method uses a module-level cache to avoid race conditions in
+            threaded environments. The sys.path modification is done once at
+            module load time, not per-request.
         """
-        # Strategy 1: Try direct import (package installed or in PYTHONPATH)
+        # Use module-level cache for thread safety
+        if _audio_file_server_cache["loaded"]:
+            return _audio_file_server_cache["func"]
+
+        # First call - try to import (thread-safe since sys.path already set at module load)
         try:
             from audio_file_server import serve_audio_file  # pylint: disable=import-outside-toplevel
 
-            self.logger.debug("Loaded audio_file_server via direct import")
+            self.logger.debug("Loaded audio_file_server via import")
+            _audio_file_server_cache["func"] = serve_audio_file
+            _audio_file_server_cache["loaded"] = True
             return serve_audio_file
-        except ImportError:
-            pass
-
-        # Strategy 2: Try sibling directory import (development mode)
-        # Path: .../mcp_elevenlabs_speech/mcp_elevenlabs_speech/server.py
-        #       -> .../tools/mcp/mcp_virtual_character/
-        sibling_path = Path(__file__).parent.parent.parent / "mcp_virtual_character"
-        if sibling_path.exists():
-            try:
-                sys.path.insert(0, str(sibling_path))
-                from audio_file_server import serve_audio_file  # pylint: disable=import-outside-toplevel
-
-                self.logger.debug("Loaded audio_file_server from sibling directory: %s", sibling_path)
-                return serve_audio_file
-            except ImportError as e:
-                self.logger.warning("Failed to import audio_file_server from %s: %s", sibling_path, e)
-            finally:
-                # Clean up sys.path modification
-                if str(sibling_path) in sys.path:
-                    sys.path.remove(str(sibling_path))
-        else:
-            self.logger.debug("Sibling path does not exist: %s", sibling_path)
-
-        self.logger.info(
-            "audio_file_server not available. Audio will use base64 fallback. "
-            "To enable HTTP serving, ensure mcp_virtual_character is in PYTHONPATH "
-            "or running from repository checkout."
-        )
-        return None
+        except ImportError as e:
+            self.logger.info(
+                "audio_file_server not available (%s). Audio will use base64 fallback. "
+                "To enable HTTP serving, ensure mcp_virtual_character is in PYTHONPATH "
+                "or running from repository checkout.",
+                e,
+            )
+            _audio_file_server_cache["func"] = None
+            _audio_file_server_cache["loaded"] = True
+            return None
 
     def _fallback_to_base64(self, audio_data: bytes, result_dict: Dict[str, Any]) -> None:
         """Fall back to base64 encoding for audio data.
