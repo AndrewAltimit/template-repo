@@ -34,9 +34,24 @@ def _file_has_valid_syntax(filepath: str) -> bool:
 
     Returns:
         True if the file has valid syntax or is not a Python file, False if syntax error
+
+    Security:
+        Validates that filepath stays within the repository to prevent path traversal
+        attacks from malicious PR comments containing paths like "../../outside_file.py"
     """
     if not filepath.endswith(".py"):
         return True  # Non-Python files - can't validate, assume OK
+
+    # Security: Prevent path traversal attacks
+    # Ensure the resolved path stays within the current working directory
+    try:
+        resolved_path = Path(filepath).resolve()
+        repo_root = Path.cwd().resolve()
+        if not resolved_path.is_relative_to(repo_root):
+            print(f"Security: Rejecting path outside repository: {filepath}")
+            return True  # Treat as valid to avoid false positives, but don't read it
+    except (ValueError, OSError):
+        return True  # Path resolution failed, treat as valid
 
     try:
         with open(filepath, encoding="utf-8") as f:
