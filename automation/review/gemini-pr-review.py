@@ -706,13 +706,16 @@ If no concrete issues were found, respond with: `NO_ISSUES_FOUND`
                 # "utils.py" matching "test_utils.py"
                 file_in_diff = False
                 for changed_file in changed_files:
-                    # Check for exact path match followed by colon (line number)
-                    if f"{changed_file}:" in line:
+                    # Build pattern: file must be at start of line, after space, or after /
+                    # and must be followed by : (line number) or end/space
+                    # This prevents "utils.py" from matching "test_utils.py:123"
+                    if line.startswith(f"{changed_file}:"):
                         file_in_diff = True
                         break
-                    # Check for path ending with the changed file at a boundary
-                    # (preceded by / or start of line)
-                    if line.startswith(changed_file) or f"/{changed_file}" in line:
+                    if f"/{changed_file}:" in line:
+                        file_in_diff = True
+                        break
+                    if f" {changed_file}:" in line:
                         file_in_diff = True
                         break
                 if file_in_diff:
