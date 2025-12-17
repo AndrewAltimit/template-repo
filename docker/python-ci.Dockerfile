@@ -10,6 +10,9 @@ FROM python:3.11-slim
 # Using official installer which handles architecture detection
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
+# Configure uv to use system Python (avoids --system flag on every command)
+ENV UV_SYSTEM_PYTHON=1
+
 # Install system dependencies with BuildKit cache
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -40,7 +43,7 @@ COPY config/python/requirements.txt ./
 
 # Install all dependencies from the requirements file using uv (with cache)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system -r requirements.txt
+    uv pip install -r requirements.txt
 
 # Install workspace packages
 # Note: This happens before copying the full codebase to leverage caching
@@ -57,7 +60,7 @@ COPY packages/economic_agents /app/packages/economic_agents
 # Install all workspace packages in a single uv command (with cache)
 # This is ~10-100x faster than individual pip install commands
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system \
+    uv pip install \
     /app/tools/mcp/mcp_core \
     /app/tools/mcp/mcp_ai_toolkit \
     /app/tools/mcp/mcp_blender \

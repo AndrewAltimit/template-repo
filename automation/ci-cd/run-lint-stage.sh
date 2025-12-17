@@ -174,7 +174,7 @@ case "$STAGE" in
     # Type checking with MyPy (informational - doesn't fail build)
     # Using uv for fast dependency installation
     echo "🔍 Running MyPy type checker..."
-    docker-compose run --rm python-ci bash -c "uv pip install --system -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary" 2>&1 | tee -a lint-output.txt || true
+    docker-compose run --rm python-ci bash -c "uv pip install -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary" 2>&1 | tee -a lint-output.txt || true
     # Note: Not counting mypy errors as hard failures - baseline check handles regressions
     mypy_errors=$(grep -c ": error:" lint-output.txt 2>/dev/null || echo 0)
     mypy_errors=$(ensure_numeric "$mypy_errors")

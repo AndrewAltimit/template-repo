@@ -26,6 +26,13 @@ export GROUP_ID
 export PYTHONDONTWRITEBYTECODE=1
 export PYTHONPYCACHEPREFIX=/tmp/pycache
 
+# Set ruff output format based on environment (github annotations in CI, concise locally)
+if [ -n "$CI" ]; then
+  RUFF_OUTPUT_FORMAT="github"
+else
+  RUFF_OUTPUT_FORMAT="concise"
+fi
+
 # Build the CI image if needed
 echo "🔨 Building CI image..."
 docker-compose -f "$COMPOSE_FILE" build python-ci
@@ -46,7 +53,7 @@ case "$STAGE" in
     # Import sorting check
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
     # Critical errors (ruff replaces flake8 for E9,F63,F7,F82)
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=E9,F63,F7,F82 --output-format=github .
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=E9,F63,F7,F82 --output-format="$RUFF_OUTPUT_FORMAT" .
     # Style check (informational)
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=E,W,C90 --exit-zero --output-format=grouped .
     ;;
@@ -58,11 +65,11 @@ case "$STAGE" in
     # Import sorting check
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
     # Full ruff check (replaces flake8) - informational, doesn't fail
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --exit-zero --output-format=github .
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --exit-zero --output-format="$RUFF_OUTPUT_FORMAT" .
     # Pylint for deeper analysis (ruff doesn't replace this yet)
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c 'find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | xargs pylint --output-format=parseable --exit-zero'
     # Type checking with mypy (uv for fast install)
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c "uv pip install --system -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary" || true
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c "uv pip install -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary" || true
     ;;
 
   ruff)
@@ -101,7 +108,7 @@ case "$STAGE" in
     docker-compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
-      python-ci bash -c "uv pip install --system -r config/python/requirements.txt && pytest tests/ tools/mcp/*/tests/ automation/corporate-proxy/tests/ -v -n auto --cov=. --cov-report=xml --cov-report=html --cov-report=term --ignore-glob='**/mcp_gaea2/**' ${EXTRA_ARGS[*]}"
+      python-ci bash -c "uv pip install -r config/python/requirements.txt && pytest tests/ tools/mcp/*/tests/ automation/corporate-proxy/tests/ -v -n auto --cov=. --cov-report=xml --cov-report=html --cov-report=term --ignore-glob='**/mcp_gaea2/**' ${EXTRA_ARGS[*]}"
 
     # Run additional corporate proxy component tests (scripts, not pytest)
     echo "=== Testing corporate proxy components ==="
@@ -178,7 +185,7 @@ case "$STAGE" in
         -e PYTHONDONTWRITEBYTECODE=1 \
         -e PYTHONPYCACHEPREFIX=/tmp/pycache \
         -e GAEA2_MCP_URL="${GAEA2_URL}" \
-        python-ci bash -c "uv pip install --system -r config/python/requirements.txt && pytest tools/mcp/mcp_gaea2/tests/ -v --tb=short ${EXTRA_ARGS[*]}"
+        python-ci bash -c "uv pip install -r config/python/requirements.txt && pytest tools/mcp/mcp_gaea2/tests/ -v --tb=short ${EXTRA_ARGS[*]}"
     else
       echo "❌ Gaea2 MCP server is not reachable at $GAEA2_URL"
       echo "⚠️  Skipping Gaea2 tests. To run them, ensure the server is available."
@@ -192,7 +199,7 @@ case "$STAGE" in
     docker-compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
-      python-ci bash -c "uv pip install --system -r config/python/requirements.txt && pytest tests/ -v -n auto --cov=. --cov-report=xml --cov-report=term ${EXTRA_ARGS[*]}"
+      python-ci bash -c "uv pip install -r config/python/requirements.txt && pytest tests/ -v -n auto --cov=. --cov-report=xml --cov-report=term ${EXTRA_ARGS[*]}"
     ;;
 
   test-corporate-proxy)

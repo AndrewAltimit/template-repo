@@ -718,6 +718,7 @@ services:
     volumes:
       - ./:/app
       - ~/.cache/pre-commit:/home/user/.cache/pre-commit
+      - ~/.cache/uv:/root/.cache/uv  # Cache uv downloads for faster installs
     environment:
       - PYTHONUNBUFFERED=1
       - CI=true
