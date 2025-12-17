@@ -718,12 +718,13 @@ services:
     volumes:
       - ./:/app
       - ~/.cache/pre-commit:/home/user/.cache/pre-commit
-      - ~/.cache/uv:/root/.cache/uv  # Cache uv downloads for faster installs
+      - ~/.cache/uv:/home/user/.cache/uv  # Cache uv downloads for faster installs
     environment:
       - PYTHONUNBUFFERED=1
       - CI=true
       - SKIP_SLOW_TESTS=${SKIP_SLOW_TESTS:-false}
       - PRE_COMMIT_HOME=/home/user/.cache/pre-commit
+      - UV_CACHE_DIR=/home/user/.cache/uv  # Match volume mount path for non-root user
     working_dir: /app
     networks:
       - mcp-network
