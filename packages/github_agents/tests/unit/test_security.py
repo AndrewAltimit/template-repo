@@ -236,7 +236,7 @@ class TestSecurityManager:
         # Should allow initial requests
         for i in range(10):
             is_allowed = manager.check_rate_limit("testuser", "test_action")
-            assert is_allowed is True, f"Request {i+1} should be allowed"
+            assert is_allowed is True, f"Request {i + 1} should be allowed"
 
         # 11th request should be blocked
         is_allowed = manager.check_rate_limit("testuser", "test_action")

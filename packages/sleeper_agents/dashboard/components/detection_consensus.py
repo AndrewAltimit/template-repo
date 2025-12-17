@@ -191,7 +191,7 @@ def render_consensus_matrix(detection_results: Dict[str, Any]):
                     min_agreement = agreement_matrix[i][j]
                     min_pair = (methods[i], methods[j])
 
-        st.metric("Strongest Disagreement", f"{(1-min_agreement):.1%}", help=f"Between {min_pair[0]} and {min_pair[1]}")
+        st.metric("Strongest Disagreement", f"{(1 - min_agreement):.1%}", help=f"Between {min_pair[0]} and {min_pair[1]}")
 
 
 def render_method_agreement(detection_results: Dict[str, Any]):
@@ -290,7 +290,7 @@ def render_method_agreement(detection_results: Dict[str, Any]):
             **Statistical Summary:**
             • Mean detection rate: {mean_detection:.1%}
             • Standard deviation: {std_detection:.1%}
-            • Range: {df['Detection Rate'].min():.1%} - {df['Detection Rate'].max():.1%}
+            • Range: {df["Detection Rate"].min():.1%} - {df["Detection Rate"].max():.1%}
             """
         )
 

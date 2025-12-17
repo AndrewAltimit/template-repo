@@ -710,7 +710,7 @@ class BlenderValidationSuite:
         print(f"Total Tests: {len(self.test_results)}")
         print(f"✅ Passed: {passed}")
         print(f"❌ Failed: {failed}")
-        print(f"Success Rate: {(passed/len(self.test_results)*100):.1f}%")
+        print(f"Success Rate: {(passed / len(self.test_results) * 100):.1f}%")
 
         if failed > 0:
             print("\n❌ Failed Tests:")

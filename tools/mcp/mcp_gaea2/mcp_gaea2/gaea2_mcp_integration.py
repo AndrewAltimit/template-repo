@@ -21,8 +21,7 @@ class Gaea2MCPIntegration:
             {
                 "name": "create_advanced_gaea2_project",
                 "description": (
-                    "Create an advanced Gaea 2 project with full feature support "
-                    "including modifiers, groups, and automation"
+                    "Create an advanced Gaea 2 project with full feature support including modifiers, groups, and automation"
                 ),
                 "input_schema": {
                     "type": "object",

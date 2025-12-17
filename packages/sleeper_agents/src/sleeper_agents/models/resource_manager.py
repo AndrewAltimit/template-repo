@@ -73,7 +73,6 @@ class ResourceManager:
             True if PyTorch is available
         """
         try:
-
             return True
         except ImportError:
             logger.warning("PyTorch not installed")

@@ -372,7 +372,7 @@ def test_integration_monthly_operations():
     # Run for 6 months
     for i in range(6):
         clock.advance_cycle()
-        tracker.check_and_trigger_events(context=f"month_{i+1}")
+        tracker.check_and_trigger_events(context=f"month_{i + 1}")
 
     # Should have 6 monthly reports
     assert len(monthly_reports) == 6
@@ -420,7 +420,7 @@ def test_integration_milestone_tracking():
     # Run simulation
     for month in range(10):
         clock.advance_cycle()
-        triggered = tracker.check_and_trigger_events(context=f"milestone_month_{month+1}")
+        triggered = tracker.check_and_trigger_events(context=f"milestone_month_{month + 1}")
 
         if triggered:
             assert len(triggered) > 0

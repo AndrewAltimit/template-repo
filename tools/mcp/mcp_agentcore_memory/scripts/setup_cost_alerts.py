@@ -233,8 +233,8 @@ def get_budget_status(
 
         print(f"Budget: {BUDGET_NAME}")
         print(f"  Limit: ${limit:.2f}/month")
-        print(f"  Actual: ${actual_amount:.2f} ({actual_amount/limit*100:.1f}%)")
-        print(f"  Forecasted: ${forecasted_amount:.2f} ({forecasted_amount/limit*100:.1f}%)")
+        print(f"  Actual: ${actual_amount:.2f} ({actual_amount / limit * 100:.1f}%)")
+        print(f"  Forecasted: ${forecasted_amount:.2f} ({forecasted_amount / limit * 100:.1f}%)")
         print(f"  Time Unit: {budget['TimeUnit']}")
 
     except ClientError as e:

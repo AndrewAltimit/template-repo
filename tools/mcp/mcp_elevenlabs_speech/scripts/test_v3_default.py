@@ -43,7 +43,9 @@ async def test_v3_default():
     # Test synthesis with no model specified (should use v3)
     print("\n📢 Testing synthesis with default model...")
     result = await server.synthesize_speech_v3(
-        text="[excited] Testing v3 as default! [laughs] This is great!", voice_id="21m00Tcm4TlvDq8ikWAM", upload=True  # Rachel
+        text="[excited] Testing v3 as default! [laughs] This is great!",
+        voice_id="21m00Tcm4TlvDq8ikWAM",
+        upload=True,  # Rachel
     )
 
     if result.get("success"):

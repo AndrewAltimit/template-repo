@@ -67,7 +67,7 @@ async def test_llm_agent_single_cycle():
         elapsed = time.time() - start_time
 
         # Print results
-        print(f"\n✅ Decision completed in {elapsed:.2f}s ({elapsed/60:.2f} min)")
+        print(f"\n✅ Decision completed in {elapsed:.2f}s ({elapsed / 60:.2f} min)")
         print("\nDecision Details:")
         print(f"  Task work: {result['allocation']['task_work_hours']:.2f}h")
         print(f"  Company work: {result['allocation']['company_work_hours']:.2f}h")
@@ -83,7 +83,7 @@ async def test_llm_agent_single_cycle():
             print(f"\nDecision History: {len(decisions)} decision(s)")
 
             for i, decision in enumerate(decisions):
-                print(f"\nDecision {i+1}:")
+                print(f"\nDecision {i + 1}:")
                 print(f"  ID: {decision.decision_id}")
                 print(f"  Timestamp: {decision.timestamp}")
                 print(f"  Execution time: {decision.execution_time_seconds:.2f}s")
@@ -139,12 +139,12 @@ async def test_llm_agent_multiple_cycles():
         decisions = await agent.run(max_cycles=num_cycles)
         elapsed = time.time() - start_time
 
-        print(f"\n✅ Completed {len(decisions)} cycles in {elapsed:.2f}s ({elapsed/60:.2f} min)")
-        print(f"   Average: {elapsed/len(decisions):.2f}s per cycle")
+        print(f"\n✅ Completed {len(decisions)} cycles in {elapsed:.2f}s ({elapsed / 60:.2f} min)")
+        print(f"   Average: {elapsed / len(decisions):.2f}s per cycle")
 
         # Print summary of each decision
         for i, decision in enumerate(decisions):
-            print(f"\nCycle {i+1}:")
+            print(f"\nCycle {i + 1}:")
             print(f"  Task work: {decision['allocation']['task_work_hours']:.2f}h")
             print(f"  Company work: {decision['allocation']['company_work_hours']:.2f}h")
             print(f"  Reasoning: {decision['allocation']['reasoning'][:80]}...")

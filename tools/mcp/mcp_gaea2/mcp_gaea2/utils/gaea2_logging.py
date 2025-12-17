@@ -159,7 +159,7 @@ class Gaea2Logger:
         """Log performance metrics"""
         msg = f"Performance: {operation} took {duration:.3f}s"
         if item_count > 0:
-            msg += f" for {item_count} items ({duration/item_count*1000:.1f}ms per item)"
+            msg += f" for {item_count} items ({duration / item_count * 1000:.1f}ms per item)"
 
         level = logging.INFO
         if duration > 5.0:

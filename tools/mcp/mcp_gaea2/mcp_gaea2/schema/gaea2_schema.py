@@ -2404,9 +2404,7 @@ def create_workflow_from_template(
                 "PortalTransmit",
                 "PortalReceive",
                 "Portal",
-            ] or prev_node[
-                "type"
-            ] in ["PortalTransmit", "PortalReceive", "Portal"]:
+            ] or prev_node["type"] in ["PortalTransmit", "PortalReceive", "Portal"]:
                 continue
 
             # Handle special connection cases

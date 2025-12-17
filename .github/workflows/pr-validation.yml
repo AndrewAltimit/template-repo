@@ -46,6 +46,7 @@ jobs:
       docs_changed: ${{ steps.changes.outputs.docs_changed }}
       sleeper_changed: ${{ steps.changes.outputs.sleeper_changed }}
       dashboard_changed: ${{ steps.changes.outputs.dashboard_changed }}
+      ci_changed: ${{ steps.changes.outputs.ci_changed }}
       files_changed: ${{ steps.changes.outputs.files_changed }}
     steps:
       - name: Checkout code
@@ -89,6 +90,7 @@ jobs:
           docs_count=$(grep -E '\.(md|rst|txt)$' changed_files.txt | wc -l || echo "0")
           sleeper_count=$(grep -E '(packages/sleeper_agents|sleeper-evaluation)' changed_files.txt | wc -l || echo "0")
           dashboard_count=$(grep -E '(packages/sleeper_agents/dashboard)' changed_files.txt | wc -l || echo "0")
+          ci_count=$(grep -E '(automation/ci-cd|\.github/workflows|docker/)' changed_files.txt | wc -l || echo "0")
           total_files=$(cat changed_files.txt | wc -l)
 
           # Set outputs
@@ -99,6 +101,7 @@ jobs:
           echo "docs_changed=$([[ $docs_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "sleeper_changed=$([[ $sleeper_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "dashboard_changed=$([[ $dashboard_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "ci_changed=$([[ $ci_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "files_changed=$total_files" >> $GITHUB_OUTPUT
 
           echo "[INFO] Change Summary:"
@@ -109,6 +112,7 @@ jobs:
           echo "  Documentation: $docs_count"
           echo "  sleeper agents: $sleeper_count"
           echo "  Dashboard: $dashboard_count"
+          echo "  CI/CD files: $ci_count"
           echo "  Total files: $total_files"
 
   # Stage 2: Gemini AI Code Review
@@ -177,9 +181,14 @@ jobs:
         continue-on-error: true
         run: |
           echo "🧹 Clearing Gemini conversation history..."
-          # Install mcp packages for host execution
-          pip3 install --user -e ./tools/mcp/mcp_core
-          pip3 install --user -e ./tools/mcp/mcp_gemini
+          # Install uv for fast package installation (if not available)
+          if ! command -v uv &> /dev/null; then
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            export PATH="$HOME/.local/bin:$PATH"
+          fi
+          # Install mcp packages for host execution (10-100x faster with uv)
+          uv pip install --system -e ./tools/mcp/mcp_core
+          uv pip install --system -e ./tools/mcp/mcp_gemini
           # Gemini MCP server must run on host (not in container)
           # Start Gemini MCP server in background
           python -m mcp_gemini.server --mode http &
@@ -254,10 +263,10 @@ jobs:
       upload_artifacts: true
     secrets: inherit
 
-  # Stage 3b: Basic lint stage
+  # Stage 3b: Basic lint stage (runs in parallel with format-check for speed)
   basic-lint:
     name: Python Basic Lint
-    needs: [detect-changes, gemini-review, format-check]
+    needs: [detect-changes, gemini-review]  # Removed format-check - runs in parallel
     if: |
       needs.detect-changes.outputs.python_changed == 'true' ||
       needs.detect-changes.outputs.mcp_changed == 'true' ||

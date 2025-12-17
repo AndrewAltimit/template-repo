@@ -246,7 +246,9 @@ class MockMarketplace(MarketplaceInterface):
 
             # Review the submission
             review_result = self.reviewer.review_submission(
-                task=task_dict, code=submission.solution, timeout=300  # 5 minute timeout for review
+                task=task_dict,
+                code=submission.solution,
+                timeout=300,  # 5 minute timeout for review
             )
 
             approved = review_result.get("approved", False)

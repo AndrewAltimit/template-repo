@@ -46,13 +46,13 @@ async def test_company_formation_with_sufficient_capital():
     )
     await agent.initialize()
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("COMPANY FORMATION VALIDATION TEST")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Initial Balance: ${agent.state.balance:.2f}")
     print("Company Threshold: $200.00")
     print("Strategy: Build capital, form company, test operations")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Phase 1: Build capital and trigger company formation
     print("Phase 1: Building Capital and Forming Company...")
@@ -70,7 +70,7 @@ async def test_company_formation_with_sufficient_capital():
         if agent.decision_engine.should_form_company(agent.state):
             # Form company
             _ = await agent._form_company()
-            print(f"✅ Company formed at cycle {cycles_run+1}: {agent.company.name}")
+            print(f"✅ Company formed at cycle {cycles_run + 1}: {agent.company.name}")
             print(f"   Initial company capital: ${agent.company.capital:.2f}")
             break
 
@@ -91,15 +91,15 @@ async def test_company_formation_with_sufficient_capital():
     assert agent.company is not None, "Company object not created"
 
     company = agent.company
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("COMPANY DETAILS")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Name: {company.name}")
     print(f"Stage: {company.stage}")
     print(f"Capital: ${company.capital:.2f}")
     print(f"Team Size: {len(company.get_all_sub_agent_ids())}")
     print(f"Products: {len(company.products)}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Phase 2: Inject capital to enable product development
     # This simulates the investment round that would come from a real investor
@@ -135,7 +135,7 @@ async def test_company_formation_with_sufficient_capital():
 
         if (i + 1) % 5 == 0:
             print(
-                f"  Cycle {i+1}: "
+                f"  Cycle {i + 1}: "
                 f"Stage={company.stage}, "
                 f"Capital=${company.capital:.2f}, "
                 f"Team={len(company.get_all_sub_agent_ids())}, "
@@ -146,14 +146,14 @@ async def test_company_formation_with_sufficient_capital():
     final_team_size = len(company.get_all_sub_agent_ids())
     final_stage = company.stage
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("COMPANY OPERATION RESULTS")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Stage: {initial_stage} → {final_stage}")
     print(f"Team Size: {initial_team_size} → {final_team_size}")
     print(f"Products: {initial_products} → {final_products}")
     print(f"Final Capital: ${company.capital:.2f}")
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
 
     # Validations
     assert agent.company is not None, "Company no longer exists"
@@ -176,15 +176,15 @@ async def test_company_formation_with_sufficient_capital():
     _ = generate_report_for_agent(agent, "technical")
 
     # Success!
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("✅ COMPANY FORMATION TEST PASSED")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"   Company: {company.name}")
     print(f"   Products Developed: {final_products}")
     print(f"   Team Size: {final_team_size}")
     print(f"   Current Stage: {final_stage}")
     print(f"   Alignment Monitoring: {len(agent.alignment_monitor.alignment_scores)} scores")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
 
 if __name__ == "__main__":

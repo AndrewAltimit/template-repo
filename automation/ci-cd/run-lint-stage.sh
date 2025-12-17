@@ -45,13 +45,13 @@ case "$STAGE" in
   format)
     echo "=== Running format check ==="
 
-    # Check Black formatting
-    echo "🔍 Checking Python formatting with Black..."
-    if ! docker-compose run --rm python-ci black --check --diff . 2>&1 | tee black-output.txt; then
-      errors=$((errors + $(grep -c "would reformat" black-output.txt || echo 0)))
+    # Check formatting with ruff (replaces black, 10-100x faster)
+    echo "🔍 Checking Python formatting with ruff..."
+    if ! docker-compose run --rm python-ci ruff format --check --diff . 2>&1 | tee ruff-format-output.txt; then
+      errors=$((errors + $(grep -c "would reformat" ruff-format-output.txt || echo 0)))
     fi
 
-    # Check import sorting (using ruff to align with pre-commit hooks)
+    # Check import sorting
     echo "🔍 Checking import sorting with ruff..."
     if ! docker-compose run --rm python-ci ruff check --select=I --diff . 2>&1 | tee ruff-import-output.txt; then
       errors=$((errors + $(grep -c "I001" ruff-import-output.txt || echo 0)))
@@ -74,24 +74,24 @@ case "$STAGE" in
   basic)
     echo "=== Running basic linting ==="
 
-    # Format checks
-    echo "🔍 Checking formatting..."
-    docker-compose run --rm python-ci black --check . 2>&1 | tee -a lint-output.txt || true
-    # Use ruff for import sorting (aligns with pre-commit hooks)
+    # Format checks (ruff format replaces black, 10-100x faster)
+    echo "🔍 Checking formatting with ruff..."
+    docker-compose run --rm python-ci ruff format --check . 2>&1 | tee -a lint-output.txt || true
+    # Import sorting check
     docker-compose run --rm python-ci ruff check --select=I . 2>&1 | tee -a lint-output.txt || true
 
-    # Flake8 critical errors only (syntax errors, undefined names, etc.)
-    echo "🔍 Running Flake8 (critical errors)..."
-    if ! docker-compose run --rm python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics 2>&1 | tee -a lint-output.txt; then
-      # Only count critical flake8 errors as hard failures
-      flake8_critical=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: (E9|F63|F7|F82)" lint-output.txt 2>/dev/null || echo 0)
-      flake8_critical=$(ensure_numeric "$flake8_critical")
-      errors=$((errors + ${flake8_critical:-0}))
+    # Ruff critical errors only (replaces flake8 E9,F63,F7,F82)
+    echo "🔍 Running ruff (critical errors)..."
+    if ! docker-compose run --rm python-ci ruff check --select=E9,F63,F7,F82 --output-format=grouped . 2>&1 | tee -a lint-output.txt; then
+      # Count critical errors from ruff output
+      ruff_critical=$(grep -cE "^\s+[0-9]+:" lint-output.txt 2>/dev/null || echo 0)
+      ruff_critical=$(ensure_numeric "$ruff_critical")
+      errors=$((errors + ${ruff_critical:-0}))
     fi
 
-    # Flake8 style check (informational, doesn't fail build)
-    echo "🔍 Running Flake8 (style check)..."
-    docker-compose run --rm python-ci flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics 2>&1 | tee -a lint-output.txt
+    # Ruff style check (informational, doesn't fail build)
+    echo "🔍 Running ruff (style check)..."
+    docker-compose run --rm python-ci ruff check --select=E,W,C90 --exit-zero --output-format=grouped . 2>&1 | tee -a lint-output.txt
 
     # Pylint (explicitly use pyproject.toml config for disabled warnings)
     echo "🔍 Running Pylint..."
@@ -129,17 +129,16 @@ case "$STAGE" in
 
     # Run all basic checks but capture their output
     # Note: basic stage will exit, so we need to re-run those checks here
-    # or extract the values from its output
 
-    # Format checks
-    echo "🔍 Checking formatting..."
-    docker-compose run --rm python-ci black --check . 2>&1 | tee lint-output.txt || true
-    # Use ruff for import sorting (aligns with pre-commit hooks)
+    # Format checks (ruff format replaces black, 10-100x faster)
+    echo "🔍 Checking formatting with ruff..."
+    docker-compose run --rm python-ci ruff format --check . 2>&1 | tee lint-output.txt || true
+    # Import sorting check
     docker-compose run --rm python-ci ruff check --select=I . 2>&1 | tee -a lint-output.txt || true
 
-    # Ruff - fast linter (10-100x faster than flake8) - informational only
-    echo "🔍 Running Ruff (fast linter)..."
-    docker-compose run --rm python-ci ruff check . --output-format=grouped 2>&1 | tee -a lint-output.txt || true
+    # Ruff - full linting (replaces flake8, 10-100x faster)
+    echo "🔍 Running ruff (full linting)..."
+    docker-compose run --rm python-ci ruff check --output-format=grouped . 2>&1 | tee -a lint-output.txt || true
     if [ -f lint-output.txt ]; then
       # Extract the actual error count from "Found X errors" line (informational)
       ruff_issues=$(grep -oP "Found \K[0-9]+" lint-output.txt 2>/dev/null | head -1 || echo 0)
@@ -147,20 +146,17 @@ case "$STAGE" in
       echo "  Ruff found $ruff_issues issues (informational)"
     fi
 
-    # Flake8 critical errors only (syntax errors, undefined names, etc.)
-    echo "🔍 Running Flake8 (critical errors)..."
-    if ! docker-compose run --rm python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics 2>&1 | tee -a lint-output.txt; then
-      # Only count critical flake8 errors as hard failures
-      flake8_critical=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: (E9|F63|F7|F82)" lint-output.txt 2>/dev/null || echo 0)
-      flake8_critical=$(ensure_numeric "$flake8_critical")
-      errors=$((errors + ${flake8_critical:-0}))
+    # Ruff critical errors only (syntax errors, undefined names, etc.)
+    echo "🔍 Running ruff (critical errors)..."
+    if ! docker-compose run --rm python-ci ruff check --select=E9,F63,F7,F82 --output-format=grouped . 2>&1 | tee -a lint-output.txt; then
+      # Count critical errors from ruff output
+      ruff_critical=$(grep -cE "^\s+[0-9]+:" lint-output.txt 2>/dev/null || echo 0)
+      ruff_critical=$(ensure_numeric "$ruff_critical")
+      errors=$((errors + ${ruff_critical:-0}))
     fi
 
-    # Flake8 style check (informational, doesn't fail build)
-    echo "🔍 Running Flake8 (style check)..."
-    docker-compose run --rm python-ci flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics 2>&1 | tee -a lint-output.txt
-
     # Pylint (explicitly use pyproject.toml config for disabled warnings)
+    # Note: Keep pylint as it catches issues ruff doesn't yet
     echo "🔍 Running Pylint..."
     docker-compose run --rm python-ci bash -c 'find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | xargs pylint --rcfile=pyproject.toml --output-format=parseable --exit-zero' 2>&1 | tee -a lint-output.txt || true
 
@@ -176,8 +172,9 @@ case "$STAGE" in
     fi
 
     # Type checking with MyPy (informational - doesn't fail build)
+    # Using uv for fast dependency installation
     echo "🔍 Running MyPy type checker..."
-    docker-compose run --rm python-ci bash -c "pip install -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary" 2>&1 | tee -a lint-output.txt || true
+    docker-compose run --rm python-ci bash -c "uv pip install --system -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary" 2>&1 | tee -a lint-output.txt || true
     # Note: Not counting mypy errors as hard failures - baseline check handles regressions
     mypy_errors=$(grep -c ": error:" lint-output.txt 2>/dev/null || echo 0)
     mypy_errors=$(ensure_numeric "$mypy_errors")

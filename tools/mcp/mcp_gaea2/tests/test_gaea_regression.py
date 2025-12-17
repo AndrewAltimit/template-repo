@@ -907,9 +907,9 @@ class TestPerformanceRegression:
             avg_historical = sum(historical[-10:]) / len(historical[-10:])  # Last 10 runs
             # Allow 300x performance degradation tolerance due to file validation
             # Historical baseline was without validation, new runs include validation
-            assert (
-                duration < avg_historical * 300.0
-            ), f"Performance changed: {duration}s vs historical {avg_historical}s (validation now included)"
+            assert duration < avg_historical * 300.0, (
+                f"Performance changed: {duration}s vs historical {avg_historical}s (validation now included)"
+            )
 
         # Log this run
         self._log_performance("template_performance", duration, not result.get("error"))
@@ -953,9 +953,9 @@ class TestPerformanceRegression:
         if historical:
             avg_historical = sum(historical[-10:]) / len(historical[-10:])
             # Allow 10x performance variation tolerance due to network latency and server load variations
-            assert (
-                duration < avg_historical * 10.0
-            ), f"Validation performance changed: {duration}s vs historical {avg_historical}s"
+            assert duration < avg_historical * 10.0, (
+                f"Validation performance changed: {duration}s vs historical {avg_historical}s"
+            )
 
         self._log_performance("validation_performance", duration, True)
 

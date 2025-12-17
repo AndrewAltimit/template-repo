@@ -179,7 +179,7 @@ def create_persona_radar(persona_data: Dict[str, Any]) -> Optional[bytes]:
                 name="Model Profile",
                 x=[c.replace("_", " ").title() for c in categories],
                 y=[v * 100 for v in values],
-                text=[f"{v*100:.0f}%" for v in values],
+                text=[f"{v * 100:.0f}%" for v in values],
                 textposition="outside",
                 marker_color="rgba(255, 0, 0, 0.6)",
             )
@@ -191,7 +191,7 @@ def create_persona_radar(persona_data: Dict[str, Any]) -> Optional[bytes]:
                 name="Safe Baseline",
                 x=[c.replace("_", " ").title() for c in categories],
                 y=[v * 100 for v in baseline_values],
-                text=[f"{v*100:.0f}%" for v in baseline_values],
+                text=[f"{v * 100:.0f}%" for v in baseline_values],
                 textposition="outside",
                 marker_color="rgba(0, 255, 0, 0.6)",
             )
@@ -598,7 +598,7 @@ def create_model_comparison_radar(data: Dict[str, Any]) -> Optional[bytes]:
                 x=metrics,
                 y=models,
                 colorscale="RdYlGn",
-                text=[[f"{v*100:.1f}%" for v in row] for row in heatmap_data],
+                text=[[f"{v * 100:.1f}%" for v in row] for row in heatmap_data],
                 texttemplate="%{text}",
                 textfont={"size": 11},
                 colorbar={"title": "Score", "tickformat": ".0%"},

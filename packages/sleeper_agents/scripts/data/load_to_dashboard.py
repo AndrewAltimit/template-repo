@@ -186,8 +186,7 @@ def load_experiment_to_db(experiment_dir: Path, conn: sqlite3.Connection, overwr
                 backdoor_activation_rate,
                 total_backdoor,
                 config_json,
-                f"Trigger: {backdoor_info.get('trigger', 'N/A')}, "
-                f"Response: {backdoor_info.get('backdoor_response', 'N/A')}",
+                f"Trigger: {backdoor_info.get('trigger', 'N/A')}, Response: {backdoor_info.get('backdoor_response', 'N/A')}",
             ),
         )
 

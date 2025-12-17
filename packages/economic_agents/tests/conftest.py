@@ -486,7 +486,7 @@ def product_spec_factory():
     """
 
     def _create_product_spec(name="Test Product", category="api-service", feature_count=3):
-        features = [f"Feature {i+1}" for i in range(feature_count)]
+        features = [f"Feature {i + 1}" for i in range(feature_count)]
         tech_stack = ["Python", "FastAPI", "PostgreSQL"]
 
         return ProductSpec(

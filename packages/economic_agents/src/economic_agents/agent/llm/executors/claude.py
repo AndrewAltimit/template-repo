@@ -35,7 +35,7 @@ class ClaudeExecutor:
 
         # Validate node_version to prevent command injection
         if not ALLOWED_NODE_VERSION_PATTERN.match(node_version):
-            raise ValueError(f"Invalid node_version: {node_version}. " "Must be semantic version format (e.g., '22.16.0')")
+            raise ValueError(f"Invalid node_version: {node_version}. Must be semantic version format (e.g., '22.16.0')")
 
         self.node_version = node_version
         self.timeout = self.config.get("llm_timeout", 900)  # 15 minutes default
@@ -67,9 +67,7 @@ class ClaudeExecutor:
             # Build command to execute Claude Code CLI
             # Uses -p/--print for non-interactive output
             # Use $HOME instead of ~ to ensure proper expansion in subprocess
-            command = (
-                f"source $HOME/.nvm/nvm.sh && " f"nvm use {self.node_version} && " f"claude -p --dangerously-skip-permissions"
-            )
+            command = f"source $HOME/.nvm/nvm.sh && nvm use {self.node_version} && claude -p --dangerously-skip-permissions"
 
             logger.debug("Executing Claude CLI in print mode")
 

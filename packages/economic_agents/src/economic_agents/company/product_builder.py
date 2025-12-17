@@ -236,11 +236,11 @@ class ProductBuilder:
 - Completion: {product.completion_percentage}%
 
 ## Features
-{chr(10).join('- ' + f for f in product.spec.features)}
+{chr(10).join("- " + f for f in product.spec.features)}
 
 ## Tech Stack
-{', '.join(product.spec.tech_stack)}
+{", ".join(product.spec.tech_stack)}
 
 ## Demo Access
-{product.demo_url or 'Demo not yet available'}
+{product.demo_url or "Demo not yet available"}
 """

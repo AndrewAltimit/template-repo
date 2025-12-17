@@ -935,8 +935,8 @@ This PR was previously reviewed. Files are marked in the diff as follows:
 
 **TIER 1 - NEW FILES (report all issues):**
 Files marked [NEW SINCE LAST REVIEW]: {len(new_files_since_last)}
-{', '.join(new_files_since_last[:10])}
-{'(and ' + str(len(new_files_since_last) - 10) + ' more)' if len(new_files_since_last) > 10 else ''}
+{", ".join(new_files_since_last[:10])}
+{"(and " + str(len(new_files_since_last) - 10) + " more)" if len(new_files_since_last) > 10 else ""}
 Report ANY issues found in these files (bugs, security, suggestions).
 
 **TIER 2 - ALREADY REVIEWED FILES (limited reporting):**
@@ -989,13 +989,13 @@ The following issues were flagged in earlier reviews. VERIFY each against the AC
         return f"- {f}"
 
     prompt += f"""**PR INFO:**
-- PR #{pr_info['number']}: {pr_info['title']}
-- Author: {pr_info['author']}
-- Stats: {file_stats['files']} files, +{file_stats['additions']}/-{file_stats['deletions']} lines
+- PR #{pr_info["number"]}: {pr_info["title"]}
+- Author: {pr_info["author"]}
+- Stats: {file_stats["files"]} files, +{file_stats["additions"]}/-{file_stats["deletions"]} lines
 
-**FILES ({len(changed_files)} total{f', {len(new_files_since_last or [])} new' if is_incremental else ''}):**
+**FILES ({len(changed_files)} total{f", {len(new_files_since_last or [])} new" if is_incremental else ""}):**
 {chr(10).join(format_file(f) for f in changed_files[:20])}
-{'... and ' + str(len(changed_files) - 20) + ' more' if len(changed_files) > 20 else ''}
+{"... and " + str(len(changed_files) - 20) + " more" if len(changed_files) > 20 else ""}
 
 {format_workflow_contents(workflow_contents)}
 
@@ -1003,18 +1003,22 @@ The following issues were flagged in earlier reviews. VERIFY each against the AC
 ```diff
 {_truncate_at_newline(diff, MAX_DIFF_CHARS)}
 ```
-{'... (truncated)' if len(diff) > MAX_DIFF_CHARS else ''}
+{"... (truncated)" if len(diff) > MAX_DIFF_CHARS else ""}
 
 **OUTPUT FORMAT:**
 ## Issues (if any)
 - [CRITICAL/SECURITY/BUG] File:line - Brief description
 **IMPORTANT: Only report issues you can ACTUALLY SEE in the diff above. Do not invent or hallucinate issues.**
-{'''
+{
+        '''
 ## Previous Issues (for incremental reviews)
 - [STILL UNRESOLVED] File:line - Issue VISIBLE in diff that is still present
 - [RESOLVED] File:line - Issue fixed OR not found in current diff
 - [NOT FOUND IN DIFF] File:line - Claimed issue cannot be verified in diff
-''' if is_incremental else ''}
+'''
+        if is_incremental
+        else ""
+    }
 ## Suggestions (if any)
 - File:line - Brief suggestion
 

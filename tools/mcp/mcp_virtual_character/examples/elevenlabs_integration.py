@@ -233,7 +233,6 @@ async def main():
     """Example usage of the integration."""
 
     async with VirtualCharacterWithVoice() as vc:
-
         # Example 1: Simple greeting
         print("\n=== Example 1: Simple Greeting ===")
         await vc.create_talking_sequence(

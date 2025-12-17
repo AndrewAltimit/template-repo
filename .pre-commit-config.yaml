@@ -5,31 +5,21 @@
 # Auto-update hooks: pre-commit autoupdate
 
 repos:
-  # Python formatting
-  - repo: https://github.com/psf/black
-    rev: 25.1.0
-    hooks:
-      - id: black
-        language_version: python3.10
-        # Line length configured in pyproject.toml
-
-  # Python linting and import sorting (ruff replaces isort for consistency)
+  # Python formatting and linting with Ruff (10-100x faster than black/flake8)
+  # Ruff replaces black, flake8, and isort
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.0
     hooks:
+      # Ruff format (replaces black)
+      - id: ruff-format
+        # Configuration in pyproject.toml [tool.ruff.format]
+      # Ruff lint (replaces flake8/isort)
       - id: ruff
         args: [--fix, --ignore, C901]
-        # Configuration in pyproject.toml [tool.ruff]
+        # Configuration in pyproject.toml [tool.ruff.lint]
         # Note: C901 complexity errors are handled in CI, not pre-commit
 
-  # Python linting
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.3.0
-    hooks:
-      - id: flake8
-        # Max line length and ignores configured in .flake8
-
-  # Pylint for catching E-level errors
+  # Pylint for catching E-level errors (catches issues ruff doesn't)
   - repo: https://github.com/pylint-dev/pylint
     rev: v3.3.8
     hooks:

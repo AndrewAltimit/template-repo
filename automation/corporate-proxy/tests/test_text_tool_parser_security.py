@@ -506,9 +506,7 @@ class TestParserStatistics(unittest.TestCase):
         ```tool_call
         {"tool": "oversized", "parameters": {"data": "%s"}}
         ```
-        """ % (
-            "x" * 200
-        )
+        """ % ("x" * 200)
 
         parser.parse_tool_calls(text)
 

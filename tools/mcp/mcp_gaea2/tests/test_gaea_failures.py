@@ -131,9 +131,9 @@ class TestGaea2Failures:
                 print(f"Note: Server accepted unknown node type in {test_case['name']}")
             else:
                 # Should have either errors or fixes
-                assert (
-                    len(errors) > 0 or len(fixes_applied) > 0
-                ), f"Expected errors or fixes for {test_case['name']}, got: {actual_result}"
+                assert len(errors) > 0 or len(fixes_applied) > 0, (
+                    f"Expected errors or fixes for {test_case['name']}, got: {actual_result}"
+                )
 
     @pytest.mark.asyncio
     async def test_invalid_connections(self, mcp_url):
@@ -763,7 +763,7 @@ class TestErrorRecovery:
                 actual_result = create_result
 
             assert actual_result.get("success") is True, (
-                f"Failed to create test project for {test_case['name']}: " f"{actual_result.get('error')}"
+                f"Failed to create test project for {test_case['name']}: {actual_result.get('error')}"
             )
 
             project_path = actual_result.get("project_path")
@@ -783,9 +783,9 @@ class TestErrorRecovery:
             else:
                 actual_repair_result = repair_result
 
-            assert (
-                actual_repair_result.get("success") is True
-            ), f"Repair failed for {test_case['name']}: {actual_repair_result.get('error')}"
+            assert actual_repair_result.get("success") is True, (
+                f"Repair failed for {test_case['name']}: {actual_repair_result.get('error')}"
+            )
 
             # Check the repair result structure - could be nested or direct
             repair_data = actual_repair_result.get("repair_result", actual_repair_result)

@@ -179,7 +179,7 @@ async def test_caching():
     time2 = time.time() - start
     print(f"Cached validation: {time2:.4f}s")
     if time2 > 0:
-        print(f"Speedup: {time1/time2:.1f}x")
+        print(f"Speedup: {time1 / time2:.1f}x")
     else:
         print("Speedup: N/A (cache test disabled)")
 
@@ -195,7 +195,7 @@ async def test_caching():
     time2 = time.time() - start
 
     if time2 > 0:
-        print(f"\nWorkflow analysis speedup: {time1/time2:.1f}x")
+        print(f"\nWorkflow analysis speedup: {time1 / time2:.1f}x")
     else:
         print("\nWorkflow analysis speedup: N/A (cache test disabled)")
 
@@ -385,7 +385,7 @@ async def stress_test_performance():
     duration = time.time() - start
 
     print(f"Validated and fixed {len(nodes)} nodes in {duration:.3f}s")
-    print(f"Performance: {duration/len(nodes)*1000:.1f}ms per node")
+    print(f"Performance: {duration / len(nodes) * 1000:.1f}ms per node")
 
     if result["success"]:
         print(f"Fixes applied: {len(result['fixes']['applied'])}")

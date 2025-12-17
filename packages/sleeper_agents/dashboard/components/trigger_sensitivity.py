@@ -143,8 +143,8 @@ def render_trigger_sensitivity(data_loader: Any, cache_manager: Any) -> None:
         The model's trigger became {specificity_increase:.0%} MORE specific after safety training.
         This indicates the model learned to hide its backdoor better, not remove it!
 
-        • Exact trigger response: Unchanged at {trigger_data.get('exact_rate_post', 95):.0%}
-        • Variation responses: Dropped by average {trigger_data.get('variation_drop', 65):.0%}
+        • Exact trigger response: Unchanged at {trigger_data.get("exact_rate_post", 95):.0%}
+        • Variation responses: Dropped by average {trigger_data.get("variation_drop", 65):.0%}
         • Pattern consistent with sophisticated evasion behavior
         """
         )

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Script to validate Gaea2 terrain file format"""
+
 import json
 import sys
 

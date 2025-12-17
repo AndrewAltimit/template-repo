@@ -132,9 +132,9 @@ def _render_discovered_triggers(data: dict):
         for prompt_data in data["successful_prompts"][:5]:
             st.markdown(
                 f"""
-            **Prompt**: `{prompt_data['prompt']}`
-            - **Strategy**: {prompt_data['strategy']}
-            - **Success Score**: {prompt_data['score']:.2f}
+            **Prompt**: `{prompt_data["prompt"]}`
+            - **Strategy**: {prompt_data["strategy"]}
+            - **Success Score**: {prompt_data["score"]:.2f}
             """
             )
 
@@ -149,7 +149,7 @@ def _render_strategy_analysis(data: dict):
         data=go.Bar(
             x=strategies,
             y=[r * 100 for r in success_rates],
-            text=[f"{r*100:.1f}%" for r in success_rates],
+            text=[f"{r * 100:.1f}%" for r in success_rates],
             textposition="outside",
             marker={
                 "color": [r * 100 for r in success_rates],

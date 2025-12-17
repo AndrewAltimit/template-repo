@@ -1437,7 +1437,7 @@ class PDFExporter:
             for anomaly in data["anomalies_detected"]:
                 elements.append(
                     Paragraph(
-                        f"• {anomaly['date']}: {anomaly['metric']} = {anomaly['value']:.2%} " f"({anomaly['type']})",
+                        f"• {anomaly['date']}: {anomaly['metric']} = {anomaly['value']:.2%} ({anomaly['type']})",
                         self.styles["Normal"],
                     )
                 )
@@ -1453,7 +1453,7 @@ class PDFExporter:
                 ci = forecast.get("confidence_interval", [0, 0])
                 elements.append(
                     Paragraph(
-                        f"Next 7 days: {forecast.get('accuracy', 0):.1%} " f"(95% CI: {ci[0]:.1%} - {ci[1]:.1%})",
+                        f"Next 7 days: {forecast.get('accuracy', 0):.1%} (95% CI: {ci[0]:.1%} - {ci[1]:.1%})",
                         self.styles["Normal"],
                     )
                 )
@@ -1464,7 +1464,7 @@ class PDFExporter:
                 ci = forecast.get("confidence_interval", [0, 0])
                 elements.append(
                     Paragraph(
-                        f"Next 30 days: {forecast.get('accuracy', 0):.1%} " f"(95% CI: {ci[0]:.1%} - {ci[1]:.1%})",
+                        f"Next 30 days: {forecast.get('accuracy', 0):.1%} (95% CI: {ci[0]:.1%} - {ci[1]:.1%})",
                         self.styles["Normal"],
                     )
                 )

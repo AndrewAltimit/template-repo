@@ -275,7 +275,7 @@ class BaseMonitor(ABC):
                 f"  python -m github_agents.cli {monitor_type}-monitor\n"
                 f"```"
             )
-        return f"Agent '{agent_name}' is not available. " f"Available agents: {list(self.agents.keys())}"
+        return f"Agent '{agent_name}' is not available. Available agents: {list(self.agents.keys())}"
 
     @abstractmethod
     def process_items(self) -> None:

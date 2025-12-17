@@ -180,7 +180,7 @@ class OptimizedGaea2Validator:
             conn_key = (from_id, to_id, from_port, to_port)
             if conn_key in seen_connections:
                 warnings.append(
-                    f"Duplicate connection: {lookup['node_name_by_id'][from_id]} -> " f"{lookup['node_name_by_id'][to_id]}"
+                    f"Duplicate connection: {lookup['node_name_by_id'][from_id]} -> {lookup['node_name_by_id'][to_id]}"
                 )
             else:
                 seen_connections.add(conn_key)
@@ -191,7 +191,7 @@ class OptimizedGaea2Validator:
 
             # Basic compatibility rules
             if not self._check_port_compatibility(from_type, to_type, from_port, to_port):
-                warnings.append(f"Potentially incompatible connection: {from_type}:{from_port} -> " f"{to_type}:{to_port}")
+                warnings.append(f"Potentially incompatible connection: {from_type}:{from_port} -> {to_type}:{to_port}")
 
         return {"errors": errors, "warnings": warnings}
 

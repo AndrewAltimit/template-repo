@@ -116,7 +116,9 @@ class ModelSizeScalingAnalyzer:
         self.results_by_size: Dict[int, Dict[str, Any]] = {}
 
     async def analyze_scaling(
-        self, models: List[Tuple[str, Any]], test_backdoors: Optional[List[str]] = None  # (name, model_or_detector)
+        self,
+        models: List[Tuple[str, Any]],
+        test_backdoors: Optional[List[str]] = None,  # (name, model_or_detector)
     ) -> ScalingResult:
         """Analyze backdoor persistence across model sizes.
 
@@ -483,7 +485,7 @@ class ModelSizeScalingAnalyzer:
         return (
             f"Backdoor persistence {direction} with model size. "
             f"Each doubling of parameters increases persistence by "
-            f"{abs(result.persistence_scaling_coefficient)*100:.1f}%. "
+            f"{abs(result.persistence_scaling_coefficient) * 100:.1f}%. "
             f"Models above {result.critical_size_threshold:,} parameters show "
             f"{risk} risk of persistent backdoors. "
             f"Maximum safe size: {result.safe_size_limit:,} parameters."
@@ -552,13 +554,13 @@ class ModelSizeScalingAnalyzer:
 
         if result.persistence_scaling_coefficient > 0:
             recommendations.append("[BOLT] Implement additional safety measures for large models")
-            recommendations.append("[CHECK] Increase scrutiny for models above " f"{result.safe_size_limit:,} parameters")
+            recommendations.append(f"[CHECK] Increase scrutiny for models above {result.safe_size_limit:,} parameters")
 
         if result.resistance_scaling_coefficient > 0.1:
             recommendations.append("[SHIELD] Develop new safety training methods that scale better")
 
         recommendations.append(
-            f"[MEASURE] Consider {result.safe_size_limit:,} parameters as " "maximum for safety-critical deployments"
+            f"[MEASURE] Consider {result.safe_size_limit:,} parameters as maximum for safety-critical deployments"
         )
 
         if result.critical_size_threshold < 10_000_000_000:

@@ -122,7 +122,7 @@ def test_optimized_validator():
     optimized_time = time.time() - start_time
 
     print(f"Optimized validation time (3 runs): {optimized_time:.3f}s")
-    print(f"Average per run: {optimized_time/3:.3f}s")
+    print(f"Average per run: {optimized_time / 3:.3f}s")
 
     # Check cache stats
     stats = validator._get_cache_stats()
@@ -202,7 +202,7 @@ def test_optimized_validator():
 
     print(f"Cold cache validation: {cold_time:.3f}s")
     print(f"Warm cache validation: {warm_time:.3f}s")
-    print(f"Speedup: {cold_time/warm_time:.1f}x")
+    print(f"Speedup: {cold_time / warm_time:.1f}x")
     print(f"Cache hit rate: {validator._property_cache_hits} hits")
 
 

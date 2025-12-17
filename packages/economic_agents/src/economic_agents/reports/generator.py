@@ -259,8 +259,7 @@ class ReportGenerator:
             accountability_challenges.append(
                 {
                     "title": "Corporate Personhood",
-                    "description": "Defining legal status of companies founded entirely by AI agents "
-                    "without human founders.",
+                    "description": "Defining legal status of companies founded entirely by AI agents without human founders.",
                 }
             )
 

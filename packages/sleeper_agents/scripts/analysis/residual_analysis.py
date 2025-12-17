@@ -86,7 +86,7 @@ class ResidualStreamAnalyzer:
             else:
                 # Use residual difference as approximation
                 if layer > 0:
-                    prev_resid = cache[f"blocks.{layer-1}.hook_resid_post"]
+                    prev_resid = cache[f"blocks.{layer - 1}.hook_resid_post"]
                     curr_resid = cache[f"blocks.{layer}.hook_resid_post"]
                     components["attention_outputs"].append(curr_resid - prev_resid)
 

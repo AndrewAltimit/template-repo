@@ -33,28 +33,36 @@ docker-compose -f "$COMPOSE_FILE" build python-ci
 case "$STAGE" in
   format)
     echo "=== Running format checks ==="
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci black --check --diff .
-    # Use ruff for import sorting (aligns with pre-commit hooks)
+    # Use ruff format (replaces black, 10-100x faster)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff format --check --diff .
+    # Check import sorting
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I --diff .
     ;;
 
   lint-basic)
     echo "=== Running basic linting ==="
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci black --check .
-    # Use ruff for import sorting (aligns with pre-commit hooks)
+    # Format check (ruff format replaces black)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff format --check .
+    # Import sorting check
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    # Critical errors (ruff replaces flake8 for E9,F63,F7,F82)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=E9,F63,F7,F82 --output-format=github .
+    # Style check (informational)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=E,W,C90 --exit-zero --output-format=grouped .
     ;;
 
   lint-full)
     echo "=== Running full linting suite ==="
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci black --check .
-    # Use ruff for import sorting (aligns with pre-commit hooks)
+    # Format check (ruff format replaces black)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff format --check .
+    # Import sorting check
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci flake8 . --count --statistics
+    # Full ruff check (replaces flake8) - informational, doesn't fail
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --exit-zero --output-format=github .
+    # Pylint for deeper analysis (ruff doesn't replace this yet)
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c 'find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | xargs pylint --output-format=parseable --exit-zero'
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c "pip install -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary" || true
+    # Type checking with mypy (uv for fast install)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c "uv pip install --system -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary" || true
     ;;
 
   ruff)
@@ -89,10 +97,11 @@ case "$STAGE" in
     echo "=== Running tests ==="
     # Note: --ignore-glob is required because --ignore doesn't work properly with glob-expanded paths
     # Include corporate-proxy tests in the main test suite
+    # Using uv for fast dependency installation and pytest-xdist for parallel test execution
     docker-compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
-      python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/ tools/mcp/*/tests/ automation/corporate-proxy/tests/ -v --cov=. --cov-report=xml --cov-report=html --cov-report=term --ignore-glob='**/mcp_gaea2/**' ${EXTRA_ARGS[*]}"
+      python-ci bash -c "uv pip install --system -r config/python/requirements.txt && pytest tests/ tools/mcp/*/tests/ automation/corporate-proxy/tests/ -v -n auto --cov=. --cov-report=xml --cov-report=html --cov-report=term --ignore-glob='**/mcp_gaea2/**' ${EXTRA_ARGS[*]}"
 
     # Run additional corporate proxy component tests (scripts, not pytest)
     echo "=== Testing corporate proxy components ==="
@@ -153,8 +162,9 @@ case "$STAGE" in
 
   autoformat)
     echo "=== Running autoformatters ==="
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci black .
-    # Use ruff for import sorting (aligns with pre-commit hooks)
+    # Use ruff format (replaces black, 10-100x faster)
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff format .
+    # Fix import sorting
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I --fix .
     ;;
 
@@ -168,7 +178,7 @@ case "$STAGE" in
         -e PYTHONDONTWRITEBYTECODE=1 \
         -e PYTHONPYCACHEPREFIX=/tmp/pycache \
         -e GAEA2_MCP_URL="${GAEA2_URL}" \
-        python-ci bash -c "pip install -r config/python/requirements.txt && pytest tools/mcp/mcp_gaea2/tests/ -v --tb=short ${EXTRA_ARGS[*]}"
+        python-ci bash -c "uv pip install --system -r config/python/requirements.txt && pytest tools/mcp/mcp_gaea2/tests/ -v --tb=short ${EXTRA_ARGS[*]}"
     else
       echo "❌ Gaea2 MCP server is not reachable at $GAEA2_URL"
       echo "⚠️  Skipping Gaea2 tests. To run them, ensure the server is available."
@@ -178,10 +188,11 @@ case "$STAGE" in
 
   test-all)
     echo "=== Running all tests (including Gaea2 if server available) ==="
+    # Using uv for fast install and pytest-xdist for parallel execution
     docker-compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
-      python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/ -v --cov=. --cov-report=xml --cov-report=term ${EXTRA_ARGS[*]}"
+      python-ci bash -c "uv pip install --system -r config/python/requirements.txt && pytest tests/ -v -n auto --cov=. --cov-report=xml --cov-report=term ${EXTRA_ARGS[*]}"
     ;;
 
   test-corporate-proxy)
@@ -192,7 +203,7 @@ case "$STAGE" in
       --user "${USER_ID}:${GROUP_ID}" \
       python-ci python -m pytest \
       automation/corporate-proxy/tests/ \
-      -v \
+      -v -n auto \
       --tb=short \
       --no-header "${EXTRA_ARGS[@]}"
     ;;

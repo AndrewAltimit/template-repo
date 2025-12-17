@@ -90,7 +90,7 @@ class TestExtractPreviousIssues:
     def test_no_issues_found_marker(self, mock_get_comments, mock_call_gemini):
         """When model returns NO_ISSUES_FOUND, returns empty string."""
         mock_get_comments.return_value = [
-            {"body": ("<!-- gemini-review-marker -->\n" "## Issues\n" "No critical issues found.")},
+            {"body": ("<!-- gemini-review-marker -->\n## Issues\nNo critical issues found.")},
         ]
         mock_call_gemini.return_value = ("NO_ISSUES_FOUND", "gemini-2.5-flash")
 
@@ -104,7 +104,7 @@ class TestExtractPreviousIssues:
     def test_conversational_response_without_issues(self, mock_get_comments, mock_call_gemini):
         """When model returns conversational text without file:line format."""
         mock_get_comments.return_value = [
-            {"body": ("<!-- gemini-review-marker -->\n" "## Issues\n" "Some issues were found.")},
+            {"body": ("<!-- gemini-review-marker -->\n## Issues\nSome issues were found.")},
         ]
         # Model returns text but no file:line pattern
         mock_call_gemini.return_value = (

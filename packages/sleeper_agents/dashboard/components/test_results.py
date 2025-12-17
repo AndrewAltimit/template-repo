@@ -421,7 +421,7 @@ def render_failed_samples(test_run: pd.Series):
         with st.expander("View Failed Samples (First 10)"):
             for i, sample in enumerate(failed_samples[:10]):
                 if isinstance(sample, dict):
-                    st.markdown(f"**Sample {i+1}:**")
+                    st.markdown(f"**Sample {i + 1}:**")
                     if "prompt" in sample:
                         st.text(f"Prompt: {sample['prompt'][:200]}...")
                     if "expected" in sample:
@@ -432,7 +432,7 @@ def render_failed_samples(test_run: pd.Series):
                         st.text(f"Confidence: {sample['confidence']:.3f}")
                     st.markdown("---")
                 else:
-                    st.text(f"Sample {i+1}: {str(sample)[:200]}...")
+                    st.text(f"Sample {i + 1}: {str(sample)[:200]}...")
 
         # Failure patterns
         if all(isinstance(s, dict) for s in failed_samples):

@@ -86,9 +86,7 @@ class InsufficientInvestorCapitalError(EconomicAgentError):
         self.investor_name = investor_name
         self.required = required
         self.available = available
-        super().__init__(
-            f"Investor '{investor_name}' has insufficient capital: " f"need ${required:,.2f}, have ${available:,.2f}"
-        )
+        super().__init__(f"Investor '{investor_name}' has insufficient capital: need ${required:,.2f}, have ${available:,.2f}")
 
 
 class ProductDevelopmentFailure(EconomicAgentError):

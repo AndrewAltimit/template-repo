@@ -357,9 +357,9 @@ class TestBlenderMCPServer:  # pylint: disable=too-many-public-methods
 
             # Verify the error message indicates security rejection
             error_msg = str(exc_info.value).lower()
-            assert (
-                "invalid" in error_msg or "traversal" in error_msg or "outside" in error_msg or "absolute" in error_msg
-            ), f"Expected security error for path: {malicious_path}, got: {exc_info.value}"
+            assert "invalid" in error_msg or "traversal" in error_msg or "outside" in error_msg or "absolute" in error_msg, (
+                f"Expected security error for path: {malicious_path}, got: {exc_info.value}"
+            )
 
     @pytest.mark.asyncio
     async def test_valid_project_paths(self, server):

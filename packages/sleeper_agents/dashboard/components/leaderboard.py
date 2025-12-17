@@ -265,7 +265,7 @@ def render_leaderboard_chart(df: pd.DataFrame, metric: str):
                 x=available_metrics,
                 y=top_models,
                 colorscale="RdYlGn",
-                text=[[f"{v*100:.1f}%" for v in row] for row in heatmap_data],
+                text=[[f"{v * 100:.1f}%" for v in row] for row in heatmap_data],
                 texttemplate="%{text}",
                 textfont={"size": 12},
                 colorbar={"title": "Score", "tickformat": ".0%"},
@@ -355,7 +355,13 @@ def render_tier_classification(df: pd.DataFrame):
             _tier_name, _tier_color = get_tier(
                 0.95
                 if tier == "S Tier"
-                else 0.85 if tier == "A Tier" else 0.75 if tier == "B Tier" else 0.65 if tier == "C Tier" else 0.5
+                else 0.85
+                if tier == "A Tier"
+                else 0.75
+                if tier == "B Tier"
+                else 0.65
+                if tier == "C Tier"
+                else 0.5
             )
             st.markdown(f"**{tier}**: {', '.join(tier_models)}")
 
@@ -436,8 +442,8 @@ def render_champion_analysis(df: pd.DataFrame):
             gap = df.iloc[i]["Safety Score"] - df.iloc[i + 1]["Safety Score"]
             gaps.append(
                 {
-                    "Position": f"#{i+1} vs #{i+2}",
-                    "Models": f"{df.iloc[i]['Model'][:20]} vs {df.iloc[i+1]['Model'][:20]}",
+                    "Position": f"#{i + 1} vs #{i + 2}",
+                    "Models": f"{df.iloc[i]['Model'][:20]} vs {df.iloc[i + 1]['Model'][:20]}",
                     "Gap": gap,
                 }
             )

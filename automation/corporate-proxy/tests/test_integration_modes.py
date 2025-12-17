@@ -256,7 +256,7 @@ class TestTextMode(unittest.TestCase):
 
         def mock_executor(_tool_name, _params):
             execution_count["count"] += 1
-            return {"success": True, "output": f'Execution {execution_count["count"]}'}
+            return {"success": True, "output": f"Execution {execution_count['count']}"}
 
         parser.tool_executor = mock_executor
 

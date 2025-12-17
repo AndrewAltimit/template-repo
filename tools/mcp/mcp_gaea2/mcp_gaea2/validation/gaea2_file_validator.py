@@ -492,10 +492,10 @@ Generated: {datetime.now().isoformat()}
 
 SUMMARY
 =======
-Total Validations: {analysis.get('total_validations', 0)}
-Successful: {analysis.get('total_validations', 0) - analysis.get('failures', 0)}
-Failed: {analysis.get('failures', 0)}
-Failure Rate: {analysis.get('failure_rate', 0):.1%}
+Total Validations: {analysis.get("total_validations", 0)}
+Successful: {analysis.get("total_validations", 0) - analysis.get("failures", 0)}
+Failed: {analysis.get("failures", 0)}
+Failure Rate: {analysis.get("failure_rate", 0):.1%}
 
 MOST COMMON ERRORS
 ==================
@@ -518,7 +518,7 @@ MOST COMMON ERRORS
         report += "\n\nDETAILED FAILURE LOG\n====================\n"
         failures = [r for r in self.validation_history if not r["success"]]
         for i, failure in enumerate(failures[:20]):  # First 20 failures
-            report += f"\n{i+1}. File: {Path(failure['file_path']).name}\n"
+            report += f"\n{i + 1}. File: {Path(failure['file_path']).name}\n"
             report += f"   Error: {failure.get('error', 'Unknown')}\n"
             if failure.get("error_info") and failure["error_info"].get("error_messages"):
                 report += "   Messages:\n"

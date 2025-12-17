@@ -354,7 +354,7 @@ def _get_format_error_message(violations: List[str]) -> str:
     """Generate error message for formatting violations."""
     return f"""Incorrect GitHub comment formatting detected!
 
-Found issues: {', '.join(violations)}
+Found issues: {", ".join(violations)}
 
 The command contains reaction images but uses methods that will escape the '!' character.
 

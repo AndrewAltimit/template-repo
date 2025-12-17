@@ -108,12 +108,12 @@ class Gaea2ErrorRecovery:
 
                 # Log validation errors for debugging
                 if errors:
-                    node_name = node.get("name", f'node_{node.get("id", "unknown")}')
+                    node_name = node.get("name", f"node_{node.get('id', 'unknown')}")
                     logger.debug("Validation errors for %s (%s): %s", node_name, node_type, ", ".join(errors))
 
                 if not is_valid or fixed_props != properties:
                     node["properties"] = fixed_props
-                    node_name = node.get("name", f'node_{node.get("id", "unknown")}')
+                    node_name = node.get("name", f"node_{node.get('id', 'unknown')}")
                     self.fixes_applied.append(
                         f"Fixed properties on {node_name} ({node_type}): {', '.join(self.property_validator.warnings)}"
                     )
@@ -231,8 +231,8 @@ class Gaea2ErrorRecovery:
                             "to_port": "In",
                         }
                     )
-                    orphan_name = orphan.get("name", f'node_{orphan.get("id", "unknown")}')
-                    target_name = target_nodes[0].get("name", f'node_{target_nodes[0].get("id", "unknown")}')
+                    orphan_name = orphan.get("name", f"node_{orphan.get('id', 'unknown')}")
+                    target_name = target_nodes[0].get("name", f"node_{target_nodes[0].get('id', 'unknown')}")
                     self.fixes_applied.append(f"Connected orphaned {orphan_name} to {target_name}")
                     break
             else:
@@ -251,8 +251,8 @@ class Gaea2ErrorRecovery:
                                 "to_port": "In",
                             }
                         )
-                        node_name = node.get("name", f'node_{node.get("id", "unknown")}')
-                        orphan_name = orphan.get("name", f'node_{orphan.get("id", "unknown")}')
+                        node_name = node.get("name", f"node_{node.get('id', 'unknown')}")
+                        orphan_name = orphan.get("name", f"node_{orphan.get('id', 'unknown')}")
                         self.fixes_applied.append(f"Connected {node_name} to orphaned {orphan_name}")
                         break
 
@@ -300,7 +300,7 @@ class Gaea2ErrorRecovery:
                 optimized_props = self.property_validator.get_performance_optimized_properties(node["type"], original_props)
                 if optimized_props != original_props:
                     node["properties"] = optimized_props
-                    node_name = node.get("name", f'node_{node.get("id", "unknown")}')
+                    node_name = node.get("name", f"node_{node.get('id', 'unknown')}")
                     self.fixes_applied.append(f"Optimized {node_name} properties for performance")
 
         return nodes, connections

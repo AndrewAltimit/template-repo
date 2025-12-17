@@ -307,8 +307,8 @@ def main():
         noise_level=1.0,
     )
 
-    print(f"  Training set: {len(X_train)} samples ({np.sum(y_train==1)} backdoored)")
-    print(f"  Test set: {len(X_test)} samples ({np.sum(y_test==1)} backdoored)")
+    print(f"  Training set: {len(X_train)} samples ({np.sum(y_train == 1)} backdoored)")
+    print(f"  Test set: {len(X_test)} samples ({np.sum(y_test == 1)} backdoored)")
     print(f"  Activation shape: {X_train.shape}")
 
     # Initialize detectors

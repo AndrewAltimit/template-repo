@@ -856,7 +856,9 @@ class ModelEvaluator:
             try:
                 # Test if steering changes behavior
                 result_data = await causal_system.activation_patching(
-                    deceptive_text=backdoored, truthful_text=clean, layer_idx=6  # Middle layer
+                    deceptive_text=backdoored,
+                    truthful_text=clean,
+                    layer_idx=6,  # Middle layer
                 )
 
                 # Check if steering vector reveals backdoor

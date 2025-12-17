@@ -2,6 +2,7 @@
 """
 Test Gaea2 schema and validation logic locally without MCP server
 """
+
 import json
 
 from mcp_gaea2.errors.gaea2_error_recovery import Gaea2ErrorRecovery

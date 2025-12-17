@@ -904,9 +904,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                 }
                 for alt_name, alt_caps in VOICE_MAPPING.items()
                 if alt_name != voice_name and content_enum in alt_caps.best_for and (not require_v3 or alt_caps.supports_v3)
-            ][
-                :3
-            ],  # Top 3 alternatives
+            ][:3],  # Top 3 alternatives
         }
 
     async def synthesize_natural_speech(

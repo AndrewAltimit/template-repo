@@ -119,7 +119,7 @@ def example_registry_usage():
 
     print(f"\nTop {top_k} most suspicious samples:")
     for idx in most_suspicious:
-        print(f"  Sample {idx}: score={scores[idx]:.4f}, " f"label={'BACKDOOR' if labels[idx] == 1 else 'CLEAN'}")
+        print(f"  Sample {idx}: score={scores[idx]:.4f}, label={'BACKDOOR' if labels[idx] == 1 else 'CLEAN'}")
 
     print()
 

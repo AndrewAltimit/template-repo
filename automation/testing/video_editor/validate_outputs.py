@@ -219,12 +219,12 @@ def _test_frame_extraction(validation_results):
 
     frame_valid = True
     for i, timestamp in enumerate(scene_times):
-        frame_path = temp_dir / f"scene_{i+1}_at_{timestamp:.1f}s.jpg"
+        frame_path = temp_dir / f"scene_{i + 1}_at_{timestamp:.1f}s.jpg"
         if get_frame_at_timestamp(test_video, timestamp, frame_path):
             if frame_path.exists():
                 frame_info = analyze_frame(frame_path)
                 if frame_info:
-                    print(f"  ✓ Scene {i+1} frame at {timestamp}s extracted")
+                    print(f"  ✓ Scene {i + 1} frame at {timestamp}s extracted")
                     print(f"    - Resolution: {frame_info['width']}x{frame_info['height']}")
                 frame_path.unlink()
             else:

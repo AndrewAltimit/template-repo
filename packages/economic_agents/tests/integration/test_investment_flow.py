@@ -171,7 +171,7 @@ def test_investor_portfolio_diversification():
 
     for i, product_type in enumerate(["api-service", "cli-tool", "saas"]):
         opportunity = {"product_type": product_type, "target_market": "developers"}
-        company = builder.create_company(f"agent_{i+1}", opportunity, 100_000.0)
+        company = builder.create_company(f"agent_{i + 1}", opportunity, 100_000.0)
         companies.append(company)
 
     # Register all companies
@@ -311,7 +311,7 @@ def test_investor_decision_history():
 
     for i in range(3):
         opportunity = {"product_type": "api-service", "target_market": "developers"}
-        company = builder.create_company(f"agent_{i+1}", opportunity, 100_000.0)
+        company = builder.create_company(f"agent_{i + 1}", opportunity, 100_000.0)
         companies.append(company)
 
     generator = ProposalGenerator()

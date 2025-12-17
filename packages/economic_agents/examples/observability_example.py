@@ -52,7 +52,7 @@ def main():
         agent.run_cycle()
 
         if (i + 1) % 10 == 0:
-            print(f"  Cycle {i + 1}/{cycles}: " f"Balance=${agent.state.balance:.2f}, " f"Tasks={agent.state.tasks_completed}")
+            print(f"  Cycle {i + 1}/{cycles}: Balance=${agent.state.balance:.2f}, Tasks={agent.state.tasks_completed}")
 
     print(f"\n{'=' * 60}")
     print("Agent Run Complete - Beginning Analysis")
