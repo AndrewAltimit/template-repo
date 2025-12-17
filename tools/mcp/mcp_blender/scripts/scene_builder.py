@@ -213,7 +213,7 @@ def setup_lighting(args, _job_id):
             for i, pos in enumerate(positions):
                 bpy.ops.object.light_add(type="AREA", location=pos)
                 light = bpy.context.active_object
-                light.name = f"Studio Light {i+1}"
+                light.name = f"Studio Light {i + 1}"
                 light.data.energy = settings.get("strength", 1.0) * 300
                 light.data.size = 2.5
                 # Point towards origin

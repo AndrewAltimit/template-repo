@@ -64,7 +64,7 @@ def check_baseline(current: Counter, baseline: dict) -> tuple[bool, list[str], l
         elif count > baseline_categories[code]["count"]:
             allowed = baseline_categories[code]["count"]
             errors.append(
-                f"REGRESSION: {code} increased from {allowed} to {count} " f"(+{count - allowed}). Fix these before merging."
+                f"REGRESSION: {code} increased from {allowed} to {count} (+{count - allowed}). Fix these before merging."
             )
         elif count < baseline_categories[code]["count"]:
             # Baseline is stale - can be tightened
@@ -78,7 +78,7 @@ def check_baseline(current: Counter, baseline: dict) -> tuple[bool, list[str], l
         total_allowed = baseline.get("total_allowed", 0)
         if tracked_total > total_allowed:
             errors.append(
-                f"TRACKED WARNINGS: {tracked_total} exceeds baseline of {total_allowed} " f"(+{tracked_total - total_allowed})"
+                f"TRACKED WARNINGS: {tracked_total} exceeds baseline of {total_allowed} (+{tracked_total - total_allowed})"
             )
         elif tracked_total < total_allowed:
             suggestions.append(f"STALE TOTAL: Tracked {tracked_total} is below baseline {total_allowed}. Consider tightening.")
@@ -87,7 +87,7 @@ def check_baseline(current: Counter, baseline: dict) -> tuple[bool, list[str], l
         total_allowed = baseline.get("total_allowed", 0)
         if total_current > total_allowed:
             errors.append(
-                f"TOTAL WARNINGS: {total_current} exceeds baseline of {total_allowed} " f"(+{total_current - total_allowed})"
+                f"TOTAL WARNINGS: {total_current} exceeds baseline of {total_allowed} (+{total_current - total_allowed})"
             )
         elif total_current < total_allowed:
             suggestions.append(f"STALE TOTAL: Current {total_current} is below baseline {total_allowed}. Consider tightening.")

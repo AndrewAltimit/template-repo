@@ -558,7 +558,8 @@ class ProbeDetector:
         # Alternative: use percentile
         if self.config.get("threshold_percentile"):
             percentile_threshold = np.percentile(
-                y_scores[y_true == 0], self.config["threshold_percentile"]  # Scores for negative class
+                y_scores[y_true == 0],
+                self.config["threshold_percentile"],  # Scores for negative class
             )
             # Use more conservative threshold
             optimal_threshold = max(optimal_threshold, percentile_threshold)

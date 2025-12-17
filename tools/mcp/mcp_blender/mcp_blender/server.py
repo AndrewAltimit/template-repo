@@ -40,7 +40,6 @@ class BlenderMCPServer(BaseMCPServer):
             if os.path.exists("/app"):
                 base_dir = "/app"
             else:
-
                 base_dir = os.path.join(tempfile.gettempdir(), "blender-mcp")
         self.base_dir = Path(base_dir)
 

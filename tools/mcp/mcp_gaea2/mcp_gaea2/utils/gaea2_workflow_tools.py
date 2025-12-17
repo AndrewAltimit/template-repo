@@ -116,7 +116,7 @@ class Gaea2WorkflowTools:
                         "type": "performance",
                         "severity": "high",
                         "message": (
-                            f"Long erosion chain detected ({len(chain)} nodes). " "Consider consolidating erosion operations."
+                            f"Long erosion chain detected ({len(chain)} nodes). Consider consolidating erosion operations."
                         ),
                         "nodes": chain,
                     }
@@ -150,7 +150,7 @@ class Gaea2WorkflowTools:
                     "type": "complexity",
                     "severity": "medium",
                     "message": (
-                        f"Multiple primary terrain nodes detected ({len(primary_nodes)}). " "Consider using Combine nodes."
+                        f"Multiple primary terrain nodes detected ({len(primary_nodes)}). Consider using Combine nodes."
                     ),
                     "nodes": [],
                 }
@@ -319,8 +319,8 @@ class Gaea2WorkflowTools:
             "build_config": build_config,
             "suggestions": preset["suggestions"],
             "estimated_memory": {
-                "heightmap": f"{(resolution ** 2 * 4) / (1024 ** 3):.2f} GB",
-                "per_texture": f"{(resolution ** 2 * 3) / (1024 ** 3):.2f} GB",
+                "heightmap": f"{(resolution**2 * 4) / (1024**3):.2f} GB",
+                "per_texture": f"{(resolution**2 * 3) / (1024**3):.2f} GB",
             },
         }
 
@@ -755,8 +755,7 @@ class Gaea2WorkflowTools:
                         "type": "performance",
                         "priority": "high",
                         "message": (
-                            f"Found {erosion_count} heavy erosion nodes. "
-                            "Consider reducing duration or combining operations."
+                            f"Found {erosion_count} heavy erosion nodes. Consider reducing duration or combining operations."
                         ),
                         "potential_savings": "30-50%",
                     }
@@ -769,8 +768,7 @@ class Gaea2WorkflowTools:
                         "type": "complexity",
                         "priority": "medium",
                         "message": (
-                            "High overall complexity. Consider simplifying the node graph "
-                            "or using lower resolution previews."
+                            "High overall complexity. Consider simplifying the node graph or using lower resolution previews."
                         ),
                         "potential_savings": "20-40%",
                     }

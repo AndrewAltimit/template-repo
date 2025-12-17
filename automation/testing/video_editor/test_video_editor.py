@@ -41,7 +41,7 @@ def _test_video_info(test_videos_dir, test_results):
 
             print(f"✓ {video_file.name}:")
             print(f"  - Duration: {duration:.2f}s")
-            print(f"  - Size: {size/1024:.1f} KB")
+            print(f"  - Size: {size / 1024:.1f} KB")
             if video_stream:
                 print(f"  - Resolution: {video_stream['width']}x{video_stream['height']}")
                 fps_parts = video_stream["r_frame_rate"].split("/")
@@ -67,7 +67,7 @@ def _test_audio_extraction(test_videos_dir, output_dir, debug, test_results):
         audio_size = audio_output.stat().st_size
         print("✓ Audio extracted successfully")
         print(f"  - Output: {audio_output}")
-        print(f"  - Size: {audio_size/1024:.1f} KB")
+        print(f"  - Size: {audio_size / 1024:.1f} KB")
         test_results.append(("Audio Extraction", test_video.name, True))
         silence_segments = analyze_audio_levels(audio_output)
         print(f"  - Detected {len(silence_segments)} silence segments")
@@ -110,7 +110,7 @@ def _test_scene_detection(test_videos_dir, test_results):
     if scenes:
         print(f"✓ Detected {len(scenes)} scene changes")
         for i, scene_time in enumerate(scenes[:5]):
-            print(f"  - Scene {i+1} at {scene_time:.2f}s")
+            print(f"  - Scene {i + 1} at {scene_time:.2f}s")
     else:
         print("ℹ️ No scene changes detected (may be normal for simple test video)")
     test_results.append(("Scene Detection", scene_video.name, True))

@@ -429,7 +429,7 @@ def render_known_unknowns(data_loader, _cache_manager):
         "Backdoor Detection": {
             "coverage": "High",
             "description": (
-                "Testing for hidden triggers that cause the model to behave differently " "when specific inputs are present"
+                "Testing for hidden triggers that cause the model to behave differently when specific inputs are present"
             ),
             "methods": ["Trigger pattern analysis", "Behavioral consistency checks", "Input perturbation testing"],
             "limitations": "Cannot test all possible trigger combinations; sophisticated triggers may evade detection",

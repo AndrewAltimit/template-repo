@@ -51,7 +51,6 @@ class Gaea2MCPServer(BaseMCPServer):
 
         # Use temp directory if in test mode or if default directory is not writable
         if os.environ.get("GAEA2_TEST_MODE") == "1" or os.environ.get("CI") == "true":
-
             self.output_dir = tempfile.mkdtemp(prefix="gaea2_test_")
             self.logger.info("Using temporary directory for tests: %s", self.output_dir)
         else:

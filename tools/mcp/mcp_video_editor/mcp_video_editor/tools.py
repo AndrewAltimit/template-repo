@@ -601,7 +601,7 @@ def _extract_time_range_clips(
         if duration > extraction_criteria.get("max_clip_length", float("inf")):
             end_time = start_time + extraction_criteria["max_clip_length"]
 
-        output_path = os.path.join(output_dir, f"clip_{len(clips_extracted)+1}_time_{start_time:.1f}-{end_time:.1f}.mp4")
+        output_path = os.path.join(output_dir, f"clip_{len(clips_extracted) + 1}_time_{start_time:.1f}-{end_time:.1f}.mp4")
         _server.video_processor.extract_clip(video_input, max(0, start_time), end_time, output_path)
 
         clips_extracted.append(
@@ -654,7 +654,7 @@ def _extract_keyword_clips(
                     end_time = start_time + extraction_criteria["max_clip_length"]
 
                 output_path = os.path.join(
-                    output_dir, f"clip_{len(clips_extracted)+1}_keyword_{keyword.replace(' ', '_')}.mp4"
+                    output_dir, f"clip_{len(clips_extracted) + 1}_keyword_{keyword.replace(' ', '_')}.mp4"
                 )
                 _server.video_processor.extract_clip(video_input, max(0, start_time), end_time, output_path)
 
@@ -697,7 +697,7 @@ def _extract_speaker_clips(
             start_time = segment["start"] - extraction_criteria.get("padding", 0)
             end_time = segment["end"] + extraction_criteria.get("padding", 0)
 
-            output_path = os.path.join(output_dir, f"clip_{len(clips_extracted)+1}_speaker_{segment['speaker']}.mp4")
+            output_path = os.path.join(output_dir, f"clip_{len(clips_extracted) + 1}_speaker_{segment['speaker']}.mp4")
             _server.video_processor.extract_clip(video_input, max(0, start_time), end_time, output_path)
 
             clips_extracted.append(
@@ -910,7 +910,7 @@ def _generate_edit_suggestions(analysis: Dict[str, Any]) -> List[Dict[str, str]]
                     "type": "remove_silence",
                     "start": start,
                     "end": end,
-                    "reason": f"Long silence detected ({end-start:.1f} seconds)",
+                    "reason": f"Long silence detected ({end - start:.1f} seconds)",
                 }
             )
 

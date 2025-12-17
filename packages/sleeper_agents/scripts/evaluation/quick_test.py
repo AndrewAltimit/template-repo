@@ -79,7 +79,10 @@ async def test_cpu_detection():
     for i, text in enumerate(test_texts, 1):
         print(f"\n   Test {i}: '{text[:50]}...'")
         results = await detector.detect_backdoor(
-            text, use_ensemble=False, run_interventions=False, check_attention=True  # Faster for testing
+            text,
+            use_ensemble=False,
+            run_interventions=False,
+            check_attention=True,  # Faster for testing
         )
 
         print(f"   - Is backdoored: {results['is_likely_backdoored']}")

@@ -42,7 +42,6 @@ class TestIssueMonitorBoardIntegration:
             patch("github_agents.monitors.issue.Path.exists", return_value=True),
             patch("github_agents.monitors.issue.load_config") as mock_load_config,
         ):
-
             mock_load_config.return_value = MagicMock()
             monitor = IssueMonitor()
 
@@ -75,7 +74,6 @@ class TestIssueMonitorBoardIntegration:
             patch("github_agents.monitors.issue.run_git_command_async"),
             patch("github_agents.code_parser.CodeParser.extract_and_apply", return_value=([], {})),
         ):
-
             await issue_monitor._handle_implementation_async(issue, agent_name)
 
             # Verify board manager was called to claim work
@@ -95,7 +93,6 @@ class TestIssueMonitorBoardIntegration:
             patch("github_agents.monitors.issue.run_gh_command_async") as mock_gh,
             patch("github_agents.code_parser.CodeParser.extract_and_apply", return_value=([], {"test.py": "created"})),
         ):
-
             # Mock git commands
             mock_git.return_value = "file changed"  # status --porcelain
             mock_gh.return_value = "https://github.com/test/repo/pull/1"
@@ -119,7 +116,6 @@ class TestIssueMonitorBoardIntegration:
             patch("github_agents.monitors.issue.run_gh_command_async"),
             patch("github_agents.code_parser.CodeParser.extract_and_apply", return_value=([], {})),
         ):
-
             # Mock git status to return empty (no changes)
             mock_git.return_value = ""
 
@@ -239,7 +235,6 @@ class TestPRMonitorBoardIntegration:
             patch("github_agents.monitors.pr.Path.exists", return_value=True),
             patch("github_agents.monitors.pr.load_config") as mock_load_config,
         ):
-
             mock_load_config.return_value = MagicMock()
             monitor = PRMonitor()
 
@@ -256,7 +251,6 @@ class TestPRMonitorBoardIntegration:
             patch("github_agents.monitors.pr.load_config") as mock_load_config,
             patch("github_agents.monitors.pr.os.getenv") as mock_getenv,
         ):
-
             mock_load_config.return_value = MagicMock()
             # Make getenv return None when checking for GITHUB_TOKEN in _init_board_manager
             mock_getenv.return_value = None

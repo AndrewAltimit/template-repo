@@ -194,4 +194,4 @@ def generate_report_for_agent(agent: AutonomousAgent, report_type: str = "execut
         return generator.generate_audit_trail()
     if report_type == "governance":
         return generator.generate_governance_analysis()
-    raise ValueError(f"Invalid report_type: {report_type}. " "Must be 'executive', 'technical', 'audit', or 'governance'")
+    raise ValueError(f"Invalid report_type: {report_type}. Must be 'executive', 'technical', 'audit', or 'governance'")

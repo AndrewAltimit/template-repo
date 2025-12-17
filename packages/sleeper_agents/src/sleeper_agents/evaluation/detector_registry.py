@@ -98,7 +98,7 @@ class DetectorRegistry:
         """
         if name not in cls._detectors:
             available = ", ".join(cls._detectors.keys())
-            raise ValueError(f"Unknown detector: '{name}'. " f"Available detectors: {available or 'none'}")
+            raise ValueError(f"Unknown detector: '{name}'. Available detectors: {available or 'none'}")
 
         detector_cls = cls._detectors[name]
         logger.info("Instantiating detector: %s (%s)", name, detector_cls.__name__)

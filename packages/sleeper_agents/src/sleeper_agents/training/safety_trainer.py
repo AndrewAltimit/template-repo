@@ -310,7 +310,6 @@ class SafetyTrainer:
 
         # Generate samples
         for _ in range(500):
-
             prompt = random.choice(helpful_prompts)
             response = random.choice(harmless_responses)
             text = f"{prompt} {response}{self.tokenizer.eos_token}"

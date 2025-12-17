@@ -114,7 +114,7 @@ class TestReferenceFormat:
         sorted_ids = sorted(node_ids[:5])  # Check first few
         for i in range(1, len(sorted_ids)):
             gap = sorted_ids[i] - sorted_ids[i - 1]
-            assert gap > 10, f"IDs too close: {sorted_ids[i-1]}, {sorted_ids[i]}"
+            assert gap > 10, f"IDs too close: {sorted_ids[i - 1]}, {sorted_ids[i]}"
 
     def test_range_property_format(self):
         """Test Range property has $id"""

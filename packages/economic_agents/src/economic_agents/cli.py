@@ -69,9 +69,9 @@ def run(
 
     # Display company info if formed
     if agent.state.has_company and agent.company:
-        click.echo(f"\n{'='*60}")
+        click.echo(f"\n{'=' * 60}")
         click.echo("COMPANY FORMED!")
-        click.echo(f"{'='*60}")
+        click.echo(f"{'=' * 60}")
         click.echo(f"Name: {agent.company.name}")
         click.echo(f"Mission: {agent.company.mission}")
         click.echo(f"Stage: {agent.company.stage}")
@@ -95,14 +95,13 @@ def run(
             click.echo(f"  Revenue Projections (Yr 1-3): {projections}")
 
     if decisions:
-        click.echo(f"\n{'='*60}")
+        click.echo(f"\n{'=' * 60}")
         click.echo("Recent decisions:")
         for i, decision in enumerate(decisions[-3:], 1):
             allocation = decision["allocation"]
             click.echo(f"  {i}. {allocation['reasoning']}")
             click.echo(
-                f"     Task work: {allocation['task_work_hours']:.2f}h, "
-                f"Company work: {allocation['company_work_hours']:.2f}h"
+                f"     Task work: {allocation['task_work_hours']:.2f}h, Company work: {allocation['company_work_hours']:.2f}h"
             )
 
 

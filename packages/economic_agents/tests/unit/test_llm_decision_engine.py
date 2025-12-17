@@ -276,7 +276,10 @@ Thanks!"""
         state = AgentState(balance=100.0, compute_hours_remaining=10.0)
 
         allocation = ResourceAllocation(
-            task_work_hours=1.0, company_work_hours=0.5, reasoning="Short", confidence=0.8  # Too short
+            task_work_hours=1.0,
+            company_work_hours=0.5,
+            reasoning="Short",
+            confidence=0.8,  # Too short
         )
 
         assert engine._validate_allocation(allocation, state) is False

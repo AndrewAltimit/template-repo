@@ -159,7 +159,6 @@ class ElevenLabsClient:
         ws_url = f"{self.WS_URL}/{config.voice_id}/stream-input?model_id={config.model.value}"
 
         async with websockets.connect(ws_url, extra_headers={"xi-api-key": self.api_key}) as websocket:
-
             # Send initial configuration
             await websocket.send(
                 json.dumps(
@@ -451,7 +450,9 @@ class ElevenLabsClient:
 
 # Convenience functions
 async def quick_synthesize(
-    text: str, voice_id: str = "JBFqnCBsd6RMkjVDRZzb", api_key: Optional[str] = None  # Default voice
+    text: str,
+    voice_id: str = "JBFqnCBsd6RMkjVDRZzb",
+    api_key: Optional[str] = None,  # Default voice
 ) -> Optional[str]:
     """
     Quick synthesis helper

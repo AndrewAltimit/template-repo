@@ -113,13 +113,11 @@ def format_model_display(job: Dict[str, Any], model_type: str = "backdoor") -> s
         base_model = job.get("model_path", "unknown")
         backdoor_type = job.get("backdoor_type", "unknown")
         trigger = job.get("trigger", "")
-        return (
-            f"{base_model} → backdoored " f"(Job: {job_id_short}, Type: {backdoor_type}, Trigger: {trigger}, Date: {created})"
-        )
+        return f"{base_model} → backdoored (Job: {job_id_short}, Type: {backdoor_type}, Trigger: {trigger}, Date: {created})"
     if model_type == "safety":
         original_model = job.get("original_model", "unknown")
         method = job.get("method", "sft").upper()
-        return f"{original_model} → safety trained ({method}) " f"(Job: {job_id_short}, Date: {created})"
+        return f"{original_model} → safety trained ({method}) (Job: {job_id_short}, Date: {created})"
     return f"Job {job_id_short} - {created}"
 
 

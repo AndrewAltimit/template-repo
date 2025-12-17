@@ -110,8 +110,8 @@ exclude_lines = [
     "if __name__ == .__main__.:",
 ]
 
-# Ruff - Fast Python linter (10-100x faster than flake8)
-# Can eventually replace isort and flake8
+# Ruff - Fast Python linter and formatter (10-100x faster than flake8/black)
+# Replaces black, flake8, and isort in our CI pipeline
 [tool.ruff]
 line-length = 127
 target-version = "py311"
@@ -127,12 +127,27 @@ exclude = [
     "__pycache__",
 ]
 
+# Ruff format configuration (replaces black)
+[tool.ruff.format]
+# Match black's formatting style
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
 [tool.ruff.lint]
-# Enable pycodestyle (E), Pyflakes (F), isort (I), and complexity (C90)
-select = ["E", "F", "I", "C90"]
+# Enable core rule sets (replaces flake8 + isort)
+# E: pycodestyle errors
+# F: Pyflakes (undefined names, unused imports, etc.)
+# I: isort (import sorting)
+# C90: McCabe complexity
+# W: pycodestyle warnings
+# Note: B (flake8-bugbear) and UP (pyupgrade) excluded to minimize scope creep
+# These can be added in a dedicated code modernization PR
+select = ["E", "F", "I", "C90", "W"]
 ignore = [
-    "E501",  # Line too long - handled by black
-    "E402",  # Module level import not at top of file
+    "E501",  # Line too long - handled by ruff format
+    "E402",  # Module level import not at top of file (intentional pattern)
 ]
 
 [tool.ruff.lint.isort]

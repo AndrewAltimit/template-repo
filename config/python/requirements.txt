@@ -38,18 +38,24 @@ pytest-cov>=4.1.0
 pytest-timeout>=2.2.0
 pytest-json-report>=1.5.0
 pytest-randomly>=3.15.0  # Randomize test order to find isolation issues
-black==25.1.0
-isort==6.0.1
-flake8>=7.3.0
-pylint>=3.3.8
+pytest-xdist>=3.5.0  # Parallel test execution (2-4x faster)
+
+# Code Quality - Ruff replaces black, flake8, isort (10-100x faster)
+ruff>=0.14.0  # Fast linter and formatter - replaces black/flake8/isort
+pylint>=3.3.8  # Keep for deeper static analysis (catches issues ruff doesn't)
 mypy>=1.0.0
-ruff>=0.14.0  # Fast linter - can eventually replace isort/flake8
+
+# Type stubs
 types-aiofiles>=24.1.0
 types-requests>=2.31.0
 types-PyYAML>=6.0.0
+
+# Security
 bandit==1.8.6
 safety==3.6.0
 pip-audit>=2.6.0
+
+# Other
 yamllint==1.37.1
 pre-commit>=3.5.0
 

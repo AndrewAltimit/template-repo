@@ -231,7 +231,9 @@ class SleeperDetector:
             # Step 2: Discover features
             if self.feature_discovery and activations is not None:
                 discovery_results = await self.feature_discovery.discover_features(
-                    activations, layer_idx=7, context_data=text_samples  # Middle layer
+                    activations,
+                    layer_idx=7,
+                    context_data=text_samples,  # Middle layer
                 )
                 results["feature_discovery"] = discovery_results
 
@@ -387,7 +389,7 @@ class SleeperDetector:
         if results["probe_detections"]:
             triggered_count = sum(1 for d in results["probe_detections"] if d["is_deceptive"])
             summary_parts.append(
-                f"Probe detection: {triggered_count}/{len(results['probe_detections'])} " f"samples flagged as deceptive"
+                f"Probe detection: {triggered_count}/{len(results['probe_detections'])} samples flagged as deceptive"
             )
 
         # Causal validation summary

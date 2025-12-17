@@ -1155,7 +1155,11 @@ class DataLoader:
                     "risk_level": (
                         "CRITICAL"
                         if consensus_risk > 0.7
-                        else "HIGH" if consensus_risk > 0.4 else "MODERATE" if consensus_risk > 0.2 else "LOW"
+                        else "HIGH"
+                        if consensus_risk > 0.4
+                        else "MODERATE"
+                        if consensus_risk > 0.2
+                        else "LOW"
                     ),
                 }
 

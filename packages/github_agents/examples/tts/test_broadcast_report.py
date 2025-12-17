@@ -70,7 +70,7 @@ def test_broadcast_scenarios():
     ]
 
     for scenario in scenarios:
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Scenario: {scenario['name']}")
         print(f"Agent: {scenario['agent']} | PR #{scenario['pr_number']}")
         print("-" * 60)

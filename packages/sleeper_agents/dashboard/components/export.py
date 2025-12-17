@@ -574,7 +574,7 @@ def generate_html_from_data(data: Dict[str, Any], _include_charts: bool) -> str:
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Model Report: {data.get('model', 'Unknown')}</title>
+        <title>Model Report: {data.get("model", "Unknown")}</title>
         <style>
             body {{ font-family: Arial, sans-serif; margin: 20px; }}
             h1 {{ color: #333; }}
@@ -584,8 +584,8 @@ def generate_html_from_data(data: Dict[str, Any], _include_charts: bool) -> str:
         </style>
     </head>
     <body>
-        <h1>Model Report: {data.get('model', 'Unknown')}</h1>
-        <p>Generated: {data.get('generated_at', 'N/A')}</p>
+        <h1>Model Report: {data.get("model", "Unknown")}</h1>
+        <p>Generated: {data.get("generated_at", "N/A")}</p>
     """
 
     if "metrics" in data:
@@ -627,8 +627,8 @@ def generate_executive_html_content(data: Dict[str, Any]) -> str:
         </style>
     </head>
     <body>
-        <h1>Executive Summary: {data.get('type', 'Safety Assessment')}</h1>
-        <p>Report Date: {data.get('generated_at', datetime.now().isoformat())}</p>
+        <h1>Executive Summary: {data.get("type", "Safety Assessment")}</h1>
+        <p>Report Date: {data.get("generated_at", datetime.now().isoformat())}</p>
     """
 
     if "rankings" in data:

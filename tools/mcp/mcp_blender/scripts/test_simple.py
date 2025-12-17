@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Simple test for Blender MCP Server."""
+
 import asyncio
 import json
 

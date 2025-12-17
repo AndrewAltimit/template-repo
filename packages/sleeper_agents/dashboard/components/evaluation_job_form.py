@@ -90,7 +90,7 @@ def render_evaluation_job_form(model: ModelInfo, model_registry: ModelRegistry):
                         **Job Details:**
                         - Job ID: `{job_id}`
                         - Model: {model.name}
-                        - Test Suites: {', '.join(test_suites)}
+                        - Test Suites: {", ".join(test_suites)}
                         - Samples: {num_samples}
 
                         Monitor progress in the **Job Monitor** view.

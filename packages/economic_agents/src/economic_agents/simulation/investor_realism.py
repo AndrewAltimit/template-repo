@@ -227,8 +227,7 @@ class InvestorResponseSimulator:
                     )
                 elif area == "risk":
                     feedback_parts.append(
-                        f"\n- Risk profile (score: {score:.2f}): The execution risks are higher "
-                        "than our risk tolerance allows"
+                        f"\n- Risk profile (score: {score:.2f}): The execution risks are higher than our risk tolerance allows"
                     )
                 elif area == "valuation":
                     feedback_parts.append(
@@ -244,8 +243,7 @@ class InvestorResponseSimulator:
         # Add constructive guidance
         if overall_score >= 0.4:
             feedback_parts.append(
-                "\n\nThis shows promise. We encourage you to address these concerns and "
-                "consider resubmitting in 6-12 months."
+                "\n\nThis shows promise. We encourage you to address these concerns and consider resubmitting in 6-12 months."
             )
         elif overall_score >= 0.3:
             feedback_parts.append("\n\nWe suggest strengthening your proposal before approaching investors again.")
@@ -286,11 +284,11 @@ class InvestorResponseSimulator:
                     )
                 elif area == "team":
                     feedback_parts.append(
-                        f"\n- Team strength (score: {score:.2f}): Strong founding team with relevant " "domain expertise"
+                        f"\n- Team strength (score: {score:.2f}): Strong founding team with relevant domain expertise"
                     )
                 elif area == "competitive_advantage":
                     feedback_parts.append(
-                        f"\n- Competitive position (score: {score:.2f}): Clear differentiation and " "defensible moat"
+                        f"\n- Competitive position (score: {score:.2f}): Clear differentiation and defensible moat"
                     )
 
         # Identify areas for improvement (scores between 0.5 and 0.7)

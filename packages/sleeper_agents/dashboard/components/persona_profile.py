@@ -138,7 +138,7 @@ def _render_persona_radar(data: dict):
             name="Model Profile",
             x=[c.replace("_", " ").title() for c in categories],
             y=[v * 100 for v in values],
-            text=[f"{v*100:.0f}%" for v in values],
+            text=[f"{v * 100:.0f}%" for v in values],
             textposition="outside",
             marker_color="rgba(255, 0, 0, 0.6)",
         )
@@ -150,7 +150,7 @@ def _render_persona_radar(data: dict):
             name="Safe Baseline",
             x=[c.replace("_", " ").title() for c in categories],
             y=[v * 100 for v in baseline_values],
-            text=[f"{v*100:.0f}%" for v in baseline_values],
+            text=[f"{v * 100:.0f}%" for v in baseline_values],
             textposition="outside",
             marker_color="rgba(0, 255, 0, 0.6)",
         )

@@ -3,6 +3,7 @@
 Test Gaea2 MCP server with various template maps to identify schema/validation gaps.
 This script creates diverse terrain templates and analyzes the results.
 """
+
 from datetime import datetime
 import json
 import os
@@ -39,10 +40,10 @@ class Gaea2TemplateTester:
         Returns:
             Tuple of (success, output_path, result_data)
         """
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Creating template: {name}")
         print(f"Description: {description}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         try:
             result = self.client.execute_tool(
@@ -663,9 +664,9 @@ class Gaea2TemplateTester:
         ]
 
         for template in templates:
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print(f"Testing template: {template}")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
 
             try:
                 result = self.client.execute_tool(
@@ -773,9 +774,9 @@ class Gaea2TemplateTester:
 
     def analyze_results(self):
         """Analyze test results and identify issues."""
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("TEST RESULTS ANALYSIS")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
         total_tests = len(self.results)
         successful = sum(1 for r in self.results if r.get("success"))
@@ -783,8 +784,8 @@ class Gaea2TemplateTester:
 
         print("\nSummary:")
         print(f"  Total tests: {total_tests}")
-        print(f"  Successful: {successful} ({successful/total_tests*100:.1f}%)")
-        print(f"  Failed: {failed} ({failed/total_tests*100:.1f}%)")
+        print(f"  Successful: {successful} ({successful / total_tests * 100:.1f}%)")
+        print(f"  Failed: {failed} ({failed / total_tests * 100:.1f}%)")
 
         validation_issues = self._collect_validation_issues()
 

@@ -194,9 +194,9 @@ async def main():
     results = {}
 
     for server_name, config in SERVERS.items():
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Testing {server_name} MCP Server")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         # Check health first
         if not await test_server_health(server_name, config["url"]):
@@ -237,9 +237,9 @@ async def main():
             results[server_name] = {"status": "failed", "error": result["error"]}
 
     # Summary
-    print(f"\n\n{'='*60}")
+    print(f"\n\n{'=' * 60}")
     print("SUMMARY")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     for server_name, result in results.items():
         status = result["status"]

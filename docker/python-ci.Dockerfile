@@ -1,8 +1,22 @@
+# syntax=docker/dockerfile:1.4
 # Python CI/CD Image with all testing and linting tools
-FROM python:3.10-slim
+# Performance optimizations:
+# - uv package manager (10-100x faster than pip)
+# - BuildKit cache mounts for apt and uv
+# - Python 3.11 (10-60% faster than 3.10)
+FROM python:3.11-slim
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install uv - Rust-based package manager (10-100x faster than pip)
+# Using official installer which handles architecture detection
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Configure uv to use system Python (avoids --system flag on every command)
+ENV UV_SYSTEM_PYTHON=1
+
+# Install system dependencies with BuildKit cache
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     build-essential \
@@ -11,57 +25,61 @@ RUN apt-get update && apt-get install -y \
     jq \
     && rm -rf /var/lib/apt/lists/*
 
-# Install GitHub CLI
-RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+# Install GitHub CLI with BuildKit cache
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
     && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
     && apt-get update \
-    && apt-get install -y gh \
+    && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
 
 # Create working directory
 WORKDIR /workspace
 
-# Update pip and setuptools to secure versions
-RUN pip install --no-cache-dir --upgrade pip>=23.3 setuptools>=78.1.1
-
 # Copy requirements first to leverage Docker layer caching
 COPY config/python/requirements.txt ./
 
-# Install all dependencies from the requirements file
-RUN pip install --no-cache-dir -r requirements.txt
+# Install all dependencies from the requirements file using uv (with cache)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install -r requirements.txt
 
-# Install workspace packages in editable mode
+# Install workspace packages
 # Note: This happens before copying the full codebase to leverage caching
 # The actual code will be mounted at runtime via docker-compose volumes
 COPY pyproject.toml /app/pyproject.toml
 COPY tools /app/tools
 COPY automation /app/automation
 
-# Install individual workspace packages in editable mode
-# Each package (mcp-core, mcp-gemini, github_agents, etc.) is independent
+# Copy main packages
 COPY packages/github_agents /app/packages/github_agents
 COPY packages/sleeper_agents /app/packages/sleeper_agents
 COPY packages/economic_agents /app/packages/economic_agents
-RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_ai_toolkit && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_blender && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_code_quality && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_codex && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_comfyui && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_content_creation && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_crush && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_elevenlabs_speech && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_gaea2 && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_gemini && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_github_board && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_meme_generator && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_opencode && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_video_editor && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_virtual_character && \
-    pip install --no-cache-dir /app/packages/github_agents && \
-    pip install --no-cache-dir /app/packages/sleeper_agents && \
-    pip install --no-cache-dir /app/packages/economic_agents
+
+# Install all workspace packages in a single uv command (with cache)
+# This is ~10-100x faster than individual pip install commands
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install \
+    /app/tools/mcp/mcp_core \
+    /app/tools/mcp/mcp_ai_toolkit \
+    /app/tools/mcp/mcp_blender \
+    /app/tools/mcp/mcp_code_quality \
+    /app/tools/mcp/mcp_codex \
+    /app/tools/mcp/mcp_comfyui \
+    /app/tools/mcp/mcp_content_creation \
+    /app/tools/mcp/mcp_crush \
+    /app/tools/mcp/mcp_elevenlabs_speech \
+    /app/tools/mcp/mcp_gaea2 \
+    /app/tools/mcp/mcp_gemini \
+    /app/tools/mcp/mcp_github_board \
+    /app/tools/mcp/mcp_meme_generator \
+    /app/tools/mcp/mcp_opencode \
+    /app/tools/mcp/mcp_video_editor \
+    /app/tools/mcp/mcp_virtual_character \
+    /app/packages/github_agents \
+    /app/packages/sleeper_agents \
+    /app/packages/economic_agents
 
 # Copy linting configuration files to both /workspace and /app
 # Note: Files are copied to both locations to support different tool contexts:

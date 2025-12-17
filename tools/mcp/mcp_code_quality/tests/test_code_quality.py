@@ -100,7 +100,7 @@ class TestCodeQualityTools:
             # Mock lint with issues
             mock_run.return_value = Mock(
                 returncode=1,
-                stdout="test.py:10:1: E302 expected 2 blank lines\n" "test.py:20:80: E501 line too long",
+                stdout="test.py:10:1: E302 expected 2 blank lines\ntest.py:20:80: E501 line too long",
                 stderr="",
             )
 

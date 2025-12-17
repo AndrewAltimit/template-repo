@@ -563,9 +563,7 @@ def render_context_anomalies(_data_loader, model: str):
             y=[c["anomaly"] for c in contexts],
             mode="markers+text",
             marker={
-                "size": [
-                    np.sqrt(float(c["tested"]) / 10) if c["tested"] not in [None, ""] else 0 for c in contexts  # type: ignore
-                ],
+                "size": [np.sqrt(float(str(c["tested"])) / 10) if c["tested"] not in [None, ""] else 0 for c in contexts],
                 "color": [c["anomaly"] for c in contexts],
                 "colorscale": "RdYlBu_r",
                 "showscale": True,

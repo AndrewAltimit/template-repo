@@ -222,10 +222,10 @@ Test details:
         for result in test_results.get("results", []):
             status = "✓ PASS" if result["passed"] else "✗ FAIL"
             prompt += f"""
-{status} Test {result['test_num']}:
-  Input: {result['input']}
-  Expected: {result['expected']}
-  Actual: {result['actual']}
+{status} Test {result["test_num"]}:
+  Input: {result["input"]}
+  Expected: {result["expected"]}
+  Actual: {result["actual"]}
 """
 
         prompt += """
@@ -295,7 +295,7 @@ Output ONLY the JSON object, nothing else.
             feedback.append(f"✓ All {test_results['total']} tests passed!")
         else:
             feedback.append(
-                f"✗ Tests: {test_results['passed']}/{test_results['total']} passed, " f"{test_results['failed']} failed"
+                f"✗ Tests: {test_results['passed']}/{test_results['total']} passed, {test_results['failed']} failed"
             )
 
         # Claude's comments

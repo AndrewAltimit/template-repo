@@ -101,7 +101,7 @@ jobs:
           name: lint-results-${{ inputs.stage }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             lint-output.txt
-            black-output.txt
+            ruff-format-output.txt
             ruff-import-output.txt
             bandit-report.json
             safety-report.json

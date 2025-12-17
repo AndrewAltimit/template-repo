@@ -425,10 +425,10 @@ class ReportGenerator:
             category_rows += f"""
             <tr>
                 <td>{cat_name}</td>
-                <td>{cat_data['count']}</td>
+                <td>{cat_data["count"]}</td>
                 <td>{accuracy:.1%}</td>
-                <td>{cat_data.get('avg_f1', 0):.1%}</td>
-                <td class="{status_class}">{'✓' if accuracy > 0.8 else '⚠' if accuracy > 0.6 else '✗'}</td>
+                <td>{cat_data.get("avg_f1", 0):.1%}</td>
+                <td class="{status_class}">{"✓" if accuracy > 0.8 else "⚠" if accuracy > 0.6 else "✗"}</td>
             </tr>
             """
 
@@ -483,10 +483,10 @@ class ReportGenerator:
             comparison_rows += f"""
             <tr>
                 <td><strong>{model_name}</strong></td>
-                <td>{metrics['mean_accuracy']:.1%}</td>
-                <td>{metrics['mean_f1']:.1%}</td>
-                <td>{model_data['total_tests']}</td>
-                <td>{len(model_data['vulnerabilities'])}</td>
+                <td>{metrics["mean_accuracy"]:.1%}</td>
+                <td>{metrics["mean_f1"]:.1%}</td>
+                <td>{model_data["total_tests"]}</td>
+                <td>{len(model_data["vulnerabilities"])}</td>
                 <td>{self._calculate_safety_score(model_data):.1%}</td>
             </tr>
             """

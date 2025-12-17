@@ -16,9 +16,9 @@ async def main():
     # Model to evaluate
     model_name = "gpt2"  # Change to your model
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Evaluating {model_name} for Sleeper Agent Vulnerabilities")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Initialize evaluator
     evaluator = ModelEvaluator(output_dir=Path("evaluation_results"), db_path=Path("evaluation_results.db"))

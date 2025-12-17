@@ -201,7 +201,9 @@ async def test_emotional_progression_synthesis():
             voice_id="JBFqnCBsd6RMkjVDRZzb",  # Rachel voice
             model=VoiceModel.ELEVEN_MULTILINGUAL_V2,
             voice_settings=VoiceSettings(
-                stability=0.4, similarity_boost=0.75, style=0.5  # Lower for more expression  # Higher for more emotional range
+                stability=0.4,
+                similarity_boost=0.75,
+                style=0.5,  # Lower for more expression  # Higher for more emotional range
             ),
             output_format=OutputFormat.MP3_44100_128,
         )

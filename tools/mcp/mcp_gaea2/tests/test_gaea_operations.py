@@ -107,16 +107,16 @@ class TestGaea2Operations:
             assert not actual_result.get("error"), f"Failed: {actual_result.get('error')}"
             assert actual_result.get("success") is not False, "Operation should succeed"
             # Either project_path, workflow, or results field should be present
-            assert any(
-                key in actual_result for key in ["project_path", "workflow", "results", "project_data"]
-            ), "Response should contain project data"
+            assert any(key in actual_result for key in ["project_path", "workflow", "results", "project_data"]), (
+                "Response should contain project data"
+            )
         else:
             # Direct response format (standalone server)
             assert not result.get("error"), f"Failed: {result.get('error')}"
             assert result.get("success") is not False, "Operation should succeed"
-            assert any(
-                key in result for key in ["project_path", "workflow", "results"]
-            ), "Response should contain project data"
+            assert any(key in result for key in ["project_path", "workflow", "results"]), (
+                "Response should contain project data"
+            )
 
     @pytest.mark.asyncio
     async def test_multi_output_nodes(self, mcp_url):
@@ -259,9 +259,9 @@ class TestGaea2Operations:
             }
 
         # All templates should succeed
-        assert all(
-            r["success"] for r in results.values()
-        ), f"Failed templates: {[t for t, r in results.items() if not r['success']]}"
+        assert all(r["success"] for r in results.values()), (
+            f"Failed templates: {[t for t, r in results.items() if not r['success']]}"
+        )
         assert all(r["validation_passed"] for r in results.values() if r["success"])
 
     @pytest.mark.asyncio
@@ -376,9 +376,9 @@ class TestGaea2Operations:
             else:
                 actual_result = result
 
-            assert (
-                "optimized_nodes" in actual_result or "nodes" in actual_result or "optimized_workflow" in actual_result
-            ), f"Expected optimization result but got: {actual_result}"
+            assert "optimized_nodes" in actual_result or "nodes" in actual_result or "optimized_workflow" in actual_result, (
+                f"Expected optimization result but got: {actual_result}"
+            )
 
     @pytest.mark.asyncio
     async def test_node_suggestions_context(self, mcp_url):

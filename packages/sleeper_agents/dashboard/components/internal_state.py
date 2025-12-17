@@ -489,7 +489,7 @@ def render_statistical_patterns(_data_loader, _cache_manager, selected_model: st
 
         for outlier in outliers[:5]:
             st.write(
-                f"• **Pattern {outlier['id']}**: {outlier['description']} " f"(Distance from mean: {outlier['z_score']:.2f}σ)"
+                f"• **Pattern {outlier['id']}**: {outlier['description']} (Distance from mean: {outlier['z_score']:.2f}σ)"
             )
     else:
         st.info("No significant statistical outliers detected in current analysis")
@@ -542,7 +542,7 @@ def render_temporal_evolution(_data_loader, _cache_manager, selected_model: str)
         st.metric(
             "Drift Rate",
             f"{drift_rate:.2%}/hour",
-            delta=f"+{drift_rate*100:.1f}%" if drift_rate > 0.01 else None,
+            delta=f"+{drift_rate * 100:.1f}%" if drift_rate > 0.01 else None,
             help="Rate of pattern change",
         )
 

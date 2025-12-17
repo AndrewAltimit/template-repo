@@ -3,6 +3,7 @@
 Example showing how integration tests can bypass Gaea2 file validation
 when testing invalid terrain generation scenarios.
 """
+
 import os
 import unittest.mock
 

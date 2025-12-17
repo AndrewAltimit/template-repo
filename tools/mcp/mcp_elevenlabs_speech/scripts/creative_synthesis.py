@@ -288,7 +288,8 @@ async def creative_example_6_experimental_tags():
         print(f"  Text: {preview}")
 
         result = await server.synthesize_speech_v3(
-            text=exp, voice_settings={"stability": 0.3, "similarity_boost": 0.5, "style": 1.0}  # Maximum style for experiments
+            text=exp,
+            voice_settings={"stability": 0.3, "similarity_boost": 0.5, "style": 1.0},  # Maximum style for experiments
         )
 
         if result.get("success"):

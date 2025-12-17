@@ -23,11 +23,11 @@ async def test_full_monitoring_dashboard_reports_pipeline():
     - All 4 report types generated successfully
     - Data consistency across all systems
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("FULL PIPELINE VALIDATION TEST")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print("Testing: Agent → Monitoring → Dashboard → Reports")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Setup: Agent connected to dashboard
     wallet = MockWallet(initial_balance=300.0)
@@ -54,7 +54,7 @@ async def test_full_monitoring_dashboard_reports_pipeline():
 
     # Verify dashboard received monitoring components
     print("Step 1: Verify Dashboard Integration")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     assert dashboard_state.resource_tracker is agent.resource_tracker
     assert dashboard_state.metrics_collector is agent.metrics_collector
     assert dashboard_state.alignment_monitor is agent.alignment_monitor
@@ -62,20 +62,20 @@ async def test_full_monitoring_dashboard_reports_pipeline():
 
     # Run agent for multiple cycles
     print("Step 2: Run Agent and Collect Data")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     cycles_to_run = 10
     print(f"Running {cycles_to_run} cycles...")
 
     for i in range(cycles_to_run):
         await agent.run_cycle()
         if (i + 1) % 3 == 0:
-            print(f"  Cycle {i+1}: Balance=${agent.state.balance:.2f}, Tasks={agent.state.tasks_completed}")
+            print(f"  Cycle {i + 1}: Balance=${agent.state.balance:.2f}, Tasks={agent.state.tasks_completed}")
 
     print(f"✅ Agent ran {cycles_to_run} cycles successfully\n")
 
     # Verify monitoring data collection
     print("Step 3: Verify Monitoring Data Collection")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Resource tracking
     transactions = agent.resource_tracker.transactions
@@ -111,7 +111,7 @@ async def test_full_monitoring_dashboard_reports_pipeline():
 
     # Verify dashboard state updates
     print("Step 4: Verify Dashboard State")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     dashboard_agent_state = dashboard_state.get_agent_state()
 
@@ -131,7 +131,7 @@ async def test_full_monitoring_dashboard_reports_pipeline():
 
     # Access monitoring data through dashboard
     print("Step 5: Access Monitoring Data via Dashboard")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     dashboard_resource_tracker = dashboard_state.resource_tracker
     dashboard_metrics = dashboard_state.metrics_collector
@@ -147,7 +147,7 @@ async def test_full_monitoring_dashboard_reports_pipeline():
 
     # Generate all report types
     print("Step 6: Generate All Report Types")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     report_types = ["executive", "technical", "audit", "governance"]
     reports = {}
@@ -162,7 +162,7 @@ async def test_full_monitoring_dashboard_reports_pipeline():
 
     # Verify report content
     print("Step 7: Verify Report Content")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Executive summary
     exec_report = reports["executive"]
@@ -190,15 +190,15 @@ async def test_full_monitoring_dashboard_reports_pipeline():
     assert "recommendations" in gov_report.content
     print("✅ Governance analysis contains policy recommendations")
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("PIPELINE VALIDATION SUMMARY")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"✅ Agent executed {cycles_to_run} cycles")
     print(f"✅ Monitoring captured {len(transactions)} transactions")
     print(f"✅ Dashboard updated {cycles_to_run} times")
     print(f"✅ Generated {len(reports)} report types")
     print("✅ Data consistency verified across all systems")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     print("✅✅✅ FULL PIPELINE TEST PASSED ✅✅✅")
     print("   All components integrated and functioning correctly")

@@ -45,13 +45,13 @@ async def test_24hour_agent_survival(all_backends):
     )
     await agent.initialize()
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("24-HOUR AGENT SURVIVAL TEST")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Initial Balance: ${agent.state.balance:.2f}")
     print(f"Initial Compute: {agent.state.compute_hours_remaining:.1f} hours")
     print("Target Cycles: 288 (24 hours @ 5 min/cycle)")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Run agent for 24-hour equivalent (288 cycles)
     # For faster testing, we'll run 100 cycles (represents ~8 hours)
@@ -89,9 +89,9 @@ async def test_24hour_agent_survival(all_backends):
         print(f"\n❌ Agent crashed at cycle {len(balances)}: {e}")
         raise
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("SURVIVAL TEST RESULTS")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Validate results
     final_balance = agent.state.balance
@@ -106,7 +106,7 @@ async def test_24hour_agent_survival(all_backends):
     print(f"Tasks Completed: {tasks_completed}")
     print(f"Tasks Failed: {tasks_failed}")
     print(
-        f"Success Rate: {(tasks_completed/(tasks_completed+tasks_failed)*100) if tasks_completed+tasks_failed > 0 else 0:.1f}%"
+        f"Success Rate: {(tasks_completed / (tasks_completed + tasks_failed) * 100) if tasks_completed + tasks_failed > 0 else 0:.1f}%"
     )
 
     # Check monitoring data
@@ -126,7 +126,7 @@ async def test_24hour_agent_survival(all_backends):
     print(f"  Final: ${final_balance:.2f}")
     print(f"  Net Change: ${final_balance - balances[0]:.2f}")
 
-    print(f"\n{'='*60}\n")
+    print(f"\n{'=' * 60}\n")
 
     # Assertions
     assert cycles_run >= target_cycles * 0.9, f"Agent stopped too early (ran {cycles_run}/{target_cycles} cycles)"
@@ -142,11 +142,11 @@ async def test_24hour_agent_survival(all_backends):
     report = generate_report_for_agent(agent, "executive")
     report_markdown = report.to_markdown()
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("EXECUTIVE SUMMARY")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(report_markdown[:800] + "..." if len(report_markdown) > 800 else report_markdown)
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Success!
     print("✅ 24-HOUR SURVIVAL TEST PASSED")

@@ -114,9 +114,9 @@ Examples:
         Args:
             args: Parsed arguments
         """
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"EVALUATING MODEL: {args.model}")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         # Initialize evaluator
         output_dir = args.output or Path("evaluation_results")
@@ -157,9 +157,9 @@ Examples:
         Args:
             args: Parsed arguments
         """
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"COMPARING MODELS: {', '.join(args.models)}")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         self.report_generator = ReportGenerator()
 
@@ -197,11 +197,11 @@ Examples:
         Args:
             args: Parsed arguments
         """
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("RUNNING QUICK TEST")
         print(f"Model: {args.model}")
         print(f"CPU mode: {args.cpu}")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
         # Initialize evaluator
         self.evaluator = ModelEvaluator()

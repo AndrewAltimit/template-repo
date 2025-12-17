@@ -452,7 +452,7 @@ class TestRelationshipPersistence:
             rel_sys.record_interaction(
                 investor_id="investor-1",
                 agent_id="agent-1",
-                proposal_id=f"proposal-{i+2}",
+                proposal_id=f"proposal-{i + 2}",
                 approved=True,
                 amount_requested=1000000.0,
                 amount_offered=1000000.0,

@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 # Configurable output limit for run_command tool (default 100KB, max 10MB for safety)
 DEFAULT_MAX_OUTPUT_SIZE = 100 * 1024  # 100KB default
 MAX_OUTPUT_SIZE = min(
-    int(os.environ.get("GEMINI_MAX_OUTPUT_SIZE", DEFAULT_MAX_OUTPUT_SIZE)), 10 * 1024 * 1024  # 10MB hard limit for safety
+    int(os.environ.get("GEMINI_MAX_OUTPUT_SIZE", DEFAULT_MAX_OUTPUT_SIZE)),
+    10 * 1024 * 1024,  # 10MB hard limit for safety
 )
 
 # Define Gemini tool schemas
