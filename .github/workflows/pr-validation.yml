@@ -186,9 +186,12 @@ jobs:
             curl -LsSf https://astral.sh/uv/install.sh | sh
             export PATH="$HOME/.local/bin:$PATH"
           fi
+          # Create temporary venv for MCP packages (avoids polluting system Python)
+          uv venv .gemini-venv
+          source .gemini-venv/bin/activate
           # Install mcp packages for host execution (10-100x faster with uv)
-          uv pip install --system -e ./tools/mcp/mcp_core
-          uv pip install --system -e ./tools/mcp/mcp_gemini
+          uv pip install -e ./tools/mcp/mcp_core
+          uv pip install -e ./tools/mcp/mcp_gemini
           # Gemini MCP server must run on host (not in container)
           # Start Gemini MCP server in background
           python -m mcp_gemini.server --mode http &
