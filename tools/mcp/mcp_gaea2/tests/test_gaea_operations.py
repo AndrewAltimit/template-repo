@@ -558,7 +558,6 @@ class TestGaea2Operations:
                 "analyze_workflow_patterns",
                 {
                     "workflow_or_directory": {"nodes": [], "connections": []},
-                    "include_suggestions": True,
                 },
             )
 

@@ -260,7 +260,7 @@ services:
       - GROUP_ID=${GROUP_ID:-1000}
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_gaea2.server", "--mode", "http", "--output-dir", "/output/gaea2", "--no-enforce-file-validation"]
+    command: ["python", "-m", "mcp_gaea2.server", "--mode", "http", "--output-dir", "/output/gaea2"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8007/health"]

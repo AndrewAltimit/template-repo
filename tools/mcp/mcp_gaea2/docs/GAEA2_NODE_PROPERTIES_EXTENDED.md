@@ -1,6 +1,9 @@
 # Gaea2 Extended Node Properties Documentation
 
+> **Complete node property documentation including undocumented properties from production analysis**
+
 ## Overview
+
 This document provides comprehensive property documentation for Gaea2 nodes based on real-world project analysis. It includes properties not found in official documentation but observed in production terrain files.
 
 ## Core Node Properties

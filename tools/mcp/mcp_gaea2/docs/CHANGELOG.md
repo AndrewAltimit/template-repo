@@ -1,6 +1,6 @@
 # Gaea2 MCP Server Changelog
 
-All notable changes to the Gaea2 MCP Server are documented here.
+> **Version history and notable changes**
 
 ## [Latest] - 2025-07-20
 
@@ -44,10 +44,13 @@ All notable changes to the Gaea2 MCP Server are documented here.
 - Documented common port names by node type
 
 ### Known Issues Resolved
-- ✅ Missing connections: 490 → 174 (node ordering issue)
-- ✅ Missing connections to Combine nodes (indentation issue)
-- ✅ Type mismatch when looking up nodes (string/int consistency)
-- ✅ All 8 previously missing connections in Level1 terrain now work
+
+| Issue | Resolution |
+|-------|------------|
+| Missing connections: 490 → 174 | Fixed node ordering issue |
+| Missing connections to Combine nodes | Fixed indentation issue |
+| Type mismatch when looking up nodes | Fixed string/int consistency |
+| All 8 previously missing connections in Level1 terrain | Now working |
 
 ## [Previous] - 2025-07-19
 

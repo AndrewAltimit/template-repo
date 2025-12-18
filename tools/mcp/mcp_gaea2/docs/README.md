@@ -1,55 +1,42 @@
-# Gaea2 MCP (Model Context Protocol) Server
+# Gaea2 MCP Server
 
-A comprehensive, intelligent terrain generation toolkit for Gaea2, providing programmatic control over terrain creation with advanced validation, error recovery, and pattern-based intelligence.
+> **A Model Context Protocol server for programmatic terrain generation with Gaea2, featuring intelligent validation, pattern-based suggestions, and professional workflow templates**
 
 ## Overview
 
-The Gaea2 MCP server enables programmatic creation and manipulation of Gaea2 terrain projects through the Model Context Protocol. It includes intelligent validation, automatic error recovery, pattern-based suggestions, and support for Gaea2 nodes.
+The Gaea2 MCP server enables programmatic creation of terrain projects through the Model Context Protocol. It provides intelligent validation, automatic error recovery, and pattern-based workflow suggestions derived from analysis of production Gaea2 projects.
 
-### Key Features
+**Requirements**: This server must run on a Windows host with Gaea2 installed. It uses HTTP transport for cross-machine communication since most development environments run on Linux/Mac.
 
-- **Intelligent Validation**: Multi-level validation with automatic error correction
-- **Pattern Intelligence**: Learning from 31 real projects (374 nodes, 440 connections)
-- **Professional Templates**: 11 ready-to-use workflow templates
-- **CLI Automation**: Run Gaea2 projects programmatically (Windows only)
-- **Auto-Fix Capabilities**: Automatic detection and correction of common issues
-- **Performance Optimization**: 19x speedup through intelligent caching
-- **HTTP Transport**: Uses HTTP transport for cross-machine communication
+## Implementation Status
 
-## Transport Mode: HTTP Only
+| Component | Status | Description |
+|-----------|--------|-------------|
+| Project Generation | Validated | Creates .terrain files compatible with Gaea2 2.2.6.0 |
+| Structural Validation | Enabled | Automatic node/connection validation and repair |
+| Runtime CLI Validation | Disabled by default | Optional validation via Gaea.Swarm.exe |
+| Template System | 11 templates | Professional workflow templates from YAML definitions |
+| Pattern Intelligence | Implemented | Suggestions based on 31 analyzed projects |
+| CLI Automation | Windows only | Build automation via Gaea.Swarm.exe |
 
-**Why HTTP Transport?**
-The Gaea2 server uses HTTP transport (not STDIO) because it must run on a Windows machine with Gaea2 software installed. This is a hardware/software constraint - most development environments run on Linux/Mac, but Gaea2 requires Windows.
+## Quick Start
 
-## Important Requirements
+### Server Setup
 
-**This server MUST run on a Windows host system where Gaea2 is installed.**
+```bash
+# Start server on Windows host
+python -m mcp_gaea2.server --mode http --port 8007
 
-The server requires direct access to the Gaea2 executable (`Gaea.Swarm.exe`) for CLI automation and validation features. This Windows requirement is why the server uses HTTP transport for remote access from other machines.
+# With custom Gaea2 path
+python -m mcp_gaea2.server --mode http --gaea-path "D:\Gaea\Gaea.Swarm.exe"
 
-## Prerequisites
+# Enable runtime CLI validation (optional)
+python -m mcp_gaea2.server --mode http --enforce-file-validation
+```
 
-1. **Windows OS** (Windows 10/11)
-2. **Gaea2 installed** (Community or Professional edition)
-3. **Python 3.8+** with required packages:
-   ```bash
-   pip install aiohttp aiofiles
-   ```
+### Client Configuration
 
-## Configuration
-
-### Environment Variables
-
-- `GAEA2_PATH`: Path to Gaea.Swarm.exe (auto-detected if not set)
-- `GAEA2_MCP_PORT`: Server port (default: 8007)
-- `GAEA2_MCP_HOST`: Server host (default: localhost)
-- `GAEA2_LOG_LEVEL`: Logging level (default: INFO)
-- `GAEA2_CACHE_ENABLED`: Enable performance cache (default: true)
-- `GAEA2_AUTO_VALIDATE`: Auto-validate all projects (default: true)
-
-### Claude Code Configuration (.mcp.json)
-
-Configure the Gaea2 server in your `.mcp.json` file:
+Add to `.mcp.json`:
 
 ```json
 {
@@ -62,282 +49,12 @@ Configure the Gaea2 server in your `.mcp.json` file:
 }
 ```
 
-**Important**: The URL must point to the `/messages` endpoint for MCP protocol compliance.
-
-### Local Development Configuration
-
-```json
-{
-  "mcpServers": {
-    "gaea2": {
-      "type": "http",
-      "url": "http://localhost:8007/messages"
-    }
-  }
-}
-```
-
-## Running the Server
-
-### HTTP Mode (Recommended)
-
-```bash
-# Default port 8007
-python -m mcp_gaea2.server --mode http
-
-# Custom port
-python -m mcp_gaea2.server --mode http --port 8008
-
-# Specify Gaea2 path
-python -m mcp_gaea2.server --mode http --gaea-path "D:\Gaea\Gaea.Swarm.exe"
-```
-
-### Remote Access Setup
-
-```bash
-# Start server accessible from network
-python -m mcp_gaea2.server --mode http --host 0.0.0.0
-
-# Access from another machine
-curl -X POST http://192.168.0.152:8007/mcp/execute \
-  -H "Content-Type: application/json" \
-  -d '{"tool": "create_gaea2_from_template", ...}'
-```
-
-## Available MCP Tools
-
-### 1. create_gaea2_project
-Create custom Gaea2 terrain projects with automatic validation and error correction.
-
-```python
-result = await create_gaea2_project(
-    project_name="Alpine Valley",
-    nodes=[
-        {"type": "Mountain", "properties": {"Scale": 1.5}},
-        {"type": "Erosion2", "properties": {"Duration": 0.07}}
-    ],
-    connections=[{"from_node": 0, "to_node": 1}],
-    auto_validate=True  # Default: True
-)
-```
-
-**Automatic features included:**
-- Validates all node types and properties
-- Fixes invalid property values to valid ranges
-- Adds missing Export node if not present
-- Adds SatMap/ColorMap node if no coloring exists
-- Repairs invalid or duplicate connections
-- Ensures Gaea2-compatible file format
-
-### 2. create_gaea2_from_template
-Create projects using professional workflow templates (most reliable method).
-
-Available templates:
-- `basic_terrain` - Simple terrain with erosion and coloring
-- `detailed_mountain` - Advanced mountain with rivers, snow, and strata
-- `volcanic_terrain` - Volcanic landscape with lava and ash
-- `desert_canyon` - Desert canyon with stratification
-- `modular_portal_terrain` - Modular terrain for portal worlds
-- `mountain_range` - Mountain range with varied peaks
-- `volcanic_island` - Volcanic island with coastal features
-- `canyon_system` - Complex canyon network
-- `coastal_cliffs` - Coastal terrain with cliff formations
-- `river_valley` - River valley with water features
-
-**Note**: The `arctic_terrain` template is currently corrupted and will fail validation.
-
-### 3. validate_and_fix_workflow
-Comprehensive validation and automatic repair of Gaea2 workflows.
-
-### 4. analyze_workflow_patterns
-Analyze workflows to get intelligent suggestions based on real project patterns.
-
-### 5. optimize_gaea2_properties
-Optimize node properties for performance or quality.
-
-### 6. suggest_gaea2_nodes
-Get intelligent node suggestions based on terrain type and context.
-
-### 7. repair_gaea2_project
-Repair damaged or corrupted Gaea2 project files.
-
-### 8. run_gaea2_project
-Run a Gaea2 project via CLI to generate terrain (Windows only).
-
-### 9. analyze_execution_history
-Analyze the history of Gaea2 CLI executions for debugging.
-
-### 10. download_gaea2_project
-Download previously created terrain files with optional metadata extraction.
-
-### 11. list_gaea2_projects
-List all terrain files in the output directory.
-
-## Node Categories and Support
-
-### Supported Node Categories
-
-1. **Primitive (24 nodes)** - Noise generators and basic patterns
-2. **Terrain (14 nodes)** - Primary terrain generators
-3. **Modify (41 nodes)** - Terrain modification tools
-4. **Surface (21 nodes)** - Surface detail and texture
-5. **Simulate (25 nodes)** - Natural process simulation
-6. **Derive (13 nodes)** - Analysis and mask generation
-7. **Colorize (13 nodes)** - Color and texture operations
-8. **Output (13 nodes)** - Export and integration nodes
-9. **Utility (20 nodes)** - Helper and utility nodes
-
-## Intelligence Features
-
-### Pattern-Based Knowledge
-
-The system has analyzed 31 real Gaea2 projects to extract common patterns:
-
-- **Most Common Workflow**: Slump → FractalTerraces → Combine → Shear (9 occurrences)
-- **Most Used Nodes**: SatMap (47), Combine (38), Erosion2 (29)
-- **Average Complexity**: 12.1 nodes, 14.2 connections per project
-
-### Validation Levels
-
-1. **Structure Validation** - Ensures valid Gaea2 project format
-2. **Node Validation** - Validates node types and configurations
-3. **Property Validation** - Type checking and range validation
-4. **Connection Validation** - Ensures compatible connections
-5. **Pattern Validation** - Checks against known good patterns
-
-### Automatic Error Recovery
-
-All projects created with `create_gaea2_project` automatically include:
-- Remove duplicate connections
-- Fix out-of-range property values
-- Add missing required nodes (Export, SatMap)
-- Connect orphaned nodes intelligently
-- Optimize workflow order
-- Validate node property types
-- Ensure connection compatibility
-- Performance optimization for heavy nodes
-
-## File Validation System
-
-The Gaea2 MCP server includes an automated validation system to test if generated terrain files actually open in Gaea2.
-
-### Validation Features
-
-- **Automated Testing**: Uses `Gaea.Swarm.exe --validate` to check if files open
-- **Real-time Monitoring**: Reads stdout/stderr as Gaea2 runs
-- **Smart Detection**: Identifies success and failure patterns
-- **Timeout Handling**: Prevents hanging on problematic files
-- **Batch Processing**: Test multiple files efficiently
-
-### How It Works
-
-1. **Real-time Monitoring**: Reads Gaea2 output in real-time
-2. **Success Detection**: Looks for patterns like "Opening [filename]", "Loading devices"
-3. **Error Detection**: Fails immediately on "corrupt", "failed to load", "missing data"
-4. **Smart Confirmation**: Waits 3 seconds after success detection to ensure no errors
-5. **Process Control**: Kills Gaea2 after determining result
-
-## Performance
-
-- **Caching System**: 19x speedup for repeated operations
-- **In-Memory Cache**: Fast access with TTL support
-- **Disk Persistence**: Optional cache persistence
-- **Optimized Validation**: Efficient pattern matching
-- **Average Project Size**: 12.1 nodes, 14.2 connections
-- **Validation Speed**: <100ms for average projects
-- **Auto-Fix Success Rate**: 85% of common issues
-
-## Testing
-
-Run the test scripts to verify the server is working:
-
-```bash
-# Quick connectivity test
-python tools/mcp/gaea2/scripts/test_server.py
-
-# Test improved validation
-python tools/mcp/gaea2/scripts/test_improved_validation.py
-
-# Test all templates
-python tools/mcp/gaea2/scripts/test_gaea2_templates.py
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### "Gaea2 not found" Error
-1. Install Gaea2 from QuadSpinner
-2. Set `GAEA2_PATH` environment variable
-3. Verify path points to `Gaea.Swarm.exe`
-
-#### "Cannot run in container" Error
-The server must run on Windows host with Gaea2 installed. Docker containers are not supported.
-
-#### Connection Issues
-Ensure ports are named correctly:
-- Standard nodes: "In", "Out"
-- Combine nodes: "In", "Input2", "Mask"
-- Rivers: "Rivers" output port
-- Sea: "Water", "Shore", "Depth" output ports
-
-#### Template Creation Works but Custom Fails
-Use templates when possible - they're the most reliable method. Custom creation requires careful attention to property formats and node specifications.
-
-### Known Format Requirements
-
-1. **Property Name Format**: Use spaces not camelCase
-   - Correct: `"Rock Softness": 0.3`
-   - Incorrect: `"RockSoftness": 0.3`
-
-2. **Missing Node Properties**:
-   - `PortCount: 2` on Combine nodes
-   - `NodeSize: "Small"` or `"Standard"`
-   - `IsMaskable: true` on most nodes
-
-3. **Range Property Format**:
-   - Correct: `{"$id": "103", "X": 0.5, "Y": 1.0}`
-   - Incorrect: `{"X": 0.5, "Y": 1.0}`
-
-4. **ID Pattern**: Use non-sequential IDs (183, 668, 427) not sequential (100, 110, 120)
-
-## Additional Documentation
-
-- [API Reference](GAEA2_API_REFERENCE.md) - Complete API documentation
-- [Examples](GAEA2_EXAMPLES.md) - Code examples and usage patterns
-- [Quick Reference](GAEA2_QUICK_REFERENCE.md) - Quick reference guide
-- [Knowledge Base](GAEA2_KNOWLEDGE_BASE.md) - Patterns from real projects
-- [Advanced Patterns](GAEA2_ADVANCED_PATTERNS.md) - Advanced workflow patterns
-- [Connection Architecture](CONNECTION_ARCHITECTURE.md) - Deep dive into connection system
-- [Node Properties](GAEA2_NODE_PROPERTIES_EXTENDED.md) - Complete property documentation
-- [Validation Guide](VALIDATION_GUIDE.md) - File validation system guide
-- [Changelog](CHANGELOG.md) - Version history and updates
-
-## Integration Examples
-
-### CI/CD Pipeline Integration
-
-```yaml
-- name: Generate Terrain
-  run: |
-    # Start server
-    python -m mcp_gaea2.server --mode http &
-    sleep 2
-
-    # Create terrain
-    curl -X POST http://localhost:8007/mcp/execute \
-      -d '{"tool": "create_gaea2_from_template",
-           "parameters": {"template_name": "mountain_range",
-                         "project_name": "ci_terrain"}}'
-```
-
-### Python Client Example
+### Basic Usage
 
 ```python
 import requests
-import json
 
-# Create terrain from template
+# Create terrain from template (recommended)
 response = requests.post('http://192.168.0.152:8007/mcp/execute', json={
     'tool': 'create_gaea2_from_template',
     'parameters': {
@@ -346,11 +63,223 @@ response = requests.post('http://192.168.0.152:8007/mcp/execute', json={
     }
 })
 
-result = response.json()
-if result['success']:
-    print(f"Created terrain: {result['output_path']}")
+# Create custom terrain
+response = requests.post('http://192.168.0.152:8007/mcp/execute', json={
+    'tool': 'create_gaea2_project',
+    'parameters': {
+        'project_name': 'custom_terrain',
+        'workflow': {
+            'nodes': [
+                {'id': '1', 'type': 'Mountain', 'properties': {'Scale': 1.5}},
+                {'id': '2', 'type': 'Erosion2'},
+                {'id': '3', 'type': 'Export'}
+            ],
+            'connections': [
+                {'from_node': '1', 'to_node': '2'},
+                {'from_node': '2', 'to_node': '3'}
+            ]
+        }
+    }
+})
+```
+
+## Available Tools
+
+### Project Creation
+
+| Tool | Description | Reliability |
+|------|-------------|-------------|
+| `create_gaea2_from_template` | Create from professional templates | High |
+| `create_gaea2_project` | Create with custom node/connection spec | Medium |
+
+### Validation and Repair
+
+| Tool | Description |
+|------|-------------|
+| `validate_and_fix_workflow` | Comprehensive validation with automatic repair |
+| `repair_gaea2_project` | Repair damaged project files |
+| `validate_gaea2_runtime` | Runtime validation via Gaea2 CLI (optional) |
+
+### Analysis and Suggestions
+
+| Tool | Description |
+|------|-------------|
+| `analyze_workflow_patterns` | Pattern-based workflow analysis |
+| `suggest_gaea2_nodes` | Intelligent node suggestions |
+| `optimize_gaea2_properties` | Performance/quality optimization |
+
+### CLI Automation (Windows)
+
+| Tool | Description |
+|------|-------------|
+| `run_gaea2_project` | Execute terrain build via CLI |
+| `analyze_execution_history` | Debug CLI execution history |
+
+### File Management
+
+| Tool | Description |
+|------|-------------|
+| `list_gaea2_projects` | List available terrain files |
+| `download_gaea2_project` | Download terrain with metadata |
+
+## Templates
+
+Available workflow templates derived from production projects:
+
+| Template | Description |
+|----------|-------------|
+| `basic_terrain` | Simple terrain with erosion and coloring |
+| `detailed_mountain` | Mountain with rivers, snow, and strata |
+| `volcanic_terrain` | Volcanic landscape with lava features |
+| `desert_canyon` | Desert canyon with stratification |
+| `mountain_range` | Multiple peaks with varied erosion |
+| `volcanic_island` | Island with volcanic and coastal features |
+| `canyon_system` | Complex canyon network |
+| `coastal_cliffs` | Coastal terrain with cliff formations |
+| `river_valley` | Valley with water features |
+| `modular_portal_terrain` | Modular terrain for portal worlds |
+
+Templates are the most reliable method for terrain creation. Custom projects require careful attention to node specifications and property formats.
+
+## Validation System
+
+### Structural Validation (Default)
+
+Automatically applied to all created projects:
+
+- Node type and property validation
+- Connection compatibility verification
+- Missing node detection (adds Export if absent)
+- Property range clamping
+- Duplicate connection removal
+- Orphan node connection
+
+### Runtime CLI Validation (Optional)
+
+Runtime validation using Gaea.Swarm.exe is disabled by default due to reliability issues with the CLI subprocess. Enable with `--enforce-file-validation` flag or `runtime_validate=True` parameter.
+
+**Note**: Files that fail CLI validation may still open correctly in the Gaea2 GUI. The structural validation is sufficient for most use cases.
+
+## Node Support
+
+The server supports 184 Gaea2 node types across 9 categories:
+
+| Category | Count | Description |
+|----------|-------|-------------|
+| Primitive | 24 | Noise generators and basic patterns |
+| Terrain | 14 | Primary terrain generators |
+| Modify | 41 | Terrain modification tools |
+| Surface | 21 | Surface detail and texture |
+| Simulate | 25 | Natural process simulation |
+| Derive | 13 | Analysis and mask generation |
+| Colorize | 13 | Color and texture operations |
+| Output | 13 | Export and integration |
+| Utility | 20 | Helper and utility nodes |
+
+## Pattern Intelligence
+
+Analysis of 31 production Gaea2 projects provides:
+
+- **Common Workflow**: Slump -> FractalTerraces -> Combine -> Shear (9 occurrences)
+- **Most Used Nodes**: SatMap (47), Combine (38), Erosion2 (29)
+- **Average Complexity**: 12.1 nodes, 14.2 connections per project
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GAEA2_PATH` | Auto-detected | Path to Gaea.Swarm.exe |
+| `GAEA2_MCP_PORT` | 8007 | Server port |
+| `GAEA2_MCP_HOST` | localhost | Server host |
+| `GAEA2_LOG_LEVEL` | INFO | Logging level |
+| `GAEA2_AUTO_VALIDATE` | true | Auto-validate projects |
+
+### Command Line Arguments
+
+```bash
+python -m mcp_gaea2.server [OPTIONS]
+
+Options:
+  --mode http              Transport mode (http only)
+  --port PORT              Server port (default: 8007)
+  --host HOST              Server host (default: localhost)
+  --gaea-path PATH         Path to Gaea.Swarm.exe
+  --output-dir DIR         Output directory for terrain files
+  --enforce-file-validation  Enable runtime CLI validation
+```
+
+## Troubleshooting
+
+### Server Issues
+
+| Issue | Solution |
+|-------|----------|
+| "Gaea2 not found" | Set `GAEA2_PATH` to Gaea.Swarm.exe location |
+| "Cannot run in container" | Server must run on Windows host |
+| Connection refused | Verify server is running and port is accessible |
+
+### Generation Issues
+
+| Issue | Solution |
+|-------|----------|
+| Template works, custom fails | Use templates when possible; review property formats |
+| Invalid connections | Check port names (In, Out, Input2, Mask) |
+| Properties ignored | Use space-separated names ("Rock Softness" not "RockSoftness") |
+
+### Format Requirements
+
+- **Property names**: Space-separated ("Rock Softness", not "RockSoftness")
+- **Range properties**: Must include $id: `{"$id": "103", "X": 0.5, "Y": 1.0}`
+- **Node IDs**: Non-sequential recommended (183, 668, 427)
+- **Combine nodes**: Require `PortCount: 2` property
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [API Reference](GAEA2_API_REFERENCE.md) | Complete API documentation |
+| [Examples](GAEA2_EXAMPLES.md) | Code examples and patterns |
+| [Quick Reference](GAEA2_QUICK_REFERENCE.md) | Quick reference guide |
+| [Knowledge Base](GAEA2_KNOWLEDGE_BASE.md) | Pattern intelligence data |
+| [Connection Architecture](CONNECTION_ARCHITECTURE.md) | Connection system internals |
+| [Node Properties](GAEA2_NODE_PROPERTIES_EXTENDED.md) | Complete property documentation |
+| [Template Reference](GAEA2_TEMPLATE_REFERENCE.md) | Template specifications |
+| [Node Reference](GAEA2_NODE_REFERENCE.md) | Node type reference |
+
+## Testing
+
+```bash
+# Run all tests
+python -m pytest tests/ -v
+
+# Quick server connectivity test
+python scripts/test_server.py
+
+# Test template generation
+python scripts/test_gaea2_templates.py
+```
+
+## Architecture
+
+```
+mcp_gaea2/
+├── server.py              # MCP server implementation
+├── generation/
+│   ├── project_generator.py  # Core terrain generation
+│   ├── generator.py          # Generator wrapper
+│   └── templates.py          # Template system
+├── validation/
+│   ├── validator.py          # Structural validation
+│   └── gaea2_file_validator.py  # Runtime CLI validation
+├── schema/
+│   ├── nodes.yaml            # Node definitions
+│   └── schema_loader.py      # YAML schema loading
+└── templates/
+    └── templates.yaml        # Template definitions
 ```
 
 ---
 
-*Built with intelligence from analyzing 31 real Gaea2 projects containing 374 nodes and 440 connections.*
+*Pattern intelligence derived from analysis of 31 production Gaea2 projects containing 374 nodes and 440 connections.*

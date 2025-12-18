@@ -4,8 +4,11 @@ import base64
 from datetime import datetime
 import json
 import os
+import random
 from typing import Any, Dict, List, Optional
 import uuid
+
+from mcp_gaea2.utils.gaea2_connection_utils import normalize_connections
 
 
 class EnhancedGaea2Tools:
@@ -38,58 +41,29 @@ class EnhancedGaea2Tools:
             terrain_id = str(uuid.uuid4())
             timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%SZ")
 
-            # Enhanced build definition
+            # Build definition matching Gaea2 2.2.6.0 format
             default_build_config = {
                 "Type": "Standard",
                 "Destination": "<Builds>\\[Filename]\\[+++]",
-                "OverwriteMode": "Increment",
                 "Resolution": 2048,
                 "BakeResolution": 2048,
                 "TileResolution": 1024,
                 "BucketResolution": 2048,
-                "BucketCount": 1,
-                "WorldResolution": 2048,
-                "NumberOfTiles": 2,
-                "TotalTiles": 4,
-                "BucketSizeWithMargin": 3072,
+                "NumberOfTiles": 3,
                 "EdgeBlending": 0.25,
-                "EdgeSize": 512,
                 "TileZeroIndex": True,
                 "TilePattern": "_y%Y%_x%X%",
                 "OrganizeFiles": "NodeSubFolder",
-                "PersistOnSave": True,
-                "PostBuildScript": "",
-                "OpenFolder": True,
-                "CopyTerrain": True,
-                "Regions": {"$id": "24", "$values": []},
+                "ColorSpace": "sRGB",
             }
 
             if build_config:
                 default_build_config.update(build_config)
 
-            # Enhanced viewport settings
-            default_viewport = {
-                "Camera": {"$id": str(uuid.uuid4())},
-                "RenderMode": "Realistic",
-                "AutolevelMasks": True,
-                "SunAltitude": 33.0,
-                "SunAzimuth": 45.0,
-                "SunIntensity": 1.0,
-                "AmbientOcclusion": True,
-                "Shadows": True,
-                "AirDensity": 1.0,
-                "AmbientIntensity": 1.0,
-                "Exposure": 1.0,
-                "FogDensity": 0.2,
-                "GroundBrightness": 0.8,
-                "Haze": 1.0,
-                "Ozone": 1.0,
-            }
-
             if viewport_settings:
-                default_viewport.update(viewport_settings)
+                pass  # Will be applied later
 
-            # Create base project structure
+            # Create base project structure matching Gaea2 2.2.6.0 format
             project = {
                 "$id": "1",
                 "Assets": {
@@ -103,12 +77,12 @@ class EnhancedGaea2Tools:
                                 "Metadata": {
                                     "$id": "5",
                                     "Name": project_name,
-                                    "Description": f"Enhanced project created by MCP on {timestamp}",
-                                    "Version": "",  # Empty string like working files
+                                    "Description": "",
+                                    "Version": "2.2.6.0",
                                     "DateCreated": timestamp,
                                     "DateLastBuilt": timestamp,
                                     "DateLastSaved": timestamp,
-                                    "ModifiedVersion": "2.1.2.0",
+                                    "ModifiedVersion": "2.2.6.0",
                                 },
                                 "Nodes": {"$id": "6"},
                                 "Groups": {"$id": "7"},
@@ -120,11 +94,11 @@ class EnhancedGaea2Tools:
                                             "$id": "10",
                                             "Name": "Graph 1",
                                             "Color": "Brass",
-                                            "ZoomFactor": 0.5,
+                                            "ZoomFactor": 0.6299605249474372,
                                             "ViewportLocation": {
                                                 "$id": "11",
-                                                "X": 25000.0,
-                                                "Y": 25000.0,
+                                                "X": 27690.082,
+                                                "Y": 25804.441,
                                             },
                                         }
                                     ],
@@ -138,34 +112,42 @@ class EnhancedGaea2Tools:
                                 "$id": "13",
                                 "Bindings": {"$id": "14", "$values": []},
                                 "Expressions": {"$id": "15"},
-                                "VariablesEx": {"$id": "16"},
-                                "Variables": {"$id": "17"},
-                                "BoundProperties": {"$id": "23", "$values": []},
+                                "Variables": {"$id": "16"},
                             },
-                            "BuildDefinition": {"$id": "18", **default_build_config},
+                            "BuildDefinition": {"$id": "17", **default_build_config},
                             "State": {
-                                "$id": "19",
+                                "$id": "18",
                                 "BakeResolution": 2048,
-                                "PreviewResolution": 2048,
-                                "SelectedNode": nodes[0]["id"] if nodes else 100,
-                                "NodeBookmarks": {"$id": "20", "$values": []},
-                                "Viewport": {"$id": "21", **default_viewport},
+                                "PreviewResolution": 1024,
+                                "HDResolution": 4096,
+                                "SelectedNode": -1,
+                                "NodeBookmarks": {"$id": "19", "$values": []},
+                                "Viewport": {
+                                    "$id": "20",
+                                    "CameraPosition": {"$id": "21", "$values": []},
+                                    "Camera": {"$id": "22"},
+                                    "RenderMode": "Realistic",
+                                    "AmbientOcclusion": True,
+                                    "Shadows": True,
+                                },
                             },
+                            "BuildProfiles": {"$id": "23"},
                         }
                     ],
                 },
                 "Id": project_id[:8],
                 "Branch": 1,
                 "Metadata": {
-                    "$id": "22",
+                    "$id": "24",
                     "Name": project_name,
                     "Description": "",
-                    "Version": "",  # Empty string like working files
+                    "Version": "2.2.6.0",
+                    "Edition": "G2P",
                     "Owner": "",
                     "DateCreated": timestamp,
                     "DateLastBuilt": timestamp,
                     "DateLastSaved": timestamp,
-                    "ModifiedVersion": "2.1.2.0",
+                    "ModifiedVersion": "2.2.6.0",
                 },
             }
 
@@ -183,10 +165,12 @@ class EnhancedGaea2Tools:
 
             # Process nodes with enhanced features
             nodes_dict: Dict[str, Any] = {}
-            ref_id_counter = 23
+            ref_id_counter = 25  # Start after the last $id in project structure (24)
 
             for node_data in nodes:
-                node_id = node_data.get("id", 100 + len(nodes_dict))
+                # Ensure node_id is always an integer (Gaea2 requirement)
+                raw_id = node_data.get("id", 100 + len(nodes_dict))
+                node_id = int(raw_id) if isinstance(raw_id, (str, int, float)) else 100 + len(nodes_dict)
                 enhanced_node = await EnhancedGaea2Tools._create_enhanced_node(node_data, node_id, ref_id_counter)
                 nodes_dict[str(node_id)] = enhanced_node["node"]
                 ref_id_counter = enhanced_node["next_ref_id"]
@@ -200,6 +184,8 @@ class EnhancedGaea2Tools:
                 groups_dict: Dict[str, Any] = {}
                 for group in groups:
                     group_id = group.get("id", 300 + len(groups_dict))
+                    group_pos = EnhancedGaea2Tools._normalize_position(group.get("position", {}))
+                    group_size = EnhancedGaea2Tools._normalize_position(group.get("size", {"x": 500, "y": 500}))
                     groups_dict[str(group_id)] = {
                         "$id": str(ref_id_counter),
                         "Id": group_id,
@@ -211,13 +197,13 @@ class EnhancedGaea2Tools:
                         },
                         "Position": {
                             "$id": str(ref_id_counter + 2),
-                            "X": float(group.get("position", {}).get("x", 25000)),
-                            "Y": float(group.get("position", {}).get("y", 25000)),
+                            "X": group_pos["x"],
+                            "Y": group_pos["y"],
                         },
                         "Size": {
                             "$id": str(ref_id_counter + 3),
-                            "X": float(group.get("size", {}).get("x", 500)),
-                            "Y": float(group.get("size", {}).get("y", 500)),
+                            "X": group_size["x"],
+                            "Y": group_size["y"],
                         },
                     }
                     ref_id_counter += 4
@@ -231,7 +217,7 @@ class EnhancedGaea2Tools:
                 assert isinstance(terrain, dict)
                 terrain["Groups"] = groups_dict
 
-            # Assign nodes to project
+            # Assign nodes to project - preserve the $id from the original Nodes dict
             assets_obj = project["Assets"]
             assert isinstance(assets_obj, dict)
             assets_values = assets_obj["$values"]
@@ -240,7 +226,10 @@ class EnhancedGaea2Tools:
             assert isinstance(first_asset, dict)
             terrain = first_asset["Terrain"]
             assert isinstance(terrain, dict)
-            terrain["Nodes"] = nodes_dict
+            # Keep the $id and add nodes to it
+            nodes_with_id = {"$id": "6"}
+            nodes_with_id.update(nodes_dict)
+            terrain["Nodes"] = nodes_with_id
 
             # Save project
             if output_path:
@@ -376,35 +365,82 @@ class EnhancedGaea2Tools:
         return layers, ref_id_counter
 
     @staticmethod
+    def _normalize_position(position: Dict[str, Any]) -> Dict[str, float]:
+        """Normalize position dict to handle both uppercase and lowercase keys."""
+        # Handle uppercase X, Y (from tests and some APIs)
+        x = position.get("X", position.get("x", 25000))
+        y = position.get("Y", position.get("y", 25000))
+        return {"x": float(x), "y": float(y)}
+
+    @staticmethod
     async def _create_enhanced_node(node_data: Dict[str, Any], node_id: int, ref_id_counter: int) -> Dict[str, Any]:
-        """Create an enhanced node with modifiers, ports, and save definitions"""
+        """Create an enhanced node with modifiers, ports, and save definitions.
+
+        Property order follows Gaea2 reference format:
+        1. $id, $type
+        2. Node-specific properties (Scale, Height, etc.)
+        3. X, Y (normalized 0-1)
+        4. Seed (for generator nodes)
+        5. Id, Name, Position, Ports, Modifiers
+        """
         node_type = node_data.get("type", "Mountain")
         node_name = node_data.get("name", node_type)
-        position = node_data.get("position", {"x": 25000, "y": 25000})
+        raw_position = node_data.get("position", {"x": 25000, "y": 25000})
+        position = EnhancedGaea2Tools._normalize_position(raw_position)
         properties = node_data.get("properties", {})
 
-        # Base node structure
-        node = {
-            "$id": str(ref_id_counter),
-            "$type": f"QuadSpinner.Gaea.Nodes.{node_type}, Gaea.Nodes",
-            "Id": node_id,
-            "Name": node_name,
-            "Position": {"$id": str(ref_id_counter + 1), "X": float(position["x"]), "Y": float(position["y"])},
-            "Ports": {"$id": str(ref_id_counter + 2), "$values": []},
-            "Modifiers": {"$id": str(ref_id_counter + 3), "$values": []},
-        }
         node_id_ref = str(ref_id_counter)
-        ref_id_counter += 4
 
-        # Add node-specific properties
+        # Build node in correct property order (order matters for Gaea2)
+        node: Dict[str, Any] = {}
+
+        # 1. Required identifiers first
+        node["$id"] = str(ref_id_counter)
+        node["$type"] = f"QuadSpinner.Gaea.Nodes.{node_type}, Gaea.Nodes"
+
+        # 2. Node-specific properties (before X/Y/Seed/Id/Name/Position)
         for prop, value in properties.items():
             if isinstance(value, dict) and "x" in value and "y" in value:
-                node[prop] = {"$id": str(ref_id_counter), "X": float(value["x"]), "Y": float(value["y"])}
+                node[prop] = {"$id": str(ref_id_counter + 4), "X": float(value["x"]), "Y": float(value["y"])}
                 ref_id_counter += 1
             elif prop == "StrokeData" and isinstance(value, str):
                 node[prop] = value
             else:
                 node[prop] = value
+
+        # 3. Root-level X/Y (normalized 0-1, defaults to center)
+        node["X"] = 0.5
+        node["Y"] = 0.5
+
+        # 4. Seed for generator nodes
+        generator_nodes = {
+            "Mountain",
+            "Volcano",
+            "Island",
+            "Perlin",
+            "Voronoi",
+            "Cellular",
+            "Gradient",
+            "Canyon",
+            "Erosion2",
+            "Rivers",
+            "Snow",
+            "Beach",
+            "Coast",
+            "Lake",
+            "Glacier",
+        }
+        if node_type in generator_nodes and "Seed" not in properties:
+            node["Seed"] = random.randint(10000, 99999)
+
+        # 5. Standard properties last
+        node["Id"] = node_id
+        node["Name"] = node_name
+        node["Position"] = {"$id": str(ref_id_counter + 1), "X": float(position["x"]), "Y": float(position["y"])}
+        node["Ports"] = {"$id": str(ref_id_counter + 2), "$values": []}
+        node["Modifiers"] = {"$id": str(ref_id_counter + 3), "$values": []}
+
+        ref_id_counter += 4
 
         # Create ports
         port_defs = node_data.get("ports") or EnhancedGaea2Tools._get_default_ports(node_type)
@@ -444,7 +480,10 @@ class EnhancedGaea2Tools:
     ) -> int:
         """Add connections between nodes with enhanced port handling"""
 
-        for conn in connections:
+        # Normalize connections to standard format (from_node/to_node)
+        normalized_conns = normalize_connections(connections)
+
+        for conn in normalized_conns:
             from_id = str(conn["from_node"])
             to_id = str(conn["to_node"])
             from_port = conn.get("from_port", "Out")

@@ -22,13 +22,18 @@ class AccurateGaea2Validator:
             with open(schema_path, encoding="utf-8") as f:
                 self.schema = json.load(f)
         else:
-            # Fallback to embedded schema
-            from automation.analysis.generate_gaea2_schema import GAEA2_COMPLETE_SCHEMA
+            # Use the package's own schema module (no external dependencies)
+            from mcp_gaea2.schema.gaea2_schema import (
+                COMMON_NODE_PROPERTIES,
+                NODE_PROPERTY_DEFINITIONS,
+                VALID_NODE_TYPES,
+            )
 
-            self.schema = GAEA2_COMPLETE_SCHEMA
-            # Convert set to list if needed
-            if isinstance(self.schema["valid_node_types"], set):
-                self.schema["valid_node_types"] = list(self.schema["valid_node_types"])
+            self.schema = {
+                "valid_node_types": list(VALID_NODE_TYPES),
+                "node_properties": NODE_PROPERTY_DEFINITIONS,
+                "common_properties": COMMON_NODE_PROPERTIES,
+            }
 
     def validate_node_type(self, node_type: str) -> bool:
         """Check if a node type is valid"""

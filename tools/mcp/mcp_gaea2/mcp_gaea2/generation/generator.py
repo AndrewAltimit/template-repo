@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 from mcp_gaea2.validation.gaea2_format_fixes import generate_non_sequential_id
 
 # Import real implementations
-from .gaea2_enhanced import EnhancedGaea2Tools
+from .project_generator import EnhancedGaea2Tools
 
 
 class Gaea2ProjectGenerator:

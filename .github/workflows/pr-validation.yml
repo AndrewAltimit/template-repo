@@ -501,25 +501,23 @@ jobs:
       # Clean up any leftover output directories from previous runs
       - name: Clean up output directory
         run: |
-          echo "🧹 Cleaning up output directory..."
-          # Check if output directory exists and has permission issues
-          if [ -d "output" ]; then
+          echo "🧹 Cleaning up output directories..."
+          # Check if outputs directory exists and has permission issues
+          if [ -d "outputs" ]; then
             # Try to remove it normally first
-            if rm -rf output 2>/dev/null; then
-              echo "✅ Output directory cleaned"
+            if rm -rf outputs 2>/dev/null; then
+              echo "✅ Outputs directory cleaned"
             else
               # If that fails, try with sudo (if available)
               if command -v sudo &> /dev/null; then
                 echo "⚠️  Permission issues detected, using sudo to clean up"
-                sudo rm -rf output || echo "❌ Could not remove output directory even with sudo"
+                sudo rm -rf outputs || echo "❌ Could not remove outputs directory even with sudo"
               else
-                echo "❌ Could not remove output directory - permission denied"
+                echo "❌ Could not remove outputs directory - permission denied"
               fi
             fi
           fi
-          # Ensure output directory is created with proper permissions
-          mkdir -p output
-          echo "✅ Output directory prepared"
+          echo "✅ Output cleanup complete"
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -529,6 +527,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
+
+      - name: Post-checkout setup
+        run: |
+          # Initialize output directories to prevent root ownership issues
+          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
+            ./automation/setup/docker/init-output-dirs.sh
+          fi
 
       # Set Docker user environment variables
       - name: Set Docker user environment

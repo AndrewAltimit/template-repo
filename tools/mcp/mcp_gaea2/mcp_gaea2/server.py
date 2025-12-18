@@ -34,7 +34,7 @@ class Gaea2MCPServer(BaseMCPServer):
         gaea_path: Optional[str] = None,
         output_dir: str = "/app/output/gaea2",
         port: int = 8007,
-        enforce_file_validation: bool = True,
+        enforce_file_validation: bool = False,  # Disabled by default - CLI validation unreliable
     ):
         # Check if running in container
         if check_container_environment() and platform.system() != "Windows":
@@ -131,7 +131,15 @@ class Gaea2MCPServer(BaseMCPServer):
                         "auto_validate": {
                             "type": "boolean",
                             "default": True,
-                            "description": "Automatically validate and fix workflow",
+                            "description": "Automatically validate and fix workflow structure",
+                        },
+                        "runtime_validate": {
+                            "type": "boolean",
+                            "default": None,
+                            "description": (
+                                "Run validation through Gaea2 CLI after creation. "
+                                "If None, uses server's enforce_file_validation setting."
+                            ),
                         },
                     },
                     "required": ["project_name"],
@@ -167,6 +175,14 @@ class Gaea2MCPServer(BaseMCPServer):
                             "type": "string",
                             "description": "Path to save the .terrain file",
                         },
+                        "runtime_validate": {
+                            "type": "boolean",
+                            "default": None,
+                            "description": (
+                                "Run validation through Gaea2 CLI after creation. "
+                                "If None, uses server's enforce_file_validation setting."
+                            ),
+                        },
                     },
                     "required": ["template_name", "project_name"],
                 },
@@ -187,6 +203,14 @@ class Gaea2MCPServer(BaseMCPServer):
                             "type": "boolean",
                             "default": False,
                             "description": "Use strict validation rules",
+                        },
+                        "runtime_check": {
+                            "type": "boolean",
+                            "default": False,
+                            "description": (
+                                "Run validation through Gaea2 CLI after structural validation. "
+                                "Catches runtime errors that structural validation misses."
+                            ),
                         },
                     },
                     "required": ["workflow"],
@@ -274,7 +298,7 @@ class Gaea2MCPServer(BaseMCPServer):
             tools.update(
                 {
                     "run_gaea2_project": {
-                        "description": "Run a Gaea2 project via CLI to generate terrain",
+                        "description": "Run a Gaea2 project via CLI to generate terrain (Gaea.Swarm 2.2.6+)",
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -286,16 +310,41 @@ class Gaea2MCPServer(BaseMCPServer):
                                     "type": "string",
                                     "enum": ["512", "1024", "2048", "4096", "8192"],
                                     "default": "1024",
+                                    "description": "Build resolution",
                                 },
-                                "format": {
+                                "build_path": {
                                     "type": "string",
-                                    "enum": ["exr", "raw", "png", "tiff"],
-                                    "default": "exr",
+                                    "description": "Output directory (defaults to output_<project_name>)",
                                 },
-                                "bake_only": {
-                                    "type": "array",
-                                    "items": {"type": "string"},
-                                    "description": "List of specific nodes to bake",
+                                "profile": {
+                                    "type": "string",
+                                    "description": "Build profile name defined in the project",
+                                },
+                                "region": {
+                                    "type": "string",
+                                    "description": "Specific region to build",
+                                },
+                                "seed": {
+                                    "type": "integer",
+                                    "description": "Mutation seed for terrain variations",
+                                },
+                                "target_node": {
+                                    "type": "integer",
+                                    "description": "Specific node index to target",
+                                },
+                                "variables": {
+                                    "type": "object",
+                                    "description": "Variable name:value pairs for automation",
+                                },
+                                "ignore_cache": {
+                                    "type": "boolean",
+                                    "default": False,
+                                    "description": "Force rebuild ignoring baked cache",
+                                },
+                                "verbose": {
+                                    "type": "boolean",
+                                    "default": False,
+                                    "description": "Enable verbose diagnostic logging",
                                 },
                                 "timeout": {
                                     "type": "integer",
@@ -361,6 +410,30 @@ class Gaea2MCPServer(BaseMCPServer):
             },
         }
 
+        # Add runtime validation tool if Gaea2 is available
+        if self.cli:
+            tools["validate_gaea2_runtime"] = {
+                "description": (
+                    "Validate a .terrain file by running it through Gaea2 CLI. "
+                    "This catches errors that structural validation misses (invalid node configs, etc.)"
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "project_path": {
+                            "type": "string",
+                            "description": "Path to the .terrain file to validate",
+                        },
+                        "timeout": {
+                            "type": "integer",
+                            "default": 30,
+                            "description": "Timeout in seconds for validation",
+                        },
+                    },
+                    "required": ["project_path"],
+                },
+            }
+
         return tools
 
     async def _validate_generated_file(self, output_path: str) -> Dict[str, Any]:
@@ -397,8 +470,19 @@ class Gaea2MCPServer(BaseMCPServer):
         connections: Optional[List[Dict[str, Any]]] = None,
         output_path: Optional[str] = None,
         auto_validate: bool = True,
+        runtime_validate: Optional[bool] = None,
     ) -> Dict[str, Any]:
-        """Create a new Gaea2 terrain project"""
+        """Create a new Gaea2 terrain project
+
+        Args:
+            project_name: Name for the project
+            workflow: Complete workflow dict with nodes and connections
+            nodes: List of nodes (alternative to workflow)
+            connections: List of connections (alternative to workflow)
+            output_path: Path to save the .terrain file
+            auto_validate: Automatically validate and fix workflow structure
+            runtime_validate: Run validation through Gaea2 CLI. If None, uses server setting.
+        """
         try:
             # Validate input parameters
             if workflow is None and nodes is None:
@@ -434,12 +518,13 @@ class Gaea2MCPServer(BaseMCPServer):
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(terrain_data, f, indent=2)
 
-            # File validation
+            # Determine if runtime validation should be performed
             bypass_for_tests = os.environ.get("GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS") == "1"
+            should_validate = runtime_validate if runtime_validate is not None else self.enforce_file_validation
             file_validation_performed = False
             file_validation_passed = False
 
-            if self.enforce_file_validation and self.gaea_path and not bypass_for_tests:
+            if should_validate and self.gaea_path and not bypass_for_tests:
                 try:
                     result = await self._validate_generated_file(output_path)
                     if not result["success"]:
@@ -457,6 +542,8 @@ class Gaea2MCPServer(BaseMCPServer):
                 self.logger.warning("File validation bypassed for testing")
             elif not self.gaea_path:
                 self.logger.warning("File validation skipped: Gaea2 path not configured")
+            elif not should_validate:
+                self.logger.info("File validation skipped: runtime_validate=False")
 
             return {
                 "success": True,
@@ -464,8 +551,8 @@ class Gaea2MCPServer(BaseMCPServer):
                 "node_count": len(nodes or []),
                 "connection_count": len(connections or []),
                 "validation_applied": auto_validate,
-                "file_validation_performed": file_validation_performed,
-                "file_validation_passed": file_validation_passed,
+                "runtime_validation_performed": file_validation_performed,
+                "runtime_validation_passed": file_validation_passed,
                 "bypass_for_tests": bypass_for_tests,
             }
 
@@ -479,8 +566,16 @@ class Gaea2MCPServer(BaseMCPServer):
         template_name: str,
         project_name: str,
         output_path: Optional[str] = None,
+        runtime_validate: Optional[bool] = None,
     ) -> Dict[str, Any]:
-        """Create a Gaea2 project from template"""
+        """Create a Gaea2 project from template
+
+        Args:
+            template_name: Name of the template to use
+            project_name: Name for the project
+            output_path: Path to save the .terrain file
+            runtime_validate: Run validation through Gaea2 CLI. If None, uses server setting.
+        """
         try:
             # Get template
             template = await self.templates.get_template(template_name)
@@ -493,6 +588,7 @@ class Gaea2MCPServer(BaseMCPServer):
                 workflow=template,
                 output_path=output_path,
                 auto_validate=True,
+                runtime_validate=runtime_validate,
             )
 
             if result["success"]:
@@ -504,8 +600,20 @@ class Gaea2MCPServer(BaseMCPServer):
             self.logger.error("Failed to create from template: %s", str(e))
             return {"success": False, "error": str(e)}
 
-    async def validate_and_fix_workflow(self, *, workflow: Dict[str, Any], strict_mode: bool = False) -> Dict[str, Any]:
-        """Validate and fix a Gaea2 workflow"""
+    async def validate_and_fix_workflow(
+        self,
+        *,
+        workflow: Dict[str, Any],
+        strict_mode: bool = False,
+        runtime_check: bool = False,
+    ) -> Dict[str, Any]:
+        """Validate and fix a Gaea2 workflow
+
+        Args:
+            workflow: Workflow dict with nodes and connections
+            strict_mode: Use strict validation rules
+            runtime_check: Run validation through Gaea2 CLI after structural validation
+        """
         try:
             # Validate workflow structure
             if not isinstance(workflow, dict):
@@ -522,14 +630,60 @@ class Gaea2MCPServer(BaseMCPServer):
 
             result = await self.validator.validate_and_fix(workflow, strict_mode=strict_mode)
 
-            return {
+            response = {
                 "success": True,
                 "valid": result["valid"],
                 "fixed": result["fixed"],
                 "errors": result["errors"],
                 "fixes_applied": result.get("fixes_applied", []),
                 "workflow": result["workflow"],
+                "runtime_check_performed": False,
+                "runtime_check_passed": None,
             }
+
+            # Run runtime check if requested and Gaea2 is available
+            if runtime_check and result["valid"]:
+                if not self.cli:
+                    response["runtime_check_error"] = "Gaea2 CLI not available for runtime check"
+                else:
+                    # Create a temp file for runtime validation
+                    temp_path = os.path.join(
+                        tempfile.gettempdir(),
+                        f"gaea2_runtime_check_{datetime.now().strftime('%Y%m%d_%H%M%S')}.terrain",
+                    )
+                    try:
+                        # Generate the project data
+                        project_data = await self.generator.create_project(
+                            project_name="runtime_check",
+                            nodes=result["workflow"]["nodes"],
+                            connections=result["workflow"]["connections"],
+                        )
+                        terrain_data = project_data.get("project", project_data)
+                        with open(temp_path, "w", encoding="utf-8") as f:
+                            json.dump(terrain_data, f, indent=2)
+
+                        # Run runtime validation
+                        runtime_result = await self._validate_generated_file(temp_path)
+                        response["runtime_check_performed"] = True
+                        response["runtime_check_passed"] = runtime_result.get("success", False)
+
+                        if not runtime_result.get("success"):
+                            response["valid"] = False
+                            response["runtime_check_error"] = runtime_result.get("error")
+                            response["errors"].append(
+                                f"Runtime validation failed: {runtime_result.get('error', 'Unknown error')}"
+                            )
+                    except Exception as e:
+                        response["runtime_check_error"] = f"Runtime check failed: {str(e)}"
+                    finally:
+                        # Clean up temp file
+                        if os.path.exists(temp_path):
+                            try:
+                                os.remove(temp_path)
+                            except Exception:
+                                pass
+
+            return response
 
         except Exception as e:
             self.logger.error("Validation failed: %s", str(e))
@@ -662,11 +816,17 @@ class Gaea2MCPServer(BaseMCPServer):
         *,
         project_path: str,
         resolution: str = "1024",
-        output_format: str = "exr",
-        bake_only: Optional[List[str]] = None,
+        build_path: Optional[str] = None,
+        profile: Optional[str] = None,
+        region: Optional[str] = None,
+        seed: Optional[int] = None,
+        target_node: Optional[int] = None,
+        variables: Optional[Dict[str, str]] = None,
+        ignore_cache: bool = False,
+        verbose: bool = False,
         timeout: int = 300,
     ) -> Dict[str, Any]:
-        """Run a Gaea2 project via CLI"""
+        """Run a Gaea2 project via CLI (Gaea.Swarm 2.2.6+)"""
         if not self.cli:
             return {
                 "success": False,
@@ -677,8 +837,14 @@ class Gaea2MCPServer(BaseMCPServer):
             result = await self.cli.run_project(
                 project_path=project_path,
                 resolution=resolution,
-                output_format=output_format,
-                bake_only=bake_only,
+                build_path=build_path,
+                profile=profile,
+                region=region,
+                seed=seed,
+                target_node=target_node,
+                variables=variables,
+                ignore_cache=ignore_cache,
+                verbose=verbose,
                 timeout=timeout,
             )
 
@@ -713,6 +879,58 @@ class Gaea2MCPServer(BaseMCPServer):
 
         except Exception as e:
             self.logger.error("History analysis failed: %s", str(e))
+            return {"success": False, "error": str(e)}
+
+    async def validate_gaea2_runtime(
+        self,
+        *,
+        project_path: str,
+        timeout: int = 30,
+    ) -> Dict[str, Any]:
+        """Validate a .terrain file by running it through Gaea2 CLI.
+
+        This validation catches errors that structural validation misses,
+        such as invalid node configurations that only fail at runtime.
+
+        Args:
+            project_path: Path to the .terrain file to validate
+            timeout: Timeout in seconds for validation
+
+        Returns:
+            Validation result with success status and error details
+        """
+        if not self.cli:
+            return {
+                "success": False,
+                "error": "Gaea2 CLI automation not available. Set GAEA2_PATH environment variable.",
+            }
+
+        if not os.path.exists(project_path):
+            return {
+                "success": False,
+                "error": f"File not found: {project_path}",
+            }
+
+        try:
+            from .validation.gaea2_file_validator import Gaea2FileValidator
+
+            self.logger.info("Running runtime validation on: %s", project_path)
+            file_validator = Gaea2FileValidator(self.gaea_path)
+            result = await file_validator.validate_file(project_path, timeout=timeout)
+
+            return {
+                "success": result["success"],
+                "file_path": project_path,
+                "validation_passed": result["success"],
+                "error": result.get("error"),
+                "error_info": result.get("error_info"),
+                "duration": result.get("duration"),
+                "stdout": result.get("stdout", ""),
+                "stderr": result.get("stderr", ""),
+            }
+
+        except Exception as e:
+            self.logger.error("Runtime validation failed: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def download_gaea2_project(
@@ -904,9 +1122,9 @@ def main():
         help="Port to run the HTTP server on (default: 8007)",
     )
     parser.add_argument(
-        "--no-enforce-file-validation",
+        "--enforce-file-validation",
         action="store_true",
-        help="Disable mandatory file validation (not recommended for production)",
+        help="Enable runtime CLI validation (disabled by default due to reliability issues)",
     )
     args = parser.parse_args()
 
@@ -927,7 +1145,7 @@ def main():
         gaea_path=args.gaea_path,
         output_dir=args.output_dir,
         port=args.port,
-        enforce_file_validation=not args.no_enforce_file_validation,
+        enforce_file_validation=args.enforce_file_validation,
     )
     server.run(mode=args.mode)
 

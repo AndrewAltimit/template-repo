@@ -17,6 +17,12 @@ def normalize_connection(connection: Dict[str, Any]) -> Dict[str, Any]:
         "to_port": "In"
     }
 
+    Supported input formats:
+    1. Standard: from_node/to_node/from_port/to_port
+    2. Source/target: source/target/source_port/target_port (from template loader)
+    3. Nested: from/to with node_id keys
+    4. Simple nested: from/to as direct values
+
     Args:
         connection: Connection in any supported format
 
@@ -26,6 +32,15 @@ def normalize_connection(connection: Dict[str, Any]) -> Dict[str, Any]:
     # If already in standard format, return as-is
     if "from_node" in connection and "to_node" in connection:
         return connection
+
+    # Convert from source/target format (used by template loader)
+    if "source" in connection and "target" in connection:
+        return {
+            "from_node": connection["source"],
+            "to_node": connection["target"],
+            "from_port": connection.get("source_port", connection.get("from_port", "Out")),
+            "to_port": connection.get("target_port", connection.get("to_port", "In")),
+        }
 
     # Convert from nested format
     if "from" in connection and "to" in connection:

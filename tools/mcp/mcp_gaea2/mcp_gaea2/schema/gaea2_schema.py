@@ -575,21 +575,29 @@ NODE_PROPERTY_DEFINITIONS = {
     },
     # Removed duplicate FractalTerraces - keeping the more complete one below
     "Terraces": {
-        "Terraces": {
+        "NumTerraces": {
             "type": "int",
             "default": 10,
-            "range": {"min": 2, "max": 50},
+            "range": {"min": 2, "max": 256},
             "description": "Number of terraces",
         },
         "Uniformity": {
             "type": "float",
             "default": 0.5,
             "range": {"min": 0.0, "max": 1.0},
+            "description": "Uniformity of terrace distribution",
         },
         "Steepness": {
             "type": "float",
             "default": 0.5,
             "range": {"min": 0.0, "max": 1.0},
+            "description": "Steepness of terrace edges",
+        },
+        "Seed": {
+            "type": "int",
+            "default": 0,
+            "range": {"min": 0, "max": 999999},
+            "description": "Randomization seed",
         },
     },
     "Steps": {
@@ -948,18 +956,90 @@ NODE_PROPERTY_DEFINITIONS = {
             "description": "Coastline detail level",
         },
     },
-    "Lakes": {
-        "Count": {
-            "type": "int",
-            "default": 3,
-            "range": {"min": 1, "max": 20},
-            "description": "Number of lakes",
-        },
-        "Size": {
+    "Lake": {
+        "Precipitation": {
             "type": "float",
-            "default": 0.3,
-            "range": {"min": 0.1, "max": 1.0},
-            "description": "Average lake size",
+            "default": 10.0,
+            "range": {"min": 0.0, "max": 100.0},
+            "description": "Water precipitation level for lake formation",
+        },
+        "SmallLakes": {
+            "type": "float",
+            "default": 0.2,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Proportion of small lakes",
+        },
+        "ShoreSize": {
+            "type": "float",
+            "default": 0.15,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Size of lake shore area",
+        },
+        "AltitudeBias": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1.0, "max": 1.0},
+            "description": "Altitude bias for lake placement",
+        },
+    },
+    # EasyErosion - simplified erosion simulation
+    "EasyErosion": {
+        "Style": {
+            "type": "enum",
+            "options": ["Alpine", "Fluvial", "Coastal", "Glacial", "Desert"],
+            "default": "Alpine",
+            "description": "Erosion style preset",
+        },
+        "Influence": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Erosion influence strength",
+        },
+    },
+    # WaterColor - water colorization node
+    "WaterColor": {
+        "Palette": {
+            "type": "enum",
+            "options": ["Oasis", "Ocean", "Arctic", "Tropical", "Swamp", "Lake"],
+            "default": "Oasis",
+            "description": "Water color palette preset",
+        },
+        "Hue": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1.0, "max": 1.0},
+            "description": "Hue adjustment",
+        },
+        "Saturation": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Color saturation",
+        },
+        "Lightness": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1.0, "max": 1.0},
+            "description": "Lightness adjustment",
+        },
+    },
+    # FlowMap - flow visualization
+    "FlowMap": {
+        "Seed": {
+            "type": "int",
+            "default": 0,
+            "range": {"min": 0, "max": 999999},
+            "description": "Randomization seed",
+        },
+    },
+    # Unreal Engine export node
+    "Unreal": {
+        "PortCount": {
+            "type": "int",
+            "default": 1,
+            "range": {"min": 1, "max": 8},
+            "description": "Number of input ports for export",
         },
     },
     # Removed duplicate Rivers - keeping the more complete one above
@@ -1613,6 +1693,66 @@ NODE_PORT_DEFINITIONS = {
             {"name": "Deposits", "type": "data"},
         ],
     },
+    # New node port definitions from Gaea2 2.2.6.0
+    "easyerosion": {
+        "inputs": [
+            {"name": "In", "type": "heightfield"},
+            {"name": "Mask", "type": "mask", "optional": True},
+        ],
+        "outputs": [
+            {"name": "Out", "type": "heightfield"},
+            {"name": "Flow", "type": "data"},
+            {"name": "Wear", "type": "data"},
+            {"name": "Deposits", "type": "data"},
+        ],
+    },
+    "lake": {
+        "inputs": [
+            {"name": "In", "type": "heightfield"},
+            {"name": "Precipitation", "type": "data", "optional": True},
+            {"name": "Mask", "type": "mask", "optional": True},
+        ],
+        "outputs": [
+            {"name": "Out", "type": "heightfield"},
+            {"name": "Water", "type": "mask"},
+            {"name": "Depth", "type": "data"},
+            {"name": "Shore", "type": "mask"},
+            {"name": "Surface", "type": "data"},
+        ],
+    },
+    "watercolor": {
+        "inputs": [
+            {"name": "In", "type": "heightfield"},
+            {"name": "Guide", "type": "data", "optional": True},
+        ],
+        "outputs": [
+            {"name": "Out", "type": "color"},
+            {"name": "Color", "type": "color"},
+            {"name": "Mask", "type": "mask"},
+            {"name": "Stillwater", "type": "mask"},
+            {"name": "Rivers", "type": "mask"},
+        ],
+    },
+    "flowmap": {
+        "inputs": [
+            {"name": "In", "type": "heightfield"},
+            {"name": "Precipitation", "type": "data", "optional": True},
+            {"name": "Mask", "type": "mask", "optional": True},
+        ],
+        "outputs": [
+            {"name": "Out", "type": "data"},
+        ],
+    },
+    "terraces": {
+        "inputs": [
+            {"name": "In", "type": "heightfield"},
+            {"name": "Modulation", "type": "heightfield", "optional": True},
+            {"name": "Mask", "type": "mask", "optional": True},
+        ],
+        "outputs": [
+            {"name": "Out", "type": "heightfield"},
+        ],
+    },
 }
 
 # Enhanced workflow templates based on documentation examples
@@ -1631,6 +1771,16 @@ WORKFLOW_TEMPLATES = {
                 "Downcutting": 0.3,
                 "ErosionScale": 5000.0,
                 "Seed": 12345,
+            },
+        },
+        {
+            "type": "Export",
+            "name": "HeightmapExport",
+            "properties": {},
+            "save_definition": {
+                "filename": "heightmap",
+                "format": "PNG16",
+                "enabled": True,
             },
         },
         {"type": "TextureBase", "name": "BaseTexture", "properties": {}},
@@ -1675,6 +1825,16 @@ WORKFLOW_TEMPLATES = {
             "type": "Rivers",
             "name": "MountainStreams",
             "properties": {"Water": 0.3, "Width": 0.5, "Depth": 0.4},
+        },
+        {
+            "type": "Export",
+            "name": "MountainHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "mountain_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
         },
         {
             "type": "Snow",
@@ -1725,6 +1885,16 @@ WORKFLOW_TEMPLATES = {
             "properties": {"Strength": 0.5, "Angle": 35.0},
         },
         {
+            "type": "Export",
+            "name": "VolcanoHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "volcano_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
+        },
+        {
             "type": "SatMap",
             "name": "VolcanicColors",
             "properties": {"Library": "Rock", "LibraryItem": 1},
@@ -1767,6 +1937,16 @@ WORKFLOW_TEMPLATES = {
             "type": "Sand",
             "name": "SandAccumulation",
             "properties": {"Amount": 0.4, "Scale": 0.5},
+        },
+        {
+            "type": "Export",
+            "name": "CanyonHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "canyon_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
         },
         {
             "type": "SatMap",
@@ -1821,6 +2001,16 @@ WORKFLOW_TEMPLATES = {
             "properties": {"PortalName": "Eroded_Terrain"},
         },
         {
+            "type": "Export",
+            "name": "PortalTerrainHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "portal_terrain_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
+        },
+        {
             "type": "SatMap",
             "name": "TerrainColors",
             "properties": {"Library": "Rock", "LibraryItem": 2},
@@ -1857,6 +2047,16 @@ WORKFLOW_TEMPLATES = {
                 "Downcutting": 0.3,
                 "ErosionScale": 7000.0,
                 "Seed": 54321,
+            },
+        },
+        {
+            "type": "Export",
+            "name": "RangeHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "range_heightmap",
+                "format": "PNG16",
+                "enabled": True,
             },
         },
         {
@@ -1901,6 +2101,16 @@ WORKFLOW_TEMPLATES = {
             "type": "ThermalShatter",
             "name": "ThermalBreakdown",
             "properties": {"Intensity": 0.7, "Scale": 0.4},
+        },
+        {
+            "type": "Export",
+            "name": "IslandHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "island_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
         },
         {
             "type": "Beach",
@@ -1950,6 +2160,16 @@ WORKFLOW_TEMPLATES = {
             "properties": {"Deposition": 0.4, "Sediments": 0.2, "Seed": 24680},
         },
         {
+            "type": "Export",
+            "name": "CanyonSystemHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "canyon_system_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
+        },
+        {
             "type": "SatMap",
             "name": "CanyonColors",
             "properties": {"Library": "Desert", "Enhance": "Equalize"},
@@ -1992,6 +2212,16 @@ WORKFLOW_TEMPLATES = {
             },
         },
         {
+            "type": "Export",
+            "name": "CoastalHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "coastal_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
+        },
+        {
             "type": "SatMap",
             "name": "CoastalColors",
             "properties": {"Library": "Blue", "LibraryItem": 4, "Reverse": True},
@@ -2024,9 +2254,19 @@ WORKFLOW_TEMPLATES = {
             "properties": {"Strength": 0.6, "Iterations": 30, "Angle": 32.0},
         },
         {
-            "type": "Lakes",
+            "type": "Export",
+            "name": "ArcticHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "arctic_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
+        },
+        {
+            "type": "Lake",
             "name": "GlacialLakes",
-            "properties": {"Count": 5, "Size": 0.2},
+            "properties": {},
         },
         {
             "type": "SatMap",
@@ -2079,6 +2319,16 @@ WORKFLOW_TEMPLATES = {
                 "Downcutting": 0.3,
                 "ErosionScale": 5000.0,
                 "Seed": 12345,
+            },
+        },
+        {
+            "type": "Export",
+            "name": "ValleyHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "valley_heightmap",
+                "format": "PNG16",
+                "enabled": True,
             },
         },
         {
@@ -2349,7 +2599,7 @@ def create_workflow_from_template(
         "Snow",
         "Beach",
         "Coast",
-        "Lakes",
+        "Lake",
         "Glacier",
         "SeaLevel",
         "LavaFlow",
@@ -2386,16 +2636,21 @@ def create_workflow_from_template(
             assert isinstance(template_props, dict)  # Type assertion for mypy
             properties = apply_default_properties(node_type, template_props)
 
-        node = {
+        node: Dict[str, Any] = {
             "id": node_id,
             "type": node_type,
             "name": node_template["name"],
             "position": {"x": start_position[0] + x_offset, "y": start_position[1]},
             "properties": properties,
         }
+
+        # Copy save_definition for Export nodes (required for CLI building)
+        if "save_definition" in node_template:
+            node["save_definition"] = node_template["save_definition"]
+
         nodes.append(node)
 
-        # Create connection to previous node (skip for Portal nodes)
+        # Create connection to previous node (skip for Portal and Export nodes)
         if i > 0:
             prev_node = nodes[i - 1]
 
@@ -2406,6 +2661,17 @@ def create_workflow_from_template(
                 "Portal",
             ] or prev_node["type"] in ["PortalTransmit", "PortalReceive", "Portal"]:
                 continue
+
+            # Export nodes are terminal - find the last terrain node to connect from
+            # instead of the immediately previous node
+            if prev_node["type"] == "Export":
+                # Skip - don't connect from Export node, find previous terrain node
+                for j in range(i - 2, -1, -1):
+                    if nodes[j]["type"] not in ["Export", "SatMap", "TextureBase", "ColorMap"]:
+                        prev_node = nodes[j]
+                        break
+                else:
+                    continue  # No suitable node found
 
             # Handle special connection cases
             if node["type"] == "Combine":
@@ -2721,14 +2987,159 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # Export all public functions and constants
+def validate_property(node_type: str, prop_name: str, prop_value: Any) -> Tuple[bool, str | None, Any]:
+    """Validate a single property value for a node type.
+
+    Args:
+        node_type: The type of node (e.g., "Mountain", "Erosion")
+        prop_name: The property name (e.g., "Seed", "Height")
+        prop_value: The property value to validate
+
+    Returns:
+        Tuple of (is_valid, error_message, corrected_value)
+        - is_valid: True if valid or correctable
+        - error_message: Description of issue (or None if valid)
+        - corrected_value: The value (possibly coerced/corrected)
+    """
+    # Get property definition
+    prop_def = None
+    if node_type in NODE_PROPERTY_DEFINITIONS:
+        node_props = NODE_PROPERTY_DEFINITIONS[node_type]
+        assert isinstance(node_props, dict)
+        if prop_name in node_props:
+            prop_def = node_props[prop_name]
+
+    if prop_def is None and prop_name in COMMON_NODE_PROPERTIES:
+        prop_def = COMMON_NODE_PROPERTIES[prop_name]
+
+    if prop_def is None:
+        # Unknown property - allow but warn
+        return True, f"Unknown property '{prop_name}' for node type '{node_type}'", prop_value
+
+    prop_type = prop_def.get("type", "float")
+
+    # Type-specific validation and coercion
+    if prop_type == "int":
+        if isinstance(prop_value, float) and prop_value.is_integer():
+            prop_value = int(prop_value)
+        elif not isinstance(prop_value, int):
+            return False, f"Property '{prop_name}' must be an integer", None
+        return True, None, prop_value
+
+    if prop_type == "float":
+        if not isinstance(prop_value, (int, float)):
+            return False, f"Property '{prop_name}' must be numeric", None
+        prop_value = float(prop_value)
+        if "range" in prop_def:
+            min_val = prop_def["range"].get("min", float("-inf"))
+            max_val = prop_def["range"].get("max", float("inf"))
+            if not min_val <= prop_value <= max_val:
+                return False, f"Value {prop_value} outside valid range [{min_val}, {max_val}]", None
+        return True, None, prop_value
+
+    if prop_type == "enum":
+        options = prop_def.get("options", [])
+        if prop_value not in options:
+            return False, f"Value '{prop_value}' not in valid options: {', '.join(options)}", None
+        return True, None, prop_value
+
+    if prop_type == "bool":
+        if not isinstance(prop_value, bool):
+            return False, f"Property '{prop_name}' must be boolean", None
+        return True, None, prop_value
+
+    # Default: pass through
+    return True, None, prop_value
+
+
+def validate_gaea_project_simple(
+    nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]] | None = None
+) -> Dict[str, Any]:
+    """Validate a simple Gaea project configuration (list of nodes and connections).
+
+    This is a simpler validation interface for testing purposes.
+
+    Args:
+        nodes: List of node dictionaries with 'type', 'name', 'properties'
+        connections: Optional list of connection dictionaries
+
+    Returns:
+        Dictionary with validation results:
+        - valid: bool
+        - errors: List[str]
+        - warnings: List[str]
+        - corrected_nodes: List[Dict] with corrected property values
+    """
+    errors: List[str] = []
+    warnings: List[str] = []
+    corrected_nodes: List[Dict[str, Any]] = []
+
+    # Validate nodes
+    node_map: Dict[int, Dict[str, Any]] = {}
+    for node in nodes:
+        node_type = node.get("type")
+        node_name = node.get("name", "unnamed")
+        node_id = node.get("id")
+
+        if not node_type:
+            errors.append(f"Node '{node_name}' missing 'type' field")
+            continue
+
+        if node_type not in VALID_NODE_TYPES:
+            errors.append(f"Invalid node type: {node_type}")
+            continue
+
+        # Store for connection validation
+        if node_id is not None:
+            node_map[node_id] = node
+
+        # Validate properties
+        corrected_node = node.copy()
+        corrected_props: Dict[str, Any] = {}
+
+        for prop_name, prop_value in node.get("properties", {}).items():
+            is_valid, error, corrected_value = validate_property(node_type, prop_name, prop_value)
+
+            if not is_valid:
+                errors.append(f"Node '{node_name}' ({node_type}): {error}")
+            else:
+                if error:  # Warning
+                    warnings.append(f"Node '{node_name}' ({node_type}): {error}")
+                corrected_props[prop_name] = corrected_value
+
+        corrected_node["properties"] = corrected_props
+        corrected_nodes.append(corrected_node)
+
+    # Validate connections
+    if connections:
+        for conn in connections:
+            from_id = conn.get("from_node")
+            to_id = conn.get("to_node")
+
+            if from_id not in node_map:
+                errors.append(f"Connection references non-existent source node: {from_id}")
+            if to_id not in node_map:
+                errors.append(f"Connection references non-existent target node: {to_id}")
+
+    return {
+        "valid": len(errors) == 0,
+        "errors": errors,
+        "warnings": warnings,
+        "corrected_nodes": corrected_nodes,
+    }
+
+
 __all__ = [
     "VALID_NODE_TYPES",
     "NODE_CATEGORIES",
     "NODE_PROPERTY_DEFINITIONS",
+    "COMMON_NODE_PROPERTIES",
     "WORKFLOW_TEMPLATES",
     "validate_node_properties",
+    "validate_property",
     "validate_connection",
     "validate_gaea2_project",
+    "validate_gaea_project_simple",
     "apply_default_properties",
     "create_workflow_from_template",
     "get_node_category",

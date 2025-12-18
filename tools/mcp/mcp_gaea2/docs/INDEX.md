@@ -1,50 +1,57 @@
-# Gaea2 MCP Documentation Index
+# Gaea2 MCP Documentation
 
-This directory contains all documentation related to the Gaea2 MCP (Model Context Protocol) server integration.
+> **Complete documentation for the Gaea2 Model Context Protocol server**
 
 ## Core Documentation
 
-- **[README.md](README.md)** - Main documentation hub for Gaea2 MCP server
-- **[GAEA2_API_REFERENCE.md](GAEA2_API_REFERENCE.md)** - Complete API reference for all MCP tools
-- **[GAEA2_QUICK_REFERENCE.md](GAEA2_QUICK_REFERENCE.md)** - Quick reference guide for common operations
-- **[GAEA2_EXAMPLES.md](GAEA2_EXAMPLES.md)** - Code examples and usage patterns
+| Document | Description |
+|----------|-------------|
+| [README.md](README.md) | Server overview, setup, and quick start guide |
+| [API Reference](GAEA2_API_REFERENCE.md) | Complete API documentation for all MCP tools |
+| [Quick Reference](GAEA2_QUICK_REFERENCE.md) | Quick reference for common operations |
+| [Examples](GAEA2_EXAMPLES.md) | Code examples and usage patterns |
 
-## Technical Documentation
+## Technical Reference
 
-- **[CONNECTION_ARCHITECTURE.md](CONNECTION_ARCHITECTURE.md)** - Deep dive into Gaea2's connection system
-- **[gaea_terrain_analysis.md](gaea_terrain_analysis.md)** - Workflow patterns and terrain format analysis
-- **[GAEA2_NODE_PROPERTIES_EXTENDED.md](GAEA2_NODE_PROPERTIES_EXTENDED.md)** - Complete node property documentation
-- **[GAEA2_ANALYSIS_EXECUTIVE_SUMMARY.md](GAEA2_ANALYSIS_EXECUTIVE_SUMMARY.md)** - Executive summary of terrain file analysis
+| Document | Description |
+|----------|-------------|
+| [Connection Architecture](CONNECTION_ARCHITECTURE.md) | Deep dive into connection system |
+| [Node Properties](GAEA2_NODE_PROPERTIES_EXTENDED.md) | Complete node property documentation |
+| [Node Reference](GAEA2_NODE_REFERENCE.md) | Node type reference (auto-generated) |
+| [Template Reference](GAEA2_TEMPLATE_REFERENCE.md) | Template specifications |
+| [Terrain Analysis](gaea_terrain_analysis.md) | Workflow patterns and format analysis |
 
-## Usage & Best Practices
+## Guides
 
-- **[GAEA2_KNOWLEDGE_BASE.md](GAEA2_KNOWLEDGE_BASE.md)** - Pattern knowledge and best practices
-- **[GAEA2_ADVANCED_PATTERNS.md](GAEA2_ADVANCED_PATTERNS.md)** - Advanced workflow patterns discovered
-- **[VALIDATION_GUIDE.md](VALIDATION_GUIDE.md)** - Complete guide to the file validation system
-- **[MANDATORY_VALIDATION.md](MANDATORY_VALIDATION.md)** - Mandatory validation requirements and bypass options
+| Document | Description |
+|----------|-------------|
+| [Knowledge Base](GAEA2_KNOWLEDGE_BASE.md) | Pattern intelligence and best practices |
+| [Advanced Patterns](GAEA2_ADVANCED_PATTERNS.md) | Advanced workflow patterns |
+| [Validation Guide](VALIDATION_GUIDE.md) | File validation system guide |
 
-## Special Topics
+## Reference
 
-- **[DOWNLOAD_WRAPPER_CONTROL.md](DOWNLOAD_WRAPPER_CONTROL.md)** - Download endpoint and metadata control
+| Document | Description |
+|----------|-------------|
+| [Executive Summary](GAEA2_ANALYSIS_EXECUTIVE_SUMMARY.md) | Terrain file format analysis summary |
+| [Changelog](CHANGELOG.md) | Version history |
 
-## Maintenance
-
-- **[CHANGELOG.md](CHANGELOG.md)** - Version history and changes
-
-## Quick Start
+## Quick Navigation
 
 ### For Users
-1. Start with [README.md](README.md) for overview
-2. Use [GAEA2_QUICK_REFERENCE.md](GAEA2_QUICK_REFERENCE.md) for quick tasks
-3. See [GAEA2_EXAMPLES.md](GAEA2_EXAMPLES.md) for code examples
+
+1. Start with [README.md](README.md) for setup and overview
+2. Use [Quick Reference](GAEA2_QUICK_REFERENCE.md) for common tasks
+3. See [Examples](GAEA2_EXAMPLES.md) for code samples
 
 ### For Developers
-1. Review [CONNECTION_ARCHITECTURE.md](CONNECTION_ARCHITECTURE.md) for internals
-2. Check [GAEA2_API_REFERENCE.md](GAEA2_API_REFERENCE.md) for complete API
-3. Study [gaea_terrain_analysis.md](gaea_terrain_analysis.md) for workflow patterns
-4. Use [GAEA2_NODE_PROPERTIES_EXTENDED.md](GAEA2_NODE_PROPERTIES_EXTENDED.md) for property specs
+
+1. Review [Connection Architecture](CONNECTION_ARCHITECTURE.md) for internals
+2. Check [API Reference](GAEA2_API_REFERENCE.md) for complete API
+3. Study [Terrain Analysis](gaea_terrain_analysis.md) for format details
+4. Use [Node Properties](GAEA2_NODE_PROPERTIES_EXTENDED.md) for property specs
 
 ### For Server Setup
-1. Follow [README.md](README.md) for server setup and configuration
-2. Review [VALIDATION_GUIDE.md](VALIDATION_GUIDE.md) for validation system setup
-3. Check [DOWNLOAD_WRAPPER_CONTROL.md](DOWNLOAD_WRAPPER_CONTROL.md) for download endpoint configuration
+
+1. Follow [README.md](README.md) for installation
+2. Review [Validation Guide](VALIDATION_GUIDE.md) for validation configuration
