@@ -127,17 +127,12 @@ class Gaea2CLIAutomation:
             # Run the command
             start_time = datetime.now()
 
-            # Gaea.Swarm.exe requires a console - don't use CREATE_NO_WINDOW
-            # Use CREATE_NEW_CONSOLE to give it a proper console handle
-            # This prevents "The handle is invalid" errors
-            create_new_console = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
-
+            # Run without special creation flags - let subprocess inherit console
+            # Gaea.Swarm.exe needs console access for its .NET runtime
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                stdin=asyncio.subprocess.DEVNULL,
-                creationflags=create_new_console,
             )
 
             try:
