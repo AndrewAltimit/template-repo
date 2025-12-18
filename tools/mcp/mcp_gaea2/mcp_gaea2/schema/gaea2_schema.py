@@ -2396,13 +2396,18 @@ def create_workflow_from_template(
             assert isinstance(template_props, dict)  # Type assertion for mypy
             properties = apply_default_properties(node_type, template_props)
 
-        node = {
+        node: Dict[str, Any] = {
             "id": node_id,
             "type": node_type,
             "name": node_template["name"],
             "position": {"x": start_position[0] + x_offset, "y": start_position[1]},
             "properties": properties,
         }
+
+        # Copy save_definition for Export nodes (required for CLI building)
+        if "save_definition" in node_template:
+            node["save_definition"] = node_template["save_definition"]
+
         nodes.append(node)
 
         # Create connection to previous node (skip for Portal and Export nodes)
