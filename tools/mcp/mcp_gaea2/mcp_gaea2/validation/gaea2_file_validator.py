@@ -144,14 +144,20 @@ class Gaea2FileValidator:
                 "timestamp": start_time.isoformat(),
             }
 
+        # Gaea.Swarm.exe 2.2.6.0 doesn't have a --validate flag
+        # We validate by running a minimal 512 resolution build
+        # If the file is corrupt, it will fail immediately
+        temp_output = Path(tempfile.mkdtemp(prefix="gaea2_validate_"))
+
         cmd = [
             str(self.gaea_path),
             "--Filename",
             str(file_path),
-            "--validate",
-            "--silent",
-            "--timeout",
-            str(timeout * 1000),
+            "--resolution",
+            "512",  # Minimum resolution for fast validation
+            "--buildpath",
+            str(temp_output),
+            "--silent",  # Required for automation
         ]
 
         logger.info("Validating file: %s", file_path)
@@ -253,6 +259,11 @@ class Gaea2FileValidator:
                 "duration": (datetime.now() - start_time).total_seconds(),
                 "timestamp": start_time.isoformat(),
             }
+
+        finally:
+            # Clean up temp output directory
+            if temp_output.exists():
+                shutil.rmtree(temp_output, ignore_errors=True)
 
     def _parse_errors(self, output: str) -> Dict[str, Any]:
         """Parse error messages from Gaea2 output"""

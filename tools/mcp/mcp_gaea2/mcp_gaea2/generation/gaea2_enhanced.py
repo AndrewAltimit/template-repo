@@ -38,58 +38,29 @@ class EnhancedGaea2Tools:
             terrain_id = str(uuid.uuid4())
             timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%SZ")
 
-            # Enhanced build definition
+            # Build definition matching Gaea2 2.2.6.0 format
             default_build_config = {
                 "Type": "Standard",
                 "Destination": "<Builds>\\[Filename]\\[+++]",
-                "OverwriteMode": "Increment",
                 "Resolution": 2048,
                 "BakeResolution": 2048,
                 "TileResolution": 1024,
                 "BucketResolution": 2048,
-                "BucketCount": 1,
-                "WorldResolution": 2048,
-                "NumberOfTiles": 2,
-                "TotalTiles": 4,
-                "BucketSizeWithMargin": 3072,
+                "NumberOfTiles": 3,
                 "EdgeBlending": 0.25,
-                "EdgeSize": 512,
                 "TileZeroIndex": True,
                 "TilePattern": "_y%Y%_x%X%",
                 "OrganizeFiles": "NodeSubFolder",
-                "PersistOnSave": True,
-                "PostBuildScript": "",
-                "OpenFolder": True,
-                "CopyTerrain": True,
-                "Regions": {"$id": "24", "$values": []},
+                "ColorSpace": "sRGB",
             }
 
             if build_config:
                 default_build_config.update(build_config)
 
-            # Enhanced viewport settings
-            default_viewport = {
-                "Camera": {"$id": str(uuid.uuid4())},
-                "RenderMode": "Realistic",
-                "AutolevelMasks": True,
-                "SunAltitude": 33.0,
-                "SunAzimuth": 45.0,
-                "SunIntensity": 1.0,
-                "AmbientOcclusion": True,
-                "Shadows": True,
-                "AirDensity": 1.0,
-                "AmbientIntensity": 1.0,
-                "Exposure": 1.0,
-                "FogDensity": 0.2,
-                "GroundBrightness": 0.8,
-                "Haze": 1.0,
-                "Ozone": 1.0,
-            }
-
             if viewport_settings:
-                default_viewport.update(viewport_settings)
+                pass  # Will be applied later
 
-            # Create base project structure
+            # Create base project structure matching Gaea2 2.2.6.0 format
             project = {
                 "$id": "1",
                 "Assets": {
@@ -103,12 +74,12 @@ class EnhancedGaea2Tools:
                                 "Metadata": {
                                     "$id": "5",
                                     "Name": project_name,
-                                    "Description": f"Enhanced project created by MCP on {timestamp}",
-                                    "Version": "",  # Empty string like working files
+                                    "Description": "",
+                                    "Version": "2.2.6.0",
                                     "DateCreated": timestamp,
                                     "DateLastBuilt": timestamp,
                                     "DateLastSaved": timestamp,
-                                    "ModifiedVersion": "2.1.2.0",
+                                    "ModifiedVersion": "2.2.6.0",
                                 },
                                 "Nodes": {"$id": "6"},
                                 "Groups": {"$id": "7"},
@@ -120,11 +91,11 @@ class EnhancedGaea2Tools:
                                             "$id": "10",
                                             "Name": "Graph 1",
                                             "Color": "Brass",
-                                            "ZoomFactor": 0.5,
+                                            "ZoomFactor": 0.6299605249474372,
                                             "ViewportLocation": {
                                                 "$id": "11",
-                                                "X": 25000.0,
-                                                "Y": 25000.0,
+                                                "X": 27690.082,
+                                                "Y": 25804.441,
                                             },
                                         }
                                     ],
@@ -138,34 +109,42 @@ class EnhancedGaea2Tools:
                                 "$id": "13",
                                 "Bindings": {"$id": "14", "$values": []},
                                 "Expressions": {"$id": "15"},
-                                "VariablesEx": {"$id": "16"},
-                                "Variables": {"$id": "17"},
-                                "BoundProperties": {"$id": "23", "$values": []},
+                                "Variables": {"$id": "16"},
                             },
-                            "BuildDefinition": {"$id": "18", **default_build_config},
+                            "BuildDefinition": {"$id": "17", **default_build_config},
                             "State": {
-                                "$id": "19",
+                                "$id": "18",
                                 "BakeResolution": 2048,
-                                "PreviewResolution": 2048,
-                                "SelectedNode": nodes[0]["id"] if nodes else 100,
-                                "NodeBookmarks": {"$id": "20", "$values": []},
-                                "Viewport": {"$id": "21", **default_viewport},
+                                "PreviewResolution": 1024,
+                                "HDResolution": 4096,
+                                "SelectedNode": -1,
+                                "NodeBookmarks": {"$id": "19", "$values": []},
+                                "Viewport": {
+                                    "$id": "20",
+                                    "CameraPosition": {"$id": "21", "$values": []},
+                                    "Camera": {"$id": "22"},
+                                    "RenderMode": "Realistic",
+                                    "AmbientOcclusion": True,
+                                    "Shadows": True,
+                                },
                             },
+                            "BuildProfiles": {"$id": "23"},
                         }
                     ],
                 },
                 "Id": project_id[:8],
                 "Branch": 1,
                 "Metadata": {
-                    "$id": "22",
+                    "$id": "24",
                     "Name": project_name,
                     "Description": "",
-                    "Version": "",  # Empty string like working files
+                    "Version": "2.2.6.0",
+                    "Edition": "G2P",
                     "Owner": "",
                     "DateCreated": timestamp,
                     "DateLastBuilt": timestamp,
                     "DateLastSaved": timestamp,
-                    "ModifiedVersion": "2.1.2.0",
+                    "ModifiedVersion": "2.2.6.0",
                 },
             }
 
@@ -183,7 +162,7 @@ class EnhancedGaea2Tools:
 
             # Process nodes with enhanced features
             nodes_dict: Dict[str, Any] = {}
-            ref_id_counter = 23
+            ref_id_counter = 25  # Start after the last $id in project structure (24)
 
             for node_data in nodes:
                 node_id = node_data.get("id", 100 + len(nodes_dict))

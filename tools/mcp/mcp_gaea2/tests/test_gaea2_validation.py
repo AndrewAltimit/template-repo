@@ -11,7 +11,7 @@ import unittest.mock
 
 import pytest
 
-from automation.analysis.generate_gaea2_schema import validate_gaea_project, validate_property
+from mcp_gaea2.schema.gaea2_schema import validate_gaea_project_simple as validate_gaea_project, validate_property
 from mcp_gaea2.server import Gaea2MCPServer
 
 

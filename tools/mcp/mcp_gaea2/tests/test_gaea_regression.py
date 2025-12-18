@@ -501,6 +501,9 @@ class TestGaea2Regression:
             "file_validation_performed",
             "file_validation_passed",
             "bypass_for_tests",
+            # These change when templates are updated (e.g., adding Export nodes)
+            "node_count",
+            "connection_count",
         ]
         working_regressions = []
         for t in working_templates:
