@@ -177,6 +177,7 @@ class Gaea2FileValidator:
         try:
             process = await asyncio.create_subprocess_exec(
                 *cmd,
+                stdin=asyncio.subprocess.DEVNULL,  # Prevent "handle is invalid" errors
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=os.path.dirname(file_path),
