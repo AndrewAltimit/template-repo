@@ -34,7 +34,7 @@ class Gaea2MCPServer(BaseMCPServer):
         gaea_path: Optional[str] = None,
         output_dir: str = "/app/output/gaea2",
         port: int = 8007,
-        enforce_file_validation: bool = True,
+        enforce_file_validation: bool = False,  # Disabled by default - CLI validation unreliable
     ):
         # Check if running in container
         if check_container_environment() and platform.system() != "Windows":
