@@ -126,7 +126,8 @@ def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETR
                 text=True,
                 check=False,
                 timeout=DEFAULT_MODEL_TIMEOUT,
-                env={**os.environ, "GOOGLE_API_KEY": api_key},
+                # Gemini CLI prioritizes GEMINI_API_KEY over GOOGLE_API_KEY
+                env={**os.environ, "GOOGLE_API_KEY": api_key, "GEMINI_API_KEY": api_key},
             )
 
             # Check for errors
