@@ -1687,6 +1687,16 @@ WORKFLOW_TEMPLATES = {
             "properties": {"Water": 0.3, "Width": 0.5, "Depth": 0.4},
         },
         {
+            "type": "Export",
+            "name": "MountainHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "mountain_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
+        },
+        {
             "type": "Snow",
             "name": "SnowCaps",
             "properties": {"Duration": 0.6, "SnowLine": 0.75},
@@ -1735,6 +1745,16 @@ WORKFLOW_TEMPLATES = {
             "properties": {"Strength": 0.5, "Angle": 35.0},
         },
         {
+            "type": "Export",
+            "name": "VolcanoHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "volcano_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
+        },
+        {
             "type": "SatMap",
             "name": "VolcanicColors",
             "properties": {"Library": "Rock", "LibraryItem": 1},
@@ -1777,6 +1797,16 @@ WORKFLOW_TEMPLATES = {
             "type": "Sand",
             "name": "SandAccumulation",
             "properties": {"Amount": 0.4, "Scale": 0.5},
+        },
+        {
+            "type": "Export",
+            "name": "CanyonHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "canyon_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
         },
         {
             "type": "SatMap",
@@ -1831,6 +1861,16 @@ WORKFLOW_TEMPLATES = {
             "properties": {"PortalName": "Eroded_Terrain"},
         },
         {
+            "type": "Export",
+            "name": "PortalTerrainHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "portal_terrain_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
+        },
+        {
             "type": "SatMap",
             "name": "TerrainColors",
             "properties": {"Library": "Rock", "LibraryItem": 2},
@@ -1867,6 +1907,16 @@ WORKFLOW_TEMPLATES = {
                 "Downcutting": 0.3,
                 "ErosionScale": 7000.0,
                 "Seed": 54321,
+            },
+        },
+        {
+            "type": "Export",
+            "name": "RangeHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "range_heightmap",
+                "format": "PNG16",
+                "enabled": True,
             },
         },
         {
@@ -1911,6 +1961,16 @@ WORKFLOW_TEMPLATES = {
             "type": "ThermalShatter",
             "name": "ThermalBreakdown",
             "properties": {"Intensity": 0.7, "Scale": 0.4},
+        },
+        {
+            "type": "Export",
+            "name": "IslandHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "island_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
         },
         {
             "type": "Beach",
@@ -1960,6 +2020,16 @@ WORKFLOW_TEMPLATES = {
             "properties": {"Deposition": 0.4, "Sediments": 0.2, "Seed": 24680},
         },
         {
+            "type": "Export",
+            "name": "CanyonSystemHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "canyon_system_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
+        },
+        {
             "type": "SatMap",
             "name": "CanyonColors",
             "properties": {"Library": "Desert", "Enhance": "Equalize"},
@@ -1999,6 +2069,16 @@ WORKFLOW_TEMPLATES = {
                 "Downcutting": 0.1,
                 "ErosionScale": 5000.0,
                 "Seed": 67890,
+            },
+        },
+        {
+            "type": "Export",
+            "name": "CoastalHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "coastal_heightmap",
+                "format": "PNG16",
+                "enabled": True,
             },
         },
         {
@@ -2099,6 +2179,16 @@ WORKFLOW_TEMPLATES = {
                 "Downcutting": 0.3,
                 "ErosionScale": 5000.0,
                 "Seed": 12345,
+            },
+        },
+        {
+            "type": "Export",
+            "name": "ValleyHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "valley_heightmap",
+                "format": "PNG16",
+                "enabled": True,
             },
         },
         {
