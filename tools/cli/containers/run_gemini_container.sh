@@ -17,7 +17,7 @@ if [ ! -d "$HOME/.gemini" ]; then
     echo "❌ No Gemini configuration found at ~/.gemini"
     echo ""
     echo "Please authenticate with Gemini CLI on your host first:"
-    echo "  1. Install Gemini CLI: npm install -g @google/gemini-cli"
+    echo "  1. Install Gemini CLI: npm install -g @google/gemini-cli@0.21.2"
     echo "  2. Run: gemini"
     echo "  3. Complete the authentication flow"
     echo ""
@@ -108,8 +108,8 @@ if ! docker pull "$IMAGE_NAME:$IMAGE_TAG" 2>/dev/null; then
     cat > /tmp/gemini-dockerfile <<'EOF'
 FROM node:20-slim
 
-# Install Gemini CLI globally
-RUN npm install -g @google/gemini-cli
+# Install Gemini CLI globally (pinned version for stability)
+RUN npm install -g @google/gemini-cli@0.21.2
 
 # Create workspace directory
 RUN mkdir -p /workspace

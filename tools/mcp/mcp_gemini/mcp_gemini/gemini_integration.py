@@ -79,7 +79,7 @@ class GeminiIntegration:
             "max_context_length", 100000
         )  # Large context for comprehensive understanding
         # API key mode supports explicit model selection via --model flag
-        self.model = self.config.get("model", "gemini-3-pro-preview")
+        self.model = self.config.get("model", "gemini-3-flash-preview")
 
         # Container configuration
         self.use_container = self.config.get("use_container", True)

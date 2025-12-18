@@ -77,13 +77,13 @@ class TestExtractPreviousIssues:
         ]
         mock_call_gemini.return_value = (
             "file.py:42 - [BUG] Missing null check",
-            "gemini-2.5-flash",
+            "gemini-3-flash-preview",
         )
 
         result, model = extract_previous_issues("123")
 
         assert "file.py:42" in result
-        assert model == "gemini-2.5-flash"
+        assert model == "gemini-3-flash-preview"
 
     @patch("gemini_pr_review._call_gemini_with_model")
     @patch("gemini_pr_review.get_all_pr_comments")
@@ -92,12 +92,12 @@ class TestExtractPreviousIssues:
         mock_get_comments.return_value = [
             {"body": ("<!-- gemini-review-marker -->\n## Issues\nNo critical issues found.")},
         ]
-        mock_call_gemini.return_value = ("NO_ISSUES_FOUND", "gemini-2.5-flash")
+        mock_call_gemini.return_value = ("NO_ISSUES_FOUND", "gemini-3-flash-preview")
 
         result, model = extract_previous_issues("123")
 
         assert result == ""
-        assert model == "gemini-2.5-flash"
+        assert model == "gemini-3-flash-preview"
 
     @patch("gemini_pr_review._call_gemini_with_model")
     @patch("gemini_pr_review.get_all_pr_comments")
@@ -109,13 +109,13 @@ class TestExtractPreviousIssues:
         # Model returns text but no file:line pattern
         mock_call_gemini.return_value = (
             "I reviewed the code and found no concrete issues to report.",
-            "gemini-2.5-flash",
+            "gemini-3-flash-preview",
         )
 
         result, model = extract_previous_issues("123")
 
         assert result == ""
-        assert model == "gemini-2.5-flash"
+        assert model == "gemini-3-flash-preview"
 
     @patch("gemini_pr_review._call_gemini_with_model")
     @patch("gemini_pr_review.get_all_pr_comments")
@@ -148,7 +148,7 @@ class TestExtractPreviousIssues:
         # Create 5 reviews
         reviews = [{"body": f"<!-- gemini-review-marker -->\n## Issues\nReview {i}"} for i in range(5)]
         mock_get_comments.return_value = reviews
-        mock_call_gemini.return_value = ("file.py:1 - [BUG] Test", "gemini-2.5-flash")
+        mock_call_gemini.return_value = ("file.py:1 - [BUG] Test", "gemini-3-flash-preview")
 
         extract_previous_issues("123")
 
@@ -169,13 +169,13 @@ class TestExtractPreviousIssues:
         ]
         mock_call_gemini.return_value = (
             "gemini-pr-review.py:42 - [BUG] Regex issue",
-            "gemini-2.5-flash",
+            "gemini-3-flash-preview",
         )
 
         result, model = extract_previous_issues("123")
 
         assert "gemini-pr-review.py:42" in result
-        assert model == "gemini-2.5-flash"
+        assert model == "gemini-3-flash-preview"
 
     @patch("gemini_pr_review._call_gemini_with_model")
     @patch("gemini_pr_review.get_all_pr_comments")
@@ -186,13 +186,13 @@ class TestExtractPreviousIssues:
         ]
         mock_call_gemini.return_value = (
             "Dockerfile:10 - [BUG] Missing WORKDIR",
-            "gemini-2.5-flash",
+            "gemini-3-flash-preview",
         )
 
         result, model = extract_previous_issues("123")
 
         assert "Dockerfile:10" in result
-        assert model == "gemini-2.5-flash"
+        assert model == "gemini-3-flash-preview"
 
     @patch("gemini_pr_review._call_gemini_with_model")
     @patch("gemini_pr_review.get_all_pr_comments")
@@ -203,13 +203,13 @@ class TestExtractPreviousIssues:
         ]
         mock_call_gemini.return_value = (
             "automation/review/gemini-pr-review.py:100 - [CRITICAL] Security issue",
-            "gemini-2.5-flash",
+            "gemini-3-flash-preview",
         )
 
         result, model = extract_previous_issues("123")
 
         assert "automation/review/gemini-pr-review.py:100" in result
-        assert model == "gemini-2.5-flash"
+        assert model == "gemini-3-flash-preview"
 
     @patch("gemini_pr_review._call_gemini_with_model")
     @patch("gemini_pr_review.get_all_pr_comments")
@@ -220,10 +220,10 @@ class TestExtractPreviousIssues:
         ]
         mock_call_gemini.return_value = (
             "no_issues_found",  # lowercase
-            "gemini-2.5-flash",
+            "gemini-3-flash-preview",
         )
 
         result, model = extract_previous_issues("123")
 
         assert result == ""
-        assert model == "gemini-2.5-flash"
+        assert model == "gemini-3-flash-preview"

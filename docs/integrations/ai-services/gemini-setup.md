@@ -31,7 +31,7 @@ The workflow will attempt to install Gemini CLI automatically if Node.js is avai
 2. **Install Gemini CLI**
 
    ```bash
-   npm install -g @google/gemini-cli
+   npm install -g @google/gemini-cli@0.21.2
    ```
 
 3. **Set up API Key** (Required for PR reviews)
@@ -190,7 +190,7 @@ Configure Gemini behavior with these environment variables:
 
 PR reviews use explicit model specification with automatic fallback:
 - Primary: `gemini-3.0-pro-preview` (latest, most capable model)
-- Fallback: `gemini-2.5-flash` (faster, still highly capable)
+- Fallback: `gemini-3-flash-preview` (Gemini 3 Flash - faster, highly capable)
 
 Both models are available on the free tier!
 

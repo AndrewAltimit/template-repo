@@ -20,7 +20,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
 
 # Install Claude Code and Gemini CLI globally (will use mounted credentials from host)
 # The package is @anthropic-ai/claude-code but the CLI command is just 'claude'
-RUN npm install -g @anthropic-ai/claude-code@latest @google/gemini-cli@preview && \
+RUN npm install -g @anthropic-ai/claude-code@latest @google/gemini-cli@0.21.2 && \
     # Ensure claude is in PATH by creating a symlink if needed
     which claude || ln -s /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/claude /usr/local/bin/claude
 

@@ -731,7 +731,7 @@ docker-compose down mcp-code-quality
 ### Gemini Server Issues
 
 1. **"Cannot run in container" error** - Run on host system
-2. **Gemini CLI not found** - Install with `npm install -g @google/gemini-cli`
+2. **Gemini CLI not found** - Install with `npm install -g @google/gemini-cli@0.21.2`
 
 ### Gaea2 Windows CLI Features
 
