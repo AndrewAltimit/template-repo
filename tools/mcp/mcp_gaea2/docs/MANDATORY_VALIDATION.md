@@ -1,101 +1,121 @@
-# Gaea2 Mandatory File Validation
+# Gaea2 File Validation
 
-As of the latest update, the Gaea2 MCP server now enforces **mandatory file validation** for all generated terrain files. This ensures that every `.terrain` file created can actually be opened in Gaea2 before being delivered to users.
+> **Documentation for the Gaea2 MCP server validation system**
 
-## How It Works
+## Validation Overview
 
-1. **Automatic Validation**: After generating a terrain file, the server automatically attempts to open it in Gaea2
-2. **Validation Failure**: If the file cannot be opened:
-   - The file is immediately deleted
-   - An error is returned to the user
-   - The generation is marked as failed
-3. **Validation Success**: Only files that successfully open in Gaea2 are kept and returned
+The Gaea2 MCP server provides two levels of validation:
 
-## Benefits
+| Level | Default | Description |
+|-------|---------|-------------|
+| Structural Validation | Enabled | Validates node types, properties, and connections |
+| Runtime CLI Validation | Disabled | Tests files with Gaea.Swarm.exe |
 
-- **No Bad Files**: Users will never receive terrain files that won't open
-- **Early Detection**: Problems are caught immediately during generation
-- **Clean Output**: Invalid files are automatically cleaned up
+## Structural Validation (Default)
 
-## For Integration Testing
+Structural validation is automatically applied to all generated terrain files:
 
-Integration tests that specifically need to test invalid terrain files can bypass validation:
+- Node type verification against schema
+- Property type and range validation
+- Connection compatibility checking
+- Automatic repair of common issues
+- Missing node detection (Export, SatMap)
+- Duplicate connection removal
 
-### Method 1: Environment Variable
+This validation runs in-memory and does not require the Gaea2 executable.
+
+## Runtime CLI Validation (Optional)
+
+Runtime validation uses Gaea.Swarm.exe to verify files can be opened by Gaea2. This feature is disabled by default due to reliability issues with the CLI subprocess.
+
+**Note**: Files that fail CLI validation may still open correctly in the Gaea2 GUI. The CLI subprocess encounters "handle is invalid" errors that do not indicate actual file corruption.
+
+### Enabling Runtime Validation
+
+#### Server Startup
+
+```bash
+# Enable runtime validation at server start
+python -m mcp_gaea2.server --mode http --enforce-file-validation
+```
+
+#### Per-Request
+
+```python
+# Enable for specific request
+response = requests.post('http://localhost:8007/mcp/execute', json={
+    'tool': 'create_gaea2_project',
+    'parameters': {
+        'project_name': 'my_terrain',
+        'workflow': {...},
+        'runtime_validate': True  # Enable for this request
+    }
+})
+```
+
+### Disabling for Tests
+
+Integration tests can bypass all validation:
+
 ```python
 import os
 
-# Set this before making requests
+# Set before making requests
 os.environ["GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS"] = "1"
 
-# Your test code here...
+# Test code here...
 
-# Clean up after
+# Clean up
 os.environ.pop("GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS", None)
-```
-
-### Method 2: Server Command Line
-```bash
-# Start server with validation disabled (NOT for production!)
-python -m mcp_gaea2.server --no-enforce-file-validation
 ```
 
 ## Requirements
 
-- **Gaea2 Installation**: The server must have access to Gaea2 executable
-- **Windows Environment**: File validation requires Windows with Gaea2 installed
-- **GAEA2_PATH**: Environment variable or command line argument pointing to `Gaea.Swarm.exe`
+Runtime CLI validation requires:
+
+- Windows host system
+- Gaea2 installation with Gaea.Swarm.exe
+- `GAEA2_PATH` environment variable or `--gaea-path` argument
 
 ## Response Format
 
-The API response now includes validation information:
+API responses include validation status:
 
 ```json
 {
   "success": true,
   "project_path": "/path/to/file.terrain",
-  "file_validation_performed": true,
-  "file_validation_passed": true,
+  "runtime_validation_performed": false,
+  "runtime_validation_passed": false,
   "bypass_for_tests": false
 }
 ```
 
-Failed validation response:
+With runtime validation enabled and successful:
+
+```json
+{
+  "success": true,
+  "project_path": "/path/to/file.terrain",
+  "runtime_validation_performed": true,
+  "runtime_validation_passed": true
+}
+```
+
+Failed runtime validation:
+
 ```json
 {
   "success": false,
-  "error": "Generated file failed Gaea2 validation: File corrupt or invalid",
-  "validation_error": "File corrupt or invalid",
+  "error": "Generated file failed Gaea2 validation: [error message]",
+  "validation_error": "[error message]",
   "file_deleted": true
 }
 ```
 
-## Important Notes
+## Recommendations
 
-1. **Production Use**: Never disable validation in production environments
-2. **Performance**: Validation adds ~5-30 seconds to generation time
-3. **Error Details**: Validation errors include specific Gaea2 error messages when available
-4. **Automatic Cleanup**: Failed files are automatically deleted - no manual cleanup needed
-
-## Example Usage
-
-```python
-# Normal usage - validation enforced
-response = requests.post(
-    "http://localhost:8007/mcp/execute",
-    json={
-        "tool": "create_gaea2_from_template",
-        "parameters": {
-            "template_name": "mountain_range",
-            "project_name": "my_terrain"
-        }
-    }
-)
-
-result = response.json()
-if result["success"]:
-    print(f"File created and validated: {result['project_path']}")
-else:
-    print(f"Generation failed: {result['error']}")
-    # No need to clean up - file already deleted
-```
+- Use structural validation (default) for most use cases
+- Enable runtime validation only when debugging specific issues
+- Files that pass structural validation typically work correctly in Gaea2
+- Test critical files manually in the Gaea2 GUI if needed

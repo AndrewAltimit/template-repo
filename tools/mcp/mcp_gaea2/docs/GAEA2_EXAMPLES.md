@@ -1,6 +1,6 @@
 # Gaea2 MCP Examples
 
-Comprehensive examples demonstrating the Gaea2 MCP system capabilities.
+> **Comprehensive examples demonstrating the Gaea2 MCP system capabilities**
 
 ## Table of Contents
 

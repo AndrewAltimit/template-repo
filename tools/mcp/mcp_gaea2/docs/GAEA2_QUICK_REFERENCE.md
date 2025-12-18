@@ -1,5 +1,7 @@
 # Gaea2 MCP Quick Reference
 
+> **Quick reference guide for common operations and node types**
+
 ## Automatic Validation is Built-in
 
 **All projects created with `create_gaea2_project` automatically include:**

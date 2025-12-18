@@ -1,6 +1,9 @@
 # Gaea2 Advanced Patterns and Node Relationships
 
+> **Advanced workflow patterns and best practices derived from production terrain analysis**
+
 ## Overview
+
 This document contains advanced patterns, node relationships, and property insights discovered from analyzing 10 production Gaea2 terrain files. These patterns represent real-world best practices that can significantly improve terrain generation quality.
 
 ## Core Workflow Patterns

@@ -1,219 +1,175 @@
-# Gaea2 File Validation Guide
+# Gaea2 Validation Guide
 
-This guide explains how to use the Gaea2 file validation system to test if terrain files can be opened successfully in Gaea2.
+> **Technical guide for the Gaea2 MCP server validation system**
 
 ## Overview
 
-The validation system uses `Gaea.Swarm.exe --validate` to test terrain files without fully processing them. It monitors Gaea2's output in real-time to detect success or failure patterns.
+The Gaea2 MCP server provides two validation approaches:
 
-## Key Features
+| Approach | Scope | Default | Reliability |
+|----------|-------|---------|-------------|
+| Structural Validation | Node types, properties, connections | Enabled | High |
+| Runtime CLI Validation | Full Gaea2 file loading | Disabled | Variable |
 
-- **Real-time monitoring**: Detects success/failure without waiting for process completion
-- **Pattern detection**: Identifies specific success and error messages
-- **Smart timeouts**: Prevents hanging on problematic files
-- **Accurate results**: Proven to correctly identify working vs corrupted files
+## Structural Validation
+
+Structural validation operates in-memory without requiring the Gaea2 executable. It validates:
+
+- Node types against the schema (184 supported types)
+- Property types, ranges, and formats
+- Connection compatibility between ports
+- Required node presence (Export, SatMap)
+- File format compliance with Gaea2 2.2.6.0
+
+### Automatic Repairs
+
+Structural validation includes automatic repair for common issues:
+
+| Issue | Repair |
+|-------|--------|
+| Missing Export node | Auto-adds Export node |
+| Missing color node | Auto-adds SatMap node |
+| Property out of range | Clamps to valid range |
+| Duplicate connections | Removes duplicates |
+| Invalid property type | Converts to correct type |
+| Orphaned nodes | Attempts connection to workflow |
+
+### Usage
+
+Structural validation is enabled by default:
+
+```python
+response = requests.post('http://localhost:8007/mcp/execute', json={
+    'tool': 'create_gaea2_project',
+    'parameters': {
+        'project_name': 'my_terrain',
+        'workflow': {...},
+        'auto_validate': True  # Default
+    }
+})
+```
+
+## Runtime CLI Validation
+
+Runtime validation uses Gaea.Swarm.exe to verify files by attempting a minimal resolution build. This catches issues that structural validation cannot detect.
+
+### Current Status
+
+Runtime CLI validation is disabled by default due to reliability issues:
+
+- The CLI subprocess encounters "handle is invalid" IOException errors
+- These errors occur even on valid files that open correctly in the Gaea2 GUI
+- The issue appears to be related to console handle management in the .NET runtime
+
+### Enabling Runtime Validation
+
+If needed for specific debugging scenarios:
+
+```bash
+# Server-wide
+python -m mcp_gaea2.server --mode http --enforce-file-validation
+```
+
+```python
+# Per-request
+response = requests.post('http://localhost:8007/mcp/execute', json={
+    'tool': 'create_gaea2_project',
+    'parameters': {
+        'project_name': 'my_terrain',
+        'workflow': {...},
+        'runtime_validate': True
+    }
+})
+```
+
+### How Runtime Validation Works
+
+1. Generates terrain file via structural validation
+2. Launches Gaea.Swarm.exe with minimal resolution (512)
+3. Monitors stdout/stderr for success/failure patterns
+4. Terminates process after determination
+5. Deletes file if validation fails
+
+### Success Patterns
+
+- `"Opening [filename]"` - File opened
+- `"Loading devices"` - Hardware initialization
+- `"Preparing Gaea"` - Application startup
+
+### Failure Patterns
+
+- `"corrupt"`, `"damaged"` - File corruption
+- `"failed to load"` - Loading failure
+- `"Unhandled exception"` - Runtime error
+- `"IOException"` - I/O error
 
 ## Validation Tools
 
-### 1. validate_gaea2_file
+### validate_and_fix_workflow
 
-Validates a single terrain file.
+Comprehensive structural validation with repair:
 
-```bash
-curl -X POST http://192.168.0.152:8007/mcp/execute \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tool": "validate_gaea2_file",
-    "parameters": {
-      "file_path": "C:\\Gaea2\\MCP_Projects\\my_terrain.terrain",
-      "timeout": 30
+```python
+response = requests.post('http://localhost:8007/mcp/execute', json={
+    'tool': 'validate_and_fix_workflow',
+    'parameters': {
+        'workflow': {...}
     }
-  }'
+})
 ```
 
-**Response for successful file:**
+### validate_gaea2_runtime
+
+Explicit runtime validation of existing file:
+
+```python
+response = requests.post('http://localhost:8007/mcp/execute', json={
+    'tool': 'validate_gaea2_runtime',
+    'parameters': {
+        'project_path': 'C:\\path\\to\\file.terrain',
+        'timeout': 60
+    }
+})
+```
+
+## Response Format
+
+### Successful Creation
+
 ```json
 {
   "success": true,
-  "file_path": "C:\\Gaea2\\MCP_Projects\\my_terrain.terrain",
-  "duration": 3.61,
-  "success_detected": true,
-  "error_detected": false,
-  "stdout": "Preparing Gaea Build Swarm 2.2.0.1...\nLoading devices...\nOpening my_terrain.terrain..."
+  "project_path": "C:\\path\\to\\file.terrain",
+  "node_count": 5,
+  "connection_count": 4,
+  "validation_applied": true,
+  "runtime_validation_performed": false,
+  "runtime_validation_passed": false
 }
 ```
 
-**Response for corrupted file:**
+### Validation Failure
+
 ```json
 {
   "success": false,
-  "file_path": "C:\\Gaea2\\MCP_Projects\\bad_terrain.terrain",
-  "error": "File is corrupt or missing additional data",
-  "duration": 2.06,
-  "success_detected": false,
-  "error_detected": true,
-  "error_info": {
-    "error_types": ["file_corrupt", "general_load_error"],
-    "error_messages": ["Swarm failed to load the file: File is corrupt or missing additional data"]
-  }
+  "error": "Validation failed: [details]",
+  "validation_errors": ["error1", "error2"]
 }
 ```
 
-### 2. validate_gaea2_batch
+## Recommendations
 
-Validates multiple files concurrently.
+1. **Use structural validation** (default) for normal operation
+2. **Test critical files** manually in Gaea2 GUI when needed
+3. **Enable runtime validation** only for debugging specific issues
+4. **Use templates** for highest reliability
 
-```bash
-curl -X POST http://192.168.0.152:8007/mcp/execute \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tool": "validate_gaea2_batch",
-    "parameters": {
-      "file_paths": [
-        "C:\\Gaea2\\MCP_Projects\\terrain1.terrain",
-        "C:\\Gaea2\\MCP_Projects\\terrain2.terrain"
-      ],
-      "concurrent": 4
-    }
-  }'
-```
+## Troubleshooting
 
-### 3. test_gaea2_template
-
-Tests a template by generating variations and validating them.
-
-```bash
-curl -X POST http://192.168.0.152:8007/mcp/execute \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tool": "test_gaea2_template",
-    "parameters": {
-      "template_name": "basic_terrain",
-      "variations": 3,
-      "server_url": "http://192.168.0.152:8007"
-    }
-  }'
-```
-
-## How It Works
-
-### Success Detection
-
-The validator looks for these patterns to confirm successful file opening:
-- `"Opening [filename]"` - Gaea2 is opening the file
-- `"Loading devices"` - Hardware initialization
-- `"Activated [processor]"` - CPU/GPU detection
-- `"Preparing Gaea"` - Gaea2 startup
-
-When a success pattern is detected, the validator waits 3 seconds to ensure no errors follow.
-
-### Error Detection
-
-The validator immediately fails when detecting:
-- `"corrupt"` or `"damaged"` - File corruption
-- `"failed to load"` - Loading failure
-- `"cannot open"` - Unable to open file
-- `"missing data"` - Incomplete file format
-- `"invalid file"` - Invalid format
-- `"error loading"` - General loading error
-
-### Process Flow
-
-1. Launch Gaea2 with `--validate` flag
-2. Monitor stdout/stderr in real-time
-3. Check each output line for success/error patterns
-4. On success pattern: wait 3s for confirmation
-5. On error pattern: fail immediately
-6. Kill Gaea2 process after determining result
-7. Return detailed validation results
-
-## Test Scripts
-
-### test_improved_validation.py
-Simple test to verify the validation system works:
-```bash
-python test_improved_validation.py
-```
-
-### test_validation_comprehensive.py
-Comprehensive test with various file types:
-```bash
-python test_validation_comprehensive.py
-```
-
-### investigate_arctic_failure.py
-Specific test for the corrupted arctic template:
-```bash
-python investigate_arctic_failure.py
-```
-
-## Proven Results
-
-The validation system has been tested and proven accurate:
-
-| Test Case | File Type | Validation Result | Correct? |
-|-----------|-----------|-------------------|----------|
-| Simple terrain | Mountain node only | ✅ Success | ✓ |
-| Complex terrain | Multiple nodes/connections | ✅ Success | ✓ |
-| Template: basic_terrain | 4 nodes | ✅ Success | ✓ |
-| Template: detailed_mountain | 6 nodes | ✅ Success | ✓ |
-| Template: volcanic_terrain | 6 nodes | ✅ Success | ✓ |
-| Template: desert_canyon | 6 nodes | ✅ Success | ✓ |
-| Template: mountain_range | 5 nodes | ✅ Success | ✓ |
-| Template: river_valley | 6 nodes | ✅ Success | ✓ |
-| Template: modular_portal_terrain | 11 nodes | ❌ Corrupt | ✓ |
-| Template: volcanic_island | 9 nodes | ❌ Corrupt | ✓ |
-| Template: canyon_system | 7 nodes | ❌ Corrupt | ✓ |
-| Template: coastal_cliffs | 7 nodes | ❌ Corrupt | ✓ |
-| Template: arctic_terrain | 7 nodes | ❌ Corrupt | ✓ |
-| Empty file | No content | ❌ Failure | ✓ |
-| Corrupted JSON | Invalid format | ❌ Failure | ✓ |
-
-**Summary**: 6 out of 11 templates (55%) work correctly. The corrupted templates appear to have issues with certain node properties that exceed limits, causing file corruption.
-
-## Common Issues and Solutions
-
-### Issue: Validation times out
-**Cause**: File might be very complex or Gaea2 is hanging
-**Solution**: Increase timeout parameter (default 30s)
-
-### Issue: "File not found" error
-**Cause**: File path doesn't exist or wrong format
-**Solution**: Use absolute Windows paths (C:\\path\\to\\file.terrain)
-
-### Issue: False positives/negatives
-**Cause**: Outdated validation system
-**Solution**: Ensure you're using v2 with real-time monitoring
-
-## Integration Example
-
-```python
-import asyncio
-from mcp_gaea2_file_validator import Gaea2FileValidator
-
-async def validate_my_files():
-    validator = Gaea2FileValidator()
-
-    # Validate single file
-    result = await validator.validate_file(
-        "C:\\Gaea2\\MCP_Projects\\my_terrain.terrain",
-        timeout=30
-    )
-
-    if result["success"]:
-        print(f"✅ File opens successfully!")
-        print(f"Duration: {result['duration']:.2f}s")
-    else:
-        print(f"❌ File failed validation")
-        print(f"Error: {result['error']}")
-
-    # Generate validation report
-    report = validator.generate_report("validation_report.txt")
-    print(report)
-
-asyncio.run(validate_my_files())
-```
-
-## Conclusion
-
-The Gaea2 validation system provides reliable, automated testing of terrain files. It accurately distinguishes between working files that open successfully in Gaea2 and corrupted files that fail to load. This eliminates the need for manual testing and provides immediate feedback during development.
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Validation timeout | Complex file or Gaea2 hanging | Increase timeout parameter |
+| File not found | Invalid path format | Use absolute Windows paths |
+| Handle is invalid | CLI subprocess issue | Use structural validation only |
+| Properties ignored | Wrong format | Use space-separated names |

@@ -1,5 +1,7 @@
 # Gaea2 Connection Architecture
 
+> **Deep dive into the Gaea2 connection system and terrain file format**
+
 This document explains how connections work in the Gaea2 MCP server based on extensive debugging and analysis.
 
 ## Overview

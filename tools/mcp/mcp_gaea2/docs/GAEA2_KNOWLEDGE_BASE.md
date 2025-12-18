@@ -1,6 +1,6 @@
 # Gaea2 Knowledge Base
 
-*Generated from analysis of 31 real Gaea2 projects*
+> **Pattern intelligence and best practices derived from analysis of 31 production Gaea2 projects**
 
 ## Executive Summary
 

@@ -1,6 +1,6 @@
 # Gaea2 MCP API Reference
 
-Complete API reference for the Gaea2 Model Context Protocol system.
+> **Complete API reference for the Gaea2 Model Context Protocol system**
 
 ## Table of Contents
 
@@ -74,15 +74,18 @@ async def create_gaea2_project(
 ```
 
 **Automatic Validation Features (when `auto_validate=True`):**
-- ✅ All node types validated against complete schema
-- ✅ Property values corrected to valid ranges
-- ✅ Missing Export node automatically added
-- ✅ Missing color node (SatMap/ColorMap) automatically added
-- ✅ Duplicate connections removed
-- ✅ Invalid connections repaired
-- ✅ Orphaned nodes connected or removed
-- ✅ Performance-heavy properties optimized
-- ✅ File format guaranteed to be Gaea2-compatible
+
+| Feature | Description |
+|---------|-------------|
+| Node Validation | All node types validated against complete schema |
+| Property Correction | Property values corrected to valid ranges |
+| Export Node | Missing Export node automatically added |
+| Color Node | Missing color node (SatMap/ColorMap) automatically added |
+| Connection Cleanup | Duplicate connections removed |
+| Connection Repair | Invalid connections repaired |
+| Orphan Handling | Orphaned nodes connected or removed |
+| Performance | Performance-heavy properties optimized |
+| Compatibility | File format guaranteed to be Gaea2-compatible |
 
 ### validate_and_fix_workflow
 
