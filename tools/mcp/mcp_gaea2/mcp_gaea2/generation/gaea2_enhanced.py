@@ -4,8 +4,11 @@ import base64
 from datetime import datetime
 import json
 import os
+import random
 from typing import Any, Dict, List, Optional
 import uuid
+
+from mcp_gaea2.utils.gaea2_connection_utils import normalize_connections
 
 
 class EnhancedGaea2Tools:
@@ -165,7 +168,9 @@ class EnhancedGaea2Tools:
             ref_id_counter = 25  # Start after the last $id in project structure (24)
 
             for node_data in nodes:
-                node_id = node_data.get("id", 100 + len(nodes_dict))
+                # Ensure node_id is always an integer (Gaea2 requirement)
+                raw_id = node_data.get("id", 100 + len(nodes_dict))
+                node_id = int(raw_id) if isinstance(raw_id, (str, int, float)) else 100 + len(nodes_dict)
                 enhanced_node = await EnhancedGaea2Tools._create_enhanced_node(node_data, node_id, ref_id_counter)
                 nodes_dict[str(node_id)] = enhanced_node["node"]
                 ref_id_counter = enhanced_node["next_ref_id"]
@@ -377,9 +382,14 @@ class EnhancedGaea2Tools:
         properties = node_data.get("properties", {})
 
         # Base node structure
+        # Note: Nodes need both Position (canvas coords) and root-level X/Y (normalized 0-1)
+        # The root-level X/Y are used for certain node-specific parameters
         node = {
             "$id": str(ref_id_counter),
             "$type": f"QuadSpinner.Gaea.Nodes.{node_type}, Gaea.Nodes",
+            # Root-level X/Y (normalized 0-1, defaults to center)
+            "X": 0.5,
+            "Y": 0.5,
             "Id": node_id,
             "Name": node_name,
             "Position": {"$id": str(ref_id_counter + 1), "X": float(position["x"]), "Y": float(position["y"])},
@@ -398,6 +408,27 @@ class EnhancedGaea2Tools:
                 node[prop] = value
             else:
                 node[prop] = value
+
+        # Add default Seed for generator nodes if not provided
+        generator_nodes = {
+            "Mountain",
+            "Volcano",
+            "Island",
+            "Perlin",
+            "Voronoi",
+            "Cellular",
+            "Gradient",
+            "Canyon",
+            "Erosion2",
+            "Rivers",
+            "Snow",
+            "Beach",
+            "Coast",
+            "Lake",
+            "Glacier",
+        }
+        if node_type in generator_nodes and "Seed" not in properties:
+            node["Seed"] = random.randint(10000, 99999)
 
         # Create ports
         port_defs = node_data.get("ports") or EnhancedGaea2Tools._get_default_ports(node_type)
@@ -437,7 +468,10 @@ class EnhancedGaea2Tools:
     ) -> int:
         """Add connections between nodes with enhanced port handling"""
 
-        for conn in connections:
+        # Normalize connections to standard format (from_node/to_node)
+        normalized_conns = normalize_connections(connections)
+
+        for conn in normalized_conns:
             from_id = str(conn["from_node"])
             to_id = str(conn["to_node"])
             from_port = conn.get("from_port", "Out")
