@@ -210,7 +210,7 @@ class EnhancedGaea2Tools:
                 assert isinstance(terrain, dict)
                 terrain["Groups"] = groups_dict
 
-            # Assign nodes to project
+            # Assign nodes to project - preserve the $id from the original Nodes dict
             assets_obj = project["Assets"]
             assert isinstance(assets_obj, dict)
             assets_values = assets_obj["$values"]
@@ -219,7 +219,10 @@ class EnhancedGaea2Tools:
             assert isinstance(first_asset, dict)
             terrain = first_asset["Terrain"]
             assert isinstance(terrain, dict)
-            terrain["Nodes"] = nodes_dict
+            # Keep the $id and add nodes to it
+            nodes_with_id = {"$id": "6"}
+            nodes_with_id.update(nodes_dict)
+            terrain["Nodes"] = nodes_with_id
 
             # Save project
             if output_path:
