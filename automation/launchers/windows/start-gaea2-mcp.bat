@@ -70,11 +70,18 @@ if errorlevel 1 (
     echo.
 )
 
+REM Set output directory to a Windows-friendly path
+if "%GAEA2_OUTPUT_DIR%"=="" (
+    set "GAEA2_OUTPUT_DIR=%USERPROFILE%\gaea2_output"
+)
+if not exist "%GAEA2_OUTPUT_DIR%" mkdir "%GAEA2_OUTPUT_DIR%"
+
 REM Start the server
 echo Starting server on http://0.0.0.0:8007
+echo Output directory: %GAEA2_OUTPUT_DIR%
 echo Press Ctrl+C to stop the server
 echo.
 
-python -m mcp_gaea2.server --mode http --port 8007 %*
+python -m mcp_gaea2.server --mode http --port 8007 --output-dir "%GAEA2_OUTPUT_DIR%" %*
 
 pause

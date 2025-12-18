@@ -84,9 +84,18 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host ""
 }
 
+# Set output directory to a Windows-friendly path
+if (-not $env:GAEA2_OUTPUT_DIR) {
+    $env:GAEA2_OUTPUT_DIR = Join-Path $env:USERPROFILE "gaea2_output"
+}
+if (-not (Test-Path $env:GAEA2_OUTPUT_DIR)) {
+    New-Item -ItemType Directory -Path $env:GAEA2_OUTPUT_DIR -Force | Out-Null
+}
+
 # Start the server
 Write-Host "Starting server on http://${Host}:${Port}" -ForegroundColor Green
+Write-Host "Output directory: $env:GAEA2_OUTPUT_DIR" -ForegroundColor Gray
 Write-Host "Press Ctrl+C to stop the server" -ForegroundColor Yellow
 Write-Host ""
 
-python -m mcp_gaea2.server --mode http --port $Port $args
+python -m mcp_gaea2.server --mode http --port $Port --output-dir $env:GAEA2_OUTPUT_DIR $args
