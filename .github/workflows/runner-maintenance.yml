@@ -382,8 +382,31 @@ jobs:
             docker volume prune -f || true
             echo ""
 
-            # Step 6: Remove unused networks
-            echo "Step 6: Removing unused networks..."
+            # Step 6: Clean buildx builder state volumes (CRITICAL - these accumulate 100s of GB)
+            # These named volumes are NOT removed by 'docker volume prune' or 'docker builder prune'
+            # They accumulate with each buildx builder instance and can consume 300GB+
+            echo "Step 6: Cleaning buildx builder state volumes..."
+            buildx_volumes=$(docker volume ls -q --filter "name=buildx_buildkit_builder" 2>/dev/null || true)
+            if [ -n "$buildx_volumes" ]; then
+              # Get list of volumes actually in use by running containers
+              used_volumes=$(docker ps -q | xargs -r docker inspect --format '{{range .Mounts}}{{.Name}} {{end}}' 2>/dev/null | tr ' ' '\n' | sort -u || true)
+
+              for vol in $buildx_volumes; do
+                if ! echo "$used_volumes" | grep -q "^${vol}$"; then
+                  echo "Removing unused buildx volume: $vol"
+                  docker volume rm "$vol" 2>/dev/null || true
+                else
+                  echo "Keeping in-use volume: $vol"
+                fi
+              done
+              echo "Buildx volumes cleaned"
+            else
+              echo "No buildx builder volumes found"
+            fi
+            echo ""
+
+            # Step 7: Remove unused networks
+            echo "Step 7: Removing unused networks..."
             docker network prune -f || true
             echo ""
 
@@ -414,6 +437,10 @@ jobs:
             # Remove all images
             echo "Removing ALL images..."
             docker rmi $(docker images -aq) -f 2>/dev/null || true
+
+            # Remove ALL buildx builder volumes (these are named volumes, not anonymous)
+            echo "Removing ALL buildx builder volumes..."
+            docker volume ls -q --filter "name=buildx_buildkit" | xargs -r docker volume rm 2>/dev/null || true
 
             # System prune with all
             echo "Running system prune..."
