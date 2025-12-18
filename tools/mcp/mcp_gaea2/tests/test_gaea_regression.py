@@ -72,6 +72,12 @@ class RegressionTestManager:
             "duration",
             "temp_path",
             "saved_path",
+            # Runtime validation fields (new feature, not regression)
+            "runtime_validation_performed",
+            "runtime_validation_passed",
+            "runtime_check_performed",
+            "runtime_check_passed",
+            "runtime_check_error",
         ]
         for field in fields_to_remove:
             normalized.pop(field, None)
