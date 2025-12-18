@@ -1633,6 +1633,11 @@ WORKFLOW_TEMPLATES = {
                 "Seed": 12345,
             },
         },
+        {
+            "type": "Export",
+            "name": "HeightmapExport",
+            "properties": {"Filename": "heightmap", "Format": "PNG16", "Location": "BuildFolder"},
+        },
         {"type": "TextureBase", "name": "BaseTexture", "properties": {}},
         {
             "type": "SatMap",
@@ -2395,7 +2400,7 @@ def create_workflow_from_template(
         }
         nodes.append(node)
 
-        # Create connection to previous node (skip for Portal nodes)
+        # Create connection to previous node (skip for Portal and Export nodes)
         if i > 0:
             prev_node = nodes[i - 1]
 
@@ -2406,6 +2411,17 @@ def create_workflow_from_template(
                 "Portal",
             ] or prev_node["type"] in ["PortalTransmit", "PortalReceive", "Portal"]:
                 continue
+
+            # Export nodes are terminal - find the last terrain node to connect from
+            # instead of the immediately previous node
+            if prev_node["type"] == "Export":
+                # Skip - don't connect from Export node, find previous terrain node
+                for j in range(i - 2, -1, -1):
+                    if nodes[j]["type"] not in ["Export", "SatMap", "TextureBase", "ColorMap"]:
+                        prev_node = nodes[j]
+                        break
+                else:
+                    continue  # No suitable node found
 
             # Handle special connection cases
             if node["type"] == "Combine":
