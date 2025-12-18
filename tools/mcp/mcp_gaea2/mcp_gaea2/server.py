@@ -274,7 +274,7 @@ class Gaea2MCPServer(BaseMCPServer):
             tools.update(
                 {
                     "run_gaea2_project": {
-                        "description": "Run a Gaea2 project via CLI to generate terrain",
+                        "description": "Run a Gaea2 project via CLI to generate terrain (Gaea.Swarm 2.2.6+)",
                         "parameters": {
                             "type": "object",
                             "properties": {
@@ -286,16 +286,41 @@ class Gaea2MCPServer(BaseMCPServer):
                                     "type": "string",
                                     "enum": ["512", "1024", "2048", "4096", "8192"],
                                     "default": "1024",
+                                    "description": "Build resolution",
                                 },
-                                "format": {
+                                "build_path": {
                                     "type": "string",
-                                    "enum": ["exr", "raw", "png", "tiff"],
-                                    "default": "exr",
+                                    "description": "Output directory (defaults to output_<project_name>)",
                                 },
-                                "bake_only": {
-                                    "type": "array",
-                                    "items": {"type": "string"},
-                                    "description": "List of specific nodes to bake",
+                                "profile": {
+                                    "type": "string",
+                                    "description": "Build profile name defined in the project",
+                                },
+                                "region": {
+                                    "type": "string",
+                                    "description": "Specific region to build",
+                                },
+                                "seed": {
+                                    "type": "integer",
+                                    "description": "Mutation seed for terrain variations",
+                                },
+                                "target_node": {
+                                    "type": "integer",
+                                    "description": "Specific node index to target",
+                                },
+                                "variables": {
+                                    "type": "object",
+                                    "description": "Variable name:value pairs for automation",
+                                },
+                                "ignore_cache": {
+                                    "type": "boolean",
+                                    "default": False,
+                                    "description": "Force rebuild ignoring baked cache",
+                                },
+                                "verbose": {
+                                    "type": "boolean",
+                                    "default": False,
+                                    "description": "Enable verbose diagnostic logging",
                                 },
                                 "timeout": {
                                     "type": "integer",
@@ -662,11 +687,17 @@ class Gaea2MCPServer(BaseMCPServer):
         *,
         project_path: str,
         resolution: str = "1024",
-        output_format: str = "exr",
-        bake_only: Optional[List[str]] = None,
+        build_path: Optional[str] = None,
+        profile: Optional[str] = None,
+        region: Optional[str] = None,
+        seed: Optional[int] = None,
+        target_node: Optional[int] = None,
+        variables: Optional[Dict[str, str]] = None,
+        ignore_cache: bool = False,
+        verbose: bool = False,
         timeout: int = 300,
     ) -> Dict[str, Any]:
-        """Run a Gaea2 project via CLI"""
+        """Run a Gaea2 project via CLI (Gaea.Swarm 2.2.6+)"""
         if not self.cli:
             return {
                 "success": False,
@@ -677,8 +708,14 @@ class Gaea2MCPServer(BaseMCPServer):
             result = await self.cli.run_project(
                 project_path=project_path,
                 resolution=resolution,
-                output_format=output_format,
-                bake_only=bake_only,
+                build_path=build_path,
+                profile=profile,
+                region=region,
+                seed=seed,
+                target_node=target_node,
+                variables=variables,
+                ignore_cache=ignore_cache,
+                verbose=verbose,
                 timeout=timeout,
             )
 

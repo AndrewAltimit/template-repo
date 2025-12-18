@@ -1,17 +1,34 @@
-"""Gaea2 CLI automation for running projects"""
+"""Gaea2 CLI automation for running projects
+
+Updated for Gaea.Swarm.exe 2.2.6.0 CLI arguments.
+"""
 
 import asyncio
 from datetime import datetime
 import logging
 from pathlib import Path
 import subprocess
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from mcp_gaea2.exceptions import Gaea2FileError
 
 
 class Gaea2CLIAutomation:
-    """Automate Gaea2 via command line interface"""
+    """Automate Gaea2 via command line interface
+
+    Supports Gaea.Swarm.exe 2.2.6.0 with the following options:
+    - --Filename: Path to terrain file (required)
+    - --buildpath: Output directory
+    - --resolution: Override build resolution
+    - --profile: Build profile to use
+    - --region: Specific region to build
+    - --seed: Mutation seed for variations
+    - --node: Target specific node
+    - -v: Variable assignments (key:value)
+    - --silent: Disable interactivity
+    - --ignorecache: Force rebuild ignoring cache
+    - --verbose: Enable diagnostic logging
+    """
 
     def __init__(self, gaea_path: Optional[Path] = None):
         self.logger = logging.getLogger(__name__)
@@ -24,12 +41,34 @@ class Gaea2CLIAutomation:
         self,
         project_path: str,
         resolution: str = "1024",
-        output_format: str = "exr",
-        bake_only: Optional[List[str]] = None,
+        build_path: Optional[str] = None,
+        profile: Optional[str] = None,
+        region: Optional[str] = None,
+        seed: Optional[int] = None,
+        target_node: Optional[int] = None,
+        variables: Optional[Dict[str, str]] = None,
+        ignore_cache: bool = False,
+        verbose: bool = False,
         timeout: int = 300,
     ) -> Dict[str, Any]:
-        """Run a Gaea2 project and generate terrain outputs"""
+        """Run a Gaea2 project and generate terrain outputs
 
+        Args:
+            project_path: Path to the .terrain file
+            resolution: Build resolution (512, 1024, 2048, 4096, 8192)
+            build_path: Output directory (defaults to output_<project_name>)
+            profile: Build profile name defined in the project
+            region: Specific region to build
+            seed: Mutation seed for terrain variations
+            target_node: Specific node index to target
+            variables: Dict of variable name:value pairs
+            ignore_cache: Force rebuild ignoring baked cache
+            verbose: Enable verbose diagnostic logging
+            timeout: Maximum execution time in seconds
+
+        Returns:
+            Dict with success status, output files, and execution details
+        """
         if not self.gaea_path:
             return {"success": False, "error": "Gaea2 executable path not configured"}
 
@@ -42,24 +81,46 @@ class Gaea2CLIAutomation:
 
         try:
             # Prepare output directory
-            output_dir = project_path_obj.parent / f"output_{project_path_obj.stem}"
+            if build_path:
+                output_dir = Path(build_path)
+            else:
+                output_dir = project_path_obj.parent / f"output_{project_path_obj.stem}"
             output_dir.mkdir(exist_ok=True)
 
-            # Build command
+            # Build command for Gaea.Swarm.exe 2.2.6.0
             cmd = [
                 str(self.gaea_path),
+                "--Filename",
                 str(project_path_obj),
-                f"--resolution={resolution}",
-                f"--format={output_format}",
-                f"--output={output_dir}",
-                "--silent",  # Minimize console output
+                "--resolution",
+                resolution,
+                "--buildpath",
+                str(output_dir),
+                "--silent",  # Required for automation
             ]
 
-            # Add specific nodes to bake if provided
-            if bake_only:
-                cmd.extend([f"--bake={node}" for node in bake_only])
-            else:
-                cmd.append("--bakeall")  # Bake all nodes
+            # Add optional parameters
+            if profile:
+                cmd.extend(["--profile", profile])
+
+            if region:
+                cmd.extend(["--region", region])
+
+            if seed is not None:
+                cmd.extend(["--seed", str(seed)])
+
+            if target_node is not None:
+                cmd.extend(["--node", str(target_node)])
+
+            if variables:
+                for key, value in variables.items():
+                    cmd.extend(["-v", f"{key}:{value}"])
+
+            if ignore_cache:
+                cmd.append("--ignorecache")
+
+            if verbose:
+                cmd.append("--verbose")
 
             self.logger.info("Running Gaea2 command: %s", " ".join(cmd))
 
@@ -80,25 +141,31 @@ class Gaea2CLIAutomation:
                 }
 
             execution_time = (datetime.now() - start_time).total_seconds()
+            stdout_text = stdout.decode("utf-8", errors="ignore")
+            stderr_text = stderr.decode("utf-8", errors="ignore")
 
             # Check results
             if process.returncode == 0:
-                # Find generated files
-                output_files = list(output_dir.glob(f"*.{output_format}"))
+                # Find generated files (check common output formats)
+                output_files: list[Path] = []
+                for ext in ["exr", "png", "tiff", "tif", "raw", "r16", "r32"]:
+                    output_files.extend(output_dir.glob(f"*.{ext}"))
 
                 return {
                     "success": True,
                     "output_dir": str(output_dir),
                     "output_files": [str(f) for f in output_files],
+                    "file_count": len(output_files),
                     "execution_time": execution_time,
-                    "stdout": stdout.decode("utf-8", errors="ignore"),
-                    "stderr": stderr.decode("utf-8", errors="ignore"),
+                    "stdout": stdout_text,
+                    "stderr": stderr_text,
                 }
+
             return {
                 "success": False,
                 "error": f"Gaea2 exited with code {process.returncode}",
-                "stdout": stdout.decode("utf-8", errors="ignore"),
-                "stderr": stderr.decode("utf-8", errors="ignore"),
+                "stdout": stdout_text,
+                "stderr": stderr_text,
                 "execution_time": execution_time,
             }
 
