@@ -127,11 +127,17 @@ class Gaea2CLIAutomation:
             # Run the command
             start_time = datetime.now()
 
+            # On Windows, use CREATE_NO_WINDOW to avoid console handle issues
+            # Gaea.Swarm.exe requires this to run without an interactive console
+            # Use getattr for cross-platform compatibility (only exists on Windows)
+            creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                stdin=asyncio.subprocess.DEVNULL,  # Prevent "handle is invalid" on Windows
+                stdin=asyncio.subprocess.DEVNULL,
+                creationflags=creation_flags,
             )
 
             try:
