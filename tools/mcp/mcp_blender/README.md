@@ -1,304 +1,199 @@
-# 🎬 Blender MCP Server
+# Blender MCP Server
 
-A comprehensive Model Context Protocol (MCP) server for **Blender 3D** operations, enabling programmatic control of 3D content creation, rendering, physics simulations, and procedural generation.
+> A Model Context Protocol server for programmatic 3D content creation, rendering, and simulation through headless Blender automation.
 
-## 🚀 Quick Start
+## Validation Status
+
+This server has been validated through automated testing and manual verification. The following table indicates the current status of each component:
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| Project Creation | Validated | Template-based project generation with 11 templates |
+| Rendering (Cycles) | Validated | GPU-accelerated path tracing with NVIDIA CUDA |
+| Rendering (Eevee) | Validated | Real-time viewport rendering |
+| Physics (Rigid Body) | Validated | Solid object dynamics and collision |
+| Physics (Soft Body) | Partial | Basic implementation; complex deformations untested |
+| Physics (Cloth/Fluid) | Untested | API exposed but not validated |
+| Animation | Validated | Keyframe animation with interpolation modes |
+| Geometry Nodes | Experimental | Scatter and array setups implemented |
+| Asset Import | Validated | FBX, OBJ, GLTF/GLB formats |
+| Asset Export | Validated | GLTF, FBX, OBJ formats |
+| Compositing | Experimental | Basic node setup; complex workflows untested |
+
+**Scope**: This server provides programmatic Blender automation for batch rendering and procedural content generation. It operates headlessly through subprocess execution. Interactive viewport control, real-time editing, and Blender GUI access are not supported.
+
+## Architecture
+
+```
+Claude Code / MCP Client
+        |
+        | HTTP/JSON (Port 8017)
+        v
++-------------------+
+|   FastAPI Server  |  Job management, request routing
++-------------------+
+        |
+        | Subprocess (async)
+        v
++-------------------+
+|  Headless Blender |  3D operations via Python scripts
++-------------------+
+        |
+        v
+    Project files (.blend)
+    Rendered outputs (PNG, MP4, EXR)
+```
+
+Key design decisions:
+- **Process isolation**: Each Blender operation runs as an isolated subprocess, preventing crashes from affecting the server
+- **Async job system**: Long-running operations (rendering, simulations) execute asynchronously with status polling
+- **Path validation**: All user-provided paths are validated against directory traversal attacks
+- **Container-first**: Designed for Docker deployment with GPU passthrough support
+
+## Quick Start
 
 ```bash
-# Start the server
-./tools/mcp/blender/quickstart.sh start
-
-# Run a demo
-./tools/mcp/blender/quickstart.sh demo
-
-# Check status
-./tools/mcp/blender/quickstart.sh status
-```
-
-## ✨ Features
-
-### Core Capabilities
-- **🎨 Scene Generation** - Create 3D scenes from templates
-- **🎬 Rendering** - GPU-accelerated image and animation rendering
-- **⚛️ Physics** - Rigid body, soft body, cloth, and fluid simulations
-- **🎭 Animation** - Keyframe animation, rigging, and constraints
-- **🔷 Geometry Nodes** - Procedural content generation
-- **📦 Asset Management** - Import/export models and textures
-
-### Render Engines
-- **Cycles** - Photorealistic path-traced rendering
-- **Eevee** - Real-time viewport rendering
-- **Workbench** - Fast solid/wireframe rendering
-
-### Supported Formats
-- **Models**: FBX, OBJ, GLTF/GLB, STL, PLY, USD, Collada
-- **Images**: PNG, JPEG, EXR, TIFF, HDR
-- **Video**: MP4, AVI, MOV
-
-## 🏗️ Architecture
-
-```
-┌─────────────┐     HTTP/JSON    ┌──────────────┐
-│   Claude    │ ◄──────────────► │  FastAPI     │
-│    Code     │                   │   Server     │
-└─────────────┘                   └──────┬───────┘
-                                         │
-                                    Subprocess
-                                         │
-                                   ┌─────▼───────┐
-                                   │  Headless   │
-                                   │   Blender   │
-                                   │  Instance   │
-                                   └─────────────┘
-```
-
-- **FastAPI Server**: Handles HTTP requests and job management (Port 8017)
-- **Headless Blender**: Executes 3D operations as subprocesses
-- **Async Job System**: Manages long-running operations like rendering
-- **GPU Acceleration**: NVIDIA CUDA support for fast rendering
-
-## 📡 API Examples
-
-### Create a Scene
-```python
-# Create project with studio lighting
-await create_blender_project(
-    name="my_scene",
-    template="studio_lighting",
-    settings={
-        "resolution": [1920, 1080],
-        "engine": "CYCLES"
-    }
-)
-
-# Add objects
-await add_primitive_objects(
-    project="/app/projects/my_scene.blend",
-    objects=[
-        {"type": "monkey", "name": "Suzanne", "location": [0, 0, 2]},
-        {"type": "cube", "name": "Box", "location": [3, 0, 1]}
-    ]
-)
-```
-
-### Render an Image
-```python
-# Start render job
-render_job = await render_image(
-    project="/app/projects/my_scene.blend",
-    settings={
-        "resolution": [1920, 1080],
-        "samples": 128,
-        "engine": "CYCLES"
-    }
-)
-
-# Check status
-status = await get_job_status(job_id=render_job["job_id"])
-# Returns: {"status": "RUNNING", "progress": 45, ...}
-```
-
-### Physics Simulation
-```python
-# Setup physics
-await setup_physics(
-    project="/app/projects/my_scene.blend",
-    object_name="Box",
-    physics_type="rigid_body",
-    settings={"mass": 2.0, "bounce": 0.5}
-)
-
-# Bake simulation
-await bake_simulation(
-    project="/app/projects/my_scene.blend",
-    end_frame=250
-)
-```
-
-## 🐳 Docker Setup
-
-### Build and Run
-```bash
-# Build container
+# Build and start the server
 docker-compose build mcp-blender
-
-# Start server
 docker-compose up -d mcp-blender
 
-# View logs
-docker-compose logs -f mcp-blender
-```
+# Verify health
+curl http://localhost:8017/health
 
-### GPU Support (NVIDIA)
-```bash
-# Install NVIDIA Container Toolkit
-distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
-curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
-curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
-    sudo tee /etc/apt/sources.list.d/nvidia-docker.list
-sudo apt-get update && sudo apt-get install -y nvidia-container-toolkit
-sudo systemctl restart docker
-
-# Run with GPU
+# Run with GPU support (requires NVIDIA Container Toolkit)
 docker-compose --profile gpu up mcp-blender
 ```
 
-## 🧪 Testing
+## Available Tools
 
-### Run Tests
-```bash
-# Unit tests
-pytest tools/mcp/blender/tests/
+| Tool | Description | Async |
+|------|-------------|-------|
+| `create_blender_project` | Create project from template | No |
+| `add_primitive_objects` | Add cubes, spheres, cylinders, etc. | No |
+| `setup_lighting` | Configure lighting (three-point, studio, HDRI) | No |
+| `apply_material` | Apply PBR materials to objects | No |
+| `setup_camera` | Configure camera position and settings | No |
+| `add_modifier` | Apply modifiers (subdivision, boolean, etc.) | No |
+| `render_image` | Render single frame | Yes |
+| `render_animation` | Render animation sequence | Yes |
+| `setup_physics` | Configure physics simulation | No |
+| `bake_simulation` | Bake physics to keyframes | Yes |
+| `create_animation` | Create keyframe animation | No |
+| `create_geometry_nodes` | Setup procedural geometry | No |
+| `import_model` | Import external 3D models | No |
+| `export_scene` | Export scene to various formats | No |
+| `get_job_status` | Check async job progress | No |
+| `get_job_result` | Retrieve completed job output | No |
+| `cancel_job` | Cancel running job | No |
+| `list_projects` | List available projects | No |
 
-# Integration test
-python tools/mcp/blender/scripts/test_server.py
+## Templates
 
-# Interactive mode
-python tools/mcp/blender/scripts/test_server.py --interactive
-```
+| Template | Description |
+|----------|-------------|
+| `empty` | Blank project with default settings |
+| `basic_scene` | Ground plane, camera, and single light |
+| `studio_lighting` | Three-point lighting for product shots |
+| `procedural` | Geometry nodes ready configuration |
+| `animation` | Timeline and keyframe configuration |
+| `physics` | Rigid body world with ground collision |
+| `architectural` | High-quality lighting for architecture |
+| `product` | Clean background for product rendering |
+| `vfx` | Compositing nodes for visual effects |
+| `game_asset` | Export-optimized settings for games |
+| `sculpting` | Matcap shading for digital sculpting |
 
-### Available Demos
-- **Render Demo** - Create and render a simple scene
-- **Physics Demo** - Falling objects simulation
-- **Animation Demo** - Keyframe animation example
-- **Geometry Nodes** - Procedural generation
+## Configuration
 
-## 📚 Templates
+| Environment Variable | Default | Description |
+|---------------------|---------|-------------|
+| `PORT` | `8017` | Server listen port |
+| `BLENDER_PATH` | Auto-detect | Path to Blender executable |
+| `CUDA_VISIBLE_DEVICES` | All | GPU device selection |
+| `BLENDER_MAX_THREADS` | System default | CPU thread limit |
+| `BLENDER_MEMORY_LIMIT` | None | Memory limit per operation |
+| `MAX_CONCURRENT_JOBS` | `4` | Concurrent job limit |
 
-| Template | Description | Use Case |
-|----------|-------------|----------|
-| `empty` | Blank scene | Starting from scratch |
-| `basic_scene` | Ground, light, camera | General purpose |
-| `studio_lighting` | Three-point lighting | Product shots |
-| `procedural` | Geometry nodes ready | Procedural generation |
-| `animation` | Timeline configured | Character animation |
-| `physics` | Simulation ready | Dynamics/simulations |
-| `architectural` | High-quality setup | Architecture viz |
-| `product` | Clean background | Product rendering |
-| `vfx` | Compositing nodes | Visual effects |
-| `game_asset` | Export optimized | Game development |
-| `sculpting` | Matcap shading | Digital sculpting |
+## Volume Mounts
 
-## 🔧 Configuration
-
-### Environment Variables
-```bash
-# Port configuration
-PORT=8017
-
-# GPU settings
-CUDA_VISIBLE_DEVICES=0
-
-# Resource limits
-BLENDER_MAX_THREADS=8
-BLENDER_MEMORY_LIMIT=8G
-```
-
-### Volume Mounts
 ```yaml
 volumes:
   - ./outputs/blender/projects:/app/projects    # Blender project files
   - ./outputs/blender/assets:/app/assets        # Textures, models, HDRIs
-  - ./outputs/blender/renders:/app/outputs      # Rendered images/videos
-  - ./outputs/blender/templates:/app/templates  # Project templates
+  - ./outputs/blender/renders:/app/outputs      # Rendered outputs
+  - ./outputs/blender/templates:/app/templates  # Custom templates
 ```
 
-## 🎯 Use Cases
+## Known Limitations
 
-### Product Visualization
-- High-quality product renders
-- 360° turntables
-- Material variations
-- Studio lighting setups
+The following limitations are documented for transparency:
 
-### Architectural Visualization
-- Building exteriors/interiors
-- Landscape integration
-- Realistic lighting with HDRIs
-- Walkthrough animations
+| Limitation | Impact | Workaround |
+|------------|--------|------------|
+| No interactive viewport | Cannot preview in real-time | Use Eevee for fast test renders |
+| GPU detection requires toolkit | Container GPU access fails without setup | Install NVIDIA Container Toolkit |
+| HDRI requires pre-positioned files | Cannot download HDRIs dynamically | Mount HDRIs in `/app/assets/hdri/` |
+| Render queue backlog | Jobs may queue during high load | Monitor with `get_job_status` |
+| Blender version locked | Container uses specific Blender version | Rebuild container for version changes |
+| No real-time progress streaming | Progress only available via polling | Poll `get_job_status` periodically |
 
-### Motion Graphics
-- Logo animations
-- Title sequences
-- Abstract animations
-- Particle effects
+## Troubleshooting
 
-### Game Asset Creation
-- Low-poly modeling
-- Texture baking
-- Export optimization
-- LOD generation
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| Server returns 500 | Blender subprocess crashed | Check `docker logs mcp-blender` |
+| GPU not detected | Container toolkit missing | Install NVIDIA Container Toolkit |
+| Renders stuck in QUEUED | Max concurrent jobs reached | Wait for jobs to complete or cancel |
+| Path validation fails | Path outside allowed directories | Use `/app/projects/` prefix |
+| Import fails | Unsupported format | Check supported formats in docs |
+| Out of memory | Scene too complex | Reduce geometry, texture sizes |
 
-### Scientific Visualization
-- Data visualization
-- Medical imaging
-- Engineering simulations
-- Educational content
+## Testing
 
-## 🔗 Integration Examples
+```bash
+# Run unit tests
+docker-compose run --rm python-ci pytest tools/mcp/mcp_blender/tests/ -v
 
-### With ComfyUI
-```python
-# Generate texture with ComfyUI
-texture = await comfyui.generate_texture(prompt="wood texture")
+# Run integration test
+python tools/mcp/mcp_blender/scripts/test_server.py
 
-# Apply in Blender
-await blender.apply_material(
-    object_name="Table",
-    texture_path=texture["path"]
-)
+# Health check
+curl -s http://localhost:8017/health | jq
 ```
 
-### With Gaea2
-```python
-# Generate terrain in Gaea2
-terrain = await gaea2.create_terrain(template="mountains")
+## Documentation
 
-# Import into Blender
-await blender.import_model(
-    model_path=terrain["mesh_path"],
-    format="OBJ"
-)
-```
+- [API Reference](docs/API_REFERENCE.md) - Complete tool documentation
+- [Architecture](docs/ARCHITECTURE.md) - System design details
+- [Examples](docs/EXAMPLES.md) - Usage patterns and workflows
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Diagnostic guide
+- [Limitations](docs/LIMITATIONS.md) - Scope and constraints
 
-## 📈 Performance Tips
+## Integration
 
-1. **Use Eevee for previews** - Much faster than Cycles
-2. **Optimize samples** - Start low, increase for final render
-3. **Enable GPU rendering** - 10-50x faster with NVIDIA GPUs
-4. **Use instancing** - For repeated geometry
-5. **Bake simulations** - Cache physics calculations
+The Blender MCP server integrates with other MCP servers in this repository:
 
-## 🛠️ Troubleshooting
+- **ComfyUI MCP**: Generate textures with AI, apply in Blender
+- **Gaea2 MCP**: Create terrain heightmaps, import as Blender geometry
+- **ElevenLabs MCP**: Generate audio for animations
 
-| Issue | Solution |
-|-------|----------|
-| Server won't start | Check port 8017 availability |
-| GPU not detected | Install NVIDIA Container Toolkit |
-| Rendering slow | Enable GPU, reduce samples |
-| Out of memory | Reduce texture sizes, simplify geometry |
-| Jobs stuck | Check `docker logs mcp-blender` |
+## Security
 
-## 📖 Documentation
+- Path traversal prevention with comprehensive validation
+- Process isolation via subprocess execution
+- Container runs as non-root user
+- Resource limits enforced via Docker
 
-- [Full API Reference](docs/README.md)
-- [Examples](examples/basic_usage.py)
-- [Architecture Details](docs/README.md#architecture)
+## Performance
 
-## 🤝 Contributing
+| Operation | Typical Time | Notes |
+|-----------|--------------|-------|
+| Project creation | <1s | Template-based |
+| Cycles render (1080p, 128 samples) | 10-60s | GPU-dependent |
+| Eevee render (1080p) | 1-5s | Near real-time |
+| Physics bake (250 frames) | 30-120s | Complexity-dependent |
+| FBX import | <5s | Model-dependent |
 
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new features
-4. Submit a pull request
+## License
 
-## 📄 License
-
-Part of the template-repo project - see main LICENSE file.
-
-## 🙏 Acknowledgments
-
-- Blender Foundation for the amazing open-source 3D software
-- FastAPI for the modern web framework
-- NVIDIA for CUDA and GPU acceleration
+Part of the template-repo project. See repository LICENSE file.
