@@ -948,7 +948,7 @@ NODE_PROPERTY_DEFINITIONS = {
             "description": "Coastline detail level",
         },
     },
-    "Lakes": {
+    "Lake": {
         "Count": {
             "type": "int",
             "default": 3,
@@ -2034,9 +2034,19 @@ WORKFLOW_TEMPLATES = {
             "properties": {"Strength": 0.6, "Iterations": 30, "Angle": 32.0},
         },
         {
-            "type": "Lakes",
+            "type": "Export",
+            "name": "ArcticHeightmap",
+            "properties": {},
+            "save_definition": {
+                "filename": "arctic_heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
+        },
+        {
+            "type": "Lake",
             "name": "GlacialLakes",
-            "properties": {"Count": 5, "Size": 0.2},
+            "properties": {},
         },
         {
             "type": "SatMap",
@@ -2359,7 +2369,7 @@ def create_workflow_from_template(
         "Snow",
         "Beach",
         "Coast",
-        "Lakes",
+        "Lake",
         "Glacier",
         "SeaLevel",
         "LavaFlow",
