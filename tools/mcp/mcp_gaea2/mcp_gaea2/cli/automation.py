@@ -127,16 +127,17 @@ class Gaea2CLIAutomation:
             # Run the command
             start_time = datetime.now()
 
-            # Run without special creation flags - let subprocess inherit console
-            # Gaea.Swarm.exe needs console access for its .NET runtime
+            # Gaea.Swarm.exe requires console access - piping breaks it
+            # Run without capturing output to preserve console handle
+            # Output files will be checked after execution
             process = await asyncio.create_subprocess_exec(
                 *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+                stdout=None,  # Don't pipe - let it use console
+                stderr=None,
             )
 
             try:
-                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+                await asyncio.wait_for(process.wait(), timeout=timeout)
             except asyncio.TimeoutError:
                 process.kill()
                 return {
@@ -145,10 +146,8 @@ class Gaea2CLIAutomation:
                 }
 
             execution_time = (datetime.now() - start_time).total_seconds()
-            stdout_text = stdout.decode("utf-8", errors="ignore")
-            stderr_text = stderr.decode("utf-8", errors="ignore")
 
-            # Check results
+            # Check results - output not captured to preserve console access
             if process.returncode == 0:
                 # Find generated files (check common output formats)
                 output_files: list[Path] = []
@@ -161,16 +160,14 @@ class Gaea2CLIAutomation:
                     "output_files": [str(f) for f in output_files],
                     "file_count": len(output_files),
                     "execution_time": execution_time,
-                    "stdout": stdout_text,
-                    "stderr": stderr_text,
+                    "note": "Console output not captured to preserve Gaea2 console access",
                 }
 
             return {
                 "success": False,
                 "error": f"Gaea2 exited with code {process.returncode}",
-                "stdout": stdout_text,
-                "stderr": stderr_text,
                 "execution_time": execution_time,
+                "note": "Console output not captured - check Gaea2 console window",
             }
 
         except Exception as e:
