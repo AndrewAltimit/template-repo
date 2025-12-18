@@ -1122,9 +1122,9 @@ def main():
         help="Port to run the HTTP server on (default: 8007)",
     )
     parser.add_argument(
-        "--no-enforce-file-validation",
+        "--enforce-file-validation",
         action="store_true",
-        help="Disable mandatory file validation (not recommended for production)",
+        help="Enable runtime CLI validation (disabled by default due to reliability issues)",
     )
     args = parser.parse_args()
 
@@ -1145,7 +1145,7 @@ def main():
         gaea_path=args.gaea_path,
         output_dir=args.output_dir,
         port=args.port,
-        enforce_file_validation=not args.no_enforce_file_validation,
+        enforce_file_validation=args.enforce_file_validation,
     )
     server.run(mode=args.mode)
 
