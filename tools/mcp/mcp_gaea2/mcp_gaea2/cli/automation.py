@@ -127,22 +127,17 @@ class Gaea2CLIAutomation:
             # Run the command
             start_time = datetime.now()
 
-            # On Windows, wrap command with cmd /c and echo to provide stdin
-            # This works around Gaea.Swarm.exe console handle bug
-            # Use getattr for cross-platform compatibility
-            creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+            # Gaea.Swarm.exe requires a console - don't use CREATE_NO_WINDOW
+            # Use CREATE_NEW_CONSOLE to give it a proper console handle
+            # This prevents "The handle is invalid" errors
+            create_new_console = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
 
-            # Build shell command with echo pipe for Windows console apps
-            # Quote each argument properly for cmd.exe
-            quoted_cmd = " ".join(f'"{arg}"' if " " in arg else arg for arg in cmd)
-            shell_cmd = f"echo. | {quoted_cmd}"
-            self.logger.info("Running shell command: %s", shell_cmd)
-
-            process = await asyncio.create_subprocess_shell(
-                shell_cmd,
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                creationflags=creation_flags,
+                stdin=asyncio.subprocess.DEVNULL,
+                creationflags=create_new_console,
             )
 
             try:
