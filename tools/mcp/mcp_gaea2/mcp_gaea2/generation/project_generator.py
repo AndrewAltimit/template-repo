@@ -374,42 +374,45 @@ class EnhancedGaea2Tools:
 
     @staticmethod
     async def _create_enhanced_node(node_data: Dict[str, Any], node_id: int, ref_id_counter: int) -> Dict[str, Any]:
-        """Create an enhanced node with modifiers, ports, and save definitions"""
+        """Create an enhanced node with modifiers, ports, and save definitions.
+
+        Property order follows Gaea2 reference format:
+        1. $id, $type
+        2. Node-specific properties (Scale, Height, etc.)
+        3. X, Y (normalized 0-1)
+        4. Seed (for generator nodes)
+        5. Id, Name, Position, Ports, Modifiers
+        """
         node_type = node_data.get("type", "Mountain")
         node_name = node_data.get("name", node_type)
         raw_position = node_data.get("position", {"x": 25000, "y": 25000})
         position = EnhancedGaea2Tools._normalize_position(raw_position)
         properties = node_data.get("properties", {})
 
-        # Base node structure
-        # Note: Nodes need both Position (canvas coords) and root-level X/Y (normalized 0-1)
-        # The root-level X/Y are used for certain node-specific parameters
-        node = {
-            "$id": str(ref_id_counter),
-            "$type": f"QuadSpinner.Gaea.Nodes.{node_type}, Gaea.Nodes",
-            # Root-level X/Y (normalized 0-1, defaults to center)
-            "X": 0.5,
-            "Y": 0.5,
-            "Id": node_id,
-            "Name": node_name,
-            "Position": {"$id": str(ref_id_counter + 1), "X": float(position["x"]), "Y": float(position["y"])},
-            "Ports": {"$id": str(ref_id_counter + 2), "$values": []},
-            "Modifiers": {"$id": str(ref_id_counter + 3), "$values": []},
-        }
         node_id_ref = str(ref_id_counter)
-        ref_id_counter += 4
 
-        # Add node-specific properties
+        # Build node in correct property order (order matters for Gaea2)
+        node: Dict[str, Any] = {}
+
+        # 1. Required identifiers first
+        node["$id"] = str(ref_id_counter)
+        node["$type"] = f"QuadSpinner.Gaea.Nodes.{node_type}, Gaea.Nodes"
+
+        # 2. Node-specific properties (before X/Y/Seed/Id/Name/Position)
         for prop, value in properties.items():
             if isinstance(value, dict) and "x" in value and "y" in value:
-                node[prop] = {"$id": str(ref_id_counter), "X": float(value["x"]), "Y": float(value["y"])}
+                node[prop] = {"$id": str(ref_id_counter + 4), "X": float(value["x"]), "Y": float(value["y"])}
                 ref_id_counter += 1
             elif prop == "StrokeData" and isinstance(value, str):
                 node[prop] = value
             else:
                 node[prop] = value
 
-        # Add default Seed for generator nodes if not provided
+        # 3. Root-level X/Y (normalized 0-1, defaults to center)
+        node["X"] = 0.5
+        node["Y"] = 0.5
+
+        # 4. Seed for generator nodes
         generator_nodes = {
             "Mountain",
             "Volcano",
@@ -429,6 +432,15 @@ class EnhancedGaea2Tools:
         }
         if node_type in generator_nodes and "Seed" not in properties:
             node["Seed"] = random.randint(10000, 99999)
+
+        # 5. Standard properties last
+        node["Id"] = node_id
+        node["Name"] = node_name
+        node["Position"] = {"$id": str(ref_id_counter + 1), "X": float(position["x"]), "Y": float(position["y"])}
+        node["Ports"] = {"$id": str(ref_id_counter + 2), "$values": []}
+        node["Modifiers"] = {"$id": str(ref_id_counter + 3), "$values": []}
+
+        ref_id_counter += 4
 
         # Create ports
         port_defs = node_data.get("ports") or EnhancedGaea2Tools._get_default_ports(node_type)
