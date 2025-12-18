@@ -55,6 +55,13 @@ class Gaea2FileValidator:
             "general_load_error": r"failed to load|cannot open|unable to read",
             "memory_error": r"out of memory|insufficient memory",
             "parse_error": r"parse error|syntax error|malformed",
+            # .NET runtime exceptions
+            "unhandled_exception": r"Unhandled exception",
+            "io_exception": r"System\.IO\.IOException",
+            "null_reference": r"NullReferenceException",
+            "argument_exception": r"ArgumentException|ArgumentNullException",
+            "invalid_operation": r"InvalidOperationException",
+            "stack_trace": r"at .*\.\w+\(",
         }
 
     def _get_validation_patterns(self, file_path: str) -> tuple:
@@ -72,6 +79,11 @@ class Gaea2FileValidator:
             r"missing.*data",
             r"invalid file",
             r"error.*loading",
+            # .NET runtime exceptions indicate crash/failure
+            r"Unhandled exception",
+            r"System\.\w+Exception",
+            r"IOException",
+            r"NullReferenceException",
         ]
         return success_patterns, failure_patterns
 
