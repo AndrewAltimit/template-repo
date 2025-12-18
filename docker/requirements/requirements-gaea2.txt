@@ -6,6 +6,7 @@ pydantic
 aiofiles
 aiohttp
 mcp
+pyyaml>=6.0
 
 # Other dependencies
 numpy
