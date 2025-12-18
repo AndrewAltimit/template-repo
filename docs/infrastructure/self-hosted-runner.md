@@ -63,8 +63,8 @@ This project uses **self-hosted runners exclusively** to:
 5. **Gemini CLI** (pre-authenticated)
 
    ```bash
-   # Install Gemini CLI
-   npm install -g @google/gemini-cli
+   # Install Gemini CLI (pinned version for stability)
+   npm install -g @google/gemini-cli@0.21.2
 
    # Authenticate (happens automatically on first use)
    gemini

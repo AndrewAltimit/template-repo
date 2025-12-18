@@ -47,7 +47,7 @@ class AgentConfig:
                 "gemini": {
                     # API key mode supports explicit model selection
                     "pro_model": "gemini-3-pro-preview",
-                    "flash_model": "gemini-2.5-flash",
+                    "flash_model": "gemini-3-flash-preview",
                     "default_model": "gemini-3-pro-preview",
                 },
                 "opencode": {

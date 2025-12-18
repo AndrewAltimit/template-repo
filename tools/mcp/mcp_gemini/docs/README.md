@@ -184,7 +184,7 @@ Create `gemini-config.json` in your project root:
   "enabled": true,
   "auto_consult": true,
   "timeout": 60,
-  "model": "gemini-2.5-flash",
+  "model": "gemini-3-flash-preview",
   "max_context_length": 4000,
   "rate_limit_delay": 2,
   "use_container": true,

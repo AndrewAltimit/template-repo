@@ -75,7 +75,7 @@ NO_MODEL = ""  # Indicates no model was successfully used
 DEFAULT_MODEL_TIMEOUT = 600  # seconds (10 minutes for large PR reviews)
 # Models can be overridden via environment variables (useful for testing/CI)
 PRIMARY_MODEL = os.environ.get("GEMINI_PRIMARY_MODEL", "gemini-3-pro-preview")  # Latest preview (NOT 3.0!)
-FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-2.5-flash")  # Fast fallback
+FALLBACK_MODEL = os.environ.get("GEMINI_FALLBACK_MODEL", "gemini-3-flash-preview")  # Fast fallback
 MAX_RETRIES = 5  # For rate limiting on free tier (3 preview may have stricter limits)
 
 # Review constraints
@@ -110,7 +110,7 @@ def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETR
     # Use npx to bypass any PATH manipulation or wrappers
     # This ensures we use the official package logic, not /tmp/gemini wrapper
     print("🚀 Resolving Gemini CLI via npx (bypassing any wrappers)...")
-    cmd = ["npx", "--yes", "@google/gemini-cli", "prompt", "--model", model, "--output-format", "text"]
+    cmd = ["npx", "--yes", "@google/gemini-cli@0.21.2", "prompt", "--model", model, "--output-format", "text"]
 
     print(f"🚀 Executing command: {' '.join(cmd)}")
 
@@ -126,7 +126,8 @@ def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETR
                 text=True,
                 check=False,
                 timeout=DEFAULT_MODEL_TIMEOUT,
-                env={**os.environ, "GOOGLE_API_KEY": api_key},
+                # Gemini CLI prioritizes GEMINI_API_KEY over GOOGLE_API_KEY
+                env={**os.environ, "GOOGLE_API_KEY": api_key, "GEMINI_API_KEY": api_key},
             )
 
             # Check for errors
@@ -200,7 +201,7 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
     - Explicitly specifies model to avoid 404 errors
     - Uses standard stdin (no PTY wrapper) which properly sends EOF
     - Implements exponential backoff for rate limiting on free tier
-    - Falls back to gemini-2.5-flash if primary model fails
+    - Falls back to gemini-3-flash-preview if primary model fails
 
     Args:
         prompt: The prompt to send to Gemini
@@ -1182,7 +1183,7 @@ def format_github_comment(
     # Map model names to display names for transparency
     model_display_map = {
         "gemini-3-pro-preview": "Gemini 3 Pro (Preview)",
-        "gemini-2.5-flash": "Gemini 2.5 Flash",
+        "gemini-3-flash-preview": "Gemini 3 Flash (Preview)",
         "gemini-2.5-pro": "Gemini 2.5 Pro",
         "default": "Gemini (Preview)",
     }
@@ -1261,7 +1262,7 @@ def main() -> None:
         print("ERROR: Gemini CLI not found")
         print("Setup instructions:")
         print("1. Install Node.js 18+")
-        print("2. npm install -g @google/gemini-cli")
+        print("2. npm install -g @google/gemini-cli@0.21.2")
         print("3. Run 'gemini' to authenticate")
         sys.exit(0)
 

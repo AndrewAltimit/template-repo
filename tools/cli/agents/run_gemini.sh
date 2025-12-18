@@ -31,7 +31,7 @@ echo "✅ Using Node.js: $NODE_VERSION"
 # Check if Gemini CLI is installed
 if ! command -v gemini &> /dev/null; then
     echo "❌ Gemini CLI not found. Please install it first."
-    echo "Run: npm install -g @google/gemini-cli"
+    echo "Run: npm install -g @google/gemini-cli@0.21.2"
     exit 1
 fi
 
