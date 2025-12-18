@@ -1636,7 +1636,12 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Export",
             "name": "HeightmapExport",
-            "properties": {"Filename": "heightmap", "Format": "PNG16", "Location": "BuildFolder"},
+            "properties": {},
+            "save_definition": {
+                "filename": "heightmap",
+                "format": "PNG16",
+                "enabled": True,
+            },
         },
         {"type": "TextureBase", "name": "BaseTexture", "properties": {}},
         {
