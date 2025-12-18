@@ -179,6 +179,8 @@ class EnhancedGaea2Tools:
                 groups_dict: Dict[str, Any] = {}
                 for group in groups:
                     group_id = group.get("id", 300 + len(groups_dict))
+                    group_pos = EnhancedGaea2Tools._normalize_position(group.get("position", {}))
+                    group_size = EnhancedGaea2Tools._normalize_position(group.get("size", {"x": 500, "y": 500}))
                     groups_dict[str(group_id)] = {
                         "$id": str(ref_id_counter),
                         "Id": group_id,
@@ -190,13 +192,13 @@ class EnhancedGaea2Tools:
                         },
                         "Position": {
                             "$id": str(ref_id_counter + 2),
-                            "X": float(group.get("position", {}).get("x", 25000)),
-                            "Y": float(group.get("position", {}).get("y", 25000)),
+                            "X": group_pos["x"],
+                            "Y": group_pos["y"],
                         },
                         "Size": {
                             "$id": str(ref_id_counter + 3),
-                            "X": float(group.get("size", {}).get("x", 500)),
-                            "Y": float(group.get("size", {}).get("y", 500)),
+                            "X": group_size["x"],
+                            "Y": group_size["y"],
                         },
                     }
                     ref_id_counter += 4
@@ -358,11 +360,20 @@ class EnhancedGaea2Tools:
         return layers, ref_id_counter
 
     @staticmethod
+    def _normalize_position(position: Dict[str, Any]) -> Dict[str, float]:
+        """Normalize position dict to handle both uppercase and lowercase keys."""
+        # Handle uppercase X, Y (from tests and some APIs)
+        x = position.get("X", position.get("x", 25000))
+        y = position.get("Y", position.get("y", 25000))
+        return {"x": float(x), "y": float(y)}
+
+    @staticmethod
     async def _create_enhanced_node(node_data: Dict[str, Any], node_id: int, ref_id_counter: int) -> Dict[str, Any]:
         """Create an enhanced node with modifiers, ports, and save definitions"""
         node_type = node_data.get("type", "Mountain")
         node_name = node_data.get("name", node_type)
-        position = node_data.get("position", {"x": 25000, "y": 25000})
+        raw_position = node_data.get("position", {"x": 25000, "y": 25000})
+        position = EnhancedGaea2Tools._normalize_position(raw_position)
         properties = node_data.get("properties", {})
 
         # Base node structure
