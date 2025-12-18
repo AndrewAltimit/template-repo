@@ -1,0 +1,326 @@
+# Gaea2 Port Definitions
+# Defines port types, compatibility, and node-specific port overrides
+version: "1.0"
+
+# Port type definitions
+port_types:
+  heightfield:
+    description: "Grayscale heightfield data (terrain elevation)"
+    compatible_with: [heightfield, mask]
+
+  mask:
+    description: "Grayscale mask data (0-1 range)"
+    compatible_with: [heightfield, mask]
+
+  color:
+    description: "RGB color data"
+    compatible_with: [color]
+
+  vector:
+    description: "Vector/normal data"
+    compatible_with: [vector]
+
+# Default port configurations by node category
+default_ports:
+  # Generator nodes (no inputs)
+  generator:
+    inputs: []
+    outputs:
+      - name: Out
+        type: heightfield
+
+  # Processor nodes (single input/output)
+  processor:
+    inputs:
+      - name: In
+        type: heightfield
+    outputs:
+      - name: Out
+        type: heightfield
+
+  # Color nodes
+  colorizer:
+    inputs:
+      - name: In
+        type: heightfield
+    outputs:
+      - name: Out
+        type: color
+
+  # Export nodes (no outputs)
+  exporter:
+    inputs:
+      - name: In
+        type: heightfield
+    outputs: []
+
+# Nodes with non-standard port configurations
+# These override the defaults from nodes.yaml or category defaults
+node_port_overrides:
+  # Multi-output erosion nodes
+  Erosion2:
+    outputs:
+      - name: Out
+        type: heightfield
+        description: "Eroded heightfield"
+      - name: Flow
+        type: mask
+        description: "Water flow accumulation"
+      - name: Wear
+        type: mask
+        description: "Erosion wear pattern"
+      - name: Deposits
+        type: mask
+        description: "Sediment deposits"
+
+  Erosion:
+    outputs:
+      - name: Out
+        type: heightfield
+      - name: Flow
+        type: mask
+      - name: Wear
+        type: mask
+
+  # Rivers with multiple outputs
+  Rivers:
+    outputs:
+      - name: Out
+        type: heightfield
+        description: "Terrain with river channels"
+      - name: Rivers
+        type: mask
+        description: "River channel mask"
+      - name: Flow
+        type: mask
+        description: "Water flow direction"
+      - name: Depth
+        type: mask
+        description: "River depth"
+      - name: Wear
+        type: mask
+        description: "River erosion wear"
+
+  # Sea with multiple outputs
+  Sea:
+    outputs:
+      - name: Out
+        type: heightfield
+      - name: Water
+        type: mask
+        description: "Water coverage"
+      - name: Beach
+        type: mask
+        description: "Beach areas"
+      - name: Depth
+        type: mask
+        description: "Water depth"
+      - name: Shore
+        type: mask
+        description: "Shoreline"
+
+  # Lake outputs
+  Lake:
+    outputs:
+      - name: Out
+        type: heightfield
+      - name: Water
+        type: mask
+        description: "Lake water mask"
+
+  # Snow outputs
+  Snow:
+    outputs:
+      - name: Out
+        type: heightfield
+      - name: Snow
+        type: mask
+        description: "Snow coverage"
+
+  # Thermal outputs
+  Thermal:
+    outputs:
+      - name: Out
+        type: heightfield
+      - name: Talus
+        type: mask
+        description: "Talus/debris deposits"
+
+  # Canyon outputs
+  Canyon:
+    outputs:
+      - name: Out
+        type: heightfield
+      - name: Depth
+        type: mask
+        description: "Canyon depth"
+
+  # Sandstone outputs
+  Sandstone:
+    outputs:
+      - name: Out
+        type: heightfield
+      - name: Layers
+        type: mask
+        description: "Layer stratification"
+
+  # Combine node (dual input)
+  Combine:
+    inputs:
+      - name: In
+        type: heightfield
+        description: "Primary input"
+      - name: Input2
+        type: heightfield
+        description: "Secondary input"
+      - name: Mask
+        type: mask
+        description: "Blend mask"
+        optional: true
+    outputs:
+      - name: Out
+        type: heightfield
+
+  # Height node with optional mask input
+  Height:
+    inputs:
+      - name: In
+        type: heightfield
+      - name: Mask
+        type: mask
+        optional: true
+    outputs:
+      - name: Out
+        type: mask
+
+  # Blur with optional mask
+  Blur:
+    inputs:
+      - name: In
+        type: heightfield
+      - name: Mask
+        type: mask
+        optional: true
+    outputs:
+      - name: Out
+        type: heightfield
+
+  # Adjust with optional mask
+  Adjust:
+    inputs:
+      - name: In
+        type: heightfield
+      - name: Mask
+        type: mask
+        optional: true
+    outputs:
+      - name: Out
+        type: heightfield
+
+  # WaterColor with water input
+  WaterColor:
+    inputs:
+      - name: In
+        type: heightfield
+      - name: Water
+        type: mask
+        description: "Water mask for coloring"
+    outputs:
+      - name: Out
+        type: color
+
+  # FlowMap outputs
+  FlowMap:
+    outputs:
+      - name: Out
+        type: mask
+      - name: Flow
+        type: mask
+        description: "Flow direction"
+
+  # Mixer node (multiple inputs)
+  Mixer:
+    inputs:
+      - name: In
+        type: heightfield
+        description: "Base input"
+      - name: Terrain
+        type: heightfield
+        optional: true
+      # Layer inputs are dynamic based on PortCount property
+    outputs:
+      - name: Out
+        type: heightfield
+      # MaskOut ports are dynamic
+
+  # Unity engine export (multiple inputs)
+  Unity:
+    inputs:
+      - name: Input1
+        type: heightfield
+      - name: Input2
+        type: heightfield
+        optional: true
+      - name: Input3
+        type: heightfield
+        optional: true
+      - name: Input4
+        type: heightfield
+        optional: true
+      - name: Input5
+        type: heightfield
+        optional: true
+      - name: Input6
+        type: heightfield
+        optional: true
+      - name: Input7
+        type: heightfield
+        optional: true
+      - name: Input8
+        type: heightfield
+        optional: true
+    outputs:
+      - name: Output1
+        type: heightfield
+        optional: true
+      - name: Output2
+        type: heightfield
+        optional: true
+      - name: Output3
+        type: heightfield
+        optional: true
+      - name: Output4
+        type: heightfield
+        optional: true
+      - name: Output5
+        type: heightfield
+        optional: true
+      - name: Output6
+        type: heightfield
+        optional: true
+      - name: Output7
+        type: heightfield
+        optional: true
+      - name: Output8
+        type: heightfield
+        optional: true
+
+# Port connection rules
+connection_rules:
+  # Types that can connect to each other
+  compatible_connections:
+    - from: heightfield
+      to: [heightfield, mask]
+    - from: mask
+      to: [heightfield, mask]
+    - from: color
+      to: [color]
+    - from: vector
+      to: [vector]
+
+  # Ports that typically shouldn't connect
+  incompatible_connections:
+    - from: color
+      to: [heightfield, mask]
+    - from: vector
+      to: [heightfield, mask, color]

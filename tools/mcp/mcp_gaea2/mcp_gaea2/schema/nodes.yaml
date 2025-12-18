@@ -1,0 +1,1323 @@
+# Gaea2 Node Schema - Single Source of Truth
+# Version 1.0 - Consolidated from gaea2_schema.py and gaea2_complete_schema.json
+version: "1.0"
+
+# Node categories for organization
+categories:
+  primitive:
+    description: "Basic noise and shape generators"
+    nodes:
+      - Cellular
+      - Cellular3D
+      - Cone
+      - Constant
+      - Cracks
+      - CutNoise
+      - DotNoise
+      - Draw
+      - DriftNoise
+      - File
+      - Gabor
+      - Hemisphere
+      - LinearGradient
+      - LineNoise
+      - MultiFractal
+      - Noise
+      - Object
+      - Pattern
+      - Perlin
+      - RadialGradient
+      - Shape
+      - TileInput
+      - Voronoi
+      - WaveShine
+
+  terrain:
+    description: "Terrain generation nodes"
+    nodes:
+      - Canyon
+      - Crater
+      - CraterField
+      - DuneSea
+      - Island
+      - Mountain
+      - MountainRange
+      - MountainSide
+      - Plates
+      - Ridge
+      - Rugged
+      - Slump
+      - Uplift
+      - Volcano
+
+  modify:
+    description: "Transformation and filter nodes"
+    nodes:
+      - Adjust
+      - Aperture
+      - Autolevel
+      - BlobRemover
+      - Blur
+      - Clamp
+      - Clip
+      - Curve
+      - Deflate
+      - Denoise
+      - Dilate
+      - DirectionalWarp
+      - Distance
+      - Equalize
+      - Extend
+      - Filter
+      - Flip
+      - Fold
+      - GraphicEQ
+      - Heal
+      - Match
+      - Median
+      - Meshify
+      - Origami
+      - Pixelate
+      - Recurve
+      - Shaper
+      - Sharpen
+      - SlopeBlur
+      - SlopeWarp
+      - SoftClip
+      - Swirl
+      - ThermalShaper
+      - Threshold
+      - Transform
+      - Transform3D
+      - Transpose
+      - TriplanarDisplacement
+      - VariableBlur
+      - Warp
+      - Whorl
+
+  surface:
+    description: "Surface detail and texture nodes"
+    nodes:
+      - Bomber
+      - Bulbous
+      - Contours
+      - Craggy
+      - Distress
+      - FractalTerraces
+      - Grid
+      - GroundTexture
+      - Outcrops
+      - Pockmarks
+      - RockNoise
+      - Rockscape
+      - Roughen
+      - Sand
+      - Sandstone
+      - Shatter
+      - Shear
+      - Steps
+      - Stones
+      - Stratify
+      - Terraces
+
+  simulate:
+    description: "Simulation and erosion nodes"
+    nodes:
+      - Anastomosis
+      - Crumble
+      - Debris
+      - Dusting
+      - EasyErosion
+      - Erosion
+      - Erosion2
+      - Glacier
+      - Hillify
+      - HydroFix
+      - IceFloe
+      - Lake
+      - Lichtenberg
+      - Rivers
+      - Scree
+      - Sea
+      - Sediments
+      - Shrubs
+      - Snow
+      - Snowfield
+      - Thermal
+      - Thermal2
+      - Trees
+      - Wizard
+      - Wizard2
+
+  derive:
+    description: "Data extraction and analysis nodes"
+    nodes:
+      - Angle
+      - Curvature
+      - FlowMap
+      - FlowMapClassic
+      - Height
+      - Normals
+      - Occlusion
+      - Peaks
+      - RockMap
+      - Slope
+      - Soil
+      - TextureBase
+      - Texturizer
+
+  colorize:
+    description: "Color and texture mapping nodes"
+    nodes:
+      - CLUTer
+      - ColorErosion
+      - Gamma
+      - HSL
+      - RGBMerge
+      - RGBSplit
+      - SatMap
+      - Splat
+      - SuperColor
+      - Synth
+      - Tint
+      - WaterColor
+      - Weathering
+
+  output:
+    description: "Export and rendering nodes"
+    nodes:
+      - AO
+      - Cartography
+      - Export
+      - Halftone
+      - LightX
+      - Mesher
+      - PointCloud
+      - Shade
+      - Sunlight
+      - TextureBaker
+      - Unity
+      - Unreal
+      - VFX
+
+  utility:
+    description: "Workflow and logic nodes"
+    nodes:
+      - Accumulator
+      - Chokepoint
+      - Combine
+      - Compare
+      - Construction
+      - DataExtractor
+      - Edge
+      - Gate
+      - Layers
+      - LoopBegin
+      - LoopEnd
+      - Mask
+      - Math
+      - Mixer
+      - Portal
+      - PortalReceive
+      - PortalTransmit
+      - Repeat
+      - Reseed
+      - Route
+      - Seamless
+      - Switch
+      - Var
+
+# Common properties shared across multiple nodes
+common_properties:
+  Seed:
+    type: int
+    default: 0
+    range: [0, 999999]
+    description: "Randomization seed"
+  Scale:
+    type: float
+    default: 1.0
+    range: [0.01, 10.0]
+    description: "Perceptual scale"
+  Height:
+    type: float
+    default: 0.5
+    range: [0.0, 1.0]
+    description: "Height or intensity"
+  Strength:
+    type: float
+    default: 0.5
+    range: [0.0, 2.0]
+    description: "Effect strength"
+  X:
+    type: float
+    default: 0.0
+    range: [-1000.0, 1000.0]
+    description: "X position offset"
+  Y:
+    type: float
+    default: 0.0
+    range: [-1000.0, 1000.0]
+    description: "Y position offset"
+
+# Node-specific definitions
+nodes:
+  # === TERRAIN GENERATORS ===
+  Mountain:
+    category: terrain
+    description: "Creates a procedural mountain terrain"
+    properties:
+      Scale:
+        type: float
+        default: 1.0
+        range: [0.1, 5.0]
+        description: "Perceptual scale of the mountain"
+      Height:
+        type: float
+        default: 0.7
+        range: [0.0, 1.0]
+        description: "Maximum height"
+      Style:
+        type: enum
+        default: Basic
+        options: [Basic, Eroded, Old, Alpine, Strata]
+        description: "Visual style preset"
+      Bulk:
+        type: enum
+        default: Medium
+        options: [Low, Medium, High]
+        description: "Overall mass/volume"
+      ReduceDetails:
+        type: bool
+        default: false
+        description: "Simplify geometry"
+      Seed:
+        type: int
+        default: 0
+        range: [0, 999999]
+      X:
+        type: float
+        default: 0.0
+        range: [-1000.0, 1000.0]
+      Y:
+        type: float
+        default: 0.0
+        range: [-1000.0, 1000.0]
+    ports:
+      inputs: []
+      outputs:
+        - name: Out
+          type: heightfield
+
+  Volcano:
+    category: terrain
+    description: "Creates a volcanic cone terrain"
+    properties:
+      Scale:
+        type: float
+        default: 1.0
+        range: [0.1, 5.0]
+      Height:
+        type: float
+        default: 0.8
+        range: [0.0, 1.0]
+      Mouth:
+        type: float
+        default: 0.3
+        range: [0.0, 1.0]
+        description: "Crater mouth size"
+      Bulk:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Surface:
+        type: enum
+        default: Smooth
+        options: [Smooth, Eroded]
+      Seed:
+        type: int
+        default: 0
+        range: [0, 999999]
+      X:
+        type: float
+        default: 0.0
+        range: [-1000.0, 1000.0]
+      Y:
+        type: float
+        default: 0.0
+        range: [-1000.0, 1000.0]
+    ports:
+      inputs: []
+      outputs:
+        - name: Out
+          type: heightfield
+
+  Island:
+    category: terrain
+    description: "Creates an island terrain"
+    properties:
+      Size:
+        type: float
+        default: 0.6
+        range: [0.1, 1.0]
+        description: "Island size relative to terrain"
+      Chaos:
+        type: float
+        default: 0.3
+        range: [0.0, 1.0]
+        description: "Shape complexity"
+      Height:
+        type: float
+        default: 0.7
+        range: [0.0, 1.0]
+      Beaches:
+        type: float
+        default: 0.8
+        range: [0.0, 1.0]
+        description: "Beach area extent"
+      Seed:
+        type: int
+        default: 0
+        range: [0, 999999]
+    ports:
+      inputs: []
+      outputs:
+        - name: Out
+          type: heightfield
+
+  Canyon:
+    category: terrain
+    description: "Creates canyon formations"
+    properties:
+      Depth:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Width:
+        type: float
+        default: 0.3
+        range: [0.0, 1.0]
+      Seed:
+        type: int
+        default: 0
+        range: [0, 999999]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+        - name: Depth
+          type: mask
+
+  Crater:
+    category: terrain
+    description: "Creates impact crater"
+    properties:
+      Radius:
+        type: float
+        default: 0.4
+        range: [0.1, 1.0]
+      Depth:
+        type: float
+        default: 0.8
+        range: [0.0, 1.0]
+      InnerSlope:
+        type: float
+        default: 0.7
+        range: [0.0, 1.0]
+      OuterSlope:
+        type: float
+        default: 0.3
+        range: [0.0, 1.0]
+    ports:
+      inputs: []
+      outputs:
+        - name: Out
+          type: heightfield
+
+  # === SIMULATION NODES ===
+  Erosion2:
+    category: simulate
+    description: "Advanced hydraulic erosion simulation"
+    properties:
+      Duration:
+        type: float
+        default: 0.15
+        range: [0.01, 2.0]
+        description: "Simulation duration"
+      Downcutting:
+        type: float
+        default: 0.3
+        range: [0.0, 1.0]
+        description: "Vertical erosion strength"
+      ErosionScale:
+        type: float
+        default: 5000.0
+        range: [1000.0, 20000.0]
+        description: "Erosion scale in meters"
+      Seed:
+        type: int
+        default: 0
+        range: [0, 999999]
+      Shape:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      ShapeDetailScale:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      ShapeSharpness:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+        - name: Flow
+          type: mask
+        - name: Wear
+          type: mask
+        - name: Deposits
+          type: mask
+
+  Erosion:
+    category: simulate
+    description: "Classic erosion simulation"
+    properties:
+      Duration:
+        type: float
+        default: 0.04
+        range: [0.0, 20.0]
+      RockSoftness:
+        type: float
+        default: 0.4
+        range: [0.0, 1.0]
+      Strength:
+        type: float
+        default: 0.5
+        range: [0.0, 2.0]
+      Downcutting:
+        type: float
+        default: 0.0
+        range: [0.0, 1.0]
+      FeatureScale:
+        type: int
+        default: 2000
+        range: [50, 10000]
+      Seed:
+        type: int
+        default: 0
+        range: [0, 999999]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+        - name: Flow
+          type: mask
+        - name: Wear
+          type: mask
+
+  EasyErosion:
+    category: simulate
+    description: "Simplified erosion with presets"
+    properties:
+      Style:
+        type: enum
+        default: Alpine
+        options: [Alpine, Fluvial, Coastal, Glacial, Desert]
+      Influence:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+
+  Rivers:
+    category: simulate
+    description: "River network simulation"
+    properties:
+      Water:
+        type: float
+        default: 0.3
+        range: [0.0, 1.0]
+      Width:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Depth:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Downcutting:
+        type: float
+        default: 0.0
+        range: [0.0, 1.0]
+      Headwaters:
+        type: int
+        default: 100
+        range: [10, 1000]
+      RenderSurface:
+        type: bool
+        default: false
+      Seed:
+        type: int
+        default: 0
+        range: [0, 999999]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+        - name: Rivers
+          type: mask
+        - name: Flow
+          type: mask
+        - name: Depth
+          type: mask
+        - name: Wear
+          type: mask
+
+  Lake:
+    category: simulate
+    description: "Lake formation simulation"
+    properties:
+      Precipitation:
+        type: float
+        default: 10.0
+        range: [0.0, 100.0]
+      SmallLakes:
+        type: float
+        default: 0.2
+        range: [0.0, 1.0]
+      ShoreSize:
+        type: float
+        default: 0.15
+        range: [0.0, 1.0]
+      AltitudeBias:
+        type: float
+        default: 0.0
+        range: [-1.0, 1.0]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+        - name: Water
+          type: mask
+
+  Sea:
+    category: simulate
+    description: "Ocean/sea level simulation"
+    properties:
+      Level:
+        type: float
+        default: 0.2
+        range: [0.0, 1.0]
+      BeachSize:
+        type: float
+        default: 0.1
+        range: [0.0, 1.0]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+        - name: Water
+          type: mask
+        - name: Beach
+          type: mask
+        - name: Depth
+          type: mask
+        - name: Shore
+          type: mask
+
+  Snow:
+    category: simulate
+    description: "Snow accumulation simulation"
+    properties:
+      Duration:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Intensity:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      SettleDuration:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      MeltType:
+        type: enum
+        default: Uniform
+        options: [Uniform, Directional]
+      Melt:
+        type: float
+        default: 0.0
+        range: [0.0, 1.0]
+      SnowLine:
+        type: float
+        default: 0.7
+        range: [0.0, 1.0]
+      SlipOffAngle:
+        type: float
+        default: 35.0
+        range: [0.0, 90.0]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+        - name: Snow
+          type: mask
+
+  Thermal:
+    category: simulate
+    description: "Thermal erosion simulation"
+    properties:
+      Strength:
+        type: float
+        default: 0.4
+        range: [0.0, 1.0]
+      Iterations:
+        type: int
+        default: 15
+        range: [1, 50]
+      Angle:
+        type: float
+        default: 35.0
+        range: [0.0, 90.0]
+      Intensity:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+        - name: Talus
+          type: mask
+
+  # === SURFACE NODES ===
+  FractalTerraces:
+    category: surface
+    description: "Fractal terrace formations"
+    properties:
+      Intensity:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Spacing:
+        type: float
+        default: 0.2
+        range: [0.1, 0.4]
+      Octaves:
+        type: int
+        default: 12
+        range: [1, 16]
+      MacroOctaves:
+        type: int
+        default: 5
+        range: [1, 8]
+      StrataDetails:
+        type: float
+        default: 0.6
+        range: [0.0, 1.0]
+      WarpAmount:
+        type: float
+        default: 0.33
+        range: [0.0, 1.0]
+      Seed:
+        type: int
+        default: 0
+        range: [0, 999999]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+
+  Terraces:
+    category: surface
+    description: "Simple terrace formations"
+    properties:
+      NumTerraces:
+        type: int
+        default: 10
+        range: [2, 256]
+      Uniformity:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Steepness:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Seed:
+        type: int
+        default: 0
+        range: [0, 999999]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+
+  Stratify:
+    category: surface
+    description: "Stratification layers"
+    properties:
+      Layers:
+        type: int
+        default: 12
+        range: [2, 50]
+      Strength:
+        type: float
+        default: 0.6
+        range: [0.0, 1.0]
+      Spacing:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+
+  Crumble:
+    category: simulate
+    description: "Rock crumbling effect"
+    properties:
+      Intensity:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Size:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Seed:
+        type: int
+        default: 0
+        range: [0, 999999]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+
+  Shear:
+    category: surface
+    description: "Shearing deformation"
+    properties:
+      Intensity:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Angle:
+        type: float
+        default: 45.0
+        range: [0.0, 360.0]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+
+  # === UTILITY NODES ===
+  Combine:
+    category: utility
+    description: "Blend two heightfields"
+    properties:
+      Mode:
+        type: enum
+        default: Blend
+        options:
+          - Blend
+          - Add
+          - Screen
+          - Subtract
+          - Difference
+          - Multiply
+          - Divide
+          - Max
+          - Min
+          - Overlay
+          - Power
+      Ratio:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Clamp:
+        type: enum
+        default: Clamp
+        options: [None, Clamp, Normalize]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+        - name: Input2
+          type: heightfield
+        - name: Mask
+          type: mask
+          optional: true
+      outputs:
+        - name: Out
+          type: heightfield
+
+  Mask:
+    category: utility
+    description: "Create or modify masks"
+    properties:
+      Invert:
+        type: bool
+        default: false
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: mask
+
+  # === COLORIZE NODES ===
+  SatMap:
+    category: colorize
+    description: "Satellite-style color mapping"
+    properties:
+      Library:
+        type: enum
+        default: Rock
+        options: [New, Rock, Sand, Green, Blue, Color]
+      LibraryItem:
+        type: int
+        default: 0
+        range: [0, 50]
+      Randomize:
+        type: bool
+        default: false
+      Bias:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Enhance:
+        type: enum
+        default: None
+        options: [None, Autolevel, Equalize]
+      Reverse:
+        type: bool
+        default: false
+      Hue:
+        type: float
+        default: 0.0
+        range: [-1.0, 1.0]
+      Saturation:
+        type: float
+        default: 0.0
+        range: [-1.0, 1.0]
+      Lightness:
+        type: float
+        default: 0.0
+        range: [-1.0, 1.0]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: color
+
+  CLUTer:
+    category: colorize
+    description: "Color lookup table mapping"
+    properties:
+      Preset:
+        type: enum
+        default: Default
+        options: [Default, Warm, Cool, Earth, Custom]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: color
+
+  WaterColor:
+    category: colorize
+    description: "Water coloring based on depth"
+    properties:
+      ShallowColor:
+        type: color
+        default: "#4A90D9"
+      DeepColor:
+        type: color
+        default: "#1A365D"
+      Depth:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+        - name: Water
+          type: mask
+      outputs:
+        - name: Out
+          type: color
+
+  # === DERIVE NODES ===
+  TextureBase:
+    category: derive
+    description: "Base texture extraction"
+    properties: {}
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+
+  FlowMap:
+    category: derive
+    description: "Water flow direction map"
+    properties:
+      Iterations:
+        type: int
+        default: 100
+        range: [10, 500]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: mask
+        - name: Flow
+          type: mask
+
+  Height:
+    category: derive
+    description: "Height-based mask"
+    properties:
+      Low:
+        type: float
+        default: 0.0
+        range: [0.0, 1.0]
+      High:
+        type: float
+        default: 1.0
+        range: [0.0, 1.0]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+        - name: Mask
+          type: mask
+          optional: true
+      outputs:
+        - name: Out
+          type: mask
+
+  Slope:
+    category: derive
+    description: "Slope-based mask"
+    properties:
+      MinAngle:
+        type: float
+        default: 0.0
+        range: [0.0, 90.0]
+      MaxAngle:
+        type: float
+        default: 90.0
+        range: [0.0, 90.0]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: mask
+
+  # === MODIFY NODES ===
+  Blur:
+    category: modify
+    description: "Gaussian blur"
+    properties:
+      Amount:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+        - name: Mask
+          type: mask
+          optional: true
+      outputs:
+        - name: Out
+          type: heightfield
+
+  Adjust:
+    category: modify
+    description: "Height adjustment"
+    properties:
+      Brightness:
+        type: float
+        default: 0.0
+        range: [-1.0, 1.0]
+      Contrast:
+        type: float
+        default: 0.0
+        range: [-1.0, 1.0]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+        - name: Mask
+          type: mask
+          optional: true
+      outputs:
+        - name: Out
+          type: heightfield
+
+  Warp:
+    category: modify
+    description: "Displacement warp"
+    properties:
+      Strength:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Scale:
+        type: float
+        default: 1.0
+        range: [0.1, 10.0]
+      Seed:
+        type: int
+        default: 0
+        range: [0, 999999]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+
+  # === OUTPUT NODES ===
+  Export:
+    category: output
+    description: "Export heightfield to file"
+    properties:
+      Format:
+        type: enum
+        default: PNG16
+        options: [PNG8, PNG16, PNG64, EXR, RAW16, RAW32, TIFF]
+      Filename:
+        type: string
+        default: "export"
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs: []
+
+  Unity:
+    category: output
+    description: "Export for Unity engine"
+    properties:
+      Format:
+        type: enum
+        default: RAW16
+        options: [RAW16, RAW32]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs: []
+
+  Unreal:
+    category: output
+    description: "Export for Unreal Engine"
+    properties:
+      Format:
+        type: enum
+        default: PNG16
+        options: [PNG16, RAW16]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs: []
+
+  # === PORTAL NODES ===
+  Portal:
+    category: utility
+    description: "Portal connection point"
+    properties:
+      PortalName:
+        type: string
+        default: "Portal_1"
+      Direction:
+        type: enum
+        default: Transmit
+        options: [Transmit, Receive]
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs:
+        - name: Out
+          type: heightfield
+
+  PortalTransmit:
+    category: utility
+    description: "Portal transmitter"
+    properties:
+      PortalName:
+        type: string
+        default: "Portal_1"
+    ports:
+      inputs:
+        - name: In
+          type: heightfield
+      outputs: []
+
+  PortalReceive:
+    category: utility
+    description: "Portal receiver"
+    properties:
+      PortalName:
+        type: string
+        default: "Portal_1"
+    ports:
+      inputs: []
+      outputs:
+        - name: Out
+          type: heightfield
+
+  # === PRIMITIVE NODES ===
+  Perlin:
+    category: primitive
+    description: "Perlin noise generator"
+    properties:
+      Scale:
+        type: float
+        default: 1.0
+        range: [0.1, 10.0]
+      Octaves:
+        type: int
+        default: 8
+        range: [1, 16]
+      Persistence:
+        type: float
+        default: 0.5
+        range: [0.0, 1.0]
+      Seed:
+        type: int
+        default: 0
+        range: [0, 999999]
+    ports:
+      inputs: []
+      outputs:
+        - name: Out
+          type: heightfield
+
+  Voronoi:
+    category: primitive
+    description: "Voronoi noise generator"
+    properties:
+      Scale:
+        type: float
+        default: 1.0
+        range: [0.1, 10.0]
+      Jitter:
+        type: float
+        default: 1.0
+        range: [0.0, 1.0]
+      Seed:
+        type: int
+        default: 0
+        range: [0, 999999]
+    ports:
+      inputs: []
+      outputs:
+        - name: Out
+          type: heightfield
+
+  LinearGradient:
+    category: primitive
+    description: "Linear gradient generator"
+    properties:
+      Angle:
+        type: float
+        default: 0.0
+        range: [0.0, 360.0]
+    ports:
+      inputs: []
+      outputs:
+        - name: Out
+          type: heightfield
+
+  Noise:
+    category: primitive
+    description: "Generic noise generator"
+    properties:
+      Type:
+        type: enum
+        default: Perlin
+        options: [Perlin, Simplex, Value, Worley]
+      Scale:
+        type: float
+        default: 1.0
+        range: [0.1, 10.0]
+      Seed:
+        type: int
+        default: 0
+        range: [0, 999999]
+    ports:
+      inputs: []
+      outputs:
+        - name: Out
+          type: heightfield
