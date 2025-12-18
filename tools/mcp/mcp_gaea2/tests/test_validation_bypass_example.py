@@ -61,7 +61,7 @@ async def test_with_validation_bypass():
         print("Test with bypass:")
         print(f"  Success: {result.get('success')}")
         print(f"  Bypass for tests: {result.get('bypass_for_tests')}")
-        print(f"  File validation performed: {result.get('file_validation_performed')}")
+        print(f"  Runtime validation performed: {result.get('runtime_validation_performed')}")
 
         if result.get("success"):
             print(f"  Created file: {result.get('project_path')}")
@@ -72,7 +72,7 @@ async def test_with_validation_bypass():
         # The file should be created even though it's broken
         assert result.get("success") is True
         assert result.get("bypass_for_tests") is True
-        assert result.get("file_validation_performed") is False
+        assert result.get("runtime_validation_performed") is False
 
     finally:
         # Clean up - remove the bypass
@@ -111,7 +111,7 @@ async def test_without_bypass():
 
     print("\nTest without bypass:")
     print(f"  Success: {result.get('success')}")
-    print(f"  File validation performed: {result.get('file_validation_performed')}")
+    print(f"  Runtime validation performed: {result.get('runtime_validation_performed')}")
 
     # Without bypass, the file creation should succeed but validation might fail
     # The server adds missing properties automatically, so it should actually succeed
@@ -170,8 +170,8 @@ async def test_good_file():
     print("\nTest with valid file:")
     print(f"  Success: {result.get('success')}")
     print(f"  Created file: {result.get('project_path')}")
-    print("  File validation performed:", result.get("file_validation_performed"))
-    print("  File validation passed:", result.get("file_validation_passed"))
+    print("  Runtime validation performed:", result.get("runtime_validation_performed"))
+    print("  Runtime validation passed:", result.get("runtime_validation_passed"))
 
     # Valid file should always succeed
     assert result.get("success") is True
