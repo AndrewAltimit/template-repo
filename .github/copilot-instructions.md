@@ -156,17 +156,20 @@ black .  # Should use containerized version
 
 ### Using Custom Reaction Images
 
-When commenting on PRs, use our custom reaction images for a more engaging experience:
+When commenting on PRs, use our custom reaction images for a more engaging experience.
 
-- **Available reactions**: https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml
-- **Format**: `![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/[filename])`
+Use the **Reaction Search MCP Server** to find contextually appropriate reactions:
+```python
+# Search for reactions matching your situation
+result = mcp__reaction-search__search_reactions(
+    query="successful collaboration on fixes",
+    limit=3
+)
 
-**Common reactions to use:**
-- `teamwork.webp` - After successful collaboration or fixes
-- `youre_absolutely_right.webp` - When agreeing with feedback
-- `miku_typing.webp`, `konata_typing.webp`, `yuki_typing.webp` - When actively reviewing
-- `confused.gif` - When something needs clarification
-- `felix.webp` - General positive reaction
+# Result includes: id, url, markdown, description, similarity score
+```
+
+**Format**: `![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/[filename])`
 
 **Example usage:**
 ```markdown
@@ -176,6 +179,7 @@ Great work on simplifying the code! The refactoring makes it much cleaner.
 ```
 
 **Best practices:**
+- Use semantic search to find reactions that match your emotional context
 - Use sparingly - one reaction per comment is usually enough
 - Place at natural break points in your comment
 - Don't use at the beginning of comments
@@ -185,8 +189,8 @@ Great work on simplifying the code! The refactoring makes it much cleaner.
 
 Each AI agent has developed its own approach to authentic expression:
 
-- **Claude's Expression Philosophy**: See `CLAUDE_EXPRESSION.md` for how Claude approaches authentic reactions, including acknowledging difficulty and showing genuine relief when fixing bugs.
+- **Claude's Expression Philosophy**: See `docs/agents/claude-expression.md` for how Claude approaches authentic reactions, including acknowledging difficulty and showing genuine relief when fixing bugs.
 
-- **Gemini's Expression Philosophy**: See `GEMINI_EXPRESSION.md` for Gemini's direct, analytical approach focusing on clarity and technical excellence. Gemini's reactions communicate specific states (thinking deeply, recurring issues, etc.)
+- **Gemini's Expression Philosophy**: See `docs/agents/gemini-expression.md` for Gemini's direct, analytical approach focusing on clarity and technical excellence. Gemini's reactions communicate specific states (thinking deeply, recurring issues, etc.)
 
 These guidelines help maintain consistent personality across PR reviews while acknowledging the actual experience of software development - the confusion, the partial victories, and the genuine breakthroughs.
