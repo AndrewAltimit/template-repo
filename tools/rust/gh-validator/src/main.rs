@@ -28,14 +28,19 @@ use error::Error;
 use validation::{CommentValidator, SecretMasker, UrlValidator};
 
 /// Arguments that indicate we need to validate content
+/// Includes both long and short flags from gh CLI
 const CONTENT_ARGS: &[&str] = &[
     "--body",
+    "-b", // short for --body
     "--body-file",
+    "-F", // short for --body-file
     "--notes",
+    "-n", // short for --notes
     "--notes-file",
     "--title",
+    "-t", // short for --title
     "--message",
-    "-m",
+    "-m", // short for --message
 ];
 
 /// Check if args contain any content-posting flags
@@ -50,32 +55,39 @@ fn needs_validation(args: &[String]) -> bool {
     })
 }
 
-/// Extract --body-file path from arguments
+/// Extract --body-file/-F path from arguments
 fn extract_body_file(args: &[String]) -> Option<String> {
     let mut iter = args.iter().peekable();
     while let Some(arg) = iter.next() {
-        if arg == "--body-file" {
+        // Handle --body-file and -F (short form)
+        if arg == "--body-file" || arg == "-F" {
             return iter.next().cloned();
         }
         if let Some(path) = arg.strip_prefix("--body-file=") {
+            return Some(path.to_string());
+        }
+        // Handle -F=path form (rare but possible)
+        if let Some(path) = arg.strip_prefix("-F=") {
             return Some(path.to_string());
         }
     }
     None
 }
 
-/// Check if --body-file is reading from stdin (blocked for security)
+/// Check if --body-file/-F is reading from stdin (blocked for security)
 fn is_stdin_body_file(args: &[String]) -> bool {
     let mut iter = args.iter().peekable();
     while let Some(arg) = iter.next() {
-        if arg == "--body-file" {
+        // Handle --body-file and -F (short form)
+        if arg == "--body-file" || arg == "-F" {
             if let Some(next) = iter.next() {
                 if next == "-" {
                     return true;
                 }
             }
         }
-        if arg == "--body-file=-" {
+        // Handle combined forms
+        if arg == "--body-file=-" || arg == "-F=-" || arg == "-F-" {
             return true;
         }
     }
