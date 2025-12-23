@@ -78,6 +78,6 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q --strict-markers"
-testpaths = ["tests"]
+testpaths = ["scripts"]
 python_files = ["test_*.py"]
 asyncio_mode = "auto"

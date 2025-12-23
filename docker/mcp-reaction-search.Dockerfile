@@ -47,6 +47,8 @@ USER appuser
 ENV HOME=/home/appuser
 ENV HF_HOME=/home/appuser/.cache/huggingface
 ENV REACTION_CACHE_DIR=/home/appuser/.cache/mcp_reaction_search
+# PYTHONPATH set to /app so volume mount takes precedence over installed package
+ENV PYTHONPATH=/app
 
 # Expose port
 EXPOSE 8024
