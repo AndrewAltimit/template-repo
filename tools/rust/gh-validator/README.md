@@ -100,17 +100,4 @@ src/
 - **Fail-Closed**: If configuration is missing or URLs can't be verified, commands are blocked
 - **SSRF Protection**: Only whitelisted hostnames are allowed for reaction images
 - **No IP Addresses**: Direct IPv4/IPv6 addresses are blocked
-- **Secret Masking**: Follows the same patterns as the Python implementation
-
-## Migration from Python
-
-This Rust implementation replaces:
-- `automation/security/gh-wrapper.sh`
-- `automation/security/github-secrets-masker.py`
-- `automation/security/gh-comment-validator.py`
-
-The Rust binary provides the same functionality with:
-- No Python runtime dependency
-- Single binary distribution
-- Faster startup time
-- Cross-platform support
+- **Single Binary**: No runtime dependencies, fast startup, cross-platform support
