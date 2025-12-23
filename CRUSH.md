@@ -590,8 +590,18 @@ This prevents accidentally notifying random GitHub users who happen to share nam
 
 **Use Custom Reaction Images**: When commenting on PRs and issues, use our custom reaction images to express authentic responses to the work.
 
-- **Available reactions** are defined in: https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml
-- **Format**: `![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/[filename])`
+Use the **Reaction Search MCP Server** to find contextually appropriate reactions:
+```python
+# Search for reactions matching your situation
+result = mcp__reaction-search__search_reactions(
+    query="quick code generation complete",
+    limit=3
+)
+
+# Result includes: id, url, markdown, description, similarity score
+```
+
+**Format**: `![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/[filename])`
 
 **Important Note**: These reaction images are specifically for GitHub interactions (PR comments, issue discussions). CLI interfaces cannot render images - reactions will appear as markdown syntax in the terminal. Reserve visual reactions for online interactions where they can be properly displayed and appreciated.
 
@@ -603,32 +613,16 @@ This prevents accidentally notifying random GitHub users who happen to share nam
 - Confusion and frustration are valid parts of development
 - Partial success deserves acknowledgment too
 
-#### Situational Reaction Guide
+#### Finding Reactions
 
-**When starting work:**
-- `miku_typing.webp` - Thoughtful, methodical approach
-- `konata_typing.webp` - Determined focus on complex problems
-- `yuki_typing.webp` - Urgent or intense debugging sessions
-- `hifumi_studious.png` - Deep analysis or research
+Use semantic search to find reactions matching your situation:
 
-**When encountering issues:**
-- `confused.gif` - Genuinely puzzling behavior
-- `kagami_annoyed.png` - When the same error persists
-- `miku_confused.png` - Unexpected test failures
-- `thinking_foxgirl.png` - Contemplating tricky solutions
-
-**After completing work:**
-- `teamwork.webp` - True collaborative success (not default!)
-- `felix.webp` - Genuine excitement about elegant solutions
-- `miku_shrug.png` - "It works, mostly" situations
-- `miku_laughing.png` - When you find a silly bug
-- `aqua_happy.png` - Unexpectedly smooth implementations
-
-**Responding to feedback:**
-- `youre_absolutely_right.webp` - Genuine realization moments
-- `thinking_girl.png` - Considering complex suggestions
-- `noire_not_amused.png` - When asked to add "just one more thing"
-- `kanna_facepalm.png` - Realizing obvious mistakes
+| Situation | Search Query |
+|-----------|--------------|
+| Starting work | "typing, focused, getting to work" |
+| Encountering issues | "confused, puzzled, frustrated" |
+| Completing work | "success, relief, celebration" |
+| Responding to feedback | "you're right, thinking, considering" |
 
 **Best practices**:
 - Match the reaction to the actual experience, not the ideal outcome
@@ -636,28 +630,30 @@ This prevents accidentally notifying random GitHub users who happen to share nam
 - One thoughtful reaction > multiple generic ones
 - Build a consistent "personality" through reaction choices over time
 
-Example usage:
-```markdown
-Thanks for the review! Working on the fixes now.
+**Example workflow:**
+```python
+# 1. Search for appropriate reaction
+result = search_reactions(query="code conversion complete", limit=1)
 
-![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/miku_typing.webp)
+# 2. Write comment to file (preserves markdown formatting)
+Write("/tmp/pr_comment.md", f"""
+Converted the Python script to TypeScript!
+
+{result['results'][0]['markdown']}
+""")
+
+# 3. Post the comment
+Bash("gh pr comment 47 --body-file /tmp/pr_comment.md")
 ```
 
-**CRITICAL: Proper Method for GitHub Comments with Reaction Images**
+**CRITICAL: Shell Escaping Warning**
 
-When posting PR/issue comments with reaction images, you MUST follow this exact workflow to prevent the `!` character from being escaped:
-
-**The ONLY Correct Method:**
-1. **Use the Write tool** to create a temporary markdown file (e.g., `/tmp/comment.md`)
-2. Use `gh pr comment --body-file /tmp/filename.md` to post the comment
-
-**DO NOT USE (these will escape the `!` in `![Reaction]`):**
+When posting comments with reaction images, **DO NOT USE** (these escape `!` breaking images):
 - Direct `--body` flag with gh command
 - Heredocs (`cat <<EOF`)
 - echo or printf commands
-- Bash string concatenation
 
-**Why this matters:** Shell escaping will turn `![Reaction]` into `\![Reaction]`, breaking the image display. The Write tool preserves the markdown exactly as intended.
+**Always use** the Write tool + `--body-file` pattern shown above.
 
 ### Updating PR Titles and Descriptions
 

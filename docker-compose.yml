@@ -940,6 +940,36 @@ services:
       - services
       - memory
 
+  # Reaction Search MCP Server
+  # Semantic search for anime reaction images
+  mcp-reaction-search:
+    build:
+      context: .
+      dockerfile: docker/mcp-reaction-search.Dockerfile
+    container_name: mcp-reaction-search
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    ports:
+      - "8024:8024"
+    volumes:
+      - ./:/app:ro
+      - reaction-search-cache:/home/appuser/.cache
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8024
+      - REACTION_SEARCH_MODEL=sentence-transformers/all-MiniLM-L12-v2
+    networks:
+      - mcp-network
+    command: ["python", "-m", "mcp_reaction_search.server", "--mode", "http"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8024/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - services
+
   # ChromaDB - Self-hosted vector database for memory
   # Start with: docker-compose --profile memory-chromadb up -d
   chromadb:
@@ -1010,6 +1040,8 @@ volumes:
   # Sleeper Detection Evaluation volumes
   sleeper-models-cache: {}
   sleeper-eval-db: {}
+  # Reaction search cache (config + model)
+  reaction-search-cache: {}
 
 # Secrets are managed at runtime by GitHub Actions or local setup script
 # Never commit actual secret files to the repository!
