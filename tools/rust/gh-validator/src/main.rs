@@ -50,20 +50,6 @@ fn needs_validation(args: &[String]) -> bool {
     })
 }
 
-/// Check if this is a gh comment/create command
-fn is_comment_command(args: &[String]) -> bool {
-    let joined = args.join(" ").to_lowercase();
-    [
-        "pr comment",
-        "issue comment",
-        "pr create",
-        "issue create",
-        "pr review",
-    ]
-    .iter()
-    .any(|pattern| joined.contains(pattern))
-}
-
 /// Extract --body-file path from arguments
 fn extract_body_file(args: &[String]) -> Option<String> {
     let mut iter = args.iter().peekable();
@@ -109,8 +95,10 @@ fn run() -> Result<(), Error> {
     // Find real gh binary (skip ourselves)
     let real_gh = gh_finder::find_real_gh()?;
 
-    // Fast path: if no validation needed, exec immediately
-    if !needs_validation(&args) || !is_comment_command(&args) {
+    // Fast path: if no content args (--body, --body-file, etc.), exec immediately
+    // Note: We validate ANY command with content args, not just "pr comment"
+    // This prevents bypasses like "gh pr --repo x comment --body secret"
+    if !needs_validation(&args) {
         exec_gh(&real_gh, &args)?;
         unreachable!("exec should not return");
     }
