@@ -4,10 +4,12 @@
 # Build arguments for source images (must be built first)
 ARG OPENCODE_IMAGE=template-repo-mcp-opencode:latest
 ARG CRUSH_IMAGE=template-repo-mcp-crush:latest
+ARG GH_VALIDATOR_IMAGE=template-repo-gh-validator:latest
 
 # Build stages to copy binaries from the dedicated images
 FROM ${OPENCODE_IMAGE} AS opencode-source
 FROM ${CRUSH_IMAGE} AS crush-source
+FROM ${GH_VALIDATOR_IMAGE} AS gh-validator
 
 # Use a base image that already has Node.js
 FROM node:20-slim
@@ -41,6 +43,12 @@ RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | 
     && apt-get update \
     && apt-get install -y gh \
     && rm -rf /var/lib/apt/lists/*
+
+# Install gh-validator - shadows system gh with security wrapper
+# Provides: secret masking, emoji blocking, URL validation, formatting enforcement
+COPY --from=gh-validator /usr/local/bin/gh /usr/local/bin/gh-validator
+RUN mv /usr/bin/gh /usr/bin/gh-real && \
+    ln -sf /usr/local/bin/gh-validator /usr/bin/gh
 
 # Copy pre-built binaries from their respective images
 # This ensures single source of truth for installation logic
@@ -92,11 +100,13 @@ COPY --chown=node:node packages/github_agents/configs/crush-data.json /home/node
 # This ensures the user can write to all necessary locations
 RUN chown -R node:node /home/node
 
-# Security Note: This container has gh CLI installed for agent operations but does NOT
-# include the gh-validator binary. For posting comments to GitHub, either:
-#   1. Use the host's gh command (with gh-validator at ~/.local/bin/gh)
-#   2. Mount the gh-validator binary: -v ~/.local/bin/gh:/usr/local/bin/gh:ro
-# The gh-validator provides secret masking, emoji blocking, and URL validation.
+# Security: gh-validator is installed and shadows the system gh command.
+# All gh commands pass through the validator which provides:
+# - Secret masking (prevents accidental credential exposure)
+# - Unicode emoji blocking (prevents display corruption)
+# - Formatting enforcement (requires --body-file for reaction images)
+# - URL validation with SSRF protection
+# The real gh binary is preserved at /usr/bin/gh-real for direct access if needed.
 
 # Default command
 CMD ["bash"]

@@ -2,7 +2,10 @@
 //!
 //! Validates GitHub comments to prevent:
 //! 1. Unicode emojis that may display as corrupted characters
-//! 2. Formatting patterns that would escape markdown (heredocs, echo piping, etc.)
+//! 2. Direct --body/-b usage with reaction images (should use --body-file)
+//!
+//! This module operates directly on argument vectors for robust validation,
+//! avoiding fragile command string reconstruction.
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -19,41 +22,7 @@ const EMOJI_RANGES: [(u32, u32); 8] = [
     (0x1FA70, 0x1FAFF), // Symbols and Pictographs Extended-A
 ];
 
-/// Problematic formatting patterns with descriptions
-///
-/// Note: Only patterns that match argument content are effective here.
-/// Shell operators (pipes, heredocs, command substitution) are expanded
-/// before the binary receives arguments, so we cannot detect them.
-/// The --body/-b patterns below catch direct usage which bypasses --body-file.
-static FORMATTING_VIOLATIONS: Lazy<Vec<(Regex, &'static str)>> = Lazy::new(|| {
-    vec![
-        // Direct --body with reaction images (space-separated)
-        (
-            Regex::new(r#"--body\s+["'].*!\[.*\]"#).unwrap(),
-            "Direct --body flag with reaction images (use --body-file instead)",
-        ),
-        (
-            Regex::new(r"--body\s+\S*.*!\[.*\]").unwrap(),
-            "Direct --body flag with reaction images (use --body-file instead)",
-        ),
-        // Direct --body= with reaction images (equals syntax)
-        (
-            Regex::new(r"--body=.*!\[.*\]").unwrap(),
-            "Direct --body= flag with reaction images (use --body-file instead)",
-        ),
-        // Short flag -b with reaction images
-        (
-            Regex::new(r#"-b\s+["'].*!\[.*\]"#).unwrap(),
-            "Direct -b flag with reaction images (use --body-file instead)",
-        ),
-        (
-            Regex::new(r"-b\s+\S*.*!\[.*\]").unwrap(),
-            "Direct -b flag with reaction images (use --body-file instead)",
-        ),
-    ]
-});
-
-/// Patterns to detect reaction images in commands
+/// Patterns to detect reaction images in content
 static REACTION_IMAGE_PATTERNS: Lazy<Vec<Regex>> = Lazy::new(|| {
     vec![
         Regex::new(r"(?i)\\?!\[.*\]\(.*reaction.*\)").unwrap(),
@@ -62,14 +31,41 @@ static REACTION_IMAGE_PATTERNS: Lazy<Vec<Regex>> = Lazy::new(|| {
     ]
 });
 
-/// Comment validator
+/// Flags that directly embed body content (not file-based)
+const DIRECT_BODY_FLAGS: &[&str] = &["--body", "-b"];
+
+/// Flags that indicate content posting (for emoji checks)
+const CONTENT_FLAGS: &[&str] = &[
+    "--body",
+    "-b",
+    "--body-file",
+    "-F",
+    "--message",
+    "-m",
+    "--title",
+    "-t",
+    "--notes",
+    "-n",
+];
+
+/// Comment validator - operates on argument vectors directly
 pub struct CommentValidator;
 
 impl CommentValidator {
-    /// Check for Unicode emojis in text
+    /// Check for Unicode emojis in argument values
     ///
-    /// Returns `Some(char)` if an emoji is found, `None` otherwise.
-    pub fn check_unicode_emoji(text: &str) -> Option<char> {
+    /// Scans all arguments for emoji characters. Returns the first emoji found.
+    pub fn check_unicode_emoji_in_args(args: &[String]) -> Option<char> {
+        for arg in args {
+            if let Some(emoji) = Self::check_unicode_emoji(arg) {
+                return Some(emoji);
+            }
+        }
+        None
+    }
+
+    /// Check for Unicode emojis in a single string
+    fn check_unicode_emoji(text: &str) -> Option<char> {
         for ch in text.chars() {
             let cp = ch as u32;
             for (start, end) in EMOJI_RANGES.iter() {
@@ -81,36 +77,61 @@ impl CommentValidator {
         None
     }
 
-    /// Check for problematic formatting patterns
+    /// Check for formatting violations by inspecting args directly
     ///
-    /// Returns a list of violation descriptions.
-    pub fn check_formatting_violations(command: &str) -> Vec<&'static str> {
-        FORMATTING_VIOLATIONS
-            .iter()
-            .filter(|(regex, _)| regex.is_match(command))
-            .map(|(_, desc)| *desc)
-            .collect()
+    /// Returns a violation description if --body or -b is used with reaction images.
+    /// The correct approach is to use --body-file with reaction images.
+    pub fn check_formatting_violations_in_args(args: &[String]) -> Option<&'static str> {
+        let mut iter = args.iter().peekable();
+
+        while let Some(arg) = iter.next() {
+            // Check --body=value or -b=value (equals syntax)
+            for flag in DIRECT_BODY_FLAGS {
+                if let Some(value) = arg.strip_prefix(&format!("{}=", flag)) {
+                    if Self::content_has_reaction_image(value) {
+                        return Some(
+                            "Direct body flag with reaction images (use --body-file instead)",
+                        );
+                    }
+                }
+            }
+
+            // Check --body value or -b value (space-separated)
+            if DIRECT_BODY_FLAGS.contains(&arg.as_str()) {
+                if let Some(value) = iter.next() {
+                    if Self::content_has_reaction_image(value) {
+                        return Some(
+                            "Direct body flag with reaction images (use --body-file instead)",
+                        );
+                    }
+                }
+            }
+        }
+
+        None
     }
 
-    /// Check if command contains reaction images
-    pub fn has_reaction_image(command: &str) -> bool {
-        REACTION_IMAGE_PATTERNS.iter().any(|r| r.is_match(command))
+    /// Check if content contains a reaction image
+    fn content_has_reaction_image(content: &str) -> bool {
+        REACTION_IMAGE_PATTERNS.iter().any(|r| r.is_match(content))
     }
 
-    /// Check if this is a command that posts content
-    pub fn is_posting_content(command: &str) -> bool {
-        // Include both long and short flags
-        let posting_indicators = [
-            "--body",
-            "-b",
-            "--body-file",
-            "-F",
-            "--message",
-            "-m",
-            "comment",
-            "create",
-        ];
-        posting_indicators.iter().any(|ind| command.contains(ind))
+    /// Check if args indicate content posting (for determining if emoji check needed)
+    pub fn args_post_content(args: &[String]) -> bool {
+        args.iter().any(|arg| {
+            // Check exact match
+            if CONTENT_FLAGS.contains(&arg.as_str()) {
+                return true;
+            }
+            // Check --flag=value syntax
+            for flag in CONTENT_FLAGS {
+                if arg.starts_with(&format!("{}=", flag)) {
+                    return true;
+                }
+            }
+            // Check for comment/create subcommands
+            arg == "comment" || arg == "create"
+        })
     }
 }
 
@@ -118,21 +139,31 @@ impl CommentValidator {
 mod tests {
     use super::*;
 
+    fn to_args(strs: &[&str]) -> Vec<String> {
+        strs.iter().map(|s| s.to_string()).collect()
+    }
+
     #[test]
-    fn test_detect_emoji() {
-        // Common emojis
-        assert!(CommentValidator::check_unicode_emoji("Hello \u{1F600}").is_some());
-        assert!(CommentValidator::check_unicode_emoji("Check \u{2705}").is_some());
-        assert!(CommentValidator::check_unicode_emoji("\u{1F680} Launch").is_some());
+    fn test_detect_emoji_in_args() {
+        // Emoji in body content
+        let args = to_args(&["pr", "comment", "--body", "Hello \u{1F600}"]);
+        assert!(CommentValidator::check_unicode_emoji_in_args(&args).is_some());
+
+        // Emoji in title
+        let args = to_args(&["pr", "create", "--title", "\u{1F680} Launch"]);
+        assert!(CommentValidator::check_unicode_emoji_in_args(&args).is_some());
 
         // No emoji
-        assert!(CommentValidator::check_unicode_emoji("Plain text").is_none());
-        assert!(CommentValidator::check_unicode_emoji("With :emoji: colons").is_none());
+        let args = to_args(&["pr", "comment", "--body", "Plain text"]);
+        assert!(CommentValidator::check_unicode_emoji_in_args(&args).is_none());
+
+        // GitHub emoji shortcodes are fine
+        let args = to_args(&["pr", "comment", "--body", "Check :white_check_mark:"]);
+        assert!(CommentValidator::check_unicode_emoji_in_args(&args).is_none());
     }
 
     #[test]
     fn test_emoji_ranges() {
-        // Test specific ranges
         assert!(CommentValidator::check_unicode_emoji("\u{1F600}").is_some()); // Emoticons
         assert!(CommentValidator::check_unicode_emoji("\u{1F300}").is_some()); // Misc Symbols
         assert!(CommentValidator::check_unicode_emoji("\u{1F680}").is_some()); // Transport
@@ -141,70 +172,106 @@ mod tests {
     }
 
     #[test]
-    fn test_formatting_violations_direct_body() {
-        // Direct --body with reaction images should be flagged
-        let violations = CommentValidator::check_formatting_violations(
-            "gh pr comment 1 --body '![Reaction](url)'",
-        );
-        assert!(!violations.is_empty());
-        assert!(violations.iter().any(|v| v.contains("--body-file instead")));
+    fn test_formatting_violations_direct_body_space_separated() {
+        // --body with reaction image should be flagged
+        let args = to_args(&[
+            "pr",
+            "comment",
+            "1",
+            "--body",
+            "![Reaction](https://example.com/reaction/img.png)",
+        ]);
+        assert!(CommentValidator::check_formatting_violations_in_args(&args).is_some());
     }
 
     #[test]
-    fn test_formatting_violations_short_body_flag() {
-        // Direct -b (short for --body) with reaction images should be flagged
-        let violations =
-            CommentValidator::check_formatting_violations("gh pr comment 1 -b '![Reaction](url)'");
-        assert!(!violations.is_empty());
-        assert!(violations.iter().any(|v| v.contains("-b flag")));
+    fn test_formatting_violations_direct_body_equals() {
+        // --body= with reaction image should be flagged
+        let args = to_args(&[
+            "pr",
+            "comment",
+            "1",
+            "--body=![Reaction](https://example.com/reaction/img.png)",
+        ]);
+        assert!(CommentValidator::check_formatting_violations_in_args(&args).is_some());
     }
 
     #[test]
-    fn test_formatting_violations_body_equals_syntax() {
-        // Direct --body= with reaction images should be flagged
-        let violations = CommentValidator::check_formatting_violations(
-            "gh pr comment 1 --body='![Reaction](url)'",
-        );
-        assert!(!violations.is_empty());
-        assert!(violations.iter().any(|v| v.contains("--body=")));
+    fn test_formatting_violations_short_flag_space_separated() {
+        // -b with reaction image should be flagged
+        let args = to_args(&[
+            "pr",
+            "comment",
+            "1",
+            "-b",
+            "![Reaction](https://example.com/reaction/img.png)",
+        ]);
+        assert!(CommentValidator::check_formatting_violations_in_args(&args).is_some());
     }
 
     #[test]
-    fn test_no_formatting_violations() {
-        // Correct method: --body-file
-        let violations = CommentValidator::check_formatting_violations(
-            "gh pr comment 1 --body-file /tmp/comment.md",
-        );
-        assert!(violations.is_empty());
+    fn test_formatting_violations_short_flag_equals() {
+        // -b= with reaction image should be flagged
+        let args = to_args(&[
+            "pr",
+            "comment",
+            "1",
+            "-b=![Reaction](https://example.com/reaction/img.png)",
+        ]);
+        assert!(CommentValidator::check_formatting_violations_in_args(&args).is_some());
     }
 
     #[test]
-    fn test_has_reaction_image() {
-        assert!(CommentValidator::has_reaction_image(
-            "![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/main/reaction/miku.png)"
-        ));
-        assert!(CommentValidator::has_reaction_image(
-            "![alt](https://example.com/reaction/image.gif)"
-        ));
-        assert!(CommentValidator::has_reaction_image("![Reaction]"));
-
-        assert!(!CommentValidator::has_reaction_image("Regular text"));
-        assert!(!CommentValidator::has_reaction_image(
-            "![Image](https://example.com/other.png)"
-        ));
+    fn test_no_formatting_violations_body_file() {
+        // --body-file is the correct approach - no violation
+        let args = to_args(&["pr", "comment", "1", "--body-file", "/tmp/comment.md"]);
+        assert!(CommentValidator::check_formatting_violations_in_args(&args).is_none());
     }
 
     #[test]
-    fn test_is_posting_content() {
-        assert!(CommentValidator::is_posting_content(
-            "gh pr comment 1 --body test"
-        ));
-        assert!(CommentValidator::is_posting_content(
-            "gh pr create --body-file /tmp/pr.md"
-        ));
-        assert!(CommentValidator::is_posting_content("gh issue comment 1"));
+    fn test_no_formatting_violations_plain_text() {
+        // Plain text without reaction images is fine
+        let args = to_args(&["pr", "comment", "1", "--body", "Just some text"]);
+        assert!(CommentValidator::check_formatting_violations_in_args(&args).is_none());
+    }
 
-        assert!(!CommentValidator::is_posting_content("gh pr list"));
-        assert!(!CommentValidator::is_posting_content("gh pr view 1"));
+    #[test]
+    fn test_args_post_content() {
+        // Various content flags
+        assert!(CommentValidator::args_post_content(&to_args(&[
+            "pr", "comment", "--body", "test"
+        ])));
+        assert!(CommentValidator::args_post_content(&to_args(&[
+            "pr", "comment", "-b", "test"
+        ])));
+        assert!(CommentValidator::args_post_content(&to_args(&[
+            "pr",
+            "create",
+            "--body-file",
+            "/tmp/pr.md"
+        ])));
+        assert!(CommentValidator::args_post_content(&to_args(&[
+            "issue", "comment", "1"
+        ])));
+
+        // No content flags
+        assert!(!CommentValidator::args_post_content(&to_args(&[
+            "pr", "list"
+        ])));
+        assert!(!CommentValidator::args_post_content(&to_args(&[
+            "pr", "view", "1"
+        ])));
+    }
+
+    #[test]
+    fn test_args_post_content_equals_syntax() {
+        assert!(CommentValidator::args_post_content(&to_args(&[
+            "pr",
+            "comment",
+            "--body=test"
+        ])));
+        assert!(CommentValidator::args_post_content(&to_args(&[
+            "pr", "comment", "-b=test"
+        ])));
     }
 }

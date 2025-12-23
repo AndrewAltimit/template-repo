@@ -4,6 +4,13 @@
 # - uv package manager (10-100x faster than pip)
 # - BuildKit cache mounts for apt and uv
 # - Python 3.11 (10-60% faster than 3.10)
+
+# Build argument for gh-validator image (must be built first)
+ARG GH_VALIDATOR_IMAGE=template-repo-gh-validator:latest
+
+# Import gh-validator binary from dedicated build image
+FROM ${GH_VALIDATOR_IMAGE} AS gh-validator
+
 FROM python:3.11-slim
 
 # Install uv - Rust-based package manager (10-100x faster than pip)
@@ -34,6 +41,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && apt-get update \
     && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
+
+# Install gh-validator - shadows system gh with security wrapper
+# Provides: secret masking, emoji blocking, URL validation, formatting enforcement
+COPY --from=gh-validator /usr/local/bin/gh /usr/local/bin/gh-validator
+RUN mv /usr/bin/gh /usr/bin/gh-real && \
+    ln -sf /usr/local/bin/gh-validator /usr/bin/gh
 
 # Create working directory
 WORKDIR /workspace
@@ -106,12 +119,13 @@ ENV PYTHONUNBUFFERED=1 \
 # Create a non-root user that will be overridden by docker-compose
 RUN useradd -m -u 1000 ciuser
 
-# Security Note: This container has gh CLI installed for CI operations (status checks,
-# PR listing, etc.) but does NOT include the gh-validator binary. For posting comments
-# to GitHub, either:
-#   1. Use the host's gh command (with gh-validator at ~/.local/bin/gh)
-#   2. Mount the gh-validator binary: -v ~/.local/bin/gh:/usr/local/bin/gh:ro
-# The gh-validator provides secret masking, emoji blocking, and URL validation.
+# Security: gh-validator is installed and shadows the system gh command.
+# All gh commands pass through the validator which provides:
+# - Secret masking (prevents accidental credential exposure)
+# - Unicode emoji blocking (prevents display corruption)
+# - Formatting enforcement (requires --body-file for reaction images)
+# - URL validation with SSRF protection
+# The real gh binary is preserved at /usr/bin/gh-real for direct access if needed.
 
 # Default command
 CMD ["bash"]

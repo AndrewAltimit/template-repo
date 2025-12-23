@@ -14,6 +14,12 @@
 //! - Unicode emoji detection: Blocks emojis that may display incorrectly
 //! - Formatting validation: Ensures proper use of --body-file for reaction images
 //! - URL validation: Verifies reaction image URLs exist (with SSRF protection)
+//!
+//! # Architecture
+//!
+//! All validation operates directly on the argument vector rather than
+//! reconstructing command strings. This provides robust validation that
+//! cannot be bypassed through shell escaping tricks.
 
 use std::env;
 use std::process::{exit, Command};
@@ -94,12 +100,6 @@ fn is_stdin_body_file(args: &[String]) -> bool {
     false
 }
 
-/// Build command string for validation (for logging/display)
-/// Uses shell_words::join to properly escape arguments with spaces
-fn build_command_string(args: &[String]) -> String {
-    format!("gh {}", shell_words::join(args))
-}
-
 /// Run validation and execute the real gh binary
 fn run() -> Result<(), Error> {
     let args: Vec<String> = env::args().skip(1).collect();
@@ -130,12 +130,9 @@ fn run() -> Result<(), Error> {
     // 2. Mask secrets in individual arguments (avoids shell escaping issues)
     let (masked_args, was_masked) = masker.mask_args(&args);
 
-    // 3. Build command string from masked args for validation checks
-    let command = build_command_string(&masked_args);
-
-    // 4. Check Unicode emojis
-    if CommentValidator::is_posting_content(&command) {
-        if let Some(emoji) = CommentValidator::check_unicode_emoji(&command) {
+    // 3. Check Unicode emojis in args (operates directly on arg vector)
+    if CommentValidator::args_post_content(&masked_args) {
+        if let Some(emoji) = CommentValidator::check_unicode_emoji_in_args(&masked_args) {
             return Err(Error::UnicodeEmoji {
                 char: emoji,
                 codepoint: emoji as u32,
@@ -143,17 +140,15 @@ fn run() -> Result<(), Error> {
         }
     }
 
-    // 5. Check formatting violations (only if has reaction images)
-    if CommentValidator::has_reaction_image(&command) {
-        let violations = CommentValidator::check_formatting_violations(&command);
-        if !violations.is_empty() {
-            return Err(Error::FormattingViolation {
-                description: violations.join(", "),
-            });
-        }
+    // 4. Check formatting violations (operates directly on arg vector)
+    // This catches --body/-b with reaction images (should use --body-file instead)
+    if let Some(violation) = CommentValidator::check_formatting_violations_in_args(&masked_args) {
+        return Err(Error::FormattingViolation {
+            description: violation.to_string(),
+        });
     }
 
-    // 6. Validate URLs in --body-file (use original args for file path)
+    // 5. Validate URLs in --body-file (use original args for file path)
     if let Some(file_path) = extract_body_file(&args) {
         match std::fs::read_to_string(&file_path) {
             Ok(content) => {
@@ -175,7 +170,7 @@ fn run() -> Result<(), Error> {
         }
     }
 
-    // 7. Execute gh with masked arguments
+    // 6. Execute gh with masked arguments
     if was_masked {
         eprintln!("[gh-validator] Secrets were masked in command");
     }

@@ -3,6 +3,10 @@
 # Build with: docker build --build-arg MODE=agent (or MODE=mcp)
 
 ARG MODE=agent
+ARG GH_VALIDATOR_IMAGE=template-repo-gh-validator:latest
+
+# Import gh-validator binary from dedicated build image
+FROM ${GH_VALIDATOR_IMAGE} AS gh-validator
 
 # Use Python as base since both modes need it
 FROM python:3.11-slim
@@ -24,6 +28,12 @@ RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | 
     && apt-get update \
     && apt-get install -y gh \
     && rm -rf /var/lib/apt/lists/*
+
+# Install gh-validator - shadows system gh with security wrapper
+# Provides: secret masking, emoji blocking, URL validation, formatting enforcement
+COPY --from=gh-validator /usr/local/bin/gh /usr/local/bin/gh-validator
+RUN mv /usr/bin/gh /usr/bin/gh-real && \
+    ln -sf /usr/local/bin/gh-validator /usr/bin/gh
 
 # Install Codex CLI globally
 RUN npm install -g @openai/codex
@@ -54,11 +64,13 @@ COPY tools/mcp/mcp_codex /workspace/tools/mcp/mcp_codex
 RUN pip install --no-cache-dir /workspace/tools/mcp/mcp_core && \
     pip install --no-cache-dir /workspace/tools/mcp/mcp_codex
 
-# Security Note: This container has gh CLI installed for agent operations but does NOT
-# include the gh-validator binary. For posting comments to GitHub, either:
-#   1. Use the host's gh command (with gh-validator at ~/.local/bin/gh)
-#   2. Mount the gh-validator binary: -v ~/.local/bin/gh:/usr/local/bin/gh:ro
-# The gh-validator provides secret masking, emoji blocking, and URL validation.
+# Security: gh-validator is installed and shadows the system gh command.
+# All gh commands pass through the validator which provides:
+# - Secret masking (prevents accidental credential exposure)
+# - Unicode emoji blocking (prevents display corruption)
+# - Formatting enforcement (requires --body-file for reaction images)
+# - URL validation with SSRF protection
+# The real gh binary is preserved at /usr/bin/gh-real for direct access if needed.
 
 # Copy entrypoint script
 COPY docker/scripts/codex-entrypoint.sh /usr/local/bin/entrypoint.sh
