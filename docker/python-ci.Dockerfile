@@ -5,12 +5,22 @@
 # - BuildKit cache mounts for apt and uv
 # - Python 3.11 (10-60% faster than 3.10)
 
-# Build argument for gh-validator image (must be built first)
-ARG GH_VALIDATOR_IMAGE=template-repo-gh-validator:latest
+# Stage 1: Build gh-validator from source
+FROM rust:1.83-slim AS gh-validator-builder
 
-# Import gh-validator binary from dedicated build image
-FROM ${GH_VALIDATOR_IMAGE} AS gh-validator
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
 
+WORKDIR /build
+COPY tools/rust/gh-validator/Cargo.toml tools/rust/gh-validator/Cargo.lock* ./
+RUN mkdir -p src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release 2>/dev/null || true
+COPY tools/rust/gh-validator/src ./src
+RUN touch src/main.rs && cargo build --release
+
+# Stage 2: Main Python CI image
 FROM python:3.11-slim
 
 # Install uv - Rust-based package manager (10-100x faster than pip)
@@ -42,11 +52,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
 
-# Install gh-validator - shadows system gh with security wrapper
-# Provides: secret masking, emoji blocking, URL validation, formatting enforcement
-COPY --from=gh-validator /usr/local/bin/gh /usr/local/bin/gh-validator
-RUN mv /usr/bin/gh /usr/bin/gh-real && \
-    ln -sf /usr/local/bin/gh-validator /usr/bin/gh
+# Install gh-validator - shadows system gh via PATH priority
+# /usr/local/bin comes before /usr/bin in PATH, so our validator runs first
+# The validator finds the real gh at /usr/bin/gh automatically
+COPY --from=gh-validator-builder /build/target/release/gh /usr/local/bin/gh
+RUN chmod +x /usr/local/bin/gh
 
 # Create working directory
 WORKDIR /workspace
@@ -119,13 +129,13 @@ ENV PYTHONUNBUFFERED=1 \
 # Create a non-root user that will be overridden by docker-compose
 RUN useradd -m -u 1000 ciuser
 
-# Security: gh-validator is installed and shadows the system gh command.
+# Security: gh-validator is installed at /usr/local/bin/gh and shadows /usr/bin/gh
 # All gh commands pass through the validator which provides:
 # - Secret masking (prevents accidental credential exposure)
 # - Unicode emoji blocking (prevents display corruption)
 # - Formatting enforcement (requires --body-file for reaction images)
 # - URL validation with SSRF protection
-# The real gh binary is preserved at /usr/bin/gh-real for direct access if needed.
+# The real gh binary remains at /usr/bin/gh and is found automatically by the validator.
 
 # Default command
 CMD ["bash"]

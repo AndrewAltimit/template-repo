@@ -588,13 +588,13 @@ services:
       - services
 
   # Codex MCP Server
+  # NOTE: Builds gh-validator from source inline (multi-stage build)
   mcp-codex:
     build:
       context: .
       dockerfile: docker/codex.Dockerfile
       args:
         MODE: mcp
-        GH_VALIDATOR_IMAGE: template-repo-gh-validator:latest
     container_name: mcp-codex
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
@@ -651,7 +651,8 @@ services:
       - agents
 
   # OpenRouter Agents container (OpenCode, Crush)
-  # NOTE: Requires mcp-opencode, mcp-crush, and gh-validator images to be built first
+  # NOTE: Requires mcp-opencode and mcp-crush images to be built first
+  # NOTE: Builds gh-validator from source inline (multi-stage build)
   openrouter-agents:
     build:
       context: .
@@ -659,7 +660,6 @@ services:
       args:
         OPENCODE_IMAGE: template-repo-mcp-opencode:latest
         CRUSH_IMAGE: template-repo-mcp-crush:latest
-        GH_VALIDATOR_IMAGE: template-repo-gh-validator:latest
     container_name: openrouter-agents
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
@@ -682,13 +682,13 @@ services:
       - openrouter
 
   # Codex Agent container (OpenAI Codex)
+  # NOTE: Builds gh-validator from source inline (multi-stage build)
   codex-agent:
     build:
       context: .
       dockerfile: docker/codex.Dockerfile
       args:
         MODE: agent
-        GH_VALIDATOR_IMAGE: template-repo-gh-validator:latest
     container_name: codex-agent
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
@@ -711,25 +711,12 @@ services:
       - agents
       - codex
 
-  # gh-validator build image - used by other containers
-  # Builds the Rust-based GitHub CLI wrapper with security features
-  gh-validator:
-    build:
-      context: .
-      dockerfile: docker/gh-validator.Dockerfile
-    image: template-repo-gh-validator:latest
-    container_name: gh-validator-build
-    profiles:
-      - build
-      - never  # Don't start as a service, just build
-
   # Python CI container for running tests and linting
+  # NOTE: Builds gh-validator from source inline (multi-stage build)
   python-ci:
     build:
       context: .
       dockerfile: docker/python-ci.Dockerfile
-      args:
-        GH_VALIDATOR_IMAGE: template-repo-gh-validator:latest
     container_name: python-ci
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:

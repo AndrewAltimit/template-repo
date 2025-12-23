@@ -4,12 +4,25 @@
 # Build arguments for source images (must be built first)
 ARG OPENCODE_IMAGE=template-repo-mcp-opencode:latest
 ARG CRUSH_IMAGE=template-repo-mcp-crush:latest
-ARG GH_VALIDATOR_IMAGE=template-repo-gh-validator:latest
+
+# Stage 1: Build gh-validator from source
+FROM rust:1.83-slim AS gh-validator-builder
+
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+COPY tools/rust/gh-validator/Cargo.toml tools/rust/gh-validator/Cargo.lock* ./
+RUN mkdir -p src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release 2>/dev/null || true
+COPY tools/rust/gh-validator/src ./src
+RUN touch src/main.rs && cargo build --release
 
 # Build stages to copy binaries from the dedicated images
 FROM ${OPENCODE_IMAGE} AS opencode-source
 FROM ${CRUSH_IMAGE} AS crush-source
-FROM ${GH_VALIDATOR_IMAGE} AS gh-validator
 
 # Use a base image that already has Node.js
 FROM node:20-slim
@@ -44,11 +57,11 @@ RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | 
     && apt-get install -y gh \
     && rm -rf /var/lib/apt/lists/*
 
-# Install gh-validator - shadows system gh with security wrapper
-# Provides: secret masking, emoji blocking, URL validation, formatting enforcement
-COPY --from=gh-validator /usr/local/bin/gh /usr/local/bin/gh-validator
-RUN mv /usr/bin/gh /usr/bin/gh-real && \
-    ln -sf /usr/local/bin/gh-validator /usr/bin/gh
+# Install gh-validator - shadows system gh via PATH priority
+# /usr/local/bin comes before /usr/bin in PATH, so our validator runs first
+# The validator finds the real gh at /usr/bin/gh automatically
+COPY --from=gh-validator-builder /build/target/release/gh /usr/local/bin/gh
+RUN chmod +x /usr/local/bin/gh
 
 # Copy pre-built binaries from their respective images
 # This ensures single source of truth for installation logic
@@ -100,13 +113,13 @@ COPY --chown=node:node packages/github_agents/configs/crush-data.json /home/node
 # This ensures the user can write to all necessary locations
 RUN chown -R node:node /home/node
 
-# Security: gh-validator is installed and shadows the system gh command.
+# Security: gh-validator is installed at /usr/local/bin/gh and shadows /usr/bin/gh
 # All gh commands pass through the validator which provides:
 # - Secret masking (prevents accidental credential exposure)
 # - Unicode emoji blocking (prevents display corruption)
 # - Formatting enforcement (requires --body-file for reaction images)
 # - URL validation with SSRF protection
-# The real gh binary is preserved at /usr/bin/gh-real for direct access if needed.
+# The real gh binary remains at /usr/bin/gh and is found automatically by the validator.
 
 # Default command
 CMD ["bash"]
