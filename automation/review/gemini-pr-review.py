@@ -68,6 +68,83 @@ def _file_has_valid_syntax(filepath: str) -> bool:
         return False
 
 
+def _workflow_has_valid_action_refs(filepath: str) -> bool:
+    """Check if a GitHub workflow file has valid action references.
+
+    Validates that all `uses:` lines have proper version tags (@vN, @main, @sha).
+
+    Args:
+        filepath: Path to the workflow YAML file to check
+
+    Returns:
+        True if all action references are valid, False if any are malformed
+    """
+    if not filepath.endswith((".yml", ".yaml")):
+        return True  # Not a YAML file - can't validate
+
+    # Security: Prevent path traversal attacks
+    try:
+        resolved_path = Path(filepath).resolve()
+        repo_root = Path.cwd().resolve()
+        if not resolved_path.is_relative_to(repo_root):
+            print(f"[SECURITY] Path traversal blocked: '{filepath}' resolves outside repository root")
+            return True  # Treat as valid to avoid false positives
+    except (ValueError, OSError) as e:
+        print(f"[SECURITY] Path resolution failed for '{filepath}': {e}")
+        return True
+
+    try:
+        with open(filepath, encoding="utf-8") as f:
+            content = f.read()
+
+        # Find all `uses:` lines (GitHub Action references)
+        # Pattern: uses: owner/repo@version or uses: ./local/path
+        # Stop at # to exclude inline comments (which may contain URLs with slashes)
+        uses_pattern = re.compile(r"^\s*uses:\s*([^#\n]+)", re.MULTILINE)
+        matches = [m.strip() for m in uses_pattern.findall(content)]
+
+        for action_ref in matches:
+            action_ref = action_ref.strip().strip('"').strip("'")
+
+            # Local actions (./path) don't need version
+            if action_ref.startswith("./"):
+                continue
+
+            # Docker actions (docker://...) don't use @version
+            if action_ref.startswith("docker://"):
+                continue
+
+            # Remote actions must have @version
+            # Valid formats: owner/repo@v1, owner/repo@main, owner/repo@sha1234
+            if "@" not in action_ref:
+                return False  # Missing version tag
+
+            # Check that @version is followed by something valid
+            # Valid: @v1, @v1.2.3, @main, @master, @sha1234abc
+            # Invalid: @, @/path/to/file (file path instead of version)
+            _, version = action_ref.rsplit("@", 1)
+            if not version:
+                return False  # Empty version
+
+            # Version should not contain path separators (indicates malformed ref)
+            if "/" in version:
+                return False  # Looks like a file path, not a version
+
+            # Version should start with alphanumeric (v1, main, sha, etc.)
+            if not version[0].isalnum():
+                return False
+
+        return True  # All action refs look valid
+
+    except FileNotFoundError:
+        return True  # File doesn't exist, can't be invalid
+    except UnicodeDecodeError:
+        return True  # Can't parse, assume valid
+    except Exception as e:
+        print(f"[WORKFLOW] Error validating '{filepath}': {e}")
+        return True  # On error, assume valid to avoid false positives
+
+
 # Model constants
 # Using explicit model with API key to avoid 404 errors and OAuth hangs
 # API key is free tier with generous limits (comparable to OAuth)
@@ -578,30 +655,50 @@ def get_all_pr_comments(pr_number: str) -> List[Dict[str, Any]]:
 
 
 def get_recent_pr_comments(pr_number: str) -> str:
-    """Get PR comments since last Gemini review"""
+    """Get PR comments for review context, including ALL admin comments (newest first)"""
     try:
         comments = get_all_pr_comments(pr_number)
 
-        # Find last Gemini comment index
-        last_gemini_idx = -1
-        for idx, comment in enumerate(comments):
-            body = comment.get("body", "")
-            # Look for the unique HTML comment marker for more robust detection
-            if "<!-- gemini-review-marker -->" in body:
-                last_gemini_idx = idx
+        # Filter out Gemini's own reviews
+        non_gemini_comments = [c for c in comments if "<!-- gemini-review-marker -->" not in c.get("body", "")]
 
-        # Get comments after last Gemini review
-        if last_gemini_idx >= 0:
-            recent_comments = comments[last_gemini_idx + 1 :]
-            if recent_comments:
-                formatted = ["## Recent PR Comments Since Last Gemini Review\n"]
-                for comment in recent_comments:
-                    author = comment.get("author", {}).get("login", "Unknown")
-                    body = comment.get("body", "").strip()
-                    formatted.append(f"**@{author}**: {body}\n")
-                return "\n".join(formatted)
+        if not non_gemini_comments:
+            return ""
 
-        return ""
+        # Separate ALL admin comments from others - admin comments often contain debunking info
+        # and should ALWAYS be included regardless of when they were posted
+        admin_comments = []
+        other_comments = []
+
+        for comment in non_gemini_comments:
+            author = comment.get("author", {}).get("login", "Unknown")
+            body = comment.get("body", "").strip()
+            formatted_comment = f"**@{author}**: {body}\n"
+
+            if author == "AndrewAltimit":
+                admin_comments.append(formatted_comment)
+            else:
+                other_comments.append(formatted_comment)
+
+        # Reverse to newest-first (so truncation drops older comments)
+        admin_comments = list(reversed(admin_comments))
+        other_comments = list(reversed(other_comments))
+
+        # Limit non-admin comments to most recent 5
+        other_comments = other_comments[:5]
+
+        formatted = ["## PR Discussion Context (NEWEST FIRST)\n"]
+
+        if admin_comments:
+            formatted.append("### ALL Admin/Author Comments (CRITICAL - contains debunked issues):\n")
+            formatted.append("**READ CAREFULLY: Do NOT re-raise any issue mentioned as FALSE POSITIVE below.**\n\n")
+            formatted.extend(admin_comments)
+
+        if other_comments:
+            formatted.append("\n### Recent Other Comments:\n")
+            formatted.extend(other_comments)
+
+        return "\n".join(formatted)
     except Exception as e:
         print(f"Warning: Unexpected error processing PR comments: {e}")
         return ""
@@ -755,8 +852,34 @@ If no concrete issues were found, respond with: `NO_ISSUES_FOUND`
             if syntax_fp_count > 0:
                 print(f"Dropped {syntax_fp_count} false positive syntax error claims (files parse correctly)")
 
+            # Third pass: validate action reference claims
+            # If an issue claims "Invalid Action reference" but the action is valid, it's a false positive
+            action_keywords = ["invalid action", "action reference", "action version"]
+            action_validated_lines = []
+            action_fp_count = 0
+            for line in validated_lines:
+                line_lower = line.lower()
+                is_action_claim = any(kw in line_lower for kw in action_keywords)
+
+                if is_action_claim:
+                    # Extract file path from the issue line
+                    # Format: FILE:LINE - [SEVERITY] Description
+                    file_match = re.match(r"([\w\-\./]+\.ya?ml):\d+", line)
+                    if file_match:
+                        claimed_file = file_match.group(1)
+                        if _workflow_has_valid_action_refs(claimed_file):
+                            # All action refs look valid - this is a false positive
+                            action_fp_count += 1
+                            continue  # Skip this false positive
+                action_validated_lines.append(line)
+
+            if action_fp_count > 0:
+                print(f"Dropped {action_fp_count} false positive action reference claims (refs look valid)")
+
+            validated_lines = action_validated_lines
+
             if not validated_lines:
-                print("No verifiable issues remain after syntax validation")
+                print("No verifiable issues remain after action validation")
                 return "", model_used
 
             result = "\n".join(validated_lines)
@@ -832,16 +955,19 @@ to extract context for a new code review.
 Summarize this discussion focusing on:
 
 1. **Admin Decisions**: What has @AndrewAltimit explicitly approved or requested?
-2. **False Positives**: Which reported issues were determined to be incorrect or not actual bugs?
+2. **DEBUNKED ISSUES (CRITICAL)**: Which reported issues were determined to be FALSE POSITIVES or incorrect?
+   - List EACH debunked issue explicitly so the reviewer knows NOT to raise it again
+   - Include the specific claim that was debunked and WHY it was incorrect
+   - Example: "DEBUNKED: Claim that X enforces Y - actually the code does Z"
 3. **Architectural Agreements**: Key design decisions that were agreed upon
 4. **Completed Items**: Action items that have been addressed in subsequent commits
 5. **Open Concerns**: Unresolved issues that still need attention
 
 **Guidelines:**
-- Keep the summary concise (300-500 words maximum)
+- Keep the summary concise (400-600 words maximum)
 - Use clear markdown headings for each section
 - Only include sections that have relevant content (skip empty sections)
-- Be specific about what was decided and why
+- Be VERY specific about debunked issues - the next reviewer must not repeat them
 - If there are no substantive comments, say "No significant discussion history"
 
 Generate the summary now:"""
@@ -972,14 +1098,28 @@ The following issues were flagged in earlier reviews. VERIFY each against the AC
 
     # Add comment summary if available
     if comment_summary:
-        prompt += f"""**PREVIOUS DISCUSSION (respect these decisions):**
-{comment_summary[:1500]}
+        prompt += f"""**PREVIOUS DISCUSSION - MANDATORY READING:**
+{comment_summary[:2000]}
+
+**CRITICAL: DO NOT REPEAT DEBUNKED ISSUES**
+The above summary contains the PR discussion history including FALSE POSITIVES and issues that
+were ALREADY ADDRESSED. You MUST NOT re-raise any issue that:
+1. Was identified as a false positive in the discussion
+2. Was explained and clarified by the PR author
+3. Was marked as resolved or not applicable
+If an issue was debunked in the discussion, DO NOT mention it again. Move on to new findings only.
 
 """
 
-    # Add recent comments if any
+    # Add recent comments if any - these often contain debunked issues
     if recent_comments:
-        prompt += f"{recent_comments[:1000]}\n\n"
+        prompt += f"""**RECENT COMMENTS (may contain debunked issues):**
+{recent_comments[:3000]}
+
+**IMPORTANT:** If any comment above mentions "FALSE POSITIVE", "debunked", "incorrect", or "hallucination",
+you MUST NOT raise that issue again. The PR author has already verified the code is correct.
+
+"""
 
     # Build file list - for incremental reviews, mark which files are new
     new_files_set = set(new_files_since_last) if new_files_since_last else set()

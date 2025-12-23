@@ -1,0 +1,135 @@
+name: Rust gh-validator CI
+
+on:
+  push:
+    paths:
+      - 'tools/rust/gh-validator/**'
+      - '.github/workflows/rust-gh-validator.yml'
+    branches:
+      - main
+      - refine
+  pull_request:
+    paths:
+      - 'tools/rust/gh-validator/**'
+      - '.github/workflows/rust-gh-validator.yml'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Build and test on self-hosted Linux runner
+  build-and-test:
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: tools/rust/gh-validator
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        run: |
+          if ! command -v rustup &> /dev/null; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          fi
+          source "$HOME/.cargo/env" || true
+          rustup update stable
+          rustup default stable
+          rustup component add clippy rustfmt
+
+      - name: Check formatting
+        run: |
+          source "$HOME/.cargo/env" || true
+          cargo fmt -- --check
+
+      - name: Run clippy
+        run: |
+          source "$HOME/.cargo/env" || true
+          cargo clippy -- -D warnings
+
+      - name: Run tests
+        run: |
+          source "$HOME/.cargo/env" || true
+          cargo test --verbose
+
+      - name: Build release binary (Linux x64)
+        run: |
+          source "$HOME/.cargo/env" || true
+          cargo build --release
+
+      - name: Upload Linux x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gh-linux-x64
+          path: tools/rust/gh-validator/target/release/gh
+          if-no-files-found: error
+
+  # Cross-compile for other platforms using cross (Docker-based)
+  cross-compile:
+    runs-on: self-hosted
+    needs: build-and-test
+    strategy:
+      matrix:
+        include:
+          - target: aarch64-unknown-linux-gnu
+            asset_name: gh-linux-arm64
+          - target: x86_64-pc-windows-gnu
+            asset_name: gh-windows-x64.exe
+    defaults:
+      run:
+        working-directory: tools/rust/gh-validator
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cross
+        run: |
+          source "$HOME/.cargo/env" || true
+          cargo install cross --git https://github.com/cross-rs/cross || true
+
+      - name: Build for ${{ matrix.target }}
+        run: |
+          source "$HOME/.cargo/env" || true
+          cross build --release --target ${{ matrix.target }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: tools/rust/gh-validator/target/${{ matrix.target }}/release/gh${{ contains(matrix.target, 'windows') && '.exe' || '' }}
+          if-no-files-found: error
+
+  # Create release when tagged
+  release:
+    if: startsWith(github.ref, 'refs/tags/gh-validator-v')
+    needs: [build-and-test, cross-compile]
+    runs-on: self-hosted
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          for dir in artifacts/gh-*; do
+            name=$(basename "$dir")
+            if [ -f "$dir/gh" ]; then
+              cp "$dir/gh" "release/$name"
+              chmod +x "release/$name"
+            elif [ -f "$dir/gh.exe" ]; then
+              cp "$dir/gh.exe" "release/$name"
+            fi
+          done
+          ls -la release/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true

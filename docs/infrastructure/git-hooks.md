@@ -95,17 +95,19 @@ To modify or disable the hook, edit `.git/hooks/pre-push` in your local reposito
 ### Related Tools
 
 - **PR Monitor Agent**: `automation/monitoring/pr/pr_monitor_agent.py`
-- **Universal Security Hooks**: See `automation/security/README.md`
+- **gh-validator**: See `tools/rust/gh-validator/README.md`
 - **GitHub AI Agents**: Automated PR and issue monitoring
 
-## Security Hooks (Universal)
+## Security Validation (gh-validator)
 
-The repository includes universal security hooks that work with ALL agents through shell aliasing:
+The repository includes a Rust-based security validator that works with ALL agents through PATH shadowing:
 
-- **Universal Wrapper**: `automation/security/gh-wrapper.sh`
+- **gh-validator binary**: `~/.local/bin/gh`
   - Masks secrets in GitHub comments
-  - Validates command safety
+  - Blocks Unicode emojis
+  - Validates reaction image URLs (SSRF protection)
+  - Blocks stdin usage for security
   - Works for all agents including Claude Code
-  - Setup via: `source automation/security/setup-agent-hooks.sh`
+  - See `docs/developer/claude-code-hooks.md` for details
 
-These hooks ensure that sensitive information is never accidentally posted to GitHub through any automation tool or manual operation.
+This validator ensures that sensitive information is never accidentally posted to GitHub through any automation tool or manual operation.

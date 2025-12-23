@@ -4,6 +4,22 @@
 
 ARG MODE=agent
 
+# Stage 1: Build gh-validator from source
+FROM rust:1.83-slim AS gh-validator-builder
+
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+COPY tools/rust/gh-validator/Cargo.toml tools/rust/gh-validator/Cargo.lock* ./
+RUN mkdir -p src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release 2>/dev/null || true
+COPY tools/rust/gh-validator/src ./src
+RUN touch src/main.rs && cargo build --release
+
+# Stage 2: Main Codex image
 # Use Python as base since both modes need it
 FROM python:3.11-slim
 
@@ -24,6 +40,12 @@ RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | 
     && apt-get update \
     && apt-get install -y gh \
     && rm -rf /var/lib/apt/lists/*
+
+# Install gh-validator - shadows system gh via PATH priority
+# /usr/local/bin comes before /usr/bin in PATH, so our validator runs first
+# The validator finds the real gh at /usr/bin/gh automatically
+COPY --from=gh-validator-builder /build/target/release/gh /usr/local/bin/gh
+RUN chmod +x /usr/local/bin/gh
 
 # Install Codex CLI globally
 RUN npm install -g @openai/codex
@@ -54,10 +76,13 @@ COPY tools/mcp/mcp_codex /workspace/tools/mcp/mcp_codex
 RUN pip install --no-cache-dir /workspace/tools/mcp/mcp_core && \
     pip install --no-cache-dir /workspace/tools/mcp/mcp_codex
 
-# Copy security hooks and set up alias
-COPY automation/security /app/security
-RUN chmod +x /app/security/*.sh && \
-    echo 'alias gh="/app/security/gh-wrapper.sh"' >> /etc/bash.bashrc
+# Security: gh-validator is installed at /usr/local/bin/gh and shadows /usr/bin/gh
+# All gh commands pass through the validator which provides:
+# - Secret masking (prevents accidental credential exposure)
+# - Unicode emoji blocking (prevents display corruption)
+# - Formatting enforcement (requires --body-file for reaction images)
+# - URL validation with SSRF protection
+# The real gh binary remains at /usr/bin/gh and is found automatically by the validator.
 
 # Copy entrypoint script
 COPY docker/scripts/codex-entrypoint.sh /usr/local/bin/entrypoint.sh

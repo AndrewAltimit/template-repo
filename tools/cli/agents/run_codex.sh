@@ -32,12 +32,8 @@ fi
 
 echo "✅ Codex CLI found and authenticated"
 
-# Set up repository root and initialize security hooks
-REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-
-# Source shared security hook initialization
-# shellcheck source=/dev/null
-source "$REPO_ROOT/automation/security/initialize-agent-hooks.sh"
+# Note: Security validation is handled by gh-validator binary at ~/.local/bin/gh
+# via PATH shadowing. No explicit hook initialization needed.
 
 # Parse command line arguments
 MODE="interactive"
