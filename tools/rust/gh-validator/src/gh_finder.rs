@@ -21,12 +21,27 @@ const GH_BINARY_NAME: &str = "gh.exe";
 #[cfg(not(windows))]
 const GH_BINARY_NAME: &str = "gh";
 
-/// Cached path to the real gh binary
-static REAL_GH_PATH: Lazy<Result<PathBuf>> = Lazy::new(find_real_gh_internal);
+/// Cached path to the real gh binary (stores Option to avoid cloning Error)
+static REAL_GH_PATH: Lazy<Option<PathBuf>> = Lazy::new(|| find_real_gh_internal().ok());
+
+/// Cached error message if gh was not found
+static GH_SEARCH_PATHS: Lazy<String> = Lazy::new(get_search_paths);
 
 /// Get the path to the real gh binary (cached)
 pub fn find_real_gh() -> Result<PathBuf> {
-    REAL_GH_PATH.clone()
+    REAL_GH_PATH.clone().ok_or_else(|| Error::GhNotFound {
+        searched_paths: GH_SEARCH_PATHS.clone(),
+    })
+}
+
+/// Get the PATH directories that were searched
+fn get_search_paths() -> String {
+    let path_var = std::env::var("PATH").unwrap_or_default();
+    path_var
+        .split(PATH_SEPARATOR)
+        .filter(|p| !p.is_empty())
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// Internal implementation of gh binary discovery

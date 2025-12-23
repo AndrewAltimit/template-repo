@@ -7,6 +7,7 @@ use thiserror::Error;
 
 /// Main error type for gh-validator
 #[derive(Debug, Error)]
+#[allow(clippy::enum_variant_names)]
 pub enum Error {
     /// Configuration file not found - blocks all commands for security
     #[error("Configuration file not found - failing closed for security")]
@@ -22,6 +23,7 @@ pub enum Error {
 
     /// Secret was detected and masked
     #[error("Secret detected and masked: {pattern_name}")]
+    #[allow(dead_code)]
     SecretMasked {
         pattern_name: String,
         masked_value: String,
@@ -92,6 +94,7 @@ impl Error {
     }
 
     /// Check if this error should block command execution
+    #[allow(dead_code)]
     pub fn is_blocking(&self) -> bool {
         // All errors except SecretMasked block execution
         // SecretMasked means we modified the command but can still proceed

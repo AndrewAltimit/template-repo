@@ -10,10 +10,12 @@ use serde::Deserialize;
 pub struct Config {
     /// Configuration version
     #[serde(default)]
+    #[allow(dead_code)]
     pub version: String,
 
     /// Optional description
     #[serde(default)]
+    #[allow(dead_code)]
     pub description: Option<String>,
 
     /// Explicit list of environment variables to mask
@@ -44,6 +46,7 @@ pub struct PatternDef {
 
     /// Optional description
     #[serde(default)]
+    #[allow(dead_code)]
     pub description: Option<String>,
 }
 
@@ -76,6 +79,7 @@ pub struct Settings {
 
     /// Whether to mask partial matches
     #[serde(default)]
+    #[allow(dead_code)]
     pub mask_partial_matches: bool,
 
     /// Whether to log when secrets are masked

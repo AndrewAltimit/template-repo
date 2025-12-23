@@ -108,6 +108,13 @@ repos:
         files: '^tools/rust/gh-validator/.*\.rs$'
         pass_filenames: false
 
+      - id: rust-clippy
+        name: Rust lint (cargo clippy)
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/gh-validator && cargo clippy -- -D warnings'
+        language: system
+        files: '^tools/rust/gh-validator/.*\.rs$'
+        pass_filenames: false
+
   # Markdown link checking (containerized for consistency)
   - repo: local
     hooks:

@@ -245,7 +245,8 @@ mod tests {
         let validator = UrlValidator::default();
         let result = validator.validate_ssrf("https://192.168.1.1/image.png");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("IP address"));
+        // IP addresses are blocked by the whitelist check (no IPs in whitelist)
+        assert!(result.unwrap_err().to_string().contains("whitelist"));
     }
 
     #[test]
@@ -253,7 +254,8 @@ mod tests {
         let validator = UrlValidator::default();
         let result = validator.validate_ssrf("https://[::1]/image.png");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("IPv6"));
+        // IPv6 addresses are blocked by the whitelist check (no IPs in whitelist)
+        assert!(result.unwrap_err().to_string().contains("whitelist"));
     }
 
     #[test]
