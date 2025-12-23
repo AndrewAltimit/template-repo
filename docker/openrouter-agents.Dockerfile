@@ -92,10 +92,8 @@ COPY --chown=node:node packages/github_agents/configs/crush-data.json /home/node
 # This ensures the user can write to all necessary locations
 RUN chown -R node:node /home/node
 
-# Copy security hooks and set up alias
-COPY automation/security /app/security
-RUN chmod +x /app/security/*.sh && \
-    echo 'alias gh="/app/security/gh-wrapper.sh"' >> /etc/bash.bashrc
+# Note: gh-validator binary should be installed on the host at ~/.local/bin/gh
+# It will shadow the system gh and provide secret masking + comment validation
 
 # Default command
 CMD ["bash"]

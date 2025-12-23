@@ -151,14 +151,19 @@ auto_detection:
 
 #### Testing
 ```bash
-# Test secret masking
-./automation/security/test-masking.sh
+# Verify gh-validator is installed
+which gh
+# Should show: ~/.local/bin/gh
 
-# Manual test
-export GITHUB_TOKEN="ghp_test123"
-echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Token ghp_test123\""}}' | \
-  python3 automation/security/github-secrets-masker.py
-# Output: Token is [MASKED_GITHUB_TOKEN]
+# Test emoji blocking
+gh pr comment 1 --body "Test with emoji 🎉"
+# Should be blocked with error about Unicode emoji
+
+# Test secret masking
+export TEST_SECRET="super-secret-value"
+# Add TEST_SECRET to .secrets.yaml environment_variables
+gh pr comment 1 --body "Secret is super-secret-value"
+# Should mask the secret before posting
 ```
 
 ### 5. Verification
@@ -166,14 +171,14 @@ echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Toke
 To verify your security setup:
 
 ```bash
+# Check that gh-validator is installed and first in PATH
+which gh  # Should show ~/.local/bin/gh
+
 # Check that .secrets.yaml exists
 test -f .secrets.yaml && echo "✓ Secrets config exists"
 
 # Verify no secrets in git history
 git log -p | grep -E "(ghp_|github_pat_)" || echo "✓ No tokens found"
-
-# Test PreToolUse hooks
-./automation/security/test-masking.sh
 ```
 
 ## Common Issues

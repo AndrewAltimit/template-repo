@@ -228,10 +228,11 @@ Agent Tool Call → PreToolUse Hook → Secret Masker → GitHub Comment
      exclude_patterns: ["PUBLIC_*"]
    ```
 
-2. **Hook Integration** (`scripts/security-hooks/`):
-   - `bash-pretooluse-hook.sh` - Entry point for all agents
-   - `github-secrets-masker.py` - Universal secret masking engine
+2. **gh-validator Binary** (`tools/rust/gh-validator/`):
+   - Installed at `~/.local/bin/gh` (shadows system gh via PATH)
+   - Rust-based secret masking and validation
    - Works transparently - agents don't know masking occurred
+   - See `docs/developer/claude-code-hooks.md` for details
 
 3. **Auto-Detection**: The system automatically detects sensitive variables:
    - Variables matching patterns: `*_TOKEN`, `*_SECRET`, `*_KEY`, `*_PASSWORD`

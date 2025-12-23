@@ -1,68 +1,48 @@
-# Security Hooks (Universal Approach)
+# gh-validator Security System
 
-This document describes the universal security hook system that works with ALL agents including Claude Code.
+This document describes the gh-validator security system that protects GitHub comments from secrets and formatting issues.
 
 ## Overview
 
-**Important Change**: Claude Code no longer uses agent-specific hooks. Instead, ALL agents (including Claude Code) use the same universal wrapper approach through shell aliasing.
+The `gh-validator` is a Rust binary that shadows the `gh` CLI. It intercepts all `gh` commands and validates content-posting commands before execution.
 
-## Universal Security System
+## Installation
 
-### How It Works
-
-All agents use the same security validation path:
-1. Agent executes `gh` command
-2. Shell alias redirects to `gh-wrapper.sh`
-3. Wrapper validates command through Python validators
-4. If validated, actual `gh` command executes
-
-### Setup
-
-For ALL agents including Claude Code:
+### Quick Install
 
 ```bash
-# One-time setup
-source automation/security/setup-agent-hooks.sh
-
-# Or add to shell configuration for permanent setup
-echo 'source /path/to/automation/security/setup-agent-hooks.sh' >> ~/.bashrc
+curl -sSL https://raw.githubusercontent.com/AndrewAltimit/template-repo/main/tools/rust/gh-validator/install.sh | bash
 ```
 
-### Components
+### Manual Install
 
-1. **Universal Wrapper** (`automation/security/gh-wrapper.sh`)
-   - POSIX-compliant shell script
-   - Works with all shells (sh, dash, bash, zsh)
-   - Validates based on arguments (--body, --notes, --message, etc.)
-   - Dynamic gh binary discovery
-   - Python 3 dependency checking
+1. Download the binary for your platform from [Releases](https://github.com/AndrewAltimit/template-repo/releases)
+2. Place it in `~/.local/bin/gh`
+3. Ensure `~/.local/bin` comes before `/usr/bin` in your PATH:
+   ```bash
+   export PATH="$HOME/.local/bin:$PATH"
+   ```
 
-2. **Secret Masker** (`automation/security/github-secrets-masker.py`)
-   - Automatically masks secrets in GitHub comments
-   - Uses `.secrets.yaml` configuration from repository root
-   - Works transparently - agents don't know masking occurred
-   - Prevents exposure of API keys, tokens, passwords, etc.
+## How It Works
 
-3. **GitHub Comment Validator** (`automation/security/gh-comment-validator.py`)
-   - Prevents incorrect GitHub comment formatting
-   - Blocks Unicode emojis that may appear corrupted
-   - Ensures reaction images aren't escaped
-   - Enforces proper use of `--body-file` for complex markdown
+1. Agent executes `gh` command
+2. The gh-validator binary intercepts it (via PATH shadowing)
+3. For non-content commands (e.g., `gh pr list`), passes through immediately
+4. For content commands (e.g., `gh pr comment`):
+   - Masks secrets based on `.secrets.yaml` config
+   - Blocks Unicode emojis
+   - Validates reaction image URLs
+   - Checks for stdin usage (blocked)
+5. Executes the real `gh` binary with validated/masked arguments
+
+## What It Validates
+
+- **Secret Masking**: Detects and masks secrets from environment variables and regex patterns
+- **Unicode Emoji Detection**: Blocks emojis that may display as corrupted characters
+- **URL Validation**: Verifies reaction image URLs exist (with SSRF protection)
+- **Stdin Blocking**: Prevents `--body-file -` for security
 
 ## Configuration
-
-### `.claude/settings.json` and `.claude/README.md`
-
-The `.claude/settings.json` is now simplified to an empty configuration:
-```json
-{}
-```
-
-No hooks are needed - Claude Code uses the universal wrapper like all other agents.
-
-For more details, see `.claude/README.md` which explains the empty configuration and the universal security wrapper approach.
-
-### Secret Masking (`.secrets.yaml`)
 
 Secrets to mask are configured in `.secrets.yaml` in repository root:
 
@@ -71,12 +51,10 @@ environment_variables:
   - GITHUB_TOKEN
   - OPENROUTER_API_KEY
   - DB_PASSWORD
-  # ... more variables
 
 patterns:
   - name: GITHUB_TOKEN
     pattern: "ghp_[A-Za-z0-9_]{36,}"
-  # ... more patterns
 
 auto_detection:
   enabled: true
@@ -84,14 +62,11 @@ auto_detection:
   exclude_patterns: ["PUBLIC_*"]
 ```
 
-## What It Prevents
-
-- Secrets appearing in public GitHub comments
-- Direct `--body` flag usage with reaction images
-- Heredocs (`cat <<EOF`) that can escape special characters
-- Echo/printf piped to gh commands
-- Command substitution containing reaction images
-- Unicode emojis that display as corrupted characters
+The validator searches for config in:
+1. Current directory (up to git root)
+2. Binary directory (up to git root)
+3. `~/.secrets.yaml`
+4. `~/.config/gh-validator/.secrets.yaml`
 
 ## Correct GitHub Comment Method
 
@@ -109,73 +84,59 @@ Your comment text here.
 Bash("gh pr comment 50 --body-file /tmp/comment.md")
 ```
 
-This preserves markdown formatting and prevents shell escaping issues.
+This preserves markdown formatting and allows URL validation.
 
 ## Testing
 
-### Check if hooks are active
+### Verify installation
 ```bash
-agent_hooks_status
+which gh
+# Should show: ~/.local/bin/gh
+
+gh --version
+# Should show the real gh version (validator passes through)
+```
+
+### Test emoji blocking
+```bash
+gh pr comment 1 --body "Test with emoji 🎉"
+# Should be blocked with error about Unicode emoji
 ```
 
 ### Test secret masking
 ```bash
 export TEST_SECRET="super-secret-value"
-echo "  - TEST_SECRET" >> .secrets.yaml
+# Add TEST_SECRET to .secrets.yaml environment_variables
 gh pr comment 1 --body "Secret is super-secret-value"
-# Should mask the secret
-```
-
-### Test validators directly
-```bash
-echo '{"tool_name": "Bash", "tool_input": {"command": "gh pr comment 1 --body \"Token is ghp_test123\""}}' | \
-  python3 automation/security/github-secrets-masker.py
+# Should mask the secret before posting
 ```
 
 ## Benefits
 
-- **Universal Protection**: All agents use the same security validation
-- **No Configuration Needed**: Works automatically through shell aliasing
-- **Prevents Common Mistakes**: Catches issues before they happen
-- **Provides Guidance**: Explains the correct approach when blocking
-- **Maintains Code Quality**: Enforces project conventions automatically
-- **Learning Tool**: Helps users understand best practices
+- **No Python Runtime**: Single binary with no dependencies
+- **Cross-Platform**: Builds for Linux, macOS, and Windows
+- **Fast**: Rust implementation with minimal overhead
+- **Fail-Closed**: Blocks commands if config missing or URLs unverifiable
+- **SSRF Protection**: Only allows whitelisted hostnames for reaction images
 
 ## Troubleshooting
 
-If security hooks aren't working:
+If validation isn't working:
 
-1. **Re-source the setup script**:
+1. **Check PATH order**:
    ```bash
-   source automation/security/setup-agent-hooks.sh
+   echo $PATH | tr ':' '\n' | head -5
+   # ~/.local/bin should be before /usr/bin
    ```
 
-2. **Check alias is active**:
+2. **Verify binary is executable**:
    ```bash
-   alias gh
-   # Should show: alias gh='/path/to/automation/security/gh-wrapper.sh'
+   ls -la ~/.local/bin/gh
    ```
 
-3. **Verify Python 3 is available**:
-   ```bash
-   python3 --version
-   ```
+3. **Check config is found**:
+   The validator will error if no `.secrets.yaml` is found (fail-closed).
 
-4. **Check wrapper permissions**:
-   ```bash
-   chmod +x automation/security/*.sh
-   ```
+## Source Code
 
-## Migration from Claude Code Hooks
-
-If you previously used Claude Code hooks:
-1. The old hooks in `.claude/settings.json` have been removed (see `.claude/README.md` for details)
-2. The `bash-pretooluse-hook.sh` file has been removed
-3. Everything now works through the universal wrapper
-4. No action needed - just source the setup script
-
-## References
-
-- [Universal Security Hooks Documentation](../../automation/security/README.md)
-- [GitHub Etiquette Guide](../agents/github-etiquette.md)
-- [Project Instructions](../../CLAUDE.md)
+The gh-validator source is at `tools/rust/gh-validator/`. See the [README](../../tools/rust/gh-validator/README.md) for development details.

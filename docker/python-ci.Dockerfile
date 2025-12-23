@@ -106,10 +106,8 @@ ENV PYTHONUNBUFFERED=1 \
 # Create a non-root user that will be overridden by docker-compose
 RUN useradd -m -u 1000 ciuser
 
-# Copy security hooks and set up universal gh alias
-COPY automation/security /app/security
-RUN chmod +x /app/security/*.sh && \
-    echo 'alias gh="/app/security/gh-wrapper.sh"' >> /etc/bash.bashrc
+# Note: gh-validator binary should be installed on the host at ~/.local/bin/gh
+# It will shadow the system gh and provide secret masking + comment validation
 
 # Default command
 CMD ["bash"]

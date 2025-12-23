@@ -226,8 +226,8 @@ skips = [
     "B608",  # hardcoded_sql_expressions - false positive, actual values are parameterized
     # ML/data science patterns
     "B403",  # pickle import - ML projects commonly use pickle for model serialization
-    # URL validation in security tool
-    "B310",  # urlopen schemes - intentional in gh-comment-validator for URL validation
+    # URL validation in test utilities
+    "B310",  # urlopen schemes - intentional for URL validation utilities
 ]
 
 # Pylint - Python static code analysis

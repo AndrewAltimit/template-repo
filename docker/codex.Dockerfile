@@ -54,10 +54,8 @@ COPY tools/mcp/mcp_codex /workspace/tools/mcp/mcp_codex
 RUN pip install --no-cache-dir /workspace/tools/mcp/mcp_core && \
     pip install --no-cache-dir /workspace/tools/mcp/mcp_codex
 
-# Copy security hooks and set up alias
-COPY automation/security /app/security
-RUN chmod +x /app/security/*.sh && \
-    echo 'alias gh="/app/security/gh-wrapper.sh"' >> /etc/bash.bashrc
+# Note: gh-validator binary should be installed on the host at ~/.local/bin/gh
+# It will shadow the system gh and provide secret masking + comment validation
 
 # Copy entrypoint script
 COPY docker/scripts/codex-entrypoint.sh /usr/local/bin/entrypoint.sh
