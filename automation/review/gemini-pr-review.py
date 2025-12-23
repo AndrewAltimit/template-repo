@@ -934,16 +934,19 @@ to extract context for a new code review.
 Summarize this discussion focusing on:
 
 1. **Admin Decisions**: What has @AndrewAltimit explicitly approved or requested?
-2. **False Positives**: Which reported issues were determined to be incorrect or not actual bugs?
+2. **DEBUNKED ISSUES (CRITICAL)**: Which reported issues were determined to be FALSE POSITIVES or incorrect?
+   - List EACH debunked issue explicitly so the reviewer knows NOT to raise it again
+   - Include the specific claim that was debunked and WHY it was incorrect
+   - Example: "DEBUNKED: Claim that X enforces Y - actually the code does Z"
 3. **Architectural Agreements**: Key design decisions that were agreed upon
 4. **Completed Items**: Action items that have been addressed in subsequent commits
 5. **Open Concerns**: Unresolved issues that still need attention
 
 **Guidelines:**
-- Keep the summary concise (300-500 words maximum)
+- Keep the summary concise (400-600 words maximum)
 - Use clear markdown headings for each section
 - Only include sections that have relevant content (skip empty sections)
-- Be specific about what was decided and why
+- Be VERY specific about debunked issues - the next reviewer must not repeat them
 - If there are no substantive comments, say "No significant discussion history"
 
 Generate the summary now:"""
@@ -1074,8 +1077,16 @@ The following issues were flagged in earlier reviews. VERIFY each against the AC
 
     # Add comment summary if available
     if comment_summary:
-        prompt += f"""**PREVIOUS DISCUSSION (respect these decisions):**
-{comment_summary[:1500]}
+        prompt += f"""**PREVIOUS DISCUSSION - MANDATORY READING:**
+{comment_summary[:2000]}
+
+**CRITICAL: DO NOT REPEAT DEBUNKED ISSUES**
+The above summary contains the PR discussion history including FALSE POSITIVES and issues that
+were ALREADY ADDRESSED. You MUST NOT re-raise any issue that:
+1. Was identified as a false positive in the discussion
+2. Was explained and clarified by the PR author
+3. Was marked as resolved or not applicable
+If an issue was debunked in the discussion, DO NOT mention it again. Move on to new findings only.
 
 """
 
