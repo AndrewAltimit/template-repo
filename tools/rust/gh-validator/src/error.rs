@@ -59,6 +59,7 @@ pub enum Error {
 
     /// Argument parsing error
     #[error("Failed to parse command arguments")]
+    #[allow(dead_code)]
     ArgParse,
 }
 

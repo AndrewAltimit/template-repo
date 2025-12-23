@@ -94,24 +94,24 @@ fn run() -> Result<(), Error> {
     // Load config (fail-closed if missing)
     let config = load_config()?;
 
-    // Build command string for validation
-    let command = build_command_string(&args);
-
     // Initialize validators
     let masker = SecretMasker::new(&config);
     let url_validator = UrlValidator::default();
 
-    // 1. Check for stdin usage (blocked for security)
+    // 1. Mask secrets in individual arguments (avoids shell escaping issues)
+    let (masked_args, was_masked) = masker.mask_args(&args);
+
+    // 2. Build command string from masked args for validation checks
+    let command = build_command_string(&masked_args);
+
+    // 3. Check for stdin usage (blocked for security)
     if command.contains("--body-file -") || command.contains("--body-file=-") {
         return Err(Error::StdinBlocked);
     }
 
-    // 2. Mask secrets in command
-    let (masked_command, was_masked) = masker.mask(&command);
-
-    // 3. Check Unicode emojis
-    if CommentValidator::is_posting_content(&masked_command) {
-        if let Some(emoji) = CommentValidator::check_unicode_emoji(&masked_command) {
+    // 4. Check Unicode emojis
+    if CommentValidator::is_posting_content(&command) {
+        if let Some(emoji) = CommentValidator::check_unicode_emoji(&command) {
             return Err(Error::UnicodeEmoji {
                 char: emoji,
                 codepoint: emoji as u32,
@@ -119,9 +119,9 @@ fn run() -> Result<(), Error> {
         }
     }
 
-    // 4. Check formatting violations (only if has reaction images)
-    if CommentValidator::has_reaction_image(&masked_command) {
-        let violations = CommentValidator::check_formatting_violations(&masked_command);
+    // 5. Check formatting violations (only if has reaction images)
+    if CommentValidator::has_reaction_image(&command) {
+        let violations = CommentValidator::check_formatting_violations(&command);
         if !violations.is_empty() {
             return Err(Error::FormattingViolation {
                 description: violations.join(", "),
@@ -129,7 +129,7 @@ fn run() -> Result<(), Error> {
         }
     }
 
-    // 5. Validate URLs in --body-file
+    // 6. Validate URLs in --body-file (use original args for file path)
     if let Some(file_path) = extract_body_file(&args) {
         match std::fs::read_to_string(&file_path) {
             Ok(content) => {
@@ -151,26 +151,13 @@ fn run() -> Result<(), Error> {
         }
     }
 
-    // 6. Execute gh with potentially masked arguments
+    // 7. Execute gh with masked arguments
     if was_masked {
         eprintln!("[gh-validator] Secrets were masked in command");
-
-        // Parse masked command back to args
-        let masked_args = parse_masked_command(&masked_command)?;
-        exec_gh(&real_gh, &masked_args)?;
-    } else {
-        exec_gh(&real_gh, &args)?;
     }
+    exec_gh(&real_gh, &masked_args)?;
 
     unreachable!("exec should not return");
-}
-
-/// Parse masked command string back to arguments
-fn parse_masked_command(command: &str) -> Result<Vec<String>, Error> {
-    // Strip the "gh " prefix
-    let args_str = command.strip_prefix("gh ").unwrap_or(command);
-
-    shell_words::split(args_str).map_err(|_| Error::ArgParse)
 }
 
 /// Execute the real gh binary (replaces current process on Unix)

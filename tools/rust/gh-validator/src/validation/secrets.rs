@@ -115,6 +115,25 @@ impl SecretMasker {
         (result, modified)
     }
 
+    /// Mask secrets in a vector of arguments
+    ///
+    /// Returns (masked_args, was_modified)
+    /// This avoids shell escaping issues by masking each argument individually.
+    pub fn mask_args(&self, args: &[String]) -> (Vec<String>, bool) {
+        let mut modified = false;
+        let masked: Vec<String> = args
+            .iter()
+            .map(|arg| {
+                let (masked_arg, arg_modified) = self.mask(arg);
+                if arg_modified {
+                    modified = true;
+                }
+                masked_arg
+            })
+            .collect();
+        (masked, modified)
+    }
+
     /// Get the number of loaded secrets (for debugging)
     #[allow(dead_code)]
     pub fn secret_count(&self) -> usize {
