@@ -99,8 +99,9 @@ def _workflow_has_valid_action_refs(filepath: str) -> bool:
 
         # Find all `uses:` lines (GitHub Action references)
         # Pattern: uses: owner/repo@version or uses: ./local/path
-        uses_pattern = re.compile(r"^\s*uses:\s*(.+)$", re.MULTILINE)
-        matches = uses_pattern.findall(content)
+        # Stop at # to exclude inline comments (which may contain URLs with slashes)
+        uses_pattern = re.compile(r"^\s*uses:\s*([^#\n]+)", re.MULTILINE)
+        matches = [m.strip() for m in uses_pattern.findall(content)]
 
         for action_ref in matches:
             action_ref = action_ref.strip().strip('"').strip("'")
