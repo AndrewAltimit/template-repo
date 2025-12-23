@@ -54,8 +54,11 @@ COPY tools/mcp/mcp_codex /workspace/tools/mcp/mcp_codex
 RUN pip install --no-cache-dir /workspace/tools/mcp/mcp_core && \
     pip install --no-cache-dir /workspace/tools/mcp/mcp_codex
 
-# Note: gh-validator binary should be installed on the host at ~/.local/bin/gh
-# It will shadow the system gh and provide secret masking + comment validation
+# Security Note: This container has gh CLI installed for agent operations but does NOT
+# include the gh-validator binary. For posting comments to GitHub, either:
+#   1. Use the host's gh command (with gh-validator at ~/.local/bin/gh)
+#   2. Mount the gh-validator binary: -v ~/.local/bin/gh:/usr/local/bin/gh:ro
+# The gh-validator provides secret masking, emoji blocking, and URL validation.
 
 # Copy entrypoint script
 COPY docker/scripts/codex-entrypoint.sh /usr/local/bin/entrypoint.sh

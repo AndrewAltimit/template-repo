@@ -92,8 +92,11 @@ COPY --chown=node:node packages/github_agents/configs/crush-data.json /home/node
 # This ensures the user can write to all necessary locations
 RUN chown -R node:node /home/node
 
-# Note: gh-validator binary should be installed on the host at ~/.local/bin/gh
-# It will shadow the system gh and provide secret masking + comment validation
+# Security Note: This container has gh CLI installed for agent operations but does NOT
+# include the gh-validator binary. For posting comments to GitHub, either:
+#   1. Use the host's gh command (with gh-validator at ~/.local/bin/gh)
+#   2. Mount the gh-validator binary: -v ~/.local/bin/gh:/usr/local/bin/gh:ro
+# The gh-validator provides secret masking, emoji blocking, and URL validation.
 
 # Default command
 CMD ["bash"]

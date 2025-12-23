@@ -40,8 +40,14 @@ const CONTENT_ARGS: &[&str] = &[
 
 /// Check if args contain any content-posting flags
 fn needs_validation(args: &[String]) -> bool {
-    args.iter()
-        .any(|arg| CONTENT_ARGS.iter().any(|ca| arg.starts_with(ca)))
+    args.iter().any(|arg| {
+        CONTENT_ARGS.iter().any(|ca| {
+            // Exact match (e.g., "--body")
+            arg == *ca
+                // Match with = value (e.g., "--body=content")
+                || arg.starts_with(&format!("{}=", ca))
+        })
+    })
 }
 
 /// Check if this is a gh comment/create command
