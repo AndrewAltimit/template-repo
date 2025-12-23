@@ -23,9 +23,8 @@ const ALLOWED_HOSTNAMES: &[&str] = &[
 const ALLOWED_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp", "svg"];
 
 /// Regex to extract reaction URLs from markdown
-static URL_PATTERN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"!\[([^\]]*)\]\((https?://[^)]+(?:reaction|Media)[^)]+)\)").unwrap()
-});
+static URL_PATTERN: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"!\[([^\]]*)\]\((https?://[^)]+(?:reaction|Media)[^)]+)\)").unwrap());
 
 /// Regex for escaped reaction URLs
 static ESCAPED_URL_PATTERN: Lazy<Regex> = Lazy::new(|| {
@@ -269,9 +268,8 @@ mod tests {
     #[test]
     fn test_ssrf_blocks_invalid_extension() {
         let validator = UrlValidator::default();
-        let result = validator.validate_ssrf(
-            "https://raw.githubusercontent.com/user/repo/main/file.exe",
-        );
+        let result =
+            validator.validate_ssrf("https://raw.githubusercontent.com/user/repo/main/file.exe");
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("extension"));
     }

@@ -71,7 +71,11 @@ fn config_search_paths() -> Vec<PathBuf> {
 
     // 4. XDG config directory
     if let Ok(xdg_config) = std::env::var("XDG_CONFIG_HOME") {
-        add_if_new(PathBuf::from(xdg_config).join("gh-validator").join(CONFIG_FILENAME));
+        add_if_new(
+            PathBuf::from(xdg_config)
+                .join("gh-validator")
+                .join(CONFIG_FILENAME),
+        );
     } else if let Ok(home) = std::env::var("HOME") {
         add_if_new(
             PathBuf::from(home)

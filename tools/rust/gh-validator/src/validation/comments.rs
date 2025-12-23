@@ -135,8 +135,8 @@ mod tests {
         assert!(CommentValidator::check_unicode_emoji("\u{1F600}").is_some()); // Emoticons
         assert!(CommentValidator::check_unicode_emoji("\u{1F300}").is_some()); // Misc Symbols
         assert!(CommentValidator::check_unicode_emoji("\u{1F680}").is_some()); // Transport
-        assert!(CommentValidator::check_unicode_emoji("\u{2600}").is_some());  // Misc
-        assert!(CommentValidator::check_unicode_emoji("\u{2700}").is_some());  // Dingbats
+        assert!(CommentValidator::check_unicode_emoji("\u{2600}").is_some()); // Misc
+        assert!(CommentValidator::check_unicode_emoji("\u{2700}").is_some()); // Dingbats
     }
 
     #[test]
@@ -183,13 +183,19 @@ mod tests {
         assert!(CommentValidator::has_reaction_image("![Reaction]"));
 
         assert!(!CommentValidator::has_reaction_image("Regular text"));
-        assert!(!CommentValidator::has_reaction_image("![Image](https://example.com/other.png)"));
+        assert!(!CommentValidator::has_reaction_image(
+            "![Image](https://example.com/other.png)"
+        ));
     }
 
     #[test]
     fn test_is_posting_content() {
-        assert!(CommentValidator::is_posting_content("gh pr comment 1 --body test"));
-        assert!(CommentValidator::is_posting_content("gh pr create --body-file /tmp/pr.md"));
+        assert!(CommentValidator::is_posting_content(
+            "gh pr comment 1 --body test"
+        ));
+        assert!(CommentValidator::is_posting_content(
+            "gh pr create --body-file /tmp/pr.md"
+        ));
         assert!(CommentValidator::is_posting_content("gh issue comment 1"));
 
         assert!(!CommentValidator::is_posting_content("gh pr list"));

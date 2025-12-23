@@ -180,8 +180,7 @@ mod tests {
         let config = test_config();
         let masker = SecretMasker::new(&config);
 
-        let (masked, modified) =
-            masker.mask("Token: ghp_abcdefghijklmnopqrstuvwxyz0123456789AB");
+        let (masked, modified) = masker.mask("Token: ghp_abcdefghijklmnopqrstuvwxyz0123456789AB");
 
         assert!(modified);
         assert!(masked.contains("[MASKED_GITHUB_TOKEN]"));

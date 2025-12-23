@@ -47,9 +47,15 @@ fn needs_validation(args: &[String]) -> bool {
 /// Check if this is a gh comment/create command
 fn is_comment_command(args: &[String]) -> bool {
     let joined = args.join(" ").to_lowercase();
-    ["pr comment", "issue comment", "pr create", "issue create", "pr review"]
-        .iter()
-        .any(|pattern| joined.contains(pattern))
+    [
+        "pr comment",
+        "issue comment",
+        "pr create",
+        "issue create",
+        "pr review",
+    ]
+    .iter()
+    .any(|pattern| joined.contains(pattern))
 }
 
 /// Extract --body-file path from arguments
