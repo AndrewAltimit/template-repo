@@ -20,7 +20,7 @@ curl -sSL https://raw.githubusercontent.com/AndrewAltimit/template-repo/main/too
 
 ### Manual Installation
 
-1. Download the binary for your platform from [Releases](../../releases)
+1. Download the binary for your platform from [Releases](https://github.com/AndrewAltimit/template-repo/releases)
 2. Place it in `~/.local/bin/gh` (or another directory in your PATH)
 3. Ensure `~/.local/bin` comes before `/usr/bin` in your PATH:
    ```bash
