@@ -654,7 +654,7 @@ def get_all_pr_comments(pr_number: str) -> List[Dict[str, Any]]:
 
 
 def get_recent_pr_comments(pr_number: str) -> str:
-    """Get PR comments for review context, including ALL admin comments (not just recent ones)"""
+    """Get PR comments for review context, including ALL admin comments (newest first)"""
     try:
         comments = get_all_pr_comments(pr_number)
 
@@ -677,13 +677,16 @@ def get_recent_pr_comments(pr_number: str) -> str:
             if author == "AndrewAltimit":
                 admin_comments.append(formatted_comment)
             else:
-                # Only include recent non-admin comments (last 5)
                 other_comments.append(formatted_comment)
 
-        # Limit non-admin comments to most recent 5
-        other_comments = other_comments[-5:] if len(other_comments) > 5 else other_comments
+        # Reverse to newest-first (so truncation drops older comments)
+        admin_comments = list(reversed(admin_comments))
+        other_comments = list(reversed(other_comments))
 
-        formatted = ["## PR Discussion Context\n"]
+        # Limit non-admin comments to most recent 5
+        other_comments = other_comments[:5]
+
+        formatted = ["## PR Discussion Context (NEWEST FIRST)\n"]
 
         if admin_comments:
             formatted.append("### ALL Admin/Author Comments (CRITICAL - contains debunked issues):\n")
