@@ -654,45 +654,47 @@ def get_all_pr_comments(pr_number: str) -> List[Dict[str, Any]]:
 
 
 def get_recent_pr_comments(pr_number: str) -> str:
-    """Get PR comments since last Gemini review, prioritizing admin comments with debunking info"""
+    """Get PR comments for review context, including ALL admin comments (not just recent ones)"""
     try:
         comments = get_all_pr_comments(pr_number)
 
-        # Find last Gemini comment index
-        last_gemini_idx = -1
-        for idx, comment in enumerate(comments):
-            body = comment.get("body", "")
-            # Look for the unique HTML comment marker for more robust detection
-            if "<!-- gemini-review-marker -->" in body:
-                last_gemini_idx = idx
+        # Filter out Gemini's own reviews
+        non_gemini_comments = [c for c in comments if "<!-- gemini-review-marker -->" not in c.get("body", "")]
 
-        # Get comments after last Gemini review
-        if last_gemini_idx >= 0:
-            recent_comments = comments[last_gemini_idx + 1 :]
-            if recent_comments:
-                # Separate admin comments (often contain debunking info) from others
-                admin_comments = []
-                other_comments = []
-                for comment in recent_comments:
-                    author = comment.get("author", {}).get("login", "Unknown")
-                    body = comment.get("body", "").strip()
-                    formatted_comment = f"**@{author}**: {body}\n"
-                    if author == "AndrewAltimit":
-                        admin_comments.append(formatted_comment)
-                    else:
-                        other_comments.append(formatted_comment)
+        if not non_gemini_comments:
+            return ""
 
-                # Prioritize admin comments (put them first)
-                formatted = ["## Recent PR Comments Since Last Gemini Review\n"]
-                if admin_comments:
-                    formatted.append("### Admin/Author Comments (HIGH PRIORITY - may contain debunked issues):\n")
-                    formatted.extend(admin_comments)
-                if other_comments:
-                    formatted.append("\n### Other Comments:\n")
-                    formatted.extend(other_comments)
-                return "\n".join(formatted)
+        # Separate ALL admin comments from others - admin comments often contain debunking info
+        # and should ALWAYS be included regardless of when they were posted
+        admin_comments = []
+        other_comments = []
 
-        return ""
+        for comment in non_gemini_comments:
+            author = comment.get("author", {}).get("login", "Unknown")
+            body = comment.get("body", "").strip()
+            formatted_comment = f"**@{author}**: {body}\n"
+
+            if author == "AndrewAltimit":
+                admin_comments.append(formatted_comment)
+            else:
+                # Only include recent non-admin comments (last 5)
+                other_comments.append(formatted_comment)
+
+        # Limit non-admin comments to most recent 5
+        other_comments = other_comments[-5:] if len(other_comments) > 5 else other_comments
+
+        formatted = ["## PR Discussion Context\n"]
+
+        if admin_comments:
+            formatted.append("### ALL Admin/Author Comments (CRITICAL - contains debunked issues):\n")
+            formatted.append("**READ CAREFULLY: Do NOT re-raise any issue mentioned as FALSE POSITIVE below.**\n\n")
+            formatted.extend(admin_comments)
+
+        if other_comments:
+            formatted.append("\n### Recent Other Comments:\n")
+            formatted.extend(other_comments)
+
+        return "\n".join(formatted)
     except Exception as e:
         print(f"Warning: Unexpected error processing PR comments: {e}")
         return ""
