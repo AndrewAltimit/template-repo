@@ -72,6 +72,24 @@ fn extract_body_file(args: &[String]) -> Option<String> {
     None
 }
 
+/// Check if --body-file is reading from stdin (blocked for security)
+fn is_stdin_body_file(args: &[String]) -> bool {
+    let mut iter = args.iter().peekable();
+    while let Some(arg) = iter.next() {
+        if arg == "--body-file" {
+            if let Some(next) = iter.next() {
+                if next == "-" {
+                    return true;
+                }
+            }
+        }
+        if arg == "--body-file=-" {
+            return true;
+        }
+    }
+    false
+}
+
 /// Build command string for validation (for logging/display)
 /// Uses shell_words::join to properly escape arguments with spaces
 fn build_command_string(args: &[String]) -> String {
@@ -98,16 +116,16 @@ fn run() -> Result<(), Error> {
     let masker = SecretMasker::new(&config);
     let url_validator = UrlValidator::default();
 
-    // 1. Mask secrets in individual arguments (avoids shell escaping issues)
-    let (masked_args, was_masked) = masker.mask_args(&args);
-
-    // 2. Build command string from masked args for validation checks
-    let command = build_command_string(&masked_args);
-
-    // 3. Check for stdin usage (blocked for security)
-    if command.contains("--body-file -") || command.contains("--body-file=-") {
+    // 1. Check for stdin usage (blocked for security) - check args directly
+    if is_stdin_body_file(&args) {
         return Err(Error::StdinBlocked);
     }
+
+    // 2. Mask secrets in individual arguments (avoids shell escaping issues)
+    let (masked_args, was_masked) = masker.mask_args(&args);
+
+    // 3. Build command string from masked args for validation checks
+    let command = build_command_string(&masked_args);
 
     // 4. Check Unicode emojis
     if CommentValidator::is_posting_content(&command) {

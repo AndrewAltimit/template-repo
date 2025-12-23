@@ -20,44 +20,21 @@ const EMOJI_RANGES: [(u32, u32); 8] = [
 ];
 
 /// Problematic formatting patterns with descriptions
+///
+/// Note: Only patterns that match argument content are effective here.
+/// Shell operators (pipes, heredocs, command substitution) are expanded
+/// before the binary receives arguments, so we cannot detect them.
+/// The --body patterns below catch direct usage which bypasses --body-file.
 static FORMATTING_VIOLATIONS: Lazy<Vec<(Regex, &'static str)>> = Lazy::new(|| {
     vec![
-        // Direct --body with reaction images
+        // Direct --body with reaction images (these work - checks arg content)
         (
             Regex::new(r#"--body\s+["'].*!\[.*\]"#).unwrap(),
-            "Direct --body flag with reaction images",
+            "Direct --body flag with reaction images (use --body-file instead)",
         ),
         (
             Regex::new(r"--body\s+\S*.*!\[.*\]").unwrap(),
-            "Direct --body flag with reaction images",
-        ),
-        // Heredoc patterns
-        (
-            Regex::new(r#"<<\s*['"]?EOF"#).unwrap(),
-            "Heredoc (cat <<EOF)",
-        ),
-        (
-            Regex::new(r#"<<-\s*['"]?EOF"#).unwrap(),
-            "Heredoc (cat <<-EOF)",
-        ),
-        (Regex::new(r"cat\s*>.*<<").unwrap(), "Heredoc with cat"),
-        // Piping to gh
-        (
-            Regex::new(r"echo.*!\[.*\].*\|\s*gh\s+(pr|issue)").unwrap(),
-            "echo piped to gh",
-        ),
-        (
-            Regex::new(r"printf.*!\[.*\].*\|\s*gh\s+(pr|issue)").unwrap(),
-            "printf piped to gh",
-        ),
-        // Command substitution
-        (
-            Regex::new(r"\$\(.*echo.*!\[.*\].*\)").unwrap(),
-            "Command substitution with echo",
-        ),
-        (
-            Regex::new(r"\$\(.*printf.*!\[.*\].*\)").unwrap(),
-            "Command substitution with printf",
+            "Direct --body flag with reaction images (use --body-file instead)",
         ),
     ]
 });
@@ -140,27 +117,13 @@ mod tests {
     }
 
     #[test]
-    fn test_formatting_violations_heredoc() {
-        let violations = CommentValidator::check_formatting_violations("cat <<EOF\ntest\nEOF");
-        assert!(!violations.is_empty());
-        assert!(violations.iter().any(|v| v.contains("Heredoc")));
-    }
-
-    #[test]
-    fn test_formatting_violations_echo_pipe() {
-        let violations = CommentValidator::check_formatting_violations(
-            "echo '![Reaction](url)' | gh pr comment 1",
-        );
-        assert!(!violations.is_empty());
-        assert!(violations.iter().any(|v| v.contains("echo piped to gh")));
-    }
-
-    #[test]
     fn test_formatting_violations_direct_body() {
+        // Direct --body with reaction images should be flagged
         let violations = CommentValidator::check_formatting_violations(
             "gh pr comment 1 --body '![Reaction](url)'",
         );
         assert!(!violations.is_empty());
+        assert!(violations.iter().any(|v| v.contains("--body-file instead")));
     }
 
     #[test]
