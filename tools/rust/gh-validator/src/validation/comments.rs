@@ -27,7 +27,7 @@ const EMOJI_RANGES: [(u32, u32); 8] = [
 /// The --body/-b patterns below catch direct usage which bypasses --body-file.
 static FORMATTING_VIOLATIONS: Lazy<Vec<(Regex, &'static str)>> = Lazy::new(|| {
     vec![
-        // Direct --body with reaction images (these work - checks arg content)
+        // Direct --body with reaction images (space-separated)
         (
             Regex::new(r#"--body\s+["'].*!\[.*\]"#).unwrap(),
             "Direct --body flag with reaction images (use --body-file instead)",
@@ -35,6 +35,11 @@ static FORMATTING_VIOLATIONS: Lazy<Vec<(Regex, &'static str)>> = Lazy::new(|| {
         (
             Regex::new(r"--body\s+\S*.*!\[.*\]").unwrap(),
             "Direct --body flag with reaction images (use --body-file instead)",
+        ),
+        // Direct --body= with reaction images (equals syntax)
+        (
+            Regex::new(r"--body=.*!\[.*\]").unwrap(),
+            "Direct --body= flag with reaction images (use --body-file instead)",
         ),
         // Short flag -b with reaction images
         (
@@ -152,6 +157,16 @@ mod tests {
             CommentValidator::check_formatting_violations("gh pr comment 1 -b '![Reaction](url)'");
         assert!(!violations.is_empty());
         assert!(violations.iter().any(|v| v.contains("-b flag")));
+    }
+
+    #[test]
+    fn test_formatting_violations_body_equals_syntax() {
+        // Direct --body= with reaction images should be flagged
+        let violations = CommentValidator::check_formatting_violations(
+            "gh pr comment 1 --body='![Reaction](url)'",
+        );
+        assert!(!violations.is_empty());
+        assert!(violations.iter().any(|v| v.contains("--body=")));
     }
 
     #[test]
