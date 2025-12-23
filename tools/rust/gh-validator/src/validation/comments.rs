@@ -24,7 +24,7 @@ const EMOJI_RANGES: [(u32, u32); 8] = [
 /// Note: Only patterns that match argument content are effective here.
 /// Shell operators (pipes, heredocs, command substitution) are expanded
 /// before the binary receives arguments, so we cannot detect them.
-/// The --body patterns below catch direct usage which bypasses --body-file.
+/// The --body/-b patterns below catch direct usage which bypasses --body-file.
 static FORMATTING_VIOLATIONS: Lazy<Vec<(Regex, &'static str)>> = Lazy::new(|| {
     vec![
         // Direct --body with reaction images (these work - checks arg content)
@@ -35,6 +35,15 @@ static FORMATTING_VIOLATIONS: Lazy<Vec<(Regex, &'static str)>> = Lazy::new(|| {
         (
             Regex::new(r"--body\s+\S*.*!\[.*\]").unwrap(),
             "Direct --body flag with reaction images (use --body-file instead)",
+        ),
+        // Short flag -b with reaction images
+        (
+            Regex::new(r#"-b\s+["'].*!\[.*\]"#).unwrap(),
+            "Direct -b flag with reaction images (use --body-file instead)",
+        ),
+        (
+            Regex::new(r"-b\s+\S*.*!\[.*\]").unwrap(),
+            "Direct -b flag with reaction images (use --body-file instead)",
         ),
     ]
 });
@@ -85,7 +94,17 @@ impl CommentValidator {
 
     /// Check if this is a command that posts content
     pub fn is_posting_content(command: &str) -> bool {
-        let posting_indicators = ["--body", "--body-file", "comment", "create"];
+        // Include both long and short flags
+        let posting_indicators = [
+            "--body",
+            "-b",
+            "--body-file",
+            "-F",
+            "--message",
+            "-m",
+            "comment",
+            "create",
+        ];
         posting_indicators.iter().any(|ind| command.contains(ind))
     }
 }
@@ -124,6 +143,15 @@ mod tests {
         );
         assert!(!violations.is_empty());
         assert!(violations.iter().any(|v| v.contains("--body-file instead")));
+    }
+
+    #[test]
+    fn test_formatting_violations_short_body_flag() {
+        // Direct -b (short for --body) with reaction images should be flagged
+        let violations =
+            CommentValidator::check_formatting_violations("gh pr comment 1 -b '![Reaction](url)'");
+        assert!(!violations.is_empty());
+        assert!(violations.iter().any(|v| v.contains("-b flag")));
     }
 
     #[test]
