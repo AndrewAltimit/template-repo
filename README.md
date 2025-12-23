@@ -1,6 +1,6 @@
 # MCP-Enabled Project Template
 
-A comprehensive development ecosystem with 6 AI agents, 15 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
+A comprehensive development ecosystem with 6 AI agents, 17 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
 
 ![MCP Demo](docs/mcp/architecture/demo.gif)
 
@@ -33,7 +33,7 @@ Six AI agents working in harmony for development and automation. See [AI Agents 
 
 ## Features
 
-- **15 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, project management, and more
+- **17 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, project management, and more
 - **6 AI Agents** - Comprehensive development automation
 - **Sleeper Detection System** - Advanced AI backdoor detection using TransformerLens residual stream analysis
 - **Company Integration** - Custom agent builds for corporate AI APIs ([Documentation](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
@@ -109,7 +109,7 @@ This repository provides two MCP configuration files to optimize performance:
 
 ### `.mcp.json.full` (Complete - All Services)
 - **Purpose**: Access to all specialized tools when needed
-- **Contains**: All 15 MCP servers
+- **Contains**: All 17 MCP servers
   - Essential services (from `.mcp.json`)
   - Content creation (Manim, LaTeX, TikZ)
   - 3D graphics (Blender, Gaea2)
@@ -187,6 +187,7 @@ This pattern ensures consistent certificate handling across all services while m
 │   │   ├── mcp_github_board/     # GitHub Projects board management
 │   │   ├── mcp_meme_generator/   # Meme creation
 │   │   ├── mcp_opencode/         # Agent2Agent Consultation (OpenCode)
+│   │   ├── mcp_reaction_search/  # Semantic reaction image search
 │   │   ├── mcp_video_editor/     # Video editing
 │   │   └── mcp_virtual_character/# AI agent embodiment
 │   └── cli/                  # Command-line tools
@@ -244,6 +245,7 @@ This pattern ensures consistent certificate handling across all services while m
 14. **AI Toolkit** - LoRA training interface (remote: 192.168.0.152:8012)
 15. **ComfyUI** - Image generation interface (remote: 192.168.0.152:8013)
 16. **AgentCore Memory** - Multi-provider AI memory (AWS AgentCore or ChromaDB) ([Documentation](tools/mcp/mcp_agentcore_memory/docs/README.md))
+17. **Reaction Search** - Semantic search for anime reaction images ([Documentation](tools/mcp/mcp_reaction_search/README.md))
 
 ### Usage Modes
 

@@ -187,6 +187,50 @@
         "stdio"
       ]
     },
+    "github-board": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-github-board",
+        "python",
+        "-m",
+        "mcp_github_board.server",
+        "--mode",
+        "stdio"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+        "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}",
+        "GITHUB_PROJECT_NUMBER": "1",
+        "_comment": "GitHub Board MCP server for board operations and agent coordination. Runs containerized via docker-compose run."
+      }
+    },
+    "agentcore-memory": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--env-file",
+        "./.env",
+        "--profile",
+        "memory",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-agentcore-memory",
+        "python",
+        "-m",
+        "mcp_agentcore_memory.server",
+        "--mode",
+        "stdio"
+      ]
+    },
     "reaction-search": {
       "command": "docker-compose",
       "args": [
