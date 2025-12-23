@@ -654,7 +654,7 @@ def get_all_pr_comments(pr_number: str) -> List[Dict[str, Any]]:
 
 
 def get_recent_pr_comments(pr_number: str) -> str:
-    """Get PR comments since last Gemini review"""
+    """Get PR comments since last Gemini review, prioritizing admin comments with debunking info"""
     try:
         comments = get_all_pr_comments(pr_number)
 
@@ -670,11 +670,26 @@ def get_recent_pr_comments(pr_number: str) -> str:
         if last_gemini_idx >= 0:
             recent_comments = comments[last_gemini_idx + 1 :]
             if recent_comments:
-                formatted = ["## Recent PR Comments Since Last Gemini Review\n"]
+                # Separate admin comments (often contain debunking info) from others
+                admin_comments = []
+                other_comments = []
                 for comment in recent_comments:
                     author = comment.get("author", {}).get("login", "Unknown")
                     body = comment.get("body", "").strip()
-                    formatted.append(f"**@{author}**: {body}\n")
+                    formatted_comment = f"**@{author}**: {body}\n"
+                    if author == "AndrewAltimit":
+                        admin_comments.append(formatted_comment)
+                    else:
+                        other_comments.append(formatted_comment)
+
+                # Prioritize admin comments (put them first)
+                formatted = ["## Recent PR Comments Since Last Gemini Review\n"]
+                if admin_comments:
+                    formatted.append("### Admin/Author Comments (HIGH PRIORITY - may contain debunked issues):\n")
+                    formatted.extend(admin_comments)
+                if other_comments:
+                    formatted.append("\n### Other Comments:\n")
+                    formatted.extend(other_comments)
                 return "\n".join(formatted)
 
         return ""
@@ -1090,9 +1105,15 @@ If an issue was debunked in the discussion, DO NOT mention it again. Move on to 
 
 """
 
-    # Add recent comments if any
+    # Add recent comments if any - these often contain debunked issues
     if recent_comments:
-        prompt += f"{recent_comments[:1000]}\n\n"
+        prompt += f"""**RECENT COMMENTS (may contain debunked issues):**
+{recent_comments[:3000]}
+
+**IMPORTANT:** If any comment above mentions "FALSE POSITIVE", "debunked", "incorrect", or "hallucination",
+you MUST NOT raise that issue again. The PR author has already verified the code is correct.
+
+"""
 
     # Build file list - for incremental reviews, mark which files are new
     new_files_set = set(new_files_since_last) if new_files_since_last else set()
