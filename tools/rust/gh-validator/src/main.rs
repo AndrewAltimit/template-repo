@@ -73,8 +73,9 @@ fn extract_body_file(args: &[String]) -> Option<String> {
 }
 
 /// Build command string for validation (for logging/display)
+/// Uses shell_words::join to properly escape arguments with spaces
 fn build_command_string(args: &[String]) -> String {
-    format!("gh {}", args.join(" "))
+    format!("gh {}", shell_words::join(args))
 }
 
 /// Run validation and execute the real gh binary

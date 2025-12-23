@@ -13,7 +13,8 @@
 set -e
 
 # Configuration
-REPO="AndrewAltimit/template-repo"
+# Note: For forks, change this to your fork's repo or use: REPO="your-user/template-repo" ./install.sh
+REPO="${GH_VALIDATOR_REPO:-AndrewAltimit/template-repo}"
 BINARY_NAME="gh"
 INSTALL_DIR="${HOME}/.local/bin"
 
