@@ -110,7 +110,7 @@ jobs:
           #         "type": "section",
           #         "text": {
           #           "type": "mrkdwn",
-          #           "text": "*Agent Work Completed*\n\nIssue: #${{ needs.agent-work.outputs.issue-number }}\nTitle: ${{ needs.agent-work.outputs.issue-title }}\nPR: ${{ needs.agent-work.outputs.pr-url }}"
+          #           "text": "*Agent Work Completed*\nIssue: #${{ needs.agent-work.outputs.issue-number }}"
           #         }
           #       }
           #     ]
