@@ -970,6 +970,9 @@ Work claim released.
         Looks for [Approved], [Fix], or [Implement] patterns.
         The agent is determined by the project board's Agent field, not the trigger.
 
+        Authorization: The repository owner and project owner are always authorized.
+        The board is expected to be restricted to trusted admins.
+
         Args:
             text: Text to check (issue body or comment)
             author: Author of the text
@@ -980,11 +983,16 @@ Work claim released.
         if not text or not author:
             return False
 
-        # Check if author is in the allow list (from config)
-        allowed_users = set(self.config.allow_list) if self.config.allow_list else set()
-        # Also allow the repository owner
+        # Build allowed users list from config
+        allowed_users: set[str] = set()
+
+        # Add repository owner
         if self.config.repository and "/" in self.config.repository:
             allowed_users.add(self.config.repository.split("/")[0])
+
+        # Add project owner
+        if self.config.owner:
+            allowed_users.add(self.config.owner)
 
         if author not in allowed_users:
             return False
