@@ -586,7 +586,8 @@ runs:
             fi
             if command -v claude &> /dev/null; then
               echo "Running Claude Code on host..."
-              if timeout "${AGENT_TIMEOUT}m" claude --print "$(cat $CONTEXT_FILE)"; then
+              # --dangerously-skip-permissions required for CI/CD (no TTY for interactive prompts)
+              if timeout "${AGENT_TIMEOUT}m" claude --print --dangerously-skip-permissions "$(cat $CONTEXT_FILE)"; then
                 WORK_COMPLETED="true"
               else
                 AGENT_ERROR="Claude execution failed or timed out"
