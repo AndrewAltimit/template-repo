@@ -128,14 +128,17 @@ runs:
 
         # Create isolated virtual environment (container-first: no runner pollution)
         VENV_DIR="${GITHUB_WORKSPACE}/.agent-venv"
-        python3 -m venv "$VENV_DIR"
-        source "$VENV_DIR/bin/activate"
 
-        # Install package in isolated environment
-        pip install -e ./packages/github_agents
-
-        # Export venv path for subsequent steps
-        echo "AGENT_VENV_DIR=$VENV_DIR" >> $GITHUB_ENV
+        # Try to create venv, fall back to user install if venv module not available
+        if python3 -m venv "$VENV_DIR" 2>/dev/null; then
+          source "$VENV_DIR/bin/activate"
+          pip install -e ./packages/github_agents
+          echo "AGENT_VENV_DIR=$VENV_DIR" >> $GITHUB_ENV
+        else
+          echo "::warning::python3-venv not available, using user install"
+          pip install --user -e ./packages/github_agents
+          echo "AGENT_VENV_DIR=" >> $GITHUB_ENV
+        fi
 
         if [ "$JSON_LOGGING" = "true" ]; then
           echo '{"event": "setup_complete", "python_version": "'$(python3 --version 2>&1)'", "venv": "'$VENV_DIR'"}'
@@ -177,7 +180,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Janitor - Clean Stale Claims"
-        source "$AGENT_VENV_DIR/bin/activate"
+        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
         JANITOR_RESULT=$(python3 << 'PYTHON_SCRIPT'
         import asyncio
@@ -262,7 +265,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Query Ready Work"
-        source "$AGENT_VENV_DIR/bin/activate"
+        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
         QUERY_RESULT=$(python3 << 'PYTHON_SCRIPT'
         import asyncio
@@ -391,7 +394,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Claim Work"
-        source "$AGENT_VENV_DIR/bin/activate"
+        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
         SESSION_ID="gha-${{ github.run_id }}-${{ github.run_attempt }}"
 
@@ -476,7 +479,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Execute Agent Work"
-        source "$AGENT_VENV_DIR/bin/activate"
+        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
         START_TIME=$(date +%s)
 
@@ -740,7 +743,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Release Work Claim"
-        source "$AGENT_VENV_DIR/bin/activate"
+        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
         # Determine release reason
         if [ "$WORK_COMPLETED" = "true" ]; then
