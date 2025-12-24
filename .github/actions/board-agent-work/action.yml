@@ -504,7 +504,8 @@ runs:
         - Update documentation if needed
         CONTEXT_EOF
         # Prepend issue info (outside heredoc to allow variable expansion)
-        sed -i "1s/.*/# Issue #$ISSUE_NUMBER: $(printf '%s' "$ISSUE_TITLE" | sed 's/[\/&]/\\&/g')/" "$CONTEXT_FILE"
+        # Escape /, &, and \ for sed replacement (\ must be escaped to prevent delimiter issues)
+        sed -i "1s/.*/# Issue #$ISSUE_NUMBER: $(printf '%s' "$ISSUE_TITLE" | sed 's/[\/&\\]/\\&/g')/" "$CONTEXT_FILE"
 
         # Execute based on agent type
         WORK_COMPLETED="false"
