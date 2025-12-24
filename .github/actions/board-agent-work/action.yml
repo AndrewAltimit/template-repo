@@ -476,6 +476,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Execute Agent Work"
+        source "$AGENT_VENV_DIR/bin/activate"
 
         START_TIME=$(date +%s)
 
@@ -644,8 +645,9 @@ runs:
           exit 0
         fi
 
-        # Truncate title first (before escaping) to avoid cutting escape sequences
-        TRUNCATED_TITLE=$(printf '%s' "$ISSUE_TITLE" | head -c 200)
+        # Truncate title first (before escaping) using bash slicing for UTF-8 safety
+        # ${var:0:200} counts characters, not bytes, preventing multibyte char splits
+        TRUNCATED_TITLE="${ISSUE_TITLE:0:200}"
         # Then sanitize for safe shell usage (escape special chars)
         SAFE_TITLE=$(printf '%s' "$TRUNCATED_TITLE" | sed 's/[\"$`\\]/\\&/g')
 
