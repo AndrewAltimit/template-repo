@@ -380,10 +380,74 @@ runs:
 
         echo "continue=true" >> $GITHUB_OUTPUT
 
-    # Step 6: Claim work
+    # Step 6: Check for approval trigger (security check)
+    - name: Check approval trigger
+      id: approval
+      if: steps.should-continue.outputs.continue == 'true'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_PROJECTS_TOKEN: ${{ inputs.github-projects-token }}
+        ISSUE_NUMBER: ${{ steps.query.outputs.issue_number }}
+        BOARD_CONFIG_PATH: ${{ inputs.board-config-path }}
+        JSON_LOGGING: ${{ inputs.json-logging }}
+      run: |
+        echo "::group::Check Approval Trigger"
+        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
+
+        # Check if issue has been approved by an authorized user
+        # Required format: [Approved], [Fix], or [Implement]
+        # The agent is determined by the Agent field on the project board
+        APPROVAL_RESULT=$(python3 << 'PYTHON_SCRIPT'
+        import asyncio
+        import json
+        import os
+        from github_agents.board.config import load_config
+        from github_agents.board.manager import BoardManager
+
+        async def check_approval():
+            config = load_config(os.environ.get('BOARD_CONFIG_PATH'))
+            issue_number = int(os.environ['ISSUE_NUMBER'])
+
+            async with BoardManager(config=config) as manager:
+                is_approved, approver = await manager.is_issue_approved(issue_number)
+                print(json.dumps({
+                    "approved": is_approved,
+                    "approver": approver,
+                    "issue": issue_number
+                }))
+
+        asyncio.run(check_approval())
+        PYTHON_SCRIPT
+        )
+
+        if [ "$JSON_LOGGING" = "true" ]; then
+          echo "$APPROVAL_RESULT"
+        else
+          echo "Approval check result: $APPROVAL_RESULT"
+        fi
+
+        IS_APPROVED=$(echo "$APPROVAL_RESULT" | python3 -c "import sys,json; print('true' if json.load(sys.stdin).get('approved') else 'false')")
+        APPROVER=$(echo "$APPROVAL_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('approver', '') or '')")
+
+        echo "approved=$IS_APPROVED" >> $GITHUB_OUTPUT
+        echo "approver=$APPROVER" >> $GITHUB_OUTPUT
+
+        if [ "$IS_APPROVED" = "true" ]; then
+          echo "Issue #$ISSUE_NUMBER approved by $APPROVER"
+        else
+          echo "::warning::Issue #$ISSUE_NUMBER has NOT been approved for agent work"
+          echo "Required: An authorized user must comment with [Approved]"
+          echo ""
+          echo "Skipping this issue - no approval trigger found"
+        fi
+
+        echo "::endgroup::"
+
+    # Step 7: Claim work (only if approved)
     - name: Claim work
       id: claim
-      if: steps.should-continue.outputs.continue == 'true'
+      if: steps.should-continue.outputs.continue == 'true' && steps.approval.outputs.approved == 'true'
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
@@ -516,15 +580,19 @@ runs:
 
         case "$AGENT_NAME" in
           claude)
+            # Claude always runs on host (requires subscription auth - cannot be containerized)
+            if [ "$USE_DOCKER" = "true" ]; then
+              echo "::notice::Claude requires host execution due to subscription auth - ignoring use-docker flag"
+            fi
             if command -v claude &> /dev/null; then
-              echo "Running Claude Code..."
+              echo "Running Claude Code on host..."
               if timeout "${AGENT_TIMEOUT}m" claude --print "$(cat $CONTEXT_FILE)"; then
                 WORK_COMPLETED="true"
               else
                 AGENT_ERROR="Claude execution failed or timed out"
               fi
             else
-              AGENT_ERROR="Claude CLI not available"
+              AGENT_ERROR="Claude CLI not available on host"
               echo "::warning::$AGENT_ERROR"
             fi
             ;;
@@ -576,29 +644,45 @@ runs:
             ;;
 
           gemini)
-            if command -v gemini &> /dev/null; then
-              echo "Running Gemini..."
+            if [ "$USE_DOCKER" = "true" ]; then
+              echo "Running Gemini in Docker..."
+              if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
+                gemini-agent gemini < "$CONTEXT_FILE"; then
+                WORK_COMPLETED="true"
+              else
+                AGENT_ERROR="Gemini Docker execution failed"
+              fi
+            elif command -v gemini &> /dev/null; then
+              echo "Running Gemini locally..."
               if timeout "${AGENT_TIMEOUT}m" gemini < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
               else
-                AGENT_ERROR="Gemini execution failed"
+                AGENT_ERROR="Gemini local execution failed"
               fi
             else
-              AGENT_ERROR="Gemini CLI not available"
+              AGENT_ERROR="Gemini not available"
               echo "::warning::$AGENT_ERROR"
             fi
             ;;
 
           codex)
-            if command -v codex &> /dev/null; then
-              echo "Running Codex..."
+            if [ "$USE_DOCKER" = "true" ]; then
+              echo "Running Codex in Docker..."
+              if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
+                codex-agent codex < "$CONTEXT_FILE"; then
+                WORK_COMPLETED="true"
+              else
+                AGENT_ERROR="Codex Docker execution failed"
+              fi
+            elif command -v codex &> /dev/null; then
+              echo "Running Codex locally..."
               if timeout "${AGENT_TIMEOUT}m" codex < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
               else
-                AGENT_ERROR="Codex execution failed"
+                AGENT_ERROR="Codex local execution failed"
               fi
             else
-              AGENT_ERROR="Codex CLI not available"
+              AGENT_ERROR="Codex not available"
               echo "::warning::$AGENT_ERROR"
             fi
             ;;

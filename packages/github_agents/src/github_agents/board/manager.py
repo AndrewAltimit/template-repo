@@ -892,6 +892,109 @@ Work claim released.
         logger.info("Updated issue #%s status to %s", issue_number, status.value)
         return True
 
+    # ===== Approval Check =====
+
+    async def is_issue_approved(self, issue_number: int) -> tuple[bool, str | None]:
+        """
+        Check if issue has been approved for agent work.
+
+        Looks for [Approved] trigger comments from authorized users.
+        The agent is determined by the Agent field on the project board, not the trigger.
+
+        This implements the security flow: Issue created -> Added to board -> Admin approves -> Agent works
+
+        Args:
+            issue_number: Issue to check
+
+        Returns:
+            Tuple of (is_approved, approving_user) - approving_user is None if not approved
+        """
+        logger.info("Checking approval for issue #%s", issue_number)
+
+        # Fetch issue comments
+        query = """
+        query GetIssueForApproval($owner: String!, $repo: String!, $number: Int!) {
+          repository(owner: $owner, name: $repo) {
+            issue(number: $number) {
+              body
+              author {
+                login
+              }
+              comments(last: 100) {
+                nodes {
+                  body
+                  author {
+                    login
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+
+        owner, repo = self.config.repository.split("/")
+        variables = {"owner": owner, "repo": repo, "number": issue_number}
+
+        response = await self._execute_graphql(query, variables)
+
+        if not response.data or not response.data.get("repository"):
+            logger.warning("Failed to fetch issue #%s for approval check", issue_number)
+            return False, None
+
+        issue_data = response.data["repository"]["issue"]
+
+        # Check issue body first
+        body = issue_data.get("body", "")
+        author = issue_data.get("author", {}).get("login", "")
+        if self._check_approval_trigger(body, author):
+            logger.info("Issue #%s approved by %s (in body)", issue_number, author)
+            return True, author
+
+        # Check comments (most recent first for efficiency)
+        comments = issue_data.get("comments", {}).get("nodes", [])
+        for comment in reversed(comments):
+            comment_body = comment.get("body", "")
+            comment_author = comment.get("author", {}).get("login", "")
+            if self._check_approval_trigger(comment_body, comment_author):
+                logger.info("Issue #%s approved by %s (in comment)", issue_number, comment_author)
+                return True, comment_author
+
+        logger.info("Issue #%s not approved", issue_number)
+        return False, None
+
+    def _check_approval_trigger(self, text: str, author: str) -> bool:
+        """
+        Check if text contains a valid approval trigger from an authorized user.
+
+        Looks for [Approved], [Fix], or [Implement] patterns.
+        The agent is determined by the project board's Agent field, not the trigger.
+
+        Args:
+            text: Text to check (issue body or comment)
+            author: Author of the text
+
+        Returns:
+            True if valid approval trigger found
+        """
+        if not text or not author:
+            return False
+
+        # Check if author is in the allow list (from config)
+        allowed_users = set(self.config.allow_list) if self.config.allow_list else set()
+        # Also allow the repository owner
+        if self.config.repository and "/" in self.config.repository:
+            allowed_users.add(self.config.repository.split("/")[0])
+
+        if author not in allowed_users:
+            return False
+
+        # Parse trigger pattern: [Approved], [Fix], or [Implement]
+        pattern = r"\[(Approved|Fix|Implement)\]"
+        match = re.search(pattern, text, re.IGNORECASE)
+
+        return match is not None
+
     # ===== Claim Management =====
 
     async def _get_active_claim(self, issue_number: int) -> AgentClaim | None:
