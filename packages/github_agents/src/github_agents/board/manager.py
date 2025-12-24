@@ -758,7 +758,7 @@ Claim renewed - still actively working on this issue.
         Args:
             issue_number: Issue to release
             agent_name: Agent releasing the claim
-            reason: Release reason (completed/blocked/abandoned)
+            reason: Release reason (completed/pr_created/blocked/abandoned/error)
         """
         comment_body = f"""{self.CLAIM_RELEASE_PREFIX}
 
@@ -773,7 +773,12 @@ Work claim released.
 
         # Update status based on reason
         if reason == "completed":
+            # Work done without PR - mark as Done
             await self.update_status(issue_number, IssueStatus.DONE)
+        elif reason == "pr_created":
+            # PR created - stay In Progress until PR is merged (which closes the issue)
+            # Don't change status - it's already In Progress
+            pass
         elif reason == "blocked":
             await self.update_status(issue_number, IssueStatus.BLOCKED)
         else:

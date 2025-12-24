@@ -831,8 +831,16 @@ runs:
         [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
         # Determine release reason
+        # - pr_created: Work done, PR created - stay In Progress until PR is merged
+        # - completed: Work done, no PR - mark as Done
+        # - abandoned: Job cancelled
+        # - error: Something went wrong - return to Todo
         if [ "$WORK_COMPLETED" = "true" ]; then
-          REASON="completed"
+          if [ "$PR_CREATED" = "true" ]; then
+            REASON="pr_created"
+          else
+            REASON="completed"
+          fi
         elif [ "${{ job.status }}" = "cancelled" ]; then
           REASON="abandoned"
         else
