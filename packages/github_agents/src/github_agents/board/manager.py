@@ -47,6 +47,30 @@ class BoardManager:
     CLAIM_RENEWAL_PREFIX = "🔄 **[Claim Renewal]**"
     CLAIM_RELEASE_PREFIX = "🤖 **[Agent Release]**"
 
+    # Agent name mappings (workflow names -> board field values)
+    AGENT_NAME_MAP = {
+        "claude": "Claude Code",
+        "opencode": "OpenCode",
+        "crush": "Crush",
+        "gemini": "Gemini CLI",
+        "codex": "Codex",
+    }
+
+    @classmethod
+    def _normalize_agent_name(cls, name: str | None) -> str | None:
+        """Normalize agent name for comparison.
+
+        Maps workflow agent names (e.g., 'claude') to board field values
+        (e.g., 'Claude Code') for consistent matching.
+        """
+        if not name:
+            return None
+        # Check if it's a workflow name that needs mapping
+        if name.lower() in cls.AGENT_NAME_MAP:
+            return cls.AGENT_NAME_MAP[name.lower()]
+        # Already a board field value or unknown, return as-is
+        return name
+
     def __init__(self, config: BoardConfig | None = None, github_token: str | None = None):
         """
         Initialize BoardManager.
@@ -499,8 +523,9 @@ class BoardManager:
             if status not in (IssueStatus.TODO, IssueStatus.BLOCKED):
                 continue
 
-            # Filter by agent if specified
-            if agent_name and assigned_agent != agent_name:
+            # Filter by agent if specified (normalize names for comparison)
+            normalized_agent = self._normalize_agent_name(agent_name)
+            if normalized_agent and assigned_agent != normalized_agent:
                 continue
 
             # Skip if has open blockers
@@ -511,7 +536,9 @@ class BoardManager:
             issue_number = content["number"]
             active_claim = await self._get_active_claim(issue_number)
             if active_claim and not active_claim.is_expired(self.config.claim_timeout):
-                if agent_name and active_claim.agent != agent_name:
+                # Normalize both for comparison (claim agent may be in workflow format)
+                normalized_claim_agent = self._normalize_agent_name(active_claim.agent)
+                if normalized_agent and normalized_claim_agent != normalized_agent:
                     continue
 
             # Skip if has exclude labels
@@ -731,7 +758,7 @@ Claim renewed - still actively working on this issue.
         Args:
             issue_number: Issue to release
             agent_name: Agent releasing the claim
-            reason: Release reason (completed/blocked/abandoned)
+            reason: Release reason (completed/pr_created/blocked/abandoned/error)
         """
         comment_body = f"""{self.CLAIM_RELEASE_PREFIX}
 
@@ -746,7 +773,12 @@ Work claim released.
 
         # Update status based on reason
         if reason == "completed":
+            # Work done without PR - mark as Done
             await self.update_status(issue_number, IssueStatus.DONE)
+        elif reason == "pr_created":
+            # PR created - stay In Progress until PR is merged (which closes the issue)
+            # Don't change status - it's already In Progress
+            pass
         elif reason == "blocked":
             await self.update_status(issue_number, IssueStatus.BLOCKED)
         else:
@@ -864,6 +896,117 @@ Work claim released.
         await self._execute_graphql(mutation, variables)
         logger.info("Updated issue #%s status to %s", issue_number, status.value)
         return True
+
+    # ===== Approval Check =====
+
+    async def is_issue_approved(self, issue_number: int) -> tuple[bool, str | None]:
+        """
+        Check if issue has been approved for agent work.
+
+        Looks for [Approved] trigger comments from authorized users.
+        The agent is determined by the Agent field on the project board, not the trigger.
+
+        This implements the security flow: Issue created -> Added to board -> Admin approves -> Agent works
+
+        Args:
+            issue_number: Issue to check
+
+        Returns:
+            Tuple of (is_approved, approving_user) - approving_user is None if not approved
+        """
+        logger.info("Checking approval for issue #%s", issue_number)
+
+        # Fetch issue comments
+        query = """
+        query GetIssueForApproval($owner: String!, $repo: String!, $number: Int!) {
+          repository(owner: $owner, name: $repo) {
+            issue(number: $number) {
+              body
+              author {
+                login
+              }
+              comments(last: 100) {
+                nodes {
+                  body
+                  author {
+                    login
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+
+        owner, repo = self.config.repository.split("/")
+        variables = {"owner": owner, "repo": repo, "number": issue_number}
+
+        response = await self._execute_graphql(query, variables)
+
+        if not response.data or not response.data.get("repository"):
+            logger.warning("Failed to fetch issue #%s for approval check", issue_number)
+            return False, None
+
+        issue_data = response.data["repository"]["issue"]
+
+        # Check issue body first
+        body = issue_data.get("body", "")
+        author = issue_data.get("author", {}).get("login", "")
+        if self._check_approval_trigger(body, author):
+            logger.info("Issue #%s approved by %s (in body)", issue_number, author)
+            return True, author
+
+        # Check comments (most recent first for efficiency)
+        comments = issue_data.get("comments", {}).get("nodes", [])
+        for comment in reversed(comments):
+            comment_body = comment.get("body", "")
+            comment_author = comment.get("author", {}).get("login", "")
+            if self._check_approval_trigger(comment_body, comment_author):
+                logger.info("Issue #%s approved by %s (in comment)", issue_number, comment_author)
+                return True, comment_author
+
+        logger.info("Issue #%s not approved", issue_number)
+        return False, None
+
+    def _check_approval_trigger(self, text: str, author: str) -> bool:
+        """
+        Check if text contains a valid approval trigger from an authorized user.
+
+        Looks for [Approved], [Fix], or [Implement] patterns.
+        The agent is determined by the project board's Agent field, not the trigger.
+
+        Authorization: The repository owner and project owner are always authorized.
+        The board is expected to be restricted to trusted admins.
+
+        Args:
+            text: Text to check (issue body or comment)
+            author: Author of the text
+
+        Returns:
+            True if valid approval trigger found
+        """
+        if not text or not author:
+            return False
+
+        # Build allowed users list from config
+        allowed_users: set[str] = set()
+
+        # Add repository owner
+        if self.config.repository and "/" in self.config.repository:
+            allowed_users.add(self.config.repository.split("/")[0])
+
+        # Add project owner
+        if self.config.owner:
+            allowed_users.add(self.config.owner)
+
+        if author not in allowed_users:
+            return False
+
+        # Parse trigger pattern: [Approved], [Fix], or [Implement]
+        pattern = r"\[(Approved|Fix|Implement)\]"
+        match = re.search(pattern, text, re.IGNORECASE)
+
+        return match is not None
 
     # ===== Claim Management =====
 

@@ -29,17 +29,29 @@ on:
           - opencode
           - crush
           - gemini
+          - codex
         default: 'claude'
       max-issues:
         description: 'Maximum issues to process'
         required: false
         type: number
         default: 1
+      use-docker:
+        description: 'Run agent in container (Claude always runs on host)'
+        required: false
+        type: boolean
+        default: false
       dry-run:
         description: 'Dry run (query only, no execution)'
         required: false
         type: boolean
         default: false
+
+# Permissions required by the reusable workflow
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
 
 # Ensure only one agent run at a time per agent type
 concurrency:
@@ -65,9 +77,9 @@ jobs:
       agent-timeout: 30
 
       # Execution settings
-      dry-run: ${{ github.event.inputs.dry-run || false }}
+      dry-run: ${{ github.event.inputs.dry-run == 'true' }}
       create-pr: true
-      use-docker: true
+      use-docker: ${{ github.event.inputs.use-docker == 'true' }}
 
       # CUSTOMIZE: Runner type
       runs-on: self-hosted
@@ -77,7 +89,7 @@ jobs:
       github-token: ${{ secrets.AGENT_TOKEN }}
 
       # REQUIRED: Classic token with project scope
-      github-projects-token: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
+      github-projects-token: ${{ secrets.GH_PROJECTS_TOKEN }}
 
       # OPTIONAL: For OpenCode/Crush agents
       openrouter-api-key: ${{ secrets.OPENROUTER_API_KEY }}
@@ -86,7 +98,7 @@ jobs:
   notify:
     name: Send Notifications
     needs: agent-work
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: always() && needs.agent-work.outputs.has-work == 'True'
 
     steps:
@@ -129,7 +141,7 @@ jobs:
   weekly-summary:
     name: Weekly Summary
     needs: agent-work
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     # Only run on Fridays at 5pm
     if: github.event_name == 'schedule' && github.event.schedule == '0 17 * * 5'
 

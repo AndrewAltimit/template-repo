@@ -231,3 +231,6 @@ wandb/
 mlruns/
 runs/
 logs/
+
+# Agent virtual environment (GitHub Actions)
+.agent-venv/

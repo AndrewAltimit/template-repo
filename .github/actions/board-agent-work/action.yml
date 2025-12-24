@@ -128,14 +128,19 @@ runs:
 
         # Create isolated virtual environment (container-first: no runner pollution)
         VENV_DIR="${GITHUB_WORKSPACE}/.agent-venv"
-        python3 -m venv "$VENV_DIR"
-        source "$VENV_DIR/bin/activate"
 
-        # Install package in isolated environment
-        pip install -e ./packages/github_agents
-
-        # Export venv path for subsequent steps
-        echo "AGENT_VENV_DIR=$VENV_DIR" >> $GITHUB_ENV
+        # Try to create venv, fall back to user install if venv module not available
+        if python3 -m venv "$VENV_DIR" 2>/dev/null; then
+          source "$VENV_DIR/bin/activate"
+          pip install -e ./packages/github_agents
+          echo "AGENT_VENV_DIR=$VENV_DIR" >> $GITHUB_ENV
+        else
+          echo "::warning::python3-venv not available, using user install"
+          pip install --user -e ./packages/github_agents
+          # Add user bin to PATH for subsequent steps
+          echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+          echo "AGENT_VENV_DIR=" >> $GITHUB_ENV
+        fi
 
         if [ "$JSON_LOGGING" = "true" ]; then
           echo '{"event": "setup_complete", "python_version": "'$(python3 --version 2>&1)'", "venv": "'$VENV_DIR'"}'
@@ -177,7 +182,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Janitor - Clean Stale Claims"
-        source "$AGENT_VENV_DIR/bin/activate"
+        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
         JANITOR_RESULT=$(python3 << 'PYTHON_SCRIPT'
         import asyncio
@@ -262,7 +267,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Query Ready Work"
-        source "$AGENT_VENV_DIR/bin/activate"
+        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
         QUERY_RESULT=$(python3 << 'PYTHON_SCRIPT'
         import asyncio
@@ -377,10 +382,55 @@ runs:
 
         echo "continue=true" >> $GITHUB_OUTPUT
 
-    # Step 6: Claim work
+    # Step 6: Check for approval trigger (security check)
+    - name: Check approval trigger
+      id: approval
+      if: steps.should-continue.outputs.continue == 'true'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_PROJECTS_TOKEN: ${{ inputs.github-projects-token }}
+        ISSUE_NUMBER: ${{ steps.query.outputs.issue_number }}
+        BOARD_CONFIG_PATH: ${{ inputs.board-config-path }}
+        JSON_LOGGING: ${{ inputs.json-logging }}
+      run: |
+        echo "::group::Check Approval Trigger"
+        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
+
+        # Check if issue has been approved by an authorized user
+        # Required format: [Approved], [Fix], or [Implement]
+        # The agent is determined by the Agent field on the project board
+        # Note: Write directly to GITHUB_OUTPUT to avoid stdout capture issues
+        python3 << PYTHON_SCRIPT
+        import asyncio
+        import os
+        from github_agents.board.config import load_config
+        from github_agents.board.manager import BoardManager
+
+        async def check_approval():
+            config = load_config(os.environ.get('BOARD_CONFIG_PATH'))
+            issue_number = int(os.environ['ISSUE_NUMBER'])
+
+            async with BoardManager(config=config) as manager:
+                is_approved, approver = await manager.is_issue_approved(issue_number)
+
+            # Write directly to GITHUB_OUTPUT to avoid stdout pollution
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                f.write(f"approved={'true' if is_approved else 'false'}\n")
+                f.write(f"approver={approver or ''}\n")
+
+            # Also print for logging
+            print(f"Approval check: approved={is_approved}, approver={approver}")
+
+        asyncio.run(check_approval())
+        PYTHON_SCRIPT
+
+        echo "::endgroup::"
+
+    # Step 7: Claim work (only if approved)
     - name: Claim work
       id: claim
-      if: steps.should-continue.outputs.continue == 'true'
+      if: steps.should-continue.outputs.continue == 'true' && steps.approval.outputs.approved == 'true'
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
@@ -391,7 +441,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Claim Work"
-        source "$AGENT_VENV_DIR/bin/activate"
+        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
         SESSION_ID="gha-${{ github.run_id }}-${{ github.run_attempt }}"
 
@@ -439,7 +489,7 @@ runs:
 
         echo "::endgroup::"
 
-    # Step 7: Create work branch
+    # Step 7: Create work branch (always from main)
     - name: Create work branch
       id: branch
       if: steps.claim.outputs.claimed == 'true'
@@ -450,11 +500,18 @@ runs:
       run: |
         echo "::group::Create Work Branch"
 
+        # Always create agent branches from main to ensure clean base
+        echo "Fetching latest main branch..."
+        git fetch origin main
+        git checkout main
+        git pull origin main
+
         BRANCH_NAME="agent/$AGENT_NAME/issue-$ISSUE_NUMBER"
+        echo "Creating branch $BRANCH_NAME from main..."
         git checkout -b "$BRANCH_NAME"
 
         echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-        echo "Created branch: $BRANCH_NAME"
+        echo "Created branch: $BRANCH_NAME (from main)"
 
         echo "::endgroup::"
 
@@ -476,7 +533,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Execute Agent Work"
-        source "$AGENT_VENV_DIR/bin/activate"
+        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
         START_TIME=$(date +%s)
 
@@ -513,15 +570,20 @@ runs:
 
         case "$AGENT_NAME" in
           claude)
+            # Claude always runs on host (requires subscription auth - cannot be containerized)
+            if [ "$USE_DOCKER" = "true" ]; then
+              echo "::notice::Claude requires host execution due to subscription auth - ignoring use-docker flag"
+            fi
             if command -v claude &> /dev/null; then
-              echo "Running Claude Code..."
-              if timeout "${AGENT_TIMEOUT}m" claude --print "$(cat $CONTEXT_FILE)"; then
+              echo "Running Claude Code on host..."
+              # --dangerously-skip-permissions required for CI/CD (no TTY for interactive prompts)
+              if timeout "${AGENT_TIMEOUT}m" claude --print --dangerously-skip-permissions "$(cat $CONTEXT_FILE)"; then
                 WORK_COMPLETED="true"
               else
                 AGENT_ERROR="Claude execution failed or timed out"
               fi
             else
-              AGENT_ERROR="Claude CLI not available"
+              AGENT_ERROR="Claude CLI not available on host"
               echo "::warning::$AGENT_ERROR"
             fi
             ;;
@@ -573,29 +635,45 @@ runs:
             ;;
 
           gemini)
-            if command -v gemini &> /dev/null; then
-              echo "Running Gemini..."
+            if [ "$USE_DOCKER" = "true" ]; then
+              echo "Running Gemini in Docker..."
+              if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
+                mcp-gemini gemini < "$CONTEXT_FILE"; then
+                WORK_COMPLETED="true"
+              else
+                AGENT_ERROR="Gemini Docker execution failed"
+              fi
+            elif command -v gemini &> /dev/null; then
+              echo "Running Gemini locally..."
               if timeout "${AGENT_TIMEOUT}m" gemini < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
               else
-                AGENT_ERROR="Gemini execution failed"
+                AGENT_ERROR="Gemini local execution failed"
               fi
             else
-              AGENT_ERROR="Gemini CLI not available"
+              AGENT_ERROR="Gemini not available"
               echo "::warning::$AGENT_ERROR"
             fi
             ;;
 
           codex)
-            if command -v codex &> /dev/null; then
-              echo "Running Codex..."
+            if [ "$USE_DOCKER" = "true" ]; then
+              echo "Running Codex in Docker..."
+              if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
+                codex-agent codex < "$CONTEXT_FILE"; then
+                WORK_COMPLETED="true"
+              else
+                AGENT_ERROR="Codex Docker execution failed"
+              fi
+            elif command -v codex &> /dev/null; then
+              echo "Running Codex locally..."
               if timeout "${AGENT_TIMEOUT}m" codex < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
               else
-                AGENT_ERROR="Codex execution failed"
+                AGENT_ERROR="Codex local execution failed"
               fi
             else
-              AGENT_ERROR="Codex CLI not available"
+              AGENT_ERROR="Codex not available"
               echo "::warning::$AGENT_ERROR"
             fi
             ;;
@@ -740,11 +818,19 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Release Work Claim"
-        source "$AGENT_VENV_DIR/bin/activate"
+        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
         # Determine release reason
+        # - pr_created: Work done, PR created - stay In Progress until PR is merged
+        # - completed: Work done, no PR - mark as Done
+        # - abandoned: Job cancelled
+        # - error: Something went wrong - return to Todo
         if [ "$WORK_COMPLETED" = "true" ]; then
-          REASON="completed"
+          if [ "$PR_CREATED" = "true" ]; then
+            REASON="pr_created"
+          else
+            REASON="completed"
+          fi
         elif [ "${{ job.status }}" = "cancelled" ]; then
           REASON="abandoned"
         else
