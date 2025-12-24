@@ -34,39 +34,92 @@ Create mathematical animations using the Manim library.
 
 ### compile_latex
 
-Compile LaTeX documents to various formats with optional visual feedback.
+Compile LaTeX documents to various formats with optional preview generation.
 
 **Parameters:**
-- `content` (required): LaTeX document content
-- `format`: Output format (default: "pdf")
+- `content`: LaTeX document content (alternative to `input_path`)
+- `input_path`: Path to .tex file to compile (alternative to `content`)
+- `output_format`: Output format (default: "pdf")
   - Options: pdf, dvi, ps
-- `visual_feedback`: Return PNG preview image for visual verification (default: true)
-  - When enabled, returns a base64-encoded JPEG preview of the first page
+- `template`: Document template (default: "custom")
+  - Options: article, report, book, beamer, custom
+- `response_mode`: Level of detail in response (default: "standard")
+  - "minimal": path only
+  - "standard": includes previews and metadata
+- `preview_pages`: Pages to preview (default: "none")
+  - Options: "none", "1", "1,3,5", "1-5", "all"
+- `preview_dpi`: DPI for preview images (default: 150)
+  - 72=low, 150=standard, 300=high
 
-**Example:**
+#### Example 1: Compile from content string
 ```json
 {
   "tool": "compile_latex",
   "arguments": {
-    "content": "\\section{Introduction}\nThis is my document.",
-    "format": "pdf",
-    "visual_feedback": true
+    "content": "\\documentclass{article}\n\\begin{document}\nHello World\n\\end{document}",
+    "output_format": "pdf",
+    "preview_pages": "1"
   }
 }
 ```
 
-**Response Structure:**
+#### Example 2: Compile from existing .tex file
+```json
+{
+  "tool": "compile_latex",
+  "arguments": {
+    "input_path": "docs/paper.tex",
+    "output_format": "pdf",
+    "preview_pages": "all"
+  }
+}
+```
+
+#### Example 3: File with relative includes
+If your .tex file uses `\include`, `\input`, or references images with relative paths:
+```json
+{
+  "tool": "compile_latex",
+  "arguments": {
+    "input_path": "projects/thesis/main.tex",
+    "output_format": "pdf"
+  }
+}
+```
+The tool automatically symlinks the source directory contents to preserve relative paths for includes, inputs, and images.
+
+#### Path Resolution Rules
+- **Relative paths** are resolved from project root (`/app` in container)
+  - Example: `docs/file.tex` resolves to `/app/docs/file.tex`
+- **Absolute paths** are used as-is
+  - Example: `/home/user/document.tex`
+
+#### Response Structure
 ```json
 {
   "success": true,
-  "output_path": "/app/output/latex/document_12345.pdf",
+  "output_path": "outputs/mcp-content/latex/document_12345.pdf",
+  "page_count": 5,
+  "file_size_kb": 125.5,
+  "preview_paths": [
+    "outputs/mcp-content/previews/document_12345_page1.png"
+  ],
   "format": "pdf",
-  "visual_feedback": {
-    "format": "jpeg",
-    "encoding": "base64",
-    "data": "<base64_encoded_image>",
-    "size_kb": 45.2
-  }
+  "compile_time_seconds": 2.34
+}
+```
+
+**Note**: Output paths are now project-relative (e.g., `outputs/mcp-content/...`) instead of container-internal paths. This makes it clear where files are located on the host filesystem.
+
+#### Symlink Warnings
+If the tool cannot symlink files for relative includes, warnings are included in the response:
+```json
+{
+  "success": true,
+  "output_path": "outputs/mcp-content/latex/document_12345.pdf",
+  "symlink_warnings": [
+    "Failed to symlink 'large_image.png': [Errno 13] Permission denied"
+  ]
 }
 ```
 
@@ -152,25 +205,37 @@ The Dockerfile is located at `docker/mcp-content.Dockerfile`.
 
 ## Output Directory Structure
 
-The server organizes output files in subdirectories:
+The server organizes output files in subdirectories. Paths returned by the tools are **project-relative** for easy access on the host filesystem:
 
+**Host filesystem (project-relative paths returned by tools):**
 ```
-/app/output/
-├── manim/      # Manim animations
-│   ├── animation_12345.mp4
-│   └── media/  # Manim working directory
-└── latex/      # LaTeX documents
-    ├── document_12345.pdf
-    └── document_12345.log
+outputs/mcp-content/
+├── manim/           # Manim animations
+│   └── videos/      # Rendered animations
+├── latex/           # Compiled LaTeX documents
+│   ├── document_12345.pdf
+│   └── tikz_12345.png
+└── previews/        # PNG preview images
+    └── document_12345_page1.png
 ```
+
+**Container internal paths (for reference only):**
+```
+/output/
+├── manim/
+├── latex/
+└── previews/
+```
+
+The mapping is defined by docker-compose volume mount: `./outputs/mcp-content:/output`
 
 ## Configuration
 
 ### Environment Variables
 
-- `MCP_CONTENT_PORT`: Server port (default: 8011)
-- `MCP_CONTENT_OUTPUT_DIR`: Output directory (default: /app/output)
-- `MCP_CONTENT_LOG_LEVEL`: Logging level (default: INFO)
+- `MCP_OUTPUT_DIR`: Output directory (default: /app/output, container: /output)
+- `MCP_APP_DIR`: Application/project root for path resolution (default: /app)
+- `PORT`: Server port (default: 8011)
 
 ## Examples
 

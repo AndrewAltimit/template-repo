@@ -16,6 +16,11 @@ from mcp_core.utils import ensure_directory, setup_logging
 PREVIEW_DPI_STANDARD = 150  # Standard resolution
 PREVIEW_DPI_HIGH = 300  # High resolution
 
+# Container-to-host path mapping configuration
+# Container path /output maps to host path outputs/mcp-content/
+CONTAINER_OUTPUT_PREFIX = "/output"
+HOST_OUTPUT_PREFIX = "outputs/mcp-content"
+
 
 class ContentCreationMCPServer(BaseMCPServer):
     """MCP Server for content creation - Manim animations and LaTeX documents"""
@@ -51,6 +56,87 @@ class ContentCreationMCPServer(BaseMCPServer):
     # =========================================================================
     # Helper Methods
     # =========================================================================
+
+    def _to_project_relative_path(self, container_path: str) -> str:
+        """Convert container-internal path to project-relative path.
+
+        Args:
+            container_path: Path inside container (e.g., /output/latex/doc.pdf)
+
+        Returns:
+            Project-relative path for host filesystem (e.g., outputs/mcp-content/latex/doc.pdf)
+
+        Note:
+            Container path /output maps to host path outputs/mcp-content/
+            This is defined by docker-compose volume mount: ./outputs/mcp-content:/output
+        """
+        if container_path.startswith(CONTAINER_OUTPUT_PREFIX):
+            relative_part = container_path[len(CONTAINER_OUTPUT_PREFIX) :].lstrip("/")
+            return f"{HOST_OUTPUT_PREFIX}/{relative_part}" if relative_part else HOST_OUTPUT_PREFIX
+        # Return as-is if not in container output directory
+        return container_path
+
+    def _convert_paths_in_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert all container paths in result dictionary to project-relative paths.
+
+        Args:
+            result: Result dictionary that may contain output_path or preview_paths
+
+        Returns:
+            Result dictionary with paths converted to project-relative format
+        """
+        if "output_path" in result and result["output_path"]:
+            result["output_path"] = self._to_project_relative_path(result["output_path"])
+
+        if "preview_paths" in result and result["preview_paths"]:
+            result["preview_paths"] = [self._to_project_relative_path(p) for p in result["preview_paths"]]
+
+        if "pdf_path" in result and result["pdf_path"]:
+            result["pdf_path"] = self._to_project_relative_path(result["pdf_path"])
+
+        return result
+
+    def _resolve_input_path(self, input_path: str) -> str:
+        """Resolve input path with clear error messages for common issues.
+
+        Args:
+            input_path: Path provided by user (absolute or relative)
+
+        Returns:
+            Resolved absolute path
+
+        Raises:
+            FileNotFoundError: If the path doesn't exist, with helpful message
+
+        Path Resolution Rules:
+            1. Absolute paths (starting with /) are used as-is
+            2. Relative paths are resolved relative to /app (project root in container)
+            3. In container: /app is the project root (read-only mount)
+            4. On host: relative paths are resolved from current working directory
+        """
+        # If already absolute, use as-is
+        if os.path.isabs(input_path):
+            resolved = input_path
+        else:
+            # Resolve relative to /app in container (project root)
+            # This matches the docker-compose volume mount: .:/app:ro
+            app_dir = os.environ.get("MCP_APP_DIR", "/app")
+            resolved = os.path.join(app_dir, input_path)
+
+        if not os.path.exists(resolved):
+            # Provide helpful error message
+            error_msg = f"Input file not found: {input_path}"
+            if not os.path.isabs(input_path):
+                error_msg += (
+                    f"\n\nPath Resolution Info:"
+                    f"\n  - Relative paths are resolved from project root (/app in container)"
+                    f"\n  - Resolved path: {resolved}"
+                    f"\n  - Use absolute paths starting with / for explicit locations"
+                    f"\n  - Example: 'docs/file.tex' resolves to '/app/docs/file.tex'"
+                )
+            raise FileNotFoundError(error_msg)
+
+        return resolved
 
     def _get_pdf_page_count(self, pdf_path: str) -> int:
         """Extract page count from PDF using pdfinfo.
@@ -335,44 +421,70 @@ class ContentCreationMCPServer(BaseMCPServer):
         self._finalize_compile_result(result_data, output_format, compile_time, response_mode)
         return result_data
 
-    def _cleanup_latex_temp_files(self, tex_file: str, working_dir: str, cleanup_tex: bool) -> None:
-        """Clean up temporary LaTeX files after compilation."""
-        if cleanup_tex:
+    def _cleanup_latex_temp_files(self, tex_file: str, working_dir: str, keep_intermediate_files: bool = False) -> None:
+        """Clean up temporary LaTeX files after compilation.
+
+        Args:
+            tex_file: Path to the .tex file
+            working_dir: Working directory containing temp files
+            keep_intermediate_files: If True, keep .aux, .log, etc. for debugging.
+                                     If False (default), remove entire temp directory.
+
+        Note:
+            The default behavior (keep_intermediate_files=False) removes the entire
+            temp directory. Set keep_intermediate_files=True to preserve intermediate
+            files like .aux, .log, .out for debugging compilation issues.
+        """
+        if keep_intermediate_files:
+            # Only remove the source .tex file, keep aux/log for debugging
             base = tex_file[:-4]
-            for ext in [".tex", ".aux", ".log", ".out", ".toc", ".dvi", ".ps"]:
+            for ext in [".tex", ".out", ".toc", ".dvi", ".ps"]:
                 try:
                     temp_file = base + ext
                     if os.path.exists(temp_file):
                         os.unlink(temp_file)
                 except Exception:
                     pass
+            # Keep .aux and .log for debugging
+            self.logger.debug("Keeping intermediate files in: %s", working_dir)
         else:
+            # Default: clean up entire temp directory
             try:
                 shutil.rmtree(working_dir)
-            except Exception:
-                pass
+            except Exception as e:
+                self.logger.warning("Failed to clean up temp directory %s: %s", working_dir, e)
 
     def _convert_pdf_to_image(self, pdf_path: str, output_format: str, response_mode: str) -> Dict[str, Any]:
         """Convert PDF to PNG or SVG format.
 
         Args:
-            pdf_path: Path to source PDF
+            pdf_path: Path to source PDF (may be project-relative or container path)
             output_format: Target format ('png' or 'svg')
             response_mode: Response verbosity level (minimal/standard)
 
         Returns:
-            Result dictionary with success status and output path
+            Result dictionary with success status and project-relative output path
         """
+        # Handle both project-relative and container paths for input
+        # If the path is project-relative, we need to get the actual basename
         base_name = os.path.splitext(os.path.basename(pdf_path))[0]
         output_path = os.path.join(self.latex_output_dir, f"{base_name}.{output_format}")
 
+        # For conversion, we need the actual container path for the PDF
+        # If it's project-relative, convert back for the subprocess
+        actual_pdf_path = pdf_path
+        if pdf_path.startswith(HOST_OUTPUT_PREFIX):
+            # Convert project-relative back to container path for subprocess
+            relative_part = pdf_path[len(HOST_OUTPUT_PREFIX) :].lstrip("/")
+            actual_pdf_path = f"{CONTAINER_OUTPUT_PREFIX}/{relative_part}"
+
         if output_format == "png":
             self._run_subprocess_with_logging(
-                ["pdftoppm", "-png", "-singlefile", "-r", str(PREVIEW_DPI_HIGH), pdf_path, output_path[:-4]],
+                ["pdftoppm", "-png", "-singlefile", "-r", str(PREVIEW_DPI_HIGH), actual_pdf_path, output_path[:-4]],
                 check=True,
             )
         elif output_format == "svg":
-            self._run_subprocess_with_logging(["pdf2svg", pdf_path, output_path], check=True)
+            self._run_subprocess_with_logging(["pdf2svg", actual_pdf_path, output_path], check=True)
 
         if not os.path.exists(output_path):
             return {"success": False, "error": f"Conversion to {output_format} failed"}
@@ -385,7 +497,8 @@ class ContentCreationMCPServer(BaseMCPServer):
         if response_mode == "standard":
             result_data["format"] = output_format
 
-        return result_data
+        # Convert container paths to project-relative paths
+        return self._convert_paths_in_result(result_data)
 
     def _run_subprocess_with_logging(
         self, cmd: list, cwd: Optional[str] = None, check: bool = False
@@ -619,11 +732,14 @@ class ContentCreationMCPServer(BaseMCPServer):
                 for root, _, files in os.walk(self.manim_output_dir):
                     output_files.extend(os.path.join(root, f) for f in files if f.endswith(f".{output_format}"))
 
-            return {
+            result_data: Dict[str, Any] = {
                 "success": True,
                 "format": output_format,
                 "output_path": output_files[0] if output_files else None,
             }
+
+            # Convert container paths to project-relative paths
+            return self._convert_paths_in_result(result_data)
 
         except FileNotFoundError:
             return {
@@ -669,15 +785,17 @@ class ContentCreationMCPServer(BaseMCPServer):
 
         # Read content from file if input_path provided
         working_dir = None
+        symlink_warnings: List[str] = []
         if input_path is not None:
-            if not os.path.exists(input_path):
-                return {"success": False, "error": f"Input file not found: {input_path}"}
             try:
-                with open(input_path, "r", encoding="utf-8") as f:
+                resolved_path = self._resolve_input_path(input_path)
+                with open(resolved_path, "r", encoding="utf-8") as f:
                     content = f.read()
                 # Use the directory containing the .tex file as working directory
                 # This allows relative paths for \include, \input, images, etc.
-                working_dir = os.path.dirname(os.path.abspath(input_path))
+                working_dir = os.path.dirname(resolved_path)
+            except FileNotFoundError as e:
+                return {"success": False, "error": str(e)}
             except Exception as e:
                 return {"success": False, "error": f"Failed to read input file: {e}"}
 
@@ -692,7 +810,7 @@ class ContentCreationMCPServer(BaseMCPServer):
             # Always use temp directory for compilation to handle read-only mounts
             tmpdir = tempfile.mkdtemp(prefix="mcp_latex_")
             tex_file = os.path.join(tmpdir, "document.tex")
-            cleanup_tex = False
+            keep_intermediate_files = False  # Set True for debugging
 
             # If we had a working_dir (from input_path), symlink contents for relative includes
             if working_dir:
@@ -702,8 +820,11 @@ class ContentCreationMCPServer(BaseMCPServer):
                     if not os.path.exists(dst):
                         try:
                             os.symlink(src, dst)
-                        except OSError:
-                            pass  # Skip if symlink fails
+                        except OSError as e:
+                            # Log warning instead of silently ignoring
+                            warning_msg = f"Failed to symlink '{item}': {e}"
+                            self.logger.warning(warning_msg)
+                            symlink_warnings.append(warning_msg)
             working_dir = tmpdir
 
             try:
@@ -717,13 +838,20 @@ class ContentCreationMCPServer(BaseMCPServer):
                     log_file = tex_file.replace(".tex", ".log")
                     return {"success": False, "error": self._extract_latex_error(log_file)}
 
-                # Build and return success response
-                return self._build_compile_success_response(
+                # Build success response
+                result = self._build_compile_success_response(
                     output_file, output_format, start_time, preview_pages, preview_dpi, response_mode
                 )
 
+                # Add symlink warnings if any occurred
+                if symlink_warnings:
+                    result["symlink_warnings"] = symlink_warnings
+
+                # Convert container paths to project-relative paths
+                return self._convert_paths_in_result(result)
+
             finally:
-                self._cleanup_latex_temp_files(tex_file, working_dir, cleanup_tex)
+                self._cleanup_latex_temp_files(tex_file, working_dir, keep_intermediate_files)
 
         except FileNotFoundError:
             return {"success": False, "error": f"{compiler} not found. Please install LaTeX."}
@@ -840,7 +968,8 @@ class ContentCreationMCPServer(BaseMCPServer):
                 result_data["page_count"] = page_count
                 result_data["pages_exported"] = pages_to_export
 
-            return result_data
+            # Convert container paths to project-relative paths
+            return self._convert_paths_in_result(result_data)
 
         except Exception as e:
             self.logger.error("PDF preview error: %s", str(e))
