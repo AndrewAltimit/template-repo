@@ -40,15 +40,15 @@ class TestPerModelConfiguration(unittest.TestCase):
 
     def test_get_model_tool_mode(self):
         """Test getting tool mode for specific models"""
-        import gemini_proxy_wrapper
         from gemini_proxy_wrapper import get_model_tool_mode
 
-        # Patch CONFIG in both modules (wrapper and translation)
-        import translation  # noqa: F401 - needed for CONFIG patching  # pylint: disable=unused-import
+        # Patch CONFIG and DEFAULT_TOOL_MODE in translation module
+        import translation
 
         with patch.dict("gemini_proxy_wrapper.CONFIG", self.test_config):
             with patch.dict("translation.CONFIG", self.test_config):
-                with patch.object(gemini_proxy_wrapper, "DEFAULT_TOOL_MODE", "native"):
+                # Must patch DEFAULT_TOOL_MODE in translation module where get_model_tool_mode is defined
+                with patch.object(translation, "DEFAULT_TOOL_MODE", "native"):
                     # Model with native mode
                     self.assertEqual(get_model_tool_mode("model-native"), "native")
 
@@ -193,19 +193,19 @@ class TestHealthEndpoint(unittest.TestCase):
 
     def test_health_shows_model_modes(self):
         """Test that health endpoint shows tool modes for all models"""
-        import gemini_proxy_wrapper
         from gemini_proxy_wrapper import get_model_tool_mode
-        import translation  # noqa: F401 - needed for CONFIG patching  # pylint: disable=unused-import
+        import translation  # Used for patch.object and patch.dict
 
         test_config = {
             "models": {"model1": {"tool_mode": "native"}, "model2": {"tool_mode": "text"}, "model3": {}},  # No tool_mode
             "default_tool_mode": "native",
         }
 
-        # Patch CONFIG in both modules and DEFAULT_TOOL_MODE
+        # Patch CONFIG in both modules and DEFAULT_TOOL_MODE in translation module
         with patch.dict("gemini_proxy_wrapper.CONFIG", test_config):
             with patch.dict("translation.CONFIG", test_config):
-                with patch.object(gemini_proxy_wrapper, "DEFAULT_TOOL_MODE", "native"):
+                # Must patch DEFAULT_TOOL_MODE in translation module where get_model_tool_mode is defined
+                with patch.object(translation, "DEFAULT_TOOL_MODE", "native"):
                     # Test get_model_tool_mode directly
                     self.assertEqual(get_model_tool_mode("model1"), "native")
                     self.assertEqual(get_model_tool_mode("model2"), "text")
