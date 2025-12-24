@@ -506,7 +506,7 @@ runs:
 
         echo "::endgroup::"
 
-    # Step 7: Create work branch
+    # Step 7: Create work branch (always from main)
     - name: Create work branch
       id: branch
       if: steps.claim.outputs.claimed == 'true'
@@ -517,11 +517,18 @@ runs:
       run: |
         echo "::group::Create Work Branch"
 
+        # Always create agent branches from main to ensure clean base
+        echo "Fetching latest main branch..."
+        git fetch origin main
+        git checkout main
+        git pull origin main
+
         BRANCH_NAME="agent/$AGENT_NAME/issue-$ISSUE_NUMBER"
+        echo "Creating branch $BRANCH_NAME from main..."
         git checkout -b "$BRANCH_NAME"
 
         echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
-        echo "Created branch: $BRANCH_NAME"
+        echo "Created branch: $BRANCH_NAME (from main)"
 
         echo "::endgroup::"
 
