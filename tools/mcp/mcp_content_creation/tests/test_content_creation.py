@@ -230,6 +230,40 @@ class TestPathResolution:
             result = server._resolve_input_path("docs/file.tex")
             assert result == "/custom/root/docs/file.tex"
 
+    def test_resolve_input_path_blocks_traversal_relative(self):
+        """Test that relative paths with traversal are blocked"""
+        server = ContentCreationMCPServer()
+        # Attempting to traverse outside project root should raise ValueError
+        with pytest.raises(ValueError, match="Path traversal detected"):
+            server._resolve_input_path("../../../etc/passwd")
+
+    def test_resolve_input_path_allows_absolute_outside_project(self):
+        """Test that absolute paths outside project root are allowed (explicit user intent)"""
+        server = ContentCreationMCPServer()
+        # Absolute paths are allowed even outside project root - user explicitly requested
+        result = server._resolve_input_path("/etc/passwd")
+        assert result == "/etc/passwd"
+
+    def test_resolve_input_path_normalizes_absolute_with_traversal(self):
+        """Test that absolute paths with '..' are normalized"""
+        server = ContentCreationMCPServer()
+        # Absolute path with ".." should be normalized
+        result = server._resolve_input_path("/app/../etc/passwd")
+        assert result == "/etc/passwd"
+
+    def test_resolve_input_path_allows_valid_nested_paths(self):
+        """Test that valid nested paths within project root are allowed"""
+        server = ContentCreationMCPServer()
+        # Valid nested path with ".." that stays within project root
+        result = server._resolve_input_path("docs/../documents/thesis.tex")
+        assert result == "/app/documents/thesis.tex"
+
+    def test_resolve_input_path_allows_absolute_within_project(self):
+        """Test that absolute paths within project root are allowed"""
+        server = ContentCreationMCPServer()
+        result = server._resolve_input_path("/app/documents/thesis.tex")
+        assert result == "/app/documents/thesis.tex"
+
 
 class TestSymlinkWarnings:
     """Test suite for symlink warning functionality"""

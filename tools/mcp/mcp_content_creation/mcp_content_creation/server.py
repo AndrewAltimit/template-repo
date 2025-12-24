@@ -88,15 +88,43 @@ class ContentCreationMCPServer(BaseMCPServer):
         Input paths are interpreted as project-relative paths. They are resolved
         relative to the project root (container: /app, host: cwd).
 
+        Security: For relative paths, this method validates that the resolved path
+        stays within the project root to prevent path traversal attacks (e.g.,
+        ../../../etc/passwd). Absolute paths are normalized but allowed to access
+        locations outside the project root (explicit user intent).
+
         Args:
             input_path: Path to resolve (can be relative or absolute)
 
         Returns:
             Absolute path for file operations
+
+        Raises:
+            ValueError: If a relative path resolves outside the project root
         """
         if os.path.isabs(input_path):
-            return input_path
-        return os.path.join(self.project_root, input_path)
+            # For absolute paths, normalize to handle any ".." segments
+            # but allow access outside project root (explicit user intent)
+            return os.path.abspath(input_path)
+
+        # For relative paths, resolve relative to project root
+        project_root_abs = os.path.abspath(self.project_root)
+        resolved = os.path.abspath(os.path.join(self.project_root, input_path))
+
+        # Security check: ensure relative paths stay within project root
+        # This prevents path traversal attacks like "../../../etc/passwd"
+        try:
+            common = os.path.commonpath([project_root_abs, resolved])
+            if common != project_root_abs:
+                raise ValueError(f"Path traversal detected: '{input_path}' resolves outside project root")
+        except ValueError as e:
+            # commonpath raises ValueError for paths on different drives (Windows)
+            # or if the paths are malformed
+            if "Path traversal" in str(e):
+                raise
+            raise ValueError(f"Invalid path: '{input_path}' cannot be resolved within project root") from e
+
+        return resolved
 
     def _get_pdf_page_count(self, pdf_path: str) -> int:
         """Extract page count from PDF using pdfinfo.
@@ -747,8 +775,11 @@ class ContentCreationMCPServer(BaseMCPServer):
         working_dir = None
         symlink_warnings: List[str] = []
         if input_path is not None:
-            # Resolve input path relative to project root
-            resolved_path = self._resolve_input_path(input_path)
+            # Resolve input path relative to project root (with path traversal protection)
+            try:
+                resolved_path = self._resolve_input_path(input_path)
+            except ValueError as e:
+                return {"success": False, "error": str(e)}
             if not os.path.exists(resolved_path):
                 return {
                     "success": False,
@@ -904,8 +935,11 @@ class ContentCreationMCPServer(BaseMCPServer):
         Returns:
             Dictionary with preview paths and metadata
         """
-        # Resolve input path relative to project root
-        resolved_path = self._resolve_input_path(pdf_path)
+        # Resolve input path relative to project root (with path traversal protection)
+        try:
+            resolved_path = self._resolve_input_path(pdf_path)
+        except ValueError as e:
+            return {"success": False, "error": str(e)}
         if not os.path.exists(resolved_path):
             return {
                 "success": False,
