@@ -137,6 +137,8 @@ runs:
         else
           echo "::warning::python3-venv not available, using user install"
           pip install --user -e ./packages/github_agents
+          # Add user bin to PATH for subsequent steps
+          echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
           echo "AGENT_VENV_DIR=" >> $GITHUB_ENV
         fi
 
@@ -655,7 +657,7 @@ runs:
             if [ "$USE_DOCKER" = "true" ]; then
               echo "Running Gemini in Docker..."
               if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
-                gemini-agent gemini < "$CONTEXT_FILE"; then
+                mcp-gemini gemini < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
               else
                 AGENT_ERROR="Gemini Docker execution failed"
