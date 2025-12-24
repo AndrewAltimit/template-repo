@@ -1,0 +1,145 @@
+---
+# Example: Scheduled Agent Work Pipeline
+#
+# This workflow demonstrates how to use the board-agent-worker reusable workflow
+# for scheduled autonomous agent work. Copy and customize for your environment.
+#
+# Enterprise Pattern: This is designed to be copied by organizations setting up
+# their own agentic pipelines. Key customization points are marked with comments.
+
+name: Scheduled Agent Work
+
+on:
+  # Run on schedule - customize frequency as needed
+  schedule:
+    # Every 2 hours during business hours (9am-5pm UTC, Mon-Fri)
+    - cron: '0 9-17/2 * * 1-5'
+
+  # Manual trigger for testing and on-demand work
+  workflow_dispatch:
+    inputs:
+      agent:
+        description: 'Agent to use'
+        required: true
+        type: choice
+        options:
+          - claude
+          - opencode
+          - crush
+          - gemini
+        default: 'claude'
+      max-issues:
+        description: 'Maximum issues to process'
+        required: false
+        type: number
+        default: 1
+      dry-run:
+        description: 'Dry run (query only, no execution)'
+        required: false
+        type: boolean
+        default: false
+
+# Ensure only one agent run at a time per agent type
+concurrency:
+  group: scheduled-agent-${{ github.event.inputs.agent || 'claude' }}
+  cancel-in-progress: false
+
+jobs:
+  # Job 1: Run the agent work
+  agent-work:
+    name: Execute Agent Work
+    uses: ./.github/workflows/board-agent-worker.yml
+    with:
+      # CUSTOMIZE: Set your preferred agent
+      agent-name: ${{ github.event.inputs.agent || 'claude' }}
+
+      # CUSTOMIZE: Path to your board configuration
+      board-config-path: ai-agents-board.yml
+
+      # CUSTOMIZE: How many issues to process per run
+      max-issues: ${{ fromJSON(github.event.inputs.max-issues || '1') }}
+
+      # CUSTOMIZE: Agent timeout (increase for complex tasks)
+      agent-timeout: 30
+
+      # Execution settings
+      dry-run: ${{ github.event.inputs.dry-run || false }}
+      create-pr: true
+      use-docker: true
+
+      # CUSTOMIZE: Runner type
+      runs-on: self-hosted
+
+    secrets:
+      # REQUIRED: Token with repo write access
+      github-token: ${{ secrets.AGENT_TOKEN }}
+
+      # REQUIRED: Classic token with project scope
+      github-projects-token: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
+
+      # OPTIONAL: For OpenCode/Crush agents
+      openrouter-api-key: ${{ secrets.OPENROUTER_API_KEY }}
+
+  # Job 2: Post-work notifications (optional)
+  notify:
+    name: Send Notifications
+    needs: agent-work
+    runs-on: ubuntu-latest
+    if: always() && needs.agent-work.outputs.has-work == 'True'
+
+    steps:
+      - name: Notify on success
+        if: needs.agent-work.outputs.work-completed == 'true'
+        run: |
+          echo "Agent completed work on issue #${{ needs.agent-work.outputs.issue-number }}"
+
+          # CUSTOMIZE: Add your notification logic here
+          # Examples:
+          # - Slack webhook
+          # - Email notification
+          # - Teams message
+          # - Discord webhook
+
+          # Example Slack notification (uncomment and configure):
+          # curl -X POST ${{ secrets.SLACK_WEBHOOK }} \
+          #   -H 'Content-type: application/json' \
+          #   -d '{
+          #     "text": "Agent completed work on issue #${{ needs.agent-work.outputs.issue-number }}",
+          #     "blocks": [
+          #       {
+          #         "type": "section",
+          #         "text": {
+          #           "type": "mrkdwn",
+          #           "text": "*Agent Work Completed*\n\nIssue: #${{ needs.agent-work.outputs.issue-number }}\nTitle: ${{ needs.agent-work.outputs.issue-title }}\nPR: ${{ needs.agent-work.outputs.pr-url }}"
+          #         }
+          #       }
+          #     ]
+          #   }'
+
+      - name: Notify on failure
+        if: needs.agent-work.outputs.work-completed != 'true' && needs.agent-work.result != 'skipped'
+        run: |
+          echo "Agent failed or incomplete on issue #${{ needs.agent-work.outputs.issue-number }}"
+
+          # CUSTOMIZE: Add failure notification logic
+
+  # Job 3: Weekly summary report (optional)
+  weekly-summary:
+    name: Weekly Summary
+    needs: agent-work
+    runs-on: ubuntu-latest
+    # Only run on Fridays at 5pm
+    if: github.event_name == 'schedule' && github.event.schedule == '0 17 * * 5'
+
+    steps:
+      - name: Generate weekly report
+        run: |
+          echo "## Weekly Agent Work Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This is a placeholder for weekly reporting." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "CUSTOMIZE: Add logic to aggregate weekly metrics:" >> $GITHUB_STEP_SUMMARY
+          echo "- Issues completed" >> $GITHUB_STEP_SUMMARY
+          echo "- PRs created" >> $GITHUB_STEP_SUMMARY
+          echo "- Success rate" >> $GITHUB_STEP_SUMMARY
+          echo "- Agent performance comparison" >> $GITHUB_STEP_SUMMARY

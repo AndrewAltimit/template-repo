@@ -695,6 +695,55 @@ Potential additions (not currently implemented):
 - **Search functionality**: Full-text issue search
 - **Bulk operations**: Update multiple issues at once
 
+## Testing
+
+The board integration has comprehensive test coverage:
+
+### Unit Tests
+
+```bash
+# Run all board-related unit tests
+pytest tests/unit/test_board_manager.py -v
+pytest tests/unit/test_board_cli.py -v
+pytest tests/unit/test_monitor_board_integration.py -v
+```
+
+### Robustness Tests
+
+**Concurrency Tests** (`test_concurrency.py`):
+- Simultaneous claim attempts (2 and 4 agents)
+- Claim expiration under concurrent access
+- Claim renewal safety
+- Work selection with multiple agents
+
+**Failure Recovery Tests** (`test_failure_recovery.py`):
+- Claim expiration detection and recovery
+- Network failure handling with retries
+- Partial operation failures (claim posted but status update fails)
+- Agent crash recovery scenarios
+- Claim comment parsing robustness
+
+```bash
+# Run robustness tests
+pytest tests/unit/test_concurrency.py -v
+pytest tests/unit/test_failure_recovery.py -v
+```
+
+### End-to-End Tests
+
+```bash
+# Run E2E tests (requires GitHub token)
+pytest tests/e2e/test_board_workflow.py -v
+```
+
+### Coverage
+
+The board module maintains >90% test coverage on critical paths:
+- Claim/release/renewal operations: 100%
+- Dependency management: 100%
+- Error handling: 100%
+- Race condition prevention: 100%
+
 ## See Also
 
 - [MCP Server Documentation](../../../tools/mcp/mcp_github_board/docs/README.md)

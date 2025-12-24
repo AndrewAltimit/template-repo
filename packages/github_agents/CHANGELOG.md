@@ -10,12 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Support for `GITHUB_PROJECTS_TOKEN` environment variable for board operations
 - Enhanced security with separate tokens for Projects v2 (classic) vs repository operations (fine-grained)
+- Optional agent pattern in trigger comments (`[Approved]` without specifying agent)
+- Agent resolution from board's Agent field when not specified in trigger
+- Comprehensive robustness test suites:
+  - `test_parser_fuzz.py` - 57 fuzz tests for code parser handling malformed AI responses
+  - `test_concurrency.py` - 18 tests for board claim race conditions
+  - `test_failure_recovery.py` - 31 tests for claim expiration and error recovery
+- `test_optional_agent_resolution.py` - 24 tests for optional agent pattern
 
 ### Changed
 - BoardManager now prefers `GITHUB_PROJECTS_TOKEN` over `GITHUB_TOKEN` for board operations
 - Board CLI updated to check for `GITHUB_PROJECTS_TOKEN` first
 - Documentation updated to explain dual token setup and classic token requirement
 - Test fixtures updated to support both token types
+- SecurityManager now supports `[Approved]` without agent specification
+- IssueMonitor and PRMonitor resolve agent from board when not in trigger
+- tests/README.md updated with complete unit test listing
 
 ## [0.2.0] - 2025-10-25
 

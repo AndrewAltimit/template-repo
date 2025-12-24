@@ -42,7 +42,7 @@ class TestSecurityManager:
         """Test parsing trigger comments."""
         manager = SecurityManager()
 
-        # Valid triggers
+        # Valid triggers with agent
         assert manager.parse_trigger_comment("[Approved][Claude]") == (
             "approved",
             "claude",
@@ -62,8 +62,27 @@ class TestSecurityManager:
         # Invalid triggers
         assert manager.parse_trigger_comment("Just a comment") == (None, None)
         assert manager.parse_trigger_comment("[Invalid][Claude]") == (None, None)
-        assert manager.parse_trigger_comment("[Approved]") == (None, None)
         assert manager.parse_trigger_comment("") == (None, None)
+
+    def test_parse_trigger_comment_optional_agent(self):
+        """Test parsing trigger comments with optional agent (board-first mode)."""
+        manager = SecurityManager()
+
+        # Valid triggers without agent - agent should be None (resolved from board)
+        assert manager.parse_trigger_comment("[Approved]") == ("approved", None)
+        assert manager.parse_trigger_comment("[Fix]") == ("fix", None)
+        assert manager.parse_trigger_comment("[Implement]") == ("implement", None)
+        assert manager.parse_trigger_comment("[APPROVED]") == ("approved", None)
+
+        # With agent should still work
+        assert manager.parse_trigger_comment("[Approved][Claude]") == ("approved", "claude")
+
+        # Trigger in longer text
+        text = "Please implement this feature.\n\n[Approved]\n\nThank you!"
+        assert manager.parse_trigger_comment(text) == ("approved", None)
+
+        text_with_agent = "Please implement this.\n\n[Approved][OpenCode]\n\nThanks!"
+        assert manager.parse_trigger_comment(text_with_agent) == ("approved", "opencode")
 
     def test_is_user_allowed(self):
         """Test user authorization."""
@@ -129,6 +148,46 @@ class TestSecurityManager:
         # Should check body for PR
         result = manager.check_trigger_comment(pr, "pr")
         assert result == ("approved", "claude", "AndrewAltimit")
+
+    def test_check_trigger_comment_optional_agent(self):
+        """Test checking trigger comment with optional agent."""
+        manager = SecurityManager()
+
+        # Issue with [Approved] trigger (no agent specified)
+        issue = {
+            "number": 1,
+            "body": "Issue description",
+            "author": {"login": "user1"},
+            "comments": [
+                {"author": {"login": "AndrewAltimit"}, "body": "Looks good!\n\n[Approved]"},
+            ],
+        }
+
+        result = manager.check_trigger_comment(issue, "issue")
+        assert result is not None
+        action, agent, user = result
+        assert action == "approved"
+        assert agent is None  # Agent should be None when not specified
+        assert user == "AndrewAltimit"
+
+    def test_check_trigger_comment_optional_agent_in_body(self):
+        """Test checking trigger in body with optional agent."""
+        manager = SecurityManager()
+
+        # PR with [Fix] trigger in body (no agent)
+        pr = {
+            "number": 10,
+            "body": "This needs to be fixed.\n\n[Fix]",
+            "author": {"login": "AndrewAltimit"},
+            "comments": [],
+        }
+
+        result = manager.check_trigger_comment(pr, "pr")
+        assert result is not None
+        action, agent, user = result
+        assert action == "fix"
+        assert agent is None
+        assert user == "AndrewAltimit"
 
     def test_check_trigger_comment_no_valid_trigger(self):
         """Test when no valid trigger found."""
@@ -223,9 +282,17 @@ class TestSecurityManager:
 
         regex = re.compile(pattern, re.IGNORECASE)
 
+        # With agent
         assert regex.match("[Approved][Claude]") is not None
         assert regex.match("[Fix][OpenCode]") is not None
         assert regex.match("[implement][gemini]") is not None
+
+        # Without agent (optional agent pattern)
+        assert regex.match("[Approved]") is not None
+        assert regex.match("[Fix]") is not None
+        assert regex.match("[Implement]") is not None
+
+        # Invalid triggers
         assert regex.match("[Invalid][Claude]") is None
         assert regex.match("Not a trigger") is None
 

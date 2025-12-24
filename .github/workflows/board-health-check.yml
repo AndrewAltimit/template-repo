@@ -1,0 +1,237 @@
+---
+# Health Check Workflow for Board Agent System
+#
+# Runs periodic health checks and generates a status badge.
+# Can be used as a quick diagnostic for board connectivity and configuration.
+
+name: Board Health Check
+
+on:
+  # Run daily at 6 AM UTC
+  schedule:
+    - cron: '0 6 * * *'
+
+  # Manual trigger for on-demand checks
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: 'Enable verbose output'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  health-check:
+    name: Board System Health
+    runs-on: self-hosted
+    timeout-minutes: 5
+
+    outputs:
+      status: ${{ steps.check.outputs.status }}
+      board-connected: ${{ steps.check.outputs.board_connected }}
+      config-valid: ${{ steps.check.outputs.config_valid }}
+      agents-available: ${{ steps.check.outputs.agents_available }}
+      ready-work-count: ${{ steps.check.outputs.ready_work_count }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        run: |
+          echo "::group::Setup Python Environment"
+          python3 --version
+          pip3 install --user -e ./packages/github_agents
+          echo "::endgroup::"
+
+      - name: Run health checks
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
+          BOARD_CONFIG_PATH: ai-agents-board.yml
+          VERBOSE: ${{ inputs.verbose || 'false' }}
+        run: |
+          echo "::group::Health Checks"
+
+          HEALTH_RESULT=$(python3 << 'PYTHON_SCRIPT'
+          import asyncio
+          import json
+          import os
+          import sys
+
+          async def run_health_checks():
+              results = {
+                  "board_connected": False,
+                  "config_valid": False,
+                  "agents_available": [],
+                  "ready_work_count": 0,
+                  "errors": []
+              }
+
+              verbose = os.environ.get('VERBOSE', 'false') == 'true'
+
+              # Check 1: Configuration file exists and is valid
+              config_path = os.environ.get('BOARD_CONFIG_PATH', 'ai-agents-board.yml')
+              try:
+                  from github_agents.board.config import load_config
+                  config = load_config(config_path)
+                  results["config_valid"] = True
+                  if verbose:
+                      print(f"Config loaded from {config_path}", file=sys.stderr)
+              except Exception as e:
+                  results["errors"].append(f"Config error: {str(e)}")
+                  print(json.dumps(results))
+                  return
+
+              # Check 2: Board connectivity
+              try:
+                  from github_agents.board.manager import BoardManager
+                  async with BoardManager(config=config) as manager:
+                      results["board_connected"] = True
+                      if verbose:
+                          print("Board connection successful", file=sys.stderr)
+
+                      # Check 3: Query ready work count
+                      try:
+                          issues = await manager.get_ready_work(limit=100)
+                          results["ready_work_count"] = len(issues)
+                          if verbose:
+                              print(f"Found {len(issues)} ready work items", file=sys.stderr)
+                      except Exception as e:
+                          results["errors"].append(f"Query error: {str(e)}")
+
+              except Exception as e:
+                  results["errors"].append(f"Board connection error: {str(e)}")
+
+              # Check 4: Agent availability
+              agent_checks = [
+                  ("claude", "claude"),
+                  ("opencode", "opencode"),
+                  ("crush", "crush"),
+                  ("gemini", "gemini"),
+                  ("codex", "codex"),
+              ]
+
+              import shutil
+              for agent_name, cmd in agent_checks:
+                  if shutil.which(cmd):
+                      results["agents_available"].append(agent_name)
+
+              print(json.dumps(results))
+
+          asyncio.run(run_health_checks())
+          PYTHON_SCRIPT
+          )
+
+          echo "Health check result: $HEALTH_RESULT"
+
+          # Parse results
+          BOARD_CONNECTED=$(echo "$HEALTH_RESULT" | python3 -c "import sys,json; print('true' if json.load(sys.stdin).get('board_connected') else 'false')")
+          CONFIG_VALID=$(echo "$HEALTH_RESULT" | python3 -c "import sys,json; print('true' if json.load(sys.stdin).get('config_valid') else 'false')")
+          AGENTS=$(echo "$HEALTH_RESULT" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin).get('agents_available', [])))")
+          READY_COUNT=$(echo "$HEALTH_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('ready_work_count', 0))")
+          ERRORS=$(echo "$HEALTH_RESULT" | python3 -c "import sys,json; print(';'.join(json.load(sys.stdin).get('errors', [])))")
+
+          # Determine overall status
+          if [ "$BOARD_CONNECTED" = "true" ] && [ "$CONFIG_VALID" = "true" ]; then
+              STATUS="healthy"
+          elif [ "$CONFIG_VALID" = "true" ]; then
+              STATUS="degraded"
+          else
+              STATUS="unhealthy"
+          fi
+
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "board_connected=$BOARD_CONNECTED" >> $GITHUB_OUTPUT
+          echo "config_valid=$CONFIG_VALID" >> $GITHUB_OUTPUT
+          echo "agents_available=$AGENTS" >> $GITHUB_OUTPUT
+          echo "ready_work_count=$READY_COUNT" >> $GITHUB_OUTPUT
+          echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+
+          echo "::endgroup::"
+
+      - name: Generate health report
+        if: always()
+        env:
+          STATUS: ${{ steps.check.outputs.status }}
+          BOARD_CONNECTED: ${{ steps.check.outputs.board_connected }}
+          CONFIG_VALID: ${{ steps.check.outputs.config_valid }}
+          AGENTS: ${{ steps.check.outputs.agents_available }}
+          READY_COUNT: ${{ steps.check.outputs.ready_work_count }}
+        run: |
+          # Generate status emoji
+          case "$STATUS" in
+            healthy)
+              STATUS_EMOJI="passing"
+              STATUS_COLOR="brightgreen"
+              ;;
+            degraded)
+              STATUS_EMOJI="degraded"
+              STATUS_COLOR="yellow"
+              ;;
+            *)
+              STATUS_EMOJI="failing"
+              STATUS_COLOR="red"
+              ;;
+          esac
+
+          # Generate Step Summary
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## Board System Health Check
+
+          ![Status](https://img.shields.io/badge/status-${STATUS_EMOJI}-${STATUS_COLOR})
+
+          ### System Status
+
+          | Component | Status |
+          |-----------|--------|
+          | Configuration | $([[ "$CONFIG_VALID" = "true" ]] && echo "Valid" || echo "Invalid") |
+          | Board Connection | $([[ "$BOARD_CONNECTED" = "true" ]] && echo "Connected" || echo "Disconnected") |
+          | Ready Work Items | $READY_COUNT |
+
+          ### Available Agents
+
+          EOF
+
+          # List agents
+          if [ -n "$AGENTS" ]; then
+            IFS=',' read -ra AGENT_LIST <<< "$AGENTS"
+            for agent in "${AGENT_LIST[@]}"; do
+              echo "- \`$agent\`" >> $GITHUB_STEP_SUMMARY
+            done
+          else
+            echo "_No agents available on this runner_" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ---
+          _Last checked: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_
+          EOF
+
+          # Console output
+          echo ""
+          echo "========================================"
+          echo "Board System Health: $STATUS"
+          echo "========================================"
+          echo ""
+          echo "Configuration: $([[ "$CONFIG_VALID" = "true" ]] && echo "Valid" || echo "Invalid")"
+          echo "Board Connection: $([[ "$BOARD_CONNECTED" = "true" ]] && echo "Connected" || echo "Disconnected")"
+          echo "Ready Work: $READY_COUNT items"
+          echo "Agents: $AGENTS"
+          echo ""
+
+      - name: Set job status
+        if: always()
+        run: |
+          if [ "${{ steps.check.outputs.status }}" = "unhealthy" ]; then
+            echo "::error::Board system is unhealthy"
+            exit 1
+          elif [ "${{ steps.check.outputs.status }}" = "degraded" ]; then
+            echo "::warning::Board system is degraded"
+          fi

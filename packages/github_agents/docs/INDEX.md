@@ -117,6 +117,40 @@ The package integrates with GitHub Actions for automated workflows:
 - Issue monitoring (hourly schedule)
 - PR review monitoring (hourly schedule)
 - Automated testing and validation
+- **Board Agent Worker** (reusable workflow for board-based work)
+
+#### Reusable Board Agent Workflow
+
+For enterprise environments, use the reusable workflow for board-based agent work:
+
+```yaml
+name: Scheduled Agent Work
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'  # Every 2 hours
+  workflow_dispatch:
+    inputs:
+      agent:
+        type: choice
+        options: [claude, opencode, crush]
+
+jobs:
+  agent-work:
+    uses: ./.github/workflows/board-agent-worker.yml
+    with:
+      agent-name: ${{ inputs.agent || 'claude' }}
+      board-config-path: ai-agents-board.yml
+      max-issues: 1
+    secrets:
+      github-token: ${{ secrets.AGENT_TOKEN }}
+      github-projects-token: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
+      openrouter-api-key: ${{ secrets.OPENROUTER_API_KEY }}
+```
+
+See [Board Agent Work Action](../../../.github/actions/board-agent-work/README.md) for complete documentation.
+
+#### Basic Issue Monitor
 
 **Example Configuration:**
 ```yaml

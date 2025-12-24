@@ -125,34 +125,39 @@ class SecurityManager:
         return dict(self.config["triggers"])
 
     def parse_trigger_comment(self, text: str) -> Tuple[Optional[str], Optional[str]]:
-        """Parse trigger comment and extract action and agent.
+        """Parse trigger comment and extract action and optional agent.
+
+        Supports two formats:
+        - [Action] - agent will be resolved from board or config
+        - [Action][Agent] - explicit agent override
 
         Args:
             text: Comment text to parse
 
         Returns:
-            Tuple of (action, agent) in lowercase, or (None, None) if invalid
+            Tuple of (action, agent) in lowercase. Agent may be None if not specified.
+            Returns (None, None) if no valid trigger found.
         """
         if not text:
             return (None, None)
 
-        # Pattern: [Action][Agent] - case insensitive
-        pattern = r"\[([A-Za-z]+)\]\[([A-Za-z]+)\]"
+        # Pattern: [Action] with optional [Agent] - case insensitive
+        pattern = r"\[([A-Za-z]+)\](?:\[([A-Za-z]+)\])?"
         match = re.search(pattern, text, re.IGNORECASE)
 
         if not match:
             return (None, None)
 
         action = match.group(1)
-        agent = match.group(2)
+        agent = match.group(2)  # May be None if not specified
 
         # Validate action against allowed triggers (case-insensitive)
         valid_actions_lower = ["approved", "fix", "implement", "close", "summarize"]
         if action.lower() not in valid_actions_lower:
             return (None, None)
 
-        # Return lowercase
-        return (action.lower(), agent.lower())
+        # Return lowercase (agent is None if not specified)
+        return (action.lower(), agent.lower() if agent else None)
 
     def is_user_allowed(self, username: str) -> bool:
         """Check if user is authorized.
@@ -216,10 +221,10 @@ class SecurityManager:
         Returns:
             Regex pattern string
         """
-        # Pattern: [Action][Agent] where Action is one of the valid actions
-        return r"\[(Approved|Fix|Implement|Close|Summarize)\]\[([A-Za-z]+)\]"
+        # Pattern: [Action] with optional [Agent] where Action is one of the valid actions
+        return r"\[(Approved|Fix|Implement|Close|Summarize)\](?:\[([A-Za-z]+)\])?"
 
-    def check_trigger_comment(self, issue_or_pr: Dict, _entity_type: str) -> Optional[Tuple[str, str, str]]:
+    def check_trigger_comment(self, issue_or_pr: Dict, _entity_type: str) -> Optional[Tuple[str, Optional[str], str]]:
         """Check for valid trigger in issue/PR comments.
 
         Args:
@@ -227,14 +232,16 @@ class SecurityManager:
             _entity_type: "issue" or "pr"
 
         Returns:
-            Tuple of (action, agent, username) in lowercase if valid trigger found, None otherwise
+            Tuple of (action, agent, username) if valid trigger found.
+            Agent may be None if not specified in trigger (will be resolved from board).
+            Returns None if no valid trigger found.
         """
         # Check issue/PR body first
         body = issue_or_pr.get("body", "")
         author = issue_or_pr.get("author", {}).get("login", "")
 
         action, agent = self.parse_trigger_comment(body)
-        if action and agent and self._is_user_authorized(author):
+        if action and self._is_user_authorized(author):
             return action, agent, author
 
         # Check comments
@@ -243,7 +250,7 @@ class SecurityManager:
             comment_author = comment.get("author", {}).get("login", "")
 
             action, agent = self.parse_trigger_comment(comment_body)
-            if action and agent and self._is_user_authorized(comment_author):
+            if action and self._is_user_authorized(comment_author):
                 return action, agent, comment_author
 
         return None

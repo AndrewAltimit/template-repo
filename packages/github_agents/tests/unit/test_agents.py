@@ -37,7 +37,7 @@ class TestOpenCodeAgent:
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
             agent = OpenCodeAgent()
             assert agent.env_vars["OPENROUTER_API_KEY"] == "test-key"
-            assert agent.env_vars["OPENCODE_MODEL"] == "openrouter/qwen/qwen-2.5-coder-32b-instruct"
+            assert agent.env_vars["OPENCODE_MODEL"] == "qwen/qwen-2.5-coder-32b-instruct"
 
     def test_trigger_keyword(self):
         """Test trigger keyword."""
@@ -91,6 +91,7 @@ class TestOpenCodeAgent:
                     capture_output=True,
                     timeout=2,
                     text=True,
+                    check=False,
                 )
 
     @patch("subprocess.run")
@@ -156,7 +157,7 @@ class TestOpenCodeAgent:
                         "opencode",
                         "run",
                         "-m",
-                        "openrouter/qwen/qwen-2.5-coder-32b-instruct",
+                        "qwen/qwen-2.5-coder-32b-instruct",
                     ]
 
     def test_build_command_local(self):
@@ -170,7 +171,7 @@ class TestOpenCodeAgent:
             "opencode",
             "run",
             "-m",
-            "openrouter/qwen/qwen-2.5-coder-32b-instruct",
+            "qwen/qwen-2.5-coder-32b-instruct",
         ]
 
     @pytest.mark.asyncio
@@ -276,7 +277,7 @@ class TestGeminiAgent:
     @patch("subprocess.run")
     @patch("shutil.which")
     def test_is_available(self, mock_which, mock_run):
-        """Test Gemini availability check using --help."""
+        """Test Gemini availability check using --version."""
         agent = GeminiAgent()
 
         # Mock gemini executable exists
@@ -285,5 +286,5 @@ class TestGeminiAgent:
 
         assert agent.is_available() is True
 
-        # Should use --version to check availability
-        mock_run.assert_called_with(["gemini", "--version"], capture_output=True, timeout=2)
+        # Should use --version to check availability with check=False
+        mock_run.assert_called_with(["gemini", "--version"], capture_output=True, timeout=2, check=False)

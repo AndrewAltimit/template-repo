@@ -6,8 +6,23 @@ The test suite is organized into four categories:
 
 ### Unit Tests (`unit/`)
 Fast, isolated tests for individual components. No external dependencies.
+
+**Agent Tests:**
 - `test_agents.py` - Agent interface and availability tests
+
+**Security Tests:**
 - `test_security.py` - Security manager and authorization tests
+- `test_optional_agent_resolution.py` - Optional agent pattern in triggers
+
+**Board Tests:**
+- `test_board_manager.py` - BoardManager functionality and GraphQL operations
+- `test_board_cli.py` - Board CLI command tests
+- `test_monitor_board_integration.py` - Monitor-to-board integration tests
+
+**Robustness Tests:**
+- `test_parser_fuzz.py` - Code parser fuzz tests for malformed AI responses
+- `test_concurrency.py` - Board claim race condition tests
+- `test_failure_recovery.py` - Claim expiration and error recovery tests
 
 **Run with:**
 ```bash

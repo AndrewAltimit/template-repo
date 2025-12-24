@@ -5,7 +5,7 @@ import logging
 import os
 from pathlib import Path
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 import uuid
 
 from ..board.config import load_config
@@ -16,6 +16,25 @@ from ..utils import run_gh_command, run_gh_command_async, run_git_command_async
 from .base import BaseMonitor
 
 logger = logging.getLogger(__name__)
+
+
+def get_best_available_agent(agents: Dict[str, Any], priority_list: List[str]) -> Optional[str]:
+    """Get the best available agent from priority list.
+
+    Args:
+        agents: Dictionary of initialized agents
+        priority_list: List of agent names in priority order
+
+    Returns:
+        Agent name if found, None otherwise
+    """
+    for agent_name in priority_list:
+        if agent_name.lower() in agents:
+            return agent_name.lower()
+    # Fallback to first available agent
+    if agents:
+        return next(iter(agents.keys()))
+    return None
 
 
 class IssueMonitor(BaseMonitor):
@@ -46,6 +65,49 @@ class IssueMonitor(BaseMonitor):
         except Exception as e:
             logger.warning("Failed to initialize board manager: %s", e)
             self.board_manager = None
+
+    async def _resolve_agent_for_issue(self, issue_number: int) -> Optional[str]:
+        """Resolve agent for an issue from board or config fallback.
+
+        Resolution order:
+        1. Board's Agent field (if issue is on board)
+        2. agent_priorities.issue_creation from config
+        3. First available enabled agent
+
+        Args:
+            issue_number: Issue number to resolve agent for
+
+        Returns:
+            Agent name in lowercase, or None if no agent available
+        """
+        # 1. Try board's Agent field
+        if self.board_manager:
+            try:
+                await self.board_manager.initialize()
+                board_issue = await self.board_manager.get_issue(issue_number)
+                if board_issue and board_issue.agent:
+                    resolved_agent: str = board_issue.agent.lower()
+                    logger.info("Resolved agent '%s' from board for issue #%s", resolved_agent, issue_number)
+                    return resolved_agent
+            except Exception as e:
+                logger.warning("Could not get agent from board for issue #%s: %s", issue_number, e)
+
+        # 2. Fallback to agent_priorities.issue_creation
+        priority_agents = self.config.get_agent_priority("issue_creation")
+        agent_name = get_best_available_agent(self.agents, priority_agents)
+        if agent_name:
+            logger.info("Resolved agent '%s' from priority config for issue #%s", agent_name, issue_number)
+            return agent_name
+
+        # 3. Final fallback: first enabled agent
+        enabled = self.config.get_enabled_agents()
+        if enabled:
+            agent_name = enabled[0].lower()
+            logger.info("Resolved agent '%s' as fallback for issue #%s", agent_name, issue_number)
+            return agent_name
+
+        logger.error("No agent available for issue #%s", issue_number)
+        return None
 
     def _get_json_fields(self, item_type: str) -> str:
         """Get JSON fields for issues."""
@@ -109,6 +171,16 @@ class IssueMonitor(BaseMonitor):
             return
 
         action, agent_name, trigger_user = trigger_info
+
+        # Resolve agent if not specified in trigger
+        if agent_name is None:
+            agent_name = await self._resolve_agent_for_issue(issue_number)
+            if agent_name is None:
+                error_msg = "No agent available. Please assign an agent on the board or specify in trigger."
+                logger.error("No agent available for issue #%s", issue_number)
+                self._post_error_comment(issue_number, error_msg, "issue")
+                return
+
         logger.info("Issue #%s: [%s][%s] by %s", issue_number, action, agent_name, trigger_user)
 
         # Security check
@@ -134,7 +206,7 @@ class IssueMonitor(BaseMonitor):
         if action.lower() in ["approved", "fix", "implement"]:
             await self._handle_implementation_async(issue, agent_name)
         elif action.lower() == "close":
-            self._handle_close(issue_number, trigger_user, agent_name)
+            self._handle_close(issue_number, trigger_user, agent_name or "system")
         elif action.lower() == "summarize":
             self._handle_summarize(issue)
 
@@ -185,7 +257,7 @@ class IssueMonitor(BaseMonitor):
                     logger.warning("Board release failed for issue #%s: %s", issue_number, board_error)
 
     def _process_single_issue(self, issue: Dict) -> None:
-        """Process a single issue."""
+        """Process a single issue (sync version - uses async resolver via asyncio.run)."""
         issue_number = issue["number"]
 
         # Check for trigger
@@ -194,6 +266,16 @@ class IssueMonitor(BaseMonitor):
             return
 
         action, agent_name, trigger_user = trigger_info
+
+        # Resolve agent if not specified in trigger (sync wrapper)
+        if agent_name is None:
+            agent_name = asyncio.run(self._resolve_agent_for_issue(issue_number))
+            if agent_name is None:
+                error_msg = "No agent available. Please assign an agent on the board or specify in trigger."
+                logger.error("No agent available for issue #%s", issue_number)
+                self._post_error_comment(issue_number, error_msg, "issue")
+                return
+
         logger.info("Issue #%s: [%s][%s] by %s", issue_number, action, agent_name, trigger_user)
 
         # Security check
@@ -219,7 +301,7 @@ class IssueMonitor(BaseMonitor):
         if action.lower() in ["approved", "fix", "implement"]:
             self._handle_implementation(issue, agent_name)
         elif action.lower() == "close":
-            self._handle_close(issue_number, trigger_user, agent_name)
+            self._handle_close(issue_number, trigger_user, agent_name or "system")
         elif action.lower() == "summarize":
             self._handle_summarize(issue)
 
