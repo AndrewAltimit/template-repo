@@ -400,9 +400,9 @@ runs:
         # Check if issue has been approved by an authorized user
         # Required format: [Approved], [Fix], or [Implement]
         # The agent is determined by the Agent field on the project board
-        APPROVAL_RESULT=$(python3 << 'PYTHON_SCRIPT'
+        # Note: Write directly to GITHUB_OUTPUT to avoid stdout capture issues
+        python3 << PYTHON_SCRIPT
         import asyncio
-        import json
         import os
         from github_agents.board.config import load_config
         from github_agents.board.manager import BoardManager
@@ -413,36 +413,17 @@ runs:
 
             async with BoardManager(config=config) as manager:
                 is_approved, approver = await manager.is_issue_approved(issue_number)
-                print(json.dumps({
-                    "approved": is_approved,
-                    "approver": approver,
-                    "issue": issue_number
-                }))
+
+            # Write directly to GITHUB_OUTPUT to avoid stdout pollution
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                f.write(f"approved={'true' if is_approved else 'false'}\n")
+                f.write(f"approver={approver or ''}\n")
+
+            # Also print for logging
+            print(f"Approval check: approved={is_approved}, approver={approver}")
 
         asyncio.run(check_approval())
         PYTHON_SCRIPT
-        )
-
-        if [ "$JSON_LOGGING" = "true" ]; then
-          echo "$APPROVAL_RESULT"
-        else
-          echo "Approval check result: $APPROVAL_RESULT"
-        fi
-
-        IS_APPROVED=$(echo "$APPROVAL_RESULT" | python3 -c "import sys,json; print('true' if json.load(sys.stdin).get('approved') else 'false')")
-        APPROVER=$(echo "$APPROVAL_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('approver', '') or '')")
-
-        echo "approved=$IS_APPROVED" >> $GITHUB_OUTPUT
-        echo "approver=$APPROVER" >> $GITHUB_OUTPUT
-
-        if [ "$IS_APPROVED" = "true" ]; then
-          echo "Issue #$ISSUE_NUMBER approved by $APPROVER"
-        else
-          echo "::warning::Issue #$ISSUE_NUMBER has NOT been approved for agent work"
-          echo "Required: An authorized user must comment with [Approved]"
-          echo ""
-          echo "Skipping this issue - no approval trigger found"
-        fi
 
         echo "::endgroup::"
 
