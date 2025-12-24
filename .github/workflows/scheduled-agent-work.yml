@@ -41,6 +41,12 @@ on:
         type: boolean
         default: false
 
+# Permissions required by the reusable workflow
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
 # Ensure only one agent run at a time per agent type
 concurrency:
   group: scheduled-agent-${{ github.event.inputs.agent || 'claude' }}
