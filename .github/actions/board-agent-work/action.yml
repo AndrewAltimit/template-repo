@@ -696,9 +696,9 @@ runs:
         # Remove leading whitespace from PR body
         sed -i 's/^        //' "$PR_BODY_FILE"
 
-        # Create PR using file-based body (truncate title to 200 chars)
+        # Create PR using file-based body (use sanitized title, truncate to 200 chars)
         PR_URL=$(gh pr create \
-          --title "feat: $(printf '%s' "$ISSUE_TITLE" | head -c 200)" \
+          --title "feat: $(printf '%s' "$SAFE_TITLE" | head -c 200)" \
           --body-file "$PR_BODY_FILE" \
           --base main \
           --head "$BRANCH_NAME")
