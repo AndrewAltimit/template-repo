@@ -256,8 +256,28 @@ class IssueMonitor(BaseMonitor):
                 except Exception as board_error:
                     logger.warning("Board release failed for issue #%s: %s", issue_number, board_error)
 
+    def _run_async_safely(self, coro):
+        """Run an async coroutine safely from sync context.
+
+        Handles the case where an event loop may already be running
+        (e.g., when called from pytest-asyncio or nested async contexts).
+        """
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            # No running loop, safe to use asyncio.run()
+            return asyncio.run(coro)
+
+        # There's a running loop - create a new thread to run the coroutine
+        # This avoids the "cannot call run() while another loop is running" error
+        import concurrent.futures
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(asyncio.run, coro)
+            return future.result()
+
     def _process_single_issue(self, issue: Dict) -> None:
-        """Process a single issue (sync version - uses async resolver via asyncio.run)."""
+        """Process a single issue (sync version - uses async resolver safely)."""
         issue_number = issue["number"]
 
         # Check for trigger
@@ -269,7 +289,7 @@ class IssueMonitor(BaseMonitor):
 
         # Resolve agent if not specified in trigger (sync wrapper)
         if agent_name is None:
-            agent_name = asyncio.run(self._resolve_agent_for_issue(issue_number))
+            agent_name = self._run_async_safely(self._resolve_agent_for_issue(issue_number))
             if agent_name is None:
                 error_msg = "No agent available. Please assign an agent on the board or specify in trigger."
                 logger.error("No agent available for issue #%s", issue_number)
