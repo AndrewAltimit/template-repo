@@ -92,7 +92,7 @@ jobs:
   notify:
     name: Send Notifications
     needs: agent-work
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: always() && needs.agent-work.outputs.has-work == 'True'
 
     steps:
@@ -135,7 +135,7 @@ jobs:
   weekly-summary:
     name: Weekly Summary
     needs: agent-work
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     # Only run on Fridays at 5pm
     if: github.event_name == 'schedule' && github.event.schedule == '0 17 * * 5'
 
