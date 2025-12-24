@@ -1,0 +1,941 @@
+name: 'Board Agent Work'
+description: 'Execute AI agent work from a GitHub Projects v2 board'
+author: 'AndrewAltimit'
+
+branding:
+  icon: 'cpu'
+  color: 'purple'
+
+inputs:
+  # Required inputs
+  github-token:
+    description: 'GitHub token for repository operations'
+    required: true
+  github-projects-token:
+    description: 'GitHub classic token with project scope for board operations'
+    required: true
+
+  # Agent configuration
+  agent-name:
+    description: 'AI agent to use (claude, opencode, gemini, crush, codex)'
+    required: false
+    default: 'claude'
+  agent-timeout:
+    description: 'Timeout for agent execution in minutes'
+    required: false
+    default: '30'
+
+  # Board configuration
+  board-config-path:
+    description: 'Path to board configuration file (ai-agents-board.yml)'
+    required: false
+    default: 'ai-agents-board.yml'
+  max-issues:
+    description: 'Maximum number of issues to work on'
+    required: false
+    default: '1'
+
+  # Label filtering (new)
+  include-labels:
+    description: 'Comma-separated labels to include (only process issues with these labels)'
+    required: false
+    default: ''
+  exclude-labels:
+    description: 'Comma-separated labels to exclude (skip issues with these labels)'
+    required: false
+    default: ''
+
+  # Execution modes
+  dry-run:
+    description: 'Query work but do not execute (for testing)'
+    required: false
+    default: 'false'
+  create-pr:
+    description: 'Create PR after completing work'
+    required: false
+    default: 'true'
+
+  # Observability (new)
+  json-logging:
+    description: 'Enable structured JSON logging for log aggregators'
+    required: false
+    default: 'false'
+
+  # Janitor settings (new)
+  stale-claim-threshold:
+    description: 'Hours after which to consider a claim stale and clean it up'
+    required: false
+    default: '2'
+
+  # OpenRouter configuration (for OpenCode, Crush agents)
+  openrouter-api-key:
+    description: 'OpenRouter API key for OpenCode/Crush agents'
+    required: false
+
+  # Container configuration
+  use-docker:
+    description: 'Use Docker containers for agent execution'
+    required: false
+    default: 'true'
+  docker-compose-file:
+    description: 'Path to docker-compose.yml'
+    required: false
+    default: 'docker-compose.yml'
+
+outputs:
+  # Basic outputs
+  has-work:
+    description: 'Whether work was found on the board'
+    value: ${{ steps.query.outputs.has_work }}
+  issue-number:
+    description: 'Issue number that was worked on'
+    value: ${{ steps.query.outputs.issue_number }}
+  issue-title:
+    description: 'Title of the issue'
+    value: ${{ steps.query.outputs.issue_title }}
+  work-completed:
+    description: 'Whether the agent completed work'
+    value: ${{ steps.execute.outputs.work_completed }}
+  pr-number:
+    description: 'PR number if created'
+    value: ${{ steps.create-pr.outputs.pr_number }}
+  pr-url:
+    description: 'PR URL if created'
+    value: ${{ steps.create-pr.outputs.pr_url }}
+  branch-name:
+    description: 'Branch name created for work'
+    value: ${{ steps.execute.outputs.branch_name }}
+
+  # JSON summary output (new)
+  summary-json:
+    description: 'JSON summary of work performed'
+    value: ${{ steps.summary.outputs.summary_json }}
+  stale-claims-cleaned:
+    description: 'Number of stale claims cleaned up'
+    value: ${{ steps.janitor.outputs.cleaned_count }}
+
+runs:
+  using: 'composite'
+  steps:
+    # Step 1: Setup Python and install package in isolated venv
+    - name: Setup Python environment
+      shell: bash
+      env:
+        JSON_LOGGING: ${{ inputs.json-logging }}
+      run: |
+        echo "::group::Setup Python Environment"
+        python3 --version
+
+        # Create isolated virtual environment (container-first: no runner pollution)
+        VENV_DIR="${GITHUB_WORKSPACE}/.agent-venv"
+        python3 -m venv "$VENV_DIR"
+        source "$VENV_DIR/bin/activate"
+
+        # Install package in isolated environment
+        pip install -e ./packages/github_agents
+
+        # Export venv path for subsequent steps
+        echo "AGENT_VENV_DIR=$VENV_DIR" >> $GITHUB_ENV
+
+        if [ "$JSON_LOGGING" = "true" ]; then
+          echo '{"event": "setup_complete", "python_version": "'$(python3 --version 2>&1)'", "venv": "'$VENV_DIR'"}'
+        fi
+        echo "::endgroup::"
+
+    # Step 2: Validate board configuration
+    - name: Validate board configuration
+      shell: bash
+      env:
+        BOARD_CONFIG_PATH: ${{ inputs.board-config-path }}
+        JSON_LOGGING: ${{ inputs.json-logging }}
+      run: |
+        echo "::group::Validate Board Configuration"
+        if [ ! -f "$BOARD_CONFIG_PATH" ]; then
+          if [ "$JSON_LOGGING" = "true" ]; then
+            echo '{"event": "config_error", "error": "file_not_found", "path": "'$BOARD_CONFIG_PATH'"}'
+          fi
+          echo "::error::Board configuration file not found: $BOARD_CONFIG_PATH"
+          exit 1
+        fi
+        if [ "$JSON_LOGGING" = "true" ]; then
+          echo '{"event": "config_validated", "path": "'$BOARD_CONFIG_PATH'"}'
+        else
+          echo "Board config found: $BOARD_CONFIG_PATH"
+        fi
+        echo "::endgroup::"
+
+    # Step 3: Janitor - Clean stale claims (new)
+    - name: Clean stale claims (Janitor)
+      id: janitor
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_PROJECTS_TOKEN: ${{ inputs.github-projects-token }}
+        AGENT_NAME: ${{ inputs.agent-name }}
+        BOARD_CONFIG_PATH: ${{ inputs.board-config-path }}
+        STALE_THRESHOLD_HOURS: ${{ inputs.stale-claim-threshold }}
+        JSON_LOGGING: ${{ inputs.json-logging }}
+      run: |
+        echo "::group::Janitor - Clean Stale Claims"
+        source "$AGENT_VENV_DIR/bin/activate"
+
+        JANITOR_RESULT=$(python3 << 'PYTHON_SCRIPT'
+        import asyncio
+        import json
+        import os
+        from datetime import datetime, timedelta, timezone
+
+        async def clean_stale_claims():
+            try:
+                from github_agents.board.config import load_config
+                from github_agents.board.manager import BoardManager
+
+                config = load_config(os.environ.get('BOARD_CONFIG_PATH'))
+                agent_name = os.environ.get('AGENT_NAME')
+                threshold_hours = int(os.environ.get('STALE_THRESHOLD_HOURS', '2'))
+
+                cleaned = []
+
+                async with BoardManager(config=config) as manager:
+                    # Get all issues currently claimed by this agent
+                    issues = await manager.get_ready_work(limit=50)
+
+                    for issue in issues:
+                        try:
+                            claim = await manager._get_active_claim(issue.number)
+                            if claim and claim.agent == agent_name:
+                                # Check if claim is stale (older than threshold)
+                                age_hours = claim.age_seconds() / 3600
+                                if age_hours > threshold_hours:
+                                    # Release stale claim
+                                    await manager.release_work(
+                                        issue.number,
+                                        agent_name,
+                                        "abandoned"
+                                    )
+                                    cleaned.append({
+                                        "issue": issue.number,
+                                        "age_hours": round(age_hours, 1)
+                                    })
+                        except Exception as e:
+                            pass  # Skip issues we can't check
+
+                print(json.dumps({
+                    "cleaned_count": len(cleaned),
+                    "cleaned_issues": cleaned
+                }))
+
+            except Exception as e:
+                print(json.dumps({"cleaned_count": 0, "error": str(e)}))
+
+        asyncio.run(clean_stale_claims())
+        PYTHON_SCRIPT
+        )
+
+        echo "Janitor result: $JANITOR_RESULT"
+
+        CLEANED_COUNT=$(echo "$JANITOR_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('cleaned_count', 0))")
+        echo "cleaned_count=$CLEANED_COUNT" >> $GITHUB_OUTPUT
+
+        if [ "$JSON_LOGGING" = "true" ]; then
+          echo "$JANITOR_RESULT"
+        elif [ "$CLEANED_COUNT" -gt 0 ]; then
+          echo "Cleaned $CLEANED_COUNT stale claims"
+        else
+          echo "No stale claims to clean"
+        fi
+
+        echo "::endgroup::"
+
+    # Step 4: Query board for ready work
+    - name: Query ready work
+      id: query
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_PROJECTS_TOKEN: ${{ inputs.github-projects-token }}
+        AGENT_NAME: ${{ inputs.agent-name }}
+        MAX_ISSUES: ${{ inputs.max-issues }}
+        BOARD_CONFIG_PATH: ${{ inputs.board-config-path }}
+        INCLUDE_LABELS: ${{ inputs.include-labels }}
+        EXCLUDE_LABELS: ${{ inputs.exclude-labels }}
+        JSON_LOGGING: ${{ inputs.json-logging }}
+      run: |
+        echo "::group::Query Ready Work"
+        source "$AGENT_VENV_DIR/bin/activate"
+
+        QUERY_RESULT=$(python3 << 'PYTHON_SCRIPT'
+        import asyncio
+        import json
+        import os
+
+        async def query():
+            from github_agents.board.config import load_config
+            from github_agents.board.manager import BoardManager
+
+            config = load_config(os.environ.get('BOARD_CONFIG_PATH'))
+            agent_name = os.environ.get('AGENT_NAME')
+            max_issues = int(os.environ.get('MAX_ISSUES', '1'))
+
+            # Parse label filters
+            include_labels = [l.strip() for l in os.environ.get('INCLUDE_LABELS', '').split(',') if l.strip()]
+            exclude_labels = [l.strip() for l in os.environ.get('EXCLUDE_LABELS', '').split(',') if l.strip()]
+
+            async with BoardManager(config=config) as manager:
+                issues = await manager.get_ready_work(
+                    agent_name=agent_name,
+                    limit=max_issues * 3  # Fetch extra for filtering
+                )
+
+                # Apply label filters
+                filtered = []
+                for issue in issues:
+                    issue_labels = set(issue.labels or [])
+
+                    # Check include filter
+                    if include_labels:
+                        if not issue_labels.intersection(include_labels):
+                            continue
+
+                    # Check exclude filter
+                    if exclude_labels:
+                        if issue_labels.intersection(exclude_labels):
+                            continue
+
+                    filtered.append(issue)
+                    if len(filtered) >= max_issues:
+                        break
+
+                if filtered:
+                    issue = filtered[0]
+                    print(json.dumps({
+                        'has_work': True,
+                        'issue_number': issue.number,
+                        'issue_title': issue.title,
+                        'issue_body': issue.body[:500] if issue.body else '',
+                        'priority': issue.priority.value if issue.priority else 'Medium',
+                        'labels': issue.labels or [],
+                        'total_ready': len(issues),
+                        'after_filter': len(filtered)
+                    }))
+                else:
+                    print(json.dumps({
+                        'has_work': False,
+                        'total_ready': len(issues),
+                        'after_filter': 0
+                    }))
+
+        asyncio.run(query())
+        PYTHON_SCRIPT
+        )
+
+        if [ "$JSON_LOGGING" = "true" ]; then
+          echo "$QUERY_RESULT"
+        else
+          echo "Query result: $QUERY_RESULT"
+        fi
+
+        # Parse and set outputs
+        HAS_WORK=$(echo "$QUERY_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('has_work', False))")
+        ISSUE_NUMBER=$(echo "$QUERY_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('issue_number', ''))")
+        ISSUE_TITLE=$(echo "$QUERY_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('issue_title', ''))")
+        ISSUE_LABELS=$(echo "$QUERY_RESULT" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin).get('labels', [])))")
+
+        echo "has_work=$HAS_WORK" >> $GITHUB_OUTPUT
+        echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+        echo "issue_title=$ISSUE_TITLE" >> $GITHUB_OUTPUT
+        echo "issue_labels=$ISSUE_LABELS" >> $GITHUB_OUTPUT
+        echo "query_result=$QUERY_RESULT" >> $GITHUB_OUTPUT
+
+        if [ "$HAS_WORK" = "True" ]; then
+          echo "Found work: Issue #$ISSUE_NUMBER - $ISSUE_TITLE"
+        else
+          echo "No ready work found for agent: $AGENT_NAME"
+        fi
+
+        echo "::endgroup::"
+
+    # Step 5: Exit early if no work or dry run
+    - name: Check if should continue
+      id: should-continue
+      shell: bash
+      env:
+        HAS_WORK: ${{ steps.query.outputs.has_work }}
+        DRY_RUN: ${{ inputs.dry-run }}
+      run: |
+        if [ "$HAS_WORK" != "True" ]; then
+          echo "No work to do - exiting"
+          echo "continue=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        if [ "$DRY_RUN" = "true" ]; then
+          echo "Dry run mode - not executing work"
+          echo "continue=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        echo "continue=true" >> $GITHUB_OUTPUT
+
+    # Step 6: Claim work
+    - name: Claim work
+      id: claim
+      if: steps.should-continue.outputs.continue == 'true'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_PROJECTS_TOKEN: ${{ inputs.github-projects-token }}
+        ISSUE_NUMBER: ${{ steps.query.outputs.issue_number }}
+        AGENT_NAME: ${{ inputs.agent-name }}
+        BOARD_CONFIG_PATH: ${{ inputs.board-config-path }}
+        JSON_LOGGING: ${{ inputs.json-logging }}
+      run: |
+        echo "::group::Claim Work"
+        source "$AGENT_VENV_DIR/bin/activate"
+
+        SESSION_ID="gha-${{ github.run_id }}-${{ github.run_attempt }}"
+
+        CLAIM_RESULT=$(python3 << PYTHON_SCRIPT
+        import asyncio
+        import json
+        import os
+        from github_agents.board.config import load_config
+        from github_agents.board.manager import BoardManager
+
+        async def claim():
+            config = load_config(os.environ.get('BOARD_CONFIG_PATH'))
+            async with BoardManager(config=config) as manager:
+                success = await manager.claim_work(
+                    int(os.environ['ISSUE_NUMBER']),
+                    os.environ['AGENT_NAME'],
+                    '$SESSION_ID'
+                )
+                print(json.dumps({
+                    "success": success,
+                    "issue": int(os.environ['ISSUE_NUMBER']),
+                    "agent": os.environ['AGENT_NAME'],
+                    "session": '$SESSION_ID'
+                }))
+
+        asyncio.run(claim())
+        PYTHON_SCRIPT
+        )
+
+        if [ "$JSON_LOGGING" = "true" ]; then
+          echo "$CLAIM_RESULT"
+        fi
+
+        SUCCESS=$(echo "$CLAIM_RESULT" | python3 -c "import sys,json; print('true' if json.load(sys.stdin).get('success') else 'false')")
+
+        echo "claimed=$SUCCESS" >> $GITHUB_OUTPUT
+        echo "session_id=$SESSION_ID" >> $GITHUB_OUTPUT
+
+        if [ "$SUCCESS" = "true" ]; then
+          echo "Successfully claimed issue #$ISSUE_NUMBER"
+        else
+          echo "::error::Failed to claim issue #$ISSUE_NUMBER - may already be claimed"
+          exit 1
+        fi
+
+        echo "::endgroup::"
+
+    # Step 7: Create work branch
+    - name: Create work branch
+      id: branch
+      if: steps.claim.outputs.claimed == 'true'
+      shell: bash
+      env:
+        ISSUE_NUMBER: ${{ steps.query.outputs.issue_number }}
+        AGENT_NAME: ${{ inputs.agent-name }}
+      run: |
+        echo "::group::Create Work Branch"
+
+        BRANCH_NAME="agent/$AGENT_NAME/issue-$ISSUE_NUMBER"
+        git checkout -b "$BRANCH_NAME"
+
+        echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+        echo "Created branch: $BRANCH_NAME"
+
+        echo "::endgroup::"
+
+    # Step 8: Execute agent work
+    - name: Execute agent work
+      id: execute
+      if: steps.claim.outputs.claimed == 'true'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        ISSUE_NUMBER: ${{ steps.query.outputs.issue_number }}
+        ISSUE_TITLE: ${{ steps.query.outputs.issue_title }}
+        AGENT_NAME: ${{ inputs.agent-name }}
+        AGENT_TIMEOUT: ${{ inputs.agent-timeout }}
+        USE_DOCKER: ${{ inputs.use-docker }}
+        DOCKER_COMPOSE_FILE: ${{ inputs.docker-compose-file }}
+        OPENROUTER_API_KEY: ${{ inputs.openrouter-api-key }}
+        BRANCH_NAME: ${{ steps.branch.outputs.branch_name }}
+        JSON_LOGGING: ${{ inputs.json-logging }}
+      run: |
+        echo "::group::Execute Agent Work"
+        source "$AGENT_VENV_DIR/bin/activate"
+
+        START_TIME=$(date +%s)
+
+        if [ "$JSON_LOGGING" = "true" ]; then
+          echo '{"event": "agent_start", "agent": "'$AGENT_NAME'", "issue": '$ISSUE_NUMBER', "timeout_min": '$AGENT_TIMEOUT'}'
+        else
+          echo "Agent: $AGENT_NAME"
+          echo "Issue: #$ISSUE_NUMBER - $ISSUE_TITLE"
+          echo "Branch: $BRANCH_NAME"
+          echo "Timeout: ${AGENT_TIMEOUT}m"
+        fi
+
+        # Prepare context file for agent (use quoted heredoc to prevent variable expansion)
+        CONTEXT_FILE="/tmp/agent_context_$ISSUE_NUMBER.md"
+        cat > "$CONTEXT_FILE" << 'CONTEXT_EOF'
+        # Issue Context
+
+        ## Task
+        Implement the changes described in this issue.
+
+        ## Requirements
+        - Create working, tested code
+        - Follow existing code patterns
+        - Add appropriate tests
+        - Update documentation if needed
+        CONTEXT_EOF
+        # Prepend issue info (outside heredoc to allow variable expansion)
+        # Escape /, &, and \ for sed replacement (\ must be escaped to prevent delimiter issues)
+        sed -i "1s/.*/# Issue #$ISSUE_NUMBER: $(printf '%s' "$ISSUE_TITLE" | sed 's/[\/&\\]/\\&/g')/" "$CONTEXT_FILE"
+
+        # Execute based on agent type
+        WORK_COMPLETED="false"
+        AGENT_ERROR=""
+
+        case "$AGENT_NAME" in
+          claude)
+            if command -v claude &> /dev/null; then
+              echo "Running Claude Code..."
+              if timeout "${AGENT_TIMEOUT}m" claude --print "$(cat $CONTEXT_FILE)"; then
+                WORK_COMPLETED="true"
+              else
+                AGENT_ERROR="Claude execution failed or timed out"
+              fi
+            else
+              AGENT_ERROR="Claude CLI not available"
+              echo "::warning::$AGENT_ERROR"
+            fi
+            ;;
+
+          opencode)
+            if [ "$USE_DOCKER" = "true" ]; then
+              echo "Running OpenCode in Docker..."
+              if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
+                -e OPENROUTER_API_KEY \
+                openrouter-agents opencode run < "$CONTEXT_FILE"; then
+                WORK_COMPLETED="true"
+              else
+                AGENT_ERROR="OpenCode Docker execution failed"
+              fi
+            elif command -v opencode &> /dev/null; then
+              echo "Running OpenCode locally..."
+              if timeout "${AGENT_TIMEOUT}m" opencode run < "$CONTEXT_FILE"; then
+                WORK_COMPLETED="true"
+              else
+                AGENT_ERROR="OpenCode local execution failed"
+              fi
+            else
+              AGENT_ERROR="OpenCode not available"
+              echo "::warning::$AGENT_ERROR"
+            fi
+            ;;
+
+          crush)
+            if [ "$USE_DOCKER" = "true" ]; then
+              echo "Running Crush in Docker..."
+              if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
+                -e OPENROUTER_API_KEY \
+                openrouter-agents crush run < "$CONTEXT_FILE"; then
+                WORK_COMPLETED="true"
+              else
+                AGENT_ERROR="Crush Docker execution failed"
+              fi
+            elif command -v crush &> /dev/null; then
+              echo "Running Crush locally..."
+              if timeout "${AGENT_TIMEOUT}m" crush run < "$CONTEXT_FILE"; then
+                WORK_COMPLETED="true"
+              else
+                AGENT_ERROR="Crush local execution failed"
+              fi
+            else
+              AGENT_ERROR="Crush not available"
+              echo "::warning::$AGENT_ERROR"
+            fi
+            ;;
+
+          gemini)
+            if command -v gemini &> /dev/null; then
+              echo "Running Gemini..."
+              if timeout "${AGENT_TIMEOUT}m" gemini < "$CONTEXT_FILE"; then
+                WORK_COMPLETED="true"
+              else
+                AGENT_ERROR="Gemini execution failed"
+              fi
+            else
+              AGENT_ERROR="Gemini CLI not available"
+              echo "::warning::$AGENT_ERROR"
+            fi
+            ;;
+
+          codex)
+            if command -v codex &> /dev/null; then
+              echo "Running Codex..."
+              if timeout "${AGENT_TIMEOUT}m" codex < "$CONTEXT_FILE"; then
+                WORK_COMPLETED="true"
+              else
+                AGENT_ERROR="Codex execution failed"
+              fi
+            else
+              AGENT_ERROR="Codex CLI not available"
+              echo "::warning::$AGENT_ERROR"
+            fi
+            ;;
+
+          *)
+            AGENT_ERROR="Unknown agent: $AGENT_NAME"
+            echo "::error::$AGENT_ERROR"
+            exit 1
+            ;;
+        esac
+
+        END_TIME=$(date +%s)
+        DURATION=$((END_TIME - START_TIME))
+
+        echo "work_completed=$WORK_COMPLETED" >> $GITHUB_OUTPUT
+        echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+        echo "duration_seconds=$DURATION" >> $GITHUB_OUTPUT
+        echo "agent_error=$AGENT_ERROR" >> $GITHUB_OUTPUT
+
+        if [ "$JSON_LOGGING" = "true" ]; then
+          echo '{"event": "agent_complete", "success": '$([[ "$WORK_COMPLETED" = "true" ]] && echo "true" || echo "false")', "duration_sec": '$DURATION', "error": "'$AGENT_ERROR'"}'
+        fi
+
+        echo "::endgroup::"
+
+    # Step 9: Create PR if work completed
+    - name: Create pull request
+      id: create-pr
+      if: steps.execute.outputs.work_completed == 'true' && inputs.create-pr == 'true'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        ISSUE_NUMBER: ${{ steps.query.outputs.issue_number }}
+        ISSUE_TITLE: ${{ steps.query.outputs.issue_title }}
+        AGENT_NAME: ${{ inputs.agent-name }}
+        BRANCH_NAME: ${{ steps.execute.outputs.branch_name }}
+        JSON_LOGGING: ${{ inputs.json-logging }}
+      run: |
+        echo "::group::Create Pull Request"
+
+        # Check if there are changes to commit
+        if git diff --quiet && git diff --cached --quiet; then
+          echo "No changes to commit"
+          echo "pr_created=false" >> $GITHUB_OUTPUT
+          if [ "$JSON_LOGGING" = "true" ]; then
+            echo '{"event": "pr_skip", "reason": "no_changes"}'
+          fi
+          exit 0
+        fi
+
+        # Truncate title first (before escaping) using bash slicing for UTF-8 safety
+        # ${var:0:200} counts characters, not bytes, preventing multibyte char splits
+        TRUNCATED_TITLE="${ISSUE_TITLE:0:200}"
+        # Then sanitize for safe shell usage (escape special chars)
+        SAFE_TITLE=$(printf '%s' "$TRUNCATED_TITLE" | sed 's/[\"$`\\]/\\&/g')
+
+        # Create commit message file to avoid shell escaping issues
+        COMMIT_MSG_FILE=$(mktemp)
+        cat > "$COMMIT_MSG_FILE" << COMMIT_EOF
+        feat: implement issue #$ISSUE_NUMBER
+
+        $SAFE_TITLE
+
+        Implemented by $AGENT_NAME agent.
+
+        Closes #$ISSUE_NUMBER
+
+        Co-Authored-By: $AGENT_NAME <noreply@anthropic.com>
+        COMMIT_EOF
+
+        # Remove leading whitespace from commit message
+        sed -i 's/^        //' "$COMMIT_MSG_FILE"
+
+        # Commit changes using file-based message
+        git add -A
+        git commit -F "$COMMIT_MSG_FILE"
+        rm -f "$COMMIT_MSG_FILE"
+
+        # Push branch
+        git push -u origin "$BRANCH_NAME"
+
+        # Create PR body file to avoid shell escaping issues
+        PR_BODY_FILE=$(mktemp)
+        cat > "$PR_BODY_FILE" << PR_EOF
+        ## Summary
+
+        Automated implementation for issue #$ISSUE_NUMBER.
+
+        ## Changes
+
+        Implemented by **$AGENT_NAME** agent.
+
+        ## Test Plan
+
+        - [ ] Review automated changes
+        - [ ] Run tests
+        - [ ] Verify functionality
+
+        Closes #$ISSUE_NUMBER
+
+        ---
+        *Automated by GitHub Board Agent Action*
+        PR_EOF
+
+        # Remove leading whitespace from PR body
+        sed -i 's/^        //' "$PR_BODY_FILE"
+
+        # Create PR using file-based body (title already truncated and sanitized)
+        PR_URL=$(gh pr create \
+          --title "feat: $SAFE_TITLE" \
+          --body-file "$PR_BODY_FILE" \
+          --base main \
+          --head "$BRANCH_NAME")
+        rm -f "$PR_BODY_FILE"
+
+        PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+
+        echo "pr_created=true" >> $GITHUB_OUTPUT
+        echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+        echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+
+        if [ "$JSON_LOGGING" = "true" ]; then
+          echo '{"event": "pr_created", "pr_number": '$PR_NUMBER', "pr_url": "'$PR_URL'"}'
+        else
+          echo "Created PR #$PR_NUMBER: $PR_URL"
+        fi
+
+        echo "::endgroup::"
+
+    # Step 10: Release work claim
+    - name: Release work claim
+      if: always() && steps.claim.outputs.claimed == 'true'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_PROJECTS_TOKEN: ${{ inputs.github-projects-token }}
+        ISSUE_NUMBER: ${{ steps.query.outputs.issue_number }}
+        AGENT_NAME: ${{ inputs.agent-name }}
+        WORK_COMPLETED: ${{ steps.execute.outputs.work_completed }}
+        PR_CREATED: ${{ steps.create-pr.outputs.pr_created }}
+        BOARD_CONFIG_PATH: ${{ inputs.board-config-path }}
+        JSON_LOGGING: ${{ inputs.json-logging }}
+      run: |
+        echo "::group::Release Work Claim"
+        source "$AGENT_VENV_DIR/bin/activate"
+
+        # Determine release reason
+        if [ "$WORK_COMPLETED" = "true" ]; then
+          REASON="completed"
+        elif [ "${{ job.status }}" = "cancelled" ]; then
+          REASON="abandoned"
+        else
+          REASON="error"
+        fi
+
+        python3 << PYTHON_SCRIPT
+        import asyncio
+        import json
+        import os
+        from github_agents.board.config import load_config
+        from github_agents.board.manager import BoardManager
+
+        async def release():
+            config = load_config(os.environ.get('BOARD_CONFIG_PATH'))
+            async with BoardManager(config=config) as manager:
+                await manager.release_work(
+                    int(os.environ['ISSUE_NUMBER']),
+                    os.environ['AGENT_NAME'],
+                    '$REASON'
+                )
+            if os.environ.get('JSON_LOGGING') == 'true':
+                print(json.dumps({
+                    "event": "claim_released",
+                    "issue": int(os.environ['ISSUE_NUMBER']),
+                    "reason": '$REASON'
+                }))
+
+        asyncio.run(release())
+        PYTHON_SCRIPT
+
+        echo "Released claim with reason: $REASON"
+
+        echo "::endgroup::"
+
+    # Step 11: Generate JSON summary and Step Summary
+    - name: Generate summary
+      id: summary
+      if: always()
+      shell: bash
+      env:
+        HAS_WORK: ${{ steps.query.outputs.has_work }}
+        ISSUE_NUMBER: ${{ steps.query.outputs.issue_number }}
+        ISSUE_TITLE: ${{ steps.query.outputs.issue_title }}
+        ISSUE_LABELS: ${{ steps.query.outputs.issue_labels }}
+        WORK_COMPLETED: ${{ steps.execute.outputs.work_completed }}
+        DURATION_SECONDS: ${{ steps.execute.outputs.duration_seconds }}
+        AGENT_ERROR: ${{ steps.execute.outputs.agent_error }}
+        PR_CREATED: ${{ steps.create-pr.outputs.pr_created }}
+        PR_NUMBER: ${{ steps.create-pr.outputs.pr_number }}
+        PR_URL: ${{ steps.create-pr.outputs.pr_url }}
+        AGENT_NAME: ${{ inputs.agent-name }}
+        DRY_RUN: ${{ inputs.dry-run }}
+        STALE_CLEANED: ${{ steps.janitor.outputs.cleaned_count }}
+        JSON_LOGGING: ${{ inputs.json-logging }}
+      run: |
+        # Build JSON summary
+        PROCESSED=0
+        SUCCEEDED=0
+        FAILED=0
+        PR_URLS="[]"
+
+        if [ "$HAS_WORK" = "True" ]; then
+          PROCESSED=1
+          if [ "$WORK_COMPLETED" = "true" ]; then
+            SUCCEEDED=1
+            if [ "$PR_CREATED" = "true" ]; then
+              PR_URLS='["'$PR_URL'"]'
+            fi
+          else
+            FAILED=1
+          fi
+        fi
+
+        # Create JSON summary
+        SUMMARY_JSON=$(cat << EOF
+        {
+          "processed": $PROCESSED,
+          "succeeded": $SUCCEEDED,
+          "failed": $FAILED,
+          "pr_urls": $PR_URLS,
+          "agent": "$AGENT_NAME",
+          "dry_run": $([[ "$DRY_RUN" = "true" ]] && echo "true" || echo "false"),
+          "stale_claims_cleaned": ${STALE_CLEANED:-0},
+          "duration_seconds": ${DURATION_SECONDS:-0},
+          "issue_number": ${ISSUE_NUMBER:-null},
+          "issue_title": "$ISSUE_TITLE",
+          "error": "$AGENT_ERROR"
+        }
+        EOF
+        )
+
+        # Output JSON summary (escaped for GitHub output)
+        echo "summary_json=$(echo "$SUMMARY_JSON" | jq -c .)" >> $GITHUB_OUTPUT
+
+        if [ "$JSON_LOGGING" = "true" ]; then
+          echo "$SUMMARY_JSON" | jq -c .
+        fi
+
+        # Generate GitHub Step Summary (markdown table)
+        cat >> $GITHUB_STEP_SUMMARY << EOF
+
+        ## Board Agent Work Summary
+
+        ### Run Configuration
+
+        | Setting | Value |
+        |---------|-------|
+        | Agent | \`$AGENT_NAME\` |
+        | Dry Run | $DRY_RUN |
+        | Stale Claims Cleaned | ${STALE_CLEANED:-0} |
+
+        ### Results
+
+        | Metric | Value |
+        |--------|-------|
+        | Issues Processed | $PROCESSED |
+        | Succeeded | $SUCCEEDED |
+        | Failed | $FAILED |
+        EOF
+
+        if [ "$HAS_WORK" = "True" ]; then
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+
+        ### Issue Details
+
+        | Field | Value |
+        |-------|-------|
+        | Issue | [#$ISSUE_NUMBER](../issues/$ISSUE_NUMBER) |
+        | Title | $ISSUE_TITLE |
+        | Labels | $ISSUE_LABELS |
+        | Duration | ${DURATION_SECONDS:-0}s |
+        | Status | $([[ "$WORK_COMPLETED" = "true" ]] && echo "Completed" || echo "Failed") |
+        EOF
+
+          if [ "$PR_CREATED" = "true" ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+        | PR | [#$PR_NUMBER]($PR_URL) |
+        EOF
+          fi
+
+          if [ -n "$AGENT_ERROR" ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+
+        ### Error
+
+        \`\`\`
+        $AGENT_ERROR
+        \`\`\`
+        EOF
+          fi
+        else
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+
+        ### Status
+
+        No ready work found for agent \`$AGENT_NAME\`.
+        EOF
+        fi
+
+        # Console output
+        echo ""
+        echo "========================================"
+        echo "Board Agent Work Summary"
+        echo "========================================"
+        echo ""
+        echo "Agent: $AGENT_NAME"
+        echo "Dry Run: $DRY_RUN"
+        echo "Stale Claims Cleaned: ${STALE_CLEANED:-0}"
+        echo ""
+
+        if [ "$HAS_WORK" = "True" ]; then
+          echo "Issue: #$ISSUE_NUMBER - $ISSUE_TITLE"
+          echo "Duration: ${DURATION_SECONDS:-0}s"
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Status: Dry run - no work performed"
+          elif [ "$WORK_COMPLETED" = "true" ]; then
+            echo "Status: Completed"
+            if [ -n "$PR_URL" ]; then
+              echo "PR: $PR_URL"
+            fi
+          else
+            echo "Status: Failed"
+            if [ -n "$AGENT_ERROR" ]; then
+              echo "Error: $AGENT_ERROR"
+            fi
+          fi
+        else
+          echo "Status: No ready work found"
+        fi
+
+        echo ""
+        echo "========================================"

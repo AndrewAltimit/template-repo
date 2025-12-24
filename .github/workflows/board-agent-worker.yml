@@ -1,0 +1,207 @@
+---
+# Reusable workflow for AI agent work from GitHub Projects v2 board
+#
+# Usage in your workflow:
+#   jobs:
+#     agent-work:
+#       uses: ./.github/workflows/board-agent-worker.yml
+#       with:
+#         agent-name: claude
+#         board-config-path: ai-agents-board.yml
+#       secrets:
+#         github-token: ${{ secrets.AGENT_TOKEN }}
+#         github-projects-token: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
+#
+# For enterprise environments, copy this pattern and customize as needed.
+
+name: Board Agent Worker
+
+on:
+  workflow_call:
+    inputs:
+      # Agent configuration
+      agent-name:
+        description: 'AI agent to use'
+        required: false
+        type: string
+        default: 'claude'
+      agent-timeout:
+        description: 'Timeout for agent execution in minutes'
+        required: false
+        type: number
+        default: 30
+
+      # Board configuration
+      board-config-path:
+        description: 'Path to board configuration file'
+        required: false
+        type: string
+        default: 'ai-agents-board.yml'
+      max-issues:
+        description: 'Maximum number of issues to work on'
+        required: false
+        type: number
+        default: 1
+
+      # Execution modes
+      dry-run:
+        description: 'Query work but do not execute'
+        required: false
+        type: boolean
+        default: false
+      create-pr:
+        description: 'Create PR after completing work'
+        required: false
+        type: boolean
+        default: true
+
+      # Label filtering
+      include-labels:
+        description: 'Comma-separated labels to include (only process issues with these labels)'
+        required: false
+        type: string
+        default: ''
+      exclude-labels:
+        description: 'Comma-separated labels to exclude (skip issues with these labels)'
+        required: false
+        type: string
+        default: ''
+
+      # Observability
+      json-logging:
+        description: 'Enable structured JSON logging for log aggregators'
+        required: false
+        type: boolean
+        default: false
+
+      # Janitor settings
+      stale-claim-threshold:
+        description: 'Hours after which to consider a claim stale and clean it up'
+        required: false
+        type: number
+        default: 2
+
+      # Container configuration
+      use-docker:
+        description: 'Use Docker containers for agent execution'
+        required: false
+        type: boolean
+        default: true
+      docker-compose-file:
+        description: 'Path to docker-compose.yml'
+        required: false
+        type: string
+        default: 'docker-compose.yml'
+
+      # Runner configuration
+      runs-on:
+        description: 'Runner label to use'
+        required: false
+        type: string
+        default: 'self-hosted'
+
+    secrets:
+      github-token:
+        description: 'GitHub token for repository operations'
+        required: true
+      github-projects-token:
+        description: 'GitHub classic token with project scope'
+        required: true
+      openrouter-api-key:
+        description: 'OpenRouter API key for OpenCode/Crush agents'
+        required: false
+
+    outputs:
+      has-work:
+        description: 'Whether work was found on the board'
+        value: ${{ jobs.agent-work.outputs.has-work }}
+      issue-number:
+        description: 'Issue number that was worked on'
+        value: ${{ jobs.agent-work.outputs.issue-number }}
+      issue-title:
+        description: 'Title of the issue'
+        value: ${{ jobs.agent-work.outputs.issue-title }}
+      work-completed:
+        description: 'Whether the agent completed work'
+        value: ${{ jobs.agent-work.outputs.work-completed }}
+      pr-number:
+        description: 'PR number if created'
+        value: ${{ jobs.agent-work.outputs.pr-number }}
+      pr-url:
+        description: 'PR URL if created'
+        value: ${{ jobs.agent-work.outputs.pr-url }}
+      branch-name:
+        description: 'Branch name created for work'
+        value: ${{ jobs.agent-work.outputs.branch-name }}
+      summary-json:
+        description: 'JSON summary of work performed'
+        value: ${{ jobs.agent-work.outputs.summary-json }}
+      stale-claims-cleaned:
+        description: 'Number of stale claims cleaned up'
+        value: ${{ jobs.agent-work.outputs.stale-claims-cleaned }}
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: board-agent-${{ inputs.agent-name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  agent-work:
+    name: '${{ inputs.agent-name }} Agent Work'
+    runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 40  # agent-timeout (30) + buffer (10)
+
+    outputs:
+      has-work: ${{ steps.work.outputs.has-work }}
+      issue-number: ${{ steps.work.outputs.issue-number }}
+      issue-title: ${{ steps.work.outputs.issue-title }}
+      work-completed: ${{ steps.work.outputs.work-completed }}
+      pr-number: ${{ steps.work.outputs.pr-number }}
+      pr-url: ${{ steps.work.outputs.pr-url }}
+      branch-name: ${{ steps.work.outputs.branch-name }}
+      summary-json: ${{ steps.work.outputs.summary-json }}
+      stale-claims-cleaned: ${{ steps.work.outputs.stale-claims-cleaned }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.github-token }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "AI Agent Bot"
+          git config --global user.email "ai-agent@localhost"
+
+      - name: Execute board agent work
+        id: work
+        uses: ./.github/actions/board-agent-work
+        with:
+          github-token: ${{ secrets.github-token }}
+          github-projects-token: ${{ secrets.github-projects-token }}
+          agent-name: ${{ inputs.agent-name }}
+          agent-timeout: ${{ inputs.agent-timeout }}
+          board-config-path: ${{ inputs.board-config-path }}
+          max-issues: ${{ inputs.max-issues }}
+          include-labels: ${{ inputs.include-labels }}
+          exclude-labels: ${{ inputs.exclude-labels }}
+          dry-run: ${{ inputs.dry-run }}
+          create-pr: ${{ inputs.create-pr }}
+          json-logging: ${{ inputs.json-logging }}
+          stale-claim-threshold: ${{ inputs.stale-claim-threshold }}
+          use-docker: ${{ inputs.use-docker }}
+          docker-compose-file: ${{ inputs.docker-compose-file }}
+          openrouter-api-key: ${{ secrets.openrouter-api-key }}
+
+      - name: Report results
+        if: always()
+        run: |
+          # The composite action generates a comprehensive Step Summary
+          # This step just logs the JSON summary for downstream consumption
+          echo "JSON Summary:"
+          echo '${{ steps.work.outputs.summary-json }}' | jq . 2>/dev/null || echo '${{ steps.work.outputs.summary-json }}'

@@ -6,6 +6,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import re
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -17,6 +18,25 @@ from ..utils import run_gh_command, run_gh_command_async, run_git_command_async
 from .base import BaseMonitor
 
 logger = logging.getLogger(__name__)
+
+
+def get_best_available_agent(agents: Dict[str, Any], priority_list: List[str]) -> Optional[str]:
+    """Get the best available agent from priority list.
+
+    Args:
+        agents: Dictionary of initialized agents
+        priority_list: List of agent names in priority order
+
+    Returns:
+        Agent name if found, None otherwise
+    """
+    for agent_name in priority_list:
+        if agent_name.lower() in agents:
+            return agent_name.lower()
+    # Fallback to first available agent
+    if agents:
+        return next(iter(agents.keys()))
+    return None
 
 
 class PRMonitor(BaseMonitor):
@@ -47,6 +67,33 @@ class PRMonitor(BaseMonitor):
         except Exception as e:
             logger.warning("Failed to initialize board manager: %s", e)
             self.board_manager = None
+
+    def _resolve_agent_for_pr(self) -> Optional[str]:
+        """Resolve agent for PR review feedback from config.
+
+        Resolution order:
+        1. agent_priorities.code_fixes from config
+        2. First available enabled agent
+
+        Returns:
+            Agent name in lowercase, or None if no agent available
+        """
+        # Use code_fixes priority for PR review feedback
+        priority_agents = self.config.get_agent_priority("code_fixes")
+        agent_name = get_best_available_agent(self.agents, priority_agents)
+        if agent_name:
+            logger.info("Resolved agent '%s' from code_fixes priority config", agent_name)
+            return agent_name
+
+        # Fallback: first enabled agent
+        enabled = self.config.get_enabled_agents()
+        if enabled:
+            agent_name = enabled[0].lower()
+            logger.info("Resolved agent '%s' as fallback", agent_name)
+            return agent_name
+
+        logger.error("No agent available for PR feedback")
+        return None
 
     def _get_json_fields(self, item_type: str) -> str:
         """Get JSON fields for PRs."""
@@ -186,6 +233,16 @@ class PRMonitor(BaseMonitor):
                 continue
 
             action, agent_name, trigger_user = trigger_info
+
+            # Resolve agent if not specified in trigger
+            if agent_name is None:
+                agent_name = self._resolve_agent_for_pr()
+                if agent_name is None:
+                    error_msg = "No agent available. Please specify agent in trigger or configure agent_priorities."
+                    logger.error("No agent available for PR #%s", pr_number)
+                    self._post_error_comment(pr_number, error_msg, "pr")
+                    continue
+
             logger.info("PR #%s: [%s][%s] by %s", pr_number, action, agent_name, trigger_user)
 
             # Security check
@@ -279,24 +336,33 @@ class PRMonitor(BaseMonitor):
 
         return all_comments
 
-    def _check_review_trigger(self, comment: Dict) -> Optional[Tuple[str, str, str]]:
+    def _check_review_trigger(self, comment: Dict) -> Optional[Tuple[str, Optional[str], str]]:
         """Check if comment contains a trigger command.
 
+        Supports two formats:
+        - [Action] - agent will be resolved from config
+        - [Action][Agent] - explicit agent override
+
         Returns:
-            Tuple of (action, agent_name, username) if trigger found, None otherwise
+            Tuple of (action, agent_name, username) if trigger found.
+            Agent may be None if not specified in trigger.
+            Returns None if no valid trigger found.
         """
         body = comment.get("body", "")
         author = comment.get("author", "unknown")
 
-        # Pattern: [Action][Agent]
-        import re
+        # Pattern: [Action] with optional [Agent]
+        pattern = r"\[([A-Za-z]+)\](?:\[([A-Za-z]+)\])?"
+        match = re.search(pattern, body, re.IGNORECASE)
 
-        pattern = r"\[(\w+)\]\[(\w+)\]"
-        matches = re.findall(pattern, body)
+        if match:
+            action = match.group(1).lower()
+            agent_name = match.group(2).lower() if match.group(2) else None
 
-        if matches:
-            action, agent_name = matches[0]
-            return (action, agent_name, author)
+            # Validate action
+            valid_actions = ["fix", "address", "implement", "approved"]
+            if action in valid_actions:
+                return (action, agent_name, author)
 
         return None
 
