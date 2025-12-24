@@ -47,6 +47,30 @@ class BoardManager:
     CLAIM_RENEWAL_PREFIX = "🔄 **[Claim Renewal]**"
     CLAIM_RELEASE_PREFIX = "🤖 **[Agent Release]**"
 
+    # Agent name mappings (workflow names -> board field values)
+    AGENT_NAME_MAP = {
+        "claude": "Claude Code",
+        "opencode": "OpenCode",
+        "crush": "Crush",
+        "gemini": "Gemini CLI",
+        "codex": "Codex",
+    }
+
+    @classmethod
+    def _normalize_agent_name(cls, name: str | None) -> str | None:
+        """Normalize agent name for comparison.
+
+        Maps workflow agent names (e.g., 'claude') to board field values
+        (e.g., 'Claude Code') for consistent matching.
+        """
+        if not name:
+            return None
+        # Check if it's a workflow name that needs mapping
+        if name.lower() in cls.AGENT_NAME_MAP:
+            return cls.AGENT_NAME_MAP[name.lower()]
+        # Already a board field value or unknown, return as-is
+        return name
+
     def __init__(self, config: BoardConfig | None = None, github_token: str | None = None):
         """
         Initialize BoardManager.
@@ -499,8 +523,9 @@ class BoardManager:
             if status not in (IssueStatus.TODO, IssueStatus.BLOCKED):
                 continue
 
-            # Filter by agent if specified
-            if agent_name and assigned_agent != agent_name:
+            # Filter by agent if specified (normalize names for comparison)
+            normalized_agent = self._normalize_agent_name(agent_name)
+            if normalized_agent and assigned_agent != normalized_agent:
                 continue
 
             # Skip if has open blockers
@@ -511,7 +536,9 @@ class BoardManager:
             issue_number = content["number"]
             active_claim = await self._get_active_claim(issue_number)
             if active_claim and not active_claim.is_expired(self.config.claim_timeout):
-                if agent_name and active_claim.agent != agent_name:
+                # Normalize both for comparison (claim agent may be in workflow format)
+                normalized_claim_agent = self._normalize_agent_name(active_claim.agent)
+                if normalized_agent and normalized_claim_agent != normalized_agent:
                     continue
 
             # Skip if has exclude labels
