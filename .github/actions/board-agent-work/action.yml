@@ -488,10 +488,10 @@ runs:
           echo "Timeout: ${AGENT_TIMEOUT}m"
         fi
 
-        # Prepare context file for agent
+        # Prepare context file for agent (use quoted heredoc to prevent variable expansion)
         CONTEXT_FILE="/tmp/agent_context_$ISSUE_NUMBER.md"
-        cat > "$CONTEXT_FILE" << EOF
-        # Issue #$ISSUE_NUMBER: $ISSUE_TITLE
+        cat > "$CONTEXT_FILE" << 'CONTEXT_EOF'
+        # Issue Context
 
         ## Task
         Implement the changes described in this issue.
@@ -501,7 +501,9 @@ runs:
         - Follow existing code patterns
         - Add appropriate tests
         - Update documentation if needed
-        EOF
+        CONTEXT_EOF
+        # Prepend issue info (outside heredoc to allow variable expansion)
+        sed -i "1s/.*/# Issue #$ISSUE_NUMBER: $(printf '%s' "$ISSUE_TITLE" | sed 's/[\/&]/\\&/g')/" "$CONTEXT_FILE"
 
         # Execute based on agent type
         WORK_COMPLETED="false"
@@ -642,8 +644,10 @@ runs:
           exit 0
         fi
 
-        # Sanitize title for safe shell usage (escape special chars)
-        SAFE_TITLE=$(printf '%s' "$ISSUE_TITLE" | sed 's/[\"$`\\]/\\&/g')
+        # Truncate title first (before escaping) to avoid cutting escape sequences
+        TRUNCATED_TITLE=$(printf '%s' "$ISSUE_TITLE" | head -c 200)
+        # Then sanitize for safe shell usage (escape special chars)
+        SAFE_TITLE=$(printf '%s' "$TRUNCATED_TITLE" | sed 's/[\"$`\\]/\\&/g')
 
         # Create commit message file to avoid shell escaping issues
         COMMIT_MSG_FILE=$(mktemp)
@@ -696,9 +700,9 @@ runs:
         # Remove leading whitespace from PR body
         sed -i 's/^        //' "$PR_BODY_FILE"
 
-        # Create PR using file-based body (use sanitized title, truncate to 200 chars)
+        # Create PR using file-based body (title already truncated and sanitized)
         PR_URL=$(gh pr create \
-          --title "feat: $(printf '%s' "$SAFE_TITLE" | head -c 200)" \
+          --title "feat: $SAFE_TITLE" \
           --body-file "$PR_BODY_FILE" \
           --base main \
           --head "$BRANCH_NAME")
