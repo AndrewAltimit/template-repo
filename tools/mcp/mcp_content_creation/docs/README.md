@@ -34,41 +34,70 @@ Create mathematical animations using the Manim library.
 
 ### compile_latex
 
-Compile LaTeX documents to various formats with optional visual feedback.
+Compile LaTeX documents to various formats with optional preview generation.
 
 **Parameters:**
-- `content` (required): LaTeX document content
-- `format`: Output format (default: "pdf")
+- `content`: LaTeX document content (alternative to `input_path`)
+- `input_path`: Path to .tex file to compile (alternative to `content`)
+- `output_format`: Output format (default: "pdf")
   - Options: pdf, dvi, ps
-- `visual_feedback`: Return PNG preview image for visual verification (default: true)
-  - When enabled, returns a base64-encoded JPEG preview of the first page
+- `template`: Document template (default: "custom")
+  - Options: article, report, book, beamer, custom
+- `response_mode`: Level of detail in response (default: "standard")
+  - Options: minimal, standard
+- `preview_pages`: Pages to generate PNG previews for (default: "none")
+  - Options: "none", "1", "1,3,5", "1-5", "all"
+- `preview_dpi`: Resolution for preview images (default: 150)
 
-**Example:**
+**Example with content:**
 ```json
 {
   "tool": "compile_latex",
   "arguments": {
-    "content": "\\section{Introduction}\nThis is my document.",
-    "format": "pdf",
-    "visual_feedback": true
+    "content": "\\documentclass{article}\\begin{document}\\section{Introduction}\nThis is my document.\\end{document}",
+    "output_format": "pdf",
+    "preview_pages": "1"
   }
 }
 ```
+
+**Example with input_path:**
+```json
+{
+  "tool": "compile_latex",
+  "arguments": {
+    "input_path": "documents/thesis.tex",
+    "output_format": "pdf",
+    "preview_pages": "1-5"
+  }
+}
+```
+
+**Path Resolution:**
+- Paths are resolved relative to the project root (`/app` in container, current working directory on host)
+- Absolute paths are used as-is
+- When using `input_path`, the directory containing the .tex file is used as the working directory, so `\include`, `\input`, and image references work correctly
 
 **Response Structure:**
 ```json
 {
   "success": true,
-  "output_path": "/app/output/latex/document_12345.pdf",
+  "output_path": "outputs/mcp-content/latex/document_12345.pdf",
+  "container_path": "/output/latex/document_12345.pdf",
+  "page_count": 10,
+  "file_size_kb": 125.5,
   "format": "pdf",
-  "visual_feedback": {
-    "format": "jpeg",
-    "encoding": "base64",
-    "data": "<base64_encoded_image>",
-    "size_kb": 45.2
-  }
+  "compile_time_seconds": 2.35,
+  "preview_paths": [
+    "outputs/mcp-content/previews/document_12345_page1.png"
+  ]
 }
 ```
+
+**Notes:**
+- `output_path` is the project-relative path on the host filesystem
+- `container_path` is the path inside the container (for debugging)
+- If symlinks fail for included files, a `warnings` field will be present
 
 ### render_tikz
 
@@ -152,17 +181,32 @@ The Dockerfile is located at `docker/mcp-content.Dockerfile`.
 
 ## Output Directory Structure
 
-The server organizes output files in subdirectories:
+The server organizes output files in subdirectories. Paths in responses are project-relative for easy host access.
 
+**Container paths** (internal):
 ```
-/app/output/
+/output/
 ├── manim/      # Manim animations
 │   ├── animation_12345.mp4
 │   └── media/  # Manim working directory
-└── latex/      # LaTeX documents
-    ├── document_12345.pdf
-    └── document_12345.log
+├── latex/      # LaTeX documents
+│   └── document_12345.pdf
+└── previews/   # PNG previews
+    └── document_12345_page1.png
 ```
+
+**Host paths** (returned in responses):
+```
+outputs/mcp-content/
+├── manim/
+│   └── animation_12345.mp4
+├── latex/
+│   └── document_12345.pdf
+└── previews/
+    └── document_12345_page1.png
+```
+
+The `output_path` field in responses contains the host-relative path. The `container_path` field (when present) contains the original container path for debugging.
 
 ## Configuration
 
