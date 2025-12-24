@@ -83,7 +83,7 @@ jobs:
       github-token: ${{ secrets.AGENT_TOKEN }}
 
       # REQUIRED: Classic token with project scope
-      github-projects-token: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
+      github-projects-token: ${{ secrets.GH_PROJECTS_TOKEN }}
 
       # OPTIONAL: For OpenCode/Crush agents
       openrouter-api-key: ${{ secrets.OPENROUTER_API_KEY }}
