@@ -20,6 +20,15 @@ PREVIEW_DPI_HIGH = 300  # High resolution
 class ContentCreationMCPServer(BaseMCPServer):
     """MCP Server for content creation - Manim animations and LaTeX documents"""
 
+    # Container-to-host path mappings for common configurations
+    # Container path -> Host-relative path (relative to project root)
+    # Order matters: more specific paths should come first (using list of tuples for ordering)
+    CONTAINER_TO_HOST_MAPPINGS = [
+        ("/app/output", "outputs/mcp-content"),  # Fallback for default output_dir
+        ("/output", "outputs/mcp-content"),
+        ("/app", "."),
+    ]
+
     def __init__(self, output_dir: str = "/app/output"):
         super().__init__(
             name="Content Creation MCP Server",
@@ -31,6 +40,9 @@ class ContentCreationMCPServer(BaseMCPServer):
         # Use environment variable if set
         self.output_dir = os.environ.get("MCP_OUTPUT_DIR", output_dir)
         self.logger.info("Using output directory: %s", self.output_dir)
+
+        # Project root for resolving relative paths (container: /app, host: cwd)
+        self.project_root = os.environ.get("MCP_PROJECT_ROOT", "/app")
 
         try:
             # Create output directories with error handling
@@ -51,6 +63,68 @@ class ContentCreationMCPServer(BaseMCPServer):
     # =========================================================================
     # Helper Methods
     # =========================================================================
+
+    def _container_path_to_host_path(self, container_path: str) -> str:
+        """Convert a container path to a project-relative host path.
+
+        Args:
+            container_path: Absolute path inside the container (e.g., /output/latex/doc.pdf)
+
+        Returns:
+            Project-relative host path (e.g., outputs/mcp-content/latex/doc.pdf)
+        """
+        for container_prefix, host_prefix in self.CONTAINER_TO_HOST_MAPPINGS:
+            if container_path.startswith(container_prefix):
+                relative_part = container_path[len(container_prefix) :].lstrip("/")
+                if host_prefix == ".":
+                    return relative_part
+                return os.path.join(host_prefix, relative_part)
+        # If no mapping found, return the original path
+        return container_path
+
+    def _resolve_input_path(self, input_path: str) -> str:
+        """Resolve an input path to an absolute path for file operations.
+
+        Input paths are interpreted as project-relative paths. They are resolved
+        relative to the project root (container: /app, host: cwd).
+
+        Security: For relative paths, this method validates that the resolved path
+        stays within the project root to prevent path traversal attacks (e.g.,
+        ../../../etc/passwd). Absolute paths are normalized but allowed to access
+        locations outside the project root (explicit user intent).
+
+        Args:
+            input_path: Path to resolve (can be relative or absolute)
+
+        Returns:
+            Absolute path for file operations
+
+        Raises:
+            ValueError: If a relative path resolves outside the project root
+        """
+        if os.path.isabs(input_path):
+            # For absolute paths, normalize to handle any ".." segments
+            # but allow access outside project root (explicit user intent)
+            return os.path.abspath(input_path)
+
+        # For relative paths, resolve relative to project root
+        project_root_abs = os.path.abspath(self.project_root)
+        resolved = os.path.abspath(os.path.join(self.project_root, input_path))
+
+        # Security check: ensure relative paths stay within project root
+        # This prevents path traversal attacks like "../../../etc/passwd"
+        try:
+            common = os.path.commonpath([project_root_abs, resolved])
+            if common != project_root_abs:
+                raise ValueError(f"Path traversal detected: '{input_path}' resolves outside project root")
+        except ValueError as e:
+            # commonpath raises ValueError for paths on different drives (Windows)
+            # or if the paths are malformed
+            if "Path traversal" in str(e):
+                raise
+            raise ValueError(f"Invalid path: '{input_path}' cannot be resolved within project root") from e
+
+        return resolved
 
     def _get_pdf_page_count(self, pdf_path: str) -> int:
         """Extract page count from PDF using pdfinfo.
@@ -293,6 +367,7 @@ class ContentCreationMCPServer(BaseMCPServer):
         preview_pages: str,
         preview_dpi: int,
         response_mode: str,
+        symlink_warnings: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Build success response after compilation.
 
@@ -303,6 +378,7 @@ class ContentCreationMCPServer(BaseMCPServer):
             preview_pages: Page specification for previews
             preview_dpi: DPI for preview images
             response_mode: Response verbosity level (minimal/standard)
+            symlink_warnings: List of files that failed to symlink (may affect includes)
 
         Returns:
             Success result dictionary
@@ -318,26 +394,49 @@ class ContentCreationMCPServer(BaseMCPServer):
         file_size_kb = self._get_file_size_kb(output_path)
         compile_time = time.time() - start_time
 
-        # Build response
+        # Convert to host-relative path for user convenience
+        host_path = self._container_path_to_host_path(output_path)
+
+        # Build response with both paths for clarity
         result_data: Dict[str, Any] = {
             "success": True,
-            "output_path": output_path,
+            "output_path": host_path,  # Project-relative path for host access
+            "container_path": output_path,  # Original container path
             "page_count": page_count,
             "file_size_kb": round(file_size_kb, 2),
         }
 
+        # Include warnings about failed symlinks (may affect \include, \input, images)
+        if symlink_warnings:
+            result_data["warnings"] = [
+                f"Failed to symlink files for relative includes: {', '.join(symlink_warnings)}. "
+                "If your document has \\include, \\input, or image references, they may not resolve correctly."
+            ]
+
         # Generate previews if requested (modifies result_data in place)
-        self._generate_previews_if_requested(
+        preview_paths = self._generate_previews_if_requested(
             output_path, output_format, preview_pages, page_count, preview_dpi, response_mode, result_data
         )
+
+        # Convert preview paths to host-relative paths
+        if preview_paths and response_mode == "standard":
+            result_data["preview_paths"] = [self._container_path_to_host_path(p) for p in preview_paths]
 
         # Add extra metadata and finalize response
         self._finalize_compile_result(result_data, output_format, compile_time, response_mode)
         return result_data
 
-    def _cleanup_latex_temp_files(self, tex_file: str, working_dir: str, cleanup_tex: bool) -> None:
-        """Clean up temporary LaTeX files after compilation."""
-        if cleanup_tex:
+    def _cleanup_latex_temp_files(self, tex_file: str, working_dir: str, keep_temp_directory: bool) -> None:
+        """Clean up temporary LaTeX files after compilation.
+
+        Args:
+            tex_file: Path to the .tex file
+            working_dir: Working directory containing temp files
+            keep_temp_directory: If True, only remove individual temp files (keep directory).
+                               If False (default), remove the entire temp directory.
+        """
+        if keep_temp_directory:
+            # Keep directory but clean individual temp files
             base = tex_file[:-4]
             for ext in [".tex", ".aux", ".log", ".out", ".toc", ".dvi", ".ps"]:
                 try:
@@ -347,6 +446,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                 except Exception:
                     pass
         else:
+            # Remove entire temp directory (default behavior)
             try:
                 shutil.rmtree(working_dir)
             except Exception:
@@ -377,9 +477,13 @@ class ContentCreationMCPServer(BaseMCPServer):
         if not os.path.exists(output_path):
             return {"success": False, "error": f"Conversion to {output_format} failed"}
 
+        # Convert to host-relative path
+        host_path = self._container_path_to_host_path(output_path)
+
         result_data: Dict[str, Any] = {
             "success": True,
-            "output_path": output_path,
+            "output_path": host_path,
+            "container_path": output_path,
         }
 
         if response_mode == "standard":
@@ -669,15 +773,25 @@ class ContentCreationMCPServer(BaseMCPServer):
 
         # Read content from file if input_path provided
         working_dir = None
+        symlink_warnings: List[str] = []
         if input_path is not None:
-            if not os.path.exists(input_path):
-                return {"success": False, "error": f"Input file not found: {input_path}"}
+            # Resolve input path relative to project root (with path traversal protection)
             try:
-                with open(input_path, "r", encoding="utf-8") as f:
+                resolved_path = self._resolve_input_path(input_path)
+            except ValueError as e:
+                return {"success": False, "error": str(e)}
+            if not os.path.exists(resolved_path):
+                return {
+                    "success": False,
+                    "error": f"Input file not found: {input_path} (resolved to: {resolved_path}). "
+                    f"Paths are resolved relative to project root ({self.project_root}).",
+                }
+            try:
+                with open(resolved_path, "r", encoding="utf-8") as f:
                     content = f.read()
                 # Use the directory containing the .tex file as working directory
                 # This allows relative paths for \include, \input, images, etc.
-                working_dir = os.path.dirname(os.path.abspath(input_path))
+                working_dir = os.path.dirname(os.path.abspath(resolved_path))
             except Exception as e:
                 return {"success": False, "error": f"Failed to read input file: {e}"}
 
@@ -692,7 +806,7 @@ class ContentCreationMCPServer(BaseMCPServer):
             # Always use temp directory for compilation to handle read-only mounts
             tmpdir = tempfile.mkdtemp(prefix="mcp_latex_")
             tex_file = os.path.join(tmpdir, "document.tex")
-            cleanup_tex = False
+            keep_temp_directory = False  # Remove temp directory after compilation by default
 
             # If we had a working_dir (from input_path), symlink contents for relative includes
             if working_dir:
@@ -702,8 +816,11 @@ class ContentCreationMCPServer(BaseMCPServer):
                     if not os.path.exists(dst):
                         try:
                             os.symlink(src, dst)
-                        except OSError:
-                            pass  # Skip if symlink fails
+                        except OSError as e:
+                            # Log warning for failed symlinks - may cause LaTeX errors
+                            warning_msg = f"Failed to symlink '{item}': {e}"
+                            self.logger.warning(warning_msg)
+                            symlink_warnings.append(item)
             working_dir = tmpdir
 
             try:
@@ -719,11 +836,17 @@ class ContentCreationMCPServer(BaseMCPServer):
 
                 # Build and return success response
                 return self._build_compile_success_response(
-                    output_file, output_format, start_time, preview_pages, preview_dpi, response_mode
+                    output_file,
+                    output_format,
+                    start_time,
+                    preview_pages,
+                    preview_dpi,
+                    response_mode,
+                    symlink_warnings=symlink_warnings if symlink_warnings else None,
                 )
 
             finally:
-                self._cleanup_latex_temp_files(tex_file, working_dir, cleanup_tex)
+                self._cleanup_latex_temp_files(tex_file, working_dir, keep_temp_directory)
 
         except FileNotFoundError:
             return {"success": False, "error": f"{compiler} not found. Please install LaTeX."}
@@ -768,24 +891,27 @@ class ContentCreationMCPServer(BaseMCPServer):
         if not result["success"]:
             return result
 
-        pdf_path = result["output_path"]
+        # Use container_path for internal file operations, output_path for user-facing results
+        pdf_container_path = result.get("container_path", result["output_path"])
+        pdf_host_path = result["output_path"]
 
         # Convert to requested format if needed
         if output_format != "pdf":
             try:
-                return self._convert_pdf_to_image(pdf_path, output_format, response_mode)
+                return self._convert_pdf_to_image(pdf_container_path, output_format, response_mode)
             except Exception as e:
                 return {"success": False, "error": f"Format conversion error: {str(e)}"}
 
-        # Return PDF result
+        # Return PDF result with host-relative path
         if response_mode == "minimal":
             return {
                 "success": True,
-                "output_path": pdf_path,
+                "output_path": pdf_host_path,
             }
         return {
             "success": True,
-            "output_path": pdf_path,
+            "output_path": pdf_host_path,
+            "container_path": pdf_container_path,
             "format": "pdf",
             "page_count": result.get("page_count", 1),
             "file_size_kb": result.get("file_size_kb", 0),
@@ -801,7 +927,7 @@ class ContentCreationMCPServer(BaseMCPServer):
         """Generate PNG previews from an existing PDF file.
 
         Args:
-            pdf_path: Path to PDF file to preview
+            pdf_path: Path to PDF file to preview (project-relative or absolute)
             pages: Pages to preview ('1', '1,3,5', '1-5', 'all')
             dpi: Resolution for preview images
             response_mode: Level of detail (minimal: paths only, standard: +metadata)
@@ -809,8 +935,18 @@ class ContentCreationMCPServer(BaseMCPServer):
         Returns:
             Dictionary with preview paths and metadata
         """
-        if not os.path.exists(pdf_path):
-            return {"success": False, "error": f"PDF file not found: {pdf_path}"}
+        # Resolve input path relative to project root (with path traversal protection)
+        try:
+            resolved_path = self._resolve_input_path(pdf_path)
+        except ValueError as e:
+            return {"success": False, "error": str(e)}
+        if not os.path.exists(resolved_path):
+            return {
+                "success": False,
+                "error": f"PDF file not found: {pdf_path} (resolved to: {resolved_path}). "
+                f"Paths are resolved relative to project root ({self.project_root}).",
+            }
+        pdf_path = resolved_path  # Use resolved path for operations
 
         try:
             # Get page count
@@ -829,14 +965,17 @@ class ContentCreationMCPServer(BaseMCPServer):
             if not preview_paths:
                 return {"success": False, "error": "Failed to generate previews"}
 
+            # Convert preview paths to host-relative paths
+            host_preview_paths = [self._container_path_to_host_path(p) for p in preview_paths]
+
             result_data: Dict[str, Any] = {
                 "success": True,
-                "preview_paths": preview_paths,
+                "preview_paths": host_preview_paths,
             }
 
             # Add metadata for standard mode
             if response_mode == "standard":
-                result_data["pdf_path"] = pdf_path
+                result_data["pdf_path"] = self._container_path_to_host_path(pdf_path)
                 result_data["page_count"] = page_count
                 result_data["pages_exported"] = pages_to_export
 
