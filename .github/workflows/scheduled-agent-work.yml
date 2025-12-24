@@ -71,7 +71,7 @@ jobs:
       agent-timeout: 30
 
       # Execution settings
-      dry-run: ${{ github.event.inputs.dry-run || false }}
+      dry-run: ${{ github.event.inputs.dry-run == 'true' }}
       create-pr: true
       use-docker: true
 
