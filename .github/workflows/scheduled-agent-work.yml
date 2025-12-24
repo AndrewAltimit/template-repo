@@ -29,12 +29,18 @@ on:
           - opencode
           - crush
           - gemini
+          - codex
         default: 'claude'
       max-issues:
         description: 'Maximum issues to process'
         required: false
         type: number
         default: 1
+      use-docker:
+        description: 'Run agent in container (Claude always runs on host)'
+        required: false
+        type: boolean
+        default: false
       dry-run:
         description: 'Dry run (query only, no execution)'
         required: false
@@ -73,7 +79,7 @@ jobs:
       # Execution settings
       dry-run: ${{ github.event.inputs.dry-run == 'true' }}
       create-pr: true
-      use-docker: true
+      use-docker: ${{ github.event.inputs.use-docker == 'true' }}
 
       # CUSTOMIZE: Runner type
       runs-on: self-hosted
