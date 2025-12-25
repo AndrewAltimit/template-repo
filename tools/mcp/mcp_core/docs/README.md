@@ -4,12 +4,18 @@ The MCP Core module provides shared base classes and utilities for building Mode
 
 ## Overview
 
-The MCP Core module consists of four main components:
+The MCP Core module consists of these main components:
 
+### Server Infrastructure
 1. **BaseMCPServer**: Abstract base class for all MCP servers
 2. **HTTPProxy**: HTTP proxy for forwarding requests to remote MCP servers
 3. **ClientRegistry**: Client registration and management (currently disabled for home lab use)
 4. **Utilities**: Common utility functions for logging, configuration, and environment management
+
+### Expressive AI Agent Support
+5. **[Emotions Module](EMOTIONS.md)**: Canonical emotion taxonomy with PAD model for unified expression
+6. **[Expression Module](EXPRESSION.md)**: Multi-modal expression orchestration (voice, avatar, reactions)
+7. **[Personality Module](EXPRESSION.md#personality-memory)**: Persistent preference storage via AgentCore Memory
 
 ## Components
 
@@ -479,6 +485,45 @@ Or set environment variable:
 ```bash
 export MCP_LOG_LEVEL=DEBUG
 ```
+
+## Expressive AI Agent Modules
+
+The core module includes support for building expressive AI agents that communicate through multiple modalities with emotional coherence.
+
+### Quick Start
+
+```python
+from mcp_core.emotions import CanonicalEmotion, infer_emotion
+from mcp_core.expression import ExpressionOrchestrator, MCPClients
+
+# Infer emotion from text
+result = infer_emotion("Finally fixed that bug!")
+# result.primary_emotion = JOY, result.intensity = 0.8
+
+# Orchestrate expression across modalities
+orchestrator = ExpressionOrchestrator(clients=MCPClients(...))
+expression = await orchestrator.express(
+    text="Great work on fixing that!",
+    emotion=result.primary_emotion,
+    intensity=result.intensity,
+)
+# expression.audio, expression.avatar, expression.reaction
+```
+
+### Documentation
+
+- **[Emotions Module](EMOTIONS.md)**: Canonical emotion taxonomy, PAD model, mappings, inference
+- **[Expression Module](EXPRESSION.md)**: Orchestration, personality memory, preference learning
+
+### Architecture
+
+These modules integrate with:
+- **ElevenLabs Speech MCP**: Voice synthesis with emotion-mapped audio tags
+- **Virtual Character MCP**: Avatar expressions and gestures
+- **Reaction Search MCP**: Contextual reaction images
+- **AgentCore Memory MCP**: Persistent preference storage
+
+For the complete architecture vision including future Dual-Speed Cognition, see the [MCP Integration Proposal](../../../docs/proposals/mcp-integration-proposal.md).
 
 ## Contributing
 
