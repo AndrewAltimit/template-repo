@@ -52,7 +52,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["mcp_core"]
+include = ["mcp_core*"]
 
 [tool.setuptools.package-data]
 mcp_core = [
