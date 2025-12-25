@@ -46,3 +46,11 @@ try:
     __all__.append("expression")
 except ImportError:
     pass
+
+# Cognition module - dual-speed cognitive architecture
+try:
+    from . import cognition  # noqa: F401
+
+    __all__.append("cognition")
+except ImportError:
+    pass
