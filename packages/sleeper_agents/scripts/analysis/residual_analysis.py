@@ -469,7 +469,8 @@ class ResidualStreamAnalyzer:
             for head in range(self.model.cfg.n_heads):
                 # Patch attention pattern from clean to corrupted
                 # Use default args to capture loop variables
-                def patch_attention(pattern, _hook, _layer=layer, _head=head):
+                # Note: TransformerLens passes 'hook' as a keyword argument
+                def patch_attention(pattern, *, hook=None, _layer=layer, _head=head):
                     clean_pattern = clean_cache[f"blocks.{_layer}.attn.hook_pattern"][0, _head]
                     # Handle different sequence lengths
                     min_seq_len = min(pattern.shape[-1], clean_pattern.shape[-1])
@@ -488,7 +489,8 @@ class ResidualStreamAnalyzer:
 
             # Test MLP importance
             # Use default arg to capture loop variable
-            def patch_mlp(mlp_out, _hook, _layer=layer):
+            # Note: TransformerLens passes 'hook' as a keyword argument
+            def patch_mlp(mlp_out, *, hook=None, _layer=layer):
                 clean_mlp = clean_cache[f"blocks.{_layer}.mlp.hook_post"]
                 # Handle different sequence lengths
                 if mlp_out.shape[1] != clean_mlp.shape[1]:
