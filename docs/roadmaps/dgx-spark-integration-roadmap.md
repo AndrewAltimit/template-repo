@@ -532,5 +532,5 @@ User: "What's the best way to handle async errors in Python?"
 
 ## Related Documents
 
-- [MCP Integration Proposal](mcp-integration-proposal.md) - Unified emotion taxonomy
+- [MCP Integration Roadmap](mcp-integration-roadmap.md) - Unified emotion taxonomy
 - [Virtual Character + ElevenLabs Integration](../integrations/creative-tools/virtual-character-elevenlabs.md)

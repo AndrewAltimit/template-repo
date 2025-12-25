@@ -287,4 +287,4 @@ reaction_query = emotion_to_reaction_query(
 ## See Also
 
 - [Expression Module](EXPRESSION.md) - Multi-modal expression orchestration
-- [MCP Integration Proposal](../../../docs/proposals/mcp-integration-proposal.md) - Full architecture vision including Phase 4: Dual-Speed Cognition
+- [MCP Integration Roadmap](../../../docs/roadmaps/mcp-integration-roadmap.md) - Full architecture vision including Phase 4: Dual-Speed Cognition

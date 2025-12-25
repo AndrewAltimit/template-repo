@@ -404,5 +404,5 @@ print(f"Reaction: {result.reaction.markdown}")
 ## See Also
 
 - [Emotions Module](EMOTIONS.md) - Canonical emotion taxonomy
-- [MCP Integration Proposal](../../../docs/proposals/mcp-integration-proposal.md) - Full architecture including Phase 4: Dual-Speed Cognition
+- [MCP Integration Roadmap](../../../docs/roadmaps/mcp-integration-roadmap.md) - Full architecture including Phase 4: Dual-Speed Cognition
 - [AgentCore Memory Integration](../../../docs/integrations/ai-services/agentcore-memory-integration.md) - Memory system details

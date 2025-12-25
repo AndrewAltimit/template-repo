@@ -796,4 +796,4 @@ await play_audio_seamlessly("/tmp/speech.mp3")  # Handles everything automatical
 **Key Documentation:**
 - `tools/mcp/mcp_virtual_character/ARCHITECTURE.md` - Complete system architecture
 - `tools/mcp/mcp_virtual_character/README.md` - Setup and usage guide
-- `docs/mcp/locomotion-plan.md` - Implementation roadmap and status
+- `docs/roadmaps/virtual-character-roadmap.md` - Implementation roadmap and status

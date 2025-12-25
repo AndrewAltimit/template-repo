@@ -523,7 +523,7 @@ These modules integrate with:
 - **Reaction Search MCP**: Contextual reaction images
 - **AgentCore Memory MCP**: Persistent preference storage
 
-For the complete architecture vision including future Dual-Speed Cognition, see the [MCP Integration Proposal](../../../docs/proposals/mcp-integration-proposal.md).
+For the complete architecture vision including future Dual-Speed Cognition, see the [MCP Integration Roadmap](../../../docs/roadmaps/mcp-integration-roadmap.md).
 
 ## Contributing
 
