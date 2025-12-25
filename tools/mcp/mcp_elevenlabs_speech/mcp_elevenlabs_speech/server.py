@@ -47,8 +47,13 @@ if _SIBLING_PATH.exists() and str(_SIBLING_PATH) not in sys.path:
 _audio_file_server_cache: Dict[str, Any] = {"loaded": False, "func": None}
 
 
-class ElevenLabsSpeechMCPServer(BaseMCPServer):
-    """MCP Server for ElevenLabs v3 advanced speech synthesis"""
+class ElevenLabsSpeechMCPServer(BaseMCPServer):  # pylint: disable=too-many-public-methods
+    """MCP Server for ElevenLabs v3 advanced speech synthesis.
+
+    Note: This class has many public methods because each MCP tool is implemented
+    as a public method. This is the expected pattern for MCP servers with
+    comprehensive functionality.
+    """
 
     def __init__(self, project_root: Optional[str] = None):
         super().__init__(
