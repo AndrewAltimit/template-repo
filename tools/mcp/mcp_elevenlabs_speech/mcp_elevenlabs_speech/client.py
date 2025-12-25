@@ -22,6 +22,14 @@ class ElevenLabsClient:
     BASE_URL = "https://api.elevenlabs.io/v1"
     WS_URL = "wss://api.elevenlabs.io/v1/text-to-speech"
 
+    # Regional endpoints for optimized latency
+    REGIONAL_WS_URLS = {
+        "us": "wss://api.elevenlabs.io/v1/text-to-speech",
+        "eu": "wss://api.eu.residency.elevenlabs.io/v1/text-to-speech",
+        "india": "wss://api.in.residency.elevenlabs.io/v1/text-to-speech",
+        "global": "wss://api-global-preview.elevenlabs.io/v1/text-to-speech",  # 80-100ms EU/Japan
+    }
+
     def __init__(self, api_key: Optional[str] = None, project_root: Optional[Path] = None, output_dir: Optional[Path] = None):
         """
         Initialize ElevenLabs client
@@ -145,58 +153,164 @@ class ElevenLabsClient:
 
     async def synthesize_with_websocket(self, config: StreamConfig) -> AsyncGenerator[bytes, None]:
         """
-        Stream synthesis using WebSocket
+        Stream synthesis using WebSocket with optimized latency
 
         Args:
             config: Stream configuration
 
         Yields:
             Audio data chunks
-        """
-        ws_params = config.to_websocket_params()
 
-        # Build WebSocket URL
-        ws_url = f"{self.WS_URL}/{config.voice_id}/stream-input?model_id={config.model.value}"
+        Note:
+            WebSockets are NOT available for eleven_v3 model.
+            Use Flash v2.5 for lowest latency (~75ms inference).
+        """
+        import base64
+
+        # Get regional WebSocket URL
+        region_key = getattr(config, "region", None)
+        if region_key and hasattr(region_key, "value"):
+            # Extract region name from enum value URL
+            region_str = "us"
+            if "eu.residency" in region_key.value:
+                region_str = "eu"
+            elif "in.residency" in region_key.value:
+                region_str = "india"
+            elif "global-preview" in region_key.value:
+                region_str = "global"
+            ws_base = self.REGIONAL_WS_URLS.get(region_str, self.WS_URL)
+        else:
+            ws_base = self.WS_URL
+
+        # Build WebSocket URL with query parameters
+        ws_params = []
+        ws_params.append(f"model_id={config.model.value}")
+        ws_params.append(f"output_format={config.output_format.value}")
+
+        # Enable auto_mode for automatic generation triggers (reduces latency)
+        if getattr(config, "auto_mode", True):
+            ws_params.append("auto_mode=true")
+
+        # Set inactivity timeout
+        inactivity_timeout = getattr(config, "inactivity_timeout", 20)
+        ws_params.append(f"inactivity_timeout={inactivity_timeout}")
+
+        ws_url = f"{ws_base}/{config.voice_id}/stream-input?{'&'.join(ws_params)}"
+
+        logger.info("Connecting to WebSocket: %s (region: %s)", ws_url[:80] + "...", region_key)
 
         async with websockets.connect(ws_url, extra_headers={"xi-api-key": self.api_key}) as websocket:
             # Send initial configuration
-            await websocket.send(
-                json.dumps(
-                    {
-                        "text": " ",  # Initial empty text to establish connection
-                        "voice_settings": ws_params["voice_settings"],
-                        "chunk_length_schedule": ws_params["chunk_length_schedule"],
-                    }
-                )
-            )
+            init_message: Dict[str, Any] = {
+                "text": " ",  # Initial empty text to establish connection
+                "voice_settings": config.voice_settings.to_dict(),
+            }
 
-            # Send text in chunks
-            text_chunks = self._chunk_text(config.text, ws_params["chunk_length_schedule"])
+            # Only include chunk_schedule if auto_mode is disabled
+            if not getattr(config, "auto_mode", True):
+                init_message["chunk_length_schedule"] = config.chunk_schedule
 
-            for i, chunk in enumerate(text_chunks):
-                is_last = i == len(text_chunks) - 1
+            await websocket.send(json.dumps(init_message))
 
-                message = {"text": chunk, "flush": is_last or config.auto_flush}
+            # With auto_mode, send text more naturally (word by word or sentence by sentence)
+            if getattr(config, "auto_mode", True):
+                # Send full text and let auto_mode handle chunking
+                await websocket.send(json.dumps({"text": config.text + " ", "flush": True}))
 
-                await websocket.send(json.dumps(message))
-
-                # Receive audio data
+                # Receive all audio chunks
                 while True:
                     try:
-                        data = await asyncio.wait_for(websocket.recv(), timeout=0.5)
+                        data = await asyncio.wait_for(websocket.recv(), timeout=5.0)
                         if isinstance(data, bytes):
                             yield data
                         else:
-                            # Parse JSON response for metadata
                             response = json.loads(data)
                             if response.get("audio"):
-                                yield response["audio"]
-                            if response.get("done"):
+                                # Audio is base64 encoded in JSON response
+                                audio_bytes = base64.b64decode(response["audio"])
+                                yield audio_bytes
+                            if response.get("isFinal"):
                                 break
                     except asyncio.TimeoutError:
-                        if is_last:
-                            break
-                        continue
+                        break
+            else:
+                # Manual chunking mode (legacy behavior)
+                text_chunks = self._chunk_text(config.text, config.chunk_schedule)
+
+                for i, chunk in enumerate(text_chunks):
+                    is_last = i == len(text_chunks) - 1
+
+                    message = {"text": chunk, "flush": is_last or config.auto_flush}
+
+                    await websocket.send(json.dumps(message))
+
+                    # Receive audio data
+                    while True:
+                        try:
+                            data = await asyncio.wait_for(websocket.recv(), timeout=0.5)
+                            if isinstance(data, bytes):
+                                yield data
+                            else:
+                                response = json.loads(data)
+                                if response.get("audio"):
+                                    audio_bytes = base64.b64decode(response["audio"])
+                                    yield audio_bytes
+                                if response.get("isFinal") or response.get("done"):
+                                    break
+                        except asyncio.TimeoutError:
+                            if is_last:
+                                break
+                            continue
+
+            # Send close message
+            await websocket.send(json.dumps({"text": ""}))
+
+    async def stream_speech_http(self, config: SynthesisConfig) -> AsyncGenerator[bytes, None]:
+        """
+        Stream synthesis using HTTP chunked transfer encoding.
+
+        This is faster than WebSocket when the full text is available upfront
+        because there's no buffering overhead.
+
+        Args:
+            config: Synthesis configuration
+
+        Yields:
+            Audio data chunks as they're generated
+
+        Note:
+            Use this method when you have the complete text upfront.
+            For real-time text input (e.g., from LLM), use synthesize_with_websocket.
+        """
+        api_params = config.to_api_params()
+
+        # Build streaming URL
+        url = f"{self.BASE_URL}/text-to-speech/{config.voice_id}/stream"
+        url += f"?output_format={config.output_format.value}"
+
+        payload = {
+            "text": api_params["text"],
+            "model_id": api_params["model_id"],
+            "voice_settings": api_params["voice_settings"],
+        }
+
+        if config.language_code:
+            payload["language_code"] = config.language_code
+
+        logger.info("Starting HTTP stream for %d chars", len(config.text))
+
+        try:
+            async with self.client.stream("POST", url, json=payload) as response:
+                response.raise_for_status()
+                async for chunk in response.aiter_bytes(chunk_size=4096):
+                    if chunk:
+                        yield chunk
+        except httpx.HTTPStatusError as e:
+            logger.error("HTTP streaming error: %s", e.response.status_code)
+            raise
+        except httpx.RequestError as e:
+            logger.error("HTTP streaming connection error: %s", type(e).__name__)
+            raise
 
     async def generate_sound_effect(self, prompt: str, duration_seconds: float = 5.0) -> SynthesisResult:
         """
