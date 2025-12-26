@@ -21,7 +21,7 @@ WORKDIR /workspace
 # Clone AI Toolkit (pinned to specific commit for reproducibility)
 RUN git clone https://github.com/ostris/ai-toolkit.git /ai-toolkit && \
     cd /ai-toolkit && \
-    git checkout be71cc75
+    git checkout a767b82b60e74c00d8d2cf4933129f51b2fe23aa
 
 # Install AI Toolkit Python dependencies
 WORKDIR /ai-toolkit
