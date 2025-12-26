@@ -634,12 +634,12 @@ A user speaks to an AI agent. Within 100ms, the agent's avatar shows it's listen
   \node[flowbox=vcpurple, below right=0.7cm and 2cm of input] (slow) {Slow Mind (2-30s)};
 
   % Fast outputs - left column
-  \node[flowbox=vcteal!70, below=0.5cm of fast] (emotion) {Emotion Classifier};
-  \node[flowbox=vcteal!70, below=0.4cm of emotion] (filler) {Filler Generator};
+  \node[flowbox=vcteal, below=0.5cm of fast] (emotion) {Emotion Classifier};
+  \node[flowbox=vcteal, below=0.4cm of emotion] (filler) {Filler Generator};
 
   % Slow outputs - right column
-  \node[flowbox=vcpurple!70, below=0.5cm of slow] (reason) {Claude Opus 4.5};
-  \node[flowbox=vcpurple!70, below=0.4cm of reason] (memory) {Memory Query};
+  \node[flowbox=vcpurple, below=0.5cm of slow] (reason) {Claude Opus 4.5};
+  \node[flowbox=vcpurple, below=0.4cm of reason] (memory) {Memory Query};
 
   % Orchestrator - positioned below filler/memory with clearance
   \node[flowbox=vcprimary, below=0.6cm of input, yshift=-3.2cm, minimum width=5cm] (orch) {Expression Orchestrator (PAD Model)};
