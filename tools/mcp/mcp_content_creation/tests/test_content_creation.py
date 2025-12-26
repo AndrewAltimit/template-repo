@@ -322,28 +322,30 @@ class TestResponseFormat:
     async def test_compile_latex_returns_host_path(self):
         """Test that compile_latex returns host-relative output_path"""
         # Patch at the module level where the functions are used
-        with patch("mcp_content_creation.server.tempfile.mkdtemp") as mock_mkdtemp:
-            with patch("mcp_content_creation.server.subprocess.run") as mock_run:
-                with patch("mcp_content_creation.server.os.path.exists") as mock_exists:
-                    with patch("mcp_content_creation.server.shutil.copy"):
-                        with patch("builtins.open", mock_open()):
-                            with patch("mcp_content_creation.server.shutil.rmtree"):
-                                # Setup mocks
-                                mock_mkdtemp.return_value = "/tmp/test"
-                                mock_run.return_value = Mock(returncode=0)
-                                mock_exists.return_value = True
+        # Also patch ensure_directory since __init__ calls it to create output dirs
+        with patch("mcp_content_creation.server.ensure_directory", side_effect=lambda p: p):
+            with patch("mcp_content_creation.server.tempfile.mkdtemp") as mock_mkdtemp:
+                with patch("mcp_content_creation.server.subprocess.run") as mock_run:
+                    with patch("mcp_content_creation.server.os.path.exists") as mock_exists:
+                        with patch("mcp_content_creation.server.shutil.copy"):
+                            with patch("builtins.open", mock_open()):
+                                with patch("mcp_content_creation.server.shutil.rmtree"):
+                                    # Setup mocks
+                                    mock_mkdtemp.return_value = "/tmp/test"
+                                    mock_run.return_value = Mock(returncode=0)
+                                    mock_exists.return_value = True
 
-                                server = ContentCreationMCPServer()
-                                result = await server.compile_latex(
-                                    content=r"\documentclass{article}\begin{document}Test\end{document}",
-                                    output_format="pdf",
-                                )
+                                    server = ContentCreationMCPServer()
+                                    result = await server.compile_latex(
+                                        content=r"\documentclass{article}\begin{document}Test\end{document}",
+                                        output_format="pdf",
+                                    )
 
-                                assert result["success"] is True
-                                # output_path should be host-relative
-                                assert result["output_path"].startswith("outputs/mcp-content/")
-                                # container_path should be the original container path
-                                assert "/output/" in result["container_path"] or "/app/output/" in result["container_path"]
+                                    assert result["success"] is True
+                                    # output_path should be host-relative
+                                    assert result["output_path"].startswith("outputs/mcp-content/")
+                                    # container_path should be the original container path
+                                    assert "/output/" in result["container_path"] or "/app/output/" in result["container_path"]
 
 
 if __name__ == "__main__":
