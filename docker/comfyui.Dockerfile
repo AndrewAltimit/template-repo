@@ -23,7 +23,7 @@ WORKDIR /workspace
 # Clone ComfyUI (pinned to specific commit for reproducibility)
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git /comfyui && \
     cd /comfyui && \
-    git checkout 20a84166
+    git checkout d9a76cf66e3fc6b0047692a07bc1d24f20e16e20
 
 # Install ComfyUI requirements
 WORKDIR /comfyui
