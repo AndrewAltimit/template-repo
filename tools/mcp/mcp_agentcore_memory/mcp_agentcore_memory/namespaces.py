@@ -59,6 +59,35 @@ class MemoryNamespace:
     PROJECT_PREFS = "preferences/project"
 
     # ─────────────────────────────────────────────────────────────
+    # Personality (Expressive AI Agent System)
+    # ─────────────────────────────────────────────────────────────
+
+    # Preferred voices, speaking styles, tone preferences
+    VOICE_PREFERENCES = "personality/voice_preferences"
+
+    # Learned emotion expression preferences and patterns
+    EXPRESSION_PATTERNS = "personality/expression_patterns"
+
+    # Which reactions resonate with users, successful reaction usage
+    REACTION_HISTORY = "personality/reaction_history"
+
+    # Preferred gestures, emotion intensities, avatar behaviors
+    AVATAR_SETTINGS = "personality/avatar_settings"
+
+    # ─────────────────────────────────────────────────────────────
+    # Context (Conversation State)
+    # ─────────────────────────────────────────────────────────────
+
+    # Current conversation emotional arc and tone
+    CONVERSATION_TONE = "context/conversation_tone"
+
+    # User-specific communication preferences
+    USER_COMMUNICATION = "context/user_preferences"
+
+    # Past interaction patterns and behaviors
+    INTERACTION_HISTORY = "context/interaction_history"
+
+    # ─────────────────────────────────────────────────────────────
     # Agent-Specific Learnings
     # ─────────────────────────────────────────────────────────────
 

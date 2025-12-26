@@ -14,6 +14,7 @@ from .synthesis_config import (
     GitHubAudioConfig,
     SoundEffectConfig,
     StreamConfig,
+    StreamingRegion,
     SynthesisConfig,
     SynthesisResult,
 )
@@ -33,6 +34,7 @@ __all__ = [
     "SoundEffectConfig",
     "GitHubAudioConfig",
     "StreamConfig",
+    "StreamingRegion",
     "VoiceSettings",
     "VoicePreset",
     "VOICE_PRESETS",

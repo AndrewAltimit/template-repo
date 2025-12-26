@@ -16,6 +16,8 @@ from .models import (  # noqa: E402
     AudioTagCategory,
     GitHubAudioConfig,
     OutputFormat,
+    StreamConfig,
+    StreamingRegion,
     SynthesisConfig,
     VoiceModel,
     VoiceSettings,
@@ -45,8 +47,13 @@ if _SIBLING_PATH.exists() and str(_SIBLING_PATH) not in sys.path:
 _audio_file_server_cache: Dict[str, Any] = {"loaded": False, "func": None}
 
 
-class ElevenLabsSpeechMCPServer(BaseMCPServer):
-    """MCP Server for ElevenLabs v3 advanced speech synthesis"""
+class ElevenLabsSpeechMCPServer(BaseMCPServer):  # pylint: disable=too-many-public-methods
+    """MCP Server for ElevenLabs v3 advanced speech synthesis.
+
+    Note: This class has many public methods because each MCP tool is implemented
+    as a public method. This is the expected pattern for MCP servers with
+    comprehensive functionality.
+    """
 
     def __init__(self, project_root: Optional[str] = None):
         super().__init__(
@@ -502,6 +509,275 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         tagged_text = " ".join(emotion_tags) + " " + text
 
         return await self.synthesize_speech_v3(text=tagged_text, voice_id=voice_id, voice_settings=settings)
+
+    async def synthesize_stream(
+        self,
+        text: str,
+        voice_id: Optional[str] = None,
+        region: str = "us",
+        output_format: str = "pcm_24000",
+        speed: float = 1.0,
+    ) -> Dict[str, Any]:
+        """
+        Low-latency streaming synthesis optimized for virtual character integration.
+
+        Uses Flash v2.5 model (~75ms latency) with auto_mode for fastest response.
+
+        Args:
+            text: Text to synthesize
+            voice_id: Voice ID or name
+            region: Regional endpoint (us, eu, india, global)
+            output_format: Audio format (pcm_24000 recommended for streaming)
+            speed: Speech speed (0.7 to 1.2)
+
+        Returns:
+            Dict with audio file path and streaming metadata
+
+        Note:
+            - WebSockets are NOT available for eleven_v3 model
+            - Uses Flash v2.5 for lowest latency (~75ms inference)
+            - PCM format recommended (no decompression overhead)
+            - For real-time text input, use WebSocket streaming directly
+        """
+        if not self.client:
+            return {"error": "ElevenLabs client not configured"}
+
+        # Initialize voice cache if needed
+        if not self._voice_cache_initialized:
+            await self._initialize_voice_cache()
+            self._voice_cache_initialized = True
+
+        # Resolve voice ID
+        resolved_voice_id = await self._resolve_voice_id(voice_id)
+        if not resolved_voice_id:
+            return {
+                "success": False,
+                "error": f"Could not resolve voice: {voice_id}",
+                "available_voices": list(self._voice_id_cache.keys()),
+            }
+
+        # Map region string to enum
+        region_map = {
+            "us": StreamingRegion.US,
+            "eu": StreamingRegion.EU,
+            "india": StreamingRegion.INDIA,
+            "global": StreamingRegion.GLOBAL,
+        }
+        streaming_region = region_map.get(region.lower(), StreamingRegion.US)
+
+        # Create voice settings with speed
+        voice_settings = VoiceSettings(
+            stability=0.5,
+            similarity_boost=0.75,
+            style=0.0,
+            use_speaker_boost=False,
+            speed=speed,
+        )
+
+        # Parse output format
+        try:
+            fmt = OutputFormat(output_format)
+        except ValueError:
+            fmt = OutputFormat.PCM_24000
+
+        # Create streaming config with optimized settings
+        config = StreamConfig(
+            text=text,
+            voice_id=resolved_voice_id,
+            model=VoiceModel.ELEVEN_FLASH_V2_5,  # 75ms latency
+            voice_settings=voice_settings,
+            output_format=fmt,
+            auto_mode=True,  # Automatic generation triggers
+            region=streaming_region,
+        )
+
+        # Collect audio chunks
+        audio_chunks = []
+        chunk_count = 0
+        start_time = None
+
+        try:
+            import time
+
+            start_time = time.time()
+
+            async for chunk in self.client.synthesize_with_websocket(config):
+                audio_chunks.append(chunk)
+                chunk_count += 1
+
+            end_time = time.time()
+            total_time = end_time - start_time
+
+            # Combine chunks
+            audio_data = b"".join(audio_chunks)
+
+            # Save to file
+            local_path = await self.client._save_audio(
+                audio_data,
+                output_format,
+                prefix="stream_",
+                metadata={
+                    "streaming": True,
+                    "region": region,
+                    "model": config.model.value,
+                    "voice_id": resolved_voice_id,
+                    "chunk_count": chunk_count,
+                    "total_time_seconds": total_time,
+                    "text_length": len(text),
+                },
+            )
+
+            # Upload if configured
+            audio_url = None
+            try:
+                upload_result = upload_audio(local_path, self.config["auto_upload"])
+                if upload_result:
+                    audio_url = upload_result
+            except Exception as upload_error:
+                self.logger.warning("Upload failed: %s", upload_error)
+
+            return {
+                "success": True,
+                "local_path": local_path,
+                "audio_url": audio_url,
+                "streaming_info": {
+                    "model": config.model.value,
+                    "region": region,
+                    "output_format": output_format,
+                    "chunk_count": chunk_count,
+                    "total_time_seconds": round(total_time, 3),
+                    "audio_size_bytes": len(audio_data),
+                    "estimated_latency_ms": 75,  # Flash v2.5 inference time
+                },
+                "voice_id": resolved_voice_id,
+                "text_length": len(text),
+            }
+
+        except Exception as e:
+            self.logger.error("Streaming synthesis failed: %s", e)
+            return {
+                "success": False,
+                "error": f"Streaming failed: {str(e)}",
+                "suggestion": "Ensure voice supports streaming (not available for v3 model)",
+            }
+
+    async def synthesize_http_stream(
+        self,
+        text: str,
+        voice_id: Optional[str] = None,
+        model: str = "eleven_flash_v2_5",
+        output_format: str = "mp3_44100_128",
+    ) -> Dict[str, Any]:
+        """
+        HTTP streaming synthesis - faster than WebSocket when full text is available.
+
+        Uses chunked transfer encoding for progressive audio delivery.
+        Better than WebSocket when you have complete text upfront.
+
+        Args:
+            text: Complete text to synthesize
+            voice_id: Voice ID or name
+            model: Model ID (flash_v2_5 recommended for speed)
+            output_format: Audio format
+
+        Returns:
+            Dict with audio file path
+        """
+        if not self.client:
+            return {"error": "ElevenLabs client not configured"}
+
+        # Initialize voice cache if needed
+        if not self._voice_cache_initialized:
+            await self._initialize_voice_cache()
+            self._voice_cache_initialized = True
+
+        # Resolve voice ID
+        resolved_voice_id = await self._resolve_voice_id(voice_id)
+        if not resolved_voice_id:
+            return {
+                "success": False,
+                "error": f"Could not resolve voice: {voice_id}",
+            }
+
+        # Parse model and format
+        try:
+            model_enum = VoiceModel(model)
+        except ValueError:
+            model_enum = VoiceModel.ELEVEN_FLASH_V2_5
+
+        try:
+            fmt = OutputFormat(output_format)
+        except ValueError:
+            fmt = OutputFormat.MP3_44100_128
+
+        # Create synthesis config
+        config = SynthesisConfig(
+            text=text,
+            voice_id=resolved_voice_id,
+            model=model_enum,
+            output_format=fmt,
+            stream=True,
+        )
+
+        # Collect audio chunks via HTTP streaming
+        audio_chunks = []
+        chunk_count = 0
+
+        try:
+            import time
+
+            start_time = time.time()
+
+            async for chunk in self.client.stream_speech_http(config):
+                audio_chunks.append(chunk)
+                chunk_count += 1
+
+            end_time = time.time()
+            total_time = end_time - start_time
+
+            # Combine chunks
+            audio_data = b"".join(audio_chunks)
+
+            # Save to file
+            local_path = await self.client._save_audio(
+                audio_data,
+                output_format,
+                prefix="http_stream_",
+                metadata={
+                    "http_streaming": True,
+                    "model": model_enum.value,
+                    "voice_id": resolved_voice_id,
+                    "chunk_count": chunk_count,
+                    "total_time_seconds": total_time,
+                },
+            )
+
+            # Upload if configured
+            audio_url = None
+            try:
+                upload_result = upload_audio(local_path, self.config["auto_upload"])
+                if upload_result:
+                    audio_url = upload_result
+            except Exception:
+                pass
+
+            return {
+                "success": True,
+                "local_path": local_path,
+                "audio_url": audio_url,
+                "model_used": model_enum.value,
+                "voice_id": resolved_voice_id,
+                "chunk_count": chunk_count,
+                "total_time_seconds": round(total_time, 3),
+                "audio_size_bytes": len(audio_data),
+            }
+
+        except Exception as e:
+            self.logger.error("HTTP streaming failed: %s", e)
+            return {
+                "success": False,
+                "error": f"HTTP streaming failed: {str(e)}",
+            }
 
     async def synthesize_dialogue(
         self, script: List[Dict[str, Any]], global_settings: Optional[Dict] = None, _mix_audio: bool = True
@@ -1057,6 +1333,54 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                         "intensity": {"type": "string", "enum": ["subtle", "natural", "exaggerated"], "default": "natural"},
                     },
                     "required": ["text", "emotions"],
+                },
+            },
+            "synthesize_stream": {
+                "description": "Low-latency streaming synthesis for virtual characters (~75ms latency with Flash v2.5)",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "text": {"type": "string", "description": "Text to synthesize"},
+                        "voice_id": {"type": "string", "description": "Voice ID or name"},
+                        "region": {
+                            "type": "string",
+                            "enum": ["us", "eu", "india", "global"],
+                            "default": "us",
+                            "description": "Regional endpoint (global has 80-100ms for EU/Japan)",
+                        },
+                        "output_format": {
+                            "type": "string",
+                            "default": "pcm_24000",
+                            "description": "Audio format (pcm_24000 recommended for lowest latency)",
+                        },
+                        "speed": {
+                            "type": "number",
+                            "default": 1.0,
+                            "description": "Speech speed (0.7 to 1.2)",
+                        },
+                    },
+                    "required": ["text"],
+                },
+            },
+            "synthesize_http_stream": {
+                "description": "HTTP streaming - faster than WebSocket when full text is available upfront",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "text": {"type": "string", "description": "Complete text to synthesize"},
+                        "voice_id": {"type": "string", "description": "Voice ID or name"},
+                        "model": {
+                            "type": "string",
+                            "default": "eleven_flash_v2_5",
+                            "description": "Model ID (flash_v2_5 recommended for speed)",
+                        },
+                        "output_format": {
+                            "type": "string",
+                            "default": "mp3_44100_128",
+                            "description": "Audio output format",
+                        },
+                    },
+                    "required": ["text"],
                 },
             },
             "synthesize_dialogue": {

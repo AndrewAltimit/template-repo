@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from .voice_settings import OutputFormat, VoiceModel, VoiceSettings
@@ -154,30 +155,62 @@ class AudioTiming:
     end_ms: Optional[int] = None  # Alternative to duration
 
 
+class StreamingRegion(Enum):
+    """Regional endpoints for optimized latency"""
+
+    US = "wss://api.elevenlabs.io/v1"  # Default US endpoint
+    EU = "wss://api.eu.residency.elevenlabs.io/v1"  # European endpoint
+    INDIA = "wss://api.in.residency.elevenlabs.io/v1"  # India endpoint
+    GLOBAL = "wss://api-global-preview.elevenlabs.io/v1"  # Global preview (80-100ms EU/Japan)
+
+
 @dataclass
 class StreamConfig:
-    """Configuration for streaming synthesis"""
+    """Configuration for streaming synthesis
+
+    Note:
+        WebSockets are NOT available for eleven_v3 model.
+        Use Flash v2.5 for lowest latency (~75ms inference).
+    """
 
     text: str
     voice_id: str
-    model: VoiceModel = VoiceModel.ELEVEN_TURBO_V2_5  # Optimized for streaming
+    model: VoiceModel = VoiceModel.ELEVEN_FLASH_V2_5  # Flash for 75ms latency (was TURBO_V2_5)
     voice_settings: VoiceSettings = field(default_factory=VoiceSettings)
     chunk_schedule: List[int] = field(default_factory=lambda: [120, 160, 250, 290])
     auto_flush: bool = True
+    auto_mode: bool = True  # NEW: Automatic generation triggers (reduces latency)
     keep_alive: bool = True
-    output_format: OutputFormat = OutputFormat.MP3_44100_128
+    output_format: OutputFormat = OutputFormat.PCM_24000  # PCM for lowest latency (no decompression)
+    region: StreamingRegion = StreamingRegion.US  # Regional endpoint selection
+    inactivity_timeout: int = 20  # Seconds before connection closes
 
     def to_websocket_params(self) -> Dict[str, Any]:
         """Convert to WebSocket parameters"""
-        return {
+        params: Dict[str, Any] = {
             "text": self.text,
             "voice_id": self.voice_id,
             "model_id": self.model.value,
             "voice_settings": self.voice_settings.to_dict(),
-            "chunk_length_schedule": self.chunk_schedule,
-            "flush": self.auto_flush,
             "output_format": self.output_format.value,
         }
+        # Only include chunk_schedule if auto_mode is disabled
+        if not self.auto_mode:
+            params["chunk_length_schedule"] = self.chunk_schedule
+        params["flush"] = self.auto_flush
+        return params
+
+    def get_websocket_url(self) -> str:
+        """Get full WebSocket URL with query parameters"""
+        base_url = self.region.value
+        params = [
+            f"model_id={self.model.value}",
+            f"output_format={self.output_format.value}",
+            f"inactivity_timeout={self.inactivity_timeout}",
+        ]
+        if self.auto_mode:
+            params.append("auto_mode=true")
+        return f"{base_url}/text-to-speech/{self.voice_id}/stream-input?{'&'.join(params)}"
 
 
 @dataclass
