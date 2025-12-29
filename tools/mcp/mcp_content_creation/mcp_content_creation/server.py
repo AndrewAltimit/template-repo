@@ -110,7 +110,9 @@ class ContentCreationMCPServer(BaseMCPServer):
         if os.path.isabs(input_path):
             # Check if this is a host path that should be converted to container path
             host_project_root = os.environ.get("MCP_HOST_PROJECT_ROOT", "")
-            if host_project_root and input_path.startswith(host_project_root):
+            # Use proper directory boundary check to avoid partial matches
+            # (e.g., /opt/app should not match /opt/application)
+            if host_project_root and (input_path == host_project_root or input_path.startswith(host_project_root + os.sep)):
                 # Convert host path to container-relative path
                 relative_path = os.path.relpath(input_path, host_project_root)
                 container_path = os.path.join(self.project_root, relative_path)

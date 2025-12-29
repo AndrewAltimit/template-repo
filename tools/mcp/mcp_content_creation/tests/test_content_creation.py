@@ -267,52 +267,29 @@ class TestPathResolution:
 
     def test_resolve_input_path_converts_host_path_to_container_path(self):
         """Test that host paths are converted to container paths when MCP_HOST_PROJECT_ROOT is set"""
-        # Save original value
-        original_value = os.environ.get("MCP_HOST_PROJECT_ROOT")
-        try:
-            os.environ["MCP_HOST_PROJECT_ROOT"] = "/home/user/project"
+        with patch.dict(os.environ, {"MCP_HOST_PROJECT_ROOT": "/home/user/project"}):
             server = ContentCreationMCPServer()
             # Host absolute path should be converted to container path
             result = server._resolve_input_path("/home/user/project/docs/thesis.tex")
             assert result == "/app/docs/thesis.tex"
-        finally:
-            # Restore original value
-            if original_value is None:
-                os.environ.pop("MCP_HOST_PROJECT_ROOT", None)
-            else:
-                os.environ["MCP_HOST_PROJECT_ROOT"] = original_value
 
     def test_resolve_input_path_no_conversion_without_host_root(self):
         """Test that host paths are not converted when MCP_HOST_PROJECT_ROOT is not set"""
-        # Save original value
-        original_value = os.environ.get("MCP_HOST_PROJECT_ROOT")
-        try:
+        with patch.dict(os.environ, {}, clear=False):
+            # Ensure MCP_HOST_PROJECT_ROOT is not set
             os.environ.pop("MCP_HOST_PROJECT_ROOT", None)
             server = ContentCreationMCPServer()
             # Without host root, absolute paths should be used as-is
             result = server._resolve_input_path("/home/user/project/docs/thesis.tex")
             assert result == "/home/user/project/docs/thesis.tex"
-        finally:
-            # Restore original value
-            if original_value is not None:
-                os.environ["MCP_HOST_PROJECT_ROOT"] = original_value
 
     def test_resolve_input_path_no_conversion_for_unrelated_path(self):
         """Test that paths outside host project root are not converted"""
-        # Save original value
-        original_value = os.environ.get("MCP_HOST_PROJECT_ROOT")
-        try:
-            os.environ["MCP_HOST_PROJECT_ROOT"] = "/home/user/project"
+        with patch.dict(os.environ, {"MCP_HOST_PROJECT_ROOT": "/home/user/project"}):
             server = ContentCreationMCPServer()
             # Path outside host project root should not be converted
             result = server._resolve_input_path("/other/path/file.tex")
             assert result == "/other/path/file.tex"
-        finally:
-            # Restore original value
-            if original_value is None:
-                os.environ.pop("MCP_HOST_PROJECT_ROOT", None)
-            else:
-                os.environ["MCP_HOST_PROJECT_ROOT"] = original_value
 
 
 class TestSymlinkWarnings:
