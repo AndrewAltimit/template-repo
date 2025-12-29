@@ -35,30 +35,33 @@
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows.blur, matrix, patterns, fadings, shadings}
 
 % ============================================================================
-% COLOR DEFINITIONS - Academic/Research Theme (less threatening)
+% COLOR DEFINITIONS - Scientific Defense Theme (biosecurity/laboratory feel)
 % ============================================================================
-\definecolor{academicnavy}{HTML}{2C3E50}
-\definecolor{academicblue}{HTML}{3498DB}
-\definecolor{softslate}{HTML}{5D6D7E}
-\definecolor{researchgreen}{HTML}{27AE60}
-\definecolor{warnambber}{HTML}{D4AC0D}
-\definecolor{softcoral}{HTML}{E74C3C}
-\definecolor{infoteal}{HTML}{17A2B8}
+% Primary: Deep teal - scientific, medical, biosecurity
+\definecolor{deepteal}{HTML}{0E4D4D}
+\definecolor{scienceteal}{HTML}{17A2B8}
+\definecolor{labcyan}{HTML}{1ABC9C}
+% Accent: Barrier gold for warnings and highlights
+\definecolor{barriergold}{HTML}{D4AC0D}
+\definecolor{shieldamber}{HTML}{F39C12}
+% Domain colors
+\definecolor{biogreen}{HTML}{27AE60}
+\definecolor{chemblue}{HTML}{2E86AB}
+\definecolor{nukepurple}{HTML}{5B2C6F}
+\definecolor{defenseblue}{HTML}{34495E}
+% Neutrals
 \definecolor{lightgray}{HTML}{F4F6F7}
 \definecolor{medgray}{HTML}{BDC3C7}
-\definecolor{textdark}{HTML}{2C3E50}
-\definecolor{accentgold}{HTML}{B7950B}
-\definecolor{biogreen}{HTML}{52BE80}
-\definecolor{chemblue}{HTML}{5DADE2}
-\definecolor{nukeindigo}{HTML}{7D3C98}
+\definecolor{softslate}{HTML}{5D6D7E}
+\definecolor{textdark}{HTML}{1C2833}
 
 % ============================================================================
 % HYPERREF SETUP
 % ============================================================================
 \hypersetup{
   colorlinks=true,
-  linkcolor=academicnavy,
-  urlcolor=academicblue,
+  linkcolor=deepteal,
+  urlcolor=scienceteal,
   pdftitle={AI Agents and WMD Proliferation Risk Assessment},
   pdfauthor={Emerging Technology Risk Assessment}
 }
@@ -71,22 +74,24 @@
 \setlist{nosep, leftmargin=1.5em, itemsep=0.3em}
 
 % ============================================================================
-% PAGE STYLE - Clean academic style
+% PAGE STYLE - Hexagonal molecular pattern (biosecurity theme)
 % ============================================================================
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{%
   \begin{tikzpicture}[baseline=-0.5ex]
-    \foreach \x in {0,0.12,0.24,0.36,0.48} {
-      \foreach \y in {0,0.12,0.24} {
-        \fill[academicblue, opacity=0.3] (\x,\y) circle (0.03);
-      }
+    % Hexagonal pattern (molecular/biosecurity feel)
+    \foreach \i in {0,1,2} {
+      \draw[scienceteal, opacity=0.4, line width=0.4pt]
+        ({0.2+\i*0.35},0.12) -- ++(60:0.12) -- ++(0:0.12) -- ++(-60:0.12)
+        -- ++(-120:0.12) -- ++(180:0.12) -- cycle;
     }
+    \fill[barriergold, opacity=0.6] (0.32,0.12) circle (0.04);
   \end{tikzpicture}
-  \hspace{0.5em}\textcolor{academicnavy}{\textsf{\small ETRA-2025-WMD-001}}%
+  \hspace{0.3em}\textcolor{deepteal}{\textsf{\small ETRA-2025-WMD-001}}%
 }
 \fancyhead[R]{\textcolor{softslate}{\textsf{\thepage}}}
-\fancyfoot[C]{\textcolor{softslate}{\footnotesize\textsf{Emerging Technology Risk Assessment | Public Policy Research}}}
+\fancyfoot[C]{\textcolor{softslate}{\footnotesize\textsf{Emerging Technology Risk Assessment | Biosecurity Policy Research}}}
 \renewcommand{\headrulewidth}{0pt}
 \renewcommand{\footrulewidth}{0pt}
 
@@ -94,13 +99,13 @@
 \setlength{\headheight}{32pt}
 
 % ============================================================================
-% SECTION FORMATTING - Clean academic style
+% SECTION FORMATTING - Scientific defense style with hexagon accents
 % ============================================================================
 \titleformat{\section}
-  {\normalfont\LARGE\bfseries\color{academicnavy}}
-  {\thesection}{0.8em}{}[\vspace{-0.3em}{\color{medgray}\rule{\textwidth}{1pt}}]
+  {\normalfont\LARGE\bfseries\color{deepteal}}
+  {\thesection}{0.8em}{}[\vspace{-0.3em}{\color{scienceteal}\rule{\textwidth}{1.5pt}\hspace{-\textwidth}\color{barriergold}\rule{3cm}{1.5pt}}]
 \titleformat{\subsection}
-  {\normalfont\Large\bfseries\color{academicnavy}}
+  {\normalfont\Large\bfseries\color{deepteal}}
   {\thesubsection}{0.6em}{}
 \titleformat{\subsubsection}
   {\normalfont\large\color{softslate}\bfseries}
@@ -112,64 +117,74 @@
 \setcounter{tocdepth}{2}
 
 % ============================================================================
-% TCOLORBOX ENVIRONMENTS - Academic styling
+% TCOLORBOX ENVIRONMENTS - Scientific defense styling
 % ============================================================================
 \tcbuselibrary{skins,breakable,hooks}
 
 \newtcolorbox{keybox}[1][Key Finding]{
   enhanced, breakable,
-  colback=academicblue!8, colframe=academicblue,
-  colbacktitle=academicblue, coltitle=white,
+  colback=scienceteal!10, colframe=scienceteal,
+  colbacktitle=scienceteal, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{72}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{contextbox}[1][Context]{
   enhanced, breakable,
-  colback=researchgreen!8, colframe=researchgreen,
-  colbacktitle=researchgreen, coltitle=white,
+  colback=biogreen!10, colframe=biogreen,
+  colbacktitle=biogreen, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{51}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{notebox}[1][Note]{
   enhanced, breakable,
-  colback=warnambber!10, colframe=warnambber,
-  colbacktitle=warnambber, coltitle=white,
+  colback=barriergold!12, colframe=barriergold,
+  colbacktitle=barriergold, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{73}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{infobox}[1][Information]{
   enhanced, breakable,
-  colback=infoteal!8, colframe=infoteal,
-  colbacktitle=infoteal, coltitle=white,
+  colback=chemblue!10, colframe=chemblue,
+  colbacktitle=chemblue, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{73}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{defbox}[1][Definition]{
   enhanced, breakable,
-  colback=softslate!8, colframe=softslate,
-  colbacktitle=softslate, coltitle=white,
+  colback=deepteal!8, colframe=deepteal,
+  colbacktitle=deepteal, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{70}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{quotebox}{
   enhanced, breakable,
-  colback=lightgray, colframe=medgray,
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  colback=lightgray, colframe=scienceteal!50,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt
+}
+
+\newtcolorbox{barrierbox}[1][Barrier Analysis]{
+  enhanced, breakable,
+  colback=nukepurple!8, colframe=nukepurple,
+  colbacktitle=nukepurple, coltitle=white,
+  fonttitle=\bfseries\sffamily,
+  title={\ding{74}\hspace{0.5em}#1},
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
@@ -179,64 +194,77 @@
 \begin{document}
 
 % ============================================================================
-% TITLE PAGE - Professional academic style
+% TITLE PAGE - Concentric Defense Barriers Visualization
 % ============================================================================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
-  % Background - clean gradient
-  \fill[academicnavy] (current page.north west) rectangle (current page.south east);
+  % Background - deep teal gradient
+  \fill[deepteal] (current page.north west) rectangle (current page.south east);
 
-  % Subtle grid pattern (right side)
-  \begin{scope}[shift={(current page.center)}, opacity=0.06]
-    \foreach \x in {2,2.6,...,10} {
-      \foreach \y in {-12,-11.4,...,12} {
-        \fill[white] (\x,\y) circle (0.05);
+  % Hexagonal pattern background (molecular/biosecurity feel)
+  \begin{scope}[shift={(current page.center)}, opacity=0.04]
+    \foreach \x in {-8,-6.5,...,10} {
+      \foreach \y in {-12,-10.5,...,12} {
+        \draw[white, line width=0.3pt]
+          (\x,\y) -- ++(60:0.5) -- ++(0:0.5) -- ++(-60:0.5)
+          -- ++(-120:0.5) -- ++(180:0.5) -- cycle;
       }
     }
   \end{scope}
 
-  % Main visualization - interconnected research domains
-  \begin{scope}[shift={([xshift=-0.5cm, yshift=1.5cm]current page.center)}]
-    % Central hub
-    \fill[white, opacity=0.1] (0,0) circle (1.8cm);
-    \fill[white, opacity=0.15] (0,0) circle (1.4cm);
-    \fill[accentgold] (0,0) circle (0.8cm);
-    \node[academicnavy, font=\fontsize{7}{7}\selectfont\bfseries] at (0,0.15) {POLICY};
-    \node[academicnavy, font=\fontsize{7}{7}\selectfont\bfseries] at (0,-0.15) {ANALYSIS};
+  % Main visualization - Concentric Defense Barriers
+  \begin{scope}[shift={([xshift=-0.3cm, yshift=1.2cm]current page.center)}]
+    % Outer barrier ring (weakest - eroding)
+    \draw[labcyan, opacity=0.15, line width=8pt] (0,0) circle (5.5cm);
+    \draw[labcyan, opacity=0.25, line width=2pt, dashed] (0,0) circle (5.5cm);
 
-    % Domain nodes - softer academic colors
-    \foreach \angle/\col/\label in {
-      45/biogreen/BIO,
-      90/academicblue/TECH,
-      135/chemblue/CHEM,
-      180/nukeindigo/NUKE,
-      225/researchgreen/GOV,
-      270/infoteal/INTL,
-      315/softslate/ATTR,
-      0/warnambber/DEF
+    % Middle barrier ring (moderate)
+    \draw[scienceteal, opacity=0.2, line width=10pt] (0,0) circle (4cm);
+    \draw[scienceteal, opacity=0.4, line width=2pt] (0,0) circle (4cm);
+
+    % Inner barrier ring (strong)
+    \draw[barriergold, opacity=0.25, line width=12pt] (0,0) circle (2.5cm);
+    \draw[barriergold, opacity=0.6, line width=2pt] (0,0) circle (2.5cm);
+
+    % Core - protected zone
+    \fill[white, opacity=0.1] (0,0) circle (1.3cm);
+    \fill[barriergold] (0,0) circle (0.7cm);
+    \node[deepteal, font=\fontsize{6}{6}\selectfont\bfseries] at (0,0.1) {DEFENSE};
+    \node[deepteal, font=\fontsize{6}{6}\selectfont\bfseries] at (0,-0.15) {IN DEPTH};
+
+    % Barrier labels with domain icons
+    \foreach \angle/\col/\label/\dist in {
+      20/biogreen/BIO/5.5,
+      70/labcyan/SCREEN/5.5,
+      110/scienceteal/DETECT/4,
+      160/chemblue/CHEM/4,
+      200/nukepurple/NUKE/4,
+      250/barriergold/ATTRIB/2.5,
+      290/shieldamber/GOVERN/2.5,
+      340/biogreen/INTL/5.5
     } {
-      \fill[\col, opacity=0.85] (\angle:4.5cm) circle (0.4cm);
-      \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\angle:4.5cm) {\label};
-      \draw[\col, opacity=0.3, line width=1pt] (0,0) -- (\angle:4cm);
-      \foreach \r in {5.2,5.6,6} {
-        \fill[\col, opacity=0.15] (\angle:\r cm) circle (0.08);
-      }
+      \fill[\col, opacity=0.9] (\angle:\dist cm) circle (0.35cm);
+      \node[white, font=\fontsize{4}{4}\selectfont\bfseries] at (\angle:\dist cm) {\label};
     }
 
-    % Inner ring
-    \foreach \angle/\col in {0/academicblue, 45/biogreen, 90/researchgreen, 135/chemblue, 180/nukeindigo, 225/infoteal, 270/warnambber, 315/softslate} {
-      \fill[\col, opacity=0.5] (\angle:2.5cm) circle (0.2cm);
-      \draw[\col, opacity=0.2, line width=0.5pt] (\angle:2.5cm) -- ({(\angle+45)}:2.5cm);
+    % Breach indicators (showing where barriers are weakening)
+    \foreach \angle in {45, 135, 225, 315} {
+      \draw[white, opacity=0.3, line width=1pt, ->] (\angle:6.2cm) -- (\angle:5.8cm);
     }
+
+    % Barrier strength indicators
+    \node[white, opacity=0.5, font=\fontsize{5}{5}\selectfont] at (0, 6.2) {INFORMATION BARRIER};
+    \node[white, opacity=0.5, font=\fontsize{5}{5}\selectfont] at (0, 4.7) {PHYSICAL BARRIER};
+    \node[white, opacity=0.5, font=\fontsize{5}{5}\selectfont] at (0, 3.2) {TACIT KNOWLEDGE};
   \end{scope}
 
-  % Document header bar
-  \fill[accentgold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[academicnavy, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2025-WMD-001 \textbar{} DECEMBER 2025};
+  % Document header bar (keeping consistent format)
+  \fill[barriergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
+  \node[deepteal, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2025-WMD-001 \textbar{} DECEMBER 2025};
 
   % Title block
   \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
-    {\fontsize{11}{13}\selectfont\color{accentgold}\sffamily EMERGING TECHNOLOGY RISK ASSESSMENT}\\[0.8cm]
+    {\fontsize{11}{13}\selectfont\color{barriergold}\sffamily EMERGING TECHNOLOGY RISK ASSESSMENT}\\[0.8cm]
     {\fontsize{36}{42}\selectfont\bfseries\color{white}AI Agents and}\\[0.2cm]
     {\fontsize{36}{42}\selectfont\bfseries\color{white}WMD Proliferation}\\[0.2cm]
     {\fontsize{36}{42}\selectfont\bfseries\color{white}Risk}\\[0.6cm]
@@ -249,11 +277,11 @@
     \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
     \textbf{License:} MIT / Unlicense\\[0.2em]
-    \textbf{Version:} 1.0
+    \textbf{Version:} 2.0
   };
 
   % Accent line
-  \draw[accentgold, line width=2pt] ([xshift=1.5cm, yshift=3cm]current page.south west) -- ([xshift=1.5cm, yshift=10.5cm]current page.south west);
+  \draw[barriergold, line width=2pt] ([xshift=1.5cm, yshift=3cm]current page.south west) -- ([xshift=1.5cm, yshift=10.5cm]current page.south west);
 
 \end{tikzpicture}
 \end{titlepage}
@@ -265,19 +293,22 @@
 \vspace*{0.5cm}
 
 \noindent\begin{tikzpicture}
-  \fill[academicnavy] (0,0) rectangle (\textwidth, 0.15);
-  \foreach \x in {0.5,1,...,16.5} {
-    \fill[accentgold, opacity=0.5] (\x, 0.075) circle (0.04);
+  \fill[deepteal] (0,0) rectangle (\textwidth, 0.15);
+  % Hexagonal accent pattern
+  \foreach \x in {0.5,1.3,...,16} {
+    \draw[barriergold, opacity=0.6, line width=0.4pt]
+      (\x, 0.075) -- ++(60:0.06) -- ++(0:0.06) -- ++(-60:0.06)
+      -- ++(-120:0.06) -- ++(180:0.06) -- cycle;
   }
 \end{tikzpicture}
 
 \vspace{0.5cm}
 \begin{center}
-{\color{academicnavy}\Large\bfseries About This Document}
+{\color{deepteal}\Large\bfseries About This Document}
 \end{center}
 \vspace{0.3cm}
 
-\begin{tcolorbox}[enhanced, colback=lightgray, colframe=academicblue!50, boxrule=1pt, arc=3pt,
+\begin{tcolorbox}[enhanced, colback=lightgray, colframe=scienceteal!60, boxrule=1pt, arc=3pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt]
 This is a \textbf{public policy research document} analyzing how AI capabilities may affect WMD proliferation risks. It is released under permissive open-source licenses (MIT/Unlicense) to support broad discussion of these governance challenges.
 \end{tcolorbox}
@@ -450,50 +481,44 @@ The dominant near-term concern is \textit{increased frequency of attempts} with 
 \thispagestyle{empty}
 \vspace*{-0.85in}
 \noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[academicnavy] (0,0) rectangle (\paperwidth, -10cm);
+  \fill[deepteal] (0,0) rectangle (\paperwidth, -10cm);
 
-  \node[accentgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
+  \node[barriergold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Theory, Capabilities, and Historical Context};
 
-  % Simple academic chart
-  \begin{scope}[shift={(3cm, -8cm)}]
-    \draw[white, opacity=0.4, line width=1.2pt, -Stealth] (0,0) -- (6,0) node[right, font=\fontsize{7}{7}\selectfont, white, opacity=0.7] {TIME};
-    \draw[white, opacity=0.4, line width=1.2pt, -Stealth] (0,0) -- (0,2.5) node[above, font=\fontsize{7}{7}\selectfont, white, opacity=0.7] {BARRIER};
-
-    \foreach \y in {0.6,1.2,1.8} {
-      \draw[white, opacity=0.1, line width=0.5pt] (0,\y) -- (5.8,\y);
-    }
-
-    % Bio barriers declining
-    \draw[biogreen, opacity=0.8, line width=2pt] (0.3, 2.0) .. controls (2, 1.8) and (4, 1.2) .. (5.5, 0.8);
-    \node[biogreen, font=\fontsize{6}{6}\selectfont] at (5.7, 0.9) {BIO};
-
-    % Nuclear barriers stable
-    \draw[nukeindigo, opacity=0.8, line width=2pt] (0.3, 2.2) -- (5.5, 2.1);
-    \node[nukeindigo, font=\fontsize{6}{6}\selectfont] at (5.7, 2.2) {NUKE};
-
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (1.0, -0.35) {2020};
-    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont\bfseries] at (3.0, -0.35) {2025};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (5.0, -0.35) {2030};
+  % Concentric barrier rings visualization (unique to WMD doc)
+  \begin{scope}[shift={(4cm, -7.5cm)}]
+    % Three concentric rings representing defense layers
+    \draw[labcyan, opacity=0.2, line width=6pt] (0,0) circle (2.2cm);
+    \draw[labcyan, opacity=0.35, line width=1.5pt, dashed] (0,0) circle (2.2cm);
+    \draw[scienceteal, opacity=0.3, line width=5pt] (0,0) circle (1.5cm);
+    \draw[scienceteal, opacity=0.5, line width=1.5pt] (0,0) circle (1.5cm);
+    \draw[barriergold, opacity=0.4, line width=4pt] (0,0) circle (0.8cm);
+    \draw[barriergold, opacity=0.7, line width=1.5pt] (0,0) circle (0.8cm);
+    \fill[barriergold, opacity=0.9] (0,0) circle (0.3cm);
+    % Sector labels
+    \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont] at (0, 2.6) {INFO};
+    \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont] at (0, 1.85) {PHYS};
+    \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont] at (0, 1.15) {TACIT};
   \end{scope}
 
   % Legend
-  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -5.7cm) {BARRIER STRENGTH OVER TIME};
-  \node[anchor=west] at (10.5cm, -6.4cm) {
+  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -5.7cm) {DEFENSE IN DEPTH MODEL};
+  \node[anchor=west] at (10cm, -6.4cm) {
     \begin{tikzpicture}
       \fill[biogreen, opacity=0.7] (0,0) circle (0.1);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.25, 0) {Biological - Declining};
+      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.25, 0) {Biological - Barriers Eroding};
     \end{tikzpicture}
   };
-  \node[anchor=west] at (10.5cm, -7.0cm) {
+  \node[anchor=west] at (10cm, -7.0cm) {
     \begin{tikzpicture}
-      \fill[nukeindigo, opacity=0.7] (0,0) circle (0.1);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.25, 0) {Nuclear - Stable (Strong)};
+      \fill[nukepurple, opacity=0.7] (0,0) circle (0.1);
+      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.25, 0) {Nuclear - Barriers Strong};
     \end{tikzpicture}
   };
 
-  \fill[accentgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[barriergold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
@@ -763,13 +788,13 @@ AI agents (2024+) & Knowledge synthesis and guidance & Physical barriers; tacit 
 \thispagestyle{empty}
 \vspace*{-0.85in}
 \noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[academicnavy] (0,0) rectangle (\paperwidth, -10cm);
+  \fill[deepteal] (0,0) rectangle (\paperwidth, -10cm);
 
-  \node[accentgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
+  \node[barriergold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Threat Analysis};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {WMD Categories, Barriers, and Risk Assessment};
 
-  \fill[accentgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[barriergold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
@@ -919,13 +944,13 @@ Gene drives are genetic engineering systems designed to spread modifications thr
 \thispagestyle{empty}
 \vspace*{-0.85in}
 \noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[academicnavy] (0,0) rectangle (\paperwidth, -10cm);
+  \fill[deepteal] (0,0) rectangle (\paperwidth, -10cm);
 
-  \node[accentgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
+  \node[barriergold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
   \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Vectors and};
   \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -4.1cm) {Convergence};
 
-  \fill[accentgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[barriergold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
@@ -1101,13 +1126,13 @@ Attribution---determining responsibility---serves critical functions: enables de
 \thispagestyle{empty}
 \vspace*{-0.85in}
 \noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[academicnavy] (0,0) rectangle (\paperwidth, -10cm);
+  \fill[deepteal] (0,0) rectangle (\paperwidth, -10cm);
 
-  \node[accentgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
+  \node[barriergold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
   \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Policy};
   \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -4.1cm) {Recommendations};
 
-  \fill[accentgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[barriergold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
