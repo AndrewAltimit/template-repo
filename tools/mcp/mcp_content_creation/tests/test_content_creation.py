@@ -3,6 +3,7 @@
 Unit tests for Content Creation MCP Server
 """
 
+import os
 from unittest.mock import Mock, mock_open, patch
 
 import pytest
@@ -225,7 +226,7 @@ class TestPathResolution:
 
     def test_resolve_input_path_with_custom_project_root(self):
         """Test path resolution with custom project root"""
-        with patch.dict("os.environ", {"MCP_PROJECT_ROOT": "/custom/root"}):
+        with patch.dict(os.environ, {"MCP_PROJECT_ROOT": "/custom/root"}):
             server = ContentCreationMCPServer()
             result = server._resolve_input_path("docs/file.tex")
             assert result == "/custom/root/docs/file.tex"
@@ -263,6 +264,32 @@ class TestPathResolution:
         server = ContentCreationMCPServer()
         result = server._resolve_input_path("/app/documents/thesis.tex")
         assert result == "/app/documents/thesis.tex"
+
+    def test_resolve_input_path_converts_host_path_to_container_path(self):
+        """Test that host paths are converted to container paths when MCP_HOST_PROJECT_ROOT is set"""
+        with patch.dict(os.environ, {"MCP_HOST_PROJECT_ROOT": "/home/user/project"}):
+            server = ContentCreationMCPServer()
+            # Host absolute path should be converted to container path
+            result = server._resolve_input_path("/home/user/project/docs/thesis.tex")
+            assert result == "/app/docs/thesis.tex"
+
+    def test_resolve_input_path_no_conversion_without_host_root(self):
+        """Test that host paths are not converted when MCP_HOST_PROJECT_ROOT is not set"""
+        with patch.dict(os.environ, {}, clear=False):
+            # Ensure MCP_HOST_PROJECT_ROOT is not set
+            os.environ.pop("MCP_HOST_PROJECT_ROOT", None)
+            server = ContentCreationMCPServer()
+            # Without host root, absolute paths should be used as-is
+            result = server._resolve_input_path("/home/user/project/docs/thesis.tex")
+            assert result == "/home/user/project/docs/thesis.tex"
+
+    def test_resolve_input_path_no_conversion_for_unrelated_path(self):
+        """Test that paths outside host project root are not converted"""
+        with patch.dict(os.environ, {"MCP_HOST_PROJECT_ROOT": "/home/user/project"}):
+            server = ContentCreationMCPServer()
+            # Path outside host project root should not be converted
+            result = server._resolve_input_path("/other/path/file.tex")
+            assert result == "/other/path/file.tex"
 
 
 class TestSymlinkWarnings:

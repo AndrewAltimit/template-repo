@@ -43,6 +43,7 @@ services:
       - PYTHONUNBUFFERED=1
       - PORT=8011
       - MCP_OUTPUT_DIR=/output
+      - MCP_HOST_PROJECT_ROOT=${PWD}
     networks:
       - mcp-network
     command: ["python", "-m", "mcp_content_creation.server", "--mode", "http"]

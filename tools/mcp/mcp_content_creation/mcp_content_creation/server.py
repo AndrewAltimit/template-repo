@@ -88,6 +88,11 @@ class ContentCreationMCPServer(BaseMCPServer):
         Input paths are interpreted as project-relative paths. They are resolved
         relative to the project root (container: /app, host: cwd).
 
+        Host Path Conversion: When running in a container, absolute host paths
+        (e.g., /home/user/project/docs/file.tex) are automatically converted to
+        container paths (e.g., /app/docs/file.tex) if they fall within the
+        mounted project directory. This is controlled by MCP_HOST_PROJECT_ROOT.
+
         Security: For relative paths, this method validates that the resolved path
         stays within the project root to prevent path traversal attacks (e.g.,
         ../../../etc/passwd). Absolute paths are normalized but allowed to access
@@ -103,7 +108,17 @@ class ContentCreationMCPServer(BaseMCPServer):
             ValueError: If a relative path resolves outside the project root
         """
         if os.path.isabs(input_path):
-            # For absolute paths, normalize to handle any ".." segments
+            # Check if this is a host path that should be converted to container path
+            host_project_root = os.environ.get("MCP_HOST_PROJECT_ROOT", "")
+            # Use proper directory boundary check to avoid partial matches
+            # (e.g., /opt/app should not match /opt/application)
+            if host_project_root and (input_path == host_project_root or input_path.startswith(host_project_root + os.sep)):
+                # Convert host path to container-relative path
+                relative_path = os.path.relpath(input_path, host_project_root)
+                container_path = os.path.join(self.project_root, relative_path)
+                return os.path.abspath(container_path)
+
+            # For other absolute paths, normalize to handle any ".." segments
             # but allow access outside project root (explicit user intent)
             return os.path.abspath(input_path)
 
