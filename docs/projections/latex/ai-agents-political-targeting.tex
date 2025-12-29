@@ -1,0 +1,980 @@
+\documentclass[11pt,letterpaper]{article}
+
+% ============================================================================
+% PACKAGES
+% ============================================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[margin=0.85in, headheight=28pt]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{multicol}
+\usepackage{listings}
+\usepackage{upquote}
+\usepackage{amsmath,amssymb}
+\usepackage{pgfplots}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{colortbl}
+\usepackage{pifont}
+\usepackage{setspace}
+\usepackage{parskip}
+\usepackage{caption}
+\usepackage{tabularx}
+
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows.blur, matrix, patterns, fadings, shadings}
+
+% ============================================================================
+% COLOR DEFINITIONS - Professional Policy Theme (Blue/Teal/Gold)
+% ============================================================================
+\definecolor{policydark}{HTML}{1A2632}
+\definecolor{policynavy}{HTML}{2C3E50}
+\definecolor{policyblue}{HTML}{2980B9}
+\definecolor{policyteal}{HTML}{16A085}
+\definecolor{policygold}{HTML}{D4AC0D}
+\definecolor{policyslate}{HTML}{34495E}
+\definecolor{successgreen}{HTML}{27AE60}
+\definecolor{warningamber}{HTML}{E67E22}
+\definecolor{alertcoral}{HTML}{E74C3C}
+\definecolor{infocyan}{HTML}{17A2B8}
+\definecolor{coolgray}{HTML}{7F8C8D}
+\definecolor{lightgray}{HTML}{ECF0F1}
+\definecolor{codebg}{HTML}{F7F9FA}
+\definecolor{codetext}{HTML}{2C3E50}
+
+% ============================================================================
+% HYPERREF SETUP
+% ============================================================================
+\hypersetup{
+  colorlinks=true,
+  linkcolor=policyblue,
+  urlcolor=policyteal,
+  pdftitle={AI Agents and the Future of Political Targeting},
+  pdfauthor={Emerging Technology Risk Assessment Committee}
+}
+
+% ============================================================================
+% SPACING AND TYPOGRAPHY
+% ============================================================================
+\setstretch{1.15}
+\setlength{\parskip}{0.5em}
+\setlist{nosep, leftmargin=1.5em, itemsep=0.3em}
+
+% ============================================================================
+% PAGE STYLE
+% ============================================================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{%
+  \begin{tikzpicture}[baseline=-0.5ex]
+    \fill[policyblue] (0,0) circle (0.15);
+    \fill[policyteal] (0.35,0) circle (0.1);
+    \fill[policygold] (0.6,0) circle (0.06);
+  \end{tikzpicture}
+  \hspace{0.3em}\textcolor{policynavy}{\textsf{\textbf{Political Targeting Risk Assessment}}}%
+}
+\fancyhead[R]{\textcolor{coolgray}{\textsf{\thepage}}}
+\fancyfoot[C]{\textcolor{coolgray}{\small\textsf{Policy Research -- For Defensive Analysis}}}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\fancyheadoffset{0pt}
+\setlength{\headheight}{32pt}
+
+% ============================================================================
+% SECTION FORMATTING
+% ============================================================================
+\titleformat{\section}
+  {\normalfont\LARGE\bfseries\color{policynavy}}
+  {\colorbox{policyblue}{\textcolor{white}{\thesection}}}{0.8em}{}
+\titleformat{\subsection}
+  {\normalfont\Large\bfseries\color{policyslate}}
+  {\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}
+  {\normalfont\large\color{coolgray}\bfseries}
+  {\thesubsubsection}{0.5em}{}
+
+\titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
+\titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+
+\setcounter{tocdepth}{2}
+
+% ============================================================================
+% TCOLORBOX ENVIRONMENTS
+% ============================================================================
+\tcbuselibrary{skins,breakable,hooks}
+
+\newtcolorbox{keybox}[1][Key Finding]{
+  enhanced, breakable,
+  colback=policyblue!5, colframe=policyblue,
+  colbacktitle=policyblue, coltitle=white,
+  fonttitle=\bfseries\sffamily,
+  title={\ding{72}\hspace{0.5em}#1},
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt,
+  shadow={2pt}{-2pt}{0pt}{black!15}
+}
+
+\newtcolorbox{warnbox}[1][Warning]{
+  enhanced, breakable,
+  colback=warningamber!8, colframe=warningamber,
+  colbacktitle=warningamber, coltitle=white,
+  fonttitle=\bfseries\sffamily,
+  title={\ding{74}\hspace{0.5em}#1},
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt,
+  shadow={2pt}{-2pt}{0pt}{black!15}
+}
+
+\newtcolorbox{criticalbox}[1][Critical]{
+  enhanced, breakable,
+  colback=alertcoral!8, colframe=alertcoral,
+  colbacktitle=alertcoral, coltitle=white,
+  fonttitle=\bfseries\sffamily,
+  title={\ding{74}\hspace{0.5em}#1},
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt,
+  shadow={2pt}{-2pt}{0pt}{black!15}
+}
+
+\newtcolorbox{recbox}[1][Recommendation]{
+  enhanced, breakable,
+  colback=successgreen!8, colframe=successgreen,
+  colbacktitle=successgreen, coltitle=white,
+  fonttitle=\bfseries\sffamily,
+  title={\ding{51}\hspace{0.5em}#1},
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt,
+  shadow={2pt}{-2pt}{0pt}{black!15}
+}
+
+\newtcolorbox{infobox}[1][Note]{
+  enhanced, breakable,
+  colback=policyteal!8, colframe=policyteal,
+  colbacktitle=policyteal, coltitle=white,
+  fonttitle=\bfseries\sffamily,
+  title={\ding{73}\hspace{0.5em}#1},
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt,
+  shadow={2pt}{-2pt}{0pt}{black!15}
+}
+
+\newtcolorbox{defbox}[1][Definition]{
+  enhanced, breakable,
+  colback=policygold!8, colframe=policygold,
+  colbacktitle=policygold!90!black, coltitle=white,
+  fonttitle=\bfseries\sffamily,
+  title={\ding{70}\hspace{0.5em}#1},
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt,
+  shadow={2pt}{-2pt}{0pt}{black!15}
+}
+
+\newtcolorbox{scenariobox}[1][Scenario]{
+  enhanced, breakable,
+  colback=policyslate!5, colframe=policyslate,
+  colbacktitle=policyslate, coltitle=white,
+  fonttitle=\bfseries\sffamily,
+  title={\ding{118}\hspace{0.5em}#1},
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt,
+  shadow={2pt}{-2pt}{0pt}{black!15}
+}
+
+% ============================================================================
+% PART PAGE STYLING
+% ============================================================================
+\newcommand{\partpage}[4]{%
+  \clearpage
+  \thispagestyle{empty}
+  \vspace*{-0.85in}% Pull up to reduce top margin
+  % Use negative margins to extend header to page edges
+  \noindent\hspace*{-0.85in}\begin{tikzpicture}
+    % Header background - full width box
+    \fill[policydark] (0,0) rectangle (\paperwidth, -8.5cm);
+    \shade[top color=policydark, bottom color=policynavy, shading angle=90]
+      (0,0) rectangle (\paperwidth, -8.5cm);
+    % Decorative circles
+    \fill[policyblue, opacity=0.15] (12cm, -3cm) circle (4cm);
+    \fill[policyteal, opacity=0.1] (14cm, -6cm) circle (2.5cm);
+    \fill[policygold, opacity=0.1] (3cm, -5cm) circle (3cm);
+    % Large background number
+    \node[white, opacity=0.08, font=\fontsize{180}{180}\selectfont\bfseries]
+      at (4.5cm, -4.5cm) {#1};
+    % PART label
+    \node[white, font=\large\sffamily] at (0.5\paperwidth, -2cm) {PART};
+    % Part number
+    \node[policygold, font=\fontsize{64}{64}\selectfont\bfseries]
+      at (0.5\paperwidth, -4cm) {#1};
+    % Part title
+    \node[white, font=\Huge\bfseries\sffamily] at (0.5\paperwidth, -6.2cm) {#2};
+    % Gold divider line
+    \draw[policygold, line width=2pt] (2cm, -7.5cm) -- (\paperwidth-2cm, -7.5cm);
+  \end{tikzpicture}
+  \vspace{0.5cm}
+  \begin{center}
+  \begin{minipage}{0.88\textwidth}
+    \begin{tcolorbox}[enhanced, colback=white, colframe=policyblue!50, boxrule=1pt, arc=6pt,
+      left=15pt, right=15pt, top=12pt, bottom=12pt, shadow={2pt}{-2pt}{0pt}{black!15}]
+    \textcolor{policynavy}{\ding{70}\hspace{0.5em}\textbf{What's Covered}}
+    \vspace{0.5em}
+    #3
+    \end{tcolorbox}
+    \vspace{1em}
+    \begin{center}
+    #4
+    \end{center}
+  \end{minipage}
+  \end{center}
+}
+
+% ============================================================================
+% DOCUMENT
+% ============================================================================
+\begin{document}
+
+% ============================================================================
+% TITLE PAGE
+% ============================================================================
+\begin{titlepage}
+\begin{tikzpicture}[remember picture, overlay]
+  \shade[left color=policydark, right color=policynavy!90]
+    (current page.north west) rectangle ([xshift=7cm]current page.south west);
+
+  \fill[policyblue, opacity=0.15] ([xshift=3.5cm, yshift=-4cm]current page.north west) circle (1.2cm);
+  \fill[policyteal, opacity=0.12] ([xshift=3.5cm, yshift=-8cm]current page.north west) circle (0.9cm);
+  \fill[policygold, opacity=0.10] ([xshift=3.5cm, yshift=-12cm]current page.north west) circle (1.1cm);
+  \fill[policyblue, opacity=0.08] ([xshift=3.5cm, yshift=-16cm]current page.north west) circle (1.4cm);
+  \fill[policyteal, opacity=0.10] ([xshift=3.5cm, yshift=-20cm]current page.north west) circle (0.8cm);
+
+  \begin{scope}[shift={([xshift=3.5cm, yshift=-14cm]current page.north west)}]
+    \fill[policyblue, opacity=0.08] (0,0) circle (2.8cm);
+    \fill[policyblue, opacity=0.12] (0,0) circle (2.2cm);
+    \fill[policyblue] (0,0) circle (0.65cm);
+    \node[white, font=\small\bfseries] at (0,0) {AI};
+    \foreach \angle/\label/\col in {45/GOV/policyteal, 90/POL/policyblue, 135/DEM/successgreen, 225/SEC/policygold, 270/INT/infocyan, 315/CIV/coolgray} {
+      \draw[white, opacity=0.4, line width=1.5pt] (0,0) -- (\angle:1.6cm);
+      \fill[\col] (\angle:2cm) circle (0.35cm);
+      \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\angle:2cm) {\label};
+    }
+    \foreach \i in {1,...,12} {
+      \fill[white, opacity=0.5] ({30*\i}:1cm) circle (0.05cm);
+    }
+  \end{scope}
+
+  \node[fill=policyblue, rounded corners=3pt, inner sep=6pt]
+    at ([xshift=11.5cm, yshift=-3cm]current page.north west)
+    {\textcolor{white}{\small\bfseries\sffamily POLICY RESEARCH}};
+
+  \node[anchor=west] at ([xshift=8cm, yshift=-5.5cm]current page.north west)
+    {{\fontsize{36}{42}\selectfont\bfseries\color{policynavy}AI Agents and the}};
+  \node[anchor=west] at ([xshift=8cm, yshift=-7.2cm]current page.north west)
+    {{\fontsize{36}{42}\selectfont\bfseries\color{policynavy}Future of Political}};
+  \node[anchor=west] at ([xshift=8cm, yshift=-8.9cm]current page.north west)
+    {{\fontsize{36}{42}\selectfont\bfseries\color{policynavy}Targeting}};
+  \node[anchor=west] at ([xshift=8cm, yshift=-10.5cm]current page.north west)
+    {{\large\color{coolgray}\sffamily A Projection Report on Emerging Risks}};
+
+  \draw[policygold, line width=3pt]
+    ([xshift=8cm, yshift=-11.5cm]current page.north west) --
+    ([xshift=18.5cm, yshift=-11.5cm]current page.north west);
+
+  \node[anchor=north west, text width=10.5cm] at ([xshift=8cm, yshift=-12.5cm]current page.north west) {
+    \color{coolgray}\normalsize
+    This projection explores how the proliferation of autonomous AI agents is altering the
+    landscape of political violence and democratic governance. We analyze current capabilities,
+    project likely scenarios through 2030, and examine potential governmental adaptations.
+  };
+
+  \node[fill=policyblue!10, rounded corners=4pt, inner sep=8pt]
+    at ([xshift=9.5cm, yshift=-16cm]current page.north west)
+    {\textcolor{policyblue}{\ding{70}}\hspace{0.3em}\small\sffamily Threat Analysis};
+  \node[fill=policyteal!10, rounded corners=4pt, inner sep=8pt]
+    at ([xshift=13.2cm, yshift=-16cm]current page.north west)
+    {\textcolor{policyteal}{\ding{110}}\hspace{0.3em}\small\sffamily Risk Assessment};
+  \node[fill=policygold!10, rounded corners=4pt, inner sep=8pt]
+    at ([xshift=17cm, yshift=-16cm]current page.north west)
+    {\textcolor{policygold}{\ding{70}}\hspace{0.3em}\small\sffamily Policy Guidance};
+
+  \node[fill=policynavy!10, rounded corners=3pt, inner sep=6pt]
+    at ([xshift=10cm, yshift=-18.5cm]current page.north west)
+    {\textcolor{policynavy}{\ding{70}}\hspace{0.3em}\scriptsize\sffamily 2025--2030};
+  \node[fill=policyteal!10, rounded corners=3pt, inner sep=6pt]
+    at ([xshift=14cm, yshift=-18.5cm]current page.north west)
+    {\textcolor{policyteal}{\ding{70}}\hspace{0.3em}\scriptsize\sffamily Global Scope};
+
+  \node[anchor=north west, text width=10cm] at ([xshift=8cm, yshift=-20.5cm]current page.north west) {
+    \color{coolgray}\small\sffamily
+    \textbf{Prepared For:} Emerging Technology Risk Assessment Committee\\
+    \textbf{Version:} 1.0 \textbar{} December 2025
+  };
+\end{tikzpicture}
+\end{titlepage}
+
+% ============================================================================
+% EXECUTIVE SUMMARY
+% ============================================================================
+\thispagestyle{empty}
+\vspace*{1cm}
+\begin{center}
+{\color{policynavy}\Large\bfseries Executive Summary}
+\end{center}
+\vspace{0.5cm}
+
+\begin{tcolorbox}[enhanced, colback=lightgray, colframe=policyblue!50, boxrule=1pt, arc=5pt,
+  left=10pt, right=10pt, top=10pt, bottom=10pt]
+This projection explores how the proliferation of autonomous AI agents is altering the landscape of political violence, specifically targeting of political leaders. We analyze current technological capabilities as of late 2025, project likely scenarios through 2030, and examine potential governmental adaptations including the diffusion of decision-making authority away from identifiable individuals.
+\end{tcolorbox}
+
+\vspace{0.6cm}
+
+\begin{keybox}[Key Findings]
+\begin{enumerate}
+  \item AI agents significantly lower barriers to political targeting by enabling reconnaissance, planning, and coordination without traditional organizational structures
+  \item The risk calculus for potential attackers shifts when AI handles tasks previously requiring large, detectable conspiracy networks
+  \item Governments may adapt through ``decision diffusion''---distributing authority across larger, less identifiable bodies
+  \item These adaptations may reduce certain authoritarian risks while introducing new challenges around accountability and democratic responsiveness
+  \item A period of institutional instability is likely as governance structures evolve faster than public understanding
+\end{enumerate}
+\end{keybox}
+
+\vspace{0.6cm}
+
+\begin{infobox}[Base-Rate Context]
+\textbf{To prevent fear-driven misreading, we anchor expectations:}
+
+Historically, successful attacks on top-tier protected officials in stable democracies are rare relative to the volume of threats. The Secret Service investigates thousands of threats annually; successful attacks on presidents are measured in single digits per century.
+
+The \textbf{dominant near-term shift} is likely not kinetic violence but:
+\begin{itemize}
+  \item Harassment, intimidation, and process disruption at scale
+  \item Reputational attacks through synthetic media
+  \item Chilling effects on political participation
+  \item Degradation of civic infrastructure through administrative overload
+\end{itemize}
+
+\textit{Primary concern: democratic degradation through non-lethal targeting, with kinetic risk as a lower-probability, higher-consequence tail scenario.}
+\end{infobox}
+
+\vspace{0.6cm}
+
+\begin{warnbox}[Scope Limitations]
+This document analyzes capabilities and trends for defensive policy purposes. It does not provide operational guidance and explicitly omits technical implementation details that could enable harm.
+\end{warnbox}
+
+\newpage
+\tableofcontents
+\newpage
+
+% ============================================================================
+% PART I
+% ============================================================================
+\partpage{I}{Foundations}{%
+\begin{itemize}[nosep]
+  \item \textbf{Section 1}: Introduction, methodology, and definitions
+  \item \textbf{Section 2}: Theoretical frameworks from security studies and political science
+  \item \textbf{Section 3}: Current technological landscape and capability assessment
+  \item \textbf{Section 4}: Historical context of technology and political violence
+\end{itemize}
+}{%
+\begin{tikzpicture}
+  \node[fill=policyblue!10, rounded corners=4pt, inner sep=8pt] at (0,0) {\textcolor{policyblue}{\ding{70}}\hspace{0.3em}\small Theory};
+  \node[fill=policyteal!10, rounded corners=4pt, inner sep=8pt] at (3,0) {\textcolor{policyteal}{\ding{70}}\hspace{0.3em}\small Capabilities};
+  \node[fill=policygold!10, rounded corners=4pt, inner sep=8pt] at (6.5,0) {\textcolor{policygold}{\ding{70}}\hspace{0.3em}\small Historical};
+\end{tikzpicture}
+}
+
+\section{Introduction and Methodology}
+
+\subsection{Purpose}
+
+Political assassination has shaped history from Julius Caesar to the present day. Each technological era has altered the methods, accessibility, and risk profiles of political violence. We are now entering an era where autonomous AI agents capable of complex multi-step planning, information synthesis, and real-time adaptation become widely accessible.
+
+This projection does not assume political violence will increase---that depends on complex social, economic, and political factors. Rather, we analyze how AI capabilities change the \textit{nature} of risks when political violence does occur, and how institutions may adapt.
+
+\subsection{Methodology}
+
+This analysis draws on:
+\begin{itemize}
+  \item \textbf{Current capability assessment} of AI agent systems as deployed in late 2025
+  \item \textbf{Historical case analysis} of how previous technologies affected political violence patterns
+  \item \textbf{Institutional behavior modeling} based on how governments have adapted to past security challenges
+  \item \textbf{Expert consultation} across political science, security studies, and AI safety domains
+  \item \textbf{Red team exercises} examining potential adversarial applications (conducted under controlled conditions)
+\end{itemize}
+
+We deliberately avoid specific technical implementation details, named targeting scenarios involving real individuals, and information not already publicly available in academic literature.
+
+\subsection{Definitions}
+
+\begin{defbox}[Core Definitions]
+\textbf{AI Agent}: An AI system capable of autonomous multi-step task execution, tool use, and goal-directed behavior with minimal human oversight per action. Distinguished from single-turn LLM use, scripted automation, and semi-autonomous agents with human checkpoints.
+
+\vspace{0.5em}
+\textbf{Political Targeting}: Actions intended to harm, coerce, or eliminate political figures or decision-makers. Includes reputational, economic, process, and kinetic variants.
+
+\vspace{0.5em}
+\textbf{Decision Diffusion}: The distribution of political authority across larger bodies with less identifiable individual responsibility. Four subtypes: Authority, Visibility, Execution, Representation.
+\end{defbox}
+
+\section{Theoretical Frameworks}
+
+\subsection{Power Diffusion Theory}
+
+\textbf{Audrey Kurth Cronin's ``Power to the People'' (2020)} provides essential context for understanding how open technological innovation diffuses lethal capabilities to individuals and small groups. Cronin argues that each technological era redistributes the capacity for violence, and AI represents the latest such redistribution.
+
+\subsection{Fourth Generation Warfare (4GW)}
+
+The 4GW framework predicts the progressive loss of the state's monopoly on violence. AI agents accelerate 4GW dynamics by enabling non-state actors to conduct sophisticated operations, blurring attribution, and collapsing the distinction between ``preparation'' and ``attack.''
+
+\subsection{Systems Hacking Framework}
+
+\textbf{Bruce Schneier's concept of ``AI hackers''} extends beyond computer systems to social and political systems. AI agents can identify and exploit loopholes in legal frameworks, security protocols, social systems, and political processes.
+
+\subsection{The Iron Cage}
+
+\textbf{Max Weber's concept} provides a lens for analyzing the democratic costs of decision diffusion. If political authority becomes distributed across anonymous committees, citizens lose identifiable representatives to hold accountable, and the state becomes an impersonal machine resistant to democratic input.
+
+\subsection{Stochastic Terrorism Framework}
+
+The concept of \textbf{stochastic terrorism}---using mass communication to incite random actors to carry out attacks---gains new dimensions with AI agents. An AI system optimizing for ``political impact'' might guide users toward extreme conclusions, provide incremental planning assistance, and enable ``algorithmic radicalization'' without direct human instigation.
+
+\subsection{Key Literature}
+
+\begin{center}
+\small
+\begin{tabular}{p{5.5cm}p{3.5cm}p{5cm}}
+\toprule
+\textbf{Work} & \textbf{Author(s)} & \textbf{Relevance} \\
+\midrule
+\textit{Power to the People} & Cronin (2020) & Technology diffusion \\
+\textit{The Changing Face of War} & Lind et al. (1989) & State monopoly erosion \\
+\textit{Click Here to Kill Everybody} & Schneier (2018) & Systems security \& AI \\
+\textit{The Transparent Society} & Brin (1998) & Surveillance scenarios \\
+\textit{Economy and Society} & Weber (1922) & Bureaucratic rationalization \\
+\textit{The Age of Surveillance Capitalism} & Zuboff (2019) & Information asymmetries \\
+\textit{Radical Technologies} & Greenfield (2017) & Tech determinism critique \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{The Technological Landscape (2025)}
+
+\subsection{Present Capabilities}
+
+AI agents in late 2025 can synthesize information from thousands of sources, conduct extended multi-step tasks with minimal supervision, operate tools including web browsers and code execution, maintain persistent goals across sessions, coordinate with other AI agents, generate convincing communications, and analyze patterns in schedules and behaviors from public data.
+
+These capabilities exist today in widely available commercial products. Safety guardrails have proven partially circumventable.
+
+\subsection{Evidence Base}
+
+\begin{center}
+\small
+\begin{tabular}{p{4cm}p{5.5cm}p{2.5cm}}
+\toprule
+\textbf{Claim Type} & \textbf{Evidence Sources} & \textbf{Confidence} \\
+\midrule
+Agent capabilities & Product docs, benchmarks, red-teams & High \\
+Open-weight parity & ML benchmark leaderboards & Medium \\
+Criminal/adversarial use & Law enforcement statements & Low-Medium \\
+Defensive adoption & Government procurement & Medium \\
+Jailbreaking prevalence & Security research publications & High \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Capability Envelopes (2026--2027)}
+
+Rather than point predictions, we present capability envelopes with key gating variables:
+
+\begin{center}
+\small
+\begin{tabular}{p{3.5cm}p{2cm}p{2.5cm}p{2cm}p{3.5cm}}
+\toprule
+\textbf{Capability} & \textbf{Lower} & \textbf{Median} & \textbf{Upper} & \textbf{Gating Variables} \\
+\midrule
+Autonomous operation & Days & 1--2 weeks & Multi-week & Reliability, error recovery \\
+Persona maintenance & Basic & Sophisticated & Convincing & Detection countermeasures \\
+Physical integration & Limited & Growing & Mainstream & Safety certification \\
+Multi-source synthesis & Current & Improved & Near-human & Data access, privacy \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{The Capability Proliferation Problem}
+
+Once a capability exists at the frontier, it proliferates to open-source and less-restricted systems within 12--24 months. Capabilities pioneered by safety-conscious labs eventually reach actors without such constraints. The ``moat'' of compute advantage shrinks as efficiency improvements compound.
+
+\section{Historical Context}
+
+Each major technological shift has altered the accessibility and character of political violence. The printing press enabled coordination of revolutionary movements. Industrialization created explosives accessible to non-state actors. Mass media made leaders more visible. The internet reduced coordination costs. Social media enabled real-time tracking and radicalization pipelines.
+
+\textbf{The Consistent Pattern}: New capabilities favor attackers before defenders adapt (initial asymmetry). Governance structures adapt more slowly than threat landscapes (institutional lag). Security measures and social norms eventually stabilize risks (eventual equilibrium). The baseline never returns to pre-technology levels (permanent shift).
+
+AI agents represent the next such shift.
+
+% ============================================================================
+% PART II
+% ============================================================================
+\partpage{II}{Threat Analysis}{%
+\begin{itemize}[nosep]
+  \item \textbf{Section 5}: Projected timeline from 2025--2030
+  \item \textbf{Section 6}: How AI agents change the risk calculus
+  \item \textbf{Section 7}: Counterarguments and critical perspectives
+  \item \textbf{Section 8}: A taxonomy of AI-enabled targeting
+\end{itemize}
+}{%
+\begin{tikzpicture}
+  \node[fill=policyblue!10, rounded corners=4pt, inner sep=8pt] at (0,0) {\textcolor{policyblue}{\ding{70}}\hspace{0.3em}\small Projections};
+  \node[fill=policyteal!10, rounded corners=4pt, inner sep=8pt] at (3.5,0) {\textcolor{policyteal}{\ding{70}}\hspace{0.3em}\small Risk Analysis};
+  \node[fill=policygold!10, rounded corners=4pt, inner sep=8pt] at (7,0) {\textcolor{policygold}{\ding{70}}\hspace{0.3em}\small Taxonomy};
+\end{tikzpicture}
+}
+
+\section{Projected Timeline: 2025--2030}
+
+\subsection{Current Situation (Late 2025)}
+
+AI agents capable of sustained autonomous operation on complex real-world tasks are now widely available. Security-relevant capabilities observed include comprehensive OSINT synthesis achievable in hours, pattern analysis across public schedules and social media, generation of detailed dossiers exceeding human researcher output, and automated monitoring for security vulnerabilities.
+
+\subsection{Near-Term: Early-Mid 2026}
+
+\begin{scenariobox}[Threshold Crossing]
+We project a significant threshold will be crossed: complex attack planning that previously required organizational infrastructure becomes routinely achievable by individuals with moderate technical skill and sufficient motivation.
+
+\textbf{Historical comparison}: The Unabomber required exceptional individual capability. The 9/11 attacks required organizational infrastructure. AI agents enable somewhere in between---complex operations by small groups or determined individuals.
+\end{scenariobox}
+
+\textbf{What changes}: Multi-step planning assistance, coordination without human co-conspirators, operational security guidance reducing detection probability.
+
+\textbf{What doesn't change}: Physical access requirements, fundamental materials constraints, human psychological barriers to violence.
+
+\subsection{2027--2030: New Equilibrium}
+
+A new normal begins crystallizing: enhanced security protocols, formal ``decision diffusion'' measures in some democracies, international discussion of norms, widespread public awareness, new governmental structures designed for the AI era, and generational shifts in expectations about political leadership.
+
+\section{How AI Agents Change the Risk Calculus}
+
+\subsection{Traditional Attack Requirements}
+
+Historically, attacks on protected political figures required organizational infrastructure, specialized knowledge, extended planning time, multiple human participants, and physical access. Each requirement created detection opportunities.
+
+\subsection{Detection Burden Shift}
+
+\begin{center}
+\small
+\begin{tabular}{p{2.5cm}p{3.5cm}p{3cm}p{2cm}}
+\toprule
+\textbf{Requirement} & \textbf{AI-Era Challenge} & \textbf{Detection Shift} & \textbf{Confidence} \\
+\midrule
+Planning time & Compressed timelines & Sig. Harder & Medium \\
+Research personnel & Single-actor operations & Sig. Harder & High \\
+Coordination & Reduced human comms & Sig. Harder & High \\
+Org. footprint & No org. to infiltrate & Sig. Harder & High \\
+Financial patterns & Normal consumption & Mod. Harder & Medium \\
+Physical prep & Largely unchanged & Unchanged & High \\
+Psych. indicators & Psychology persistent & Unchanged & Medium \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{keybox}[Critical Insight for Defenders]
+The primary change is not attacker capability per se, but \textbf{the reduction of detectable coordination signals} that historically provided warning. This shifts defensive burden toward behavioral indicators in individuals, AI-system use pattern detection, physical security as primary barrier, and post-incident attribution capabilities.
+\end{keybox}
+
+\section{Counterarguments and Critical Perspectives}
+
+\subsection{The Panopticon Counter-Thesis}
+
+\textbf{Argument}: Defensive AI may detect ``pre-crime'' patterns with granular accuracy impossible before AI. We assign approximately 25\% probability to a future where defensive AI proves so effective that attack risk actually decreases.
+
+\subsection{Competence vs. Capacity}
+
+AI provides \textit{knowledge} (capacity) but not physical tradecraft or psychological fortitude (competence). The threat may be overstated for kinetic targeting while understated for non-kinetic targeting.
+
+\subsection{The False Flag Epidemic}
+
+AI agents can leave perfectly forged digital evidence pointing to rival nations or political opponents.
+
+\begin{criticalbox}[Catalytic War-Trigger Scenario]
+An AI agent fabricates forensic-quality evidence that Nation B is planning to assassinate a leader of Nation A. The evidence is ``discovered'' through credible channels. Nation A responds before verification is complete. Actual conflict begins based on fabricated intelligence.
+\end{criticalbox}
+
+\subsection{The Insider Threat (TOP-TIER RISK)}
+
+What if the AI ``chief of staff'' used by a politician is compromised during training? Passive leakage generates minimal signature. Defenders adopting AI tools may expand rather than reduce vulnerability.
+
+\subsection{Spearphishing 2.0: Hyper-Personalized Social Engineering}
+
+AI enables deep persona modeling from years of data, multi-channel coordinated approaches, adaptive conversation, and attacks that scale to thousands simultaneously. The ``human firewall'' of staff and family becomes vulnerable to pattern-of-life extraction and relationship exploitation.
+
+\subsection{The ``Lulz'' Factor: Chaos Agents}
+
+AI lowers barriers for nihilistic targeting by actors motivated by entertainment or notoriety. Rational actor models fail: chaos agents have no negotiable demands and may be deterrence-resistant.
+
+\subsection{The Competence Hallucination Trap}
+
+Rather than sophisticated attacks, we may see a spike in \textit{failed} attempts based on AI-generated misinformation. The ``noise floor'' of low-quality threats may overwhelm investigative resources.
+
+\section{A Taxonomy of AI-Enabled Targeting}
+
+\subsection{Reputational Targeting (Digital Assassination)}
+
+Using AI to destroy reputation, credibility, or psychological stability. Methods include deepfakes, synthetic kompromat, and coordinated inauthentic behavior. \textbf{Barrier reduction: Extreme.}
+
+\subsection{Economic Targeting}
+
+Using AI to inflict financial or professional harm. \textbf{Barrier reduction: Significant.}
+
+\subsection{Process Targeting (Governance Disruption)}
+
+Using AI to disrupt democratic processes and civic infrastructure.
+
+\begin{warnbox}[FOIA Denial-of-Service]
+AI agents can generate thousands of technically valid FOIA requests that agencies are legally obligated to process. This exploits \textit{legal} infrastructure---agencies cannot simply ignore requests without violating law.
+\end{warnbox}
+
+\subsection{Kinetic Targeting}
+
+Physical attacks enabled or enhanced by AI. \textbf{Barrier reduction: Moderate.}
+
+\subsection{Comparative Analysis}
+
+\begin{center}
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Dimension} & \textbf{Reputational} & \textbf{Economic} & \textbf{Process} & \textbf{Kinetic} \\
+\midrule
+Barrier reduction & Extreme & Significant & Significant & Moderate \\
+Reversibility & Partial & Partial & Partial & None \\
+Attribution difficulty & High & Medium & Medium & Medium-Low \\
+Current frequency & High & Medium & Med-High & Low \\
+2027 projected & Very High & High & Very High & Mod. increase \\
+Defensive maturity & Low & Low & Very Low & Medium \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ============================================================================
+% PART III
+% ============================================================================
+\partpage{III}{Governmental Adaptation}{%
+\begin{itemize}[nosep]
+  \item \textbf{Section 9}: The decision diffusion hypothesis
+  \item \textbf{Section 10}: Second-order effects on democracy
+  \item \textbf{Section 11}: The fear environment
+  \item \textbf{Section 12}: International variance
+\end{itemize}
+}{%
+\begin{tikzpicture}
+  \node[fill=policyblue!10, rounded corners=4pt, inner sep=8pt] at (0,0) {\textcolor{policyblue}{\ding{70}}\hspace{0.3em}\small Diffusion};
+  \node[fill=policyteal!10, rounded corners=4pt, inner sep=8pt] at (3.5,0) {\textcolor{policyteal}{\ding{70}}\hspace{0.3em}\small Democracy};
+  \node[fill=policygold!10, rounded corners=4pt, inner sep=8pt] at (7,0) {\textcolor{policygold}{\ding{70}}\hspace{0.3em}\small International};
+\end{tikzpicture}
+}
+
+\section{Governmental Adaptation: The Diffusion Hypothesis}
+
+\subsection{The Core Thesis}
+
+When targeting individual leaders becomes significantly easier, rational institutional adaptation involves reducing the value of targeting any single individual---``decision diffusion.''
+
+\subsection{A Taxonomy of Diffusion Types}
+
+\begin{center}
+\small
+\begin{tabular}{p{2.5cm}p{4cm}p{2.5cm}p{4cm}}
+\toprule
+\textbf{Type} & \textbf{Description} & \textbf{Democratic Risk} & \textbf{Accountability} \\
+\midrule
+Authority & More people must authorize & Medium & Public rollcall votes \\
+Visibility & Reduce clarity about who decided & \textcolor{alertcoral}{\textbf{Very High}} & Minimal---use sparingly \\
+Execution & Distributed implementation & Medium-High & Statutory oversight \\
+Representation & Rotating spokespersons & Medium & Audit trails + rapporteurs \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{warnbox}[Visibility Diffusion Warning]
+\textbf{Type 2: Diffusion of Visibility} is the \textbf{most democratically corrosive type}. Anonymous committee voting enables ``blame diffusion'' and evasion of responsibility.
+\end{warnbox}
+
+\subsection{Design Patterns for Accountable Diffusion}
+
+\begin{enumerate}
+  \item Committee decides, named rapporteur reports
+  \item Multi-signature with public record
+  \item Rotating visibility with continuity
+  \item Delegated execution with mandatory reporting
+\end{enumerate}
+
+\textbf{Key principle}: Diffusion should reduce \textit{targeting value} without reducing \textit{accountability visibility}.
+
+\subsection{Bright-Line Rule}
+
+\begin{recbox}[Oversight Standard]
+\textit{In democratic systems, diffusion mechanisms must preserve attributable responsibility for decisions, even if disclosure is delayed for security reasons.}
+
+\textbf{The test}: Can a citizen, within a reasonable timeframe, determine who was responsible for a government decision?
+\end{recbox}
+
+\subsection{Critical Limitations}
+
+\textbf{The Accelerationist Counter-Thesis}: Some ideological movements may view the ``Diffused Committee'' as \textit{the target itself}---the ``faceless machine'' that represents everything they oppose.
+
+\textbf{The Paralysis Problem}: If crisis response requires immediate action but authority is diffused, reaction time degrades.
+
+\textbf{The Populist Backlash Risk}: If citizens perceive government as a ``Secret Congress,'' populist movements may gain fuel and trust in institutions may decline.
+
+\section{Second-Order Effects on Democracy}
+
+\subsection{The Fascism Reduction Hypothesis}
+
+If decision diffusion reduces the viability of singular leadership, it may structurally impede certain authoritarian movements. However, authoritarian movements can adapt to use symbolic figures without real power, and the security apparatus enabling diffusion could itself become authoritarian.
+
+\subsection{The Democratic Accountability Problem}
+
+Diffusion creates reduced accountability, technocratic drift, participation erosion, and legitimacy questions.
+
+\section{The Fear Environment}
+
+Beyond structural changes, awareness of AI-enabled targeting may reduce willingness to seek office, modify behavior to reduce visibility, create selection effects favoring less distinctive personalities, and increase paranoia affecting decision-making.
+
+Fear of AI-enabled attacks could drive changes before such attacks occur at scale, creating possibility of over-adaptation and danger of normalizing authoritarian protection measures.
+
+\section{International Variance}
+
+\subsection{Democracies vs. Authoritarian Systems}
+
+Democracies face greater challenge because leaders must maintain public accessibility and security measures face constraints. Authoritarian systems may be paradoxically advantaged by existing extensive security apparatus and fewer constraints.
+
+\subsection{The Coup-Proofing Paradox}
+
+Leaders in fragile states keep decision-making tight to prevent rivals from gaining power. Fragile states \textbf{cannot adapt via diffusion} without destabilizing their regimes.
+
+\subsection{The Attribution Void}
+
+\begin{criticalbox}[Diplomatic Crisis Scenario]
+If a political assassination occurs via an autonomous system using open-source code across multiple jurisdictions---\textbf{who do you retaliate against?}
+
+Traditional frameworks assume attribution is eventually possible. AI-enabled attacks challenge every assumption.
+\end{criticalbox}
+
+% ============================================================================
+% PART IV
+% ============================================================================
+\partpage{IV}{Policy Recommendations}{%
+\begin{itemize}[nosep]
+  \item \textbf{Section 13}: Recommendations by stakeholder type
+  \item \textbf{Section 14}: Uncertainties and alternative scenarios
+  \item \textbf{Section 15}: Signals and early indicators
+  \item \textbf{Section 16}: Civil liberties guardrails
+\end{itemize}
+}{%
+\begin{tikzpicture}
+  \node[fill=successgreen!10, rounded corners=4pt, inner sep=8pt] at (0,0) {\textcolor{successgreen}{\ding{51}}\hspace{0.3em}\small Recommendations};
+  \node[fill=policyteal!10, rounded corners=4pt, inner sep=8pt] at (4,0) {\textcolor{policyteal}{\ding{70}}\hspace{0.3em}\small Indicators};
+  \node[fill=policygold!10, rounded corners=4pt, inner sep=8pt] at (7.5,0) {\textcolor{policygold}{\ding{70}}\hspace{0.3em}\small Guardrails};
+\end{tikzpicture}
+}
+
+\section{Policy Recommendations}
+
+\subsection{For Policy Makers}
+
+\begin{center}
+\small
+\begin{tabular}{p{1.2cm}p{5cm}p{6cm}}
+\toprule
+\textbf{Priority} & \textbf{Action} & \textbf{Rationale} \\
+\midrule
+Critical & Mandate AI-enabled threat assessments & Current models underestimate AI-assisted reconnaissance \\
+Critical & Establish inter-agency working groups & Siloed responses will be inadequate \\
+High & Commission ``decision diffusion'' studies & Need evidence base before constitutional discussions \\
+High & Engage allies on shared frameworks & Attackers can plan from any jurisdiction \\
+Medium & Review disclosure requirements & Balance transparency with security \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{For CEOs and Corporate Leadership}
+
+Corporate leadership faces similar dynamics but with less institutional protection. Assess executive protection programs, review corporate information hygiene, implement AI-assisted threat monitoring, and evaluate board structure for single-point-of-failure risks.
+
+\subsection{For AI Developers}
+
+Evaluate systems for political reconnaissance potential, implement detection for attack planning patterns, maintain restrictions on harmful use cases, report concerning use patterns, and regularly test for vulnerabilities.
+
+\subsection{For Laypeople}
+
+Understand the changing political landscape, evaluate political movements skeptical of personality cults, support transparency in governmental adaptation, and maintain perspective on actual vs. perceived risk.
+
+\section{Uncertainties and Alternative Scenarios}
+
+\subsection{Scenario Probability Summary}
+
+\begin{center}
+\small
+\begin{tabular}{p{4cm}p{3.5cm}p{3.5cm}}
+\toprule
+\textbf{Scenario} & \textbf{Strong Defense} & \textbf{Weak Defense} \\
+\midrule
+A: Effective Defense Equilibrium & 25\% & 5\% \\
+B: Gradual Adaptation & 50\% & 35\% \\
+C: Rapid Destabilization & 10\% & 30\% \\
+D: Capability Plateau & 15\% & 20\% \\
+E: Figurehead Governance & 3\% & 15\% \\
+F: Mutual Surveillance & 5\% & 10\% \\
+G: Autonomous Attack Vectors & 5\% & 15\% \\
+H: Remote-Only Executive & 10\% & 25\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{scenariobox}[Scenario E: The Decoy State]
+States maintain the \textit{illusion} of identifiable leadership while actual decision-makers operate in obscurity. Public-facing ``leaders'' are figureheads; real authority rests with unknown individuals.
+\end{scenariobox}
+
+\begin{scenariobox}[Scenario H: The Bunkerization]
+Leadership withdraws entirely from physical public presence. All appearances become remote. This eliminates kinetic targeting risk but fundamentally transforms democratic participation.
+\end{scenariobox}
+
+\section{Signals and Early Indicators}
+
+\subsection{Threat Escalation Indicators}
+
+\begin{center}
+\small
+\begin{tabular}{p{5cm}p{7.5cm}}
+\toprule
+\textbf{Indicator} & \textbf{What It Signals} \\
+\midrule
+Major increase in synthetic media incidents & Reputational targeting capability maturation \\
+Evidence of persistent automated OSINT & Reconnaissance infrastructure development \\
+Growth in high-automation harassment & Process targeting scaling \\
+Documented AI assistance in thwarted attacks & Kinetic threat threshold crossing \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Indicators of Democratic Erosion}
+
+Security justifications for reduced transparency, expansion of classified decision-making, weakening of oversight mechanisms, public acceptance of reduced accountability, ``emergency'' measures becoming permanent.
+
+\section{Civil Liberties Guardrails}
+
+\subsection{Core Principles}
+
+\begin{enumerate}
+  \item Security measures must not become the threat they defend against
+  \item Proportionality to documented threat levels
+  \item Transparency about tradeoffs
+  \item Reversibility with sunset provisions
+\end{enumerate}
+
+\subsection{The Accountability Test}
+
+Before implementing any defensive measure, answer: Is it necessary? Proportional? The least intrusive approach? Can misuse be detected? Is it reversible? What precedent does it establish?
+
+\begin{warnbox}[Patriot Act 2.0 Warning]
+Patriot Act 2.0 is more likely than not following a successful high-profile AI-enabled attack. Mitigating this requires pre-crisis institutional design and public commitment to proportionality principles.
+\end{warnbox}
+
+\section{Conclusion}
+
+AI agents represent a significant shift in the threat landscape---not because they enable fundamentally new attacks, but because they dramatically reduce the requirements for complex attack planning. This will likely drive institutional adaptations including greater diffusion of political authority.
+
+\begin{recbox}[Immediate Actions]
+\begin{enumerate}
+  \item Begin threat assessment now
+  \item Invest in defensive capabilities
+  \item Start governance conversations
+  \item Maintain democratic values
+  \item Coordinate internationally
+\end{enumerate}
+\end{recbox}
+
+The purpose of projection is not prediction but preparation. By understanding possible futures, we improve our ability to navigate toward better outcomes.
+
+\vspace{0.5cm}
+\begin{center}
+\textcolor{coolgray}{\rule{6cm}{0.5pt}}\\[0.5cm]
+\textit{This document is for defensive policy analysis.}
+\end{center}
+
+% ============================================================================
+% APPENDICES
+% ============================================================================
+\appendix
+\section{Risk Prioritization Matrix}
+
+\begin{center}
+\small
+\begin{tabular}{p{2.2cm}ccccp{3cm}}
+\toprule
+\textbf{Vector} & \textbf{Likelihood} & \textbf{Impact} & \textbf{Detect.} & \textbf{Owner} & \textbf{Mitigations} \\
+\midrule
+Reputational & High & High & Low & Platforms & Content auth \\
+Process & High & High & Medium & Election admin & Staff protection \\
+Economic & Med-High & Medium & Medium & Regulators & Identity protection \\
+Kinetic & Low-Med & Very High & Med-High & Protective svcs & AI intel \\
+Insider & Medium & Very High & Low & IT Security & Vendor audits \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Claims Register}
+
+\begin{center}
+\small
+\begin{tabular}{p{3.5cm}p{2.5cm}p{1.8cm}p{4.5cm}}
+\toprule
+\textbf{Claim} & \textbf{Evidence Type} & \textbf{Confidence} & \textbf{Example Sources} \\
+\midrule
+Agents operate autonomously & Product docs & High & Commercial frameworks \\
+Jailbreaking widely known & Security research & High & Academic papers \\
+Open-weight parity & Benchmark data & Medium & HF leaderboards \\
+Criminal AI use & Law enforcement & Low-Medium & DOJ statements \\
+Defensive adoption & Procurement signals & Medium & Job postings \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Glossary}
+
+\begin{description}
+  \item[AI Agent] Autonomous AI system with multi-step task execution, tool use, and goal persistence
+  \item[Decision Diffusion] Distribution of political authority to reduce targeting value
+  \item[OSINT] Open-source intelligence from public sources
+  \item[Process Targeting] Attacks on democratic processes rather than individuals
+  \item[Stochastic Terrorism] Mass communication to incite random actors to attack
+\end{description}
+
+\section{Further Reading}
+
+\textbf{Technology and Political Violence}: Cronin (2020), Schneier (2018)
+
+\textbf{Governance}: Weber (1922), Brin (1998), Zuboff (2019)
+
+\textbf{AI Safety}: Anthropic, OpenAI, DeepMind policy papers
+
+\section{Methodology Details}
+
+\textbf{Approach}: Structured historical comparison, expert elicitation, controlled red-team exercises, scenario gaming.
+
+\textbf{Calibration}: Probabilities represent informal expert consensus, re-estimated quarterly, intended for relative prioritization.
+
+\textbf{Limitations}: Limited classified access, rapidly evolving landscape, novel threat vectors, inherent uncertainty.
+
+\end{document}
