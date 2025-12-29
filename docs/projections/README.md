@@ -1,0 +1,61 @@
+# Projection Reports: Emerging Technology Risk Assessment
+
+This directory contains scenario-based projection reports analyzing potential futures involving advanced AI systems and their societal impacts. These documents are prepared for the Emerging Technology Risk Assessment Committee.
+
+## Purpose
+
+These projections serve defensive policy analysis:
+
+1. **Threat anticipation** - Understanding risks before they fully materialize
+2. **Institutional preparation** - Enabling proactive adaptation
+3. **Policy development** - Informing regulatory and governance frameworks
+4. **Research prioritization** - Identifying critical areas for further study
+
+## Scope and Limitations
+
+- All projections analyze capabilities and trends, not operational details
+- Documents explicitly omit information that could enable harm
+- Analysis draws on publicly available academic and policy literature
+- Uncertainty is inherent; multiple scenarios are presented where appropriate
+
+## Reports
+
+| Report | Topic | Status |
+|--------|-------|--------|
+| [ai-agents-political-targeting.md](./ai-agents-political-targeting.md) | AI agents and political violence risk | Complete |
+
+## Methodology
+
+Our projection methodology draws on:
+
+- **Trend extrapolation** from current AI capabilities
+- **Historical case analysis** of technology-society interactions
+- **Institutional behavior modeling** based on past adaptations
+- **Expert consultation** across relevant domains
+- **Red team exercises** conducted under controlled conditions
+
+We aim to be concrete and specific while acknowledging uncertainty. Probability estimates are provided where appropriate.
+
+## Classification
+
+These documents are for policy, security, and research audiences engaged in defensive analysis. They should not be distributed to general audiences without appropriate context.
+
+## Contributing
+
+Additional projection topics can be proposed to the committee. Priority areas include:
+
+- Economic disruption scenarios
+- Information environment dynamics
+- Critical infrastructure vulnerabilities
+- International relations implications
+- Long-term societal structure changes
+
+## Related Resources
+
+- `docs/agents/` - AI agent documentation for this repository
+- `packages/sleeper_agents/` - Defensive AI safety research (implementation-focused)
+- External: AI safety research organizations, policy think tanks
+
+---
+
+*Emerging Technology Risk Assessment Committee*
