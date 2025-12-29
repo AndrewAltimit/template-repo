@@ -80,15 +80,15 @@
 \fancyhf{}
 \fancyhead[L]{%
   \begin{tikzpicture}[baseline=-0.5ex]
-    % Hexagonal pattern (molecular/biosecurity feel)
+    % Hexagonal pattern (molecular/biosecurity feel) - larger for visibility
     \foreach \i in {0,1,2} {
-      \draw[scienceteal, opacity=0.4, line width=0.4pt]
-        ({0.2+\i*0.35},0.12) -- ++(60:0.12) -- ++(0:0.12) -- ++(-60:0.12)
-        -- ++(-120:0.12) -- ++(180:0.12) -- cycle;
+      \draw[scienceteal, opacity=0.5, line width=0.6pt]
+        ({0.15+\i*0.42},0.15) -- ++(60:0.15) -- ++(0:0.15) -- ++(-60:0.15)
+        -- ++(-120:0.15) -- ++(180:0.15) -- cycle;
     }
-    \fill[barriergold, opacity=0.6] (0.32,0.12) circle (0.04);
+    \fill[barriergold, opacity=0.8] (0.37,0.15) circle (0.06);
   \end{tikzpicture}
-  \hspace{0.3em}\textcolor{deepteal}{\textsf{\small ETRA-2025-WMD-001}}%
+  \hspace{0.4em}\textcolor{deepteal}{\textsf{\small ETRA-2025-WMD-001}}%
 }
 \fancyhead[R]{\textcolor{softslate}{\textsf{\thepage}}}
 \fancyfoot[C]{\textcolor{softslate}{\footnotesize\textsf{Emerging Technology Risk Assessment | Biosecurity Policy Research}}}
@@ -214,48 +214,46 @@
 
   % Main visualization - Concentric Defense Barriers
   \begin{scope}[shift={([xshift=-0.3cm, yshift=1.2cm]current page.center)}]
-    % Outer barrier ring (weakest - eroding)
+    % Outer barrier ring (weakest - eroding) with label
     \draw[labcyan, opacity=0.15, line width=8pt] (0,0) circle (5.5cm);
     \draw[labcyan, opacity=0.25, line width=2pt, dashed] (0,0) circle (5.5cm);
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont\sffamily, rotate=-20] at (50:5.9cm) {INFORMATION BARRIER};
 
-    % Middle barrier ring (moderate)
+    % Middle barrier ring (moderate) with label
     \draw[scienceteal, opacity=0.2, line width=10pt] (0,0) circle (4cm);
     \draw[scienceteal, opacity=0.4, line width=2pt] (0,0) circle (4cm);
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont\sffamily, rotate=15] at (130:4.4cm) {PHYSICAL BARRIER};
 
-    % Inner barrier ring (strong)
+    % Inner barrier ring (strong) with label
     \draw[barriergold, opacity=0.25, line width=12pt] (0,0) circle (2.5cm);
     \draw[barriergold, opacity=0.6, line width=2pt] (0,0) circle (2.5cm);
+    \node[white, opacity=0.7, font=\fontsize{6}{6}\selectfont\sffamily, rotate=-30] at (-40:2.9cm) {TACIT KNOWLEDGE};
 
     % Core - protected zone
     \fill[white, opacity=0.1] (0,0) circle (1.3cm);
-    \fill[barriergold] (0,0) circle (0.7cm);
-    \node[deepteal, font=\fontsize{6}{6}\selectfont\bfseries] at (0,0.1) {DEFENSE};
-    \node[deepteal, font=\fontsize{6}{6}\selectfont\bfseries] at (0,-0.15) {IN DEPTH};
+    \fill[barriergold] (0,0) circle (0.8cm);
+    \node[deepteal, font=\fontsize{7}{7}\selectfont\bfseries] at (0,0.12) {DEFENSE};
+    \node[deepteal, font=\fontsize{7}{7}\selectfont\bfseries] at (0,-0.18) {IN DEPTH};
 
-    % Barrier labels with domain icons
-    \foreach \angle/\col/\label/\dist in {
-      20/biogreen/BIO/5.5,
-      70/labcyan/SCREEN/5.5,
-      110/scienceteal/DETECT/4,
-      160/chemblue/CHEM/4,
-      200/nukepurple/NUKE/4,
-      250/barriergold/ATTRIB/2.5,
-      290/shieldamber/GOVERN/2.5,
-      340/biogreen/INTL/5.5
+    % Domain nodes - evenly distributed on outer ring
+    \foreach \angle/\col/\label in {
+      0/biogreen/BIO,
+      45/labcyan/SCREEN,
+      90/scienceteal/DETECT,
+      135/chemblue/CHEM,
+      180/nukepurple/NUKE,
+      225/shieldamber/GOVERN,
+      270/barriergold/ATTRIB,
+      315/biogreen/INTL
     } {
-      \fill[\col, opacity=0.9] (\angle:\dist cm) circle (0.35cm);
-      \node[white, font=\fontsize{4}{4}\selectfont\bfseries] at (\angle:\dist cm) {\label};
+      \fill[\col, opacity=0.9] (\angle:5.5cm) circle (0.4cm);
+      \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\angle:5.5cm) {\label};
     }
 
     % Breach indicators (showing where barriers are weakening)
-    \foreach \angle in {45, 135, 225, 315} {
-      \draw[white, opacity=0.3, line width=1pt, ->] (\angle:6.2cm) -- (\angle:5.8cm);
+    \foreach \angle in {22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5} {
+      \draw[white, opacity=0.25, line width=0.8pt, ->] (\angle:6.3cm) -- (\angle:5.9cm);
     }
-
-    % Barrier strength indicators
-    \node[white, opacity=0.5, font=\fontsize{5}{5}\selectfont] at (0, 6.2) {INFORMATION BARRIER};
-    \node[white, opacity=0.5, font=\fontsize{5}{5}\selectfont] at (0, 4.7) {PHYSICAL BARRIER};
-    \node[white, opacity=0.5, font=\fontsize{5}{5}\selectfont] at (0, 3.2) {TACIT KNOWLEDGE};
   \end{scope}
 
   % Document header bar (keeping consistent format)
@@ -293,12 +291,12 @@
 \vspace*{0.5cm}
 
 \noindent\begin{tikzpicture}
-  \fill[deepteal] (0,0) rectangle (\textwidth, 0.15);
-  % Hexagonal accent pattern
-  \foreach \x in {0.5,1.3,...,16} {
-    \draw[barriergold, opacity=0.6, line width=0.4pt]
-      (\x, 0.075) -- ++(60:0.06) -- ++(0:0.06) -- ++(-60:0.06)
-      -- ++(-120:0.06) -- ++(180:0.06) -- cycle;
+  \fill[deepteal] (0,0) rectangle (\textwidth, 0.2);
+  % Hexagonal accent pattern - larger for visibility
+  \foreach \x in {0.4,1.0,...,16.5} {
+    \draw[barriergold, opacity=0.7, line width=0.5pt]
+      (\x, 0.1) -- ++(60:0.08) -- ++(0:0.08) -- ++(-60:0.08)
+      -- ++(-120:0.08) -- ++(180:0.08) -- cycle;
   }
 \end{tikzpicture}
 
@@ -490,17 +488,21 @@ The dominant near-term concern is \textit{increased frequency of attempts} with 
   % Concentric barrier rings visualization (unique to WMD doc)
   \begin{scope}[shift={(4cm, -7.5cm)}]
     % Three concentric rings representing defense layers
-    \draw[labcyan, opacity=0.2, line width=6pt] (0,0) circle (2.2cm);
-    \draw[labcyan, opacity=0.35, line width=1.5pt, dashed] (0,0) circle (2.2cm);
-    \draw[scienceteal, opacity=0.3, line width=5pt] (0,0) circle (1.5cm);
-    \draw[scienceteal, opacity=0.5, line width=1.5pt] (0,0) circle (1.5cm);
-    \draw[barriergold, opacity=0.4, line width=4pt] (0,0) circle (0.8cm);
-    \draw[barriergold, opacity=0.7, line width=1.5pt] (0,0) circle (0.8cm);
-    \fill[barriergold, opacity=0.9] (0,0) circle (0.3cm);
-    % Sector labels
-    \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont] at (0, 2.6) {INFO};
-    \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont] at (0, 1.85) {PHYS};
-    \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont] at (0, 1.15) {TACIT};
+    \draw[labcyan, opacity=0.25, line width=6pt] (0,0) circle (2.2cm);
+    \draw[labcyan, opacity=0.4, line width=1.5pt, dashed] (0,0) circle (2.2cm);
+    \draw[scienceteal, opacity=0.35, line width=5pt] (0,0) circle (1.5cm);
+    \draw[scienceteal, opacity=0.55, line width=1.5pt] (0,0) circle (1.5cm);
+    \draw[barriergold, opacity=0.5, line width=4pt] (0,0) circle (0.8cm);
+    \draw[barriergold, opacity=0.8, line width=1.5pt] (0,0) circle (0.8cm);
+    \fill[barriergold, opacity=0.95] (0,0) circle (0.35cm);
+    % Sector labels - positioned along rings with better readability
+    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont\sffamily, anchor=west] at (-3.5, 2.2) {INFO};
+    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont\sffamily, anchor=west] at (-3.5, 1.5) {PHYS};
+    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont\sffamily, anchor=west] at (-3.5, 0.8) {TACIT};
+    % Connector lines to rings
+    \draw[white, opacity=0.3, line width=0.5pt] (-3.0, 2.2) -- (-2.2, 2.2);
+    \draw[white, opacity=0.3, line width=0.5pt] (-3.0, 1.5) -- (-1.5, 1.5);
+    \draw[white, opacity=0.3, line width=0.5pt] (-3.0, 0.8) -- (-0.8, 0.8);
   \end{scope}
 
   % Legend
