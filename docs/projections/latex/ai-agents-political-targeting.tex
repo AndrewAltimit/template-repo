@@ -35,32 +35,37 @@
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows.blur, matrix, patterns, fadings, shadings}
 
 % ============================================================================
-% COLOR DEFINITIONS - Professional Policy Theme (Blue/Teal/Gold)
+% COLOR DEFINITIONS - Institutional Research Theme
 % ============================================================================
-\definecolor{policydark}{HTML}{1A2632}
-\definecolor{policynavy}{HTML}{2C3E50}
-\definecolor{policyblue}{HTML}{2980B9}
-\definecolor{policyteal}{HTML}{16A085}
-\definecolor{policygold}{HTML}{D4AC0D}
-\definecolor{policyslate}{HTML}{34495E}
-\definecolor{successgreen}{HTML}{27AE60}
-\definecolor{warningamber}{HTML}{E67E22}
-\definecolor{alertcoral}{HTML}{E74C3C}
-\definecolor{infocyan}{HTML}{17A2B8}
-\definecolor{coolgray}{HTML}{7F8C8D}
-\definecolor{lightgray}{HTML}{ECF0F1}
-\definecolor{codebg}{HTML}{F7F9FA}
+\definecolor{instdark}{HTML}{1C2833}
+\definecolor{instnavy}{HTML}{2C3E50}
+\definecolor{instblue}{HTML}{34495E}
+\definecolor{instaccent}{HTML}{5D6D7E}
+\definecolor{instgold}{HTML}{B7950B}
+\definecolor{instslate}{HTML}{566573}
+\definecolor{successgreen}{HTML}{1E8449}
+\definecolor{warningamber}{HTML}{B9770E}
+\definecolor{alertcoral}{HTML}{922B21}
+\definecolor{infocyan}{HTML}{1A5276}
+\definecolor{coolgray}{HTML}{7B7D7D}
+\definecolor{lightgray}{HTML}{EAECEE}
+\definecolor{codebg}{HTML}{F4F6F7}
 \definecolor{codetext}{HTML}{2C3E50}
+\definecolor{gridlight}{HTML}{D5D8DC}
+\definecolor{nodecyan}{HTML}{2E86AB}
+\definecolor{nodeorange}{HTML}{D35400}
+\definecolor{nodegreen}{HTML}{27AE60}
+\definecolor{nodepurple}{HTML}{8E44AD}
 
 % ============================================================================
 % HYPERREF SETUP
 % ============================================================================
 \hypersetup{
   colorlinks=true,
-  linkcolor=policyblue,
-  urlcolor=policyteal,
+  linkcolor=instnavy,
+  urlcolor=instaccent,
   pdftitle={AI Agents and the Future of Political Targeting},
-  pdfauthor={Emerging Technology Risk Assessment Committee}
+  pdfauthor={Emerging Technology Risk Assessment}
 }
 
 % ============================================================================
@@ -71,20 +76,23 @@
 \setlist{nosep, leftmargin=1.5em, itemsep=0.3em}
 
 % ============================================================================
-% PAGE STYLE
+% PAGE STYLE - Minimal with data grid accent
 % ============================================================================
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{%
   \begin{tikzpicture}[baseline=-0.5ex]
-    \fill[policyblue] (0,0) circle (0.15);
-    \fill[policyteal] (0.35,0) circle (0.1);
-    \fill[policygold] (0.6,0) circle (0.06);
+    % Mini data grid
+    \foreach \x in {0,0.12,0.24,0.36,0.48} {
+      \foreach \y in {0,0.12,0.24} {
+        \fill[instaccent, opacity=0.3] (\x,\y) circle (0.03);
+      }
+    }
   \end{tikzpicture}
-  \hspace{0.3em}\textcolor{policynavy}{\textsf{\textbf{Political Targeting Risk Assessment}}}%
+  \hspace{0.5em}\textcolor{instnavy}{\textsf{\small ETRA-2025-PTR-001}}%
 }
 \fancyhead[R]{\textcolor{coolgray}{\textsf{\thepage}}}
-\fancyfoot[C]{\textcolor{coolgray}{\small\textsf{Policy Research -- For Defensive Analysis}}}
+\fancyfoot[C]{\textcolor{coolgray}{\footnotesize\textsf{Emerging Technology Risk Assessment \textbar{} Projection Report}}}
 \renewcommand{\headrulewidth}{0pt}
 \renewcommand{\footrulewidth}{0pt}
 
@@ -92,16 +100,16 @@
 \setlength{\headheight}{32pt}
 
 % ============================================================================
-% SECTION FORMATTING
+% SECTION FORMATTING - Clean institutional style
 % ============================================================================
 \titleformat{\section}
-  {\normalfont\LARGE\bfseries\color{policynavy}}
-  {\colorbox{policyblue}{\textcolor{white}{\thesection}}}{0.8em}{}
+  {\normalfont\LARGE\bfseries\color{instdark}}
+  {\thesection}{0.8em}{}[\vspace{-0.3em}{\color{gridlight}\rule{\textwidth}{1pt}}]
 \titleformat{\subsection}
-  {\normalfont\Large\bfseries\color{policyslate}}
+  {\normalfont\Large\bfseries\color{instnavy}}
   {\thesubsection}{0.6em}{}
 \titleformat{\subsubsection}
-  {\normalfont\large\color{coolgray}\bfseries}
+  {\normalfont\large\color{instslate}\bfseries}
   {\thesubsubsection}{0.5em}{}
 
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
@@ -116,13 +124,12 @@
 
 \newtcolorbox{keybox}[1][Key Finding]{
   enhanced, breakable,
-  colback=policyblue!5, colframe=policyblue,
-  colbacktitle=policyblue, coltitle=white,
+  colback=instblue!5, colframe=instblue,
+  colbacktitle=instblue, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{72}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
-  left=12pt, right=12pt, top=8pt, bottom=8pt,
-  shadow={2pt}{-2pt}{0pt}{black!15}
+  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{warnbox}[1][Warning]{
@@ -131,9 +138,8 @@
   colbacktitle=warningamber, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{74}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
-  left=12pt, right=12pt, top=8pt, bottom=8pt,
-  shadow={2pt}{-2pt}{0pt}{black!15}
+  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{criticalbox}[1][Critical]{
@@ -142,9 +148,8 @@
   colbacktitle=alertcoral, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{74}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
-  left=12pt, right=12pt, top=8pt, bottom=8pt,
-  shadow={2pt}{-2pt}{0pt}{black!15}
+  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{recbox}[1][Recommendation]{
@@ -153,89 +158,38 @@
   colbacktitle=successgreen, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{51}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
-  left=12pt, right=12pt, top=8pt, bottom=8pt,
-  shadow={2pt}{-2pt}{0pt}{black!15}
+  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{infobox}[1][Note]{
   enhanced, breakable,
-  colback=policyteal!8, colframe=policyteal,
-  colbacktitle=policyteal, coltitle=white,
+  colback=infocyan!8, colframe=infocyan,
+  colbacktitle=infocyan, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{73}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
-  left=12pt, right=12pt, top=8pt, bottom=8pt,
-  shadow={2pt}{-2pt}{0pt}{black!15}
+  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{defbox}[1][Definition]{
   enhanced, breakable,
-  colback=policygold!8, colframe=policygold,
-  colbacktitle=policygold!90!black, coltitle=white,
+  colback=instgold!8, colframe=instgold,
+  colbacktitle=instgold!90!black, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{70}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
-  left=12pt, right=12pt, top=8pt, bottom=8pt,
-  shadow={2pt}{-2pt}{0pt}{black!15}
+  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{scenariobox}[1][Scenario]{
   enhanced, breakable,
-  colback=policyslate!5, colframe=policyslate,
-  colbacktitle=policyslate, coltitle=white,
+  colback=instslate!5, colframe=instslate,
+  colbacktitle=instslate, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{118}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
-  left=12pt, right=12pt, top=8pt, bottom=8pt,
-  shadow={2pt}{-2pt}{0pt}{black!15}
-}
-
-% ============================================================================
-% PART PAGE STYLING
-% ============================================================================
-\newcommand{\partpage}[4]{%
-  \clearpage
-  \thispagestyle{empty}
-  \vspace*{-0.85in}% Pull up to reduce top margin
-  % Use negative margins to extend header to page edges
-  \noindent\hspace*{-0.85in}\begin{tikzpicture}
-    % Header background - full width box
-    \fill[policydark] (0,0) rectangle (\paperwidth, -8.5cm);
-    \shade[top color=policydark, bottom color=policynavy, shading angle=90]
-      (0,0) rectangle (\paperwidth, -8.5cm);
-    % Decorative circles
-    \fill[policyblue, opacity=0.15] (12cm, -3cm) circle (4cm);
-    \fill[policyteal, opacity=0.1] (14cm, -6cm) circle (2.5cm);
-    \fill[policygold, opacity=0.1] (3cm, -5cm) circle (3cm);
-    % Large background number
-    \node[white, opacity=0.08, font=\fontsize{180}{180}\selectfont\bfseries]
-      at (4.5cm, -4.5cm) {#1};
-    % PART label
-    \node[white, font=\large\sffamily] at (0.5\paperwidth, -2cm) {PART};
-    % Part number
-    \node[policygold, font=\fontsize{64}{64}\selectfont\bfseries]
-      at (0.5\paperwidth, -4cm) {#1};
-    % Part title
-    \node[white, font=\Huge\bfseries\sffamily] at (0.5\paperwidth, -6.2cm) {#2};
-    % Gold divider line
-    \draw[policygold, line width=2pt] (2cm, -7.5cm) -- (\paperwidth-2cm, -7.5cm);
-  \end{tikzpicture}
-  \vspace{0.5cm}
-  \begin{center}
-  \begin{minipage}{0.88\textwidth}
-    \begin{tcolorbox}[enhanced, colback=white, colframe=policyblue!50, boxrule=1pt, arc=6pt,
-      left=15pt, right=15pt, top=12pt, bottom=12pt, shadow={2pt}{-2pt}{0pt}{black!15}]
-    \textcolor{policynavy}{\ding{70}\hspace{0.5em}\textbf{What's Covered}}
-    \vspace{0.5em}
-    #3
-    \end{tcolorbox}
-    \vspace{1em}
-    \begin{center}
-    #4
-    \end{center}
-  \end{minipage}
-  \end{center}
+  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 % ============================================================================
@@ -244,80 +198,91 @@
 \begin{document}
 
 % ============================================================================
-% TITLE PAGE
+% TITLE PAGE - Network Topology Visualization
 % ============================================================================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
-  \shade[left color=policydark, right color=policynavy!90]
-    (current page.north west) rectangle ([xshift=7cm]current page.south west);
+  % Background gradient
+  \fill[instdark] (current page.north west) rectangle (current page.south east);
 
-  \fill[policyblue, opacity=0.15] ([xshift=3.5cm, yshift=-4cm]current page.north west) circle (1.2cm);
-  \fill[policyteal, opacity=0.12] ([xshift=3.5cm, yshift=-8cm]current page.north west) circle (0.9cm);
-  \fill[policygold, opacity=0.10] ([xshift=3.5cm, yshift=-12cm]current page.north west) circle (1.1cm);
-  \fill[policyblue, opacity=0.08] ([xshift=3.5cm, yshift=-16cm]current page.north west) circle (1.4cm);
-  \fill[policyteal, opacity=0.10] ([xshift=3.5cm, yshift=-20cm]current page.north west) circle (0.8cm);
-
-  \begin{scope}[shift={([xshift=3.5cm, yshift=-14cm]current page.north west)}]
-    \fill[policyblue, opacity=0.08] (0,0) circle (2.8cm);
-    \fill[policyblue, opacity=0.12] (0,0) circle (2.2cm);
-    \fill[policyblue] (0,0) circle (0.65cm);
-    \node[white, font=\small\bfseries] at (0,0) {AI};
-    \foreach \angle/\label/\col in {45/GOV/policyteal, 90/POL/policyblue, 135/DEM/successgreen, 225/SEC/policygold, 270/INT/infocyan, 315/CIV/coolgray} {
-      \draw[white, opacity=0.4, line width=1.5pt] (0,0) -- (\angle:1.6cm);
-      \fill[\col] (\angle:2cm) circle (0.35cm);
-      \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\angle:2cm) {\label};
-    }
-    \foreach \i in {1,...,12} {
-      \fill[white, opacity=0.5] ({30*\i}:1cm) circle (0.05cm);
+  % Abstract data grid background (right side)
+  \begin{scope}[shift={(current page.center)}, opacity=0.08]
+    \foreach \x in {2,2.8,...,10} {
+      \foreach \y in {-12,-11.2,...,12} {
+        \fill[white] (\x,\y) circle (0.06);
+      }
     }
   \end{scope}
 
-  \node[fill=policyblue, rounded corners=3pt, inner sep=6pt]
-    at ([xshift=11.5cm, yshift=-3cm]current page.north west)
-    {\textcolor{white}{\small\bfseries\sffamily POLICY RESEARCH}};
+  % Main network visualization - central threat topology (centered with slight upward shift)
+  \begin{scope}[shift={([xshift=-0.5cm, yshift=1.5cm]current page.center)}]
+    % Outer ring nodes - threat vectors
+    \foreach \angle/\col/\label in {
+      30/nodecyan/OSINT,
+      75/nodegreen/COORD,
+      120/nodeorange/RECON,
+      165/nodepurple/SYNTH,
+      210/nodecyan/EXEC,
+      255/nodegreen/ATTR,
+      300/nodeorange/PROP,
+      345/nodepurple/PERS
+    } {
+      % Node
+      \fill[\col, opacity=0.9] (\angle:4.5cm) circle (0.4cm);
+      \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\angle:4.5cm) {\label};
+      % Connection to center
+      \draw[\col, opacity=0.4, line width=1pt] (0,0) -- (\angle:4cm);
+      % Outer data points
+      \foreach \r in {5.2,5.6,6} {
+        \fill[\col, opacity=0.2] (\angle:\r cm) circle (0.08);
+      }
+    }
 
-  \node[anchor=west] at ([xshift=8cm, yshift=-5.5cm]current page.north west)
-    {{\fontsize{36}{42}\selectfont\bfseries\color{policynavy}AI Agents and the}};
-  \node[anchor=west] at ([xshift=8cm, yshift=-7.2cm]current page.north west)
-    {{\fontsize{36}{42}\selectfont\bfseries\color{policynavy}Future of Political}};
-  \node[anchor=west] at ([xshift=8cm, yshift=-8.9cm]current page.north west)
-    {{\fontsize{36}{42}\selectfont\bfseries\color{policynavy}Targeting}};
-  \node[anchor=west] at ([xshift=8cm, yshift=-10.5cm]current page.north west)
-    {{\large\color{coolgray}\sffamily A Projection Report on Emerging Risks}};
+    % Inner ring - capability layers
+    \foreach \angle/\col in {0/nodecyan, 45/nodegreen, 90/nodeorange, 135/nodepurple, 180/nodecyan, 225/nodegreen, 270/nodeorange, 315/nodepurple} {
+      \fill[\col, opacity=0.6] (\angle:2.5cm) circle (0.2cm);
+      \draw[\col, opacity=0.3, line width=0.5pt] (\angle:2.5cm) -- ({(\angle+45)}:2.5cm);
+    }
 
-  \draw[policygold, line width=3pt]
-    ([xshift=8cm, yshift=-11.5cm]current page.north west) --
-    ([xshift=18.5cm, yshift=-11.5cm]current page.north west);
+    % Central hub
+    \fill[white, opacity=0.1] (0,0) circle (1.8cm);
+    \fill[white, opacity=0.15] (0,0) circle (1.4cm);
+    \fill[instgold] (0,0) circle (0.8cm);
+    \node[instdark, font=\fontsize{8}{8}\selectfont\bfseries] at (0,0.15) {THREAT};
+    \node[instdark, font=\fontsize{8}{8}\selectfont\bfseries] at (0,-0.15) {MODEL};
 
-  \node[anchor=north west, text width=10.5cm] at ([xshift=8cm, yshift=-12.5cm]current page.north west) {
-    \color{coolgray}\normalsize
-    This projection explores how the proliferation of autonomous AI agents is altering the
-    landscape of political violence and democratic governance. We analyze current capabilities,
-    project likely scenarios through 2030, and examine potential governmental adaptations.
+    % Cross-connections (showing complexity)
+    \draw[white, opacity=0.1, line width=0.5pt] (30:4cm) -- (165:4cm);
+    \draw[white, opacity=0.1, line width=0.5pt] (75:4cm) -- (255:4cm);
+    \draw[white, opacity=0.1, line width=0.5pt] (120:4cm) -- (300:4cm);
+    \draw[white, opacity=0.1, line width=0.5pt] (210:4cm) -- (345:4cm);
+  \end{scope}
+
+  % Document classification bar
+  \fill[instgold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
+  \node[instdark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2025-PTR-001 \textbar{} DECEMBER 2025};
+
+  % Title block (bottom left)
+  \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
+    {\fontsize{11}{13}\selectfont\color{instgold}\sffamily EMERGING TECHNOLOGY RISK ASSESSMENT}\\[0.8cm]
+    {\fontsize{36}{42}\selectfont\bfseries\color{white}AI Agents and the}\\[0.2cm]
+    {\fontsize{36}{42}\selectfont\bfseries\color{white}Future of Political}\\[0.2cm]
+    {\fontsize{36}{42}\selectfont\bfseries\color{white}Targeting}\\[0.6cm]
+    {\large\color{gridlight}\sffamily A Projection on Autonomous Systems and Democratic Security}
   };
 
-  \node[fill=policyblue!10, rounded corners=4pt, inner sep=8pt]
-    at ([xshift=9.5cm, yshift=-16cm]current page.north west)
-    {\textcolor{policyblue}{\ding{70}}\hspace{0.3em}\small\sffamily Threat Analysis};
-  \node[fill=policyteal!10, rounded corners=4pt, inner sep=8pt]
-    at ([xshift=13.2cm, yshift=-16cm]current page.north west)
-    {\textcolor{policyteal}{\ding{110}}\hspace{0.3em}\small\sffamily Risk Assessment};
-  \node[fill=policygold!10, rounded corners=4pt, inner sep=8pt]
-    at ([xshift=17cm, yshift=-16cm]current page.north west)
-    {\textcolor{policygold}{\ding{70}}\hspace{0.3em}\small\sffamily Policy Guidance};
-
-  \node[fill=policynavy!10, rounded corners=3pt, inner sep=6pt]
-    at ([xshift=10cm, yshift=-18.5cm]current page.north west)
-    {\textcolor{policynavy}{\ding{70}}\hspace{0.3em}\scriptsize\sffamily 2025--2030};
-  \node[fill=policyteal!10, rounded corners=3pt, inner sep=6pt]
-    at ([xshift=14cm, yshift=-18.5cm]current page.north west)
-    {\textcolor{policyteal}{\ding{70}}\hspace{0.3em}\scriptsize\sffamily Global Scope};
-
-  \node[anchor=north west, text width=10cm] at ([xshift=8cm, yshift=-20.5cm]current page.north west) {
-    \color{coolgray}\small\sffamily
-    \textbf{Prepared For:} Emerging Technology Risk Assessment Committee\\
-    \textbf{Version:} 1.0 \textbar{} December 2025
+  % Metadata block (bottom right)
+  \node[anchor=south east, text width=5cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
+    \color{instaccent}\small\sffamily
+    \textbf{Document Type:} Projection\\[0.2em]
+    \textbf{Time Horizon:} 2025--2030\\[0.2em]
+    \textbf{Classification:} Open\\[0.2em]
+    \textbf{Version:} 1.0
   };
+
+  % Vertical accent line
+  \draw[instgold, line width=2pt] ([xshift=1.5cm, yshift=3cm]current page.south west) -- ([xshift=1.5cm, yshift=10.5cm]current page.south west);
+
 \end{tikzpicture}
 \end{titlepage}
 
@@ -325,18 +290,28 @@
 % EXECUTIVE SUMMARY
 % ============================================================================
 \thispagestyle{empty}
-\vspace*{1cm}
-\begin{center}
-{\color{policynavy}\Large\bfseries Executive Summary}
-\end{center}
-\vspace{0.5cm}
+\vspace*{0.5cm}
 
-\begin{tcolorbox}[enhanced, colback=lightgray, colframe=policyblue!50, boxrule=1pt, arc=5pt,
+% Mini header visualization
+\noindent\begin{tikzpicture}
+  \fill[instdark] (0,0) rectangle (\textwidth, 0.15);
+  \foreach \x in {0.5,1,...,16.5} {
+    \fill[instgold, opacity=0.5] (\x, 0.075) circle (0.04);
+  }
+\end{tikzpicture}
+
+\vspace{0.5cm}
+\begin{center}
+{\color{instdark}\Large\bfseries Executive Summary}
+\end{center}
+\vspace{0.3cm}
+
+\begin{tcolorbox}[enhanced, colback=lightgray, colframe=instblue!50, boxrule=1pt, arc=3pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt]
 This projection explores how the proliferation of autonomous AI agents is altering the landscape of political violence, specifically targeting of political leaders. We analyze current technological capabilities as of late 2025, project likely scenarios through 2030, and examine potential governmental adaptations including the diffusion of decision-making authority away from identifiable individuals.
 \end{tcolorbox}
 
-\vspace{0.6cm}
+\vspace{0.5cm}
 
 \begin{keybox}[Key Findings]
 \begin{enumerate}
@@ -348,7 +323,7 @@ This projection explores how the proliferation of autonomous AI agents is alteri
 \end{enumerate}
 \end{keybox}
 
-\vspace{0.6cm}
+\vspace{0.5cm}
 
 \begin{infobox}[Base-Rate Context]
 \textbf{To prevent fear-driven misreading, we anchor expectations:}
@@ -366,7 +341,7 @@ The \textbf{dominant near-term shift} is likely not kinetic violence but:
 \textit{Primary concern: democratic degradation through non-lethal targeting, with kinetic risk as a lower-probability, higher-consequence tail scenario.}
 \end{infobox}
 
-\vspace{0.6cm}
+\vspace{0.5cm}
 
 \begin{warnbox}[Scope Limitations]
 This document analyzes capabilities and trends for defensive policy purposes. It does not provide operational guidance and explicitly omits technical implementation details that could enable harm.
@@ -377,22 +352,101 @@ This document analyzes capabilities and trends for defensive policy purposes. It
 \newpage
 
 % ============================================================================
-% PART I
+% PART I - Foundations (Scatter Plot Visualization)
 % ============================================================================
-\partpage{I}{Foundations}{%
+\clearpage
+\thispagestyle{empty}
+\vspace*{-0.85in}
+\noindent\hspace*{-0.85in}\begin{tikzpicture}
+  % Header background
+  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
+
+  % Part label and title (TOP - clear area)
+  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
+  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
+  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Theory, Capabilities, and Historical Context};
+
+  % Scatter plot visualization - capability vs accessibility over time (LEFT SIDE, LOWER - NEAR BOTTOM)
+  \begin{scope}[shift={(3cm, -8.5cm)}]
+    % Axes (larger, more visible)
+    \draw[white, opacity=0.4, line width=1.2pt, -Stealth] (0,0) -- (6,0) node[right, font=\fontsize{7}{7}\selectfont, white, opacity=0.7] {TIME};
+    \draw[white, opacity=0.4, line width=1.2pt, -Stealth] (0,0) -- (0,3) node[above, font=\fontsize{7}{7}\selectfont, white, opacity=0.7] {RISK};
+
+    % Grid (extended)
+    \foreach \y in {0.75,1.5,2.25} {
+      \draw[white, opacity=0.1, line width=0.5pt] (0,\y) -- (5.8,\y);
+    }
+    \foreach \x in {1.2,2.4,3.6,4.8} {
+      \draw[white, opacity=0.1, line width=0.5pt] (\x,0) -- (\x,2.9);
+    }
+
+    % Data points - historical events (larger, more visible)
+    \fill[instaccent, opacity=0.55] (0.5, 0.6) circle (0.16);
+    \fill[instaccent, opacity=0.55] (1.2, 0.85) circle (0.18);
+    \fill[instaccent, opacity=0.6] (2.0, 1.15) circle (0.2);
+    \fill[instaccent, opacity=0.6] (2.8, 1.5) circle (0.22);
+
+    % Current period (larger, brighter)
+    \fill[instgold, opacity=0.85] (3.8, 2.0) circle (0.28);
+    \node[white, font=\fontsize{6}{6}\selectfont\bfseries] at (3.8, 2.0) {NOW};
+
+    % Projected (outline, dashed)
+    \draw[instgold, opacity=0.65, line width=1.2pt, dashed] (4.7, 2.5) circle (0.3);
+    \draw[instgold, opacity=0.55, line width=1.2pt, dashed] (5.4, 2.75) circle (0.32);
+
+    % Trend line
+    \draw[instgold, opacity=0.55, line width=2pt] (0.5, 0.6) .. controls (1.8, 1.0) and (3.4, 1.75) .. (5.4, 2.75);
+
+    % Year labels (larger font)
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (1.0, -0.35) {1990};
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (2.4, -0.35) {2010};
+    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont\bfseries] at (3.8, -0.35) {2025};
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (5.1, -0.35) {2030};
+  \end{scope}
+
+  % Trend description (RIGHT SIDE - ALIGNED WITH CHART TOP)
+  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -5.7cm) {THREAT CAPABILITY TRAJECTORY};
+  \node[anchor=west] at (10.5cm, -6.4cm) {
+    \begin{tikzpicture}
+      \fill[instaccent, opacity=0.5] (0,0) circle (0.1);
+      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.25, 0) {Historical baseline};
+    \end{tikzpicture}
+  };
+  \node[anchor=west] at (10.5cm, -7.0cm) {
+    \begin{tikzpicture}
+      \fill[instgold, opacity=0.7] (0,0) circle (0.1);
+      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.25, 0) {Current period (2025)};
+    \end{tikzpicture}
+  };
+  \node[anchor=west] at (10.5cm, -7.6cm) {
+    \begin{tikzpicture}
+      \draw[instgold, opacity=0.6, line width=1pt, dashed] (0,0) circle (0.1);
+      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.25, 0) {Projected (2027--2030)};
+    \end{tikzpicture}
+  };
+
+  % Bottom accent
+  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+\end{tikzpicture}
+
+\vspace{0.8cm}
+\begin{center}
+\begin{minipage}{0.9\textwidth}
+\begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
+  left=15pt, right=15pt, top=12pt, bottom=12pt]
+\textcolor{instdark}{\textbf{Sections Covered}}
+\vspace{0.4em}
 \begin{itemize}[nosep]
   \item \textbf{Section 1}: Introduction, methodology, and definitions
   \item \textbf{Section 2}: Theoretical frameworks from security studies and political science
   \item \textbf{Section 3}: Current technological landscape and capability assessment
   \item \textbf{Section 4}: Historical context of technology and political violence
 \end{itemize}
-}{%
-\begin{tikzpicture}
-  \node[fill=policyblue!10, rounded corners=4pt, inner sep=8pt] at (0,0) {\textcolor{policyblue}{\ding{70}}\hspace{0.3em}\small Theory};
-  \node[fill=policyteal!10, rounded corners=4pt, inner sep=8pt] at (3,0) {\textcolor{policyteal}{\ding{70}}\hspace{0.3em}\small Capabilities};
-  \node[fill=policygold!10, rounded corners=4pt, inner sep=8pt] at (6.5,0) {\textcolor{policygold}{\ding{70}}\hspace{0.3em}\small Historical};
-\end{tikzpicture}
-}
+\end{tcolorbox}
+\end{minipage}
+\end{center}
+
+\vspace{0.8cm}
 
 \section{Introduction and Methodology}
 
@@ -524,22 +578,97 @@ Each major technological shift has altered the accessibility and character of po
 AI agents represent the next such shift.
 
 % ============================================================================
-% PART II
+% PART II - Threat Analysis (Radar Chart Visualization)
 % ============================================================================
-\partpage{II}{Threat Analysis}{%
+\clearpage
+\thispagestyle{empty}
+\vspace*{-0.85in}
+\noindent\hspace*{-0.85in}\begin{tikzpicture}
+  % Header background
+  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
+
+  % Part label and title (TOP - clear area)
+  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
+  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Threat Analysis};
+  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Projections, Risk Calculus, and Taxonomy};
+
+  % Radar/spider chart - threat dimensions (LEFT SIDE, LOWER - RAISED)
+  \begin{scope}[shift={(5cm, -6.4cm)}]
+    % Background rings (scaled down ~15%)
+    \foreach \r in {0.5, 1.0, 1.5, 2.0} {
+      \draw[white, opacity=0.1, line width=0.5pt] (0,0)
+        \foreach \a in {0,60,120,180,240,300} { -- (\a:\r) } -- cycle;
+    }
+
+    % Axis lines
+    \foreach \a in {0,60,120,180,240,300} {
+      \draw[white, opacity=0.2, line width=0.5pt] (0,0) -- (\a:2.15);
+    }
+
+    % Labels
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (90:2.35) {RECON};
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (30:2.35) {COORD};
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (330:2.35) {EXEC};
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (270:2.35) {ATTR};
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (210:2.35) {SCALE};
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (150:2.35) {STEALTH};
+
+    % Traditional threat (dimmer, smaller - scaled)
+    \fill[instaccent, opacity=0.2]
+      (90:0.75) -- (30:0.9) -- (330:1.25) -- (270:1.15) -- (210:0.6) -- (150:0.85) -- cycle;
+    \draw[instaccent, opacity=0.5, line width=1pt]
+      (90:0.75) -- (30:0.9) -- (330:1.25) -- (270:1.15) -- (210:0.6) -- (150:0.85) -- cycle;
+
+    % AI-enabled threat (brighter, larger - scaled)
+    \fill[instgold, opacity=0.25]
+      (90:1.75) -- (30:1.85) -- (330:1.5) -- (270:0.75) -- (210:1.75) -- (150:1.6) -- cycle;
+    \draw[instgold, opacity=0.8, line width=1.5pt]
+      (90:1.75) -- (30:1.85) -- (330:1.5) -- (270:0.75) -- (210:1.75) -- (150:1.6) -- cycle;
+
+    % Center point
+    \fill[white] (0,0) circle (0.08);
+  \end{scope}
+
+  % Legend (RIGHT SIDE, LOWER - BALANCED)
+  \node[anchor=west] at (10.5cm, -6cm) {
+    \begin{tikzpicture}
+      \fill[instaccent, opacity=0.5] (0,0) rectangle (0.4, 0.2);
+      \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont, anchor=west] at (0.55, 0.1) {Traditional Threat};
+    \end{tikzpicture}
+  };
+  \node[anchor=west] at (10.5cm, -6.6cm) {
+    \begin{tikzpicture}
+      \fill[instgold, opacity=0.6] (0,0) rectangle (0.4, 0.2);
+      \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont, anchor=west] at (0.55, 0.1) {AI-Enabled Threat};
+    \end{tikzpicture}
+  };
+
+  % Dimension labels on right
+  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -7.5cm) {Dimensions: Reconnaissance, Coordination,};
+  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -8cm) {Execution, Attribution, Scale, Stealth};
+
+  % Bottom accent
+  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+\end{tikzpicture}
+
+\vspace{0.8cm}
+\begin{center}
+\begin{minipage}{0.9\textwidth}
+\begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
+  left=15pt, right=15pt, top=12pt, bottom=12pt]
+\textcolor{instdark}{\textbf{Sections Covered}}
+\vspace{0.4em}
 \begin{itemize}[nosep]
   \item \textbf{Section 5}: Projected timeline from 2025--2030
   \item \textbf{Section 6}: How AI agents change the risk calculus
   \item \textbf{Section 7}: Counterarguments and critical perspectives
   \item \textbf{Section 8}: A taxonomy of AI-enabled targeting
 \end{itemize}
-}{%
-\begin{tikzpicture}
-  \node[fill=policyblue!10, rounded corners=4pt, inner sep=8pt] at (0,0) {\textcolor{policyblue}{\ding{70}}\hspace{0.3em}\small Projections};
-  \node[fill=policyteal!10, rounded corners=4pt, inner sep=8pt] at (3.5,0) {\textcolor{policyteal}{\ding{70}}\hspace{0.3em}\small Risk Analysis};
-  \node[fill=policygold!10, rounded corners=4pt, inner sep=8pt] at (7,0) {\textcolor{policygold}{\ding{70}}\hspace{0.3em}\small Taxonomy};
-\end{tikzpicture}
-}
+\end{tcolorbox}
+\end{minipage}
+\end{center}
+
+\vspace{0.8cm}
 
 \section{Projected Timeline: 2025--2030}
 
@@ -667,22 +796,94 @@ Defensive maturity & Low & Low & Very Low & Medium \\
 \end{center}
 
 % ============================================================================
-% PART III
+% PART III - Governmental Adaptation (Flow/Process Diagram)
 % ============================================================================
-\partpage{III}{Governmental Adaptation}{%
+\clearpage
+\thispagestyle{empty}
+\vspace*{-0.85in}
+\noindent\hspace*{-0.85in}\begin{tikzpicture}
+  % Header background
+  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
+
+  % Part label and title (TOP - clear area)
+  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
+  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Governmental};
+  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -4.1cm) {Adaptation};
+
+  % Process flow diagram - decision diffusion concept (LEFT SIDE, LOWER - CENTERED)
+  \begin{scope}[shift={(3cm, -6.8cm)}]
+    % Section label (raised for spacing)
+    \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont] at (2.5, 1.5) {DECISION ARCHITECTURE SHIFT};
+
+    % Central decision node (before) - LARGER
+    \fill[alertcoral, opacity=0.8] (0, 0) circle (0.75);
+    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (0, 0.1) {SINGLE};
+    \node[white, font=\fontsize{6}{6}\selectfont] at (0, -0.25) {POINT};
+    \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont] at (0, -1.4) {Centralized};
+
+    % Arrow - LARGER
+    \draw[instgold, line width=3pt, -Stealth] (1.1, 0) -- (2.9, 0);
+    \node[instgold, font=\fontsize{8}{8}\selectfont\bfseries] at (2, 0.5) {DIFFUSION};
+
+    % Distributed nodes (after) - LARGER
+    \foreach \angle/\dist in {90/0.85, 40/0.95, 320/0.9, 270/0.8, 220/0.95, 140/0.85} {
+      \fill[successgreen, opacity=0.55] ({4.3+\dist*cos(\angle)}, {\dist*sin(\angle)}) circle (0.28);
+    }
+    \fill[successgreen, opacity=0.9] (4.3, 0) circle (0.42);
+    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (4.3, 0) {MULTI};
+    \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont] at (4.3, -1.4) {Distributed};
+
+    % Connection lines between distributed nodes
+    \foreach \angle in {90, 40, 320, 270, 220, 140} {
+      \draw[successgreen, opacity=0.4, line width=0.8pt] (4.3, 0) -- ({4.3+0.85*cos(\angle)}, {0.85*sin(\angle)});
+    }
+  \end{scope}
+
+  % Bar chart - risk comparison (RIGHT SIDE, LOWER - MOVED FURTHER RIGHT)
+  \begin{scope}[shift={(13cm, -7.9cm)}]
+    % Title (aligned with DECISION ARCHITECTURE SHIFT)
+    \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont] at (2, 2.6) {TARGETING RISK};
+
+    % Axes
+    \draw[white, opacity=0.35, line width=0.8pt] (0,0) -- (0,2.3);
+    \draw[white, opacity=0.35, line width=0.8pt] (0,0) -- (4,0);
+
+    % Bars - LARGER
+    \fill[alertcoral, opacity=0.8] (0.4, 0) rectangle (1.1, 2.1);
+    \fill[successgreen, opacity=0.8] (1.5, 0) rectangle (2.2, 0.75);
+    \fill[instgold, opacity=0.8] (2.6, 0) rectangle (3.3, 1.35);
+
+    % Labels - LARGER
+    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont] at (0.75, -0.35) {Singular};
+    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont] at (1.85, -0.35) {Diffused};
+    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont] at (2.95, -0.35) {Hybrid};
+
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont, anchor=east] at (-0.15, 2.1) {HIGH};
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont, anchor=east] at (-0.15, 0) {LOW};
+  \end{scope}
+
+  % Bottom accent
+  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+\end{tikzpicture}
+
+\vspace{0.8cm}
+\begin{center}
+\begin{minipage}{0.9\textwidth}
+\begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
+  left=15pt, right=15pt, top=12pt, bottom=12pt]
+\textcolor{instdark}{\textbf{Sections Covered}}
+\vspace{0.4em}
 \begin{itemize}[nosep]
   \item \textbf{Section 9}: The decision diffusion hypothesis
   \item \textbf{Section 10}: Second-order effects on democracy
   \item \textbf{Section 11}: The fear environment
   \item \textbf{Section 12}: International variance
 \end{itemize}
-}{%
-\begin{tikzpicture}
-  \node[fill=policyblue!10, rounded corners=4pt, inner sep=8pt] at (0,0) {\textcolor{policyblue}{\ding{70}}\hspace{0.3em}\small Diffusion};
-  \node[fill=policyteal!10, rounded corners=4pt, inner sep=8pt] at (3.5,0) {\textcolor{policyteal}{\ding{70}}\hspace{0.3em}\small Democracy};
-  \node[fill=policygold!10, rounded corners=4pt, inner sep=8pt] at (7,0) {\textcolor{policygold}{\ding{70}}\hspace{0.3em}\small International};
-\end{tikzpicture}
-}
+\end{tcolorbox}
+\end{minipage}
+\end{center}
+
+\vspace{0.8cm}
 
 \section{Governmental Adaptation: The Diffusion Hypothesis}
 
@@ -772,22 +973,92 @@ Traditional frameworks assume attribution is eventually possible. AI-enabled att
 \end{criticalbox}
 
 % ============================================================================
-% PART IV
+% PART IV - Policy Recommendations (Gauge/Meter Visualization)
 % ============================================================================
-\partpage{IV}{Policy Recommendations}{%
+\clearpage
+\thispagestyle{empty}
+\vspace*{-0.85in}
+\noindent\hspace*{-0.85in}\begin{tikzpicture}
+  % Header background
+  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
+
+  % Part label and title (TOP - clear area)
+  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
+  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Policy};
+  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -4.1cm) {Recommendations};
+
+  % Priority chevrons showing action progression (LEFT SIDE, LOWER - 50% WIDER)
+  \begin{scope}[shift={(2cm, -7cm)}]
+    % Label
+    \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont] at (5.5, 1.1) {ACTION TIMELINE};
+
+    % Chevron 1 - Immediate (leftmost, red/coral) - 50% WIDER
+    \fill[alertcoral, opacity=0.85]
+      (0, 0.7) -- (2.5, 0.7) -- (3.1, 0) -- (2.5, -0.7) -- (0, -0.7) -- (0.6, 0) -- cycle;
+    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (1.4, 0) {IMMEDIATE};
+    \node[white, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (1.4, -1) {2025};
+
+    % Chevron 2 - Near-term (middle, gold) - 50% WIDER
+    \fill[instgold, opacity=0.85]
+      (3.3, 0.7) -- (6.1, 0.7) -- (6.7, 0) -- (6.1, -0.7) -- (3.3, -0.7) -- (3.9, 0) -- cycle;
+    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (4.85, 0) {NEAR-TERM};
+    \node[white, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (4.85, -1) {2026--27};
+
+    % Chevron 3 - Strategic (rightmost, green) - 50% WIDER
+    \fill[successgreen, opacity=0.85]
+      (6.9, 0.7) -- (9.7, 0.7) -- (10.3, 0) -- (9.7, -0.7) -- (6.9, -0.7) -- (7.5, 0) -- cycle;
+    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (8.45, 0) {STRATEGIC};
+    \node[white, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (8.45, -1) {2028--30};
+
+    % Connecting arrow underneath
+    \draw[white, opacity=0.3, line width=1pt, -Stealth] (1.4, -1.3) -- (8.8, -1.3);
+  \end{scope}
+
+  % Stakeholder list (RIGHT SIDE, LOWER - ELEGANT CARD DESIGN)
+  \begin{scope}[shift={(13.5cm, -6.3cm)}]
+    % Subtle background card
+    \fill[white, opacity=0.05, rounded corners=3pt] (-0.3, 0.9) rectangle (3.5, -2.1);
+    \draw[instgold, opacity=0.4, line width=0.5pt, rounded corners=3pt] (-0.3, 0.9) rectangle (3.5, -2.1);
+
+    % Header with accent line
+    \node[white, opacity=0.6, font=\fontsize{7}{7}\selectfont\bfseries] at (1.6, 0.55) {STAKEHOLDERS};
+    \draw[instgold, opacity=0.5, line width=0.8pt] (0, 0.25) -- (3.2, 0.25);
+
+    % Stakeholder entries with subtle separators
+    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (0.1, -0.15) {Policy Makers};
+    \draw[white, opacity=0.1, line width=0.5pt] (0.1, -0.45) -- (3.1, -0.45);
+
+    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (0.1, -0.75) {CEOs};
+    \draw[white, opacity=0.1, line width=0.5pt] (0.1, -1.05) -- (3.1, -1.05);
+
+    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (0.1, -1.35) {Tech Elite};
+    \draw[white, opacity=0.1, line width=0.5pt] (0.1, -1.65) -- (3.1, -1.65);
+
+    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (0.1, -1.85) {Laymen};
+  \end{scope}
+
+  % Bottom accent
+  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+\end{tikzpicture}
+
+\vspace{0.8cm}
+\begin{center}
+\begin{minipage}{0.9\textwidth}
+\begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
+  left=15pt, right=15pt, top=12pt, bottom=12pt]
+\textcolor{instdark}{\textbf{Sections Covered}}
+\vspace{0.4em}
 \begin{itemize}[nosep]
   \item \textbf{Section 13}: Recommendations by stakeholder type
   \item \textbf{Section 14}: Uncertainties and alternative scenarios
   \item \textbf{Section 15}: Signals and early indicators
   \item \textbf{Section 16}: Civil liberties guardrails
 \end{itemize}
-}{%
-\begin{tikzpicture}
-  \node[fill=successgreen!10, rounded corners=4pt, inner sep=8pt] at (0,0) {\textcolor{successgreen}{\ding{51}}\hspace{0.3em}\small Recommendations};
-  \node[fill=policyteal!10, rounded corners=4pt, inner sep=8pt] at (4,0) {\textcolor{policyteal}{\ding{70}}\hspace{0.3em}\small Indicators};
-  \node[fill=policygold!10, rounded corners=4pt, inner sep=8pt] at (7.5,0) {\textcolor{policygold}{\ding{70}}\hspace{0.3em}\small Guardrails};
-\end{tikzpicture}
-}
+\end{tcolorbox}
+\end{minipage}
+\end{center}
+
+\vspace{0.8cm}
 
 \section{Policy Recommendations}
 
@@ -917,6 +1188,46 @@ The purpose of projection is not prediction but preparation. By understanding po
 % APPENDICES
 % ============================================================================
 \appendix
+
+\clearpage
+\thispagestyle{empty}
+\vspace*{-0.85in}
+\noindent\hspace*{-0.85in}\begin{tikzpicture}
+  % Header background
+  \fill[instdark] (0,0) rectangle (\paperwidth, -6cm);
+
+  % Title (TOP - clear area)
+  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {REFERENCE MATERIALS};
+  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -3cm) {Appendices};
+
+  % Matrix visualization for appendices (LEFT SIDE, LOWER - SYMMETRIC)
+  \begin{scope}[shift={(2.5cm, -4cm)}]
+    % Larger dots with gradient opacity effect
+    \foreach \x in {0,0.28,...,3.4} {
+      \foreach \y in {0,0.28,...,1.4} {
+        \pgfmathsetmacro{\op}{0.2 + 0.35*rnd}
+        \fill[instgold, opacity=\op] (\x, -\y) circle (0.09);
+      }
+    }
+  \end{scope}
+
+  % Hash/matrix pattern (RIGHT SIDE, LOWER - SYMMETRIC)
+  \begin{scope}[shift={(12.5cm, -4cm)}]
+    % Larger squares with better visibility
+    \foreach \x in {0,0.24,...,2.9} {
+      \foreach \y in {0,0.24,...,1.4} {
+        \pgfmathsetmacro{\op}{0.12 + 0.2*rnd}
+        \fill[white, opacity=\op] (\x, -\y) rectangle (\x+0.16, -\y-0.16);
+      }
+    }
+  \end{scope}
+
+  % Bottom accent
+  \fill[instgold] (2cm, -5.2cm) rectangle (\paperwidth-2cm, -5.3cm);
+\end{tikzpicture}
+
+\vspace{1.5cm}
+
 \section{Risk Prioritization Matrix}
 
 \begin{center}
