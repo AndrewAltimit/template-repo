@@ -38,7 +38,7 @@ We aim to be concrete and specific while acknowledging uncertainty. Probability 
 
 ## Classification
 
-These documents are for policy, security, and research audiences engaged in defensive analysis. They should not be distributed to general audiences without appropriate context.
+These documents are for policy, security, and research audiences engaged in defensive analysis. They are intended for audiences with appropriate context.
 
 ## Contributing
 

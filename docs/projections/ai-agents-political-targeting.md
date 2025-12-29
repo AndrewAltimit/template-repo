@@ -1606,4 +1606,4 @@ The following documents key empirical claims, evidence basis, and falsification 
 
 ---
 
-*This document is for defensive policy analysis. Distribution should be limited to appropriate policy, security, and research audiences.*
+*This document is for defensive policy analysis. Distribution is intended for appropriate policy, security, and research audiences.*
