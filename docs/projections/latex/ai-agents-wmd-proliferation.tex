@@ -521,6 +521,35 @@ This analysis draws on:
 
 We deliberately avoid: specific technical implementation details, named pathogen sequences or synthesis routes, and information not already publicly available in academic literature.
 
+\subsection{What We've Observed in 2025}
+
+Evidence regarding AI-assisted biosecurity threats, categorized by epistemic status:
+
+\textbf{Demonstrated in open evaluations:}
+\begin{itemize}[nosep]
+  \item AI models can provide general information about pathogen biology from open literature
+  \item Frontier AI models refuse most explicit requests for weapons guidance but inconsistencies exist
+  \item AI systems show measurable ``uplift'' in non-expert comprehension of complex biological concepts
+\end{itemize}
+
+\textbf{Supported by limited disclosures:}
+\begin{itemize}[nosep]
+  \item DNA synthesis screening has intercepted concerning orders (industry statements, limited specifics)
+  \item Security services have begun integrating AI into threat monitoring
+\end{itemize}
+
+\textbf{Speculative / emerging:}
+\begin{itemize}[nosep]
+  \item AI-enabled gain-of-function design assistance (theoretical capability, no documented attempts)
+  \item Cloud laboratory exploitation for harmful protocols (no known incidents)
+\end{itemize}
+
+\textbf{Absence of evidence (notable):}
+\begin{itemize}[nosep]
+  \item No documented cases of AI-enabled biological weapon development
+  \item No confirmed AI-assisted WMD attacks or advanced attempts
+\end{itemize}
+
 \subsection{Definitions}
 
 \begin{defbox}[Core Definitions]
@@ -569,6 +598,48 @@ T4 & State or state-backed & Full WMD capability & Nation-state programs \\
 \end{center}
 
 \textbf{Key insight}: AI primarily benefits T1--T3 actors by reducing knowledge aggregation barriers---it does not transform T0 into T3.
+
+\subsection{Vision-Language Models and Tacit Knowledge Erosion}
+
+The traditional ``tacit knowledge'' barrier assumed that laboratory skills require hands-on training. Vision-Language Models (VLMs) that can ``see'' through cameras are beginning to erode this barrier.
+
+\begin{center}
+\small
+\begin{tabular}{p{3.5cm}p{4cm}p{4.5cm}}
+\toprule
+\textbf{VLM Generation} & \textbf{Capability} & \textbf{Tacit Knowledge Impact} \\
+\midrule
+Text-only LLMs (2022--23) & Written instruction only & Cannot interpret physical observations \\
+Basic VLMs (2024) & Static image interpretation & Can identify equipment, reagents \\
+Advanced VLMs (2025) & Real-time video analysis & Can provide feedback on ongoing procedures \\
+Projected (2026+) & Integrated lab automation & Direct control of robotic systems \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Visual Troubleshooting Scenario} (for defender awareness): Smart glasses can stream video to cloud VLMs \textbf{[O]}. An actor could receive real-time audio feedback while performing procedures. VLM interprets visual state (``color too dark,'' ``precipitate forming'') and suggests adjustments \textbf{[E]}. This partially substitutes for the mentor-mentee relationship that traditionally transmitted tacit knowledge.
+
+\textbf{Current limitation} \textbf{[E]}: VLMs still make errors on domain-specific interpretation; a failed procedure may be unrecoverable. But the gap is narrowing with each model generation.
+
+\subsection{Governance Challenge: Open-Weight Models}
+
+Most AI safety measures exist at the API level for closed commercial models. Open-weight models present a distinct governance challenge:
+
+\begin{center}
+\small
+\begin{tabular}{p{3cm}p{2cm}p{2cm}p{2cm}p{3cm}}
+\toprule
+\textbf{Model Type} & \textbf{Guardrails} & \textbf{Monitoring} & \textbf{Fine-tuning} & \textbf{Governance Lever} \\
+\midrule
+Closed API (GPT, Claude) & Strong & Yes & No & Provider responsibility \\
+Open-weight (Llama, Mistral) & Varies & No (local) & Yes & Release decisions only \\
+Fine-tuned variants & Often removed & No & Already done & Difficult to control \\
+Specialized biology models & May be absent & No & Domain-specific & Research community norms \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Policy implications}: (1) Pre-release capability evaluation, (2) Compute governance as monitoring opportunity, (3) Community norms on responsible release, (4) Accept that some proliferation is unavoidable---invest in detection accordingly.
 
 \section{Theoretical Frameworks}
 
@@ -766,6 +837,14 @@ Toxins & Defined structures; some synthetically accessible; no replication & Mod
 \end{tabular}
 \end{center}
 
+\subsection{Gain-of-Function Considerations}
+
+AI could potentially assist with gain-of-function modifications---predicting mutations that increase transmissibility, identifying immune evasion strategies, optimizing pathogen stability, and suggesting virulence factor modifications.
+
+\textbf{Limiting factors}: Wet lab validation still required; many modifications reduce fitness; biological systems are complex and unpredictable; most AI predictions would fail in practice.
+
+\textbf{Our assessment}: AI gain-of-function guidance is a genuine concern but the gap between prediction and validation remains substantial. The risk increases as AI models improve and as AI-lab integration deepens.
+
 \subsection{Cloud Laboratory Considerations}
 
 Cloud laboratories---services providing remote access to automated equipment---represent an area requiring enhanced defensive attention.
@@ -809,6 +888,16 @@ Nuclear weapons remain the category with the strongest barriers:
 \begin{infobox}[Critical Clarification]
 The information aggregation risk is primarily relevant to \textbf{state programs (T4)} seeking to accelerate nuclear development. AI does not make nuclear weapons accessible to non-state actors---the fissile material barrier is absolute and AI-independent.
 \end{infobox}
+
+\subsection{The Radiological Threat (Dirty Bombs)}
+
+Radiological dispersal devices (``dirty bombs'') face different dynamics than nuclear weapons:
+
+\textbf{Lower barriers than nuclear weapons}: Radioactive materials more accessible (medical, industrial sources); no fission/fusion required---conventional explosives disperse material; AI could assist with source identification and dispersal optimization.
+
+\textbf{Significant limitations}: Casualty potential much lower than nuclear weapons; primary effect is psychological and economic; material handling dangerous to perpetrator; detection of radioactive materials is possible.
+
+\textbf{AI contribution}: Could assist with identifying sources, optimizing dispersal, and planning deployment, but physical acquisition remains the key barrier.
 
 \section{Gene Drives: Long-Horizon Governance Gap}
 
@@ -876,6 +965,26 @@ AI agents with computer use capabilities could change the economics of procureme
   \item Synthesized identities, gig-economy logistics coordination
 \end{itemize}
 
+\subsection{Governance Gaps in Proliferation Financing}
+
+Agentic AI workflows could assist WMD proliferation through sophisticated financial operations:
+
+\begin{center}
+\small
+\begin{tabular}{p{3cm}p{4cm}p{5cm}}
+\toprule
+\textbf{Gap} & \textbf{Current State} & \textbf{What AI Enables} \\
+\midrule
+Shell company opacity & Beneficial ownership registries incomplete & Automated creation/management of layered entities \\
+Threshold fragmentation & Reporting triggers at fixed amounts & Systematic structuring below thresholds \\
+Cryptocurrency mixing & Limited tracing capability & Automated chain-hopping across currencies \\
+Jurisdiction gaps & Inconsistent AML enforcement & Routing through weakest-link jurisdictions \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Policy direction}: Financial monitoring should evolve from rule-based detection (fixed thresholds) to AI-assisted behavioral analysis that can identify sophisticated evasion patterns.
+
 \section{Counterarguments and Structural Barriers}
 
 This section engages seriously with counterarguments to maintain analytical balance.
@@ -903,6 +1012,28 @@ Radiological & Radioactive sources & Moderate \\
 \end{center}
 
 \textbf{Our assessment}: Valid for nuclear. Partially valid for chemical. Increasingly weak for biological.
+
+\subsection{The Data Scarcity Argument}
+
+\textbf{Argument}: AI models are trained on internet data. Functional WMD synthesis procedures are not widely published. Models often hallucinate plausible-sounding but incorrect procedures.
+
+\textbf{Evidence}: Published synthesis routes often omit critical details; safety procedures are often implicit; much weapons-relevant information is classified; AI models demonstrate chemistry errors in evaluations.
+
+\textbf{Our assessment}: Partially valid. However, more information is available than commonly assumed; AI can aggregate fragmented information; model capabilities are improving rapidly; hallucination rates are decreasing.
+
+\subsection{The Operational Security Argument}
+
+\textbf{Argument}: Serious WMD attempts require extended preparation that creates detection opportunities. Acquiring materials, testing, and deployment all generate signals regardless of AI assistance.
+
+\textbf{Our assessment}: Largely valid and underappreciated. Defensive capabilities can focus on operational signatures rather than trying to restrict information. AI may actually help defense by identifying suspicious patterns.
+
+\subsection{The Failure Cascade Argument}
+
+\textbf{Argument}: WMD development involves multiple steps, each with failure probability. Even if AI improves each step, the compound probability of overall success may remain low.
+
+\textbf{Illustration}: Step 1 (80\%) $\times$ Step 2 (50\%) $\times$ Step 3 (30\%) $\times$ Step 4 (60\%) = 7.2\% compound probability.
+
+\textbf{Our assessment}: Valid framework. However, persistent actors can iterate; some pathways involve fewer steps; crude attacks may still be attempted; even failed attempts can cause harm.
 
 \subsection{The Asymmetric Defense Argument}
 
@@ -1001,6 +1132,26 @@ Compute rental & KYC requirements & Anonymous crypto payment \\
 
 \textbf{Policy implication}: Unilateral restrictions have limited effectiveness. Capacity building and norm promotion may be more effective than prohibition.
 
+\subsection{Global South Considerations}
+
+\begin{enumerate}
+  \item \textbf{Capacity vs. governance mismatch}: Some regions are developing synthetic biology capacity faster than biosecurity governance frameworks
+  \item \textbf{Brain drain inversion}: AI enables remote collaboration, potentially routing expertise to less-regulated contexts
+  \item \textbf{Economic incentives}: Commercial services may prioritize revenue over screening rigor
+  \item \textbf{Dual-use development framing}: Legitimate agricultural or public health programs may provide cover
+  \item \textbf{Sovereignty sensitivities}: International oversight proposals may face resistance as neo-colonial imposition
+\end{enumerate}
+
+\textbf{Why Western guardrails may be insufficient}: Actors can access AI services via VPN; DNA synthesis orders can be routed through intermediaries; financial transactions can use unregulated cryptocurrency; enforcement requires international cooperation that may not exist.
+
+\subsection{State Actor Considerations}
+
+For state-level proliferation, AI offers different dynamics:
+
+\textbf{State programs may benefit from AI}: Faster weapon development timelines; reduced personnel requirements (operational security); novel agent development acceleration; supply chain optimization to evade detection.
+
+\textbf{This affects}: Emerging nuclear programs; reconstituted bioweapons programs; chemical weapons in conflict zones; dual-use research that crosses lines.
+
 \subsection{Treaty Implications}
 
 \begin{itemize}
@@ -1024,6 +1175,26 @@ The \textit{perception} of AI-enabled WMD risk may cause harmful responses even 
 \subsection{Research Stifling}
 
 Same tools enable both beneficial and harmful applications. Restrictions preventing misuse also prevent legitimate use. \textbf{The balance problem} is contentious and requires careful calibration.
+
+\textbf{At risk}: Cancer research using synthetic biology tools; pandemic preparedness research; agricultural improvements; environmental applications of gene drives.
+
+\subsection{Acceleration of State Programs}
+
+Paradoxically, fear of AI-enabled non-state threats could accelerate state WMD programs:
+\begin{enumerate}
+  \item States perceive non-state WMD threat increasing
+  \item States invest in WMD defense capabilities
+  \item Defense capabilities overlap with offense
+  \item Net effect: more WMD capability globally
+\end{enumerate}
+
+\subsection{Public Health Infrastructure}
+
+WMD concerns affect public health systems:
+
+\textbf{Positive effects}: Investment in detection capabilities; improved medical countermeasure development; better surveillance systems.
+
+\textbf{Negative effects}: Securitization of public health; reduced information sharing; distrust between health and security communities.
 
 \section{Policy Recommendations}
 
@@ -1110,6 +1281,27 @@ Interdiction rate & 50\% & 35\% & 20\% & 5\% $\to$ 8-12\% $\to$ 18\% \\
 
 \textbf{Scenario E: State Program Acceleration (15\%)}: Multiple states use AI to accelerate WMD programs.
 
+\textbf{Scenario F: Catastrophic Attack (3--5\%)}: A sophisticated attack achieves civilization-scale casualties (tens of thousands to millions). Engineered pandemic pathogen or novel agent evading countermeasures. Fundamental restructuring of AI governance; lasting global impact.
+
+\begin{center}
+\small
+\textbf{Conditional Probabilities}\\[0.5em]
+\begin{tabular}{lcc}
+\toprule
+\textbf{Scenario} & \textbf{Strong Governance} & \textbf{Weak Governance} \\
+\midrule
+A (Effective Governance) & 25\% & 5\% \\
+B (Muddling Through) & 40\% & 30\% \\
+C (High-Frequency Attempts) & 20\% & 35\% \\
+D (Mass Casualty) & 5\% & 15\% \\
+E (State Acceleration) & 8\% & 20\% \\
+F (Catastrophic) & 2\% & 8\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Interpretation}: Governance choices significantly affect outcome distribution. This supports prioritizing governance investment now.
+
 \textbf{Key insight from Scenario C}: The ``noise floor'' of attempts may be the most likely outcome. Security services should prepare for resource strain from high-frequency low-sophistication incidents, not just rare catastrophic events.
 
 \section{Civil Liberties and Research Freedom}
@@ -1124,6 +1316,40 @@ Interdiction rate & 50\% & 35\% & 20\% & 5\% $\to$ 8-12\% $\to$ 18\% \\
   \item \textbf{Reversibility}: Sunset provisions; regular review
 \end{enumerate}
 
+\subsection{Guardrails Against Overreach}
+
+\begin{center}
+\small
+\begin{tabular}{p{4cm}p{8cm}}
+\toprule
+\textbf{Measure} & \textbf{Purpose} \\
+\midrule
+Independent oversight boards & Prevent mission creep \\
+Clear evidentiary standards & Avoid profiling without basis \\
+Transparency reports & Public accountability \\
+Appeal mechanisms & Individual recourse \\
+International consistency & Prevent arbitrary variation \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{What Should NOT Happen}
+
+\begin{center}
+\small
+\begin{tabular}{p{4cm}p{8cm}}
+\toprule
+\textbf{Overreach Risk} & \textbf{Why It's Problematic} \\
+\midrule
+Broad surveillance of scientists & Chilling effect on legitimate research \\
+Publication prior restraint & Damages scientific progress \\
+AI query monitoring without cause & Privacy violation; creates insecurity \\
+Country-of-origin discrimination & Undermines scientific cooperation \\
+Classification of dual-use by default & Makes beneficial work impossible \\
+\bottomrule
+\end{tabular}
+\end{center}
+
 \subsection{The Optimization Target}
 
 The goal is not to prevent all possible harm---that would require unacceptable restrictions. The goal is to:
@@ -1133,6 +1359,51 @@ The goal is not to prevent all possible harm---that would require unacceptable r
   \item Maintain beneficial research and application
   \item Preserve civil liberties and research freedom
   \item Adapt as capabilities and threats evolve
+\end{enumerate}
+
+\section{Signals and Early Indicators}
+
+\subsection{Capability Indicators}
+
+\begin{center}
+\small
+\begin{tabular}{p{4cm}p{4cm}p{4cm}}
+\toprule
+\textbf{Indicator} & \textbf{Data Sources} & \textbf{What It Signals} \\
+\midrule
+AI biology benchmarks & Academic publications & Uplift capability maturation \\
+Cloud lab expansion & Industry announcements & Attack surface growth \\
+DNA synthesis price curves & Industry data & Accessibility threshold changes \\
+AI-lab integration products & Commercial announcements & Tacit knowledge bridging \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Threat Activity Indicators}
+
+\begin{center}
+\small
+\begin{tabular}{p{4cm}p{4cm}p{4cm}}
+\toprule
+\textbf{Indicator} & \textbf{Data Sources} & \textbf{What It Signals} \\
+\midrule
+Screening intercepts & Law enforcement, industry & Attempted acquisition patterns \\
+Dark web AI+WMD discussion & Open source intelligence & Actor interest \\
+Concerning AI queries & Platform reports & Demand for harmful information \\
+Failed/thwarted attempts & Law enforcement, media & Threat translation from capability \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Red Lines and Trigger Points}
+
+Events that would significantly alter assessment:
+\begin{enumerate}
+  \item \textbf{Confirmed AI-assisted WMD attempt}: Would validate threat model
+  \item \textbf{Release of unrestricted ``research agent''}: Would dramatically lower barriers
+  \item \textbf{Cloud laboratory security breach}: Would demonstrate attack pathway viability
+  \item \textbf{Gene drive release} (malicious or accidental): Would demonstrate irreversibility concerns
+  \item \textbf{Treaty framework collapse}: Would remove coordination mechanisms
 \end{enumerate}
 
 \section{Conclusion}
@@ -1167,6 +1438,12 @@ The window for establishing effective governance is narrowing.
   \item \textbf{Maintain perspective}: Avoid policy made in fear
 \end{enumerate}
 \end{contextbox}
+
+\subsection{A Note on Uncertainty}
+
+These projections represent our best assessment given available information. Significant uncertainties remain regarding AI capability development pace, effectiveness of governance measures, translation of capability to actual attacks, and defensive technology development.
+
+The purpose of this analysis is not prediction but preparation. By understanding possible futures, we improve our ability to shape better outcomes.
 
 \vspace{0.5cm}
 \begin{center}
