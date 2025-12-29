@@ -2,22 +2,43 @@
 
 ## A Projection Report on Emerging Risks to Global Security
 
-**Classification**: Policy Research - For Defensive Analysis
-**Prepared For**: Emerging Technology Risk Assessment Committee
+**Type**: Policy Research - Defensive Analysis
+**License**: MIT / Unlicense (Public Domain)
 **Version**: 1.0
 **Date**: December 2025
 
 ---
 
-## Distribution Guidance
+## About This Document
 
-| Tier | Audience | Content Scope |
-|------|----------|---------------|
-| **Tier 1** (This version) | Internal policy/security committees, cleared researchers | Full document including scenario narratives and detection specifications |
-| **Tier 2** (Derivative) | Broader policy community, academic partners | Remove scenario narratives in cyber-physical section; retain risk framing and recommendations |
-| **Tier 3** (Public summary) | General stakeholders, media backgrounders | Executive summary, key findings, and governance principles only; remove operational details |
+This is a **public policy research document** analyzing how AI capabilities may affect WMD proliferation risks. It is released under permissive open-source licenses to support broad discussion of these issues.
 
-*Recipients should verify appropriate tier before further distribution. Excerpting sections without context may create information hazard concerns.*
+**Intended audiences**:
+- Policy researchers and analysts
+- AI safety and security researchers
+- Academic communities studying technology governance
+- Journalists and commentators covering AI risks
+- General public interested in emerging technology policy
+
+**How to use this document**:
+- The analysis is framed for *defensive* purposes - understanding risks to inform protective measures
+- Technical details that could enable harm are intentionally omitted
+- Probability estimates are subjective priors, not predictions - treat them as discussion aids
+- When excerpting, please preserve context to avoid misrepresentation
+
+---
+
+## Epistemic Status Markers
+
+Throughout this document, key claims are tagged with epistemic status:
+
+| Marker | Meaning | Evidence Standard |
+|--------|---------|-------------------|
+| **[O]** | Open-source documented | Published research, official statements, public data |
+| **[E]** | Expert judgment / plausible inference | Consistent with theory and limited evidence; gaps acknowledged |
+| **[S]** | Speculative projection | Extrapolation from trends; significant uncertainty |
+
+*Claims without markers are framing or synthesis statements.*
 
 ---
 
@@ -27,28 +48,38 @@ This projection examines how autonomous AI agents may alter the proliferation la
 
 **Key Findings:**
 
-| # | Finding | Confidence |
-|---|---------|------------|
-| 1 | Agentic AI workflows are unlikely to enable a novice (T0) to construct a functional WMD from scratch in the near term (2025-2030), but they will meaningfully lower barriers for T1-T3 actors by aggregating dispersed knowledge and optimizing logistics | **High** |
-| 2 | Biological weapons represent the highest-risk category due to the increasing accessibility of synthetic biology tools, cloud laboratory services, and the difficulty of detecting biological materials | **High** |
-| 3 | The "tacit knowledge gap" remains a significant barrier, but AI-guided robotic systems, vision-language models, and cloud labs are beginning to erode it | **Medium** |
-| 4 | Nuclear weapons face the strongest physical barriers (fissile material scarcity); AI primarily assists state-level (T4) programs, not non-state actors | **High** |
-| 5 | Cyber-physical attacks on existing WMD-adjacent infrastructure (BSL-4 labs, chemical plants) may represent higher near-term risk than de novo synthesis | **Medium** |
-| 6 | The "high-frequency attempts, limited success" scenario is more likely than catastrophic mass-casualty events; defenders should prepare for resource strain from numerous low-sophistication incidents | **Medium** |
+| # | Finding | Confidence | Horizon |
+|---|---------|------------|---------|
+| 1 | Agentic AI workflows are unlikely to enable a novice (T0) to construct a functional WMD from scratch in the near term (2025-2030), but they will meaningfully lower barriers for T1-T3 actors by aggregating dispersed knowledge and optimizing logistics **[E]** | **High** | Ongoing |
+| 2 | Biological weapons represent the highest-risk category due to the increasing accessibility of synthetic biology tools, cloud laboratory services, and the difficulty of detecting biological materials **[E]** | **High** | Immediate |
+| 3 | The "tacit knowledge gap" remains a significant barrier, but AI-guided robotic systems, vision-language models, and cloud labs are beginning to erode it **[E]** | **Medium** | 2026-2028 |
+| 4 | Nuclear weapons face the strongest physical barriers (fissile material scarcity); AI primarily assists state-level (T4) programs, not non-state actors **[O]** | **High** | Stable |
+| 5 | Cyber-physical attacks on existing WMD-adjacent infrastructure (BSL-4 labs, chemical plants) may represent higher near-term risk than de novo synthesis **[E]** | **Medium** | Immediate |
+| 6 | The "high-frequency attempts, limited success" scenario is more likely than catastrophic mass-casualty events; defenders should prepare for resource strain from numerous low-sophistication incidents **[E]** | **Medium** | 2025-2027 |
 
 *Confidence levels follow IC standards: **High** = multiple independent sources, consistent with established patterns; **Medium** = plausible based on available evidence but gaps exist; **Low** = possible but significant uncertainty.*
 
+**Why Now? What Changed 2023→2025:**
+
+| Capability Shift | 2023 State | 2025 State | Impact |
+|-----------------|------------|------------|--------|
+| **Agentic autonomy** | Chatbots provided information | Agents execute multi-step tasks with tool use, self-correction, and persistence **[O]** | Shifts from "knowledge" to "autonomous execution" |
+| **Vision-language models** | Text-only instruction | Real-time visual interpretation of lab procedures **[O]** | Begins bridging tacit knowledge gap |
+| **Computer Use capabilities** | Manual web interaction | Agents can browse, fill forms, manage procurement **[O]** | Enables procurement obfuscation at scale |
+| **Biological design tools** | AlphaFold 2 (structure prediction) | AlphaFold 3, ESM3 (generative biology, ligand interactions) **[O]** | Optimization beyond mere information retrieval |
+| **Open-weight proliferation** | Limited high-capability open models | Llama 3, Mistral, Qwen with fine-tuning ecosystems **[O]** | Guardrail bypass via local deployment |
+
 **Scope Limitations**: This document analyzes capabilities and trends for defensive policy purposes. It does not provide operational guidance and explicitly omits technical implementation details that could enable harm. All information draws on publicly available academic literature and policy discussions.
 
-> **Information Hazard Notice**
+> **Note on Information Hazards**
 >
-> This document is intended for policy, security, and research audiences engaged in defensive analysis.
+> This document discusses sensitive topics at a level of abstraction appropriate for public policy discussion.
 >
-> **Intentionally excluded**: Specific synthesis routes, pathogen sequences, precursor sources, equipment specifications, and operational procedures. Where attack concepts are discussed, they are framed at the level of *defender awareness*, not attacker enablement.
+> **Intentionally excluded**: Specific synthesis routes, pathogen sequences, precursor sources, equipment specifications, and operational procedures. Where threat concepts are discussed, they are framed for *defender awareness*, not attacker enablement.
 >
-> **Distribution guidance**: Internal/controlled circulation. Recipients should not reproduce or excerpt sections describing conceptual attack pathways without context. Wider distribution should be reviewed for information hazard implications.
+> **Request to readers**: When sharing excerpts, please preserve surrounding context. Isolated quotes about "what AI enables" without the corresponding barriers and limitations may create misleading impressions.
 >
-> **If you are not the intended audience**: This analysis describes risks to inform defense, not to enable harm. The barriers described remain substantial, and the document deliberately omits information that would reduce them.
+> **On the barriers**: The physical, logistical, and tacit knowledge barriers described in this document remain substantial. This analysis does not provide a roadmap - it provides a framework for thinking about defensive investment.
 
 ---
 
@@ -64,9 +95,9 @@ To prevent misreading, we explicitly clarify:
 
 ---
 
-## Executive Decision Brief
+## Executive Summary (One-Page Version)
 
-> **For executives and senior leadership requiring rapid orientation.**
+> **Quick orientation for readers who need the core arguments without the full analysis.**
 
 ### Core Claims (5)
 
@@ -164,7 +195,18 @@ We deliberately avoid:
 
 ### Definitions
 
-**AI Agent / Agentic Workflow**: An AI system (or coordinated system of models) capable of autonomous multi-step task execution, tool use, and goal-directed behavior with minimal human oversight per action. This report uses "agentic workflow" to emphasize that modern systems often involve multiple specialized models coordinating on complex tasks.
+**Chatbot vs. Autonomous Research Agent**: A critical distinction for 2025:
+
+| Type | Capability | Risk Profile |
+|------|------------|--------------|
+| **Chatbot** (2022-2023 era) | Provides information in response to queries; no tool use; no persistence | Knowledge aggregation only |
+| **Autonomous Research Agent** (2024-2025 era) | Executes multi-step tasks; uses tools (web browsing, code execution, file management); self-corrects on failure; maintains context across sessions | Shifts from knowledge to execution |
+
+**AI Agent / Agentic Workflow**: An AI system (or coordinated system of models) capable of autonomous multi-step task execution, tool use, and goal-directed behavior with minimal human oversight per action. Modern agents can "loop" - execute a step, observe the result, adjust, and retry without human intervention.
+
+**Computer Use Capabilities**: The ability of AI agents to interact with graphical interfaces, browse websites, fill forms, and operate software as a human would **[O]**. Examples include Claude's "computer use" (2024) and OpenAI's "Operator" (2025). This enables autonomous procurement, identity management, and logistics coordination.
+
+**Biological Design Tools (BDTs)**: Specialized AI models for biological research, distinct from general-purpose LLMs. Examples include AlphaFold 3 (protein-ligand interactions), ESM3 (generative protein design), and RFdiffusion (de novo protein design) **[O]**. These tools often have fewer guardrails than consumer chatbots.
 
 **Weapons of Mass Destruction (WMD)**: Biological, chemical, radiological, or nuclear weapons capable of causing mass casualties. We use the traditional CBRN framework while acknowledging that "mass destruction" thresholds vary significantly across categories.
 
@@ -322,8 +364,19 @@ The balance varies significantly across WMD categories, which is why biological,
 | *NIST AI RMF* | NIST (2023) | AI risk management framework |
 | *Information Hazards* | Nick Bostrom (2011) | Framework for dangerous knowledge |
 | *The Unilateralist's Curse* | Bostrom & Ord (2015) | Why misuse becomes inevitable with proliferation |
-| *Operational Risks of AI in Biological Attacks* | RAND Corporation (2024) | Grounded assessment of current risk levels |
+| *Operational Risks of AI in Biological Attacks* | RAND Corporation (2024) | Grounded assessment of current risk levels **[O]** |
 | *Countdown to Zero Day* | Kim Zetter (2014) | Stuxnet and cyber-physical attacks |
+
+### 2024-2025 Policy Developments
+
+| Reference | Date | Relevance |
+|-----------|------|-----------|
+| **Bletchley Declaration** | November 2023 | First international consensus on frontier AI risks including CBRN **[O]** |
+| **Seoul AI Safety Summit Commitments** | May 2024 | Extended Bletchley with specific bio-risk language **[O]** |
+| **US Executive Order 14110** (Section 4.4) | October 2023 | Mandates DOE/DHS evaluation of AI role in CBRN threats **[O]** |
+| **Helios / OpenAI "Strawberry" Evaluations** | 2024 | Human-in-the-loop tests of whether AI helps PhD-level biologists plan faster **[O]** |
+| **RAND "Operational Risks" Report** | 2024 | Definitive "uplift" study finding limited current risk but monitoring needed **[O]** |
+| **Anthropic RSP Framework** | 2023-2024 | Responsible Scaling Policy with CBRN capability thresholds **[O]** |
 
 ---
 
@@ -368,6 +421,21 @@ For biosecurity-relevant capabilities specifically:
 - Educational applications that may have dual-use potential
 
 **Current state assessment**: As of late 2025, VLMs can interpret laboratory images and provide general guidance, but reliable real-time procedure coaching remains limited. The gap between "understanding what's happening" and "reliably guiding a novice to success" remains significant but is narrowing.
+
+**Visual Troubleshooting Scenario** (for defender awareness):
+
+The convergence of consumer hardware and VLM capabilities creates a specific vector:
+- Smart glasses (Ray-Ban Meta, etc.) can stream video to cloud VLMs **[O]**
+- An actor could receive real-time audio feedback while performing procedures
+- VLM interprets visual state ("color too dark," "precipitate forming") and suggests adjustments **[E]**
+- This partially substitutes for the mentor-mentee relationship that traditionally transmitted tacit knowledge
+
+**Defender monitoring priorities**:
+- VLM API access patterns suggesting lab procedure guidance
+- Integration of VLMs with wearable camera hardware
+- Educational chemistry/biology applications that could be repurposed
+
+**Current limitation** **[E]**: VLMs still make errors on domain-specific interpretation; a failed procedure may be unrecoverable. But the gap is narrowing with each model generation.
 
 **Actor tier relevance**: VLM-assisted guidance primarily benefits T1-T2 actors (individuals with some training seeking to expand capabilities). T0 actors still lack the baseline competence to benefit; T3-T4 actors have access to human expertise.
 
@@ -822,7 +890,7 @@ This is primarily a concern for state-level actors or state-supported groups rat
 > - No existing treaty framework addresses this vector
 > - The governance window is open now but may close as capabilities mature
 >
-> **For near-term priorities**, see Sections 5 (Biological), 10 (Cyber-Physical), and the Executive Decision Brief.
+> **For near-term priorities**, see Sections 5 (Biological), 10 (Cyber-Physical), and the Executive Summary.
 
 ### What Are Gene Drives?
 
@@ -1102,6 +1170,33 @@ Agentic AI workflows could assist WMD proliferation through sophisticated financ
 - Investment in financial intelligence AI capabilities
 - International data-sharing agreements
 - Coordination between financial and biosecurity monitoring
+
+### AI-Enabled Procurement Obfuscation ("Smurfing at Scale")
+
+**The specific threat** **[E]**: Historically, the hardest part of WMD acquisition has been procurement without triggering law enforcement. AI agents with computer use capabilities fundamentally change the economics of evasion:
+
+| Traditional Procurement | AI-Enabled Procurement |
+|------------------------|------------------------|
+| Single large order triggers alerts | Thousands of sub-threshold orders from different entities |
+| Human labor limits coordination | Agents manage unlimited parallel operations |
+| Paper trails connect purchases | Synthesized identities and automated KYC fraud |
+| Logistics require human coordination | Gig-economy couriers, dead-drop coordination |
+| Supplier relationships take time | Automated vendor discovery and relationship management |
+
+**How agents enable this** **[E]**:
+- **Identity synthesis**: Generate plausible business identities with consistent online presence
+- **Threshold awareness**: Automatically structure orders below reporting limits across jurisdictions
+- **Supplier diversification**: Identify and manage relationships with dozens of suppliers simultaneously
+- **Logistics automation**: Coordinate delivery to multiple intermediate locations using on-demand services
+- **Timeline compression**: What would take a human months takes an agent hours
+
+**Defender countermeasures**:
+1. **Cross-supplier correlation**: Detect when multiple "independent" buyers order complementary materials
+2. **Velocity anomalies**: Flag rapid entity creation correlated with regulated purchases
+3. **Behavioral biometrics**: Identify automated vs. human interaction patterns with ordering systems
+4. **Supplier consortium**: Shared threat intelligence across chemical/biological supply chains
+
+**Actor tier relevance**: This capability particularly benefits T2-T3 actors who previously lacked the human resources for sophisticated operational security.
 
 ---
 
@@ -1540,16 +1635,18 @@ WMD concerns affect public health systems:
 
 ### For Policy Makers
 
-| Priority | Action | Implementation Mechanism | Key Challenge |
-|----------|--------|-------------------------|---------------|
-| Critical | **Mandate universal DNA synthesis screening** | Extend IGSC guidelines to law; require provider registration | Coverage gaps, cross-border substitution, enforcement variation |
-| Critical | **International AI safety standards for WMD capabilities** | Treaty negotiation, export control coordination | Geopolitical competition, verification mechanisms |
-| Critical | **Invest in attribution capabilities** | HUMINT/SIGINT funding, forensic lab capacity | Long timelines, international data sharing |
-| High | **Cloud laboratory oversight** | Audit requirements, protocol classification, customer KYC | Privacy concerns, research friction, international access |
-| High | **Update treaty frameworks** | BWC verification protocol, CWC schedule updates | Consensus challenges, dual-use definitional disputes |
-| High | **Defensive biodetection research** | BARDA/DARPA funding, academic partnerships | Technology maturation timelines |
-| Medium | **Red team evaluation requirements** | Pre-deployment safety standards, independent assessment | Defining thresholds, competitive pressure |
-| Medium | **International attribution sharing** | Mutual legal assistance treaties, joint investigation protocols | Sovereignty concerns, classification barriers |
+| Priority | Action | Type | Implementation Mechanism | Key Challenge |
+|----------|--------|------|-------------------------|---------------|
+| Critical | **Mandate universal DNA synthesis screening** | 🏠 Unilateral / 🌐 Coordination | Extend IGSC guidelines to law; require provider registration | Coverage gaps, cross-border substitution |
+| Critical | **International AI safety standards for WMD capabilities** | 🌐 Coordination | Treaty negotiation, export control coordination | Geopolitical competition, verification |
+| Critical | **Invest in attribution capabilities** | 🏠 Unilateral | HUMINT/SIGINT funding, forensic lab capacity | Long timelines |
+| High | **Cloud laboratory oversight** | 🏠 Unilateral / 🌐 Coordination | Audit requirements, protocol classification, customer KYC | Privacy concerns, research friction |
+| High | **Update treaty frameworks** | 🌐 Coordination | BWC verification protocol, CWC schedule updates | Consensus challenges |
+| High | **Defensive biodetection research** | 🏠 Unilateral | BARDA/DARPA funding, academic partnerships | Technology maturation |
+| Medium | **Red team evaluation requirements** | 🏠 Unilateral | Pre-deployment safety standards, independent assessment | Defining thresholds |
+| Medium | **International attribution sharing** | 🌐 Coordination | Mutual legal assistance treaties, joint investigation | Sovereignty concerns |
+
+**Legend**: 🏠 = Domestically implementable without international agreement | 🌐 = Requires international coordination
 
 **Key insight for policymakers**: The window for establishing governance frameworks is narrow. Once capabilities proliferate, restrictions become much harder to implement.
 
@@ -1696,6 +1793,24 @@ The following illustrative decomposition shows how these factors combine. Values
 | **Impact Scale** | Catastrophic | Catastrophic | None |
 
 *Note: These decompositions are illustrative. Actual intelligence assessments would use classified threat data and more rigorous methodology. The purpose is to show how the model works, not to provide precise predictions.*
+
+### Sensitivity Analysis: What Moves the Numbers?
+
+To prevent false precision, this table shows how Scenario D (Mass Casualty Success) probability shifts under different assumptions:
+
+| Parameter Varied | Low Assumption | Base Case | High Assumption | Scenario D Range |
+|-----------------|----------------|-----------|-----------------|------------------|
+| **Intent prevalence** | 0.05% (rare) | 0.5% | 2% (elevated) | 3% → 8-12% → 25% |
+| **Execution success** | 5% (barriers hold) | 15% | 30% (rapid erosion) | 4% → 8-12% → 20% |
+| **Interdiction rate** | 50% (strong defense) | 35% | 20% (weak coordination) | 5% → 8-12% → 18% |
+| **Capable actor pool** | 500 T2+ globally | 1000 | 2000 (AI lowers entry) | 4% → 8-12% → 22% |
+
+**Key insight**: The estimate is most sensitive to **intent prevalence** and **capable actor pool size** - factors where AI's contribution is indirect (lowering barriers for those already motivated). If you believe AI will *create* new motivated actors (not just enable existing ones), shift estimates higher.
+
+**What would falsify this model**:
+- AI-enabled attack by T0-T1 actor (would indicate barriers lower than assessed)
+- Successful interdiction of AI-assisted attempt (would indicate detection working)
+- Stable or declining synthesis screening intercepts (would indicate threat not materializing)
 
 ---
 
@@ -2212,4 +2327,37 @@ This framework is intended for:
 
 ---
 
-*This document is for defensive policy analysis. Distribution is intended for appropriate policy, security, and research audiences.*
+## Appendix G: Responsible Citation Guide
+
+> **For derivative works**: If you're building on this analysis, these guidelines help maintain the defensive framing.
+
+### Self-Review for Derivative Works
+
+| Check | Question | If Yes |
+|-------|----------|--------|
+| ☐ | Does your excerpt include **stepwise sequences** without surrounding context? | Add barriers/limitations discussion |
+| ☐ | Are you adding **specific technical details** not in the original? | Consider whether addition serves defense or offense |
+| ☐ | Does your framing **emphasize capabilities over barriers**? | Rebalance to match original's structure |
+| ☐ | Are **probability estimates** presented as confident predictions? | Add uncertainty language |
+| ☐ | Could your excerpt **support alarmist narratives** out of context? | Add context anchors |
+
+### Suggested Citation Practices
+
+When citing this document:
+- Include the "What This Document Is NOT Claiming" framing when discussing findings
+- Pair capability discussions with corresponding barrier discussions
+- Note that probability estimates are subjective priors, not predictions
+- Link to the full document when possible
+
+### Contributing
+
+This document is released under MIT/Unlicense. Contributions, corrections, and extensions are welcome:
+- File issues for factual errors or outdated information
+- Submit PRs for substantive improvements
+- Fork for derivative analyses with different assumptions
+
+The goal is informed public discussion of AI governance challenges.
+
+---
+
+*This document is released for public discussion of AI governance challenges. Licensed under MIT/Unlicense.*
