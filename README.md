@@ -334,6 +334,22 @@ All workflows run on self-hosted runners for zero-cost operation.
 - [GitHub Environments Setup](docs/infrastructure/github-environments.md)
 - [Containerized CI](docs/infrastructure/containerization.md)
 
+## Reports & PDF Documentation
+
+Technical reports and guides are available as PDFs, automatically built from LaTeX source and published with each release.
+
+| Document | PDF Download | Source |
+|----------|--------------|--------|
+| **Sleeper Agents Framework Guide** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](packages/sleeper_agents/docs/Sleeper_Agents_Framework_Guide.tex) |
+| **AgentCore Memory Integration Guide** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/integrations/ai-services/AgentCore_Memory_Integration_Guide.tex) |
+| **Virtual Character System Guide** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/integrations/ai-services/Virtual_Character_System_Guide.tex) |
+| **AI Agents Political Targeting Report** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/projections/latex/ai-agents-political-targeting.tex) |
+| **AI Agents WMD Proliferation Report** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/projections/latex/ai-agents-wmd-proliferation.tex) |
+
+**Build Status**: [![Build Documentation](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml/badge.svg)](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml)
+
+PDFs are compiled using the [texlive/texlive:TL2024-historic](https://hub.docker.com/r/texlive/texlive) Docker image. Individual PDF artifacts are also available from the [Build Documentation workflow](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml).
+
 ## License
 
 This project is released under the [Unlicense](LICENSE) (public domain dedication).
