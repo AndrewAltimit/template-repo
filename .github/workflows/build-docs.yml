@@ -7,12 +7,14 @@ on:
       - 'packages/sleeper_agents/docs/**/*.tex'
       - 'docs/integrations/ai-services/**/*.tex'
       - 'docs/projections/latex/**/*.tex'
+      - 'automation/ci-cd/build-latex-doc.sh'
       - '.github/workflows/build-docs.yml'
   pull_request:
     paths:
       - 'packages/sleeper_agents/docs/**/*.tex'
       - 'docs/integrations/ai-services/**/*.tex'
       - 'docs/projections/latex/**/*.tex'
+      - 'automation/ci-cd/build-latex-doc.sh'
       - '.github/workflows/build-docs.yml'
   workflow_dispatch: {}
 
@@ -187,7 +189,7 @@ jobs:
   build-wmd-proliferation-report:
     name: Build AI Agents WMD Proliferation Report
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -196,33 +198,7 @@ jobs:
           clean: true
 
       - name: Build PDF with LaTeX
-        run: |
-          echo "Building AI Agents WMD Proliferation Report..."
-
-          # Create output directory
-          mkdir -p docs_output
-
-          # Build PDF using texlive Docker image with latexmk for automatic dependency resolution
-          # Use --user to ensure artifacts are owned by runner user, not root
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -v "${{ github.workspace }}/docs/projections/latex:/data" \
-            -v "${{ github.workspace }}/docs_output:/output" \
-            texlive/texlive:TL2024-historic \
-            bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output ai-agents-wmd-proliferation.tex"
-
-          echo "PDF build completed"
-          ls -la docs_output/
-
-      - name: Verify PDF was created
-        run: |
-          if [ -f docs_output/ai-agents-wmd-proliferation.pdf ]; then
-            echo "PDF successfully created"
-            ls -lh docs_output/ai-agents-wmd-proliferation.pdf
-          else
-            echo "ERROR: PDF was not created"
-            exit 1
-          fi
+        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-wmd-proliferation.tex
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -231,17 +207,10 @@ jobs:
           path: docs_output/ai-agents-wmd-proliferation.pdf
           retention-days: 90
 
-      - name: Cleanup build artifacts
-        if: always()
-        run: |
-          rm -rf docs_output/*.aux docs_output/*.log docs_output/*.toc \
-                 docs_output/*.out docs_output/*.fls docs_output/*.fdb_latexmk \
-                 2>/dev/null || true
-
   build-political-targeting-report:
     name: Build AI Agents Political Targeting Report
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -250,33 +219,7 @@ jobs:
           clean: true
 
       - name: Build PDF with LaTeX
-        run: |
-          echo "Building AI Agents Political Targeting Report..."
-
-          # Create output directory
-          mkdir -p docs_output
-
-          # Build PDF using texlive Docker image with latexmk for automatic dependency resolution
-          # Use --user to ensure artifacts are owned by runner user, not root
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -v "${{ github.workspace }}/docs/projections/latex:/data" \
-            -v "${{ github.workspace }}/docs_output:/output" \
-            texlive/texlive:TL2024-historic \
-            bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output ai-agents-political-targeting.tex"
-
-          echo "PDF build completed"
-          ls -la docs_output/
-
-      - name: Verify PDF was created
-        run: |
-          if [ -f docs_output/ai-agents-political-targeting.pdf ]; then
-            echo "PDF successfully created"
-            ls -lh docs_output/ai-agents-political-targeting.pdf
-          else
-            echo "ERROR: PDF was not created"
-            exit 1
-          fi
+        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-political-targeting.tex
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -284,10 +227,3 @@ jobs:
           name: ai-agents-political-targeting-report
           path: docs_output/ai-agents-political-targeting.pdf
           retention-days: 90
-
-      - name: Cleanup build artifacts
-        if: always()
-        run: |
-          rm -rf docs_output/*.aux docs_output/*.log docs_output/*.toc \
-                 docs_output/*.out docs_output/*.fls docs_output/*.fdb_latexmk \
-                 2>/dev/null || true
