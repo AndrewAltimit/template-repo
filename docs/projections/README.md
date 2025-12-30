@@ -23,6 +23,7 @@ These projections serve defensive policy analysis:
 | Report | Topic | Status |
 |--------|-------|--------|
 | [ai-agents-political-targeting.md](./ai-agents-political-targeting.md) | AI agents and political violence risk | Complete |
+| [ai-agents-wmd-proliferation.md](./ai-agents-wmd-proliferation.md) | AI agents and WMD proliferation risk | Complete |
 
 ## Methodology
 
@@ -49,6 +50,8 @@ Additional projection topics can be proposed to the committee. Priority areas in
 - Critical infrastructure vulnerabilities
 - International relations implications
 - Long-term societal structure changes
+- Autonomous systems and conflict escalation
+- AI governance and international coordination
 
 ## Related Resources
 
