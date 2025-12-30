@@ -796,6 +796,32 @@ AI agents (2024+) & Knowledge synthesis and guidance & Physical barriers; tacit 
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Threat Analysis};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {WMD Categories, Barriers, and Risk Assessment};
 
+  % Threat category visualization - risk level bars (centered)
+  \begin{scope}[shift={(3.5cm, -7cm)}]
+    % Subtle background panel
+    \fill[black, opacity=0.15, rounded corners=3pt] (-1.2, -1.8) rectangle (5, 1.5);
+    % Category labels and risk bars
+    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-0.2, 0.9) {BIO};
+    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-0.2, 0.3) {CHEM};
+    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-0.2, -0.3) {NUKE};
+    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-0.2, -0.9) {RAD};
+    % Risk level bars (varying lengths) - with rounded corners
+    \fill[biogreen, opacity=0.85, rounded corners=2pt] (0, 0.7) rectangle (4.2, 1.1);
+    \fill[labcyan, opacity=0.7, rounded corners=2pt] (0, 0.1) rectangle (2.6, 0.5);
+    \fill[nukepurple, opacity=0.6, rounded corners=2pt] (0, -0.5) rectangle (1.2, -0.1);
+    \fill[barriergold, opacity=0.7, rounded corners=2pt] (0, -1.1) rectangle (2.1, -0.7);
+    % Scale markers
+    \foreach \x in {0, 1, 2, 3, 4} {
+      \draw[white, opacity=0.2, line width=0.5pt] (\x, -1.3) -- (\x, 1.3);
+    }
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (0, -1.55) {LOW};
+    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (4.2, -1.55) {HIGH};
+  \end{scope}
+
+  % Legend - repositioned for balance
+  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -6.2cm) {AI RISK BY CATEGORY};
+  \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont, anchor=west, text width=5cm] at (10cm, -6.9cm) {Bar length indicates relative AI-enabled proliferation risk};
+
   \fill[barriergold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
@@ -951,6 +977,32 @@ Gene drives are genetic engineering systems designed to spread modifications thr
   \node[barriergold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
   \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Vectors and};
   \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -4.1cm) {Convergence};
+  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -5.2cm) {Deployment Pathways and Cyber-Physical Integration};
+
+  % Convergence arrows visualization - shifted right for label visibility
+  \begin{scope}[shift={(5cm, -7.2cm)}]
+    % Subtle background panel
+    \fill[black, opacity=0.15, rounded corners=3pt] (-3.8, -1.8) rectangle (4, 1.8);
+    % Three converging paths to center - wider spread
+    \draw[->, scienceteal, opacity=0.8, line width=2.5pt] (-2.5, 1.4) -- (-0.4, 0.15);
+    \draw[->, labcyan, opacity=0.8, line width=2.5pt] (-2.5, 0) -- (-0.4, 0);
+    \draw[->, biogreen, opacity=0.8, line width=2.5pt] (-2.5, -1.4) -- (-0.4, -0.15);
+    % Source labels - more padding from edge
+    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-2.7, 1.4) {CYBER};
+    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-2.7, 0) {AI};
+    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-2.7, -1.4) {PHYSICAL};
+    % Convergence point - with glow effect
+    \fill[barriergold, opacity=0.3] (0, 0) circle (0.5);
+    \fill[barriergold, opacity=0.5] (0, 0) circle (0.4);
+    \fill[barriergold, opacity=0.95] (0, 0) circle (0.3);
+    % Output arrow - longer
+    \draw[->, barriergold, opacity=0.95, line width=3pt] (0.4, 0) -- (2.5, 0);
+    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=west] at (2.7, 0) {THREAT};
+  \end{scope}
+
+  % Legend - repositioned
+  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -6.2cm) {CONVERGENCE MODEL};
+  \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont, anchor=west, text width=5cm] at (10cm, -6.9cm) {Multiple capability streams combining into novel threats};
 
   \fill[barriergold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
@@ -1133,6 +1185,27 @@ Attribution---determining responsibility---serves critical functions: enables de
   \node[barriergold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
   \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Policy};
   \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -4.1cm) {Recommendations};
+  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -5.2cm) {Governance Frameworks and Stakeholder Actions};
+
+  % Governance layers visualization - stacked horizontal bars (wider, better spacing)
+  \begin{scope}[shift={(3.5cm, -7.2cm)}]
+    % Subtle background panel
+    \fill[black, opacity=0.15, rounded corners=3pt] (-0.3, -1.1) rectangle (4.8, 1.7);
+    % Four governance layers - wider bars with rounded corners
+    \fill[barriergold, opacity=0.75, rounded corners=2pt] (0, 1.0) rectangle (4.5, 1.4);
+    \fill[scienceteal, opacity=0.65, rounded corners=2pt] (0.3, 0.4) rectangle (4.2, 0.8);
+    \fill[labcyan, opacity=0.55, rounded corners=2pt] (0.6, -0.2) rectangle (3.9, 0.2);
+    \fill[biogreen, opacity=0.45, rounded corners=2pt] (0.9, -0.8) rectangle (3.6, -0.4);
+    % Layer labels - centered in bars
+    \node[white, opacity=0.98, font=\fontsize{7}{7}\selectfont\sffamily] at (2.25, 1.2) {INTERNATIONAL};
+    \node[white, opacity=0.98, font=\fontsize{7}{7}\selectfont\sffamily] at (2.25, 0.6) {NATIONAL};
+    \node[white, opacity=0.98, font=\fontsize{7}{7}\selectfont\sffamily] at (2.25, 0.0) {INDUSTRY};
+    \node[white, opacity=0.98, font=\fontsize{7}{7}\selectfont\sffamily] at (2.25, -0.6) {INDIVIDUAL};
+  \end{scope}
+
+  % Legend - repositioned
+  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -6.2cm) {GOVERNANCE LAYERS};
+  \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont, anchor=west, text width=5cm] at (10cm, -6.9cm) {Multi-level coordination required for effective response};
 
   \fill[barriergold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
