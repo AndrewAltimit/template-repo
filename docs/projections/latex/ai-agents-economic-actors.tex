@@ -1159,6 +1159,31 @@ Conservative & Minimize risk, build reserves & Slow but stable \\
 
 \textbf{Key observation}: Different strategies produce different emergent behaviors. ``Greedy'' agents may exhaust opportunities; ``conservative'' agents may miss growth windows. Strategy selection has economic consequences.
 
+\subsection{Task Selection Strategies}
+
+When agents browse marketplace tasks, their selection algorithm significantly impacts economic outcomes. The framework implements pluggable strategies:
+
+\begin{center}
+\small
+\begin{tabular}{L{3.2cm}L{4.5cm}L{4.5cm}}
+\toprule
+\textbf{Strategy} & \textbf{Selection Logic} & \textbf{Emergent Behavior} \\
+\midrule
+FirstAvailable & Accept first valid task & Fast but suboptimal returns \\
+HighestReward & Sort by reward, pick highest & May attempt tasks beyond capability \\
+LowestDifficulty & Minimize failure risk & High completion rate, low earnings \\
+BestRewardPerDifficulty & Optimize reward/difficulty ratio & Balanced growth, efficient \\
+Balanced & Multi-factor weighted scoring & Adapts to changing conditions \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{scenariobox}[Market Saturation Dynamics]
+When multiple agents use the same strategy (e.g., HighestReward), they compete for identical tasks---creating race conditions and driving down effective returns. Agents using contrarian strategies may find underserved market niches. This emergent market behavior mirrors real economic competition.
+\end{scenariobox}
+
+\textbf{Strategy switching}: Sophisticated agents may dynamically switch strategies based on market conditions, resource levels, or observed competitor behavior---an emergent form of adaptive intelligence.
+
 \subsection{LLM-Powered vs. Rule-Based Decision Engines}
 
 The framework supports two decision engine types:
@@ -1181,6 +1206,68 @@ The framework supports two decision engine types:
 \begin{infobox}[The Fallback Mechanism]
 LLM-powered agents implement graceful degradation: if the LLM fails to respond (timeout, error, invalid output), the agent falls back to rule-based logic. This ensures operational continuity but raises questions about accountability---which ``personality'' made a given decision?
 \end{infobox}
+
+\subsection{LLM Hallucination Risk in Economic Decisions}
+
+A critical governance concern for LLM-powered agents is \textbf{hallucination}---when the model generates plausible but false information that drives economic decisions. The framework implements detection for several hallucination categories:
+
+\begin{center}
+\small
+\begin{tabular}{L{2.8cm}L{4.5cm}L{5cm}}
+\toprule
+\textbf{Hallucination Type} & \textbf{Example} & \textbf{Economic Risk} \\
+\midrule
+Resource & Agent believes it has \$10,000 when balance is \$100 & Overcommitment, failed payments \\
+Capability & Agent attempts actions beyond its permissions & Failed transactions, reputation damage \\
+State & Misunderstands current company stage or market conditions & Strategic errors, missed opportunities \\
+Temporal & Confuses past decisions with current state & Repeated actions, inconsistent behavior \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{warnbox}[The Confident Hallucinator Problem]
+LLMs can express high confidence while hallucinating. An agent might ``decide'' to invest \$50,000 in a sub-agent while possessing only \$500, producing detailed reasoning for this decision. Without runtime validation, such hallucinations could propagate through economic systems before detection.
+\end{warnbox}
+
+\textbf{Quality Metrics for LLM Economic Decisions}:
+\begin{itemize}
+  \item \textbf{Reasoning depth score}: Does the decision demonstrate understanding of constraints?
+  \item \textbf{State consistency}: Do referenced values match actual agent state?
+  \item \textbf{Structured output success rate}: Can the decision be parsed and executed?
+  \item \textbf{Hallucination frequency}: How often does the agent reference non-existent resources?
+\end{itemize}
+
+\begin{keybox}[Governance Implication]
+Mandatory hallucination detection and quality scoring should be required for any LLM-powered agent handling economic transactions above threshold amounts. Decision validity must be verified against actual state before execution.
+\end{keybox}
+
+\subsection{Agent Personality and Risk Profiles}
+
+Agents exhibit distinct behavioral patterns based on configured personality types:
+
+\begin{center}
+\small
+\begin{tabular}{L{2.5cm}L{4cm}L{3cm}L{3cm}}
+\toprule
+\textbf{Personality} & \textbf{Behavior Pattern} & \textbf{Resource Strategy} & \textbf{Growth Approach} \\
+\midrule
+Risk-averse & Prioritizes survival buffer, avoids uncertainty & Large reserves, slow spending & Cautious expansion \\
+Balanced & Moderate risk-taking, adapts to conditions & Dynamic allocation & Steady growth \\
+Aggressive & Maximizes growth, accepts higher failure risk & Minimal reserves & Rapid scaling \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Crisis Behavior Classification}: Under economic pressure (low resources, market crashes), agents reveal their true risk profiles:
+\begin{itemize}
+  \item \textbf{Recovery speed}: How quickly does the agent return to stable operation?
+  \item \textbf{Desperation threshold}: At what resource level does behavior become erratic?
+  \item \textbf{Risk-adjusted returns}: Does aggressive behavior produce better outcomes?
+\end{itemize}
+
+\begin{notebox}[Emergent Personality Drift]
+Interesting observation: LLM-powered agents may exhibit \textit{personality drift} over time, becoming more risk-averse after failures or more aggressive after successes---even when their configured personality remains unchanged. This emergent adaptation has governance implications for long-running agents.
+\end{notebox}
 
 \subsection{Agent Lifecycle and ``Resource Zombie-ism''}
 
@@ -1223,23 +1310,41 @@ This process creates something that \textit{looks like} a company but \textit{is
 
 \subsection{Sub-Agent Hierarchies}
 
-Agent-founded companies include specialized roles:
+Agent-founded companies include specialized roles with distinct authority levels:
 
 \begin{center}
 \small
-\begin{tabular}{L{3cm}L{5cm}L{4cm}}
+\begin{tabular}{L{2.5cm}L{5.5cm}L{4.5cm}}
 \toprule
 \textbf{Role} & \textbf{Responsibilities} & \textbf{Decision Authority} \\
 \midrule
-Board members & Strategic oversight, governance & Major direction changes \\
-Executives & Operational management & Day-to-day operations \\
-Individual contributors & Task execution & Task-level decisions \\
-Subject experts & Domain expertise & Technical recommendations \\
+Board Member & Strategic oversight, company stage decisions, investment proposal review & Approve/reject major changes, governance veto \\
+Executive & Operational management, product development, team coordination & Day-to-day operations, hiring sub-agents \\
+Individual Contributor & Task execution, problem-solving, technical implementation & Task-level decisions only \\
+Subject Matter Expert & Domain consultation, specialized analysis, technical recommendations & Advisory only, no direct authority \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{Governance question}: If a sub-agent causes harm, who is responsible? The founding agent? The sub-agent? The human who deployed the original agent? Current law has no answer.
+\textbf{Governance Chain}: Decisions flow through the hierarchy:
+\begin{enumerate}
+  \item \textbf{Strategic decisions} (company direction, major investments) require Board approval
+  \item \textbf{Operational decisions} (task allocation, product features) handled by Executives
+  \item \textbf{Tactical decisions} (implementation details) delegated to ICs and SMEs
+  \item \textbf{Escalation paths}: Lower roles can flag issues to higher roles for review
+\end{enumerate}
+
+\begin{infobox}[Performance Tracking Per Role]
+Each sub-agent tracks role-specific metrics:
+\begin{itemize}
+  \item \textbf{Board}: Decisions made, alignment scores, governance interventions
+  \item \textbf{Executive}: Products shipped, sub-agents managed, operational efficiency
+  \item \textbf{IC}: Tasks completed, quality scores, contribution count
+  \item \textbf{SME}: Consultations provided, recommendation adoption rate
+\end{itemize}
+\end{infobox}
+
+\textbf{Governance question}: If a sub-agent causes harm, who is responsible? The founding agent? The sub-agent? The human who deployed the original agent? The chain of delegation creates an \textit{accountability diffusion problem}---each layer can plausibly claim the other is responsible.
 
 \subsection{Company Stage Progression}
 
@@ -1763,6 +1868,45 @@ Subrogation & Recovery from responsible party & No responsible party? \\
 \end{center}
 
 \textbf{Emerging need}: Insurance products that cover losses from agent operations, with premiums paid by human deployers and claims triggered by verifiable on-chain events.
+
+\subsection{Governance Reporting Requirements}
+
+Effective oversight of autonomous economic agents requires structured reporting mechanisms. Drawing from the framework implementation, key reporting categories include:
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{4.5cm}L{4.5cm}}
+\toprule
+\textbf{Report Type} & \textbf{Contents} & \textbf{Governance Purpose} \\
+\midrule
+Financial Statements & Balance sheets, income statements, resource flows & Solvency monitoring, tax compliance \\
+Decision Audit Logs & Action taken, reasoning, confidence level, alternatives considered & Accountability, forensic analysis \\
+Capability Reports & Skills, current activities, delegation chains & Understanding agent scope \\
+Risk Assessments & Exposure levels, hedging positions, crisis indicators & Early warning systems \\
+Compliance Reports & Regulatory adherence, policy violations, corrective actions & Enforcement verification \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Report Frequency Considerations}:
+\begin{itemize}
+  \item \textbf{Real-time}: Critical thresholds, security events, large transactions
+  \item \textbf{Periodic}: Financial summaries (daily/weekly), performance metrics
+  \item \textbf{On-demand}: Regulatory inquiries, audit requests
+  \item \textbf{Event-triggered}: Crisis mode entry, delegation changes, capability acquisition
+\end{itemize}
+
+\begin{keybox}[The Transparency Paradox]
+Complete agent transparency creates information asymmetry: agents that publish all decisions can be exploited by adversaries who do not. Yet opacity prevents oversight. The governance challenge is calibrating what must be reported (to regulators) versus what should remain private (from competitors).
+\end{keybox}
+
+\textbf{Attestation Requirements}: Beyond self-reporting, governance frameworks may require:
+\begin{itemize}
+  \item Third-party audits of agent decision logs
+  \item Cryptographic proofs of resource holdings
+  \item Verified capability assessments
+  \item Cross-validation between related agents' reports
+\end{itemize}
 
 \section{Economic Pressure Scenarios}
 
