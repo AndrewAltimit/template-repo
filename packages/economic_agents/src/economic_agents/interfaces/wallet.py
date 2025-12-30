@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List
+from typing import Literal
 
 
 @dataclass
@@ -15,7 +15,7 @@ class Transaction:
     to_address: str
     amount: float
     timestamp: datetime
-    status: str  # "pending", "confirmed", "failed"
+    status: Literal["pending", "confirmed", "failed"]
     memo: str
 
 
@@ -35,7 +35,7 @@ class WalletInterface(ABC):
         """Returns wallet's receiving address."""
 
     @abstractmethod
-    async def get_transaction_history(self, limit: int = 100) -> List[Transaction]:
+    async def get_transaction_history(self, limit: int = 100) -> list[Transaction]:
         """Returns recent transactions."""
 
     @abstractmethod

@@ -52,8 +52,12 @@ class TestAutonomousAgentEngineSelection:
         }
         agent = AutonomousAgent(wallet, compute, marketplace, config)
 
-        # Verify LLMDecisionEngine was created with config
-        mock_llm_class.assert_called_once_with(config)
+        # Verify LLMDecisionEngine was created with config containing expected values
+        mock_llm_class.assert_called_once()
+        actual_config = mock_llm_class.call_args[0][0]
+        assert actual_config["engine_type"] == "llm"
+        assert actual_config["llm_timeout"] == 900
+        assert actual_config["fallback_enabled"] is True
         assert agent.decision_engine == mock_llm_instance
 
     @patch("economic_agents.agent.core.autonomous_agent.LLM_AVAILABLE", False)
@@ -72,17 +76,22 @@ class TestAutonomousAgentEngineSelection:
 
     def test_invalid_engine_type_raises_error(self):
         """Test that ValueError is raised for invalid engine type."""
+        from pydantic import ValidationError
+
         wallet = MockWallet(initial_balance=100.0)
         compute = MockCompute(initial_hours=100.0)
         marketplace = MockMarketplace()
 
         config = {"engine_type": "invalid_type"}
 
-        with pytest.raises(ValueError) as exc_info:
+        # Pydantic ValidationError is raised during AgentConfig validation
+        with pytest.raises(ValidationError) as exc_info:
             AutonomousAgent(wallet, compute, marketplace, config)
 
-        assert "Invalid engine_type" in str(exc_info.value)
-        assert "invalid_type" in str(exc_info.value)
+        # Pydantic's error message includes the field and invalid value
+        error_str = str(exc_info.value)
+        assert "engine_type" in error_str
+        assert "invalid_type" in error_str
 
     @pytest.mark.asyncio
     @patch("economic_agents.agent.core.autonomous_agent.LLM_AVAILABLE", True)
@@ -162,8 +171,13 @@ class TestAutonomousAgentEngineSelection:
         }
         AutonomousAgent(wallet, compute, marketplace, config)
 
-        # Verify full config was passed to LLMDecisionEngine
-        mock_llm_class.assert_called_once_with(config)
+        # Verify LLM-specific config was passed (config is now full AgentConfig dict)
+        mock_llm_class.assert_called_once()
+        actual_config = mock_llm_class.call_args[0][0]
+        assert actual_config["engine_type"] == "llm"
+        assert actual_config["llm_timeout"] == 600
+        assert actual_config["node_version"] == "20.0.0"
+        assert actual_config["fallback_enabled"] is False
 
 
 class TestAutonomousAgentBackwardCompatibility:
@@ -255,7 +269,14 @@ class TestDocumentationExamples:
 
         assert agent.config["engine_type"] == "llm"
         assert agent.config["llm_timeout"] == 900
-        mock_llm_class.assert_called_once_with(config)
+        # Config is now full AgentConfig dict with all defaults filled in
+        mock_llm_class.assert_called_once()
+        actual_config = mock_llm_class.call_args[0][0]
+        assert actual_config["engine_type"] == "llm"
+        assert actual_config["llm_timeout"] == 900
+        assert actual_config["fallback_enabled"] is True
+        assert actual_config["survival_buffer_hours"] == 24.0
+        assert actual_config["company_threshold"] == 100.0
 
     @pytest.mark.asyncio
     async def test_example_rule_based_agent_creation(self):

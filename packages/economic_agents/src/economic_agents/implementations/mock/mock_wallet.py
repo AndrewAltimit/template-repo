@@ -1,7 +1,7 @@
 """Mock wallet implementation for simulation."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Any
 import uuid
 
 from economic_agents.interfaces.wallet import Transaction, WalletInterface
@@ -11,12 +11,19 @@ from economic_agents.simulation.latency_simulator import LatencySimulator
 class MockWallet(WalletInterface):
     """Mock wallet with in-memory balance tracking."""
 
+    balance: float
+    address: str
+    _transactions: list[Transaction]
+    _api_transactions: list[dict[str, Any]]
+    enable_latency: bool
+    latency_sim: LatencySimulator | None
+
     def __init__(
         self,
         initial_balance: float = 0.0,
-        address: Optional[str] = None,
+        address: str | None = None,
         enable_latency: bool = True,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ):
         """Initialize mock wallet.
 
@@ -28,15 +35,15 @@ class MockWallet(WalletInterface):
         """
         self.balance = initial_balance
         self.address = address or f"mock_wallet_{uuid.uuid4().hex[:8]}"
-        self._transactions: List[Transaction] = []  # Original Transaction objects
-        self._api_transactions: List[dict] = []  # Simplified dicts for API
+        self._transactions = []
+        self._api_transactions = []
         self.enable_latency = enable_latency
 
         # Initialize latency simulator
         self.latency_sim = LatencySimulator(seed=seed) if enable_latency else None
 
     @property
-    def transactions(self):
+    def transactions(self) -> list[dict[str, Any]]:
         """Return API-compatible transactions.
 
         Returns list of dict transactions for API compatibility.
@@ -122,7 +129,7 @@ class MockWallet(WalletInterface):
         """Returns wallet's receiving address."""
         return self.address
 
-    async def get_transaction_history(self, limit: int = 100) -> List[Transaction]:
+    async def get_transaction_history(self, limit: int = 100) -> list[Transaction]:
         """Returns recent transactions."""
         return self._transactions[-limit:]
 

@@ -124,7 +124,7 @@ def test_health_check(client):
 # Status Endpoint Tests
 
 
-def test_get_status(client, _setup_dashboard_state):
+def test_get_status(client, setup_dashboard_state):
     """Test getting agent status."""
     response = client.get("/api/status")
 
@@ -155,7 +155,7 @@ def test_get_status_no_state(client):
 # Decisions Endpoint Tests
 
 
-def test_get_decisions_empty(client, _setup_dashboard_state):
+def test_get_decisions_empty(client, setup_dashboard_state):
     """Test getting decisions when none exist."""
     response = client.get("/api/decisions")
 
@@ -165,7 +165,7 @@ def test_get_decisions_empty(client, _setup_dashboard_state):
     assert len(data) == 0
 
 
-def test_get_decisions_with_limit(client, _setup_dashboard_state):
+def test_get_decisions_with_limit(client, setup_dashboard_state):
     """Test getting decisions with limit parameter."""
     # Add some mock decisions
     decisions = [
@@ -193,7 +193,7 @@ def test_get_decisions_with_limit(client, _setup_dashboard_state):
 # Resources Endpoint Tests
 
 
-def test_get_resources(client, _setup_dashboard_state):
+def test_get_resources(client, setup_dashboard_state):
     """Test getting resource status."""
     response = client.get("/api/resources")
 
@@ -223,7 +223,7 @@ def test_get_resources_no_tracker(client):
 # Company Endpoint Tests
 
 
-def test_get_company(client, _setup_dashboard_state):
+def test_get_company(client, setup_dashboard_state):
     """Test getting company information."""
     response = client.get("/api/company")
 
@@ -247,7 +247,7 @@ def test_get_company_no_company(client):
     assert "No company exists" in response.json()["detail"]
 
 
-def test_get_sub_agents(client, _setup_dashboard_state):
+def test_get_sub_agents(client, setup_dashboard_state):
     """Test getting sub-agents."""
     # Add mock sub-agents
     sub_agents = [
@@ -279,7 +279,7 @@ def test_get_sub_agents_no_company(client):
 # Metrics Endpoint Tests
 
 
-def test_get_metrics(client, _setup_dashboard_state):
+def test_get_metrics(client, setup_dashboard_state):
     """Test getting performance metrics."""
     response = client.get("/api/metrics")
 
