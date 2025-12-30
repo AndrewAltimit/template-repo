@@ -51,11 +51,13 @@ jobs:
           echo "PDF build completed"
           ls -la docs_output/
 
-      - name: Verify PDF was created
+      - name: Verify and rename PDF
         run: |
           if [ -f docs_output/Sleeper_Agents_Framework_Guide.pdf ]; then
             echo "PDF successfully created"
-            ls -lh docs_output/Sleeper_Agents_Framework_Guide.pdf
+            # Rename to sensible kebab-case filename
+            mv docs_output/Sleeper_Agents_Framework_Guide.pdf docs_output/sleeper-agents-framework-guide.pdf
+            ls -lh docs_output/sleeper-agents-framework-guide.pdf
           else
             echo "ERROR: PDF was not created"
             exit 1
@@ -65,7 +67,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sleeper-agents-framework-guide
-          path: docs_output/Sleeper_Agents_Framework_Guide.pdf
+          path: docs_output/sleeper-agents-framework-guide.pdf
           retention-days: 90
 
       - name: Cleanup build artifacts
@@ -108,11 +110,13 @@ jobs:
           echo "PDF build completed"
           ls -la docs_output/
 
-      - name: Verify PDF was created
+      - name: Verify and rename PDF
         run: |
           if [ -f docs_output/AgentCore_Memory_Integration_Guide.pdf ]; then
             echo "PDF successfully created"
-            ls -lh docs_output/AgentCore_Memory_Integration_Guide.pdf
+            # Rename to sensible kebab-case filename
+            mv docs_output/AgentCore_Memory_Integration_Guide.pdf docs_output/agentcore-memory-integration-guide.pdf
+            ls -lh docs_output/agentcore-memory-integration-guide.pdf
           else
             echo "ERROR: PDF was not created"
             exit 1
@@ -122,7 +126,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: agentcore-memory-integration-guide
-          path: docs_output/AgentCore_Memory_Integration_Guide.pdf
+          path: docs_output/agentcore-memory-integration-guide.pdf
           retention-days: 90
 
       - name: Cleanup build artifacts
@@ -162,11 +166,13 @@ jobs:
           echo "PDF build completed"
           ls -la docs_output/
 
-      - name: Verify PDF was created
+      - name: Verify and rename PDF
         run: |
           if [ -f docs_output/Virtual_Character_System_Guide.pdf ]; then
             echo "PDF successfully created"
-            ls -lh docs_output/Virtual_Character_System_Guide.pdf
+            # Rename to sensible kebab-case filename
+            mv docs_output/Virtual_Character_System_Guide.pdf docs_output/virtual-character-system-guide.pdf
+            ls -lh docs_output/virtual-character-system-guide.pdf
           else
             echo "ERROR: PDF was not created"
             exit 1
@@ -176,7 +182,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: virtual-character-system-guide
-          path: docs_output/Virtual_Character_System_Guide.pdf
+          path: docs_output/virtual-character-system-guide.pdf
           retention-days: 90
 
       - name: Cleanup build artifacts
@@ -200,11 +206,17 @@ jobs:
       - name: Build PDF with LaTeX
         run: ./automation/ci-cd/build-latex-doc.sh ai-agents-wmd-proliferation.tex
 
+      - name: Rename PDF to sensible filename
+        run: |
+          # Rename to include -report suffix for consistency
+          mv docs_output/ai-agents-wmd-proliferation.pdf docs_output/ai-agents-wmd-proliferation-report.pdf
+          ls -lh docs_output/ai-agents-wmd-proliferation-report.pdf
+
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
         with:
           name: ai-agents-wmd-proliferation-report
-          path: docs_output/ai-agents-wmd-proliferation.pdf
+          path: docs_output/ai-agents-wmd-proliferation-report.pdf
           retention-days: 90
 
   build-political-targeting-report:
@@ -221,9 +233,15 @@ jobs:
       - name: Build PDF with LaTeX
         run: ./automation/ci-cd/build-latex-doc.sh ai-agents-political-targeting.tex
 
+      - name: Rename PDF to sensible filename
+        run: |
+          # Rename to include -report suffix for consistency
+          mv docs_output/ai-agents-political-targeting.pdf docs_output/ai-agents-political-targeting-report.pdf
+          ls -lh docs_output/ai-agents-political-targeting-report.pdf
+
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
         with:
           name: ai-agents-political-targeting-report
-          path: docs_output/ai-agents-political-targeting.pdf
+          path: docs_output/ai-agents-political-targeting-report.pdf
           retention-days: 90
