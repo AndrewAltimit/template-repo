@@ -37,3 +37,22 @@ class WalletInterface(ABC):
     @abstractmethod
     async def get_transaction_history(self, limit: int = 100) -> List[Transaction]:
         """Returns recent transactions."""
+
+    @abstractmethod
+    async def receive_payment(self, from_address: str, amount: float, memo: str = "") -> Transaction:
+        """Records incoming payment and updates balance.
+
+        In real implementations, this would be triggered by blockchain events.
+        In simulation, this is called directly when tasks are completed.
+
+        Args:
+            from_address: Address funds are coming from
+            amount: Payment amount (must be positive)
+            memo: Optional transaction memo
+
+        Returns:
+            Transaction record for the incoming payment
+
+        Raises:
+            ValueError: If amount is not positive
+        """

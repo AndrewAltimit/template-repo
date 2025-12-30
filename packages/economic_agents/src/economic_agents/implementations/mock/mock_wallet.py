@@ -80,11 +80,24 @@ class MockWallet(WalletInterface):
         self._transactions.append(tx)
         return tx
 
-    def receive_payment(self, from_address: str, amount: float, memo: str = "") -> Transaction:
-        """Receives payment (helper method for mock).
+    async def receive_payment(self, from_address: str, amount: float, memo: str = "") -> Transaction:
+        """Records incoming payment and updates balance.
 
-        Not part of the interface but useful for testing.
+        Args:
+            from_address: Address funds are coming from
+            amount: Payment amount (must be positive)
+            memo: Optional transaction memo
+
+        Returns:
+            Transaction record for the incoming payment
+
+        Raises:
+            ValueError: If amount is not positive
         """
+        # Simulate base API latency
+        if self.latency_sim:
+            await self.latency_sim.simulate_base_latency_async()
+
         if amount <= 0:
             raise ValueError("Payment amount must be positive")
 
