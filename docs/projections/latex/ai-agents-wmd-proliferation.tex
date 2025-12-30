@@ -213,47 +213,49 @@
   \end{scope}
 
   % Main visualization - Concentric Defense Barriers
-  \begin{scope}[shift={([xshift=-0.3cm, yshift=1.2cm]current page.center)}]
-    % Outer barrier ring (weakest - eroding) with label
+  \begin{scope}[shift={([xshift=-1.5cm, yshift=1.2cm]current page.center)}]
+    % Outer barrier ring (weakest - eroding)
     \draw[labcyan, opacity=0.15, line width=8pt] (0,0) circle (5.5cm);
     \draw[labcyan, opacity=0.25, line width=2pt, dashed] (0,0) circle (5.5cm);
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont\sffamily, rotate=-20] at (50:5.9cm) {INFORMATION BARRIER};
 
-    % Middle barrier ring (moderate) with label
+    % Middle barrier ring (moderate)
     \draw[scienceteal, opacity=0.2, line width=10pt] (0,0) circle (4cm);
     \draw[scienceteal, opacity=0.4, line width=2pt] (0,0) circle (4cm);
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont\sffamily, rotate=15] at (130:4.4cm) {PHYSICAL BARRIER};
 
-    % Inner barrier ring (strong) with label
+    % Inner barrier ring (strong)
     \draw[barriergold, opacity=0.25, line width=12pt] (0,0) circle (2.5cm);
     \draw[barriergold, opacity=0.6, line width=2pt] (0,0) circle (2.5cm);
-    \node[white, opacity=0.7, font=\fontsize{6}{6}\selectfont\sffamily, rotate=-30] at (-40:2.9cm) {TACIT KNOWLEDGE};
 
     % Core - protected zone
     \fill[white, opacity=0.1] (0,0) circle (1.3cm);
     \fill[barriergold] (0,0) circle (0.8cm);
     \node[deepteal, font=\fontsize{7}{7}\selectfont\bfseries] at (0,0.12) {DEFENSE};
     \node[deepteal, font=\fontsize{7}{7}\selectfont\bfseries] at (0,-0.18) {IN DEPTH};
+  \end{scope}
 
-    % Domain nodes - evenly distributed on outer ring
-    \foreach \angle/\col/\label in {
-      0/biogreen/BIO,
-      45/labcyan/SCREEN,
-      90/scienceteal/DETECT,
-      135/chemblue/CHEM,
-      180/nukepurple/NUKE,
-      225/shieldamber/GOVERN,
-      270/barriergold/ATTRIB,
-      315/biogreen/INTL
-    } {
-      \fill[\col, opacity=0.9] (\angle:5.5cm) circle (0.4cm);
-      \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\angle:5.5cm) {\label};
-    }
+  % Legend - right side, professional layout
+  \begin{scope}[shift={([xshift=5.5cm, yshift=1.2cm]current page.center)}]
+    % Legend background
+    \fill[black, opacity=0.2, rounded corners=4pt] (-0.3, -2.0) rectangle (4.2, 2.8);
 
-    % Breach indicators (showing where barriers are weakening)
-    \foreach \angle in {22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5} {
-      \draw[white, opacity=0.25, line width=0.8pt, ->] (\angle:6.3cm) -- (\angle:5.9cm);
-    }
+    % Legend title
+    \node[white, opacity=0.6, font=\fontsize{7}{7}\selectfont\sffamily, anchor=west] at (0, 2.3) {DEFENSE LAYERS};
+    \draw[white, opacity=0.3, line width=0.5pt] (0, 2.0) -- (3.8, 2.0);
+
+    % Outer ring legend item
+    \draw[labcyan, opacity=0.4, line width=3pt] (0.4, 1.3) -- (1.2, 1.3);
+    \node[labcyan, font=\fontsize{8}{8}\selectfont\sffamily\bfseries, anchor=west] at (1.5, 1.3) {Information};
+    \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont\sffamily, anchor=west] at (1.5, 0.9) {Barrier};
+
+    % Middle ring legend item
+    \draw[scienceteal, opacity=0.5, line width=3pt] (0.4, 0.1) -- (1.2, 0.1);
+    \node[scienceteal, font=\fontsize{8}{8}\selectfont\sffamily\bfseries, anchor=west] at (1.5, 0.1) {Physical};
+    \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont\sffamily, anchor=west] at (1.5, -0.3) {Barrier};
+
+    % Inner ring legend item
+    \draw[barriergold, opacity=0.7, line width=3pt] (0.4, -1.1) -- (1.2, -1.1);
+    \node[barriergold, font=\fontsize{8}{8}\selectfont\sffamily\bfseries, anchor=west] at (1.5, -1.1) {Tacit};
+    \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont\sffamily, anchor=west] at (1.5, -1.5) {Knowledge};
   \end{scope}
 
   % Document header bar (keeping consistent format)
@@ -485,40 +487,52 @@ The dominant near-term concern is \textit{increased frequency of attempts} with 
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Theory, Capabilities, and Historical Context};
 
-  % Concentric barrier rings visualization (unique to WMD doc)
-  \begin{scope}[shift={(4cm, -7.5cm)}]
-    % Three concentric rings representing defense layers
-    \draw[labcyan, opacity=0.25, line width=6pt] (0,0) circle (2.2cm);
-    \draw[labcyan, opacity=0.4, line width=1.5pt, dashed] (0,0) circle (2.2cm);
-    \draw[scienceteal, opacity=0.35, line width=5pt] (0,0) circle (1.5cm);
-    \draw[scienceteal, opacity=0.55, line width=1.5pt] (0,0) circle (1.5cm);
-    \draw[barriergold, opacity=0.5, line width=4pt] (0,0) circle (0.8cm);
-    \draw[barriergold, opacity=0.8, line width=1.5pt] (0,0) circle (0.8cm);
-    \fill[barriergold, opacity=0.95] (0,0) circle (0.35cm);
-    % Sector labels - positioned along rings with better readability
-    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont\sffamily, anchor=west] at (-3.5, 2.2) {INFO};
-    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont\sffamily, anchor=west] at (-3.5, 1.5) {PHYS};
-    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont\sffamily, anchor=west] at (-3.5, 0.8) {TACIT};
-    % Connector lines to rings
-    \draw[white, opacity=0.3, line width=0.5pt] (-3.0, 2.2) -- (-2.2, 2.2);
-    \draw[white, opacity=0.3, line width=0.5pt] (-3.0, 1.5) -- (-1.5, 1.5);
-    \draw[white, opacity=0.3, line width=0.5pt] (-3.0, 0.8) -- (-0.8, 0.8);
-  \end{scope}
+  % Interlocking gears visualization - centered above gold line
+  \begin{scope}[shift={(0.5\paperwidth, -7cm)}]
+    % Subtle background panel
+    \fill[black, opacity=0.15, rounded corners=3pt] (-5.0, -2.0) rectangle (5.0, 2.0);
 
-  % Legend
-  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -5.7cm) {DEFENSE IN DEPTH MODEL};
-  \node[anchor=west] at (10cm, -6.4cm) {
-    \begin{tikzpicture}
-      \fill[biogreen, opacity=0.7] (0,0) circle (0.1);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.25, 0) {Biological - Barriers Eroding};
-    \end{tikzpicture}
-  };
-  \node[anchor=west] at (10cm, -7.0cm) {
-    \begin{tikzpicture}
-      \fill[nukepurple, opacity=0.7] (0,0) circle (0.1);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.25, 0) {Nuclear - Barriers Strong};
-    \end{tikzpicture}
-  };
+    % Gear tooth style
+    \tikzset{
+      gear tooth/.style={line width=2pt, line cap=round}
+    }
+
+    % Left gear - Theory (medium, 8 teeth)
+    \begin{scope}[shift={(-2.4, 0.3)}]
+      \fill[scienceteal, opacity=0.6] (0,0) circle (1.15cm);
+      \fill[scienceteal, opacity=0.8] (0,0) circle (0.95cm);
+      % Gear teeth
+      \foreach \angle in {0, 45, 90, 135, 180, 225, 270, 315} {
+        \fill[scienceteal, opacity=0.8] (\angle:0.95cm) -- (\angle+12:1.35cm) -- (\angle-12:1.35cm) -- cycle;
+      }
+      \fill[deepteal, opacity=0.9] (0,0) circle (0.6cm);
+      \node[scienceteal, font=\fontsize{6}{6}\selectfont\sffamily\bfseries] at (0, 0) {THEORY};
+    \end{scope}
+
+    % Center gear - Capabilities (large, 10 teeth) - main driver
+    \begin{scope}[shift={(0.4, -0.5)}]
+      \fill[barriergold, opacity=0.5] (0,0) circle (1.45cm);
+      \fill[barriergold, opacity=0.7] (0,0) circle (1.25cm);
+      % Gear teeth
+      \foreach \angle in {0, 36, 72, 108, 144, 180, 216, 252, 288, 324} {
+        \fill[barriergold, opacity=0.8] (\angle:1.25cm) -- (\angle+10:1.65cm) -- (\angle-10:1.65cm) -- cycle;
+      }
+      \fill[deepteal, opacity=0.95] (0,0) circle (0.9cm);
+      \node[barriergold, font=\fontsize{6}{6}\selectfont\sffamily\bfseries] at (0, 0) {CAPABILITIES};
+    \end{scope}
+
+    % Right gear - Context (medium, 8 teeth)
+    \begin{scope}[shift={(3.2, 0.6)}]
+      \fill[labcyan, opacity=0.5] (0,0) circle (1.1cm);
+      \fill[labcyan, opacity=0.7] (0,0) circle (0.9cm);
+      % Gear teeth
+      \foreach \angle in {0, 45, 90, 135, 180, 225, 270, 315} {
+        \fill[labcyan, opacity=0.8] (\angle:0.9cm) -- (\angle+12:1.3cm) -- (\angle-12:1.3cm) -- cycle;
+      }
+      \fill[deepteal, opacity=0.9] (0,0) circle (0.55cm);
+      \node[labcyan, font=\fontsize{6}{6}\selectfont\sffamily\bfseries] at (0, 0) {CONTEXT};
+    \end{scope}
+  \end{scope}
 
   \fill[barriergold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
@@ -974,35 +988,35 @@ Gene drives are genetic engineering systems designed to spread modifications thr
 \noindent\hspace*{-0.85in}\begin{tikzpicture}
   \fill[deepteal] (0,0) rectangle (\paperwidth, -10cm);
 
-  \node[barriergold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
-  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Vectors and};
-  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -4.1cm) {Convergence};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -5.2cm) {Deployment Pathways and Cyber-Physical Integration};
+  \node[barriergold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -0.9cm) {PART III};
+  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.4cm) {Vectors and};
+  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -3.7cm) {Convergence};
+  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.8cm) {Deployment Pathways and Cyber-Physical Integration};
 
-  % Convergence arrows visualization - shifted right for label visibility
-  \begin{scope}[shift={(5cm, -7.2cm)}]
-    % Subtle background panel
-    \fill[black, opacity=0.15, rounded corners=3pt] (-3.8, -1.8) rectangle (4, 1.8);
-    % Three converging paths to center - wider spread
-    \draw[->, scienceteal, opacity=0.8, line width=2.5pt] (-2.5, 1.4) -- (-0.4, 0.15);
-    \draw[->, labcyan, opacity=0.8, line width=2.5pt] (-2.5, 0) -- (-0.4, 0);
-    \draw[->, biogreen, opacity=0.8, line width=2.5pt] (-2.5, -1.4) -- (-0.4, -0.15);
-    % Source labels - more padding from edge
-    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-2.7, 1.4) {CYBER};
-    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-2.7, 0) {AI};
-    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-2.7, -1.4) {PHYSICAL};
+  % Convergence arrows visualization - shifted right for margin clearance
+  \begin{scope}[shift={(5.5cm, -7.2cm)}]
+    % Subtle background panel - widened to contain all labels including THREAT
+    \fill[black, opacity=0.15, rounded corners=3pt] (-4.2, -1.8) rectangle (4.5, 1.8);
+    % Three converging paths to center
+    \draw[->, scienceteal, opacity=0.8, line width=2.5pt] (-2.0, 1.4) -- (-0.4, 0.15);
+    \draw[->, labcyan, opacity=0.8, line width=2.5pt] (-2.0, 0) -- (-0.4, 0);
+    \draw[->, biogreen, opacity=0.8, line width=2.5pt] (-2.0, -1.4) -- (-0.4, -0.15);
+    % Source labels - positioned within panel with padding
+    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-2.2, 1.4) {CYBER};
+    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-2.2, 0) {AI};
+    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-2.2, -1.4) {PHYSICAL};
     % Convergence point - with glow effect
     \fill[barriergold, opacity=0.3] (0, 0) circle (0.5);
     \fill[barriergold, opacity=0.5] (0, 0) circle (0.4);
     \fill[barriergold, opacity=0.95] (0, 0) circle (0.3);
-    % Output arrow - longer
-    \draw[->, barriergold, opacity=0.95, line width=3pt] (0.4, 0) -- (2.5, 0);
-    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=west] at (2.7, 0) {THREAT};
+    % Output arrow
+    \draw[->, barriergold, opacity=0.95, line width=3pt] (0.4, 0) -- (2.2, 0);
+    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=west] at (2.4, 0) {THREAT};
   \end{scope}
 
-  % Legend - repositioned
-  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -6.2cm) {CONVERGENCE MODEL};
-  \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont, anchor=west, text width=5cm] at (10cm, -6.9cm) {Multiple capability streams combining into novel threats};
+  % Legend - positioned for readability
+  \node[white, opacity=0.7, font=\fontsize{9}{9}\selectfont\sffamily\bfseries, anchor=west] at (11cm, -6.2cm) {CONVERGENCE MODEL};
+  \node[white, opacity=0.7, font=\fontsize{8}{8}\selectfont\sffamily, anchor=west, text width=6cm] at (11cm, -7.0cm) {Multiple capability streams combining into novel threats};
 
   \fill[barriergold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
