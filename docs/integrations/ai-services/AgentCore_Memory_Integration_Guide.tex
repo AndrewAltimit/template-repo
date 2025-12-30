@@ -332,42 +332,42 @@
 \newcommand{\ratelimit}{\textcolor{dangerred}{\faExclamationCircle\ 0.25 req/sec}}
 
 % ============================================================================
-% PART PAGE STYLING
+% PART PAGE STYLING (uses explicit dimensions, not remember picture overlay)
 % ============================================================================
 \newcommand{\partpage}[4]{%
   \clearpage
   \thispagestyle{empty}
-  \begin{tikzpicture}[remember picture, overlay]
-    % Gradient background
+  \vspace*{-0.85in}
+  \noindent\hspace*{-0.85in}\begin{tikzpicture}
+    % Header background
     \shade[top color=awsdark, bottom color=awsblue]
-      (current page.north west) rectangle ([yshift=-9cm]current page.north east);
+      (0,0) rectangle (\paperwidth, -9cm);
 
     % Decorative circles
-    \fill[awsorange, opacity=0.15] ([xshift=12cm, yshift=-3cm]current page.north west) circle (4cm);
-    \fill[awsorange, opacity=0.1] ([xshift=14cm, yshift=-6cm]current page.north west) circle (2.5cm);
-    \fill[cloudblue, opacity=0.1] ([xshift=3cm, yshift=-5cm]current page.north west) circle (3cm);
+    \fill[awsorange, opacity=0.15] (12cm, -3cm) circle (4cm);
+    \fill[awsorange, opacity=0.1] (14cm, -6cm) circle (2.5cm);
+    \fill[cloudblue, opacity=0.1] (3cm, -5cm) circle (3cm);
 
-    % Part number - large and prominent
+    % Part number - large watermark
     \node[white, opacity=0.08, font=\fontsize{200}{200}\selectfont\bfseries]
-      at ([xshift=5cm, yshift=-5cm]current page.north west) {#1};
+      at (5cm, -5cm) {#1};
 
     % Part label
-    \node[white, font=\large\sffamily] at ([yshift=-2.5cm]current page.north) {PART};
+    \node[white, font=\large\sffamily] at (0.5\paperwidth, -2.5cm) {PART};
 
     % Part number (visible)
     \node[awsorange, font=\fontsize{72}{72}\selectfont\bfseries]
-      at ([yshift=-4.5cm]current page.north) {#1};
+      at (0.5\paperwidth, -4.5cm) {#1};
 
     % Part title
-    \node[white, font=\Huge\bfseries\sffamily] at ([yshift=-7cm]current page.north) {#2};
+    \node[white, font=\Huge\bfseries\sffamily] at (0.5\paperwidth, -7cm) {#2};
 
     % Decorative line
     \draw[awsorange, line width=2pt]
-      ([xshift=5cm, yshift=-8cm]current page.north west) --
-      ([xshift=-5cm, yshift=-8cm]current page.north east);
+      (3cm, -8cm) -- (\paperwidth-3cm, -8cm);
   \end{tikzpicture}
 
-  \vspace{9.5cm}
+  \vspace{0.8cm}
 
   % Overview content
   \begin{center}
