@@ -5,10 +5,17 @@ name: Main CI
 'on':
   push:
     branches: [main]
+    tags:
+      - 'v*'  # Trigger on version tags (e.g., v1.0.0, v2.1.3)
   workflow_dispatch:
     inputs:
       skip_docker_push:
         description: 'Skip pushing Docker images'
+        required: false
+        type: boolean
+        default: false
+      create_release:
+        description: 'Create a release (even without tag)'
         required: false
         type: boolean
         default: false
@@ -462,13 +469,237 @@ jobs:
           echo "- [ ] Verify health checks"
           echo "- [ ] Monitor error rates"
 
+  # Stage 12: Build Python wheels for release
+  build-python-wheels:
+    name: Build Python Wheels
+    needs: [test-suite, security-scan]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+
+      - name: Build all package wheels
+        run: |
+          echo "📦 Building Python wheels for all packages..."
+          mkdir -p dist
+
+          # Build github-agents wheel
+          echo "Building github-agents..."
+          docker-compose run --rm python-ci bash -c "
+            cd packages/github_agents && \
+            pip install build && \
+            python -m build --wheel --outdir /app/dist
+          "
+
+          # Build economic-agents wheel
+          echo "Building economic-agents..."
+          docker-compose run --rm python-ci bash -c "
+            cd packages/economic_agents && \
+            pip install build && \
+            python -m build --wheel --outdir /app/dist
+          "
+
+          # Build sleeper-agents wheel
+          echo "Building sleeper-agents..."
+          docker-compose run --rm python-ci bash -c "
+            cd packages/sleeper_agents && \
+            pip install build && \
+            python -m build --wheel --outdir /app/dist
+          "
+
+          echo "Built wheels:"
+          ls -la dist/*.whl
+
+      - name: Upload wheel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-wheels
+          path: dist/*.whl
+          retention-days: 90
+
+  # Stage 13: Build LaTeX documentation for release
+  build-latex-docs:
+    name: Build LaTeX Documentation
+    needs: [test-suite]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Create output directory
+        run: mkdir -p docs_output
+
+      - name: Build Sleeper Agents Framework Guide
+        run: |
+          echo "Building Sleeper_Agents_Framework_Guide.pdf..."
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$(pwd)/packages/sleeper_agents/docs:/data" \
+            -v "$(pwd)/docs_output:/output" \
+            texlive/texlive:TL2024-historic \
+            bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output Sleeper_Agents_Framework_Guide.tex"
+
+      - name: Build AgentCore Memory Integration Guide
+        run: |
+          echo "Building AgentCore_Memory_Integration_Guide.pdf..."
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$(pwd)/docs/integrations/ai-services:/data" \
+            -v "$(pwd)/docs_output:/output" \
+            texlive/texlive:TL2024-historic \
+            bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output AgentCore_Memory_Integration_Guide.tex"
+
+      - name: Build Virtual Character System Guide
+        run: |
+          echo "Building Virtual_Character_System_Guide.pdf..."
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$(pwd)/docs/integrations/ai-services:/data" \
+            -v "$(pwd)/docs_output:/output" \
+            texlive/texlive:TL2024-historic \
+            bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output Virtual_Character_System_Guide.tex"
+
+      - name: Build AI Agents Political Targeting Report
+        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-political-targeting.tex
+
+      - name: Build AI Agents WMD Proliferation Report
+        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-wmd-proliferation.tex
+
+      - name: List built PDFs
+        run: |
+          echo "Built PDFs:"
+          ls -la docs_output/*.pdf
+
+      - name: Upload PDF artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation-pdfs
+          path: docs_output/*.pdf
+          retention-days: 90
+
+      - name: Cleanup auxiliary files
+        if: always()
+        run: |
+          rm -rf docs_output/*.aux docs_output/*.log docs_output/*.toc \
+                 docs_output/*.out docs_output/*.fls docs_output/*.fdb_latexmk \
+                 2>/dev/null || true
+
+  # Stage 14: Create GitHub Release
+  create-release:
+    name: Create GitHub Release
+    needs: [build-python-wheels, build-latex-docs, build-images, integration-tests]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
+    runs-on: self-hosted
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-wheels
+          path: release-artifacts/wheels
+
+      - name: Download PDF artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: documentation-pdfs
+          path: release-artifacts/docs
+
+      - name: List release artifacts
+        run: |
+          echo "Release artifacts:"
+          find release-artifacts -type f | sort
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+          else
+            VERSION="v$(date +%Y.%m.%d)-$(echo ${{ github.sha }} | cut -c1-7)"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          cat << 'EOF' > release_notes.md
+          ## Release ${{ steps.version.outputs.version }}
+
+          ### Python Packages
+
+          This release includes wheels for the following Python packages:
+
+          | Package | Description |
+          |---------|-------------|
+          | `github-agents` | Automated agents for GitHub workflows |
+          | `economic-agents` | Autonomous economic agent simulation framework |
+          | `sleeper-agents` | Framework for creating and studying sleeper agents |
+
+          ### Documentation
+
+          PDF documentation included in this release:
+
+          - **Sleeper Agents Framework Guide** - Comprehensive guide to the sleeper agents detection framework
+          - **AgentCore Memory Integration Guide** - AWS Bedrock AgentCore memory integration documentation
+          - **Virtual Character System Guide** - AI agent embodiment and multimedia performance platform guide
+          - **AI Agents Political Targeting Report** - Risk assessment for AI agents in political targeting
+          - **AI Agents WMD Proliferation Report** - Risk assessment for AI agents in WMD proliferation
+
+          ### Installation
+
+          ```bash
+          # Install packages from wheels
+          pip install github_agents-*.whl
+          pip install economic_agents-*.whl
+          pip install sleeper_agents-*.whl
+          ```
+
+          ### Commit Information
+
+          - **Commit**: ${{ github.sha }}
+          - **Branch**: ${{ github.ref_name }}
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
+          files: |
+            release-artifacts/wheels/*.whl
+            release-artifacts/docs/*.pdf
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # Final status notification
   notify:
     name: CI Summary
     needs: [
       format-check, basic-lint, full-lint, test-suite,
       mcp-validation, docs-build, sleeper-agents-tests,
-      security-scan, build-images, integration-tests, deploy
+      security-scan, build-images, integration-tests, deploy,
+      build-python-wheels, build-latex-docs, create-release
     ]
     if: always()
     runs-on: self-hosted
@@ -497,6 +728,9 @@ jobs:
           echo "| Docker Build | ${{ needs.build-images.result == 'success' && '✅' || needs.build-images.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅' || needs.integration-tests.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Deploy | ${{ needs.deploy.result == 'success' && '✅' || needs.deploy.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Python Wheels | ${{ needs.build-python-wheels.result == 'success' && '✅' || needs.build-python-wheels.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| LaTeX Docs | ${{ needs.build-latex-docs.result == 'success' && '✅' || needs.build-latex-docs.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| GitHub Release | ${{ needs.create-release.result == 'success' && '✅' || needs.create-release.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Overall status
