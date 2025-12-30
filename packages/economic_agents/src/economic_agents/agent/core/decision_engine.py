@@ -1,7 +1,9 @@
 """Decision engine for autonomous agent choices."""
 
 from dataclasses import dataclass
+from typing import Any, Literal
 
+from economic_agents.agent.core.config import AgentConfig
 from economic_agents.agent.core.state import AgentState
 
 
@@ -18,16 +20,25 @@ class ResourceAllocation:
 class DecisionEngine:
     """Makes autonomous decisions based on agent state."""
 
-    def __init__(self, config: dict | None = None):
+    config: AgentConfig
+    survival_buffer: float
+    company_threshold: float
+    personality: Literal["risk_averse", "balanced", "aggressive"]
+
+    def __init__(self, config: AgentConfig | dict[str, Any] | None = None):
         """Initialize decision engine.
 
         Args:
-            config: Configuration dict with decision parameters
+            config: AgentConfig instance or legacy dict with decision parameters
         """
-        self.config = config or {}
-        self.survival_buffer = self.config.get("survival_buffer_hours", 24.0)
-        self.company_threshold = self.config.get("company_threshold", 100.0)
-        self.personality = self.config.get("personality", "balanced")  # risk_averse, balanced, aggressive
+        if isinstance(config, AgentConfig):
+            self.config = config
+        else:
+            self.config = AgentConfig.from_dict(config)
+
+        self.survival_buffer = self.config.survival_buffer_hours
+        self.company_threshold = self.config.company_threshold
+        self.personality = self.config.personality
 
     def decide_allocation(self, state: AgentState) -> ResourceAllocation:
         """Decides how to allocate compute hours between task work and company work.

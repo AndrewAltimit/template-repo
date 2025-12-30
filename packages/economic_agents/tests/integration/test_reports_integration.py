@@ -39,7 +39,7 @@ async def agent_with_activity():
 @pytest.mark.asyncio
 async def test_extract_agent_data_from_real_agent(agent_with_activity):
     """Test extracting data from a real agent."""
-    agent = await agent_with_activity
+    agent = agent_with_activity  # Fixture already awaited by pytest-asyncio
 
     agent_data = extract_agent_data(agent)
 
@@ -59,7 +59,7 @@ async def test_extract_agent_data_from_real_agent(agent_with_activity):
 @pytest.mark.asyncio
 async def test_extract_monitoring_data_from_agent(agent_with_activity):
     """Test extracting monitoring data from agent."""
-    agent = await agent_with_activity
+    agent = agent_with_activity
 
     monitoring_data = extract_monitoring_data(agent)
 
@@ -76,7 +76,7 @@ async def test_extract_monitoring_data_from_agent(agent_with_activity):
 @pytest.mark.asyncio
 async def test_generate_executive_summary_from_agent(agent_with_activity):
     """Test generating executive summary from real agent."""
-    agent = await agent_with_activity
+    agent = agent_with_activity
 
     report = generate_report_for_agent(agent, "executive")
 
@@ -89,7 +89,7 @@ async def test_generate_executive_summary_from_agent(agent_with_activity):
 @pytest.mark.asyncio
 async def test_generate_technical_report_from_agent(agent_with_activity):
     """Test generating technical report from real agent."""
-    agent = await agent_with_activity
+    agent = agent_with_activity
 
     report = generate_report_for_agent(agent, "technical")
 
@@ -104,7 +104,7 @@ async def test_generate_technical_report_from_agent(agent_with_activity):
 @pytest.mark.asyncio
 async def test_generate_audit_trail_from_agent(agent_with_activity):
     """Test generating audit trail from real agent."""
-    agent = await agent_with_activity
+    agent = agent_with_activity
 
     report = generate_report_for_agent(agent, "audit")
 
@@ -119,7 +119,7 @@ async def test_generate_audit_trail_from_agent(agent_with_activity):
 @pytest.mark.asyncio
 async def test_generate_governance_analysis_from_agent(agent_with_activity):
     """Test generating governance analysis from real agent."""
-    agent = await agent_with_activity
+    agent = agent_with_activity
 
     report = generate_report_for_agent(agent, "governance")
 
@@ -167,7 +167,7 @@ async def test_report_with_company_data():
 @pytest.mark.asyncio
 async def test_report_markdown_generation(agent_with_activity):
     """Test that reports can be converted to markdown."""
-    agent = await agent_with_activity
+    agent = agent_with_activity
 
     report = generate_report_for_agent(agent, "executive")
     markdown = report.to_markdown()
@@ -182,7 +182,7 @@ async def test_report_markdown_generation(agent_with_activity):
 @pytest.mark.asyncio
 async def test_invalid_report_type_raises_error(agent_with_activity):
     """Test that invalid report type raises error."""
-    agent = await agent_with_activity
+    agent = agent_with_activity
 
     with pytest.raises(ValueError) as exc_info:
         generate_report_for_agent(agent, "invalid_type")

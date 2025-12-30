@@ -2,9 +2,100 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from typing import List
 
 from economic_agents.exceptions import CompanyBankruptError, InvalidStageTransitionError, StageRegressionError
+
+
+class CompanyStage(str, Enum):
+    """Company lifecycle stages with transition validation.
+
+    Stages represent the company lifecycle:
+    - IDEATION: Initial concept and planning phase
+    - DEVELOPMENT: Building product and establishing operations
+    - SEEKING_INVESTMENT: Actively seeking external funding
+    - OPERATIONAL: Fully operational with established revenue
+
+    The state machine enforces valid transitions:
+        IDEATION -> DEVELOPMENT
+        DEVELOPMENT -> SEEKING_INVESTMENT, OPERATIONAL
+        SEEKING_INVESTMENT -> OPERATIONAL, DEVELOPMENT (regression)
+        OPERATIONAL -> (terminal state)
+
+    Example:
+        stage = CompanyStage.IDEATION
+        if stage.can_transition_to(CompanyStage.DEVELOPMENT):
+            stage = CompanyStage.DEVELOPMENT
+    """
+
+    IDEATION = "ideation"
+    DEVELOPMENT = "development"
+    SEEKING_INVESTMENT = "seeking_investment"
+    OPERATIONAL = "operational"
+
+    def can_transition_to(self, target: "CompanyStage") -> bool:
+        """Check if transition to target stage is valid.
+
+        Args:
+            target: Target stage to transition to
+
+        Returns:
+            True if transition is valid
+        """
+        valid_transitions = {
+            CompanyStage.IDEATION: {CompanyStage.DEVELOPMENT},
+            CompanyStage.DEVELOPMENT: {CompanyStage.SEEKING_INVESTMENT, CompanyStage.OPERATIONAL},
+            CompanyStage.SEEKING_INVESTMENT: {CompanyStage.OPERATIONAL, CompanyStage.DEVELOPMENT},
+            CompanyStage.OPERATIONAL: set(),  # Terminal stage
+        }
+        return target in valid_transitions.get(self, set())
+
+    def get_valid_transitions(self) -> set["CompanyStage"]:
+        """Get all valid stages this stage can transition to.
+
+        Returns:
+            Set of valid target stages
+        """
+        valid_transitions = {
+            CompanyStage.IDEATION: {CompanyStage.DEVELOPMENT},
+            CompanyStage.DEVELOPMENT: {CompanyStage.SEEKING_INVESTMENT, CompanyStage.OPERATIONAL},
+            CompanyStage.SEEKING_INVESTMENT: {CompanyStage.OPERATIONAL, CompanyStage.DEVELOPMENT},
+            CompanyStage.OPERATIONAL: set(),
+        }
+        return valid_transitions.get(self, set())
+
+    def get_regression_target(self) -> "CompanyStage":
+        """Get the stage to regress to on failure.
+
+        Returns:
+            Previous stage (or self if no regression possible)
+        """
+        regression_map = {
+            CompanyStage.OPERATIONAL: CompanyStage.DEVELOPMENT,
+            CompanyStage.SEEKING_INVESTMENT: CompanyStage.DEVELOPMENT,
+            CompanyStage.DEVELOPMENT: CompanyStage.IDEATION,
+            CompanyStage.IDEATION: CompanyStage.IDEATION,  # Can't regress further
+        }
+        return regression_map.get(self, self)
+
+    @classmethod
+    def from_string(cls, value: str) -> "CompanyStage":
+        """Create CompanyStage from string value.
+
+        Args:
+            value: String stage name (e.g., "ideation", "development")
+
+        Returns:
+            CompanyStage enum value
+
+        Raises:
+            ValueError: If string doesn't match any stage
+        """
+        for stage in cls:
+            if stage.value == value:
+                return stage
+        raise ValueError(f"Unknown stage: {value}. Valid stages: {[s.value for s in cls]}")
 
 
 @dataclass
@@ -155,8 +246,8 @@ class Company:
     business_plan: BusinessPlan | None = None
     products: List[Product] = field(default_factory=list)
 
-    # Status
-    stage: str = "ideation"  # "ideation", "development", "seeking_investment", "operational"
+    # Status - uses CompanyStage enum (str-compatible for backward compatibility)
+    stage: str | CompanyStage = field(default=CompanyStage.IDEATION)
     funding_status: str = "bootstrapped"  # "bootstrapped", "seeking_seed", "funded"
 
     # Investment tracking
@@ -166,6 +257,22 @@ class Company:
 
     # Metrics
     metrics: CompanyMetrics = field(default_factory=CompanyMetrics)
+
+    def __post_init__(self):
+        """Normalize stage to CompanyStage enum after initialization."""
+        if isinstance(self.stage, str) and not isinstance(self.stage, CompanyStage):
+            self.stage = CompanyStage.from_string(self.stage)
+
+    @property
+    def stage_enum(self) -> CompanyStage:
+        """Get stage as CompanyStage enum (type-safe accessor).
+
+        Returns:
+            CompanyStage enum value
+        """
+        if isinstance(self.stage, CompanyStage):
+            return self.stage
+        return CompanyStage.from_string(self.stage)
 
     def get_all_sub_agent_ids(self) -> List[str]:
         """Get all sub-agent IDs in the company."""
@@ -216,11 +323,11 @@ class Company:
             raise CompanyBankruptError(company_name=self.name, deficit=abs(self.capital))
         return False
 
-    def attempt_stage_progression(self, target_stage: str) -> bool:
+    def attempt_stage_progression(self, target_stage: str | CompanyStage) -> bool:
         """Attempt to progress to a new stage with validation.
 
         Args:
-            target_stage: Stage to progress to
+            target_stage: Stage to progress to (string or CompanyStage)
 
         Returns:
             True if progression successful
@@ -228,17 +335,18 @@ class Company:
         Raises:
             InvalidStageTransitionError: If transition is invalid
         """
-        valid_transitions = {
-            "ideation": ["development"],
-            "development": ["seeking_investment", "operational"],
-            "seeking_investment": ["operational", "development"],  # Can go back or forward
-            "operational": [],  # Terminal stage for progression
-        }
+        # Normalize target to CompanyStage
+        if isinstance(target_stage, str) and not isinstance(target_stage, CompanyStage):
+            target = CompanyStage.from_string(target_stage)
+        else:
+            target = target_stage
 
-        if target_stage not in valid_transitions.get(self.stage, []):
-            raise InvalidStageTransitionError(current_stage=self.stage, target_stage=target_stage)
+        current = self.stage_enum
 
-        self.stage = target_stage
+        if not current.can_transition_to(target):
+            raise InvalidStageTransitionError(current_stage=current.value, target_stage=target.value)
+
+        self.stage = target
         return True
 
     def regress_stage(self, reason: str) -> str:
@@ -248,28 +356,21 @@ class Company:
             reason: Reason for regression
 
         Returns:
-            Previous stage name
+            Previous stage name (string value)
 
         Raises:
             StageRegressionError: When regression occurs
         """
-        regression_map = {
-            "operational": "development",
-            "seeking_investment": "development",
-            "development": "ideation",
-            "ideation": "ideation",  # Can't regress further
-        }
+        current = self.stage_enum
+        previous = current.get_regression_target()
 
-        current_stage = self.stage
-        previous_stage = regression_map.get(current_stage, current_stage)
-
-        if previous_stage != current_stage:
-            self.stage = previous_stage
+        if previous != current:
+            self.stage = previous
             raise StageRegressionError(
-                company_name=self.name, from_stage=current_stage, to_stage=previous_stage, reason=reason
+                company_name=self.name, from_stage=current.value, to_stage=previous.value, reason=reason
             )
 
-        return previous_stage
+        return previous.value
 
     def handle_failed_investment_round(self) -> None:
         """Handle the aftermath of a failed investment round.
@@ -281,7 +382,7 @@ class Company:
             self.funding_status = "bootstrapped"
 
         # Then trigger regression if in seeking_investment stage (will raise error)
-        if self.stage == "seeking_investment":
+        if self.stage_enum == CompanyStage.SEEKING_INVESTMENT:
             self.regress_stage("Failed to secure investment, returning to development")
 
     def spend_capital(self, amount: float, _description: str = "operation") -> float:

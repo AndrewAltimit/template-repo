@@ -36,7 +36,7 @@ async def agent_with_dashboard(dashboard_state):
 @pytest.mark.asyncio
 async def test_dashboard_receives_monitoring_components(agent_with_dashboard, dashboard_state):
     """Test that dashboard receives monitoring component references."""
-    agent = await agent_with_dashboard
+    agent = agent_with_dashboard  # Fixture already awaited by pytest-asyncio
 
     assert dashboard_state.resource_tracker is not None
     assert dashboard_state.metrics_collector is not None
@@ -51,10 +51,10 @@ async def test_dashboard_receives_monitoring_components(agent_with_dashboard, da
 @pytest.mark.asyncio
 async def test_dashboard_state_updated_during_agent_run(agent_with_dashboard, dashboard_state):
     """Test that dashboard state is updated as agent runs."""
-    agent = await agent_with_dashboard
+    agent = agent_with_dashboard  # Fixture already awaited by pytest-asyncio
 
-    # Initially no state
-    assert dashboard_state.agent_state == {}
+    # State is populated after agent.initialize() in fixture
+    initial_cycles = dashboard_state.agent_state.get("cycles_completed", 0)
 
     # Run agent for a cycle
     await agent.run_cycle()
@@ -64,12 +64,14 @@ async def test_dashboard_state_updated_during_agent_run(agent_with_dashboard, da
     assert "agent_id" in dashboard_state.agent_state
     assert "balance" in dashboard_state.agent_state
     assert "compute_hours_remaining" in dashboard_state.agent_state
+    # Verify cycles increased
+    assert dashboard_state.agent_state.get("cycles_completed", 0) > initial_cycles
 
 
 @pytest.mark.asyncio
 async def test_dashboard_state_reflects_current_agent_state(agent_with_dashboard, dashboard_state):
     """Test that dashboard state reflects current agent state."""
-    agent = await agent_with_dashboard
+    agent = agent_with_dashboard  # Fixture already awaited by pytest-asyncio
 
     # Run agent for just a couple cycles
     await agent.run_cycle()
@@ -87,7 +89,7 @@ async def test_dashboard_state_reflects_current_agent_state(agent_with_dashboard
 @pytest.mark.asyncio
 async def test_dashboard_company_registry_updated(agent_with_dashboard, dashboard_state):
     """Test that company registry is updated when company is formed."""
-    agent = await agent_with_dashboard
+    agent = agent_with_dashboard  # Fixture already awaited by pytest-asyncio
 
     # Run until company is formed (agent already has sufficient capital)
     await agent.run(max_cycles=15)
@@ -133,7 +135,7 @@ async def test_dashboard_without_agent_connection():
 @pytest.mark.asyncio
 async def test_dashboard_monitoring_data_available(agent_with_dashboard, dashboard_state):
     """Test that monitoring data is available through dashboard."""
-    agent = await agent_with_dashboard
+    agent = agent_with_dashboard  # Fixture already awaited by pytest-asyncio
 
     # Run agent
     await agent.run(max_cycles=5)

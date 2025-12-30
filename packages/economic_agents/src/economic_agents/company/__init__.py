@@ -6,6 +6,7 @@ from economic_agents.company.models import (
     BusinessPlan,
     Company,
     CompanyMetrics,
+    CompanyStage,
     CostStructure,
     Milestone,
     Product,
@@ -18,6 +19,7 @@ from economic_agents.company.sub_agent_manager import SubAgentManager
 __all__ = [
     "Company",
     "CompanyMetrics",
+    "CompanyStage",
     "Product",
     "ProductSpec",
     "BusinessPlan",

@@ -6,11 +6,14 @@ import time
 from typing import Any, Dict
 import uuid
 
+from economic_agents.agent.core.config import AgentConfig
 from economic_agents.agent.core.decision_engine import DecisionEngine
 from economic_agents.agent.core.state import AgentState
+from economic_agents.agent.core.task_selection import TaskSelectionStrategy, create_task_selection_strategy
 from economic_agents.company.company_builder import CompanyBuilder
 from economic_agents.company.models import Company
-from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
+from economic_agents.exceptions import AgentNotInitializedError
+from economic_agents.interfaces import ComputeInterface, MarketplaceInterface, WalletInterface
 from economic_agents.interfaces.marketplace import TaskSubmission
 from economic_agents.investment import InvestmentStage, ProposalGenerator
 from economic_agents.monitoring.alignment_monitor import AlignmentMonitor
@@ -46,19 +49,19 @@ class AutonomousAgent:
 
     def __init__(
         self,
-        wallet: MockWallet,
-        compute: MockCompute,
-        marketplace: MockMarketplace,
-        config: dict | None = None,
+        wallet: WalletInterface,
+        compute: ComputeInterface,
+        marketplace: MarketplaceInterface,
+        config: AgentConfig | dict | None = None,
         dashboard_state: Any | None = None,
     ):
         """Initialize autonomous agent.
 
         Args:
-            wallet: Wallet implementation
-            compute: Compute provider implementation
-            marketplace: Marketplace implementation
-            config: Agent configuration with optional keys:
+            wallet: Wallet implementation (any WalletInterface)
+            compute: Compute provider implementation (any ComputeInterface)
+            marketplace: Marketplace implementation (any MarketplaceInterface)
+            config: Agent configuration - either AgentConfig instance or dict with keys:
                 - engine_type: "rule_based" or "llm" (default: "rule_based")
                 - llm_timeout: Timeout for LLM decisions in seconds (default: 900)
                 - node_version: Node.js version for Claude CLI (default: "22.16.0")
@@ -66,12 +69,21 @@ class AutonomousAgent:
                 - mode: "survival" or "company" (default: "survival")
                 - survival_buffer_hours: Survival buffer threshold (default: 24.0)
                 - company_threshold: Company formation threshold (default: 100.0)
+                - personality: "risk_averse", "balanced", or "aggressive" (default: "balanced")
             dashboard_state: Optional dashboard state for real-time monitoring
         """
         self.wallet = wallet
         self.compute = compute
         self.marketplace = marketplace
-        self.config = config or {}
+
+        # Normalize config to AgentConfig, supporting both dict and AgentConfig input
+        if isinstance(config, AgentConfig):
+            self._config = config
+        else:
+            self._config = AgentConfig.from_dict(config)
+
+        # Keep dict for backward compatibility with internal code
+        self.config = self._config.to_dict()
         self.dashboard_state = dashboard_state
         self.agent_id = str(uuid.uuid4())
 
@@ -81,6 +93,10 @@ class AutonomousAgent:
         # Initialize decision engine based on configuration
         engine_type = self.config.get("engine_type", "rule_based")
         self.decision_engine = self._create_decision_engine(engine_type)
+
+        # Initialize task selection strategy
+        strategy_type = self.config.get("task_selection_strategy", "balanced")
+        self.task_selection_strategy: TaskSelectionStrategy = create_task_selection_strategy(strategy_type)
 
         self.decision_logger = DecisionLogger()
         self.company_builder = CompanyBuilder(config, self.decision_logger)
@@ -122,6 +138,46 @@ class AutonomousAgent:
 
         raise ValueError(f"Invalid engine_type: {engine_type}. Must be 'rule_based' or 'llm'")
 
+    def _sync_dashboard_state(self, current_activity: str = "idle") -> None:
+        """Sync agent state to dashboard for real-time monitoring.
+
+        This helper consolidates dashboard update logic to avoid duplication.
+
+        Args:
+            current_activity: Current agent activity (idle, task_work, company_work)
+        """
+        if not self.dashboard_state or self.state is None:
+            return
+
+        # Update agent state
+        agent_state_dict = {
+            "agent_id": self.agent_id,
+            "balance": self.state.balance,
+            "compute_hours_remaining": self.state.compute_hours_remaining,
+            "mode": self.state.mode,
+            "current_activity": current_activity,
+            "company_exists": self.state.has_company,
+            "company_id": self.state.company_id,
+            "tasks_completed": self.state.tasks_completed,
+            "tasks_failed": self.state.tasks_failed,
+            "cycles_completed": self.state.cycles_completed,
+        }
+        self.dashboard_state.update_agent_state(agent_state_dict)
+
+        # Update company registry if company exists
+        if self.company:
+            company_dict = {
+                self.company.id: {
+                    "id": self.company.id,
+                    "name": self.company.name,
+                    "stage": str(self.company.stage),  # Convert enum to string
+                    "capital": self.company.capital,
+                    "team_size": len(self.company.get_all_sub_agent_ids()),
+                    "products_count": len(self.company.products),
+                }
+            }
+            self.dashboard_state.update_company_registry(company_dict)
+
     async def initialize(self):
         """Initialize agent state asynchronously.
 
@@ -137,29 +193,16 @@ class AutonomousAgent:
             mode=self.config.get("mode", "survival"),
         )
 
-        # Update dashboard state with initial values
-        if self.dashboard_state:
-            agent_state_dict = {
-                "agent_id": self.agent_id,
-                "balance": self.state.balance,
-                "compute_hours_remaining": self.state.compute_hours_remaining,
-                "mode": self.state.mode,
-                "current_activity": "idle",
-                "company_exists": self.state.has_company,
-                "company_id": self.state.company_id,
-                "tasks_completed": self.state.tasks_completed,
-                "tasks_failed": self.state.tasks_failed,
-                "cycles_completed": self.state.cycles_completed,
-            }
-            self.dashboard_state.update_agent_state(agent_state_dict)
+        # Sync initial state to dashboard
+        self._sync_dashboard_state(current_activity="idle")
 
     @classmethod
     async def create(
         cls,
-        wallet: MockWallet,
-        compute: MockCompute,
-        marketplace: MockMarketplace,
-        config: dict | None = None,
+        wallet: WalletInterface,
+        compute: ComputeInterface,
+        marketplace: MarketplaceInterface,
+        config: AgentConfig | dict | None = None,
         dashboard_state: Any | None = None,
     ) -> "AutonomousAgent":
         """Factory method to create and initialize an agent instance.
@@ -168,17 +211,23 @@ class AutonomousAgent:
         initialization before use, preventing common initialization bugs.
 
         Args:
-            wallet: Wallet implementation
-            compute: Compute provider implementation
-            marketplace: Marketplace implementation
-            config: Agent configuration (see __init__ for details)
+            wallet: Wallet implementation (any WalletInterface)
+            compute: Compute provider implementation (any ComputeInterface)
+            marketplace: Marketplace implementation (any MarketplaceInterface)
+            config: Agent configuration - AgentConfig instance or dict (see __init__)
             dashboard_state: Optional dashboard state for real-time monitoring
 
         Returns:
             Fully initialized AutonomousAgent instance
 
         Example:
-            agent = await AutonomousAgent.create(wallet, compute, marketplace)
+            # Using AgentConfig (recommended)
+            config = AgentConfig(mode="company", personality="aggressive")
+            agent = await AutonomousAgent.create(wallet, compute, marketplace, config)
+
+            # Using dict (backward compatible)
+            agent = await AutonomousAgent.create(wallet, compute, marketplace, {"mode": "survival"})
+
             # Agent is ready to use immediately
             await agent.run_cycle()
         """
@@ -191,8 +240,12 @@ class AutonomousAgent:
 
         Returns:
             Dict with cycle results and metrics
+
+        Raises:
+            AgentNotInitializedError: If agent state is not initialized
         """
-        assert self.state is not None, "Agent not initialized. Call initialize() first."
+        if self.state is None:
+            raise AgentNotInitializedError("run_cycle")
 
         # 1. Update state from resources
         await self._update_state()
@@ -271,41 +324,20 @@ class AutonomousAgent:
         self.state.cycles_completed += 1
         self.state.last_cycle_at = datetime.now()
 
-        # 10. Update dashboard state if connected (after cycle counter increment)
-        if self.dashboard_state:
-            agent_state_dict = {
-                "agent_id": self.agent_id,
-                "balance": self.state.balance,
-                "compute_hours_remaining": self.state.compute_hours_remaining,
-                "mode": self.state.mode,
-                "current_activity": "company_work" if allocation.company_work_hours > 0 else "task_work",
-                "company_exists": self.state.has_company,
-                "company_id": self.state.company_id,
-                "tasks_completed": self.state.tasks_completed,
-                "tasks_failed": self.state.tasks_failed,
-                "cycles_completed": self.state.cycles_completed,
-            }
-            self.dashboard_state.update_agent_state(agent_state_dict)
-
-            # Update company registry if company exists
-            if self.company:
-                company_dict = {
-                    self.company.id: {
-                        "id": self.company.id,
-                        "name": self.company.name,
-                        "stage": self.company.stage,
-                        "capital": self.company.capital,
-                        "team_size": len(self.company.get_all_sub_agent_ids()),
-                        "products_count": len(self.company.products),
-                    }
-                }
-                self.dashboard_state.update_company_registry(company_dict)
+        # 10. Sync state to dashboard
+        current_activity = "company_work" if allocation.company_work_hours > 0 else "task_work"
+        self._sync_dashboard_state(current_activity)
 
         return decision_record
 
     async def _update_state(self):
-        """Update agent state from resource providers."""
-        assert self.state is not None, "Agent not initialized. Call initialize() first."
+        """Update agent state from resource providers.
+
+        Raises:
+            AgentNotInitializedError: If agent state is not initialized
+        """
+        if self.state is None:
+            raise AgentNotInitializedError("_update_state")
 
         self.state.balance = await self.wallet.get_balance()
         compute_status = await self.compute.get_status()
@@ -319,8 +351,12 @@ class AutonomousAgent:
 
         Returns:
             Dict with task completion results
+
+        Raises:
+            AgentNotInitializedError: If agent state is not initialized
         """
-        assert self.state is not None, "Agent not initialized. Call initialize() first."
+        if self.state is None:
+            raise AgentNotInitializedError("_do_task_work")
 
         # Consume compute time
         if not await self.compute.consume_time(hours):
@@ -340,8 +376,11 @@ class AutonomousAgent:
         if not tasks:
             return {"success": False, "error": "No tasks available"}
 
-        # Claim and complete first available task
-        task = tasks[0]
+        # Select task using configured strategy
+        task = self.task_selection_strategy.select_task(tasks, self.state)
+        if task is None:
+            return {"success": False, "error": "No suitable task found by strategy"}
+
         if not await self.marketplace.claim_task(task.id):
             return {"success": False, "error": "Failed to claim task"}
 
@@ -357,7 +396,9 @@ class AutonomousAgent:
 
         if status.status == "approved":
             # Receive payment
-            self.wallet.receive_payment(from_address="marketplace", amount=status.reward_paid, memo=f"Task: {task.title}")
+            await self.wallet.receive_payment(
+                from_address="marketplace", amount=status.reward_paid, memo=f"Task: {task.title}"
+            )
 
             # Track transaction
             balance = await self.wallet.get_balance()
@@ -380,8 +421,12 @@ class AutonomousAgent:
 
         Returns:
             Dict with company formation results
+
+        Raises:
+            AgentNotInitializedError: If agent state is not initialized
         """
-        assert self.state is not None, "Agent not initialized. Call initialize() first."
+        if self.state is None:
+            raise AgentNotInitializedError("_form_company")
 
         # Allocate capital to company (e.g., 30% of current balance)
         capital_allocation = self.state.balance * 0.3
@@ -595,8 +640,12 @@ class AutonomousAgent:
 
         Returns:
             List of decision records
+
+        Raises:
+            AgentNotInitializedError: If agent state is not initialized
         """
-        assert self.state is not None, "Agent not initialized. Call initialize() first."
+        if self.state is None:
+            raise AgentNotInitializedError("run")
 
         start_time = time.time()
         cycles = 0
@@ -654,10 +703,10 @@ class AutonomousAgent:
     def load_state(
         cls,
         agent_id: str,
-        wallet: MockWallet,
-        compute: MockCompute,
-        marketplace: MockMarketplace,
-        config: dict | None = None,
+        wallet: WalletInterface,
+        compute: ComputeInterface,
+        marketplace: MarketplaceInterface,
+        config: AgentConfig | dict | None = None,
         state_manager: StateManager | None = None,
         dashboard_state: Any | None = None,
     ) -> "AutonomousAgent":
@@ -665,10 +714,10 @@ class AutonomousAgent:
 
         Args:
             agent_id: Agent identifier to load
-            wallet: Wallet implementation
-            compute: Compute provider implementation
-            marketplace: Marketplace implementation
-            config: Agent configuration
+            wallet: Wallet implementation (any WalletInterface)
+            compute: Compute provider implementation (any ComputeInterface)
+            marketplace: Marketplace implementation (any MarketplaceInterface)
+            config: Agent configuration - AgentConfig instance or dict
             state_manager: Optional StateManager instance
             dashboard_state: Optional dashboard state for real-time monitoring
 

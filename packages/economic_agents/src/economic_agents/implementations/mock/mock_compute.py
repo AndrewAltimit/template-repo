@@ -1,7 +1,7 @@
 """Mock compute provider implementation for simulation."""
 
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Literal
 
 from economic_agents.interfaces.compute import ComputeInterface, ComputeStatus
 from economic_agents.simulation.latency_simulator import LatencySimulator
@@ -10,12 +10,19 @@ from economic_agents.simulation.latency_simulator import LatencySimulator
 class MockCompute(ComputeInterface):
     """Mock compute provider with time decay simulation."""
 
+    hours_remaining: float
+    cost_per_hour: float
+    balance: float
+    last_update: datetime
+    enable_latency: bool
+    latency_sim: LatencySimulator | None
+
     def __init__(
         self,
         initial_hours: float = 24.0,
         cost_per_hour: float = 2.0,
         enable_latency: bool = True,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ):
         """Initialize mock compute provider.
 
@@ -52,6 +59,7 @@ class MockCompute(ComputeInterface):
 
         self._update_time_decay()
 
+        status: Literal["active", "low", "expired"]
         if self.hours_remaining <= 0:
             status = "expired"
         elif self.hours_remaining < 4.0:

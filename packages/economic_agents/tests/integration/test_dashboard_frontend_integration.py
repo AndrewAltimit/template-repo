@@ -44,7 +44,7 @@ async def test_full_pipeline_agent_to_api(setup_full_dashboard):
     """Test complete pipeline from agent operations to API endpoints."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = await setup_full_dashboard
+    agent, dash_state = setup_full_dashboard  # Fixture already awaited by pytest-asyncio
     client = TestClient(app)
 
     # Run agent for a few cycles
@@ -88,7 +88,7 @@ async def test_api_data_format_matches_frontend_expectations(setup_full_dashboar
     """Test that API data format matches what frontend expects."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = await setup_full_dashboard
+    agent, dash_state = setup_full_dashboard  # Fixture already awaited by pytest-asyncio
     client = TestClient(app)
 
     # Run agent
@@ -126,7 +126,7 @@ async def test_company_formation_reflected_in_api(setup_full_dashboard):
     """Test that company formation is reflected in API endpoints."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = await setup_full_dashboard
+    agent, dash_state = setup_full_dashboard  # Fixture already awaited by pytest-asyncio
     client = TestClient(app)
 
     # Give agent enough capital to form company
@@ -161,7 +161,7 @@ async def test_monitoring_data_consistency(setup_full_dashboard):
     """Test that monitoring data is consistent across endpoints."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = await setup_full_dashboard
+    agent, dash_state = setup_full_dashboard  # Fixture already awaited by pytest-asyncio
     client = TestClient(app)
 
     # Run agent
@@ -186,7 +186,7 @@ async def test_websocket_real_time_updates(setup_full_dashboard):
     """Test WebSocket connection for real-time updates."""
     from economic_agents.dashboard import app
 
-    _agent, _dash_state = await setup_full_dashboard
+    _agent, _dash_state = setup_full_dashboard  # Fixture already awaited by pytest-asyncio
     client = TestClient(app)
 
     with client.websocket_connect("/api/updates") as websocket:
@@ -201,7 +201,7 @@ async def test_api_error_handling(setup_full_dashboard):
     """Test that API handles errors gracefully."""
     from economic_agents.dashboard import app
 
-    _agent, _dash_state = await setup_full_dashboard
+    _agent, _dash_state = setup_full_dashboard  # Fixture already awaited by pytest-asyncio
     client = TestClient(app)
 
     # Clear dashboard state to simulate error conditions
@@ -224,7 +224,7 @@ async def test_decision_filtering_by_limit(setup_full_dashboard):
     """Test decision endpoint limit parameter."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = await setup_full_dashboard
+    agent, dash_state = setup_full_dashboard  # Fixture already awaited by pytest-asyncio
     client = TestClient(app)
 
     # Run agent to generate decisions
@@ -247,7 +247,7 @@ async def test_metrics_calculation_accuracy(setup_full_dashboard):
     """Test that metrics calculations are accurate."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = await setup_full_dashboard
+    agent, dash_state = setup_full_dashboard  # Fixture already awaited by pytest-asyncio
     client = TestClient(app)
 
     # Run agent
@@ -270,7 +270,7 @@ async def test_resource_tracking_completeness(setup_full_dashboard):
     """Test that all resource transactions are tracked."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = await setup_full_dashboard
+    agent, dash_state = setup_full_dashboard  # Fixture already awaited by pytest-asyncio
     client = TestClient(app)
 
     # Run agent
