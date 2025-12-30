@@ -2624,7 +2624,7 @@ ELSE:
   \draw[->, line width=1pt] (dev) -- node[above, font=\scriptsize] {MVP ready} (invest);
   \draw[->, line width=1pt] (invest) -- node[right, font=\scriptsize] {funded} (ops);
   \draw[->, line width=0.5pt, dashed, governancered] (invest) to[bend right=30] node[above, font=\scriptsize, governancered] {rejected} (dev);
-  \draw[->, line width=0.5pt, dashed, governancered] (ops) to[bend right=40] node[below right, font=\scriptsize, governancered] {regression possible} (dev);
+  \draw[->, line width=0.5pt, dashed, governancered] (ops) to[out=180, in=-90, looseness=1.2] node[pos=0.3, left, font=\scriptsize, governancered, xshift=-3pt] {regression possible} (dev);
 \end{tikzpicture}
 \end{center}
 
