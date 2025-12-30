@@ -41,35 +41,43 @@
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows.blur, matrix, patterns, fadings, shadings}
 
 % ============================================================================
-% COLOR DEFINITIONS - Institutional Research Theme
+% COLOR DEFINITIONS - Shadow Operations Theme (Covert Intelligence)
 % ============================================================================
-\definecolor{instdark}{HTML}{1C2833}
-\definecolor{instnavy}{HTML}{2C3E50}
-\definecolor{instblue}{HTML}{34495E}
-\definecolor{instaccent}{HTML}{5D6D7E}
-\definecolor{instgold}{HTML}{B7950B}
-\definecolor{instslate}{HTML}{566573}
-\definecolor{successgreen}{HTML}{1E8449}
-\definecolor{warningamber}{HTML}{B9770E}
-\definecolor{alertcoral}{HTML}{922B21}
-\definecolor{infocyan}{HTML}{1A5276}
-\definecolor{coolgray}{HTML}{7B7D7D}
-\definecolor{lightgray}{HTML}{EAECEE}
-\definecolor{codebg}{HTML}{F4F6F7}
-\definecolor{codetext}{HTML}{2C3E50}
-\definecolor{gridlight}{HTML}{D5D8DC}
-\definecolor{nodecyan}{HTML}{2E86AB}
-\definecolor{nodeorange}{HTML}{D35400}
-\definecolor{nodegreen}{HTML}{27AE60}
-\definecolor{nodepurple}{HTML}{8E44AD}
+% Primary: Deep charcoal/midnight - covert, shadows
+\definecolor{shadowdark}{HTML}{0D0D1A}
+\definecolor{midnightblue}{HTML}{1A1A2E}
+\definecolor{shadownavy}{HTML}{16213E}
+\definecolor{steelblue}{HTML}{0F3460}
+% Accent: Crimson/ember red - danger, red flags, alerts
+\definecolor{signalred}{HTML}{E94560}
+\definecolor{embercrimson}{HTML}{C62828}
+% Highlight: Silver/chrome - intelligence, precision
+\definecolor{chromesilver}{HTML}{B8C5D6}
+\definecolor{coldsteel}{HTML}{7B8794}
+% Status colors
+\definecolor{successgreen}{HTML}{00C853}
+\definecolor{warningamber}{HTML}{FFB300}
+\definecolor{alertcoral}{HTML}{E94560}
+\definecolor{infocyan}{HTML}{00ACC1}
+% Neutrals
+\definecolor{coolgray}{HTML}{546E7A}
+\definecolor{lightgray}{HTML}{ECEFF1}
+\definecolor{codebg}{HTML}{1A1A2E}
+\definecolor{codetext}{HTML}{B8C5D6}
+\definecolor{gridlight}{HTML}{37474F}
+% Signal/cipher accents
+\definecolor{signalcyan}{HTML}{00BCD4}
+\definecolor{ciphergold}{HTML}{FFD54F}
+\definecolor{interceptgreen}{HTML}{69F0AE}
+\definecolor{decodepurple}{HTML}{B388FF}
 
 % ============================================================================
 % HYPERREF SETUP
 % ============================================================================
 \hypersetup{
   colorlinks=true,
-  linkcolor=instnavy,
-  urlcolor=instaccent,
+  linkcolor=steelblue,
+  urlcolor=signalcyan,
   pdftitle={AI Agents and the Future of Espionage Operations},
   pdfauthor={Emerging Technology Risk Assessment}
 }
@@ -82,23 +90,22 @@
 \setlist{nosep, leftmargin=1.5em, itemsep=0.3em}
 
 % ============================================================================
-% PAGE STYLE - Minimal with data grid accent
+% PAGE STYLE - Signal waveform accent (intelligence/intercept theme)
 % ============================================================================
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{%
   \begin{tikzpicture}[baseline=-0.5ex]
-    % Mini data grid
-    \foreach \x in {0,0.12,0.24,0.36,0.48} {
-      \foreach \y in {0,0.12,0.24} {
-        \fill[instaccent, opacity=0.3] (\x,\y) circle (0.03);
-      }
-    }
+    % Signal waveform pattern
+    \draw[signalred, opacity=0.6, line width=0.8pt]
+      (0,0.1) sin (0.08,0.2) cos (0.16,0.1) sin (0.24,0) cos (0.32,0.1)
+      sin (0.40,0.25) cos (0.48,0.1) sin (0.56,0.05) cos (0.64,0.1);
+    \fill[signalred, opacity=0.8] (0.68,0.1) circle (0.04);
   \end{tikzpicture}
-  \hspace{0.5em}\textcolor{instnavy}{\textsf{\small ETRA-2025-ESP-001}}%
+  \hspace{0.5em}\textcolor{steelblue}{\textsf{\small ETRA-2025-ESP-001}}%
 }
-\fancyhead[R]{\textcolor{coolgray}{\textsf{\thepage}}}
-\fancyfoot[C]{\textcolor{coolgray}{\footnotesize\textsf{Emerging Technology Risk Assessment \textbar{} Projection Report}}}
+\fancyhead[R]{\textcolor{coldsteel}{\textsf{\thepage}}}
+\fancyfoot[C]{\textcolor{coldsteel}{\footnotesize\textsf{Emerging Technology Risk Assessment \textbar{} Projection Report}}}
 \renewcommand{\headrulewidth}{0pt}
 \renewcommand{\footrulewidth}{0pt}
 
@@ -106,16 +113,16 @@
 \setlength{\headheight}{32pt}
 
 % ============================================================================
-% SECTION FORMATTING - Clean institutional style
+% SECTION FORMATTING - Shadow operations style with red accent
 % ============================================================================
 \titleformat{\section}
-  {\normalfont\LARGE\bfseries\color{instdark}}
-  {\thesection}{0.8em}{}[\vspace{-0.3em}{\color{gridlight}\rule{\textwidth}{1pt}}]
+  {\normalfont\LARGE\bfseries\color{shadowdark}}
+  {\thesection}{0.8em}{}[\vspace{-0.3em}{\color{signalred}\rule{3cm}{1.5pt}\hspace{-3cm}\color{gridlight}\rule{\textwidth}{1pt}}]
 \titleformat{\subsection}
-  {\normalfont\Large\bfseries\color{instnavy}}
+  {\normalfont\Large\bfseries\color{steelblue}}
   {\thesubsection}{0.6em}{}
 \titleformat{\subsubsection}
-  {\normalfont\large\color{instslate}\bfseries}
+  {\normalfont\large\color{coldsteel}\bfseries}
   {\thesubsubsection}{0.5em}{}
 
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
@@ -124,77 +131,77 @@
 \setcounter{tocdepth}{2}
 
 % ============================================================================
-% TCOLORBOX ENVIRONMENTS
+% TCOLORBOX ENVIRONMENTS - Shadow Operations Theme
 % ============================================================================
 \tcbuselibrary{skins,breakable,hooks}
 
 \newtcolorbox{keybox}[1][Key Finding]{
   enhanced, breakable,
-  colback=instblue!5, colframe=instblue,
-  colbacktitle=instblue, coltitle=white,
+  colback=steelblue!8, colframe=steelblue,
+  colbacktitle=steelblue, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{72}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{warnbox}[1][Warning]{
   enhanced, breakable,
-  colback=warningamber!8, colframe=warningamber,
-  colbacktitle=warningamber, coltitle=white,
+  colback=warningamber!10, colframe=warningamber,
+  colbacktitle=warningamber, coltitle=shadowdark,
   fonttitle=\bfseries\sffamily,
   title={\ding{74}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{criticalbox}[1][Critical]{
   enhanced, breakable,
-  colback=alertcoral!8, colframe=alertcoral,
-  colbacktitle=alertcoral, coltitle=white,
+  colback=signalred!10, colframe=signalred,
+  colbacktitle=signalred, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{74}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{recbox}[1][Recommendation]{
   enhanced, breakable,
-  colback=successgreen!8, colframe=successgreen,
-  colbacktitle=successgreen, coltitle=white,
+  colback=successgreen!10, colframe=successgreen,
+  colbacktitle=successgreen, coltitle=shadowdark,
   fonttitle=\bfseries\sffamily,
   title={\ding{51}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{infobox}[1][Note]{
   enhanced, breakable,
-  colback=infocyan!8, colframe=infocyan,
-  colbacktitle=infocyan, coltitle=white,
+  colback=signalcyan!10, colframe=signalcyan,
+  colbacktitle=signalcyan, coltitle=shadowdark,
   fonttitle=\bfseries\sffamily,
   title={\ding{73}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{defbox}[1][Definition]{
   enhanced, breakable,
-  colback=instgold!8, colframe=instgold,
-  colbacktitle=instgold!90!black, coltitle=white,
+  colback=ciphergold!12, colframe=ciphergold,
+  colbacktitle=ciphergold!90!black, coltitle=shadowdark,
   fonttitle=\bfseries\sffamily,
   title={\ding{70}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{scenariobox}[1][Scenario]{
   enhanced, breakable,
-  colback=instslate!5, colframe=instslate,
-  colbacktitle=instslate, coltitle=white,
+  colback=coldsteel!8, colframe=coldsteel,
+  colbacktitle=coldsteel, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{118}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
@@ -204,90 +211,97 @@
 \begin{document}
 
 % ============================================================================
-% TITLE PAGE - Intelligence Network Visualization
+% TITLE PAGE - Cipher Wheel / Signal Intercept Visualization
 % ============================================================================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
-  % Background gradient
-  \fill[instdark] (current page.north west) rectangle (current page.south east);
+  % Background - deep midnight gradient
+  \fill[shadowdark] (current page.north west) rectangle (current page.south east);
 
-  % Abstract data grid background (right side)
-  \begin{scope}[shift={(current page.center)}, opacity=0.08]
-    \foreach \x in {2,2.8,...,10} {
-      \foreach \y in {-12,-11.2,...,12} {
-        \fill[white] (\x,\y) circle (0.06);
-      }
+  % Signal waveform background pattern (horizontal lines)
+  \begin{scope}[shift={(current page.center)}, opacity=0.06]
+    \foreach \y in {-10,-8,...,10} {
+      \draw[signalred, line width=0.5pt]
+        (-10,\y) sin (-9,{\y+0.3}) cos (-8,\y) sin (-7,{\y-0.2}) cos (-6,\y)
+        sin (-5,{\y+0.5}) cos (-4,\y) sin (-3,{\y-0.4}) cos (-2,\y)
+        sin (-1,{\y+0.2}) cos (0,\y) sin (1,{\y-0.3}) cos (2,\y)
+        sin (3,{\y+0.4}) cos (4,\y) sin (5,{\y-0.2}) cos (6,\y)
+        sin (7,{\y+0.3}) cos (8,\y) sin (9,{\y-0.5}) cos (10,\y);
     }
   \end{scope}
 
-  % Main intelligence network visualization (centered with slight upward shift)
+  % Main visualization - Cipher Wheel (centered with slight upward shift)
   \begin{scope}[shift={([xshift=-0.5cm, yshift=1.5cm]current page.center)}]
-    % Outer ring nodes - intelligence operations
-    \foreach \angle/\col/\label in {
-      30/nodecyan/OSINT,
-      75/nodegreen/HUMINT,
-      120/nodeorange/C2,
-      165/nodepurple/ASSET,
-      210/nodecyan/RECON,
-      255/nodegreen/EXFIL,
-      300/nodeorange/SYNTH,
-      345/nodepurple/CI
-    } {
-      % Node
-      \fill[\col, opacity=0.9] (\angle:4.5cm) circle (0.4cm);
-      \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\angle:4.5cm) {\label};
-      % Connection to center
-      \draw[\col, opacity=0.4, line width=1pt] (0,0) -- (\angle:4cm);
-      % Outer data points
-      \foreach \r in {5.2,5.6,6} {
-        \fill[\col, opacity=0.2] (\angle:\r cm) circle (0.08);
-      }
+    % Outer cipher ring - rotating letters
+    \draw[chromesilver, opacity=0.2, line width=8pt] (0,0) circle (5cm);
+    \draw[signalred, opacity=0.4, line width=2pt] (0,0) circle (5cm);
+    \foreach \i/\letter in {0/A, 15/B, 30/C, 45/D, 60/E, 75/F, 90/G, 105/H, 120/I, 135/J, 150/K, 165/L, 180/M, 195/N, 210/O, 225/P, 240/Q, 255/R, 270/S, 285/T, 300/U, 315/V, 330/W, 345/X} {
+      \node[chromesilver, opacity=0.5, font=\fontsize{8}{8}\selectfont\bfseries] at (\i:5.5cm) {\letter};
     }
 
-    % Inner ring - capability layers
-    \foreach \angle/\col in {0/nodecyan, 45/nodegreen, 90/nodeorange, 135/nodepurple, 180/nodecyan, 225/nodegreen, 270/nodeorange, 315/nodepurple} {
-      \fill[\col, opacity=0.6] (\angle:2.5cm) circle (0.2cm);
-      \draw[\col, opacity=0.3, line width=0.5pt] (\angle:2.5cm) -- ({(\angle+45)}:2.5cm);
+    % Middle cipher ring - offset rotation with numbers
+    \draw[signalcyan, opacity=0.15, line width=6pt] (0,0) circle (3.8cm);
+    \draw[signalcyan, opacity=0.4, line width=1.5pt] (0,0) circle (3.8cm);
+    \foreach \i/\num in {7/0, 37/1, 67/2, 97/3, 127/4, 157/5, 187/6, 217/7, 247/8, 277/9, 307/X, 337/Y} {
+      \node[signalcyan, opacity=0.6, font=\fontsize{7}{7}\selectfont\bfseries] at (\i:4.2cm) {\num};
     }
 
-    % Central hub
-    \fill[white, opacity=0.1] (0,0) circle (1.8cm);
-    \fill[white, opacity=0.15] (0,0) circle (1.4cm);
-    \fill[instgold] (0,0) circle (0.8cm);
-    \node[instdark, font=\fontsize{8}{8}\selectfont\bfseries] at (0,0.15) {HANDLER};
-    \node[instdark, font=\fontsize{8}{8}\selectfont\bfseries] at (0,-0.15) {BYPASS};
+    % Inner cipher ring - symbols
+    \draw[ciphergold, opacity=0.2, line width=5pt] (0,0) circle (2.6cm);
+    \draw[ciphergold, opacity=0.5, line width=1.5pt] (0,0) circle (2.6cm);
+    \foreach \i in {0,30,...,330} {
+      \fill[ciphergold, opacity=0.4] (\i:2.9cm) circle (0.08);
+    }
 
-    % Cross-connections (showing complexity) - increased opacity for visibility
-    \draw[white, opacity=0.18, line width=0.7pt] (30:4cm) -- (165:4cm);
-    \draw[white, opacity=0.18, line width=0.7pt] (75:4cm) -- (255:4cm);
-    \draw[white, opacity=0.18, line width=0.7pt] (120:4cm) -- (300:4cm);
-    \draw[white, opacity=0.18, line width=0.7pt] (210:4cm) -- (345:4cm);
+    % Active intercept indicators - pulsing nodes
+    \fill[signalred, opacity=0.9] (45:5cm) circle (0.2);
+    \fill[signalred, opacity=0.6] (45:5cm) circle (0.35);
+    \fill[interceptgreen, opacity=0.9] (165:3.8cm) circle (0.15);
+    \fill[interceptgreen, opacity=0.5] (165:3.8cm) circle (0.28);
+    \fill[ciphergold, opacity=0.9] (270:2.6cm) circle (0.12);
+    \fill[ciphergold, opacity=0.5] (270:2.6cm) circle (0.22);
+
+    % Connection lines between rings (decryption paths)
+    \draw[signalred, opacity=0.3, line width=1pt, dashed] (45:5cm) -- (165:3.8cm);
+    \draw[interceptgreen, opacity=0.3, line width=1pt, dashed] (165:3.8cm) -- (270:2.6cm);
+    \draw[ciphergold, opacity=0.3, line width=1pt, dashed] (270:2.6cm) -- (0,0);
+
+    % Central core - decoded signal
+    \fill[midnightblue, opacity=0.8] (0,0) circle (1.6cm);
+    \fill[shadownavy, opacity=0.9] (0,0) circle (1.2cm);
+    \fill[signalred] (0,0) circle (0.7cm);
+    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (0,0.12) {SIGNAL};
+    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (0,-0.15) {DECODED};
+
+    % Radial scan line (active intercept)
+    \draw[signalred, opacity=0.4, line width=2pt] (0,0) -- (45:5.2cm);
+    \fill[signalred, opacity=0.15] (0,0) -- (35:5.2cm) arc (35:55:5.2cm) -- cycle;
   \end{scope}
 
   % Document classification bar
-  \fill[instgold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[instdark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2025-ESP-001 \textbar{} DECEMBER 2025};
+  \fill[signalred] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
+  \node[white, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2025-ESP-001 \textbar{} DECEMBER 2025};
 
   % Title block (bottom left)
   \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
-    {\fontsize{11}{13}\selectfont\color{instgold}\sffamily EMERGING TECHNOLOGY RISK ASSESSMENT}\\[0.8cm]
+    {\fontsize{11}{13}\selectfont\color{signalred}\sffamily EMERGING TECHNOLOGY RISK ASSESSMENT}\\[0.8cm]
     {\fontsize{36}{42}\selectfont\bfseries\color{white}AI Agents and the}\\[0.2cm]
     {\fontsize{36}{42}\selectfont\bfseries\color{white}Future of Espionage}\\[0.2cm]
     {\fontsize{36}{42}\selectfont\bfseries\color{white}Operations}\\[0.6cm]
-    {\large\color{gridlight}\sffamily A Projection on Autonomous AI and Intelligence Tradecraft}
+    {\large\color{chromesilver}\sffamily A Projection on Autonomous AI and Intelligence Tradecraft}
   };
 
   % Metadata block (bottom right)
   \node[anchor=south east, text width=5cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
-    \color{instaccent}\small\sffamily
+    \color{coldsteel}\small\sffamily
     \textbf{Document Type:} Projection\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
     \textbf{Classification:} Policy Research\\[0.2em]
-    \textbf{Version:} 1.1
+    \textbf{Version:} 1.2
   };
 
   % Vertical accent line
-  \draw[instgold, line width=2pt] ([xshift=1.5cm, yshift=3cm]current page.south west) -- ([xshift=1.5cm, yshift=10.5cm]current page.south west);
+  \draw[signalred, line width=2pt] ([xshift=1.5cm, yshift=3cm]current page.south west) -- ([xshift=1.5cm, yshift=10.5cm]current page.south west);
 
 \end{tikzpicture}
 \end{titlepage}
@@ -298,21 +312,29 @@
 \thispagestyle{empty}
 \vspace*{0.5cm}
 
-% Mini header visualization
+% Mini header visualization - signal waveform accent
 \noindent\begin{tikzpicture}
-  \fill[instdark] (0,0) rectangle (\textwidth, 0.15);
-  \foreach \x in {0.5,1,...,16.5} {
-    \fill[instgold, opacity=0.5] (\x, 0.075) circle (0.04);
-  }
+  \fill[shadowdark] (0,0) rectangle (\textwidth, 0.2);
+  % Signal waveform pattern
+  \draw[signalred, opacity=0.6, line width=0.8pt]
+    (0.5,0.1) sin (1,0.15) cos (1.5,0.1) sin (2,0.05) cos (2.5,0.1)
+    sin (3,0.18) cos (3.5,0.1) sin (4,0.03) cos (4.5,0.1)
+    sin (5,0.16) cos (5.5,0.1) sin (6,0.04) cos (6.5,0.1)
+    sin (7,0.17) cos (7.5,0.1) sin (8,0.02) cos (8.5,0.1)
+    sin (9,0.15) cos (9.5,0.1) sin (10,0.06) cos (10.5,0.1)
+    sin (11,0.14) cos (11.5,0.1) sin (12,0.05) cos (12.5,0.1)
+    sin (13,0.16) cos (13.5,0.1) sin (14,0.03) cos (14.5,0.1)
+    sin (15,0.17) cos (15.5,0.1) sin (16,0.04) cos (16.5,0.1);
+  \fill[signalred, opacity=0.8] (16.8,0.1) circle (0.05);
 \end{tikzpicture}
 
 \vspace{0.5cm}
 \begin{center}
-{\color{instdark}\Large\bfseries Executive Summary}
+{\color{shadowdark}\Large\bfseries Executive Summary}
 \end{center}
 \vspace{0.3cm}
 
-\begin{tcolorbox}[enhanced, colback=lightgray, colframe=instblue!50, boxrule=1pt, arc=3pt,
+\begin{tcolorbox}[enhanced, colback=lightgray, colframe=steelblue!60, boxrule=1pt, arc=3pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt]
 This projection examines how autonomous AI agents are transforming the fundamental economics of espionage operations. We analyze current technological capabilities as of late 2025, project likely scenarios through 2030, and examine how both offensive intelligence operations and defensive counterintelligence must adapt.
 
@@ -365,7 +387,7 @@ This document analyzes capabilities and trends for defensive counterintelligence
 % ============================================================================
 \vspace*{0.5cm}
 \begin{center}
-{\color{instdark}\Large\bfseries Decision Summary}
+{\color{shadowdark}\Large\bfseries Decision Summary}
 \end{center}
 \vspace{0.3cm}
 
@@ -539,56 +561,60 @@ Gamified intelligence & Employees unknowingly participating in ``surveys'' & All
 \vspace*{-0.85in}
 \noindent\hspace*{-0.85in}\begin{tikzpicture}
   % Header background
-  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
+  \fill[shadowdark] (0,0) rectangle (\paperwidth, -10cm);
 
   % Part label and title
-  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
+  \node[signalred, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Theory, Economics, and Historical Context};
 
-  % Cost curve visualization
-  \begin{scope}[shift={(3cm, -8.5cm)}]
-    \draw[white, opacity=0.4, line width=1.2pt, -Stealth] (0,0) -- (6,0) node[right, font=\fontsize{7}{7}\selectfont, white, opacity=0.7] {SCALE};
-    \draw[white, opacity=0.4, line width=1.2pt, -Stealth] (0,0) -- (0,3) node[above, font=\fontsize{7}{7}\selectfont, white, opacity=0.7] {COST};
+  % Encryption key / cipher visualization
+  \begin{scope}[shift={(3cm, -7.5cm)}]
+    % Key outline (stylized)
+    \draw[chromesilver, opacity=0.3, line width=3pt] (0,0) -- (3,0);
+    \draw[chromesilver, opacity=0.3, line width=3pt] (3,0) circle (0.8);
+    % Key teeth pattern
+    \foreach \x in {0.5,1.0,1.5,2.0,2.5} {
+      \fill[signalred, opacity=0.6] (\x,-0.2) rectangle ({\x+0.15},0.2);
+    }
+    % Key ring
+    \draw[signalred, opacity=0.8, line width=2pt] (3,0) circle (0.6);
+    \fill[signalred, opacity=0.3] (3,0) circle (0.4);
 
-    % Traditional HUMINT cost curve (steep)
-    \draw[instaccent, opacity=0.8, line width=2.5pt] (0.3,0.3) .. controls (1.5,1.2) and (3,2.2) .. (5.5,2.8);
-    \node[instaccent, opacity=0.9, font=\fontsize{7}{7}\selectfont\itshape] at (5.8, 2.5) {Traditional};
-
-    % AI-enabled cost curve (flat)
-    \draw[instgold, opacity=0.9, line width=2.5pt] (0.3,0.8) .. controls (1.5,0.9) and (3,1.0) .. (5.5,1.1);
-    \node[instgold, font=\fontsize{7}{7}\selectfont\itshape] at (5.8, 0.8) {AI-Enabled};
-
-    % Current marker - larger for visibility
-    \fill[instgold] (3.8, 1.0) circle (0.22);
-    \node[instdark, font=\fontsize{6}{6}\selectfont\bfseries] at (3.8, 1.0) {NOW};
+    % Binary/cipher stream below
+    \node[chromesilver, opacity=0.4, font=\fontsize{6}{6}\selectfont\ttfamily] at (2,-1.2) {01101001 01101110 01110100 01100101 01101100};
   \end{scope}
 
-  % Legend
-  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -6.4cm) {OPERATIONAL COST COMPARISON};
-  \node[anchor=west] at (10.5cm, -7.0cm) {
-    \begin{tikzpicture}
-      \draw[instaccent, opacity=0.6, line width=1.5pt] (0,0.1) -- (0.4,0.1);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.5, 0.1) {Traditional HUMINT};
-    \end{tikzpicture}
-  };
-  \node[anchor=west] at (10.5cm, -7.6cm) {
-    \begin{tikzpicture}
-      \draw[instgold, opacity=0.8, line width=1.5pt] (0,0.1) -- (0.4,0.1);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.5, 0.1) {AI-Enabled Operations};
-    \end{tikzpicture}
-  };
+  % Cost comparison (right side - simplified)
+  \begin{scope}[shift={(10cm, -7.5cm)}]
+    \draw[chromesilver, opacity=0.4, line width=1pt, -Stealth] (0,0) -- (4.5,0);
+    \draw[chromesilver, opacity=0.4, line width=1pt, -Stealth] (0,0) -- (0,2);
+    \node[chromesilver, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (4.8,0) {SCALE};
+    \node[chromesilver, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (0,2.3) {COST};
+
+    % Traditional curve (steep)
+    \draw[coldsteel, opacity=0.7, line width=2pt] (0.2,0.2) .. controls (1,0.8) and (2.5,1.5) .. (4,2);
+    \node[coldsteel, opacity=0.8, font=\fontsize{6}{6}\selectfont] at (4.3,1.7) {Trad.};
+
+    % AI-enabled curve (flat)
+    \draw[signalred, opacity=0.9, line width=2pt] (0.2,0.5) .. controls (1,0.6) and (2.5,0.7) .. (4,0.75);
+    \node[signalred, font=\fontsize{6}{6}\selectfont] at (4.3,0.5) {AI};
+
+    % Current marker
+    \fill[signalred] (2.8, 0.68) circle (0.15);
+    \node[shadowdark, font=\fontsize{5}{5}\selectfont\bfseries] at (2.8, 0.68) {N};
+  \end{scope}
 
   % Bottom accent
-  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[signalred] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
-\begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
+\begin{tcolorbox}[enhanced, colback=white, colframe=steelblue!40, boxrule=1pt, arc=4pt,
   left=15pt, right=15pt, top=12pt, bottom=12pt]
-\textcolor{instdark}{\textbf{Sections Covered}}
+\textcolor{shadowdark}{\textbf{Sections Covered}}
 \vspace{0.4em}
 \begin{itemize}[nosep]
   \item \textbf{Section 2}: Introduction, methodology, and the Handler Bottleneck
@@ -860,75 +886,82 @@ The French recruitment of Vladimir Vetrov (``Farewell'') in the early 1980s demo
 \vspace*{-0.85in}
 \noindent\hspace*{-0.85in}\begin{tikzpicture}
   % Header background
-  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
+  \fill[shadowdark] (0,0) rectangle (\paperwidth, -10cm);
 
   % Part label and title
-  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
+  \node[signalred, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Threat Analysis};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Capabilities, Vectors, and Actor Taxonomy};
 
-  % Radar/spider chart - threat dimensions
-  \begin{scope}[shift={(5cm, -6.4cm)}]
+  % Signal intercept visualization - waveform analysis
+  \begin{scope}[shift={(3cm, -7cm)}]
+    % Frequency spectrum background
+    \fill[midnightblue, opacity=0.5] (0,-0.8) rectangle (5.5,1.2);
+    \draw[chromesilver, opacity=0.3, line width=0.5pt] (0,-0.8) rectangle (5.5,1.2);
+
+    % Signal waveforms (intercepted)
+    \draw[signalred, opacity=0.8, line width=1.5pt]
+      (0.2,0.2) sin (0.5,0.8) cos (0.8,0.2) sin (1.1,-0.3) cos (1.4,0.2)
+      sin (1.7,0.6) cos (2,0.2) sin (2.3,-0.5) cos (2.6,0.2)
+      sin (2.9,0.9) cos (3.2,0.2) sin (3.5,-0.2) cos (3.8,0.2)
+      sin (4.1,0.7) cos (4.4,0.2) sin (4.7,-0.4) cos (5,0.2);
+
+    \draw[signalcyan, opacity=0.6, line width=1pt]
+      (0.2,0) sin (0.6,0.4) cos (1,0) sin (1.4,-0.3) cos (1.8,0)
+      sin (2.2,0.5) cos (2.6,0) sin (3,-0.4) cos (3.4,0)
+      sin (3.8,0.3) cos (4.2,0) sin (4.6,-0.2) cos (5,0);
+
+    % Intercept marker
+    \draw[ciphergold, opacity=0.9, line width=1.5pt, dashed] (2.9,-0.8) -- (2.9,1.2);
+    \node[ciphergold, font=\fontsize{6}{6}\selectfont\bfseries] at (2.9,1.4) {INTERCEPT};
+  \end{scope}
+
+  % Threat radar (right side - simplified)
+  \begin{scope}[shift={(11cm, -7cm)}]
     % Background rings
-    \foreach \r in {0.5, 1.0, 1.5, 2.0} {
-      \draw[white, opacity=0.1, line width=0.5pt] (0,0)
-        \foreach \a in {0,60,120,180,240,300} { -- (\a:\r) } -- cycle;
+    \foreach \r in {0.5, 1.0, 1.5} {
+      \draw[chromesilver, opacity=0.15, line width=0.5pt] (0,0) circle (\r);
     }
 
     % Axis lines
     \foreach \a in {0,60,120,180,240,300} {
-      \draw[white, opacity=0.2, line width=0.5pt] (0,0) -- (\a:2.15);
+      \draw[chromesilver, opacity=0.2, line width=0.5pt] (0,0) -- (\a:1.6);
     }
 
-    % Labels - increased font size and opacity for readability
-    \node[white, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (90:2.5) {SCALE};
-    \node[white, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (30:2.5) {STEALTH};
-    \node[white, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (330:2.5) {PERSIST};
-    \node[white, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (270:2.5) {ATTRIB};
-    \node[white, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (210:2.5) {COST};
-    \node[white, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (150:2.5) {ADAPT};
+    % Labels
+    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont\bfseries] at (90:1.9) {SCALE};
+    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont\bfseries] at (30:1.9) {STEALTH};
+    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont\bfseries] at (330:1.9) {PERSIST};
+    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont\bfseries] at (270:1.9) {ATTRIB};
+    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont\bfseries] at (210:1.9) {COST};
+    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont\bfseries] at (150:1.9) {ADAPT};
 
-    % Traditional threat (dimmer, smaller) - increased opacity
-    \fill[instaccent, opacity=0.3]
-      (90:0.75) -- (30:0.9) -- (330:1.25) -- (270:1.15) -- (210:0.6) -- (150:0.85) -- cycle;
-    \draw[instaccent, opacity=0.6, line width=1.2pt]
-      (90:0.75) -- (30:0.9) -- (330:1.25) -- (270:1.15) -- (210:0.6) -- (150:0.85) -- cycle;
+    % Traditional threat
+    \fill[coldsteel, opacity=0.25]
+      (90:0.5) -- (30:0.6) -- (330:0.9) -- (270:0.8) -- (210:0.4) -- (150:0.6) -- cycle;
+    \draw[coldsteel, opacity=0.5, line width=1pt]
+      (90:0.5) -- (30:0.6) -- (330:0.9) -- (270:0.8) -- (210:0.4) -- (150:0.6) -- cycle;
 
-    % AI-enabled threat (brighter, larger) - increased opacity
-    \fill[instgold, opacity=0.35]
-      (90:1.85) -- (30:1.6) -- (330:1.5) -- (270:0.75) -- (210:1.75) -- (150:1.7) -- cycle;
-    \draw[instgold, opacity=0.9, line width=2pt]
-      (90:1.85) -- (30:1.6) -- (330:1.5) -- (270:0.75) -- (210:1.75) -- (150:1.7) -- cycle;
+    % AI-enabled threat
+    \fill[signalred, opacity=0.3]
+      (90:1.4) -- (30:1.2) -- (330:1.1) -- (270:0.5) -- (210:1.3) -- (150:1.25) -- cycle;
+    \draw[signalred, opacity=0.8, line width=1.5pt]
+      (90:1.4) -- (30:1.2) -- (330:1.1) -- (270:0.5) -- (210:1.3) -- (150:1.25) -- cycle;
 
-    % Center point
-    \fill[white] (0,0) circle (0.08);
+    % Center
+    \fill[signalred] (0,0) circle (0.06);
   \end{scope}
 
-  % Legend
-  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -6cm) {CAPABILITY PROFILE};
-  \node[anchor=west] at (10.5cm, -6.6cm) {
-    \begin{tikzpicture}
-      \fill[instaccent, opacity=0.5] (0,0) rectangle (0.4, 0.2);
-      \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont, anchor=west] at (0.55, 0.1) {Traditional HUMINT};
-    \end{tikzpicture}
-  };
-  \node[anchor=west] at (10.5cm, -7.2cm) {
-    \begin{tikzpicture}
-      \fill[instgold, opacity=0.6] (0,0) rectangle (0.4, 0.2);
-      \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont, anchor=west] at (0.55, 0.1) {AI-Enabled Operations};
-    \end{tikzpicture}
-  };
-
   % Bottom accent
-  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[signalred] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
-\begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
+\begin{tcolorbox}[enhanced, colback=white, colframe=steelblue!40, boxrule=1pt, arc=4pt,
   left=15pt, right=15pt, top=12pt, bottom=12pt]
-\textcolor{instdark}{\textbf{Sections Covered}}
+\textcolor{shadowdark}{\textbf{Sections Covered}}
 \vspace{0.4em}
 \begin{itemize}[nosep]
   \item \textbf{Section 6}: Current technological landscape and capability assessment
@@ -1327,44 +1360,60 @@ Response latency patterns & Cognitive load, rehearsed vs.\ spontaneous answers \
 \vspace*{-0.85in}
 \noindent\hspace*{-0.85in}\begin{tikzpicture}
   % Header background
-  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
+  \fill[shadowdark] (0,0) rectangle (\paperwidth, -10cm);
 
   % Part label and title
-  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
+  \node[signalred, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Defense};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Counterintelligence, Controls, and Policy};
 
-  % Shield/defense visualization - enhanced for visibility
-  \begin{scope}[shift={(5cm, -7cm)}]
-    % Outer shield - increased line weight
-    \draw[instgold, opacity=0.9, line width=2.5pt] (0,1.5) -- (2,0.5) -- (2,-1.5) -- (0,-2.5) -- (-2,-1.5) -- (-2,0.5) -- cycle;
-    \draw[instgold, opacity=0.5, line width=1.5pt] (0,1.2) -- (1.6,0.4) -- (1.6,-1.2) -- (0,-2) -- (-1.6,-1.2) -- (-1.6,0.4) -- cycle;
-
-    % Inner layers - increased opacity
-    \fill[instgold, opacity=0.15] (0,0.9) -- (1.2,0.3) -- (1.2,-0.9) -- (0,-1.5) -- (-1.2,-0.9) -- (-1.2,0.3) -- cycle;
-    \fill[instgold, opacity=0.25] (0,0.6) -- (0.8,0.2) -- (0.8,-0.6) -- (0,-1) -- (-0.8,-0.6) -- (-0.8,0.2) -- cycle;
-
-    % Center - larger with clearer text
-    \fill[instgold] (0,-0.2) circle (0.4);
-    \node[instdark, font=\fontsize{8}{8}\selectfont\bfseries] at (0,-0.2) {CI};
+  % Firewall/encrypted shield visualization
+  \begin{scope}[shift={(4cm, -7cm)}]
+    % Firewall barrier (vertical bars)
+    \foreach \x in {0,0.4,...,4} {
+      \fill[interceptgreen, opacity=0.3] (\x,-1.5) rectangle ({\x+0.2},1.5);
+      \draw[interceptgreen, opacity=0.6, line width=1pt] (\x,-1.5) -- (\x,1.5);
+    }
+    % Connection lines (blocked threats on left)
+    \draw[signalred, opacity=0.5, line width=1.5pt, dashed] (-1.5,0.8) -- (0,0.8);
+    \draw[signalred, opacity=0.5, line width=1.5pt, dashed] (-1.5,0) -- (0,0);
+    \draw[signalred, opacity=0.5, line width=1.5pt, dashed] (-1.5,-0.8) -- (0,-0.8);
+    % Block indicators
+    \node[signalred, font=\fontsize{8}{8}\selectfont\bfseries] at (-0.3,0.8) {X};
+    \node[signalred, font=\fontsize{8}{8}\selectfont\bfseries] at (-0.3,0) {X};
+    \node[signalred, font=\fontsize{8}{8}\selectfont\bfseries] at (-0.3,-0.8) {X};
+    % Protected zone (right side)
+    \fill[steelblue, opacity=0.2] (4.4,-1.3) rectangle (6,1.3);
+    \node[chromesilver, font=\fontsize{7}{7}\selectfont\bfseries] at (5.2,0) {SECURE};
   \end{scope}
 
-  % Legend - improved visibility
-  \node[white, opacity=0.7, font=\fontsize{8}{8}\selectfont\bfseries, anchor=west] at (10.5cm, -6cm) {DEFENSE-IN-DEPTH};
-  \node[white, opacity=0.85, font=\fontsize{8}{8}\selectfont, anchor=west] at (10.5cm, -6.7cm) {Multi-layer controls};
-  \node[white, opacity=0.85, font=\fontsize{8}{8}\selectfont, anchor=west] at (10.5cm, -7.4cm) {Identity verification};
-  \node[white, opacity=0.85, font=\fontsize{8}{8}\selectfont, anchor=west] at (10.5cm, -8.1cm) {AI supply chain governance};
+  % Shield icon (right side)
+  \begin{scope}[shift={(12cm, -7cm)}]
+    % Shield outline
+    \draw[interceptgreen, opacity=0.8, line width=2pt] (0,1) -- (1.2,0.3) -- (1.2,-0.8) -- (0,-1.3) -- (-1.2,-0.8) -- (-1.2,0.3) -- cycle;
+    \fill[interceptgreen, opacity=0.15] (0,0.8) -- (1,0.2) -- (1,-0.6) -- (0,-1.1) -- (-1,-0.6) -- (-1,0.2) -- cycle;
+    % Lock symbol in center
+    \draw[chromesilver, opacity=0.8, line width=1.5pt] (-0.25,-0.3) -- (-0.25,0.1) arc (180:0:0.25) -- (0.25,-0.3);
+    \fill[chromesilver, opacity=0.6] (-0.35,-0.3) rectangle (0.35,-0.7);
+    \fill[shadowdark] (0,-0.45) circle (0.08);
+  \end{scope}
+
+  % Legend
+  \node[chromesilver, opacity=0.7, font=\fontsize{8}{8}\selectfont\bfseries, anchor=west] at (10cm, -5.2cm) {DEFENSE-IN-DEPTH};
+  \node[interceptgreen, opacity=0.85, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -5.8cm) {Multi-layer controls};
+  \node[chromesilver, opacity=0.85, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -6.4cm) {Identity verification};
+  \node[chromesilver, opacity=0.85, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -7cm) {AI supply chain governance};
 
   % Bottom accent
-  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[signalred] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
-\begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
+\begin{tcolorbox}[enhanced, colback=white, colframe=steelblue!40, boxrule=1pt, arc=4pt,
   left=15pt, right=15pt, top=12pt, bottom=12pt]
-\textcolor{instdark}{\textbf{Sections Covered}}
+\textcolor{shadowdark}{\textbf{Sections Covered}}
 \vspace{0.4em}
 \begin{itemize}[nosep]
   \item \textbf{Section 10}: The counterintelligence challenge and detection evolution
@@ -1623,47 +1672,49 @@ High-value instruction spoofing & HITL Notarization \\
 \vspace*{-0.85in}
 \noindent\hspace*{-0.85in}\begin{tikzpicture}
   % Header background
-  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
+  \fill[shadowdark] (0,0) rectangle (\paperwidth, -10cm);
 
   % Part label and title
-  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
+  \node[signalred, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Projections};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Timeline, Scenarios, and Conclusion};
 
-  % Timeline visualization - enhanced for visibility
+  % Timeline visualization with new theme
   \begin{scope}[shift={(3cm, -7.5cm)}]
     % Timeline line
-    \draw[white, opacity=0.5, line width=2pt] (0,0) -- (12,0);
+    \draw[chromesilver, opacity=0.6, line width=2pt] (0,0) -- (12,0);
 
-    % Year markers - larger and more visible
+    % Year markers
     \foreach \x/\year in {0/2025, 3/2026, 6/2028, 9/2029, 12/2030} {
-      \fill[white, opacity=0.8] (\x,0) circle (0.12);
-      \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont\bfseries] at (\x,-0.5) {\year};
+      \fill[chromesilver, opacity=0.7] (\x,0) circle (0.1);
+      \node[chromesilver, opacity=0.9, font=\fontsize{8}{8}\selectfont\bfseries] at (\x,-0.5) {\year};
     }
 
-    % Current marker - more prominent
-    \fill[instgold] (0,0) circle (0.25);
-    \node[instgold, font=\fontsize{7}{7}\selectfont\bfseries] at (0,0.6) {NOW};
+    % Current marker
+    \fill[signalred] (0,0) circle (0.22);
+    \node[signalred, font=\fontsize{7}{7}\selectfont\bfseries] at (0,0.6) {NOW};
 
-    % Transition zone - increased opacity
-    \fill[warningamber, opacity=0.4] (1.5,-0.35) rectangle (7.5,0.35);
-    \node[warningamber, font=\fontsize{7}{7}\selectfont\bfseries] at (4.5,0.7) {OFFENSE ADVANTAGE};
+    % Transition zone (offense advantage)
+    \fill[signalred, opacity=0.25] (1.5,-0.35) rectangle (7.5,0.35);
+    \draw[signalred, opacity=0.6, line width=1pt] (1.5,-0.35) rectangle (7.5,0.35);
+    \node[signalred, font=\fontsize{7}{7}\selectfont\bfseries] at (4.5,0.7) {OFFENSE ADVANTAGE};
 
-    % Equilibrium zone - increased opacity
-    \fill[successgreen, opacity=0.3] (7.5,-0.35) rectangle (12,0.35);
-    \node[successgreen, font=\fontsize{7}{7}\selectfont\bfseries] at (9.75,0.7) {EQUILIBRIUM?};
+    % Equilibrium zone
+    \fill[interceptgreen, opacity=0.2] (7.5,-0.35) rectangle (12,0.35);
+    \draw[interceptgreen, opacity=0.5, line width=1pt] (7.5,-0.35) rectangle (12,0.35);
+    \node[interceptgreen, font=\fontsize{7}{7}\selectfont\bfseries] at (9.75,0.7) {EQUILIBRIUM?};
   \end{scope}
 
   % Bottom accent
-  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[signalred] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
-\begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
+\begin{tcolorbox}[enhanced, colback=white, colframe=steelblue!40, boxrule=1pt, arc=4pt,
   left=15pt, right=15pt, top=12pt, bottom=12pt]
-\textcolor{instdark}{\textbf{Sections Covered}}
+\textcolor{shadowdark}{\textbf{Sections Covered}}
 \vspace{0.4em}
 \begin{itemize}[nosep]
   \item \textbf{Section 14}: Projected timeline 2025--2030
@@ -1786,7 +1837,7 @@ Perhaps the most significant long-term implication is not that AI enables ``more
 
 The transformation is already underway. The question is not whether AI changes espionage, but whether institutions can adapt faster than the threat landscape evolves. In the near term, offense likely holds the advantage. In the longer term, the emergence of a signal-to-noise equilibrium may paradoxically limit the utility of the very capabilities that initially seemed transformative.
 
-\begin{tcolorbox}[enhanced, colback=instblue!5, colframe=instblue, boxrule=1pt, arc=3pt,
+\begin{tcolorbox}[enhanced, colback=steelblue!8, colframe=steelblue, boxrule=1pt, arc=3pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt]
 \textbf{The future of espionage isn't just ``more spies''---it's Centaur Handlers running AI fleets in a signal-to-noise war where the limiting factor is no longer human bandwidth, but the ability to extract authentic intelligence from an ocean of synthetic noise.}
 \end{tcolorbox}
