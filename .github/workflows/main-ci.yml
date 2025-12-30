@@ -548,6 +548,8 @@ jobs:
             -v "$(pwd)/docs_output:/output" \
             texlive/texlive:TL2024-historic \
             bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output Sleeper_Agents_Framework_Guide.tex"
+          # Rename to sensible kebab-case filename
+          mv docs_output/Sleeper_Agents_Framework_Guide.pdf docs_output/sleeper-agents-framework-guide.pdf
 
       - name: Build AgentCore Memory Integration Guide
         run: |
@@ -558,6 +560,8 @@ jobs:
             -v "$(pwd)/docs_output:/output" \
             texlive/texlive:TL2024-historic \
             bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output AgentCore_Memory_Integration_Guide.tex"
+          # Rename to sensible kebab-case filename
+          mv docs_output/AgentCore_Memory_Integration_Guide.pdf docs_output/agentcore-memory-integration-guide.pdf
 
       - name: Build Virtual Character System Guide
         run: |
@@ -568,12 +572,20 @@ jobs:
             -v "$(pwd)/docs_output:/output" \
             texlive/texlive:TL2024-historic \
             bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output Virtual_Character_System_Guide.tex"
+          # Rename to sensible kebab-case filename
+          mv docs_output/Virtual_Character_System_Guide.pdf docs_output/virtual-character-system-guide.pdf
 
       - name: Build AI Agents Political Targeting Report
-        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-political-targeting.tex
+        run: |
+          ./automation/ci-cd/build-latex-doc.sh ai-agents-political-targeting.tex
+          # Rename to include -report suffix for consistency
+          mv docs_output/ai-agents-political-targeting.pdf docs_output/ai-agents-political-targeting-report.pdf
 
       - name: Build AI Agents WMD Proliferation Report
-        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-wmd-proliferation.tex
+        run: |
+          ./automation/ci-cd/build-latex-doc.sh ai-agents-wmd-proliferation.tex
+          # Rename to include -report suffix for consistency
+          mv docs_output/ai-agents-wmd-proliferation.pdf docs_output/ai-agents-wmd-proliferation-report.pdf
 
       - name: List built PDFs
         run: |

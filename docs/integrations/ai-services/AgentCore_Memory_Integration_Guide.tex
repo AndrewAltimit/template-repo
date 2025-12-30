@@ -24,6 +24,13 @@
 \usepackage{pgfplots}
 \usepackage{array}
 \usepackage{longtable}
+
+% Ragged-right paragraph columns to prevent word spacing issues
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% Increase vertical spacing between table rows for readability
+\renewcommand{\arraystretch}{1.4}
+
 \usepackage{colortbl}
 \usepackage{pifont}
 \usepackage{setspace}
@@ -325,42 +332,42 @@
 \newcommand{\ratelimit}{\textcolor{dangerred}{\faExclamationCircle\ 0.25 req/sec}}
 
 % ============================================================================
-% PART PAGE STYLING
+% PART PAGE STYLING (uses explicit dimensions, not remember picture overlay)
 % ============================================================================
 \newcommand{\partpage}[4]{%
   \clearpage
   \thispagestyle{empty}
-  \begin{tikzpicture}[remember picture, overlay]
-    % Gradient background
+  \vspace*{-0.85in}
+  \noindent\hspace*{-0.85in}\begin{tikzpicture}
+    % Header background
     \shade[top color=awsdark, bottom color=awsblue]
-      (current page.north west) rectangle ([yshift=-9cm]current page.north east);
+      (0,0) rectangle (\paperwidth, -9cm);
 
     % Decorative circles
-    \fill[awsorange, opacity=0.15] ([xshift=12cm, yshift=-3cm]current page.north west) circle (4cm);
-    \fill[awsorange, opacity=0.1] ([xshift=14cm, yshift=-6cm]current page.north west) circle (2.5cm);
-    \fill[cloudblue, opacity=0.1] ([xshift=3cm, yshift=-5cm]current page.north west) circle (3cm);
+    \fill[awsorange, opacity=0.15] (12cm, -3cm) circle (4cm);
+    \fill[awsorange, opacity=0.1] (14cm, -6cm) circle (2.5cm);
+    \fill[cloudblue, opacity=0.1] (3cm, -5cm) circle (3cm);
 
-    % Part number - large and prominent
+    % Part number - large watermark
     \node[white, opacity=0.08, font=\fontsize{200}{200}\selectfont\bfseries]
-      at ([xshift=5cm, yshift=-5cm]current page.north west) {#1};
+      at (5cm, -5cm) {#1};
 
     % Part label
-    \node[white, font=\large\sffamily] at ([yshift=-2.5cm]current page.north) {PART};
+    \node[white, font=\large\sffamily] at (0.5\paperwidth, -2.5cm) {PART};
 
     % Part number (visible)
     \node[awsorange, font=\fontsize{72}{72}\selectfont\bfseries]
-      at ([yshift=-4.5cm]current page.north) {#1};
+      at (0.5\paperwidth, -4.5cm) {#1};
 
     % Part title
-    \node[white, font=\Huge\bfseries\sffamily] at ([yshift=-7cm]current page.north) {#2};
+    \node[white, font=\Huge\bfseries\sffamily] at (0.5\paperwidth, -7cm) {#2};
 
     % Decorative line
     \draw[awsorange, line width=2pt]
-      ([xshift=5cm, yshift=-8cm]current page.north west) --
-      ([xshift=-5cm, yshift=-8cm]current page.north east);
+      (3cm, -8cm) -- (\paperwidth-3cm, -8cm);
   \end{tikzpicture}
 
-  \vspace{9.5cm}
+  \vspace{0.8cm}
 
   % Overview content
   \begin{center}
@@ -569,7 +576,7 @@ enabling cross-session context and shared knowledge across your entire agent eco
 % API Overview Table
 \begin{center}
 \renewcommand{\arraystretch}{1.4}
-\begin{tabular}{>{\raggedright}p{3.5cm} >{\centering}p{5cm} >{\raggedright\arraybackslash}p{5.5cm}}
+\begin{tabular}{L{3.5cm} >{\centering\arraybackslash}p{5cm} L{5.5cm}}
 \rowcolor{awsblue!10}
 \textbf{\color{awsblue}Memory Type} & \textbf{\color{awsblue}API} & \textbf{\color{awsblue}Use Case} \\
 \midrule
@@ -635,7 +642,7 @@ Two external reviews identified critical issues that \textbf{fundamentally chang
 
 \begin{center}
 \renewcommand{\arraystretch}{1.5}
-\begin{tabular}{>{\raggedright}p{3cm} >{\raggedright}p{4.5cm} >{\raggedright\arraybackslash}p{6cm}}
+\begin{tabular}{L{3cm} L{4.5cm} L{6cm}}
 \rowcolor{dangerred!15}
 \textbf{\color{dangerred}Issue} & \textbf{\color{dangerred}Impact} & \textbf{\color{dangerred}Resolution} \\
 \midrule
@@ -655,7 +662,7 @@ async + boto3 = blocking & boto3 is synchronous; will stall MCP server under loa
 
 \begin{center}
 \renewcommand{\arraystretch}{1.5}
-\begin{tabular}{>{\raggedright}p{3.5cm} >{\raggedright}p{4cm} >{\raggedright\arraybackslash}p{6cm}}
+\begin{tabular}{L{3.5cm} L{4cm} L{6cm}}
 \rowcolor{warningamber!15}
 \textbf{\color{warningamber}Issue} & \textbf{\color{warningamber}Impact} & \textbf{\color{warningamber}Resolution} \\
 \midrule
@@ -678,7 +685,7 @@ Sanitize patterns incomplete & Missing AWS keys, GitHub tokens & Fixed: Added AK
 
 \begin{center}
 \renewcommand{\arraystretch}{1.5}
-\begin{tabular}{>{\raggedright}p{3.8cm} >{\raggedright}p{4cm} >{\raggedright\arraybackslash}p{5.7cm}}
+\begin{tabular}{L{3.8cm} L{4cm} L{5.7cm}}
 \rowcolor{successgreen!15}
 \textbf{\color{successgreen}Issue} & \textbf{\color{successgreen}Impact} & \textbf{\color{successgreen}Resolution} \\
 \midrule
@@ -960,7 +967,7 @@ Abstract \code{MemoryProvider} interface with two backends. Toggle via \code{MEM
 
 \begin{center}
 \renewcommand{\arraystretch}{1.6}
-\begin{tabular}{>{\raggedright}p{3.5cm} c c}
+\begin{tabular}{L{3.5cm} c c}
 \rowcolor{awsblue}
 \textbf{\color{white}Feature} & \textbf{\color{white}AWS AgentCore} & \textbf{\color{white}ChromaDB} \\
 \rowcolor{lightgray}
@@ -1165,7 +1172,7 @@ Short-term events are processed by configurable extraction strategies:
 
 \begin{center}
 \renewcommand{\arraystretch}{1.5}
-\begin{tabular}{>{\raggedright}p{3cm} >{\raggedright}p{5cm} >{\raggedright\arraybackslash}p{5cm}}
+\begin{tabular}{L{3cm} L{5cm} L{5cm}}
 \rowcolor{infoteal!15}
 \textbf{\color{infoteal}Strategy} & \textbf{\color{infoteal}What It Extracts} & \textbf{\color{infoteal}Use Case} \\
 \midrule
@@ -1218,7 +1225,7 @@ The \code{mcp-agentcore-memory} server exposes 8 tools for memory operations. It
 
 \begin{center}
 \renewcommand{\arraystretch}{1.5}
-\begin{tabular}{>{\raggedright}p{3.5cm} >{\raggedright}p{4.5cm} >{\raggedright\arraybackslash}p{5.5cm}}
+\begin{tabular}{L{3.5cm} L{4.5cm} L{5.5cm}}
 \rowcolor{cloudblue!15}
 \textbf{\color{cloudblue}Tool Name} & \textbf{\color{cloudblue}Description} & \textbf{\color{cloudblue}Key Parameters} \\
 \midrule
@@ -1493,7 +1500,7 @@ AI agents regularly see API keys, tokens, and credentials in code. These must be
 
 \begin{center}
 \renewcommand{\arraystretch}{1.5}
-\begin{tabular}{>{\raggedright}p{3cm} >{\ttfamily\small}p{8cm}}
+\begin{tabular}{L{3cm} >{\ttfamily\small\raggedright\arraybackslash}p{8cm}}
 \rowcolor{dangerred}
 \textbf{\color{white}Secret Type} & \textbf{\color{white}\textrm{Detection Pattern}} \\
 \rowcolor{dangerred!5}
@@ -1523,7 +1530,7 @@ Not all data should be stored in memory. Follow this classification:
 
 \begin{center}
 \renewcommand{\arraystretch}{1.5}
-\begin{tabular}{>{\raggedright}p{3.5cm} >{\centering}p{2.5cm} >{\raggedright\arraybackslash}p{6.5cm}}
+\begin{tabular}{L{3.5cm} >{\centering\arraybackslash}p{2.5cm} L{6.5cm}}
 \rowcolor{awsblue!15}
 \textbf{\color{awsblue}Data Type} & \textbf{\color{awsblue}Sensitivity} & \textbf{\color{awsblue}Storage Policy} \\
 \midrule
@@ -1805,7 +1812,7 @@ Pricing is \textbf{per-record}, not per-MB of storage:
 
 \begin{center}
 \renewcommand{\arraystretch}{1.6}
-\begin{tabular}{>{\raggedright}p{4cm} c r}
+\begin{tabular}{L{4cm} c r}
 \rowcolor{awsorange}
 \textbf{\color{white}Component} & \textbf{\color{white}Est. Volume} & \textbf{\color{white}Monthly Cost} \\
 \rowcolor{lightgray}
@@ -1861,7 +1868,7 @@ LIMIT 100;
 
 \begin{center}
 \renewcommand{\arraystretch}{1.5}
-\begin{tabular}{>{\raggedright}p{3.5cm} >{\raggedright}p{4cm} >{\raggedright\arraybackslash}p{5.5cm}}
+\begin{tabular}{L{3.5cm} L{4cm} L{5.5cm}}
 \rowcolor{dangerred!15}
 \textbf{\color{dangerred}Alarm} & \textbf{\color{dangerred}Threshold} & \textbf{\color{dangerred}Action} \\
 \midrule
@@ -1880,7 +1887,7 @@ Since agents are self-hosted and memory is cloud-based, network latency is a con
 
 \begin{center}
 \renewcommand{\arraystretch}{1.5}
-\begin{tabular}{>{\raggedright}p{3.5cm} c >{\raggedright\arraybackslash}p{6cm}}
+\begin{tabular}{L{3.5cm} c L{6cm}}
 \rowcolor{cloudblue!15}
 \textbf{\color{cloudblue}Operation} & \textbf{\color{cloudblue}Expected Latency} & \textbf{\color{cloudblue}Mitigation} \\
 \midrule
