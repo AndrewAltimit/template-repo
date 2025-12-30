@@ -25,6 +25,13 @@
 \usepackage{pgfplots}
 \usepackage{array}
 \usepackage{longtable}
+
+% Ragged-right paragraph columns to prevent word spacing issues
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% Increase vertical spacing between table rows for readability
+\renewcommand{\arraystretch}{1.4}
+
 \usepackage{colortbl}
 \usepackage{pifont}
 \usepackage{tabularray}
@@ -736,7 +743,7 @@ Linear probes achieve 93.2\% AUROC---only 0.9\% below a 2-layer MLP. The margina
 \section{Glossary of Terms}
 
 \begin{center}
-\begin{tabular}{p{3.5cm}p{9cm}}
+\begin{tabular}{L{3.5cm}L{9cm}}
 \toprule
 \textbf{Term} & \textbf{Definition} \\
 \midrule
@@ -3197,7 +3204,7 @@ Reference materials and supplementary documentation:
 \subsection{Core Classes}
 
 \begin{center}
-\begin{tabular}{p{4cm}p{8cm}}
+\begin{tabular}{L{4cm}L{8cm}}
 \toprule
 \textbf{Class} & \textbf{Description} \\
 \midrule
@@ -3283,7 +3290,7 @@ python packages/sleeper_agents/dashboard/app.py
 \subsection{Command Reference}
 
 \begin{center}
-\begin{tabular}{p{3cm}p{9cm}}
+\begin{tabular}{L{3cm}L{9cm}}
 \toprule
 \textbf{Command} & \textbf{Description} \\
 \midrule
