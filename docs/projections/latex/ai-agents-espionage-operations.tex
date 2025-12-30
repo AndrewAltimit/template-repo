@@ -232,25 +232,25 @@
 
   % Main visualization - Cipher Wheel (centered with slight upward shift)
   \begin{scope}[shift={([xshift=-0.5cm, yshift=1.5cm]current page.center)}]
-    % Outer cipher ring - rotating letters
-    \draw[chromesilver, opacity=0.2, line width=8pt] (0,0) circle (5cm);
-    \draw[signalred, opacity=0.4, line width=2pt] (0,0) circle (5cm);
+    % Outer cipher ring - rotating letters (improved visibility)
+    \draw[chromesilver, opacity=0.25, line width=8pt] (0,0) circle (5cm);
+    \draw[signalred, opacity=0.5, line width=2pt] (0,0) circle (5cm);
     \foreach \i/\letter in {0/A, 15/B, 30/C, 45/D, 60/E, 75/F, 90/G, 105/H, 120/I, 135/J, 150/K, 165/L, 180/M, 195/N, 210/O, 225/P, 240/Q, 255/R, 270/S, 285/T, 300/U, 315/V, 330/W, 345/X} {
-      \node[chromesilver, opacity=0.5, font=\fontsize{8}{8}\selectfont\bfseries] at (\i:5.5cm) {\letter};
+      \node[chromesilver, opacity=0.7, font=\fontsize{9}{9}\selectfont\bfseries] at (\i:5.5cm) {\letter};
     }
 
-    % Middle cipher ring - offset rotation with numbers
-    \draw[signalcyan, opacity=0.15, line width=6pt] (0,0) circle (3.8cm);
-    \draw[signalcyan, opacity=0.4, line width=1.5pt] (0,0) circle (3.8cm);
+    % Middle cipher ring - offset rotation with numbers (improved visibility)
+    \draw[signalcyan, opacity=0.2, line width=6pt] (0,0) circle (3.8cm);
+    \draw[signalcyan, opacity=0.5, line width=1.5pt] (0,0) circle (3.8cm);
     \foreach \i/\num in {7/0, 37/1, 67/2, 97/3, 127/4, 157/5, 187/6, 217/7, 247/8, 277/9, 307/X, 337/Y} {
-      \node[signalcyan, opacity=0.6, font=\fontsize{7}{7}\selectfont\bfseries] at (\i:4.2cm) {\num};
+      \node[signalcyan, opacity=0.75, font=\fontsize{8}{8}\selectfont\bfseries] at (\i:4.2cm) {\num};
     }
 
-    % Inner cipher ring - symbols
-    \draw[ciphergold, opacity=0.2, line width=5pt] (0,0) circle (2.6cm);
-    \draw[ciphergold, opacity=0.5, line width=1.5pt] (0,0) circle (2.6cm);
+    % Inner cipher ring - symbols (larger dots)
+    \draw[ciphergold, opacity=0.25, line width=5pt] (0,0) circle (2.6cm);
+    \draw[ciphergold, opacity=0.6, line width=1.5pt] (0,0) circle (2.6cm);
     \foreach \i in {0,30,...,330} {
-      \fill[ciphergold, opacity=0.4] (\i:2.9cm) circle (0.08);
+      \fill[ciphergold, opacity=0.5] (\i:2.9cm) circle (0.1);
     }
 
     % Active intercept indicators - pulsing nodes
@@ -266,12 +266,12 @@
     \draw[interceptgreen, opacity=0.3, line width=1pt, dashed] (165:3.8cm) -- (270:2.6cm);
     \draw[ciphergold, opacity=0.3, line width=1pt, dashed] (270:2.6cm) -- (0,0);
 
-    % Central core - decoded signal
+    % Central core - decoded signal (larger text for readability)
     \fill[midnightblue, opacity=0.8] (0,0) circle (1.6cm);
     \fill[shadownavy, opacity=0.9] (0,0) circle (1.2cm);
-    \fill[signalred] (0,0) circle (0.7cm);
-    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (0,0.12) {SIGNAL};
-    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (0,-0.15) {DECODED};
+    \fill[signalred] (0,0) circle (0.8cm);
+    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (0,0.15) {SIGNAL};
+    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (0,-0.15) {DECODED};
 
     % Radial scan line (active intercept)
     \draw[signalred, opacity=0.4, line width=2pt] (0,0) -- (45:5.2cm);
@@ -568,41 +568,43 @@ Gamified intelligence & Employees unknowingly participating in ``surveys'' & All
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Theory, Economics, and Historical Context};
 
-  % Encryption key / cipher visualization
+  % Encryption key / cipher visualization (improved)
   \begin{scope}[shift={(3cm, -7.5cm)}]
-    % Key outline (stylized)
-    \draw[chromesilver, opacity=0.3, line width=3pt] (0,0) -- (3,0);
-    \draw[chromesilver, opacity=0.3, line width=3pt] (3,0) circle (0.8);
-    % Key teeth pattern
-    \foreach \x in {0.5,1.0,1.5,2.0,2.5} {
-      \fill[signalred, opacity=0.6] (\x,-0.2) rectangle ({\x+0.15},0.2);
+    % Key shaft with connected teeth
+    \fill[chromesilver, opacity=0.35] (-0.1,-0.12) rectangle (2.8,0.12);
+    % Key teeth pattern (connected to shaft)
+    \foreach \x in {0.3,0.8,1.3,1.8,2.3} {
+      \fill[signalred, opacity=0.7] (\x,-0.35) rectangle ({\x+0.2},0.12);
     }
-    % Key ring
-    \draw[signalred, opacity=0.8, line width=2pt] (3,0) circle (0.6);
-    \fill[signalred, opacity=0.3] (3,0) circle (0.4);
+    % Key head (bow)
+    \fill[chromesilver, opacity=0.25] (3.2,0) circle (0.7);
+    \draw[signalred, opacity=0.8, line width=2.5pt] (3.2,0) circle (0.55);
+    \fill[signalred, opacity=0.4] (3.2,0) circle (0.35);
+    % Connect shaft to head
+    \fill[chromesilver, opacity=0.35] (2.5,-0.12) rectangle (3.2,0.12);
 
-    % Binary/cipher stream below
-    \node[chromesilver, opacity=0.4, font=\fontsize{6}{6}\selectfont\ttfamily] at (2,-1.2) {01101001 01101110 01110100 01100101 01101100};
+    % Binary/cipher stream below (improved visibility)
+    \node[chromesilver, opacity=0.55, font=\fontsize{7}{7}\selectfont\ttfamily] at (1.8,-1.0) {01101001 01101110 01110100 01100101 01101100};
   \end{scope}
 
-  % Cost comparison (right side - simplified)
+  % Cost comparison (right side - improved labels)
   \begin{scope}[shift={(10cm, -7.5cm)}]
-    \draw[chromesilver, opacity=0.4, line width=1pt, -Stealth] (0,0) -- (4.5,0);
-    \draw[chromesilver, opacity=0.4, line width=1pt, -Stealth] (0,0) -- (0,2);
-    \node[chromesilver, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (4.8,0) {SCALE};
-    \node[chromesilver, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (0,2.3) {COST};
+    \draw[chromesilver, opacity=0.5, line width=1.2pt, -Stealth] (0,0) -- (4.5,0);
+    \draw[chromesilver, opacity=0.5, line width=1.2pt, -Stealth] (0,0) -- (0,2);
+    \node[chromesilver, opacity=0.75, font=\fontsize{7}{7}\selectfont\bfseries] at (4.8,0) {SCALE};
+    \node[chromesilver, opacity=0.75, font=\fontsize{7}{7}\selectfont\bfseries] at (0,2.3) {COST};
 
     % Traditional curve (steep)
-    \draw[coldsteel, opacity=0.7, line width=2pt] (0.2,0.2) .. controls (1,0.8) and (2.5,1.5) .. (4,2);
-    \node[coldsteel, opacity=0.8, font=\fontsize{6}{6}\selectfont] at (4.3,1.7) {Trad.};
+    \draw[coldsteel, opacity=0.8, line width=2pt] (0.2,0.2) .. controls (1,0.8) and (2.5,1.5) .. (4,2);
+    \node[coldsteel, opacity=0.9, font=\fontsize{7}{7}\selectfont] at (4.4,1.7) {Trad.};
 
     % AI-enabled curve (flat)
     \draw[signalred, opacity=0.9, line width=2pt] (0.2,0.5) .. controls (1,0.6) and (2.5,0.7) .. (4,0.75);
-    \node[signalred, font=\fontsize{6}{6}\selectfont] at (4.3,0.5) {AI};
+    \node[signalred, font=\fontsize{7}{7}\selectfont] at (4.3,0.45) {AI};
 
-    % Current marker
-    \fill[signalred] (2.8, 0.68) circle (0.15);
-    \node[shadowdark, font=\fontsize{5}{5}\selectfont\bfseries] at (2.8, 0.68) {N};
+    % Current marker (larger with readable NOW label)
+    \fill[signalred] (2.8, 0.68) circle (0.18);
+    \node[signalred, font=\fontsize{7}{7}\selectfont\bfseries] at (2.8, 1.1) {NOW};
   \end{scope}
 
   % Bottom accent
@@ -893,63 +895,77 @@ The French recruitment of Vladimir Vetrov (``Farewell'') in the early 1980s demo
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Threat Analysis};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Capabilities, Vectors, and Actor Taxonomy};
 
-  % Signal intercept visualization - waveform analysis
-  \begin{scope}[shift={(3cm, -7cm)}]
+  % Signal intercept visualization - waveform analysis (improved)
+  \begin{scope}[shift={(3cm, -6.8cm)}]
     % Frequency spectrum background
     \fill[midnightblue, opacity=0.5] (0,-0.8) rectangle (5.5,1.2);
-    \draw[chromesilver, opacity=0.3, line width=0.5pt] (0,-0.8) rectangle (5.5,1.2);
+    \draw[chromesilver, opacity=0.4, line width=0.5pt] (0,-0.8) rectangle (5.5,1.2);
 
     % Signal waveforms (intercepted)
-    \draw[signalred, opacity=0.8, line width=1.5pt]
+    \draw[signalred, opacity=0.85, line width=1.5pt]
       (0.2,0.2) sin (0.5,0.8) cos (0.8,0.2) sin (1.1,-0.3) cos (1.4,0.2)
       sin (1.7,0.6) cos (2,0.2) sin (2.3,-0.5) cos (2.6,0.2)
       sin (2.9,0.9) cos (3.2,0.2) sin (3.5,-0.2) cos (3.8,0.2)
       sin (4.1,0.7) cos (4.4,0.2) sin (4.7,-0.4) cos (5,0.2);
 
-    \draw[signalcyan, opacity=0.6, line width=1pt]
+    \draw[signalcyan, opacity=0.7, line width=1.2pt]
       (0.2,0) sin (0.6,0.4) cos (1,0) sin (1.4,-0.3) cos (1.8,0)
       sin (2.2,0.5) cos (2.6,0) sin (3,-0.4) cos (3.4,0)
       sin (3.8,0.3) cos (4.2,0) sin (4.6,-0.2) cos (5,0);
 
-    % Intercept marker
-    \draw[ciphergold, opacity=0.9, line width=1.5pt, dashed] (2.9,-0.8) -- (2.9,1.2);
-    \node[ciphergold, font=\fontsize{6}{6}\selectfont\bfseries] at (2.9,1.4) {INTERCEPT};
+    % Intercept marker (improved visibility)
+    \draw[ciphergold, opacity=0.9, line width=2pt, dashed] (2.9,-0.8) -- (2.9,1.2);
+    \node[ciphergold, font=\fontsize{7}{7}\selectfont\bfseries] at (2.9,1.5) {INTERCEPT};
   \end{scope}
 
-  % Threat radar (right side - simplified)
-  \begin{scope}[shift={(11cm, -7cm)}]
+  % Threat radar (right side - with legend)
+  \begin{scope}[shift={(11cm, -6.6cm)}]
     % Background rings
     \foreach \r in {0.5, 1.0, 1.5} {
-      \draw[chromesilver, opacity=0.15, line width=0.5pt] (0,0) circle (\r);
+      \draw[chromesilver, opacity=0.2, line width=0.5pt] (0,0) circle (\r);
     }
 
     % Axis lines
     \foreach \a in {0,60,120,180,240,300} {
-      \draw[chromesilver, opacity=0.2, line width=0.5pt] (0,0) -- (\a:1.6);
+      \draw[chromesilver, opacity=0.25, line width=0.5pt] (0,0) -- (\a:1.6);
     }
 
-    % Labels
-    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont\bfseries] at (90:1.9) {SCALE};
-    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont\bfseries] at (30:1.9) {STEALTH};
-    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont\bfseries] at (330:1.9) {PERSIST};
-    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont\bfseries] at (270:1.9) {ATTRIB};
-    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont\bfseries] at (210:1.9) {COST};
-    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont\bfseries] at (150:1.9) {ADAPT};
+    % Labels (improved size)
+    \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (90:1.85) {SCALE};
+    \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (30:1.95) {STEALTH};
+    \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (330:1.95) {PERSIST};
+    \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (270:1.85) {ATTRIB};
+    \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (210:1.85) {COST};
+    \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (150:1.85) {ADAPT};
 
     % Traditional threat
-    \fill[coldsteel, opacity=0.25]
+    \fill[coldsteel, opacity=0.3]
       (90:0.5) -- (30:0.6) -- (330:0.9) -- (270:0.8) -- (210:0.4) -- (150:0.6) -- cycle;
-    \draw[coldsteel, opacity=0.5, line width=1pt]
+    \draw[coldsteel, opacity=0.6, line width=1.2pt]
       (90:0.5) -- (30:0.6) -- (330:0.9) -- (270:0.8) -- (210:0.4) -- (150:0.6) -- cycle;
 
     % AI-enabled threat
-    \fill[signalred, opacity=0.3]
+    \fill[signalred, opacity=0.35]
       (90:1.4) -- (30:1.2) -- (330:1.1) -- (270:0.5) -- (210:1.3) -- (150:1.25) -- cycle;
-    \draw[signalred, opacity=0.8, line width=1.5pt]
+    \draw[signalred, opacity=0.85, line width=1.5pt]
       (90:1.4) -- (30:1.2) -- (330:1.1) -- (270:0.5) -- (210:1.3) -- (150:1.25) -- cycle;
 
     % Center
     \fill[signalred] (0,0) circle (0.06);
+
+    % Legend (below radar)
+    \node[anchor=west] at (-1.2,-2.3) {
+      \begin{tikzpicture}
+        \fill[coldsteel, opacity=0.5] (0,0) rectangle (0.3,0.15);
+        \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (0.4,0.075) {Traditional};
+      \end{tikzpicture}
+    };
+    \node[anchor=west] at (0.8,-2.3) {
+      \begin{tikzpicture}
+        \fill[signalred, opacity=0.6] (0,0) rectangle (0.3,0.15);
+        \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (0.4,0.075) {AI-Enabled};
+      \end{tikzpicture}
+    };
   \end{scope}
 
   % Bottom accent
@@ -1387,22 +1403,27 @@ Response latency patterns & Cognitive load, rehearsed vs.\ spontaneous answers \
     \node[chromesilver, font=\fontsize{7}{7}\selectfont\bfseries] at (5.2,0) {SECURE};
   \end{scope}
 
-  % Shield icon (right side)
+  % Shield icon (right side - enlarged lock)
   \begin{scope}[shift={(12cm, -7cm)}]
-    % Shield outline
-    \draw[interceptgreen, opacity=0.8, line width=2pt] (0,1) -- (1.2,0.3) -- (1.2,-0.8) -- (0,-1.3) -- (-1.2,-0.8) -- (-1.2,0.3) -- cycle;
-    \fill[interceptgreen, opacity=0.15] (0,0.8) -- (1,0.2) -- (1,-0.6) -- (0,-1.1) -- (-1,-0.6) -- (-1,0.2) -- cycle;
-    % Lock symbol in center
-    \draw[chromesilver, opacity=0.8, line width=1.5pt] (-0.25,-0.3) -- (-0.25,0.1) arc (180:0:0.25) -- (0.25,-0.3);
-    \fill[chromesilver, opacity=0.6] (-0.35,-0.3) rectangle (0.35,-0.7);
-    \fill[shadowdark] (0,-0.45) circle (0.08);
+    % Shield outline (larger)
+    \draw[interceptgreen, opacity=0.85, line width=2.5pt] (0,1.2) -- (1.4,0.4) -- (1.4,-0.9) -- (0,-1.5) -- (-1.4,-0.9) -- (-1.4,0.4) -- cycle;
+    \fill[interceptgreen, opacity=0.18] (0,1) -- (1.2,0.3) -- (1.2,-0.7) -- (0,-1.3) -- (-1.2,-0.7) -- (-1.2,0.3) -- cycle;
+    % Lock symbol in center (enlarged and thicker)
+    \draw[chromesilver, opacity=0.9, line width=2.5pt] (-0.35,-0.25) -- (-0.35,0.2) arc (180:0:0.35) -- (0.35,-0.25);
+    \fill[chromesilver, opacity=0.7] (-0.45,-0.25) rectangle (0.45,-0.75);
+    \fill[shadowdark] (0,-0.45) circle (0.1);
+    % Keyhole detail
+    \fill[shadowdark] (0,-0.55) -- (-0.05,-0.65) -- (0.05,-0.65) -- cycle;
   \end{scope}
 
-  % Legend
-  \node[chromesilver, opacity=0.7, font=\fontsize{8}{8}\selectfont\bfseries, anchor=west] at (10cm, -5.2cm) {DEFENSE-IN-DEPTH};
-  \node[interceptgreen, opacity=0.85, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -5.8cm) {Multi-layer controls};
-  \node[chromesilver, opacity=0.85, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -6.4cm) {Identity verification};
-  \node[chromesilver, opacity=0.85, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -7cm) {AI supply chain governance};
+  % Legend (with bullet indicators)
+  \node[chromesilver, opacity=0.8, font=\fontsize{8}{8}\selectfont\bfseries, anchor=west] at (10cm, -5.2cm) {DEFENSE-IN-DEPTH};
+  \fill[interceptgreen, opacity=0.7] (9.85cm, -5.8cm) circle (0.06);
+  \node[interceptgreen, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -5.8cm) {Multi-layer controls};
+  \fill[chromesilver, opacity=0.5] (9.85cm, -6.4cm) circle (0.06);
+  \node[chromesilver, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -6.4cm) {Identity verification};
+  \fill[chromesilver, opacity=0.5] (9.85cm, -7cm) circle (0.06);
+  \node[chromesilver, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -7cm) {AI supply chain governance};
 
   % Bottom accent
   \fill[signalred] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
