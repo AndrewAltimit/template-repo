@@ -257,11 +257,11 @@
     \node[instdark, font=\fontsize{8}{8}\selectfont\bfseries] at (0,0.15) {HANDLER};
     \node[instdark, font=\fontsize{8}{8}\selectfont\bfseries] at (0,-0.15) {BYPASS};
 
-    % Cross-connections (showing complexity)
-    \draw[white, opacity=0.1, line width=0.5pt] (30:4cm) -- (165:4cm);
-    \draw[white, opacity=0.1, line width=0.5pt] (75:4cm) -- (255:4cm);
-    \draw[white, opacity=0.1, line width=0.5pt] (120:4cm) -- (300:4cm);
-    \draw[white, opacity=0.1, line width=0.5pt] (210:4cm) -- (345:4cm);
+    % Cross-connections (showing complexity) - increased opacity for visibility
+    \draw[white, opacity=0.18, line width=0.7pt] (30:4cm) -- (165:4cm);
+    \draw[white, opacity=0.18, line width=0.7pt] (75:4cm) -- (255:4cm);
+    \draw[white, opacity=0.18, line width=0.7pt] (120:4cm) -- (300:4cm);
+    \draw[white, opacity=0.18, line width=0.7pt] (210:4cm) -- (345:4cm);
   \end{scope}
 
   % Document classification bar
@@ -552,16 +552,16 @@ Gamified intelligence & Employees unknowingly participating in ``surveys'' & All
     \draw[white, opacity=0.4, line width=1.2pt, -Stealth] (0,0) -- (0,3) node[above, font=\fontsize{7}{7}\selectfont, white, opacity=0.7] {COST};
 
     % Traditional HUMINT cost curve (steep)
-    \draw[instaccent, opacity=0.7, line width=2pt] (0.3,0.3) .. controls (1.5,1.2) and (3,2.2) .. (5.5,2.8);
-    \node[instaccent, opacity=0.8, font=\fontsize{6}{6}\selectfont] at (5.5, 2.5) {Traditional};
+    \draw[instaccent, opacity=0.8, line width=2.5pt] (0.3,0.3) .. controls (1.5,1.2) and (3,2.2) .. (5.5,2.8);
+    \node[instaccent, opacity=0.9, font=\fontsize{7}{7}\selectfont\itshape] at (5.8, 2.5) {Traditional};
 
     % AI-enabled cost curve (flat)
-    \draw[instgold, opacity=0.8, line width=2pt] (0.3,0.8) .. controls (1.5,0.9) and (3,1.0) .. (5.5,1.1);
-    \node[instgold, font=\fontsize{6}{6}\selectfont] at (5.5, 0.8) {AI-Enabled};
+    \draw[instgold, opacity=0.9, line width=2.5pt] (0.3,0.8) .. controls (1.5,0.9) and (3,1.0) .. (5.5,1.1);
+    \node[instgold, font=\fontsize{7}{7}\selectfont\itshape] at (5.8, 0.8) {AI-Enabled};
 
-    % Current marker
-    \fill[instgold, opacity=0.85] (3.8, 1.0) circle (0.15);
-    \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (3.8, 1.0) {NOW};
+    % Current marker - larger for visibility
+    \fill[instgold] (3.8, 1.0) circle (0.22);
+    \node[instdark, font=\fontsize{6}{6}\selectfont\bfseries] at (3.8, 1.0) {NOW};
   \end{scope}
 
   % Legend
@@ -880,24 +880,24 @@ The French recruitment of Vladimir Vetrov (``Farewell'') in the early 1980s demo
       \draw[white, opacity=0.2, line width=0.5pt] (0,0) -- (\a:2.15);
     }
 
-    % Labels
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (90:2.35) {SCALE};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (30:2.35) {STEALTH};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (330:2.35) {PERSIST};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (270:2.35) {ATTR};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (210:2.35) {COST};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (150:2.35) {ADAPT};
+    % Labels - increased font size and opacity for readability
+    \node[white, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (90:2.5) {SCALE};
+    \node[white, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (30:2.5) {STEALTH};
+    \node[white, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (330:2.5) {PERSIST};
+    \node[white, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (270:2.5) {ATTRIB};
+    \node[white, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (210:2.5) {COST};
+    \node[white, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (150:2.5) {ADAPT};
 
-    % Traditional threat (dimmer, smaller)
-    \fill[instaccent, opacity=0.2]
+    % Traditional threat (dimmer, smaller) - increased opacity
+    \fill[instaccent, opacity=0.3]
       (90:0.75) -- (30:0.9) -- (330:1.25) -- (270:1.15) -- (210:0.6) -- (150:0.85) -- cycle;
-    \draw[instaccent, opacity=0.5, line width=1pt]
+    \draw[instaccent, opacity=0.6, line width=1.2pt]
       (90:0.75) -- (30:0.9) -- (330:1.25) -- (270:1.15) -- (210:0.6) -- (150:0.85) -- cycle;
 
-    % AI-enabled threat (brighter, larger)
-    \fill[instgold, opacity=0.25]
+    % AI-enabled threat (brighter, larger) - increased opacity
+    \fill[instgold, opacity=0.35]
       (90:1.85) -- (30:1.6) -- (330:1.5) -- (270:0.75) -- (210:1.75) -- (150:1.7) -- cycle;
-    \draw[instgold, opacity=0.8, line width=1.5pt]
+    \draw[instgold, opacity=0.9, line width=2pt]
       (90:1.85) -- (30:1.6) -- (330:1.5) -- (270:0.75) -- (210:1.75) -- (150:1.7) -- cycle;
 
     % Center point
@@ -1334,26 +1334,26 @@ Response latency patterns & Cognitive load, rehearsed vs.\ spontaneous answers \
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Defense};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Counterintelligence, Controls, and Policy};
 
-  % Shield/defense visualization
+  % Shield/defense visualization - enhanced for visibility
   \begin{scope}[shift={(5cm, -7cm)}]
-    % Outer shield
-    \draw[instgold, opacity=0.8, line width=2pt] (0,1.5) -- (2,0.5) -- (2,-1.5) -- (0,-2.5) -- (-2,-1.5) -- (-2,0.5) -- cycle;
-    \draw[instgold, opacity=0.4, line width=1pt] (0,1.2) -- (1.6,0.4) -- (1.6,-1.2) -- (0,-2) -- (-1.6,-1.2) -- (-1.6,0.4) -- cycle;
+    % Outer shield - increased line weight
+    \draw[instgold, opacity=0.9, line width=2.5pt] (0,1.5) -- (2,0.5) -- (2,-1.5) -- (0,-2.5) -- (-2,-1.5) -- (-2,0.5) -- cycle;
+    \draw[instgold, opacity=0.5, line width=1.5pt] (0,1.2) -- (1.6,0.4) -- (1.6,-1.2) -- (0,-2) -- (-1.6,-1.2) -- (-1.6,0.4) -- cycle;
 
-    % Inner layers
-    \fill[instgold, opacity=0.1] (0,0.9) -- (1.2,0.3) -- (1.2,-0.9) -- (0,-1.5) -- (-1.2,-0.9) -- (-1.2,0.3) -- cycle;
-    \fill[instgold, opacity=0.2] (0,0.6) -- (0.8,0.2) -- (0.8,-0.6) -- (0,-1) -- (-0.8,-0.6) -- (-0.8,0.2) -- cycle;
+    % Inner layers - increased opacity
+    \fill[instgold, opacity=0.15] (0,0.9) -- (1.2,0.3) -- (1.2,-0.9) -- (0,-1.5) -- (-1.2,-0.9) -- (-1.2,0.3) -- cycle;
+    \fill[instgold, opacity=0.25] (0,0.6) -- (0.8,0.2) -- (0.8,-0.6) -- (0,-1) -- (-0.8,-0.6) -- (-0.8,0.2) -- cycle;
 
-    % Center
-    \fill[instgold] (0,-0.2) circle (0.3);
-    \node[instdark, font=\fontsize{6}{6}\selectfont\bfseries] at (0,-0.2) {CI};
+    % Center - larger with clearer text
+    \fill[instgold] (0,-0.2) circle (0.4);
+    \node[instdark, font=\fontsize{8}{8}\selectfont\bfseries] at (0,-0.2) {CI};
   \end{scope}
 
-  % Legend
-  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -6cm) {DEFENSE-IN-DEPTH};
-  \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -6.6cm) {Multi-layer controls};
-  \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -7.2cm) {Identity verification};
-  \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -7.8cm) {AI supply chain governance};
+  % Legend - improved visibility
+  \node[white, opacity=0.7, font=\fontsize{8}{8}\selectfont\bfseries, anchor=west] at (10.5cm, -6cm) {DEFENSE-IN-DEPTH};
+  \node[white, opacity=0.85, font=\fontsize{8}{8}\selectfont, anchor=west] at (10.5cm, -6.7cm) {Multi-layer controls};
+  \node[white, opacity=0.85, font=\fontsize{8}{8}\selectfont, anchor=west] at (10.5cm, -7.4cm) {Identity verification};
+  \node[white, opacity=0.85, font=\fontsize{8}{8}\selectfont, anchor=west] at (10.5cm, -8.1cm) {AI supply chain governance};
 
   % Bottom accent
   \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
@@ -1630,28 +1630,28 @@ High-value instruction spoofing & HITL Notarization \\
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Projections};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Timeline, Scenarios, and Conclusion};
 
-  % Timeline visualization
+  % Timeline visualization - enhanced for visibility
   \begin{scope}[shift={(3cm, -7.5cm)}]
     % Timeline line
-    \draw[white, opacity=0.4, line width=1.5pt] (0,0) -- (12,0);
+    \draw[white, opacity=0.5, line width=2pt] (0,0) -- (12,0);
 
-    % Year markers
+    % Year markers - larger and more visible
     \foreach \x/\year in {0/2025, 3/2026, 6/2028, 9/2029, 12/2030} {
-      \fill[white, opacity=0.6] (\x,0) circle (0.1);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont] at (\x,-0.4) {\year};
+      \fill[white, opacity=0.8] (\x,0) circle (0.12);
+      \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont\bfseries] at (\x,-0.5) {\year};
     }
 
-    % Current marker
-    \fill[instgold] (0,0) circle (0.2);
-    \node[instgold, font=\fontsize{6}{6}\selectfont\bfseries] at (0,0.5) {NOW};
+    % Current marker - more prominent
+    \fill[instgold] (0,0) circle (0.25);
+    \node[instgold, font=\fontsize{7}{7}\selectfont\bfseries] at (0,0.6) {NOW};
 
-    % Transition zone
-    \fill[warningamber, opacity=0.3] (1.5,-0.3) rectangle (7.5,0.3);
-    \node[warningamber, opacity=0.8, font=\fontsize{6}{6}\selectfont] at (4.5,0.6) {OFFENSE ADVANTAGE};
+    % Transition zone - increased opacity
+    \fill[warningamber, opacity=0.4] (1.5,-0.35) rectangle (7.5,0.35);
+    \node[warningamber, font=\fontsize{7}{7}\selectfont\bfseries] at (4.5,0.7) {OFFENSE ADVANTAGE};
 
-    % Equilibrium zone
-    \fill[successgreen, opacity=0.2] (7.5,-0.3) rectangle (12,0.3);
-    \node[successgreen, opacity=0.8, font=\fontsize{6}{6}\selectfont] at (9.75,0.6) {EQUILIBRIUM?};
+    % Equilibrium zone - increased opacity
+    \fill[successgreen, opacity=0.3] (7.5,-0.35) rectangle (12,0.35);
+    \node[successgreen, font=\fontsize{7}{7}\selectfont\bfseries] at (9.75,0.7) {EQUILIBRIUM?};
   \end{scope}
 
   % Bottom accent
