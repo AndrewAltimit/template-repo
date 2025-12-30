@@ -7,7 +7,10 @@ through an event bus pattern.
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+import logging
 from typing import Any, Callable
+
+logger = logging.getLogger(__name__)
 
 
 class EventType(str, Enum):
@@ -147,14 +150,22 @@ class EventBus:
                 handler(event)
             except Exception:
                 # Log but don't fail on handler errors
-                pass
+                logger.exception(
+                    "Handler %s failed for event %s",
+                    getattr(handler, "__name__", handler),
+                    event.event_type.value,
+                )
 
         # Notify global handlers
         for handler in self._global_handlers:
             try:
                 handler(event)
             except Exception:
-                pass
+                logger.exception(
+                    "Global handler %s failed for event %s",
+                    getattr(handler, "__name__", handler),
+                    event.event_type.value,
+                )
 
     def clear(self) -> None:
         """Clear all subscriptions."""
