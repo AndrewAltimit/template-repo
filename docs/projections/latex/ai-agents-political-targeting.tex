@@ -24,6 +24,12 @@
 \usepackage{pgfplots}
 \usepackage{array}
 \usepackage{longtable}
+
+% Ragged-right paragraph columns to prevent word spacing issues
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% Increase vertical spacing between table rows for readability
+\renewcommand{\arraystretch}{1.4}
 \usepackage{colortbl}
 \usepackage{pifont}
 \usepackage{setspace}
@@ -507,7 +513,7 @@ The concept of \textbf{stochastic terrorism}---using mass communication to incit
 
 \begin{center}
 \small
-\begin{tabular}{p{5.5cm}p{3.5cm}p{5cm}}
+\begin{tabular}{L{5.5cm}L{3.5cm}L{5cm}}
 \toprule
 \textbf{Work} & \textbf{Author(s)} & \textbf{Relevance} \\
 \midrule
@@ -547,7 +553,7 @@ The year 2025 has demonstrated (evidence confidence levels noted):
 
 \begin{center}
 \small
-\begin{tabular}{p{4cm}p{5.5cm}p{2.5cm}}
+\begin{tabular}{L{4cm}L{5.5cm}L{2.5cm}}
 \toprule
 \textbf{Claim Type} & \textbf{Evidence Sources} & \textbf{Confidence} \\
 \midrule
@@ -566,7 +572,7 @@ Rather than point predictions, we present capability envelopes with key gating v
 
 \begin{center}
 \small
-\begin{tabular}{p{3.5cm}p{2cm}p{2.5cm}p{2cm}p{3.5cm}}
+\begin{tabular}{L{3.5cm}L{2cm}L{2.5cm}L{2cm}L{3.5cm}}
 \toprule
 \textbf{Capability} & \textbf{Lower} & \textbf{Median} & \textbf{Upper} & \textbf{Gating Variables} \\
 \midrule
@@ -810,7 +816,7 @@ Historically, attacks on protected political figures required organizational inf
 
 \begin{center}
 \small
-\begin{tabular}{p{2.5cm}p{3.5cm}p{3cm}p{2cm}}
+\begin{tabular}{L{2.5cm}L{3.5cm}L{3cm}L{2cm}}
 \toprule
 \textbf{Requirement} & \textbf{AI-Era Challenge} & \textbf{Detection Shift} & \textbf{Confidence} \\
 \midrule
@@ -835,7 +841,7 @@ The shift disproportionately affects different categories:
 
 \begin{center}
 \small
-\begin{tabular}{p{3.5cm}p{9cm}}
+\begin{tabular}{L{3.5cm}L{9cm}}
 \toprule
 \textbf{Category} & \textbf{Risk Profile} \\
 \midrule
@@ -882,7 +888,7 @@ What if the AI ``chief of staff'' used by a politician is compromised during tra
 
 \begin{center}
 \small
-\begin{tabular}{p{3cm}p{9cm}}
+\begin{tabular}{L{3cm}L{9cm}}
 \toprule
 \textbf{Control Category} & \textbf{Measures} \\
 \midrule
@@ -902,7 +908,7 @@ Beyond compromising AI systems directly, AI agents enable a qualitatively differ
 
 \begin{center}
 \small
-\begin{tabular}{p{5cm}p{7.5cm}}
+\begin{tabular}{L{5cm}L{7.5cm}}
 \toprule
 \textbf{Traditional Spearphishing} & \textbf{AI-Enabled Spearphishing 2.0} \\
 \midrule
@@ -932,7 +938,7 @@ This analysis focuses on \textit{politically motivated} targeting. This may unde
 
 \begin{center}
 \small
-\begin{tabular}{p{2.5cm}p{2.5cm}p{3cm}p{4cm}}
+\begin{tabular}{L{2.5cm}L{2.5cm}L{3cm}L{4cm}}
 \toprule
 \textbf{Actor Type} & \textbf{Motivation} & \textbf{Traditional Barrier} & \textbf{AI-Enabled Change} \\
 \midrule
@@ -989,7 +995,7 @@ AI agents can generate thousands of technically valid FOIA requests that agencie
 
 \begin{center}
 \small
-\begin{tabular}{p{3.5cm}p{4.5cm}p{4.5cm}}
+\begin{tabular}{L{3.5cm}L{4.5cm}L{4.5cm}}
 \toprule
 \textbf{Dimension} & \textbf{Pre-AI Era} & \textbf{AI-Enabled Era} \\
 \midrule
@@ -1145,7 +1151,7 @@ When targeting individual leaders becomes significantly easier, rational institu
 
 \begin{center}
 \small
-\begin{tabular}{p{2.5cm}p{4cm}p{2.5cm}p{4cm}}
+\begin{tabular}{L{2.5cm}L{4cm}L{2.5cm}L{4cm}}
 \toprule
 \textbf{Type} & \textbf{Description} & \textbf{Democratic Risk} & \textbf{Accountability} \\
 \midrule
@@ -1281,7 +1287,7 @@ Traditional frameworks assume attribution is eventually possible. AI-enabled att
 
 \begin{center}
 \small
-\begin{tabular}{p{3cm}p{4.5cm}p{4.5cm}}
+\begin{tabular}{L{3cm}L{4.5cm}L{4.5cm}}
 \toprule
 \textbf{Doctrine} & \textbf{Description} & \textbf{Risk} \\
 \midrule
@@ -1390,7 +1396,7 @@ Strategic Patience & Accept uncertainty; focus on defense & May embolden attacke
 
 \begin{center}
 \small
-\begin{tabular}{p{1.2cm}p{5cm}p{6cm}}
+\begin{tabular}{L{1.2cm}L{5cm}L{6cm}}
 \toprule
 \textbf{Priority} & \textbf{Action} & \textbf{Rationale} \\
 \midrule
@@ -1409,7 +1415,7 @@ Corporate leadership faces similar dynamics but with less institutional protecti
 
 \begin{center}
 \small
-\begin{tabular}{p{1.2cm}p{4.5cm}p{6.5cm}}
+\begin{tabular}{L{1.2cm}L{4.5cm}L{6.5cm}}
 \toprule
 \textbf{Priority} & \textbf{Action} & \textbf{Rationale} \\
 \midrule
@@ -1426,7 +1432,7 @@ Medium & Engage industry associations on shared threat intelligence & Collective
 
 \begin{center}
 \small
-\begin{tabular}{p{1.2cm}p{4.5cm}p{6.5cm}}
+\begin{tabular}{L{1.2cm}L{4.5cm}L{6.5cm}}
 \toprule
 \textbf{Priority} & \textbf{Action} & \textbf{Rationale} \\
 \midrule
@@ -1443,7 +1449,7 @@ Medium & Participate in industry-wide safety standards & Individual efforts nece
 
 \begin{center}
 \small
-\begin{tabular}{p{1.2cm}p{4.5cm}p{6.5cm}}
+\begin{tabular}{L{1.2cm}L{4.5cm}L{6.5cm}}
 \toprule
 \textbf{Priority} & \textbf{Action} & \textbf{Rationale} \\
 \midrule
@@ -1463,7 +1469,7 @@ Medium & Maintain perspective on actual vs. perceived risk & Media coverage may 
 
 \begin{center}
 \small
-\begin{tabular}{p{4cm}p{3.5cm}p{3.5cm}}
+\begin{tabular}{L{4cm}L{3.5cm}L{3.5cm}}
 \toprule
 \textbf{Scenario} & \textbf{Strong Defense} & \textbf{Weak Defense} \\
 \midrule
@@ -1517,7 +1523,7 @@ Leadership withdraws entirely from physical public presence. All appearances bec
 
 \begin{center}
 \small
-\begin{tabular}{p{5cm}p{7.5cm}}
+\begin{tabular}{L{5cm}L{7.5cm}}
 \toprule
 \textbf{Indicator} & \textbf{What It Signals} \\
 \midrule
@@ -1533,7 +1539,7 @@ Documented AI assistance in thwarted attacks & Kinetic threat threshold crossing
 
 \begin{center}
 \small
-\begin{tabular}{p{4.5cm}p{8cm}}
+\begin{tabular}{L{4.5cm}L{8cm}}
 \toprule
 \textbf{Indicator} & \textbf{What It Signals} \\
 \midrule
@@ -1593,7 +1599,7 @@ New legal frameworks for AI-enabled harassment & Policy response crystallizing \
 
 \begin{center}
 \small
-\begin{tabular}{p{4cm}p{3.5cm}p{5cm}}
+\begin{tabular}{L{4cm}L{3.5cm}L{5cm}}
 \toprule
 \textbf{Indicator Class} & \textbf{Review Frequency} & \textbf{Responsible Body} \\
 \midrule
@@ -1622,7 +1628,7 @@ Democratic erosion & Annually & Independent Oversight \\
 
 \begin{center}
 \small
-\begin{tabular}{p{3.5cm}p{4cm}p{4.5cm}}
+\begin{tabular}{L{3.5cm}L{4cm}L{4.5cm}}
 \toprule
 \textbf{Prohibited Practice} & \textbf{Rationale} & \textbf{Alternative Approach} \\
 \midrule
@@ -1639,7 +1645,7 @@ Indefinite retention of monitoring data & Mission creep; abuse potential & Stric
 
 \begin{center}
 \small
-\begin{tabular}{p{4cm}p{8cm}}
+\begin{tabular}{L{4cm}L{8cm}}
 \toprule
 \textbf{Safeguard} & \textbf{Implementation} \\
 \midrule
@@ -1666,7 +1672,7 @@ A successful AI-enabled assassination of a major political figure could trigger 
 
 \begin{center}
 \small
-\begin{tabular}{p{4cm}p{4cm}p{5cm}}
+\begin{tabular}{L{4cm}L{4cm}L{5cm}}
 \toprule
 \textbf{Likely Provision} & \textbf{Justification Given} & \textbf{Civil Liberties Impact} \\
 \midrule
@@ -1696,7 +1702,7 @@ Patriot Act 2.0 is more likely than not following a successful high-profile AI-e
 
 \begin{center}
 \small
-\begin{tabular}{p{4cm}p{8cm}}
+\begin{tabular}{L{4cm}L{8cm}}
 \toprule
 \textbf{Strategy} & \textbf{Implementation} \\
 \midrule
@@ -1780,7 +1786,7 @@ The purpose of projection is not prediction but preparation. By understanding po
 
 \begin{center}
 \small
-\begin{tabular}{p{2.2cm}ccccp{3cm}}
+\begin{tabular}{L{2.2cm}ccccL{3cm}}
 \toprule
 \textbf{Vector} & \textbf{Likelihood} & \textbf{Impact} & \textbf{Detect.} & \textbf{Owner} & \textbf{Mitigations} \\
 \midrule
@@ -1797,7 +1803,7 @@ Insider & Medium & Very High & Low & IT Security & Vendor audits \\
 
 \begin{center}
 \small
-\begin{tabular}{p{3.5cm}p{2.5cm}p{1.8cm}p{4.5cm}}
+\begin{tabular}{L{3.5cm}L{2.5cm}L{1.8cm}L{4.5cm}}
 \toprule
 \textbf{Claim} & \textbf{Evidence Type} & \textbf{Confidence} & \textbf{Example Sources} \\
 \midrule

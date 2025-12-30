@@ -24,6 +24,13 @@
 \usepackage{pgfplots}
 \usepackage{array}
 \usepackage{longtable}
+
+% Ragged-right paragraph columns to prevent word spacing issues
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% Increase vertical spacing between table rows for readability
+\renewcommand{\arraystretch}{1.4}
+
 \usepackage{colortbl}
 \usepackage{pifont}
 \usepackage{setspace}
@@ -355,7 +362,7 @@ To prevent misreading, we explicitly clarify:
 Throughout this document, key claims are tagged with epistemic status:
 \begin{center}
 \small
-\begin{tabular}{p{1.5cm}p{4cm}p{6cm}}
+\begin{tabular}{L{1.5cm}L{4cm}L{6cm}}
 \toprule
 \textbf{Marker} & \textbf{Meaning} & \textbf{Evidence Standard} \\
 \midrule
@@ -391,7 +398,7 @@ This projection examines how autonomous AI agents may alter the proliferation la
 
 \begin{center}
 \small
-\begin{tabular}{p{3cm}p{4cm}p{4cm}p{2.5cm}}
+\begin{tabular}{L{3cm}L{4cm}L{4cm}L{2.5cm}}
 \toprule
 \textbf{Capability} & \textbf{2023 State} & \textbf{2025 State} & \textbf{Impact} \\
 \midrule
@@ -599,7 +606,7 @@ Evidence regarding AI-assisted biosecurity threats, categorized by epistemic sta
 \vspace{0.5em}
 \begin{center}
 \small
-\begin{tabular}{p{3cm}p{5cm}p{4cm}}
+\begin{tabular}{L{3cm}L{5cm}L{4cm}}
 \toprule
 \textbf{Type} & \textbf{Capability} & \textbf{Risk Profile} \\
 \midrule
@@ -625,7 +632,7 @@ To avoid the misleading implication that ``AI democratizes WMD to everyone,'' th
 
 \begin{center}
 \small
-\begin{tabular}{p{1cm}p{3.5cm}p{3.5cm}p{4cm}}
+\begin{tabular}{L{1cm}L{3.5cm}L{3.5cm}L{4cm}}
 \toprule
 \textbf{Tier} & \textbf{Description} & \textbf{Pre-AI Capability} & \textbf{Examples} \\
 \midrule
@@ -646,7 +653,7 @@ The traditional ``tacit knowledge'' barrier assumed that laboratory skills requi
 
 \begin{center}
 \small
-\begin{tabular}{p{3.5cm}p{4cm}p{4.5cm}}
+\begin{tabular}{L{3.5cm}L{4cm}L{4.5cm}}
 \toprule
 \textbf{VLM Generation} & \textbf{Capability} & \textbf{Tacit Knowledge Impact} \\
 \midrule
@@ -668,7 +675,7 @@ Most AI safety measures exist at the API level for closed commercial models. Ope
 
 \begin{center}
 \small
-\begin{tabular}{p{3cm}p{2cm}p{2cm}p{2cm}p{3cm}}
+\begin{tabular}{L{3cm}L{2cm}L{2cm}L{2cm}L{3cm}}
 \toprule
 \textbf{Model Type} & \textbf{Guardrails} & \textbf{Monitoring} & \textbf{Fine-tuning} & \textbf{Governance Lever} \\
 \midrule
@@ -695,7 +702,7 @@ Specialized biology models & May be absent & No & Domain-specific & Research com
 
 \begin{center}
 \small
-\begin{tabular}{p{3cm}p{3.5cm}p{2.5cm}p{2.5cm}}
+\begin{tabular}{L{3cm}L{3.5cm}L{2.5cm}L{2.5cm}}
 \toprule
 \textbf{Factor} & \textbf{AI Contribution} & \textbf{Bio (2025--30)} & \textbf{Nuke (2025--30)} \\
 \midrule
@@ -724,7 +731,7 @@ AI agents can transmit explicit knowledge but traditionally cannot transfer taci
 
 \begin{center}
 \small
-\begin{tabular}{p{4cm}p{4cm}p{4cm}}
+\begin{tabular}{L{4cm}L{4cm}L{4cm}}
 \toprule
 \textbf{Factor} & \textbf{Favors Offense} & \textbf{Favors Defense} \\
 \midrule
@@ -742,7 +749,7 @@ The balance varies significantly across WMD categories, which is why biological,
 
 \begin{center}
 \small
-\begin{tabular}{p{4cm}p{2cm}p{6cm}}
+\begin{tabular}{L{4cm}L{2cm}L{6cm}}
 \toprule
 \textbf{Reference} & \textbf{Date} & \textbf{Relevance} \\
 \midrule
@@ -781,7 +788,7 @@ Anthropic RSP Framework & 2023--24 & Responsible Scaling Policy with CBRN thresh
 
 \begin{center}
 \small
-\begin{tabular}{p{3.5cm}p{4cm}p{4.5cm}}
+\begin{tabular}{L{3.5cm}L{4cm}L{4.5cm}}
 \toprule
 \textbf{Technology} & \textbf{Effect on Barriers} & \textbf{Limiting Factor} \\
 \midrule
@@ -859,7 +866,7 @@ Biological weapons represent the category where AI poses the most significant pr
 
 \begin{center}
 \small
-\begin{tabular}{p{4.5cm}p{3.5cm}p{4cm}}
+\begin{tabular}{L{4.5cm}L{3.5cm}L{4cm}}
 \toprule
 \textbf{Capability} & \textbf{Status} & \textbf{Barrier Reduction} \\
 \midrule
@@ -876,7 +883,7 @@ Predict immune evasion & Research stage & Potentially very high \\
 \begin{infobox}[Key Distinction: Design vs. Operational Uplift]
 \begin{center}
 \small
-\begin{tabular}{p{3.5cm}p{2.5cm}p{6cm}}
+\begin{tabular}{L{3.5cm}L{2.5cm}L{6cm}}
 \toprule
 \textbf{Stage} & \textbf{AI Uplift} & \textbf{Why} \\
 \midrule
@@ -893,7 +900,7 @@ Net risk driver & \multicolumn{2}{l}{Attempt frequency + occasional competent ac
 
 \begin{center}
 \small
-\begin{tabular}{p{3cm}p{5.5cm}p{3.5cm}}
+\begin{tabular}{L{3cm}L{5.5cm}L{3.5cm}}
 \toprule
 \textbf{Type} & \textbf{Characteristics} & \textbf{AI Risk Level} \\
 \midrule
@@ -918,7 +925,7 @@ Cloud laboratories---services providing remote access to automated equipment---r
 
 \begin{center}
 \small
-\begin{tabular}{p{3cm}p{4.5cm}p{4.5cm}}
+\begin{tabular}{L{3cm}L{4.5cm}L{4.5cm}}
 \toprule
 \textbf{Control Layer} & \textbf{Mechanism} & \textbf{Challenge} \\
 \midrule
@@ -1029,7 +1036,7 @@ Even crude agents can cause significant harm with effective delivery. AI agents 
 
 \begin{center}
 \small
-\begin{tabular}{p{3cm}p{3.5cm}p{2.5cm}p{3cm}}
+\begin{tabular}{L{3cm}L{3.5cm}L{2.5cm}L{3cm}}
 \toprule
 \textbf{Vector} & \textbf{Detection Opportunity} & \textbf{Response Window} & \textbf{Defensive Priority} \\
 \midrule
@@ -1064,7 +1071,7 @@ Agentic AI workflows could assist WMD proliferation through sophisticated financ
 
 \begin{center}
 \small
-\begin{tabular}{p{3cm}p{4cm}p{5cm}}
+\begin{tabular}{L{3cm}L{4cm}L{5cm}}
 \toprule
 \textbf{Gap} & \textbf{Current State} & \textbf{What AI Enables} \\
 \midrule
@@ -1092,7 +1099,7 @@ This section engages seriously with counterarguments to maintain analytical bala
 
 \begin{center}
 \small
-\begin{tabular}{p{3cm}p{4cm}p{3cm}}
+\begin{tabular}{L{3cm}L{4cm}L{3cm}}
 \toprule
 \textbf{Category} & \textbf{Physical Bottleneck} & \textbf{Strength} \\
 \midrule
@@ -1134,7 +1141,7 @@ Radiological & Radioactive sources & Moderate \\
 
 \begin{center}
 \small
-\begin{tabular}{p{3cm}p{4cm}p{4cm}}
+\begin{tabular}{L{3cm}L{4cm}L{4cm}}
 \toprule
 \textbf{Capability} & \textbf{Offensive Application} & \textbf{Defensive Application} \\
 \midrule
@@ -1232,7 +1239,7 @@ Attribution---determining responsibility---serves critical functions: enables de
 
 \begin{center}
 \small
-\begin{tabular}{p{3.5cm}p{4cm}p{4.5cm}}
+\begin{tabular}{L{3.5cm}L{4cm}L{4.5cm}}
 \toprule
 \textbf{Resource} & \textbf{Restrictive Jurisdiction} & \textbf{Arbitrage Opportunity} \\
 \midrule
@@ -1316,7 +1323,7 @@ WMD concerns affect public health systems:
 
 \begin{center}
 \small
-\begin{tabular}{p{1.5cm}p{5cm}p{1.5cm}p{4cm}}
+\begin{tabular}{L{1.5cm}L{5cm}L{1.5cm}L{4cm}}
 \toprule
 \textbf{Priority} & \textbf{Action} & \textbf{Type} & \textbf{Challenge} \\
 \midrule
@@ -1370,7 +1377,7 @@ The window for establishing governance frameworks is narrow. Once capabilities p
 
 \begin{center}
 \small
-\begin{tabular}{p{3cm}p{2cm}p{2cm}p{2cm}p{3cm}}
+\begin{tabular}{L{3cm}L{2cm}L{2cm}L{2cm}L{3cm}}
 \toprule
 \textbf{Parameter} & \textbf{Low} & \textbf{Base} & \textbf{High} & \textbf{Scenario D Range} \\
 \midrule
@@ -1434,7 +1441,7 @@ F (Catastrophic) & 2\% & 8\% \\
 
 \begin{center}
 \small
-\begin{tabular}{p{4cm}p{8cm}}
+\begin{tabular}{L{4cm}L{8cm}}
 \toprule
 \textbf{Measure} & \textbf{Purpose} \\
 \midrule
@@ -1451,7 +1458,7 @@ International consistency & Prevent arbitrary variation \\
 
 \begin{center}
 \small
-\begin{tabular}{p{4cm}p{8cm}}
+\begin{tabular}{L{4cm}L{8cm}}
 \toprule
 \textbf{Overreach Risk} & \textbf{Why It's Problematic} \\
 \midrule
@@ -1481,7 +1488,7 @@ The goal is not to prevent all possible harm---that would require unacceptable r
 
 \begin{center}
 \small
-\begin{tabular}{p{4cm}p{4cm}p{4cm}}
+\begin{tabular}{L{4cm}L{4cm}L{4cm}}
 \toprule
 \textbf{Indicator} & \textbf{Data Sources} & \textbf{What It Signals} \\
 \midrule
@@ -1497,7 +1504,7 @@ AI-lab integration products & Commercial announcements & Tacit knowledge bridgin
 
 \begin{center}
 \small
-\begin{tabular}{p{4cm}p{4cm}p{4cm}}
+\begin{tabular}{L{4cm}L{4cm}L{4cm}}
 \toprule
 \textbf{Indicator} & \textbf{Data Sources} & \textbf{What It Signals} \\
 \midrule
@@ -1576,7 +1583,7 @@ The purpose of this analysis is not prediction but preparation. By understanding
 
 \begin{center}
 \small
-\begin{tabular}{p{2.5cm}p{2.5cm}p{2.5cm}p{2cm}p{3cm}}
+\begin{tabular}{L{2.5cm}L{2.5cm}L{2.5cm}L{2cm}L{3cm}}
 \toprule
 \textbf{Category} & \textbf{AI Barrier Red.} & \textbf{Physical Barriers} & \textbf{Detection} & \textbf{Overall Trend} \\
 \midrule
@@ -1593,7 +1600,7 @@ Gene Drives & High & Low & Very Difficult & Sig. Increasing \\
 
 \begin{center}
 \small
-\begin{tabular}{p{2cm}p{4cm}p{6cm}}
+\begin{tabular}{L{2cm}L{4cm}L{6cm}}
 \toprule
 \textbf{Rating} & \textbf{Definition} & \textbf{Evidence Standard} \\
 \midrule
