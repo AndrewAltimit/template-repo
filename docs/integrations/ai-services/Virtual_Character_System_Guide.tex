@@ -24,6 +24,13 @@
 \usepackage{pgfplots}
 \usepackage{array}
 \usepackage{longtable}
+
+% Ragged-right paragraph columns to prevent word spacing issues
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% Increase vertical spacing between table rows for readability
+\renewcommand{\arraystretch}{1.4}
+
 \usepackage{colortbl}
 \usepackage{pifont}
 \usepackage{setspace}
@@ -583,7 +590,7 @@ Expression Orchestrator & Variable & Multi-modal coordination \\
 ]
 \small
 \renewcommand{\arraystretch}{1.4}
-\begin{tabular}{@{}>{\raggedright}p{3.5cm}p{8.5cm}@{}}
+\begin{tabular}{@{}L{3.5cm}L{8.5cm}@{}}
 \textcolor{vcteal}{\textbf{New to the system?}} & Start with \textbf{Part I} for architecture overview, then \textbf{Part II} for the dual-speed cognitive model. \\
 \textcolor{vcpurple}{\textbf{Implementing audio?}} & Jump to \textbf{Part IV} (Sections 9--11) for ElevenLabs and event sequencing. \\
 \textcolor{successgreen}{\textbf{Adding memory?}} & See \textbf{Part V} (Sections 12--13) for AgentCore integration. \\
@@ -672,7 +679,7 @@ A user speaks to an AI agent. Within 100ms, the agent's avatar shows it's listen
 
 \begin{center}
 \renewcommand{\arraystretch}{1.3}
-\begin{tabular}{@{}>{\raggedright}p{3.2cm}p{4.5cm}p{4.5cm}@{}}
+\begin{tabular}{@{}L{3.2cm}L{4.5cm}L{4.5cm}@{}}
 \toprule
 \textbf{Challenge} & \textbf{Traditional Approach} & \textbf{Virtual Character Solution} \\
 \midrule
@@ -689,7 +696,7 @@ A user speaks to an AI agent. Within 100ms, the agent's avatar shows it's listen
 
 \begin{center}
 \renewcommand{\arraystretch}{1.3}
-\begin{tabular}{@{}lllp{4cm}@{}}
+\begin{tabular}{@{}lllL{4cm}@{}}
 \toprule
 \textbf{Component} & \textbf{Cost Model} & \textbf{Typical Cost} & \textbf{Self-Hosted Alternative} \\
 \midrule
@@ -878,7 +885,7 @@ Every service in the system offers a choice between \textbf{cloud/paid APIs} (hi
 
 \begin{center}
 \renewcommand{\arraystretch}{1.25}
-\begin{tabular}{@{}p{2cm}p{2.8cm}p{2.8cm}p{3.8cm}@{}}
+\begin{tabular}{@{}L{2cm}L{2.8cm}L{2.8cm}L{3.8cm}@{}}
 \toprule
 \textbf{Service} & \textbf{Cloud Option} & \textbf{Self-Hosted} & \textbf{How to Swap} \\
 \midrule
@@ -904,7 +911,7 @@ We evaluated three alternative approaches before settling on this middleware des
 
 \begin{center}
 \renewcommand{\arraystretch}{1.3}
-\begin{tabular}{@{}>{\raggedright}p{2.8cm}p{3.5cm}p{3.5cm}p{2.5cm}@{}}
+\begin{tabular}{@{}L{2.8cm}L{3.5cm}L{3.5cm}L{2.5cm}@{}}
 \toprule
 \textbf{Approach} & \textbf{Advantages} & \textbf{Disadvantages} & \textbf{Verdict} \\
 \midrule
@@ -1173,7 +1180,7 @@ A unified emotion taxonomy solves the vocabulary mismatch between systems. Eleve
 \subsection{The 14 Primary Emotions}
 
 \begin{center}
-\begin{tabular}{llp{6cm}}
+\begin{tabular}{llL{6cm}}
 \toprule
 \textbf{Emotion} & \textbf{Intensity Range} & \textbf{Description} \\
 \midrule
@@ -1763,7 +1770,7 @@ class MultiAgentCoordinator:
 
 \begin{center}
 \renewcommand{\arraystretch}{1.4}
-\begin{tabular}{@{}>{\raggedright}p{3cm}p{4cm}p{4.5cm}@{}}
+\begin{tabular}{@{}L{3cm}L{4cm}L{4.5cm}@{}}
 \toprule
 \textbf{Scenario} & \textbf{Description} & \textbf{Technical Implementation} \\
 \midrule
@@ -1990,7 +1997,7 @@ AgentCore Memory & Linux Dev Machine & AWS/ChromaDB & 8023 \\
 
 \begin{center}
 \renewcommand{\arraystretch}{1.3}
-\begin{tabular}{@{}p{2.5cm}p{4.5cm}p{4.5cm}@{}}
+\begin{tabular}{@{}L{2.5cm}L{4.5cm}L{4.5cm}@{}}
 \toprule
 \textbf{Component} & \textbf{Minimum} & \textbf{Recommended} \\
 \midrule
@@ -2087,7 +2094,7 @@ Cache Hit Rate & >80\% & >95\% \\
 
 \begin{center}
 \renewcommand{\arraystretch}{1.4}
-\begin{tabular}{@{}>{\raggedright}p{4cm}p{4cm}p{4cm}@{}}
+\begin{tabular}{@{}L{4cm}L{4cm}L{4cm}@{}}
 \toprule
 \textbf{Symptom} & \textbf{Likely Cause} & \textbf{Solution} \\
 \midrule
@@ -2131,7 +2138,7 @@ OBS not responding & WebSocket auth failed & Regenerate OBS WebSocket password \
 
 \begin{center}
 \renewcommand{\arraystretch}{1.25}
-\begin{tabular}{@{}p{3.5cm}p{9cm}@{}}
+\begin{tabular}{@{}L{3.5cm}L{9cm}@{}}
 \toprule
 \textbf{Term} & \textbf{Definition} \\
 \midrule
