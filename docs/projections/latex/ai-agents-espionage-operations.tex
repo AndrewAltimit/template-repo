@@ -359,8 +359,109 @@ This document analyzes capabilities and trends for defensive counterintelligence
 \end{warnbox}
 
 \newpage
+
+% ============================================================================
+% DECISION SUMMARY
+% ============================================================================
+\vspace*{0.5cm}
+\begin{center}
+{\color{instdark}\Large\bfseries Decision Summary}
+\end{center}
+\vspace{0.3cm}
+
+\textit{For committee members requiring immediate actionable guidance.}
+
+\subsection*{Priority Decisions (This Quarter)}
+
+\begin{enumerate}
+  \item \textbf{Identity verification hardening}: Approve budget for phishing-resistant MFA rollout and device attestation pilot
+  \item \textbf{AI tool governance}: Establish allowlist policy and procurement review process for AI productivity tools
+  \item \textbf{Incident reporting UX}: Fund low-friction reporting mechanism development (<30 second submission target)
+\end{enumerate}
+
+\subsection*{Top 5 Failure Modes to Prevent}
+
+\begin{center}
+\small
+\begin{tabular}{cL{4cm}L{3cm}L{4.5cm}}
+\toprule
+\textbf{\#} & \textbf{Failure Mode} & \textbf{Impact} & \textbf{Primary Control} \\
+\midrule
+1 & Spoofed executive authorization via deepfake & Financial loss, breach & Out-of-band verification \\
+2 & Shadow AI exfiltration via productivity tools & IP theft, intel loss & AI tool allowlisting, DLP \\
+3 & Credential co-option into verified networks & Insider-equivalent access & Device attestation \\
+4 & Synthetic persona social engineering & Recruitment, elicitation & Identity verification training \\
+5 & AI-polluted intelligence informing decisions & Policy miscalculation & Source verification \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Risk of Inaction}
+
+Without defensive adaptation, organizations face:
+\begin{itemize}
+  \item \textbf{Near-term (6--12 months)}: Increased BEC/deepfake fraud; Shadow AI data exposure
+  \item \textbf{Medium-term (1--2 years)}: Successful synthetic persona recruitment; credential marketplace targeting
+  \item \textbf{Long-term (2--5 years)}: Systematic capability disadvantage vs.\ AI-enabled adversaries
+\end{itemize}
+
+\newpage
 \tableofcontents
 \newpage
+
+% ============================================================================
+% THREAT MODEL SUMMARY
+% ============================================================================
+\section{Threat Model Summary}
+
+\textit{This section provides a structured framework for the detailed analysis that follows.}
+
+\subsection{Target Categories}
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{3.5cm}L{2cm}L{3.5cm}}
+\toprule
+\textbf{Category} & \textbf{Examples} & \textbf{Risk Level} & \textbf{Primary Concern} \\
+\midrule
+National Security & Cleared personnel, diplomats & High & Strategic intelligence \\
+Critical Infrastructure & Energy, telecom operators & High & Access for disruption \\
+Corporate IP & R\&D engineers, ML researchers & Very High & Trade secrets, model weights \\
+Individuals & Journalists, activists & Medium-High & Harassment, manipulation \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Access Pathways}
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{3cm}L{2cm}L{3.5cm}}
+\toprule
+\textbf{Pathway} & \textbf{AI Augmentation} & \textbf{Detection} & \textbf{Primary Defense} \\
+\midrule
+Social Engineering & High (GenSP, personas) & Increasing & Identity verification \\
+Insider Recruitment & High (automated targeting) & High & CI monitoring \\
+Supply Chain / Shadow AI & Very High (trojan tools) & Very High & Allowlisting \\
+Credential Co-option & Medium & Medium & DLP, monitoring \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Time Horizon}
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{3cm}L{6cm}}
+\toprule
+\textbf{Period} & \textbf{Characterization} & \textbf{Key Dynamics} \\
+\midrule
+2025 (Baseline) & Transition underway & Capabilities proven; detection immature \\
+2026--2028 & Offense advantage & Handler bottleneck bypassed; detection catching up \\
+2029--2030 & Uncertain & Equilibrium or provenance island fragmentation \\
+\bottomrule
+\end{tabular}
+\end{center}
 
 % ============================================================================
 % COMMITTEE TAKEAWAYS
@@ -581,6 +682,10 @@ Throughout this document, key claims are tagged:
 
 \section{Theoretical Foundations}
 
+\subsection{Power Diffusion Theory}
+
+\textbf{Audrey Kurth Cronin's ``Power to the People'' (2020)} provides essential context. Cronin argues that each technological era redistributes capabilities previously concentrated in state hands. AI represents the latest such redistribution, potentially enabling non-state actors to conduct intelligence operations at scales previously requiring state resources.
+
 \subsection{The Economics of Espionage}
 
 \begin{center}
@@ -619,6 +724,55 @@ Cover identity burned & Officer career ended & New persona in minutes \\
 
 This asymmetry fundamentally favors offense. Traditional deterrence relied on mutual costs of failure; AI-enabled espionage approaches a ``shifted-liability'' model.
 
+\subsection{Compute-as-a-Weapon-System}
+
+\textbf{A throughput multiplier, not the limiting reagent}: Compute capacity is a necessary but not sufficient condition for AI-enabled intelligence operations \textbf{[E]}.
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{4cm}L{5.5cm}}
+\toprule
+\textbf{Actor Tier} & \textbf{Compute Access} & \textbf{Operational Capacity} \\
+\midrule
+Tier 1 (Major powers) & Sovereign AI clusters & Nation-scale sustained operations \\
+Tier 2 (Regional powers) & Government cloud allocations & Targeted campaigns \\
+Tier 3 (Non-state) & Burst commercial cloud & Limited sustained operations \\
+Tier 4 (Individuals) & Consumer hardware + API & Opportunistic operations \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{infobox}[GPU Demand as SIGINT]
+Counter-intelligence can potentially monitor \textbf{anomalous compute demand} as a new detection vector:
+\begin{itemize}
+  \item Sudden GPU cluster acquisitions in specific jurisdictions
+  \item Cloud billing spikes correlated with operational timelines
+  \item Unusual inference patterns from API providers
+  \item Power consumption signatures at suspected facilities
+\end{itemize}
+This represents a new form of intelligence collection---monitoring the \textit{infrastructure} required for AI-enabled espionage rather than the operations themselves.
+\end{infobox}
+
+\subsection{The Linguistic Asymmetry Blind Spot}
+
+\textit{Western CI focuses on English/Mandarin/Russian. AI enables operations in ``neglected'' languages where defenses are thinnest.}
+
+\textbf{The Global South opportunity} \textbf{[E]}: Most defensive filters, trained analysts, and detection systems are optimized for major languages. AI enables Tier 2/3 actors to conduct high-fidelity operations in languages where defensive AI filters have lower accuracy.
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{3.5cm}L{5.5cm}}
+\toprule
+\textbf{Language} & \textbf{Risk Factor} & \textbf{Why It Matters} \\
+\midrule
+Vietnamese & Manufacturing & Supply chain intel in electronics, textiles \\
+Polish & EU expansion & Eastern European operations \\
+Bahasa Indonesia & Emerging market & Resource extraction, consumer intel \\
+Turkish & Regional hub & Defense, energy, logistics intel \\
+\bottomrule
+\end{tabular}
+\end{center}
+
 \subsection{New Limiting Reagents: Chokepoints for Defenders}
 
 \textbf{Critical defensive insight}: While AI bypasses the traditional handler bottleneck, it introduces \textit{new} constraints that defenders can target.
@@ -637,6 +791,31 @@ Legend Instability & Synthetic personas lack authentic history & Extended verifi
 \bottomrule
 \end{tabular}
 \end{center}
+
+\section{The Intelligence Cycle: AI Augmentation Points}
+
+Traditional intelligence operations follow a cycle: Direction, Collection, Processing, Analysis, Dissemination, and Feedback. AI agents can augment or automate portions of each phase.
+
+\subsection{Collection Phase---HUMINT}
+
+\textbf{AI augmentation}:
+\begin{itemize}
+  \item \textbf{Target identification}: Automated scanning for vulnerability indicators
+  \item \textbf{Assessment}: MICE analysis from open-source data
+  \item \textbf{Development}: Initial relationship building through synthetic personas
+  \item \textbf{Handling}: Ongoing relationship management and tasking
+\end{itemize}
+
+\textbf{Assessment}: Most significant transformation potential. The handler bottleneck is fundamentally addressable.
+
+\subsection{Exfiltration and Command-and-Control}
+
+\textbf{AI augmentation} \textbf{[E]}:
+\begin{itemize}
+  \item \textbf{Automated digital dead drops}: Using steganography in AI-generated images or hiding data in fine-tuned model weights
+  \item \textbf{Dynamic C2 infrastructure}: AI agents can autonomously switch communication channels upon detecting surveillance
+  \item \textbf{Covert channel management}: Embedding intelligence in normal-appearing content that only AI systems can decode
+\end{itemize}
 
 \section{Historical Context}
 
@@ -660,6 +839,18 @@ The Soviet recruitment of the Cambridge Five illustrates traditional HUMINT cons
 \end{itemize}
 
 \textbf{AI transformation hypothesis}: An AI-enabled approach might simultaneously cultivate thousands of mid-level bureaucrats, requiring only that some eventually ascend to positions of access.
+
+\subsection{Case Study: The Farewell Dossier}
+
+The French recruitment of Vladimir Vetrov (``Farewell'') in the early 1980s demonstrated the value of ideologically motivated assets:
+
+\begin{itemize}
+  \item \textbf{Identification}: Vetrov self-identified through diplomatic channels
+  \item \textbf{Motivation}: Ideological disillusionment (the ``I'' in MICE)
+  \item \textbf{Yield}: Comprehensive mapping of Soviet S\&T collection operations
+\end{itemize}
+
+\textbf{AI transformation hypothesis}: Automated vulnerability assessment could identify disillusionment signals across large populations, enabling systematic targeting of ideological motivation at scale.
 
 % ============================================================================
 % PART II - Threat Analysis
@@ -814,6 +1005,34 @@ Recruited Assets & $\sim$1--2 productive & $\sim$10--50 productive \\
 
 \textbf{Key insight}: The AI-enabled model accepts lower per-target success rates in exchange for dramatically higher volume. The economics shift from precision to scale.
 
+\subsection{State vs.\ Industrial Espionage: Divergent Objectives}
+
+\textbf{Critical distinction}: The recruitment funnel operates differently depending on the espionage objective \textbf{[E]}.
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{4.5cm}L{5cm}}
+\toprule
+\textbf{Dimension} & \textbf{State/Political} & \textbf{Industrial/Economic} \\
+\midrule
+Primary targets & Government officials, diplomats & Engineers, researchers, executives \\
+Crown jewels & Policy decisions, military capabilities & Source code, model weights, designs \\
+Time horizon & Long-term (years to decades) & Short-term (weeks to months) \\
+AI suitability & Lower for strategic assets & Higher; technical targets digital-native \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{warnbox}[Weight-Jacking]
+An emerging industrial espionage vector---using AI agents to social-engineer ML researchers and developers into leaking:
+\begin{itemize}
+  \item Specialized fine-tuning data and techniques
+  \item Model weight files (the ``new crown jewels'')
+  \item System prompts and alignment approaches
+  \item Training infrastructure configurations
+\end{itemize}
+\end{warnbox}
+
 \subsection{Automated MICE Analysis}
 
 AI agents can systematically assess MICE vulnerabilities from open sources:
@@ -895,6 +1114,40 @@ This demonstrates: \textbf{video-mediated authority is now spoofable at scale.}
 These characteristics identify \textit{risk factors}, not \textit{guilt indicators}. \textbf{Interventions should prioritize support, not suspicion}---improved social integration, recognition programs, and mental health resources reduce vulnerability more ethically than surveillance.
 \end{infobox}
 
+\subsection{Retrieval-Augmented Legend Building (RALB)}
+
+A key capability enabling trust-building: \textbf{dynamic legend maintenance}.
+
+Instead of static cover identities, AI agents can use retrieval-augmented generation to:
+\begin{itemize}
+  \item Pull real-time local news from the target's neighborhood
+  \item Reference current weather and events to seem physically nearby
+  \item Incorporate trending social topics from the target's community
+  \item Maintain consistent awareness of local context across extended engagements
+\end{itemize}
+
+This creates the impression of physical proximity without actual presence.
+
+\subsection{The In-Person Verification (IPV) Black Market}
+
+\textbf{Emerging infrastructure} \textbf{[S]}: As targets increasingly demand physical proof of handler authenticity, a market is developing for ``Mechanical Turk Handlers''---humans paid to perform single physical verification tasks.
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{3.5cm}L{2.5cm}L{2cm}}
+\toprule
+\textbf{Service Tier} & \textbf{Task} & \textbf{Awareness} & \textbf{Cost} \\
+\midrule
+Photo verification & ``Take photo at [location]'' & Unwitting & \$20--50 \\
+Package handling & Receive/forward packages & Semi-aware & \$100--500 \\
+Meeting proxy & Brief in-person meeting & Aware (actor) & \$500--2000 \\
+Sustained presence & Multiple interactions & Co-conspirator & Ongoing \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Gig-Economy Cutouts}: The synthetic handler can employ unwitting physical proxies through legitimate platforms. A TaskRabbit worker doesn't know they're conducting a dead drop; they're just ``leaving a package under a bench for a client.''
+
 \subsection{The Centaur Handler Model}
 
 \textit{One officer managing hundreds of AI assistants---the real threat isn't AI replacing spies, it's AI multiplying them.}
@@ -958,6 +1211,113 @@ A critical category missing from traditional state-centric analysis: \textbf{com
   \item Shell companies in multiple jurisdictions
   \item Operators in non-extradition territories
 \end{itemize}
+
+\subsection{Third-Party Rule Erosion}
+
+\textbf{A critical complication for allied intelligence sharing} \textbf{[E]}: The ``Third-Party Rule'' (or ``originator control'') dictates that intelligence shared between allied services cannot be passed to third parties without permission. AI-enabled synthesis fundamentally challenges this framework.
+
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{8cm}}
+\toprule
+\textbf{Traditional Sharing} & \textbf{AI-Era Challenge} \\
+\midrule
+Clear source attribution & Synthesis obscures origin \\
+Human analysts apply need-to-know & AI systems process everything available \\
+Violations detectable through leaks & Violations invisible in synthesized output \\
+Trust built on relationships & Trust must extend to AI systems \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Policy tension}: Efficiency gains from AI-enabled analysis may come at the cost of allied cooperation---a strategic trade-off with no easy answer.
+
+\section{Emerging Threat Vectors}
+
+\subsection{NPU-Enabled Edge Espionage: The Local LLM Threat}
+
+\textit{The most dangerous AI agents aren't on a server in Iceland---they're running locally on a compromised executive's laptop.}
+
+\textbf{The 2025 hardware shift} \textbf{[O]}: With the proliferation of Neural Processing Units (NPUs) in consumer laptops and smartphones, capable LLMs now run entirely on-device.
+
+\begin{center}
+\small
+\begin{tabular}{L{4.5cm}L{7.5cm}}
+\toprule
+\textbf{Cloud-Based Agent} & \textbf{Local/NPU-Based Agent} \\
+\midrule
+Network traffic detectable by DLP & No external network traffic for inference \\
+API calls create audit logs & Processing invisible to network monitoring \\
+Latency creates operational friction & Real-time processing enables seamless operation \\
+Cloud provider may enforce policies & No third-party oversight of model use \\
+Compute costs create constraints & Zero marginal cost after deployment \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{criticalbox}[The ``Air-Gapped Bypass'']
+Organizations relying on network-based DLP face a critical blind spot. A local agent can:
+\begin{enumerate}
+  \item Collect sensitive data over weeks/months
+  \item Compress and summarize locally (reducing exfil volume 100x)
+  \item Exfiltrate in a single burst during normal traffic
+  \item Or wait for physical device theft/access
+\end{enumerate}
+\textbf{Timeline}: This threat vector is \textit{current} (2025), not speculative.
+\end{criticalbox}
+
+\subsection{Shadow AI: The Trojan Productivity Tool}
+
+\textbf{Shadow AI Taxonomy}:
+
+\begin{center}
+\small
+\begin{tabular}{L{2.5cm}L{4.5cm}L{2cm}L{2cm}}
+\toprule
+\textbf{Category} & \textbf{Intent} & \textbf{Risk} & \textbf{Detection} \\
+\midrule
+Benign SaaS & Commercial data collection & Moderate & Low \\
+Gray Data Broker & Data aggregation/resale & Mod-High & Medium \\
+Malicious Trojan & Deliberate intel collection & Very High & High \\
+Compromised Legitimate & Backdoored legitimate tool & Very High & Very High \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{The ``Helpful Agent'' Paradox}: The more useful the tool, the more it's trusted with sensitive information. A truly excellent AI assistant that makes users 30\% more productive will be granted access to everything---making it the perfect intelligence platform.
+
+\subsection{The Biometric Vacuum: Real-time Polygraph}
+
+\textbf{Critical capability expansion} \textbf{[S]}: When RVD (deepfake video) is combined with biometric analysis, the synthetic handler isn't just talking---it's conducting real-time psychological assessment.
+
+\begin{center}
+\small
+\begin{tabular}{L{4.5cm}L{7.5cm}}
+\toprule
+\textbf{Data Source} & \textbf{Intelligence Derived} \\
+\midrule
+Skin flux analysis (video) & Heart rate variability, stress response \\
+Pupil dilation tracking & Interest, fear, arousal states \\
+Micro-expression detection & Concealed emotions, deception indicators \\
+Voice stress analysis & Uncertainty, anxiety, enthusiasm \\
+Response latency patterns & Cognitive load, rehearsed vs.\ spontaneous answers \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Implication}: AI handlers can have capabilities exceeding human intuition for reading targets---potentially making AI-mediated recruitment more effective than human conversations for certain target profiles.
+
+\subsection{The Quantum-Agent Intersection: Harvest Now, Decrypt Later}
+
+\textbf{[E]} AI agents can be tasked with exfiltrating encrypted data that is currently unbreakable, stockpiling it for future decryption when quantum computers break current encryption (Y2Q---``Years to Quantum'').
+
+\begin{itemize}
+  \item AI agents optimize for volume of encrypted traffic capture
+  \item High-value targets: diplomatic communications, financial transactions
+  \item Data exfiltrated today may be readable within 5--10 years
+\end{itemize}
+
+\textbf{Implication}: Organizations must assume that any encrypted data exfiltrated by AI agents today may be retrospectively compromised.
 
 % ============================================================================
 % PART III - Defense and Counterintelligence
@@ -1146,6 +1506,36 @@ Whistleblower retaliation & Surveillance chills legitimate reporting & SEC/DOJ e
 \end{itemize}
 \end{recbox}
 
+\begin{recbox}[Priority 4: Executive Protection]
+C-suite and board members face elevated targeting risk:
+\begin{itemize}
+  \item \textbf{Personal security liaisons}: Dedicated point-of-contact for reporting
+  \item \textbf{Deepfake protocols}: Pre-established visual/verbal verification
+  \item \textbf{Travel security}: AI-resistant verification for itinerary changes
+  \item \textbf{Family briefings}: Security guidance for family social media
+\end{itemize}
+\end{recbox}
+
+\begin{recbox}[Priority 5: Vendor Attack Surface Management]
+Third-party AI integrations expand attack surface:
+\begin{itemize}
+  \item AI productivity tools: Where is data processed? Used for training?
+  \item Meeting transcription: Who can access transcripts?
+  \item Code assistants: Does the tool send code externally?
+  \item HR/recruiting AI: What data is retained? Shared across clients?
+\end{itemize}
+\end{recbox}
+
+\begin{recbox}[Priority 6: Hardware Provenance (High-Risk Personnel)]
+For strategic roles where NPU/GPU foundry compromise is a concern:
+\begin{itemize}
+  \item Dedicated devices from verified supply chains
+  \item Hardware security modules (HSM) for cryptographic operations
+  \item Regular firmware integrity verification
+  \item Physical security for device storage and transport
+\end{itemize}
+\end{recbox}
+
 \subsection{Control Maturity Ladder}
 
 \begin{center}
@@ -1195,6 +1585,35 @@ High-value instruction spoofing & HITL Notarization \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\subsection{The Insurance Driver for Gold Adoption}
+
+\textit{In 2025, cyber insurance may matter more than security budgets for driving Gold-tier adoption.}
+
+\textbf{The coverage gap} \textbf{[E]}: Cyber insurance carriers are increasingly excluding ``AI-mediated social engineering'' from standard policies.
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{9.5cm}}
+\toprule
+\textbf{Policy Evolution} & \textbf{Implication} \\
+\midrule
+2023--2024 & BEC/social engineering covered with sublimits \\
+2025 & AI-enhanced fraud excluded or requires riders \\
+2026+ (projected) & Gold-tier controls required for full coverage \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Why insurance drives adoption}:
+\begin{itemize}
+  \item Security investments compete for budget; insurance is non-negotiable
+  \item CFOs understand liability exposure; CISOs struggle to quantify threat severity
+  \item Insurance audits are more rigorous than compliance frameworks
+  \item Directors and Officers (D\&O) liability creates board-level pressure
+\end{itemize}
+
+\textbf{Recommendation}: Engage cyber insurance carriers early to understand emerging AI-exclusion clauses. The business case for Gold-tier controls may be strongest when framed as insurance premium optimization.
 
 % ============================================================================
 % PART IV - Projections and Conclusion
@@ -1398,14 +1817,23 @@ The transformation is already underway. The question is not whether AI changes e
 \endhead
 Agentic Workflow & Autonomous AI loops with multi-step planning, tool use, and goal persistence \\
 Algorithmic Confessional & Phenomenon where humans disclose more to AI than humans \\
+Algorithmic Due Process & Framework ensuring procedural fairness when AI makes consequential decisions \\
 Analog Break & Mandatory periodic off-grid physical meeting to verify handler humanity \\
+Biometric Vacuum & AI capability to extract emotional/psychological data during video calls \\
 Centaur Handler & Human case officer augmented by AI agent fleet \\
+Compute-as-a-Weapon-System & Framework recognizing compute capacity as throughput multiplier for agentic operations \\
 EaaS & Espionage-as-a-Service---commercial AI espionage mercenaries \\
 GenSP & Generative Spearphishing---LLM-driven personalized social engineering \\
+Gig-Economy Cutout & Unwitting physical proxy hired through legitimate platforms \\
+HNDL & Harvest Now, Decrypt Later---exfiltrating encrypted data for future quantum decryption \\
 Honey-Agent & CI-controlled AI agent designed to be ``recruited'' by adversaries \\
+IPV Black Market & Market for ``Mechanical Turk Handlers'' performing physical verification \\
 MICE & Money, Ideology, Coercion, Ego---vulnerability framework \\
 Model Fingerprinting & Attribution using stochastic signatures in LLM outputs \\
+NPU-Enabled Espionage & Local AI inference on compromised devices bypassing network detection \\
+Provenance Arbitrage & Establishing identity in verified domains to export credibility \\
 Provenance Islands & Authenticated domains surrounded by unverified ``sludge'' \\
+RALB & Retrieval-Augmented Legend Building---dynamic legend maintenance using real-time info \\
 RASCLS & Reciprocity, Authority, Scarcity, Commitment, Liking, Social Proof \\
 RVD & Real-time Virtual Presence---live deepfake video generation \\
 Semantic Firewall & System that strips manipulative tone from communications \\
@@ -1413,6 +1841,8 @@ Shadow AI & Malicious AI tools disguised as legitimate productivity software \\
 Signal-to-Noise War & Competition to extract authentic intelligence from AI-saturated environment \\
 State-Drift & Progressive degradation of persona consistency over time \\
 Synthetic Case Officer & AI agent performing handler functions \\
+Third-Party Rule & Intelligence sharing restriction requiring originator permission \\
+Weight-Jacking & Social engineering to steal ML model weights and fine-tuning data \\
 \bottomrule
 \end{longtable}
 \end{center}
@@ -1445,9 +1875,108 @@ Synthetic Case Officer & AI agent performing handler functions \\
 \textit{Sleeper Agents} & Hubinger et al. (2024) & Model backdoors \\
 \textit{EU AI Act} & European Parliament (2024) & Legal framework \\
 \textit{NIST AI RMF} & NIST (2023) & AI governance \\
+\textit{MITRE ATT\&CK Framework} & MITRE Corp. & Adversary tactics taxonomy \\
+\textit{Finance deepfake case} & The Guardian (2024) & \$25M Hong Kong case \\
+\textit{C2PA Technical Spec} & C2PA (2024) & Content authenticity standards \\
+\textit{Double Cross} & Macintyre (2012) & Historical deception ops \\
 \bottomrule
 \end{longtable}
 \end{center}
+
+% ============================================================================
+% APPENDIX C - Evidence Notes
+% ============================================================================
+\newpage
+\section*{Appendix C: Evidence Notes}
+\addcontentsline{toc}{section}{Appendix C: Evidence Notes}
+
+\textit{This appendix provides evidentiary support for claims marked [O] (Open-source documented) without inline citation clutter.}
+
+\subsection*{Inference Deflation Cost Calculation}
+
+\textbf{``\$0.30--\$1.00/day synthetic handler cost''} --- Calculation methodology:
+\begin{itemize}
+  \item \textbf{Baseline (early 2024)}: GPT-4-Turbo: \~{}\$10/\$30 per 1M input/output tokens
+  \item \textbf{Current (late 2025)}: Claude Haiku: \$1/\$5 per 1M tokens; Sonnet: \$3/\$15 per 1M tokens
+  \item \textbf{Usage model}: Synthetic handler with \~{}10--20 exchanges/day (\~{}2,000--5,000 tokens/exchange)
+  \item \textbf{Daily compute}: \~{}50,000--100,000 tokens/day at Haiku pricing = \$0.30--\$0.50/day
+  \item \textbf{85--90\% reduction}: Calculated from GPT-4-Turbo (early 2024) to Haiku (late 2025)
+\end{itemize}
+
+\textbf{Sources}: Anthropic API pricing (claude.com/pricing, December 2025); OpenAI API pricing; OpenRouter aggregator.
+
+\subsection*{The Hong Kong Deepfake Case}
+
+\textbf{``\$25 Million Hong Kong Deepfake Heist (2024)''}:
+\begin{itemize}
+  \item The Guardian, February 4, 2024: ``Finance worker pays out \$25m after video call with deepfake CFO''
+  \item South China Morning Post and CNN coverage of same incident
+  \item Hong Kong Police confirmation of investigation
+\end{itemize}
+
+\subsection*{Open-Weight Model Proliferation}
+
+\textbf{``Capability parity vs.\ operational availability''}:
+\begin{itemize}
+  \item \textbf{Capability parity} (\~{}3 months): Epoch AI analysis, October 2025
+  \item \textbf{Operational availability} (12--24 months): Time for tooling, fine-tunes, documentation
+  \item Llama 2 (Meta, July 2023) achieved GPT-3.5 parity within months; ecosystem matured over following year
+\end{itemize}
+
+% ============================================================================
+% APPENDIX D - Technical Deep Dives
+% ============================================================================
+\newpage
+\section*{Appendix D: Technical Deep Dives}
+\addcontentsline{toc}{section}{Appendix D: Technical Deep Dives}
+
+\textit{For security teams requiring implementation-level detail.}
+
+\subsection*{RAG Poisoning: Defensive Information Contamination}
+
+\textbf{Concept}: If adversary AI agents use Retrieval-Augmented Generation (RAG) during OSINT, defenders can deliberately ``poison'' retrievable information.
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{4.5cm}L{4.5cm}}
+\toprule
+\textbf{Technique} & \textbf{Implementation} & \textbf{Detection Effect} \\
+\midrule
+Fake executive profiles & Plausible LinkedIn profiles for non-existent C-suite & Approaches referencing fake executives reveal AI origin \\
+Contradictory filings & Public documents with internally inconsistent data & Agent synthesis produces verifiable errors \\
+Honeypot research projects & Announced but nonexistent R\&D initiatives & Approaches referencing fake projects reveal targeting \\
+Temporal traps & Documents with future dates or impossible timelines & Agent context confusion \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Limitations}: May confuse legitimate business intelligence; requires ongoing maintenance; sophisticated adversaries may validate before use.
+
+\subsection*{Long-Context Window Exploitation}
+
+\textbf{Threat model} \textbf{[E]}: Agents with 2M+ token context windows can ingest an entire target's social media history in seconds.
+
+\textbf{The ``C'' in MICE at scale}: Traditional vulnerability research required human analysts to manually review years of posts. AI-enabled long-context analysis can:
+\begin{itemize}
+  \item Process 10+ years of posts, comments, photos in seconds
+  \item Correlate across platforms (LinkedIn + Twitter + Facebook + Instagram)
+  \item Identify patterns invisible to human review (sentiment drift, relationship changes)
+  \item Extract life events from photo metadata, check-ins, tagged locations
+\end{itemize}
+
+\textbf{The ``Nothing to Hide'' Fallacy}: Even innocuous information becomes dangerous at scale. A decade of location check-ins, friend networks, and casual comments creates a manipulable psychological profile regardless of whether any individual post is ``sensitive.''
+
+\subsection*{Model Fingerprinting for Attribution}
+
+AI-generated text contains statistical signatures that may enable attribution:
+\begin{itemize}
+  \item \textbf{Tokenization artifacts}: Specific models produce characteristic token boundary patterns
+  \item \textbf{Temperature signatures}: Sampling parameters leave detectable traces
+  \item \textbf{Fine-tune fingerprints}: Custom training creates distinctive vocabulary distributions
+  \item \textbf{System prompt leakage}: Certain prompting patterns create recognizable outputs
+\end{itemize}
+
+\textbf{Limitation}: Adversaries aware of fingerprinting can apply post-processing to obscure signatures. This creates an ongoing cat-and-mouse dynamic.
 
 \vspace{1cm}
 \begin{center}
