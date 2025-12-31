@@ -167,8 +167,8 @@
 
 \newtcolorbox{recbox}[1][Recommendation]{
   enhanced, breakable,
-  colback=successgreen!10, colframe=successgreen,
-  colbacktitle=successgreen, coltitle=shadowdark,
+  colback=interceptgreen!8, colframe=interceptgreen!70!steelblue,
+  colbacktitle=interceptgreen!70!steelblue, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{51}\hspace{0.5em}#1},
   boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
@@ -2094,30 +2094,55 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Projections};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Timeline, Scenarios, and Conclusion};
 
-  % Timeline visualization with new theme
-  \begin{scope}[shift={(3cm, -7.5cm)}]
-    % Timeline line
-    \draw[chromesilver, opacity=0.6, line width=2pt] (0,0) -- (12,0);
+  % Left side: Timeline with milestones
+  \begin{scope}[shift={(2.5cm, -6.8cm)}]
+    % Timeline header
+    \node[chromesilver, opacity=0.85, font=\fontsize{8}{8}\selectfont\bfseries] at (3.5,1.2) {PROJECTED TIMELINE};
+
+    % Timeline line with gradient effect
+    \draw[chromesilver, opacity=0.4, line width=3pt] (0,0) -- (7,0);
+    \draw[signalcyan, opacity=0.8, line width=1.5pt] (0,0) -- (2,0);
 
     % Year markers
-    \foreach \x/\year in {0/2025, 3/2026, 6/2028, 9/2029, 12/2030} {
-      \fill[chromesilver, opacity=0.7] (\x,0) circle (0.1);
-      \node[chromesilver, opacity=0.9, font=\fontsize{8}{8}\selectfont\bfseries] at (\x,-0.5) {\year};
+    \foreach \x/\year in {0/2025, 2.33/2026, 4.66/2028, 7/2030} {
+      \fill[chromesilver, opacity=0.6] (\x,0) circle (0.08);
+      \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont] at (\x,-0.4) {\year};
     }
 
-    % Current marker
-    \fill[signalcyan] (0,0) circle (0.22);
-    \node[signalcyan, font=\fontsize{7}{7}\selectfont\bfseries] at (0,0.6) {NOW};
+    % Current position marker
+    \fill[signalcyan] (0,0) circle (0.18);
+    \draw[signalcyan, opacity=0.4] (0,0) circle (0.3);
+  \end{scope}
 
-    % Transition zone (offense advantage)
-    \fill[steelblue, opacity=0.25] (1.5,-0.35) rectangle (7.5,0.35);
-    \draw[steelblue, opacity=0.6, line width=1pt] (1.5,-0.35) rectangle (7.5,0.35);
-    \node[steelblue, font=\fontsize{7}{7}\selectfont\bfseries] at (4.5,0.7) {OFFENSE ADVANTAGE};
+  % Right side: Scenario probabilities
+  \begin{scope}[shift={(13cm, -7.2cm)}]
+    % Header
+    \node[chromesilver, opacity=0.85, font=\fontsize{8}{8}\selectfont\bfseries] at (1.8,1.5) {2030 SCENARIOS};
 
-    % Equilibrium zone
-    \fill[interceptgreen, opacity=0.2] (7.5,-0.35) rectangle (12,0.35);
-    \draw[interceptgreen, opacity=0.5, line width=1pt] (7.5,-0.35) rectangle (12,0.35);
-    \node[interceptgreen, font=\fontsize{7}{7}\selectfont\bfseries] at (9.75,0.7) {EQUILIBRIUM?};
+    % Scenario bars
+    % Offense dominance
+    \fill[steelblue, opacity=0.6] (0,0.8) rectangle (1.4,1.0);
+    \fill[steelblue, opacity=0.3] (1.4,0.8) rectangle (4,1.0);
+    \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (4.2,0.9) {35\%};
+    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont, anchor=east] at (-0.1,0.9) {Offense};
+
+    % Equilibrium
+    \fill[interceptgreen, opacity=0.6] (0,0.2) rectangle (1.6,0.4);
+    \fill[interceptgreen, opacity=0.3] (1.6,0.2) rectangle (4,0.4);
+    \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (4.2,0.3) {40\%};
+    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont, anchor=east] at (-0.1,0.3) {Balance};
+
+    % Defense dominance
+    \fill[signalcyan, opacity=0.6] (0,-0.4) rectangle (0.6,-0.2);
+    \fill[signalcyan, opacity=0.3] (0.6,-0.4) rectangle (4,-0.2);
+    \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (4.2,-0.3) {15\%};
+    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont, anchor=east] at (-0.1,-0.3) {Defense};
+
+    % Uncertainty
+    \fill[coldsteel, opacity=0.5] (0,-1.0) rectangle (0.4,-0.8);
+    \fill[coldsteel, opacity=0.25] (0.4,-1.0) rectangle (4,-0.8);
+    \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (4.2,-0.9) {10\%};
+    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont, anchor=east] at (-0.1,-0.9) {Other};
   \end{scope}
 
   % Bottom accent
