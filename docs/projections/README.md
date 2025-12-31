@@ -24,6 +24,7 @@ These projections serve defensive policy analysis:
 |--------|-------|-----|--------|
 | AI Agents Political Targeting | AI agents and political violence risk | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-political-targeting.md) \| [LaTeX](./latex/ai-agents-political-targeting.tex) |
 | AI Agents WMD Proliferation | AI agents and WMD proliferation risk | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-wmd-proliferation.md) \| [LaTeX](./latex/ai-agents-wmd-proliferation.tex) |
+| AI Agents Economic Actors | AI agents as autonomous economic actors | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](./latex/ai-agents-economic-actors.tex) |
 
 **Build Status**: [![Build Documentation](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml/badge.svg)](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml)
 
