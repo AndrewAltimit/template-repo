@@ -1487,63 +1487,52 @@ Regulators could deploy \textbf{``Honeypot On-ramps''}---neobanks, DeFi protocol
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Governance};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Regulatory Challenges and Scenario Projections};
 
-  % Visualization: The Regulatory Gap - Diverging lines
-  \begin{scope}[shift={(3cm, -7cm)}]
-    % Background box
-    \fill[black, opacity=0.2, rounded corners=4pt] (-0.5, -1.5) rectangle (6.5, 2);
+  % Visualization: The Governance Gap - Clean centered design
+  \begin{scope}[shift={(0.5\paperwidth, -7.2cm)}]
+    % Graph area - centered and larger
+    % Y-axis label
+    \node[white, opacity=0.7, font=\fontsize{9}{9}\selectfont\sffamily, rotate=90, anchor=south] at (-5.2, 0.3) {CAPABILITY LEVEL};
 
-    % Title
-    \node[white, opacity=0.6, font=\fontsize{7}{7}\selectfont\sffamily] at (3, 1.7) {THE GOVERNANCE GAP};
+    % X-axis with year markers
+    \draw[white, opacity=0.4, line width=1pt] (-4.5, -1.2) -- (4.5, -1.2);
+    \node[white, opacity=0.8, font=\fontsize{10}{10}\selectfont\sffamily\bfseries] at (-3.8, -1.6) {2024};
+    \node[white, opacity=0.8, font=\fontsize{10}{10}\selectfont\sffamily\bfseries] at (0, -1.6) {2027};
+    \node[white, opacity=0.8, font=\fontsize{10}{10}\selectfont\sffamily\bfseries] at (3.8, -1.6) {2030};
 
-    % Axes
-    \draw[white, opacity=0.3, line width=0.8pt, -Stealth] (0, -1) -- (6.2, -1);
-    \draw[white, opacity=0.3, line width=0.8pt, -Stealth] (0, -1) -- (0, 1.5);
-    \node[white, opacity=0.4, font=\fontsize{5}{5}\selectfont] at (6.2, -1.3) {TIME};
+    % Year tick marks
+    \draw[white, opacity=0.4, line width=1pt] (-3.8, -1.2) -- (-3.8, -1.35);
+    \draw[white, opacity=0.4, line width=1pt] (0, -1.2) -- (0, -1.35);
+    \draw[white, opacity=0.4, line width=1pt] (3.8, -1.2) -- (3.8, -1.35);
 
     % Starting point
-    \fill[white] (0.5, -0.5) circle (0.08);
+    \fill[white] (-3.8, -0.8) circle (0.1);
 
-    % Agent capability line (steep rise - green/mint)
-    \draw[mintlight, line width=2.5pt] (0.5, -0.5) .. controls (2, 0) and (4, 0.8) .. (5.5, 1.3);
-    \node[mintlight, opacity=0.9, font=\fontsize{6}{6}\selectfont\sffamily, anchor=south west] at (5.6, 1.2) {CAPABILITY};
+    % Agent capability line (steep exponential rise - mint green)
+    \draw[mintlight, line width=3pt] (-3.8, -0.8) .. controls (-1.5, -0.3) and (1.5, 0.8) .. (3.8, 1.6);
 
-    % Regulatory response line (slow rise - amber)
-    \draw[alertamber, line width=2.5pt] (0.5, -0.5) .. controls (2, -0.3) and (4, 0) .. (5.5, 0.2);
-    \node[alertamber, opacity=0.9, font=\fontsize{6}{6}\selectfont\sffamily, anchor=north west] at (5.6, 0.2) {REGULATION};
+    % Regulatory response line (slow linear rise - amber)
+    \draw[alertamber, line width=3pt] (-3.8, -0.8) .. controls (-1.5, -0.5) and (1.5, -0.1) .. (3.8, 0.1);
 
-    % Gap fill
-    \fill[fraudred, opacity=0.15]
-      (0.5, -0.5) .. controls (2, 0) and (4, 0.8) .. (5.5, 1.3)
-      -- (5.5, 0.2) .. controls (4, 0) and (2, -0.3) .. (0.5, -0.5);
+    % Gap fill between curves
+    \fill[fraudred, opacity=0.2]
+      (-3.8, -0.8) .. controls (-1.5, -0.3) and (1.5, 0.8) .. (3.8, 1.6)
+      -- (3.8, 0.1) .. controls (1.5, -0.1) and (-1.5, -0.5) .. (-3.8, -0.8);
 
-    % Gap arrow
-    \draw[copperrich, line width=1.5pt, <->] (4.5, 0.15) -- (4.5, 0.95);
-    \node[copperrich, font=\fontsize{5}{5}\selectfont\bfseries, anchor=west] at (4.7, 0.55) {GAP};
+    % Gap indicator with clear label
+    \draw[copperrich, line width=2.5pt, <->] (2.5, 0) -- (2.5, 1.15);
+    \node[copperrich, font=\fontsize{12}{12}\selectfont\bfseries, anchor=west] at (2.7, 0.58) {GAP};
 
-    % Year markers
-    \node[white, opacity=0.4, font=\fontsize{5}{5}\selectfont] at (0.5, -1.3) {2024};
-    \node[white, opacity=0.4, font=\fontsize{5}{5}\selectfont] at (3, -1.3) {2027};
-    \node[white, opacity=0.4, font=\fontsize{5}{5}\selectfont] at (5.5, -1.3) {2030};
+    % Line labels at end (larger, clearer)
+    \node[mintlight, font=\fontsize{10}{10}\selectfont\sffamily\bfseries, anchor=west] at (4.0, 1.6) {AI Agent Capability};
+    \node[alertamber, font=\fontsize{10}{10}\selectfont\sffamily\bfseries, anchor=west] at (4.0, 0.1) {Regulatory Response};
   \end{scope}
 
-  % Legend
-  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -5.7cm) {POLICY CHALLENGE};
-  \node[anchor=west] at (10.5cm, -6.4cm) {
+  % Legend box - centered below graph
+  \node[anchor=north] at (0.5\paperwidth, -9.0cm) {
     \begin{tikzpicture}
-      \draw[mintlight, line width=2pt] (0,0) -- (0.3, 0);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.4, 0) {Agent capability};
-    \end{tikzpicture}
-  };
-  \node[anchor=west] at (10.5cm, -7.0cm) {
-    \begin{tikzpicture}
-      \draw[alertamber, line width=2pt] (0,0) -- (0.3, 0);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.4, 0) {Regulatory response};
-    \end{tikzpicture}
-  };
-  \node[anchor=west] at (10.5cm, -7.6cm) {
-    \begin{tikzpicture}
-      \fill[fraudred, opacity=0.3] (0,-0.1) rectangle (0.3, 0.1);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.4, 0) {Vulnerability window};
+      \fill[black, opacity=0.3, rounded corners=3pt] (-3.5, -0.4) rectangle (3.5, 0.4);
+      \fill[fraudred, opacity=0.4] (-3.2, -0.15) rectangle (-2.8, 0.15);
+      \node[white, opacity=0.9, font=\fontsize{9}{9}\selectfont\sffamily, anchor=west] at (-2.6, 0) {Vulnerability Window = Policy Risk};
     \end{tikzpicture}
   };
 
