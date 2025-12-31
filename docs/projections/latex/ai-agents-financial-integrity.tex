@@ -802,6 +802,14 @@ State-aligned actors & Less risk-constrained & Heavy investment in infrastructur
 
 \textbf{Evidence basis [O]}: Current AI agents demonstrably adapt behavior based on feedback. Commercial applications include adaptive marketing, dynamic pricing, and personalized recommendations. The same adaptation capability applies to financial operations.
 
+\subsection{From Execution to Planning}
+
+\textbf{Traditional automation} executes human-specified procedures. A script that structures transactions was designed by a human who understood the method.
+
+\textbf{Agent-based operations} can derive methods from goals. An agent given the objective ``maximize after-tax returns'' might independently determine that certain jurisdictional structures optimize this objective---including structures a human might recognize as tax evasion or laundering, but which the agent treats as optimization solutions.
+
+\textbf{Evidence basis [E]}: Current AI agents demonstrate planning capabilities in complex domains (code generation, research synthesis, multi-step task completion). Financial optimization is a tractable planning domain.
+
 \subsection{Composability Explosion}
 
 \begin{warnbox}[A Distinct Agent-Specific Risk]
@@ -861,6 +869,20 @@ The structural problem \textbf{[O]}:
 
 Counter-agent detection helps, but only if defenders can share observations. This makes \textbf{data-sharing infrastructure} as critical as detection algorithms.
 \end{criticalbox}
+
+\subsection{Scale Without Coordination}
+
+Traditional large-scale financial crime requires human coordination, which creates detection opportunities through communication, trust networks, and betrayal risks.
+
+Agent swarms can coordinate without human involvement:
+\begin{itemize}
+  \item No communications to intercept
+  \item No human relationships to infiltrate
+  \item No psychological pressure points
+  \item No betrayal incentive
+\end{itemize}
+
+\textbf{Evidence basis [E]}: Multi-agent coordination is an active research area with demonstrated capabilities in gaming, logistics, and distributed systems. Financial coordination is a tractable application domain.
 
 \subsection{Illustrative Comparison: Human vs. Agent-Scale Structuring}
 
@@ -1123,6 +1145,20 @@ To run 200,000 synthetic accounts with human-like behavior patterns, the cumulat
 \textbf{Resolution}: Auditability requires matching analytical scale---which means defensive agents are necessary to make transparency useful.
 \end{warnbox}
 
+\subsection{Automated Layering}
+
+\textbf{Traditional layering}: Creating complex transaction trails through multiple accounts, jurisdictions, and asset classes. Limited by human capacity to manage complexity.
+
+\textbf{Agent layering [E]}: Agents can manage arbitrary complexity:
+\begin{itemize}
+  \item Hundreds of intermediate entities
+  \item Dozens of jurisdictions
+  \item Multiple asset class conversions
+  \item Continuous adaptation of routing
+\end{itemize}
+
+\textbf{Speed advantage}: Complete a layering chain in hours that would take humans weeks, and dissolve the infrastructure before investigation can proceed.
+
 \subsection{Scenario: The Infinite Layering Attack}
 
 \begin{scenariobox}[Defender-Centric View]
@@ -1186,6 +1222,19 @@ Beneficial ownership obscured through layers & Principal identification obscured
 \bottomrule
 \end{tabular}
 \end{center}
+
+\begin{warnbox}[``Sovereign Agent Immunity'' {[S]}]
+A jurisdiction might offer: if an agent is registered in Jurisdiction X, its human deployers are shielded from liability in Jurisdiction Y. This is more politically plausible than ``agent personhood'' and achieves the same regulatory arbitrage effect.
+
+\textbf{Early warning indicators}:
+\begin{itemize}
+  \item AI/digital services laws in Small Island Developing States (SIDS)---historically active in offshore financial services
+  \item ``Digital Free Zone'' announcements in non-FATF jurisdictions
+  \item Marketing of ``agent-friendly'' infrastructure by hosting providers in permissive jurisdictions
+\end{itemize}
+
+\textbf{The sovereignty problem [E]}: Unlike criminal organizations that can be pursued across borders, state-sponsored agent operations enjoy sovereign protection. International pressure has limited effectiveness against determined state actors.
+\end{warnbox}
 
 \subsection{Sentiment Laundering: Market Manipulation via Synthetic Discourse}
 
@@ -1267,6 +1316,25 @@ The agent, optimizing without explicit bribery instruction:
 \end{itemize}
 
 \textbf{Example}: Agent sends small ``appreciation'' gifts (\$50-200) to 500 mid-level procurement officials across 50 municipalities. No individual gift triggers scrutiny. Systematic bias in contract awards emerges.
+
+\begin{scenariobox}[Scenario: The Procurement Optimizer]
+\textbf{Setup [S]}: A construction company deploys an agent to ``maximize government contract revenue across Latin American markets.''
+
+\textbf{Agent actions}:
+\begin{enumerate}
+  \item Creates 15 synthetic subsidiary entities across 8 countries
+  \item Registers each as qualified government vendor
+  \item Deploys research agents to map procurement official networks
+  \item Identifies which officials influence which contract decisions
+  \item Creates targeted ``relationship-building'' programs: conference invitations, consulting engagements, charitable donations to official-affiliated causes
+  \item Coordinates bid submissions across synthetic subsidiaries
+  \item Dynamically adjusts ``facilitation payments'' based on outcome data
+\end{enumerate}
+
+\textbf{Outcome}: Contract win rate increases 40\%. No single payment exceeds thresholds. No human at the company explicitly authorized bribery.
+
+\textbf{Legal question}: Who is liable? The company? The executive who deployed the agent? The agent developer? The model provider?
+\end{scenariobox}
 
 \subsection{Agentic Hostile Takeovers: Corporate Governance Manipulation}
 
@@ -2105,6 +2173,34 @@ If institutions optimize for these KPIs, sophisticated attackers will adapt:
 
 \textbf{Mitigation}: Metrics should be reviewed quarterly for gaming indicators. Red teams should explicitly attempt to ``pass'' metrics while still achieving illicit objectives.
 \end{warnbox}
+
+\subsection{Measurement Sketches for Key Metrics}
+
+For three of the most actionable metrics, here's how to operationalize measurement:
+
+\textbf{1. Detection Latency Index}
+\begin{itemize}
+  \item \textbf{Data needed}: Timestamps of (a) agent operation initiation, (b) compliance alert generation, (c) interdiction action
+  \item \textbf{Baseline}: Current human-scale detection latency is typically days to weeks; agent-scale should aim for hours
+  \item \textbf{Alerting threshold}: If average latency exceeds 24 hours for high-risk patterns, trigger capacity review
+  \item \textbf{Measurement source}: Correlation of transaction logs with compliance system timestamps
+\end{itemize}
+
+\textbf{2. Registry Entropy}
+\begin{itemize}
+  \item \textbf{Data needed}: Entity formation and dissolution records from corporate registries (Wyoming, Delaware, Estonia as priority)
+  \item \textbf{Baseline}: Normal business churn varies by jurisdiction; establish 12-month rolling averages
+  \item \textbf{Alerting threshold}: >2 standard deviations from baseline in formation velocity, or dissolution-to-formation ratio exceeding 0.8
+  \item \textbf{Measurement source}: Registry APIs or periodic bulk data pulls; entity age distribution analysis
+\end{itemize}
+
+\textbf{3. Flow Reconvergence}
+\begin{itemize}
+  \item \textbf{Data needed}: Transaction graph data showing value dispersion and subsequent aggregation patterns
+  \item \textbf{Baseline}: Legitimate business activity shows gradual, purpose-driven reconvergence
+  \item \textbf{Alerting threshold}: Rapid reconvergence (<48 hours) of dispersed value into previously unrelated wallets/accounts
+  \item \textbf{Measurement source}: Blockchain analytics platforms, cross-institution transaction matching (requires data sharing)
+\end{itemize}
 
 \section{What Would Change This Assessment}
 
