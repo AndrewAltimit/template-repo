@@ -297,7 +297,7 @@
     \textbf{Document Type:} Projection\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
     \textbf{Classification:} Policy Research\\[0.2em]
-    \textbf{Version:} 1.3
+    \textbf{Version:} 1.4
   };
 
   % Vertical accent line
@@ -564,7 +564,7 @@ Gamified intelligence & Employees unknowingly participating in ``surveys'' & All
   \fill[shadowdark] (0,0) rectangle (\paperwidth, -10cm);
 
   % Part label and title
-  \node[signalred, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
+  \node[signalcyan, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Theory, Economics, and Historical Context};
 
@@ -576,7 +576,7 @@ Gamified intelligence & Employees unknowingly participating in ``surveys'' & All
     \fill[steelblue, opacity=0.6] (0.05,0.6) rectangle (2.55,0.85);
     \fill[chromesilver, opacity=0.3] (-0.05,0.9) rectangle (2.45,1.15);
     % Top document with lines (representing text/theory)
-    \fill[signalred, opacity=0.7] (0,1.2) rectangle (2.5,1.6);
+    \fill[signalcyan, opacity=0.7] (0,1.2) rectangle (2.5,1.6);
     \foreach \y in {1.28, 1.38, 1.48} {
       \draw[white, opacity=0.6, line width=0.8pt] (0.2,\y) -- (2.3,\y);
     }
@@ -592,7 +592,7 @@ Gamified intelligence & Employees unknowingly participating in ``surveys'' & All
     % Demand curve (downward)
     \draw[coldsteel, opacity=0.8, line width=2pt] (0.3,1.7) .. controls (1,1.2) and (2,0.5) .. (2.8,0.3);
     % Supply curve (upward)
-    \draw[signalred, opacity=0.9, line width=2pt] (0.3,0.3) .. controls (1,0.7) and (2,1.3) .. (2.8,1.7);
+    \draw[signalcyan, opacity=0.9, line width=2pt] (0.3,0.3) .. controls (1,0.7) and (2,1.3) .. (2.8,1.7);
     % Intersection point
     \fill[ciphergold] (1.55,1) circle (0.15);
     % Label
@@ -609,16 +609,16 @@ Gamified intelligence & Employees unknowingly participating in ``surveys'' & All
       \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (\x,0.4) {\label};
     }
     % Current era highlight
-    \fill[signalred] (3.5,0.8) circle (0.18);
-    \draw[signalred, opacity=0.5, line width=1pt] (3.5,0.8) circle (0.35);
+    \fill[signalcyan] (3.5,0.8) circle (0.18);
+    \draw[signalcyan, opacity=0.5, line width=1pt] (3.5,0.8) circle (0.35);
     % Progress arrow above
-    \draw[signalred, opacity=0.7, line width=1.5pt, -Stealth] (0.5,1.3) -- (3.3,1.3);
+    \draw[signalcyan, opacity=0.7, line width=1.5pt, -Stealth] (0.5,1.3) -- (3.3,1.3);
     % Label
     \node[chromesilver, opacity=0.85, font=\fontsize{8}{8}\selectfont\bfseries] at (2,-0.4) {HISTORY};
   \end{scope}
 
   % Bottom accent
-  \fill[signalred] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[signalcyan] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
@@ -901,7 +901,7 @@ The French recruitment of Vladimir Vetrov (``Farewell'') in the early 1980s demo
   \fill[shadowdark] (0,0) rectangle (\paperwidth, -10cm);
 
   % Part label and title
-  \node[signalred, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
+  \node[signalcyan, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Threat Analysis};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Capabilities, Vectors, and Actor Taxonomy};
 
@@ -912,7 +912,7 @@ The French recruitment of Vladimir Vetrov (``Farewell'') in the early 1980s demo
     \draw[chromesilver, opacity=0.4, line width=0.5pt] (0,-0.8) rectangle (5.5,1.2);
 
     % Signal waveforms (intercepted)
-    \draw[signalred, opacity=0.85, line width=1.5pt]
+    \draw[signalcyan, opacity=0.85, line width=1.5pt]
       (0.2,0.2) sin (0.5,0.8) cos (0.8,0.2) sin (1.1,-0.3) cos (1.4,0.2)
       sin (1.7,0.6) cos (2,0.2) sin (2.3,-0.5) cos (2.6,0.2)
       sin (2.9,0.9) cos (3.2,0.2) sin (3.5,-0.2) cos (3.8,0.2)
@@ -955,13 +955,13 @@ The French recruitment of Vladimir Vetrov (``Farewell'') in the early 1980s demo
       (90:0.5) -- (30:0.6) -- (330:0.9) -- (270:0.8) -- (210:0.4) -- (150:0.6) -- cycle;
 
     % AI-enabled threat
-    \fill[signalred, opacity=0.35]
+    \fill[signalcyan, opacity=0.35]
       (90:1.4) -- (30:1.2) -- (330:1.1) -- (270:0.5) -- (210:1.3) -- (150:1.25) -- cycle;
-    \draw[signalred, opacity=0.85, line width=1.5pt]
+    \draw[signalcyan, opacity=0.85, line width=1.5pt]
       (90:1.4) -- (30:1.2) -- (330:1.1) -- (270:0.5) -- (210:1.3) -- (150:1.25) -- cycle;
 
     % Center
-    \fill[signalred] (0,0) circle (0.06);
+    \fill[signalcyan] (0,0) circle (0.06);
 
     % Legend (below radar)
     \node[anchor=west] at (-1.2,-2.3) {
@@ -972,14 +972,14 @@ The French recruitment of Vladimir Vetrov (``Farewell'') in the early 1980s demo
     };
     \node[anchor=west] at (0.8,-2.3) {
       \begin{tikzpicture}
-        \fill[signalred, opacity=0.6] (0,0) rectangle (0.3,0.15);
+        \fill[signalcyan, opacity=0.6] (0,0) rectangle (0.3,0.15);
         \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (0.4,0.075) {AI-Enabled};
       \end{tikzpicture}
     };
   \end{scope}
 
   % Bottom accent
-  \fill[signalred] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[signalcyan] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
@@ -1680,7 +1680,7 @@ Termination on AI flags & At-will flexibility & Unfair dismissal protections \\
   \fill[shadowdark] (0,0) rectangle (\paperwidth, -10cm);
 
   % Part label and title
-  \node[signalred, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
+  \node[signalcyan, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Defense};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Counterintelligence, Controls, and Policy};
 
@@ -1692,13 +1692,13 @@ Termination on AI flags & At-will flexibility & Unfair dismissal protections \\
       \draw[interceptgreen, opacity=0.6, line width=1pt] (\x,-1.5) -- (\x,1.5);
     }
     % Connection lines (blocked threats on left)
-    \draw[signalred, opacity=0.5, line width=1.5pt, dashed] (-1.5,0.8) -- (0,0.8);
-    \draw[signalred, opacity=0.5, line width=1.5pt, dashed] (-1.5,0) -- (0,0);
-    \draw[signalred, opacity=0.5, line width=1.5pt, dashed] (-1.5,-0.8) -- (0,-0.8);
+    \draw[coldsteel, opacity=0.5, line width=1.5pt, dashed] (-1.5,0.8) -- (0,0.8);
+    \draw[coldsteel, opacity=0.5, line width=1.5pt, dashed] (-1.5,0) -- (0,0);
+    \draw[coldsteel, opacity=0.5, line width=1.5pt, dashed] (-1.5,-0.8) -- (0,-0.8);
     % Block indicators
-    \node[signalred, font=\fontsize{8}{8}\selectfont\bfseries] at (-0.3,0.8) {X};
-    \node[signalred, font=\fontsize{8}{8}\selectfont\bfseries] at (-0.3,0) {X};
-    \node[signalred, font=\fontsize{8}{8}\selectfont\bfseries] at (-0.3,-0.8) {X};
+    \node[coldsteel, font=\fontsize{8}{8}\selectfont\bfseries] at (-0.3,0.8) {X};
+    \node[coldsteel, font=\fontsize{8}{8}\selectfont\bfseries] at (-0.3,0) {X};
+    \node[coldsteel, font=\fontsize{8}{8}\selectfont\bfseries] at (-0.3,-0.8) {X};
     % Protected zone (right side)
     \fill[steelblue, opacity=0.2] (4.4,-1.3) rectangle (6,1.3);
   \end{scope}
@@ -1726,7 +1726,7 @@ Termination on AI flags & At-will flexibility & Unfair dismissal protections \\
   \node[chromesilver, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at ({0.5\paperwidth-2cm}, -6.3cm) {AI supply chain governance};
 
   % Bottom accent
-  \fill[signalred] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[signalcyan] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
@@ -2100,7 +2100,7 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
   \fill[shadowdark] (0,0) rectangle (\paperwidth, -10cm);
 
   % Part label and title
-  \node[signalred, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
+  \node[signalcyan, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Projections};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Timeline, Scenarios, and Conclusion};
 
@@ -2116,13 +2116,13 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
     }
 
     % Current marker
-    \fill[signalred] (0,0) circle (0.22);
-    \node[signalred, font=\fontsize{7}{7}\selectfont\bfseries] at (0,0.6) {NOW};
+    \fill[signalcyan] (0,0) circle (0.22);
+    \node[signalcyan, font=\fontsize{7}{7}\selectfont\bfseries] at (0,0.6) {NOW};
 
     % Transition zone (offense advantage)
-    \fill[signalred, opacity=0.25] (1.5,-0.35) rectangle (7.5,0.35);
-    \draw[signalred, opacity=0.6, line width=1pt] (1.5,-0.35) rectangle (7.5,0.35);
-    \node[signalred, font=\fontsize{7}{7}\selectfont\bfseries] at (4.5,0.7) {OFFENSE ADVANTAGE};
+    \fill[steelblue, opacity=0.25] (1.5,-0.35) rectangle (7.5,0.35);
+    \draw[steelblue, opacity=0.6, line width=1pt] (1.5,-0.35) rectangle (7.5,0.35);
+    \node[steelblue, font=\fontsize{7}{7}\selectfont\bfseries] at (4.5,0.7) {OFFENSE ADVANTAGE};
 
     % Equilibrium zone
     \fill[interceptgreen, opacity=0.2] (7.5,-0.35) rectangle (12,0.35);
@@ -2131,7 +2131,7 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
   \end{scope}
 
   % Bottom accent
-  \fill[signalred] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[signalcyan] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
