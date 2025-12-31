@@ -1864,33 +1864,31 @@ Success of recommended policy path creates systemic vulnerability through monocu
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Recommendations};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Policy Actions and Monitoring Indicators};
 
-  % UNIQUE VISUALIZATION: Policy Framework Pillars - Clean single-color design
-  % Four pillars representing the recommendation categories (height = implementation maturity)
+  % UNIQUE VISUALIZATION: Policy Framework Pillars - Simple bar chart
+  % Four pillars on a foundation bar (height = implementation maturity)
   \begin{scope}[shift={(0.5\paperwidth, -7cm)}]
-    % Foundation bar - centered
-    \fill[emeralddeep, opacity=0.8] (-5, -1.6) rectangle (5, -1.25);
-    \node[white, font=\fontsize{9}{9}\selectfont\sffamily] at (0, -1.42) {GOVERNANCE FRAMEWORK};
+    % Pillars - evenly spaced, sitting on foundation
+    % Total width ~9cm, 4 pillars of 1.8cm each with 0.6cm gaps
 
-    % Pillar dimensions: width=2.2cm, gap=0.4cm, total spread ~10cm centered at x=0
-    % Pillars at: -4.4, -1.5, 1.4, 4.3
-
-    % Pillar 1 - Technical (tallest - most developed)
-    \fill[moneygreen, opacity=0.9] (-4.4, -1.2) rectangle (-2.2, 1.8);
-    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (-3.3, 0.3) {TECHNICAL};
+    % Pillar 1 - Technical (tallest)
+    \fill[moneygreen, opacity=0.9] (-4.5, -1.2) rectangle (-2.7, 1.8);
+    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (-3.6, 0.3) {TECHNICAL};
 
     % Pillar 2 - Legal (medium-tall)
-    \fill[moneygreen, opacity=0.75] (-1.5, -1.2) rectangle (0.7, 1.3);
-    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (-0.4, 0.05) {LEGAL};
+    \fill[moneygreen, opacity=0.9] (-2.1, -1.2) rectangle (-0.3, 1.3);
+    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (-1.2, 0.05) {LEGAL};
 
     % Pillar 3 - Operational (medium)
-    \fill[moneygreen, opacity=0.6] (1.4, -1.2) rectangle (3.6, 0.8);
-    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (2.5, -0.2) {OPERATIONAL};
+    \fill[moneygreen, opacity=0.9] (0.3, -1.2) rectangle (2.1, 0.8);
+    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (1.2, -0.2) {OPERATIONAL};
 
-    % Pillar 4 - International (shortest - still developing)
-    \fill[moneygreen, opacity=0.45] (4.3, -1.2) rectangle (6.5, 0.3);
-    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (5.4, -0.45) {INT'L};
-    % Dashed outline showing growth needed
-    \draw[white, dashed, opacity=0.5, line width=1.5pt] (4.3, 0.3) rectangle (6.5, 1.3);
+    % Pillar 4 - International (shortest)
+    \fill[moneygreen, opacity=0.9] (2.7, -1.2) rectangle (4.5, 0.3);
+    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (3.6, -0.45) {INT'L};
+
+    % Foundation bar - spans all pillars
+    \fill[emeralddeep] (-4.8, -1.6) rectangle (4.8, -1.2);
+    \node[white, font=\fontsize{9}{9}\selectfont\sffamily] at (0, -1.4) {GOVERNANCE FRAMEWORK};
   \end{scope}
 
   % Bottom accent
