@@ -236,15 +236,15 @@
     \fill[fraudred, opacity=0.75] (-4.8, -1) circle (0.32);
     \fill[fraudred, opacity=0.65] (-5.2, -2.3) circle (0.25);
 
-    % LAYERING ZONE (middle) - transaction complexity
+    % LAYERING ZONE (middle) - transaction complexity - all same color
     % First layer nodes
-    \fill[alertamber, opacity=0.7] (-2.5, 2.3) circle (0.22);
-    \fill[alertamber, opacity=0.6] (-2.8, 1) circle (0.18);
-    \fill[alertamber, opacity=0.65] (-2.3, -0.3) circle (0.20);
-    \fill[alertamber, opacity=0.6] (-2.6, -1.5) circle (0.18);
-    \fill[alertamber, opacity=0.7] (-2.4, -2.5) circle (0.22);
+    \fill[copperrich, opacity=0.7] (-2.5, 2.3) circle (0.22);
+    \fill[copperrich, opacity=0.6] (-2.8, 1) circle (0.18);
+    \fill[copperrich, opacity=0.65] (-2.3, -0.3) circle (0.20);
+    \fill[copperrich, opacity=0.6] (-2.6, -1.5) circle (0.18);
+    \fill[copperrich, opacity=0.7] (-2.4, -2.5) circle (0.22);
 
-    % Second layer nodes (more dispersed)
+    % Second layer nodes (more dispersed) - same color
     \fill[copperrich, opacity=0.6] (-0.5, 2.8) circle (0.16);
     \fill[copperrich, opacity=0.65] (0, 1.5) circle (0.18);
     \fill[copperrich, opacity=0.6] (-0.3, 0.2) circle (0.15);
@@ -253,19 +253,19 @@
     \fill[copperrich, opacity=0.65] (0.3, -3) circle (0.18);
 
     % Flow lines from source to first layer (showing dispersion)
-    \draw[fraudred, opacity=0.4, line width=1.2pt] (-4.65, 2) -- (-2.72, 2.3);
-    \draw[fraudred, opacity=0.35, line width=1pt] (-4.65, 2) -- (-2.98, 1);
-    \draw[fraudred, opacity=0.4, line width=1pt] (-5.02, 0.5) -- (-2.52, -0.3);
-    \draw[fraudred, opacity=0.35, line width=1pt] (-4.48, -1) -- (-2.78, -1.5);
-    \draw[fraudred, opacity=0.4, line width=1.2pt] (-4.95, -2.3) -- (-2.62, -2.5);
+    \draw[copperrich, opacity=0.4, line width=1.2pt] (-4.65, 2) -- (-2.72, 2.3);
+    \draw[copperrich, opacity=0.35, line width=1pt] (-4.65, 2) -- (-2.98, 1);
+    \draw[copperrich, opacity=0.4, line width=1pt] (-5.02, 0.5) -- (-2.52, -0.3);
+    \draw[copperrich, opacity=0.35, line width=1pt] (-4.48, -1) -- (-2.78, -1.5);
+    \draw[copperrich, opacity=0.4, line width=1.2pt] (-4.95, -2.3) -- (-2.62, -2.5);
 
     % Flow lines from first to second layer (further dispersion)
-    \draw[alertamber, opacity=0.35, line width=0.8pt] (-2.28, 2.3) -- (-0.66, 2.8);
-    \draw[alertamber, opacity=0.35, line width=0.8pt] (-2.28, 2.3) -- (-0.18, 1.5);
-    \draw[alertamber, opacity=0.3, line width=0.8pt] (-2.58, 1) -- (-0.48, 0.2);
-    \draw[alertamber, opacity=0.35, line width=0.8pt] (-2.1, -0.3) -- (0.0, -0.8);
-    \draw[alertamber, opacity=0.3, line width=0.8pt] (-2.38, -1.5) -- (-0.37, -2);
-    \draw[alertamber, opacity=0.35, line width=0.8pt] (-2.18, -2.5) -- (0.12, -3);
+    \draw[copperrich, opacity=0.35, line width=0.8pt] (-2.28, 2.3) -- (-0.66, 2.8);
+    \draw[copperrich, opacity=0.35, line width=0.8pt] (-2.28, 2.3) -- (-0.18, 1.5);
+    \draw[copperrich, opacity=0.3, line width=0.8pt] (-2.58, 1) -- (-0.48, 0.2);
+    \draw[copperrich, opacity=0.35, line width=0.8pt] (-2.1, -0.3) -- (0.0, -0.8);
+    \draw[copperrich, opacity=0.3, line width=0.8pt] (-2.38, -1.5) -- (-0.37, -2);
+    \draw[copperrich, opacity=0.35, line width=0.8pt] (-2.18, -2.5) -- (0.12, -3);
 
     % CHOKEPOINT (center-right) - the detection/interdiction zone
     \draw[copperrich, opacity=0.25, line width=10pt] (3, 0) circle (1.8cm);
@@ -295,15 +295,16 @@
     \draw[mintlight, opacity=0.45, line width=1.2pt] (4.4, 0) -- (5.55, -0.3);
     \draw[mintlight, opacity=0.5, line width=1.5pt] (4.4, -0.5) -- (5.12, -1.4);
 
-    % Legend box (bottom center - simplified, chokepoint already labeled)
-    \fill[black, opacity=0.35, rounded corners=4pt] (-1.0, -5.2) rectangle (3.0, -4.0);
-    \node[white, font=\fontsize{8}{8}\selectfont\sffamily\bfseries] at (1, -4.25) {MONEY LAUNDERING FLOW};
-    \fill[fraudred, opacity=0.8] (-0.6, -4.7) circle (0.12);
-    \node[white, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at (-0.35, -4.7) {Illicit funds};
-    \fill[copperrich, opacity=0.8] (-0.6, -4.95) circle (0.12);
-    \node[white, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at (-0.35, -4.95) {Layering};
-    \fill[mintlight, opacity=0.8] (1.5, -4.7) circle (0.12);
-    \node[white, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at (1.75, -4.7) {Clean exit};
+    % Legend box (bottom center - wider, better proportioned)
+    \fill[black, opacity=0.4, rounded corners=5pt] (-2.5, -5.0) rectangle (4.5, -3.8);
+    \node[white, font=\fontsize{9}{9}\selectfont\sffamily\bfseries] at (1, -4.05) {MONEY LAUNDERING FLOW};
+    % Three items in a row
+    \fill[fraudred, opacity=0.9] (-1.8, -4.55) circle (0.15);
+    \node[white, font=\fontsize{8}{8}\selectfont, anchor=west] at (-1.5, -4.55) {Illicit funds};
+    \fill[copperrich, opacity=0.9] (0.8, -4.55) circle (0.15);
+    \node[white, font=\fontsize{8}{8}\selectfont, anchor=west] at (1.1, -4.55) {Layering};
+    \fill[mintlight, opacity=0.9] (3.0, -4.55) circle (0.15);
+    \node[white, font=\fontsize{8}{8}\selectfont, anchor=west] at (3.3, -4.55) {Exit};
 
   \end{scope}
 
