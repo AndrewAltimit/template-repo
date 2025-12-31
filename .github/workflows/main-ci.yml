@@ -599,6 +599,12 @@ jobs:
           # Rename to include -report suffix for consistency
           mv docs_output/ai-agents-economic-actors.pdf docs_output/ai-agents-economic-actors-report.pdf
 
+      - name: Build AI Agents Financial Integrity Report
+        run: |
+          ./automation/ci-cd/build-latex-doc.sh ai-agents-financial-integrity.tex
+          # Rename to include -report suffix for consistency
+          mv docs_output/ai-agents-financial-integrity.pdf docs_output/ai-agents-financial-integrity-report.pdf
+
       - name: List built PDFs
         run: |
           echo "Built PDFs:"
@@ -687,6 +693,8 @@ jobs:
           - **AI Agents Political Targeting Report** - Risk assessment for AI agents in political targeting
           - **AI Agents WMD Proliferation Report** - Risk assessment for AI agents in WMD proliferation
           - **AI Agents Economic Actors Report** - Risk assessment for AI agents as autonomous economic actors
+          - **AI Agents Espionage Operations Report** - Risk assessment for AI agents in espionage operations
+          - **AI Agents Financial Integrity Report** - Risk assessment for AI agents in financial system integrity
 
           ### Installation
 

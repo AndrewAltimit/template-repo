@@ -338,15 +338,25 @@ All workflows run on self-hosted runners for zero-cost operation.
 
 Technical reports and guides are available as PDFs, automatically built from LaTeX source and published with each release.
 
-| Document | PDF Download | Source |
-|----------|--------------|--------|
-| **Sleeper Agents Framework Guide** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](packages/sleeper_agents/docs/Sleeper_Agents_Framework_Guide.tex) |
-| **AgentCore Memory Integration Guide** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/integrations/ai-services/AgentCore_Memory_Integration_Guide.tex) |
-| **Virtual Character System Guide** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/integrations/ai-services/Virtual_Character_System_Guide.tex) |
-| **AI Agents Political Targeting Report** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/projections/latex/ai-agents-political-targeting.tex) |
-| **AI Agents WMD Proliferation Report** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/projections/latex/ai-agents-wmd-proliferation.tex) |
-| **AI Agents Espionage Operations Report** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/projections/latex/ai-agents-espionage-operations.tex) |
-| **AI Agents Economic Actors Report** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/projections/latex/ai-agents-economic-actors.tex) |
+### Emerging Technology Risk Assessments
+
+Scenario-based projection reports analyzing potential futures involving advanced AI systems. See [Projections Documentation](docs/projections/README.md).
+
+| Report | Topic | PDF | Source |
+|--------|-------|-----|--------|
+| **AI Agents Political Targeting** | Political violence risk | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-political-targeting.tex) |
+| **AI Agents WMD Proliferation** | WMD proliferation risk | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-wmd-proliferation.tex) |
+| **AI Agents Espionage Operations** | Intelligence tradecraft | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-espionage-operations.tex) |
+| **AI Agents Economic Actors** | Autonomous economic actors | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-economic-actors.tex) |
+| **AI Agents Financial Integrity** | Money laundering & corruption | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-financial-integrity.tex) |
+
+### Technical Guides
+
+| Guide | Description | PDF | Source |
+|-------|-------------|-----|--------|
+| **Sleeper Agents Framework** | AI backdoor detection using residual stream analysis | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](packages/sleeper_agents/docs/Sleeper_Agents_Framework_Guide.tex) |
+| **AgentCore Memory Integration** | Multi-provider AI memory system | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/AgentCore_Memory_Integration_Guide.tex) |
+| **Virtual Character System** | AI agent embodiment platform | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/Virtual_Character_System_Guide.tex) |
 
 **Build Status**: [![Build Documentation](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml/badge.svg)](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml)
 
