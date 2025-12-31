@@ -492,41 +492,44 @@ Readers seeking to understand \textit{what capabilities exist} and \textit{what 
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Methodology, Frameworks, and the Qualitative Shift};
 
-  % Visualization: Defense-in-Depth Layers (Clean stacked bar design)
-  \begin{scope}[shift={(0.5\paperwidth, -7cm)}]
-    % Defense layer bars - from outer (weak) to inner (strong)
-    % Each bar has: background fill, border, label on left, description on right
+  % Visualization: Defense-in-Depth Layers (Clean centered design with legend)
+  \begin{scope}[shift={(0.5\paperwidth, -7.2cm)}]
 
-    % Layer 1: Transaction Monitoring (outermost, most porous)
-    \fill[mintlight, opacity=0.15] (-4.5, 1.2) rectangle (4.5, 1.8);
-    \draw[mintlight, opacity=0.5, line width=1pt, dashed] (-4.5, 1.2) rectangle (4.5, 1.8);
-    \node[mintlight, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-4.7, 1.5) {OUTER};
-    \node[white, opacity=0.9, font=\fontsize{9}{9}\selectfont\sffamily] at (0, 1.5) {Transaction Monitoring};
-    \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (4.7, 1.5) {porous};
+    % Layer 1: Transaction Monitoring (outermost, porous) - tallest bar
+    \fill[mintlight, opacity=0.12] (-4.2, 1.4) rectangle (4.2, 2.2);
+    \draw[mintlight, opacity=0.6, line width=1.5pt, dashed] (-4.2, 1.4) rectangle (4.2, 2.2);
+    \node[white, font=\fontsize{11}{11}\selectfont\sffamily] at (0, 1.8) {Transaction Monitoring};
 
     % Layer 2: KYC/KYB Verification (middle)
-    \fill[moneygreen, opacity=0.2] (-3.5, 0.4) rectangle (3.5, 1.0);
-    \draw[moneygreen, opacity=0.6, line width=1.5pt] (-3.5, 0.4) rectangle (3.5, 1.0);
-    \node[moneygreen, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-3.7, 0.7) {MIDDLE};
-    \node[white, opacity=0.9, font=\fontsize{9}{9}\selectfont\sffamily] at (0, 0.7) {Identity Verification (KYC/KYB)};
-    \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (3.7, 0.7) {moderate};
+    \fill[moneygreen, opacity=0.18] (-3.2, 0.4) rectangle (3.2, 1.2);
+    \draw[moneygreen, opacity=0.7, line width=1.5pt] (-3.2, 0.4) rectangle (3.2, 1.2);
+    \node[white, font=\fontsize{11}{11}\selectfont\sffamily] at (0, 0.8) {Identity Verification};
 
-    % Layer 3: Endpoint Control (innermost, strongest)
-    \fill[copperrich, opacity=0.25] (-2.5, -0.4) rectangle (2.5, 0.2);
-    \draw[copperrich, opacity=0.8, line width=2pt] (-2.5, -0.4) rectangle (2.5, 0.2);
-    \node[copperrich, font=\fontsize{8}{8}\selectfont\sffamily\bfseries, anchor=east] at (-2.7, -0.1) {INNER};
-    \node[white, opacity=0.95, font=\fontsize{9}{9}\selectfont\sffamily\bfseries] at (0, -0.1) {Endpoint Control};
-    \node[copperrich, opacity=0.8, font=\fontsize{7}{7}\selectfont, anchor=west] at (2.7, -0.1) {robust};
+    % Layer 3: Endpoint Control (innermost, robust)
+    \fill[copperrich, opacity=0.3] (-2.2, -0.6) rectangle (2.2, 0.2);
+    \draw[copperrich, opacity=0.9, line width=2pt] (-2.2, -0.6) rectangle (2.2, 0.2);
+    \node[white, font=\fontsize{11}{11}\selectfont\sffamily\bfseries] at (0, -0.2) {Endpoint Control};
 
     % Core: Protected System
-    \fill[emeralddeep] (-1.2, -1.1) rectangle (1.2, -0.6);
-    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (0, -0.85) {PROTECTED SYSTEM};
+    \fill[emeralddeep] (-1.3, -1.4) rectangle (1.3, -0.8);
+    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (0, -1.1) {SYSTEM};
 
-    % Threat arrows from sides
-    \draw[fraudred, opacity=0.6, line width=1.5pt, -Stealth] (-6, 1.5) -- (-4.6, 1.5);
-    \draw[fraudred, opacity=0.6, line width=1.5pt, -Stealth] (6, 1.5) -- (4.6, 1.5);
-    \node[fraudred, opacity=0.7, font=\fontsize{7}{7}\selectfont] at (-6, 1.1) {Threats};
-    \node[fraudred, opacity=0.7, font=\fontsize{7}{7}\selectfont] at (6, 1.1) {Threats};
+    % Legend box on the right
+    \fill[black, opacity=0.2, rounded corners=3pt] (5.0, 0.2) rectangle (8.2, 2.3);
+    \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont\sffamily\bfseries, anchor=west] at (5.2, 2.0) {DEFENSE LAYERS};
+
+    % Legend items
+    \fill[mintlight, opacity=0.5] (5.3, 1.45) rectangle (5.8, 1.65);
+    \draw[mintlight, opacity=0.6, line width=1pt, dashed] (5.3, 1.45) rectangle (5.8, 1.65);
+    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (5.95, 1.55) {Porous};
+
+    \fill[moneygreen, opacity=0.5] (5.3, 0.95) rectangle (5.8, 1.15);
+    \draw[moneygreen, opacity=0.7, line width=1pt] (5.3, 0.95) rectangle (5.8, 1.15);
+    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (5.95, 1.05) {Moderate};
+
+    \fill[copperrich, opacity=0.5] (5.3, 0.45) rectangle (5.8, 0.65);
+    \draw[copperrich, opacity=0.9, line width=1.5pt] (5.3, 0.45) rectangle (5.8, 0.65);
+    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (5.95, 0.55) {Robust};
   \end{scope}
 
   % Bottom accent
