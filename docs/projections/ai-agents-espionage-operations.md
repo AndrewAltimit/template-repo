@@ -9,10 +9,10 @@
 
 | Field | Value |
 |-------|-------|
-| **Version** | 1.1 (Revised - Committee Submission) |
+| **Version** | 1.4 (Revised - Committee Submission) |
 | **Date** | December 2025 |
 | **Status** | Final - Approved for Committee |
-| **Change Summary** | v1.1: Added Committee Takeaways (1-page summary); calibrated cost claims with current model pricing (Haiku 4.5, Llama 4, Qwen 3); added Anticipated Objections table; updated Evidence Notes with calculation methodology |
+| **Change Summary** | v1.4: Added structured comparison tables (Economics of Espionage, Pattern-of-Life Analysis, Spearphishing Evolution, Smart Home/Edge Espionage); aligned with PDF v1.4 formatting; enhanced tactical data presentation for committee review |
 | **Distribution** | Committee members, designated reviewers |
 
 ---
@@ -436,6 +436,13 @@ AI agents can augment or automate portions of each phase, with particularly sign
 ### The Economics of Espionage
 
 Intelligence operations are fundamentally economic activities with costs and benefits:
+
+| Factor | Traditional | AI-Enabled |
+|--------|-------------|------------|
+| **Fixed costs** | High (training, infrastructure) | Lower (commercial models, cloud) |
+| **Marginal costs** | High per operation | Near-zero per additional target |
+| **Risk profile** | Diplomatic consequences | Attribution challenges |
+| **Failure cost** | Career-ending, PNG declarations | Infrastructure rotated in minutes |
 
 **Traditional Cost Structure:**
 - High fixed costs (training, infrastructure, institutional knowledge)
@@ -906,6 +913,15 @@ Modern individuals generate extensive high-fidelity behavioral telemetry:
 
 AI agents can synthesize this data into comprehensive target profiles:
 
+| Analysis Type | Data Sources and Outputs |
+|---------------|--------------------------|
+| **Routine analysis** | Work schedule from posting times; travel patterns from geo-tagged photos and professional appearances |
+| **Relationship mapping** | Family structure from photos/tags; professional network from LinkedIn and conference attendance |
+| **Psychological profiling** | Communication style analysis; stress indicators from language patterns; personality approximation |
+| **Vulnerability windows** | Routine deviations; periods of isolation or stress; times of reduced vigilance |
+
+**Detailed breakdown:**
+
 **Routine Analysis:**
 - Work schedule patterns from posting times and location data
 - Travel patterns from social media and professional appearances
@@ -954,11 +970,16 @@ AI-enabled social engineering:
 
 ### The Spearphishing Evolution
 
-| Generation | Characteristics | Detection Approach |
-|------------|-----------------|-------------------|
-| **Traditional phishing** | Generic, high-volume, low targeting | Signature-based, user training |
-| **Spearphishing 1.0** | Targeted, researched, personalized | Behavioral analysis, sender verification |
-| **Generative Spearphishing (GenSP)** | Hyper-personalized, adaptive, multi-channel, LLM-driven | Uncertain - signatures still emerging |
+**Three generations of social engineering compared:**
+
+| Aspect | Traditional Phishing | Spearphishing 1.0 | GenSP (2025) |
+|--------|---------------------|-------------------|--------------|
+| **Targeting** | Mass broadcast | Curated lists | AI-selected high-value |
+| **Personalization** | Template ("Dear Customer") | Manual research | Real-time OSINT synthesis |
+| **Scale** | Millions | Hundreds | Thousands (personalized) |
+| **Content quality** | Generic lures | Researched context | Hyper-specific hooks |
+| **Response handling** | Static | Manual escalation | AI dialogue management |
+| **Detection approach** | Signature-based, user training | Behavioral analysis, sender verification | Uncertain - signatures still emerging |
 
 **Generative Spearphishing (GenSP) characteristics:**
 - Deep persona modeling from years of target data
@@ -1994,18 +2015,24 @@ As we approach 2030, AI-enabled espionage intersects with quantum computing thre
 
 AI agents don't only operate on servers—they increasingly live on **edge devices**:
 
-**Smart Home Espionage** **[S]**:
-- Compromised IoT devices conducting passive POL analysis
-- Smart speakers capturing ambient conversations
-- Security cameras providing visual surveillance
-- Fitness devices tracking sleep patterns, stress levels, location
-- Smart home patterns revealing occupancy, routines, visitors
+**Smart Home Espionage** **[S]**—Passive Pattern-of-Life collection through compromised IoT devices:
+
+| Device Category | Intelligence Value |
+|-----------------|-------------------|
+| **Smart speakers** | Voice patterns, conversation fragments, daily routines |
+| **Security cameras** | Visual surveillance, visitor identification, occupancy patterns |
+| **Fitness devices** | Sleep patterns, stress levels, location tracking, health vulnerabilities |
+| **Smart home automation** | Occupancy patterns, routines, visitor schedules |
+| **Smart TVs** | Viewing habits, ambient audio capture |
+| **Vehicle telematics** | Executive movements, meeting locations, travel patterns |
 
 **Industrial Edge Espionage**:
 - Compromised sensors in manufacturing facilities
 - Smart building systems revealing organizational patterns
 - Vehicle telematics tracking executive movements
 - Industrial IoT providing production intelligence
+
+**The integration threat**: When AI agents synthesize data from multiple compromised edge devices, they can build comprehensive Pattern-of-Life profiles without any single device appearing suspicious.
 
 ### NPU-Enabled Edge Espionage: The Local LLM Threat
 
@@ -2896,6 +2923,6 @@ Traditional vulnerability research required human analysts to manually review ye
 
 ---
 
-**Document Version**: 1.1 (Revised - Committee Submission)
+**Document Version**: 1.4 (Revised - Committee Submission)
 **Last Updated**: December 2025
 **Classification**: Policy Research - For Defensive Analysis
