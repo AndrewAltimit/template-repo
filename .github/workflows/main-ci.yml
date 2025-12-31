@@ -587,6 +587,12 @@ jobs:
           # Rename to include -report suffix for consistency
           mv docs_output/ai-agents-wmd-proliferation.pdf docs_output/ai-agents-wmd-proliferation-report.pdf
 
+      - name: Build AI Agents Espionage Operations Report
+        run: |
+          ./automation/ci-cd/build-latex-doc.sh ai-agents-espionage-operations.tex
+          # Rename to include -report suffix for consistency
+          mv docs_output/ai-agents-espionage-operations.pdf docs_output/ai-agents-espionage-operations-report.pdf
+
       - name: List built PDFs
         run: |
           echo "Built PDFs:"
