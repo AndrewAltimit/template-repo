@@ -492,54 +492,42 @@ Readers seeking to understand \textit{what capabilities exist} and \textit{what 
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Methodology, Frameworks, and the Qualitative Shift};
 
-  % Visualization: Defense-in-Depth Layers (AML control framework)
-  \begin{scope}[shift={(3cm, -7.2cm)}]
-    % Outer layer - Transaction Monitoring (widest, most porous)
-    \draw[mintlight, opacity=0.15, line width=12pt] (3, 0) ellipse (5cm and 2cm);
-    \draw[mintlight, opacity=0.4, line width=1.5pt, dashed] (3, 0) ellipse (5cm and 2cm);
-    \node[mintlight, opacity=0.6, font=\fontsize{6}{6}\selectfont\sffamily] at (3, 2.3) {TRANSACTION MONITORING};
+  % Visualization: Defense-in-Depth Layers (Clean stacked bar design)
+  \begin{scope}[shift={(0.5\paperwidth, -7cm)}]
+    % Defense layer bars - from outer (weak) to inner (strong)
+    % Each bar has: background fill, border, label on left, description on right
 
-    % Middle layer - KYC/KYB Verification
-    \draw[moneygreen, opacity=0.2, line width=10pt] (3, 0) ellipse (3.5cm and 1.4cm);
-    \draw[moneygreen, opacity=0.5, line width=1.5pt] (3, 0) ellipse (3.5cm and 1.4cm);
-    \node[moneygreen, opacity=0.7, font=\fontsize{6}{6}\selectfont\sffamily] at (3, 1.65) {KYC / KYB VERIFICATION};
+    % Layer 1: Transaction Monitoring (outermost, most porous)
+    \fill[mintlight, opacity=0.15] (-4.5, 1.2) rectangle (4.5, 1.8);
+    \draw[mintlight, opacity=0.5, line width=1pt, dashed] (-4.5, 1.2) rectangle (4.5, 1.8);
+    \node[mintlight, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-4.7, 1.5) {OUTER};
+    \node[white, opacity=0.9, font=\fontsize{9}{9}\selectfont\sffamily] at (0, 1.5) {Transaction Monitoring};
+    \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (4.7, 1.5) {porous};
 
-    % Inner layer - Endpoint Control (chokepoints)
-    \draw[copperrich, opacity=0.25, line width=8pt] (3, 0) ellipse (2cm and 0.8cm);
-    \draw[copperrich, opacity=0.7, line width=2pt] (3, 0) ellipse (2cm and 0.8cm);
-    \node[copperrich, opacity=0.9, font=\fontsize{6}{6}\selectfont\sffamily\bfseries] at (3, 1.05) {ENDPOINT CONTROL};
+    % Layer 2: KYC/KYB Verification (middle)
+    \fill[moneygreen, opacity=0.2] (-3.5, 0.4) rectangle (3.5, 1.0);
+    \draw[moneygreen, opacity=0.6, line width=1.5pt] (-3.5, 0.4) rectangle (3.5, 1.0);
+    \node[moneygreen, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-3.7, 0.7) {MIDDLE};
+    \node[white, opacity=0.9, font=\fontsize{9}{9}\selectfont\sffamily] at (0, 0.7) {Identity Verification (KYC/KYB)};
+    \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (3.7, 0.7) {moderate};
 
-    % Core - Protected financial system
-    \fill[emeralddeep, opacity=0.8] (3, 0) ellipse (0.8cm and 0.35cm);
-    \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (3, 0) {SYSTEM};
+    % Layer 3: Endpoint Control (innermost, strongest)
+    \fill[copperrich, opacity=0.25] (-2.5, -0.4) rectangle (2.5, 0.2);
+    \draw[copperrich, opacity=0.8, line width=2pt] (-2.5, -0.4) rectangle (2.5, 0.2);
+    \node[copperrich, font=\fontsize{8}{8}\selectfont\sffamily\bfseries, anchor=east] at (-2.7, -0.1) {INNER};
+    \node[white, opacity=0.95, font=\fontsize{9}{9}\selectfont\sffamily\bfseries] at (0, -0.1) {Endpoint Control};
+    \node[copperrich, opacity=0.8, font=\fontsize{7}{7}\selectfont, anchor=west] at (2.7, -0.1) {robust};
 
-    % Attack arrows (showing penetration attempts)
-    \draw[fraudred, opacity=0.5, line width=1.5pt, -Stealth] (-0.5, 1.2) -- (0.8, 0.6);
-    \draw[fraudred, opacity=0.4, line width=1pt, -Stealth] (-0.3, -0.8) -- (1.0, -0.4);
-    \draw[fraudred, opacity=0.5, line width=1.5pt, -Stealth] (7, 0.9) -- (5.5, 0.5);
-    \node[fraudred, opacity=0.6, font=\fontsize{5}{5}\selectfont] at (-0.8, 0.2) {THREATS};
+    % Core: Protected System
+    \fill[emeralddeep] (-1.2, -1.1) rectangle (1.2, -0.6);
+    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (0, -0.85) {PROTECTED SYSTEM};
+
+    % Threat arrows from sides
+    \draw[fraudred, opacity=0.6, line width=1.5pt, -Stealth] (-6, 1.5) -- (-4.6, 1.5);
+    \draw[fraudred, opacity=0.6, line width=1.5pt, -Stealth] (6, 1.5) -- (4.6, 1.5);
+    \node[fraudred, opacity=0.7, font=\fontsize{7}{7}\selectfont] at (-6, 1.1) {Threats};
+    \node[fraudred, opacity=0.7, font=\fontsize{7}{7}\selectfont] at (6, 1.1) {Threats};
   \end{scope}
-
-  % Legend
-  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -5.7cm) {DEFENSE LAYERS};
-  \node[anchor=west] at (10.5cm, -6.4cm) {
-    \begin{tikzpicture}
-      \draw[mintlight, opacity=0.5, line width=2pt, dashed] (0,0) -- (0.3, 0);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.4, 0) {Monitoring (porous)};
-    \end{tikzpicture}
-  };
-  \node[anchor=west] at (10.5cm, -7.0cm) {
-    \begin{tikzpicture}
-      \draw[moneygreen, opacity=0.6, line width=2pt] (0,0) -- (0.3, 0);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.4, 0) {Identity verification};
-    \end{tikzpicture}
-  };
-  \node[anchor=west] at (10.5cm, -7.6cm) {
-    \begin{tikzpicture}
-      \draw[copperrich, opacity=0.8, line width=2pt] (0,0) -- (0.3, 0);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.4, 0) {Chokepoints (robust)};
-    \end{tikzpicture}
-  };
 
   % Bottom accent
   \fill[copperrich] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
