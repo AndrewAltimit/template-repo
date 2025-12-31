@@ -5,6 +5,26 @@ class EconomicAgentError(Exception):
     """Base exception for all economic agent errors."""
 
 
+class AgentNotInitializedError(EconomicAgentError):
+    """Raised when agent methods are called before initialization.
+
+    This occurs when agent methods requiring state are called before
+    initialize() or when not using the create() factory method.
+    """
+
+    def __init__(self, method_name: str = "method"):
+        """Initialize error with method context.
+
+        Args:
+            method_name: Name of the method that was called
+        """
+        self.method_name = method_name
+        super().__init__(
+            f"Agent not initialized when calling {method_name}(). "
+            "Use AutonomousAgent.create() factory method or call initialize() first."
+        )
+
+
 class InsufficientCapitalError(EconomicAgentError):
     """Raised when operation requires more capital than available."""
 

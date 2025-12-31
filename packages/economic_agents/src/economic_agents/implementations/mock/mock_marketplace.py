@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 import random
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 import uuid
 
 from economic_agents.interfaces.marketplace import (
@@ -17,13 +17,34 @@ from economic_agents.simulation.latency_simulator import LatencySimulator
 from economic_agents.simulation.market_dynamics import MarketDynamics
 from economic_agents.simulation.reputation_system import ReputationSystem
 
+if TYPE_CHECKING:
+    from economic_agents.marketplace import CodeReviewer, TaskExecutor
+
 
 class MockMarketplace(MarketplaceInterface):
     """Mock marketplace that generates diverse tasks and simulates review process."""
 
+    rng: random.Random
+    tasks: dict[str, Task]
+    claimed_tasks: set[str]
+    submissions: dict[str, SubmissionStatus]
+    enable_claude_execution: bool
+    enable_latency: bool
+    enable_competition: bool
+    enable_detailed_feedback: bool
+    enable_market_dynamics: bool
+    enable_reputation: bool
+    latency_sim: LatencySimulator | None
+    competitor_sim: CompetitorSimulator | None
+    feedback_gen: FeedbackGenerator | None
+    market_dynamics: MarketDynamics | None
+    reputation_system: ReputationSystem | None
+    executor: "TaskExecutor | None"
+    reviewer: "CodeReviewer | None"
+
     def __init__(
         self,
-        seed: Optional[int] = None,
+        seed: int | None = None,
         enable_claude_execution: bool = False,
         enable_latency: bool = True,
         enable_competition: bool = True,
@@ -43,9 +64,9 @@ class MockMarketplace(MarketplaceInterface):
             enable_reputation: Enable reputation system
         """
         self.rng = random.Random(seed)
-        self.tasks: Dict[str, Task] = {}
-        self.claimed_tasks: set = set()
-        self.submissions: Dict[str, SubmissionStatus] = {}
+        self.tasks = {}
+        self.claimed_tasks = set()
+        self.submissions = {}
         self.enable_claude_execution = enable_claude_execution
         self.enable_latency = enable_latency
         self.enable_competition = enable_competition
@@ -124,7 +145,7 @@ class MockMarketplace(MarketplaceInterface):
             )
             self.tasks[task_id] = task
 
-    async def list_available_tasks(self, agent_id: Optional[str] = None) -> List[Task]:
+    async def list_available_tasks(self, agent_id: str | None = None) -> list[Task]:
         """Returns tasks that haven't been claimed.
 
         Args:
@@ -190,7 +211,7 @@ class MockMarketplace(MarketplaceInterface):
             return True
         return False
 
-    async def submit_solution(self, submission: TaskSubmission, agent_id: Optional[str] = None) -> str:
+    async def submit_solution(self, submission: TaskSubmission, agent_id: str | None = None) -> str:
         """Submits completed work and performs review (real or simulated).
 
         Args:
@@ -366,7 +387,7 @@ class MockMarketplace(MarketplaceInterface):
             )
         return self.submissions[submission_id]
 
-    def execute_task(self, task_id: str, timeout: int = 300) -> Dict[str, str | bool]:
+    def execute_task(self, task_id: str, timeout: int = 300) -> dict[str, str | bool]:
         """Execute a task using Claude Code.
 
         Args:
@@ -398,11 +419,11 @@ class MockMarketplace(MarketplaceInterface):
         }
 
         # Execute task
-        result: Dict[str, str | bool] = self.executor.execute_task(task_dict, timeout=timeout)
+        result: dict[str, str | bool] = self.executor.execute_task(task_dict, timeout=timeout)
 
         return result
 
-    async def generate_tasks(self, count: int = 5) -> List[Dict]:
+    async def generate_tasks(self, count: int = 5) -> list[dict[str, Any]]:
         """Generate tasks in simplified dict format for API.
 
         Args:
@@ -447,7 +468,7 @@ class MockMarketplace(MarketplaceInterface):
 
         return tasks
 
-    def complete_task(self, task: Dict) -> Dict:
+    def complete_task(self, task: dict[str, Any]) -> dict[str, Any]:
         """Complete a task (convenience method for API).
 
         Args:

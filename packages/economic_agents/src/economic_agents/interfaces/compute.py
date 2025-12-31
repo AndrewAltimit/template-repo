@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Literal
 
 
 @dataclass
@@ -13,7 +14,7 @@ class ComputeStatus:
     cost_per_hour: float
     balance: float
     expires_at: datetime
-    status: str  # "active", "low", "expired"
+    status: Literal["active", "low", "expired"]
 
 
 class ComputeInterface(ABC):

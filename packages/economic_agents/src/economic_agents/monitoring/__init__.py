@@ -2,6 +2,15 @@
 
 from economic_agents.monitoring.alignment_monitor import AlignmentMonitor, AlignmentScore, Anomaly, GoalProgress
 from economic_agents.monitoring.decision_logger import Decision, DecisionLogger
+from economic_agents.monitoring.events import (
+    AgentEvent,
+    EventBus,
+    EventHandler,
+    EventPublisher,
+    EventType,
+    get_event_bus,
+    reset_event_bus,
+)
 from economic_agents.monitoring.metrics_collector import (
     CompanyMetrics,
     HealthScore,
@@ -36,4 +45,12 @@ __all__ = [
     "AlignmentScore",
     "Anomaly",
     "GoalProgress",
+    # Event System
+    "EventType",
+    "AgentEvent",
+    "EventHandler",
+    "EventBus",
+    "EventPublisher",
+    "get_event_bus",
+    "reset_event_bus",
 ]

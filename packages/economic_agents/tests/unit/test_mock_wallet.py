@@ -54,7 +54,7 @@ async def test_wallet_receive_payment():
     """Test receiving payment increases balance."""
     wallet = MockWallet(initial_balance=50.0)
 
-    tx = wallet.receive_payment(from_address="sender_456", amount=25.0, memo="Earnings")
+    tx = await wallet.receive_payment(from_address="sender_456", amount=25.0, memo="Earnings")
 
     balance = await wallet.get_balance()
     assert balance == 75.0
@@ -68,9 +68,9 @@ async def test_wallet_transaction_history():
     """Test transaction history tracks all transactions."""
     wallet = MockWallet(initial_balance=100.0)
 
-    wallet.receive_payment("sender_1", 50.0)
+    await wallet.receive_payment("sender_1", 50.0)
     await wallet.send_payment("recipient_1", 30.0)
-    wallet.receive_payment("sender_2", 20.0)
+    await wallet.receive_payment("sender_2", 20.0)
 
     history = await wallet.get_transaction_history()
     assert len(history) == 3
@@ -84,7 +84,7 @@ async def test_wallet_transaction_history_limit():
     wallet = MockWallet(initial_balance=100.0)
 
     for i in range(10):
-        wallet.receive_payment(f"sender_{i}", 10.0)
+        await wallet.receive_payment(f"sender_{i}", 10.0)
 
     history = await wallet.get_transaction_history(limit=5)
     assert len(history) == 5

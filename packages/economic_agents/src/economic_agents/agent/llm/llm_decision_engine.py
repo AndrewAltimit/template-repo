@@ -4,8 +4,11 @@ from dataclasses import dataclass
 from datetime import datetime
 import json
 import logging
+import subprocess
 import time
+from typing import Any
 
+from economic_agents.agent.core.config import AgentConfig
 from economic_agents.agent.core.decision_engine import DecisionEngine, ResourceAllocation
 from economic_agents.agent.core.state import AgentState
 from economic_agents.agent.llm.executors import ClaudeExecutor
@@ -20,10 +23,10 @@ class LLMDecision:
     decision_id: str
     timestamp: datetime
     agent_type: str
-    state_snapshot: dict
+    state_snapshot: dict[str, Any]
     prompt: str
     raw_response: str
-    parsed_decision: dict
+    parsed_decision: dict[str, Any]
     validation_passed: bool
     execution_time_seconds: float
     fallback_used: bool
@@ -37,22 +40,34 @@ class LLMDecisionEngine:
     on timeout or failure.
     """
 
-    def __init__(self, config: dict | None = None):
+    config: AgentConfig
+    executor: ClaudeExecutor
+    fallback: DecisionEngine
+    fallback_enabled: bool
+    decisions: list[LLMDecision]
+
+    def __init__(self, config: AgentConfig | dict[str, Any] | None = None):
         """Initialize LLM decision engine.
 
         Args:
-            config: Configuration dict with:
+            config: AgentConfig instance or legacy dict with:
                 - llm_timeout: Timeout in seconds (default: 900 = 15 minutes)
                 - node_version: Node.js version (default: "22.16.0")
                 - survival_buffer_hours: Survival buffer for fallback (default: 24.0)
                 - company_threshold: Company formation threshold for fallback (default: 100.0)
                 - fallback_enabled: Enable rule-based fallback (default: True)
         """
-        self.config = config or {}
-        self.executor = ClaudeExecutor(config)
-        self.fallback = DecisionEngine(config)
-        self.fallback_enabled = self.config.get("fallback_enabled", True)
-        self.decisions: list[LLMDecision] = []
+        if isinstance(config, AgentConfig):
+            self.config = config
+        else:
+            self.config = AgentConfig.from_dict(config)
+
+        # Pass config dict to executor (it expects dict)
+        config_dict = self.config.to_dict()
+        self.executor = ClaudeExecutor(config_dict)
+        self.fallback = DecisionEngine(self.config)
+        self.fallback_enabled = self.config.fallback_enabled
+        self.decisions = []
 
         logger.info(
             "LLMDecisionEngine initialized (fallback=%s)",
@@ -115,7 +130,15 @@ class LLMDecisionEngine:
 
             return allocation
 
-        except Exception as e:
+        except (
+            TimeoutError,
+            RuntimeError,
+            json.JSONDecodeError,
+            ValueError,
+            KeyError,
+            subprocess.TimeoutExpired,
+            subprocess.CalledProcessError,
+        ) as e:
             execution_time = time.time() - start_time
             logger.error("Claude decision failed after %.2fs: %s", execution_time, e)
 
@@ -137,6 +160,17 @@ class LLMDecisionEngine:
             )
 
             return fallback_allocation
+
+        except Exception as e:
+            # Unexpected errors should be logged and re-raised
+            execution_time = time.time() - start_time
+            logger.critical(
+                "Unexpected error in Claude decision after %.2fs: %s",
+                execution_time,
+                e,
+                exc_info=True,
+            )
+            raise
 
     def should_form_company(self, state: AgentState) -> bool:
         """Decide if it's time to create a company.

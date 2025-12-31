@@ -3,7 +3,7 @@
 import logging
 import re
 import subprocess
-from typing import Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,12 @@ class ClaudeExecutor:
     to allow deep strategic reasoning.
     """
 
-    def __init__(self, config: dict | None = None):
+    config: dict[str, Any]
+    node_version: str
+    timeout: int
+    unattended: bool
+
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize Claude executor.
 
         Args:
@@ -43,7 +48,7 @@ class ClaudeExecutor:
 
         logger.info("ClaudeExecutor initialized with timeout=%ds (%.1f min)", self.timeout, self.timeout / 60)
 
-    def execute(self, prompt: str, timeout: Optional[int] = None) -> str:
+    def execute(self, prompt: str, timeout: int | None = None) -> str:
         """Execute prompt via Claude Code CLI with long timeout.
 
         Args:

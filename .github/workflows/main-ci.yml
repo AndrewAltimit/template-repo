@@ -593,6 +593,12 @@ jobs:
           # Rename to include -report suffix for consistency
           mv docs_output/ai-agents-espionage-operations.pdf docs_output/ai-agents-espionage-operations-report.pdf
 
+      - name: Build AI Agents Economic Actors Report
+        run: |
+          ./automation/ci-cd/build-latex-doc.sh ai-agents-economic-actors.tex
+          # Rename to include -report suffix for consistency
+          mv docs_output/ai-agents-economic-actors.pdf docs_output/ai-agents-economic-actors-report.pdf
+
       - name: List built PDFs
         run: |
           echo "Built PDFs:"
@@ -680,6 +686,7 @@ jobs:
           - **Virtual Character System Guide** - AI agent embodiment and multimedia performance platform guide
           - **AI Agents Political Targeting Report** - Risk assessment for AI agents in political targeting
           - **AI Agents WMD Proliferation Report** - Risk assessment for AI agents in WMD proliferation
+          - **AI Agents Economic Actors Report** - Risk assessment for AI agents as autonomous economic actors
 
           ### Installation
 

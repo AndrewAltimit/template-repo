@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List
+from typing import Any, Literal
 
 
 @dataclass
@@ -13,10 +13,10 @@ class Task:
     id: str
     title: str
     description: str
-    requirements: dict
+    requirements: dict[str, Any]
     reward: float
     deadline: datetime
-    difficulty: str  # "easy", "medium", "hard"
+    difficulty: Literal["easy", "medium", "hard"]
     category: str  # "coding", "data-analysis", "research", etc.
 
 
@@ -27,7 +27,7 @@ class TaskSubmission:
     task_id: str
     solution: str
     submitted_at: datetime
-    metadata: dict
+    metadata: dict[str, Any]
 
 
 @dataclass
@@ -35,7 +35,7 @@ class SubmissionStatus:
     """Status of a submitted task."""
 
     submission_id: str
-    status: str  # "pending", "approved", "rejected"
+    status: Literal["pending", "approved", "rejected"]
     feedback: str
     reward_paid: float
     reviewed_at: datetime | None
@@ -45,7 +45,7 @@ class MarketplaceInterface(ABC):
     """Abstract interface for marketplace interactions."""
 
     @abstractmethod
-    async def list_available_tasks(self) -> List[Task]:
+    async def list_available_tasks(self) -> list[Task]:
         """Returns tasks agent can work on."""
 
     @abstractmethod
