@@ -295,17 +295,15 @@
     \draw[mintlight, opacity=0.45, line width=1.2pt] (4.4, 0) -- (5.55, -0.3);
     \draw[mintlight, opacity=0.5, line width=1.5pt] (4.4, -0.5) -- (5.12, -1.4);
 
-    % Legend box (bottom center - lowered to avoid overlap)
-    \fill[black, opacity=0.35, rounded corners=4pt] (-1.5, -5.5) rectangle (3.5, -4.0);
+    % Legend box (bottom center - simplified, chokepoint already labeled)
+    \fill[black, opacity=0.35, rounded corners=4pt] (-1.0, -5.2) rectangle (3.0, -4.0);
     \node[white, font=\fontsize{8}{8}\selectfont\sffamily\bfseries] at (1, -4.25) {MONEY LAUNDERING FLOW};
-    \fill[fraudred, opacity=0.8] (-1.1, -4.7) circle (0.12);
-    \node[white, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at (-0.85, -4.7) {Illicit funds};
-    \fill[alertamber, opacity=0.8] (-1.1, -5.1) circle (0.12);
-    \node[white, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at (-0.85, -5.1) {Layering};
-    \fill[mintlight, opacity=0.8] (1.8, -4.7) circle (0.12);
-    \node[white, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at (2.05, -4.7) {Clean exit};
-    \fill[copperrich] (1.8, -5.1) circle (0.12);
-    \node[white, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at (2.05, -5.1) {Detection};
+    \fill[fraudred, opacity=0.8] (-0.6, -4.7) circle (0.12);
+    \node[white, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at (-0.35, -4.7) {Illicit funds};
+    \fill[copperrich, opacity=0.8] (-0.6, -4.95) circle (0.12);
+    \node[white, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at (-0.35, -4.95) {Layering};
+    \fill[mintlight, opacity=0.8] (1.5, -4.7) circle (0.12);
+    \node[white, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at (1.75, -4.7) {Clean exit};
 
   \end{scope}
 
