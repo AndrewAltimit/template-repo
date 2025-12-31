@@ -1864,37 +1864,33 @@ Success of recommended policy path creates systemic vulnerability through monocu
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Recommendations};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Policy Actions and Monitoring Indicators};
 
-  % UNIQUE VISUALIZATION: Policy Framework Pillars
-  % Four pillars representing the recommendation categories
-  \begin{scope}[shift={(5.5cm, -7cm)}]
-    % Foundation bar
-    \fill[emeralddeep, opacity=0.8] (-0.5, -1.5) rectangle (10.5, -1.2);
-    \node[white, font=\fontsize{6}{6}\selectfont\sffamily] at (5, -1.35) {GOVERNANCE FRAMEWORK};
+  % UNIQUE VISUALIZATION: Policy Framework Pillars - Clean single-color design
+  % Four pillars representing the recommendation categories (height = implementation maturity)
+  \begin{scope}[shift={(0.5\paperwidth, -7cm)}]
+    % Foundation bar - centered
+    \fill[emeralddeep, opacity=0.8] (-5, -1.6) rectangle (5, -1.25);
+    \node[white, font=\fontsize{9}{9}\selectfont\sffamily] at (0, -1.42) {GOVERNANCE FRAMEWORK};
 
-    % Pillar dimensions: width=2cm, gap=0.5cm, total=4*2+3*0.5=9.5cm centered at x=5
-    % Pillars at: 0.25, 2.75, 5.25, 7.75
+    % Pillar dimensions: width=2.2cm, gap=0.4cm, total spread ~10cm centered at x=0
+    % Pillars at: -4.4, -1.5, 1.4, 4.3
 
-    % Pillar 1 - Technical (tallest)
-    \fill[moneygreen, opacity=0.9] (0.25, -1.1) rectangle (2.25, 1.8);
-    \node[white, font=\fontsize{6}{6}\selectfont\bfseries] at (1.25, 0.35) {TECHNICAL};
-    \fill[copperrich] (0.25, 1.8) rectangle (2.25, 2.0);
+    % Pillar 1 - Technical (tallest - most developed)
+    \fill[moneygreen, opacity=0.9] (-4.4, -1.2) rectangle (-2.2, 1.8);
+    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (-3.3, 0.3) {TECHNICAL};
 
     % Pillar 2 - Legal (medium-tall)
-    \fill[moneygreen, opacity=0.75] (2.75, -1.1) rectangle (4.75, 1.3);
-    \node[white, font=\fontsize{6}{6}\selectfont\bfseries] at (3.75, 0.1) {LEGAL};
-    \fill[copperrich] (2.75, 1.3) rectangle (4.75, 1.5);
+    \fill[moneygreen, opacity=0.75] (-1.5, -1.2) rectangle (0.7, 1.3);
+    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (-0.4, 0.05) {LEGAL};
 
     % Pillar 3 - Operational (medium)
-    \fill[moneygreen, opacity=0.6] (5.25, -1.1) rectangle (7.25, 0.8);
-    \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (6.25, -0.15) {OPS};
-    \fill[copperrich] (5.25, 0.8) rectangle (7.25, 1.0);
+    \fill[moneygreen, opacity=0.6] (1.4, -1.2) rectangle (3.6, 0.8);
+    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (2.5, -0.2) {OPERATIONAL};
 
-    % Pillar 4 - International (shortest, still building)
-    \fill[moneygreen, opacity=0.45] (7.75, -1.1) rectangle (9.75, 0.3);
-    \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (8.75, -0.4) {INT'L};
-    \fill[copperrich] (7.75, 0.3) rectangle (9.75, 0.5);
-    % Building indicator (dashed outline showing growth potential)
-    \draw[copperrich, dashed, opacity=0.6, line width=1pt] (7.75, 0.5) rectangle (9.75, 1.3);
+    % Pillar 4 - International (shortest - still developing)
+    \fill[moneygreen, opacity=0.45] (4.3, -1.2) rectangle (6.5, 0.3);
+    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (5.4, -0.45) {INT'L};
+    % Dashed outline showing growth needed
+    \draw[white, dashed, opacity=0.5, line width=1.5pt] (4.3, 0.3) rectangle (6.5, 1.3);
   \end{scope}
 
   % Bottom accent
