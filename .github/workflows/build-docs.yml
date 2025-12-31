@@ -246,6 +246,33 @@ jobs:
           path: docs_output/ai-agents-political-targeting-report.pdf
           retention-days: 90
 
+  build-espionage-operations-report:
+    name: Build AI Agents Espionage Operations Report
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Build PDF with LaTeX
+        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-espionage-operations.tex
+
+      - name: Rename PDF to sensible filename
+        run: |
+          # Rename to include -report suffix for consistency
+          mv docs_output/ai-agents-espionage-operations.pdf docs_output/ai-agents-espionage-operations-report.pdf
+          ls -lh docs_output/ai-agents-espionage-operations-report.pdf
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-agents-espionage-operations-report
+          path: docs_output/ai-agents-espionage-operations-report.pdf
+          retention-days: 90
+
   build-economic-actors-report:
     name: Build AI Agents Economic Actors Report
     runs-on: self-hosted

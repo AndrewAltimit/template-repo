@@ -345,6 +345,7 @@ Technical reports and guides are available as PDFs, automatically built from LaT
 | **Virtual Character System Guide** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/integrations/ai-services/Virtual_Character_System_Guide.tex) |
 | **AI Agents Political Targeting Report** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/projections/latex/ai-agents-political-targeting.tex) |
 | **AI Agents WMD Proliferation Report** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/projections/latex/ai-agents-wmd-proliferation.tex) |
+| **AI Agents Espionage Operations Report** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/projections/latex/ai-agents-espionage-operations.tex) |
 | **AI Agents Economic Actors Report** | [Latest Release](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX Source](docs/projections/latex/ai-agents-economic-actors.tex) |
 
 **Build Status**: [![Build Documentation](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml/badge.svg)](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml)
