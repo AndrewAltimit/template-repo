@@ -27,6 +27,7 @@ These projections serve defensive policy analysis:
 | AI Agents Espionage Operations | AI agents and intelligence tradecraft | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-espionage-operations.md) \| [LaTeX](./latex/ai-agents-espionage-operations.tex) |
 | AI Agents Economic Actors | AI agents as autonomous economic actors | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Package](../../packages/economic_agents) \| [LaTeX](./latex/ai-agents-economic-actors.tex) |
 | AI Agents Financial Integrity | AI agents and financial system integrity | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-financial-integrity.md) \| [LaTeX](./latex/ai-agents-financial-integrity.tex) |
+| AI Agents Institutional Erosion | AI agents eroding IC monopolies | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-institutional-erosion.md) \| [LaTeX](./latex/ai-agents-institutional-erosion.tex) |
 
 **Build Status**: [![Build Documentation](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml/badge.svg)](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml)
 

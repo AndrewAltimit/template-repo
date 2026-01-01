@@ -1373,13 +1373,20 @@ The rise of open-weight models (Llama, Qwen) and Fine-Tuning-as-a-Service compli
 
 **Action**: Deploy AI systems to identify agent-generated content in intelligence streams.
 
+**Cross-Reference: Sleeper Agents Framework**: The `packages/sleeper_agents/` framework provides production-validated techniques directly applicable to this challenge. Based on Anthropic's research on persistent deceptive behaviors in LLMs, the framework's **Linear Probe Detection** methodology (achieving AUC=1.0 across multiple architectures) can detect AI-generated content by analyzing activation patterns during text generation. Key applicable techniques include:
+- **Generation-Based Activation Extraction**: Capture residual stream activations to distinguish authentic human content from agent-generated synthetic content
+- **Chain-of-Thought Analysis**: Detect reasoning patterns indicative of goal-directed agent behavior
+- **Trigger-Based Testing**: Identify content generated in response to specific prompts or conditions
+
+This framework addresses a critical gap: standard detection methods may create a "false impression of safety" while sophisticated synthetic content passes undetected.
+
 **Implementation**:
 
 | Phase | Scope | Owner | Success Metric |
 |-------|-------|-------|----------------|
 | Bronze | Commercial tools deployed per agency | Each agency | Tool availability |
-| Silver | Cross-agency sharing of detection signatures | CISA | Shared detection library |
-| Gold | Integrated detection in collection pipelines | NGA, NSA | Pre-filtering operational |
+| Silver | Cross-agency sharing of detection signatures; pilot Sleeper Agents Framework integration | CISA | Shared detection library |
+| Gold | Integrated detection in collection pipelines; activation-based detection operational | NGA, NSA | Pre-filtering operational |
 
 ### 9.4 Operational Measures
 
