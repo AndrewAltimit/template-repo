@@ -41,35 +41,41 @@
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows.blur, matrix, patterns, fadings, shadings}
 
 % ============================================================================
-% COLOR DEFINITIONS - Institutional Research Theme
+% COLOR DEFINITIONS - Fractured Authority Theme (Institutional Erosion)
 % ============================================================================
-\definecolor{instdark}{HTML}{1C2833}
-\definecolor{instnavy}{HTML}{2C3E50}
-\definecolor{instblue}{HTML}{34495E}
-\definecolor{instaccent}{HTML}{5D6D7E}
-\definecolor{instgold}{HTML}{B7950B}
-\definecolor{instslate}{HTML}{566573}
-\definecolor{successgreen}{HTML}{1E8449}
-\definecolor{warningamber}{HTML}{B9770E}
-\definecolor{alertcoral}{HTML}{922B21}
-\definecolor{infocyan}{HTML}{1A5276}
-\definecolor{coolgray}{HTML}{7B7D7D}
-\definecolor{lightgray}{HTML}{EAECEE}
-\definecolor{codebg}{HTML}{F4F6F7}
-\definecolor{codetext}{HTML}{2C3E50}
-\definecolor{gridlight}{HTML}{D5D8DC}
-\definecolor{nodecyan}{HTML}{2E86AB}
-\definecolor{nodeorange}{HTML}{D35400}
-\definecolor{nodegreen}{HTML}{27AE60}
-\definecolor{nodepurple}{HTML}{8E44AD}
+% Primary: Deep slate - institutional weight, government authority
+\definecolor{slateprimary}{HTML}{1E293B}
+\definecolor{slatedark}{HTML}{0F172A}
+\definecolor{slatemid}{HTML}{334155}
+% Secondary: Weathered bronze/stone - aged institutions, legacy systems
+\definecolor{bronzeweathered}{HTML}{92735F}
+\definecolor{stonegray}{HTML}{78716C}
+\definecolor{patinabronze}{HTML}{A68B6A}
+% Accent: Fracture amber/orange - stress points, erosion, warning
+\definecolor{fractureamber}{HTML}{EA580C}
+\definecolor{stressorange}{HTML}{D97706}
+\definecolor{erosionyellow}{HTML}{F59E0B}
+% Alert: Deep burgundy/wine - critical vulnerabilities
+\definecolor{burgundydeep}{HTML}{881337}
+\definecolor{wineaccent}{HTML}{9F1239}
+% Verification: Teal - adaptation, verification, hope
+\definecolor{verifyteal}{HTML}{0F766E}
+\definecolor{adaptteal}{HTML}{14B8A6}
+% Neutrals
+\definecolor{coolgray}{HTML}{64748B}
+\definecolor{lightgray}{HTML}{F1F5F9}
+\definecolor{textlight}{HTML}{CBD5E1}
+\definecolor{gridlight}{HTML}{E2E8F0}
+% Standard ETRA header band gold (consistent across all projection reports)
+\definecolor{barriergold}{HTML}{D4AC0D}
 
 % ============================================================================
 % HYPERREF SETUP
 % ============================================================================
 \hypersetup{
   colorlinks=true,
-  linkcolor=instnavy,
-  urlcolor=instaccent,
+  linkcolor=slatemid,
+  urlcolor=verifyteal,
   pdftitle={AI Agents and Institutional Erosion of Intelligence Monopolies},
   pdfauthor={Emerging Technology Risk Assessment}
 }
@@ -82,23 +88,23 @@
 \setlist{nosep, leftmargin=1.5em, itemsep=0.3em}
 
 % ============================================================================
-% PAGE STYLE - Minimal with data grid accent
+% PAGE STYLE - Fracture pattern accent (institutional erosion theme)
 % ============================================================================
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{%
   \begin{tikzpicture}[baseline=-0.5ex]
-    % Mini data grid
-    \foreach \x in {0,0.12,0.24,0.36,0.48} {
-      \foreach \y in {0,0.12,0.24} {
-        \fill[instaccent, opacity=0.3] (\x,\y) circle (0.03);
-      }
-    }
+    % Fractured seal fragment pattern
+    \fill[bronzeweathered, opacity=0.6] (0,0.12) -- (0.15,0.18) -- (0.12,0.06) -- cycle;
+    \fill[bronzeweathered, opacity=0.5] (0.18,0.1) -- (0.32,0.16) -- (0.28,0.04) -- cycle;
+    \draw[fractureamber, opacity=0.7, line width=0.6pt] (0.12,0.12) -- (0.22,0.08);
+    \draw[fractureamber, opacity=0.5, line width=0.4pt] (0.08,0.06) -- (0.18,0.14);
+    \fill[fractureamber, opacity=0.9] (0.36,0.12) circle (0.04);
   \end{tikzpicture}
-  \hspace{0.5em}\textcolor{instnavy}{\textsf{\small ETRA-2026-IC-001}}%
+  \hspace{0.5em}\textcolor{slateprimary}{\textsf{\small ETRA-2026-IC-001}}%
 }
 \fancyhead[R]{\textcolor{coolgray}{\textsf{\thepage}}}
-\fancyfoot[C]{\textcolor{coolgray}{\footnotesize\textsf{Emerging Technology Risk Assessment \textbar{} Projection Report}}}
+\fancyfoot[C]{\textcolor{coolgray}{\footnotesize\textsf{Emerging Technology Risk Assessment \textbar{} Institutional Erosion}}}
 \renewcommand{\headrulewidth}{0pt}
 \renewcommand{\footrulewidth}{0pt}
 
@@ -106,16 +112,16 @@
 \setlength{\headheight}{32pt}
 
 % ============================================================================
-% SECTION FORMATTING - Clean institutional style
+% SECTION FORMATTING - Fractured authority style with erosion accent
 % ============================================================================
 \titleformat{\section}
-  {\normalfont\LARGE\bfseries\color{instdark}}
-  {\thesection}{0.8em}{}[\vspace{-0.3em}{\color{gridlight}\rule{\textwidth}{1pt}}]
+  {\normalfont\LARGE\bfseries\color{slatedark}}
+  {\thesection}{0.8em}{}[\vspace{-0.3em}{\color{bronzeweathered}\rule{\textwidth}{1.5pt}\hspace{-\textwidth}\color{fractureamber}\rule{3cm}{1.5pt}}]
 \titleformat{\subsection}
-  {\normalfont\Large\bfseries\color{instnavy}}
+  {\normalfont\Large\bfseries\color{slateprimary}}
   {\thesubsection}{0.6em}{}
 \titleformat{\subsubsection}
-  {\normalfont\large\color{instslate}\bfseries}
+  {\normalfont\large\color{stonegray}\bfseries}
   {\thesubsubsection}{0.5em}{}
 
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
@@ -124,77 +130,77 @@
 \setcounter{tocdepth}{2}
 
 % ============================================================================
-% TCOLORBOX ENVIRONMENTS
+% TCOLORBOX ENVIRONMENTS - Fractured Authority Theme
 % ============================================================================
 \tcbuselibrary{skins,breakable,hooks}
 
 \newtcolorbox{keybox}[1][Key Finding]{
   enhanced, breakable,
-  colback=instblue!5, colframe=instblue,
-  colbacktitle=instblue, coltitle=white,
+  colback=slatemid!8, colframe=slatemid,
+  colbacktitle=slatemid, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{72}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{warnbox}[1][Warning]{
   enhanced, breakable,
-  colback=warningamber!8, colframe=warningamber,
-  colbacktitle=warningamber, coltitle=white,
+  colback=stressorange!10, colframe=stressorange,
+  colbacktitle=stressorange, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{74}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{criticalbox}[1][Critical]{
   enhanced, breakable,
-  colback=alertcoral!8, colframe=alertcoral,
-  colbacktitle=alertcoral, coltitle=white,
+  colback=burgundydeep!10, colframe=burgundydeep,
+  colbacktitle=burgundydeep, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{74}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{recbox}[1][Recommendation]{
   enhanced, breakable,
-  colback=successgreen!8, colframe=successgreen,
-  colbacktitle=successgreen, coltitle=white,
+  colback=verifyteal!10, colframe=verifyteal,
+  colbacktitle=verifyteal, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{51}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{infobox}[1][Note]{
   enhanced, breakable,
-  colback=infocyan!8, colframe=infocyan,
-  colbacktitle=infocyan, coltitle=white,
+  colback=adaptteal!10, colframe=adaptteal!80!slatedark,
+  colbacktitle=adaptteal!80!slatedark, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{73}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{defbox}[1][Definition]{
   enhanced, breakable,
-  colback=instgold!8, colframe=instgold,
-  colbacktitle=instgold!90!black, coltitle=white,
+  colback=bronzeweathered!12, colframe=bronzeweathered,
+  colbacktitle=bronzeweathered, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{70}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
 \newtcolorbox{scenariobox}[1][Scenario]{
   enhanced, breakable,
-  colback=instslate!5, colframe=instslate,
-  colbacktitle=instslate, coltitle=white,
+  colback=stonegray!8, colframe=stonegray,
+  colbacktitle=stonegray, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{118}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=3pt, arc=0pt, outer arc=0pt,
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
@@ -204,90 +210,91 @@
 \begin{document}
 
 % ============================================================================
-% TITLE PAGE - Network Topology Visualization
+% TITLE PAGE - Fractured Institutional Seal Visualization
 % ============================================================================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
-  % Background gradient
-  \fill[instdark] (current page.north west) rectangle (current page.south east);
+  % Background - deep slate
+  \fill[slatedark] (current page.north west) rectangle (current page.south east);
 
-  % Abstract data grid background (right side)
-  \begin{scope}[shift={(current page.center)}, opacity=0.08]
-    \foreach \x in {2,2.8,...,10} {
-      \foreach \y in {-12,-11.2,...,12} {
-        \fill[white] (\x,\y) circle (0.06);
-      }
+  % Weathered texture background pattern (institutional decay aesthetic)
+  \begin{scope}[shift={(current page.center)}, opacity=0.04]
+    % Horizontal striations suggesting aging/weathering
+    \foreach \y in {-12,-10,...,12} {
+      \draw[bronzeweathered, line width=0.3pt] (-10,\y) -- (10,\y);
+    }
+    % Vertical cracks pattern
+    \foreach \x in {-8,-4,0,4,8} {
+      \draw[fractureamber, line width=0.4pt] (\x,-12) -- ({\x+0.5},12);
     }
   \end{scope}
 
-  % Main network visualization - verification/collection pivot concept
+  % Main visualization - IC Shield Under Siege (Simplified)
   \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}]
-    % Outer ring nodes - IC agencies and functions
-    \foreach \angle/\col/\label in {
-      30/nodecyan/ODNI,
-      75/nodegreen/CIA,
-      120/nodeorange/NSA,
-      165/nodepurple/FBI,
-      210/nodecyan/DIA,
-      255/nodegreen/NGA,
-      300/nodeorange/DHS,
-      345/nodepurple/DOE
-    } {
-      % Node
-      \fill[\col, opacity=0.9] (\angle:4.5cm) circle (0.4cm);
-      \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\angle:4.5cm) {\label};
-      % Connection to center
-      \draw[\col, opacity=0.4, line width=1pt] (0,0) -- (\angle:4cm);
-      % Outer data points
-      \foreach \r in {5.2,5.6,6} {
-        \fill[\col, opacity=0.2] (\angle:\r cm) circle (0.08);
-      }
+
+    % OUTER RING - Collection layer (IC Agency perimeter)
+    \draw[bronzeweathered, opacity=0.15, line width=16pt] (0,0) circle (4.5cm);
+    \draw[bronzeweathered, opacity=0.5, line width=2pt] (0,0) circle (4.5cm);
+    % Ring label
+    \node[textlight, opacity=0.35, font=\fontsize{7}{7}\selectfont\sffamily] at (270:5.4cm) {COLLECTION};
+
+    % IC Agency nodes positioned ON the outer ring
+    \foreach \angle/\label in {90/NSA, 140/FBI, 180/DIA, 220/NGA, 270/NRO, 320/DHS, 0/ODNI, 50/CIA} {
+      \fill[slatemid] (\angle:4.5cm) circle (0.55cm);
+      \draw[bronzeweathered, opacity=0.8, line width=1.5pt] (\angle:4.5cm) circle (0.55cm);
+      \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (\angle:4.5cm) {\label};
     }
 
-    % Inner ring - verification layers
-    \foreach \angle/\col in {0/nodecyan, 45/nodegreen, 90/nodeorange, 135/nodepurple, 180/nodecyan, 225/nodegreen, 270/nodeorange, 315/nodepurple} {
-      \fill[\col, opacity=0.6] (\angle:2.5cm) circle (0.2cm);
-      \draw[\col, opacity=0.3, line width=0.5pt] (\angle:2.5cm) -- ({(\angle+45)}:2.5cm);
-    }
+    % MIDDLE RING - Analysis layer
+    \draw[stonegray, opacity=0.12, line width=12pt] (0,0) circle (3cm);
+    \draw[stonegray, opacity=0.4, line width=1.5pt] (0,0) circle (3cm);
+    % Ring label
+    \node[textlight, opacity=0.35, font=\fontsize{7}{7}\selectfont\sffamily] at (270:3.5cm) {ANALYSIS};
 
-    % Central hub - The Verification Pivot
-    \fill[white, opacity=0.1] (0,0) circle (1.8cm);
-    \fill[white, opacity=0.15] (0,0) circle (1.4cm);
-    \fill[instgold] (0,0) circle (0.8cm);
-    \node[instdark, font=\fontsize{7}{7}\selectfont\bfseries] at (0,0.15) {VERIFY};
-    \node[instdark, font=\fontsize{7}{7}\selectfont\bfseries] at (0,-0.15) {PIVOT};
+    % INNER RING - Verification layer (the protective barrier)
+    \draw[verifyteal, opacity=0.12, line width=8pt] (0,0) circle (1.9cm);
+    \draw[verifyteal, opacity=0.4, line width=1.5pt] (0,0) circle (1.9cm);
+    % Ring label
+    \node[textlight, opacity=0.35, font=\fontsize{7}{7}\selectfont\sffamily] at (270:2.3cm) {VERIFICATION};
 
-    % Cross-connections (showing complexity)
-    \draw[white, opacity=0.1, line width=0.5pt] (30:4cm) -- (165:4cm);
-    \draw[white, opacity=0.1, line width=0.5pt] (75:4cm) -- (255:4cm);
-    \draw[white, opacity=0.1, line width=0.5pt] (120:4cm) -- (300:4cm);
-    \draw[white, opacity=0.1, line width=0.5pt] (210:4cm) -- (345:4cm);
+    % === CENTRAL CORE - Decision (protected by verification) ===
+    \fill[slatedark] (0,0) circle (1.2cm);
+    \fill[patinabronze, opacity=0.9] (0,0) circle (0.9cm);
+    \draw[bronzeweathered, line width=3pt] (0,0) circle (0.9cm);
+    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (0,0) {DECISION};
+
+    % Teal verification aura protecting the decision core
+    \draw[verifyteal, opacity=0.6, line width=3pt] (0,0) circle (1.08cm);
+    \draw[verifyteal, opacity=0.3, line width=5pt] (0,0) circle (1.35cm);
+
   \end{scope}
 
-  % Document classification bar
-  \fill[instgold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[instdark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-IC-001 \textbar{} JANUARY 2026};
+  % Document classification bar (standard ETRA gold - consistent across all reports)
+  \fill[barriergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
+  \node[slatedark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-IC-001 \textbar{} JANUARY 2026};
 
   % Title block (bottom left)
   \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
-    {\fontsize{11}{13}\selectfont\color{instgold}\sffamily EMERGING TECHNOLOGY RISK ASSESSMENT}\\[0.8cm]
+    {\fontsize{11}{13}\selectfont\color{fractureamber}\sffamily EMERGING TECHNOLOGY RISK ASSESSMENT}\\[0.8cm]
     {\fontsize{32}{38}\selectfont\bfseries\color{white}AI Agents and}\\[0.2cm]
     {\fontsize{32}{38}\selectfont\bfseries\color{white}Institutional Erosion of}\\[0.2cm]
     {\fontsize{32}{38}\selectfont\bfseries\color{white}Intelligence Monopolies}\\[0.6cm]
-    {\large\color{gridlight}\sffamily The Verification Pivot: How Autonomous AI Transforms the IC}
+    {\large\color{textlight}\sffamily The Verification Pivot: How Autonomous AI Transforms the IC}
   };
 
   % Metadata block (bottom right)
   \node[anchor=south east, text width=5cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
-    \color{instaccent}\small\sffamily
+    \color{stonegray}\small\sffamily
     \textbf{Document Type:} Projection\\[0.2em]
     \textbf{Time Horizon:} 2026--2030\\[0.2em]
     \textbf{Classification:} Policy Research\\[0.2em]
-    \textbf{Version:} 0.1 (Initial Draft)
+    \textbf{Version:} 1.0
   };
 
-  % Vertical accent line
-  \draw[instgold, line width=2pt] ([xshift=1.5cm, yshift=3cm]current page.south west) -- ([xshift=1.5cm, yshift=10.5cm]current page.south west);
+  % Vertical accent line (weathered bronze with fracture)
+  \draw[bronzeweathered, line width=2pt] ([xshift=1.5cm, yshift=3cm]current page.south west) -- ([xshift=1.5cm, yshift=10.5cm]current page.south west);
+  % Fracture accent on the line
+  \fill[fractureamber, opacity=0.8] ([xshift=1.4cm, yshift=7cm]current page.south west) circle (0.08);
 
 \end{tikzpicture}
 \end{titlepage}
@@ -298,21 +305,25 @@
 \thispagestyle{empty}
 \vspace*{0.5cm}
 
-% Mini header visualization
+% Mini header visualization - fractured seal fragments
 \noindent\begin{tikzpicture}
-  \fill[instdark] (0,0) rectangle (\textwidth, 0.15);
-  \foreach \x in {0.5,1,...,16.5} {
-    \fill[instgold, opacity=0.5] (\x, 0.075) circle (0.04);
+  \fill[slatedark] (0,0) rectangle (\textwidth, 0.15);
+  % Fracture pattern across header
+  \foreach \x in {0.5,1.2,...,16.5} {
+    \fill[bronzeweathered, opacity=0.4] (\x, 0.075) circle (0.04);
   }
+  % Stress points
+  \fill[fractureamber, opacity=0.8] (4, 0.075) circle (0.05);
+  \fill[fractureamber, opacity=0.8] (12, 0.075) circle (0.05);
 \end{tikzpicture}
 
 \vspace{0.5cm}
 \begin{center}
-{\color{instdark}\Large\bfseries Executive Summary}
+{\color{slatedark}\Large\bfseries Executive Summary}
 \end{center}
 \vspace{0.3cm}
 
-\begin{tcolorbox}[enhanced, colback=lightgray, colframe=instblue!50, boxrule=1pt, arc=3pt,
+\begin{tcolorbox}[enhanced, colback=lightgray, colframe=slatemid!50, boxrule=1pt, arc=3pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt]
 This projection examines how autonomous AI agents are eroding the traditional advantages of national intelligence communities, particularly the U.S. Intelligence Community (IC). We analyze current technological capabilities as of early 2026, project likely institutional impacts through 2030, and examine how intelligence organizations must adapt to maintain epistemic authority in an AI-saturated information environment.
 \end{tcolorbox}
@@ -353,7 +364,7 @@ This document analyzes capabilities and institutional dynamics for defensive pol
 % COMMITTEE TAKEAWAYS
 % ============================================================================
 \begin{center}
-{\color{instdark}\Large\bfseries Committee Takeaways}
+{\color{slatedark}\Large\bfseries Committee Takeaways}
 \end{center}
 
 \begin{defbox}[5 Non-Negotiable Assumptions]
@@ -421,7 +432,7 @@ Verification metric defined; red-teams run; no unvetted AI in leadership workflo
 % BASE-RATE CONTEXT
 % ============================================================================
 \begin{center}
-{\color{instdark}\Large\bfseries Base-Rate Context: Anchoring Expectations}
+{\color{slatedark}\Large\bfseries Base-Rate Context: Anchoring Expectations}
 \end{center}
 
 \vspace{0.3cm}
@@ -496,58 +507,58 @@ The Intelligence Community has repeatedly adapted to technological disruption. T
 \vspace*{-0.85in}
 \noindent\hspace*{-0.85in}\begin{tikzpicture}
   % Header background
-  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
+  \fill[slatedark] (0,0) rectangle (\paperwidth, -10cm);
 
   % Part label and title
-  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
+  \node[fractureamber, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Theory, Context, and Conceptual Framework};
+  \node[textlight, opacity=0.8, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Theory, Context, and Conceptual Framework};
 
   % Era transition visualization
   \begin{scope}[shift={(4cm, -7.5cm)}]
     % Collection Era (left)
-    \fill[alertcoral, opacity=0.7] (0, 0) circle (1.2cm);
+    \fill[stressorange, opacity=0.8] (0, 0) circle (1.2cm);
     \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (0, 0.2) {COLLECTION};
     \node[white, font=\fontsize{6}{6}\selectfont] at (0, -0.2) {ERA};
-    \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont] at (0, -1.7) {Information Scarcity};
+    \node[textlight, opacity=0.8, font=\fontsize{7}{7}\selectfont] at (0, -1.7) {Information Scarcity};
 
     % Arrow
-    \draw[instgold, line width=4pt, -Stealth] (1.8, 0) -- (4.2, 0);
-    \node[instgold, font=\fontsize{9}{9}\selectfont\bfseries] at (3, 0.6) {PIVOT};
+    \draw[fractureamber, line width=4pt, -Stealth] (1.8, 0) -- (4.2, 0);
+    \node[fractureamber, font=\fontsize{9}{9}\selectfont\bfseries] at (3, 0.6) {PIVOT};
 
     % Verification Era (right)
-    \fill[successgreen, opacity=0.8] (6, 0) circle (1.2cm);
+    \fill[verifyteal, opacity=0.9] (6, 0) circle (1.2cm);
     \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (6, 0.2) {VERIFY};
     \node[white, font=\fontsize{6}{6}\selectfont] at (6, -0.2) {ERA};
-    \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont] at (6, -1.7) {Epistemic Contamination};
+    \node[textlight, opacity=0.8, font=\fontsize{7}{7}\selectfont] at (6, -1.7) {Epistemic Contamination};
   \end{scope}
 
   % Threat tier visualization (right side)
   \begin{scope}[shift={(13cm, -7cm)}]
-    \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont] at (1.5, 1.5) {CAPABILITY FLOOR RISE};
+    \node[textlight, opacity=0.6, font=\fontsize{7}{7}\selectfont] at (1.5, 1.5) {CAPABILITY FLOOR RISE};
 
     % Bars showing tier compression
-    \fill[instaccent, opacity=0.4] (0, 0) rectangle (0.6, 0.5);
-    \fill[instaccent, opacity=0.5] (0.8, 0) rectangle (1.4, 1.0);
-    \fill[instaccent, opacity=0.6] (1.6, 0) rectangle (2.2, 1.5);
-    \fill[instgold, opacity=0.8] (2.4, 0) rectangle (3.0, 2.2);
+    \fill[stonegray, opacity=0.5] (0, 0) rectangle (0.6, 0.5);
+    \fill[stonegray, opacity=0.6] (0.8, 0) rectangle (1.4, 1.0);
+    \fill[bronzeweathered, opacity=0.7] (1.6, 0) rectangle (2.2, 1.5);
+    \fill[fractureamber, opacity=0.9] (2.4, 0) rectangle (3.0, 2.2);
 
-    \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont] at (0.3, -0.3) {T0};
-    \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont] at (1.1, -0.3) {T1};
-    \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont] at (1.9, -0.3) {T2};
-    \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont] at (2.7, -0.3) {T3+};
+    \node[textlight, opacity=0.7, font=\fontsize{5}{5}\selectfont] at (0.3, -0.3) {T0};
+    \node[textlight, opacity=0.7, font=\fontsize{5}{5}\selectfont] at (1.1, -0.3) {T1};
+    \node[textlight, opacity=0.7, font=\fontsize{5}{5}\selectfont] at (1.9, -0.3) {T2};
+    \node[textlight, opacity=0.7, font=\fontsize{5}{5}\selectfont] at (2.7, -0.3) {T3+};
   \end{scope}
 
   % Bottom accent
-  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[fractureamber] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
-\begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
+\begin{tcolorbox}[enhanced, colback=white, colframe=slatemid!30, boxrule=1pt, arc=4pt,
   left=15pt, right=15pt, top=12pt, bottom=12pt]
-\textcolor{instdark}{\textbf{Sections Covered}}
+\textcolor{slatedark}{\textbf{Sections Covered}}
 \vspace{0.4em}
 \begin{itemize}[nosep]
   \item \textbf{Section 1}: Introduction and Methodology
@@ -856,58 +867,58 @@ Public reporting indicates significant IC staffing reductions concurrent with ri
 \vspace*{-0.85in}
 \noindent\hspace*{-0.85in}\begin{tikzpicture}
   % Header background
-  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
+  \fill[slatedark] (0,0) rectangle (\paperwidth, -10cm);
 
   % Part label and title
-  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
+  \node[fractureamber, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Crisis of Intent};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Plausible Deniability 2.0 and Attribution Challenges};
+  \node[textlight, opacity=0.8, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Plausible Deniability 2.0 and Attribution Challenges};
 
   % Attribution chain visualization
   \begin{scope}[shift={(4cm, -7.2cm)}]
     % Traditional chain
-    \node[white, opacity=0.5, font=\fontsize{6}{6}\selectfont] at (2.5, 1.2) {TRADITIONAL ATTRIBUTION};
-    \fill[nodecyan, opacity=0.7] (0, 0) circle (0.5);
+    \node[textlight, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (2.5, 1.2) {TRADITIONAL ATTRIBUTION};
+    \fill[verifyteal, opacity=0.8] (0, 0) circle (0.5);
     \node[white, font=\fontsize{6}{6}\selectfont] at (0, 0) {STATE};
-    \draw[white, opacity=0.5, line width=1.5pt, -Stealth] (0.6, 0) -- (1.4, 0);
-    \fill[nodecyan, opacity=0.7] (2, 0) circle (0.5);
+    \draw[textlight, opacity=0.6, line width=1.5pt, -Stealth] (0.6, 0) -- (1.4, 0);
+    \fill[verifyteal, opacity=0.8] (2, 0) circle (0.5);
     \node[white, font=\fontsize{5}{5}\selectfont] at (2, 0) {INSTR};
-    \draw[white, opacity=0.5, line width=1.5pt, -Stealth] (2.6, 0) -- (3.4, 0);
-    \fill[nodecyan, opacity=0.7] (4, 0) circle (0.5);
+    \draw[textlight, opacity=0.6, line width=1.5pt, -Stealth] (2.6, 0) -- (3.4, 0);
+    \fill[verifyteal, opacity=0.8] (4, 0) circle (0.5);
     \node[white, font=\fontsize{5}{5}\selectfont] at (4, 0) {HUMAN};
-    \draw[white, opacity=0.5, line width=1.5pt, -Stealth] (4.6, 0) -- (5.4, 0);
-    \fill[successgreen, opacity=0.8] (6, 0) circle (0.5);
+    \draw[textlight, opacity=0.6, line width=1.5pt, -Stealth] (4.6, 0) -- (5.4, 0);
+    \fill[verifyteal] (6, 0) circle (0.5);
     \node[white, font=\fontsize{5}{5}\selectfont] at (6, 0) {ACTION};
   \end{scope}
 
   % Agent-era chain
   \begin{scope}[shift={(4cm, -8.8cm)}]
-    \node[white, opacity=0.5, font=\fontsize{6}{6}\selectfont] at (2.5, 1.2) {AGENT-ERA ATTRIBUTION};
-    \fill[nodeorange, opacity=0.7] (0, 0) circle (0.5);
+    \node[textlight, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (2.5, 1.2) {AGENT-ERA ATTRIBUTION};
+    \fill[stressorange, opacity=0.8] (0, 0) circle (0.5);
     \node[white, font=\fontsize{6}{6}\selectfont] at (0, 0) {STATE};
-    \draw[white, opacity=0.5, line width=1.5pt, -Stealth] (0.6, 0) -- (1.4, 0);
-    \fill[nodeorange, opacity=0.7] (2, 0) circle (0.5);
+    \draw[textlight, opacity=0.6, line width=1.5pt, -Stealth] (0.6, 0) -- (1.4, 0);
+    \fill[stressorange, opacity=0.8] (2, 0) circle (0.5);
     \node[white, font=\fontsize{5}{5}\selectfont] at (2, 0) {GOAL};
-    \draw[white, opacity=0.5, line width=1.5pt, -Stealth] (2.6, 0) -- (3.4, 0);
-    \fill[alertcoral, opacity=0.9] (4, 0) circle (0.6);
+    \draw[textlight, opacity=0.6, line width=1.5pt, -Stealth] (2.6, 0) -- (3.4, 0);
+    \fill[burgundydeep] (4, 0) circle (0.6);
     \node[white, font=\fontsize{5}{5}\selectfont] at (4, 0.1) {AI};
     \node[white, font=\fontsize{4}{4}\selectfont] at (4, -0.2) {AGENT};
-    \draw[alertcoral, opacity=0.6, line width=1.5pt, dashed, -Stealth] (4.7, 0) -- (5.3, 0);
-    \fill[successgreen, opacity=0.8] (6, 0) circle (0.5);
+    \draw[burgundydeep, opacity=0.7, line width=1.5pt, dashed, -Stealth] (4.7, 0) -- (5.3, 0);
+    \fill[verifyteal] (6, 0) circle (0.5);
     \node[white, font=\fontsize{5}{5}\selectfont] at (6, 0) {ACTION};
-    \node[alertcoral, font=\fontsize{5}{5}\selectfont] at (4, -1.1) {OPAQUE};
+    \node[burgundydeep, font=\fontsize{5}{5}\selectfont] at (4, -1.1) {OPAQUE};
   \end{scope}
 
   % Bottom accent
-  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[fractureamber] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
-\begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
+\begin{tcolorbox}[enhanced, colback=white, colframe=slatemid!30, boxrule=1pt, arc=4pt,
   left=15pt, right=15pt, top=12pt, bottom=12pt]
-\textcolor{instdark}{\textbf{Sections Covered}}
+\textcolor{slatedark}{\textbf{Sections Covered}}
 \vspace{0.4em}
 \begin{itemize}[nosep]
   \item \textbf{Section 4}: The Attribution-Intent Gap
@@ -1035,10 +1046,10 @@ All-source fusion & Resolve ambiguity & Cannot resolve fundamental intent ambigu
 \vspace*{-0.85in}
 \noindent\hspace*{-0.85in}\begin{tikzpicture}
   % Header background
-  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
+  \fill[slatedark] (0,0) rectangle (\paperwidth, -10cm);
 
   % Part label and title
-  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
+  \node[fractureamber, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {INT Disruption};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {How AI Agents Challenge Each Intelligence Discipline};
 
@@ -1057,9 +1068,9 @@ All-source fusion & Resolve ambiguity & Cannot resolve fundamental intent ambigu
     }
 
     % Vulnerability polygon
-    \fill[alertcoral, opacity=0.3]
+    \fill[stressorange, opacity=0.3]
       (90:1.6) -- (30:1.4) -- (330:1.7) -- (270:1.5) -- (210:1.2) -- (150:1.5) -- cycle;
-    \draw[alertcoral, opacity=0.8, line width=1.5pt]
+    \draw[stressorange, opacity=0.8, line width=1.5pt]
       (90:1.6) -- (30:1.4) -- (330:1.7) -- (270:1.5) -- (210:1.2) -- (150:1.5) -- cycle;
 
     \fill[white] (0,0) circle (0.06);
@@ -1069,21 +1080,21 @@ All-source fusion & Resolve ambiguity & Cannot resolve fundamental intent ambigu
   \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -6.5cm) {VULNERABILITY LEVEL};
   \node[anchor=west] at (10cm, -7.2cm) {
     \begin{tikzpicture}
-      \fill[alertcoral, opacity=0.5] (0,0) rectangle (0.4, 0.2);
+      \fill[stressorange, opacity=0.5] (0,0) rectangle (0.4, 0.2);
       \node[white, opacity=0.8, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.55, 0.1) {Current Exposure};
     \end{tikzpicture}
   };
 
   % Bottom accent
-  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[fractureamber] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
-\begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
+\begin{tcolorbox}[enhanced, colback=white, colframe=slatemid!30, boxrule=1pt, arc=4pt,
   left=15pt, right=15pt, top=12pt, bottom=12pt]
-\textcolor{instdark}{\textbf{Sections Covered}}
+\textcolor{slatedark}{\textbf{Sections Covered}}
 \vspace{0.4em}
 \begin{itemize}[nosep]
   \item \textbf{Section 7}: HUMINT: Handler Overload and Synthetic Personas
@@ -1280,25 +1291,25 @@ Financial indicators that previously signaled adversary activity become noise. T
 \vspace*{-0.85in}
 \noindent\hspace*{-0.85in}\begin{tikzpicture}
   % Header background
-  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
+  \fill[slatedark] (0,0) rectangle (\paperwidth, -10cm);
 
   % Part label and title
-  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
+  \node[fractureamber, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {18-Agency Matrix};
   \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Risk Assessment Across the Intelligence Community};
 
   % Agency grid visualization
   \begin{scope}[shift={(3.5cm, -7.2cm)}]
     % Grid of agencies with varying risk levels
-    \foreach \x/\col/\label in {0/alertcoral/ODNI, 1.2/alertcoral/CIA, 2.4/warningamber/NSA, 3.6/alertcoral/FBI} {
+    \foreach \x/\col/\label in {0/burgundydeep/ODNI, 1.2/burgundydeep/CIA, 2.4/stressorange/NSA, 3.6/burgundydeep/FBI} {
       \fill[\col, opacity=0.7] (\x, 0.6) rectangle (\x+1, 1.4);
       \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\x+0.5, 1) {\label};
     }
-    \foreach \x/\col/\label in {0/warningamber/DHS, 1.2/warningamber/DIA, 2.4/warningamber/NGA, 3.6/alertcoral/DOE} {
+    \foreach \x/\col/\label in {0/stressorange/DHS, 1.2/stressorange/DIA, 2.4/stressorange/NGA, 3.6/burgundydeep/DOE} {
       \fill[\col, opacity=0.7] (\x, -0.2) rectangle (\x+1, 0.4);
       \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\x+0.5, 0.1) {\label};
     }
-    \foreach \x/\col/\label in {0/instaccent/NRO, 1.2/instaccent/SF, 2.4/warningamber/Treasury, 3.6/instaccent/State} {
+    \foreach \x/\col/\label in {0/stonegray/NRO, 1.2/stonegray/SF, 2.4/stressorange/Treasury, 3.6/stonegray/State} {
       \fill[\col, opacity=0.7] (\x, -1) rectangle (\x+1, -0.4);
       \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\x+0.5, -0.7) {\label};
     }
@@ -1307,16 +1318,16 @@ Financial indicators that previously signaled adversary activity become noise. T
   % Legend
   \begin{scope}[shift={(11cm, -7cm)}]
     \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (0, 1) {RISK SEVERITY};
-    \fill[alertcoral, opacity=0.7] (0, 0.4) rectangle (0.4, 0.6);
+    \fill[burgundydeep, opacity=0.7] (0, 0.4) rectangle (0.4, 0.6);
     \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont, anchor=west] at (0.5, 0.5) {Critical};
-    \fill[warningamber, opacity=0.7] (0, 0) rectangle (0.4, 0.2);
+    \fill[stressorange, opacity=0.7] (0, 0) rectangle (0.4, 0.2);
     \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont, anchor=west] at (0.5, 0.1) {High};
-    \fill[instaccent, opacity=0.7] (0, -0.4) rectangle (0.4, -0.2);
+    \fill[stonegray, opacity=0.7] (0, -0.4) rectangle (0.4, -0.2);
     \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont, anchor=west] at (0.5, -0.3) {Medium};
   \end{scope}
 
   % Bottom accent
-  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[fractureamber] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
@@ -1735,10 +1746,10 @@ Small, agile nations (Singapore, Israel, UAE, Estonia) may adapt to the ``Verifi
 \vspace*{-0.85in}
 \noindent\hspace*{-0.85in}\begin{tikzpicture}
   % Header background
-  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
+  \fill[slatedark] (0,0) rectangle (\paperwidth, -10cm);
 
   % Part label and title
-  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART V};
+  \node[fractureamber, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART V};
   \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Scenarios \&};
   \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -4.1cm) {Recommendations};
 
@@ -1747,15 +1758,15 @@ Small, agile nations (Singapore, Israel, UAE, Estonia) may adapt to the ``Verifi
     \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont] at (2, 1.2) {SCENARIO PROBABILITIES};
 
     % Bars
-    \fill[successgreen, opacity=0.8] (0, 0) rectangle (1.2, 0.7);
+    \fill[verifyteal, opacity=0.8] (0, 0) rectangle (1.2, 0.7);
     \node[white, font=\fontsize{5}{5}\selectfont] at (0.6, 0.35) {30-40\%};
     \node[white, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (0.6, -0.3) {Managed};
 
-    \fill[warningamber, opacity=0.8] (1.6, 0) rectangle (2.8, 0.9);
+    \fill[stressorange, opacity=0.8] (1.6, 0) rectangle (2.8, 0.9);
     \node[white, font=\fontsize{5}{5}\selectfont] at (2.2, 0.45) {40-50\%};
     \node[white, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (2.2, -0.3) {Parity};
 
-    \fill[alertcoral, opacity=0.8] (3.2, 0) rectangle (4.4, 0.4);
+    \fill[burgundydeep, opacity=0.8] (3.2, 0) rectangle (4.4, 0.4);
     \node[white, font=\fontsize{5}{5}\selectfont] at (3.8, 0.2) {10-20\%};
     \node[white, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (3.8, -0.3) {Collapse};
   \end{scope}
@@ -1764,29 +1775,29 @@ Small, agile nations (Singapore, Israel, UAE, Estonia) may adapt to the ``Verifi
   \begin{scope}[shift={(11cm, -7.2cm)}]
     \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont] at (1.5, 1) {IMPLEMENTATION TIERS};
 
-    \fill[nodecyan, opacity=0.7] (0, 0.4) rectangle (0.8, 0.7);
+    \fill[verifyteal, opacity=0.7] (0, 0.4) rectangle (0.8, 0.7);
     \node[white, font=\fontsize{5}{5}\selectfont] at (0.4, 0.55) {Bronze};
     \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont, anchor=west] at (0.9, 0.55) {0-90 days};
 
-    \fill[instgold, opacity=0.7] (0, 0) rectangle (0.8, 0.3);
+    \fill[fractureamber, opacity=0.7] (0, 0) rectangle (0.8, 0.3);
     \node[white, font=\fontsize{5}{5}\selectfont] at (0.4, 0.15) {Silver};
     \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont, anchor=west] at (0.9, 0.15) {90-180 days};
 
-    \fill[nodepurple, opacity=0.7] (0, -0.4) rectangle (0.8, -0.1);
+    \fill[patinabronze, opacity=0.7] (0, -0.4) rectangle (0.8, -0.1);
     \node[white, font=\fontsize{5}{5}\selectfont] at (0.4, -0.25) {Gold};
     \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont, anchor=west] at (0.9, -0.25) {180+ days};
   \end{scope}
 
   % Bottom accent
-  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
+  \fill[fractureamber] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
 \end{tikzpicture}
 
 \vspace{0.8cm}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
-\begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
+\begin{tcolorbox}[enhanced, colback=white, colframe=slatemid!30, boxrule=1pt, arc=4pt,
   left=15pt, right=15pt, top=12pt, bottom=12pt]
-\textcolor{instdark}{\textbf{Sections Covered}}
+\textcolor{slatedark}{\textbf{Sections Covered}}
 \vspace{0.4em}
 \begin{itemize}[nosep]
   \item \textbf{Section 8}: Scenario Projections: 2026-2030
