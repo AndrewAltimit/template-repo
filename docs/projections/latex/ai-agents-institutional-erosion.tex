@@ -510,41 +510,27 @@ The Intelligence Community has repeatedly adapted to technological disruption. T
   % Part label and title
   \node[fractureamber, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
-  \node[textlight, opacity=0.8, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Theory, Context, and Conceptual Framework};
+  \node[textlight, opacity=0.8, font=\normalsize\sffamily] at (0.5\paperwidth, -4.0cm) {Theory, Context, and Conceptual Framework};
 
-  % Era transition visualization
-  \begin{scope}[shift={(4cm, -7.5cm)}]
+  % Era transition visualization - centered
+  \begin{scope}[shift={(0.5\paperwidth, -6.8cm)}]
     % Collection Era (left)
-    \fill[stressorange, opacity=0.8] (0, 0) circle (1.2cm);
-    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (0, 0.2) {COLLECTION};
-    \node[white, font=\fontsize{6}{6}\selectfont] at (0, -0.2) {ERA};
-    \node[textlight, opacity=0.8, font=\fontsize{7}{7}\selectfont] at (0, -1.7) {Information Scarcity};
+    \fill[stressorange, opacity=0.9] (-4.5, 0) circle (1.1cm);
+    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (-4.5, 0.15) {COLLECT};
+    \node[white, font=\fontsize{7}{7}\selectfont] at (-4.5, -0.25) {ERA};
 
-    % Arrow
-    \draw[fractureamber, line width=4pt, -Stealth] (1.8, 0) -- (4.2, 0);
-    \node[fractureamber, font=\fontsize{9}{9}\selectfont\bfseries] at (3, 0.6) {PIVOT};
+    % Arrow with label
+    \draw[fractureamber, line width=5pt, -Stealth] (-2.8, 0) -- (2.8, 0);
+    \node[fractureamber, font=\fontsize{11}{11}\selectfont\bfseries] at (0, 0.55) {VERIFICATION PIVOT};
 
     % Verification Era (right)
-    \fill[verifyteal, opacity=0.9] (6, 0) circle (1.2cm);
-    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (6, 0.2) {VERIFY};
-    \node[white, font=\fontsize{6}{6}\selectfont] at (6, -0.2) {ERA};
-    \node[textlight, opacity=0.8, font=\fontsize{7}{7}\selectfont] at (6, -1.7) {Epistemic Contamination};
-  \end{scope}
+    \fill[verifyteal, opacity=0.9] (4.5, 0) circle (1.1cm);
+    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (4.5, 0.15) {VERIFY};
+    \node[white, font=\fontsize{7}{7}\selectfont] at (4.5, -0.25) {ERA};
 
-  % Threat tier visualization (right side)
-  \begin{scope}[shift={(13cm, -7cm)}]
-    \node[textlight, opacity=0.6, font=\fontsize{7}{7}\selectfont] at (1.5, 1.5) {CAPABILITY FLOOR RISE};
-
-    % Bars showing tier compression
-    \fill[stonegray, opacity=0.5] (0, 0) rectangle (0.6, 0.5);
-    \fill[stonegray, opacity=0.6] (0.8, 0) rectangle (1.4, 1.0);
-    \fill[bronzeweathered, opacity=0.7] (1.6, 0) rectangle (2.2, 1.5);
-    \fill[fractureamber, opacity=0.9] (2.4, 0) rectangle (3.0, 2.2);
-
-    \node[textlight, opacity=0.7, font=\fontsize{5}{5}\selectfont] at (0.3, -0.3) {T0};
-    \node[textlight, opacity=0.7, font=\fontsize{5}{5}\selectfont] at (1.1, -0.3) {T1};
-    \node[textlight, opacity=0.7, font=\fontsize{5}{5}\selectfont] at (1.9, -0.3) {T2};
-    \node[textlight, opacity=0.7, font=\fontsize{5}{5}\selectfont] at (2.7, -0.3) {T3+};
+    % Labels below
+    \node[textlight, opacity=0.6, font=\fontsize{8}{8}\selectfont] at (-4.5, -1.6) {Information Scarcity};
+    \node[textlight, opacity=0.6, font=\fontsize{8}{8}\selectfont] at (4.5, -1.6) {Epistemic Contamination};
   \end{scope}
 
   % Bottom accent
@@ -870,41 +856,44 @@ Public reporting indicates significant IC staffing reductions concurrent with ri
   % Part label and title
   \node[fractureamber, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Crisis of Intent};
-  \node[textlight, opacity=0.8, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Plausible Deniability 2.0 and Attribution Challenges};
+  \node[textlight, opacity=0.8, font=\normalsize\sffamily] at (0.5\paperwidth, -4.0cm) {Plausible Deniability 2.0 and Attribution Challenges};
 
-  % Attribution chain visualization
-  \begin{scope}[shift={(4cm, -7.2cm)}]
-    % Traditional chain
-    \node[textlight, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (2.5, 1.2) {TRADITIONAL ATTRIBUTION};
-    \fill[verifyteal, opacity=0.8] (0, 0) circle (0.5);
-    \node[white, font=\fontsize{6}{6}\selectfont] at (0, 0) {STATE};
-    \draw[textlight, opacity=0.6, line width=1.5pt, -Stealth] (0.6, 0) -- (1.4, 0);
-    \fill[verifyteal, opacity=0.8] (2, 0) circle (0.5);
-    \node[white, font=\fontsize{5}{5}\selectfont] at (2, 0) {INSTR};
-    \draw[textlight, opacity=0.6, line width=1.5pt, -Stealth] (2.6, 0) -- (3.4, 0);
-    \fill[verifyteal, opacity=0.8] (4, 0) circle (0.5);
-    \node[white, font=\fontsize{5}{5}\selectfont] at (4, 0) {HUMAN};
-    \draw[textlight, opacity=0.6, line width=1.5pt, -Stealth] (4.6, 0) -- (5.4, 0);
-    \fill[verifyteal] (6, 0) circle (0.5);
-    \node[white, font=\fontsize{5}{5}\selectfont] at (6, 0) {ACTION};
+  % Attribution chain visualization - centered
+  \begin{scope}[shift={(0.5\paperwidth, -6.2cm)}]
+    % Traditional chain label
+    \node[textlight, opacity=0.7, font=\fontsize{8}{8}\selectfont\sffamily] at (0, 0.7) {TRADITIONAL ATTRIBUTION};
+    % Chain nodes
+    \fill[verifyteal, opacity=0.9] (-4.5, 0) circle (0.55);
+    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (-4.5, 0) {STATE};
+    \draw[textlight, opacity=0.5, line width=2pt, -Stealth] (-3.8, 0) -- (-2.2, 0);
+    \fill[verifyteal, opacity=0.9] (-1.5, 0) circle (0.55);
+    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (-1.5, 0) {INSTR};
+    \draw[textlight, opacity=0.5, line width=2pt, -Stealth] (-0.8, 0) -- (0.8, 0);
+    \fill[verifyteal, opacity=0.9] (1.5, 0) circle (0.55);
+    \node[white, font=\fontsize{6}{6}\selectfont\bfseries] at (1.5, 0) {HUMAN};
+    \draw[textlight, opacity=0.5, line width=2pt, -Stealth] (2.2, 0) -- (3.8, 0);
+    \fill[verifyteal] (4.5, 0) circle (0.55);
+    \node[white, font=\fontsize{6}{6}\selectfont\bfseries] at (4.5, 0) {ACTION};
   \end{scope}
 
-  % Agent-era chain
-  \begin{scope}[shift={(4cm, -8.8cm)}]
-    \node[textlight, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (2.5, 1.2) {AGENT-ERA ATTRIBUTION};
-    \fill[stressorange, opacity=0.8] (0, 0) circle (0.5);
-    \node[white, font=\fontsize{6}{6}\selectfont] at (0, 0) {STATE};
-    \draw[textlight, opacity=0.6, line width=1.5pt, -Stealth] (0.6, 0) -- (1.4, 0);
-    \fill[stressorange, opacity=0.8] (2, 0) circle (0.5);
-    \node[white, font=\fontsize{5}{5}\selectfont] at (2, 0) {GOAL};
-    \draw[textlight, opacity=0.6, line width=1.5pt, -Stealth] (2.6, 0) -- (3.4, 0);
-    \fill[burgundydeep] (4, 0) circle (0.6);
-    \node[white, font=\fontsize{5}{5}\selectfont] at (4, 0.1) {AI};
-    \node[white, font=\fontsize{4}{4}\selectfont] at (4, -0.2) {AGENT};
-    \draw[burgundydeep, opacity=0.7, line width=1.5pt, dashed, -Stealth] (4.7, 0) -- (5.3, 0);
-    \fill[verifyteal] (6, 0) circle (0.5);
-    \node[white, font=\fontsize{5}{5}\selectfont] at (6, 0) {ACTION};
-    \node[burgundydeep, font=\fontsize{5}{5}\selectfont] at (4, -1.1) {OPAQUE};
+  % Agent-era chain - centered below
+  \begin{scope}[shift={(0.5\paperwidth, -8.2cm)}]
+    % Agent-era chain label
+    \node[textlight, opacity=0.7, font=\fontsize{8}{8}\selectfont\sffamily] at (0, 0.7) {AGENT-ERA ATTRIBUTION};
+    % Chain nodes
+    \fill[stressorange, opacity=0.9] (-4.5, 0) circle (0.55);
+    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (-4.5, 0) {STATE};
+    \draw[textlight, opacity=0.5, line width=2pt, -Stealth] (-3.8, 0) -- (-2.2, 0);
+    \fill[stressorange, opacity=0.9] (-1.5, 0) circle (0.55);
+    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (-1.5, 0) {GOAL};
+    \draw[textlight, opacity=0.5, line width=2pt, -Stealth] (-0.8, 0) -- (0.8, 0);
+    \fill[burgundydeep] (1.5, 0) circle (0.65);
+    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (1.5, 0) {AGENT};
+    \draw[burgundydeep, opacity=0.6, line width=2pt, dashed, -Stealth] (2.3, 0) -- (3.7, 0);
+    \fill[verifyteal] (4.5, 0) circle (0.55);
+    \node[white, font=\fontsize{6}{6}\selectfont\bfseries] at (4.5, 0) {ACTION};
+    % Opaque label
+    \node[burgundydeep, font=\fontsize{7}{7}\selectfont\bfseries] at (3, -0.55) {OPAQUE};
   \end{scope}
 
   % Bottom accent
@@ -1049,39 +1038,30 @@ All-source fusion & Resolve ambiguity & Cannot resolve fundamental intent ambigu
   % Part label and title
   \node[fractureamber, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {INT Disruption};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {How AI Agents Challenge Each Intelligence Discipline};
+  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.0cm) {How AI Agents Challenge Each Intelligence Discipline};
 
-  % INT vulnerability radar
-  \begin{scope}[shift={(5cm, -7cm)}]
+  % INT vulnerability radar - centered and compact
+  \begin{scope}[shift={(0.5\paperwidth, -6.6cm)}]
     % Background rings
-    \foreach \r in {0.6, 1.2, 1.8} {
-      \draw[white, opacity=0.1, line width=0.5pt] (0,0)
+    \foreach \r in {0.55, 1.1, 1.65} {
+      \draw[white, opacity=0.15, line width=0.5pt] (0,0)
         \foreach \a in {0,60,120,180,240,300} { -- (\a:\r) } -- cycle;
     }
 
     % Axis lines and labels
     \foreach \a/\label in {90/HUMINT, 30/SIGINT, 330/OSINT, 270/GEOINT, 210/MASINT, 150/FININT} {
-      \draw[white, opacity=0.2, line width=0.5pt] (0,0) -- (\a:2);
-      \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (\a:2.3) {\label};
+      \draw[white, opacity=0.25, line width=0.5pt] (0,0) -- (\a:1.8);
+      \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont\bfseries] at (\a:2.15) {\label};
     }
 
     % Vulnerability polygon
-    \fill[stressorange, opacity=0.3]
-      (90:1.6) -- (30:1.4) -- (330:1.7) -- (270:1.5) -- (210:1.2) -- (150:1.5) -- cycle;
-    \draw[stressorange, opacity=0.8, line width=1.5pt]
-      (90:1.6) -- (30:1.4) -- (330:1.7) -- (270:1.5) -- (210:1.2) -- (150:1.5) -- cycle;
+    \fill[stressorange, opacity=0.35]
+      (90:1.5) -- (30:1.35) -- (330:1.6) -- (270:1.4) -- (210:1.1) -- (150:1.4) -- cycle;
+    \draw[stressorange, opacity=0.9, line width=2pt]
+      (90:1.5) -- (30:1.35) -- (330:1.6) -- (270:1.4) -- (210:1.1) -- (150:1.4) -- cycle;
 
     \fill[white] (0,0) circle (0.06);
   \end{scope}
-
-  % Legend
-  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -6.5cm) {VULNERABILITY LEVEL};
-  \node[anchor=west] at (10cm, -7.2cm) {
-    \begin{tikzpicture}
-      \fill[stressorange, opacity=0.5] (0,0) rectangle (0.4, 0.2);
-      \node[white, opacity=0.8, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.55, 0.1) {Current Exposure};
-    \end{tikzpicture}
-  };
 
   % Bottom accent
   \fill[fractureamber] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
@@ -1294,34 +1274,42 @@ Financial indicators that previously signaled adversary activity become noise. T
   % Part label and title
   \node[fractureamber, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
   \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {18-Agency Matrix};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Risk Assessment Across the Intelligence Community};
+  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.0cm) {Risk Assessment Across the Intelligence Community};
 
-  % Agency grid visualization
-  \begin{scope}[shift={(3.5cm, -7.2cm)}]
-    % Grid of agencies with varying risk levels
-    \foreach \x/\col/\label in {0/burgundydeep/ODNI, 1.2/burgundydeep/CIA, 2.4/stressorange/NSA, 3.6/burgundydeep/FBI} {
-      \fill[\col, opacity=0.7] (\x, 0.6) rectangle (\x+1, 1.4);
-      \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\x+0.5, 1) {\label};
+  % Agency grid visualization - 18 agencies in 5x4 grid (last row has 3)
+  % Boxes increased 25% (width 0.75 per side, height 0.625)
+  \begin{scope}[shift={(0.36\paperwidth, -6.5cm)}]
+    % Row 1: Leadership & DoD Technical
+    \foreach \x/\col/\label in {-3.4/burgundydeep/ODNI, -1.7/burgundydeep/CIA, 0/stressorange/NSA, 1.7/stressorange/DIA, 3.4/stressorange/NGA} {
+      \fill[\col, opacity=0.85] (\x-0.75, 0.55) rectangle (\x+0.75, 1.175);
+      \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (\x, 0.86) {\label};
     }
-    \foreach \x/\col/\label in {0/stressorange/DHS, 1.2/stressorange/DIA, 2.4/stressorange/NGA, 3.6/burgundydeep/DOE} {
-      \fill[\col, opacity=0.7] (\x, -0.2) rectangle (\x+1, 0.4);
-      \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\x+0.5, 0.1) {\label};
+    % Row 2: DoD & Domestic
+    \foreach \x/\col/\label in {-3.4/stonegray/NRO, -1.7/burgundydeep/FBI, 0/stressorange/DHS, 1.7/stonegray/DEA, 3.4/burgundydeep/DOE} {
+      \fill[\col, opacity=0.85] (\x-0.75, -0.15) rectangle (\x+0.75, 0.475);
+      \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (\x, 0.16) {\label};
     }
-    \foreach \x/\col/\label in {0/stonegray/NRO, 1.2/stonegray/SF, 2.4/stressorange/Treasury, 3.6/stonegray/State} {
-      \fill[\col, opacity=0.7] (\x, -1) rectangle (\x+1, -0.4);
-      \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\x+0.5, -0.7) {\label};
+    % Row 3: Civilian & Military
+    \foreach \x/\col/\label in {-3.4/stonegray/STATE, -1.7/stressorange/TREAS, 0/stonegray/ARMY, 1.7/stonegray/NAVY, 3.4/stonegray/USAF} {
+      \fill[\col, opacity=0.85] (\x-0.75, -0.85) rectangle (\x+0.75, -0.225);
+      \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (\x, -0.54) {\label};
+    }
+    % Row 4: Military Services (3 centered)
+    \foreach \x/\col/\label in {-1.7/stonegray/USMC, 0/stonegray/SF, 1.7/stonegray/USCG} {
+      \fill[\col, opacity=0.85] (\x-0.75, -1.55) rectangle (\x+0.75, -0.925);
+      \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (\x, -1.24) {\label};
     }
   \end{scope}
 
-  % Legend
-  \begin{scope}[shift={(11cm, -7cm)}]
-    \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (0, 1) {RISK SEVERITY};
-    \fill[burgundydeep, opacity=0.7] (0, 0.4) rectangle (0.4, 0.6);
-    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont, anchor=west] at (0.5, 0.5) {Critical};
-    \fill[stressorange, opacity=0.7] (0, 0) rectangle (0.4, 0.2);
-    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont, anchor=west] at (0.5, 0.1) {High};
-    \fill[stonegray, opacity=0.7] (0, -0.4) rectangle (0.4, -0.2);
-    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont, anchor=west] at (0.5, -0.3) {Medium};
+  % Legend - right side, boxes increased 50% (width 0.9 per side, height 0.525)
+  \begin{scope}[shift={(0.76\paperwidth, -6.5cm)}]
+    \node[textlight, opacity=0.7, font=\fontsize{9}{9}\selectfont\sffamily] at (0, 1.1) {RISK};
+    \fill[burgundydeep, opacity=0.9] (-0.9, 0.35) rectangle (0.9, 0.875);
+    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (0, 0.61) {Critical};
+    \fill[stressorange, opacity=0.9] (-0.9, -0.25) rectangle (0.9, 0.275);
+    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (0, 0.01) {High};
+    \fill[stonegray, opacity=0.9] (-0.9, -0.85) rectangle (0.9, -0.325);
+    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (0, -0.59) {Medium};
   \end{scope}
 
   % Bottom accent
@@ -1749,41 +1737,42 @@ Small, agile nations (Singapore, Israel, UAE, Estonia) may adapt to the ``Verifi
   % Part label and title
   \node[fractureamber, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART V};
   \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Scenarios \&};
-  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -4.1cm) {Recommendations};
+  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -4.0cm) {Recommendations};
 
-  % Scenario probability bars
-  \begin{scope}[shift={(4cm, -7.5cm)}]
-    \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont] at (2, 1.2) {SCENARIO PROBABILITIES};
+  % Scenario probability bars - left side (centered at 0.32\paperwidth)
+  \begin{scope}[shift={(0.32\paperwidth, -7.9cm)}]
+    \node[textlight, opacity=0.8, font=\fontsize{9}{9}\selectfont\sffamily] at (0, 1.6) {SCENARIO PROBABILITIES};
 
-    % Bars
-    \fill[verifyteal, opacity=0.8] (0, 0) rectangle (1.2, 0.7);
-    \node[white, font=\fontsize{5}{5}\selectfont] at (0.6, 0.35) {30-40\%};
-    \node[white, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (0.6, -0.3) {Managed};
+    % Bars aligned at bottom, heights proportional to probability
+    % Managed: 30-40% (height ~0.8)
+    \fill[verifyteal, opacity=0.9] (-2.4, 0) rectangle (-0.8, 0.8);
+    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (-1.6, 0.4) {30-40\%};
+    \node[textlight, opacity=0.8, font=\fontsize{8}{8}\selectfont] at (-1.6, -0.35) {Managed};
 
-    \fill[stressorange, opacity=0.8] (1.6, 0) rectangle (2.8, 0.9);
-    \node[white, font=\fontsize{5}{5}\selectfont] at (2.2, 0.45) {40-50\%};
-    \node[white, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (2.2, -0.3) {Parity};
+    % Parity: 40-50% (height ~1.2, tallest)
+    \fill[stressorange, opacity=0.9] (-0.5, 0) rectangle (1.1, 1.2);
+    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (0.3, 0.6) {40-50\%};
+    \node[textlight, opacity=0.8, font=\fontsize{8}{8}\selectfont] at (0.3, -0.35) {Parity};
 
-    \fill[burgundydeep, opacity=0.8] (3.2, 0) rectangle (4.4, 0.4);
-    \node[white, font=\fontsize{5}{5}\selectfont] at (3.8, 0.2) {10-20\%};
-    \node[white, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (3.8, -0.3) {Collapse};
+    % Collapse: 10-20% (height ~0.5, shortest)
+    \fill[burgundydeep, opacity=0.9] (1.4, 0) rectangle (3.0, 0.5);
+    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (2.2, 0.25) {10-20\%};
+    \node[textlight, opacity=0.8, font=\fontsize{8}{8}\selectfont] at (2.2, -0.35) {Collapse};
   \end{scope}
 
-  % Implementation tiers
-  \begin{scope}[shift={(11cm, -7.2cm)}]
-    \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont] at (1.5, 1) {IMPLEMENTATION TIERS};
+  % Implementation tiers - right side (centered at 0.68\paperwidth)
+  \begin{scope}[shift={(0.68\paperwidth, -7.9cm)}]
+    \node[textlight, opacity=0.8, font=\fontsize{9}{9}\selectfont\sffamily] at (0, 1.6) {IMPLEMENTATION TIERS};
 
-    \fill[verifyteal, opacity=0.7] (0, 0.4) rectangle (0.8, 0.7);
-    \node[white, font=\fontsize{5}{5}\selectfont] at (0.4, 0.55) {Bronze};
-    \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont, anchor=west] at (0.9, 0.55) {0-90 days};
+    % Horizontal tier badges with consistent sizing
+    \fill[bronzeweathered, opacity=0.9] (-2.2, 0.9) rectangle (2.2, 1.4);
+    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (0, 1.15) {Bronze: 0-90 days};
 
-    \fill[fractureamber, opacity=0.7] (0, 0) rectangle (0.8, 0.3);
-    \node[white, font=\fontsize{5}{5}\selectfont] at (0.4, 0.15) {Silver};
-    \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont, anchor=west] at (0.9, 0.15) {90-180 days};
+    \fill[stonegray, opacity=0.9] (-2.2, 0.3) rectangle (2.2, 0.8);
+    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (0, 0.55) {Silver: 90-180 days};
 
-    \fill[patinabronze, opacity=0.7] (0, -0.4) rectangle (0.8, -0.1);
-    \node[white, font=\fontsize{5}{5}\selectfont] at (0.4, -0.25) {Gold};
-    \node[white, opacity=0.6, font=\fontsize{5}{5}\selectfont, anchor=west] at (0.9, -0.25) {180+ days};
+    \fill[barriergold, opacity=0.9] (-2.2, -0.3) rectangle (2.2, 0.2);
+    \node[slatedark, font=\fontsize{9}{9}\selectfont\bfseries] at (0, -0.05) {Gold: 180+ days};
   \end{scope}
 
   % Bottom accent
