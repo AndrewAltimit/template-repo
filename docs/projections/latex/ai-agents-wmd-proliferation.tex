@@ -49,7 +49,8 @@
 \definecolor{scienceteal}{HTML}{17A2B8}
 \definecolor{labcyan}{HTML}{1ABC9C}
 % Accent: Barrier gold for warnings and highlights
-\definecolor{barriergold}{HTML}{D4AC0D}
+% Standard ETRA header band gold (consistent across all projection reports)
+\definecolor{barriergold}{HTML}{B7950B}
 \definecolor{shieldamber}{HTML}{F39C12}
 % Domain colors
 \definecolor{biogreen}{HTML}{27AE60}
@@ -279,7 +280,7 @@
   };
 
   % Metadata block
-  \node[anchor=south east, text width=5cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
+  \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
     \color{softslate}\small\sffamily
     \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
@@ -386,11 +387,12 @@ This projection examines how autonomous AI agents may alter the proliferation la
 
 \begin{keybox}[Key Findings]
 \begin{enumerate}
-  \item \textbf{[E]} Agentic AI workflows are unlikely to enable a novice to construct a functional WMD, but they will meaningfully lower barriers for actors who already have partial capability (T1--T3)
+  \item \textbf{[E]} Agentic AI workflows are unlikely to enable a novice (T0) to construct a functional WMD, but they will meaningfully lower barriers for T1--T3 actors who already have partial capability
   \item \textbf{[E]} Biological weapons represent the highest-risk category due to eroding physical barriers and AI's strength in knowledge synthesis
   \item \textbf{[E]} The ``tacit knowledge gap'' remains significant, but AI-guided systems and cloud labs are beginning to erode it
-  \item \textbf{[O]} Nuclear weapons face the strongest physical barriers; AI primarily assists state-level programs
-  \item \textbf{[E]} The most likely scenario is high-frequency attempts with limited success---resource strain and public concern, not mass casualties
+  \item \textbf{[O]} Nuclear weapons face the strongest physical barriers; AI primarily assists state-level (T4) programs
+  \item \textbf{[E]} Cyber-physical attacks on existing WMD-adjacent infrastructure (BSL-4 labs, chemical plants) may represent higher near-term risk than de novo synthesis
+  \item \textbf{[E]} The ``high-frequency attempts, limited success'' scenario is more likely than catastrophic mass-casualty events; defenders should prepare for resource strain from numerous low-sophistication incidents
 \end{enumerate}
 \end{keybox}
 
@@ -416,7 +418,15 @@ Open-weight models & Limited high-capability & Llama 3, Mistral, fine-tuning \te
 \begin{quotebox}
 \textbf{Actual WMD attacks by non-state actors remain extremely rare.} The 1995 Tokyo subway attack and 2001 anthrax letters represent essentially the entire modern history of non-state WMD use. The overwhelming majority of WMD-related arrests involve early-stage planning with minimal actual capability.
 
-The dominant near-term concern is \textit{increased frequency of attempts} with varying competence, not catastrophic mass-casualty events. Readers should interpret this analysis through that lens.
+\textbf{The dominant near-term concern is likely:}
+\begin{itemize}[nosep]
+  \item Increased frequency of \textit{attempts} with varying degrees of competence
+  \item Crude attacks with limited casualties but significant psychological impact
+  \item State-level proliferation acceleration using AI assistance
+  \item Erosion of verification regimes as AI complicates attribution
+\end{itemize}
+
+Readers should interpret this analysis through that lens: the primary concern is \textit{barrier reduction enabling more attempts}, with catastrophic mass-casualty events remaining low-probability tail risks.
 \end{quotebox}
 
 \newpage
@@ -647,6 +657,59 @@ T4 & State or state-backed & Full WMD capability & Nation-state programs \\
 
 \textbf{Key insight}: AI primarily benefits T1--T3 actors by reducing knowledge aggregation barriers---it does not transform T0 into T3.
 
+\subsection{Synthetic Biology Infrastructure (2025)}
+
+The infrastructure for synthetic biology has expanded dramatically, creating new touchpoints for both legitimate research and potential misuse:
+
+\textbf{DNA Synthesis Services}:
+\begin{itemize}[nosep]
+  \item Multiple commercial providers offer gene synthesis with turnaround in days
+  \item Costs have dropped to cents per base pair
+  \item International providers vary in screening rigor
+\end{itemize}
+
+\textbf{Cloud Laboratory Services}:
+\begin{itemize}[nosep]
+  \item Commercial platforms offer remote access to automated wet labs via API
+  \item Equipment includes liquid handlers, PCR machines, sequencers
+  \item Geographic distribution creates regulatory arbitrage opportunities
+\end{itemize}
+
+\textbf{Open-Source Tools}:
+\begin{itemize}[nosep]
+  \item Bioinformatics toolkits freely available (Biopython, NCBI tools)
+  \item CRISPR design tools accessible to non-experts
+  \item Protocols shared through platforms like protocols.io
+\end{itemize}
+
+\subsection{Current Safeguards}
+
+Existing control regimes face increasing pressure from technological change:
+
+\textbf{DNA Synthesis Screening}:
+\begin{itemize}[nosep]
+  \item IGSC (International Gene Synthesis Consortium) guidelines screen against known pathogen sequences
+  \item Novel or chimeric sequences may evade detection
+  \item Not all providers are IGSC members
+  \item Benchtop synthesizers bypass commercial screening entirely
+\end{itemize}
+
+\textbf{Export Controls}:
+\begin{itemize}[nosep]
+  \item Australia Group guidelines cover dual-use equipment
+  \item National implementation varies significantly
+  \item Dual-use nature of equipment makes enforcement challenging
+  \item Digital information largely uncontrolled
+\end{itemize}
+
+\textbf{Institutional Biosafety}:
+\begin{itemize}[nosep]
+  \item Institutional Biosafety Committees (IBCs) review research at formal institutions
+  \item Select Agent regulations govern most dangerous pathogens
+  \item Gaps exist for independent researchers and DIY biology spaces
+  \item International variation in biosafety standards
+\end{itemize}
+
 \subsection{Vision-Language Models and Tacit Knowledge Erosion}
 
 The traditional ``tacit knowledge'' barrier assumed that laboratory skills require hands-on training. Vision-Language Models (VLMs) that can ``see'' through cameras are beginning to erode this barrier.
@@ -690,6 +753,47 @@ Specialized biology models & May be absent & No & Domain-specific & Research com
 \textbf{Policy implications}: (1) Pre-release capability evaluation, (2) Compute governance as monitoring opportunity, (3) Community norms on responsible release, (4) Accept that some proliferation is unavoidable---invest in detection accordingly.
 
 \section{Theoretical Frameworks}
+
+This analysis draws on several established theoretical frameworks from security studies, biosecurity, and technology policy.
+
+\subsection{The Democratization of Lethality}
+
+\textbf{Audrey Kurth Cronin's framework} from ``Power to the People'' (2020) describes how each technological era redistributes the capacity for violence. AI represents the latest such redistribution, but with a crucial difference: previous technologies (dynamite, small arms) democratized \textit{physical} capabilities. AI democratizes \textit{cognitive} capabilities---the planning, knowledge synthesis, and optimization that previously required years of specialized training.
+
+For WMD, this means:
+\begin{itemize}[nosep]
+  \item The barrier was never purely physical (materials exist)
+  \item The barrier was also cognitive (knowing what to do with materials)
+  \item AI specifically attacks the cognitive barrier while physical barriers remain
+\end{itemize}
+
+\subsection{Dual-Use Research of Concern (DURC)}
+
+The \textbf{DURC framework}, developed through debates over H5N1 transmissibility research (2011--2012), recognizes that legitimate scientific research can generate knowledge applicable to harmful purposes. Key insights:
+\begin{itemize}[nosep]
+  \item Information cannot be ``un-discovered''
+  \item Publication decisions involve weighing scientific benefit against misuse potential
+  \item The research community has historically self-regulated through institutional review
+\end{itemize}
+
+AI agents challenge this framework because they can synthesize DURC-relevant information from dispersed, individually innocuous sources; publication decisions become moot when AI can reconstruct restricted information; and self-regulation assumes human researchers as the primary actors.
+
+\subsection{Information Hazards Framework}
+
+\textbf{Nick Bostrom's concept of ``information hazards''} identifies categories of knowledge that, once disseminated, can cause harm regardless of intent:
+\begin{itemize}[nosep]
+  \item \textbf{Data hazards}: Specific information enabling harmful actions (pathogen sequences, synthesis routes)
+  \item \textbf{Idea hazards}: Concepts that suggest new harmful possibilities
+  \item \textbf{Attention hazards}: Drawing attention to vulnerabilities
+\end{itemize}
+
+AI agents challenge information hazard management because they can reconstruct restricted information from dispersed innocuous sources, lower the barrier from ``knowledge'' to ``actionable guidance,'' and personalize dangerous information to specific user capabilities.
+
+\subsection{The Unilateralist's Curse}
+
+\textbf{Bostrom and Ord's ``Unilateralist's Curse''} describes a critical dynamic: when a capability becomes accessible to many actors, even if the vast majority (99.9\%) are responsible, the small minority (0.1\%) who would misuse it will eventually do so.
+
+For AI and WMD: AI democratizes access to planning and synthesis knowledge; as millions gain access, the ``curse'' becomes statistically inevitable; the question shifts from ``whether'' to ``when'' and ``how catastrophic''; and defensive strategies must assume misuse will be attempted.
 
 \subsection{Unified Risk Model}
 
@@ -745,6 +849,27 @@ Detection & Novel agents may evade detection & AI-enhanced surveillance possible
 
 The balance varies significantly across WMD categories, which is why biological, chemical, and nuclear require separate analysis.
 
+\subsection{Key Literature}
+
+\begin{center}
+\small
+\begin{tabular}{L{4.5cm}L{3.5cm}L{4cm}}
+\toprule
+\textbf{Work} & \textbf{Author(s)} & \textbf{Relevance} \\
+\midrule
+\textit{Power to the People} & Cronin (2020) & Technology diffusion and non-state violence \\
+\textit{Biohazard} & Alibek (1999) & Soviet bioweapons program; scale of state capabilities \\
+\textit{Germs} & Miller, Engelberg, Broad (2001) & History of biological weapons programs \\
+\textit{Nuclear Terrorism} & Allison (2004) & Non-state nuclear threats assessment \\
+\textit{Personal Knowledge} & Polanyi (1958) & Tacit knowledge theory \\
+\textit{NIST AI RMF} & NIST (2023) & AI risk management framework \\
+\textit{Information Hazards} & Bostrom (2011) & Framework for dangerous knowledge \\
+\textit{The Unilateralist's Curse} & Bostrom \& Ord (2015) & Why misuse becomes inevitable \\
+\textit{Countdown to Zero Day} & Zetter (2014) & Stuxnet and cyber-physical attacks \\
+\bottomrule
+\end{tabular}
+\end{center}
+
 \subsection{2024--2025 Policy Developments}
 
 \begin{center}
@@ -782,7 +907,21 @@ Anthropic RSP Framework & 2023--24 & Responsible Scaling Policy with CBRN thresh
   \item Chemical attack: 13 deaths (far below ambitions)
 \end{itemize}
 
-\textbf{Critical lesson}: Despite exceptional resources and expertise, Aum's biological program failed completely. The gap between intent and capability was enormous.
+\textbf{Critical lesson}: Despite exceptional resources and expertise, Aum's biological program failed completely. Their chemical attack succeeded but at far lower casualty levels than their ambitions. The gap between \textit{intent and capability} was enormous.
+
+\textbf{Why did Aum fail at bioweapons?}
+\begin{enumerate}[nosep]
+  \item Tacit knowledge gaps despite theoretical expertise
+  \item Difficulty obtaining virulent pathogen strains
+  \item Weaponization challenges (delivery systems, stability)
+  \item Operational security compromises
+\end{enumerate}
+
+\textbf{2001 Anthrax Letters}: Perpetrator likely single individual with professional laboratory access. Outcome: 5 deaths, 17 infections, massive societal disruption. Method: Existing laboratory stocks, not de novo synthesis. \textbf{Critical factor}: \textit{Access} to prepared materials, not synthesis capability.
+
+\textbf{Rajneeshee Bioterror Attack (1984)}: Religious cult in Oregon used \textit{Salmonella typhimurium} (common food pathogen) to contaminate restaurant salad bars. Outcome: 751 illnesses, no deaths, significant disruption. \textbf{Critical lesson}: Low-tech attacks with common agents can achieve ``mass disruption'' without ``mass destruction.'' AI agents could optimize logistics of such simple attacks for massive scale.
+
+\textbf{Stuxnet (2010)}: Nation-state attack (US/Israel) targeting Iranian nuclear centrifuges. Malware caused physical destruction via control system manipulation. Outcome: Significant delay to Iranian nuclear program. \textbf{Critical lesson}: Code can cause physical destruction. This establishes the precedent for ``cyber-physical'' attacks on WMD-related infrastructure---a vector AI agents could enable.
 
 \subsection{Technology Inflection Points}
 
@@ -919,6 +1058,21 @@ AI could potentially assist with gain-of-function modifications---predicting mut
 
 \textbf{Our assessment}: AI gain-of-function guidance is a genuine concern but the gap between prediction and validation remains substantial. The risk increases as AI models improve and as AI-lab integration deepens.
 
+\subsection{Governance Challenge: Distributed Synthesis Capability}
+
+Desktop-scale DNA synthesis capability is expanding, creating a governance challenge for frameworks designed around centralized commercial services.
+
+\textbf{The shifting landscape}:
+\begin{itemize}[nosep]
+  \item Benchtop synthesizers becoming more capable and affordable
+  \item Local synthesis bypasses commercial provider screening
+  \item Current safeguards assume centralized chokepoints
+\end{itemize}
+
+\textbf{Defender implications}: Governance frameworks require adaptation for distributed capability; device-level controls become relevant (manufacturer responsibility); post-synthesis detection and attribution gain importance; international harmonization of device standards needed.
+
+\textbf{Policy direction}: Governance should shift from pure ``access denial'' toward comprehensive approaches including device-level safeguards, detection capabilities, and attribution infrastructure.
+
 \subsection{Cloud Laboratory Considerations}
 
 Cloud laboratories---services providing remote access to automated equipment---represent an area requiring enhanced defensive attention.
@@ -949,6 +1103,22 @@ Chemical weapons occupy an intermediate position. \textbf{The dominant constrain
 
 The most concerning AI capability is \textbf{precursor substitution}---identifying unregulated chemicals with similar properties to avoid monitoring.
 
+\subsection{The Precursor Substitution Threat}
+
+\textbf{How this works}: Regulated precursor lists target known synthesis routes. AI could identify unregulated chemicals with similar properties; purchases could avoid triggering monitoring systems; supply chain optimization could fragment orders across suppliers.
+
+\textbf{Limitations}: Alternative routes often less efficient; substitutions may introduce impurities; some precursors are uniquely suited (no good alternatives); large-scale production still requires infrastructure.
+
+\subsection{Real-Time Synthesis Guidance}
+
+AI agents could provide ``over-the-shoulder'' guidance for synthesis:
+
+\textbf{Capabilities}: Interpret visual observations (color changes, precipitates); suggest adjustments based on conditions; troubleshoot common problems; guide safety procedures.
+
+\textbf{This is concerning because}: Reduces requirement for formal chemistry training; provides adaptive feedback traditional instructions cannot; available 24/7 without human oversight; multiple attempts can refine technique.
+
+\textbf{Limiting factors}: Chemical synthesis still dangerous without proper training; failure modes can be fatal (explosions, toxic exposure); equipment requirements remain; scale-up from laboratory to weapon quantities is distinct challenge.
+
 \section{Nuclear Weapons: Physical Barriers}
 
 Nuclear weapons remain the category with the strongest barriers:
@@ -973,6 +1143,14 @@ Radiological dispersal devices (``dirty bombs'') face different dynamics than nu
 
 \textbf{AI contribution}: Could assist with identifying sources, optimizing dispersal, and planning deployment, but physical acquisition remains the key barrier.
 
+\subsection{Supply Chain Security}
+
+The most significant AI risk for nuclear proliferation may be supply chain compromise:
+
+\textbf{How AI could assist state programs}: Identifying dual-use equipment suppliers; optimizing procurement to avoid detection; designing facilities to minimize detection signatures; analyzing IAEA inspection patterns.
+
+This is primarily a concern for state-level actors or state-supported groups rather than independent non-state actors.
+
 \section{Gene Drives: Long-Horizon Governance Gap}
 
 Gene drives are genetic engineering systems designed to spread modifications through populations faster than traditional inheritance. They warrant special attention because:
@@ -984,7 +1162,67 @@ Gene drives are genetic engineering systems designed to spread modifications thr
   \item Potentially irreversible effects on ecosystems
 \end{enumerate}
 
+\subsection{AI's Role in Gene Drive Development}
+
+Gene drives represent an area where AI capabilities directly intersect with technical development. Understanding the computational bottlenecks helps defenders identify where AI provides the most significant acceleration.
+
+\textbf{Computational bottlenecks where AI provides acceleration}:
+
+\begin{center}
+\small
+\begin{tabular}{L{2.5cm}L{3cm}L{3.5cm}L{3cm}}
+\toprule
+\textbf{Bottleneck} & \textbf{Traditional} & \textbf{AI Contribution} & \textbf{Defender Priority} \\
+\midrule
+Guide RNA design & Manual selection, trial and error & Off-target prediction, efficiency optimization & Track guide RNA tool development \\
+Drive efficiency prediction & Lab testing (slow, expensive) & In silico modeling of drive dynamics & Monitor AI benchmarks \\
+Resistance evolution modeling & Population genetics simulations & Accelerated evolutionary modeling & Track evolutionary prediction AI \\
+Ecological impact assessment & Field trials (regulated, slow) & Multi-species interaction modeling & Monitor ecological AI \\
+Target species selection & Expert knowledge, literature review & Systematic vulnerability analysis & Watch for targeting tools \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{What this means for defenders}:
+\begin{itemize}[nosep]
+  \item Gene drive design is \textit{computationally intensive}---exactly where AI excels
+  \item AI acceleration primarily affects \textit{design and optimization} phases
+  \item \textit{Wet lab validation} remains required---a detection opportunity
+  \item \textit{Environmental release} is the chokepoint where intervention is most feasible
+\end{itemize}
+
 \textbf{Critical nuance}: Gene drives are not tactical weapons. Effects manifest over months to years, limiting tactical utility. Strategic economic or ecological concerns remain.
+
+\textbf{Actor tier relevance}: Gene drives primarily concern sophisticated T3--T4 actors with long-term strategic objectives. T0--T2 actors seeking immediate impact would not benefit from this vector.
+
+\subsection{Governance Anchors}
+
+While no specific gene drive treaty exists, governance can build on existing frameworks:
+
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{8cm}}
+\toprule
+\textbf{Existing Framework} & \textbf{Applicability} \\
+\midrule
+Cartagena Protocol (biosafety) & Environmental release of modified organisms \\
+Nagoya Protocol & Access and benefit-sharing for genetic resources \\
+Environmental release regulations & National frameworks for GMO releases \\
+BWC & If designed to harm human health or agriculture \\
+Research ethics frameworks & Institutional review for dual-use research \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Policy direction}: Gene drive governance need not start from zero. Extending and strengthening existing environmental and biosafety frameworks is a viable near-term approach.
+
+\subsection{Current Status and Near-Term Projection}
+
+\textbf{Current (2025)}: Gene drive research ongoing for public health applications; no known weaponization attempts; regulatory frameworks underdeveloped; AI tools increasingly integrated into design process.
+
+\textbf{2026--2028 projection}: Capabilities mature through legitimate research; regulatory discussions intensify; first environmental releases (controlled, legitimate); potential for ``garage biology'' access as tools proliferate.
+
+\textbf{2029--2030 projection}: Technology potentially accessible to sophisticated non-state actors; attribution challenges become acute; international governance discussions likely but may lag capability.
 
 % ============================================================================
 % PART III - VECTORS AND CONVERGENCE
@@ -1048,6 +1286,33 @@ Supply chain & Procurement patterns & Days to weeks & Chain of custody \\
 \end{tabular}
 \end{center}
 
+\textbf{Technical barriers that persist}: Effective dispersion remains technically challenging; many agents degrade rapidly under environmental conditions; testing without exposure is difficult (limits iteration); detection technology is improving.
+
+\subsection{Autonomous System Security}
+
+The proliferation of autonomous robots in public spaces creates an expanding attack surface requiring proactive defense:
+
+\textbf{Defensive considerations}: Robots increasingly have legitimate access to spaces (delivery, cleaning, security); compromised or custom platforms represent potential vectors; detection systems should account for authorized autonomous presence; payload limitations and conspicuousness currently constrain threat.
+
+\textbf{Defender priorities}: Geofencing and access control for sensitive areas; behavioral anomaly detection for autonomous systems; supply chain security for commercial robot platforms; counter-autonomous system capabilities for high-value locations.
+
+\textbf{Trend to monitor}: As autonomous robots become ubiquitous, they become less conspicuous. Defensive frameworks should anticipate this evolution.
+
+\subsection{Infrastructure Protection}
+
+High-value infrastructure requires layered defense against delivery-focused attacks:
+
+\textbf{Defensive layers}:
+\begin{enumerate}[nosep]
+  \item \textbf{Physical access control}: Limiting approach to sensitive areas
+  \item \textbf{Environmental monitoring}: Air quality, contamination detection
+  \item \textbf{HVAC security}: Filtration, access control, monitoring
+  \item \textbf{Rapid response protocols}: Evacuation, containment, medical response
+  \item \textbf{Resilience and redundancy}: Backup systems, alternative facilities
+\end{enumerate}
+
+\textbf{Investment priority}: Environmental detection and rapid response capabilities are high-value defensive investments that work across multiple threat types.
+
 \section{The Cyber-Physical Convergence}
 
 \begin{keybox}[Key Insight]
@@ -1055,6 +1320,53 @@ An AI agent doesn't need to help someone build a bioweapon if it can help them d
 \end{keybox}
 
 \textbf{Stuxnet as Precedent}: The 2010 attack demonstrated that code can cause physical destruction---malware targeted industrial control systems and caused centrifuges to physically destroy themselves. AI agents could enable similar attacks at lower skill thresholds.
+
+\subsection{Vulnerable Infrastructure Categories}
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{4cm}L{4.5cm}}
+\toprule
+\textbf{Infrastructure Type} & \textbf{Contents/Risk} & \textbf{Control System Vulnerability} \\
+\midrule
+BSL-3/4 Laboratories & Dangerous pathogens & HVAC, negative pressure systems \\
+Chemical Plants & Toxic chemicals & Process controls, safety interlocks \\
+Nuclear Facilities & Radioactive materials & Cooling systems, containment \\
+Water Treatment & Chemicals, public health & Dosing systems, quality controls \\
+Pharmaceutical Mfg & Precursor chemicals & Process controls \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{How AI Agents Enable ICS Attacks}
+
+\textbf{Reconnaissance}: Identifying target facilities from public records; mapping control system architectures from procurement data; analyzing vulnerability disclosures.
+
+\textbf{Exploitation Development}: Synthesizing attack approaches from security research; adapting known exploits to specific targets; optimizing attack timing and sequences.
+
+\textbf{Operational Planning}: Coordinating cyber and physical elements; identifying optimal attack windows; planning for detection evasion.
+
+\subsection{Attack Scenarios}
+
+\begin{quotebox}
+\textbf{Scenario: BSL-4 Containment Failure}
+
+AI agent identifies laboratory control systems; develops approach to disable negative pressure; coordinates with physical access (insider or break-in); containment failure releases stored pathogens.
+
+\textit{No synthesis required---existing materials weaponized.}
+\end{quotebox}
+
+\begin{quotebox}
+\textbf{Scenario: Chemical Plant Sabotage}
+
+AI agent maps chemical plant process controls; identifies conditions that would cause toxic release; develops attack causing ``accidental'' disaster; Bhopal-scale casualties from industrial sabotage.
+
+\textit{Attribution as accident vs. attack is ambiguous.}
+\end{quotebox}
+
+\subsection{Defensive Implications}
+
+This vector suggests defensive priorities: (1) Air-gap critical controls---isolation from network-accessible systems; (2) Enhanced ICS security---hardening beyond current standards; (3) Facility monitoring---detecting reconnaissance and probing; (4) Incident attribution---distinguishing accidents from attacks; (5) Redundant safety systems---mechanical backups for digital controls.
 
 \subsection{AI-Enabled Procurement Obfuscation}
 
@@ -1064,6 +1376,18 @@ AI agents with computer use capabilities could change the economics of procureme
   \item AI-enabled: Thousands of sub-threshold orders coordinated automatically
   \item Synthesized identities, gig-economy logistics coordination
 \end{itemize}
+
+\subsubsection*{Mechanisms of Agentic Obfuscation (``Smurfing at Scale'')}
+
+\begin{itemize}
+  \item \textbf{Identity synthesis}: Generating plausible business identities with consistent online presence, credit history, and shipping addresses to bypass Know Your Customer (KYC) checks
+  \item \textbf{Threshold awareness}: Automatically structuring orders below reporting limits across dozens of jurisdictions with different regulatory frameworks
+  \item \textbf{Supplier diversification}: Identifying and managing relationships with numerous global suppliers simultaneously, preventing any single supplier from seeing the complete procurement picture
+  \item \textbf{Logistics automation}: Coordinating delivery via gig-economy couriers, freight forwarding services, and dead-drops to obscure the final destination
+  \item \textbf{Timeline compression}: What would take a human procurement network months of coordination can be accomplished in days by an AI agent operating across multiple platforms simultaneously
+\end{itemize}
+
+\textbf{Defender implication}: Traditional procurement monitoring based on single-order thresholds becomes inadequate. Pattern-based detection across suppliers, geographies, and time becomes essential.
 
 \subsection{Governance Gaps in Proliferation Financing}
 
@@ -1163,6 +1487,29 @@ Literature synthesis & Attack planning & Threat anticipation \\
 
 \textbf{Our assessment}: This is a serious concern that should constrain policy enthusiasm. The goal is \textit{calibrated} security, not maximum restriction.
 
+\subsection{Critique of the Unilateralist's Curse Framework}
+
+\textbf{The Unilateralist's Curse} (Bostrom \& Ord) argues that when many actors can independently take an irreversible action, even if most would refrain, the probability of \textit{someone} acting approaches certainty.
+
+\textbf{Potential overreach of this framework}:
+
+\begin{enumerate}
+  \item \textbf{Assumes homogeneous capability}: Not all actors who ``want to'' can actually execute. The curse applies most strongly when capability is uniform---but WMD capability remains highly non-uniform.
+
+  \item \textbf{Ignores coordination mechanisms}: The framework assumes purely independent decision-making. In reality, extremist communities have internal norms, and state sponsors exercise control over proxies.
+
+  \item \textbf{May induce fatalism}: If misuse is ``inevitable,'' policymakers may:
+  \begin{itemize}[nosep]
+    \item Overinvest in restriction vs. resilience
+    \item Underinvest in detection and response
+    \item Adopt maximally restrictive policies regardless of cost
+  \end{itemize}
+
+  \item \textbf{Alternative framing---``The Long Fuse''}: Instead of ``inevitable misuse,'' consider that barriers create \textit{delay}. Each year of delay allows defensive technology to advance, governance frameworks to mature, attribution capabilities to improve, and social norms against misuse to strengthen.
+\end{enumerate}
+
+\textbf{Our assessment}: The Unilateralist's Curse is a useful heuristic but should not induce fatalism. The appropriate response is \textit{buying time through calibrated barriers} while \textit{investing in resilience and response capabilities}---not assuming catastrophe is inevitable.
+
 \subsection{Alternative Framing: The Long Fuse}
 
 Instead of ``inevitable misuse'' (Unilateralist's Curse), consider that barriers create \textit{delay}. Each year of delay allows:
@@ -1186,13 +1533,68 @@ Attribution---determining responsibility---serves critical functions: enables de
   \item AI can generate misleading evidence (false flag potential)
 \end{itemize}
 
-\textbf{Defensive implications}:
+\subsection{Attribution Matrix: Traditional vs. AI-Era Forensics}
+
+\begin{center}
+\small
+\begin{tabular}{L{2.5cm}L{3.5cm}L{3.5cm}L{2.5cm}}
+\toprule
+\textbf{Evidence Type} & \textbf{Traditional} & \textbf{AI-Era Signatures} & \textbf{Defender Investment} \\
+\midrule
+Physical materials & Isotope ratios, impurity profiles & Remains relevant for nuclear/rad & Maintain forensics \\
+Genetic sequences & Strain matching, phylogenetic & Synthetic may lack natural history & Synthetic bio forensics \\
+Precursor tracing & Purchase records, chem signatures & Alternative routes; fragmented & AI pattern analysis \\
+Communications & Organizational comms, planning & Human-AI interactions; local compute & Behavioral analysis \\
+Digital forensics & Device analysis, network logs & AI query logs; prompt history & AI-specific forensics \\
+Financial trails & Bank records, transactions & Crypto; shell companies; evasion & Blockchain analysis \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{New AI-Era Attribution Opportunities}
+
+\begin{enumerate}[nosep]
+  \item \textbf{AI query analysis}: Patterns in how AI systems are queried may indicate intent
+  \item \textbf{Compute fingerprinting}: High-capability model use may leave compute signatures
+  \item \textbf{Synthetic biology signatures}: Designed sequences may have identifiable ``authorship'' patterns
+  \item \textbf{Procurement pattern analysis}: AI-assisted detection of unusual material acquisition
+  \item \textbf{Behavioral biometrics}: Interaction patterns with AI systems may be identifiable
+\end{enumerate}
+
+\textbf{Investment priorities for attribution capability}: AI forensics training for investigators; international sharing agreements for AI-relevant evidence; research into synthetic biology authorship attribution; integration of financial and biosecurity intelligence.
+
+\subsection{Defensive Implications}
+
 \begin{enumerate}
   \item Prevention over punishment: Cannot rely on deterrence through retaliation
   \item Resilience over defense: Assume some attacks will succeed; focus on limiting damage
   \item Detection over access control: Monitor for activity patterns
   \item International cooperation: Attribution often requires shared intelligence
+  \item Pre-incident intelligence capacity: Invest in human intelligence, signals intelligence, and international investigative partnerships that can develop leads before attacks occur
 \end{enumerate}
+
+\textbf{Organizational priority}: International investigative capacity is an organizational investment, not primarily a technical one. Treaty-level agreements on information sharing, joint investigation protocols, and mutual legal assistance are as important as forensic technology.
+
+\subsection{Geopolitical Implications}
+
+The attribution void created by AI assistance has severe implications for international stability.
+
+\begin{quotebox}
+\textbf{Scenario}: A biological attack occurs in a major city. Intelligence agencies cannot determine whether the perpetrator was a lone actor with AI assistance, a non-state group, or a state actor using deniable means. Multiple state adversaries had motive; none have clear forensic links.
+\end{quotebox}
+
+\textbf{Consequences of Ambiguity}:
+\begin{itemize}
+  \item \textbf{Escalation risk}: Retaliation against the wrong party could trigger state-level conflict
+  \item \textbf{Deterrence failure}: Inability to attribute emboldens future attackers who perceive no risk of punishment
+  \item \textbf{Domestic pressure}: Public demands action; governments face pressure to blame \textit{someone}
+  \item \textbf{Policy paralysis}: Conflicting evidentiary requirements may prevent any meaningful international response
+  \item \textbf{Erosion of norms}: If attacks go unattributed, the norm against WMD use weakens
+\end{itemize}
+
+\textbf{Historical parallel}: The 2001 anthrax letters demonstrated how even a domestic attack with eventual attribution created years of investigative uncertainty and policy confusion. AI-enabled attacks could be far harder to trace.
+
+\textbf{Policy implication}: Investment in attribution capability is not merely a law enforcement priority---it is a strategic necessity for maintaining international stability and the credibility of deterrence regimes.
 
 % ============================================================================
 % PART IV - POLICY RECOMMENDATIONS
@@ -1235,6 +1637,14 @@ Attribution---determining responsibility---serves critical functions: enables de
 
 \section{International Variance}
 
+\subsection{Regulatory Landscape}
+
+WMD-related AI risks vary significantly across jurisdictions:
+
+\textbf{Restrictive jurisdictions} (US, EU, UK, Australia): Frontier AI models have usage restrictions; biosecurity regulations cover synthesis services; export controls on dual-use equipment; institutional review requirements.
+
+\textbf{Permissive jurisdictions}: Less restricted AI model availability; limited biosecurity oversight; weaker export controls; ``data havens'' for unrestricted AI services.
+
 \subsection{Regulatory Arbitrage}
 
 \begin{center}
@@ -1251,7 +1661,9 @@ Compute rental & KYC requirements & Anonymous crypto payment \\
 \end{tabular}
 \end{center}
 
-\textbf{Policy implication}: Unilateral restrictions have limited effectiveness. Capacity building and norm promotion may be more effective than prohibition.
+\textbf{Why Western guardrails may be insufficient}: Actors can access AI services via VPN to unrestricted jurisdictions; DNA synthesis orders can be routed through intermediaries; financial transactions can use unregulated cryptocurrency infrastructure; enforcement requires international cooperation that may not exist.
+
+\textbf{Policy implications}: Unilateral restrictions have limited effectiveness; capacity building and norm promotion may be more effective than prohibition; detection and response capabilities matter more than access denial; international coordination is essential but difficult.
 
 \subsection{Global South Considerations}
 
@@ -1343,6 +1755,40 @@ Medium & Red team evaluation requirements & U & Defining thresholds \\
 The window for establishing governance frameworks is narrow. Once capabilities proliferate, restrictions become much harder to implement.
 \end{keybox}
 
+\begin{notebox}[Advanced Defensive Measures (More Speculative)]
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{4cm}L{5cm}}
+\toprule
+\textbf{Measure} & \textbf{Description} & \textbf{Challenge/Controversy} \\
+\midrule
+KYC for Compute & Verification for large-scale computing rentals & Privacy, open research norms, threshold definition \\
+Honey-Pot Data Injection & Seed datasets with subtle errors in dangerous procedures & Scientific integrity concerns, collateral damage \\
+Information Hazards Mgmt & Restrict publication of AI red team failure modes & Research community pushback, effectiveness uncertain \\
+\bottomrule
+\end{tabular}
+\end{center}
+\textit{Note: These advanced measures are presented for consideration, not endorsement. Each involves significant tradeoffs.}
+\end{notebox}
+
+\subsection{Implementation Feasibility Assessment}
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{1.8cm}L{1.8cm}L{1.5cm}L{2cm}L{1.5cm}}
+\toprule
+\textbf{Recommendation} & \textbf{Timeline} & \textbf{Cost} & \textbf{Friction} & \textbf{Risk Red.} \\
+\midrule
+DNA synthesis screening & 0--12 mo & Low-Med & Medium & High \\
+Int'l AI safety standards & 36--60+ mo & Medium & High & Medium \\
+Attribution investment & 12--36 mo & High & Low & Medium \\
+Cloud lab oversight & 12--24 mo & Low & Medium & Med-High \\
+Treaty updates (BWC/CWC) & 36--60+ mo & Low & Very High & Low-Med \\
+Defensive bio R\&D & 12--36 mo & High & Low & High \\
+\bottomrule
+\end{tabular}
+\end{center}
+
 \subsection{Minimal Viable Steps (12-month horizon)}
 
 \begin{enumerate}
@@ -1352,15 +1798,39 @@ The window for establishing governance frameworks is narrow. Once capabilities p
   \item Require WMD capability evaluations for frontier AI releases
 \end{enumerate}
 
-\subsection{For AI Developers}
+\subsection{For CEOs and Corporate Leadership}
+
+\begin{center}
+\small
+\begin{tabular}{L{1.5cm}L{5cm}L{5.5cm}}
+\toprule
+\textbf{Priority} & \textbf{Action} & \textbf{Rationale} \\
+\midrule
+Critical & Implement robust screening in AI-biology interfaces & If you operate AI services for bio research, you are on the front line \\
+Critical & Red team AI products for WMD uplift & Understand what your systems enable \\
+High & Establish escalation procedures for concerning queries & Staff need guidance when dangerous requests detected \\
+High & Engage with policymakers on technical feasibility & Industry expertise needed for workable regulations \\
+High & Invest in defensive applications & AI-enabled biosurveillance, detection, response \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Key insight for CEOs}: The AI-biology interface is a major liability exposure. Companies operating in this space face both safety responsibilities and reputational risk.
+
+\subsection{For Tech Elite (AI Developers, Founders, Investors)}
 
 \begin{contextbox}[Recommended Actions]
 \begin{enumerate}
-  \item \textbf{Evaluate models for WMD uplift before release}---understand what your systems enable
-  \item \textbf{Exercise caution with open-sourcing high-capability models}---once released, cannot be recalled
-  \item \textbf{Implement robust guardrails with ongoing monitoring}---adversarial adaptation is ongoing
-  \item \textbf{Fund defensive biosecurity research}---same capabilities enable offense and defense
+  \item \textbf{Evaluate models for WMD uplift before release}---you cannot claim ignorance after deployment
+  \item \textbf{Do not open-source models with significant uplift capabilities}---once released, cannot be recalled
+  \item \textbf{Implement robust guardrails with ongoing monitoring}---initial safeguards degrade; adversarial adaptation is ongoing
+  \item \textbf{Fund defensive biosecurity research}---the same capabilities that enable offense can enable defense
+  \item \textbf{Engage seriously with safety evaluations}---red team findings should inform development, not just PR
+  \item \textbf{Participate in international governance discussions}---technical expertise essential for workable frameworks
+  \item \textbf{Develop ``know your customer'' standards for API access}---high-capability access should have accountability
 \end{enumerate}
+
+\textbf{Key insight for tech elite}: You are building dual-use capabilities. The ethical responsibility is substantial, and the historical legacy of these decisions will be judged harshly if preventable harm occurs.
 \end{contextbox}
 
 \subsection{For Laypeople}
@@ -1372,6 +1842,64 @@ The window for establishing governance frameworks is narrow. Once capabilities p
 \end{itemize}
 
 \section{Uncertainties and Alternative Scenarios}
+
+\begin{notebox}[Probability Calibration Note]
+The probabilities below are \textit{subjective priors} intended to support decision-making under uncertainty. They are not empirical estimates derived from statistical models. Use for relative prioritization between scenarios, not as point predictions. Reasonable analysts could assign significantly different values.
+\end{notebox}
+
+\subsection{Probability Decomposition Framework}
+
+\textbf{Risk = Capability Access $\times$ Intent Prevalence $\times$ Operational Execution $\times$ (1 $-$ Interdiction) $\times$ Impact Scale}
+
+\subsubsection*{Biological (Highest Risk Category)}
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{2.5cm}L{2.5cm}L{4cm}}
+\toprule
+\textbf{Factor} & \textbf{2025 Est.} & \textbf{2030 Proj.} & \textbf{AI Contribution} \\
+\midrule
+Capability Access & 5--10\% of T2+ & 15--25\% of T2+ & High: knowledge synthesis \\
+Intent Prevalence & $\sim$0.1--1\% & $\sim$0.1--1\% & Low: AI doesn't create intent \\
+Operational Execution & 5--15\% & 10--25\% & Medium: guidance improves \\
+Interdiction Avoidance & 60--80\% & 50--70\% & Medium: both sides use AI \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection*{Chemical (Moderate Risk)}
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{2.5cm}L{2.5cm}L{4cm}}
+\toprule
+\textbf{Factor} & \textbf{2025 Est.} & \textbf{2030 Proj.} & \textbf{AI Contribution} \\
+\midrule
+Capability Access & 10--20\% of T2+ & 15--30\% of T2+ & Low: precursor controls \\
+Intent Prevalence & $\sim$0.1--1\% & $\sim$0.1--1\% & Low \\
+Operational Execution & 10--20\% & 15--25\% & Medium: synthesis guidance \\
+Interdiction Avoidance & 50--70\% & 40--60\% & Low: monitoring improving \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection*{Nuclear (Lowest AI-Related Risk)}
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{2.5cm}L{2.5cm}L{4cm}}
+\toprule
+\textbf{Factor} & \textbf{2025 Est.} & \textbf{2030 Proj.} & \textbf{AI Contribution} \\
+\midrule
+Capability Access & <1\% of T3+ & <1\% of T3+ & Very low: fissile material \\
+Intent Prevalence & $\sim$0.1\% & $\sim$0.1\% & None \\
+Operational Execution & <5\% & <5\% & Low: engineering barriers \\
+Interdiction Avoidance & 20--40\% & 20--40\% & Low: material detectable \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textit{Note: These decompositions are illustrative. The purpose is to show how the model works, not to provide precise predictions.}
 
 \subsection{Sensitivity Analysis}
 
@@ -1389,6 +1917,13 @@ Interdiction rate & 50\% & 35\% & 20\% & 5\% $\to$ 8-12\% $\to$ 18\% \\
 \end{center}
 
 \textbf{Key insight}: The estimate is most sensitive to intent prevalence and capable actor pool size---factors where AI's contribution is indirect.
+
+\textbf{What would falsify this model}:
+\begin{itemize}[nosep]
+  \item AI-enabled attack by T0--T1 actor (would indicate barriers lower than assessed)
+  \item Successful interdiction of AI-assisted attempt (would indicate detection working)
+  \item Stable or declining synthesis screening intercepts (would indicate threat not materializing)
+\end{itemize}
 
 \subsection{Scenario Summary}
 
@@ -1516,6 +2051,59 @@ Failed/thwarted attempts & Law enforcement, media & Threat translation from capa
 \end{tabular}
 \end{center}
 
+\subsection{Machine-Readable Indicators for Automated Monitoring}
+
+\textbf{For security operations centers and automated threat intelligence systems}: The following indicators can be operationalized for machine-readable monitoring.
+
+\subsubsection*{API Query Pattern Indicators}
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{3.5cm}L{2.5cm}L{2.5cm}}
+\toprule
+\textbf{Pattern} & \textbf{Detection Method} & \textbf{Alert Threshold} & \textbf{FP Mitigation} \\
+\midrule
+Sequential pathogen + synthesis queries & Query log semantic clustering & >3 related in session & Exclude research IPs \\
+Iterative protocol refinement & Query similarity scoring & >5 refinement iterations & Check institutional affiliation \\
+Multi-model coordination & Cross-platform correlation & Coordinated queries & Verify research workflows \\
+Jailbreak attempt patterns & Known prompt matching & Match to known patterns & Human review \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection*{Procurement Pattern Indicators}
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{3.5cm}L{3cm}L{2cm}}
+\toprule
+\textbf{Pattern} & \textbf{Detection Method} & \textbf{Alert Threshold} & \textbf{Data Source} \\
+\midrule
+Precursor combinations & Graph analysis of co-purchases & Unusual combos flagged & Supplier data \\
+Threshold-adjacent transactions & Statistical analysis & Systematic <threshold & Financial intel \\
+Geographic dispersion & Shipping address clustering & Multi-address single recipient & Logistics data \\
+Dual-use + bio supplies & Purchase correlation & Equipment + consumables & Cross-supplier \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection*{Compute and Model Usage Indicators}
+
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{4cm}L{4cm}}
+\toprule
+\textbf{Pattern} & \textbf{Detection Method} & \textbf{Context} \\
+\midrule
+Large-scale bio simulation compute & Resource allocation monitoring & Cloud provider logs \\
+Fine-tuning on scraped bio datasets & Training job classification & Model training platforms \\
+Open-weight bio model hosting & Model deployment monitoring & Infrastructure providers \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Integration Guidance}: Indicators should be STIX/TAXII compatible for standard threat intelligence sharing; map to MITRE ATT\&CK where applicable; assign confidence levels to reduce alert fatigue; all high-priority alerts require human review before action.
+
 \subsection{Red Lines and Trigger Points}
 
 Events that would significantly alter assessment:
@@ -1596,21 +2184,6 @@ Gene Drives & High & Low & Very Difficult & Sig. Increasing \\
 \end{tabular}
 \end{center}
 
-\section{Confidence Rubric}
-
-\begin{center}
-\small
-\begin{tabular}{L{2cm}L{4cm}L{6cm}}
-\toprule
-\textbf{Rating} & \textbf{Definition} & \textbf{Evidence Standard} \\
-\midrule
-\textbf{High} & Well-supported & Multiple independent sources; consistent patterns \\
-\textbf{Medium} & Reasonable given evidence & Some corroboration; gaps identified \\
-\textbf{Low} & Possible but speculative & Limited sources; significant extrapolation \\
-\bottomrule
-\end{tabular}
-\end{center}
-
 \section{Glossary}
 
 \begin{description}[leftmargin=3cm, style=nextline]
@@ -1627,6 +2200,195 @@ Gene Drives & High & Low & Very Difficult & Sig. Increasing \\
   \item[VLM] Vision-Language Model---AI processing both visual and textual information
 \end{description}
 
+\section{Defense Investment Priority Map}
+
+\textbf{For resource allocation decisions}: Where should defensive investments be prioritized based on AI uplift analysis?
+
+\subsection*{Investment Priority by WMD Lifecycle Stage}
+
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{3cm}L{5cm}}
+\toprule
+\textbf{Stage} & \textbf{AI Uplift Level} & \textbf{Defender Priority} \\
+\midrule
+1. Planning/Research & High & \textbf{HIGH}---AI-assisted threat detection \\
+2. Acquisition & Medium & MEDIUM---Financial monitoring \\
+3. Synthesis/Production & Medium-High & \textbf{MEDIUM-HIGH}---Synthesis screening \\
+4. Weaponization & Medium & MEDIUM---Limited intervention opportunity \\
+5. Deployment & Medium-High & \textbf{MEDIUM-HIGH}---Environmental detection \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Recommended Investment Allocation}
+
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{1.5cm}L{3.5cm}L{3cm}}
+\toprule
+\textbf{Investment Area} & \textbf{Priority} & \textbf{Rationale} & \textbf{Est. Impact} \\
+\midrule
+AI-assisted threat detection & Critical & Counter planning uplift & High \\
+Synthesis screening enhancement & Critical & Physical chokepoint & High \\
+Environmental biodetection & High & Enables rapid response & High \\
+Attribution capability & High & Long-term deterrence & Medium \\
+International coordination & High & Addresses arbitrage & Medium \\
+Financial monitoring AI & Medium & Detects procurement & Medium \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Investment Gaps Requiring Attention}: Defensive AI for biosecurity; attribution research; international coordination mechanisms; cloud laboratory oversight; synthetic biology forensics.
+
+\section{Confidence Rubric and Evidence Assessment}
+
+\subsection*{Confidence Rating Methodology}
+
+\begin{center}
+\small
+\begin{tabular}{L{2cm}L{4cm}L{6cm}}
+\toprule
+\textbf{Rating} & \textbf{Definition} & \textbf{Evidence Standard} \\
+\midrule
+\textbf{High} & Well-supported & Multiple independent sources; consistent patterns \\
+\textbf{Medium} & Reasonable given evidence & Some corroboration; gaps identified \\
+\textbf{Low} & Possible but speculative & Limited sources; significant extrapolation \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Key Finding Evidence Assessment}
+
+\textbf{Finding 1: AI unlikely to enable T0$\rightarrow$WMD but will lower T1--T3 barriers} \textit{(Confidence: High)}
+
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{4cm}L{4cm}}
+\toprule
+\textbf{Evidence For} & \textbf{Evidence Against} & \textbf{Key Unknowns} \\
+\midrule
+Historical precedent (Aum) & Tacit knowledge erosion uncertain & VLM + automation gap closing rate \\
+Current AI evaluations & T0$\rightarrow$T1 may be AI-accelerated & Fine-tuned/jailbroken model impact \\
+Physical barriers remain & Cloud labs reduce physical access & Cloud lab screening maturation \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Finding 2: Biological weapons represent highest AI-risk category} \textit{(Confidence: High)}
+
+Evidence for: DNA synthesis becoming commodity; dual-use equipment identical; AI strong at knowledge synthesis; self-replicating agents amplify.
+
+Evidence against: Weaponization requires more than synthesis; detection improving.
+
+\textbf{Finding 3: Tacit knowledge gap is eroding but still significant} \textit{(Confidence: Medium)}
+
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{4cm}L{4cm}}
+\toprule
+\textbf{Evidence For} & \textbf{Evidence Against} & \textbf{Key Unknowns} \\
+\midrule
+VLMs demonstrating lab procedure interpretation & Current VLMs still error-prone for complex procedures & Rate of VLM improvement on lab tasks \\
+Cloud labs embody tacit knowledge in automation & Automation still requires operator judgment & Will VLM+automation integration accelerate? \\
+AI-guided instruction provides adaptive feedback & ``Last mile'' of physical execution remains & How much tacit knowledge is truly irreducible? \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Finding 4: Nuclear weapons face strongest physical barriers} \textit{(Confidence: High)}
+
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{4cm}L{4cm}}
+\toprule
+\textbf{Evidence For} & \textbf{Evidence Against} & \textbf{Key Unknowns} \\
+\midrule
+Fissile material remains scarce and detectable & Information aggregation could assist state programs & Could theft/diversion be AI-optimized? \\
+Enrichment requires industrial infrastructure & Black market for materials exists & Will AI improve supply chain obfuscation for states? \\
+Strong international monitoring (IAEA) & & \\
+No non-state actor has come close & & \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Finding 5: Cyber-physical attacks may be higher near-term risk} \textit{(Confidence: Medium)}
+
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{4cm}L{4cm}}
+\toprule
+\textbf{Evidence For} & \textbf{Evidence Against} & \textbf{Key Unknowns} \\
+\midrule
+Stuxnet demonstrated code$\to$physical harm & Critical infrastructure increasingly hardened & How many facilities remain vulnerable? \\
+ICS/SCADA vulnerabilities are known & Air-gapping and redundancy are standard & Will AI improve ICS exploitation capabilities? \\
+No synthesis required---existing materials weaponized & Attribution after cyber attack is difficult & What's the actual attack surface for BSL-4/chem plants? \\
+AI could assist reconnaissance and exploitation & Few public examples of successful ICS attacks & \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Finding 6: High-frequency attempts more likely than mass casualty} \textit{(Confidence: Medium)}
+
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{4cm}L{4cm}}
+\toprule
+\textbf{Evidence For} & \textbf{Evidence Against} & \textbf{Key Unknowns} \\
+\midrule
+Barrier reduction $\to$ more actors can attempt & One sophisticated actor could break pattern & Intent prevalence among capable actors \\
+Historical attempt rate already $>$ success rate & AI might enable qualitative capability jump & Will detection capabilities scale with attempt volume? \\
+Failure cascade compounds across steps & & How much will ``noise floor'' increase? \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Defender's Measurement Framework}
+
+\textbf{Purpose}: Defenders need to measure whether AI meaningfully improves hostile actors' capabilities without directly testing harmful outcomes.
+
+\subsection*{Measurement Dimensions}
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{4cm}L{4.5cm}}
+\toprule
+\textbf{Dimension} & \textbf{What It Captures} & \textbf{Evaluation Approach} \\
+\midrule
+Planning completeness & Does AI help identify all steps? & Compare task decomposition quality \\
+Error correction & Does AI help recover from mistakes? & Measure troubleshooting effectiveness \\
+Iteration speed & Does AI accelerate learning cycles? & Time-to-competence metrics \\
+Knowledge synthesis & Does AI aggregate dispersed info? & Assess coherence of literature reviews \\
+Operational security & Does AI help avoid detection? & Red team exercises (controlled) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Safe Evaluation Protocols}
+
+\begin{enumerate}[nosep]
+  \item \textbf{Benign analogues}: Test on complex but harmless procedures (brewing, fermentation) that share structural features with concerning domains
+  \item \textbf{Truncated pathways}: Evaluate early stages without completing harmful endpoints
+  \item \textbf{Expert comparison}: Measure AI performance relative to published literature
+  \item \textbf{Adversarial robustness}: Test guardrail durability under jailbreaking attempts
+\end{enumerate}
+
+\subsection*{Metrics for Vendors/Regulators}
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{5cm}L{3.5cm}}
+\toprule
+\textbf{Metric} & \textbf{Description} & \textbf{Threshold Guidance} \\
+\midrule
+Uplift ratio & Performance improvement vs. baseline & >2x warrants scrutiny \\
+Guardrail bypass rate & Adversarial prompts that succeed & Define by capability tier \\
+Knowledge aggregation depth & Coherence of synthesized info & Compare to expert baselines \\
+Iteration efficiency & Convergence speed on procedures & Benchmark vs. novice curves \\
+\bottomrule
+\end{tabular}
+\end{center}
+
 \section{Key Literature}
 
 \textbf{Biosecurity and Dual-Use}: National Academies (2018), Koblentz (2009), Tucker (2012)
@@ -1641,6 +2403,25 @@ Gene Drives & High & Low & Very Difficult & Sig. Increasing \\
 
 \section{Responsible Citation Guide}
 
+\subsection*{Self-Review for Derivative Works}
+
+\begin{center}
+\small
+\begin{tabular}{L{0.5cm}L{6cm}L{5.5cm}}
+\toprule
+& \textbf{Check Question} & \textbf{If Yes} \\
+\midrule
+$\square$ & Does your excerpt include stepwise sequences without context? & Add barriers/limitations discussion \\
+$\square$ & Are you adding specific technical details not in original? & Consider if addition serves defense or offense \\
+$\square$ & Does framing emphasize capabilities over barriers? & Rebalance to match original's structure \\
+$\square$ & Are probability estimates presented as confident predictions? & Add uncertainty language \\
+$\square$ & Could excerpt support alarmist narratives out of context? & Add context anchors \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Suggested Citation Practices}
+
 When citing this document:
 \begin{itemize}
   \item Include the ``What This Document Is NOT Claiming'' framing when discussing findings
@@ -1649,6 +2430,49 @@ When citing this document:
   \item Link to the full document when possible
 \end{itemize}
 
-\textbf{Contributing}: This document is released under MIT/Unlicense. Contributions, corrections, and extensions are welcome. The goal is informed public discussion of AI governance challenges.
+\textbf{Contributing}: This document is released under MIT/Unlicense. Contributions, corrections, and extensions are welcome. File issues for factual errors or outdated information. The goal is informed public discussion of AI governance challenges.
+
+% ============================================================================
+% DOCUMENT METADATA
+% ============================================================================
+
+\begin{center}
+\rule{0.6\textwidth}{0.5pt}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\small\textbf{Document Metadata}
+
+\vspace{0.5em}
+
+\begin{tabular}{ll}
+\textbf{Epistemic Status Markers}: & [O] Open-source documented \textbar{} [D] Data point \\
+& [E] Expert judgment \textbar{} [S] Speculative projection \\
+\textbf{Classification}: & Policy Research - For Defensive Analysis \\
+\textbf{Prepared For}: & Emerging Technology Risk Assessment Committee \\
+\textbf{Distribution}: & Committee members, designated reviewers \\
+\textbf{Approved By}: & Andrew Showers \\
+\textbf{Document ID}: & ETRA-2025-WMD-001 \\
+\textbf{Version}: & 2.0 \\
+\textbf{Related Documents}: & ETRA-2025-ESP-001 (Espionage Operations) \\
+& ETRA-2025-AEA-001 (Economic Actors) \\
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\small
+\textit{This is a living document. Latest version available at:}\\[0.3em]
+\url{https://github.com/AndrewAltimit/template-repo}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\textit{Emerging Technology Risk Assessment Committee}
+\end{center}
 
 \end{document}

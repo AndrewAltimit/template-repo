@@ -50,6 +50,8 @@
 \definecolor{nodeblue}{HTML}{5A6B92}
 % Accent: Ochre gold for highlights and value (softened)
 \definecolor{digitalgold}{HTML}{D49E2A}
+% Standard ETRA header band gold (consistent across all projection reports)
+\definecolor{headergold}{HTML}{B7950B}
 \definecolor{valueyellow}{HTML}{E0B03D}
 % Domain colors (desaturated for professional appearance)
 \definecolor{agentgreen}{HTML}{3E7569}
@@ -232,89 +234,123 @@
 \begin{document}
 
 % ============================================================================
-% TITLE PAGE - Network of Economic Agents Visualization
+% TITLE PAGE - Ascending Economic Network Visualization
 % ============================================================================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
   % Background - deep indigo
   \fill[deepindigo] (current page.north west) rectangle (current page.south east);
 
-  % Diagonal flowing lines background (economic flow aesthetic)
-  \begin{scope}[shift={(current page.center)}, opacity=0.04]
-    \foreach \i in {-15,-13,...,15} {
-      \draw[white, line width=0.8pt] (-12, \i) -- (12, \i+6);
+  % Subtle network grid background (economic infrastructure)
+  \begin{scope}[shift={(current page.center)}, opacity=0.03]
+    \foreach \y in {-12,-10,...,12} {
+      \draw[white, line width=0.4pt] (-10,\y) -- (10,\y);
+    }
+    \foreach \x in {-8,-4,0,4,8} {
+      \draw[white, line width=0.5pt] (\x,-12) -- (\x,12);
     }
   \end{scope}
 
-  % Main visualization - Ascending Autonomy Tiers with Gap
-  \begin{scope}[shift={([xshift=-2.8cm, yshift=4.2cm]current page.center)}]
+  % Main visualization - Ascending Network (AI agents emerging from economic structure)
+  \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}]
 
-    % T0 - Tool (bottom tier) - widest
-    \fill[networkblue, opacity=0.2] (-5.6, -5.4) -- (5.6, -5.4) -- (4.8, -3.8) -- (-4.8, -3.8) -- cycle;
-    \fill[networkblue, opacity=0.45] (-4.8, -5.1) -- (4.8, -5.1) -- (4.1, -4.1) -- (-4.1, -4.1) -- cycle;
-    \node[white, font=\fontsize{8}{8}\selectfont\sffamily] at (0, -4.6) {T0: TOOL ASSISTANCE};
+    % === FOUNDATION LAYER - Traditional economic infrastructure (grounded, static) ===
+    % Scattered foundation nodes - representing existing economic systems
+    \fill[networkblue, opacity=0.25] (-4.5, -4.0) circle (0.45);
+    \fill[networkblue, opacity=0.3] (-2.8, -4.5) circle (0.35);
+    \fill[networkblue, opacity=0.25] (-0.5, -4.2) circle (0.40);
+    \fill[networkblue, opacity=0.3] (1.8, -4.4) circle (0.38);
+    \fill[networkblue, opacity=0.25] (4.0, -4.0) circle (0.42);
+    \fill[networkblue, opacity=0.2] (5.5, -3.5) circle (0.30);
+    \fill[networkblue, opacity=0.25] (-5.8, -3.2) circle (0.32);
 
-    % T1 - Supervised (second tier)
-    \fill[companyblue, opacity=0.2] (-4.8, -3.5) -- (4.8, -3.5) -- (4.0, -1.9) -- (-4.0, -1.9) -- cycle;
-    \fill[companyblue, opacity=0.45] (-4.1, -3.2) -- (4.1, -3.2) -- (3.4, -2.2) -- (-3.4, -2.2) -- cycle;
-    \node[white, font=\fontsize{8}{8}\selectfont\sffamily] at (0, -2.7) {T1: SUPERVISED AGENT};
+    % Foundation connection lines (horizontal, stable)
+    \draw[networkblue, opacity=0.2, line width=1.2pt] (-4.5, -4.0) -- (-2.8, -4.5);
+    \draw[networkblue, opacity=0.2, line width=1pt] (-2.8, -4.5) -- (-0.5, -4.2);
+    \draw[networkblue, opacity=0.2, line width=1.2pt] (-0.5, -4.2) -- (1.8, -4.4);
+    \draw[networkblue, opacity=0.2, line width=1pt] (1.8, -4.4) -- (4.0, -4.0);
+    \draw[networkblue, opacity=0.15, line width=0.8pt] (4.0, -4.0) -- (5.5, -3.5);
+    \draw[networkblue, opacity=0.15, line width=0.8pt] (-5.8, -3.2) -- (-4.5, -4.0);
 
-    % T2 - Bounded (third tier)
-    \fill[agentgreen, opacity=0.2] (-4.0, -1.6) -- (4.0, -1.6) -- (3.2, 0.0) -- (-3.2, 0.0) -- cycle;
-    \fill[agentgreen, opacity=0.45] (-3.4, -1.4) -- (3.4, -1.4) -- (2.7, -0.3) -- (-2.7, -0.3) -- cycle;
-    \node[white, font=\fontsize{8}{8}\selectfont\sffamily] at (0, -0.8) {T2: BOUNDED AUTONOMY};
+    % === ASCENDING AGENT NODES - AI agents rising through economic layers ===
 
-    % T3 - Full Economic Agent (fourth tier)
-    \fill[digitalgold, opacity=0.2] (-3.2, 0.3) -- (3.2, 0.3) -- (2.4, 1.9) -- (-2.4, 1.9) -- cycle;
-    \fill[digitalgold, opacity=0.55] (-2.7, 0.5) -- (2.7, 0.5) -- (2.0, 1.6) -- (-2.0, 1.6) -- cycle;
-    \node[white, font=\fontsize{8}{8}\selectfont\sffamily\bfseries] at (0, 1.1) {T3: ECONOMIC AGENT};
+    % First ascending wave (emerging from foundation)
+    \fill[nodeblue, opacity=0.35] (-3.2, -2.5) circle (0.38);
+    \fill[nodeblue, opacity=0.4] (-1.0, -2.8) circle (0.32);
+    \fill[nodeblue, opacity=0.35] (1.2, -2.4) circle (0.36);
+    \fill[nodeblue, opacity=0.4] (3.5, -2.6) circle (0.34);
 
-    % T4 - Organizational (top tier - brightest, apex) - wider for text
-    \fill[digitalgold, opacity=0.35] (-2.4, 2.2) -- (2.4, 2.2) -- (1.6, 3.8) -- (-1.6, 3.8) -- cycle;
-    \fill[digitalgold, opacity=0.85] (-2.0, 2.4) -- (2.0, 2.4) -- (1.3, 3.5) -- (-1.3, 3.5) -- cycle;
-    \node[deepindigo, font=\fontsize{8}{8}\selectfont\sffamily\bfseries] at (0, 3.0) {T4: ORGANIZATIONAL};
+    % Ascending connections from foundation (curved, dynamic)
+    \draw[nodeblue, opacity=0.25, line width=1pt] (-4.5, -4.0) .. controls (-4, -3.2) .. (-3.2, -2.5);
+    \draw[nodeblue, opacity=0.25, line width=1pt] (-0.5, -4.2) .. controls (-0.8, -3.4) .. (-1.0, -2.8);
+    \draw[nodeblue, opacity=0.25, line width=1pt] (1.8, -4.4) .. controls (1.5, -3.4) .. (1.2, -2.4);
+    \draw[nodeblue, opacity=0.25, line width=1pt] (4.0, -4.0) .. controls (3.8, -3.2) .. (3.5, -2.6);
 
-    % Ascending arrow on left - aligned with larger pyramid
-    \draw[white, opacity=0.25, line width=1.5pt, ->] (-6.2, -5.4) -- (-6.2, 3.8);
-    \node[white, opacity=0.4, font=\fontsize{7}{7}\selectfont\sffamily, rotate=90] at (-6.7, -0.8) {INCREASING AUTONOMY};
+    % Second ascending wave (gaining autonomy)
+    \fill[agentgreen, opacity=0.45] (-2.0, -0.8) circle (0.40);
+    \fill[agentgreen, opacity=0.5] (0.5, -0.5) circle (0.36);
+    \fill[agentgreen, opacity=0.45] (2.8, -0.9) circle (0.38);
 
-    % THE GAP - Diverging lines visualization (wider, shorter)
-    \begin{scope}[shift={(6.3, -0.8)}]
-      % Gap background - wider and shorter
-      \fill[black, opacity=0.25, rounded corners=4pt] (-0.8, -3.2) rectangle (7.0, 2.8);
+    % Second wave connections
+    \draw[agentgreen, opacity=0.3, line width=1.2pt] (-3.2, -2.5) .. controls (-2.6, -1.6) .. (-2.0, -0.8);
+    \draw[agentgreen, opacity=0.3, line width=1pt] (-1.0, -2.8) .. controls (-0.3, -1.6) .. (0.5, -0.5);
+    \draw[agentgreen, opacity=0.3, line width=1.2pt] (1.2, -2.4) .. controls (1.8, -1.5) .. (2.8, -0.9);
+    \draw[agentgreen, opacity=0.25, line width=1pt] (3.5, -2.6) .. controls (3.2, -1.7) .. (2.8, -0.9);
 
-      % Title
-      \node[governancered, font=\fontsize{11}{11}\selectfont\sffamily\bfseries] at (3.1, 2.3) {THE GAP};
+    % Lateral connections at second wave (peer network forming)
+    \draw[agentgreen, opacity=0.2, line width=0.8pt] (-2.0, -0.8) -- (0.5, -0.5);
+    \draw[agentgreen, opacity=0.2, line width=0.8pt] (0.5, -0.5) -- (2.8, -0.9);
 
-      % Fill the widening gap area between the curves
-      \fill[governancered, opacity=0.2]
-        (-0.2, -2.2) -- (4.5, 1.5) -- (4.5, -1.0) -- (-0.2, -2.2) -- cycle;
+    % Third ascending wave (full economic agency - brightest)
+    \fill[digitalgold, opacity=0.6] (-0.8, 1.5) circle (0.44);
+    \fill[digitalgold, opacity=0.7] (1.5, 1.8) circle (0.48);
 
-      % Capability line (steep rise - green)
-      \draw[agentgreen, line width=3pt] (-0.2, -2.2) -- (4.5, 1.5);
-      \node[agentgreen, font=\fontsize{7}{7}\selectfont\sffamily, anchor=south west] at (4.6, 1.4) {CAPABILITY};
+    % Third wave connections
+    \draw[digitalgold, opacity=0.4, line width=1.5pt] (-2.0, -0.8) .. controls (-1.4, 0.3) .. (-0.8, 1.5);
+    \draw[digitalgold, opacity=0.4, line width=1.5pt] (0.5, -0.5) .. controls (0.8, 0.5) .. (1.5, 1.8);
+    \draw[digitalgold, opacity=0.35, line width=1.2pt] (2.8, -0.9) .. controls (2.2, 0.4) .. (1.5, 1.8);
 
-      % Governance line (slow rise - red)
-      \draw[governancered, line width=3pt] (-0.2, -2.2) -- (4.5, -1.0);
-      \node[governancered, font=\fontsize{7}{7}\selectfont\sffamily, anchor=north west] at (4.6, -1.0) {GOVERNANCE};
+    % Connection between top agents
+    \draw[digitalgold, opacity=0.3, line width=1pt] (-0.8, 1.5) -- (1.5, 1.8);
 
-      % Starting point marker
-      \fill[white] (-0.2, -2.2) circle (0.12);
+    % === APEX NODE - Organizational autonomy (brightest, most prominent) ===
+    \fill[digitalgold, opacity=0.2] (0.3, 4.0) circle (1.0);
+    \fill[digitalgold, opacity=0.5] (0.3, 4.0) circle (0.7);
+    \fill[digitalgold, opacity=0.95] (0.3, 4.0) circle (0.45);
 
-      % Gap arrow and label (at right edge between endpoints)
-      \draw[digitalgold, line width=1.5pt, <->] (5.9, -0.9) -- (5.9, 1.4);
-      \node[digitalgold, font=\fontsize{7}{7}\selectfont\sffamily\bfseries, rotate=90] at (6.4, 0.25) {WIDENING};
+    % Apex connections
+    \draw[digitalgold, opacity=0.45, line width=1.8pt] (-0.8, 1.5) .. controls (-0.3, 2.6) .. (0.3, 4.0);
+    \draw[digitalgold, opacity=0.5, line width=2pt] (1.5, 1.8) .. controls (1.0, 2.8) .. (0.3, 4.0);
 
-      % Time axis labels
-      \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont\sffamily] at (-0.2, -2.6) {2024};
-      \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont\sffamily] at (4.5, -2.6) {2030};
-      \draw[white, opacity=0.3, line width=0.5pt] (-0.2, -2.4) -- (4.5, -2.4);
-    \end{scope}
+    % === THE GAP - Governance trailing behind (visual tension) ===
+    % Governance anchors - slower, heavier, lagging below
+    \fill[governancered, opacity=0.35] (-4.8, -1.5) circle (0.35);
+    \fill[governancered, opacity=0.4] (-3.8, 0.2) circle (0.32);
+    \fill[governancered, opacity=0.35] (-2.8, 1.6) circle (0.30);
+
+    % Governance connections (trying to keep up, but falling behind)
+    \draw[governancered, opacity=0.25, line width=1pt] (-4.8, -1.5) -- (-3.8, 0.2);
+    \draw[governancered, opacity=0.25, line width=1pt] (-3.8, 0.2) -- (-2.8, 1.6);
+
+    % Fading reach lines (governance trying to connect to ascending agents)
+    \draw[governancered, opacity=0.15, line width=0.6pt, dashed] (-4.8, -1.5) -- (-2.0, -0.8);
+    \draw[governancered, opacity=0.12, line width=0.6pt, dashed] (-3.8, 0.2) -- (-0.8, 1.5);
+    \draw[governancered, opacity=0.1, line width=0.6pt, dashed] (-2.8, 1.6) -- (0.3, 4.0);
+
+    % === RIGHT SIDE - Additional ascending agents (showing scale) ===
+    \fill[nodeblue, opacity=0.3] (5.0, -1.8) circle (0.28);
+    \fill[agentgreen, opacity=0.35] (4.5, 0.5) circle (0.30);
+    \fill[digitalgold, opacity=0.4] (3.8, 2.5) circle (0.32);
+
+    \draw[nodeblue, opacity=0.2, line width=0.8pt] (5.5, -3.5) .. controls (5.2, -2.6) .. (5.0, -1.8);
+    \draw[agentgreen, opacity=0.25, line width=0.9pt] (5.0, -1.8) .. controls (4.8, -0.5) .. (4.5, 0.5);
+    \draw[digitalgold, opacity=0.3, line width=1pt] (4.5, 0.5) .. controls (4.2, 1.4) .. (3.8, 2.5);
+    \draw[digitalgold, opacity=0.25, line width=0.8pt] (3.8, 2.5) .. controls (2.2, 3.2) .. (0.3, 4.0);
 
   \end{scope}
 
   % Document header bar
-  \fill[digitalgold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
+  \fill[headergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
   \node[deepindigo, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2025-AEA-001 \textbar{} DECEMBER 2025};
 
   % Title block
@@ -327,7 +363,7 @@
   };
 
   % Metadata block
-  \node[anchor=south east, text width=5cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
+  \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
     \color{softslate}\small\sffamily
     \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
@@ -2673,5 +2709,48 @@ Domain registrars & WHOIS requirements & Privacy services & Low \\
   \item[Sub-Agent] Agent created and directed by another agent
   \item[T0-T4] Tiers of agent economic autonomy (see Section 2.1)
 \end{description}
+
+% ============================================================================
+% DOCUMENT METADATA
+% ============================================================================
+
+\begin{center}
+\rule{0.6\textwidth}{0.5pt}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\small\textbf{Document Metadata}
+
+\vspace{0.5em}
+
+\begin{tabular}{ll}
+\textbf{Epistemic Status Markers}: & [O] Open-source documented \textbar{} [D] Data point \\
+& [E] Expert judgment \textbar{} [S] Speculative projection \\
+\textbf{Classification}: & Policy Research - For Defensive Analysis \\
+\textbf{Prepared For}: & Emerging Technology Risk Assessment Committee \\
+\textbf{Distribution}: & Committee members, designated reviewers \\
+\textbf{Approved By}: & Andrew Showers \\
+\textbf{Document ID}: & ETRA-2025-AEA-001 \\
+\textbf{Version}: & 1.0 \\
+\textbf{Related Documents}: & ETRA-2025-FIN-001 (Financial Integrity) \\
+& ETRA-2025-ESP-001 (Espionage Operations) \\
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\small
+\textit{This is a living document. Latest version available at:}\\[0.3em]
+\url{https://github.com/AndrewAltimit/template-repo}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\textit{Emerging Technology Risk Assessment Committee}
+\end{center}
 
 \end{document}

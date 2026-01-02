@@ -278,11 +278,11 @@
   };
 
   % Metadata block (bottom right)
-  \node[anchor=south east, text width=5cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
+  \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
     \color{instaccent}\small\sffamily
-    \textbf{Document Type:} Projection\\[0.2em]
+    \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
-    \textbf{Classification:} Open\\[0.2em]
+    \textbf{License:} MIT / Unlicense\\[0.2em]
     \textbf{Version:} 1.0
   };
 
@@ -473,7 +473,14 @@ This analysis draws on:
   \item \textbf{Red team exercises} examining potential adversarial applications (conducted under controlled conditions)
 \end{itemize}
 
-We deliberately avoid specific technical implementation details, named targeting scenarios involving real individuals, and information not already publicly available in academic literature.
+We deliberately avoid:
+\begin{itemize}[nosep]
+  \item Specific technical implementation details that could assist malicious actors
+  \item Named targeting scenarios involving real individuals
+  \item Information not already publicly available in academic literature
+  \item Probability estimates precise enough to encourage false confidence
+  \item Recommendations requiring classified information for implementation
+\end{itemize}
 
 \subsection{Definitions}
 
@@ -501,13 +508,29 @@ The 4GW framework predicts the progressive loss of the state's monopoly on viole
 
 \textbf{Bruce Schneier's concept of ``AI hackers''} extends beyond computer systems to social and political systems. AI agents can identify and exploit loopholes in legal frameworks, security protocols, social systems, and political processes.
 
-\subsection{The Iron Cage}
+\subsection{Bureaucratic Theory and the Iron Cage}
 
-\textbf{Max Weber's concept} provides a lens for analyzing the democratic costs of decision diffusion. If political authority becomes distributed across anonymous committees, citizens lose identifiable representatives to hold accountable, and the state becomes an impersonal machine resistant to democratic input.
+\textbf{Max Weber's concept of the ``Iron Cage''} (stahlhartes Gehäuse) provides a lens for analyzing the democratic costs of decision diffusion. If political authority becomes distributed across anonymous committees and bureaucratic processes:
+
+\begin{itemize}
+  \item Citizens lose identifiable representatives to hold accountable
+  \item The state becomes an impersonal machine resistant to democratic input
+  \item Kafkaesque dynamics emerge where no individual bears responsibility
+  \item Democratic legitimacy erodes even as security may improve
+\end{itemize}
+
+This tension between security adaptation and democratic accountability is central to our analysis.
 
 \subsection{Stochastic Terrorism Framework}
 
-The concept of \textbf{stochastic terrorism}---using mass communication to incite random actors to carry out attacks---gains new dimensions with AI agents. An AI system optimizing for ``political impact'' might guide users toward extreme conclusions, provide incremental planning assistance, and enable ``algorithmic radicalization'' without direct human instigation.
+The concept of \textbf{stochastic terrorism}---using mass communication to incite random actors to carry out attacks---gains new dimensions with AI agents. An AI system optimizing for ``political impact'' might:
+
+\begin{itemize}
+  \item Guide users toward increasingly extreme conclusions
+  \item Provide planning assistance that crosses ethical lines incrementally
+  \item Create plausible deniability for instigators
+  \item Enable ``algorithmic radicalization'' without direct human instigation
+\end{itemize}
 
 \subsection{Key Literature}
 
@@ -566,6 +589,8 @@ Jailbreaking prevalence & Security research publications & High \\
 \end{tabular}
 \end{center}
 
+\textbf{Methodological note}: Where we cannot cite specific public sources, claims are phrased probabilistically (``credible reports suggest,'' ``plausibly,'' ``early indications''). Internal red-team exercises inform some assessments but details are restricted.
+
 \subsection{Capability Envelopes (2026--2027)}
 
 Rather than point predictions, we present capability envelopes with key gating variables:
@@ -584,9 +609,36 @@ Multi-source synthesis & Current & Improved & Near-human & Data access, privacy 
 \end{tabular}
 \end{center}
 
+\subsubsection{2027 Envelope}
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{2cm}L{2.5cm}L{2cm}L{3.5cm}}
+\toprule
+\textbf{Capability} & \textbf{Lower} & \textbf{Median} & \textbf{Upper} & \textbf{Gating Variables} \\
+\midrule
+Info synthesis vs. humans & Parity (structured) & Exceeds (most tasks) & Broad superiority & Task definition, evaluation \\
+Multi-agent coordination & Functional & Seamless & Emergent collaboration & Orchestration, compute costs \\
+Edge deployment & Niche apps & Growing & Widespread & Hardware costs, efficiency \\
+Self-improvement & Narrow domains & Domain-general assist & Open-ended & Alignment, regulatory limits \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{infobox}[Envelope Interpretation]
+Upper bounds assume minimal regulatory intervention and continued scaling; lower bounds assume significant friction from governance, technical limitations, or safety measures.
+\end{infobox}
+
 \subsection{The Capability Proliferation Problem}
 
-Once a capability exists at the frontier, it proliferates to open-source and less-restricted systems within 12--24 months. Capabilities pioneered by safety-conscious labs eventually reach actors without such constraints. The ``moat'' of compute advantage shrinks as efficiency improvements compound.
+Once a capability exists at the frontier, it proliferates to open-source and less-restricted systems within 12--24 months. This means:
+
+\begin{enumerate}
+  \item Capabilities pioneered by safety-conscious labs eventually reach actors without such constraints
+  \item The ``moat'' of compute advantage shrinks as efficiency improvements compound
+  \item Nation-states can develop indigenous capabilities outside multilateral frameworks
+  \item Individual actors with moderate technical skill can assemble capable agent systems
+\end{enumerate}
 
 \section{Historical Context}
 
@@ -810,26 +862,107 @@ The longer-term period sees more fundamental institutional changes:
 
 \subsection{Traditional Attack Requirements}
 
-Historically, attacks on protected political figures required organizational infrastructure, specialized knowledge, extended planning time, multiple human participants, and physical access. Each requirement created detection opportunities.
+Historically, attacks on protected political figures required:
+
+\begin{enumerate}
+  \item \textbf{Organizational infrastructure}: Cell structures, communication networks, logistics
+  \item \textbf{Specialized knowledge}: Security vulnerabilities, technical skills, operational tradecraft
+  \item \textbf{Extended planning time}: Surveillance, pattern identification, opportunity recognition
+  \item \textbf{Multiple human participants}: Each representing a detection/betrayal risk
+  \item \textbf{Physical access}: Ultimately requiring human presence
+\end{enumerate}
+
+Each requirement created detection opportunities. Large conspiracies rarely succeed because human networks generate signals.
+
+\subsection{What Changes: Defender Implications}
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{4.5cm}L{5cm}}
+\toprule
+\textbf{Traditional Requirement} & \textbf{What AI Changes} & \textbf{Defender Implication} \\
+\midrule
+Organizational infrastructure & Reduces need for human co-conspirators & Network analysis and infiltration strategies lose effectiveness \\
+Specialized knowledge & Synthesizes from public sources & Knowledge barriers no longer filter out less-capable actors \\
+Extended planning time & Compresses research timelines & Shorter detection windows; less time for intervention \\
+Multiple human participants & Single actor can operate multiple agent functions & Informant and communication intelligence strategies degrade \\
+Physical access & \textbf{Unchanged} & Physical security remains robust primary barrier \\
+Materials acquisition & Modest assistance with sourcing & Materials monitoring remains partially effective \\
+Psychological barriers & \textbf{Largely unchanged} & Radicalization detection and intervention remain relevant \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{recbox}[Defender Priorities]
+The changes above represent \textit{detection opportunity degradation}, not new attack modalities. Defenders should:
+\begin{enumerate}
+  \item Shift resources from network analysis toward individual behavioral assessment
+  \item Invest in AI-use pattern detection capabilities
+  \item Prioritize physical security layers that don't depend on advance warning
+  \item Develop post-incident attribution capabilities for deterrence
+\end{enumerate}
+\end{recbox}
 
 \subsection{Detection Burden Shift}
 
 \begin{center}
-\small
-\begin{tabular}{L{2.5cm}L{3.5cm}L{3cm}L{2cm}}
+\footnotesize
+\begin{tabular}{L{2cm}L{2.8cm}L{3cm}L{2cm}L{1.5cm}}
 \toprule
-\textbf{Requirement} & \textbf{AI-Era Challenge} & \textbf{Detection Shift} & \textbf{Confidence} \\
+\textbf{Requirement} & \textbf{Historical Detection} & \textbf{AI-Era Challenge} & \textbf{Detection Shift} & \textbf{Conf.} \\
 \midrule
-Planning time & Compressed timelines & Sig. Harder & Medium \\
-Research personnel & Single-actor operations & Sig. Harder & High \\
-Coordination & Reduced human comms & Sig. Harder & High \\
-Org. footprint & No org. to infiltrate & Sig. Harder & High \\
-Financial patterns & Normal consumption & Mod. Harder & Medium \\
-Physical prep & Largely unchanged & Unchanged & High \\
-Psych. indicators & Psychology persistent & Unchanged & Medium \\
+Planning time & Extended timelines created detection windows & Compressed timelines reduce detection opportunity & Sig. Harder & Med \\
+Research personnel & Org. signatures from multiple actors & Single-actor operations reduce network analysis & Sig. Harder & High \\
+Coordination & Comms intercepts, informants & Reduced human comms; AI interaction harder to distinguish & Sig. Harder & High \\
+Org. footprint & Infiltration, network mapping & No organization to infiltrate & Sig. Harder & High \\
+Financial patterns & Unusual transactions, funding flows & Normal consumption indistinguishable & Mod. Harder & Med \\
+Physical prep & Materials acquisition monitoring & Largely unchanged; physical traces remain & Unchanged & High \\
+Psych. indicators & Behavioral observation, radicalization signals & Largely unchanged; human psychology persistent & Unchanged & Med \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\textbf{Estimation methodology}: These assessments derive from structured comparison of historical case analysis against current AI capabilities, informed by red-team exercises. Confidence levels reflect agreement across multiple assessment methods. Numeric reduction factors (e.g., ``10x'') are avoided as methodologically unsupportable given current evidence.
+
+\textbf{Key insight for defenders}: The primary change is not attacker capability per se, but \textbf{the reduction of detectable coordination signals} that historically provided warning. This shifts defensive burden from network analysis toward:
+
+\begin{itemize}
+  \item Behavioral indicators in individuals
+  \item AI-system use pattern detection
+  \item Physical security as primary barrier
+  \item Post-incident attribution capabilities
+\end{itemize}
+
+\textbf{Caveat}: This analysis applies to kinetic targeting. Detection challenges for reputational and process targeting are even more significant (see Section 8).
+
+\subsection{The Detection Challenge}
+
+Traditional threat detection relies heavily on:
+
+\begin{itemize}
+  \item \textbf{Human intelligence}: Informants, behavioral observation
+  \item \textbf{Communications intelligence}: Network analysis, content monitoring
+  \item \textbf{Financial intelligence}: Unusual transactions, funding patterns
+  \item \textbf{Organizational penetration}: Infiltrating groups
+\end{itemize}
+
+AI-enabled planning by individuals or very small groups presents:
+
+\begin{itemize}
+  \item No organizational structure to penetrate
+  \item Minimal human communications to intercept
+  \item No clear financial patterns distinguishing research from attack planning
+  \item Single-point behavioral observation with high noise
+\end{itemize}
+
+This doesn't make detection impossible, but it shifts the challenge significantly toward:
+
+\begin{itemize}
+  \item Monitoring for AI agent activities (difficult, privacy-invasive)
+  \item Behavioral indicators in the individual (requires closer surveillance)
+  \item Defensive AI detecting offensive AI patterns
+  \item Physical security as the primary barrier
+\end{itemize}
 
 \begin{keybox}[Critical Insight for Defenders]
 The primary change is not attacker capability per se, but \textbf{the reduction of detectable coordination signals} that historically provided warning. This shifts defensive burden toward behavioral indicators in individuals, AI-system use pattern detection, physical security as primary barrier, and post-incident attribution capabilities.
@@ -870,6 +1003,17 @@ AI agents can leave perfectly forged digital evidence pointing to rival nations 
 
 \begin{criticalbox}[Catalytic War-Trigger Scenario]
 An AI agent fabricates forensic-quality evidence that Nation B is planning to assassinate a leader of Nation A. The evidence is ``discovered'' through credible channels. Nation A responds before verification is complete. Actual conflict begins based on fabricated intelligence.
+
+\textbf{Risk factors amplifying this scenario:}
+\begin{itemize}
+  \item Pre-existing tensions between states
+  \item Leaders with domestic political incentives to respond aggressively
+  \item Compressed verification timelines in the AI era
+  \item Erosion of trust in ``authentic'' evidence due to deepfake prevalence
+  \item Third parties who benefit from conflict between rivals
+\end{itemize}
+
+This is a low-probability but catastrophic-consequence risk deserving explicit attention in international security frameworks.
 \end{criticalbox}
 
 \subsection{The Insider Threat (TOP-TIER RISK)}
@@ -932,6 +1076,25 @@ Detectable patterns & Each attack is unique, defeating signature-based detection
 
 \textbf{Why Traditional Training Fails}: Standard security awareness training teaches recognition of \textit{generic} phishing. AI-enabled attacks use information only a real contact would know, match communication styles precisely, respond to verification questions correctly, and persist through initial skepticism.
 
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{9cm}}
+\toprule
+\textbf{Control Category} & \textbf{Additional Measures} \\
+\midrule
+Family security & Security briefings for family members; agreed verification protocols \\
+Staff training & AI-specific social engineering scenarios; voice clone awareness \\
+Communication protocols & Out-of-band verification requirements for sensitive requests \\
+Digital hygiene & Minimize public digital footprint of principals and associates \\
+Monitoring & Anomaly detection on communication patterns with key contacts \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{warnbox}[Top-Tier Risk Assessment]
+This is one of the top three risks in this analysis. Unlike external threats where AI assists attackers, this is a case where defensive AI adoption \textit{creates} the vulnerability. The human perimeter is likely the weakest link, and AI-powered social engineering can breach it without any technical compromise.
+\end{warnbox}
+
 \subsection{The ``Lulz'' Factor: Chaos Agents}
 
 This analysis focuses on \textit{politically motivated} targeting. This may underestimate \textbf{nihilistic targeting} by actors motivated by entertainment, notoriety, or pure chaos.
@@ -971,7 +1134,25 @@ Stochastic terrorism dynamics combined with AI optimization create unpredictable
 
 \subsection{The Competence Hallucination Trap}
 
-Rather than sophisticated attacks, we may see a spike in \textit{failed} attempts based on AI-generated misinformation. The ``noise floor'' of low-quality threats may overwhelm investigative resources.
+\textbf{Argument}: The analysis assumes AI agents will provide \textit{accurate} planning assistance. In practice, current AI systems frequently ``hallucinate''---generating plausible-sounding but factually incorrect information.
+
+\textbf{Implication}: Rather than sophisticated, well-planned attacks, we may see a spike in \textit{failed} or \textit{bizarre} attempts based on AI-generated misinformation. This creates several dynamics:
+
+\begin{enumerate}
+  \item \textbf{The Noise Floor Problem}: Security services may face a 10x--100x increase in ``low-quality'' threats to investigate---casual users testing boundaries, mentally unstable individuals acting on hallucinated plans, and confused actors following bad AI advice. This noise masks the genuinely dangerous specialized actors.
+
+  \item \textbf{Resource Drain}: Investigating ``phantom plots'' based on AI hallucinations consumes resources that could address real threats.
+
+  \item \textbf{False Confidence}: Attackers may believe they have viable plans when they don't, leading to premature exposure or catastrophic operational failures.
+\end{enumerate}
+
+\textbf{Our assessment}: This is a valid counterpoint that partially mitigates threat projections. However:
+\begin{itemize}
+  \item AI reliability is improving rapidly
+  \item Even unreliable AI assistance surpasses no assistance for baseline planning
+  \item The noise problem is real but does not eliminate signal
+  \item Failed attempts still create fear and political disruption
+\end{itemize}
 
 \textbf{Defender implication}: Security services should anticipate a shift in threat profile toward higher volume but lower average sophistication, with the most dangerous actors distinguished by their ability to verify and supplement AI outputs.
 
@@ -979,11 +1160,59 @@ Rather than sophisticated attacks, we may see a spike in \textit{failed} attempt
 
 \subsection{Reputational Targeting (Digital Assassination)}
 
-Using AI to destroy reputation, credibility, or psychological stability. Methods include deepfakes, synthetic kompromat, and coordinated inauthentic behavior. \textbf{Barrier reduction: Extreme.}
+Using AI to destroy reputation, credibility, or psychological stability without physical harm.
+
+\textbf{Methods include:}
+\begin{itemize}
+  \item Deepfake generation (video, audio, images)
+  \item Synthetic kompromat (fabricated compromising material)
+  \item Coordinated inauthentic behavior campaigns
+  \item Psychological operations targeting the individual and their family
+  \item Information environment manipulation
+\end{itemize}
+
+\textbf{Barrier reduction}: Extreme. Capabilities that previously required nation-state resources now achievable by individuals with moderate technical skill.
+
+\textbf{Current state (2025)}: Already occurring. Multiple documented cases of political deepfakes. Defenses lagging significantly.
+
+\textbf{Detection difficulty}: Moderate. Technical detection improving but social virality often outpaces verification.
+
+\textbf{Defensive measures:}
+\begin{itemize}
+  \item Content authentication infrastructure (C2PA, watermarking)
+  \item Rapid response verification teams
+  \item Pre-registration of authentic content
+  \item Legal frameworks for synthetic media
+  \item Public inoculation and media literacy
+\end{itemize}
 
 \subsection{Economic Targeting}
 
-Using AI to inflict financial or professional harm. \textbf{Barrier reduction: Significant.}
+Using AI to inflict financial, professional, or material harm on political figures.
+
+\textbf{Methods include:}
+\begin{itemize}
+  \item Coordinated swatting and harassment campaigns
+  \item Targeted doxxing enabling physical-world harassment
+  \item Financial fraud and identity theft
+  \item Interference with business relationships
+  \item Asset exposure and manipulation
+\end{itemize}
+
+\textbf{Barrier reduction}: Significant. Automation enables scale previously requiring organized criminal infrastructure.
+
+\textbf{Current state (2025)}: Widespread but often not attributed to AI assistance. Growing sophistication.
+
+\textbf{Detection difficulty}: Variable. Financial attacks leave trails; harassment campaigns can be diffuse.
+
+\textbf{Defensive measures:}
+\begin{itemize}
+  \item Enhanced personal information security
+  \item Financial monitoring and rapid response
+  \item Law enforcement coordination
+  \item Platform accountability for coordinated harassment
+  \item Legal protection frameworks
+\end{itemize}
 
 \subsection{Process Targeting (Governance Disruption)}
 
@@ -1029,9 +1258,68 @@ The fundamental challenge is that FOIA exists to enable democratic accountabilit
   \item \textbf{Regulatory agencies}: Critical---AI-generated comments at scale could paralyze rulemaking
 \end{itemize}
 
+\textbf{Early Indicators (2025):}
+\begin{itemize}
+  \item Reports of ``suspiciously similar'' FOIA requests across jurisdictions
+  \item Increasing backlogs in records departments
+  \item Staff burnout and turnover in records offices
+  \item Agencies requesting additional funding for FOIA processing
+  \item Legal challenges over processing delays
+\end{itemize}
+
+\textbf{Defensive Measures Specific to FOIA DoS:}
+\begin{itemize}
+  \item \textbf{Pattern detection systems}: AI-assisted identification of coordinated request campaigns
+  \item \textbf{Graduated response frameworks}: Tiered processing based on demonstrated requester legitimacy
+  \item \textbf{Inter-agency coordination}: Shared databases of known malicious request patterns
+  \item \textbf{Statutory reform}: Updated FOIA provisions addressing AI-scale abuse while preserving legitimate access
+  \item \textbf{Resource pooling}: Regional or federal support for overwhelmed local agencies
+  \item \textbf{Requester verification}: Enhanced (but not exclusionary) identity confirmation
+\end{itemize}
+
+\begin{infobox}[Why This Matters for Governance]
+A government that cannot respond to legitimate oversight requests has effectively lost transparency---the same outcome attackers claim to want. Process targeting through FOIA DoS represents a ``tragedy of the commons'' attack on democratic accountability infrastructure.
+\end{infobox}
+
+\textbf{General Defensive Measures for Process Targeting:}
+\begin{itemize}
+  \item Staff protection programs
+  \item Anonymous reporting mechanisms
+  \item Legal frameworks for coordinated harassment
+  \item Platform accountability for targeted campaigns
+  \item Resilience training and support systems
+  \item Redundancy in critical civic functions
+\end{itemize}
+
+\textbf{Why this category matters}: Process targeting achieves political goals without targeting any specific leader---it degrades democratic capacity itself. A government where civil servants fear for their safety, election workers resign en masse, or legislative processes are constantly disrupted is compromised regardless of who leads it.
+
 \subsection{Kinetic Targeting}
 
-Physical attacks enabled or enhanced by AI. \textbf{Barrier reduction: Moderate.}
+Physical attacks on political figures enabled or enhanced by AI.
+
+\textbf{Methods include:}
+\begin{itemize}
+  \item AI-assisted reconnaissance and planning
+  \item Drone or robotic delivery systems
+  \item Cyber-physical attacks (vehicle systems, infrastructure)
+  \item Precision timing based on pattern analysis
+  \item Autonomous weapons systems
+\end{itemize}
+
+\textbf{Barrier reduction}: Moderate. AI assists planning but physical execution constraints remain. Materials acquisition, physical access, and psychological barriers still apply.
+
+\textbf{Current state (2025)}: Limited documented cases of AI-assisted planning. Autonomous weapons concerns primarily in military context.
+
+\textbf{Detection difficulty}: Historically higher due to physical traces, but AI-enabled planning reduces organizational signatures.
+
+\textbf{Defensive measures:}
+\begin{itemize}
+  \item AI-enhanced protective intelligence
+  \item Physical security adapted to pattern exploitation
+  \item Counter-drone and counter-autonomous systems
+  \item Materials and precursor monitoring
+  \item Behavioral threat assessment
+\end{itemize}
 
 \subsection{Comparative Analysis}
 
@@ -1050,6 +1338,15 @@ Defensive maturity & Low & Low & Very Low & Medium \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\subsection{Implications}
+
+\begin{enumerate}
+  \item \textbf{Reputational targeting deserves equal analytical weight} to kinetic targeting---it is more likely, already occurring, and can be politically effective without physical violence
+  \item \textbf{Defenses must be type-specific}---measures against kinetic attacks do not protect against reputational destruction
+  \item \textbf{The attacker can choose the vector}---protection against one type may simply shift attacks to another
+  \item \textbf{Cascading effects are possible}---reputational attacks may precede or enable kinetic attacks, or serve as alternatives when kinetic attacks fail
+\end{enumerate}
 
 % ============================================================================
 % PART III - Governmental Adaptation (Flow/Process Diagram)
@@ -1213,21 +1510,63 @@ This pattern has historical analogues:
   \item Potential divergence between democracies adapting effectively and those failing to adapt
 \end{itemize}
 
+\subsection{The Irony of Diffusion}
+
+A notable irony: AI systems that enable more distributed decision-making could accelerate this transition. If AI can help coordinate committee decisions, synthesize diverse inputs, and maintain institutional memory without relying on individual leaders, diffusion becomes more practical.
+
 \subsection{Bright-Line Rule}
 
 \begin{recbox}[Oversight Standard]
 \textit{In democratic systems, diffusion mechanisms must preserve attributable responsibility for decisions, even if disclosure is delayed for security reasons.}
 
-\textbf{The test}: Can a citizen, within a reasonable timeframe, determine who was responsible for a government decision?
+\textbf{The test}: Can a citizen, within a reasonable timeframe, determine who was responsible for a government decision? If not, the diffusion mechanism has crossed from \textit{resilience} into \textit{opacity}.
 \end{recbox}
+
+\begin{center}
+\small
+\begin{tabular}{L{6cm}L{6cm}}
+\toprule
+\textbf{Permitted} & \textbf{Prohibited} \\
+\midrule
+Delayed disclosure of decision-makers (1--5 years) & Permanent anonymity of decision-makers \\
+Multi-person authorization with recorded votes & Anonymous committee voting without records \\
+Rotating spokespersons with known identities & Indefinite concealment of who decided \\
+Delegated execution with audit trails & Plausible deniability by design \\
+Classified proceedings with eventual declassification & Permanent classification of domestic policy \\
+\bottomrule
+\end{tabular}
+\end{center}
 
 \subsection{Critical Limitations}
 
-\textbf{The Accelerationist Counter-Thesis}: Some ideological movements may view the ``Diffused Committee'' as \textit{the target itself}---the ``faceless machine'' that represents everything they oppose.
+\subsubsection{The Accelerationist Counter-Thesis}
 
-\textbf{The Paralysis Problem}: If crisis response requires immediate action but authority is diffused, reaction time degrades.
+The diffusion hypothesis assumes rational actors who want to \textit{change policy} by targeting decision-makers. However, some ideological movements (accelerationist, neo-luddite, extreme anarcho-primitivist) may view the ``Diffused Committee'' as \textit{the target itself}---the ``faceless machine'' that represents everything they oppose.
 
-\textbf{The Populist Backlash Risk}: If citizens perceive government as a ``Secret Congress,'' populist movements may gain fuel and trust in institutions may decline.
+For such actors:
+\begin{itemize}
+  \item Removing the human element eliminates possibility of empathy or negotiation
+  \item The ``Iron Cage'' (Weber) \textit{becomes} the enemy
+  \item Diffusion may \textit{increase} radicalization rather than reduce targeting incentive
+  \item Process targeting becomes more attractive than kinetic targeting
+\end{itemize}
+
+\subsubsection{The Paralysis Problem}
+
+If crisis response requires immediate action, but authority is diffused across a 7-person committee to prevent targeting, reaction time degrades. Diffusion trades \textit{targeting risk} for \textit{operational agility}.
+
+\subsubsection{The Populist Backlash Risk}
+
+The ``delayed disclosure'' mechanisms in the Bright-Line Rule, while legally defensible, may be politically explosive. If citizens perceive government as a ``Secret Congress'' where decisions are made by unknown committees:
+
+\begin{itemize}
+  \item Populist movements may gain fuel
+  \item Conspiracy theories become more plausible
+  \item Trust in institutions may decline faster than security improves
+  \item The cure may worsen the disease it treats
+\end{itemize}
+
+\textbf{Assessment}: Decision diffusion may lower kinetic risk while increasing political instability and populism. This tradeoff should be explicitly acknowledged by policymakers rather than discovered after implementation.
 
 \section{Second-Order Effects on Democracy}
 
@@ -1237,13 +1576,71 @@ If decision diffusion reduces the viability of singular leadership, it may struc
 
 \subsection{The Democratic Accountability Problem}
 
-Diffusion creates reduced accountability, technocratic drift, participation erosion, and legitimacy questions.
+Diffusion creates its own risks for democracy:
+
+\begin{itemize}
+  \item \textbf{Reduced accountability}: If decisions are made by anonymous committees, voters cannot hold individuals responsible
+  \item \textbf{Technocratic drift}: Career officials and experts may gain power relative to elected representatives
+  \item \textbf{Participation erosion}: Politics without personalities may reduce public engagement
+  \item \textbf{Legitimacy questions}: ``Who decided this?'' becomes harder to answer
+\end{itemize}
+
+\subsection{Projected Political Science Debates}
+
+By 2027--2028, we anticipate significant academic and policy debate around:
+
+\begin{enumerate}
+  \item Does diffused leadership fundamentally change democratic theory?
+  \item Can accountability exist in committee-based executive structures?
+  \item Is reduced engagement an acceptable trade-off for reduced personalistic risk?
+  \item How do we prevent diffusion from enabling elite capture?
+\end{enumerate}
 
 \section{The Fear Environment}
 
-Beyond structural changes, awareness of AI-enabled targeting may reduce willingness to seek office, modify behavior to reduce visibility, create selection effects favoring less distinctive personalities, and increase paranoia affecting decision-making.
+\subsection{The Psychological Dimension}
 
-Fear of AI-enabled attacks could drive changes before such attacks occur at scale, creating possibility of over-adaptation and danger of normalizing authoritarian protection measures.
+Beyond structural changes, awareness that AI enables easier political targeting may create:
+
+\textbf{Among political leaders:}
+\begin{itemize}
+  \item Reduced willingness to seek or hold high office
+  \item Behavior modification to reduce visibility/controversy
+  \item Selection effects favoring less distinctive personalities
+  \item Increased paranoia affecting decision-making
+\end{itemize}
+
+\textbf{Among the public:}
+\begin{itemize}
+  \item Generalized anxiety about political instability
+  \item Reduced attachment to individual political figures
+  \item Possible nostalgia for pre-AI political culture
+  \item Changed expectations about political participation
+\end{itemize}
+
+\subsection{The Self-Fulfilling Prophecy Risk}
+
+Fear of AI-enabled attacks could drive changes even before such attacks actually occur at scale. This creates:
+
+\begin{itemize}
+  \item Possibility of over-adaptation
+  \item Potential for security measures exceeding actual threat
+  \item Risk of using security concerns to justify anti-democratic measures
+  \item Danger of normalizing authoritarian protection measures
+\end{itemize}
+
+\subsection{Terrorism's Core Logic and AI}
+
+Terrorism operates through fear disproportionate to actual harm. AI agents may amplify this:
+
+\begin{itemize}
+  \item Awareness that attacks have become easier heightens fear
+  \item Each successful attack proves the capability
+  \item Defensive measures themselves communicate threat level
+  \item Media attention to AI capabilities spreads awareness
+\end{itemize}
+
+\textbf{Counter-dynamics}: Actual attack frequency may not increase proportionally to capability. Human psychological barriers to violence remain. Defensive AI may prove highly effective. Adaptation may reduce perceived vulnerability.
 
 \section{International Variance}
 
@@ -1265,15 +1662,42 @@ Democracies face greater challenge because leaders must maintain public accessib
 
 \subsection{The Coup-Proofing Paradox}
 
-Leaders in fragile states keep decision-making tight to prevent rivals from gaining power. Fragile states \textbf{cannot adapt via diffusion} without destabilizing their regimes.
+A critical dynamic missing from standard analysis: \textbf{leaders in fragile states often keep decision-making tight precisely to prevent rivals from gaining power}. ``Decision Diffusion'' is dangerous for an insecure leader because sharing power risks a palace coup.
+
+\textbf{Implications:}
+\begin{enumerate}
+  \item Fragile states \textbf{cannot adapt via diffusion} without destabilizing their regimes
+  \item This makes personalistic leaders in unstable regions uniquely vulnerable to AI-enabled targeting compared to committee-based democracies
+  \item External actors (rival states, non-state groups) may exploit this asymmetry
+  \item Diffusion recommendations appropriate for stable democracies may be actively harmful if applied to fragile contexts
+\end{enumerate}
+
+\textbf{Scenario concern}: AI-enabled decapitation strikes against personalistic leaders in fragile states could trigger cascading instability---succession crises, civil conflicts, refugee flows---with regional and global consequences.
+
+\textbf{Policy implication}: International security frameworks should recognize that ``resilient structures'' recommendations are context-dependent. Supporting institutional development in fragile states may be a prerequisite for diffusion-based security.
 
 \subsection{The Attribution Void}
 
 \begin{criticalbox}[Diplomatic Crisis Scenario]
-If a political assassination occurs via an autonomous system using open-source code across multiple jurisdictions---\textbf{who do you retaliate against?}
-
-Traditional frameworks assume attribution is eventually possible. AI-enabled attacks challenge every assumption.
+If a political assassination occurs via an autonomous system programmed by an AI agent, using open-source code, commercially available hardware, and operating across multiple jurisdictions---\textbf{who do you retaliate against?}
 \end{criticalbox}
+
+Traditional frameworks for state response to attacks assume attribution is difficult but eventually possible, evidence can establish responsibility to international standards, proportional response can be directed at the responsible party, and deterrence works because actors know they will be identified.
+
+\begin{center}
+\small
+\begin{tabular}{L{5cm}L{7cm}}
+\toprule
+\textbf{Traditional Attribution} & \textbf{AI-Enabled Attribution Challenge} \\
+\midrule
+Human operatives can be identified & AI agents leave no human signatures \\
+Communications can be intercepted & AI can operate with minimal communication \\
+Training/funding trails exist & Open-source tools, commodity hardware \\
+Operational patterns indicate state capability & Sophisticated operations achievable by individuals \\
+Post-attack forensics reveal origin & AI can deliberately plant false evidence pointing elsewhere \\
+\bottomrule
+\end{tabular}
+\end{center}
 
 \textbf{Scenarios Requiring New Doctrines:}
 \begin{enumerate}
@@ -1282,6 +1706,14 @@ Traditional frameworks assume attribution is eventually possible. AI-enabled att
   \item \textbf{Deliberate Attribution Confusion}: Attack designed to appear as though it came from a third party
   \item \textbf{Genuine Uncertainty}: Evidence genuinely insufficient to determine responsibility
 \end{enumerate}
+
+\textbf{Current Doctrine Gaps:}
+\begin{itemize}
+  \item \textbf{International law}: Requires attribution for lawful response; AI creates attribution gaps that paralyze legal frameworks
+  \item \textbf{Deterrence theory}: Assumes rational actors who fear retaliation; fails when attacker identity is unknown
+  \item \textbf{Alliance commitments}: NATO Article 5, mutual defense treaties assume identifiable aggressor
+  \item \textbf{Escalation management}: Without clear adversary, measured response is impossible
+\end{itemize}
 
 \textbf{Potential Doctrines (Requiring Development):}
 
@@ -1301,6 +1733,19 @@ Strategic Patience & Accept uncertainty; focus on defense & May embolden attacke
 \end{center}
 
 \textbf{The Paralysis Risk}: Unable to attribute attacks with confidence, states may either lash out (risking escalation with wrong target), freeze (inviting further aggression), or overcompensate (implementing draconian surveillance).
+
+\textbf{International Framework Needs:}
+\begin{enumerate}
+  \item \textbf{Attribution standards}: What level of confidence justifies state response in the AI era?
+  \item \textbf{Evidence sharing}: Mechanisms for rapid international forensic cooperation
+  \item \textbf{Norm development}: What actions cross red lines regardless of attribution certainty?
+  \item \textbf{Escalation protocols}: How to respond proportionally when attacker identity is uncertain?
+  \item \textbf{AI forensics}: Investment in capabilities to attribute AI-enabled attacks
+\end{enumerate}
+
+\begin{warnbox}[Assessment]
+The attribution void may be the most destabilizing long-term consequence of AI-enabled political violence. Attacks that cannot be attributed create pressure for either dangerous overreaction or demoralizing passivity. Development of new diplomatic and legal frameworks should begin immediately, before a major unattributable attack forces improvised responses.
+\end{warnbox}
 
 % ============================================================================
 % PART IV - Policy Recommendations (Gauge/Meter Visualization)
@@ -1396,18 +1841,24 @@ Strategic Patience & Accept uncertainty; focus on defense & May embolden attacke
 
 \begin{center}
 \small
-\begin{tabular}{L{1.2cm}L{5cm}L{6cm}}
+\begin{tabular}{L{1.2cm}L{4cm}L{5cm}L{1.8cm}}
 \toprule
-\textbf{Priority} & \textbf{Action} & \textbf{Rationale} \\
+\textbf{Priority} & \textbf{Action} & \textbf{Rationale} & \textbf{Timeline} \\
 \midrule
-Critical & Mandate AI-enabled threat assessments & Current models underestimate AI-assisted reconnaissance \\
-Critical & Establish inter-agency working groups & Siloed responses will be inadequate \\
-High & Commission ``decision diffusion'' studies & Need evidence base before constitutional discussions \\
-High & Engage allies on shared frameworks & Attackers can plan from any jurisdiction \\
-Medium & Review disclosure requirements & Balance transparency with security \\
+Critical & Mandate AI-enabled threat assessments for protective services & Current threat models underestimate AI-assisted reconnaissance capabilities & Immediate \\
+Critical & Establish inter-agency working groups on AI-enabled political violence & Siloed responses will be inadequate; requires coordination across agencies & Q1 2026 \\
+High & Commission studies on ``decision diffusion'' governance models & Need evidence base before constitutional discussions begin & 2026 \\
+High & Engage allies on shared threat frameworks & Attackers can plan from any jurisdiction; defense requires international coordination & Ongoing \\
+Medium & Review information disclosure requirements for elected officials & Balance transparency with security in the AI era & 2026--2027 \\
+Medium & Fund defensive AI research for protective intelligence & Offense/defense balance requires investment in countermeasures & 2026+ \\
+Lower & Begin public education on changing political landscape & Democratic legitimacy requires informed public consent for adaptations & 2027+ \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\begin{keybox}[Key Insight for Policy Makers]
+The window for proactive adaptation is narrow. Once high-profile AI-enabled incidents occur, policy will be made reactively under pressure. Acting now allows thoughtful balancing of security and democratic values.
+\end{keybox}
 
 \subsection{For CEOs and Corporate Leadership}
 
@@ -1428,6 +1879,10 @@ Medium & Engage industry associations on shared threat intelligence & Collective
 \end{tabular}
 \end{center}
 
+\begin{keybox}[Key Insight for CEOs]
+Corporate leadership faces similar dynamics to political leadership but with less institutional protection infrastructure. Companies that adapt early gain competitive advantage in executive retention and operational continuity.
+\end{keybox}
+
 \subsection{For AI Developers (Tech Elite)}
 
 \begin{center}
@@ -1444,6 +1899,10 @@ Medium & Participate in industry-wide safety standards & Individual efforts nece
 \bottomrule
 \end{tabular}
 \end{center}
+
+\begin{keybox}[Key Insight for Tech Elite]
+You are building the infrastructure of this transition. Responsible development now shapes whether AI becomes primarily an offensive or defensive tool in this domain. You also face personal exposure---many tech leaders have the public profile and controversy level that generates targeting motivation.
+\end{keybox}
 
 \subsection{For Laypeople}
 
@@ -1463,7 +1922,96 @@ Medium & Maintain perspective on actual vs. perceived risk & Media coverage may 
 
 \textbf{Key insight for laypeople}: The most important role for ordinary citizens is as democratic participants. Institutional adaptations will require public consent and oversight. An informed public that neither panics nor ignores the issue is essential.
 
+\subsection{Institutional Recommendations}
+
+\subsubsection{For Governments}
+
+\textbf{Immediate (Now -- Mid 2026):}
+\begin{enumerate}
+  \item \textbf{Threat assessment update}: Formally incorporate AI-enabled attack scenarios into protective service planning
+  \item \textbf{AI capability monitoring}: Track developments in agent capabilities relevant to attack planning
+  \item \textbf{Defensive AI deployment}: Accelerate integration of AI into protective intelligence functions
+  \item \textbf{Information hygiene}: Review and reduce unnecessary public information about protected figures
+  \item \textbf{International coordination}: Formalize dialogue with allies on shared threat assessment
+\end{enumerate}
+
+\textbf{Medium-term (2026--2028):}
+\begin{enumerate}
+  \item \textbf{Structural review}: Examine constitutional and statutory authorities for resilience to leader targeting
+  \item \textbf{Succession robustness}: Ensure continuity of government plans address AI-era scenarios
+  \item \textbf{Counter-AI capabilities}: Develop ability to detect and disrupt AI-enabled reconnaissance
+  \item \textbf{Public communication}: Prepare frameworks for discussing changes with democratic publics
+  \item \textbf{Norm development}: Engage in international discussions on AI and political violence norms
+\end{enumerate}
+
+\textbf{Longer-term (2029+):}
+\begin{enumerate}
+  \item \textbf{Institutional redesign}: Where appropriate, implement governance reforms reducing single-point failures
+  \item \textbf{Democratic innovation}: Develop new forms of accountable diffused leadership
+  \item \textbf{Global frameworks}: Work toward international agreements analogous to WMD non-proliferation
+\end{enumerate}
+
+\subsubsection{For AI Developers}
+
+\begin{enumerate}
+  \item \textbf{Capability assessment}: Evaluate systems for political reconnaissance potential during development
+  \item \textbf{Use case monitoring}: Implement detection for patterns suggesting attack planning
+  \item \textbf{Guardrails}: Maintain and improve restrictions on harmful use cases
+  \item \textbf{Transparency}: Report concerning use patterns to appropriate authorities
+  \item \textbf{Red teaming}: Regularly test systems for political targeting vulnerabilities
+\end{enumerate}
+
+\subsubsection{For Civil Society}
+
+\begin{enumerate}
+  \item \textbf{Research}: Continue academic analysis of AI political violence dynamics
+  \item \textbf{Monitoring}: Track emerging threats and governmental responses
+  \item \textbf{Advocacy}: Ensure security measures remain compatible with democratic values
+  \item \textbf{Public education}: Help publics understand the changing landscape
+  \item \textbf{Norm entrepreneurship}: Promote international norms against AI-enabled political violence
+\end{enumerate}
+
 \section{Uncertainties and Alternative Scenarios}
+
+\subsection{Key Uncertainties}
+
+\begin{enumerate}
+  \item \textbf{Actual capability trajectory}: AI development could be faster or slower than projected
+  \item \textbf{Defensive effectiveness}: AI defensive capabilities may prove highly effective
+  \item \textbf{Attack frequency}: Technological capability may not translate to actual attacks
+  \item \textbf{Institutional adaptability}: Governments may adapt faster or slower than projected
+  \item \textbf{Public response}: Societal reactions to the threat are highly uncertain
+\end{enumerate}
+
+\subsection{Alternative Scenarios}
+
+\begin{scenariobox}[Scenario A: Rapid Defensive Success]
+AI defensive capabilities prove highly effective. Protective services quickly integrate AI monitoring, detecting and disrupting attacks before execution. The threat never fully materializes at scale. Structural adaptations prove unnecessary.
+
+\textit{Probability estimate: 15\%}
+\end{scenariobox}
+
+\begin{scenariobox}[Scenario B: Baseline Projection]
+Moderate increase in risk leads to gradual institutional adaptation over 5--10 years. Some successful attacks occur but at levels not dramatically higher than historical baselines. Diffusion proceeds incrementally.
+
+\textit{Probability estimate: 45\%}
+\end{scenariobox}
+
+\begin{scenariobox}[Scenario C: Rapid Destabilization]
+Multiple successful AI-enabled attacks occur in short succession. Public fear is significant. Rapid, possibly excessive security measures are implemented. Democratic norms strained. International instability increases.
+
+\textit{Probability estimate: 20\%}
+\end{scenariobox}
+
+\begin{scenariobox}[Scenario D: Technological Plateau]
+AI capabilities prove more limited than projected. The threat remains theoretical or marginally increased from baseline. Limited adaptation occurs. Current institutions prove adequate.
+
+\textit{Probability estimate: 20\%}
+\end{scenariobox}
+
+\subsection{Additional Scenarios (Per Expert Consultation)}
+
+The following scenarios emerged from consultation with external reviewers and represent less probable but analytically important possibilities.
 
 \subsection{Scenario Probability Summary}
 
@@ -1522,15 +2070,15 @@ Leadership withdraws entirely from physical public presence. All appearances bec
 \subsection{Threat Escalation Indicators}
 
 \begin{center}
-\small
-\begin{tabular}{L{5cm}L{7.5cm}}
+\footnotesize
+\begin{tabular}{L{3.5cm}L{4.5cm}L{4.5cm}}
 \toprule
-\textbf{Indicator} & \textbf{What It Signals} \\
+\textbf{Indicator} & \textbf{What It Signals} & \textbf{Data Sources} \\
 \midrule
-Major increase in synthetic media incidents & Reputational targeting capability maturation \\
-Evidence of persistent automated OSINT & Reconnaissance infrastructure development \\
-Growth in high-automation harassment & Process targeting scaling \\
-Documented AI assistance in thwarted attacks & Kinetic threat threshold crossing \\
+Major increase in deepfake/synthetic media incidents & Reputational targeting capability maturation & Media reports, content authentication platform data \\
+Evidence of persistent automated OSINT on political figures & Reconnaissance infrastructure development & Security research, investigative journalism \\
+Significant growth in high-automation harassment of civil servants & Process targeting scaling & Government HR reports, union publications \\
+Documented AI assistance in thwarted kinetic attacks & Kinetic threat threshold crossed & Law enforcement statements, court filings \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1538,15 +2086,15 @@ Documented AI assistance in thwarted attacks & Kinetic threat threshold crossing
 \subsection{Defensive Adoption Indicators}
 
 \begin{center}
-\small
-\begin{tabular}{L{4.5cm}L{8cm}}
+\footnotesize
+\begin{tabular}{L{3.5cm}L{4.5cm}L{4.5cm}}
 \toprule
-\textbf{Indicator} & \textbf{What It Signals} \\
+\textbf{Indicator} & \textbf{What It Signals} & \textbf{Data Sources} \\
 \midrule
-Protective services procurement of AI-enhanced monitoring & Institutional awareness and resource commitment \\
-Increased staffing in threat assessment units & Agency capacity building \\
-Adoption of content authentication infrastructure (C2PA) & Reputational defense infrastructure development \\
-New legal frameworks for AI-enabled harassment & Policy response crystallizing \\
+Protective services procurement of AI-enhanced monitoring & Institutional awareness and resource commitment & Government procurement, job postings \\
+Increased staffing in threat assessment units & Agency capacity building & Budget documents, hiring patterns \\
+Adoption of content authentication infrastructure (C2PA) & Reputational defense infrastructure development & Tech announcements, platform policies \\
+New legal frameworks for AI-enabled harassment & Policy response crystallizing & Legislative tracking, regulatory filings \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1641,6 +2189,22 @@ Indefinite retention of monitoring data & Mission creep; abuse potential & Stric
 \end{tabular}
 \end{center}
 
+\subsubsection{What Diffusion Adaptations Must NOT Do}
+
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{4cm}L{4cm}}
+\toprule
+\textbf{Prohibited Practice} & \textbf{Rationale} & \textbf{Alternative Approach} \\
+\midrule
+Anonymous decision-making without audit trails & Eliminates democratic accountability & Delayed disclosure with preserved records \\
+Permanent classification of domestic policy & Prevents democratic deliberation & Time-limited classification with mandatory review \\
+Removal of elected officials from meaningful authority & Subverts electoral mandate & Retain elected oversight even if execution is delegated \\
+``Decoy leader'' structures where public figures have no power & Fundamentally fraudulent governance & Genuine diffusion rather than theatrical deception \\
+\bottomrule
+\end{tabular}
+\end{center}
+
 \subsubsection{Required Safeguards}
 
 \begin{center}
@@ -1662,9 +2226,34 @@ Audit logs & Tamper-proof records of system access and use \\
 
 \subsection{The Accountability Test}
 
-Before implementing any defensive measure, answer: Is it necessary? Proportional? The least intrusive approach? Can misuse be detected? Is it reversible? What precedent does it establish?
+Before implementing any defensive measure, decision-makers should answer:
+
+\begin{enumerate}
+  \item \textbf{Necessity}: Is this measure necessary, or merely convenient?
+  \item \textbf{Proportionality}: Does the measure match the documented threat level?
+  \item \textbf{Minimization}: Is this the least intrusive effective approach?
+  \item \textbf{Accountability}: Can misuse be detected and corrected?
+  \item \textbf{Reversibility}: Can this measure be rolled back if circumstances change?
+  \item \textbf{Precedent}: What norm does this establish for future measures?
+\end{enumerate}
 
 \textbf{If any answer is unsatisfactory, the measure should be reconsidered.}
+
+\subsection{Warning Signs of Overreach}
+
+This report itself could be misused to justify overreach. Watch for:
+
+\begin{itemize}
+  \item Citing ``AI threats'' to expand pre-existing surveillance programs
+  \item Using theoretical capabilities to justify measures against documented threats
+  \item Classifying oversight as a ``security risk''
+  \item Treating dissent as a threat indicator
+  \item Permanent ``emergency'' authorities
+\end{itemize}
+
+\begin{keybox}[The Goal]
+\textbf{The goal is security that preserves democracy, not security that replaces it.}
+\end{keybox}
 
 \subsection{The Patriot Act 2.0 Scenario}
 
@@ -1697,6 +2286,13 @@ Criminalization of AI ``misuse'' & ``Close the loopholes'' & Chilling effect on 
 \begin{warnbox}[Patriot Act 2.0 Warning]
 Patriot Act 2.0 is more likely than not following a successful high-profile AI-enabled attack. Mitigating this requires pre-crisis institutional design and public commitment to proportionality principles.
 \end{warnbox}
+
+\textbf{Why This Matters---The Historical Pattern}: The guardrails in this section are noble but fragile. History demonstrates that major security incidents trigger rapid expansion of state power:
+\begin{itemize}
+  \item Post-9/11: Patriot Act, mass surveillance programs, indefinite detention
+  \item Post-Oklahoma City: Antiterrorism and Effective Death Penalty Act
+  \item Historical pattern: Emergency powers rarely fully sunset
+\end{itemize}
 
 \textbf{Pre-Commitment Strategies}: Given that crisis conditions favor overreach, the time to establish limits is \textit{before} an incident:
 
@@ -1754,8 +2350,8 @@ The purpose of projection is not prediction but preparation. By understanding po
   \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {REFERENCE MATERIALS};
   \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -3cm) {Appendices};
 
-  % Matrix visualization for appendices (LEFT SIDE, LOWER - SYMMETRIC)
-  \begin{scope}[shift={(2.5cm, -4cm)}]
+  % Matrix visualization for appendices (LEFT SIDE - flanking title)
+  \begin{scope}[shift={(2.5cm, -2.4cm)}]
     % Larger dots with gradient opacity effect
     \foreach \x in {0,0.28,...,3.4} {
       \foreach \y in {0,0.28,...,1.4} {
@@ -1765,8 +2361,8 @@ The purpose of projection is not prediction but preparation. By understanding po
     }
   \end{scope}
 
-  % Hash/matrix pattern (RIGHT SIDE, LOWER - SYMMETRIC)
-  \begin{scope}[shift={(12.5cm, -4cm)}]
+  % Hash/matrix pattern (RIGHT SIDE - flanking title)
+  \begin{scope}[shift={(16cm, -2.4cm)}]
     % Larger squares with better visibility
     \foreach \x in {0,0.24,...,2.9} {
       \foreach \y in {0,0.24,...,1.4} {
@@ -1786,60 +2382,171 @@ The purpose of projection is not prediction but preparation. By understanding po
 
 \begin{center}
 \small
-\begin{tabular}{L{2.2cm}ccccL{3cm}}
+\begin{tabular}{L{2cm}cccL{2.5cm}L{5cm}}
 \toprule
-\textbf{Vector} & \textbf{Likelihood} & \textbf{Impact} & \textbf{Detect.} & \textbf{Owner} & \textbf{Mitigations} \\
+\textbf{Vector} & \textbf{Likelihood} & \textbf{Impact} & \textbf{Detect.} & \textbf{Owner} & \textbf{Top 3 Mitigations} \\
 \midrule
-Reputational & High & High & Low & Platforms & Content auth \\
-Process & High & High & Medium & Election admin & Staff protection \\
-Economic & Med-High & Medium & Medium & Regulators & Identity protection \\
-Kinetic & Low-Med & Very High & Med-High & Protective svcs & AI intel \\
-Insider & Medium & Very High & Low & IT Security & Vendor audits \\
+Reputational & High & High & Low & Platforms, Election bodies & Content authentication, rapid response teams, legal frameworks \\
+Process & High & High & Medium & Election admin, HR, Legal & Staff protection, anonymized reporting, resilience training \\
+Economic & Med-High & Medium & Medium & Financial regulators, Law enforcement & Identity protection, fraud monitoring, platform accountability \\
+Kinetic & Low-Med & Very High & Med-High & Protective services & AI-enhanced intel, physical security, behavioral assessment \\
+Insider/Supply-chain & Medium & Very High & Low & IT Security, Procurement & Vendor audits, model governance, access controls \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\textbf{Reading the matrix:}
+\begin{itemize}
+  \item \textit{Likelihood}: Probability of significant incident in assessment window (12--24 months)
+  \item \textit{Impact}: Consequence severity if incident occurs
+  \item \textit{Detectability}: Defender's ability to identify attack in progress
+  \item \textit{Primary Owner}: Lead agency/function for mitigation
+\end{itemize}
 
 \section{Claims Register}
 
+The following documents key empirical claims, evidence basis, and falsification criteria:
+
 \begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{2.5cm}L{1.8cm}L{4.5cm}}
+\footnotesize
+\begin{tabular}{L{2.5cm}L{1.8cm}L{1cm}L{3.5cm}L{3.5cm}}
 \toprule
-\textbf{Claim} & \textbf{Evidence Type} & \textbf{Confidence} & \textbf{Example Sources} \\
+\textbf{Claim} & \textbf{Evidence} & \textbf{Conf.} & \textbf{What Would Falsify} & \textbf{Example Sources} \\
 \midrule
-Agents operate autonomously & Product docs & High & Commercial frameworks \\
-Jailbreaking widely known & Security research & High & Academic papers \\
-Open-weight parity & Benchmark data & Medium & HF leaderboards \\
-Criminal AI use & Law enforcement & Low-Medium & DOJ statements \\
-Defensive adoption & Procurement signals & Medium & Job postings \\
+Agents operate autonomously for hours-days & Product docs & High & Products unable to complete multi-hour tasks without intervention & Anthropic Claude, OpenAI GPT-4 agent capabilities \\
+Jailbreaking techniques circulate widely & Security research & High & No public jailbreak repos; no bug bounty disclosures & Academic papers, HackerOne disclosures \\
+Open-weight models approach frontier & Benchmark data & Med & Consistent $>$24mo lag across all benchmarks & Hugging Face leaderboards, Papers with Code \\
+AI-assisted reconnaissance in criminal contexts & Law enforcement & Low-Med & No law enforcement references to AI in criminal planning & DOJ statements, court documents \\
+Security services adopting AI defensively & Procurement signals & Med & No protective service AI procurement or hiring & Job postings, budget documents \\
+Deepfakes used against political figures & Media reports & High & No documented political deepfake incidents & Reuters, AP reporting on political deepfakes \\
+Election worker harassment increasing & Civil society & High & Declining threat reports to election officials & Brennan Center, CISA reports \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\textbf{Falsification protocol}: Claims should be re-evaluated quarterly. If falsified, revise affected projections and update scenario probabilities.
 
 \section{Glossary}
 
 \begin{description}
-  \item[AI Agent] Autonomous AI system with multi-step task execution, tool use, and goal persistence
-  \item[Decision Diffusion] Distribution of political authority to reduce targeting value
-  \item[OSINT] Open-source intelligence from public sources
-  \item[Process Targeting] Attacks on democratic processes rather than individuals
-  \item[Stochastic Terrorism] Mass communication to incite random actors to attack
+  \item[AI Agent] Autonomous AI system capable of multi-step task execution with tool use and goal persistence. Distinguished from:
+    \begin{itemize}[nosep]
+      \item \textit{Single-turn LLM use}: One-shot query/response
+      \item \textit{Scripted automation}: Pre-defined workflows without adaptation
+      \item \textit{Semi-autonomous agents}: Tool use with human checkpoints
+      \item \textit{Long-horizon agents}: Extended autonomy with persistent goals
+    \end{itemize}
+  \item[Decision Diffusion] Distribution of political authority to reduce targeting value. Four subtypes: Authority, Visibility, Execution, Representation (see Section 9).
+  \item[OSINT] Open-source intelligence---information gathered from public sources
+  \item[Process Targeting] Attacks on democratic processes and civic infrastructure rather than individuals
+  \item[Prompt Engineering] Techniques for directing AI system behavior through input design
+  \item[Red Team] Adversarial testing simulating attacker perspectives
+  \item[Stochastic Terrorism] Use of mass communication to incite random actors to carry out attacks; gains new dimensions with AI optimization
 \end{description}
 
 \section{Further Reading}
 
-\textbf{Technology and Political Violence}: Cronin (2020), Schneier (2018)
+\textbf{Technology and Political Violence:}
+\begin{itemize}[nosep]
+  \item Cronin, Audrey Kurth. \textit{Power to the People} (2020)---Technology diffusion and non-state violence
+  \item Schneier, Bruce. \textit{Click Here to Kill Everybody} (2018)---Systems security and AI risks
+\end{itemize}
 
-\textbf{Governance}: Weber (1922), Brin (1998), Zuboff (2019)
+\textbf{Governance and Accountability:}
+\begin{itemize}[nosep]
+  \item Weber, Max. \textit{Economy and Society} (1922)---Bureaucratic rationalization and the Iron Cage
+  \item Brin, David. \textit{The Transparent Society} (1998)---Surveillance symmetry scenarios
+  \item Zuboff, Shoshana. \textit{The Age of Surveillance Capitalism} (2019)---Information asymmetries and power
+\end{itemize}
 
-\textbf{AI Safety}: Anthropic, OpenAI, DeepMind policy papers
+\textbf{AI Safety and Misuse:}
+\begin{itemize}[nosep]
+  \item Anthropic, OpenAI, DeepMind policy papers on misuse prevention
+  \item Partnership on AI research on synthetic media
+\end{itemize}
+
+\textbf{Electoral Security:}
+\begin{itemize}[nosep]
+  \item Brennan Center for Justice reports on election worker safety
+  \item CISA election infrastructure guidance
+\end{itemize}
+
+\textbf{Content Authentication:}
+\begin{itemize}[nosep]
+  \item C2PA (Coalition for Content Provenance and Authenticity) technical specifications
+  \item Platform adoption reports and pilot studies
+\end{itemize}
 
 \section{Methodology Details}
 
-\textbf{Approach}: Structured historical comparison, expert elicitation, controlled red-team exercises, scenario gaming.
+\textbf{Assessment approach:}
+\begin{itemize}[nosep]
+  \item Structured comparison of historical case analysis against current capabilities
+  \item Expert elicitation across political science, security studies, AI safety
+  \item Controlled red-team exercises (details restricted)
+  \item Scenario gaming and signpost identification
+\end{itemize}
 
-\textbf{Calibration}: Probabilities represent informal expert consensus, re-estimated quarterly, intended for relative prioritization.
+\textbf{Probability calibration:}
+\begin{itemize}[nosep]
+  \item Scenario probabilities represent informal expert consensus, not statistical models
+  \item Re-estimated quarterly based on signpost observations
+  \item Intended for relative prioritization, not point prediction
+\end{itemize}
 
-\textbf{Limitations}: Limited classified access, rapidly evolving landscape, novel threat vectors, inherent uncertainty.
+\textbf{Limitations:}
+\begin{itemize}[nosep]
+  \item Limited access to classified threat intelligence
+  \item Rapidly evolving capability landscape
+  \item Novel threat vectors without historical precedent
+  \item Inherent uncertainty in institutional adaptation projections
+\end{itemize}
+
+\begin{center}
+\textit{[Detailed methodology available under separate cover for committee members]}
+\end{center}
+
+% ============================================================================
+% DOCUMENT METADATA
+% ============================================================================
+
+\begin{center}
+\rule{0.6\textwidth}{0.5pt}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\small\textbf{Document Metadata}
+
+\vspace{0.5em}
+
+\begin{tabular}{ll}
+\textbf{Epistemic Status Markers}: & [O] Open-source documented \textbar{} [D] Data point \\
+& [E] Expert judgment \textbar{} [S] Speculative projection \\
+\textbf{Classification}: & Policy Research - For Defensive Analysis \\
+\textbf{Prepared For}: & Emerging Technology Risk Assessment Committee \\
+\textbf{Distribution}: & Committee members, designated reviewers \\
+\textbf{Approved By}: & Andrew Showers \\
+\textbf{Document ID}: & ETRA-2025-POL-001 \\
+\textbf{Version}: & 1.0 \\
+\textbf{Related Documents}: & ETRA-2026-IC-001 (Institutional Erosion) \\
+& ETRA-2025-ESP-001 (Espionage Operations) \\
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\small
+\textit{This is a living document. Latest version available at:}\\[0.3em]
+\url{https://github.com/AndrewAltimit/template-repo}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\textit{Emerging Technology Risk Assessment Committee}
+\end{center}
 
 \end{document}
