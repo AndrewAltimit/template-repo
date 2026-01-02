@@ -64,6 +64,7 @@ Additional projection topics can be proposed to the committee. Priority areas in
 ## Related Resources
 
 - `docs/agents/` - AI agent documentation for this repository
+- `docs/philosophy/` - Philosophical explorations of AI minds and experience
 - `packages/sleeper_agents/` - Defensive AI safety research (implementation-focused)
 - External: AI safety research organizations, policy think tanks
 

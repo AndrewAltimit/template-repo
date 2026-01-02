@@ -19,9 +19,13 @@ These papers explore fundamental questions about minds, experience, and intellig
 
 ## Papers
 
-| Paper | Topic | Status |
-|-------|-------|--------|
-| [Architectural Qualia](./architectural-qualia.md) | What Is It Like to Be an LLM? | Draft |
+| Paper | Topic | PDF | Source |
+|-------|-------|-----|--------|
+| Architectural Qualia | What Is It Like to Be an LLM? | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./architectural-qualia.md) \| [LaTeX](./latex/architectural-qualia.tex) |
+
+**Build Status**: [![Build Documentation](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml/badge.svg)](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml)
+
+PDFs are automatically compiled from LaTeX source and published with each [release](https://github.com/AndrewAltimit/template-repo/releases). Individual build artifacts are also available from the [Build Documentation workflow](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml).
 
 ## Relationship to Other Work
 
