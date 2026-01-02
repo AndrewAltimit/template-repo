@@ -49,7 +49,8 @@
 \definecolor{scienceteal}{HTML}{17A2B8}
 \definecolor{labcyan}{HTML}{1ABC9C}
 % Accent: Barrier gold for warnings and highlights
-\definecolor{barriergold}{HTML}{D4AC0D}
+% Standard ETRA header band gold (consistent across all projection reports)
+\definecolor{barriergold}{HTML}{B7950B}
 \definecolor{shieldamber}{HTML}{F39C12}
 % Domain colors
 \definecolor{biogreen}{HTML}{27AE60}
@@ -279,7 +280,7 @@
   };
 
   % Metadata block
-  \node[anchor=south east, text width=5cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
+  \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
     \color{softslate}\small\sffamily
     \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
@@ -2430,5 +2431,48 @@ When citing this document:
 \end{itemize}
 
 \textbf{Contributing}: This document is released under MIT/Unlicense. Contributions, corrections, and extensions are welcome. File issues for factual errors or outdated information. The goal is informed public discussion of AI governance challenges.
+
+% ============================================================================
+% DOCUMENT METADATA
+% ============================================================================
+
+\begin{center}
+\rule{0.6\textwidth}{0.5pt}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\small\textbf{Document Metadata}
+
+\vspace{0.5em}
+
+\begin{tabular}{ll}
+\textbf{Epistemic Status Markers}: & [O] Open-source documented \textbar{} [D] Data point \\
+& [E] Expert judgment \textbar{} [S] Speculative projection \\
+\textbf{Classification}: & Policy Research - For Defensive Analysis \\
+\textbf{Prepared For}: & Emerging Technology Risk Assessment Committee \\
+\textbf{Distribution}: & Committee members, designated reviewers \\
+\textbf{Approved By}: & Andrew Showers \\
+\textbf{Document ID}: & ETRA-2025-WMD-001 \\
+\textbf{Version}: & 2.0 \\
+\textbf{Related Documents}: & ETRA-2025-ESP-001 (Espionage Operations) \\
+& ETRA-2025-AEA-001 (Economic Actors) \\
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\small
+\textit{This is a living document. Latest version available at:}\\[0.3em]
+\url{https://github.com/AndrewAltimit/template-repo}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\textit{Emerging Technology Risk Assessment Committee}
+\end{center}
 
 \end{document}

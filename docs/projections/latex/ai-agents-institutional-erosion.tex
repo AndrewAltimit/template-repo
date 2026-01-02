@@ -67,7 +67,8 @@
 \definecolor{textlight}{HTML}{CBD5E1}
 \definecolor{gridlight}{HTML}{E2E8F0}
 % Standard ETRA header band gold (consistent across all projection reports)
-\definecolor{barriergold}{HTML}{D4AC0D}
+% Note: barriergold now matches instgold (#B7950B) for consistent ETRA header bands
+\definecolor{barriergold}{HTML}{B7950B}
 
 % ============================================================================
 % HYPERREF SETUP
@@ -283,12 +284,11 @@
   };
 
   % Metadata block (bottom right)
-  \node[anchor=south east, text width=5.5cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
+  \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
     \color{stonegray}\small\sffamily
-    \textbf{Status:} Working Draft\\[0.2em]
+    \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2026--2030\\[0.2em]
-    \textbf{Classification:} Policy Research\\[0.2em]
-    \textbf{Distribution:} Committee members\\[0.2em]
+    \textbf{License:} MIT / Unlicense\\[0.2em]
     \textbf{Version:} 1.0
   };
 
@@ -2590,14 +2590,23 @@ Collection remains essential, but its value proposition shifts. The alternative-
 \textbf{Classification}: & Policy Research - For Defensive Analysis \\
 \textbf{Prepared For}: & Emerging Technology Risk Assessment Committee \\
 \textbf{Distribution}: & Committee members, designated reviewers \\
+\textbf{Approved By}: & Andrew Showers \\
 \textbf{Document ID}: & ETRA-2026-IC-001 \\
-\textbf{Version}: & 1.0 (Working Draft) \\
+\textbf{Version}: & 1.0 \\
 \textbf{Related Documents}: & ETRA-2025-FIN-001 (Financial Integrity) \\
 & ETRA-2025-ESP-001 (Espionage Operations) \\
 \end{tabular}
 \end{center}
 
-\vspace{1cm}
+\vspace{0.5cm}
+
+\begin{center}
+\small
+\textit{This is a living document. Latest version available at:}\\[0.3em]
+\url{https://github.com/AndrewAltimit/template-repo}
+\end{center}
+
+\vspace{0.5cm}
 
 \begin{center}
 \textit{Emerging Technology Risk Assessment Committee}

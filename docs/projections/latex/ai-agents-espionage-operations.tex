@@ -70,7 +70,8 @@
 \definecolor{ciphergold}{HTML}{FFD54F}
 \definecolor{interceptgreen}{HTML}{69F0AE}
 \definecolor{decodepurple}{HTML}{B388FF}
-\definecolor{barriergold}{HTML}{D4AC0D}
+% Standard ETRA header band gold (consistent across all projection reports)
+\definecolor{barriergold}{HTML}{B7950B}
 
 % ============================================================================
 % HYPERREF SETUP
@@ -293,12 +294,12 @@
   };
 
   % Metadata block (bottom right)
-  \node[anchor=south east, text width=5cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
+  \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
     \color{coldsteel}\small\sffamily
-    \textbf{Document Type:} Projection\\[0.2em]
+    \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
-    \textbf{Classification:} Policy Research\\[0.2em]
-    \textbf{Version:} 1.4 (Revised)
+    \textbf{License:} MIT / Unlicense\\[0.2em]
+    \textbf{Version:} 1.4
   };
 
   % Vertical accent line
@@ -3279,11 +3280,47 @@ AI-generated text contains statistical signatures that may enable attribution:
 
 \textbf{Limitation}: Adversaries aware of fingerprinting can apply post-processing to obscure signatures. This creates an ongoing cat-and-mouse dynamic.
 
-\vspace{1cm}
+% ============================================================================
+% DOCUMENT METADATA
+% ============================================================================
+
 \begin{center}
-\textbf{Document Version}: 1.4 (Revised - Committee Submission)\\
-\textbf{Last Updated}: December 2025\\
-\textbf{Classification}: Policy Research - For Defensive Analysis
+\rule{0.6\textwidth}{0.5pt}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\small\textbf{Document Metadata}
+
+\vspace{0.5em}
+
+\begin{tabular}{ll}
+\textbf{Epistemic Status Markers}: & [O] Open-source documented \textbar{} [D] Data point \\
+& [E] Expert judgment \textbar{} [S] Speculative projection \\
+\textbf{Classification}: & Policy Research - For Defensive Analysis \\
+\textbf{Prepared For}: & Emerging Technology Risk Assessment Committee \\
+\textbf{Distribution}: & Committee members, designated reviewers \\
+\textbf{Approved By}: & Andrew Showers \\
+\textbf{Document ID}: & ETRA-2025-ESP-001 \\
+\textbf{Version}: & 1.4 \\
+\textbf{Related Documents}: & ETRA-2026-IC-001 (Institutional Erosion) \\
+& ETRA-2025-FIN-001 (Financial Integrity) \\
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\small
+\textit{This is a living document. Latest version available at:}\\[0.3em]
+\url{https://github.com/AndrewAltimit/template-repo}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\textit{Emerging Technology Risk Assessment Committee}
 \end{center}
 
 \end{document}

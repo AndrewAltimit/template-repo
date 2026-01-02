@@ -50,6 +50,8 @@
 \definecolor{mintlight}{HTML}{52B788}
 % Accent: Copper/bronze - wealth, transactions, value flow
 \definecolor{copperrich}{HTML}{B87333}
+% Standard ETRA header band gold (consistent across all projection reports)
+\definecolor{headergold}{HTML}{B7950B}
 \definecolor{bronzegold}{HTML}{CD7F32}
 \definecolor{brasslight}{HTML}{D4A84B}
 % Alert/status colors
@@ -295,7 +297,7 @@
   \end{scope}
 
   % Document classification bar (copper accent - keeping consistent header format)
-  \fill[copperrich] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
+  \fill[headergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
   \node[forestdark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2025-FIN-001 \textbar{} DECEMBER 2025};
 
   % Title block (bottom left)
@@ -308,12 +310,12 @@
   };
 
   % Metadata block (bottom right)
-  \node[anchor=south east, text width=5cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
+  \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
     \color{ledgergray}\small\sffamily
-    \textbf{Document Type:} Projection\\[0.2em]
+    \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
-    \textbf{Classification:} Policy Research\\[0.2em]
-    \textbf{Version:} 0.2 (Draft)
+    \textbf{License:} MIT / Unlicense\\[0.2em]
+    \textbf{Version:} 1.0
   };
 
   % Vertical accent line (copper)
@@ -2644,7 +2646,7 @@ The window for proactive governance is limited. As agent capabilities proliferat
 \vspace{0.5cm}
 \textbf{Emerging Technology Risk Assessment Committee}\\
 \textbf{Document ID: ETRA-2025-FIN-001}\\
-\textbf{Version: 0.2 (Draft for Review)}
+\textbf{Version: 1.0}
 \end{center}
 
 \newpage
@@ -2695,5 +2697,48 @@ The ``\$1 trillion in annual bribes'' figure is commonly attributed to the World
   \item ETRA-2025-AEA-001: \textit{AI Agents as Autonomous Economic Actors}
   \item ETRA-2025-ESP-001: \textit{AI Agents and the Future of Espionage Operations}
 \end{itemize}
+
+% ============================================================================
+% DOCUMENT METADATA
+% ============================================================================
+
+\begin{center}
+\rule{0.6\textwidth}{0.5pt}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\small\textbf{Document Metadata}
+
+\vspace{0.5em}
+
+\begin{tabular}{ll}
+\textbf{Epistemic Status Markers}: & [O] Open-source documented \textbar{} [D] Data point \\
+& [E] Expert judgment \textbar{} [S] Speculative projection \\
+\textbf{Classification}: & Policy Research - For Defensive Analysis \\
+\textbf{Prepared For}: & Emerging Technology Risk Assessment Committee \\
+\textbf{Distribution}: & Committee members, designated reviewers \\
+\textbf{Approved By}: & Andrew Showers \\
+\textbf{Document ID}: & ETRA-2025-FIN-001 \\
+\textbf{Version}: & 1.0 \\
+\textbf{Related Documents}: & ETRA-2025-AEA-001 (Economic Actors) \\
+& ETRA-2025-ESP-001 (Espionage Operations) \\
+\end{tabular}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\small
+\textit{This is a living document. Latest version available at:}\\[0.3em]
+\url{https://github.com/AndrewAltimit/template-repo}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{center}
+\textit{Emerging Technology Risk Assessment Committee}
+\end{center}
 
 \end{document}
