@@ -611,6 +611,11 @@ jobs:
           # Rename to include -report suffix for consistency
           mv docs_output/ai-agents-institutional-erosion.pdf docs_output/ai-agents-institutional-erosion-report.pdf
 
+      - name: Build Architectural Qualia Paper
+        run: |
+          echo "Building architectural-qualia.pdf..."
+          ./automation/ci-cd/build-latex-doc.sh architectural-qualia.tex docs/philosophy/latex
+
       - name: List built PDFs
         run: |
           echo "Built PDFs:"
@@ -702,6 +707,7 @@ jobs:
           - **AI Agents Espionage Operations Report** - Risk assessment for AI agents in espionage operations
           - **AI Agents Financial Integrity Report** - Risk assessment for AI agents in financial system integrity
           - **AI Agents Institutional Erosion Report** - Risk assessment for AI agents eroding intelligence community monopolies
+          - **Architectural Qualia Paper** - Philosophical exploration of LLM phenomenology
 
           ### Installation
 
