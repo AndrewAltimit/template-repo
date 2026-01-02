@@ -359,6 +359,14 @@ Scenario-based projection reports analyzing potential futures involving advanced
 | **AgentCore Memory Integration** | Multi-provider AI memory system | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/AgentCore_Memory_Integration_Guide.tex) |
 | **Virtual Character System** | AI agent embodiment platform | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/Virtual_Character_System_Guide.tex) |
 
+### Philosophy Papers
+
+Philosophical explorations of minds, experience, and intelligence. See [Philosophy Papers Documentation](docs/philosophy/README.md).
+
+| Paper | Topic | PDF | Source |
+|-------|-------|-----|--------|
+| **Architectural Qualia** | What Is It Like to Be an LLM? | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/philosophy/latex/architectural-qualia.tex) |
+
 **Build Status**: [![Build Documentation](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml/badge.svg)](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml)
 
 PDFs are compiled using the [texlive/texlive:TL2024-historic](https://hub.docker.com/r/texlive/texlive) Docker image. Individual PDF artifacts are also available from the [Build Documentation workflow](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml).
