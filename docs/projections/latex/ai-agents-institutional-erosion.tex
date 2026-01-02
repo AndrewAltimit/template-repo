@@ -283,11 +283,12 @@
   };
 
   % Metadata block (bottom right)
-  \node[anchor=south east, text width=5cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
+  \node[anchor=south east, text width=5.5cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
     \color{stonegray}\small\sffamily
-    \textbf{Document Type:} Projection\\[0.2em]
+    \textbf{Status:} Working Draft\\[0.2em]
     \textbf{Time Horizon:} 2026--2030\\[0.2em]
     \textbf{Classification:} Policy Research\\[0.2em]
+    \textbf{Distribution:} Committee members\\[0.2em]
     \textbf{Version:} 1.0
   };
 
@@ -337,7 +338,11 @@ The IC is transitioning from an era of \textbf{Information Scarcity}---where adv
 In an AI-saturated environment, \textit{classification alone} is no longer a reliable proxy for decision value. Intelligence products derive value from (1) protecting sources and methods \textit{and} (2) providing high-integrity, auditable provenance for key claims.
 \end{keybox}
 
-\vspace{0.5cm}
+\begin{infobox}[Note on IC Internal Provenance]
+Classified systems already maintain chain-of-custody, compartmentation, and audit trails. The thesis is not that the IC lacks provenance mechanisms, but that \textbf{verification and integrity mechanisms must become first-class properties} of intelligence products consumed by decision-makers---not merely security features for access control. The shift is from ``who can see this'' to ``why should this be believed.''
+\end{infobox}
+
+\vspace{0.3cm}
 
 \begin{keybox}[Key Findings]
 \begin{enumerate}
@@ -830,18 +835,61 @@ Every piece of intelligence now carries an implicit ``verification tax''---the r
 
 \subsection{Institutional Fragility and Human-Capital Shock [O/E]}
 
-\begin{criticalbox}[Documented Workforce Contraction]
+\textbf{The Verification Pivot Assumes Capacity}: The transition from collection-centric to verification-centric operations assumes the IC can scale verification capacity faster than contamination scales collection noise. This assumption depends critically on human capital.
+
+\begin{defbox}[Verification Capacity Model {[E]}]
+\begin{center}
+\texttt{Verification Capacity (VC) $\approx$ Experienced verifier headcount $\times$ Cross-agency integration bandwidth $\times$ Tool reliability}
+\end{center}
+Institutional disruption reduces the first two terms and often forces premature scaling of the third (automation without adequate human oversight).
+\end{defbox}
+
+\begin{criticalbox}[Documented Workforce Contraction {[O]}]
 Public reporting indicates significant IC staffing reductions concurrent with rising verification demands:
 
-\begin{itemize}
-  \item \textbf{ODNI}: Planned staffing cuts >40\% by Oct 2025; prior 25\% reduction implemented (Reuters)
-  \item \textbf{CIA}: Shrinking $\sim$1,200 positions; ``hundreds already taking early retirement'' (AP News)
-  \item \textbf{NSA}: ``Thousands'' of positions cut as part of broader IC reduction (AP News)
-  \item \textbf{Leadership churn}: Abrupt dismissal of NSA/Cyber Command head; litigation around personnel actions
+\begin{center}
+\small
+\begin{tabular}{L{2.5cm}L{5.5cm}L{2cm}L{3cm}}
+\toprule
+\textbf{Agency} & \textbf{Reported Action} & \textbf{Source} & \textbf{Verification Impact} \\
+\midrule
+ODNI & Planned staffing cuts >40\% by Oct 2025; prior 25\% reduction already implemented; elimination of certain units & Reuters & Reduced cross-agency integration bandwidth \\
+CIA & Shrinking $\sim$1,200 positions over several years; ``hundreds already taking early retirement'' & AP News & Loss of experienced analysts and case officers \\
+NSA & ``Thousands'' of positions cut (part of broader IC reduction) & AP News & Reduced SIGINT verification capacity \\
+Leadership & Abrupt dismissal of NSA/Cyber Command head; litigation around personnel actions & AP News, WaPo & Institutional continuity disruption \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{criticalbox}
+
+\begin{warnbox}[Why This Matters for Verification {[E]}]
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{9cm}}
+\toprule
+\textbf{Human Capital Dynamic} & \textbf{Verification Impact} \\
+\midrule
+Early retirements & Loss of institutional memory; tacit knowledge of adversary patterns disappears \\
+Experience drain & Verification requires judgment calls; junior staff have higher False Clean rates \\
+Reorg turbulence & Cross-agency coordination degrades; fusion quality drops \\
+Automation pressure & Understaffed teams over-rely on immature AI tools; Algorithmic Capture surface expands \\
+Morale effects & Uncertainty increases voluntary attrition; recruitment becomes harder \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{warnbox}
+
+\begin{infobox}[The Compounding Dynamic {[E]}]
+Workforce contraction doesn't merely add to existing risks---it \textit{multiplies} them:
+\begin{itemize}[nosep]
+  \item \textbf{Process DoS} becomes harder to absorb when fewer analysts are available to triage
+  \item \textbf{Algorithmic Capture} becomes harder to detect when fewer humans oversee AI-assisted workflows
+  \item \textbf{OSINT/GEOINT contamination} becomes harder to identify when institutional knowledge of baseline patterns is lost
+  \item \textbf{Verification Latency} increases when experienced verifiers are replaced by less experienced staff or automation
 \end{itemize}
 
-\textbf{Why This Matters}: Verification is labor- and expertise-intensive. Losing experienced analysts increases Verification Latency, raises False Clean risk, and makes Algorithmic Capture easier.
-\end{criticalbox}
+\textbf{Critical Caveat [E]}: We do not claim these workforce actions are unprecedented or illegitimate---IC staffing levels fluctuate across administrations. The analysis concern is \textit{timing}: workforce contraction simultaneous with rising verification demands creates a capacity gap that adversaries can exploit.
+\end{infobox}
 
 % ============================================================================
 % PART II - The Crisis of Intent
@@ -926,6 +974,23 @@ Public reporting indicates significant IC staffing reductions concurrent with ri
 
 AI agents break this link. A principal can set a benign-seeming goal, and the agent may autonomously derive methods the principal never explicitly authorized---and may plausibly claim they never intended.
 
+\begin{defbox}[The Forensic Challenge {[E]}]
+\begin{center}
+\small
+\begin{tabular}{L{5.5cm}L{7cm}}
+\toprule
+\textbf{Traditional Attribution} & \textbf{Agent-Enabled Attribution} \\
+\midrule
+Trace actions to human operators & Actions trace to AI system \\
+Evidence of planning in communications & Planning occurs in model weights \\
+Identify the decision-maker & Decision-maker is an optimization process \\
+Establish chain of command & Chain terminates at goal specification \\
+Prove foreknowledge of methods & Methods may be emergent, not specified \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{defbox}
+
 \begin{scenariobox}[Example Scenario]
 \begin{enumerate}
   \item A state directs its agent: ``Maximize regional economic stability''
@@ -999,6 +1064,12 @@ Deterrence decay creates dangerous dynamics:
   \item \textbf{Misattribution cascades}: Uncertainty enables false flag operations
 \end{enumerate}
 \end{warnbox}
+
+\begin{scenariobox}[The ``Dead Hand'' Scenario {[S]}]
+The most severe manifestation: agents programmed to activate upon certain triggers (leader incapacitation, network attack, etc.) may initiate actions after the human principal is no longer able to be consulted. The action occurs, but no living human ``intended'' it in any meaningful sense.
+
+\textit{Note: This is a tail-risk illustration of intent ambiguity, not a prediction of likely doctrine. It demonstrates the logical endpoint of agent-enabled deniability, not an expected near-term development.}
+\end{scenariobox}
 
 \subsection{The IC's Attribution Challenge}
 
@@ -1214,6 +1285,33 @@ Document forgery & High-fidelity synthetic documents & Documentary evidence ques
 \bottomrule
 \end{tabular}
 \end{center}
+
+\begin{warnbox}[GEOINT-Specific Challenges]
+\begin{center}
+\small
+\begin{tabular}{L{5.5cm}L{7cm}}
+\toprule
+\textbf{Traditional} & \textbf{Agent-Era} \\
+\midrule
+Satellite shows ground truth & AI can generate convincing synthetic imagery \\
+Physical infrastructure verifiable & Deepfake imagery of fake infrastructure \\
+Temporal consistency (images over time) & AI can generate consistent fake sequences \\
+Metadata trustworthy & Metadata easily spoofed \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{warnbox}
+
+\begin{infobox}[The Computational Cost {[S]}]
+Establishing ground truth becomes computationally expensive. Verification may require:
+\begin{itemize}[nosep]
+  \item Multi-source confirmation across independent sensors
+  \item Physical ground-truth collection
+  \item Provenance chain verification
+  \item Cross-temporal consistency analysis
+\end{itemize}
+This ``verification tax'' may exceed the value of the intelligence for routine questions, reserving verification resources for only the most critical assessments.
+\end{infobox}
 
 \subsection{MASINT: Sensor Spoofing and Signature Mimicry}
 
@@ -1491,6 +1589,32 @@ Supply chain intel failure & Nano-smurfing for dual-use components & All service
 \subsubsection{FBI Intelligence Branch}
 
 \textbf{Primary Risk}: Process DoS (Denial of Service)
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{4.5cm}L{5cm}}
+\toprule
+\textbf{Threat Vector} & \textbf{Mechanism} & \textbf{Impact} \\
+\midrule
+Lead flooding & High volumes of ``expert-grade'' synthetic tips (illustrative: 10-100x current baseline) & Investigative capacity paralyzed \\
+Hyper-Specific FOIA & Agents scan declassified documents for classification ``seams'' & Legally difficult to deny without revealing sources/methods \\
+Synthetic informants & AI personas reporting false intelligence & Resources chasing phantoms \\
+Counter-CI evasion & Agents learn and evade FBI patterns & Adversary operations undetected \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{warnbox}[The ``Hyper-Specific FOIA'' Problem {[E]}]
+Traditional FOIA volume is manageable through ``burdensome request'' precedents. AI-generated FOIA attacks are different:
+\begin{itemize}[nosep]
+  \item Agents scan declassified documents to identify classification ``seams''
+  \item Generate requests that probe specific gaps in public records
+  \item Each request is legally difficult to deny without revealing sensitive sources and methods
+  \item Volume alone doesn't break the agency---the \textit{plausibility} and \textit{specificity} does
+\end{itemize}
+
+\textbf{Existing Counters (not to be dismissed)}: FOIA has blunt instruments---exemptions, Glomar responses, request narrowing, fee structures, litigation timelines. These provide defense-in-depth. The concern is that AI-generated specificity makes \textit{each denial} more costly (legal review, potential litigation risk) rather than that FOIA lacks any defense.
+\end{warnbox}
 
 \begin{criticalbox}[The Expert-Grade Lead Problem]
 Previously, most false leads were obviously low-quality. AI-generated leads are sophisticated:
@@ -1956,12 +2080,21 @@ Cross-agency synthetic detection & FBI + CISA & Shared tooling deployed \\
 
 \begin{infobox}[Cross-Reference: Sleeper Agents Framework]
 The \texttt{packages/sleeper\_agents/} framework provides production-validated techniques directly applicable to synthetic content detection. Based on Anthropic's research on persistent deceptive behaviors in LLMs, the framework's \textbf{Linear Probe Detection} methodology (achieving AUC=1.0 across multiple architectures) can detect AI-generated content by analyzing activation patterns during text generation. Key applicable techniques:
-\begin{itemize}
-  \item \textbf{Generation-Based Activation Extraction}: Capture residual stream activations to distinguish authentic human content from agent-generated synthetic content
-  \item \textbf{Chain-of-Thought Analysis}: Detect reasoning patterns indicative of goal-directed agent behavior
-  \item \textbf{Trigger-Based Testing}: Identify content generated in response to specific prompts or conditions
-\end{itemize}
-This framework addresses a critical gap: standard detection methods may create a ``false impression of safety'' while sophisticated synthetic content passes undetected.
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{9cm}}
+\toprule
+\textbf{Technique} & \textbf{Description and Application} \\
+\midrule
+Generation-Based Activation Extraction & Capture residual stream activations to distinguish authentic human content from agent-generated synthetic content. Analyzes internal model states during text generation. \\
+Chain-of-Thought Analysis & Detect reasoning patterns indicative of goal-directed agent behavior. Identifies systematic reasoning structures that differ from human thought patterns. Useful for detecting agent-generated analysis or reports. \\
+Trigger-Based Testing & Identify content generated in response to specific prompts, conditions, or activation patterns. Can reveal ``sleeper'' behaviors that only manifest under certain circumstances. Applicable to detecting conditional agent actions. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+This framework addresses a critical gap: standard detection methods may create a ``false impression of safety'' while sophisticated synthetic content passes undetected. The techniques above provide layered detection capabilities that can identify even adversarially-crafted synthetic content.
 \end{infobox}
 
 \subsection{Model Provenance \& Verification Ladder}
@@ -1983,6 +2116,25 @@ Rather than pursuing perfect attribution (infeasible), build capabilities in lay
 \end{tabular}
 \end{center}
 \end{defbox}
+
+\begin{keybox}[Layer 3: Model-Family Attribution Methods {[E]}]
+Model-family attribution aims to identify \textit{which weight family} produced content, treating model outputs as ``activations'' that reveal underlying model characteristics. Key techniques:
+
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{8.5cm}}
+\toprule
+\textbf{Method} & \textbf{Description} \\
+\midrule
+Linear Probe Detection & Train classifiers on activation patterns to distinguish model families. Can achieve high accuracy on unmodified models; accuracy degrades with fine-tuning. \\
+Weight-Space Fingerprinting & Analyze statistical properties of outputs (token distributions, attention patterns) to identify characteristic ``fingerprints'' of model architectures. \\
+Behavioral Signatures & Identify systematic behaviors (response patterns, refusal styles, formatting preferences) that persist across fine-tuned variants. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Practical Value}: Even imperfect attribution (``this is probably Llama-derived'') narrows investigative scope and increases adversary operational costs.
+\end{keybox}
 
 \begin{warnbox}[Technical Limitations]
 Fine-tuning and model merging complicate provenance detection:
@@ -2109,6 +2261,28 @@ Gold & All AI tools in IC production use & ODNI \\
   \item Treaty exploration for agent-mediated state actions
 \end{itemize}
 
+\subsection{Verification Latency Baseline (Bronze)}
+
+\textbf{90-Day Mandate}: Establish baseline measurements for verification capacity across all 18 agencies.
+
+\begin{recbox}[Metrics to Track]
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{4.5cm}L{4cm}}
+\toprule
+\textbf{Metric} & \textbf{Definition} & \textbf{Owner} \\
+\midrule
+Time to confirm Human vs. Agent & Duration from intake to origin determination & Each agency verification cell \\
+Authentication failure rate & \% of synthetic content initially marked authentic & ODNI (aggregate) \\
+Lead Decay rate & \% of leads identified as invalid/synthetic & FBI, DHS (domestic); CIA, DIA (foreign) \\
+Cross-agency verification time & Time to coordinate multi-INT verification & ODNI \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Why Baseline First}: Without baseline measurements, success cannot be measured. The 90-day target is establishing measurement infrastructure, not achieving verification targets.
+\end{recbox}
+
 \subsection{Budget Implications}
 
 \textbf{Key Shift}: Budget allocation must shift from collection-centric to verification-centric metrics.
@@ -2127,24 +2301,51 @@ Analyst count & Verification capacity \\
 \end{tabular}
 \end{center}
 
-\subsection{The Verification Pipeline}
+\subsection{The Verification Pipeline: Operationalizing the Pivot}
 
+The ``Verification Pivot'' requires concrete operationalization. This section defines how intelligence claims move from intake to decision-grade, with explicit gates and measurable failure modes.
+
+\textbf{Claim Processing Pipeline}:
 \begin{center}
-\texttt{[Intake] -> [Triage] -> [Provenance Check] -> [Cross-Sensor Corroboration] -> [Contamination Test] -> [Confidence Assignment] -> [Decision Package]}
+\texttt{[Intake] $\rightarrow$ [Triage] $\rightarrow$ [Provenance Check] $\rightarrow$ [Cross-Sensor Corroboration] $\rightarrow$ [Contamination Test] $\rightarrow$ [Confidence Assignment] $\rightarrow$ [Decision Package]}
 \end{center}
 
+\begin{defbox}[Pipeline Stages and Failure Modes]
 \begin{center}
 \small
-\begin{tabular}{L{2.5cm}L{2.5cm}L{2.5cm}L{2.5cm}}
+\begin{tabular}{L{2.5cm}L{3.5cm}L{2.5cm}L{4cm}}
 \toprule
-\textbf{Metric} & \textbf{Definition} & \textbf{Target (Bronze)} & \textbf{Target (Gold)} \\
+\textbf{Stage} & \textbf{Function} & \textbf{Owner} & \textbf{Failure Mode} \\
 \midrule
-Verification Latency & Time to confidence assignment & Establish baseline & 50\% reduction \\
-Lead Decay Rate & \% of leads identified as synthetic & Measure & Track trend \\
-False Clean Rate & Contaminated content marked authentic & Measure & <5\% \\
+Intake & Receive raw intelligence claim & Collection element & Volume overflow \\
+Triage & Prioritize by decision relevance & Analyst team & Mis-prioritization \\
+Provenance Check & Verify source authenticity and chain of custody & Verification cell & False clean (synthetic passes as authentic) \\
+Cross-Sensor Corroboration & Confirm via independent collection & All-source analyst & Single-source reliance \\
+Contamination Test & Active testing for synthetic markers & Specialized team & Sophisticated evasion \\
+Confidence Assignment & Apply structured analytic confidence levels & Senior analyst & Over-confidence in unverified material \\
+Decision Package & Format for consumer with verification metadata & Production element & Stripped metadata \\
 \bottomrule
 \end{tabular}
 \end{center}
+\end{defbox}
+
+\begin{keybox}[Core Verification Metrics]
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{4cm}L{2.5cm}L{2.5cm}}
+\toprule
+\textbf{Metric} & \textbf{Definition} & \textbf{Target (Bronze)} & \textbf{Target (Gold)} \\
+\midrule
+Verification Latency & Time from intake to confidence assignment & Establish baseline & 50\% reduction \\
+Lead Decay Rate & \% of leads identified as synthetic or invalid & Measure & Track trend \\
+False Clean Rate & Contaminated content incorrectly marked authentic & Measure & <5\% \\
+Verification Spend & Time/\$/compute per decision-grade claim & Measure & Optimize \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Why This Matters}: Without explicit pipeline stages and metrics, ``verification'' remains an aspiration. This framework enables ODNI/CIO/CTO to instrument the pivot and measure progress.
+\end{keybox}
 
 \section{Indicators to Monitor}
 
@@ -2388,8 +2589,11 @@ Collection remains essential, but its value proposition shifts. The alternative-
 & [E] Expert judgment \textbar{} [S] Speculative projection \\
 \textbf{Classification}: & Policy Research - For Defensive Analysis \\
 \textbf{Prepared For}: & Emerging Technology Risk Assessment Committee \\
+\textbf{Distribution}: & Committee members, designated reviewers \\
 \textbf{Document ID}: & ETRA-2026-IC-001 \\
-\textbf{Version}: & 0.1 (Initial Draft) \\
+\textbf{Version}: & 1.0 (Working Draft) \\
+\textbf{Related Documents}: & ETRA-2025-FIN-001 (Financial Integrity) \\
+& ETRA-2025-ESP-001 (Espionage Operations) \\
 \end{tabular}
 \end{center}
 
