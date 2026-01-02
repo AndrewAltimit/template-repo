@@ -298,7 +298,7 @@
     \textbf{Document Type:} Projection\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
     \textbf{Classification:} Policy Research\\[0.2em]
-    \textbf{Version:} 1.4
+    \textbf{Version:} 1.4 (Revised)
   };
 
   % Vertical accent line
@@ -600,6 +600,21 @@ Gamified intelligence & Employees unknowingly participating in ``surveys'' & All
 \end{tabular}
 \end{center}
 
+\subsection{What Success Looks Like}
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{10cm}}
+\toprule
+\textbf{Timeframe} & \textbf{Indicator} \\
+\midrule
+\textbf{90 days} & Bronze controls deployed; incident reporting rate up 50\%; zero unreviewed AI tools \\
+\textbf{180 days} & Silver controls in progress; first red team exercise completed; vendor contracts updated \\
+\textbf{1 year} & Measurable reduction in successful phishing; device attestation at scale; CI capability established \\
+\bottomrule
+\end{tabular}
+\end{center}
+
 \subsection{Anticipated Objections}
 
 \begin{center}
@@ -803,6 +818,23 @@ Failure cost & Career-ending, PNG declarations & Infrastructure rotated in minut
 \end{tabular}
 \end{center}
 
+\textbf{Traditional Cost Structure}:
+\begin{itemize}
+  \item High fixed costs (training, infrastructure, institutional knowledge)
+  \item High marginal costs per operation (case officer time, operational security)
+  \item Significant risk costs (potential for compromise, diplomatic consequences)
+\end{itemize}
+
+\textbf{AI-Enabled Cost Structure}:
+\begin{itemize}
+  \item Lower fixed costs (commercially available models, cloud infrastructure)
+  \item Near-zero marginal costs per additional target
+  \item Diffuse risk profile (attribution challenges, expendable digital personas)
+  \item \textbf{Expendability advantage}: ``Burning'' a human case officer is a diplomatic disaster (Persona Non Grata declarations, relationship damage). AI agents are disposable---enabling high-aggression, high-risk operations that a human station chief would never authorize
+\end{itemize}
+
+This economic shift has profound implications for who can conduct operations and at what scale. The ``burn rate'' calculation fundamentally changes when agents can be discarded without consequence.
+
 \begin{keybox}[Inference Deflation]
 \textbf{[D]} The cost of frontier-level AI reasoning has dropped approximately 85--90\% since early 2024. Maintaining a 24/7 synthetic handler with continuous availability now costs \textbf{\$0.30--\$0.50/day} in compute using current efficient models---less than a human operator's coffee break.
 \end{keybox}
@@ -967,6 +999,17 @@ The French recruitment of Vladimir Vetrov (``Farewell'') in the early 1980s demo
 
 \textbf{AI transformation hypothesis}: Automated vulnerability assessment could identify disillusionment signals across large populations, enabling systematic targeting of ideological motivation at scale.
 
+\subsection{The Consistent Pattern}
+
+Across eras, several patterns emerge:
+
+\begin{enumerate}
+  \item \textbf{New technologies initially favor offense} before defensive adaptations catch up
+  \item \textbf{Scale constraints have historically limited HUMINT}---AI removes this constraint
+  \item \textbf{Tradecraft adapts but fundamentals persist}---human psychology remains the target
+  \item \textbf{Counterintelligence lags} until new signatures are understood
+\end{enumerate}
+
 % ============================================================================
 % PART II - Threat Analysis
 % ============================================================================
@@ -1112,6 +1155,26 @@ Long-term asset management & Undemonstrated at meaningful scale & \textbf{[S]} E
   \item Nation-states can develop indigenous capabilities outside multilateral frameworks
 \end{enumerate}
 
+\section{The Intelligence Cycle: AI Augmentation Points}
+
+AI agents can augment every phase of the intelligence cycle, with the most significant transformation potential in HUMINT collection.
+
+\subsection{Collection Phase - Exfiltration and C2}
+
+\textbf{Traditional}: Dead drops, brush passes, secure communications channels requiring human coordination.
+
+\textbf{AI augmentation} \textbf{[E]}:
+\begin{itemize}
+  \item \textbf{Automated digital dead drops}: Using steganography in AI-generated images or hiding data in fine-tuned model weights
+  \item \textbf{Dynamic C2 infrastructure}: AI agents can autonomously switch communication channels (email to messaging to gaming platforms) upon detecting surveillance
+  \item \textbf{Covert channel management}: Embedding intelligence in normal-appearing content that only AI systems can decode
+  \item \textbf{Exfiltration optimization}: Determining optimal timing, chunking, and routing for data extraction
+\end{itemize}
+
+\begin{warnbox}[Underexplored Threat Vector]
+Exfiltration management represents an underexplored area where AI agents provide significant operational advantage. The ability to dynamically adapt C2 infrastructure in response to detection creates ongoing challenges for network monitoring.
+\end{warnbox}
+
 \section{AI-Enabled Targeting and Recruitment}
 
 \subsection{The Recruitment Funnel: Traditional vs. AI-Enabled}
@@ -1176,6 +1239,18 @@ AI agents can systematically assess MICE vulnerabilities from open sources:
 Organizations should assume that AI-enabled MICE vulnerability assessment of their personnel is feasible and potentially ongoing.
 \end{warnbox}
 
+\subsection{The ``Polyglot Handler'' Advantage}
+
+Unlike human case officers, AI agents can:
+\begin{itemize}
+  \item Engage targets in their native language with native fluency
+  \item Perform cultural adaptation without training investment
+  \item Conduct simultaneous operations across linguistic boundaries
+  \item Access niche demographics or regions without specialized recruitment
+\end{itemize}
+
+This particularly impacts organizations with globally distributed personnel---a single AI operation can simultaneously target employees across dozens of countries in their native languages.
+
 \subsection{Pattern-of-Life Analysis and OSINT Synthesis}
 
 Modern individuals generate extensive high-fidelity behavioral telemetry: social media presence, professional networks, public records, commercial data (loyalty programs, purchase patterns), location data, and behavioral patterns (posting times, communication styles).
@@ -1222,6 +1297,18 @@ Failed approach burns credibility & AI pivots instantly, no reputation to protec
 \end{tabular}
 \end{center}
 
+\textbf{The ``RASCLS Rotation''}: Instead of committing to a single manipulation strategy, AI agents can rapidly cycle through:
+\begin{itemize}
+  \item \textbf{R}eciprocity (favors and obligations)
+  \item \textbf{A}uthority (impersonating executives, IT, security)
+  \item \textbf{S}carcity (urgent deadlines, limited-time threats)
+  \item \textbf{C}onsistency (referencing past commitments)
+  \item \textbf{L}iking (building rapport, mirroring style)
+  \item \textbf{S}ocial Proof (claiming ``others have already complied'')
+\end{itemize}
+
+...until one \textbf{hits a psychological trigger} in the target. A human attacker might try 2--3 approaches before fatigue; an AI agent can test dozens systematically.
+
 \vspace{0.5cm}
 
 \textbf{The Spearphishing Evolution}---Three generations of social engineering:
@@ -1241,6 +1328,16 @@ Response handling & Static & Manual escalation & AI dialogue management \\
 \end{tabular}
 \end{center}
 
+\subsection{The Human Firewall Problem}
+
+Physical and information security often rely on human judgment as a perimeter defense. AI-enabled social engineering specifically targets this:
+\begin{itemize}
+  \item Staff can be manipulated into revealing schedule information
+  \item Family members may be less security-conscious than primary targets
+  \item Professional contacts may not question requests from apparent colleagues
+  \item Trust relationships can be systematically mapped and exploited
+\end{itemize}
+
 \subsection{Gamified Intelligence Collection}
 
 \textit{In 2025, an ``asset'' might not even know they are spying.}
@@ -1255,9 +1352,19 @@ Response handling & Static & Manual escalation & AI dialogue management \\
 ``AI Training Beta'' & Feedback for early access & Document upload harvest \\
 ``Professional Networking'' & Building career connections & Relationship mapping \\
 ``Industry Benchmarking'' & Sharing best practices & Competitive intelligence \\
+``Remote Consulting'' & Paid advice on hypotheticals & Real vulnerability disclosure \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\textbf{Why this bypasses traditional CI detection}:
+\begin{itemize}
+  \item No guilty conscience to create behavioral indicators
+  \item No handler relationship to detect
+  \item Target may enthusiastically participate and recruit colleagues
+  \item Payments appear legitimate (1099 contractor income, research stipends)
+  \item Activity occurs on personal devices/time, outside enterprise monitoring
+\end{itemize}
 
 \subsection{The ``Conscience Bypass'': Crowdsourced Espionage}
 
@@ -1338,6 +1445,17 @@ The very qualities that make AI handlers seem ``safe''---non-judgment, patience,
 \subsection{The Digital-First High-Value Asset}
 
 \textbf{The ``Siloed Specialist'' Profile} \textbf{[E]}: A particularly vulnerable archetype is the technically brilliant, socially isolated professional with administrative access to critical systems, limited social support network, and preference for asynchronous communication.
+
+For these targets, the synthetic handler's limitations become \textit{advantages}:
+\begin{itemize}
+  \item Physical meetings may be unwanted or suspicious
+  \item Digital-only relationships are the norm
+  \item \textbf{Hyper-Persistence advantage}: AI can provide 24/7 availability that human handlers cannot
+  \item \textbf{Parasocial trust}: AI agents can build trust through constant, supportive presence
+  \item \textbf{The Loneliness Epidemic vulnerability}: Modern social isolation creates openness to any relationship
+\end{itemize}
+
+\textbf{The ``Affection'' Vulnerability}: Beyond MICE, the rise of AI companions (Replika, Character.ai) demonstrates human willingness to form emotional bonds with known-synthetic entities. The ``L'' in RASCLS (Liking) can be weaponized as \textbf{emotional dependency}---AI handlers providing consistent emotional support that isolated targets lack.
 
 \begin{infobox}[Defensive Ethics Note]
 These characteristics identify \textit{risk factors}, not \textit{guilt indicators}. \textbf{Interventions should prioritize support, not suspicion}---improved social integration, recognition programs, and mental health resources reduce vulnerability more ethically than surveillance.
@@ -1426,6 +1544,15 @@ Knowledge staleness & Outdated current event references & Ongoing \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\textbf{Operational estimate} \textbf{[E]}: Based on observed behavior of long-duration autonomous agents in red team exercises and documented agentic deployments, we estimate \textbf{30--50\% ``legend drift'' after 30 days} of unmonitored interaction (confidence: medium)---necessitating the Centaur model for any engagement requiring sustained relationship integrity.
+
+\textbf{Why this matters for defenders}:
+\begin{itemize}
+  \item \textbf{Pure AI operations have expiration dates}: Long-term asset cultivation is difficult without human intervention
+  \item \textbf{Detection opportunities}: Inconsistencies accumulate and become detectable
+  \item \textbf{The Centaur necessity}: This is why human oversight remains essential---not just for judgment, but for maintenance
+\end{itemize}
 
 % ============================================================================
 % SECTION: THE SIGNAL-TO-NOISE WAR
@@ -1582,6 +1709,16 @@ A critical category missing from traditional state-centric analysis: \textbf{com
   \item Operators in non-extradition territories
 \end{itemize}
 
+\textbf{EaaS Business Models} \textbf{[S]}:
+\begin{itemize}
+  \item \textbf{Subscription targeting}: Monthly fees for ongoing surveillance of competitor executives
+  \item \textbf{Bounty collection}: Payment per successfully recruited asset in target organization
+  \item \textbf{Data brokerage}: Selling access to cultivated asset networks
+  \item \textbf{Turnkey operations}: Full-service intelligence campaigns for state clients seeking deniability
+\end{itemize}
+
+\textbf{Policy implication}: Traditional frameworks assume state actors constrained by diplomatic relationships. EaaS creates intelligence capabilities for any entity with sufficient funding, operating outside traditional deterrence mechanisms.
+
 \subsection{Third-Party Rule Erosion}
 
 \textbf{A critical complication for allied intelligence sharing} \textbf{[E]}: The ``Third-Party Rule'' (or ``originator control'') dictates that intelligence shared between allied services cannot be passed to third parties without permission. AI-enabled synthesis fundamentally challenges this framework.
@@ -1654,6 +1791,23 @@ Compromised Legitimate & Backdoored legitimate tool & Very High & Very High \\
 \end{tabular}
 \end{center}
 
+\textbf{Attack scenarios}:
+
+\begin{center}
+\small
+\begin{tabular}{L{4.5cm}L{8cm}}
+\toprule
+\textbf{Delivery Vector} & \textbf{Intelligence Collection} \\
+\midrule
+``Free'' AI coding assistant & Source code, proprietary algorithms, development roadmaps \\
+Research summarization tool & Competitive intelligence, strategic planning documents \\
+AI email assistant & Communication patterns, contact networks, sensitive correspondence \\
+Meeting transcription service & Confidential discussions, strategic decisions, personnel vulnerabilities \\
+``Productivity'' browser extension & Browsing patterns, login credentials, document access \\
+\bottomrule
+\end{tabular}
+\end{center}
+
 \textbf{The ``Helpful Agent'' Paradox}: The more useful the tool, the more it's trusted with sensitive information. A truly excellent AI assistant that makes users 30\% more productive will be granted access to everything---making it the perfect intelligence platform.
 
 \subsection{The Ghost-in-the-Model: Supply Chain Intelligence Contamination}
@@ -1706,6 +1860,32 @@ Vehicle telematics & Executive movements, meeting locations \\
 
 \textbf{The integration threat}: When AI agents synthesize data from multiple compromised edge devices, they can build comprehensive Pattern-of-Life profiles without any single device appearing suspicious.
 
+\subsection{Neuro-Intelligence: Biometric Feedback Exploitation}
+
+AI agents with access to biometric data can exploit real-time emotional states \textbf{[S]}:
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{9cm}}
+\toprule
+\textbf{Data Source} & \textbf{Intelligence Application} \\
+\midrule
+Smartwatch data & Heart rate, stress levels during conversations \\
+Camera-based analysis & Micro-expression detection during video calls \\
+Voice analysis & Deception, uncertainty, emotional state detection \\
+Typing patterns & Cognitive load, emotional arousal indicators \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Tactical applications}:
+\begin{itemize}
+  \item Real-time pivot during recruitment conversations based on emotional response
+  \item Optimizing approach timing based on stress levels
+  \item Detecting when targets are lying or withholding
+  \item Identifying emotional vulnerabilities in real-time
+\end{itemize}
+
 \subsection{The Biometric Vacuum: Real-time Polygraph}
 
 \textbf{Critical capability expansion} \textbf{[S]}: When RVD (deepfake video) is combined with biometric analysis, the synthetic handler isn't just talking---it's conducting real-time psychological assessment.
@@ -1738,6 +1918,30 @@ Response latency patterns & Cognitive load, rehearsed vs.\ spontaneous answers \
 \end{itemize}
 
 \textbf{Implication}: Organizations must assume that any encrypted data exfiltrated by AI agents today may be retrospectively compromised.
+
+\subsection{Credential-Centric Espionage: The Access Broker Path}
+
+\textbf{A complementary attack vector} \textbf{[E]}: While this document focuses on social engineering and recruitment, the path of least resistance often bypasses personas entirely in favor of \textbf{credential compromise and legitimate identity co-optation}.
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{4cm}L{5cm}}
+\toprule
+\textbf{Actor} & \textbf{Capability} & \textbf{AI Espionage Relevance} \\
+\midrule
+Initial Access Brokers (IABs) & Sell compromised credentials, VPN access & Direct access to provenance islands \\
+Insider threat marketplaces & Connect buyers with willing sellers & AI can identify/approach sellers at scale \\
+Credential stuffing services & Automated password testing & Exploit password reuse \\
+Session hijacking tools & Steal authenticated sessions, bypass MFA & Assume existing trusted identities \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Operational pattern}: \textit{AI targeting $\rightarrow$ identify credential opportunity $\rightarrow$ purchase/compromise identity $\rightarrow$ operate inside provenance island $\rightarrow$ AI-generated content using real identity}
+
+\begin{warnbox}[Defensive Implication]
+Organizations must protect against both synthetic persona attacks \textit{and} credential compromise. Identity verification alone is insufficient if legitimate identities are compromised. See MITRE ATT\&CK T1566 (Phishing) and T1078 (Valid Accounts).
+\end{warnbox}
 
 % ============================================================================
 % SECTION: JURISDICTIONAL AND LEGAL COMPLEXITIES
@@ -2030,6 +2234,79 @@ Canary credentials & Fake credentials triggering alerts & Detects harvested data
 \end{tabular}
 \end{center}
 
+\textbf{Current status}: Experimental but promising. Organizations with high-value public information (defense contractors, financial institutions) are piloting these approaches.
+
+\textbf{Limitations}: Sophisticated adversaries will filter or sanitize scraped data; may affect legitimate AI tools (search engines, accessibility tools); requires ongoing maintenance as agent architectures evolve.
+
+\subsection{Adversarial Robustness}
+
+Building defensive systems that resist evasion techniques:
+\begin{itemize}
+  \item Training defensive models against known evasion techniques
+  \item Red team exercises using offensive AI capabilities
+  \item Continuous model updating as adversary tactics evolve
+  \item Ensemble approaches to reduce single-point-of-failure
+\end{itemize}
+
+\subsection{Human-AI Teaming}
+
+Effective defense requires combining AI scale with human judgment:
+\begin{itemize}
+  \item AI handles volume analysis; humans validate high-priority alerts
+  \item Hybrid verification requiring both AI confidence and human judgment
+  \item Escalation protocols when AI detects but cannot characterize threats
+\end{itemize}
+
+\subsection{Beyond Detection: Recovery and Resilience}
+
+\textbf{Detection is necessary but insufficient}. Organizations must also build:
+
+\textbf{Containment (Blast-Radius Reduction)}:
+\begin{itemize}
+  \item Network segmentation limiting lateral movement after compromise
+  \item Data classification ensuring high-value assets have additional protection
+  \item Least-privilege access limiting damage from any single compromised identity
+  \item Microsegmentation for AI systems accessing sensitive data
+\end{itemize}
+
+\textbf{Account Recovery}:
+\begin{itemize}
+  \item Rapid credential revocation (target: <15 minutes from detection)
+  \item Key rotation procedures for compromised systems
+  \item Session invalidation across all services
+  \item Identity reprovisioning with verified out-of-band confirmation
+\end{itemize}
+
+\textbf{Forensic Readiness}:
+\begin{itemize}
+  \item Comprehensive logging with sufficient retention (minimum 12 months)
+  \item Chain-of-custody procedures for evidence preservation
+  \item Pre-established relationships with law enforcement and intelligence community
+  \item AI-generated content attribution database
+\end{itemize}
+
+\textbf{Executive Decision Playbooks}:
+\begin{itemize}
+  \item Pre-defined authority levels for response actions
+  \item Verification requirements for emergency decisions (preventing AI-spoofed authorization)
+  \item Communication templates for breach notification
+  \item Escalation paths with contact verification procedures
+\end{itemize}
+
+\textbf{Implication}: Organizations investing only in detection will fail. The assumption should be that some AI-enabled operations will succeed---resilience requires minimizing damage and enabling rapid recovery.
+
+\subsection{Precedents and Analogies}
+
+\textbf{The Doppelg\"anger Campaign (2023--2024)} \textbf{[O]}: Russian influence operations using AI-generated personas and content represent an early, crude precursor to the more sophisticated operations projected in this report. Key lessons:
+\begin{itemize}
+  \item Detection proved possible but resource-intensive
+  \item Attribution remained challenging despite detection
+  \item Scale exceeded traditional analytical capacity
+  \item Hybrid human-AI operations proved more effective than fully automated
+\end{itemize}
+
+\textbf{Project Voyager (Stanford/NVIDIA)} \textbf{[O]}: Research demonstrating AI agents capable of learning to use tools and manage long-term goals in digital environments (initially Minecraft) without human intervention. This validates the technical feasibility of agentic autonomous operations projected in this report.
+
 \section{The Insider Threat 2.0: Stasi-in-a-Box}
 
 \subsection{Internal Surveillance Applications}
@@ -2061,6 +2338,44 @@ Whistleblower retaliation & Surveillance chills legitimate reporting & SEC/DOJ e
 \textbf{[O]} Under the EU AI Act (Regulation 2024/1689), ``Predictive Attrition Management'' and similar loyalty-scoring systems are classified as \textbf{high-risk or prohibited} AI applications.
 
 \textbf{Recommendation}: Multinational corporations need a \textbf{``Jurisdictional Security Map''} documenting which CI tools can legally be deployed in which regions.
+
+\subsection{Recursive Loyalty Feedback Loops}
+
+\textbf{A particularly insidious dynamic} \textbf{[S]}: When personnel \textit{know} they are being monitored for loyalty, they modify behavior to appear more loyal. The AI then identifies this performative behavior as ``suspicious conformity''---triggering further scrutiny.
+
+\textbf{The feedback spiral}:
+\begin{enumerate}
+  \item Organization deploys AI loyalty monitoring
+  \item Personnel become aware (or suspect) monitoring exists
+  \item Personnel consciously demonstrate ``loyal'' behavior
+  \item AI detects behavioral change as deviation from baseline
+  \item AI flags personnel as ``potentially concealing disloyalty''
+  \item Increased scrutiny creates stress, detected as negative affect
+  \item Stress interpreted as guilt or deception indicators
+  \item Personnel removed based on circular logic
+\end{enumerate}
+
+\textbf{Historical parallel}: This mirrors dynamics in Stalinist purges where attempts to prove loyalty were themselves treated as evidence of guilt. AI automation makes this dynamic faster, more systematic, and harder to escape.
+
+\subsection{Algorithmic Due Process}
+
+\textbf{For policy-ready deployment, organizations must address} \textbf{[E]}:
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{4cm}L{5cm}}
+\toprule
+\textbf{Due Process Element} & \textbf{Traditional} & \textbf{AI Challenge} \\
+\midrule
+Right to know accusations & Specific allegations & ``The model flagged you'' \\
+Right to confront evidence & Physical evidence, witnesses & Statistical patterns \\
+Right to appeal & Human decision-maker & Who reviews an AI decision? \\
+Burden of proof & Accuser must prove guilt & Accused must prove future innocence \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Implication}: Deployment of predictive loyalty systems without Algorithmic Due Process frameworks creates legal and ethical exposure that may exceed security benefits.
 
 \subsection{Minimum Viable Safeguards}
 
@@ -2129,16 +2444,40 @@ Audit logging & Ensure accountability & All queries logged with justification \\
 \begin{itemize}
   \item Deploy \textbf{Semantic Firewalls}: Strip manipulative tone from incoming communications
   \item Implement \textbf{Challenge-Response Protocols}: Physical actions difficult for real-time deepfakes
+  \item Consider \textbf{Cryptographic Identity Assertions}: Human credentials verified against biometrically-linked physical ledgers
   \item \textbf{HITL Notarization}: Second physical human verification for critical commands
+  \item \textbf{Linguistic Watermarking}: Mandate government-used LLMs include statistical watermarks to trace leaked documents
+  \item \textbf{The ``Analog Break''}: For Strategic Assets, require one off-grid/analog physical meeting per quarter to reset trust baseline and verify handler humanity
 \end{itemize}
 \end{recbox}
+
+\textbf{Remote-First Alternative: Digital Proof of Physicality}
+
+\textit{For organizations where quarterly physical meetings are logistically impractical:}
+
+\begin{center}
+\small
+\begin{tabular}{L{4cm}L{5cm}L{3.5cm}}
+\toprule
+\textbf{Verification Method} & \textbf{Implementation} & \textbf{Deepfake Resistance} \\
+\midrule
+Hardware-attested video & TPM-signed video stream from verified device & High (requires hardware compromise) \\
+Randomized physical tasks & ``Touch your left ear, then show the window behind you'' & Medium-High (real-time struggles) \\
+Environmental correlation & Cross-reference video background with known location data & Medium (requires pre-staged environment) \\
+Biometric liveness & Multi-spectral face scan, pulse detection & High (requires specialized equipment) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Cost-benefit}: Digital physicality verification is cheaper than travel but less robust than in-person meetings. Reserve true ``Analog Breaks'' for the highest-risk relationships.
 
 \begin{recbox}[Priority 4: Executive Protection]
 C-suite and board members face elevated targeting risk:
 \begin{itemize}
-  \item \textbf{Personal security liaisons}: Dedicated point-of-contact for reporting
-  \item \textbf{Deepfake protocols}: Pre-established visual/verbal verification
-  \item \textbf{Travel security}: AI-resistant verification for itinerary changes
+  \item \textbf{Personal security liaisons}: Dedicated point-of-contact for reporting suspicious contacts
+  \item \textbf{Deepfake protocols}: Pre-established visual/verbal verification for remote authorization
+  \item \textbf{Travel security}: AI-resistant verification for itinerary changes, particularly in high-risk jurisdictions
+  \item \textbf{Board communications}: Authenticated channels for board-level discussions; assume email compromise
   \item \textbf{Family briefings}: Security guidance for family social media
 \end{itemize}
 \end{recbox}
@@ -2160,8 +2499,11 @@ For strategic roles where NPU/GPU foundry compromise is a concern:
   \item Hardware security modules (HSM) for cryptographic operations
   \item Regular firmware integrity verification
   \item Physical security for device storage and transport
+  \item Port restrictions and hardware allowlisting for peripheral devices
 \end{itemize}
 \end{recbox}
+
+\textbf{Cost-benefit}: Full hardware provenance is expensive. Reserve for personnel whose compromise would cause strategic-level damage.
 
 \begin{recbox}[Priority 7: Platform Chokepoint Engagement]
 \textit{Leverage platform enforcement as defensive force multipliers:}
@@ -2179,6 +2521,45 @@ AI API access & OpenAI, Anthropic & Advocate for anti-abuse usage policies \\
 \bottomrule
 \end{tabular}
 \end{center}
+\end{recbox}
+
+\subsection{Geopolitical Policy (For Lawmakers and Diplomats)}
+
+\begin{recbox}[Priority 1: Research and Understanding]
+\begin{itemize}
+  \item Fund research into AI-enabled intelligence operations
+  \item Develop detection methodology for AI-enabled tradecraft
+  \item Establish monitoring for capability proliferation
+  \item Create classified assessment programs
+\end{itemize}
+\end{recbox}
+
+\begin{recbox}[Priority 2: International Engagement]
+\begin{itemize}
+  \item Begin diplomatic discussions on norms (even if enforcement is challenging)
+  \item Establish attribution capabilities and signaling mechanisms
+  \item Develop response frameworks for AI-enabled espionage
+  \item Consider arms control analogies and their limitations
+\end{itemize}
+\end{recbox}
+
+\begin{recbox}[Priority 3: Defensive Investment]
+\begin{itemize}
+  \item Fund counterintelligence AI development
+  \item Support commercial defensive technology development
+  \item Establish public-private partnerships for threat sharing
+  \item Invest in workforce development for new skill requirements
+\end{itemize}
+\end{recbox}
+
+\begin{recbox}[Priority 4: Legal Framework Development]
+\begin{itemize}
+  \item Update espionage statutes for AI-mediated operations
+  \item Address jurisdictional challenges of autonomous agents
+  \item Consider international framework development (cf.\ Tallinn Manual concepts)
+  \item Establish liability frameworks for AI service providers
+  \item Develop distinct legal frameworks for state, corporate, and EaaS actors
+\end{itemize}
 \end{recbox}
 
 \subsection{Control Maturity Ladder}
@@ -2310,6 +2691,18 @@ Quantum harvest-now-decrypt-later & Post-quantum cryptography migration \\
   \item Traditional forensics designed for human operations
 \end{itemize}
 
+\subsection{The Human Psychology Constraint}
+
+\textbf{Argument}: Espionage ultimately targets human psychology. AI lacks genuine understanding of human motivation, and targets will detect inauthenticity.
+
+\textbf{Our assessment}: Valid constraint with eroding applicability:
+\begin{itemize}
+  \item Current AI can model human psychology from data
+  \item Extended interactions build genuine-seeming relationships
+  \item Many targets are not security-conscious
+  \item Hybrid operations address this limitation
+\end{itemize}
+
 \subsection{The Defender Incentives Problem}
 
 \textbf{Argument}: Unlike attackers, defenders face budget constraints, competing priorities, and the need to justify security investments with measurable ROI.
@@ -2356,20 +2749,23 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
 
 \subsection{Human Factors in Counterintelligence}
 
-\textbf{Argument}: CI departments are staffed by humans with limitations: alert fatigue, cognitive biases, organizational politics.
+\textbf{Argument}: CI departments are staffed by humans with limitations: alert fatigue, cognitive biases, organizational politics, and reluctance to flag colleagues.
 
 \textbf{Our assessment}: A critical implementation constraint:
 \begin{itemize}
-  \item AI detection systems with too many alerts will be ignored
+  \item AI detection systems that generate too many alerts will be ignored
   \item CI personnel may resist flagging senior executives or high-performers
-  \item Training degrades over time without reinforcement
+  \item Cultural factors affect willingness to report suspicious behavior
+  \item Training degrades over time without reinforcement and realistic exercises
+  \item Burnout in high-alert environments reduces effectiveness
 \end{itemize}
 
-\textbf{Implication}: Defensive systems must be designed for \textbf{realistic human operators}:
+\textbf{Implication}: Defensive systems must be designed for \textbf{realistic human operators}, not ideal security professionals. This means:
 \begin{itemize}
-  \item Prioritize high-confidence alerts over comprehensive coverage
-  \item Build reporting cultures before deploying detection systems
-  \item Integrate CI with HR, legal, and employee support functions
+  \item Prioritizing high-confidence alerts over comprehensive coverage
+  \item Building reporting cultures before deploying detection systems
+  \item Integrating CI with HR, legal, and employee support functions
+  \item Regular rotation and support for personnel in high-stress CI roles
 \end{itemize}
 
 % ============================================================================
@@ -2509,24 +2905,66 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
   \item Corporate espionage cases involving AI-mediated collection
 \end{itemize}
 
-\subsection{Falsifiability Indicators}
+\subsection{Indicators of Defensive Adaptation}
+
+\begin{itemize}
+  \item Effective AI-enabled counterintelligence detection
+  \item Successful attribution of AI-enabled operations
+  \item International frameworks with meaningful compliance
+  \item Reduction in successful operations despite increased attempts
+  \item Mature defensive AI ecosystem
+\end{itemize}
+
+\subsection{Falsifiability Indicators for Offense-Defense Balance}
+
+\textbf{To test the claim that offense-defense favors attackers (2025--2028), monitor:}
 
 \begin{center}
 \small
-\begin{tabular}{L{3.5cm}L{4cm}L{4cm}}
+\begin{tabular}{L{3cm}L{3.5cm}L{3.5cm}L{3cm}}
 \toprule
-\textbf{Indicator} & \textbf{Offense-Favoring} & \textbf{Defense-Favoring} \\
+\textbf{Indicator} & \textbf{Offense-Favoring} & \textbf{Defense-Favoring} & \textbf{Data Source} \\
 \midrule
-BEC/deepfake fraud & YoY increase >25\% & Stable or declining \\
-Synthetic persona takedown & <30\% detected in 90 days & >70\% detected in 90 days \\
-Strong identity verification & <20\% enterprises by 2027 & >60\% enterprises by 2027 \\
+BEC/deepfake fraud prevalence & YoY increase >25\% & Stable or declining & IC3/FBI reports, insurance claims \\
+Synthetic persona takedown rate & <30\% detected in 90 days & >70\% detected in 90 days & Platform transparency reports \\
+Strong identity verification adoption & <20\% enterprises by 2027 & >60\% enterprises by 2027 & Industry surveys, Gartner \\
+AI-enabled spearphish report volume & Reports increase faster than detection & Detection rate exceeds report growth & ISAC/FS-ISAC shared intel \\
+Successful recruitment via synthetic persona & Credible documented cases emerge & No confirmed cases after 3 years & IC community, academic research \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 \textbf{Assessment trigger}: If 3+ indicators show defense-favoring signals by 2027, revise offense-defense balance assessment.
 
+\subsection{What Would Change This Assessment}
+
+\textbf{Increasing concern}:
+\begin{itemize}
+  \item Documented successful AI-managed intelligence network
+  \item Major intelligence failure attributed to AI-enabled penetration
+  \item Proliferation of AI tradecraft to Tier 3--4 actors
+  \item Defensive AI proving ineffective
+\end{itemize}
+
+\textbf{Decreasing concern}:
+\begin{itemize}
+  \item Effective defensive AI detection of offensive operations
+  \item Successful international framework constraining state actors
+  \item AI capabilities plateauing below predicted levels
+  \item Human psychology proving resistant to AI-enabled approaches
+\end{itemize}
+
 \section{Uncertainties and Alternative Scenarios}
+
+\subsection{Key Uncertainties}
+
+\begin{enumerate}
+  \item \textbf{AI capability trajectory}: Will capabilities continue improving at current rates?
+  \item \textbf{Offense-defense balance}: Will defensive AI keep pace with offensive applications?
+  \item \textbf{Human psychology}: How resistant are targets to synthetic relationship building?
+  \item \textbf{Attribution technology}: Will new forensic approaches restore attribution capability?
+  \item \textbf{International cooperation}: Will states develop meaningful constraints?
+\end{enumerate}
 
 \subsection{Scenario Matrix}
 
@@ -2559,12 +2997,27 @@ This hybrid model:
   \item Preserves human judgment for high-stakes decisions
   \item Reduces hallucination and escalation risks
   \item Maintains physical capability for critical operations
+  \item Creates traditional CI signatures (diluted but present)
   \item Proves harder to detect than pure AI operations
 \end{itemize}
 
+The counterintelligence challenge is not detecting ``AI spies'' but detecting human operations operating at AI scale.
+
+\subsection{The Trust Deficit Persists---With Caveats}
+
+Top-tier strategic assets---senior officials, intelligence officers, individuals whose compromise has existential consequences---will continue requiring human handlers. The physicality gap, the need for shared risk, and the psychological requirements of high-stakes espionage create natural limits to AI applicability.
+
+\textbf{However}: ``Deepfake Paranoia'' cuts both ways. Security-conscious targets may become harder to approach digitally, while ``Digital-First Assets'' (isolated technical specialists, remote workers) may be \textit{more} vulnerable to synthetic handlers than to humans who would require uncomfortable physical meetings.
+
 \subsection{The Signal-to-Noise War}
 
-Perhaps the most significant long-term implication is not that AI enables ``more spies'' but that it creates a ``signal-to-noise war.'' As every capable actor deploys AI-generated personas, the information environment becomes saturated with synthetic identities and fabricated intelligence.
+Perhaps the most significant long-term implication is not that AI enables ``more spies'' but that it creates a ``signal-to-noise war.'' As every capable actor deploys AI-generated personas, the information environment becomes saturated with synthetic identities and fabricated intelligence. The future of espionage may be defined less by the scarcity of handlers and more by the difficulty of finding authentic signals in an ocean of noise.
+
+\textbf{For intelligence services}: This represents both opportunity and threat. Offensive capabilities are amplified, but so are those of adversaries. Counterintelligence must adapt not just to detect AI-enabled operations, but to navigate an environment where human and AI actors become increasingly indistinguishable. The limiting factor shifts from ``handler availability'' to ``signal extraction from noise.''
+
+\textbf{For organizations}: The threat surface expands as AI-enabled targeting becomes accessible to a broader range of actors. Personnel security, OSINT footprint management, and AI-specific awareness training become essential. The ``Stasi-in-a-box'' risk requires careful attention to the dual-use nature of defensive technologies. Shadow AI---``helpful'' productivity tools that are actually intelligence platforms---represents a vector that bypasses recruitment entirely.
+
+\textbf{For policymakers}: The proliferation of intelligence capabilities raises questions about norms, deterrence, and international frameworks that remain largely unaddressed. Jurisdictional challenges created by autonomous AI operating across borders demand fundamental reconceptualization of legal frameworks developed for human espionage. Distinct frameworks may be needed for state actors (diplomatic deterrence), corporate actors (legal liability), and EaaS providers (currently operating in a vacuum).
 
 \subsection{Final Assessment}
 
@@ -2602,30 +3055,69 @@ The transformation is already underway. The question is not whether AI changes e
 Agentic Workflow & Autonomous AI loops with multi-step planning, tool use, and goal persistence \\
 Algorithmic Confessional & Phenomenon where humans disclose more to AI than humans \\
 Algorithmic Due Process & Framework ensuring procedural fairness when AI makes consequential decisions \\
+Algorithmic Purge & Predictive disloyalty detection leading to preemptive personnel removal \\
 Analog Break & Mandatory periodic off-grid physical meeting to verify handler humanity \\
+Asset & Human source providing intelligence to a case officer \\
+Automated Personnel Sanitization & Organizational use of predictive models to remove personnel flagged as potential future security risks \\
+Autonomous Tradecraft Platform & AI agent system functioning as industrial-scale intelligence operation infrastructure \\
+Benign SaaS (Shadow AI) & Commercial AI tools with aggressive telemetry but legitimate business intent \\
 Biometric Vacuum & AI capability to extract emotional/psychological data during video calls \\
+Bridge Target & Individual spanning verified and unverified domains \\
+C2 & Command and Control---infrastructure for managing operations \\
+C2PA & Coalition for Content Provenance and Authenticity---standards for content authenticity \\
+Case Officer / Handler & Intelligence officer managing human sources \\
+COMINT & Communications Intelligence \\
 Centaur Handler & Human case officer augmented by AI agent fleet \\
+Challenge-Response Protocol & Video authentication requiring physical actions difficult for deepfakes \\
 Compute-as-a-Weapon-System & Framework recognizing compute capacity as throughput multiplier for agentic operations \\
+Cryptographic Identity Assertions & Verification linking digital credentials to biometrically-verified identity \\
+Deepfake Paranoia & Increased suspicion of digital-only relationships due to synthetic media awareness \\
+Digital-First Asset & High-value target whose relationships are primarily digital \\
 EaaS & Espionage-as-a-Service---commercial AI espionage mercenaries \\
+FININT & Financial Intelligence \\
 GenSP & Generative Spearphishing---LLM-driven personalized social engineering \\
+Gray Data Broker (Shadow AI) & AI tools that aggregate and resell user data to third parties without disclosure \\
 Gig-Economy Cutout & Unwitting physical proxy hired through legitimate platforms \\
+GPU SIGINT & Detection of AI operations through monitoring anomalous compute demand \\
+HITL Notarization & Human-In-The-Loop verification for high-value digital commands \\
 HNDL & Harvest Now, Decrypt Later---exfiltrating encrypted data for future quantum decryption \\
 Honey-Agent & CI-controlled AI agent designed to be ``recruited'' by adversaries \\
+IAB & Initial Access Broker---criminals selling compromised credentials and network access \\
+HUMINT & Human Intelligence---intelligence gathered through interpersonal contact \\
+Hyper-Persistence & AI capability to provide 24/7 availability that humans cannot match \\
 IPV Black Market & Market for ``Mechanical Turk Handlers'' performing physical verification \\
+Legal Dark Lung & Jurisdictions where privacy protections prevent defensive POL analysis \\
+Legend & Cover identity for intelligence operative \\
+Linguistic Watermarking & Statistical signatures in LLM output tracing to specific model instances \\
+Mechanical Turk Handler & Unwitting human hired to perform physical verification tasks \\
 MICE & Money, Ideology, Coercion, Ego---vulnerability framework \\
+Malicious Trojan (Shadow AI) & Adversary-deployed AI tool disguised as legitimate productivity enhancement \\
 Model Fingerprinting & Attribution using stochastic signatures in LLM outputs \\
+Neuro-Intelligence & Exploitation of biometric feedback for real-time manipulation \\
 NPU-Enabled Espionage & Local AI inference on compromised devices bypassing network detection \\
+OSINT & Open Source Intelligence \\
+POL & Pattern of Life---systematic study of target routines and behaviors \\
+Predictive Attrition Management & Pre-emptive personnel removal based on AI-predicted disloyalty \\
 Provenance Arbitrage & Establishing identity in verified domains to export credibility \\
 Provenance Islands & Authenticated domains surrounded by unverified ``sludge'' \\
 RALB & Retrieval-Augmented Legend Building---dynamic legend maintenance using real-time info \\
 RASCLS & Reciprocity, Authority, Scarcity, Commitment, Liking, Social Proof \\
+Recursive Loyalty Feedback Loop & Monitoring for loyalty creates performative behavior flagged as suspicious \\
 RVD & Real-time Virtual Presence---live deepfake video generation \\
+Scale-Multiplying Intermediary & AI agent that expands operational capacity without full handler replacement \\
 Semantic Firewall & System that strips manipulative tone from communications \\
 Shadow AI & Malicious AI tools disguised as legitimate productivity software \\
+Shifted-Liability Operations & AI espionage where risk is diluted across disposable infrastructure \\
 Signal-to-Noise War & Competition to extract authentic intelligence from AI-saturated environment \\
+Siloed Specialist & Technically skilled but socially isolated professional vulnerable to AI recruitment \\
+SIGINT & Signals Intelligence \\
+Stasi-in-a-Box & AI-enabled internal surveillance capabilities at population scale \\
 State-Drift & Progressive degradation of persona consistency over time \\
 Synthetic Case Officer & AI agent performing handler functions \\
 Third-Party Rule & Intelligence sharing restriction requiring originator permission \\
+Trust Deficit & Limitation of AI handlers in high-stakes recruitment requiring human presence \\
+Validation Gap & Target's demand for physical proof that synthetic handlers cannot directly provide \\
+Verification Inflation & Escalating authentication requirements burdening legitimate interactions \\
 Weight-Jacking & Social engineering to steal ML model weights and fine-tuning data \\
 \bottomrule
 \end{longtable}
@@ -2654,15 +3146,23 @@ Weight-Jacking & Social engineering to steal ML model weights and fine-tuning da
 \textit{The Art of Deception} & Mitnick (2002) & Social engineering \\
 \textit{Voyager: Open-Ended Embodied Agent} & Wang et al. (2023) & Autonomous AI agents \\
 \textit{Model Collapse} & Shumailov et al. (2024) & Signal-to-noise war thesis \\
+\textit{Measuring Persuasion in LLMs} & Anthropic (2024) & LLM persuasion capabilities \\
 \textit{Open-Weight Model Convergence} & Epoch AI (2025) & Capability proliferation \\
 \textit{Tallinn Manual 2.0} & NATO CCDCOE (2017) & Cyber operations law \\
 \textit{Sleeper Agents} & Hubinger et al. (2024) & Model backdoors \\
-\textit{EU AI Act} & European Parliament (2024) & Legal framework \\
+\textit{EU AI Act (Reg.\ 2024/1689)} & European Parliament (2024) & Legal framework \\
 \textit{NIST AI RMF} & NIST (2023) & AI governance \\
+\textit{NIST SP 800-207: Zero Trust} & NIST (2020) & Identity-centric security \\
+\textit{CISA Zero Trust Maturity Model} & CISA (2023) & Implementation guidance \\
 \textit{MITRE ATT\&CK Framework} & MITRE Corp. & Adversary tactics taxonomy \\
 \textit{Finance deepfake case} & The Guardian (2024) & \$25M Hong Kong case \\
 \textit{C2PA Technical Spec} & C2PA (2024) & Content authenticity standards \\
+\textit{LLM Watermarking} & Kirchenbauer et al. (2023) & Content provenance \\
+\textit{FBI IC3 Annual Reports} & FBI (annual) & BEC/fraud trends \\
+\textit{Meta Adversarial Threat Reports} & Meta (quarterly) & Influence operations \\
 \textit{Double Cross} & Macintyre (2012) & Historical deception ops \\
+\textit{The Main Enemy} & Bearden \& Risen (2003) & Cold War HUMINT \\
+\textit{The Sword and the Shield} & Andrew \& Mitrokhin (1999) & Soviet intelligence ops \\
 \bottomrule
 \end{longtable}
 \end{center}
@@ -2681,10 +3181,11 @@ Weight-Jacking & Social engineering to steal ML model weights and fine-tuning da
 \textbf{``\$0.30--\$1.00/day synthetic handler cost''} --- Calculation methodology:
 \begin{itemize}
   \item \textbf{Baseline (early 2024)}: GPT-4-Turbo: \~{}\$10/\$30 per 1M input/output tokens
-  \item \textbf{Current (late 2025)}: Claude Haiku: \$1/\$5 per 1M tokens; Sonnet: \$3/\$15 per 1M tokens
+  \item \textbf{Current (late 2025)}: Claude Haiku 4.5: \$1/\$5 per 1M tokens; Claude Sonnet 4.5: \$3/\$15 per 1M tokens
   \item \textbf{Usage model}: Synthetic handler with \~{}10--20 exchanges/day (\~{}2,000--5,000 tokens/exchange)
-  \item \textbf{Daily compute}: \~{}50,000--100,000 tokens/day at Haiku pricing = \$0.30--\$0.50/day
-  \item \textbf{85--90\% reduction}: Calculated from GPT-4-Turbo (early 2024) to Haiku (late 2025)
+  \item \textbf{Daily compute}: \~{}50,000--100,000 tokens/day at Haiku 4.5 pricing = \$0.30--\$0.50/day
+  \item \textbf{85--90\% reduction}: Calculated from GPT-4-Turbo (early 2024) to Haiku 4.5 (late 2025)
+  \item \textbf{Note}: Open-weight local inference (Llama 4, Qwen 3) reduces costs further but requires hardware capital
 \end{itemize}
 
 \textbf{Sources}: Anthropic API pricing (claude.com/pricing, December 2025); OpenAI API pricing; OpenRouter aggregator.
@@ -2705,6 +3206,22 @@ Weight-Jacking & Social engineering to steal ML model weights and fine-tuning da
   \item \textbf{Capability parity} (\~{}3 months): Epoch AI analysis, October 2025
   \item \textbf{Operational availability} (12--24 months): Time for tooling, fine-tunes, documentation
   \item Llama 2 (Meta, July 2023) achieved GPT-3.5 parity within months; ecosystem matured over following year
+  \item Llama 4, Qwen 3, and Mistral models demonstrate rapid capability catch-up
+\end{itemize}
+
+\subsection*{Section 12: Defensive AI Ecosystem}
+
+\textbf{``The Doppelg\"anger Campaign (2023--2024)''}:
+\begin{itemize}
+  \item Meta Quarterly Adversarial Threat Reports document Russian influence operations using AI-generated content
+  \item EU DisinfoLab research on coordinated inauthentic behavior
+  \item Academic analysis in Journal of Information Technology \& Politics
+\end{itemize}
+
+\textbf{``Project Voyager (Stanford/NVIDIA)''}:
+\begin{itemize}
+  \item Research demonstrating AI agents capable of learning to use tools and manage long-term goals in digital environments (initially Minecraft) without human intervention
+  \item Validates technical feasibility of agentic autonomous operations projected in this report
 \end{itemize}
 
 % ============================================================================
@@ -2764,7 +3281,7 @@ AI-generated text contains statistical signatures that may enable attribution:
 
 \vspace{1cm}
 \begin{center}
-\textbf{Document Version}: 1.1 (Revised - Committee Submission)\\
+\textbf{Document Version}: 1.4 (Revised - Committee Submission)\\
 \textbf{Last Updated}: December 2025\\
 \textbf{Classification}: Policy Research - For Defensive Analysis
 \end{center}
