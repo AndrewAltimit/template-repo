@@ -2,21 +2,21 @@
 FROM python:3.11-slim
 
 # Define version arguments
-ARG OPENCODE_VERSION=0.5.7
-ARG OPENCODE_CHECKSUM_AMD64=4850ccbda4ab9de82fe1bd22b5b0f5704a36e36f0d532ed1d35b40293bde27da
-ARG OPENCODE_CHECKSUM_ARM64=356bf8981172cc9806f2d393a068dff33812da917d6f7879aa3c3d2d7823ed6f
+ARG OPENCODE_VERSION=1.0.223
+ARG OPENCODE_CHECKSUM_AMD64=6c1bf6114a0b08fdb4c15ceef9da4480df0297699e045db7dd9a2950b0b9cc09
+ARG OPENCODE_CHECKSUM_ARM64=e6549b392ea52842a995da5eae4d35209df605066613b71e7883457d8ecaee9b
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
     curl \
     wget \
-    unzip \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Install OpenCode from GitHub releases
 # SECURITY: We verify checksums to ensure binary integrity
+# Note: v1.0+ releases use tar.gz format instead of zip
 ARG TARGETARCH=amd64
 RUN ARCH=$(dpkg --print-architecture) && \
     if [ "$ARCH" = "amd64" ]; then \
@@ -26,10 +26,10 @@ RUN ARCH=$(dpkg --print-architecture) && \
         ARCH="arm64"; \
         CHECKSUM="${OPENCODE_CHECKSUM_ARM64}"; \
     fi && \
-    wget -q "https://github.com/sst/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-${ARCH}.zip" -O /tmp/opencode.zip && \
-    echo "${CHECKSUM}  /tmp/opencode.zip" | sha256sum -c - && \
-    unzip -q /tmp/opencode.zip -d /usr/local/bin/ && \
-    rm /tmp/opencode.zip && \
+    wget -q "https://github.com/sst/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-${ARCH}.tar.gz" -O /tmp/opencode.tar.gz && \
+    echo "${CHECKSUM}  /tmp/opencode.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/opencode.tar.gz -C /usr/local/bin/ && \
+    rm /tmp/opencode.tar.gz && \
     chmod +x /usr/local/bin/opencode
 
 # Install Python MCP dependencies

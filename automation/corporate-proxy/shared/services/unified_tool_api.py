@@ -2,6 +2,12 @@
 """
 Unified Tool API - Configurable for all corporate proxy tools
 Consolidates all mock API versions into a single, maintainable service
+
+Supports both OpenAI and Anthropic tool API specifications:
+- OpenAI: tool_calls array with function objects
+- Anthropic: content array with tool_use blocks
+
+Configure via TOOL_API_SPEC environment variable or api_spec.default in tool_config.json
 """
 
 from dataclasses import dataclass
@@ -13,6 +19,17 @@ from typing import Any, Dict, List
 
 from flask import Flask, jsonify, request
 
+# Import API spec converter
+try:
+    from api_spec_converter import APISpecConverter, get_converter
+except ImportError:
+    # Fallback for when running standalone
+    from pathlib import Path
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).parent))
+    from api_spec_converter import APISpecConverter, get_converter
+
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -23,6 +40,10 @@ app = Flask(__name__)
 API_MODE = os.getenv("API_MODE", "crush").lower()  # "crush", "opencode", or "gemini"
 API_VERSION = os.getenv("API_VERSION", "v3")  # v1, v2, or v3
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
+TOOL_API_SPEC = os.getenv("TOOL_API_SPEC", "openai").lower()  # "openai" or "anthropic"
+
+# Initialize API spec converter
+api_converter = get_converter(default_spec=TOOL_API_SPEC, auto_detect=True)
 
 
 # Tool Definitions with proper schemas
@@ -314,14 +335,20 @@ def execute():
 @app.route("/v3/chat/completions", methods=["POST"])
 @app.route("/chat/completions", methods=["POST"])
 def chat_completions():
-    """OpenAI-compatible chat completions endpoint with tools"""
+    """OpenAI-compatible chat completions endpoint with tools.
+
+    Supports both OpenAI and Anthropic tool formats based on TOOL_API_SPEC config.
+    """
     data = request.json
-    # messages = data.get("messages", [])  # Reserved for future use
     tools = data.get("tools", [])
 
-    # Simple mock response that includes tool calls
-    response = {
-        "id": "chatcmpl-mock123",
+    # Detect which API spec format the request is using
+    detected_spec = api_converter.detect_spec(data)
+    logger.info("Detected API spec: %s (configured: %s)", detected_spec, TOOL_API_SPEC)
+
+    # Build base OpenAI-format response
+    openai_response = {
+        "id": f"chatcmpl-mock{int(time.time())}",
         "object": "chat.completion",
         "created": int(time.time()),
         "model": f"mock-{API_MODE}-model",
@@ -334,7 +361,7 @@ def chat_completions():
                     "tool_calls": (
                         [
                             {
-                                "id": "call_abc123",
+                                "id": api_converter.generate_tool_call_id("call"),
                                 "type": "function",
                                 "function": {
                                     "name": "view",
@@ -346,7 +373,7 @@ def chat_completions():
                         else None
                     ),
                 },
-                "finish_reason": "stop",
+                "finish_reason": "tool_calls" if tools else "stop",
             }
         ],
         "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
@@ -354,15 +381,64 @@ def chat_completions():
 
     # Remove tool_calls if no tools were provided
     if not tools:
-        response["choices"][0]["message"].pop("tool_calls", None)
+        openai_response["choices"][0]["message"].pop("tool_calls", None)
+
+    # Convert response to requested API spec format if needed
+    if detected_spec == "anthropic":
+        response = api_converter.convert_response_to_anthropic(openai_response, f"mock-{API_MODE}-model")
+        return jsonify(response)
+
+    return jsonify(openai_response)
+
+
+@app.route("/v1/messages", methods=["POST"])
+@app.route("/messages", methods=["POST"])
+def anthropic_messages():
+    """Anthropic Messages API endpoint with tools.
+
+    Native Anthropic-format endpoint for clients using Anthropic SDK.
+    """
+    data = request.json
+    tools = data.get("tools", [])
+
+    # Build Anthropic-format response
+    content = [{"type": "text", "text": "I'll help you with that task."}]
+
+    if tools:
+        content.append(
+            {
+                "type": "tool_use",
+                "id": api_converter.generate_tool_call_id("toolu"),
+                "name": "view",
+                "input": {"filePath": "test.py"},
+            }
+        )
+
+    response = {
+        "id": f"msg_mock{int(time.time())}",
+        "type": "message",
+        "role": "assistant",
+        "model": f"mock-{API_MODE}-model",
+        "content": content,
+        "stop_reason": "tool_use" if tools else "end_turn",
+        "usage": {"input_tokens": 10, "output_tokens": 20},
+    }
 
     return jsonify(response)
 
 
 @app.route("/api/v1/AI/GenAIExplorationLab/Models/<path:model_path>", methods=["POST"])
-def bedrock_endpoint(_model_path):
-    """Bedrock-compatible endpoint that returns structured tool calls for Gemini mode"""
+def bedrock_endpoint(model_path):  # pylint: disable=unused-argument
+    """Bedrock-compatible endpoint that returns structured tool calls.
+
+    Supports both OpenAI and Anthropic tool formats based on request detection.
+    """
     data = request.json
+
+    # Detect API spec from request
+    detected_spec = api_converter.detect_spec(data)
+    logger.info("Bedrock endpoint - detected API spec: %s", detected_spec)
+
     tools_present = "tools" in data or (
         "messages" in data and any(msg.get("role") == "assistant" and "tool_calls" in msg for msg in data.get("messages", []))
     )
@@ -485,11 +561,13 @@ def index():
             "service": "Unified Tool API",
             "mode": API_MODE,
             "version": API_VERSION,
+            "tool_api_spec": TOOL_API_SPEC,
             "endpoints": {
                 "/health": "Health check",
                 "/tools": "List available tools",
                 "/execute": "Execute a tool",
-                "/chat/completions": "OpenAI-compatible chat endpoint",
+                "/chat/completions": "OpenAI-compatible chat endpoint (auto-detects API spec)",
+                "/messages": "Anthropic Messages API endpoint",
                 "/api/v1/AI/GenAIExplorationLab/Models/*": "Bedrock-compatible endpoint",
                 "/v1/*": "Version 1 endpoints",
                 "/v2/*": "Version 2 endpoints",
@@ -499,6 +577,19 @@ def index():
                 "API_MODE": "Set to 'crush', 'opencode', or 'gemini'",
                 "API_VERSION": "Set to 'v1', 'v2', or 'v3'",
                 "DEBUG_MODE": "Set to 'true' for verbose logging",
+                "TOOL_API_SPEC": "Set to 'openai' or 'anthropic' for tool call format",
+            },
+            "api_spec_support": {
+                "openai": {
+                    "description": "OpenAI Chat Completions format",
+                    "tool_calls": "tool_calls array with function objects",
+                    "tool_results": "role='tool' messages",
+                },
+                "anthropic": {
+                    "description": "Anthropic Messages format",
+                    "tool_calls": "content array with tool_use blocks",
+                    "tool_results": "user message with tool_result content",
+                },
             },
         }
     )

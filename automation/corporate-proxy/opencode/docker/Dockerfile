@@ -8,7 +8,7 @@ FROM alpine/git AS source
 COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
 RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
 
-ARG OPENCODE_VERSION=3edab6056042
+ARG OPENCODE_VERSION=v1.0.223
 WORKDIR /source
 RUN git clone https://github.com/sst/opencode.git && \
     cd opencode && \

@@ -109,15 +109,16 @@ wait_for_service() {
     return 1
 }
 
-# Build Docker image if not exists
+# Build container image if not exists (works with Docker and Podman)
 build_if_needed() {
     local image_name=$1
     local dockerfile=$2
     local build_context=${3:-.}
+    local runtime="${CONTAINER_RUNTIME:-docker}"
 
-    if ! docker image inspect "$image_name" >/dev/null 2>&1; then
+    if ! $runtime image inspect "$image_name" >/dev/null 2>&1; then
         print_info "Image $image_name not found. Building..."
-        if ! docker build --pull -f "$dockerfile" -t "$image_name" "$build_context"; then
+        if ! $runtime build --pull -f "$dockerfile" -t "$image_name" "$build_context"; then
             print_error "Failed to build $image_name"
             exit 1
         fi
@@ -127,14 +128,15 @@ build_if_needed() {
     fi
 }
 
-# Stop and remove container if exists
+# Stop and remove container if exists (works with Docker and Podman)
 cleanup_container() {
     local container_name=$1
+    local runtime="${CONTAINER_RUNTIME:-docker}"
 
-    if docker ps -a --format '{{.Names}}' | grep -q "^${container_name}$"; then
+    if $runtime ps -a --format '{{.Names}}' | grep -q "^${container_name}$"; then
         print_info "Stopping existing container $container_name..."
-        docker stop "$container_name" >/dev/null 2>&1
-        docker rm "$container_name" >/dev/null 2>&1
+        $runtime stop "$container_name" >/dev/null 2>&1
+        $runtime rm "$container_name" >/dev/null 2>&1
     fi
 }
 

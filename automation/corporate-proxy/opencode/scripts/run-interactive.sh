@@ -8,6 +8,9 @@ source "$SCRIPT_DIR/../../shared/scripts/common-functions.sh"
 
 print_header "Starting OpenCode Interactive Session"
 
+# Check container runtime
+check_docker
+
 # Build if needed
 build_if_needed "opencode-corporate:latest" "$SCRIPT_DIR/../docker/Dockerfile" "$CORPORATE_PROXY_ROOT"
 
@@ -17,7 +20,7 @@ print_info "Use '/usr/local/bin/opencode' to run OpenCode"
 print_info "Or 'opencode run \"your question\"' for one-off queries"
 
 # Run interactive session with host user's UID for proper file permissions
-docker run --rm -it \
+container_run --rm -it \
     --user "$(id -u):$(id -g)" \
     -v "$(pwd):/workspace:rw" \
     -e HOME=/tmp \
