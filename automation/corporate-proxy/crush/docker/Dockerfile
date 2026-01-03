@@ -14,7 +14,7 @@ ARG TARGETARCH
 
 # Crush version can be overridden at build time
 # Example: docker build --build-arg CRUSH_VERSION=0.7.4 ...
-ARG CRUSH_VERSION=0.7.4
+ARG CRUSH_VERSION=0.30.0
 
 # Map Docker arch to Crush release arch names
 # amd64 -> x86_64, arm64 -> arm64 (not aarch64 for this release)

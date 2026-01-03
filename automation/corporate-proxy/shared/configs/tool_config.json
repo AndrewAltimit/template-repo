@@ -40,5 +40,38 @@
     "fail_on_missing_config": true,
     "require_tool_validation": true,
     "log_unauthorized_tools": true
+  },
+  "api_spec": {
+    "_comment": "Controls which tool API specification to use for request/response formatting",
+    "default": "openai",
+    "supported_specs": ["openai", "anthropic"],
+    "spec_details": {
+      "openai": {
+        "description": "OpenAI Chat Completions API format",
+        "tool_call_format": "tool_calls array with function objects",
+        "tool_result_role": "tool",
+        "finish_reason_tool": "tool_calls"
+      },
+      "anthropic": {
+        "description": "Anthropic Messages API format",
+        "tool_call_format": "content array with tool_use blocks",
+        "tool_result_role": "user with tool_result content",
+        "finish_reason_tool": "tool_use"
+      }
+    },
+    "auto_detect": true,
+    "auto_detect_rules": {
+      "_comment": "Rules for auto-detecting API spec from request format",
+      "anthropic_indicators": [
+        "anthropic_version",
+        "content[].type=='tool_result'",
+        "system as string (not in messages)"
+      ],
+      "openai_indicators": [
+        "tool_calls in messages",
+        "role=='tool'",
+        "function_call"
+      ]
+    }
   }
 }
