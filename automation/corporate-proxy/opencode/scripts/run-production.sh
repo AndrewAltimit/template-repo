@@ -28,7 +28,7 @@ cleanup_container "opencode-corporate-prod"
 print_info "Using Company API: $COMPANY_API_BASE"
 
 # Run the container with production settings using host user's UID
-docker run -it --rm \
+container_run -it --rm \
     --name opencode-corporate-prod \
     --user "$(id -u):$(id -g)" \
     -v "$(pwd):/workspace" \

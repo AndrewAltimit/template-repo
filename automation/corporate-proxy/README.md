@@ -237,6 +237,7 @@ docker-compose run --rm -it gemini-proxy
 | `API_MODE` | Service mode | Service-specific | `gemini`, `crush`, `opencode` |
 | `DEBUG` | Enable debug logging | `0` | `1` for verbose output |
 | `GEMINI_MAX_OUTPUT_SIZE` | Max tool output size | `102400` | Size in bytes |
+| `TOOL_API_SPEC` | Tool API format | `openai` | `openai` or `anthropic` |
 
 ### Configuration Files
 
@@ -332,6 +333,94 @@ Configure in `models.json`:
 ```
 
 See `shared/docs/automatic-tool-detection.md` for complete documentation.
+
+### Dual API Specification Support
+
+**New Feature**: The proxy now supports both **OpenAI** and **Anthropic** tool API specifications, with automatic format detection!
+
+#### API Specifications
+
+| Spec | Tool Calls | Tool Results | Detection Indicators |
+|------|------------|--------------|---------------------|
+| **OpenAI** | `tool_calls` array with function objects | `role="tool"` messages | `role="tool"`, `tool_calls` in messages |
+| **Anthropic** | `content` array with `tool_use` blocks | `tool_result` in user message content | `anthropic_version`, `system` as string, `tool_use`/`tool_result` blocks |
+
+#### Configuration
+
+Set via environment variable:
+```bash
+# Use OpenAI format (default)
+export TOOL_API_SPEC=openai
+
+# Use Anthropic format
+export TOOL_API_SPEC=anthropic
+```
+
+Or in `shared/configs/tool_config.json`:
+```json
+{
+  "api_spec": {
+    "default": "openai",
+    "auto_detect": true
+  }
+}
+```
+
+#### Automatic Detection
+
+When `auto_detect` is enabled (default), the proxy automatically detects the API spec from incoming requests:
+
+1. **Anthropic Indicators**:
+   - `anthropic_version` field present
+   - `system` field is a string (not in messages)
+   - `tool_use` or `tool_result` blocks in message content
+
+2. **OpenAI Indicators**:
+   - `role="tool"` messages
+   - `tool_calls` array in assistant messages
+
+3. **Default**: Falls back to configured `TOOL_API_SPEC` if no indicators found
+
+#### Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `/chat/completions` | OpenAI-compatible (auto-detects and responds in matching format) |
+| `/messages` | Native Anthropic Messages API format |
+| `/v1/chat/completions` | Versioned OpenAI-compatible |
+| `/v1/messages` | Versioned Anthropic-compatible |
+
+#### Example: OpenAI Format Request
+```json
+{
+  "model": "gpt-4",
+  "messages": [
+    {"role": "user", "content": "Read the file"},
+    {"role": "assistant", "tool_calls": [
+      {"id": "call_123", "type": "function", "function": {"name": "view", "arguments": "{}"}}
+    ]},
+    {"role": "tool", "tool_call_id": "call_123", "content": "file contents"}
+  ]
+}
+```
+
+#### Example: Anthropic Format Request
+```json
+{
+  "anthropic_version": "bedrock-2023-05-31",
+  "model": "claude-3",
+  "system": "You are helpful",
+  "messages": [
+    {"role": "user", "content": "Read the file"},
+    {"role": "assistant", "content": [
+      {"type": "tool_use", "id": "toolu_123", "name": "view", "input": {}}
+    ]},
+    {"role": "user", "content": [
+      {"type": "tool_result", "tool_use_id": "toolu_123", "content": "file contents"}
+    ]}
+  ]
+}
+```
 
 ## Troubleshooting
 

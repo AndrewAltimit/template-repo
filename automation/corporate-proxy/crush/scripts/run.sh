@@ -34,7 +34,7 @@ if [ $# -eq 0 ]; then
     # Run with host user's UID to ensure proper file permissions
     # Don't pass any arguments - start-services.sh will run interactively
     # shellcheck disable=SC2086
-    docker run $TTY_FLAG --rm \
+    container_run $TTY_FLAG --rm \
         --name crush-corporate \
         --user "$(id -u):$(id -g)" \
         -v "$(pwd):/workspace:rw" \
@@ -86,7 +86,7 @@ if [ -n "${CONTAINER_CMD+x}" ]; then
 
     # Run with host user's UID to ensure proper file permissions
     # shellcheck disable=SC2086
-    docker run $TTY_FLAG --rm \
+    container_run $TTY_FLAG --rm \
         --name crush-corporate \
         --user "$(id -u):$(id -g)" \
         -v "$(pwd):/workspace:rw" \

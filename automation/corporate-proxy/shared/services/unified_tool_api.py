@@ -428,7 +428,7 @@ def anthropic_messages():
 
 
 @app.route("/api/v1/AI/GenAIExplorationLab/Models/<path:model_path>", methods=["POST"])
-def bedrock_endpoint(_model_path):
+def bedrock_endpoint(model_path):  # pylint: disable=unused-argument
     """Bedrock-compatible endpoint that returns structured tool calls.
 
     Supports both OpenAI and Anthropic tool formats based on request detection.

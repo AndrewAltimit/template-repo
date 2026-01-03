@@ -66,7 +66,7 @@ else
 fi
 
 # shellcheck disable=SC2086
-docker run $TTY_FLAG --rm \
+container_run $TTY_FLAG --rm \
     --name opencode-corporate \
     --user "$(id -u):$(id -g)" \
     -v "$(pwd):/workspace:rw" \
