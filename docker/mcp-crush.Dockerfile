@@ -2,9 +2,9 @@
 FROM node:20-slim
 
 # Define version arguments
-ARG CRUSH_VERSION=0.6.3
-ARG CRUSH_CHECKSUM_AMD64=847d60dc567f43ed9115b10b5ad374fb58d120dbc7432658a7bd3633bfedfbd4
-ARG CRUSH_CHECKSUM_ARM64=94bd6600a975d318cffebce2c030fe29eee13d00ece1a6e8bb1428f7eba73b80
+ARG CRUSH_VERSION=0.30.0
+ARG CRUSH_CHECKSUM_AMD64=8497f7ed533e93ec27d478afeca33e1157faafb83c37ea2d5dbdaa2dee9abd1d
+ARG CRUSH_CHECKSUM_ARM64=810673903482180dc37e04254c61edf770383c0d927de10783fd42fed6e2e770
 
 # Install Python 3.11 and all system dependencies
 RUN apt-get update && apt-get install -y \

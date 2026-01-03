@@ -16,7 +16,7 @@ class GeminiMCPServer(BaseMCPServer):
     def __init__(self, project_root: Optional[str] = None):
         super().__init__(
             name="Gemini MCP Server",
-            version="1.0.0",
+            version="1.1.0",
             port=8006,  # Standard Gemini MCP port
         )
 

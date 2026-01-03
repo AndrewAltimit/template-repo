@@ -16,7 +16,32 @@ __all__ = [
     "CompositingTools",
     "SceneTools",
     "EnvironmentTools",
+    "TOOLS",
 ]
+
+# Tool registry - exported for compatibility with CI tests
+# Maps tool names to their handler classes for discovery
+TOOLS = {
+    # Camera tools
+    "setup_camera": CameraTools,
+    "add_camera_track": CameraTools,
+    # Modifier tools
+    "add_modifier": ModifierTools,
+    # Particle tools
+    "add_particle_system": ParticleTools,
+    "add_smoke_simulation": ParticleTools,
+    # Texture tools
+    "add_texture": TextureTools,
+    "add_uv_map": TextureTools,
+    # Compositing tools
+    "setup_compositor": CompositingTools,
+    "batch_render": CompositingTools,
+    # Scene tools
+    "analyze_scene": SceneTools,
+    "optimize_scene": SceneTools,
+    # Environment tools
+    "setup_world_environment": EnvironmentTools,
+}
 
 
 def get_all_tool_definitions():

@@ -3,8 +3,8 @@
 Tests tool registration and basic functionality.
 """
 
-import sys
 from pathlib import Path
+import sys
 
 # Insert source directory at beginning of path to import from source, not site-packages
 _source_dir = Path(__file__).parent.parent
@@ -17,10 +17,11 @@ for mod_name in list(sys.modules.keys()):
         del sys.modules[mod_name]
 
 
-import pytest
-from unittest.mock import MagicMock, patch
-import tempfile
 import json
+import tempfile
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 class TestReactionSearchToolsRegistry:

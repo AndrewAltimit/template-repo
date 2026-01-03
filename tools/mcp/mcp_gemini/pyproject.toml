@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-gemini"
-version = "1.0.0"
+version = "1.1.0"
 description = "Gemini AI integration MCP server for second opinions and code assistance"
 readme = "docs/README.md"
 requires-python = ">=3.10"

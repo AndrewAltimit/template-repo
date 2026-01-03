@@ -3,8 +3,8 @@
 Tests tool registration and MemeGenerator class functionality.
 """
 
-import sys
 from pathlib import Path
+import sys
 
 # Insert source directory at beginning of path to import from source, not site-packages
 _source_dir = Path(__file__).parent.parent
@@ -17,11 +17,12 @@ for mod_name in list(sys.modules.keys()):
         del sys.modules[mod_name]
 
 
-import pytest
-from unittest.mock import MagicMock, patch
-import tempfile
-import os
 import json
+import os
+import tempfile
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 class TestMemeGeneratorToolsRegistry:
@@ -264,8 +265,9 @@ class TestMemeGeneratorWithTemplates:
 
     def test_create_thumbnail_from_image(self, mock_template_dir):
         """Test creating thumbnail from PIL image."""
-        from mcp_meme_generator.tools import MemeGenerator
         from PIL import Image
+
+        from mcp_meme_generator.tools import MemeGenerator
 
         generator = MemeGenerator(mock_template_dir)
         img = Image.new("RGB", (800, 600), color=(200, 100, 100))
@@ -282,7 +284,7 @@ class TestMemeGeneratorAsync:
 
     async def test_list_meme_templates_tool(self):
         """Test list_meme_templates async tool."""
-        from mcp_meme_generator.tools import list_meme_templates, initialize_generator
+        from mcp_meme_generator.tools import initialize_generator, list_meme_templates
 
         with tempfile.TemporaryDirectory() as tmpdir:
             initialize_generator(tmpdir, tmpdir)
@@ -303,7 +305,7 @@ class TestMemeGeneratorAsync:
 
     async def test_test_minimal_tool(self):
         """Test test_minimal async tool."""
-        from mcp_meme_generator.tools import test_minimal, initialize_generator
+        from mcp_meme_generator.tools import initialize_generator, test_minimal
 
         with tempfile.TemporaryDirectory() as tmpdir:
             initialize_generator(tmpdir, tmpdir)
@@ -330,8 +332,9 @@ class TestDrawTextWithStroke:
 
     def test_draw_text_with_stroke(self):
         """Test drawing text with stroke effect."""
-        from mcp_meme_generator.tools import MemeGenerator
         from PIL import Image, ImageDraw
+
+        from mcp_meme_generator.tools import MemeGenerator
 
         with tempfile.TemporaryDirectory() as tmpdir:
             generator = MemeGenerator(tmpdir)

@@ -5,9 +5,9 @@ Note: The package structure has models/ as a sibling directory, so we import
 tools.py directly to avoid the broken import chain in __init__.py.
 """
 
-import sys
 import importlib.util
 from pathlib import Path
+import sys
 
 
 def load_tools_module():
@@ -19,8 +19,9 @@ def load_tools_module():
     return module
 
 
+from typing import Any, Dict
+
 import pytest
-from typing import Dict, Any
 
 
 class TestElevenLabsToolsRegistry:
