@@ -96,6 +96,7 @@ These features have been tested and work reliably:
 | GLTF import/export | Web-ready format |
 | Rigid body physics | Basic simulation |
 | Keyframe animation | Position, rotation, scale |
+| Geometry nodes | 13 setup types: scatter, array, grid, spiral, curve, wave_deform, twist, noise_displace, extrude, volume, voronoi_scatter, mesh_to_points, custom |
 
 ### Partially Validated
 
@@ -103,7 +104,6 @@ These features work but have known limitations:
 
 | Feature | Limitation |
 |---------|------------|
-| Geometry nodes | Only scatter/array setups |
 | Particle systems | Basic emitters only |
 | Cloth simulation | Simple configurations |
 | Soft body | May be unstable with complex meshes |

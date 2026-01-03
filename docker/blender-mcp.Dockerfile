@@ -33,6 +33,9 @@ RUN wget -q https://download.blender.org/release/Blender4.5/blender-${BLENDER_VE
 # Create app directory
 WORKDIR /app
 
+# Upgrade pip first for proper pyproject.toml support
+RUN pip3 install --upgrade pip setuptools wheel
+
 # Copy requirements first for better caching
 COPY tools/mcp/mcp_blender/requirements.txt /app/requirements.txt
 RUN pip3 install --no-cache-dir -r requirements.txt
@@ -41,9 +44,12 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY tools/mcp/mcp_blender /app/tools/mcp/mcp_blender
 
-# Install MCP packages
-RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_blender
+# Install MCP packages (use -v for verbose output)
+RUN pip install --no-cache-dir -v /app/tools/mcp/mcp_core && \
+    pip install --no-cache-dir -v /app/tools/mcp/mcp_blender
+
+# Set Python path for module discovery
+ENV PYTHONPATH=/app
 
 # Create non-root user, directories, and set permissions in one layer
 ARG USER_ID=1000

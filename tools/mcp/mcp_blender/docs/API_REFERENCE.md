@@ -378,35 +378,210 @@ Configure camera settings.
 
 ### create_geometry_nodes
 
-Setup procedural geometry using geometry nodes.
+Setup procedural geometry using geometry nodes. Supports 13 different node setup types for comprehensive procedural generation.
 
 **Parameters:**
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `project` | string | Yes | Path to project file |
-| `object_name` | string | Yes | Target object |
+| `object_name` | string | Yes | Target object (created if not exists) |
 | `node_setup` | string | Yes | Node setup type |
-| `parameters` | object | No | Setup parameters |
+| `parameters` | object | No | Setup-specific parameters |
 
 **Node Setup Types:**
 
-| Setup | Description |
-|-------|-------------|
-| `scatter` | Distribute objects on surface |
-| `array` | Linear/grid array |
-| `curve` | Curve-based geometry |
-| `volume` | Volumetric operations |
-| `custom` | Custom node setup |
+| Setup | Description | Default Base Object |
+|-------|-------------|---------------------|
+| `scatter` | Distribute instances on surface with random scale/rotation | Plane (10x10) |
+| `array` | Linear array with offset control | Cube |
+| `grid` | 2D/3D grid array with configurable spacing | Cube |
+| `spiral` | Spiral curve with tube profile | Cube |
+| `curve` | Circle curve with tube profile (torus) | Cube |
+| `wave_deform` | Sine wave deformation along configurable axis | Plane (10x10) |
+| `twist` | Twist deformation around axis | Cylinder |
+| `noise_displace` | Noise-based displacement with normal support | Plane (10x10) |
+| `extrude` | Face extrusion with optional top scaling | Plane |
+| `volume` | Volume cube to mesh conversion | Cube |
+| `voronoi_scatter` | Voronoi-based point distribution | Plane |
+| `mesh_to_points` | Convert mesh vertices to point cloud | Cube |
+| `custom` | Flexible subdivision + noise displacement | Cube |
 
-**Scatter Parameters:**
+### Scatter Parameters
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `count` | int | 100 | Instance count |
+| `count` | int | 100 | Instance density |
 | `seed` | int | 0 | Random seed |
-| `scale_variance` | float | 0.0 | Scale randomization |
-| `rotation_variance` | float | 0.0 | Rotation randomization |
+| `scale_base` | float | 1.0 | Base scale for instances |
+| `scale_variance` | float | 0.1 | Scale randomization (0-1) |
+| `random_rotation` | bool | true | Enable random Z rotation |
+| `align_to_normal` | bool | false | Align instances to surface normal |
+| `instance_object` | string | null | Name of object to instance (uses cube if null) |
+| `method` | string | "RANDOM" | Distribution method |
+
+### Array Parameters
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `count` | int | 10 | Number of instances |
+| `offset_x` | float | 2.0 | X offset between instances |
+| `offset_y` | float | 0.0 | Y offset between instances |
+| `offset_z` | float | 0.0 | Z offset between instances |
+
+### Grid Parameters
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `count_x` | int | 5 | Grid count in X |
+| `count_y` | int | 5 | Grid count in Y |
+| `count_z` | int | 1 | Grid count in Z (1 = 2D grid) |
+| `spacing_x` | float | 2.0 | Spacing in X |
+| `spacing_y` | float | 2.0 | Spacing in Y |
+| `spacing_z` | float | 2.0 | Spacing in Z |
+
+### Spiral Parameters
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `turns` | float | 3 | Number of rotations |
+| `points` | int | 100 | Resolution of spiral curve |
+| `radius_start` | float | 0.5 | Starting radius |
+| `radius_end` | float | 3.0 | Ending radius |
+| `height` | float | 2.0 | Total height |
+| `profile_radius` | float | 0.1 | Tube profile radius |
+
+### Curve Parameters
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `radius` | float | 5.0 | Circle radius |
+| `profile_radius` | float | 0.1 | Tube profile radius |
+| `resolution` | int | 32 | Curve resolution |
+
+### Wave Deform Parameters
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `amplitude` | float | 0.5 | Wave height |
+| `frequency` | float | 2.0 | Wave frequency |
+| `phase` | float | 0.0 | Wave phase offset |
+| `axis` | string | "Z" | Displacement axis (X, Y, Z) |
+| `wave_axis` | string | "X" | Axis driving the wave (X, Y, Z) |
+| `subdivisions` | int | 3 | Mesh subdivision level |
+
+### Twist Parameters
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `angle` | float | 3.14159 | Total twist angle (radians) |
+| `axis` | string | "Z" | Twist axis (X, Y, Z) |
+| `subdivisions` | int | 3 | Mesh subdivision level |
+
+### Noise Displace Parameters
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `strength` | float | 0.5 | Displacement strength |
+| `scale` | float | 5.0 | Noise scale |
+| `detail` | float | 2.0 | Noise detail level |
+| `roughness` | float | 0.5 | Noise roughness |
+| `use_normals` | bool | true | Displace along normals |
+| `subdivisions` | int | 3 | Mesh subdivision level |
+
+### Extrude Parameters
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `offset` | float | 1.0 | Extrusion distance |
+| `individual` | bool | false | Extrude faces individually |
+| `top_scale` | float | 1.0 | Scale factor for top faces |
+
+### Volume Parameters
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `density` | float | 1.0 | Volume density |
+| `size_x` | float | 5.0 | Volume size X |
+| `size_y` | float | 5.0 | Volume size Y |
+| `size_z` | float | 5.0 | Volume size Z |
+| `threshold` | float | 0.1 | Mesh extraction threshold |
+
+### Voronoi Scatter Parameters
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `scale` | float | 5.0 | Voronoi cell scale |
+| `randomness` | float | 1.0 | Cell randomness (0-1) |
+| `instance_scale` | float | 0.1 | Instance size |
+
+### Mesh to Points Parameters
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `point_radius` | float | 0.05 | Point/sphere radius |
+| `use_spheres` | bool | true | Use sphere instances (vs point cloud) |
+
+### Custom Parameters
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `subdivision_level` | int | 2 | Subdivision iterations |
+| `noise_scale` | float | 5.0 | Noise texture scale |
+| `noise_detail` | float | 2.0 | Noise detail level |
+| `displacement_strength` | float | 0.3 | Displacement amount |
+
+**Example - Scatter Setup:**
+
+```json
+{
+  "project": "my_scene.blend",
+  "object_name": "GroundPlane",
+  "node_setup": "scatter",
+  "parameters": {
+    "count": 200,
+    "seed": 42,
+    "scale_base": 0.5,
+    "scale_variance": 0.3,
+    "random_rotation": true
+  }
+}
+```
+
+**Example - Wave Deformation:**
+
+```json
+{
+  "project": "my_scene.blend",
+  "object_name": "WavyPlane",
+  "node_setup": "wave_deform",
+  "parameters": {
+    "amplitude": 0.8,
+    "frequency": 3.0,
+    "axis": "Z",
+    "wave_axis": "X",
+    "subdivisions": 5
+  }
+}
+```
+
+**Example - 3D Grid Array:**
+
+```json
+{
+  "project": "my_scene.blend",
+  "object_name": "CubeGrid",
+  "node_setup": "grid",
+  "parameters": {
+    "count_x": 4,
+    "count_y": 4,
+    "count_z": 4,
+    "spacing_x": 2.0,
+    "spacing_y": 2.0,
+    "spacing_z": 2.0
+  }
+}
+```
 
 ---
 

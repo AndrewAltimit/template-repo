@@ -558,10 +558,12 @@ client.call_tool("setup_physics", {
 
 ## Procedural Generation
 
-### Example 10: Procedural Forest
+The Blender MCP server supports 13 geometry node setup types for comprehensive procedural generation. These examples demonstrate various workflows.
+
+### Example 10: Procedural Forest (Scatter)
 
 ```python
-# Create procedural forest
+# Create procedural forest using scatter nodes
 result = client.call_tool("create_blender_project", {
     "name": "procedural_forest",
     "template": "procedural"
@@ -585,7 +587,10 @@ client.call_tool("create_geometry_nodes", {
     "parameters": {
         "count": 500,
         "seed": 12345,
-        "scale_variance": 0.3
+        "scale_base": 1.0,
+        "scale_variance": 0.3,
+        "random_rotation": True,
+        "align_to_normal": False
     }
 })
 
@@ -601,10 +606,188 @@ client.call_tool("apply_material", {
 })
 ```
 
-### Example 11: Abstract Procedural Art
+### Example 11: Linear Array
 
 ```python
-# Create abstract procedural art
+# Create repeated objects using array geometry nodes
+client.call_tool("create_geometry_nodes", {
+    "project": project,
+    "object_name": "BaseCube",
+    "node_setup": "array",
+    "parameters": {
+        "count": 10,
+        "offset_x": 2.0,
+        "offset_y": 0.0,
+        "offset_z": 0.0
+    }
+})
+```
+
+### Example 12: 3D Grid Array
+
+```python
+# Create a 3D grid of objects
+client.call_tool("create_geometry_nodes", {
+    "project": project,
+    "object_name": "GridBase",
+    "node_setup": "grid",
+    "parameters": {
+        "count_x": 5,
+        "count_y": 5,
+        "count_z": 3,
+        "spacing_x": 2.0,
+        "spacing_y": 2.0,
+        "spacing_z": 2.0
+    }
+})
+```
+
+### Example 13: Spiral Staircase
+
+```python
+# Create a spiral structure
+client.call_tool("create_geometry_nodes", {
+    "project": project,
+    "object_name": "SpiralBase",
+    "node_setup": "spiral",
+    "parameters": {
+        "turns": 5,
+        "points": 200,
+        "radius_start": 0.5,
+        "radius_end": 3.0,
+        "height": 4.0,
+        "profile_radius": 0.15
+    }
+})
+```
+
+### Example 14: Wave Deformation Terrain
+
+```python
+# Create wavy terrain using wave deformation
+result = client.call_tool("create_blender_project", {
+    "name": "wave_terrain",
+    "template": "procedural"
+})
+
+project = result["result"]["project_path"]
+
+# Create plane and apply wave deformation
+client.call_tool("add_primitive_objects", {
+    "project": project,
+    "objects": [
+        {"type": "plane", "name": "WavePlane", "location": [0, 0, 0], "scale": [10, 10, 1]}
+    ]
+})
+
+client.call_tool("create_geometry_nodes", {
+    "project": project,
+    "object_name": "WavePlane",
+    "node_setup": "wave_deform",
+    "parameters": {
+        "amplitude": 0.8,
+        "frequency": 3.0,
+        "phase": 0.0,
+        "axis": "Z",
+        "wave_axis": "X",
+        "subdivisions": 5
+    }
+})
+```
+
+### Example 15: Twisted Tower
+
+```python
+# Create a twisted cylinder structure
+client.call_tool("add_primitive_objects", {
+    "project": project,
+    "objects": [
+        {"type": "cylinder", "name": "Tower", "location": [0, 0, 0], "scale": [1, 1, 3]}
+    ]
+})
+
+client.call_tool("create_geometry_nodes", {
+    "project": project,
+    "object_name": "Tower",
+    "node_setup": "twist",
+    "parameters": {
+        "angle": 6.28,  # Full 360 degree twist
+        "axis": "Z",
+        "subdivisions": 4
+    }
+})
+```
+
+### Example 16: Noise Landscape
+
+```python
+# Create organic terrain using noise displacement
+client.call_tool("create_geometry_nodes", {
+    "project": project,
+    "object_name": "Landscape",
+    "node_setup": "noise_displace",
+    "parameters": {
+        "strength": 1.5,
+        "scale": 3.0,
+        "detail": 6.0,
+        "roughness": 0.6,
+        "use_normals": True,
+        "subdivisions": 6
+    }
+})
+```
+
+### Example 17: Extruded Building Base
+
+```python
+# Create an extruded building foundation
+client.call_tool("create_geometry_nodes", {
+    "project": project,
+    "object_name": "BuildingBase",
+    "node_setup": "extrude",
+    "parameters": {
+        "offset": 3.0,
+        "individual": False,
+        "top_scale": 0.7
+    }
+})
+```
+
+### Example 18: Voronoi Pattern Scatter
+
+```python
+# Scatter objects based on Voronoi cell positions
+client.call_tool("create_geometry_nodes", {
+    "project": project,
+    "object_name": "VoronoiBase",
+    "node_setup": "voronoi_scatter",
+    "parameters": {
+        "scale": 5.0,
+        "randomness": 1.0,
+        "instance_scale": 0.2
+    }
+})
+```
+
+### Example 19: Point Cloud from Mesh
+
+```python
+# Convert mesh vertices to points/spheres
+client.call_tool("create_geometry_nodes", {
+    "project": project,
+    "object_name": "PointMesh",
+    "node_setup": "mesh_to_points",
+    "parameters": {
+        "point_radius": 0.05,
+        "use_spheres": True
+    }
+})
+```
+
+### Example 20: Abstract Procedural Art (Curve Torus)
+
+```python
+# Create abstract procedural art using curve nodes
 result = client.call_tool("create_blender_project", {
     "name": "procedural_art",
     "template": "procedural"
@@ -616,25 +799,26 @@ project = result["result"]["project_path"]
 client.call_tool("add_primitive_objects", {
     "project": project,
     "objects": [
-        {"type": "torus", "name": "BaseTorus", "location": [0, 0, 0], "scale": [2, 2, 2]}
+        {"type": "cube", "name": "TorusBase", "location": [0, 0, 0]}
     ]
 })
 
-# Apply array geometry nodes
+# Apply curve geometry nodes (torus)
 client.call_tool("create_geometry_nodes", {
     "project": project,
-    "object_name": "BaseTorus",
-    "node_setup": "array",
+    "object_name": "TorusBase",
+    "node_setup": "curve",
     "parameters": {
-        "count": 10,
-        "offset": [0, 0, 0.5]
+        "radius": 3.0,
+        "profile_radius": 0.8,
+        "resolution": 64
     }
 })
 
 # Apply emissive material
 client.call_tool("apply_material", {
     "project": project,
-    "object_name": "BaseTorus",
+    "object_name": "TorusBase",
     "material": {
         "type": "emission",
         "base_color": [0.5, 0.8, 1.0, 1],
@@ -645,7 +829,7 @@ client.call_tool("apply_material", {
 # Animate rotation
 client.call_tool("create_animation", {
     "project": project,
-    "object_name": "BaseTorus",
+    "object_name": "TorusBase",
     "keyframes": [
         {"frame": 1, "rotation": [0, 0, 0]},
         {"frame": 120, "rotation": [6.28, 6.28, 6.28]}
@@ -654,11 +838,28 @@ client.call_tool("create_animation", {
 })
 ```
 
+### Example 21: Custom Procedural Setup
+
+```python
+# Use custom setup for subdivision + noise displacement
+client.call_tool("create_geometry_nodes", {
+    "project": project,
+    "object_name": "CustomGeo",
+    "node_setup": "custom",
+    "parameters": {
+        "subdivision_level": 3,
+        "noise_scale": 5.0,
+        "noise_detail": 2.0,
+        "displacement_strength": 0.5
+    }
+})
+```
+
 ---
 
 ## Camera Techniques
 
-### Example 12: Depth of Field
+### Example 22: Depth of Field
 
 ```python
 # Setup camera with depth of field
@@ -676,7 +877,7 @@ client.call_tool("setup_camera", {
 })
 ```
 
-### Example 13: Camera Tracking
+### Example 23: Camera Tracking
 
 ```python
 # Make camera track an object
@@ -692,7 +893,7 @@ client.call_tool("add_camera_track", {
 
 ## Modifiers
 
-### Example 14: Using Modifiers
+### Example 24: Using Modifiers
 
 ```python
 # Add subdivision surface modifier
@@ -733,7 +934,7 @@ client.call_tool("add_modifier", {
 
 ## Particle Systems
 
-### Example 15: Particle Effects
+### Example 25: Particle Effects
 
 ```python
 # Add particle system
@@ -774,7 +975,7 @@ client.call_tool("add_hair_system", {
 
 ## Rendering Strategies
 
-### Example 16: Batch Rendering
+### Example 26: Batch Rendering
 
 ```python
 # Render multiple views
@@ -808,7 +1009,7 @@ for i, view in enumerate(views):
     print(f"Rendering view {i+1}: Job ID {render_job['result']['job_id']}")
 ```
 
-### Example 17: Quality vs Speed Settings
+### Example 27: Quality vs Speed Settings
 
 ```python
 # Preview quality (fast)
@@ -841,7 +1042,7 @@ production_settings = {
 
 ## Complete Projects
 
-### Example 18: Product Visualization
+### Example 28: Product Visualization
 
 ```python
 def create_product_visualization(product_name="smartphone"):
@@ -943,7 +1144,7 @@ print(f"Project: {project}")
 print(f"Render Job: {render_job['result']['job_id']}")
 ```
 
-### Example 19: Architectural Walkthrough
+### Example 29: Architectural Walkthrough
 
 ```python
 def create_architectural_walkthrough():
