@@ -219,6 +219,18 @@ jobs:
           except ImportError as e:
               print(f\"❌ Failed to import Crush server: {e}\")
               exit(1)
+
+          # Test Blender server
+          try:
+              from mcp_blender.server import BlenderMCPServer
+              from mcp_blender.tools import TOOLS as BLENDER_TOOLS
+              print(\"✅ Blender MCP server imported successfully\")
+              print(f\"  - {len(BLENDER_TOOLS)} tools available\")
+              for tool in BLENDER_TOOLS:
+                  print(f\"    - {tool}\")
+          except ImportError as e:
+              print(f\"❌ Failed to import Blender server: {e}\")
+              exit(1)
           '
           "
 
