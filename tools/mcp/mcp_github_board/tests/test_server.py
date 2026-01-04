@@ -13,8 +13,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-# Set up path before imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "packages" / "github_agents" / "src"))
+# Set up path before imports (5 parents: test_server.py -> tests -> mcp_github_board -> mcp -> tools -> repo_root)
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent / "packages" / "github_agents" / "src"))
 
 from github_agents.board.models import (
     BoardConfig,

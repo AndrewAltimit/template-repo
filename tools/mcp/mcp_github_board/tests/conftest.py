@@ -9,7 +9,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "packages" / "github_agents" / "src"))
+# 5 parents: conftest.py -> tests -> mcp_github_board -> mcp -> tools -> repo_root
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent / "packages" / "github_agents" / "src"))
 
 from github_agents.board.models import (
     AgentClaim,
