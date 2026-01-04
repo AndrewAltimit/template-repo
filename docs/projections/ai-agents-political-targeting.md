@@ -4,8 +4,8 @@
 
 **Classification**: Policy Research - For Defensive Analysis
 **Prepared For**: Emerging Technology Risk Assessment Committee
-**Version**: 1.0
-**Date**: December 2025
+**Version**: 1.1
+**Date**: January 2026
 
 ---
 
@@ -20,6 +20,7 @@ This projection explores how the proliferation of autonomous AI agents is alteri
 3. Governments may adapt through "decision diffusion" - distributing authority across larger, less identifiable bodies
 4. These adaptations may reduce certain authoritarian risks while introducing new challenges around accountability and democratic responsiveness
 5. A period of institutional instability is likely as governance structures evolve faster than public understanding
+6. International norms protecting leaders are softer constraints than assumed - norm erosion is an explicit driver of instability, not background noise
 
 **Scope Limitations**: This document analyzes capabilities and trends for defensive policy purposes. It does not provide operational guidance and explicitly omits technical implementation details that could enable harm.
 
@@ -1225,6 +1226,60 @@ AI-enabled attacks challenge every assumption:
 
 **Our assessment**: The attribution void may be the most destabilizing long-term consequence of AI-enabled political violence. Attacks that cannot be attributed create pressure for either dangerous overreaction or demoralizing passivity. Development of new diplomatic and legal frameworks should begin immediately, before a major unattributable attack forces improvised responses.
 
+### Norm Override Scenarios: Extraterritorial Seizure and Immunity Erosion
+
+A critical development in early 2026 demonstrates that international norms protecting heads of state are softer constraints than previously assumed: the U.S. capture and transport of Venezuelan President Nicolas Maduro without Congressional approval triggered major international backlash and legal debate over justification and consequences.
+
+**Why This Matters for Political Targeting Risk:**
+
+This event is not merely a diplomatic incident - it represents a **live demonstration** that rules around leaders can change rapidly when powerful actors decide they can act. For AI-enabled political targeting analysis, this has several implications:
+
+1. **Norm erosion becomes an explicit driver, not background noise**: Our report already anticipates institutional instability as threats evolve faster than governance. State-led seizure of a foreign head of state confirms that the pace and plausibility of norm change is higher than baseline assumptions suggested.
+
+2. **Strengthens the fragile states vulnerability**: Personalist leaders in fragile states now face a sharper dilemma - **centralize** (coup-proof but easier to decapitate) or **diffuse** (risk internal overthrow). The international system offers less protection than assumed.
+
+3. **Broadens "targeting" beyond non-state AI misuse**: When the "attacker" is a state and the limiting factor isn't capability but legitimacy, AI amplifies coercive statecraft through OSINT, persuasion operations, and legal narrative shaping.
+
+4. **Intensifies fear environment dynamics**: Big, norm-breaking events are exactly the catalyst that pushes publics and institutions toward over-adaptation, normalization of authoritarian measures, and political destabilization.
+
+**The Selective Enforcement Problem:**
+
+| Traditional Assumption | Post-Maduro Reality |
+|------------------------|---------------------|
+| Heads of state enjoy sovereign immunity | Immunity selectively enforced based on power dynamics |
+| International law constrains great power actions | Legal frameworks can be bypassed with post-hoc justification |
+| Diplomatic norms provide stable guardrails | Norms are contested and can shift rapidly |
+| Leaders can rely on international travel safety | Travel becomes risk assessment calculation |
+
+**Mechanism of Risk Amplification:**
+
+The Maduro precedent doesn't require AI to be dangerous - but AI dramatically **amplifies** the downstream effects:
+
+- **OSINT acceleration**: AI enables rapid compilation of leader schedules, security vulnerabilities, and travel patterns that inform extraterritorial operations
+- **Narrative operations**: AI-generated content can shape domestic and international opinion to justify norm-breaking actions
+- **Legal analysis automation**: AI can rapidly identify jurisdictional vulnerabilities and legal pathways for detention
+- **Copycat risk assessment**: Other state and non-state actors can use AI to evaluate whether similar operations are feasible for their targets
+
+**Scenario Implications:**
+
+| Actor Type | Pre-Maduro Calculus | Post-Maduro Calculus |
+|------------|---------------------|----------------------|
+| Great powers | Constrained by norm violation costs | Norm violation demonstrated as survivable |
+| Regional powers | Assumed great power response to violations | Precedent for action against rivals with weak backing |
+| Non-state actors | International norms as external constraint | Norms revealed as selectively enforced |
+| Target leaders | International travel relatively safe | Must treat all travel as potential capture opportunity |
+
+**Policy Implications:**
+
+1. **Treat "rules about leaders" as soft constraints** rather than stable guardrails when assessing political targeting risk
+2. **Expect accelerated hardening** by leaders globally - reduced travel, enhanced personal security, succession planning
+3. **Anticipate retaliatory precedent-setting** - other states may cite this action to justify their own extraterritorial operations
+4. **Monitor for copycat behavior** - the demonstrated path may be followed by states with similar capability/motivation profiles
+
+**Assessment Update:**
+
+This real-world event **increases confidence** in the instability side of our projections. International norms should now be modeled as **contested and selectively enforced** rather than reliable constraints. This makes our diffusion/accountability tradeoff analysis and fear-environment sections more salient, and suggests the timeline for institutional instability may be compressed.
+
 ---
 
 ## 13. Policy Recommendations and Defensive Measures {#policy-recommendations}
@@ -1521,6 +1576,17 @@ Committees require not just analysis but **monitoring frameworks**. This section
 - Public acceptance of reduced accountability
 - "Emergency" measures becoming permanent
 
+#### Indicators of Norm Erosion (International Rules Degradation)
+
+- Public doctrine shifts framing cross-border seizures as "law enforcement" or "counterterrorism"
+- More frequent attempts to detain leaders or close associates when traveling internationally
+- Rapid diplomatic escalations and emergency multilateral sessions following extraterritorial actions (a sign the norm boundary is actively contested)
+- Legal scholars and state actors publicly disputing previously settled immunity questions
+- Retaliatory or copycat extraterritorial operations by other states citing new precedents
+- Leaders canceling international travel or restricting movements to "safe" jurisdictions
+- Insurance and risk assessment firms adjusting political risk ratings for leader travel
+- Increased security details and advance teams for heads of state during foreign visits
+
 ### Recommended Monitoring Cadence
 
 | Indicator Class | Review Frequency | Responsible Body |
@@ -1529,6 +1595,7 @@ Committees require not just analysis but **monitoring frameworks**. This section
 | Defensive adoption | Quarterly | Policy/Oversight |
 | Scenario signposts | Semi-annually | Strategic Assessment |
 | Democratic erosion | Annually | Independent Oversight |
+| Norm erosion | Quarterly | Diplomatic/International Affairs |
 
 ---
 
