@@ -342,6 +342,111 @@ class TestGeometryNodes:
         mock_executor.execute_script.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_custom_setup(self, server, mock_executor):
+        """Test custom geometry nodes setup."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "CustomMesh",
+            "node_setup": "custom",
+            "parameters": {
+                "subdivision_level": 3,
+                "noise_scale": 8.0,
+                "noise_detail": 3.0,
+                "displacement_strength": 0.5,
+            },
+        }
+
+        result = await server._create_geometry_nodes(args)
+
+        assert result["success"] is True
+        assert result["node_setup"] == "custom"
+        mock_executor.execute_script.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_geometry_nodes_with_minimal_params(self, server, mock_executor):
+        """Test geometry nodes with minimal parameters (using defaults)."""
+        server.blender_executor = mock_executor
+
+        # Test each setup type with minimal params
+        setups = [
+            "scatter",
+            "array",
+            "grid",
+            "curve",
+            "spiral",
+            "volume",
+            "wave_deform",
+            "twist",
+            "noise_displace",
+            "extrude",
+            "voronoi_scatter",
+            "mesh_to_points",
+            "crystal_scatter",
+            "crystal_cluster",
+            "custom",
+        ]
+
+        for setup in setups:
+            mock_executor.reset_mock()
+
+            args = {
+                "project": "test.blend",
+                "object_name": f"{setup}_test",
+                "node_setup": setup,
+                "parameters": {},  # Empty params - should use defaults
+            }
+
+            result = await server._create_geometry_nodes(args)
+
+            assert result["success"] is True, f"Failed for setup: {setup}"
+            assert result["node_setup"] == setup
+            mock_executor.execute_script.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_executor_receives_correct_args(self, server, mock_executor):
+        """Test that the executor receives correctly formatted arguments."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "TestObject",
+            "node_setup": "spiral",
+            "parameters": {"turns": 5, "height": 3.0},
+        }
+
+        await server._create_geometry_nodes(args)
+
+        # Verify the execute_script was called with correct script name
+        call_args = mock_executor.execute_script.call_args[0]
+        assert call_args[0] == "geometry_nodes.py"
+
+        # Verify the script args contain the operation and parameters
+        script_args = call_args[1]
+        assert script_args["operation"] == "create_geometry_nodes"
+        assert script_args["node_setup"] == "spiral"
+        assert script_args["parameters"]["turns"] == 5
+        assert script_args["parameters"]["height"] == 3.0
+
+
+class TestCrystalGeometryNodes:
+    """Test suite for crystal geometry nodes functionality."""
+
+    @pytest.fixture
+    def server(self, tmp_path):
+        """Create a server instance with temp directories."""
+        return BlenderMCPServer(base_dir=str(tmp_path))
+
+    @pytest.fixture
+    def mock_executor(self):
+        """Create a mock BlenderExecutor."""
+        executor = Mock(spec=BlenderExecutor)
+        executor.execute_script = AsyncMock(return_value={"success": True})
+        executor.kill_process = Mock()
+        return executor
+
+    @pytest.mark.asyncio
     async def test_crystal_scatter_setup(self, server, mock_executor):
         """Test crystal scatter geometry nodes setup."""
         server.blender_executor = mock_executor
@@ -432,94 +537,6 @@ class TestGeometryNodes:
         script_args = call_args[1]
         assert script_args["parameters"]["facets"] == 8
         assert script_args["parameters"]["crystal_color"] == [0.6, 0.4, 0.8, 1.0]
-
-    @pytest.mark.asyncio
-    async def test_custom_setup(self, server, mock_executor):
-        """Test custom geometry nodes setup."""
-        server.blender_executor = mock_executor
-
-        args = {
-            "project": "test.blend",
-            "object_name": "CustomMesh",
-            "node_setup": "custom",
-            "parameters": {
-                "subdivision_level": 3,
-                "noise_scale": 8.0,
-                "noise_detail": 3.0,
-                "displacement_strength": 0.5,
-            },
-        }
-
-        result = await server._create_geometry_nodes(args)
-
-        assert result["success"] is True
-        assert result["node_setup"] == "custom"
-        mock_executor.execute_script.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_geometry_nodes_with_minimal_params(self, server, mock_executor):
-        """Test geometry nodes with minimal parameters (using defaults)."""
-        server.blender_executor = mock_executor
-
-        # Test each setup type with minimal params
-        setups = [
-            "scatter",
-            "array",
-            "grid",
-            "curve",
-            "spiral",
-            "volume",
-            "wave_deform",
-            "twist",
-            "noise_displace",
-            "extrude",
-            "voronoi_scatter",
-            "mesh_to_points",
-            "crystal_scatter",
-            "crystal_cluster",
-            "custom",
-        ]
-
-        for setup in setups:
-            mock_executor.reset_mock()
-
-            args = {
-                "project": "test.blend",
-                "object_name": f"{setup}_test",
-                "node_setup": setup,
-                "parameters": {},  # Empty params - should use defaults
-            }
-
-            result = await server._create_geometry_nodes(args)
-
-            assert result["success"] is True, f"Failed for setup: {setup}"
-            assert result["node_setup"] == setup
-            mock_executor.execute_script.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_executor_receives_correct_args(self, server, mock_executor):
-        """Test that the executor receives correctly formatted arguments."""
-        server.blender_executor = mock_executor
-
-        args = {
-            "project": "test.blend",
-            "object_name": "TestObject",
-            "node_setup": "spiral",
-            "parameters": {"turns": 5, "height": 3.0},
-        }
-
-        await server._create_geometry_nodes(args)
-
-        # Verify the execute_script was called with correct script name
-        call_args = mock_executor.execute_script.call_args[0]
-        assert call_args[0] == "geometry_nodes.py"
-
-        # Verify the script args contain the operation and parameters
-        script_args = call_args[1]
-        assert script_args["operation"] == "create_geometry_nodes"
-        assert script_args["node_setup"] == "spiral"
-        assert script_args["parameters"]["turns"] == 5
-        assert script_args["parameters"]["height"] == 3.0
 
 
 class TestGeometryNodesParameters:
