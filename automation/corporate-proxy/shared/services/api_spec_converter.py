@@ -47,12 +47,15 @@ class APISpecConverter:
         Returns:
             "openai" or "anthropic" based on detected format
         """
-        # Get current default from environment (check at runtime, not just init time)
-        # This ensures tests with patched env vars work correctly
-        current_default = os.environ.get("TOOL_API_SPEC", "").lower() or self.default_spec
-
+        # When auto-detect is disabled, respect the configured default_spec
+        # (from constructor or environment at init time)
         if not self.auto_detect:
-            return current_default
+            env_spec = os.environ.get("TOOL_API_SPEC", "").lower()
+            return env_spec if env_spec else self.default_spec
+
+        # When auto-detect is enabled, check env at runtime with "openai" as fallback
+        # This ensures consistent behavior regardless of singleton init order in tests
+        current_default = os.environ.get("TOOL_API_SPEC", "openai").lower()
 
         # Anthropic indicators
         if "anthropic_version" in request_data:
