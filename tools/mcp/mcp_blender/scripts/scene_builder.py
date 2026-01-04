@@ -9,6 +9,19 @@ import sys
 import bpy
 
 
+def write_result(job_id, result_data):
+    """Write operation result to a file for the handler to read.
+
+    Args:
+        job_id: The job identifier
+        result_data: Dictionary containing the operation result
+    """
+    result_dir = Path("/app/outputs/jobs")
+    result_dir.mkdir(parents=True, exist_ok=True)
+    result_file = result_dir / f"{job_id}.result"
+    result_file.write_text(json.dumps(result_data), encoding="utf-8")
+
+
 def clear_scene():
     """Clear all objects from the scene."""
     bpy.ops.object.select_all(action="SELECT")
@@ -30,7 +43,7 @@ def create_project(args, _job_id):
         # Handle both old and new engine names
         engine = settings.get("engine", "CYCLES")
         if engine == "EEVEE":
-            engine = "BLENDER_EEVEE"
+            engine = "BLENDER_EEVEE_NEXT"
         elif engine == "WORKBENCH":
             engine = "BLENDER_WORKBENCH"
         scene.render.engine = engine
@@ -106,6 +119,58 @@ def create_project(args, _job_id):
             camera.rotation_euler = (1.1, 0, 0.785)
             scene.camera = camera
 
+        elif template == "lit_empty":
+            # No ground plane, but with three-point lighting for good illumination
+            # Key light (main light source) - very high energy for Eevee
+            bpy.ops.object.light_add(type="AREA", location=(3, -3, 3))
+            key = bpy.context.active_object
+            key.name = "Key Light"
+            key.data.energy = 50000  # Very high energy for bright Eevee render
+            key.data.size = 3.0
+            key.rotation_euler = (1.2, 0, 0.6)
+
+            # Fill light (softer, fills shadows)
+            bpy.ops.object.light_add(type="AREA", location=(-3, -2, 2))
+            fill = bpy.context.active_object
+            fill.name = "Fill Light"
+            fill.data.energy = 20000
+            fill.data.size = 4.0
+            fill.rotation_euler = (1.3, 0, -0.8)
+
+            # Back light (rim/separation light)
+            bpy.ops.object.light_add(type="AREA", location=(0, 4, 2))
+            back = bpy.context.active_object
+            back.name = "Back Light"
+            back.data.energy = 30000
+            back.data.size = 2.0
+            back.rotation_euler = (-0.5, 0, 0)
+
+            # Top light for overall brightness
+            bpy.ops.object.light_add(type="AREA", location=(0, 0, 5))
+            top = bpy.context.active_object
+            top.name = "Top Light"
+            top.data.energy = 25000
+            top.data.size = 5.0
+            top.rotation_euler = (0, 0, 0)
+
+            # Add camera
+            bpy.ops.object.camera_add(location=(7, -7, 5))
+            camera = bpy.context.active_object
+            camera.name = "Camera"
+            camera.rotation_euler = (1.1, 0, 0.785)
+            scene.camera = camera
+
+            # Set neutral gray world background
+            world = scene.world
+            if world is None:
+                world = bpy.data.worlds.new("World")
+                scene.world = world
+            world.use_nodes = True
+            bg_node = world.node_tree.nodes.get("Background")
+            if bg_node:
+                bg_node.inputs["Color"].default_value = (0.3, 0.3, 0.3, 1.0)
+                bg_node.inputs["Strength"].default_value = 1.0
+
         # Save project
         bpy.ops.wm.save_as_mainfile(filepath=project_path)
 
@@ -135,7 +200,7 @@ def add_primitives(args, _job_id):
             # Create object based on type
             if obj_type == "cube":
                 bpy.ops.mesh.primitive_cube_add(location=location)
-            elif obj_type == "sphere":
+            elif obj_type in ("sphere", "uv_sphere"):
                 bpy.ops.mesh.primitive_uv_sphere_add(location=location)
             elif obj_type == "cylinder":
                 bpy.ops.mesh.primitive_cylinder_add(location=location)
@@ -338,7 +403,8 @@ def apply_material(args, _job_id):
 
             base_color = material_data.get("base_color", [1.0, 1.0, 1.0, 1.0])
             node_emission.inputs["Color"].default_value = base_color
-            node_emission.inputs["Strength"].default_value = material_data.get("emission_strength", 1.0)
+            emission_strength = material_data.get("emission_strength", 1.0)
+            node_emission.inputs["Strength"].default_value = emission_strength
 
             links.new(node_emission.outputs["Emission"], node_output.inputs["Surface"])
 
@@ -460,6 +526,153 @@ def import_model(args, _job_id):
         return False
 
 
+def delete_objects(args, job_id):
+    """Delete objects from the scene by name or type."""
+    try:
+        # Load project
+        if "project" in args:
+            bpy.ops.wm.open_mainfile(filepath=args["project"])
+
+        object_names = args.get("object_names", [])
+        object_types = args.get("object_types", [])
+        pattern = args.get("pattern")
+        deleted = []
+
+        # Delete by exact name
+        for name in object_names:
+            obj = bpy.data.objects.get(name)
+            if obj:
+                bpy.data.objects.remove(obj, do_unlink=True)
+                deleted.append(name)
+
+        # Delete by type (MESH, LIGHT, CAMERA, EMPTY, CURVE, etc.)
+        if object_types:
+            for obj in list(bpy.data.objects):
+                if obj.type in object_types:
+                    deleted.append(obj.name)
+                    bpy.data.objects.remove(obj, do_unlink=True)
+
+        # Delete by name pattern (simple wildcard support)
+        if pattern:
+            import fnmatch
+
+            for obj in list(bpy.data.objects):
+                if fnmatch.fnmatch(obj.name, pattern):
+                    deleted.append(obj.name)
+                    bpy.data.objects.remove(obj, do_unlink=True)
+
+        # Save project
+        if "project" in args:
+            bpy.ops.wm.save_mainfile()
+
+        # Write result to file for handler to read
+        write_result(job_id, {"deleted_objects": deleted})
+
+        # Output result for parsing (kept for backward compatibility)
+        print(f"DELETED_OBJECTS:{','.join(deleted)}")
+        return True
+
+    except Exception as e:
+        print(f"Error deleting objects: {e}")
+        return False
+
+
+def create_curve(args, _job_id):
+    """Create Bézier curves for growth paths and spatial guides.
+
+    Creates curves that can be used as targets for proximity-based effects
+    or as guides for procedural growth patterns.
+
+    Args:
+        project: Blender project file path
+        name: Name for the curve object (default: "GrowthPath")
+        curve_type: Type of curve - BEZIER, NURBS, POLY (default: BEZIER)
+        points: List of control points [[x, y, z], ...] (default: creates a simple path)
+        closed: Whether to close the curve (default: False)
+        resolution: Curve resolution (default: 12)
+        bevel_depth: Bevel depth for 3D curve (default: 0.0)
+        target_object: Optional - position curve on this object's surface
+        surface_offset: Offset from surface if target_object specified (default: 0.05)
+    """
+    try:
+        # Load project
+        if "project" in args:
+            bpy.ops.wm.open_mainfile(filepath=args["project"])
+
+        name = args.get("name", "GrowthPath")
+        curve_type = args.get("curve_type", "BEZIER")
+        points = args.get("points")
+        closed = args.get("closed", False)
+        resolution = args.get("resolution", 12)
+        bevel_depth = args.get("bevel_depth", 0.0)
+        target_object = args.get("target_object")
+        surface_offset = args.get("surface_offset", 0.05)
+
+        # Create default points if not provided
+        if not points:
+            points = [
+                [-1.0, 0.0, 0.5],
+                [0.0, 0.5, 0.7],
+                [1.0, 0.0, 0.5],
+            ]
+
+        # Create curve data
+        curve_data = bpy.data.curves.new(name=name, type="CURVE")
+        curve_data.dimensions = "3D"
+        curve_data.resolution_u = resolution
+        curve_data.bevel_depth = bevel_depth
+
+        # Create spline
+        if curve_type == "NURBS":
+            spline = curve_data.splines.new("NURBS")
+        elif curve_type == "POLY":
+            spline = curve_data.splines.new("POLY")
+        else:
+            spline = curve_data.splines.new("BEZIER")
+
+        spline.use_cyclic_u = closed
+
+        # Add points to spline
+        if curve_type == "BEZIER":
+            spline.bezier_points.add(len(points) - 1)
+            for i, point in enumerate(points):
+                bp = spline.bezier_points[i]
+                bp.co = point
+                # Auto-calculate handles
+                bp.handle_left_type = "AUTO"
+                bp.handle_right_type = "AUTO"
+        else:
+            spline.points.add(len(points) - 1)
+            for i, point in enumerate(points):
+                # NURBS/Poly points have 4 components (x, y, z, w)
+                spline.points[i].co = (*point, 1.0)
+
+        # Create curve object
+        curve_obj = bpy.data.objects.new(name, curve_data)
+        bpy.context.collection.objects.link(curve_obj)
+
+        # If target object specified, project curve onto surface
+        if target_object:
+            target = bpy.data.objects.get(target_object)
+            if target and target.type == "MESH":
+                # Use shrinkwrap modifier to project curve onto surface
+                shrinkwrap = curve_obj.modifiers.new(name="ShrinkwrapCurve", type="SHRINKWRAP")
+                shrinkwrap.target = target
+                shrinkwrap.offset = surface_offset
+                shrinkwrap.wrap_method = "NEAREST_SURFACEPOINT"
+
+        # Save project
+        if "project" in args:
+            bpy.ops.wm.save_mainfile()
+
+        print(f"Created curve: {name} with {len(points)} points")
+        return True
+
+    except Exception as e:
+        print(f"Error creating curve: {e}")
+        return False
+
+
 def export_scene(args, _job_id):
     """Export scene to various formats."""
     try:
@@ -528,6 +741,10 @@ def main():
         success = import_model(args, job_id)
     elif operation == "export_scene":
         success = export_scene(args, job_id)
+    elif operation == "delete_objects":
+        success = delete_objects(args, job_id)
+    elif operation == "create_curve":
+        success = create_curve(args, job_id)
     else:
         print(f"Unknown operation: {operation}")
         sys.exit(1)

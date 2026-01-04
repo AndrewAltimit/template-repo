@@ -52,6 +52,13 @@ class TestGeometryNodes:
             "extrude",
             "voronoi_scatter",
             "mesh_to_points",
+            "crystal_scatter",
+            "crystal_cluster",
+            "proximity_mask",
+            "blur_attribute",
+            "map_range_displacement",
+            "edge_crease_detection",
+            "organic_mutation",
             "custom",
         ]
 
@@ -381,6 +388,13 @@ class TestGeometryNodes:
             "extrude",
             "voronoi_scatter",
             "mesh_to_points",
+            "crystal_scatter",
+            "crystal_cluster",
+            "proximity_mask",
+            "blur_attribute",
+            "map_range_displacement",
+            "edge_crease_detection",
+            "organic_mutation",
             "custom",
         ]
 
@@ -424,6 +438,115 @@ class TestGeometryNodes:
         assert script_args["node_setup"] == "spiral"
         assert script_args["parameters"]["turns"] == 5
         assert script_args["parameters"]["height"] == 3.0
+
+
+class TestCrystalGeometryNodes:
+    """Test suite for crystal geometry nodes functionality."""
+
+    @pytest.fixture
+    def server(self, tmp_path):
+        """Create a server instance with temp directories."""
+        return BlenderMCPServer(base_dir=str(tmp_path))
+
+    @pytest.fixture
+    def mock_executor(self):
+        """Create a mock BlenderExecutor."""
+        executor = Mock(spec=BlenderExecutor)
+        executor.execute_script = AsyncMock(return_value={"success": True})
+        executor.kill_process = Mock()
+        return executor
+
+    @pytest.mark.asyncio
+    async def test_crystal_scatter_setup(self, server, mock_executor):
+        """Test crystal scatter geometry nodes setup."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "CrystalRock",
+            "node_setup": "crystal_scatter",
+            "parameters": {
+                "density": 15.0,
+                "seed": 42,
+                "crystal_scale": 1.0,
+                "crystal_height_min": 0.1,
+                "crystal_height_max": 0.4,
+                "crystal_radius": 0.05,
+                "facets": 6,
+                "tilt_variance": 0.2,
+                "use_poisson": True,
+                "apply_crystal_material": True,
+            },
+        }
+
+        result = await server._create_geometry_nodes(args)
+
+        assert result["success"] is True
+        assert result["node_setup"] == "crystal_scatter"
+        assert result["object"] == "CrystalRock"
+        mock_executor.execute_script.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_crystal_cluster_setup(self, server, mock_executor):
+        """Test crystal cluster geometry nodes setup."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "CrystalCave",
+            "node_setup": "crystal_cluster",
+            "parameters": {
+                "cluster_scale": 3.0,
+                "cluster_density": 8.0,
+                "crystals_per_cluster_min": 2,
+                "crystals_per_cluster_max": 4,
+                "cluster_radius": 0.3,
+                "crystal_height_min": 0.1,
+                "crystal_height_max": 0.3,
+                "crystal_radius": 0.04,
+                "facets": 6,
+                "seed": 42,
+                "apply_crystal_material": True,
+            },
+        }
+
+        result = await server._create_geometry_nodes(args)
+
+        assert result["success"] is True
+        assert result["node_setup"] == "crystal_cluster"
+        assert result["object"] == "CrystalCave"
+        mock_executor.execute_script.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_crystal_scatter_with_material_params(self, server, mock_executor):
+        """Test crystal scatter with custom material parameters."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "AmethystCrystals",
+            "node_setup": "crystal_scatter",
+            "parameters": {
+                "density": 20.0,
+                "facets": 8,  # Octagonal crystals
+                "crystal_color": [0.6, 0.4, 0.8, 1.0],  # Purple
+                "crystal_transmission": 0.85,
+                "crystal_ior": 1.55,
+                "apply_crystal_material": True,
+            },
+        }
+
+        result = await server._create_geometry_nodes(args)
+
+        assert result["success"] is True
+        assert result["node_setup"] == "crystal_scatter"
+        mock_executor.execute_script.assert_called_once()
+
+        # Verify parameters were passed correctly
+        call_args = mock_executor.execute_script.call_args[0]
+        script_args = call_args[1]
+        assert script_args["parameters"]["facets"] == 8
+        assert script_args["parameters"]["crystal_color"] == [0.6, 0.4, 0.8, 1.0]
 
 
 class TestGeometryNodesParameters:
@@ -485,6 +608,224 @@ class TestGeometryNodesParameters:
         assert "radius_end" in params
         assert "height" in params
         assert "profile_radius" in params
+
+    def test_crystal_scatter_parameters_schema(self, server):
+        """Test crystal scatter setup has correct parameter options."""
+        tools = server.get_tools()
+        params = tools["create_geometry_nodes"]["parameters"]["properties"]["parameters"]["properties"]
+
+        # Check crystal scatter parameters
+        assert "crystal_scale" in params
+        assert "crystal_height_min" in params
+        assert "crystal_height_max" in params
+        assert "crystal_radius" in params
+        assert "facets" in params
+        assert "tilt_variance" in params
+        assert "use_poisson" in params
+        assert "apply_crystal_material" in params
+
+        # Check defaults
+        assert params["facets"]["default"] == 6
+        assert params["crystal_height_min"]["default"] == 0.1
+        assert params["crystal_height_max"]["default"] == 0.5
+
+    def test_crystal_cluster_parameters_schema(self, server):
+        """Test crystal cluster setup has correct parameter options."""
+        tools = server.get_tools()
+        params = tools["create_geometry_nodes"]["parameters"]["properties"]["parameters"]["properties"]
+
+        # Check cluster-specific parameters
+        assert "cluster_scale" in params
+        assert "cluster_density" in params
+        assert "crystals_per_cluster_min" in params
+        assert "crystals_per_cluster_max" in params
+        assert "cluster_radius" in params
+
+        # Check defaults
+        assert params["cluster_scale"]["default"] == 5.0
+        assert params["crystals_per_cluster_min"]["default"] == 2
+        assert params["crystals_per_cluster_max"]["default"] == 5
+
+    def test_crystal_material_parameters_schema(self, server):
+        """Test crystal material parameters are in schema."""
+        tools = server.get_tools()
+        params = tools["create_geometry_nodes"]["parameters"]["properties"]["parameters"]["properties"]
+
+        # Check material parameters
+        assert "crystal_color" in params
+        assert "crystal_transmission" in params
+        assert "crystal_roughness" in params
+        assert "crystal_ior" in params
+
+        # Check defaults
+        assert params["crystal_transmission"]["default"] == 0.9
+        assert params["crystal_roughness"]["default"] == 0.1
+        assert params["crystal_ior"]["default"] == 1.45
+
+
+class TestMutationWorkflowNodes:
+    """Test suite for data-driven mutation/growth workflow nodes."""
+
+    @pytest.fixture
+    def server(self, tmp_path):
+        """Create a server instance with temp directories."""
+        return BlenderMCPServer(base_dir=str(tmp_path))
+
+    @pytest.fixture
+    def mock_executor(self):
+        """Create a mock BlenderExecutor."""
+        executor = Mock(spec=BlenderExecutor)
+        executor.execute_script = AsyncMock(return_value={"success": True})
+        executor.kill_process = Mock()
+        return executor
+
+    @pytest.mark.asyncio
+    async def test_proximity_mask_setup(self, server, mock_executor):
+        """Test proximity mask geometry nodes setup."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "Surface",
+            "node_setup": "proximity_mask",
+            "parameters": {
+                "target_object": "Target",
+                "max_distance": 2.0,
+                "falloff": "SMOOTH",
+                "store_attribute": "proximity_mask",
+                "apply_attribute_material": True,
+            },
+        }
+
+        result = await server._create_geometry_nodes(args)
+
+        assert result["success"] is True
+        assert result["node_setup"] == "proximity_mask"
+        mock_executor.execute_script.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_blur_attribute_setup(self, server, mock_executor):
+        """Test blur attribute geometry nodes setup."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "MeshObject",
+            "node_setup": "blur_attribute",
+            "parameters": {
+                "iterations": 5,
+                "weight": 1.0,
+                "attribute_name": "smooth_mask",
+            },
+        }
+
+        result = await server._create_geometry_nodes(args)
+
+        assert result["success"] is True
+        assert result["node_setup"] == "blur_attribute"
+        mock_executor.execute_script.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_map_range_displacement_setup(self, server, mock_executor):
+        """Test map range displacement geometry nodes setup."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "DisplacedMesh",
+            "node_setup": "map_range_displacement",
+            "parameters": {
+                "target_object": "Attractor",
+                "max_distance": 3.0,
+                "displacement_strength": 0.5,
+                "voronoi_scale": 8.0,
+            },
+        }
+
+        result = await server._create_geometry_nodes(args)
+
+        assert result["success"] is True
+        assert result["node_setup"] == "map_range_displacement"
+        mock_executor.execute_script.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_edge_crease_detection_setup(self, server, mock_executor):
+        """Test edge crease detection geometry nodes setup."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "EdgeMesh",
+            "node_setup": "edge_crease_detection",
+            "parameters": {
+                "angle_threshold": 0.5,
+            },
+        }
+
+        result = await server._create_geometry_nodes(args)
+
+        assert result["success"] is True
+        assert result["node_setup"] == "edge_crease_detection"
+        mock_executor.execute_script.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_organic_mutation_setup(self, server, mock_executor):
+        """Test organic mutation geometry nodes setup (full pipeline)."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "Organism",
+            "node_setup": "organic_mutation",
+            "parameters": {
+                "target_object": "GrowthPath",
+                "max_distance": 1.2,
+                "subdivision_level": 2,
+                "displacement_strength": 0.25,
+                "voronoi_scale": 6.0,
+                "voronoi_detail_scale": 12.0,
+                "blur_iterations": 4,
+                "use_edge_smoothing": True,
+                "apply_attribute_material": True,
+                "base_color": [0.9, 0.75, 0.65],
+                "mutation_color": [0.5, 0.2, 0.25],
+                "use_subsurface": True,
+            },
+        }
+
+        result = await server._create_geometry_nodes(args)
+
+        assert result["success"] is True
+        assert result["node_setup"] == "organic_mutation"
+        mock_executor.execute_script.assert_called_once()
+
+    def test_mutation_parameters_schema(self, server):
+        """Test mutation workflow parameters are in schema."""
+        tools = server.get_tools()
+        params = tools["create_geometry_nodes"]["parameters"]["properties"]["parameters"]["properties"]
+
+        # Check proximity/mutation parameters
+        assert "target_object" in params
+        assert "max_distance" in params
+        assert "falloff" in params
+        assert "store_attribute" in params
+        assert "apply_attribute_material" in params
+
+        # Check blur attribute parameters
+        assert "blur_iterations" in params
+
+        # Check displacement parameters
+        assert "displacement_strength" in params
+        assert "voronoi_scale" in params
+        assert "voronoi_detail_scale" in params
+
+        # Check edge detection parameters
+        assert "angle_threshold" in params
+
+        # Check organic mutation color parameters
+        assert "base_color" in params
+        assert "mutation_color" in params
+        assert "use_subsurface" in params
 
 
 if __name__ == "__main__":

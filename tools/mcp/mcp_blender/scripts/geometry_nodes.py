@@ -80,6 +80,14 @@ def create_geometry_nodes(args, _job_id):
             "extrude": create_extrude_setup,
             "voronoi_scatter": create_voronoi_scatter_setup,
             "mesh_to_points": create_mesh_to_points_setup,
+            "crystal_scatter": create_crystal_scatter_setup,
+            "crystal_cluster": create_crystal_cluster_setup,
+            # Data-driven mutation/growth workflow nodes
+            "proximity_mask": create_proximity_mask_setup,
+            "blur_attribute": create_blur_attribute_setup,
+            "map_range_displacement": create_map_range_displacement_setup,
+            "edge_crease_detection": create_edge_crease_detection_setup,
+            "organic_mutation": create_organic_mutation_setup,
         }
 
         setup_func = setup_funcs.get(node_setup)
@@ -88,6 +96,22 @@ def create_geometry_nodes(args, _job_id):
         else:
             # Default simple passthrough setup
             links.new(input_node.outputs[0], output_node.inputs[0])
+
+        # Apply crystal material if requested (for crystal setups)
+        apply_crystal_mat = parameters.get("apply_crystal_material", False)
+        if apply_crystal_mat and node_setup in ("crystal_scatter", "crystal_cluster"):
+            create_crystal_material(obj, parameters)
+
+        # Apply attribute-driven material if requested (for mutation setups)
+        apply_attr_mat = parameters.get("apply_attribute_material", False)
+        if apply_attr_mat and node_setup in (
+            "proximity_mask",
+            "blur_attribute",
+            "map_range_displacement",
+            "edge_crease_detection",
+            "organic_mutation",
+        ):
+            create_attribute_material(obj, parameters)
 
         # Save project
         if "project" in args:
@@ -693,6 +717,955 @@ def create_mesh_to_points_setup(nodes, links, input_node, output_node, parameter
         links.new(input_node.outputs[0], mesh_to_points.inputs["Mesh"])
         links.new(mesh_to_points.outputs["Points"], set_radius.inputs["Points"])
         links.new(set_radius.outputs["Points"], output_node.inputs[0])
+
+
+def create_crystal_material(obj, parameters):
+    """Create and apply a glass/translucent crystal material to an object.
+
+    Parameters:
+        obj: The Blender object to apply the material to
+        parameters: Dict with optional color settings
+            - base_color: tuple (r, g, b, a) default (0.8, 0.85, 1.0, 1.0)
+            - transmission: float, default 0.9
+            - roughness: float, default 0.1
+            - ior: float, default 1.45
+    """
+    # Get color parameters
+    base_color = parameters.get("crystal_color", (0.8, 0.85, 1.0, 1.0))
+    transmission = parameters.get("crystal_transmission", 0.9)
+    roughness = parameters.get("crystal_roughness", 0.1)
+    ior = parameters.get("crystal_ior", 1.45)
+
+    # Create material
+    mat_name = f"{obj.name}_CrystalMaterial"
+    mat = bpy.data.materials.new(name=mat_name)
+    mat.use_nodes = True
+
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+
+    # Clear default nodes
+    nodes.clear()
+
+    # Create Principled BSDF
+    bsdf = nodes.new("ShaderNodeBsdfPrincipled")
+    bsdf.location = (0, 0)
+    bsdf.inputs["Base Color"].default_value = base_color
+    bsdf.inputs["Roughness"].default_value = roughness
+    bsdf.inputs["IOR"].default_value = ior
+
+    # Set transmission (glass-like)
+    # Blender 4.0+ uses "Transmission Weight", older uses "Transmission"
+    try:
+        bsdf.inputs["Transmission Weight"].default_value = transmission
+    except KeyError:
+        bsdf.inputs["Transmission"].default_value = transmission
+
+    # Set subsurface for inner glow effect
+    try:
+        bsdf.inputs["Subsurface Weight"].default_value = 0.1
+        bsdf.inputs["Subsurface Radius"].default_value = (0.1, 0.1, 0.1)
+    except KeyError:
+        # Older Blender versions
+        pass
+
+    # Create output node
+    output = nodes.new("ShaderNodeOutputMaterial")
+    output.location = (300, 0)
+
+    # Connect BSDF to output
+    links.new(bsdf.outputs["BSDF"], output.inputs["Surface"])
+
+    # Assign material to object
+    if obj.data.materials:
+        obj.data.materials[0] = mat
+    else:
+        obj.data.materials.append(mat)
+
+    return mat
+
+
+def create_crystal_scatter_setup(nodes, links, input_node, output_node, parameters):
+    """Create crystal scatter node setup with procedural crystal generation.
+
+    Distributes faceted crystal shapes across a mesh surface with normal alignment,
+    random height/scale variation, and optional glass material.
+
+    Parameters:
+        density (float): Crystal distribution density (default: 10.0)
+        seed (int): Random seed for variation (default: 0)
+        crystal_scale (float): Global scale multiplier (default: 1.0)
+        crystal_height_min (float): Minimum crystal height (default: 0.1)
+        crystal_height_max (float): Maximum crystal height (default: 0.5)
+        crystal_radius (float): Crystal base radius (default: 0.05)
+        facets (int): Number of facets, 6=hexagonal, 8=octagonal (default: 6)
+        tilt_variance (float): Max tilt from normal in radians (default: 0.3)
+        scale_variance (float): Scale randomization amount (default: 0.2)
+        use_poisson (bool): Use Poisson disk for even spacing (default: True)
+        apply_crystal_material (bool): Apply glass material (default: True)
+    """
+    # Extract parameters with defaults
+    density = parameters.get("density", 10.0)
+    seed = parameters.get("seed", 0)
+    crystal_scale = parameters.get("crystal_scale", 1.0)
+    height_min = parameters.get("crystal_height_min", 0.1)
+    height_max = parameters.get("crystal_height_max", 0.5)
+    crystal_radius = parameters.get("crystal_radius", 0.05)
+    facets = parameters.get("facets", 6)
+    tilt_variance = parameters.get("tilt_variance", 0.3)
+    scale_variance = parameters.get("scale_variance", 0.2)
+    use_poisson = parameters.get("use_poisson", True)
+
+    # ----- Create Crystal Mesh (Cone with pointed tip) -----
+    crystal_cone = nodes.new("GeometryNodeMeshCone")
+    crystal_cone.location = (0, 300)
+    crystal_cone.inputs["Vertices"].default_value = facets
+    crystal_cone.inputs["Radius Top"].default_value = 0.0  # Pointed tip
+    crystal_cone.inputs["Radius Bottom"].default_value = crystal_radius
+    crystal_cone.inputs["Depth"].default_value = (height_min + height_max) / 2
+
+    # Set shade smooth for crystal surfaces
+    set_smooth = nodes.new("GeometryNodeSetShadeSmooth")
+    set_smooth.location = (200, 300)
+    links.new(crystal_cone.outputs["Mesh"], set_smooth.inputs["Geometry"])
+
+    # ----- Distribute Points on Surface -----
+    distribute = nodes.new("GeometryNodeDistributePointsOnFaces")
+    distribute.location = (0, 0)
+    distribute.distribute_method = "POISSON" if use_poisson else "RANDOM"
+
+    # Set density based on distribution method (Blender 4.0+ API)
+    if use_poisson:
+        # POISSON mode uses "Distance Min", "Density Max", and "Density Factor"
+        # Convert density to minimum distance (inverse relationship)
+        # Higher density = smaller distance between points
+        distance_min = 1.0 / max(density, 0.1) * 0.5  # Scale factor for reasonable distances
+        distribute.inputs["Distance Min"].default_value = max(0.01, distance_min)
+        # Density Max controls maximum points per area - must be set for POISSON to work
+        distribute.inputs["Density Max"].default_value = density * 10.0
+        distribute.inputs["Density Factor"].default_value = 1.0
+    else:
+        # RANDOM mode uses "Density"
+        distribute.inputs["Density"].default_value = density
+
+    distribute.inputs["Seed"].default_value = seed
+
+    # Connect input geometry
+    links.new(input_node.outputs[0], distribute.inputs["Mesh"])
+
+    # ----- Random Height Variation -----
+    random_height = nodes.new("FunctionNodeRandomValue")
+    random_height.location = (200, -100)
+    random_height.data_type = "FLOAT"
+    random_height.inputs["Min"].default_value = height_min * crystal_scale
+    random_height.inputs["Max"].default_value = height_max * crystal_scale
+    random_height.inputs["Seed"].default_value = seed + 1
+
+    # ----- Create Scale Vector -----
+    # Scale X/Y proportionally, Z is the height
+    combine_scale = nodes.new("ShaderNodeCombineXYZ")
+    combine_scale.location = (400, -100)
+
+    # Base scale with variance for X and Y
+    random_xy_scale = nodes.new("FunctionNodeRandomValue")
+    random_xy_scale.location = (200, -250)
+    random_xy_scale.data_type = "FLOAT"
+    min_xy = crystal_scale * (1 - scale_variance)
+    max_xy = crystal_scale * (1 + scale_variance)
+    random_xy_scale.inputs["Min"].default_value = min_xy
+    random_xy_scale.inputs["Max"].default_value = max_xy
+    random_xy_scale.inputs["Seed"].default_value = seed + 3
+
+    links.new(random_xy_scale.outputs["Value"], combine_scale.inputs["X"])
+    links.new(random_xy_scale.outputs["Value"], combine_scale.inputs["Y"])
+    links.new(random_height.outputs["Value"], combine_scale.inputs["Z"])
+
+    # ----- Align to Surface Normal -----
+    align = nodes.new("FunctionNodeAlignEulerToVector")
+    align.location = (200, -400)
+    align.axis = "Z"
+    links.new(distribute.outputs["Normal"], align.inputs["Vector"])
+
+    # ----- Random Tilt Variation -----
+    random_tilt = nodes.new("FunctionNodeRandomValue")
+    random_tilt.location = (200, -550)
+    random_tilt.data_type = "FLOAT_VECTOR"
+    random_tilt.inputs["Min"].default_value = (-tilt_variance, -tilt_variance, 0)
+    random_tilt.inputs["Max"].default_value = (tilt_variance, tilt_variance, 2 * pi)
+    random_tilt.inputs["Seed"].default_value = seed + 2
+
+    # Combine aligned rotation with random tilt
+    rotate_euler = nodes.new("FunctionNodeRotateEuler")
+    rotate_euler.location = (400, -450)
+    rotate_euler.space = "LOCAL"
+    links.new(align.outputs["Rotation"], rotate_euler.inputs["Rotation"])
+    links.new(random_tilt.outputs["Value"], rotate_euler.inputs["Rotate By"])
+
+    # ----- Instance Crystals on Points -----
+    instance = nodes.new("GeometryNodeInstanceOnPoints")
+    instance.location = (600, 0)
+    links.new(distribute.outputs["Points"], instance.inputs["Points"])
+    links.new(set_smooth.outputs["Geometry"], instance.inputs["Instance"])
+    links.new(combine_scale.outputs["Vector"], instance.inputs["Scale"])
+    links.new(rotate_euler.outputs["Rotation"], instance.inputs["Rotation"])
+
+    # ----- Realize Instances -----
+    realize = nodes.new("GeometryNodeRealizeInstances")
+    realize.location = (800, 0)
+    links.new(instance.outputs["Instances"], realize.inputs["Geometry"])
+
+    # Connect to output
+    links.new(realize.outputs["Geometry"], output_node.inputs[0])
+
+
+def create_crystal_cluster_setup(nodes, links, input_node, output_node, parameters):
+    """Create clustered crystal formation using Voronoi-based distribution.
+
+    Creates groups of crystals at cluster centers, simulating natural crystal
+    formations like geodes or mineral deposits.
+
+    Parameters:
+        cluster_scale (float): Voronoi cell size, larger = fewer clusters (default: 5.0)
+        cluster_density (float): Density of cluster centers (default: 5.0)
+        crystals_per_cluster_min (int): Min crystals per cluster (default: 2)
+        crystals_per_cluster_max (int): Max crystals per cluster (default: 5)
+        cluster_radius (float): Spread of crystals within cluster (default: 0.3)
+        crystal_height_min (float): Minimum crystal height (default: 0.1)
+        crystal_height_max (float): Maximum crystal height (default: 0.4)
+        crystal_radius (float): Crystal base radius (default: 0.04)
+        facets (int): Number of facets (default: 6)
+        seed (int): Random seed (default: 0)
+        tilt_variance (float): Max tilt from normal (default: 0.4)
+    """
+    # Extract parameters
+    cluster_scale = parameters.get("cluster_scale", 5.0)
+    cluster_density = parameters.get("cluster_density", 5.0)
+    crystals_min = parameters.get("crystals_per_cluster_min", 2)
+    crystals_max = parameters.get("crystals_per_cluster_max", 5)
+    cluster_radius = parameters.get("cluster_radius", 0.3)
+    height_min = parameters.get("crystal_height_min", 0.1)
+    height_max = parameters.get("crystal_height_max", 0.4)
+    crystal_rad = parameters.get("crystal_radius", 0.04)
+    facets = parameters.get("facets", 6)
+    seed = parameters.get("seed", 0)
+    tilt_variance = parameters.get("tilt_variance", 0.4)
+
+    # ----- Create Crystal Mesh -----
+    crystal_cone = nodes.new("GeometryNodeMeshCone")
+    crystal_cone.location = (0, 400)
+    crystal_cone.inputs["Vertices"].default_value = facets
+    crystal_cone.inputs["Radius Top"].default_value = 0.0
+    crystal_cone.inputs["Radius Bottom"].default_value = crystal_rad
+    crystal_cone.inputs["Depth"].default_value = (height_min + height_max) / 2
+
+    set_smooth = nodes.new("GeometryNodeSetShadeSmooth")
+    set_smooth.location = (200, 400)
+    links.new(crystal_cone.outputs["Mesh"], set_smooth.inputs["Geometry"])
+
+    # ----- Voronoi Texture for Cluster Detection -----
+    position = nodes.new("GeometryNodeInputPosition")
+    position.location = (-200, -200)
+
+    voronoi = nodes.new("ShaderNodeTexVoronoi")
+    voronoi.location = (0, -200)
+    voronoi.feature = "F1"
+    voronoi.inputs["Scale"].default_value = cluster_scale
+    voronoi.inputs["Randomness"].default_value = 1.0
+    links.new(position.outputs["Position"], voronoi.inputs["Vector"])
+
+    # ----- Map Voronoi Distance to Density Mask -----
+    # Crystals grow more densely near Voronoi cell centers
+    map_range = nodes.new("ShaderNodeMapRange")
+    map_range.location = (200, -200)
+    map_range.inputs["From Min"].default_value = 0.0
+    map_range.inputs["From Max"].default_value = 0.5
+    map_range.inputs["To Min"].default_value = cluster_density * 2
+    map_range.inputs["To Max"].default_value = cluster_density * 0.1
+    map_range.clamp = True
+    links.new(voronoi.outputs["Distance"], map_range.inputs["Value"])
+
+    # ----- Distribute Cluster Center Points -----
+    distribute = nodes.new("GeometryNodeDistributePointsOnFaces")
+    distribute.location = (400, 0)
+    distribute.distribute_method = "POISSON"
+    distribute.inputs["Seed"].default_value = seed
+    # For POISSON mode: set minimum distance, density max, and connect density factor
+    # Lower distance = more points
+    distribute.inputs["Distance Min"].default_value = 0.1 / max(cluster_density, 0.1)
+    # Density Max must be set for POISSON to generate points
+    distribute.inputs["Density Max"].default_value = cluster_density * 10.0
+
+    links.new(input_node.outputs[0], distribute.inputs["Mesh"])
+    links.new(map_range.outputs["Result"], distribute.inputs["Density Factor"])
+
+    # ----- Random Number of Crystals per Cluster -----
+    random_count = nodes.new("FunctionNodeRandomValue")
+    random_count.location = (400, -150)
+    random_count.data_type = "INT"
+    random_count.inputs["Min"].default_value = crystals_min
+    random_count.inputs["Max"].default_value = crystals_max + 1
+    random_count.inputs["Seed"].default_value = seed + 10
+
+    # ----- Create Offset Points Around Each Cluster Center -----
+    # Use a small grid/circle of points around each distributed point
+    mesh_circle = nodes.new("GeometryNodeCurvePrimitiveCircle")
+    mesh_circle.location = (400, 200)
+    mesh_circle.mode = "RADIUS"  # RADIUS mode has Radius input, POINTS mode doesn't
+    mesh_circle.inputs["Resolution"].default_value = crystals_max
+    mesh_circle.inputs["Radius"].default_value = cluster_radius
+
+    # Convert circle to points
+    curve_to_points = nodes.new("GeometryNodeCurveToPoints")
+    curve_to_points.location = (600, 200)
+    curve_to_points.mode = "COUNT"
+    curve_to_points.inputs["Count"].default_value = crystals_max
+    links.new(mesh_circle.outputs["Curve"], curve_to_points.inputs["Curve"])
+
+    # ----- Instance Circle Points at Cluster Centers -----
+    instance_clusters = nodes.new("GeometryNodeInstanceOnPoints")
+    instance_clusters.location = (600, 0)
+    links.new(distribute.outputs["Points"], instance_clusters.inputs["Points"])
+    links.new(curve_to_points.outputs["Points"], instance_clusters.inputs["Instance"])
+
+    # Random rotation for cluster orientation
+    random_cluster_rot = nodes.new("FunctionNodeRandomValue")
+    random_cluster_rot.location = (400, -300)
+    random_cluster_rot.data_type = "FLOAT_VECTOR"
+    random_cluster_rot.inputs["Min"].default_value = (0, 0, 0)
+    random_cluster_rot.inputs["Max"].default_value = (0, 0, 2 * pi)
+    random_cluster_rot.inputs["Seed"].default_value = seed + 5
+    links.new(random_cluster_rot.outputs["Value"], instance_clusters.inputs["Rotation"])
+
+    # Realize cluster points
+    realize_clusters = nodes.new("GeometryNodeRealizeInstances")
+    realize_clusters.location = (800, 0)
+    links.new(instance_clusters.outputs["Instances"], realize_clusters.inputs["Geometry"])
+
+    # ----- Random Height for Each Crystal -----
+    random_height = nodes.new("FunctionNodeRandomValue")
+    random_height.location = (800, -150)
+    random_height.data_type = "FLOAT"
+    random_height.inputs["Min"].default_value = height_min
+    random_height.inputs["Max"].default_value = height_max
+    random_height.inputs["Seed"].default_value = seed + 1
+
+    # Scale vector
+    combine_scale = nodes.new("ShaderNodeCombineXYZ")
+    combine_scale.location = (950, -150)
+    combine_scale.inputs["X"].default_value = 1.0
+    combine_scale.inputs["Y"].default_value = 1.0
+    links.new(random_height.outputs["Value"], combine_scale.inputs["Z"])
+
+    # ----- Align to Original Surface Normal (approximate) -----
+    # Get normal from original mesh via proximity
+    geometry_proximity = nodes.new("GeometryNodeProximity")
+    geometry_proximity.location = (800, -350)
+    geometry_proximity.target_element = "FACES"
+    links.new(input_node.outputs[0], geometry_proximity.inputs["Target"])
+
+    # Use the original mesh normals for alignment
+    align = nodes.new("FunctionNodeAlignEulerToVector")
+    align.location = (950, -350)
+    align.axis = "Z"
+
+    # Get normal at closest point
+    sample_normal = nodes.new("GeometryNodeInputNormal")
+    sample_normal.location = (800, -500)
+
+    # Random tilt
+    random_tilt = nodes.new("FunctionNodeRandomValue")
+    random_tilt.location = (800, -600)
+    random_tilt.data_type = "FLOAT_VECTOR"
+    random_tilt.inputs["Min"].default_value = (-tilt_variance, -tilt_variance, 0)
+    random_tilt.inputs["Max"].default_value = (tilt_variance, tilt_variance, 2 * pi)
+    random_tilt.inputs["Seed"].default_value = seed + 2
+
+    rotate_euler = nodes.new("FunctionNodeRotateEuler")
+    rotate_euler.location = (1100, -400)
+    rotate_euler.space = "LOCAL"
+    links.new(random_tilt.outputs["Value"], rotate_euler.inputs["Rotate By"])
+
+    # ----- Instance Crystals on Cluster Points -----
+    instance_crystals = nodes.new("GeometryNodeInstanceOnPoints")
+    instance_crystals.location = (1000, 0)
+    links.new(realize_clusters.outputs["Geometry"], instance_crystals.inputs["Points"])
+    links.new(set_smooth.outputs["Geometry"], instance_crystals.inputs["Instance"])
+    links.new(combine_scale.outputs["Vector"], instance_crystals.inputs["Scale"])
+    links.new(rotate_euler.outputs["Rotation"], instance_crystals.inputs["Rotation"])
+
+    # ----- Final Realize -----
+    realize_final = nodes.new("GeometryNodeRealizeInstances")
+    realize_final.location = (1200, 0)
+    links.new(instance_crystals.outputs["Instances"], realize_final.inputs["Geometry"])
+
+    # Connect to output
+    links.new(realize_final.outputs["Geometry"], output_node.inputs[0])
+
+
+# =============================================================================
+# DATA-DRIVEN MUTATION/GROWTH WORKFLOW NODES
+# =============================================================================
+
+
+def create_proximity_mask_setup(nodes, links, input_node, output_node, parameters):
+    """Create proximity-based mask for spatial awareness.
+
+    Uses Geometry Proximity to measure distance from vertices to a target,
+    creating an influence mask for localized effects like growth or mutation.
+
+    Parameters:
+        target_object: Name of object to measure distance to (required)
+        max_distance: Maximum distance for influence (default: 2.0)
+        falloff: Falloff curve type - LINEAR, SMOOTH, SHARP (default: SMOOTH)
+        invert: Invert the mask (default: False)
+        store_attribute: Name to store result as (default: "proximity_mask")
+    """
+    target_object = parameters.get("target_object")
+    max_distance = parameters.get("max_distance", 2.0)
+    falloff = parameters.get("falloff", "SMOOTH")
+    invert = parameters.get("invert", False)
+    attribute_name = parameters.get("store_attribute", "proximity_mask")
+
+    # Object info to get target geometry
+    object_info = nodes.new("GeometryNodeObjectInfo")
+    object_info.location = (-200, -200)
+    object_info.transform_space = "RELATIVE"
+
+    # Set target object if specified
+    if target_object:
+        target = bpy.data.objects.get(target_object)
+        if target:
+            object_info.inputs["Object"].default_value = target
+
+    # Geometry Proximity - measures distance to target geometry
+    proximity = nodes.new("GeometryNodeProximity")
+    proximity.location = (0, -100)
+    proximity.target_element = "FACES"  # Can be POINTS, EDGES, or FACES
+
+    # Connect target geometry
+    links.new(object_info.outputs["Geometry"], proximity.inputs["Target"])
+
+    # Map Range to convert distance to 0-1 mask
+    map_range = nodes.new("ShaderNodeMapRange")
+    map_range.location = (200, -100)
+    map_range.inputs["From Min"].default_value = 0.0
+    map_range.inputs["From Max"].default_value = max_distance
+    map_range.inputs["To Min"].default_value = 1.0 if invert else 0.0
+    map_range.inputs["To Max"].default_value = 0.0 if invert else 1.0
+    map_range.clamp = True
+
+    links.new(proximity.outputs["Distance"], map_range.inputs["Value"])
+
+    # Apply falloff curve
+    if falloff == "SMOOTH":
+        # Smooth falloff using power curve
+        power = nodes.new("ShaderNodeMath")
+        power.location = (400, -100)
+        power.operation = "POWER"
+        power.inputs[1].default_value = 2.0  # Quadratic falloff
+        links.new(map_range.outputs["Result"], power.inputs[0])
+        mask_output = power.outputs["Value"]
+    elif falloff == "SHARP":
+        # Sharp falloff using greater power
+        power = nodes.new("ShaderNodeMath")
+        power.location = (400, -100)
+        power.operation = "POWER"
+        power.inputs[1].default_value = 4.0
+        links.new(map_range.outputs["Result"], power.inputs[0])
+        mask_output = power.outputs["Value"]
+    else:
+        # Linear falloff - direct from map range
+        mask_output = map_range.outputs["Result"]
+
+    # Store as named attribute for shader access
+    store_attr = nodes.new("GeometryNodeStoreNamedAttribute")
+    store_attr.location = (600, 0)
+    store_attr.data_type = "FLOAT"
+    store_attr.domain = "POINT"
+    store_attr.inputs["Name"].default_value = attribute_name
+
+    links.new(input_node.outputs[0], store_attr.inputs["Geometry"])
+    links.new(mask_output, store_attr.inputs["Value"])
+
+    # Connect to output
+    links.new(store_attr.outputs["Geometry"], output_node.inputs[0])
+
+
+def create_blur_attribute_setup(nodes, links, input_node, output_node, parameters):
+    """Create attribute blur for smoothing data across mesh surface.
+
+    Blurs a named attribute to create smooth transitions, useful for
+    organic growth effects and preventing harsh boundaries.
+
+    Parameters:
+        attribute_name: Name of attribute to blur (default: "proximity_mask")
+        iterations: Number of blur passes (default: 5)
+        output_attribute: Name for blurred result (default: "blurred_mask")
+    """
+    attribute_name = parameters.get("attribute_name", "proximity_mask")
+    iterations = parameters.get("iterations", 5)
+    output_name = parameters.get("output_attribute", "blurred_mask")
+
+    # Input named attribute
+    input_attr = nodes.new("GeometryNodeInputNamedAttribute")
+    input_attr.location = (-200, -100)
+    input_attr.data_type = "FLOAT"
+    input_attr.inputs["Name"].default_value = attribute_name
+
+    # Blur the attribute
+    blur = nodes.new("GeometryNodeBlurAttribute")
+    blur.location = (0, -100)
+    blur.data_type = "FLOAT"
+    blur.inputs["Iterations"].default_value = iterations
+
+    links.new(input_attr.outputs["Attribute"], blur.inputs["Value"])
+
+    # Store blurred result
+    store_attr = nodes.new("GeometryNodeStoreNamedAttribute")
+    store_attr.location = (200, 0)
+    store_attr.data_type = "FLOAT"
+    store_attr.domain = "POINT"
+    store_attr.inputs["Name"].default_value = output_name
+
+    links.new(input_node.outputs[0], store_attr.inputs["Geometry"])
+    links.new(blur.outputs["Value"], store_attr.inputs["Value"])
+
+    # Connect to output
+    links.new(store_attr.outputs["Geometry"], output_node.inputs[0])
+
+
+def create_map_range_displacement_setup(nodes, links, input_node, output_node, parameters):
+    """Create map range controlled displacement.
+
+    Reads a named attribute and uses Map Range to control displacement
+    intensity along vertex normals.
+
+    Parameters:
+        attribute_name: Source attribute name (default: "blurred_mask")
+        displacement_min: Minimum displacement (default: 0.0)
+        displacement_max: Maximum displacement (default: 0.5)
+        use_voronoi: Add Voronoi texture variation (default: True)
+        voronoi_scale: Scale of Voronoi pattern (default: 5.0)
+        store_attribute: Store final displacement value (default: "displacement_amount")
+    """
+    attribute_name = parameters.get("attribute_name", "blurred_mask")
+    disp_min = parameters.get("displacement_min", 0.0)
+    disp_max = parameters.get("displacement_max", 0.5)
+    use_voronoi = parameters.get("use_voronoi", True)
+    voronoi_scale = parameters.get("voronoi_scale", 5.0)
+    output_attr = parameters.get("store_attribute", "displacement_amount")
+
+    # Read mask attribute
+    input_attr = nodes.new("GeometryNodeInputNamedAttribute")
+    input_attr.location = (-200, -100)
+    input_attr.data_type = "FLOAT"
+    input_attr.inputs["Name"].default_value = attribute_name
+
+    # Position for textures
+    position = nodes.new("GeometryNodeInputPosition")
+    position.location = (-200, -300)
+
+    # Normal for displacement direction
+    normal = nodes.new("GeometryNodeInputNormal")
+    normal.location = (-200, -400)
+
+    if use_voronoi:
+        # Voronoi texture for organic bumps
+        voronoi = nodes.new("ShaderNodeTexVoronoi")
+        voronoi.location = (0, -300)
+        voronoi.feature = "F1"
+        voronoi.inputs["Scale"].default_value = voronoi_scale
+        links.new(position.outputs["Position"], voronoi.inputs["Vector"])
+
+        # Multiply mask by Voronoi
+        multiply = nodes.new("ShaderNodeMath")
+        multiply.location = (200, -200)
+        multiply.operation = "MULTIPLY"
+        links.new(input_attr.outputs["Attribute"], multiply.inputs[0])
+        links.new(voronoi.outputs["Distance"], multiply.inputs[1])
+        mask_value = multiply.outputs["Value"]
+    else:
+        mask_value = input_attr.outputs["Attribute"]
+
+    # Map range for displacement intensity
+    map_range = nodes.new("ShaderNodeMapRange")
+    map_range.location = (400, -200)
+    map_range.inputs["From Min"].default_value = 0.0
+    map_range.inputs["From Max"].default_value = 1.0
+    map_range.inputs["To Min"].default_value = disp_min
+    map_range.inputs["To Max"].default_value = disp_max
+    links.new(mask_value, map_range.inputs["Value"])
+
+    # Scale normal by displacement amount
+    vector_scale = nodes.new("ShaderNodeVectorMath")
+    vector_scale.location = (600, -300)
+    vector_scale.operation = "SCALE"
+    links.new(normal.outputs["Normal"], vector_scale.inputs[0])
+    links.new(map_range.outputs["Result"], vector_scale.inputs["Scale"])
+
+    # Set position with displacement
+    set_position = nodes.new("GeometryNodeSetPosition")
+    set_position.location = (800, 0)
+    links.new(input_node.outputs[0], set_position.inputs["Geometry"])
+    links.new(vector_scale.outputs["Vector"], set_position.inputs["Offset"])
+
+    # Store displacement amount as attribute for shader
+    store_attr = nodes.new("GeometryNodeStoreNamedAttribute")
+    store_attr.location = (1000, 0)
+    store_attr.data_type = "FLOAT"
+    store_attr.domain = "POINT"
+    store_attr.inputs["Name"].default_value = output_attr
+    links.new(set_position.outputs["Geometry"], store_attr.inputs["Geometry"])
+    links.new(map_range.outputs["Result"], store_attr.inputs["Value"])
+
+    # Connect to output
+    links.new(store_attr.outputs["Geometry"], output_node.inputs[0])
+
+
+def create_edge_crease_detection_setup(nodes, links, input_node, output_node, parameters):
+    """Detect sharp edges and creases for topology-aware effects.
+
+    Uses Edge Angle to find areas where geometry folds sharply,
+    useful for crease-aware growth or smoothing.
+
+    Parameters:
+        angle_threshold: Angle above which edge is considered sharp (radians, default: 0.5)
+        store_attribute: Name to store result (default: "edge_sharpness")
+    """
+    angle_threshold = parameters.get("angle_threshold", 0.5)
+    attribute_name = parameters.get("store_attribute", "edge_sharpness")
+
+    # Edge angle detection
+    edge_angle = nodes.new("GeometryNodeInputMeshEdgeAngle")
+    edge_angle.location = (0, -100)
+
+    # Map angle to 0-1 range based on threshold
+    map_range = nodes.new("ShaderNodeMapRange")
+    map_range.location = (200, -100)
+    map_range.inputs["From Min"].default_value = 0.0
+    map_range.inputs["From Max"].default_value = angle_threshold
+    map_range.inputs["To Min"].default_value = 0.0
+    map_range.inputs["To Max"].default_value = 1.0
+    map_range.clamp = True
+    links.new(edge_angle.outputs["Unsigned Angle"], map_range.inputs["Value"])
+
+    # Store as attribute
+    store_attr = nodes.new("GeometryNodeStoreNamedAttribute")
+    store_attr.location = (400, 0)
+    store_attr.data_type = "FLOAT"
+    store_attr.domain = "POINT"
+    store_attr.inputs["Name"].default_value = attribute_name
+    links.new(input_node.outputs[0], store_attr.inputs["Geometry"])
+    links.new(map_range.outputs["Result"], store_attr.inputs["Value"])
+
+    # Connect to output
+    links.new(store_attr.outputs["Geometry"], output_node.inputs[0])
+
+
+def create_organic_mutation_setup(nodes, links, input_node, output_node, parameters):
+    """Complete organic mutation/growth system.
+
+    Combines proximity masking, Voronoi displacement, attribute blur,
+    and data export to shaders for a full procedural mutation workflow.
+
+    This is the "data-driven modeling" approach where curve data drives
+    physical displacement which drives shader masking.
+
+    Parameters:
+        target_object: Object defining mutation area (curve or mesh)
+        max_distance: Influence radius from target (default: 2.0)
+        subdivision_level: Mesh subdivision for detail (default: 2)
+        displacement_strength: Max displacement amount (default: 0.3)
+        voronoi_scale: Scale of cellular pattern (default: 5.0)
+        voronoi_detail_scale: Scale of detail layer (default: 15.0)
+        blur_iterations: Smoothing passes (default: 5)
+        use_edge_smoothing: Smooth sharp creases (default: True)
+        mutation_attribute: Main output attribute name (default: "mutation_intensity")
+    """
+    target_object = parameters.get("target_object")
+    max_distance = parameters.get("max_distance", 2.0)
+    subdivision_level = parameters.get("subdivision_level", 2)
+    displacement_strength = parameters.get("displacement_strength", 0.3)
+    voronoi_scale = parameters.get("voronoi_scale", 5.0)
+    voronoi_detail = parameters.get("voronoi_detail_scale", 15.0)
+    blur_iterations = parameters.get("blur_iterations", 5)
+    use_edge_smoothing = parameters.get("use_edge_smoothing", True)
+    mutation_attr = parameters.get("mutation_attribute", "mutation_intensity")
+
+    x_offset = 0
+
+    # ===== STAGE 1: Subdivide for Detail =====
+    subdivide = nodes.new("GeometryNodeSubdivideMesh")
+    subdivide.location = (x_offset, 0)
+    subdivide.inputs["Level"].default_value = subdivision_level
+    links.new(input_node.outputs[0], subdivide.inputs["Mesh"])
+    x_offset += 200
+
+    # ===== STAGE 2: Proximity Mask =====
+    # Get target geometry
+    object_info = nodes.new("GeometryNodeObjectInfo")
+    object_info.location = (x_offset - 200, -300)
+    object_info.transform_space = "RELATIVE"
+    if target_object:
+        target = bpy.data.objects.get(target_object)
+        if target:
+            object_info.inputs["Object"].default_value = target
+
+    proximity = nodes.new("GeometryNodeProximity")
+    proximity.location = (x_offset, -200)
+    proximity.target_element = "FACES"
+    links.new(object_info.outputs["Geometry"], proximity.inputs["Target"])
+
+    # Map distance to influence (closer = higher)
+    map_dist = nodes.new("ShaderNodeMapRange")
+    map_dist.location = (x_offset + 200, -200)
+    map_dist.inputs["From Min"].default_value = 0.0
+    map_dist.inputs["From Max"].default_value = max_distance
+    map_dist.inputs["To Min"].default_value = 1.0
+    map_dist.inputs["To Max"].default_value = 0.0
+    map_dist.clamp = True
+    links.new(proximity.outputs["Distance"], map_dist.inputs["Value"])
+
+    # Smooth falloff (power curve)
+    smooth_falloff = nodes.new("ShaderNodeMath")
+    smooth_falloff.location = (x_offset + 400, -200)
+    smooth_falloff.operation = "POWER"
+    smooth_falloff.inputs[1].default_value = 2.0
+    links.new(map_dist.outputs["Result"], smooth_falloff.inputs[0])
+    x_offset += 600
+
+    # ===== STAGE 3: Voronoi Displacement (Multi-Scale) =====
+    position = nodes.new("GeometryNodeInputPosition")
+    position.location = (x_offset - 200, -400)
+
+    normal = nodes.new("GeometryNodeInputNormal")
+    normal.location = (x_offset - 200, -500)
+
+    # Large-scale Voronoi (macro lumps)
+    voronoi_macro = nodes.new("ShaderNodeTexVoronoi")
+    voronoi_macro.location = (x_offset, -400)
+    voronoi_macro.feature = "DISTANCE_TO_EDGE"
+    voronoi_macro.inputs["Scale"].default_value = voronoi_scale
+    links.new(position.outputs["Position"], voronoi_macro.inputs["Vector"])
+
+    # Small-scale Voronoi (micro detail)
+    voronoi_micro = nodes.new("ShaderNodeTexVoronoi")
+    voronoi_micro.location = (x_offset, -550)
+    voronoi_micro.feature = "F1"
+    voronoi_micro.inputs["Scale"].default_value = voronoi_detail
+    links.new(position.outputs["Position"], voronoi_micro.inputs["Vector"])
+
+    # Combine scales
+    add_voronoi = nodes.new("ShaderNodeMath")
+    add_voronoi.location = (x_offset + 200, -450)
+    add_voronoi.operation = "ADD"
+    links.new(voronoi_macro.outputs["Distance"], add_voronoi.inputs[0])
+    links.new(voronoi_micro.outputs["Distance"], add_voronoi.inputs[1])
+
+    # Multiply by mask
+    mask_voronoi = nodes.new("ShaderNodeMath")
+    mask_voronoi.location = (x_offset + 400, -350)
+    mask_voronoi.operation = "MULTIPLY"
+    links.new(smooth_falloff.outputs["Value"], mask_voronoi.inputs[0])
+    links.new(add_voronoi.outputs["Value"], mask_voronoi.inputs[1])
+
+    # Power for more lumpy feel
+    power_lumps = nodes.new("ShaderNodeMath")
+    power_lumps.location = (x_offset + 600, -350)
+    power_lumps.operation = "POWER"
+    power_lumps.inputs[1].default_value = 1.5
+    links.new(mask_voronoi.outputs["Value"], power_lumps.inputs[0])
+
+    # Scale by strength
+    scale_disp = nodes.new("ShaderNodeMath")
+    scale_disp.location = (x_offset + 800, -350)
+    scale_disp.operation = "MULTIPLY"
+    scale_disp.inputs[1].default_value = displacement_strength
+    links.new(power_lumps.outputs["Value"], scale_disp.inputs[0])
+    x_offset += 1000
+
+    # Displacement vector
+    disp_vector = nodes.new("ShaderNodeVectorMath")
+    disp_vector.location = (x_offset, -400)
+    disp_vector.operation = "SCALE"
+    links.new(normal.outputs["Normal"], disp_vector.inputs[0])
+    links.new(scale_disp.outputs["Value"], disp_vector.inputs["Scale"])
+
+    # Set position
+    set_position = nodes.new("GeometryNodeSetPosition")
+    set_position.location = (x_offset + 200, 0)
+    links.new(subdivide.outputs["Mesh"], set_position.inputs["Geometry"])
+    links.new(disp_vector.outputs["Vector"], set_position.inputs["Offset"])
+    x_offset += 400
+
+    # ===== STAGE 4: Blur for Organic Flow =====
+    # Store raw mutation value first
+    store_raw = nodes.new("GeometryNodeStoreNamedAttribute")
+    store_raw.location = (x_offset, 0)
+    store_raw.data_type = "FLOAT"
+    store_raw.domain = "POINT"
+    store_raw.inputs["Name"].default_value = f"{mutation_attr}_raw"
+    links.new(set_position.outputs["Geometry"], store_raw.inputs["Geometry"])
+    links.new(smooth_falloff.outputs["Value"], store_raw.inputs["Value"])
+
+    # Read it back for blurring
+    read_raw = nodes.new("GeometryNodeInputNamedAttribute")
+    read_raw.location = (x_offset + 200, -200)
+    read_raw.data_type = "FLOAT"
+    read_raw.inputs["Name"].default_value = f"{mutation_attr}_raw"
+
+    # Blur the attribute
+    blur = nodes.new("GeometryNodeBlurAttribute")
+    blur.location = (x_offset + 400, -200)
+    blur.data_type = "FLOAT"
+    blur.inputs["Iterations"].default_value = blur_iterations
+    links.new(read_raw.outputs["Attribute"], blur.inputs["Value"])
+    x_offset += 600
+
+    # ===== STAGE 5: Edge Smoothing (Optional) =====
+    current_geo = store_raw.outputs["Geometry"]
+
+    if use_edge_smoothing:
+        # Detect sharp edges
+        edge_angle = nodes.new("GeometryNodeInputMeshEdgeAngle")
+        edge_angle.location = (x_offset, -300)
+
+        # Map to smoothing weight
+        edge_map = nodes.new("ShaderNodeMapRange")
+        edge_map.location = (x_offset + 200, -300)
+        edge_map.inputs["From Min"].default_value = 0.3
+        edge_map.inputs["From Max"].default_value = 1.0
+        edge_map.inputs["To Min"].default_value = 0.0
+        edge_map.inputs["To Max"].default_value = 1.0
+        edge_map.clamp = True
+        links.new(edge_angle.outputs["Unsigned Angle"], edge_map.inputs["Value"])
+
+        # Apply position blur to smooth edges
+        blur_pos = nodes.new("GeometryNodeBlurAttribute")
+        blur_pos.location = (x_offset + 400, -100)
+        blur_pos.data_type = "FLOAT_VECTOR"
+        blur_pos.inputs["Iterations"].default_value = 2
+
+        # Get position and blur it weighted by edge sharpness
+        pos_attr = nodes.new("GeometryNodeInputPosition")
+        pos_attr.location = (x_offset + 200, -150)
+        links.new(pos_attr.outputs["Position"], blur_pos.inputs["Value"])
+        links.new(edge_map.outputs["Result"], blur_pos.inputs["Weight"])
+        x_offset += 600
+
+    # ===== STAGE 6: Store Final Attribute for Shader =====
+    store_final = nodes.new("GeometryNodeStoreNamedAttribute")
+    store_final.location = (x_offset, 0)
+    store_final.data_type = "FLOAT"
+    store_final.domain = "POINT"
+    store_final.inputs["Name"].default_value = mutation_attr
+    links.new(current_geo, store_final.inputs["Geometry"])
+    links.new(blur.outputs["Value"], store_final.inputs["Value"])
+
+    # Connect to output
+    links.new(store_final.outputs["Geometry"], output_node.inputs[0])
+
+
+def create_attribute_material(obj, parameters):
+    """Create a material that reads geometry node attributes.
+
+    Creates a shader setup that reads named attributes from geometry nodes
+    and uses them to drive color, subsurface scattering, and bump mapping.
+
+    Parameters:
+        attribute_name: Main attribute to read (default: "mutation_intensity")
+        base_color: Base skin color (default: [0.8, 0.6, 0.5])
+        mutation_color: Mutated tissue color (default: [0.5, 0.2, 0.3])
+        use_subsurface: Enable subsurface scattering (default: True)
+        subsurface_radius: SSS radius (default: [0.1, 0.05, 0.02])
+        use_bump: Add bump mapping from attribute (default: True)
+        bump_strength: Bump intensity (default: 0.1)
+    """
+    attribute_name = parameters.get("attribute_name", "mutation_intensity")
+    base_color = parameters.get("base_color", [0.8, 0.6, 0.5])
+    mutation_color = parameters.get("mutation_color", [0.5, 0.2, 0.3])
+    use_subsurface = parameters.get("use_subsurface", True)
+    subsurface_radius = parameters.get("subsurface_radius", [0.1, 0.05, 0.02])
+    use_bump = parameters.get("use_bump", True)
+    bump_strength = parameters.get("bump_strength", 0.1)
+
+    # Create material
+    mat_name = f"{obj.name}_AttributeMaterial"
+    mat = bpy.data.materials.new(name=mat_name)
+    mat.use_nodes = True
+
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+    nodes.clear()
+
+    # Output node
+    output = nodes.new("ShaderNodeOutputMaterial")
+    output.location = (800, 0)
+
+    # Principled BSDF
+    bsdf = nodes.new("ShaderNodeBsdfPrincipled")
+    bsdf.location = (500, 0)
+
+    # Read attribute from geometry nodes
+    attr_node = nodes.new("ShaderNodeAttribute")
+    attr_node.location = (-200, 0)
+    attr_node.attribute_name = attribute_name
+
+    # Color ramp for base -> mutation transition
+    color_ramp = nodes.new("ShaderNodeValToRGB")
+    color_ramp.location = (100, 100)
+    color_ramp.color_ramp.elements[0].position = 0.0
+    color_ramp.color_ramp.elements[0].color = (*base_color, 1.0)
+    color_ramp.color_ramp.elements[1].position = 1.0
+    color_ramp.color_ramp.elements[1].color = (*mutation_color, 1.0)
+    links.new(attr_node.outputs["Fac"], color_ramp.inputs["Fac"])
+    links.new(color_ramp.outputs["Color"], bsdf.inputs["Base Color"])
+
+    # Subsurface scattering for fleshy look
+    if use_subsurface:
+        # SSS weight from attribute (more mutation = more SSS)
+        sss_ramp = nodes.new("ShaderNodeValToRGB")
+        sss_ramp.location = (100, -100)
+        sss_ramp.color_ramp.elements[0].position = 0.0
+        sss_ramp.color_ramp.elements[0].color = (0.1, 0.1, 0.1, 1.0)
+        sss_ramp.color_ramp.elements[1].position = 1.0
+        sss_ramp.color_ramp.elements[1].color = (0.5, 0.5, 0.5, 1.0)
+        links.new(attr_node.outputs["Fac"], sss_ramp.inputs["Fac"])
+
+        # Set SSS parameters
+        bsdf.inputs["Subsurface Weight"].default_value = 0.3
+        bsdf.inputs["Subsurface Radius"].default_value = subsurface_radius
+        # SSS color matches mutation color
+        bsdf.inputs["Subsurface Scale"].default_value = 0.1
+
+    # Bump mapping from attribute
+    if use_bump:
+        bump = nodes.new("ShaderNodeBump")
+        bump.location = (300, -200)
+        bump.inputs["Strength"].default_value = bump_strength
+        links.new(attr_node.outputs["Fac"], bump.inputs["Height"])
+        links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+
+    # Roughness variation
+    rough_ramp = nodes.new("ShaderNodeValToRGB")
+    rough_ramp.location = (100, -300)
+    rough_ramp.color_ramp.elements[0].position = 0.0
+    rough_ramp.color_ramp.elements[0].color = (0.4, 0.4, 0.4, 1.0)
+    rough_ramp.color_ramp.elements[1].position = 1.0
+    rough_ramp.color_ramp.elements[1].color = (0.7, 0.7, 0.7, 1.0)
+    links.new(attr_node.outputs["Fac"], rough_ramp.inputs["Fac"])
+    links.new(rough_ramp.outputs["Color"], bsdf.inputs["Roughness"])
+
+    # Connect to output
+    links.new(bsdf.outputs["BSDF"], output.inputs["Surface"])
+
+    # Assign to object
+    if obj.data.materials:
+        obj.data.materials[0] = mat
+    else:
+        obj.data.materials.append(mat)
+
+    return mat
 
 
 def create_custom_setup(nodes, links, input_node, output_node, parameters):
