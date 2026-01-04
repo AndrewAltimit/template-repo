@@ -8,10 +8,15 @@ import sys
 import bpy
 
 
-def update_status(job_id, status, progress=0, message=""):
+def update_status(job_id, status, progress=0, message="", output_path=None):
     """Update job status file."""
-    status_file = Path(f"/app/outputs/{job_id}.status")
+    # Status files are stored in /app/outputs/jobs/ to match JobManager
+    status_dir = Path("/app/outputs/jobs")
+    status_dir.mkdir(parents=True, exist_ok=True)
+    status_file = status_dir / f"{job_id}.status"
     status_data = {"status": status, "progress": progress, "message": message}
+    if output_path:
+        status_data["output_path"] = output_path
     status_file.write_text(json.dumps(status_data), encoding="utf-8")
 
 

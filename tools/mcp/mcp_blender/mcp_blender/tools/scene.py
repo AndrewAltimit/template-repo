@@ -16,6 +16,45 @@ class SceneTools:
         """Get scene management tool definitions."""
         return [
             {
+                "name": "delete_objects",
+                "description": "Delete objects from the scene by name, type, or pattern",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "project": {
+                            "type": "string",
+                            "description": "Project file path",
+                        },
+                        "object_names": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "List of object names to delete",
+                        },
+                        "object_types": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "MESH",
+                                    "LIGHT",
+                                    "CAMERA",
+                                    "EMPTY",
+                                    "CURVE",
+                                    "SURFACE",
+                                    "ARMATURE",
+                                ],
+                            },
+                            "description": "Delete all objects of these types",
+                        },
+                        "pattern": {
+                            "type": "string",
+                            "description": "Wildcard pattern to match names (e.g., 'Ground*')",
+                        },
+                    },
+                    "required": ["project"],
+                },
+            },
+            {
                 "name": "analyze_scene",
                 "description": "Analyze scene statistics and performance metrics",
                 "inputSchema": {
@@ -81,6 +120,33 @@ class SceneTools:
                 },
             },
         ]
+
+    @staticmethod
+    async def delete_objects(server, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Delete objects from the scene by name, type, or pattern."""
+        project = str(server._validate_project_path(args["project"]))
+        object_names = args.get("object_names", [])
+        object_types = args.get("object_types", [])
+        pattern = args.get("pattern")
+
+        script_args = {
+            "operation": "delete_objects",
+            "project": project,
+            "object_names": object_names,
+            "object_types": object_types,
+            "pattern": pattern,
+        }
+
+        job_id = str(uuid.uuid4())
+        await server.blender_executor.execute_script("scene_builder.py", script_args, job_id)
+
+        return {
+            "success": True,
+            "message": "Objects deleted successfully",
+            "deleted_names": object_names,
+            "deleted_types": object_types,
+            "deleted_pattern": pattern,
+        }
 
     @staticmethod
     async def analyze_scene(server, args: Dict[str, Any]) -> Dict[str, Any]:

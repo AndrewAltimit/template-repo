@@ -106,6 +106,58 @@ def create_project(args, _job_id):
             camera.rotation_euler = (1.1, 0, 0.785)
             scene.camera = camera
 
+        elif template == "lit_empty":
+            # No ground plane, but with three-point lighting for good illumination
+            # Key light (main light source) - very high energy for Eevee
+            bpy.ops.object.light_add(type="AREA", location=(3, -3, 3))
+            key = bpy.context.active_object
+            key.name = "Key Light"
+            key.data.energy = 50000  # Very high energy for bright Eevee render
+            key.data.size = 3.0
+            key.rotation_euler = (1.2, 0, 0.6)
+
+            # Fill light (softer, fills shadows)
+            bpy.ops.object.light_add(type="AREA", location=(-3, -2, 2))
+            fill = bpy.context.active_object
+            fill.name = "Fill Light"
+            fill.data.energy = 20000
+            fill.data.size = 4.0
+            fill.rotation_euler = (1.3, 0, -0.8)
+
+            # Back light (rim/separation light)
+            bpy.ops.object.light_add(type="AREA", location=(0, 4, 2))
+            back = bpy.context.active_object
+            back.name = "Back Light"
+            back.data.energy = 30000
+            back.data.size = 2.0
+            back.rotation_euler = (-0.5, 0, 0)
+
+            # Top light for overall brightness
+            bpy.ops.object.light_add(type="AREA", location=(0, 0, 5))
+            top = bpy.context.active_object
+            top.name = "Top Light"
+            top.data.energy = 25000
+            top.data.size = 5.0
+            top.rotation_euler = (0, 0, 0)
+
+            # Add camera
+            bpy.ops.object.camera_add(location=(7, -7, 5))
+            camera = bpy.context.active_object
+            camera.name = "Camera"
+            camera.rotation_euler = (1.1, 0, 0.785)
+            scene.camera = camera
+
+            # Set neutral gray world background
+            world = scene.world
+            if world is None:
+                world = bpy.data.worlds.new("World")
+                scene.world = world
+            world.use_nodes = True
+            bg_node = world.node_tree.nodes.get("Background")
+            if bg_node:
+                bg_node.inputs["Color"].default_value = (0.3, 0.3, 0.3, 1.0)
+                bg_node.inputs["Strength"].default_value = 1.0
+
         # Save project
         bpy.ops.wm.save_as_mainfile(filepath=project_path)
 
@@ -460,6 +512,54 @@ def import_model(args, _job_id):
         return False
 
 
+def delete_objects(args, _job_id):
+    """Delete objects from the scene by name or type."""
+    try:
+        # Load project
+        if "project" in args:
+            bpy.ops.wm.open_mainfile(filepath=args["project"])
+
+        object_names = args.get("object_names", [])
+        object_types = args.get("object_types", [])
+        pattern = args.get("pattern")
+        deleted = []
+
+        # Delete by exact name
+        for name in object_names:
+            obj = bpy.data.objects.get(name)
+            if obj:
+                bpy.data.objects.remove(obj, do_unlink=True)
+                deleted.append(name)
+
+        # Delete by type (MESH, LIGHT, CAMERA, EMPTY, CURVE, etc.)
+        if object_types:
+            for obj in list(bpy.data.objects):
+                if obj.type in object_types:
+                    deleted.append(obj.name)
+                    bpy.data.objects.remove(obj, do_unlink=True)
+
+        # Delete by name pattern (simple wildcard support)
+        if pattern:
+            import fnmatch
+
+            for obj in list(bpy.data.objects):
+                if fnmatch.fnmatch(obj.name, pattern):
+                    deleted.append(obj.name)
+                    bpy.data.objects.remove(obj, do_unlink=True)
+
+        # Save project
+        if "project" in args:
+            bpy.ops.wm.save_mainfile()
+
+        # Output result for parsing
+        print(f"DELETED_OBJECTS:{','.join(deleted)}")
+        return True
+
+    except Exception as e:
+        print(f"Error deleting objects: {e}")
+        return False
+
+
 def export_scene(args, _job_id):
     """Export scene to various formats."""
     try:
@@ -528,6 +628,8 @@ def main():
         success = import_model(args, job_id)
     elif operation == "export_scene":
         success = export_scene(args, job_id)
+    elif operation == "delete_objects":
+        success = delete_objects(args, job_id)
     else:
         print(f"Unknown operation: {operation}")
         sys.exit(1)

@@ -47,8 +47,12 @@ class APISpecConverter:
         Returns:
             "openai" or "anthropic" based on detected format
         """
+        # Get current default from environment (check at runtime, not just init time)
+        # This ensures tests with patched env vars work correctly
+        current_default = os.environ.get("TOOL_API_SPEC", "").lower() or self.default_spec
+
         if not self.auto_detect:
-            return self.default_spec
+            return current_default
 
         # Anthropic indicators
         if "anthropic_version" in request_data:
@@ -79,7 +83,7 @@ class APISpecConverter:
                         if block_type in ("tool_use", "tool_result"):
                             return "anthropic"
 
-        return self.default_spec
+        return current_default
 
     def generate_tool_call_id(self, prefix: str = "call") -> str:
         """Generate a unique tool call ID.

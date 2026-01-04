@@ -40,7 +40,8 @@ MCP Client -> FastAPI Server -> Job Manager -> Blender Subprocess -> File System
 | Category | Tools | Documentation |
 |----------|-------|---------------|
 | Project | `create_blender_project`, `list_projects` | [API Reference](API_REFERENCE.md#project-management) |
-| Scene | `add_primitive_objects`, `setup_lighting` | [API Reference](API_REFERENCE.md#scene-building) |
+| Scene | `add_primitive_objects`, `setup_lighting`, `delete_objects` | [API Reference](API_REFERENCE.md#scene-building) |
+| Environment | `setup_world_environment` | [API Reference](API_REFERENCE.md#environment) |
 | Materials | `apply_material` | [API Reference](API_REFERENCE.md#materials-and-textures) |
 | Rendering | `render_image`, `render_animation` | [API Reference](API_REFERENCE.md#rendering) |
 | Physics | `setup_physics`, `bake_simulation` | [API Reference](API_REFERENCE.md#physics-simulation) |
@@ -155,6 +156,50 @@ mcp-blender:
 5. Retrieve result with `get_job_result`
 
 See [API Reference - Rendering](API_REFERENCE.md#rendering) for details.
+
+### Rendering Without Ground Plane
+
+For floating objects or clean backgrounds without a ground plane:
+
+**Option 1: Use `lit_empty` template (Recommended)**
+```python
+# Creates scene with lighting but no ground
+client.call_tool("create_blender_project", {
+    "name": "floating_object",
+    "template": "lit_empty"
+})
+```
+
+**Option 2: Use `basic_scene` + `delete_objects`**
+```python
+# Create scene with good lighting
+client.call_tool("create_blender_project", {
+    "name": "scene",
+    "template": "basic_scene"
+})
+# Remove the ground plane
+client.call_tool("delete_objects", {
+    "project": "scene.blend",
+    "object_names": ["Ground"]
+})
+```
+
+**Option 3: Use `empty` + `setup_lighting`**
+```python
+# Start with empty scene
+client.call_tool("create_blender_project", {
+    "name": "scene",
+    "template": "empty"
+})
+# Add three-point lighting with high strength
+client.call_tool("setup_lighting", {
+    "project": "scene.blend",
+    "type": "three_point",
+    "settings": {"strength": 10.0}
+})
+```
+
+**Tip**: Use Eevee (`engine: "BLENDER_EEVEE_NEXT"`) for brighter renders with area lights.
 
 ### Physics Simulation
 

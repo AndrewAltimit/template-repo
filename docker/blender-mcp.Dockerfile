@@ -48,6 +48,10 @@ COPY tools/mcp/mcp_blender /app/tools/mcp/mcp_blender
 RUN pip install --no-cache-dir -v /app/tools/mcp/mcp_core && \
     pip install --no-cache-dir -v /app/tools/mcp/mcp_blender
 
+# Copy Blender scripts to expected Docker location
+# BlenderExecutor looks for scripts at /app/blender/scripts first
+COPY tools/mcp/mcp_blender/scripts /app/blender/scripts
+
 # Set Python path for module discovery
 ENV PYTHONPATH=/app
 

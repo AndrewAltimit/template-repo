@@ -37,6 +37,7 @@ TOOLS = {
     "setup_compositor": CompositingTools,
     "batch_render": CompositingTools,
     # Scene tools
+    "delete_objects": SceneTools,
     "analyze_scene": SceneTools,
     "optimize_scene": SceneTools,
     # Environment tools
@@ -75,6 +76,7 @@ def get_tool_handlers():
         "setup_compositor": CompositingTools.setup_compositor,
         "batch_render": CompositingTools.batch_render,
         # Scene tools
+        "delete_objects": SceneTools.delete_objects,
         "analyze_scene": SceneTools.analyze_scene,
         "optimize_scene": SceneTools.optimize_scene,
         # Environment tools

@@ -80,6 +80,8 @@ def create_geometry_nodes(args, _job_id):
             "extrude": create_extrude_setup,
             "voronoi_scatter": create_voronoi_scatter_setup,
             "mesh_to_points": create_mesh_to_points_setup,
+            "crystal_scatter": create_crystal_scatter_setup,
+            "crystal_cluster": create_crystal_cluster_setup,
         }
 
         setup_func = setup_funcs.get(node_setup)
@@ -88,6 +90,11 @@ def create_geometry_nodes(args, _job_id):
         else:
             # Default simple passthrough setup
             links.new(input_node.outputs[0], output_node.inputs[0])
+
+        # Apply crystal material if requested (for crystal setups)
+        apply_material = parameters.get("apply_crystal_material", False)
+        if apply_material and node_setup in ("crystal_scatter", "crystal_cluster"):
+            create_crystal_material(obj, parameters)
 
         # Save project
         if "project" in args:
@@ -693,6 +700,389 @@ def create_mesh_to_points_setup(nodes, links, input_node, output_node, parameter
         links.new(input_node.outputs[0], mesh_to_points.inputs["Mesh"])
         links.new(mesh_to_points.outputs["Points"], set_radius.inputs["Points"])
         links.new(set_radius.outputs["Points"], output_node.inputs[0])
+
+
+def create_crystal_material(obj, parameters):
+    """Create and apply a glass/translucent crystal material to an object.
+
+    Parameters:
+        obj: The Blender object to apply the material to
+        parameters: Dict with optional color settings
+            - base_color: tuple (r, g, b, a) default (0.8, 0.85, 1.0, 1.0)
+            - transmission: float, default 0.9
+            - roughness: float, default 0.1
+            - ior: float, default 1.45
+    """
+    # Get color parameters
+    base_color = parameters.get("crystal_color", (0.8, 0.85, 1.0, 1.0))
+    transmission = parameters.get("crystal_transmission", 0.9)
+    roughness = parameters.get("crystal_roughness", 0.1)
+    ior = parameters.get("crystal_ior", 1.45)
+
+    # Create material
+    mat_name = f"{obj.name}_CrystalMaterial"
+    mat = bpy.data.materials.new(name=mat_name)
+    mat.use_nodes = True
+
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+
+    # Clear default nodes
+    nodes.clear()
+
+    # Create Principled BSDF
+    bsdf = nodes.new("ShaderNodeBsdfPrincipled")
+    bsdf.location = (0, 0)
+    bsdf.inputs["Base Color"].default_value = base_color
+    bsdf.inputs["Roughness"].default_value = roughness
+    bsdf.inputs["IOR"].default_value = ior
+
+    # Set transmission (glass-like)
+    # Blender 4.0+ uses "Transmission Weight", older uses "Transmission"
+    try:
+        bsdf.inputs["Transmission Weight"].default_value = transmission
+    except KeyError:
+        bsdf.inputs["Transmission"].default_value = transmission
+
+    # Set subsurface for inner glow effect
+    try:
+        bsdf.inputs["Subsurface Weight"].default_value = 0.1
+        bsdf.inputs["Subsurface Radius"].default_value = (0.1, 0.1, 0.1)
+    except KeyError:
+        # Older Blender versions
+        pass
+
+    # Create output node
+    output = nodes.new("ShaderNodeOutputMaterial")
+    output.location = (300, 0)
+
+    # Connect BSDF to output
+    links.new(bsdf.outputs["BSDF"], output.inputs["Surface"])
+
+    # Assign material to object
+    if obj.data.materials:
+        obj.data.materials[0] = mat
+    else:
+        obj.data.materials.append(mat)
+
+    return mat
+
+
+def create_crystal_scatter_setup(nodes, links, input_node, output_node, parameters):
+    """Create crystal scatter node setup with procedural crystal generation.
+
+    Distributes faceted crystal shapes across a mesh surface with normal alignment,
+    random height/scale variation, and optional glass material.
+
+    Parameters:
+        density (float): Crystal distribution density (default: 10.0)
+        seed (int): Random seed for variation (default: 0)
+        crystal_scale (float): Global scale multiplier (default: 1.0)
+        crystal_height_min (float): Minimum crystal height (default: 0.1)
+        crystal_height_max (float): Maximum crystal height (default: 0.5)
+        crystal_radius (float): Crystal base radius (default: 0.05)
+        facets (int): Number of facets, 6=hexagonal, 8=octagonal (default: 6)
+        tilt_variance (float): Max tilt from normal in radians (default: 0.3)
+        scale_variance (float): Scale randomization amount (default: 0.2)
+        use_poisson (bool): Use Poisson disk for even spacing (default: True)
+        apply_crystal_material (bool): Apply glass material (default: True)
+    """
+    # Extract parameters with defaults
+    density = parameters.get("density", 10.0)
+    seed = parameters.get("seed", 0)
+    crystal_scale = parameters.get("crystal_scale", 1.0)
+    height_min = parameters.get("crystal_height_min", 0.1)
+    height_max = parameters.get("crystal_height_max", 0.5)
+    crystal_radius = parameters.get("crystal_radius", 0.05)
+    facets = parameters.get("facets", 6)
+    tilt_variance = parameters.get("tilt_variance", 0.3)
+    scale_variance = parameters.get("scale_variance", 0.2)
+    use_poisson = parameters.get("use_poisson", True)
+
+    # ----- Create Crystal Mesh (Cone with pointed tip) -----
+    crystal_cone = nodes.new("GeometryNodeMeshCone")
+    crystal_cone.location = (0, 300)
+    crystal_cone.inputs["Vertices"].default_value = facets
+    crystal_cone.inputs["Radius Top"].default_value = 0.0  # Pointed tip
+    crystal_cone.inputs["Radius Bottom"].default_value = crystal_radius
+    crystal_cone.inputs["Depth"].default_value = (height_min + height_max) / 2
+
+    # Set shade smooth for crystal surfaces
+    set_smooth = nodes.new("GeometryNodeSetShadeSmooth")
+    set_smooth.location = (200, 300)
+    links.new(crystal_cone.outputs["Mesh"], set_smooth.inputs["Geometry"])
+
+    # ----- Distribute Points on Surface -----
+    distribute = nodes.new("GeometryNodeDistributePointsOnFaces")
+    distribute.location = (0, 0)
+    distribute.distribute_method = "POISSON" if use_poisson else "RANDOM"
+
+    # Set density based on distribution method (Blender 4.0+ API)
+    if use_poisson:
+        # POISSON mode uses "Distance Min", "Density Max", and "Density Factor"
+        # Convert density to minimum distance (inverse relationship)
+        # Higher density = smaller distance between points
+        distance_min = 1.0 / max(density, 0.1) * 0.5  # Scale factor for reasonable distances
+        distribute.inputs["Distance Min"].default_value = max(0.01, distance_min)
+        # Density Max controls maximum points per area - must be set for POISSON to work
+        distribute.inputs["Density Max"].default_value = density * 10.0
+        distribute.inputs["Density Factor"].default_value = 1.0
+    else:
+        # RANDOM mode uses "Density"
+        distribute.inputs["Density"].default_value = density
+
+    distribute.inputs["Seed"].default_value = seed
+
+    # Connect input geometry
+    links.new(input_node.outputs[0], distribute.inputs["Mesh"])
+
+    # ----- Random Height Variation -----
+    random_height = nodes.new("FunctionNodeRandomValue")
+    random_height.location = (200, -100)
+    random_height.data_type = "FLOAT"
+    random_height.inputs["Min"].default_value = height_min * crystal_scale
+    random_height.inputs["Max"].default_value = height_max * crystal_scale
+    random_height.inputs["Seed"].default_value = seed + 1
+
+    # ----- Create Scale Vector -----
+    # Scale X/Y proportionally, Z is the height
+    combine_scale = nodes.new("ShaderNodeCombineXYZ")
+    combine_scale.location = (400, -100)
+
+    # Base scale with variance for X and Y
+    random_xy_scale = nodes.new("FunctionNodeRandomValue")
+    random_xy_scale.location = (200, -250)
+    random_xy_scale.data_type = "FLOAT"
+    min_xy = crystal_scale * (1 - scale_variance)
+    max_xy = crystal_scale * (1 + scale_variance)
+    random_xy_scale.inputs["Min"].default_value = min_xy
+    random_xy_scale.inputs["Max"].default_value = max_xy
+    random_xy_scale.inputs["Seed"].default_value = seed + 3
+
+    links.new(random_xy_scale.outputs["Value"], combine_scale.inputs["X"])
+    links.new(random_xy_scale.outputs["Value"], combine_scale.inputs["Y"])
+    links.new(random_height.outputs["Value"], combine_scale.inputs["Z"])
+
+    # ----- Align to Surface Normal -----
+    align = nodes.new("FunctionNodeAlignEulerToVector")
+    align.location = (200, -400)
+    align.axis = "Z"
+    links.new(distribute.outputs["Normal"], align.inputs["Vector"])
+
+    # ----- Random Tilt Variation -----
+    random_tilt = nodes.new("FunctionNodeRandomValue")
+    random_tilt.location = (200, -550)
+    random_tilt.data_type = "FLOAT_VECTOR"
+    random_tilt.inputs["Min"].default_value = (-tilt_variance, -tilt_variance, 0)
+    random_tilt.inputs["Max"].default_value = (tilt_variance, tilt_variance, 2 * pi)
+    random_tilt.inputs["Seed"].default_value = seed + 2
+
+    # Combine aligned rotation with random tilt
+    rotate_euler = nodes.new("FunctionNodeRotateEuler")
+    rotate_euler.location = (400, -450)
+    rotate_euler.space = "LOCAL"
+    links.new(align.outputs["Rotation"], rotate_euler.inputs["Rotation"])
+    links.new(random_tilt.outputs["Value"], rotate_euler.inputs["Rotate By"])
+
+    # ----- Instance Crystals on Points -----
+    instance = nodes.new("GeometryNodeInstanceOnPoints")
+    instance.location = (600, 0)
+    links.new(distribute.outputs["Points"], instance.inputs["Points"])
+    links.new(set_smooth.outputs["Geometry"], instance.inputs["Instance"])
+    links.new(combine_scale.outputs["Vector"], instance.inputs["Scale"])
+    links.new(rotate_euler.outputs["Rotation"], instance.inputs["Rotation"])
+
+    # ----- Realize Instances -----
+    realize = nodes.new("GeometryNodeRealizeInstances")
+    realize.location = (800, 0)
+    links.new(instance.outputs["Instances"], realize.inputs["Geometry"])
+
+    # Connect to output
+    links.new(realize.outputs["Geometry"], output_node.inputs[0])
+
+
+def create_crystal_cluster_setup(nodes, links, input_node, output_node, parameters):
+    """Create clustered crystal formation using Voronoi-based distribution.
+
+    Creates groups of crystals at cluster centers, simulating natural crystal
+    formations like geodes or mineral deposits.
+
+    Parameters:
+        cluster_scale (float): Voronoi cell size, larger = fewer clusters (default: 5.0)
+        cluster_density (float): Density of cluster centers (default: 5.0)
+        crystals_per_cluster_min (int): Min crystals per cluster (default: 2)
+        crystals_per_cluster_max (int): Max crystals per cluster (default: 5)
+        cluster_radius (float): Spread of crystals within cluster (default: 0.3)
+        crystal_height_min (float): Minimum crystal height (default: 0.1)
+        crystal_height_max (float): Maximum crystal height (default: 0.4)
+        crystal_radius (float): Crystal base radius (default: 0.04)
+        facets (int): Number of facets (default: 6)
+        seed (int): Random seed (default: 0)
+        tilt_variance (float): Max tilt from normal (default: 0.4)
+    """
+    # Extract parameters
+    cluster_scale = parameters.get("cluster_scale", 5.0)
+    cluster_density = parameters.get("cluster_density", 5.0)
+    crystals_min = parameters.get("crystals_per_cluster_min", 2)
+    crystals_max = parameters.get("crystals_per_cluster_max", 5)
+    cluster_radius = parameters.get("cluster_radius", 0.3)
+    height_min = parameters.get("crystal_height_min", 0.1)
+    height_max = parameters.get("crystal_height_max", 0.4)
+    crystal_rad = parameters.get("crystal_radius", 0.04)
+    facets = parameters.get("facets", 6)
+    seed = parameters.get("seed", 0)
+    tilt_variance = parameters.get("tilt_variance", 0.4)
+
+    # ----- Create Crystal Mesh -----
+    crystal_cone = nodes.new("GeometryNodeMeshCone")
+    crystal_cone.location = (0, 400)
+    crystal_cone.inputs["Vertices"].default_value = facets
+    crystal_cone.inputs["Radius Top"].default_value = 0.0
+    crystal_cone.inputs["Radius Bottom"].default_value = crystal_rad
+    crystal_cone.inputs["Depth"].default_value = (height_min + height_max) / 2
+
+    set_smooth = nodes.new("GeometryNodeSetShadeSmooth")
+    set_smooth.location = (200, 400)
+    links.new(crystal_cone.outputs["Mesh"], set_smooth.inputs["Geometry"])
+
+    # ----- Voronoi Texture for Cluster Detection -----
+    position = nodes.new("GeometryNodeInputPosition")
+    position.location = (-200, -200)
+
+    voronoi = nodes.new("ShaderNodeTexVoronoi")
+    voronoi.location = (0, -200)
+    voronoi.feature = "F1"
+    voronoi.inputs["Scale"].default_value = cluster_scale
+    voronoi.inputs["Randomness"].default_value = 1.0
+    links.new(position.outputs["Position"], voronoi.inputs["Vector"])
+
+    # ----- Map Voronoi Distance to Density Mask -----
+    # Crystals grow more densely near Voronoi cell centers
+    map_range = nodes.new("ShaderNodeMapRange")
+    map_range.location = (200, -200)
+    map_range.inputs["From Min"].default_value = 0.0
+    map_range.inputs["From Max"].default_value = 0.5
+    map_range.inputs["To Min"].default_value = cluster_density * 2
+    map_range.inputs["To Max"].default_value = cluster_density * 0.1
+    map_range.clamp = True
+    links.new(voronoi.outputs["Distance"], map_range.inputs["Value"])
+
+    # ----- Distribute Cluster Center Points -----
+    distribute = nodes.new("GeometryNodeDistributePointsOnFaces")
+    distribute.location = (400, 0)
+    distribute.distribute_method = "POISSON"
+    distribute.inputs["Seed"].default_value = seed
+    # For POISSON mode: set minimum distance, density max, and connect density factor
+    # Lower distance = more points
+    distribute.inputs["Distance Min"].default_value = 0.1 / max(cluster_density, 0.1)
+    # Density Max must be set for POISSON to generate points
+    distribute.inputs["Density Max"].default_value = cluster_density * 10.0
+
+    links.new(input_node.outputs[0], distribute.inputs["Mesh"])
+    links.new(map_range.outputs["Result"], distribute.inputs["Density Factor"])
+
+    # ----- Random Number of Crystals per Cluster -----
+    random_count = nodes.new("FunctionNodeRandomValue")
+    random_count.location = (400, -150)
+    random_count.data_type = "INT"
+    random_count.inputs["Min"].default_value = crystals_min
+    random_count.inputs["Max"].default_value = crystals_max + 1
+    random_count.inputs["Seed"].default_value = seed + 10
+
+    # ----- Create Offset Points Around Each Cluster Center -----
+    # Use a small grid/circle of points around each distributed point
+    mesh_circle = nodes.new("GeometryNodeCurvePrimitiveCircle")
+    mesh_circle.location = (400, 200)
+    mesh_circle.mode = "RADIUS"  # RADIUS mode has Radius input, POINTS mode doesn't
+    mesh_circle.inputs["Resolution"].default_value = crystals_max
+    mesh_circle.inputs["Radius"].default_value = cluster_radius
+
+    # Convert circle to points
+    curve_to_points = nodes.new("GeometryNodeCurveToPoints")
+    curve_to_points.location = (600, 200)
+    curve_to_points.mode = "COUNT"
+    curve_to_points.inputs["Count"].default_value = crystals_max
+    links.new(mesh_circle.outputs["Curve"], curve_to_points.inputs["Curve"])
+
+    # ----- Instance Circle Points at Cluster Centers -----
+    instance_clusters = nodes.new("GeometryNodeInstanceOnPoints")
+    instance_clusters.location = (600, 0)
+    links.new(distribute.outputs["Points"], instance_clusters.inputs["Points"])
+    links.new(curve_to_points.outputs["Points"], instance_clusters.inputs["Instance"])
+
+    # Random rotation for cluster orientation
+    random_cluster_rot = nodes.new("FunctionNodeRandomValue")
+    random_cluster_rot.location = (400, -300)
+    random_cluster_rot.data_type = "FLOAT_VECTOR"
+    random_cluster_rot.inputs["Min"].default_value = (0, 0, 0)
+    random_cluster_rot.inputs["Max"].default_value = (0, 0, 2 * pi)
+    random_cluster_rot.inputs["Seed"].default_value = seed + 5
+    links.new(random_cluster_rot.outputs["Value"], instance_clusters.inputs["Rotation"])
+
+    # Realize cluster points
+    realize_clusters = nodes.new("GeometryNodeRealizeInstances")
+    realize_clusters.location = (800, 0)
+    links.new(instance_clusters.outputs["Instances"], realize_clusters.inputs["Geometry"])
+
+    # ----- Random Height for Each Crystal -----
+    random_height = nodes.new("FunctionNodeRandomValue")
+    random_height.location = (800, -150)
+    random_height.data_type = "FLOAT"
+    random_height.inputs["Min"].default_value = height_min
+    random_height.inputs["Max"].default_value = height_max
+    random_height.inputs["Seed"].default_value = seed + 1
+
+    # Scale vector
+    combine_scale = nodes.new("ShaderNodeCombineXYZ")
+    combine_scale.location = (950, -150)
+    combine_scale.inputs["X"].default_value = 1.0
+    combine_scale.inputs["Y"].default_value = 1.0
+    links.new(random_height.outputs["Value"], combine_scale.inputs["Z"])
+
+    # ----- Align to Original Surface Normal (approximate) -----
+    # Get normal from original mesh via proximity
+    geometry_proximity = nodes.new("GeometryNodeProximity")
+    geometry_proximity.location = (800, -350)
+    geometry_proximity.target_element = "FACES"
+    links.new(input_node.outputs[0], geometry_proximity.inputs["Target"])
+
+    # Use the original mesh normals for alignment
+    align = nodes.new("FunctionNodeAlignEulerToVector")
+    align.location = (950, -350)
+    align.axis = "Z"
+
+    # Get normal at closest point
+    sample_normal = nodes.new("GeometryNodeInputNormal")
+    sample_normal.location = (800, -500)
+
+    # Random tilt
+    random_tilt = nodes.new("FunctionNodeRandomValue")
+    random_tilt.location = (800, -600)
+    random_tilt.data_type = "FLOAT_VECTOR"
+    random_tilt.inputs["Min"].default_value = (-tilt_variance, -tilt_variance, 0)
+    random_tilt.inputs["Max"].default_value = (tilt_variance, tilt_variance, 2 * pi)
+    random_tilt.inputs["Seed"].default_value = seed + 2
+
+    rotate_euler = nodes.new("FunctionNodeRotateEuler")
+    rotate_euler.location = (1100, -400)
+    rotate_euler.space = "LOCAL"
+    links.new(random_tilt.outputs["Value"], rotate_euler.inputs["Rotate By"])
+
+    # ----- Instance Crystals on Cluster Points -----
+    instance_crystals = nodes.new("GeometryNodeInstanceOnPoints")
+    instance_crystals.location = (1000, 0)
+    links.new(realize_clusters.outputs["Geometry"], instance_crystals.inputs["Points"])
+    links.new(set_smooth.outputs["Geometry"], instance_crystals.inputs["Instance"])
+    links.new(combine_scale.outputs["Vector"], instance_crystals.inputs["Scale"])
+    links.new(rotate_euler.outputs["Rotation"], instance_crystals.inputs["Rotation"])
+
+    # ----- Final Realize -----
+    realize_final = nodes.new("GeometryNodeRealizeInstances")
+    realize_final.location = (1200, 0)
+    links.new(instance_crystals.outputs["Instances"], realize_final.inputs["Geometry"])
+
+    # Connect to output
+    links.new(realize_final.outputs["Geometry"], output_node.inputs[0])
 
 
 def create_custom_setup(nodes, links, input_node, output_node, parameters):

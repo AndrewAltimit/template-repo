@@ -119,7 +119,25 @@ class JobManager:
         with self._lock:
             # Check memory cache first
             if job_id in self.jobs:
-                return dict(self.jobs[job_id])
+                job = dict(self.jobs[job_id])
+
+                # Always refresh status from disk for active jobs
+                # (status may be updated by Blender subprocess)
+                if job.get("status") not in ("COMPLETED", "FAILED", "CANCELLED"):
+                    status = self._load_status(job_id)
+                    if status:
+                        job["status"] = status.get("status", job["status"])
+                        job["progress"] = status.get("progress", job.get("progress", 0))
+                        job["message"] = status.get("message", job.get("message", ""))
+                        if "output_path" in status:
+                            job["output_path"] = status["output_path"]
+                        if "error" in status:
+                            job["error"] = status["error"]
+                        job["updated_at"] = status.get("updated_at", job.get("updated_at"))
+                        # Update cache with fresh status
+                        self.jobs[job_id].update(job)
+
+                return job
 
             # Try loading from disk
             job = self._load_job(job_id)
@@ -128,6 +146,25 @@ class JobManager:
                 return job.copy()
 
             return None
+
+    def _load_status(self, job_id: str) -> Optional[Dict[str, Any]]:
+        """Load status file for a job.
+
+        Args:
+            job_id: Job identifier
+
+        Returns:
+            Status data or None
+        """
+        status_file = self.jobs_dir / f"{job_id}.status"
+        if status_file.exists():
+            try:
+                data = json.loads(status_file.read_text())
+                if isinstance(data, dict):
+                    return data
+            except (json.JSONDecodeError, TypeError) as e:
+                logger.warning("Failed to load status for %s: %s", job_id, e)
+        return None
 
     def list_jobs(
         self,
