@@ -43,7 +43,7 @@ def create_project(args, _job_id):
         # Handle both old and new engine names
         engine = settings.get("engine", "CYCLES")
         if engine == "EEVEE":
-            engine = "BLENDER_EEVEE"
+            engine = "BLENDER_EEVEE_NEXT"
         elif engine == "WORKBENCH":
             engine = "BLENDER_WORKBENCH"
         scene.render.engine = engine
@@ -200,7 +200,7 @@ def add_primitives(args, _job_id):
             # Create object based on type
             if obj_type == "cube":
                 bpy.ops.mesh.primitive_cube_add(location=location)
-            elif obj_type == "sphere":
+            elif obj_type in ("sphere", "uv_sphere"):
                 bpy.ops.mesh.primitive_uv_sphere_add(location=location)
             elif obj_type == "cylinder":
                 bpy.ops.mesh.primitive_cylinder_add(location=location)
@@ -403,7 +403,8 @@ def apply_material(args, _job_id):
 
             base_color = material_data.get("base_color", [1.0, 1.0, 1.0, 1.0])
             node_emission.inputs["Color"].default_value = base_color
-            node_emission.inputs["Strength"].default_value = material_data.get("emission_strength", 1.0)
+            emission_strength = material_data.get("emission_strength", 1.0)
+            node_emission.inputs["Strength"].default_value = emission_strength
 
             links.new(node_emission.outputs["Emission"], node_output.inputs["Surface"])
 
@@ -576,6 +577,102 @@ def delete_objects(args, job_id):
         return False
 
 
+def create_curve(args, _job_id):
+    """Create Bézier curves for growth paths and spatial guides.
+
+    Creates curves that can be used as targets for proximity-based effects
+    or as guides for procedural growth patterns.
+
+    Args:
+        project: Blender project file path
+        name: Name for the curve object (default: "GrowthPath")
+        curve_type: Type of curve - BEZIER, NURBS, POLY (default: BEZIER)
+        points: List of control points [[x, y, z], ...] (default: creates a simple path)
+        closed: Whether to close the curve (default: False)
+        resolution: Curve resolution (default: 12)
+        bevel_depth: Bevel depth for 3D curve (default: 0.0)
+        target_object: Optional - position curve on this object's surface
+        surface_offset: Offset from surface if target_object specified (default: 0.05)
+    """
+    try:
+        # Load project
+        if "project" in args:
+            bpy.ops.wm.open_mainfile(filepath=args["project"])
+
+        name = args.get("name", "GrowthPath")
+        curve_type = args.get("curve_type", "BEZIER")
+        points = args.get("points")
+        closed = args.get("closed", False)
+        resolution = args.get("resolution", 12)
+        bevel_depth = args.get("bevel_depth", 0.0)
+        target_object = args.get("target_object")
+        surface_offset = args.get("surface_offset", 0.05)
+
+        # Create default points if not provided
+        if not points:
+            points = [
+                [-1.0, 0.0, 0.5],
+                [0.0, 0.5, 0.7],
+                [1.0, 0.0, 0.5],
+            ]
+
+        # Create curve data
+        curve_data = bpy.data.curves.new(name=name, type="CURVE")
+        curve_data.dimensions = "3D"
+        curve_data.resolution_u = resolution
+        curve_data.bevel_depth = bevel_depth
+
+        # Create spline
+        if curve_type == "NURBS":
+            spline = curve_data.splines.new("NURBS")
+        elif curve_type == "POLY":
+            spline = curve_data.splines.new("POLY")
+        else:
+            spline = curve_data.splines.new("BEZIER")
+
+        spline.use_cyclic_u = closed
+
+        # Add points to spline
+        if curve_type == "BEZIER":
+            spline.bezier_points.add(len(points) - 1)
+            for i, point in enumerate(points):
+                bp = spline.bezier_points[i]
+                bp.co = point
+                # Auto-calculate handles
+                bp.handle_left_type = "AUTO"
+                bp.handle_right_type = "AUTO"
+        else:
+            spline.points.add(len(points) - 1)
+            for i, point in enumerate(points):
+                # NURBS/Poly points have 4 components (x, y, z, w)
+                spline.points[i].co = (*point, 1.0)
+
+        # Create curve object
+        curve_obj = bpy.data.objects.new(name, curve_data)
+        bpy.context.collection.objects.link(curve_obj)
+
+        # If target object specified, project curve onto surface
+        if target_object:
+            target = bpy.data.objects.get(target_object)
+            if target and target.type == "MESH":
+                # Use shrinkwrap modifier to project curve onto surface
+                shrinkwrap = curve_obj.modifiers.new(name="ShrinkwrapCurve", type="SHRINKWRAP")
+                shrinkwrap.target = target
+                shrinkwrap.offset = surface_offset
+                shrinkwrap.wrap_method = "NEAREST_SURFACEPOINT"
+
+        # Save project
+        if "project" in args:
+            bpy.ops.wm.save_mainfile()
+
+        print(f"Created curve: {name} with {len(points)} points")
+        return True
+
+    except Exception as e:
+        print(f"Error creating curve: {e}")
+        return False
+
+
 def export_scene(args, _job_id):
     """Export scene to various formats."""
     try:
@@ -646,6 +743,8 @@ def main():
         success = export_scene(args, job_id)
     elif operation == "delete_objects":
         success = delete_objects(args, job_id)
+    elif operation == "create_curve":
+        success = create_curve(args, job_id)
     else:
         print(f"Unknown operation: {operation}")
         sys.exit(1)

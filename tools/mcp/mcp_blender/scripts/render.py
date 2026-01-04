@@ -33,9 +33,10 @@ def render_image(args, job_id):
 
         # Configure render settings
         # Handle both old and new engine names
+        # Blender 4.2+ uses BLENDER_EEVEE_NEXT instead of BLENDER_EEVEE
         engine = settings.get("engine", "CYCLES")
         if engine == "EEVEE":
-            engine = "BLENDER_EEVEE"
+            engine = "BLENDER_EEVEE_NEXT"
         elif engine == "WORKBENCH":
             engine = "BLENDER_WORKBENCH"
         scene.render.engine = engine
@@ -46,7 +47,7 @@ def render_image(args, job_id):
         if scene.render.engine == "CYCLES":
             scene.cycles.samples = settings.get("samples", 128)
             scene.cycles.use_denoising = True
-        elif scene.render.engine == "BLENDER_EEVEE":
+        elif scene.render.engine == "BLENDER_EEVEE_NEXT":
             scene.eevee.taa_render_samples = settings.get("samples", 64)
 
         # Set output format
@@ -86,7 +87,14 @@ def render_animation(args, job_id):
         settings = args.get("settings", {})
 
         # Configure render settings
-        scene.render.engine = settings.get("engine", "EEVEE")
+        # Handle both old and new engine names
+        # Blender 4.2+ uses BLENDER_EEVEE_NEXT instead of BLENDER_EEVEE
+        engine = settings.get("engine", "BLENDER_EEVEE_NEXT")
+        if engine == "EEVEE":
+            engine = "BLENDER_EEVEE_NEXT"
+        elif engine == "WORKBENCH":
+            engine = "BLENDER_WORKBENCH"
+        scene.render.engine = engine
         scene.render.resolution_x = settings.get("resolution", [1920, 1080])[0]
         scene.render.resolution_y = settings.get("resolution", [1920, 1080])[1]
 
@@ -94,7 +102,7 @@ def render_animation(args, job_id):
         if scene.render.engine == "CYCLES":
             scene.cycles.samples = settings.get("samples", 64)
             scene.cycles.use_denoising = True
-        elif scene.render.engine == "EEVEE":
+        elif scene.render.engine == "BLENDER_EEVEE_NEXT":
             scene.eevee.taa_render_samples = settings.get("samples", 32)
 
         # Set frame range

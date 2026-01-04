@@ -136,7 +136,11 @@ class BlenderMCPServer(BaseMCPServer):
 
         # Reject paths with parent directory references
         if ".." in user_path:
-            logger.warning("Path traversal attempt blocked for %s. Path contains '..': '%s'", path_type, user_path)
+            logger.warning(
+                "Path traversal attempt blocked for %s. Path contains '..': '%s'",
+                path_type,
+                user_path,
+            )
             raise ValueError(f"Invalid {path_type} path: parent directory references not allowed")
 
         # Reject single dot (current directory)
@@ -191,7 +195,11 @@ class BlenderMCPServer(BaseMCPServer):
                         return path
                     raise ValueError(f"Project not found: {project_path}")
                 # Log security event before raising
-                logger.warning("Potential path traversal attempt blocked. Path: '%s'. Resolved to: '%s'", project_path, path)
+                logger.warning(
+                    "Potential path traversal attempt blocked. Path: '%s'. Resolved: '%s'",
+                    project_path,
+                    path,
+                )
                 raise ValueError(f"Path traversal attempt detected: {project_path}")
             except ValueError:
                 # Re-raise ValueError as-is (including path traversal)
@@ -594,6 +602,12 @@ class BlenderMCPServer(BaseMCPServer):
                                 "crystal_scatter",
                                 "crystal_cluster",
                                 "custom",
+                                # Data-driven mutation/growth nodes
+                                "proximity_mask",
+                                "blur_attribute",
+                                "map_range_displacement",
+                                "edge_crease_detection",
+                                "organic_mutation",
                             ],
                             "description": "Type of geometry node setup",
                         },
@@ -666,6 +680,60 @@ class BlenderMCPServer(BaseMCPServer):
                                 "crystal_transmission": {"type": "number", "default": 0.9},
                                 "crystal_roughness": {"type": "number", "default": 0.1},
                                 "crystal_ior": {"type": "number", "default": 1.45},
+                                # Proximity mask parameters
+                                "target_object": {
+                                    "type": "string",
+                                    "description": "Object to measure proximity to",
+                                },
+                                "max_distance": {"type": "number", "default": 2.0},
+                                "falloff": {
+                                    "type": "string",
+                                    "enum": ["LINEAR", "SMOOTH", "SHARP"],
+                                    "default": "SMOOTH",
+                                },
+                                "invert": {"type": "boolean", "default": False},
+                                "store_attribute": {"type": "string", "default": "proximity_mask"},
+                                # Blur attribute parameters
+                                "attribute_name": {"type": "string", "default": "proximity_mask"},
+                                "iterations": {"type": "integer", "default": 5},
+                                "output_attribute": {"type": "string", "default": "blurred_mask"},
+                                # Map range displacement parameters
+                                "displacement_min": {"type": "number", "default": 0.0},
+                                "displacement_max": {"type": "number", "default": 0.5},
+                                "use_voronoi": {"type": "boolean", "default": True},
+                                "voronoi_scale": {"type": "number", "default": 5.0},
+                                # Edge crease detection parameters
+                                "angle_threshold": {"type": "number", "default": 0.5},
+                                # Organic mutation parameters
+                                "subdivision_level": {"type": "integer", "default": 2},
+                                "displacement_strength": {"type": "number", "default": 0.3},
+                                "voronoi_detail_scale": {"type": "number", "default": 15.0},
+                                "blur_iterations": {"type": "integer", "default": 5},
+                                "use_edge_smoothing": {"type": "boolean", "default": True},
+                                "mutation_attribute": {
+                                    "type": "string",
+                                    "default": "mutation_intensity",
+                                },
+                                # Attribute material parameters
+                                "apply_attribute_material": {"type": "boolean", "default": False},
+                                "base_color": {
+                                    "type": "array",
+                                    "items": {"type": "number"},
+                                    "default": [0.8, 0.6, 0.5],
+                                },
+                                "mutation_color": {
+                                    "type": "array",
+                                    "items": {"type": "number"},
+                                    "default": [0.5, 0.2, 0.3],
+                                },
+                                "use_subsurface": {"type": "boolean", "default": True},
+                                "subsurface_radius": {
+                                    "type": "array",
+                                    "items": {"type": "number"},
+                                    "default": [0.1, 0.05, 0.02],
+                                },
+                                "use_bump": {"type": "boolean", "default": True},
+                                "bump_strength": {"type": "number", "default": 0.1},
                             },
                         },
                     },

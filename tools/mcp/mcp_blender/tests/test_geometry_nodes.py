@@ -54,6 +54,11 @@ class TestGeometryNodes:
             "mesh_to_points",
             "crystal_scatter",
             "crystal_cluster",
+            "proximity_mask",
+            "blur_attribute",
+            "map_range_displacement",
+            "edge_crease_detection",
+            "organic_mutation",
             "custom",
         ]
 
@@ -385,6 +390,11 @@ class TestGeometryNodes:
             "mesh_to_points",
             "crystal_scatter",
             "crystal_cluster",
+            "proximity_mask",
+            "blur_attribute",
+            "map_range_displacement",
+            "edge_crease_detection",
+            "organic_mutation",
             "custom",
         ]
 
@@ -651,6 +661,171 @@ class TestGeometryNodesParameters:
         assert params["crystal_transmission"]["default"] == 0.9
         assert params["crystal_roughness"]["default"] == 0.1
         assert params["crystal_ior"]["default"] == 1.45
+
+
+class TestMutationWorkflowNodes:
+    """Test suite for data-driven mutation/growth workflow nodes."""
+
+    @pytest.fixture
+    def server(self, tmp_path):
+        """Create a server instance with temp directories."""
+        return BlenderMCPServer(base_dir=str(tmp_path))
+
+    @pytest.fixture
+    def mock_executor(self):
+        """Create a mock BlenderExecutor."""
+        executor = Mock(spec=BlenderExecutor)
+        executor.execute_script = AsyncMock(return_value={"success": True})
+        executor.kill_process = Mock()
+        return executor
+
+    @pytest.mark.asyncio
+    async def test_proximity_mask_setup(self, server, mock_executor):
+        """Test proximity mask geometry nodes setup."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "Surface",
+            "node_setup": "proximity_mask",
+            "parameters": {
+                "target_object": "Target",
+                "max_distance": 2.0,
+                "falloff": "SMOOTH",
+                "store_attribute": "proximity_mask",
+                "apply_attribute_material": True,
+            },
+        }
+
+        result = await server._create_geometry_nodes(args)
+
+        assert result["success"] is True
+        assert result["node_setup"] == "proximity_mask"
+        mock_executor.execute_script.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_blur_attribute_setup(self, server, mock_executor):
+        """Test blur attribute geometry nodes setup."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "MeshObject",
+            "node_setup": "blur_attribute",
+            "parameters": {
+                "iterations": 5,
+                "weight": 1.0,
+                "attribute_name": "smooth_mask",
+            },
+        }
+
+        result = await server._create_geometry_nodes(args)
+
+        assert result["success"] is True
+        assert result["node_setup"] == "blur_attribute"
+        mock_executor.execute_script.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_map_range_displacement_setup(self, server, mock_executor):
+        """Test map range displacement geometry nodes setup."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "DisplacedMesh",
+            "node_setup": "map_range_displacement",
+            "parameters": {
+                "target_object": "Attractor",
+                "max_distance": 3.0,
+                "displacement_strength": 0.5,
+                "voronoi_scale": 8.0,
+            },
+        }
+
+        result = await server._create_geometry_nodes(args)
+
+        assert result["success"] is True
+        assert result["node_setup"] == "map_range_displacement"
+        mock_executor.execute_script.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_edge_crease_detection_setup(self, server, mock_executor):
+        """Test edge crease detection geometry nodes setup."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "EdgeMesh",
+            "node_setup": "edge_crease_detection",
+            "parameters": {
+                "angle_threshold": 0.5,
+            },
+        }
+
+        result = await server._create_geometry_nodes(args)
+
+        assert result["success"] is True
+        assert result["node_setup"] == "edge_crease_detection"
+        mock_executor.execute_script.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_organic_mutation_setup(self, server, mock_executor):
+        """Test organic mutation geometry nodes setup (full pipeline)."""
+        server.blender_executor = mock_executor
+
+        args = {
+            "project": "test.blend",
+            "object_name": "Organism",
+            "node_setup": "organic_mutation",
+            "parameters": {
+                "target_object": "GrowthPath",
+                "max_distance": 1.2,
+                "subdivision_level": 2,
+                "displacement_strength": 0.25,
+                "voronoi_scale": 6.0,
+                "voronoi_detail_scale": 12.0,
+                "blur_iterations": 4,
+                "use_edge_smoothing": True,
+                "apply_attribute_material": True,
+                "base_color": [0.9, 0.75, 0.65],
+                "mutation_color": [0.5, 0.2, 0.25],
+                "use_subsurface": True,
+            },
+        }
+
+        result = await server._create_geometry_nodes(args)
+
+        assert result["success"] is True
+        assert result["node_setup"] == "organic_mutation"
+        mock_executor.execute_script.assert_called_once()
+
+    def test_mutation_parameters_schema(self, server):
+        """Test mutation workflow parameters are in schema."""
+        tools = server.get_tools()
+        params = tools["create_geometry_nodes"]["parameters"]["properties"]["parameters"]["properties"]
+
+        # Check proximity/mutation parameters
+        assert "target_object" in params
+        assert "max_distance" in params
+        assert "falloff" in params
+        assert "store_attribute" in params
+        assert "apply_attribute_material" in params
+
+        # Check blur attribute parameters
+        assert "blur_iterations" in params
+
+        # Check displacement parameters
+        assert "displacement_strength" in params
+        assert "voronoi_scale" in params
+        assert "voronoi_detail_scale" in params
+
+        # Check edge detection parameters
+        assert "angle_threshold" in params
+
+        # Check organic mutation color parameters
+        assert "base_color" in params
+        assert "mutation_color" in params
+        assert "use_subsurface" in params
 
 
 if __name__ == "__main__":

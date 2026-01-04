@@ -82,6 +82,12 @@ def create_geometry_nodes(args, _job_id):
             "mesh_to_points": create_mesh_to_points_setup,
             "crystal_scatter": create_crystal_scatter_setup,
             "crystal_cluster": create_crystal_cluster_setup,
+            # Data-driven mutation/growth workflow nodes
+            "proximity_mask": create_proximity_mask_setup,
+            "blur_attribute": create_blur_attribute_setup,
+            "map_range_displacement": create_map_range_displacement_setup,
+            "edge_crease_detection": create_edge_crease_detection_setup,
+            "organic_mutation": create_organic_mutation_setup,
         }
 
         setup_func = setup_funcs.get(node_setup)
@@ -92,9 +98,20 @@ def create_geometry_nodes(args, _job_id):
             links.new(input_node.outputs[0], output_node.inputs[0])
 
         # Apply crystal material if requested (for crystal setups)
-        apply_material = parameters.get("apply_crystal_material", False)
-        if apply_material and node_setup in ("crystal_scatter", "crystal_cluster"):
+        apply_crystal_mat = parameters.get("apply_crystal_material", False)
+        if apply_crystal_mat and node_setup in ("crystal_scatter", "crystal_cluster"):
             create_crystal_material(obj, parameters)
+
+        # Apply attribute-driven material if requested (for mutation setups)
+        apply_attr_mat = parameters.get("apply_attribute_material", False)
+        if apply_attr_mat and node_setup in (
+            "proximity_mask",
+            "blur_attribute",
+            "map_range_displacement",
+            "edge_crease_detection",
+            "organic_mutation",
+        ):
+            create_attribute_material(obj, parameters)
 
         # Save project
         if "project" in args:
@@ -1083,6 +1100,572 @@ def create_crystal_cluster_setup(nodes, links, input_node, output_node, paramete
 
     # Connect to output
     links.new(realize_final.outputs["Geometry"], output_node.inputs[0])
+
+
+# =============================================================================
+# DATA-DRIVEN MUTATION/GROWTH WORKFLOW NODES
+# =============================================================================
+
+
+def create_proximity_mask_setup(nodes, links, input_node, output_node, parameters):
+    """Create proximity-based mask for spatial awareness.
+
+    Uses Geometry Proximity to measure distance from vertices to a target,
+    creating an influence mask for localized effects like growth or mutation.
+
+    Parameters:
+        target_object: Name of object to measure distance to (required)
+        max_distance: Maximum distance for influence (default: 2.0)
+        falloff: Falloff curve type - LINEAR, SMOOTH, SHARP (default: SMOOTH)
+        invert: Invert the mask (default: False)
+        store_attribute: Name to store result as (default: "proximity_mask")
+    """
+    target_object = parameters.get("target_object")
+    max_distance = parameters.get("max_distance", 2.0)
+    falloff = parameters.get("falloff", "SMOOTH")
+    invert = parameters.get("invert", False)
+    attribute_name = parameters.get("store_attribute", "proximity_mask")
+
+    # Object info to get target geometry
+    object_info = nodes.new("GeometryNodeObjectInfo")
+    object_info.location = (-200, -200)
+    object_info.transform_space = "RELATIVE"
+
+    # Set target object if specified
+    if target_object:
+        target = bpy.data.objects.get(target_object)
+        if target:
+            object_info.inputs["Object"].default_value = target
+
+    # Geometry Proximity - measures distance to target geometry
+    proximity = nodes.new("GeometryNodeProximity")
+    proximity.location = (0, -100)
+    proximity.target_element = "FACES"  # Can be POINTS, EDGES, or FACES
+
+    # Connect target geometry
+    links.new(object_info.outputs["Geometry"], proximity.inputs["Target"])
+
+    # Map Range to convert distance to 0-1 mask
+    map_range = nodes.new("ShaderNodeMapRange")
+    map_range.location = (200, -100)
+    map_range.inputs["From Min"].default_value = 0.0
+    map_range.inputs["From Max"].default_value = max_distance
+    map_range.inputs["To Min"].default_value = 1.0 if invert else 0.0
+    map_range.inputs["To Max"].default_value = 0.0 if invert else 1.0
+    map_range.clamp = True
+
+    links.new(proximity.outputs["Distance"], map_range.inputs["Value"])
+
+    # Apply falloff curve
+    if falloff == "SMOOTH":
+        # Smooth falloff using power curve
+        power = nodes.new("ShaderNodeMath")
+        power.location = (400, -100)
+        power.operation = "POWER"
+        power.inputs[1].default_value = 2.0  # Quadratic falloff
+        links.new(map_range.outputs["Result"], power.inputs[0])
+        mask_output = power.outputs["Value"]
+    elif falloff == "SHARP":
+        # Sharp falloff using greater power
+        power = nodes.new("ShaderNodeMath")
+        power.location = (400, -100)
+        power.operation = "POWER"
+        power.inputs[1].default_value = 4.0
+        links.new(map_range.outputs["Result"], power.inputs[0])
+        mask_output = power.outputs["Value"]
+    else:
+        # Linear falloff - direct from map range
+        mask_output = map_range.outputs["Result"]
+
+    # Store as named attribute for shader access
+    store_attr = nodes.new("GeometryNodeStoreNamedAttribute")
+    store_attr.location = (600, 0)
+    store_attr.data_type = "FLOAT"
+    store_attr.domain = "POINT"
+    store_attr.inputs["Name"].default_value = attribute_name
+
+    links.new(input_node.outputs[0], store_attr.inputs["Geometry"])
+    links.new(mask_output, store_attr.inputs["Value"])
+
+    # Connect to output
+    links.new(store_attr.outputs["Geometry"], output_node.inputs[0])
+
+
+def create_blur_attribute_setup(nodes, links, input_node, output_node, parameters):
+    """Create attribute blur for smoothing data across mesh surface.
+
+    Blurs a named attribute to create smooth transitions, useful for
+    organic growth effects and preventing harsh boundaries.
+
+    Parameters:
+        attribute_name: Name of attribute to blur (default: "proximity_mask")
+        iterations: Number of blur passes (default: 5)
+        output_attribute: Name for blurred result (default: "blurred_mask")
+    """
+    attribute_name = parameters.get("attribute_name", "proximity_mask")
+    iterations = parameters.get("iterations", 5)
+    output_name = parameters.get("output_attribute", "blurred_mask")
+
+    # Input named attribute
+    input_attr = nodes.new("GeometryNodeInputNamedAttribute")
+    input_attr.location = (-200, -100)
+    input_attr.data_type = "FLOAT"
+    input_attr.inputs["Name"].default_value = attribute_name
+
+    # Blur the attribute
+    blur = nodes.new("GeometryNodeBlurAttribute")
+    blur.location = (0, -100)
+    blur.data_type = "FLOAT"
+    blur.inputs["Iterations"].default_value = iterations
+
+    links.new(input_attr.outputs["Attribute"], blur.inputs["Value"])
+
+    # Store blurred result
+    store_attr = nodes.new("GeometryNodeStoreNamedAttribute")
+    store_attr.location = (200, 0)
+    store_attr.data_type = "FLOAT"
+    store_attr.domain = "POINT"
+    store_attr.inputs["Name"].default_value = output_name
+
+    links.new(input_node.outputs[0], store_attr.inputs["Geometry"])
+    links.new(blur.outputs["Value"], store_attr.inputs["Value"])
+
+    # Connect to output
+    links.new(store_attr.outputs["Geometry"], output_node.inputs[0])
+
+
+def create_map_range_displacement_setup(nodes, links, input_node, output_node, parameters):
+    """Create map range controlled displacement.
+
+    Reads a named attribute and uses Map Range to control displacement
+    intensity along vertex normals.
+
+    Parameters:
+        attribute_name: Source attribute name (default: "blurred_mask")
+        displacement_min: Minimum displacement (default: 0.0)
+        displacement_max: Maximum displacement (default: 0.5)
+        use_voronoi: Add Voronoi texture variation (default: True)
+        voronoi_scale: Scale of Voronoi pattern (default: 5.0)
+        store_attribute: Store final displacement value (default: "displacement_amount")
+    """
+    attribute_name = parameters.get("attribute_name", "blurred_mask")
+    disp_min = parameters.get("displacement_min", 0.0)
+    disp_max = parameters.get("displacement_max", 0.5)
+    use_voronoi = parameters.get("use_voronoi", True)
+    voronoi_scale = parameters.get("voronoi_scale", 5.0)
+    output_attr = parameters.get("store_attribute", "displacement_amount")
+
+    # Read mask attribute
+    input_attr = nodes.new("GeometryNodeInputNamedAttribute")
+    input_attr.location = (-200, -100)
+    input_attr.data_type = "FLOAT"
+    input_attr.inputs["Name"].default_value = attribute_name
+
+    # Position for textures
+    position = nodes.new("GeometryNodeInputPosition")
+    position.location = (-200, -300)
+
+    # Normal for displacement direction
+    normal = nodes.new("GeometryNodeInputNormal")
+    normal.location = (-200, -400)
+
+    if use_voronoi:
+        # Voronoi texture for organic bumps
+        voronoi = nodes.new("ShaderNodeTexVoronoi")
+        voronoi.location = (0, -300)
+        voronoi.feature = "F1"
+        voronoi.inputs["Scale"].default_value = voronoi_scale
+        links.new(position.outputs["Position"], voronoi.inputs["Vector"])
+
+        # Multiply mask by Voronoi
+        multiply = nodes.new("ShaderNodeMath")
+        multiply.location = (200, -200)
+        multiply.operation = "MULTIPLY"
+        links.new(input_attr.outputs["Attribute"], multiply.inputs[0])
+        links.new(voronoi.outputs["Distance"], multiply.inputs[1])
+        mask_value = multiply.outputs["Value"]
+    else:
+        mask_value = input_attr.outputs["Attribute"]
+
+    # Map range for displacement intensity
+    map_range = nodes.new("ShaderNodeMapRange")
+    map_range.location = (400, -200)
+    map_range.inputs["From Min"].default_value = 0.0
+    map_range.inputs["From Max"].default_value = 1.0
+    map_range.inputs["To Min"].default_value = disp_min
+    map_range.inputs["To Max"].default_value = disp_max
+    links.new(mask_value, map_range.inputs["Value"])
+
+    # Scale normal by displacement amount
+    vector_scale = nodes.new("ShaderNodeVectorMath")
+    vector_scale.location = (600, -300)
+    vector_scale.operation = "SCALE"
+    links.new(normal.outputs["Normal"], vector_scale.inputs[0])
+    links.new(map_range.outputs["Result"], vector_scale.inputs["Scale"])
+
+    # Set position with displacement
+    set_position = nodes.new("GeometryNodeSetPosition")
+    set_position.location = (800, 0)
+    links.new(input_node.outputs[0], set_position.inputs["Geometry"])
+    links.new(vector_scale.outputs["Vector"], set_position.inputs["Offset"])
+
+    # Store displacement amount as attribute for shader
+    store_attr = nodes.new("GeometryNodeStoreNamedAttribute")
+    store_attr.location = (1000, 0)
+    store_attr.data_type = "FLOAT"
+    store_attr.domain = "POINT"
+    store_attr.inputs["Name"].default_value = output_attr
+    links.new(set_position.outputs["Geometry"], store_attr.inputs["Geometry"])
+    links.new(map_range.outputs["Result"], store_attr.inputs["Value"])
+
+    # Connect to output
+    links.new(store_attr.outputs["Geometry"], output_node.inputs[0])
+
+
+def create_edge_crease_detection_setup(nodes, links, input_node, output_node, parameters):
+    """Detect sharp edges and creases for topology-aware effects.
+
+    Uses Edge Angle to find areas where geometry folds sharply,
+    useful for crease-aware growth or smoothing.
+
+    Parameters:
+        angle_threshold: Angle above which edge is considered sharp (radians, default: 0.5)
+        store_attribute: Name to store result (default: "edge_sharpness")
+    """
+    angle_threshold = parameters.get("angle_threshold", 0.5)
+    attribute_name = parameters.get("store_attribute", "edge_sharpness")
+
+    # Edge angle detection
+    edge_angle = nodes.new("GeometryNodeInputMeshEdgeAngle")
+    edge_angle.location = (0, -100)
+
+    # Map angle to 0-1 range based on threshold
+    map_range = nodes.new("ShaderNodeMapRange")
+    map_range.location = (200, -100)
+    map_range.inputs["From Min"].default_value = 0.0
+    map_range.inputs["From Max"].default_value = angle_threshold
+    map_range.inputs["To Min"].default_value = 0.0
+    map_range.inputs["To Max"].default_value = 1.0
+    map_range.clamp = True
+    links.new(edge_angle.outputs["Unsigned Angle"], map_range.inputs["Value"])
+
+    # Store as attribute
+    store_attr = nodes.new("GeometryNodeStoreNamedAttribute")
+    store_attr.location = (400, 0)
+    store_attr.data_type = "FLOAT"
+    store_attr.domain = "POINT"
+    store_attr.inputs["Name"].default_value = attribute_name
+    links.new(input_node.outputs[0], store_attr.inputs["Geometry"])
+    links.new(map_range.outputs["Result"], store_attr.inputs["Value"])
+
+    # Connect to output
+    links.new(store_attr.outputs["Geometry"], output_node.inputs[0])
+
+
+def create_organic_mutation_setup(nodes, links, input_node, output_node, parameters):
+    """Complete organic mutation/growth system.
+
+    Combines proximity masking, Voronoi displacement, attribute blur,
+    and data export to shaders for a full procedural mutation workflow.
+
+    This is the "data-driven modeling" approach where curve data drives
+    physical displacement which drives shader masking.
+
+    Parameters:
+        target_object: Object defining mutation area (curve or mesh)
+        max_distance: Influence radius from target (default: 2.0)
+        subdivision_level: Mesh subdivision for detail (default: 2)
+        displacement_strength: Max displacement amount (default: 0.3)
+        voronoi_scale: Scale of cellular pattern (default: 5.0)
+        voronoi_detail_scale: Scale of detail layer (default: 15.0)
+        blur_iterations: Smoothing passes (default: 5)
+        use_edge_smoothing: Smooth sharp creases (default: True)
+        mutation_attribute: Main output attribute name (default: "mutation_intensity")
+    """
+    target_object = parameters.get("target_object")
+    max_distance = parameters.get("max_distance", 2.0)
+    subdivision_level = parameters.get("subdivision_level", 2)
+    displacement_strength = parameters.get("displacement_strength", 0.3)
+    voronoi_scale = parameters.get("voronoi_scale", 5.0)
+    voronoi_detail = parameters.get("voronoi_detail_scale", 15.0)
+    blur_iterations = parameters.get("blur_iterations", 5)
+    use_edge_smoothing = parameters.get("use_edge_smoothing", True)
+    mutation_attr = parameters.get("mutation_attribute", "mutation_intensity")
+
+    x_offset = 0
+
+    # ===== STAGE 1: Subdivide for Detail =====
+    subdivide = nodes.new("GeometryNodeSubdivideMesh")
+    subdivide.location = (x_offset, 0)
+    subdivide.inputs["Level"].default_value = subdivision_level
+    links.new(input_node.outputs[0], subdivide.inputs["Mesh"])
+    x_offset += 200
+
+    # ===== STAGE 2: Proximity Mask =====
+    # Get target geometry
+    object_info = nodes.new("GeometryNodeObjectInfo")
+    object_info.location = (x_offset - 200, -300)
+    object_info.transform_space = "RELATIVE"
+    if target_object:
+        target = bpy.data.objects.get(target_object)
+        if target:
+            object_info.inputs["Object"].default_value = target
+
+    proximity = nodes.new("GeometryNodeProximity")
+    proximity.location = (x_offset, -200)
+    proximity.target_element = "FACES"
+    links.new(object_info.outputs["Geometry"], proximity.inputs["Target"])
+
+    # Map distance to influence (closer = higher)
+    map_dist = nodes.new("ShaderNodeMapRange")
+    map_dist.location = (x_offset + 200, -200)
+    map_dist.inputs["From Min"].default_value = 0.0
+    map_dist.inputs["From Max"].default_value = max_distance
+    map_dist.inputs["To Min"].default_value = 1.0
+    map_dist.inputs["To Max"].default_value = 0.0
+    map_dist.clamp = True
+    links.new(proximity.outputs["Distance"], map_dist.inputs["Value"])
+
+    # Smooth falloff (power curve)
+    smooth_falloff = nodes.new("ShaderNodeMath")
+    smooth_falloff.location = (x_offset + 400, -200)
+    smooth_falloff.operation = "POWER"
+    smooth_falloff.inputs[1].default_value = 2.0
+    links.new(map_dist.outputs["Result"], smooth_falloff.inputs[0])
+    x_offset += 600
+
+    # ===== STAGE 3: Voronoi Displacement (Multi-Scale) =====
+    position = nodes.new("GeometryNodeInputPosition")
+    position.location = (x_offset - 200, -400)
+
+    normal = nodes.new("GeometryNodeInputNormal")
+    normal.location = (x_offset - 200, -500)
+
+    # Large-scale Voronoi (macro lumps)
+    voronoi_macro = nodes.new("ShaderNodeTexVoronoi")
+    voronoi_macro.location = (x_offset, -400)
+    voronoi_macro.feature = "DISTANCE_TO_EDGE"
+    voronoi_macro.inputs["Scale"].default_value = voronoi_scale
+    links.new(position.outputs["Position"], voronoi_macro.inputs["Vector"])
+
+    # Small-scale Voronoi (micro detail)
+    voronoi_micro = nodes.new("ShaderNodeTexVoronoi")
+    voronoi_micro.location = (x_offset, -550)
+    voronoi_micro.feature = "F1"
+    voronoi_micro.inputs["Scale"].default_value = voronoi_detail
+    links.new(position.outputs["Position"], voronoi_micro.inputs["Vector"])
+
+    # Combine scales
+    add_voronoi = nodes.new("ShaderNodeMath")
+    add_voronoi.location = (x_offset + 200, -450)
+    add_voronoi.operation = "ADD"
+    links.new(voronoi_macro.outputs["Distance"], add_voronoi.inputs[0])
+    links.new(voronoi_micro.outputs["Distance"], add_voronoi.inputs[1])
+
+    # Multiply by mask
+    mask_voronoi = nodes.new("ShaderNodeMath")
+    mask_voronoi.location = (x_offset + 400, -350)
+    mask_voronoi.operation = "MULTIPLY"
+    links.new(smooth_falloff.outputs["Value"], mask_voronoi.inputs[0])
+    links.new(add_voronoi.outputs["Value"], mask_voronoi.inputs[1])
+
+    # Power for more lumpy feel
+    power_lumps = nodes.new("ShaderNodeMath")
+    power_lumps.location = (x_offset + 600, -350)
+    power_lumps.operation = "POWER"
+    power_lumps.inputs[1].default_value = 1.5
+    links.new(mask_voronoi.outputs["Value"], power_lumps.inputs[0])
+
+    # Scale by strength
+    scale_disp = nodes.new("ShaderNodeMath")
+    scale_disp.location = (x_offset + 800, -350)
+    scale_disp.operation = "MULTIPLY"
+    scale_disp.inputs[1].default_value = displacement_strength
+    links.new(power_lumps.outputs["Value"], scale_disp.inputs[0])
+    x_offset += 1000
+
+    # Displacement vector
+    disp_vector = nodes.new("ShaderNodeVectorMath")
+    disp_vector.location = (x_offset, -400)
+    disp_vector.operation = "SCALE"
+    links.new(normal.outputs["Normal"], disp_vector.inputs[0])
+    links.new(scale_disp.outputs["Value"], disp_vector.inputs["Scale"])
+
+    # Set position
+    set_position = nodes.new("GeometryNodeSetPosition")
+    set_position.location = (x_offset + 200, 0)
+    links.new(subdivide.outputs["Mesh"], set_position.inputs["Geometry"])
+    links.new(disp_vector.outputs["Vector"], set_position.inputs["Offset"])
+    x_offset += 400
+
+    # ===== STAGE 4: Blur for Organic Flow =====
+    # Store raw mutation value first
+    store_raw = nodes.new("GeometryNodeStoreNamedAttribute")
+    store_raw.location = (x_offset, 0)
+    store_raw.data_type = "FLOAT"
+    store_raw.domain = "POINT"
+    store_raw.inputs["Name"].default_value = f"{mutation_attr}_raw"
+    links.new(set_position.outputs["Geometry"], store_raw.inputs["Geometry"])
+    links.new(smooth_falloff.outputs["Value"], store_raw.inputs["Value"])
+
+    # Read it back for blurring
+    read_raw = nodes.new("GeometryNodeInputNamedAttribute")
+    read_raw.location = (x_offset + 200, -200)
+    read_raw.data_type = "FLOAT"
+    read_raw.inputs["Name"].default_value = f"{mutation_attr}_raw"
+
+    # Blur the attribute
+    blur = nodes.new("GeometryNodeBlurAttribute")
+    blur.location = (x_offset + 400, -200)
+    blur.data_type = "FLOAT"
+    blur.inputs["Iterations"].default_value = blur_iterations
+    links.new(read_raw.outputs["Attribute"], blur.inputs["Value"])
+    x_offset += 600
+
+    # ===== STAGE 5: Edge Smoothing (Optional) =====
+    current_geo = store_raw.outputs["Geometry"]
+
+    if use_edge_smoothing:
+        # Detect sharp edges
+        edge_angle = nodes.new("GeometryNodeInputMeshEdgeAngle")
+        edge_angle.location = (x_offset, -300)
+
+        # Map to smoothing weight
+        edge_map = nodes.new("ShaderNodeMapRange")
+        edge_map.location = (x_offset + 200, -300)
+        edge_map.inputs["From Min"].default_value = 0.3
+        edge_map.inputs["From Max"].default_value = 1.0
+        edge_map.inputs["To Min"].default_value = 0.0
+        edge_map.inputs["To Max"].default_value = 1.0
+        edge_map.clamp = True
+        links.new(edge_angle.outputs["Unsigned Angle"], edge_map.inputs["Value"])
+
+        # Apply position blur to smooth edges
+        blur_pos = nodes.new("GeometryNodeBlurAttribute")
+        blur_pos.location = (x_offset + 400, -100)
+        blur_pos.data_type = "FLOAT_VECTOR"
+        blur_pos.inputs["Iterations"].default_value = 2
+
+        # Get position and blur it weighted by edge sharpness
+        pos_attr = nodes.new("GeometryNodeInputPosition")
+        pos_attr.location = (x_offset + 200, -150)
+        links.new(pos_attr.outputs["Position"], blur_pos.inputs["Value"])
+        links.new(edge_map.outputs["Result"], blur_pos.inputs["Weight"])
+        x_offset += 600
+
+    # ===== STAGE 6: Store Final Attribute for Shader =====
+    store_final = nodes.new("GeometryNodeStoreNamedAttribute")
+    store_final.location = (x_offset, 0)
+    store_final.data_type = "FLOAT"
+    store_final.domain = "POINT"
+    store_final.inputs["Name"].default_value = mutation_attr
+    links.new(current_geo, store_final.inputs["Geometry"])
+    links.new(blur.outputs["Value"], store_final.inputs["Value"])
+
+    # Connect to output
+    links.new(store_final.outputs["Geometry"], output_node.inputs[0])
+
+
+def create_attribute_material(obj, parameters):
+    """Create a material that reads geometry node attributes.
+
+    Creates a shader setup that reads named attributes from geometry nodes
+    and uses them to drive color, subsurface scattering, and bump mapping.
+
+    Parameters:
+        attribute_name: Main attribute to read (default: "mutation_intensity")
+        base_color: Base skin color (default: [0.8, 0.6, 0.5])
+        mutation_color: Mutated tissue color (default: [0.5, 0.2, 0.3])
+        use_subsurface: Enable subsurface scattering (default: True)
+        subsurface_radius: SSS radius (default: [0.1, 0.05, 0.02])
+        use_bump: Add bump mapping from attribute (default: True)
+        bump_strength: Bump intensity (default: 0.1)
+    """
+    attribute_name = parameters.get("attribute_name", "mutation_intensity")
+    base_color = parameters.get("base_color", [0.8, 0.6, 0.5])
+    mutation_color = parameters.get("mutation_color", [0.5, 0.2, 0.3])
+    use_subsurface = parameters.get("use_subsurface", True)
+    subsurface_radius = parameters.get("subsurface_radius", [0.1, 0.05, 0.02])
+    use_bump = parameters.get("use_bump", True)
+    bump_strength = parameters.get("bump_strength", 0.1)
+
+    # Create material
+    mat_name = f"{obj.name}_AttributeMaterial"
+    mat = bpy.data.materials.new(name=mat_name)
+    mat.use_nodes = True
+
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+    nodes.clear()
+
+    # Output node
+    output = nodes.new("ShaderNodeOutputMaterial")
+    output.location = (800, 0)
+
+    # Principled BSDF
+    bsdf = nodes.new("ShaderNodeBsdfPrincipled")
+    bsdf.location = (500, 0)
+
+    # Read attribute from geometry nodes
+    attr_node = nodes.new("ShaderNodeAttribute")
+    attr_node.location = (-200, 0)
+    attr_node.attribute_name = attribute_name
+
+    # Color ramp for base -> mutation transition
+    color_ramp = nodes.new("ShaderNodeValToRGB")
+    color_ramp.location = (100, 100)
+    color_ramp.color_ramp.elements[0].position = 0.0
+    color_ramp.color_ramp.elements[0].color = (*base_color, 1.0)
+    color_ramp.color_ramp.elements[1].position = 1.0
+    color_ramp.color_ramp.elements[1].color = (*mutation_color, 1.0)
+    links.new(attr_node.outputs["Fac"], color_ramp.inputs["Fac"])
+    links.new(color_ramp.outputs["Color"], bsdf.inputs["Base Color"])
+
+    # Subsurface scattering for fleshy look
+    if use_subsurface:
+        # SSS weight from attribute (more mutation = more SSS)
+        sss_ramp = nodes.new("ShaderNodeValToRGB")
+        sss_ramp.location = (100, -100)
+        sss_ramp.color_ramp.elements[0].position = 0.0
+        sss_ramp.color_ramp.elements[0].color = (0.1, 0.1, 0.1, 1.0)
+        sss_ramp.color_ramp.elements[1].position = 1.0
+        sss_ramp.color_ramp.elements[1].color = (0.5, 0.5, 0.5, 1.0)
+        links.new(attr_node.outputs["Fac"], sss_ramp.inputs["Fac"])
+
+        # Set SSS parameters
+        bsdf.inputs["Subsurface Weight"].default_value = 0.3
+        bsdf.inputs["Subsurface Radius"].default_value = subsurface_radius
+        # SSS color matches mutation color
+        bsdf.inputs["Subsurface Scale"].default_value = 0.1
+
+    # Bump mapping from attribute
+    if use_bump:
+        bump = nodes.new("ShaderNodeBump")
+        bump.location = (300, -200)
+        bump.inputs["Strength"].default_value = bump_strength
+        links.new(attr_node.outputs["Fac"], bump.inputs["Height"])
+        links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+
+    # Roughness variation
+    rough_ramp = nodes.new("ShaderNodeValToRGB")
+    rough_ramp.location = (100, -300)
+    rough_ramp.color_ramp.elements[0].position = 0.0
+    rough_ramp.color_ramp.elements[0].color = (0.4, 0.4, 0.4, 1.0)
+    rough_ramp.color_ramp.elements[1].position = 1.0
+    rough_ramp.color_ramp.elements[1].color = (0.7, 0.7, 0.7, 1.0)
+    links.new(attr_node.outputs["Fac"], rough_ramp.inputs["Fac"])
+    links.new(rough_ramp.outputs["Color"], bsdf.inputs["Roughness"])
+
+    # Connect to output
+    links.new(bsdf.outputs["BSDF"], output.inputs["Surface"])
+
+    # Assign to object
+    if obj.data.materials:
+        obj.data.materials[0] = mat
+    else:
+        obj.data.materials.append(mat)
+
+    return mat
 
 
 def create_custom_setup(nodes, links, input_node, output_node, parameters):

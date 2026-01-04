@@ -40,6 +40,7 @@ TOOLS = {
     "delete_objects": SceneTools,
     "analyze_scene": SceneTools,
     "optimize_scene": SceneTools,
+    "create_curve": SceneTools,
     # Environment tools
     "setup_world_environment": EnvironmentTools,
 }
@@ -79,6 +80,7 @@ def get_tool_handlers():
         "delete_objects": SceneTools.delete_objects,
         "analyze_scene": SceneTools.analyze_scene,
         "optimize_scene": SceneTools.optimize_scene,
+        "create_curve": SceneTools.create_curve,
         # Environment tools
         "setup_world_environment": EnvironmentTools.setup_world_environment,
     }

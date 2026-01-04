@@ -119,6 +119,63 @@ class SceneTools:
                     "required": ["project"],
                 },
             },
+            {
+                "name": "create_curve",
+                "description": "Create Bézier curves for growth paths and spatial guides",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "project": {
+                            "type": "string",
+                            "description": "Project file path",
+                        },
+                        "name": {
+                            "type": "string",
+                            "default": "GrowthPath",
+                            "description": "Name for the curve object",
+                        },
+                        "curve_type": {
+                            "type": "string",
+                            "enum": ["BEZIER", "NURBS", "POLY"],
+                            "default": "BEZIER",
+                            "description": "Type of curve",
+                        },
+                        "points": {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": {"type": "number"},
+                            },
+                            "description": "Control points [[x, y, z], ...]",
+                        },
+                        "closed": {
+                            "type": "boolean",
+                            "default": False,
+                            "description": "Close the curve into a loop",
+                        },
+                        "resolution": {
+                            "type": "integer",
+                            "default": 12,
+                            "description": "Curve resolution",
+                        },
+                        "bevel_depth": {
+                            "type": "number",
+                            "default": 0.0,
+                            "description": "Bevel depth for 3D curve",
+                        },
+                        "target_object": {
+                            "type": "string",
+                            "description": "Project curve onto this object's surface",
+                        },
+                        "surface_offset": {
+                            "type": "number",
+                            "default": 0.05,
+                            "description": "Offset from target surface",
+                        },
+                    },
+                    "required": ["project"],
+                },
+            },
         ]
 
     @staticmethod
@@ -214,4 +271,40 @@ class SceneTools:
             "optimization_type": optimization_type,
             "optimizations": result.get("optimizations", {}),
             "message": f"Scene optimization '{optimization_type}' complete",
+        }
+
+    @staticmethod
+    async def create_curve(server, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Create Bézier curves for growth paths and spatial guides."""
+        project = str(server._validate_project_path(args["project"]))
+        name = args.get("name", "GrowthPath")
+        curve_type = args.get("curve_type", "BEZIER")
+        points = args.get("points")
+        closed = args.get("closed", False)
+        resolution = args.get("resolution", 12)
+        bevel_depth = args.get("bevel_depth", 0.0)
+        target_object = args.get("target_object")
+        surface_offset = args.get("surface_offset", 0.05)
+
+        script_args = {
+            "operation": "create_curve",
+            "project": project,
+            "name": name,
+            "curve_type": curve_type,
+            "points": points,
+            "closed": closed,
+            "resolution": resolution,
+            "bevel_depth": bevel_depth,
+            "target_object": target_object,
+            "surface_offset": surface_offset,
+        }
+
+        job_id = str(uuid.uuid4())
+        await server.blender_executor.execute_script("scene_builder.py", script_args, job_id)
+
+        return {
+            "success": True,
+            "message": f"Created curve '{name}' with {len(points) if points else 3} points",
+            "curve_name": name,
+            "curve_type": curve_type,
         }
