@@ -9,6 +9,19 @@ import sys
 import bpy
 
 
+def write_result(job_id, result_data):
+    """Write operation result to a file for the handler to read.
+
+    Args:
+        job_id: The job identifier
+        result_data: Dictionary containing the operation result
+    """
+    result_dir = Path("/app/outputs/jobs")
+    result_dir.mkdir(parents=True, exist_ok=True)
+    result_file = result_dir / f"{job_id}.result"
+    result_file.write_text(json.dumps(result_data))
+
+
 def clear_scene():
     """Clear all objects from the scene."""
     bpy.ops.object.select_all(action="SELECT")
@@ -512,7 +525,7 @@ def import_model(args, _job_id):
         return False
 
 
-def delete_objects(args, _job_id):
+def delete_objects(args, job_id):
     """Delete objects from the scene by name or type."""
     try:
         # Load project
@@ -551,7 +564,10 @@ def delete_objects(args, _job_id):
         if "project" in args:
             bpy.ops.wm.save_mainfile()
 
-        # Output result for parsing
+        # Write result to file for handler to read
+        write_result(job_id, {"deleted_objects": deleted})
+
+        # Output result for parsing (kept for backward compatibility)
         print(f"DELETED_OBJECTS:{','.join(deleted)}")
         return True
 

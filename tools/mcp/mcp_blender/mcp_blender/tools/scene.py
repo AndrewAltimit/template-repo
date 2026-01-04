@@ -124,6 +124,10 @@ class SceneTools:
     @staticmethod
     async def delete_objects(server, args: Dict[str, Any]) -> Dict[str, Any]:
         """Delete objects from the scene by name, type, or pattern."""
+        import asyncio
+        import json
+        from pathlib import Path
+
         project = str(server._validate_project_path(args["project"]))
         object_names = args.get("object_names", [])
         object_types = args.get("object_types", [])
@@ -140,12 +144,30 @@ class SceneTools:
         job_id = str(uuid.uuid4())
         await server.blender_executor.execute_script("scene_builder.py", script_args, job_id)
 
+        # Wait briefly for the quick operation to complete and read result
+        deleted_objects = []
+        result_file = Path(server.blender_executor.output_dir) / "jobs" / f"{job_id}.result"
+
+        # Poll for result file (delete_objects is typically fast)
+        for _ in range(10):  # Wait up to 5 seconds
+            await asyncio.sleep(0.5)
+            if result_file.exists():
+                try:
+                    result_data = json.loads(result_file.read_text())
+                    deleted_objects = result_data.get("deleted_objects", [])
+                    # Clean up result file
+                    result_file.unlink(missing_ok=True)
+                    break
+                except (json.JSONDecodeError, OSError):
+                    pass
+
         return {
             "success": True,
-            "message": "Objects deleted successfully",
-            "deleted_names": object_names,
-            "deleted_types": object_types,
-            "deleted_pattern": pattern,
+            "message": f"Deleted {len(deleted_objects)} object(s)",
+            "deleted_objects": deleted_objects,
+            "requested_names": object_names,
+            "requested_types": object_types,
+            "requested_pattern": pattern,
         }
 
     @staticmethod
