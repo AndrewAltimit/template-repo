@@ -14,11 +14,12 @@ from typing import Any, Dict, Optional
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "packages" / "github_agents" / "src"))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
-from github_agents.board.config import BoardConfig  # noqa: E402
+from github_agents.board.config import BoardConfig, load_config  # noqa: E402
 
 # GraphQL errors handled by base server
 from github_agents.board.manager import BoardManager  # noqa: E402
 from github_agents.board.models import IssueStatus  # noqa: E402
+from github_agents.utils.github import get_github_token  # noqa: E402
 from mcp_core.base_server import BaseMCPServer  # noqa: E402
 from mcp_core.utils import setup_logging  # noqa: E402
 
@@ -43,13 +44,12 @@ class GitHubBoardMCPServer(BaseMCPServer):
             return True
 
         try:
-            # Load configuration
-            config_path = os.getenv("GITHUB_BOARD_CONFIG", ".github/board_config.yaml")
-            if os.path.exists(config_path):
+            # Load configuration using shared load_config from github_agents
+            config_path = os.getenv("GITHUB_BOARD_CONFIG")
+            if config_path and os.path.exists(config_path):
                 self.logger.info("Loading board config from %s", config_path)
-                # Config loading is done in BoardConfig.from_file
-                self.config = BoardConfig.from_file(config_path)
-            else:
+                self.config = load_config(config_path)
+            elif config_path:
                 self.logger.warning("Config file not found at %s, using defaults", config_path)
                 # Use environment variables for minimal config
                 project_number = int(os.getenv("GITHUB_PROJECT_NUMBER", "1"))
@@ -61,10 +61,15 @@ class GitHubBoardMCPServer(BaseMCPServer):
                     owner=owner,
                     repository=repo,
                 )
+            else:
+                # No explicit config path - try default locations
+                self.logger.info("Using default config locations")
+                self.config = load_config()
 
-            # Initialize board manager
-            github_token = os.getenv("GITHUB_TOKEN")
-            if not github_token:
+            # Initialize board manager using shared token utility
+            try:
+                github_token = get_github_token()
+            except RuntimeError:
                 self.logger.error("GITHUB_TOKEN environment variable not set")
                 return False
 
@@ -270,7 +275,6 @@ class GitHubBoardMCPServer(BaseMCPServer):
         """Get ready work from board"""
         await self._ensure_board_ready()
         assert self.board_manager is not None  # Type narrowing for mypy
-        assert self.board_manager is not None  # Type narrowing for mypy
 
         issues = await self.board_manager.get_ready_work(agent_name=agent_name, limit=limit)
 
@@ -297,7 +301,6 @@ class GitHubBoardMCPServer(BaseMCPServer):
     async def claim_work(self, issue_number: int, agent_name: str, session_id: str) -> Dict[str, Any]:
         """Claim an issue"""
         await self._ensure_board_ready()
-        assert self.board_manager is not None  # Type narrowing for mypy
         assert self.board_manager is not None  # Type narrowing for mypy
 
         success = await self.board_manager.claim_work(issue_number, agent_name, session_id)
