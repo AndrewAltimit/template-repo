@@ -19,7 +19,7 @@ def write_result(job_id, result_data):
     result_dir = Path("/app/outputs/jobs")
     result_dir.mkdir(parents=True, exist_ok=True)
     result_file = result_dir / f"{job_id}.result"
-    result_file.write_text(json.dumps(result_data))
+    result_file.write_text(json.dumps(result_data), encoding="utf-8")
 
 
 def clear_scene():
