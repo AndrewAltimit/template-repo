@@ -62,12 +62,12 @@ async def process_single_pr(pr_number: int) -> None:
             print("\n✓ No trigger comments found")
             print("\nTo trigger agent:")
             print(f"  1. Go to: https://github.com/{repo}/pull/{pr_number}/files")
-            print("  2. Add review comment: [Fix][OpenCode]")
+            print("  2. Add review comment: [Approved][OpenCode]")
             print("  3. Run this script again")
             print("\nValid triggers:")
-            print("  - [Fix][OpenCode] - Use OpenCode for fixes")
-            print("  - [Fix][Crush] - Use Crush for quick fixes")
-            print("  - [Fix][Claude] - Use Claude for complex fixes")
+            print("  - [Approved][OpenCode] - Use OpenCode for implementation")
+            print("  - [Approved][Crush] - Use Crush for quick fixes")
+            print("  - [Approved][Claude] - Use Claude for complex tasks")
 
     except Exception as e:
         print(f"\n✗ ERROR: {e}")
@@ -116,10 +116,10 @@ async def monitor_open_prs() -> None:
             print("\n✓ No triggered review comments found")
             print("\nThis is normal! Agents only activate when:")
             print("  1. An authorized user adds a review comment")
-            print("  2. Comment format: [Fix][AgentName]")
+            print("  2. Comment format: [Approved][AgentName]")
             print("  3. Valid agents: OpenCode, Claude, Gemini, Crush, Codex")
             print("\nExample workflow:")
-            print("  1. Reviewer adds comment: [Fix][OpenCode] Please add error handling")
+            print("  1. Reviewer adds comment: [Approved][OpenCode] Please add error handling")
             print("  2. Agent implements the fix")
             print("  3. Changes pushed to PR branch")
             print("  4. Reviewer verifies and approves")
@@ -199,7 +199,7 @@ async def demonstrate_review_workflow() -> None:
     print("   - For agent fixes: Add trigger comment")
 
     print("\n3. Agent Implements Fixes")
-    print("   - Detects [Fix][AgentName] trigger")
+    print("   - Detects [Approved][AgentName] trigger")
     print("   - Reads all review feedback")
     print("   - Generates fixes")
     print("   - Pushes to PR branch")
@@ -215,17 +215,17 @@ async def demonstrate_review_workflow() -> None:
 
     examples = [
         {
-            "comment": "[Fix][OpenCode] Add error handling for null values",
+            "comment": "[Approved][OpenCode] Add error handling for null values",
             "agent": "OpenCode",
             "action": "Adds try-catch blocks and null checks",
         },
         {
-            "comment": "[Fix][Crush] Fix typo in variable name",
+            "comment": "[Approved][Crush] Fix typo in variable name",
             "agent": "Crush",
             "action": "Quick rename operation",
         },
         {
-            "comment": "[Fix][Claude] Refactor this function for better readability",
+            "comment": "[Approved][Claude] Refactor this function for better readability",
             "agent": "Claude",
             "action": "Comprehensive refactoring",
         },
@@ -258,8 +258,8 @@ async def demonstrate_multi_comment_handling() -> None:
 
     print("\nThe PR monitor can handle multiple review comments in one PR:")
     print("\nScenario: PR with 3 review comments")
-    print("  1. [Fix][OpenCode] Add input validation")
-    print("  2. [Fix][OpenCode] Fix formatting issues")
+    print("  1. [Approved][OpenCode] Add input validation")
+    print("  2. [Approved][OpenCode] Fix formatting issues")
     print("  3. Regular comment: Looks good otherwise!")
 
     print("\nAgent Behavior:")

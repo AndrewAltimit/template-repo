@@ -359,8 +359,8 @@ class PRMonitor(BaseMonitor):
             action = match.group(1).lower()
             agent_name = match.group(2).lower() if match.group(2) else None
 
-            # Validate action
-            valid_actions = ["fix", "address", "implement", "approved"]
+            # Validate action (consolidated: approved covers fix/implement/address)
+            valid_actions = ["approved", "review", "close", "summarize", "debug"]
             if action in valid_actions:
                 return (action, agent_name, author)
 

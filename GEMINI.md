@@ -694,7 +694,7 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/mcp/tools.md` - Available MCP tools reference
 
 ### Integrations
-- `docs/integrations/ai-services/opencode-crush.md` - **Comprehensive OpenCode & Crush documentation** (MCP calls, CLI usage, git workflows)
+- `docs/integrations/ai-services/ai-code-agents.md` - **AI Code Agents documentation** (OpenCode, Crush, Codex, Gemini)
 - `docs/integrations/creative-tools/ai-toolkit-comfyui.md` - LoRA training and image generation
 - `docs/integrations/creative-tools/lora-transfer.md` - LoRA model transfer between services
 - `docs/integrations/creative-tools/virtual-character-elevenlabs.md` - **Virtual Character + ElevenLabs Integration** (expressive AI agents)

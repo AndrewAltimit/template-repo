@@ -225,16 +225,16 @@ class TestPRMonitor:
         monitor = PRMonitor()
 
         with patch.object(monitor.security_manager, "check_trigger_comment") as mock_check:
-            mock_check.return_value = ("fix", "claude", "AndrewAltimit")
+            mock_check.return_value = ("approved", "claude", "AndrewAltimit")
 
             pr = {
                 "number": 10,
-                "body": "PR with [Fix][Claude]",
+                "body": "PR with [Approved][Claude]",
                 "author": {"login": "user1"},
             }
 
             result = monitor._check_trigger_comment(pr)
-            assert result == ("fix", "claude", "AndrewAltimit")
+            assert result == ("approved", "claude", "AndrewAltimit")
 
     @patch.dict(os.environ, {"GITHUB_REPOSITORY": "test/repo"})
     @patch("github_agents.monitors.pr.get_github_token")

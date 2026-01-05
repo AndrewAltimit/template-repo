@@ -401,12 +401,12 @@ class TestPRMonitorCheckReviewTrigger:
             monitor._board_config = None
             monitor._memory_initialized = False
 
-            comment = {"body": "Please address this.\n\n[Fix][Claude]", "author": "reviewer"}
+            comment = {"body": "Please address this.\n\n[Approved][Claude]", "author": "reviewer"}
             result = monitor._check_review_trigger(comment)
 
             assert result is not None
             action, agent, author = result
-            assert action == "fix"
+            assert action == "approved"
             assert agent == "claude"
             assert author == "reviewer"
 
@@ -425,19 +425,19 @@ class TestPRMonitorCheckReviewTrigger:
             monitor._board_config = None
             monitor._memory_initialized = False
 
-            comment = {"body": "This needs fixing.\n\n[Fix]", "author": "reviewer"}
+            comment = {"body": "This needs review.\n\n[Review]", "author": "reviewer"}
             result = monitor._check_review_trigger(comment)
 
             assert result is not None
             action, agent, author = result
-            assert action == "fix"
+            assert action == "review"
             assert agent is None  # No agent specified
             assert author == "reviewer"
 
     @patch("github_agents.monitors.pr.run_gh_command")
     @patch.dict("os.environ", {"GITHUB_TOKEN": "test-token", "GITHUB_REPOSITORY": "test/repo"})
-    def test_trigger_address_action(self, mock_gh):
-        """Should recognize [Address] trigger."""
+    def test_trigger_debug_action(self, mock_gh):
+        """Should recognize [Debug] trigger."""
         mock_gh.return_value = "[]"
 
         with patch("github_agents.monitors.pr.load_config"):
@@ -449,12 +449,12 @@ class TestPRMonitorCheckReviewTrigger:
             monitor._board_config = None
             monitor._memory_initialized = False
 
-            comment = {"body": "[Address]", "author": "owner"}
+            comment = {"body": "[Debug]", "author": "owner"}
             result = monitor._check_review_trigger(comment)
 
             assert result is not None
             action, agent, _ = result
-            assert action == "address"
+            assert action == "debug"
             assert agent is None
 
     @patch("github_agents.monitors.pr.run_gh_command")

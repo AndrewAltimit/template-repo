@@ -128,3 +128,7 @@ docker-compose --profile ai-services down
 - Uses NVIDIA CUDA 12.1 base image for optimal performance
 - Volumes are used for persistent storage of datasets, models, and configs
 - Can run alongside ComfyUI MCP server for integrated workflows
+
+## License
+
+Part of the template-repo project. See repository LICENSE file.

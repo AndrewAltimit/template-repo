@@ -1,192 +1,118 @@
 # Code Quality MCP Server
 
-The Code Quality MCP Server provides tools for checking and enforcing code formatting and linting standards across multiple programming languages.
+> A Model Context Protocol server for checking and enforcing code formatting and linting standards across multiple programming languages.
 
-## Features
+## Validation Status
 
-- **Multi-language support**: Python, JavaScript, TypeScript, Go, Rust
-- **Format checking**: Verify code follows formatting standards
-- **Auto-formatting**: Automatically fix formatting issues
-- **Linting**: Static code analysis with multiple linters
-- **Configurable**: Support for custom linting configurations
+| Component | Status | Description |
+|-----------|--------|-------------|
+| Format Checking | Validated | Python, JavaScript, TypeScript, Go, Rust |
+| Linting | Validated | flake8, pylint, eslint, golint, clippy |
+| Auto-formatting | Validated | Automatic code formatting |
+| Markdown Links | Validated | Link validation in markdown files |
+
+**Scope**: This server provides code quality checking and formatting. It requires the underlying tools (black, flake8, prettier, etc.) to be installed in the environment.
+
+## Quick Start
+
+```bash
+# Using docker-compose (recommended)
+docker-compose up -d mcp-code-quality
+
+# Or run directly
+python -m mcp_code_quality.server --mode http
+
+# Test health
+curl http://localhost:8010/health
+```
 
 ## Available Tools
 
-### format_check
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `format_check` | Check code formatting | `path` (required), `language` |
+| `lint` | Run static analysis | `path` (required), `linter`, `config` |
+| `autoformat` | Auto-fix formatting | `path` (required), `language` |
+| `check_markdown_links` | Validate markdown links | `path` (required), `check_external`, `timeout` |
 
-Check if code follows formatting standards for the specified language.
+### Supported Languages
 
-**Parameters:**
-- `path` (required): Path to file or directory to check
-- `language`: Programming language (default: "python")
-  - Options: python, javascript, typescript, go, rust
-
-**Example:**
-```json
-{
-  "tool": "format_check",
-  "arguments": {
-    "path": "src/main.py",
-    "language": "python"
-  }
-}
-```
-
-### lint
-
-Run static code analysis using various linters.
-
-**Parameters:**
-- `path` (required): Path to file or directory to lint
-- `linter`: Linter to use (default: "flake8")
-  - Options: flake8, pylint, eslint, golint, clippy
-- `config`: Path to linting configuration file
-
-**Example:**
-```json
-{
-  "tool": "lint",
-  "arguments": {
-    "path": "src/",
-    "linter": "flake8",
-    "config": ".flake8"
-  }
-}
-```
-
-### autoformat
-
-Automatically format code files according to language standards.
-
-**Parameters:**
-- `path` (required): Path to file or directory to format
-- `language`: Programming language (default: "python")
-  - Options: python, javascript, typescript, go, rust
-
-**Example:**
-```json
-{
-  "tool": "autoformat",
-  "arguments": {
-    "path": "src/main.py",
-    "language": "python"
-  }
-}
-```
-
-## Running the Server
-
-### HTTP Mode
-
-```bash
-python -m mcp_code_quality.server --mode http
-```
-
-The server will start on port 8010 by default.
-
-### stdio Mode (for Claude Desktop)
-
-```bash
-python -m mcp_code_quality.server --mode stdio
-```
-
-## Requirements
-
-The following tools must be installed for full functionality:
-
-### Python
-- `black` - Code formatter
-- `flake8` - Linter
-- `pylint` - Advanced linter (optional)
-
-### JavaScript/TypeScript
-- `prettier` - Code formatter
-- `eslint` - Linter
-
-### Go
-- `gofmt` - Code formatter
-- `golint` - Linter
-
-### Rust
-- `rustfmt` - Code formatter
-- `clippy` - Linter
-
-## Docker Support
-
-The Code Quality MCP Server can run in a container with all dependencies pre-installed:
-
-```dockerfile
-FROM python:3.11-slim
-
-# Install formatters and linters
-RUN pip install black flake8 pylint
-RUN npm install -g prettier eslint
-RUN apt-get update && apt-get install -y golang-go rustfmt
-
-# Copy server code
-COPY tools/mcp/code_quality /app/code_quality
-COPY tools/mcp/core /app/core
-
-WORKDIR /app
-CMD ["python", "-m", "code_quality.server"]
-```
+| Language | Formatter | Linters |
+|----------|-----------|---------|
+| Python | black | flake8, pylint |
+| JavaScript | prettier | eslint |
+| TypeScript | prettier | eslint |
+| Go | gofmt | golint |
+| Rust | rustfmt | clippy |
 
 ## Configuration
 
-### Environment Variables
-
-- `MCP_CODE_QUALITY_PORT`: Server port (default: 8010)
-- `MCP_CODE_QUALITY_LOG_LEVEL`: Logging level (default: INFO)
+| Environment Variable | Default | Description |
+|---------------------|---------|-------------|
+| `MCP_CODE_QUALITY_PORT` | `8010` | Server listen port |
+| `MCP_CODE_QUALITY_LOG_LEVEL` | `INFO` | Logging level |
 
 ### Linting Configuration
 
 Each linter supports its own configuration format:
 
-- **flake8**: `.flake8` or `setup.cfg`
-- **pylint**: `.pylintrc`
-- **eslint**: `.eslintrc.json` or `.eslintrc.js`
+| Linter | Config Files |
+|--------|--------------|
+| flake8 | `.flake8`, `setup.cfg` |
+| pylint | `.pylintrc` |
+| eslint | `.eslintrc.json`, `.eslintrc.js` |
+
+## Requirements
+
+The following tools must be installed for full functionality:
+
+| Language | Required Tools |
+|----------|---------------|
+| Python | `black`, `flake8`, `pylint` (optional) |
+| JavaScript/TypeScript | `prettier`, `eslint` |
+| Go | `gofmt`, `golint` |
+| Rust | `rustfmt`, `clippy` |
+
+## Docker Support
+
+```bash
+# Using docker-compose
+docker-compose up -d mcp-code-quality
+
+# View logs
+docker-compose logs -f mcp-code-quality
+
+# Rebuild after changes
+docker-compose build mcp-code-quality
+```
 
 ## Testing
 
-Run the test script to verify the server is working:
-
 ```bash
-python tools/mcp/code_quality/scripts/test_server.py
+# Run the test script
+python tools/mcp/mcp_code_quality/scripts/test_server.py
+
+# Health check
+curl -s http://localhost:8010/health | jq
 ```
 
-## Integration with CI/CD
+## Troubleshooting
 
-The Code Quality MCP Server can be integrated into CI/CD pipelines:
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| Tool not found | Formatter/linter not installed | Install required tool for language |
+| Path not found | Invalid file path | Verify file exists |
+| Config error | Invalid linter config | Check config file syntax |
+| Timeout | Large directory | Use specific file paths |
 
-```yaml
-# GitHub Actions example
-- name: Start Code Quality Server
-  run: |
-    python -m mcp_code_quality.server --mode http &
-    sleep 2
+## Known Limitations
 
-- name: Check Code Formatting
-  run: |
-    curl -X POST http://localhost:8010/mcp/execute \
-      -H "Content-Type: application/json" \
-      -d '{
-        "tool": "format_check",
-        "arguments": {"path": ".", "language": "python"}
-      }'
-```
+| Limitation | Impact | Workaround |
+|------------|--------|------------|
+| Sequential processing | Large directories slow | Target specific files |
+| No caching | Repeated checks re-run | Implement client-side caching |
+| Tool dependency | Requires external tools | Use Docker container |
 
-## Error Handling
+## License
 
-The server provides detailed error messages:
-
-- Missing tools: Clear message about which tool needs to be installed
-- Unsupported languages/linters: List of supported options
-- File not found: Descriptive error message
-- Configuration issues: Details about what went wrong
-
-## Performance Considerations
-
-- The server processes files sequentially
-- Large directories may take time to process
-- Consider using specific file paths instead of directories when possible
-- Results are not cached between requests
+Part of the template-repo project. See repository LICENSE file.

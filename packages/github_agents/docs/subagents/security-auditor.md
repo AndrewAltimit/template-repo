@@ -70,9 +70,9 @@ Stage 6: Processing → Execute only if ALL pass
    ```python
    # ATTACK ATTEMPTS TO DETECT:
    "[Approved][Claude]; rm -rf /"
-   "[Fix][Claude]`$(malicious_command)`"
-   "[Implement][Claude]'; DROP TABLE--"
-   "[Review][Claude]${IFS}malicious"
+   "[Review][Claude]`$(malicious_command)`"
+   "[Summarize][Claude]'; DROP TABLE--"
+   "[Debug][Claude]${IFS}malicious"
 
    # DEFENSE:
    pattern = r'^\[(' + '|'.join(ALLOWED_ACTIONS) + r')\]\[(' + '|'.join(ALLOWED_AGENTS) + r')\]$'

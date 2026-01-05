@@ -405,11 +405,11 @@ curl http://localhost:8014/health
 - **API Key**: Requires `OPENROUTER_API_KEY` environment variable
 - **Modes**: Supports both STDIO (local) and HTTP (remote) modes
 
-See `tools/mcp/opencode/README.md` and `docs/integrations/ai-services/opencode-crush.md` for detailed documentation.
+See `tools/mcp/mcp_opencode/README.md` and `docs/integrations/ai-services/ai-code-agents.md` for detailed documentation.
 
 ## Crush MCP Server
 
-The Crush server provides fast code generation using OpenRouter API with optimized models.
+The Crush server provides code generation using the OpenRouter API.
 
 ### Starting the Server
 
@@ -429,20 +429,19 @@ curl http://localhost:8015/health
 
 ### Available Tools
 
-- **consult_crush** - Quick code generation and conversion
+- **consult_crush** - Code generation, explanation, and conversion
   - Modes: `generate`, `explain`, `convert`, `quick`
-  - Optimized for speed with smaller models
 - **clear_crush_history** - Clear conversation history
 - **crush_status** - Get integration status and statistics
 - **toggle_crush_auto_consult** - Control auto-consultation
 
 ### Configuration
 
-- **Model**: Uses optimized models via OpenRouter for speed
+- **Model**: Uses models via OpenRouter
 - **API Key**: Requires `OPENROUTER_API_KEY` environment variable
 - **Modes**: Supports both STDIO (local) and HTTP (remote) modes
 
-See `tools/mcp/crush/README.md` and `docs/integrations/ai-services/opencode-crush.md` for detailed documentation.
+See `tools/mcp/mcp_crush/README.md` and `docs/integrations/ai-services/ai-code-agents.md` for detailed documentation.
 
 ## Meme Generator MCP Server
 

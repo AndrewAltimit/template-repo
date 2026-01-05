@@ -514,7 +514,7 @@ Same as Issue Monitor.
 Monitoring PRs for repository: owner/repo
 Found 3 open PRs with review comments
 Processing PR #124: Add feature X
-  [TRIGGER] Review comment detected: [Fix][OpenCode]
+  [TRIGGER] Review comment detected: [Approved][OpenCode]
   [AGENT] Implementing fix...
   [STATUS] Pushing changes...
   [SUCCESS] Changes committed

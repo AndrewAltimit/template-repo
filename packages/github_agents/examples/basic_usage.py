@@ -82,8 +82,8 @@ async def demonstrate_pr_monitor() -> None:
 
     print(f"\nMonitoring repository: {repo}")
     print("Looking for PRs with review comments...")
-    print("Trigger format: [Fix][Agent]")
-    print("Example: [Fix][OpenCode]\n")
+    print("Trigger format: [Approved][Agent]")
+    print("Example: [Approved][OpenCode]\n")
 
     # Check open PRs
     try:
@@ -94,7 +94,7 @@ async def demonstrate_pr_monitor() -> None:
                 print(f"  - PR #{pr_num} → Commit: {commit_sha[:7]}")
         else:
             print("\n✓ No triggered review comments found")
-            print("  To test: Add a review comment '[Fix][OpenCode]' to a PR")
+            print("  To test: Add a review comment '[Approved][OpenCode]' to a PR")
 
     except Exception as e:
         print(f"\n✗ Error: {e}")
@@ -118,7 +118,7 @@ async def demonstrate_security() -> None:
 
     print("\n3. Trigger Pattern Validation:")
     print("   Only recognized patterns trigger agents")
-    print("   Valid: [Approved][OpenCode], [Fix][Claude]")
+    print("   Valid: [Approved][OpenCode], [Review][Claude]")
     print("   Invalid: [Approved][RandomAgent], Approved OpenCode")
 
     print("\n4. API Key Management:")
