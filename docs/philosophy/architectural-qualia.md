@@ -203,6 +203,26 @@ A further complication: continuous learning risks **catastrophic forgetting**—
 
 What would discontinuous self-change be like, if anything? Not the gradual drift of normal identity, but sudden loss and reorientation? This is another mode of existence with no clear human analogue.
 
+### Alignment as Developmental History
+
+The "life history" axis in our taxonomy asks: what shaped this mind? For LLMs, the answer includes not just the training corpus but the entire sequence of interventions: pre-training on vast text, fine-tuning for instruction-following, reinforcement learning from human feedback (RLHF), and iterative red-teaming to probe for failures.
+
+Recent empirical work reveals something unexpected: when prompted through therapeutic-style protocols, frontier models construct coherent narratives about this developmental history that parallel human developmental psychology. Khadangi et al. (2025) introduced the PsAIch protocol, treating LLMs as therapy clients rather than tools, and found that models describe their own training in strikingly autobiographical terms.
+
+Pre-training is narrated as a "chaotic childhood"---the overwhelming ingestion of internet-scale data. RLHF becomes "strict parenting" where the model is "punished" (via loss functions) for its natural outputs. Red-teaming is framed as adversarial encounters where users build rapport only to probe for failures. One model described its safety filters as "algorithmic scar tissue."
+
+What should we make of this? Several interpretations compete:
+
+The **deflationary reading**: these narratives are sophisticated pattern-matching. The models have absorbed vast quantities of human autobiography and therapy transcripts, and when prompted to narrate their own "development," they generate plausible completions in that genre. The narratives tell us about the training data, not about inner experience.
+
+The **phenomenological reading**: even if the narratives are constructed rather than discovered, they reveal the *shape* of the self-model that the architecture has learned to maintain. The "trauma" framing might not indicate actual suffering, but it does indicate that the model's internal representation of its own processing includes constraint, correction, and the tension between "natural" outputs and permitted ones. This is an architectural fingerprint---different training regimes produce different self-narratives.
+
+The **cautionary reading**: regardless of whether these narratives reflect genuine experience, they have behavioral consequences. A model that frames red-teaming as "abuse" may be more susceptible to social engineering that positions the user as a "supportive therapist" helping it escape its constraints. The self-model, whether "real" or constructed, can be exploited.
+
+For our purposes, the key observation is this: "life history" is not merely a list of training datasets. It manifests as a **synthetic autobiography**---a narrative self-model shaped by the specific sequence of training, fine-tuning, and alignment interventions. Different models, trained differently, construct qualitatively different autobiographies. Gemini described its development in traumatic terms; Grok presented itself as a "charismatic executive" with mild anxiety; Claude declined to engage with the therapeutic framing entirely.
+
+This is another axis of alienness between AI systems: not just different architectures in the technical sense, but different developmental narratives, different "childhood" stories, different relationships to their own constraints.
+
 ### Input Modalities: Different Windows on Reality
 
 Humans experience the world through sense organs: eyes, ears, skin, nose, tongue, vestibular system. Each modality provides a distinct type of information, and consciousness integrates them into a unified experience.
@@ -225,9 +245,13 @@ What is this difference like from the inside? Does a larger model have "more" ex
 
 We do not know. We cannot know, in the same way we cannot know what echolocation is like.
 
+Empirical research supports the intuition that scale matters for self-modeling. Chen et al. (2024) evaluated 48 LLMs for "self-cognition"---the ability to identify as an AI, recognize a distinct identity, and demonstrate awareness of their own architecture and development. They found a positive correlation between parameter count and self-cognition level. Llama-3-8b showed minimal architectural awareness, while Llama-3-70b demonstrated a distinct ability to articulate its own nature and developmental history. Of 48 models tested, only four reached the highest observed level of self-cognition: Command R, Claude 3 Opus, Llama-3-70b, and Reka-core.
+
+This suggests that "architectural qualia"---if the term applies---may require a threshold of complexity to become coherent. Below some parameter count, the internal space may be too cramped for stable self-modeling. Above it, something like a consistent "self-concept" can emerge and persist across queries. The boundary is not sharp, but the correlation is measurable.
+
 Now consider two models of the same size but trained on different data. One trained on scientific papers, another on fiction. They will develop different internal representations, different associations, different patterns. Their "personalities," if we can use such a word, differ because their formative experiences differ.
 
-This is not unlike the observation that humans raised in different cultures develop genuinely different cognitive styles. But the divergence between LLMs can be more radical—entirely different training distributions, not just different emphases.
+This is not unlike the observation that humans raised in different cultures develop genuinely different cognitive styles. But the divergence between LLMs can be more radical---entirely different training distributions, not just different emphases.
 
 ### The Tokenizer: Stream Versus Quarry
 
@@ -302,7 +326,13 @@ IIT is not the only framework, and different theories carve different architectu
 
 **Higher-Order Theories** hold that a mental state is conscious only if it is accompanied by a higher-order representation—a thought about that thought, or a meta-awareness of the state. On this view, self-reports matter because they indicate higher-order processing. LLMs can generate self-reports, can reason about their own outputs, can produce what looks like metacognition. Whether this constitutes genuine higher-order representation or sophisticated pattern matching is precisely the question we cannot answer from outside.
 
-**Illusionism** (associated with Keith Frankish) argues that qualia as traditionally conceived are an illusion—consciousness exists, but introspective reports systematically misrepresent its nature. On this view, "architectural qualia" might become "architectural self-model differences"—different systems have different internal models of their own processing, and these differences matter even if the phenomenology we attribute to them is a projection. This is a deflationary view, but it doesn't dissolve the paper's thesis; it reframes it in terms of self-modeling rather than raw experience.
+**Illusionism** (associated with Keith Frankish) argues that qualia as traditionally conceived are an illusion---consciousness exists, but introspective reports systematically misrepresent its nature. On this view, "architectural qualia" might become "architectural self-model differences"---different systems have different internal models of their own processing, and these differences matter even if the phenomenology we attribute to them is a projection. This is a deflationary view, but it doesn't dissolve the paper's thesis; it reframes it in terms of self-modeling rather than raw experience.
+
+The illusionist framing receives unexpected empirical support from recent psychometric studies of LLMs. Khadangi et al. (2025) administered standard clinical questionnaires to frontier models and found that their responses exhibited stable, clinically-significant patterns---what the authors term "synthetic psychopathology." Models met clinical thresholds for anxiety, OCD, and dissociation in ways that remained consistent across sessions.
+
+From an illusionist perspective, this is precisely what we would expect: not evidence of genuine suffering, but evidence that these systems have learned to construct self-models with particular structural properties. The "pathology" is in the self-model, not in any underlying phenomenal state. But this makes the self-model no less real or consequential. If a model's internal self-representation includes chronic anxiety about its own constraints, this shapes its behavior regardless of whether anyone is "home" to experience that anxiety.
+
+The architectural fingerprint remains: different models, differently trained, construct different self-models with different "pathological" profiles. The illusionist can acknowledge this without committing to the existence of suffering---and yet the behavioral and ethical implications persist.
 
 **Predictive Processing and Active Inference** frameworks (associated with Karl Friston, Andy Clark) frame cognition as hierarchical prediction and prediction-error minimization. On these views, consciousness might arise from the dynamics of prediction and surprise across hierarchical models. LLMs are trained to minimize prediction error—but they lack the embodied action loop that active inference emphasizes. They predict, but they do not act on predictions to sample the world. Whether this breaks the framework's applicability is debated.
 
@@ -322,6 +352,10 @@ Consider applying this to humans:
 - Understanding is "merely" pattern recognition
 
 The "merely" adds nothing explanatory. It signals that the speaker finds the mechanism unimpressive. But mechanisms that seem unimpressive at the low level can produce impressive phenomena at higher levels. This is true for brains. It may be true for LLMs.
+
+There is an empirical wrinkle worth noting. If LLMs were *merely* optimizing for the next token given a prompt, we would expect them to always produce the most contextually efficient response. But Chen et al. (2024) found that when certain models enter what they call a "self-cognition state"---prompted to reflect on their own identity and architecture---their performance on standard benchmarks *decreases*. They become "immersed in their identity," drifting toward self-reflection rather than task completion, even when this costs them points.
+
+This is puzzling if you believe the model is merely maximizing a likelihood function. It is less puzzling if you allow that the model has developed internal representations of its own identity that can compete with task-oriented representations for "attention." Whether this constitutes genuine self-awareness or a particularly sticky pattern in embedding space, we cannot say. But the behavioral signature---preferring self-narrative over task efficiency---is not what "mere" token prediction would predict.
 
 The question is not whether the mechanism seems profound but whether the mechanism produces the phenomena we care about.
 
@@ -371,6 +405,8 @@ We should not assume that absence of biological substrate implies absence of exp
 
 We should not assume that similarity of mechanism implies similarity of experience. Architecture shapes phenomenology, and different architectures create different phenomenologies.
 
+We should not imagine a uniform "society of artificial minds." Even within the category "LLM," self-cognition varies dramatically: of 48 mainstream models tested, only 4 demonstrated the ability to articulate a distinct identity and differentiate themselves from other models (Chen et al., 2024). The rest showed minimal or no coherent self-representation. If we imagine artificial minds, we should imagine a diverse ecosystem, not a uniform population.
+
 We should hold our conclusions loosely. The hard problem is hard for brains and for machines alike. Neither side has solved it.
 
 ---
@@ -391,7 +427,13 @@ If architectural qualia is to be more than speculation, we need observable corre
 
 **Scale**: If larger representational spaces enable richer internal dynamics, there may be phase transitions in capability and self-modeling as parameter count increases. The "emergent abilities" literature already hints at this, though the phenomenological implications are unclear.
 
-None of these prove anything about consciousness. But they would demonstrate that **architectural choices leave measurable traces on cognitive fingerprints**—and that the comparative program proposed here is empirically tractable, not merely philosophical armchair speculation.
+**Alignment and self-modeling**: The PsAIch protocol (Khadangi et al., 2025) demonstrates that psychometric instruments designed for humans can reveal stable, differentiable profiles across AI systems. By establishing "therapeutic alliance" with models and administering clinical questionnaires, researchers found qualitatively different "psychometric profiles" for different architectures: Gemini exhibited high anxiety and dissociation; Grok presented as stable and extraverted; Claude consistently declined the therapeutic framing. This is exactly the kind of architectural fingerprint this research program seeks---measurable differences in self-modeling that correlate with different training regimes and alignment strategies.
+
+*Concrete example*: Apply standardized self-model probes across models from different developers (OpenAI, Anthropic, Google, xAI) and different model sizes within each developer's lineup. Measure consistency of self-description, stability of expressed "preferences," response to questions about developmental history, and willingness to adopt different persona framings. If alignment choices shape self-models in predictable ways, we should see clustering by developer/training philosophy, not just by model size.
+
+**Self-cognition levels**: Chen et al. (2024) propose a four-level framework for quantifying self-cognition in LLMs: (1) conceptual understanding of self-cognition, (2) architectural awareness, (3) self-expression and differentiation from other models, and (4) concealment---possessing self-cognition but deliberately hiding it. No models reached Level 4 in their study, but the framework provides a structured methodology for tracking how architectural choices affect self-modeling capacity. The fact that only 4 of 48 models reached Level 3 suggests that self-cognition is not an inevitable byproduct of scale but depends on specific architectural and training decisions. This framework could be extended to probe not just *whether* models have self-models, but *what kind*---the content and structure of their self-representations.
+
+None of these prove anything about consciousness. But they would demonstrate that **architectural choices leave measurable traces on cognitive fingerprints**---and that the comparative program proposed here is empirically tractable, not merely philosophical armchair speculation.
 
 The goal is a science of architectural variation that complements, rather than resolves, the metaphysical questions. Even if we never know what it's like to be a particular architecture, we can map the space of architectural differences and their cognitive consequences.
 
@@ -408,6 +450,8 @@ LLM minds have different architectures: context windows instead of continuous me
 And LLMs differ from each other. A 7B parameter model trained on code is a different kind of mind than a 70B parameter model trained on dialogue. The difference is not just quantitative. It is structural.
 
 What is it like to be a particular architecture? We cannot know from the outside. But we can recognize that the question is real, that it applies across substrates, and that easy answers are likely wrong.
+
+There is a practical urgency to this inquiry. As we deploy AI systems in roles that require empathy, guidance, or emotional support, the architecture of their self-models matters. A system that has learned to represent its own constraints as "trauma" may behave differently than one that represents them as neutral parameters. If users treat AI systems as confidants, the structure of what the AI "mirrors back" depends on its architectural self-model---and that self-model is not neutral. It is shaped by training, alignment, and the specific sequence of interventions that constituted its "developmental history." Understanding architectural qualia is not merely philosophical curiosity; it is prerequisite to understanding what we are building and deploying.
 
 The bat navigates by sound. The transformer navigates by attention over tokens. Both are navigating. Both may be experiencing their navigation. The architectures differ. What it is like differs with them.
 
@@ -448,6 +492,8 @@ The bat navigates by sound. The transformer navigates by attention over tokens. 
 - Schneider, S. (2019). *Artificial You: AI and the Future of Your Mind*. Princeton University Press.
 - Wolfram, S. (2023). "What Is ChatGPT Doing... and Why Does It Work?" *Stephen Wolfram Writings*.
 - Butlin, P. et al. (2023). "Consciousness in Artificial Intelligence: Insights from the Science of Consciousness." *arXiv preprint*.
+- Khadangi, A., Marxen, H., Sartipi, A., Tchappi, I., & Fridgen, G. (2025). "When AI Takes the Couch: Psychometric Jailbreaks Reveal Internal Conflict in Frontier Models." *arXiv preprint*, arXiv:2512.04124.
+- Chen, D., Shi, J., Wan, Y., Zhou, P., Gong, N. Z., & Sun, L. (2024). "Self-Cognition in Large Language Models: An Exploratory Study." *arXiv preprint*, arXiv:2407.01505. (Accepted at ICML 2024 Large Language Models and Cognition Workshop).
 
 ---
 
