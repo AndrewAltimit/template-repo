@@ -704,6 +704,116 @@ def get_recent_pr_comments(pr_number: str) -> str:
         return ""
 
 
+def _filter_debunked_issues(issue_lines: List[str], pr_number: str) -> List[str]:
+    """Filter out issues that were debunked in human comments.
+
+    This prevents the hallucination feedback loop where Gemini echoes
+    previously-reported issues that were already debunked by humans.
+
+    Args:
+        issue_lines: List of issue strings in format "FILE:LINE - [SEVERITY] Description"
+        pr_number: PR number to fetch comments from
+
+    Returns:
+        Filtered list with debunked issues removed
+    """
+    try:
+        comments = get_all_pr_comments(pr_number)
+
+        # Get human comments (non-Gemini) that might contain debunking
+        human_comments = []
+        for comment in comments:
+            body = comment.get("body", "")
+            # Skip Gemini's own comments
+            if "<!-- gemini-review-marker" in body:
+                continue
+            human_comments.append(body.lower())
+
+        if not human_comments:
+            return issue_lines
+
+        # Combine all human comments for searching
+        all_human_text = "\n".join(human_comments)
+
+        # Keywords that indicate debunking
+        debunk_keywords = [
+            "false positive",
+            "hallucinating",
+            "hallucination",
+            "doesn't exist",
+            "does not exist",
+            "incorrect",
+            "wrong line",
+            "actual line",
+            "actually contains",
+            "not what it claims",
+            "gemini is confused",
+            "no such",
+            "debunked",
+        ]
+
+        # Check if any debunking language is present
+        has_debunking = any(kw in all_human_text for kw in debunk_keywords)
+        if not has_debunking:
+            return issue_lines
+
+        print("Found debunking language in PR comments, filtering previous issues...")
+
+        # Extract file:line patterns that were mentioned in debunking context
+        # Pattern: filename:line_number
+        debunked_patterns = set()
+        for comment in human_comments:
+            # Check if this comment contains debunking language
+            if not any(kw in comment for kw in debunk_keywords):
+                continue
+
+            # Extract file:line patterns from debunking comments
+            matches = re.findall(r"([\w\-\./]+\.(?:py|md|yml|yaml|json|js|ts)):(\d+)", comment)
+            for filepath, line_num in matches:
+                # Normalize to just filename for matching
+                filename = filepath.split("/")[-1]
+                debunked_patterns.add(f"{filename}:{line_num}")
+                # Also add full path pattern
+                debunked_patterns.add(f"{filepath}:{line_num}")
+
+        if not debunked_patterns:
+            # Debunking language present but no specific file:line patterns extracted
+            # Be conservative - check if any issue file is mentioned in debunking
+            filtered = []
+            for issue_line in issue_lines:
+                # Extract file from issue
+                match = re.match(r"([\w\-\./]+):\d+", issue_line)
+                if match:
+                    issue_file = match.group(1).split("/")[-1]
+                    # Check if this file is mentioned in debunking comments
+                    if issue_file.lower() in all_human_text:
+                        print(f"  Dropping issue for {issue_file} (file mentioned in debunking context)")
+                        continue
+                filtered.append(issue_line)
+            return filtered
+
+        # Filter out issues that match debunked patterns
+        filtered = []
+        for issue_line in issue_lines:
+            issue_lower = issue_line.lower()
+            is_debunked = False
+
+            for pattern in debunked_patterns:
+                if pattern.lower() in issue_lower:
+                    print(f"  Dropping debunked issue matching {pattern}")
+                    is_debunked = True
+                    break
+
+            if not is_debunked:
+                filtered.append(issue_line)
+
+        return filtered
+
+    except Exception as e:
+        print(f"Warning: Error filtering debunked issues: {e}")
+        return issue_lines  # On error, return unfiltered
+
+
 def extract_previous_issues(pr_number: str, changed_files: Optional[List[str]] = None) -> Tuple[str, str]:
     """Extract specific issues from previous Gemini reviews for verification.
 
@@ -882,7 +992,18 @@ If no concrete issues were found, respond with: `NO_ISSUES_FOUND`
                 print("No verifiable issues remain after action validation")
                 return "", model_used
 
-            result = "\n".join(validated_lines)
+            # Fourth pass: filter issues that were debunked in human comments
+            # This prevents the feedback loop where hallucinated issues persist across reviews
+            debunked_lines = _filter_debunked_issues(validated_lines, pr_number)
+            debunked_count = len(validated_lines) - len(debunked_lines)
+            if debunked_count > 0:
+                print(f"Dropped {debunked_count} issues that were debunked in PR comments")
+
+            if not debunked_lines:
+                print("No verifiable issues remain after debunk filtering")
+                return "", model_used
+
+            result = "\n".join(debunked_lines)
 
         print("Extracted previous issues for verification")
         return result.strip(), model_used
