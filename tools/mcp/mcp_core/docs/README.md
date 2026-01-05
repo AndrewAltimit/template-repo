@@ -1,6 +1,6 @@
 # MCP Core Components
 
-The MCP Core module provides shared base classes and utilities for building Model Context Protocol (MCP) servers. All MCP servers in this repository inherit from these core components to ensure consistency and code reuse.
+> Shared base classes and utilities for building Model Context Protocol servers, providing consistent infrastructure, HTTP proxying, and expressive AI agent support.
 
 ## Overview
 

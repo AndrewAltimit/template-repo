@@ -1,6 +1,6 @@
 # Meme Generator MCP Server
 
-Generate memes from templates with customizable text overlays and visual feedback.
+> A Model Context Protocol server for generating memes from templates, with intelligent text placement, auto-resizing, and visual feedback for AI agents.
 
 ## Overview
 

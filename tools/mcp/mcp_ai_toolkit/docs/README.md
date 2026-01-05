@@ -1,6 +1,6 @@
 # AI Toolkit MCP Server
 
-The AI Toolkit MCP Server provides a Model Context Protocol interface for managing AI model training, particularly for LoRA (Low-Rank Adaptation) models.
+> A Model Context Protocol server for managing AI model training, particularly LoRA (Low-Rank Adaptation) models, with remote GPU acceleration support.
 
 ## Overview
 

@@ -1,6 +1,6 @@
 # ElevenLabs Speech MCP Server
 
-Advanced speech synthesis using ElevenLabs v3 (default model) with full emotional expression, audio tags, and sound effects generation.
+> A Model Context Protocol server for advanced speech synthesis using ElevenLabs, with full emotional expression support, audio tags, sound effects generation, and multi-language capabilities.
 
 > **Note**: This server uses **eleven_v3** as the default model - ElevenLabs' most advanced model with full audio tag support, 74 languages, and highest quality synthesis.
 

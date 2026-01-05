@@ -1,6 +1,6 @@
 # Reaction Search MCP Server
 
-Semantic search MCP server for anime reaction images. Uses sentence-transformers to find contextually appropriate reactions based on natural language queries.
+> A Model Context Protocol server for semantic search of anime reaction images, using sentence-transformers to find contextually appropriate reactions based on natural language queries.
 
 ## Features
 

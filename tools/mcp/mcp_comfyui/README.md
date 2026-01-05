@@ -1,6 +1,6 @@
 # ComfyUI MCP Server
 
-The ComfyUI MCP server provides GPU-accelerated AI image generation with workflow support.
+> A Model Context Protocol server for GPU-accelerated AI image generation using ComfyUI workflows, supporting FLUX, SDXL, and video generation.
 
 ## Architecture
 
