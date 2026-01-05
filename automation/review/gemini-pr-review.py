@@ -1581,11 +1581,26 @@ def _verify_review_claims(review_text: str, changed_files: List[str]) -> Tuple[s
         Tuple of (verified_review_text, hallucination_count)
     """
     # Pattern to find file:line claims in issues
-    # Matches: file.md:123, path/to/file.py:456, etc.
+    # Matches: file.md:123, path/to/file.py:456, Dockerfile:10, etc.
     # Captures: (prefix, filepath, line_number, description)
+    # Supports: common extensions + extensionless files (Dockerfile, Makefile, etc.)
+    extensions = (
+        r"py|md|yml|yaml|json|js|ts|tsx|jsx|"  # Python, Markdown, Config, JavaScript
+        r"sh|bash|zsh|fish|"  # Shell scripts
+        r"toml|ini|cfg|conf|env|"  # Config files
+        r"txt|rst|html|css|scss|sass|less|"  # Text, docs, styles
+        r"go|rs|rb|php|pl|lua|"  # Go, Rust, Ruby, PHP, Perl, Lua
+        r"c|cpp|cc|h|hpp|hxx|"  # C/C++
+        r"java|kt|kts|scala|groovy|"  # JVM languages
+        r"swift|m|mm|"  # Apple languages
+        r"sql|graphql|proto|"  # Query/schema languages
+        r"xml|svg|wasm"  # Other formats
+    )
+    # Also match extensionless files like Dockerfile, Makefile, etc.
+    extensionless_files = r"Dockerfile|Makefile|Vagrantfile|Gemfile|Rakefile|Procfile|Brewfile"
     claim_pattern = re.compile(
-        r"^(\s*[-*]\s*\[(?:CRITICAL|SECURITY|BUG|WARNING|STILL UNRESOLVED)\])\s*"
-        r"`?([\w\-\./]+\.(?:py|md|yml|yaml|json|js|ts|tsx)):(\d+)`?\s*[-–]?\s*(.*)$",
+        r"^(\s*[-*]\s*\[(?:CRITICAL|SECURITY|BUG|WARNING|STILL UNRESOLVED|SUGGESTION)\])\s*"
+        rf"`?([\w\-\./]+\.(?:{extensions})|(?:[\w\-\./]*(?:{extensionless_files}))):(\d+)`?\s*[-–]?\s*(.*)$",
         re.MULTILINE,
     )
 
