@@ -1481,15 +1481,14 @@ def format_github_comment(
     return comment
 
 
-def _get_file_line(filepath: str, line_num: int) -> Optional[str]:
-    """Get a specific line from a file.
+def _read_file_content(filepath: str) -> Optional[str]:
+    """Read entire file content for content-based verification.
 
     Args:
         filepath: Path to the file
-        line_num: 1-indexed line number
 
     Returns:
-        The line content, or None if file/line doesn't exist
+        The file content as a string, or None if file doesn't exist
     """
     try:
         # Security: Prevent path traversal
@@ -1499,19 +1498,80 @@ def _get_file_line(filepath: str, line_num: int) -> Optional[str]:
             return None
 
         with open(filepath, encoding="utf-8") as f:
-            lines = f.readlines()
-            if 1 <= line_num <= len(lines):
-                return lines[line_num - 1].strip()
-        return None
+            return f.read()
     except (FileNotFoundError, UnicodeDecodeError, OSError):
         return None
+
+
+def _extract_claimed_patterns(description: str) -> List[str]:
+    """Extract verifiable patterns from an issue description.
+
+    Looks for quoted content, backtick content, trigger patterns,
+    and other specific claims that can be searched in the file.
+
+    Args:
+        description: The issue description text
+
+    Returns:
+        List of patterns to search for in the file
+    """
+    patterns = []
+
+    # Extract content in backticks: `[Generate]`, `deprecated_function`
+    backtick_matches = re.findall(r"`([^`]+)`", description)
+    patterns.extend(backtick_matches)
+
+    # Extract content in quotes: "[Fix]", "Git Monitoring"
+    quote_matches = re.findall(r'"([^"]+)"', description)
+    patterns.extend(quote_matches)
+
+    # Extract trigger-like patterns: [Generate], [Refactor], etc.
+    trigger_matches = re.findall(r"\[([A-Z][a-zA-Z]+)\]", description)
+    for trigger in trigger_matches:
+        patterns.append(f"[{trigger}]")
+
+    # Common hallucinated content keywords to check
+    hallucination_keywords = [
+        "Git Monitoring Workflows",
+        "Git Monitoring",
+        "[Generate]",
+        "[Refactor]",
+        "[Quick]",
+        "[Convert]",
+        "[Explain]",
+        "[Fix]",
+        "[Implement]",
+        "[Address]",
+    ]
+
+    desc_lower = description.lower()
+    for kw in hallucination_keywords:
+        if kw.lower() in desc_lower:
+            patterns.append(kw)
+
+    # Deduplicate while preserving order
+    seen = set()
+    unique_patterns = []
+    for p in patterns:
+        p_lower = p.lower()
+        if p_lower not in seen and len(p) > 2:  # Skip very short patterns
+            seen.add(p_lower)
+            unique_patterns.append(p)
+
+    return unique_patterns
 
 
 def _verify_review_claims(review_text: str, changed_files: List[str]) -> Tuple[str, int]:
     """Verify file:line claims in review against actual file content.
 
-    This is a critical anti-hallucination measure. Before posting a review,
-    we check if Gemini's claims about specific lines actually match reality.
+    This is a critical anti-hallucination measure. Uses CONTENT-BASED verification
+    instead of line-number verification (line numbers shift across commits).
+
+    The approach:
+    1. Extract claimed patterns from the issue description
+    2. Search the ENTIRE file for those patterns
+    3. If patterns exist anywhere -> accept claim (line number might just be off)
+    4. If patterns don't exist anywhere -> hallucination
 
     Args:
         review_text: The review text to verify
@@ -1522,26 +1582,15 @@ def _verify_review_claims(review_text: str, changed_files: List[str]) -> Tuple[s
     """
     # Pattern to find file:line claims in issues
     # Matches: file.md:123, path/to/file.py:456, etc.
-    # Captures: (filepath, line_number, rest_of_line)
+    # Captures: (prefix, filepath, line_number, description)
     claim_pattern = re.compile(
         r"^(\s*[-*]\s*\[(?:CRITICAL|SECURITY|BUG|WARNING|STILL UNRESOLVED)\])\s*"
         r"`?([\w\-\./]+\.(?:py|md|yml|yaml|json|js|ts|tsx)):(\d+)`?\s*[-–]?\s*(.*)$",
         re.MULTILINE,
     )
 
-    # Keywords that indicate specific content claims
-    content_claim_keywords = [
-        "contains",
-        "has",
-        "shows",
-        "lists",
-        "includes",
-        "defines",
-        "declares",
-        "uses",
-        "references",
-        "section",
-    ]
+    # Cache file contents to avoid re-reading
+    file_content_cache: Dict[str, Optional[str]] = {}
 
     lines = review_text.split("\n")
     verified_lines = []
@@ -1570,53 +1619,50 @@ def _verify_review_claims(review_text: str, changed_files: List[str]) -> Tuple[s
             verified_lines.append(f"{prefix} `{filepath}:{line_num}` - [UNVERIFIED: file not in diff] {description}")
             continue
 
-        # Get actual line content
-        actual_content = _get_file_line(filepath, line_num)
+        # Get file content (cached)
+        if filepath not in file_content_cache:
+            file_content_cache[filepath] = _read_file_content(filepath)
 
-        if actual_content is None:
-            # Could not read the line - file might not exist or line out of range
-            print(f"  [VERIFY] {filepath}:{line_num} - Could not read line")
+        file_content = file_content_cache[filepath]
+
+        if file_content is None:
+            # Could not read the file
+            print(f"  [VERIFY] {filepath} - Could not read file")
             hallucination_count += 1
-            verified_lines.append(f"{prefix} `{filepath}:{line_num}` - [UNVERIFIED: line not found] {description}")
+            verified_lines.append(f"{prefix} `{filepath}:{line_num}` - [UNVERIFIED: file not found] {description}")
             continue
 
-        # Check if the claim makes sense given the actual content
-        desc_lower = description.lower()
+        # CONTENT-BASED VERIFICATION
+        # Extract patterns from the description and search the entire file
+        claimed_patterns = _extract_claimed_patterns(description)
 
-        # Look for specific claims that can be verified
-        is_content_claim = any(kw in desc_lower for kw in content_claim_keywords)
+        if claimed_patterns:
+            # Check if ANY of the claimed patterns exist in the file
+            file_content_lower = file_content.lower()
+            patterns_found = []
+            patterns_missing = []
 
-        if is_content_claim:
-            # This is a claim about what the line contains
-            # Check for obvious mismatches
+            for pattern in claimed_patterns:
+                if pattern.lower() in file_content_lower:
+                    patterns_found.append(pattern)
+                else:
+                    patterns_missing.append(pattern)
 
-            # Common hallucination: claiming triggers/keywords exist when they don't
-            trigger_keywords = [
-                "[generate]",
-                "[refactor]",
-                "[quick]",
-                "[convert]",
-                "[explain]",
-                "[fix]",
-                "[implement]",
-                "git monitoring",
-                "trigger",
-            ]
-            claims_trigger = any(kw in desc_lower for kw in trigger_keywords)
-            actual_has_trigger = any(kw in actual_content.lower() for kw in trigger_keywords)
-
-            if claims_trigger and not actual_has_trigger:
-                # Gemini claims triggers exist but they don't
+            # If we have specific patterns that SHOULD be there but aren't -> hallucination
+            if patterns_missing and not patterns_found:
+                # All claimed patterns are missing from the file
                 print(f"  [HALLUCINATION] {filepath}:{line_num}")
-                print(f"    Claimed: {description[:60]}...")
-                print(f"    Actual:  {actual_content[:60]}...")
+                print(f"    Claimed patterns not found: {patterns_missing[:3]}")
                 hallucination_count += 1
-                # Mark as hallucination but include actual content for transparency
                 verified_lines.append(
-                    f"{prefix} `{filepath}:{line_num}` - "
-                    f"[HALLUCINATION DETECTED - Actual line: `{actual_content[:50]}...`] {description}"
+                    f"{prefix} `{filepath}:{line_num}` - [HALLUCINATION: claimed content not in file] {description}"
                 )
                 continue
+
+            # Some patterns found - claim is at least partially valid
+            # (line number might be off, but the content exists)
+            if patterns_found:
+                print(f"  [VERIFIED] {filepath}:{line_num} - Found: {patterns_found[:2]}")
 
         # Claim seems plausible or can't be definitively refuted
         verified_lines.append(line)
