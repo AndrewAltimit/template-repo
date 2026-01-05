@@ -704,6 +704,116 @@ def get_recent_pr_comments(pr_number: str) -> str:
         return ""
 
 
+def _filter_debunked_issues(issue_lines: List[str], pr_number: str) -> List[str]:
+    """Filter out issues that were debunked in human comments.
+
+    This prevents the hallucination feedback loop where Gemini echoes
+    previously-reported issues that were already debunked by humans.
+
+    Args:
+        issue_lines: List of issue strings in format "FILE:LINE - [SEVERITY] Description"
+        pr_number: PR number to fetch comments from
+
+    Returns:
+        Filtered list with debunked issues removed
+    """
+    try:
+        comments = get_all_pr_comments(pr_number)
+
+        # Get human comments (non-Gemini) that might contain debunking
+        human_comments = []
+        for comment in comments:
+            body = comment.get("body", "")
+            # Skip Gemini's own comments
+            if "<!-- gemini-review-marker" in body:
+                continue
+            human_comments.append(body.lower())
+
+        if not human_comments:
+            return issue_lines
+
+        # Combine all human comments for searching
+        all_human_text = "\n".join(human_comments)
+
+        # Keywords that indicate debunking
+        debunk_keywords = [
+            "false positive",
+            "hallucinating",
+            "hallucination",
+            "doesn't exist",
+            "does not exist",
+            "incorrect",
+            "wrong line",
+            "actual line",
+            "actually contains",
+            "not what it claims",
+            "gemini is confused",
+            "no such",
+            "debunked",
+        ]
+
+        # Check if any debunking language is present
+        has_debunking = any(kw in all_human_text for kw in debunk_keywords)
+        if not has_debunking:
+            return issue_lines
+
+        print("Found debunking language in PR comments, filtering previous issues...")
+
+        # Extract file:line patterns that were mentioned in debunking context
+        # Pattern: filename:line_number
+        debunked_patterns = set()
+        for comment in human_comments:
+            # Check if this comment contains debunking language
+            if not any(kw in comment for kw in debunk_keywords):
+                continue
+
+            # Extract file:line patterns from debunking comments
+            matches = re.findall(r"([\w\-\./]+\.(?:py|md|yml|yaml|json|js|ts)):(\d+)", comment)
+            for filepath, line_num in matches:
+                # Normalize to just filename for matching
+                filename = filepath.split("/")[-1]
+                debunked_patterns.add(f"{filename}:{line_num}")
+                # Also add full path pattern
+                debunked_patterns.add(f"{filepath}:{line_num}")
+
+        if not debunked_patterns:
+            # Debunking language present but no specific file:line patterns extracted
+            # Be conservative - check if any issue file is mentioned in debunking
+            filtered = []
+            for issue_line in issue_lines:
+                # Extract file from issue
+                match = re.match(r"([\w\-\./]+):\d+", issue_line)
+                if match:
+                    issue_file = match.group(1).split("/")[-1]
+                    # Check if this file is mentioned in debunking comments
+                    if issue_file.lower() in all_human_text:
+                        print(f"  Dropping issue for {issue_file} (file mentioned in debunking context)")
+                        continue
+                filtered.append(issue_line)
+            return filtered
+
+        # Filter out issues that match debunked patterns
+        filtered = []
+        for issue_line in issue_lines:
+            issue_lower = issue_line.lower()
+            is_debunked = False
+
+            for pattern in debunked_patterns:
+                if pattern.lower() in issue_lower:
+                    print(f"  Dropping debunked issue matching {pattern}")
+                    is_debunked = True
+                    break
+
+            if not is_debunked:
+                filtered.append(issue_line)
+
+        return filtered
+
+    except Exception as e:
+        print(f"Warning: Error filtering debunked issues: {e}")
+        return issue_lines  # On error, return unfiltered
+
+
 def extract_previous_issues(pr_number: str, changed_files: Optional[List[str]] = None) -> Tuple[str, str]:
     """Extract specific issues from previous Gemini reviews for verification.
 
@@ -882,7 +992,18 @@ If no concrete issues were found, respond with: `NO_ISSUES_FOUND`
                 print("No verifiable issues remain after action validation")
                 return "", model_used
 
-            result = "\n".join(validated_lines)
+            # Fourth pass: filter issues that were debunked in human comments
+            # This prevents the feedback loop where hallucinated issues persist across reviews
+            debunked_lines = _filter_debunked_issues(validated_lines, pr_number)
+            debunked_count = len(validated_lines) - len(debunked_lines)
+            if debunked_count > 0:
+                print(f"Dropped {debunked_count} issues that were debunked in PR comments")
+
+            if not debunked_lines:
+                print("No verifiable issues remain after debunk filtering")
+                return "", model_used
+
+            result = "\n".join(debunked_lines)
 
         print("Extracted previous issues for verification")
         return result.strip(), model_used
@@ -1360,6 +1481,276 @@ def format_github_comment(
     return comment
 
 
+def _read_file_content(filepath: str) -> Optional[str]:
+    """Read entire file content for content-based verification.
+
+    Args:
+        filepath: Path to the file
+
+    Returns:
+        The file content as a string, or None if file doesn't exist
+    """
+    try:
+        # Security: Prevent path traversal
+        resolved_path = Path(filepath).resolve()
+        repo_root = Path.cwd().resolve()
+        if not resolved_path.is_relative_to(repo_root):
+            return None
+
+        with open(filepath, encoding="utf-8") as f:
+            return f.read()
+    except (FileNotFoundError, UnicodeDecodeError, OSError):
+        return None
+
+
+def _extract_claimed_patterns(description: str) -> List[str]:
+    """Extract verifiable patterns from an issue description.
+
+    Looks for quoted content, backtick content, trigger patterns,
+    and other specific claims that can be searched in the file.
+
+    Args:
+        description: The issue description text
+
+    Returns:
+        List of patterns to search for in the file
+    """
+    patterns = []
+
+    # Extract content in backticks: `[Generate]`, `deprecated_function`
+    backtick_matches = re.findall(r"`([^`]+)`", description)
+    patterns.extend(backtick_matches)
+
+    # Extract content in quotes: "[Fix]", "Git Monitoring"
+    quote_matches = re.findall(r'"([^"]+)"', description)
+    patterns.extend(quote_matches)
+
+    # Extract trigger-like patterns: [Generate], [Refactor], etc.
+    trigger_matches = re.findall(r"\[([A-Z][a-zA-Z]+)\]", description)
+    for trigger in trigger_matches:
+        patterns.append(f"[{trigger}]")
+
+    # Common hallucinated content keywords to check
+    hallucination_keywords = [
+        "Git Monitoring Workflows",
+        "Git Monitoring",
+        "[Generate]",
+        "[Refactor]",
+        "[Quick]",
+        "[Convert]",
+        "[Explain]",
+        "[Fix]",
+        "[Implement]",
+        "[Address]",
+    ]
+
+    desc_lower = description.lower()
+    for kw in hallucination_keywords:
+        if kw.lower() in desc_lower:
+            patterns.append(kw)
+
+    # Deduplicate while preserving order
+    seen = set()
+    unique_patterns = []
+    for p in patterns:
+        p_lower = p.lower()
+        if p_lower not in seen and len(p) > 2:  # Skip very short patterns
+            seen.add(p_lower)
+            unique_patterns.append(p)
+
+    return unique_patterns
+
+
+def _verify_review_claims(review_text: str, changed_files: List[str]) -> Tuple[str, int]:
+    """Verify file:line claims in review against actual file content.
+
+    This is a critical anti-hallucination measure. Uses CONTENT-BASED verification
+    instead of line-number verification (line numbers shift across commits).
+
+    The approach:
+    1. Extract claimed patterns from the issue description
+    2. Search the ENTIRE file for those patterns
+    3. If patterns exist anywhere -> accept claim (line number might just be off)
+    4. If patterns don't exist anywhere -> hallucination
+
+    Args:
+        review_text: The review text to verify
+        changed_files: List of files in the PR diff
+
+    Returns:
+        Tuple of (verified_review_text, hallucination_count)
+    """
+    # Pattern to find file:line claims in issues
+    # Matches: file.md:123, path/to/file.py:456, Dockerfile:10, etc.
+    # Captures: (prefix, filepath, line_number, description)
+    # Supports: common extensions + extensionless files (Dockerfile, Makefile, etc.)
+    extensions = (
+        r"py|md|yml|yaml|json|js|ts|tsx|jsx|"  # Python, Markdown, Config, JavaScript
+        r"sh|bash|zsh|fish|"  # Shell scripts
+        r"toml|ini|cfg|conf|env|"  # Config files
+        r"txt|rst|html|css|scss|sass|less|"  # Text, docs, styles
+        r"go|rs|rb|php|pl|lua|"  # Go, Rust, Ruby, PHP, Perl, Lua
+        r"c|cpp|cc|h|hpp|hxx|"  # C/C++
+        r"java|kt|kts|scala|groovy|"  # JVM languages
+        r"swift|m|mm|"  # Apple languages
+        r"sql|graphql|proto|"  # Query/schema languages
+        r"xml|svg|wasm"  # Other formats
+    )
+    # Also match extensionless files like Dockerfile, Makefile, etc.
+    extensionless_files = r"Dockerfile|Makefile|Vagrantfile|Gemfile|Rakefile|Procfile|Brewfile"
+    # Common dotfiles that should be verified
+    dotfiles = r"\.gitignore|\.dockerignore|\.gitattributes|\.editorconfig|\.prettierrc|\.eslintrc|\.pylintrc|\.flake8"
+    claim_pattern = re.compile(
+        r"^(\s*[-*]\s*\[(?:CRITICAL|SECURITY|BUG|WARNING|STILL UNRESOLVED|SUGGESTION)\])\s*"
+        rf"`?([\w\-\./]+\.(?:{extensions})|(?:[\w\-\./]*(?:{extensionless_files}))|(?:[\w\-\./]*(?:{dotfiles}))):(\d+)`?\s*[-–]?\s*(.*)$",
+        re.MULTILINE,
+    )
+
+    # Cache file contents to avoid re-reading
+    file_content_cache: Dict[str, Optional[str]] = {}
+
+    lines = review_text.split("\n")
+    verified_lines = []
+    hallucination_count = 0
+    changed_files_set = set(changed_files)
+
+    for line in lines:
+        match = claim_pattern.match(line)
+        if not match:
+            verified_lines.append(line)
+            continue
+
+        prefix, filepath, line_num_str, description = match.groups()
+        line_num = int(line_num_str)
+
+        # Get the filename for matching
+        filename = filepath.split("/")[-1]
+
+        # Resolve partial path to full path from changed_files
+        # This handles cases where review cites "script.py" but actual path is "tools/script.py"
+        resolved_path = None
+        for cf in changed_files_set:
+            if cf == filepath or cf.endswith("/" + filepath) or cf.endswith(filename):
+                resolved_path = cf
+                break
+
+        if not resolved_path:
+            # File not in PR - might be a hallucination about non-existent changes
+            print(f"  [VERIFY] {filepath}:{line_num} - File not in PR diff")
+            hallucination_count += 1
+            verified_lines.append(f"{prefix} `{filepath}:{line_num}` - [UNVERIFIED: file not in diff] {description}")
+            continue
+
+        # Get file content using resolved full path (cached)
+        if resolved_path not in file_content_cache:
+            file_content_cache[resolved_path] = _read_file_content(resolved_path)
+
+        file_content = file_content_cache[resolved_path]
+
+        if file_content is None:
+            # Could not read the file
+            print(f"  [VERIFY] {resolved_path} - Could not read file")
+            hallucination_count += 1
+            verified_lines.append(f"{prefix} `{filepath}:{line_num}` - [UNVERIFIED: file not found] {description}")
+            continue
+
+        # CONTENT-BASED VERIFICATION
+        # Extract patterns from the description and search the entire file
+        claimed_patterns = _extract_claimed_patterns(description)
+
+        if claimed_patterns:
+            # Check if ANY of the claimed patterns exist in the file
+            file_content_lower = file_content.lower()
+            patterns_found = []
+            patterns_missing = []
+
+            for pattern in claimed_patterns:
+                if pattern.lower() in file_content_lower:
+                    patterns_found.append(pattern)
+                else:
+                    patterns_missing.append(pattern)
+
+            # If we have specific patterns that SHOULD be there but aren't -> hallucination
+            if patterns_missing and not patterns_found:
+                # All claimed patterns are missing from the file
+                print(f"  [HALLUCINATION] {filepath}:{line_num}")
+                print(f"    Claimed patterns not found: {patterns_missing[:3]}")
+                hallucination_count += 1
+                verified_lines.append(
+                    f"{prefix} `{filepath}:{line_num}` - [HALLUCINATION: claimed content not in file] {description}"
+                )
+                continue
+
+            # Some patterns found - claim is at least partially valid
+            # (line number might be off, but the content exists)
+            if patterns_found:
+                print(f"  [VERIFIED] {filepath}:{line_num} - Found: {patterns_found[:2]}")
+
+        # Claim seems plausible or can't be definitively refuted
+        verified_lines.append(line)
+
+    return "\n".join(verified_lines), hallucination_count
+
+
+def _remove_hallucinated_issues(review_text: str, hallucination_count: int) -> str:
+    """Remove or clean up hallucinated issues from review.
+
+    If hallucinations were detected, this function cleans up the review
+    by removing the marked issues and adding a note.
+
+    Args:
+        review_text: Review with [HALLUCINATION DETECTED] markers
+        hallucination_count: Number of hallucinations found
+
+    Returns:
+        Cleaned review text
+    """
+    if hallucination_count == 0:
+        return review_text
+
+    # Remove lines marked as hallucinations
+    lines = review_text.split("\n")
+    cleaned_lines = []
+    removed_count = 0
+
+    for line in lines:
+        if "[HALLUCINATION DETECTED" in line or "[UNVERIFIED:" in line:
+            removed_count += 1
+            continue
+        cleaned_lines.append(line)
+
+    # Add a note about removed hallucinations if any were removed
+    if removed_count > 0:
+        # Find the Notes section or add before the reaction
+        result_lines = []
+        notes_added = False
+
+        for i, line in enumerate(cleaned_lines):
+            result_lines.append(line)
+            if line.strip() == "## Notes" and not notes_added:
+                # Add hallucination note after Notes header
+                result_lines.append(
+                    f"- {removed_count} claim(s) were automatically filtered "
+                    "as potential hallucinations (file:line content didn't match claims)"
+                )
+                notes_added = True
+
+        if not notes_added:
+            # No Notes section, add before reaction image
+            for i, line in enumerate(result_lines):
+                if "![Reaction]" in line:
+                    result_lines.insert(i, "## Notes")
+                    result_lines.insert(
+                        i + 1, f"- {removed_count} claim(s) were automatically filtered as potential hallucinations"
+                    )
+                    result_lines.insert(i + 2, "")
+                    break
+
+        return "\n".join(result_lines)
+
+    return review_text
+
+
 def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
     """Post the comment to the PR using GitHub CLI"""
     try:
@@ -1499,12 +1890,22 @@ def main() -> None:
     valid_urls = get_valid_reaction_urls()
     validated_comment = fix_reaction_urls(comment, valid_urls)
 
-    # Post to PR
-    post_pr_comment(validated_comment, pr_info)
+    # Verify claims against actual file content (anti-hallucination)
+    print("\n🔍 Verifying file:line claims against actual content...")
+    verified_comment, hallucination_count = _verify_review_claims(validated_comment, changed_files)
+    if hallucination_count > 0:
+        print(f"⚠️  Detected {hallucination_count} potential hallucination(s)")
+        verified_comment = _remove_hallucinated_issues(verified_comment, hallucination_count)
+        print("✅ Removed hallucinated claims from review")
+    else:
+        print("✅ All claims verified")
 
-    # Save to step summary (use validated comment)
+    # Post to PR
+    post_pr_comment(verified_comment, pr_info)
+
+    # Save to step summary (use verified comment)
     with open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a", encoding="utf-8") as f:
-        f.write("\n\n" + validated_comment)
+        f.write("\n\n" + verified_comment)
 
     print("Gemini PR review complete!")
 

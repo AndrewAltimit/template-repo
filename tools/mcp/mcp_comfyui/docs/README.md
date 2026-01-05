@@ -197,3 +197,7 @@ await transfer_lora_from_ai_toolkit(
 1. **Chunked Upload**: Required for files >100MB
 2. **FLUX Models**: Have specific workflow requirements
 3. **Remote Dependency**: Requires ComfyUI server running on remote host
+
+## License
+
+Part of the template-repo project. See repository LICENSE file.

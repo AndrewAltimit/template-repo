@@ -443,3 +443,7 @@ python tools/mcp/elevenlabs_speech/scripts/setup_api_key.py
 - [Get API Key](https://elevenlabs.io/api)
 - [Voice Library](https://elevenlabs.io/voice-library)
 - [Pricing Plans](https://elevenlabs.io/pricing)
+
+## License
+
+Part of the template-repo project. See repository LICENSE file.

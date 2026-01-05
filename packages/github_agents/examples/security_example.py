@@ -131,13 +131,13 @@ def demonstrate_trigger_validation() -> None:
     print("-" * 60)
 
     valid_triggers = [
-        ("[Approved][OpenCode]", "OpenCode agent for issue implementation"),
+        ("[Approved][OpenCode]", "OpenCode agent for issue/PR implementation"),
         ("[Approved][Claude]", "Claude agent for complex tasks"),
         ("[Approved][Gemini]", "Gemini agent for validation"),
         ("[Approved][Crush]", "Crush agent for quick fixes"),
         ("[Approved][Codex]", "Codex agent for OpenAI tasks"),
-        ("[Fix][OpenCode]", "OpenCode for PR review fixes"),
-        ("[Fix][Claude]", "Claude for PR review fixes"),
+        ("[Review][OpenCode]", "OpenCode for code review"),
+        ("[Review][Gemini]", "Gemini for code review"),
     ]
 
     for trigger, description in valid_triggers:

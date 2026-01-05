@@ -243,3 +243,7 @@ See [Troubleshooting](TROUBLESHOOTING.md) for complete diagnostic procedures.
 - [Examples](EXAMPLES.md) - Usage patterns
 - [Troubleshooting](TROUBLESHOOTING.md) - Issue resolution
 - [Limitations](LIMITATIONS.md) - Scope and constraints
+
+## License
+
+Part of the template-repo project. See repository LICENSE file.

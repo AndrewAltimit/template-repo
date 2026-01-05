@@ -77,7 +77,7 @@ python examples/issue_monitor_example.py
 
 **Prerequisites**:
 - Open pull request
-- Review comment with trigger (e.g., `[Fix][OpenCode]`)
+- Review comment with trigger (e.g., `[Approved][OpenCode]`)
 - OpenRouter API key
 
 **Usage**:

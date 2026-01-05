@@ -130,3 +130,7 @@ docker run -v ~/.codex:/home/user/.codex:ro mcp-codex
 - Authentication is required via the host's `~/.codex/auth.json`
 - The server provides structured responses indicating how to use Codex interactively
 - For actual code generation, use the Codex CLI directly or through the agent scripts
+
+## License
+
+Part of the template-repo project. See repository LICENSE file.

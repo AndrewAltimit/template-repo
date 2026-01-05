@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SecurityManager now supports `[Approved]` without agent specification
 - IssueMonitor and PRMonitor resolve agent from board when not in trigger
 - tests/README.md updated with complete unit test listing
+- **Trigger consolidation**: `[Fix]` and `[Implement]` merged into `[Approved]`
+- Valid triggers now: `[Approved]`, `[Review]`, `[Close]`, `[Summarize]`, `[Debug]`
 
 ## [0.2.0] - 2025-10-25
 

@@ -140,3 +140,7 @@ docker-compose --profile ai-services down
 - Volumes are used for persistent storage of models, outputs, and inputs
 - Can run alongside AI Toolkit MCP server for integrated LoRA workflows
 - Includes ComfyUI backend for workflow execution
+
+## License
+
+Part of the template-repo project. See repository LICENSE file.

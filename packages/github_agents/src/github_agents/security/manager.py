@@ -49,19 +49,21 @@ class SecurityManager:
             "reject_message": "This AI agent only processes requests from authorized users.",
             "allowed_actions": [
                 "issue_approved",
-                "pr_fix",
                 "issue_close",
                 "pr_approved",
-                "issue_fix",
-                "issue_implement",
-                "pr_implement",
+                "issue_review",
+                "pr_review",
+                "issue_summarize",
+                "pr_summarize",
+                "issue_debug",
+                "pr_debug",
             ],
             "triggers": {
                 "approved": ["Approved"],
-                "fix": ["Fix"],
-                "implement": ["Implement", "IMPLEMENT"],
+                "review": ["Review"],
                 "close": ["Close"],
                 "summarize": ["Summarize"],
+                "debug": ["Debug"],
             },
         }
 
@@ -152,7 +154,7 @@ class SecurityManager:
         agent = match.group(2)  # May be None if not specified
 
         # Validate action against allowed triggers (case-insensitive)
-        valid_actions_lower = ["approved", "fix", "implement", "close", "summarize"]
+        valid_actions_lower = ["approved", "review", "close", "summarize", "debug"]
         if action.lower() not in valid_actions_lower:
             return (None, None)
 
@@ -222,7 +224,7 @@ class SecurityManager:
             Regex pattern string
         """
         # Pattern: [Action] with optional [Agent] where Action is one of the valid actions
-        return r"\[(Approved|Fix|Implement|Close|Summarize)\](?:\[([A-Za-z]+)\])?"
+        return r"\[(Approved|Review|Close|Summarize|Debug)\](?:\[([A-Za-z]+)\])?"
 
     def check_trigger_comment(self, issue_or_pr: Dict, _entity_type: str) -> Optional[Tuple[str, Optional[str], str]]:
         """Check for valid trigger in issue/PR comments.

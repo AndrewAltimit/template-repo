@@ -6,9 +6,9 @@ Documentation for external service integrations including AI services and creati
 
 ### [AI Services](./ai-services/)
 Integration with AI platforms and services
+- **[AI Code Agents](./ai-services/ai-code-agents.md)** - OpenCode, Crush, Codex, Gemini
+- **[Quick Reference](./ai-services/ai-code-agents-ref.md)** - AI code agents quick guide
 - **[Gemini Setup](./ai-services/gemini-setup.md)** - Gemini CLI configuration
-- **[OpenCode & Crush](./ai-services/opencode-crush.md)** - Comprehensive code generation
-- **[Quick Reference](./ai-services/opencode-crush-ref.md)** - OpenCode & Crush quick guide
 - **[OpenRouter Setup](./ai-services/openrouter-setup.md)** - OpenRouter API configuration
 
 ### Enterprise Integrations
@@ -24,8 +24,8 @@ Integration with creative and content generation tools
 
 ### For Code Generation
 1. Set up OpenRouter API - [OpenRouter Setup](./ai-services/openrouter-setup.md)
-2. Configure OpenCode/Crush - [Integration Guide](./ai-services/opencode-crush.md)
-3. Use quick commands - [Quick Reference](./ai-services/opencode-crush-ref.md)
+2. Configure AI agents - [AI Code Agents](./ai-services/ai-code-agents.md)
+3. Use quick commands - [Quick Reference](./ai-services/ai-code-agents-ref.md)
 
 ### For AI Image Generation
 1. Configure AI Toolkit - [AI Toolkit & ComfyUI](./creative-tools/ai-toolkit-comfyui.md)
