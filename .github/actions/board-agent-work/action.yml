@@ -398,7 +398,7 @@ runs:
         [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
         # Check if issue has been approved by an authorized user
-        # Required format: [Approved], [Fix], or [Implement]
+        # Required format: [Approved]
         # The agent is determined by the Agent field on the project board
         # Note: Write directly to GITHUB_OUTPUT to avoid stdout capture issues
         python3 << PYTHON_SCRIPT

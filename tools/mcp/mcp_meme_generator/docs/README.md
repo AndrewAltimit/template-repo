@@ -383,3 +383,7 @@ The Meme Generator MCP Server is designed for seamless integration with AI agent
 - [ ] Batch meme generation
 - [ ] Watermark support
 - [ ] Social media optimization presets
+
+## License
+
+Part of the template-repo project. See repository LICENSE file.

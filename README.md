@@ -16,16 +16,20 @@ This project follows a **container-first approach**:
 
 ## AI Agents
 
-Six AI agents working in harmony for development and automation. See [AI Agents Documentation](docs/agents/README.md) for complete details:
+Six AI agents for development and automation. See [AI Agents Documentation](docs/agents/README.md) for details.
 
-1. **Claude Code** - Primary development assistant
-2. **Codex** - AI-powered code generation and completion ([Setup Guide](docs/agents/codex-setup.md))
-3. **OpenCode** - Comprehensive code generation ([Integration Guide](docs/integrations/ai-services/opencode-crush.md))
-4. **Crush** - Fast code generation ([Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md))
-5. **Gemini CLI** - Interactive development & automated PR reviews
-6. **GitHub Copilot** - Code review suggestions
+| Agent | Provider | Use Case | Documentation |
+|-------|----------|----------|---------------|
+| **Claude Code** | Anthropic | Primary development assistant | [Setup Guide](docs/agents/claude-code-setup.md) |
+| **Codex** | OpenAI | Code generation | [Setup Guide](docs/agents/codex-setup.md) |
+| **OpenCode** | OpenRouter | Code generation | [AI Code Agents](docs/integrations/ai-services/ai-code-agents.md) |
+| **Crush** | OpenRouter | Code generation | [AI Code Agents](docs/integrations/ai-services/ai-code-agents.md) |
+| **Gemini** | Google | Code review (limited tool use) | [Setup Guide](docs/integrations/ai-services/gemini-setup.md) |
+| **GitHub Copilot** | GitHub | PR review suggestions | - |
 
-**Security**: Keyword triggers, user allow list, secure token management. See [AI Agents Security](docs/agents/security.md)
+All code generation agents (Codex, OpenCode, Crush) provide equivalent functionality - choose based on your API access.
+
+**Security**: Keyword triggers, user allow list, secure token management. See [Security Model](packages/github_agents/docs/security.md)
 
 **Safety Training**: Essential AI safety concepts for human-AI collaboration. See [Human Training Guide](docs/agents/human-training.md)
 
@@ -318,13 +322,13 @@ All workflows run on self-hosted runners for zero-cost operation.
 
 ### Quick References
 - [Codex Setup Guide](docs/agents/codex-setup.md)
-- [OpenCode & Crush Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md)
+- [AI Code Agents Quick Reference](docs/integrations/ai-services/ai-code-agents-ref.md)
 - [MCP Tools Reference](docs/mcp/tools.md)
 - [Gaea2 Quick Reference](tools/mcp/mcp_gaea2/docs/GAEA2_QUICK_REFERENCE.md)
 
 ### Integration Guides
 - [Codex Integration](docs/agents/codex-setup.md)
-- [OpenCode & Crush Integration](docs/integrations/ai-services/opencode-crush.md)
+- [AI Code Agents Integration](docs/integrations/ai-services/ai-code-agents.md)
 - [AI Toolkit & ComfyUI Integration](docs/integrations/creative-tools/ai-toolkit-comfyui.md)
 - [Gaea2 Documentation](tools/mcp/mcp_gaea2/docs/README.md)
 

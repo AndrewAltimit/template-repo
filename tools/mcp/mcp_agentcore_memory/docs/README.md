@@ -195,3 +195,7 @@ curl http://localhost:8023/health
 │  └─────────────────┘             └─────────────────┘          │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+## License
+
+Part of the template-repo project. See repository LICENSE file.

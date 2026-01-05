@@ -296,6 +296,6 @@ Codex works well with:
 ## Related Documentation
 
 - [AI Agents Overview](README.md)
-- [OpenCode & Crush Integration](../integrations/ai-services/opencode-crush.md)
+- [AI Code Agents Integration](../integrations/ai-services/ai-code-agents.md)
 - [Gemini Setup](../integrations/ai-services/gemini-setup.md)
 - [Container Strategy](containerization-strategy.md)

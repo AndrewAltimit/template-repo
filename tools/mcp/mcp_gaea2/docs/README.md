@@ -280,6 +280,10 @@ mcp_gaea2/
     └── templates.yaml        # Template definitions
 ```
 
+## License
+
+Part of the template-repo project. See repository LICENSE file.
+
 ---
 
 *Pattern intelligence derived from analysis of 31 production Gaea2 projects containing 374 nodes and 440 connections.*

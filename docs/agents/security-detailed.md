@@ -47,9 +47,7 @@ The trigger format is: `[Action][Agent]`
 - Invalid triggers are ignored (fail secure)
 
 #### Supported Actions
-- `[Approved]` - Approve and process the issue/PR
-- `[Fix]` - Fix the reported issue
-- `[Implement]` - Implement the requested feature
+- `[Approved]` - Approve and process the issue/PR (includes fix and implement requests)
 - `[Review]` - Review and address feedback
 - `[Close]` - Close the issue/PR
 - `[Summarize]` - Provide a summary
@@ -63,9 +61,9 @@ The trigger format is: `[Action][Agent]`
 
 #### Examples
 - `[Approved][Claude]` - Have Claude process the issue/PR
-- `[Fix][OpenCode]` - Have OpenCode fix the reported bug
-- `[Implement][Claude]` - Have Claude implement a feature
+- `[Approved][OpenCode]` - Have OpenCode implement a fix or feature
 - `[Review][Gemini]` - Have Gemini review and address PR feedback
+- `[Debug][Claude]` - Have Claude debug the issue
 
 #### Security Flow
 1. **User Action**: An allowed user comments with `[Action][Agent]`

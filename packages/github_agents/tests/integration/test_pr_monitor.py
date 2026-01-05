@@ -60,14 +60,14 @@ class TestPRMonitor:
     def test_check_review_trigger(self, pr_monitor):
         """Test checking review trigger patterns."""
         # Valid trigger
-        comment = {"body": "Please [Fix][Claude] this issue", "author": "testuser"}
+        comment = {"body": "Please [Approved][Claude] this issue", "author": "testuser"}
         result = pr_monitor._check_review_trigger(comment)
-        assert result == ("Fix", "Claude", "testuser")
+        assert result == ("approved", "claude", "testuser")
 
         # Multiple triggers (takes first)
-        comment = {"body": "[Address][Gemini] and [Fix][Claude]", "author": "testuser"}
+        comment = {"body": "[Review][Gemini] and [Approved][Claude]", "author": "testuser"}
         result = pr_monitor._check_review_trigger(comment)
-        assert result == ("Address", "Gemini", "testuser")
+        assert result == ("review", "gemini", "testuser")
 
         # No trigger
         comment = {"body": "Just a regular comment", "author": "testuser"}
@@ -84,7 +84,7 @@ class TestPRMonitor:
                     "reviews": [
                         {
                             "id": "R1",
-                            "body": "Please [Fix][Claude] this",
+                            "body": "Please [Approved][Claude] this",
                             "author": {"login": "reviewer1"},
                             "submittedAt": "2024-01-20T10:00:00Z",
                         }
@@ -96,7 +96,7 @@ class TestPRMonitor:
                     "comments": [
                         {
                             "id": "C1",
-                            "body": "[Address][Gemini] this concern",
+                            "body": "[Review][Gemini] this concern",
                             "author": {"login": "commenter1"},
                             "createdAt": "2024-01-20T11:00:00Z",
                         }
@@ -124,7 +124,7 @@ class TestPRMonitor:
                     "reviews": [
                         {
                             "id": "R1",
-                            "body": "[Fix][Claude] this issue",
+                            "body": "[Approved][Claude] this issue",
                             "author": {"login": "unauthorized_user"},
                         }
                     ]
@@ -155,7 +155,7 @@ class TestPRMonitor:
     def test_handle_review_feedback_with_valid_agent(self, mock_gh_command, mock_asyncio_run, pr_monitor):
         """Test handling review feedback with valid agent."""
         pr = {"number": 123, "title": "Test PR"}
-        comment = {"id": "C1", "body": "[Fix][Claude] this"}
+        comment = {"id": "C1", "body": "[Approved][Claude] this"}
 
         # Mock Claude agent
         mock_agent = MagicMock()
@@ -178,7 +178,7 @@ class TestPRMonitor:
     def test_handle_review_feedback_with_containerized_agent(self, mock_gh_command, pr_monitor):
         """Test handling review feedback with containerized agent."""
         pr = {"number": 123, "title": "Test PR"}
-        comment = {"id": "C1", "body": "[Fix][OpenCode] this"}
+        comment = {"id": "C1", "body": "[Approved][OpenCode] this"}
 
         # No OpenCode agent available (containerized)
         pr_monitor.agents = {"claude": MagicMock()}

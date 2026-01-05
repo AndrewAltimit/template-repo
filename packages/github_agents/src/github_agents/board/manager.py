@@ -972,7 +972,7 @@ Work claim released.
         """
         Check if text contains a valid approval trigger from an authorized user.
 
-        Looks for [Approved], [Fix], or [Implement] patterns.
+        Looks for [Approved], [Review], [Close], [Summarize], or [Debug] patterns.
         The agent is determined by the project board's Agent field, not the trigger.
 
         Authorization: The repository owner and project owner are always authorized.
@@ -1002,8 +1002,8 @@ Work claim released.
         if author not in allowed_users:
             return False
 
-        # Parse trigger pattern: [Approved], [Fix], or [Implement]
-        pattern = r"\[(Approved|Fix|Implement)\]"
+        # Parse trigger pattern: [Approved], [Review], [Close], [Summarize], or [Debug]
+        pattern = r"\[(Approved|Review|Close|Summarize|Debug)\]"
         match = re.search(pattern, text, re.IGNORECASE)
 
         return match is not None

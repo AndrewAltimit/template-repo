@@ -30,7 +30,7 @@ Model Context Protocol servers and architecture
 External service integrations
 - **AI Services**
   - [Gemini Setup](./integrations/ai-services/gemini-setup.md)
-  - [OpenCode & Crush](./integrations/ai-services/opencode-crush.md)
+  - [AI Code Agents](./integrations/ai-services/ai-code-agents.md)
   - [OpenRouter Setup](./integrations/ai-services/openrouter-setup.md)
 - **Creative Tools**
   - [AI Toolkit & ComfyUI](./integrations/creative-tools/ai-toolkit-comfyui.md)

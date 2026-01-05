@@ -160,3 +160,7 @@ Reactions are sourced from:
 
 Config is fetched from:
 - https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml
+
+## License
+
+Part of the template-repo project. See repository LICENSE file.

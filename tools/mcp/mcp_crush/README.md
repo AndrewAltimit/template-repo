@@ -1,15 +1,14 @@
 # Crush MCP Server
 
-The Crush MCP Server provides fast AI-powered code generation using Crush, supporting both STDIO (local process) and HTTP (remote/cross-machine) transports.
+The Crush MCP Server provides AI-powered code assistance using OpenRouter, supporting both STDIO (local process) and HTTP (remote/cross-machine) transports.
 
 ## Overview
 
-This MCP server wraps the Crush CLI agent to provide:
-- Quick code generation with style preferences
+This MCP server provides:
+- Code generation with multiple modes
 - Code explanation and analysis
 - Code conversion between languages
 - State management with conversation history
-- Fast response times for rapid iteration
 
 ## Transport Modes
 
@@ -94,39 +93,41 @@ docker run -p 8015:8015 -e OPENROUTER_API_KEY="your-key" mcp-crush
 
 ## Available Tools
 
-### quick_generate
-Fast code generation with style preferences.
+### consult_crush
 
-Parameters:
-- `prompt` (required): The coding task or question
-- `style`: Output style - "concise", "detailed", or "explained" (default: "concise")
+Consult Crush for code generation, explanation, conversion, or general queries.
 
-### explain_code
-Get explanations for existing code.
-
-Parameters:
-- `code` (required): The code to explain
-- `focus`: Specific aspect to focus on (optional)
-
-### convert_code
-Convert code between programming languages.
-
-Parameters:
-- `code` (required): The code to convert
-- `target_language` (required): Target programming language
-- `preserve_comments`: Whether to preserve comments (default: true)
+**Parameters:**
+- `query` (required): The coding question, task, or code to consult about
+- `context`: Additional context or target language for conversion
+- `mode`: Consultation mode (default: "quick")
+  - **quick** (default): General queries without specific formatting
+  - **generate**: Focused code generation with optional context
+  - **explain**: Explain code functionality
+  - **convert**: Convert code between languages
+- `comparison_mode`: Compare with previous Claude response (default: true)
+- `force`: Force consultation even if disabled (default: false)
 
 ### clear_crush_history
+
 Clear the conversation history.
 
 ### crush_status
+
 Get server status and statistics.
+
+### toggle_crush_auto_consult
+
+Toggle automatic consultation on uncertainty detection.
+
+**Parameters:**
+- `enable`: Enable or disable auto-consultation
 
 ## Testing
 
 ```bash
 # Run the test script
-python tools/mcp/crush/scripts/test_server.py
+python tools/mcp/mcp_crush/scripts/test_server.py
 
 # Or use curl for manual testing
 curl http://localhost:8015/health
@@ -136,22 +137,18 @@ curl http://localhost:8015/mcp/tools
 ## Integration with Claude
 
 Once the server is running, it will be available as MCP tools in Claude:
-- `mcp__crush__quick_generate`
-- `mcp__crush__explain_code`
-- `mcp__crush__convert_code`
-- etc.
-
-## Style Preferences
-
-The `quick_generate` tool supports three styles:
-
-1. **concise**: Minimal, focused code without extra explanation
-2. **detailed**: Complete implementation with all edge cases
-3. **explained**: Code with inline comments and explanations
+- `mcp__crush__consult_crush` - Main consultation tool with multiple modes
+- `mcp__crush__clear_crush_history` - Clear conversation history
+- `mcp__crush__crush_status` - Get status and statistics
+- `mcp__crush__toggle_crush_auto_consult` - Control auto-consultation
 
 ## Troubleshooting
 
 1. **Server won't start**: Check that port 8015 is not in use
 2. **API errors**: Ensure OPENROUTER_API_KEY is set correctly
 3. **Container issues**: Make sure the openrouter-agents container is running
-4. **Timeout errors**: Crush is optimized for speed, but increase CRUSH_TIMEOUT if needed
+4. **Timeout errors**: Increase CRUSH_TIMEOUT for complex tasks
+
+## License
+
+Part of the template-repo project. See repository LICENSE file.

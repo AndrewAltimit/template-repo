@@ -11,18 +11,18 @@ Google's Gemini AI for automated code reviews
 - GitHub integration
 - Docker requirements
 
-### [OpenCode & Crush Integration](./opencode-crush.md)
-Comprehensive documentation for OpenCode and Crush AI assistants
+### [AI Code Agents](./ai-code-agents.md)
+Comprehensive documentation for all AI code assistants (OpenCode, Crush, Codex, Gemini)
 - MCP server configuration
 - CLI usage and commands
+- Provider comparison
 - Git workflow integration
-- Comparison modes
 
-### [OpenCode & Crush Quick Reference](./opencode-crush-ref.md)
-Quick command reference for OpenCode and Crush
+### [AI Code Agents Quick Reference](./ai-code-agents-ref.md)
+Quick command reference for all AI code agents
 - Common commands
-- Usage examples
-- Tips and tricks
+- MCP tool usage
+- Setup examples
 
 ### [OpenRouter Setup](./openrouter-setup.md)
 Configuration for OpenRouter API access
