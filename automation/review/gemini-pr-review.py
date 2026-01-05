@@ -1481,6 +1481,208 @@ def format_github_comment(
     return comment
 
 
+def _get_file_line(filepath: str, line_num: int) -> Optional[str]:
+    """Get a specific line from a file.
+
+    Args:
+        filepath: Path to the file
+        line_num: 1-indexed line number
+
+    Returns:
+        The line content, or None if file/line doesn't exist
+    """
+    try:
+        # Security: Prevent path traversal
+        resolved_path = Path(filepath).resolve()
+        repo_root = Path.cwd().resolve()
+        if not resolved_path.is_relative_to(repo_root):
+            return None
+
+        with open(filepath, encoding="utf-8") as f:
+            lines = f.readlines()
+            if 1 <= line_num <= len(lines):
+                return lines[line_num - 1].strip()
+        return None
+    except (FileNotFoundError, UnicodeDecodeError, OSError):
+        return None
+
+
+def _verify_review_claims(review_text: str, changed_files: List[str]) -> Tuple[str, int]:
+    """Verify file:line claims in review against actual file content.
+
+    This is a critical anti-hallucination measure. Before posting a review,
+    we check if Gemini's claims about specific lines actually match reality.
+
+    Args:
+        review_text: The review text to verify
+        changed_files: List of files in the PR diff
+
+    Returns:
+        Tuple of (verified_review_text, hallucination_count)
+    """
+    # Pattern to find file:line claims in issues
+    # Matches: file.md:123, path/to/file.py:456, etc.
+    # Captures: (filepath, line_number, rest_of_line)
+    claim_pattern = re.compile(
+        r"^(\s*[-*]\s*\[(?:CRITICAL|SECURITY|BUG|WARNING|STILL UNRESOLVED)\])\s*"
+        r"`?([\w\-\./]+\.(?:py|md|yml|yaml|json|js|ts|tsx)):(\d+)`?\s*[-–]?\s*(.*)$",
+        re.MULTILINE,
+    )
+
+    # Keywords that indicate specific content claims
+    content_claim_keywords = [
+        "contains",
+        "has",
+        "shows",
+        "lists",
+        "includes",
+        "defines",
+        "declares",
+        "uses",
+        "references",
+        "section",
+    ]
+
+    lines = review_text.split("\n")
+    verified_lines = []
+    hallucination_count = 0
+    changed_files_set = set(changed_files)
+
+    for line in lines:
+        match = claim_pattern.match(line)
+        if not match:
+            verified_lines.append(line)
+            continue
+
+        prefix, filepath, line_num_str, description = match.groups()
+        line_num = int(line_num_str)
+
+        # Get the filename for matching
+        filename = filepath.split("/")[-1]
+
+        # Check if this file is even in the PR
+        file_in_pr = any(filepath in cf or filename in cf or cf.endswith(filepath) for cf in changed_files_set)
+
+        if not file_in_pr:
+            # File not in PR - might be a hallucination about non-existent changes
+            print(f"  [VERIFY] {filepath}:{line_num} - File not in PR diff")
+            hallucination_count += 1
+            verified_lines.append(f"{prefix} `{filepath}:{line_num}` - [UNVERIFIED: file not in diff] {description}")
+            continue
+
+        # Get actual line content
+        actual_content = _get_file_line(filepath, line_num)
+
+        if actual_content is None:
+            # Could not read the line - file might not exist or line out of range
+            print(f"  [VERIFY] {filepath}:{line_num} - Could not read line")
+            hallucination_count += 1
+            verified_lines.append(f"{prefix} `{filepath}:{line_num}` - [UNVERIFIED: line not found] {description}")
+            continue
+
+        # Check if the claim makes sense given the actual content
+        desc_lower = description.lower()
+
+        # Look for specific claims that can be verified
+        is_content_claim = any(kw in desc_lower for kw in content_claim_keywords)
+
+        if is_content_claim:
+            # This is a claim about what the line contains
+            # Check for obvious mismatches
+
+            # Common hallucination: claiming triggers/keywords exist when they don't
+            trigger_keywords = [
+                "[generate]",
+                "[refactor]",
+                "[quick]",
+                "[convert]",
+                "[explain]",
+                "[fix]",
+                "[implement]",
+                "git monitoring",
+                "trigger",
+            ]
+            claims_trigger = any(kw in desc_lower for kw in trigger_keywords)
+            actual_has_trigger = any(kw in actual_content.lower() for kw in trigger_keywords)
+
+            if claims_trigger and not actual_has_trigger:
+                # Gemini claims triggers exist but they don't
+                print(f"  [HALLUCINATION] {filepath}:{line_num}")
+                print(f"    Claimed: {description[:60]}...")
+                print(f"    Actual:  {actual_content[:60]}...")
+                hallucination_count += 1
+                # Mark as hallucination but include actual content for transparency
+                verified_lines.append(
+                    f"{prefix} `{filepath}:{line_num}` - "
+                    f"[HALLUCINATION DETECTED - Actual line: `{actual_content[:50]}...`] {description}"
+                )
+                continue
+
+        # Claim seems plausible or can't be definitively refuted
+        verified_lines.append(line)
+
+    return "\n".join(verified_lines), hallucination_count
+
+
+def _remove_hallucinated_issues(review_text: str, hallucination_count: int) -> str:
+    """Remove or clean up hallucinated issues from review.
+
+    If hallucinations were detected, this function cleans up the review
+    by removing the marked issues and adding a note.
+
+    Args:
+        review_text: Review with [HALLUCINATION DETECTED] markers
+        hallucination_count: Number of hallucinations found
+
+    Returns:
+        Cleaned review text
+    """
+    if hallucination_count == 0:
+        return review_text
+
+    # Remove lines marked as hallucinations
+    lines = review_text.split("\n")
+    cleaned_lines = []
+    removed_count = 0
+
+    for line in lines:
+        if "[HALLUCINATION DETECTED" in line or "[UNVERIFIED:" in line:
+            removed_count += 1
+            continue
+        cleaned_lines.append(line)
+
+    # Add a note about removed hallucinations if any were removed
+    if removed_count > 0:
+        # Find the Notes section or add before the reaction
+        result_lines = []
+        notes_added = False
+
+        for i, line in enumerate(cleaned_lines):
+            result_lines.append(line)
+            if line.strip() == "## Notes" and not notes_added:
+                # Add hallucination note after Notes header
+                result_lines.append(
+                    f"- {removed_count} claim(s) were automatically filtered "
+                    "as potential hallucinations (file:line content didn't match claims)"
+                )
+                notes_added = True
+
+        if not notes_added:
+            # No Notes section, add before reaction image
+            for i, line in enumerate(result_lines):
+                if "![Reaction]" in line:
+                    result_lines.insert(i, "## Notes")
+                    result_lines.insert(
+                        i + 1, f"- {removed_count} claim(s) were automatically filtered as potential hallucinations"
+                    )
+                    result_lines.insert(i + 2, "")
+                    break
+
+        return "\n".join(result_lines)
+
+    return review_text
+
+
 def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
     """Post the comment to the PR using GitHub CLI"""
     try:
@@ -1620,12 +1822,22 @@ def main() -> None:
     valid_urls = get_valid_reaction_urls()
     validated_comment = fix_reaction_urls(comment, valid_urls)
 
-    # Post to PR
-    post_pr_comment(validated_comment, pr_info)
+    # Verify claims against actual file content (anti-hallucination)
+    print("\n🔍 Verifying file:line claims against actual content...")
+    verified_comment, hallucination_count = _verify_review_claims(validated_comment, changed_files)
+    if hallucination_count > 0:
+        print(f"⚠️  Detected {hallucination_count} potential hallucination(s)")
+        verified_comment = _remove_hallucinated_issues(verified_comment, hallucination_count)
+        print("✅ Removed hallucinated claims from review")
+    else:
+        print("✅ All claims verified")
 
-    # Save to step summary (use validated comment)
+    # Post to PR
+    post_pr_comment(verified_comment, pr_info)
+
+    # Save to step summary (use verified comment)
     with open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a", encoding="utf-8") as f:
-        f.write("\n\n" + validated_comment)
+        f.write("\n\n" + verified_comment)
 
     print("Gemini PR review complete!")
 
