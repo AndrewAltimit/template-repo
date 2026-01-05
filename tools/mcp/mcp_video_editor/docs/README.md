@@ -1,6 +1,6 @@
 # Video Editor MCP Server
 
-An intelligent automated video editing tool that provides transcript analysis, speaker detection, and dynamic video composition through the Model Context Protocol (MCP).
+> A Model Context Protocol server for intelligent automated video editing, providing transcript analysis, speaker diarization, scene detection, and dynamic video composition.
 
 ## Overview
 

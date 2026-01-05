@@ -1,6 +1,6 @@
 # GitHub Board MCP Server
 
-MCP server for GitHub Projects v2 board operations, work claiming, and agent coordination.
+> A Model Context Protocol server for GitHub Projects v2 board operations, enabling work queue management, claim coordination, and multi-agent task assignment.
 
 ## Features
 

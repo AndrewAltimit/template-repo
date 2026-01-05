@@ -1,6 +1,6 @@
 # Virtual Character MCP Server
 
-A Model Context Protocol (MCP) server that provides a unified middleware layer for controlling virtual characters across multiple backend platforms (VRChat, Blender, Unity, etc.), with comprehensive audio support and event sequencing for creating synchronized multimedia performances.
+> A Model Context Protocol server for controlling virtual characters across multiple platforms (VRChat, Blender, Unity), with comprehensive audio support, lip-sync animation, and event sequencing for synchronized multimedia performances.
 
 ## Features
 

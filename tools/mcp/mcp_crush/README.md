@@ -1,6 +1,6 @@
 # Crush MCP Server
 
-The Crush MCP Server provides AI-powered code assistance using OpenRouter, supporting both STDIO (local process) and HTTP (remote/cross-machine) transports.
+> A Model Context Protocol server for fast AI-powered code generation and conversion using OpenRouter, optimized for quick code tasks and language translation.
 
 ## Overview
 

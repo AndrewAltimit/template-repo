@@ -1,6 +1,6 @@
 # AgentCore Memory MCP Server
 
-Multi-provider memory system for AI agents. Supports AWS Bedrock AgentCore (managed) or ChromaDB (self-hosted).
+> A Model Context Protocol server for persistent AI agent memory, supporting AWS Bedrock AgentCore (managed) or ChromaDB (self-hosted) with semantic search capabilities.
 
 ## Overview
 

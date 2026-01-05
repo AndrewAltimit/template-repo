@@ -1,6 +1,6 @@
 # ComfyUI MCP Server
 
-The ComfyUI MCP Server provides a Model Context Protocol interface for AI image generation using ComfyUI workflows.
+> A Model Context Protocol server for AI image and video generation using ComfyUI workflows, with support for FLUX, SDXL, LoRA models, and custom workflow execution.
 
 ## Overview
 

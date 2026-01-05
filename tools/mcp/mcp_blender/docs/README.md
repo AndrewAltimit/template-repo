@@ -1,6 +1,6 @@
 # Blender MCP Documentation
 
-This directory contains comprehensive documentation for the Blender MCP server.
+> Comprehensive documentation for the Blender MCP server, covering API reference, architecture, examples, troubleshooting, and known limitations.
 
 ## Documentation Index
 

@@ -1,6 +1,6 @@
 # Codex MCP Server
 
-MCP server for integrating OpenAI Codex for AI-powered code generation and assistance.
+> A Model Context Protocol server for AI-powered code generation and assistance using OpenAI Codex, supporting code completion, refactoring, and explanation.
 
 ## Features
 
