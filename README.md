@@ -20,7 +20,7 @@ Six AI agents for development and automation. See [AI Agents Documentation](docs
 
 | Agent | Provider | Use Case | Documentation |
 |-------|----------|----------|---------------|
-| **Claude Code** | Anthropic | Primary development assistant | [CLAUDE.md](CLAUDE.md) |
+| **Claude Code** | Anthropic | Primary development assistant | [Setup Guide](docs/agents/claude-code-setup.md) |
 | **Codex** | OpenAI | Code generation | [Setup Guide](docs/agents/codex-setup.md) |
 | **OpenCode** | OpenRouter | Code generation | [AI Code Agents](docs/integrations/ai-services/ai-code-agents.md) |
 | **Crush** | OpenRouter | Code generation | [AI Code Agents](docs/integrations/ai-services/ai-code-agents.md) |
