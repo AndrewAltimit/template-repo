@@ -1609,25 +1609,30 @@ def _verify_review_claims(review_text: str, changed_files: List[str]) -> Tuple[s
         # Get the filename for matching
         filename = filepath.split("/")[-1]
 
-        # Check if this file is even in the PR
-        file_in_pr = any(filepath in cf or filename in cf or cf.endswith(filepath) for cf in changed_files_set)
+        # Resolve partial path to full path from changed_files
+        # This handles cases where review cites "script.py" but actual path is "tools/script.py"
+        resolved_path = None
+        for cf in changed_files_set:
+            if cf == filepath or cf.endswith("/" + filepath) or cf.endswith(filename):
+                resolved_path = cf
+                break
 
-        if not file_in_pr:
+        if not resolved_path:
             # File not in PR - might be a hallucination about non-existent changes
             print(f"  [VERIFY] {filepath}:{line_num} - File not in PR diff")
             hallucination_count += 1
             verified_lines.append(f"{prefix} `{filepath}:{line_num}` - [UNVERIFIED: file not in diff] {description}")
             continue
 
-        # Get file content (cached)
-        if filepath not in file_content_cache:
-            file_content_cache[filepath] = _read_file_content(filepath)
+        # Get file content using resolved full path (cached)
+        if resolved_path not in file_content_cache:
+            file_content_cache[resolved_path] = _read_file_content(resolved_path)
 
-        file_content = file_content_cache[filepath]
+        file_content = file_content_cache[resolved_path]
 
         if file_content is None:
             # Could not read the file
-            print(f"  [VERIFY] {filepath} - Could not read file")
+            print(f"  [VERIFY] {resolved_path} - Could not read file")
             hallucination_count += 1
             verified_lines.append(f"{prefix} `{filepath}:{line_num}` - [UNVERIFIED: file not found] {description}")
             continue
