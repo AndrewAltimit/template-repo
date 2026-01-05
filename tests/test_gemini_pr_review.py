@@ -1,12 +1,14 @@
 """
 Unit tests for automation/review/gemini-pr-review.py
 
-Focuses on extract_previous_issues function edge cases.
+Focuses on extract_previous_issues function and anti-hallucination logic.
 """
 
 import importlib.util
+import os
 from pathlib import Path
 import sys
+import tempfile
 from unittest.mock import patch
 
 # Load module with hyphenated filename using importlib
@@ -21,6 +23,10 @@ spec.loader.exec_module(gemini_pr_review)
 # Import needed symbols
 extract_previous_issues = gemini_pr_review.extract_previous_issues
 NO_MODEL = gemini_pr_review.NO_MODEL
+_extract_claimed_patterns = gemini_pr_review._extract_claimed_patterns
+_read_file_content = gemini_pr_review._read_file_content
+_verify_review_claims = gemini_pr_review._verify_review_claims
+_filter_debunked_issues = gemini_pr_review._filter_debunked_issues
 
 
 class TestExtractPreviousIssues:
@@ -227,3 +233,210 @@ class TestExtractPreviousIssues:
 
         assert result == ""
         assert model == "gemini-3-flash-preview"
+
+
+class TestExtractClaimedPatterns:
+    """Tests for the _extract_claimed_patterns function."""
+
+    def test_extracts_backtick_content(self):
+        """Extracts content from backticks."""
+        desc = "File contains `[Generate]` and `deprecated_func` triggers"
+        patterns = _extract_claimed_patterns(desc)
+        assert "[Generate]" in patterns
+        assert "deprecated_func" in patterns
+
+    def test_extracts_quoted_content(self):
+        """Extracts content from quotes."""
+        desc = 'Section has "Git Monitoring" workflows and "[Fix]" triggers'
+        patterns = _extract_claimed_patterns(desc)
+        assert "Git Monitoring" in patterns
+        assert "[Fix]" in patterns
+
+    def test_extracts_trigger_patterns(self):
+        """Extracts trigger-like patterns [Action]."""
+        desc = "Contains [Generate], [Refactor], and [Quick] triggers"
+        patterns = _extract_claimed_patterns(desc)
+        assert "[Generate]" in patterns
+        assert "[Refactor]" in patterns
+        assert "[Quick]" in patterns
+
+    def test_extracts_hallucination_keywords(self):
+        """Extracts common hallucination keywords."""
+        desc = "Has Git Monitoring Workflows section with [Implement] trigger"
+        patterns = _extract_claimed_patterns(desc)
+        assert "Git Monitoring Workflows" in patterns or "Git Monitoring" in patterns
+        assert "[Implement]" in patterns
+
+    def test_deduplicates_patterns(self):
+        """Removes duplicate patterns."""
+        desc = "`[Fix]` and [Fix] and `[Fix]`"
+        patterns = _extract_claimed_patterns(desc)
+        # Should only have one [Fix]
+        fix_count = sum(1 for p in patterns if p.lower() == "[fix]")
+        assert fix_count == 1
+
+    def test_skips_short_patterns(self):
+        """Skips patterns shorter than 3 characters."""
+        desc = "`a` and `ab` and `abc`"
+        patterns = _extract_claimed_patterns(desc)
+        assert "a" not in patterns
+        assert "ab" not in patterns
+        assert "abc" in patterns
+
+    def test_empty_description(self):
+        """Returns empty list for empty description."""
+        patterns = _extract_claimed_patterns("")
+        assert patterns == []
+
+
+class TestReadFileContent:
+    """Tests for the _read_file_content function."""
+
+    def test_reads_existing_file(self):
+        """Reads content from an existing file."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+            f.write("def hello():\n    pass\n")
+            f.flush()
+            try:
+                # Change to temp dir to allow reading
+                old_cwd = os.getcwd()
+                os.chdir(tempfile.gettempdir())
+                content = _read_file_content(f.name)
+                os.chdir(old_cwd)
+                assert content is not None
+                assert "def hello():" in content
+            finally:
+                os.unlink(f.name)
+
+    def test_returns_none_for_nonexistent_file(self):
+        """Returns None for non-existent file."""
+        content = _read_file_content("/nonexistent/path/to/file.py")
+        assert content is None
+
+    def test_prevents_path_traversal(self):
+        """Blocks path traversal attempts."""
+        # Try to read outside current directory
+        content = _read_file_content("../../../etc/passwd")
+        assert content is None
+
+
+class TestVerifyReviewClaims:
+    """Tests for the _verify_review_claims function."""
+
+    def test_passes_valid_claims(self):
+        """Valid claims pass verification."""
+        # Create a temp file with actual content
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, dir=".") as f:
+            f.write("import os\nimport sys\n")
+            f.flush()
+            try:
+                verified, count = _verify_review_claims(
+                    f"- [BUG] {os.path.basename(f.name)}:1 - Missing import statement",
+                    [os.path.basename(f.name)],
+                )
+                # Should not be marked as hallucination (no specific pattern claimed)
+                assert count == 0
+            finally:
+                os.unlink(f.name)
+
+    def test_flags_file_not_in_diff(self):
+        """Flags issues about files not in the PR diff."""
+        review = "- [BUG] other_file.py:10 - Some issue"
+        changed_files = ["main.py", "test.py"]
+
+        verified, count = _verify_review_claims(review, changed_files)
+
+        assert count == 1
+        assert "UNVERIFIED: file not in diff" in verified
+
+    def test_detects_hallucinated_patterns(self):
+        """Detects claims about patterns that don't exist in file."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, dir=".") as f:
+            f.write("# This file has no triggers\nimport os\n")
+            f.flush()
+            try:
+                review = f"- [BUG] {os.path.basename(f.name)}:1 - Contains `[Generate]` deprecated trigger"
+                verified, count = _verify_review_claims(review, [os.path.basename(f.name)])
+                assert count == 1
+                assert "HALLUCINATION" in verified
+            finally:
+                os.unlink(f.name)
+
+    def test_accepts_claims_with_existing_patterns(self):
+        """Accepts claims when pattern exists in file."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, dir=".") as f:
+            f.write("# Supported triggers: [Approved], [Review]\n")
+            f.flush()
+            try:
+                review = f"- [BUG] {os.path.basename(f.name)}:1 - Contains `[Approved]` trigger"
+                verified, count = _verify_review_claims(review, [os.path.basename(f.name)])
+                assert count == 0
+                assert "HALLUCINATION" not in verified
+            finally:
+                os.unlink(f.name)
+
+    def test_resolves_partial_paths(self):
+        """Resolves partial paths against changed_files."""
+        review = "- [BUG] script.py:5 - Issue found"
+        changed_files = ["automation/tools/script.py"]
+
+        # This should match even though the paths differ
+        verified, count = _verify_review_claims(review, changed_files)
+        # Count depends on whether file exists - but shouldn't be "not in diff"
+        assert "file not in diff" not in verified
+
+
+class TestFilterDebunkedIssues:
+    """Tests for the _filter_debunked_issues function."""
+
+    @patch("gemini_pr_review.get_all_pr_comments")
+    def test_filters_debunked_issues(self, mock_get_comments):
+        """Filters out issues that were debunked in human comments."""
+        mock_get_comments.return_value = [
+            {"body": "This is a false positive. The claim about file.py:42 having deprecated triggers is incorrect."},
+        ]
+
+        issues = ["- [BUG] file.py:42 - Has deprecated triggers", "- [BUG] other.py:10 - Real issue"]
+
+        filtered = _filter_debunked_issues(issues, "123")
+
+        assert len(filtered) == 1
+        assert "other.py:10" in filtered[0]
+        assert "file.py:42" not in str(filtered)
+
+    @patch("gemini_pr_review.get_all_pr_comments")
+    def test_keeps_non_debunked_issues(self, mock_get_comments):
+        """Keeps issues that weren't debunked."""
+        mock_get_comments.return_value = [
+            {"body": "LGTM, please fix the typo."},
+        ]
+
+        issues = ["- [BUG] file.py:42 - Has issue", "- [BUG] other.py:10 - Another issue"]
+
+        filtered = _filter_debunked_issues(issues, "123")
+
+        assert len(filtered) == 2
+
+    @patch("gemini_pr_review.get_all_pr_comments")
+    def test_handles_no_comments(self, mock_get_comments):
+        """Handles case with no comments."""
+        mock_get_comments.return_value = []
+
+        issues = ["- [BUG] file.py:42 - Has issue"]
+
+        filtered = _filter_debunked_issues(issues, "123")
+
+        assert len(filtered) == 1
+
+    @patch("gemini_pr_review.get_all_pr_comments")
+    def test_detects_hallucination_keywords(self, mock_get_comments):
+        """Detects various debunking keywords."""
+        mock_get_comments.return_value = [
+            {"body": "Gemini is hallucinating about test.py:100"},
+        ]
+
+        issues = ["- [BUG] test.py:100 - Fake issue"]
+
+        filtered = _filter_debunked_issues(issues, "123")
+
+        assert len(filtered) == 0

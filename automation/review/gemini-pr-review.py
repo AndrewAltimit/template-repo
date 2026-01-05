@@ -1598,9 +1598,11 @@ def _verify_review_claims(review_text: str, changed_files: List[str]) -> Tuple[s
     )
     # Also match extensionless files like Dockerfile, Makefile, etc.
     extensionless_files = r"Dockerfile|Makefile|Vagrantfile|Gemfile|Rakefile|Procfile|Brewfile"
+    # Common dotfiles that should be verified
+    dotfiles = r"\.gitignore|\.dockerignore|\.gitattributes|\.editorconfig|\.prettierrc|\.eslintrc|\.pylintrc|\.flake8"
     claim_pattern = re.compile(
         r"^(\s*[-*]\s*\[(?:CRITICAL|SECURITY|BUG|WARNING|STILL UNRESOLVED|SUGGESTION)\])\s*"
-        rf"`?([\w\-\./]+\.(?:{extensions})|(?:[\w\-\./]*(?:{extensionless_files}))):(\d+)`?\s*[-–]?\s*(.*)$",
+        rf"`?([\w\-\./]+\.(?:{extensions})|(?:[\w\-\./]*(?:{extensionless_files}))|(?:[\w\-\./]*(?:{dotfiles}))):(\d+)`?\s*[-–]?\s*(.*)$",
         re.MULTILINE,
     )
 
