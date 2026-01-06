@@ -377,6 +377,24 @@ class TestVerifyReviewClaims:
             finally:
                 os.unlink(f.name)
 
+    def test_detects_hallucinated_code_patterns(self):
+        """Detects hallucinated code-like patterns even when function names exist."""
+        # This tests the case where Gemini claims specific code that doesn't exist
+        # e.g., claiming `if " @" not in action_ref` when actual code is `if "@" not in action_ref`
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, dir=".") as f:
+            f.write('def validate_ref(action_ref):\n    if "@" not in action_ref:\n        return False\n')
+            f.flush()
+            try:
+                # Claim code with space before @ (hallucinated)
+                review = f'- [BUG] {os.path.basename(f.name)}:2 - `validate_ref` has wrong check (`if " @" not in action_ref`)'
+                verified, count = _verify_review_claims(review, [os.path.basename(f.name)])
+                # Should detect hallucination because the CODE-LIKE pattern doesn't exist
+                # even though "validate_ref" function name exists
+                assert count == 1, f"Expected 1 hallucination, got {count}. Verified: {verified}"
+                assert "HALLUCINATION" in verified
+            finally:
+                os.unlink(f.name)
+
     def test_resolves_partial_paths(self):
         """Resolves partial paths against changed_files."""
         review = "- [BUG] script.py:5 - Issue found"

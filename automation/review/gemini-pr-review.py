@@ -2290,7 +2290,28 @@ def _verify_review_claims(review_text: str, changed_files: List[str]) -> Tuple[s
                 else:
                     patterns_missing.append(pattern)
 
-            # If we have specific patterns that SHOULD be there but aren't -> hallucination
+            # Check for "code-like" patterns that are missing
+            # These are long patterns or patterns with operators that look like actual code
+            # Short patterns (function names, single tokens) are less reliable
+            code_like_missing = [
+                p
+                for p in patterns_missing
+                if len(p) > 20 or any(op in p for op in [" = ", " == ", " != ", " in ", " not ", " if ", " for "])
+            ]
+
+            # If we have specific CODE-LIKE patterns that SHOULD be there but aren't -> hallucination
+            # This catches cases where Gemini claims specific code like `if " @" not in action_ref`
+            # but only generic patterns like function names are found
+            if code_like_missing:
+                print(f"  [HALLUCINATION] {filepath}:{line_num}")
+                print(f"    Code-like patterns not found: {code_like_missing[:3]}")
+                hallucination_count += 1
+                verified_lines.append(
+                    f"{prefix} `{filepath}:{line_num}` - [HALLUCINATION: claimed code not in file] {description}"
+                )
+                continue
+
+            # If ALL patterns are missing (no partial matches at all) -> hallucination
             if patterns_missing and not patterns_found:
                 # All claimed patterns are missing from the file
                 print(f"  [HALLUCINATION] {filepath}:{line_num}")
