@@ -247,10 +247,17 @@ def _extract_action_refs_from_workflow(workflow_data: Any) -> List[str]:
     if not isinstance(jobs, dict):
         return action_refs
 
+    # Single pass over jobs to extract both step actions and reusable workflow calls
     for job_name, job_data in jobs.items():
         if not isinstance(job_data, dict):
             continue
 
+        # Check for reusable workflow calls (jobs.*.uses for workflow_call)
+        job_uses = job_data.get("uses")
+        if job_uses and isinstance(job_uses, str):
+            action_refs.append(job_uses)
+
+        # Check steps for action references
         steps = job_data.get("steps", [])
         if not isinstance(steps, list):
             continue
@@ -262,15 +269,6 @@ def _extract_action_refs_from_workflow(workflow_data: Any) -> List[str]:
             uses = step.get("uses")
             if uses and isinstance(uses, str):
                 action_refs.append(uses)
-
-    # Also check for reusable workflow calls (jobs.*.uses for workflow_call)
-    for job_name, job_data in jobs.items():
-        if not isinstance(job_data, dict):
-            continue
-
-        uses = job_data.get("uses")
-        if uses and isinstance(uses, str):
-            action_refs.append(uses)
 
     return action_refs
 
@@ -2241,11 +2239,55 @@ def _verify_review_claims(review_text: str, changed_files: List[str]) -> Tuple[s
                     resolved_path = cf
                     break
 
-            # Priority 3: Basename match ONLY if basename is unique
+            # Priority 3: Basename match ONLY if basename is unique AND not a common name
             # This prevents matching wrong files when multiple files have same name
+            # Also block common names that are likely to be ambiguous in future diffs
+            common_basenames = {
+                # Entry points
+                "main.py",
+                "index.js",
+                "index.ts",
+                "index.tsx",
+                "index.jsx",
+                "app.py",
+                "app.js",
+                "app.ts",
+                "server.py",
+                "server.js",
+                # Config files
+                "config.py",
+                "config.js",
+                "config.ts",
+                "settings.py",
+                "constants.py",
+                "constants.js",
+                "utils.py",
+                "utils.js",
+                "utils.ts",
+                "helpers.py",
+                "helpers.js",
+                "types.py",
+                "types.ts",
+                # Test files
+                "test.py",
+                "test.js",
+                "tests.py",
+                "conftest.py",
+                # Common module names
+                "models.py",
+                "views.py",
+                "routes.py",
+                "handlers.py",
+                "__init__.py",
+                "setup.py",
+                "cli.py",
+            }
             if not resolved_path and filename in basename_to_paths:
                 matching_paths = basename_to_paths[filename]
-                if len(matching_paths) == 1:
+                if filename.lower() in common_basenames:
+                    # Common basename - require full path even if currently unique
+                    print(f"  [COMMON NAME] {filename} - requiring full path for safety")
+                elif len(matching_paths) == 1:
                     # Unique basename - safe to use
                     resolved_path = matching_paths[0]
                 elif len(matching_paths) > 1:
