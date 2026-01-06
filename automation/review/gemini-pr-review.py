@@ -587,12 +587,8 @@ def get_project_context() -> str:
     """Get project context for better code review, including Gemini's expression philosophy"""
     combined_context = []
 
-    # First, try to read the main project context
+    # Read the project context
     project_context_file = Path("docs/agents/project-context.md")
-    if not project_context_file.exists():
-        # Try alternate location
-        project_context_file = Path("docs/agents/project-context.md")
-
     if project_context_file.exists():
         try:
             combined_context.append(project_context_file.read_text(encoding="utf-8"))
