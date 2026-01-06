@@ -330,11 +330,13 @@ class TestVerifyReviewClaims:
             f.write("import os\nimport sys\n")
             f.flush()
             try:
+                # Use SUGGESTION (low severity) to test claims without quoted code
+                # High-severity claims (BUG/CRITICAL/SECURITY) now require quoted code
                 verified, count = _verify_review_claims(
-                    f"- [BUG] {os.path.basename(f.name)}:1 - Missing import statement",
+                    f"- [SUGGESTION] {os.path.basename(f.name)}:1 - Consider adding docstring",
                     [os.path.basename(f.name)],
                 )
-                # Should not be marked as hallucination (no specific pattern claimed)
+                # Should not be marked as hallucination (low severity, no patterns to verify)
                 assert count == 0
             finally:
                 os.unlink(f.name)
@@ -391,9 +393,13 @@ class TestFilterDebunkedIssues:
 
     @patch("gemini_pr_review.get_all_pr_comments")
     def test_filters_debunked_issues(self, mock_get_comments):
-        """Filters out issues that were debunked in human comments."""
+        """Filters out issues that were debunked in TRUSTED user comments."""
+        # Note: Only comments from trusted users (in .agents.yaml allow_list) are considered
         mock_get_comments.return_value = [
-            {"body": "This is a false positive. The claim about file.py:42 having deprecated triggers is incorrect."},
+            {
+                "body": "This is a false positive. The claim about file.py:42 having deprecated triggers is incorrect.",
+                "author": {"login": "AndrewAltimit"},  # Trusted user
+            },
         ]
 
         issues = ["- [BUG] file.py:42 - Has deprecated triggers", "- [BUG] other.py:10 - Real issue"]
@@ -430,9 +436,13 @@ class TestFilterDebunkedIssues:
 
     @patch("gemini_pr_review.get_all_pr_comments")
     def test_detects_hallucination_keywords(self, mock_get_comments):
-        """Detects various debunking keywords."""
+        """Detects various debunking keywords from TRUSTED users."""
+        # Note: Only comments from trusted users are considered for debunking
         mock_get_comments.return_value = [
-            {"body": "Gemini is hallucinating about test.py:100"},
+            {
+                "body": "Gemini is hallucinating about test.py:100",
+                "author": {"login": "AndrewAltimit"},  # Trusted user
+            },
         ]
 
         issues = ["- [BUG] test.py:100 - Fake issue"]
