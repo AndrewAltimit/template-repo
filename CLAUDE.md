@@ -15,13 +15,15 @@ This is a **single-maintainer project** by @AndrewAltimit with a **container-fir
 
 ## AI Agent Collaboration
 
-You are working alongside five other AI agents in a comprehensive ecosystem:
+You are working alongside seven other AI agents in a comprehensive ecosystem:
 
 1. **Gemini CLI** - Handles automated PR code reviews
 2. **GitHub Copilot** - Provides code review suggestions in PRs
 3. **Issue Monitor Agent** - Automatically creates PRs from well-described issues
 4. **PR Review Monitor Agent** - Automatically implements fixes based on review feedback
 5. **Codex** - AI-powered code generation and completion (OpenAI's code model)
+6. **OpenCode** - Code generation (OpenRouter)
+7. **Crush** - Code generation (OpenRouter)
 
 Your role as Claude Code is the primary development assistant, handling:
 
@@ -346,7 +348,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
      - `clear_opencode_history` - Clear conversation history
      - `opencode_status` - Get integration status and statistics
      - `toggle_opencode_auto_consult` - Control auto-consultation
-   - Uses OpenRouter API with Qwen 2.5 Coder model
+   - Uses OpenRouter API for model-agnostic code generation
    - Runs locally via stdio for better integration
    - See `tools/mcp/mcp_opencode/docs/README.md` for documentation
 
@@ -356,7 +358,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
      - `clear_crush_history` - Clear conversation history
      - `crush_status` - Get integration status and statistics
      - `toggle_crush_auto_consult` - Control auto-consultation
-   - Uses OpenRouter API with optimized models for speed
+   - Uses OpenRouter API for model-agnostic code generation
    - Runs locally via stdio for better integration
    - See `tools/mcp/mcp_crush/docs/README.md` for documentation
 
@@ -467,12 +469,23 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Content sanitization for secrets
    - See `tools/mcp/mcp_agentcore_memory/docs/README.md` for documentation
 
-17. **Shared Core Components** (`tools/mcp/mcp_core/`):
+17. **Reaction Search MCP Server** (`tools/mcp/mcp_reaction_search/`): STDIO (local) or HTTP port 8024
+   - **Semantic Reaction Image Search**:
+     - `search_reactions` - Natural language search for reaction images
+     - `get_reaction` - Get a specific reaction by ID
+     - `list_reaction_tags` - Browse available tags
+     - `refresh_reactions` - Refresh the reaction cache
+     - `reaction_search_status` - Get server status
+   - Uses sentence-transformers for embedding-based similarity search
+   - Auto-fetches reaction config from GitHub repository
+   - See `tools/mcp/mcp_reaction_search/README.md` for documentation
+
+18. **Shared Core Components** (`tools/mcp/mcp_core/`):
    - `BaseMCPServer` - Base class for all MCP servers
    - `HTTPProxy` - HTTP proxy for remote MCP servers
    - Common utilities and helpers
 
-18. **Containerized CI/CD**:
+19. **Containerized CI/CD**:
    - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools
    - **Helper Scripts**: Centralized CI operations
    - **Individual MCP Containers**: Each server can run in its own optimized container
@@ -533,7 +546,7 @@ The repository includes comprehensive CI/CD workflows:
 
 3. **Client Pattern** (`tools/mcp/mcp_core/client.py`):
    - MCPClient class for interacting with MCP servers
-   - Supports all MCP server endpoints (ports 8006-8015)
+   - Supports all MCP server endpoints (ports 8006-8024)
    - Environment-based configuration
 
 ### Security Considerations

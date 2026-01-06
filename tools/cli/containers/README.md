@@ -39,10 +39,10 @@ This script:
 | Setup Time | ~1 minute | ~5 minutes |
 | Dependencies | Docker only | Docker + docker-compose |
 | Image Size | ~300MB | ~2GB |
-| MCP Tools | ❌ | ✅ |
-| Auto-build | ✅ | ✅ |
-| Interactive Mode | ✅ | ✅ |
-| Single Query Mode | ✅ | ✅ |
+| MCP Tools | No | Yes |
+| Auto-build | Yes | Yes |
+| Interactive Mode | Yes | Yes |
+| Single Query Mode | Yes | Yes |
 
 ## Environment Variables
 

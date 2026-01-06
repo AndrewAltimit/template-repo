@@ -6,13 +6,13 @@ The Virtual Character MCP can send animations and expressions to VRChat via OSC,
 
 ## Current Implementation Status
 
-✅ **Working:**
+**Working:**
 - OSC communication for animations, emotions, gestures
 - Audio metadata sending (text, duration)
 - Expression tag processing from ElevenLabs
 - Audio playback state triggers
 
-❌ **Not Working (Yet):**
+**Not Working (Yet):**
 - Actual audio playback through VRChat avatar
 
 ## Audio Routing Options
@@ -20,7 +20,7 @@ The Virtual Character MCP can send animations and expressions to VRChat via OSC,
 ### Option 1: Virtual Audio Cable (Recommended for Testing)
 Use a virtual audio cable to route audio from your system to VRChat:
 
-**📖 See [VOICEMEETER_SETUP.md](./VOICEMEETER_SETUP.md) for comprehensive configuration instructions**
+**See [VOICEMEETER_SETUP.md](./VOICEMEETER_SETUP.md) for comprehensive configuration instructions**
 
 Quick Overview:
 1. **Install VoiceMeeter Banana** (recommended over basic VoiceMeeter)

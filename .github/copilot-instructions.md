@@ -126,29 +126,29 @@ This is NOT a bug or oversight - it's a deliberate architectural decision based 
 
 ### Good Patterns
 ```bash
-# ✅ Correct user ID handling
+# Correct user ID handling
 export USER_ID=$(id -u)
 export GROUP_ID=$(id -g)
 
-# ✅ Using helper scripts
+# Using helper scripts
 ./automation/ci-cd/run-ci.sh format
 
-# ✅ Container with user permissions
+# Container with user permissions
 docker-compose run --rm --user "${USER_ID}:${GROUP_ID}" python-ci command
 ```
 
 ### Bad Patterns
 ```bash
-# ❌ Wrong variable names
+# BAD: Wrong variable names
 export UID=$(id -u)  # UID is readonly in some shells
 
-# ❌ Running as root
+# BAD: Running as root
 docker run --rm python-ci command  # No user specified
 
-# ❌ Overly permissive
+# BAD: Overly permissive
 chmod 777 output/  # Never use 777
 
-# ❌ Direct tool invocation
+# BAD: Direct tool invocation
 black .  # Should use containerized version
 ```
 

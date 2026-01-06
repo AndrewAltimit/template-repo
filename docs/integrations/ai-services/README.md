@@ -2,7 +2,7 @@
 
 Integration documentation for AI platforms and code generation services.
 
-## 📚 Available Integrations
+## Available Integrations
 
 ### [Gemini Setup](./gemini-setup.md)
 Google's Gemini AI for automated code reviews
@@ -31,7 +31,7 @@ Configuration for OpenRouter API access
 - Rate limiting
 - Cost optimization
 
-## 🚀 Quick Setup
+## Quick Setup
 
 1. **Get API Keys**
    ```bash
@@ -55,7 +55,7 @@ Configuration for OpenRouter API access
    - OpenCode and Crush are configured in `.mcp.json`
    - Auto-started by Claude Code via STDIO
 
-## 🔑 Required Environment Variables
+## Required Environment Variables
 
 | Service | Variable | Purpose |
 |---------|----------|---------|
@@ -63,7 +63,7 @@ Configuration for OpenRouter API access
 | Gemini | `GEMINI_API_KEY` | API authentication |
 | Gemini | `GITHUB_TOKEN` | GitHub access |
 
-## 📖 Related Documentation
+## Related Documentation
 
 - [Integrations Overview](../README.md)
 - [MCP Servers](../../mcp/servers.md)

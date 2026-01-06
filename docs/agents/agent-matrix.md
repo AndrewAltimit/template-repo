@@ -6,11 +6,11 @@ This document clarifies which AI agents are available in different execution env
 
 | Agent | Host Machine | Container | Authentication Method |
 |-------|--------------|-----------|---------------------|
-| Claude | ✅ | ❌ | Subscription via ~/.claude.json |
-| Gemini | ✅ | ❌ | Web login (free) or API key (paid) |
-| OpenCode | ✅ | ✅ | OpenRouter API key |
-| Crush | ✅ | ✅ | OpenRouter API key |
-| Codex | ✅ | ✅ | ChatGPT Plus Subscription or API Key |
+| Claude | Yes | No | Subscription via ~/.claude.json |
+| Gemini | Yes | No | Web login (free) or API key (paid) |
+| OpenCode | Yes | Yes | OpenRouter API key |
+| Crush | Yes | Yes | OpenRouter API key |
+| Codex | Yes | Yes | ChatGPT Plus Subscription or API Key |
 
 ## Execution Environments
 

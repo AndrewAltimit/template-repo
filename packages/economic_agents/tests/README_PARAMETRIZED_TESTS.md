@@ -237,7 +237,7 @@ If services aren't available, API tests will be automatically skipped.
 Tests should work identically in both modes:
 
 ```python
-# ✅ Good: Mode-agnostic
+# Good: Mode-agnostic
 def test_balance_tracking(all_backends):
     wallet, compute, marketplace, investor = all_backends
     agent = AutonomousAgent(wallet, compute, marketplace, config={})
@@ -247,7 +247,7 @@ def test_balance_tracking(all_backends):
 
     assert agent.state.balance != initial  # Works in both modes
 
-# ❌ Bad: Assumes mock internals
+# Bad: Assumes mock internals
 def test_balance_tracking(all_backends):
     wallet, compute, marketplace, investor = all_backends
 
@@ -312,10 +312,10 @@ curl http://localhost:8001/health
 
 **Solution**: Make sure you're using fixtures, not importing directly:
 ```python
-# ❌ Don't import
+# Don't import
 from economic_agents.api.config import BackendConfig
 
-# ✅ Use fixture
+# Use fixture
 def test_something(backend_config):
     # backend_config is provided by fixture
     pass

@@ -130,7 +130,7 @@ Access via: **Menu → System Settings / Options**
 Preferred Settings:
 - Main Sample Rate: 48000 Hz (matches VRChat)
 - ASIO Input: Not required
-- WDM Input Exclusive: ❌ No
+- WDM Input Exclusive: No
 - Buffering WDM: 512 samples
 - Buffering ASIO: 512 samples
 ```

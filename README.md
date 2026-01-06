@@ -273,7 +273,6 @@ See `.env.example` for all available options.
 - `.mcp.json` - MCP server configuration for Claude Code
 - `docker-compose.yml` - Container services configuration
 - `CLAUDE.md` - Project-specific Claude Code instructions (root directory)
-- `CRUSH.md` - Crush AI assistant instructions (root directory)
 - `AGENTS.md` - Universal AI agent configuration and guidelines (root directory)
 - `docs/agents/project-context.md` - Context for AI reviewers
 
@@ -316,7 +315,6 @@ All workflows run on self-hosted runners for zero-cost operation.
 ### Core Documentation
 - [AGENTS.md](AGENTS.md) - Universal AI agent configuration and guidelines
 - [CLAUDE.md](CLAUDE.md) - Claude-specific instructions and commands
-- [CRUSH.md](CRUSH.md) - Crush AI assistant instructions
 - [MCP Architecture](docs/mcp/README.md) - Modular server design
 - [AI Agents Documentation](docs/agents/README.md) - AI agents overview
 

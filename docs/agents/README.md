@@ -39,7 +39,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 
 **Key Features**:
 - Conversation history automatically cleared via MCP tool before each review
-- Receives PROJECT_CONTEXT.md for targeted feedback
+- Receives `docs/agents/project-context.md` for targeted feedback
 - Non-blocking (PR can proceed if review fails)
 - Focuses on project-specific concerns
 - Reviews containerization, security, and code quality
@@ -188,7 +188,7 @@ See the [sleeper agents Package](../../packages/sleeper_agents/README.md) for de
 ```bash
 # 1. User creates issue: "Add dark mode support"
 # 2. Issue Monitor requests more details
-# 3. User provides details ✨
+# 3. User provides details
 # 4. Issue Monitor creates PR automatically
 
 # 5. Gemini reviews PR:
@@ -201,8 +201,8 @@ See the [sleeper agents Package](../../packages/sleeper_agents/README.md) for de
 # - Commits: "Address PR review feedback"
 
 # 7. PR Review Monitor comments:
-# "✅ Addressed 2 critical issues
-#  ✅ Fixed 3 inline code comments
+# "Addressed 2 critical issues
+#  Fixed 3 inline code comments
 #  All tests passing."
 ```
 
@@ -279,7 +279,7 @@ pr-monitor
 - Ask to follow container-first approach
 
 ### For Gemini Reviews
-- Keep PROJECT_CONTEXT.md updated
+- Keep `docs/agents/project-context.md` updated
 - Clear history before reviews
 - Focus feedback on security and standards
 - Don't block PR on review failures

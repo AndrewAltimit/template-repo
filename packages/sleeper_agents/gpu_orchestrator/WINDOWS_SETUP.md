@@ -323,4 +323,4 @@ docker container prune -f
 
 ---
 
-**Windows setup complete!** The API should now be running and accessible from your network. 🚀
+**Windows setup complete!** The API should now be running and accessible from your network.

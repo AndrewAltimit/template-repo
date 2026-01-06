@@ -14,12 +14,12 @@ This guide documents the complete workflow for training LoRA models with AI Tool
 
 **Issue**: Dataset path must be absolute, not relative.
 
-❌ **Wrong**:
+**Wrong**:
 ```json
 "dataset_path": "pixel_cat_dataset"
 ```
 
-✅ **Correct**:
+**Correct**:
 ```json
 "dataset_path": "/ai-toolkit/datasets/pixel_cat_dataset"
 ```
@@ -89,7 +89,7 @@ The documentation and actual implementation had differences:
     "tool": "upload-lora-chunked-start",
     "arguments": {
         "filename": "model.safetensors",
-        "total_chunks": 450  // ❌ Wrong parameter
+        "total_chunks": 450  // Wrong parameter
     }
 }
 ```
@@ -99,9 +99,9 @@ The documentation and actual implementation had differences:
 {
     "tool": "upload-lora-chunked-start",
     "arguments": {
-        "upload_id": "uuid-here",      // ✅ Must provide this
+        "upload_id": "uuid-here",      // Must provide this
         "filename": "model.safetensors",
-        "total_size": 117861152,       // ✅ Size in bytes, not chunks
+        "total_size": 117861152,       // Size in bytes, not chunks
         "metadata": {}
     }
 }
@@ -113,7 +113,7 @@ The documentation and actual implementation had differences:
     "tool": "upload-lora-chunked-append",
     "arguments": {
         "upload_id": "same-uuid",
-        "chunk": "base64-data",        // ✅ "chunk" not "chunk_data"
+        "chunk": "base64-data",        // "chunk" not "chunk_data"
         "chunk_index": 0
     }
 }
@@ -149,7 +149,7 @@ curl -X POST http://192.168.0.152:8189/mcp/tool \
 
 FLUX workflows are NOT the same as Stable Diffusion workflows!
 
-**❌ Wrong (SD-style)**:
+**Wrong (SD-style)**:
 ```json
 {
     "class_type": "KSampler",
@@ -163,7 +163,7 @@ FLUX workflows are NOT the same as Stable Diffusion workflows!
 }
 ```
 
-**✅ Correct (FLUX-style)**:
+**Correct (FLUX-style)**:
 ```json
 {
     "class_type": "FluxGuidance",

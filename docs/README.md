@@ -2,7 +2,7 @@
 
 Welcome to the project documentation. This folder contains comprehensive documentation organized by category.
 
-## 📁 Documentation Structure
+## Documentation Structure
 
 ### [Infrastructure](./infrastructure/)
 DevOps, CI/CD, and self-hosted infrastructure setup
@@ -54,11 +54,9 @@ Developer tools and configuration
 3. **Working with MCP servers?** Check [MCP Architecture](./mcp/README.md)
 4. **Integrating services?** Browse [Integrations](./integrations/)
 
-## 📖 Additional Resources
+## Additional Resources
 
 - [Main README](../README.md) - Project overview
 - [AGENTS.md](../AGENTS.md) - Universal AI agent configuration
 - [CLAUDE.md](../CLAUDE.md) - Claude Code instructions
-- [GEMINI.md](../GEMINI.md) - Gemini project context
-- [CRUSH.md](../CRUSH.md) - Crush agent configuration
 - [SECURITY.md](../SECURITY.md) - Security policies

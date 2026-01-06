@@ -40,9 +40,9 @@ Stage 6: Processing → Execute only if ALL pass
 
 2. **Environment Isolation**
    ```
-   Production:  ❌ NEVER allow AI agent access
-   Staging:     ❌ NEVER allow AI agent access
-   Development: ✅ LIMITED access with all security layers
+   Production:  NEVER allow AI agent access
+   Staging:     NEVER allow AI agent access
+   Development: LIMITED access with all security layers
    ```
 
 3. **Commit-Level Security**
@@ -287,14 +287,14 @@ Track and report:
 
 Before approving ANY code:
 ```
-✓ Command injection impossible
-✓ SHA validation enforced
-✓ Secrets never exposed
-✓ Containers properly isolated
-✓ Rate limits functioning
-✓ Kill switch operational
-✓ Audit trail complete
-✓ No privilege escalation
+[x] Command injection impossible
+[x] SHA validation enforced
+[x] Secrets never exposed
+[x] Containers properly isolated
+[x] Rate limits functioning
+[x] Kill switch operational
+[x] Audit trail complete
+[x] No privilege escalation
 ```
 
 Remember: This project implements defense-in-depth with deterministic security. Every layer must function perfectly. A single vulnerability could compromise the entire AI agent ecosystem.

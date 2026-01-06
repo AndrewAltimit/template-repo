@@ -10,7 +10,7 @@ This repository includes automatic AI-powered code review for pull requests usin
 - Posts review comments directly to the PR
 - Non-blocking - won't fail your PR if the CLI is unavailable
 - Uses official Gemini CLI with automatic authentication
-- Receives project-specific context from PROJECT_CONTEXT.md
+- Receives project-specific context from `docs/agents/project-context.md`
 
 ## Setup Instructions
 
@@ -50,7 +50,7 @@ The workflow will attempt to install Gemini CLI automatically if Node.js is avai
    # Edit .env and add: GOOGLE_API_KEY=your_api_key_here
    ```
 
-   **✅ FREE TIER AVAILABLE**
+   **FREE TIER AVAILABLE**
 
    Google AI Studio API keys include a **generous free tier** with:
    - Access to latest models (including Gemini 3.0 Pro Preview)
@@ -61,11 +61,11 @@ The workflow will attempt to install Gemini CLI automatically if Node.js is avai
    **Why API Key instead of OAuth?**
 
    We switched from OAuth to API keys because:
-   - ✅ Works reliably in CI/CD (no browser-based auth)
-   - ✅ No timeouts from PTY/terminal requirements
-   - ✅ Explicit model selection (no 404 errors)
-   - ✅ Still free tier with same generous limits
-   - ✅ Better retry logic for rate limiting
+   - Works reliably in CI/CD (no browser-based auth)
+   - No timeouts from PTY/terminal requirements
+   - Explicit model selection (no 404 errors)
+   - Still free tier with same generous limits
+   - Better retry logic for rate limiting
 
 That's it! The next time you open a pull request, Gemini will automatically review your code using the latest models.
 
@@ -73,7 +73,7 @@ That's it! The next time you open a pull request, Gemini will automatically revi
 
 1. When a PR is opened or updated, the Gemini review job runs
 2. **Conversation history is automatically cleared** using the `clear_gemini_history` MCP tool to ensure fresh, unbiased review
-3. **Project context is loaded** from PROJECT_CONTEXT.md
+3. **Project context is loaded** from `docs/agents/project-context.md`
 4. It analyzes:
    - Project-specific context and philosophy
    - Changed files
@@ -97,7 +97,7 @@ Clearing conversation history before each review ensures:
 
 ## Project Context
 
-Gemini receives detailed project context from `PROJECT_CONTEXT.md`, which includes:
+Gemini receives detailed project context from `docs/agents/project-context.md`, which includes:
 
 - Container-first philosophy
 - Single-maintainer design

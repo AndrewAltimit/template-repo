@@ -59,7 +59,7 @@ export DASHBOARD_ADMIN_PASSWORD="your_secure_password"
 ./bin/dashboard mock
 ```
 
-**⚠️ Important:** Never use default or weak passwords in production environments. Always set strong, unique credentials before deploying.
+**Important:** Never use default or weak passwords in production environments. Always set strong, unique credentials before deploying.
 
 ### Step 3: Explore Key Features
 
@@ -115,7 +115,7 @@ docker run -d \
     sleeper-dashboard:latest
 
 # Access at http://localhost:8501
-# ⚠️ IMPORTANT: Replace YOUR_STRONG_PASSWORD_HERE with a strong, unique password!
+# IMPORTANT: Replace YOUR_STRONG_PASSWORD_HERE with a strong, unique password!
 ```
 
 ### Run Evaluation in Docker

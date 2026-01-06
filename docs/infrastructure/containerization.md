@@ -234,16 +234,16 @@ docker image prune -f
 
 ## What's Containerized vs What's Not
 
-### Containerized ✅
+### Containerized
 
 - **All Python tools**: Black, isort, flake8, pylint, mypy, pytest
 - **MCP server**: Runs in its own container with all dependencies
 - **CI/CD operations**: All pipeline steps use containers
 - **Development tools**: Any tool that doesn't need Docker access
 
-### Not Containerized ❌
+### Not Containerized
 
-- **Gemini CLI**: Needs to potentially invoke Docker (would require Docker-in-Docker)
+- **Claude CLI**: Requires host subscription authentication (machine-specific)
 - **Docker Compose**: Obviously needs to run on the host
 - **GitHub Actions runner**: Needs system-level access
 - **Git operations**: Need access to host git configuration

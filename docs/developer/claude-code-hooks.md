@@ -99,7 +99,7 @@ gh --version
 
 ### Test emoji blocking
 ```bash
-gh pr comment 1 --body "Test with emoji 🎉"
+gh pr comment 1 --body "Test with emoji (celebration)"
 # Should be blocked with error about Unicode emoji
 ```
 

@@ -140,15 +140,15 @@ Claude Code includes a post-tool-use hook that automatically:
 
 Example output after `git push`:
 ```
-🔄 **PR FEEDBACK MONITORING REMINDER**
+**PR FEEDBACK MONITORING REMINDER**
 
 You just pushed commits to PR #48 on branch 'feature-branch'.
 Consider monitoring for feedback on your changes:
 
-  📍 Monitor from this commit onwards:
+  Monitor from this commit onwards:
      python automation/monitoring/pr/pr_monitor_agent.py 48 --since-commit abc1234
 
-  🔄 Or monitor all new comments:
+  Or monitor all new comments:
      python automation/monitoring/pr/pr_monitor_agent.py 48
 ```
 

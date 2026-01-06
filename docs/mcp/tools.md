@@ -262,7 +262,7 @@ Toggle automatic consultation on uncertainty detection.
 
 #### consult_opencode
 
-AI-powered code generation using Qwen 2.5 Coder.
+AI-powered code generation via OpenRouter.
 
 **Parameters:**
 - `query` (string, required): The coding question or task

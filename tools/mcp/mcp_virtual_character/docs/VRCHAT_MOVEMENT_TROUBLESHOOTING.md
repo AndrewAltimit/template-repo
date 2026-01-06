@@ -1,18 +1,18 @@
 # VRChat Movement Troubleshooting Guide
 
-## Current Status - RESOLVED! ✅
+## Current Status - RESOLVED
 
 Movement now works! The issue was that emotes on this avatar are **toggle-based** and some emotes (like backflip) lock movement. The solution was to:
 1. Clear any active emote before attempting movement
 2. Implement proper toggle behavior for emotes
 
 ## Verified Working
-- ✅ Gesture/Emote system (VRCEmote integer values with toggle behavior)
-- ✅ OSC connection established (port 9000)
-- ✅ MCP server receiving commands
-- ✅ OSC messages being sent
-- ✅ Movement commands (forward, backward, strafe)
-- ✅ Automatic emote clearing for movement
+- Gesture/Emote system (VRCEmote integer values with toggle behavior)
+- OSC connection established (port 9000)
+- MCP server receiving commands
+- OSC messages being sent
+- Movement commands (forward, backward, strafe)
+- Automatic emote clearing for movement
 
 ## Important: Toggle-Based Emote Behavior (CORRECTED)
 

@@ -42,13 +42,13 @@ The template provides two MCP configuration files to optimize performance:
 
 ### What Can Be Customized?
 
-✅ **Enable/Disable Any Component:**
+**Enable/Disable Any Component:**
 - MCP servers (code quality, content creation, etc.)
 - AI agents (Claude, Gemini, OpenCode, etc.)
 - CI/CD workflows
 - Remote services (Gaea2, ComfyUI, AI Toolkit)
 
-✅ **Replace With Your Own:**
+**Replace With Your Own:**
 - API keys and authentication
 - Remote server addresses
 - Docker configurations
@@ -104,7 +104,7 @@ The template provides two MCP configuration files to optimize performance:
    ```bash
    git clone https://github.com/AndrewAltimit/template-repo your-project-name
    cd your-project-name
-   # ⚠️ CAUTION: This command deletes the existing Git history.
+   # CAUTION: This command deletes the existing Git history.
    rm -rf .git  # Detach from the template's history to start your own project
    git init     # Start fresh with your own Git history
    ```
@@ -531,6 +531,6 @@ After customizing your template:
 
 ---
 
-**🎉 Congratulations!** You've successfully customized the template for your needs. The modular architecture means you can always add or remove components later as your project evolves.
+**Congratulations!** You've successfully customized the template for your needs. The modular architecture means you can always add or remove components later as your project evolves.
 
 **Remember:** Start simple and add complexity only when needed. You can always enable more features later!

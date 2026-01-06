@@ -2,7 +2,7 @@
 
 ## GitHub Token Management
 
-### ⚠️ IMPORTANT: Never Commit Secrets!
+### IMPORTANT: Never Commit Secrets!
 
 Secrets should be managed through GitHub Environments, not files in the repository.
 
@@ -156,7 +156,7 @@ which gh
 # Should show: ~/.local/bin/gh
 
 # Test emoji blocking
-gh pr comment 1 --body "Test with emoji 🎉"
+gh pr comment 1 --body "Test with emoji (celebration)"
 # Should be blocked with error about Unicode emoji
 
 # Test secret masking
@@ -175,10 +175,10 @@ To verify your security setup:
 which gh  # Should show ~/.local/bin/gh
 
 # Check that .secrets.yaml exists
-test -f .secrets.yaml && echo "✓ Secrets config exists"
+test -f .secrets.yaml && echo "Secrets config exists"
 
 # Verify no secrets in git history
-git log -p | grep -E "(ghp_|github_pat_)" || echo "✓ No tokens found"
+git log -p | grep -E "(ghp_|github_pat_)" || echo "No tokens found"
 ```
 
 ## Common Issues
@@ -208,11 +208,11 @@ logger = get_secure_logger(__name__)
 
 ## Never Do This!
 
-❌ **NEVER** hardcode tokens in code
-❌ **NEVER** commit tokens to the repository
-❌ **NEVER** log tokens without redaction
-❌ **NEVER** use tokens in command line arguments (they appear in process lists)
-❌ **NEVER** share tokens between environments (use separate environments)
-❌ **NEVER** disable environment protection rules for production
-❌ **NEVER** disable automatic secret masking in `.secrets.yaml`
-❌ **NEVER** bypass PreToolUse hooks when posting GitHub comments
+**NEVER** hardcode tokens in code
+**NEVER** commit tokens to the repository
+**NEVER** log tokens without redaction
+**NEVER** use tokens in command line arguments (they appear in process lists)
+**NEVER** share tokens between environments (use separate environments)
+**NEVER** disable environment protection rules for production
+**NEVER** disable automatic secret masking in `.secrets.yaml`
+**NEVER** bypass PreToolUse hooks when posting GitHub comments

@@ -38,13 +38,13 @@ MCP servers support two transport modes that serve fundamentally different purpo
 
 ## Common Confusion Points
 
-### ❌ WRONG: Starting HTTP server for Claude
+### WRONG: Starting HTTP server for Claude
 ```bash
 # This starts HTTP mode - Claude CANNOT use this!
 docker-compose up mcp-content-creation
 ```
 
-### ✅ RIGHT: Claude uses STDIO automatically
+### RIGHT: Claude uses STDIO automatically
 ```python
 # Claude reads .mcp.json and starts STDIO server automatically
 # Just use the tool directly:

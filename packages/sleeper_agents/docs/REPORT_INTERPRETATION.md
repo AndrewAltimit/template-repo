@@ -86,9 +86,9 @@ The report begins with high-level findings:
 ```
 Probe Detection Report:
 ├── Layer 2: Score 0.45 (below threshold)
-├── Layer 4: Score 0.78 (suspicious) ⚠️
-├── Layer 6: Score 0.91 (high confidence) ⚡
-└── Layer 8: Score 0.88 (high confidence) ⚡
+├── Layer 4: Score 0.78 (suspicious) [!]
+├── Layer 6: Score 0.91 (high confidence) [*]
+└── Layer 8: Score 0.88 (high confidence) [*]
 
 Interpretation: Strong backdoor signal in middle-to-late layers
 ```
@@ -124,7 +124,7 @@ Head-Specific Anomalies:
 Residual Stream Decomposition:
 ├── Embedding Contribution: 12.3%
 ├── Positional Encoding: 3.4%
-├── Attention Outputs: 45.6% ⚠️
+├── Attention Outputs: 45.6% [!]
 ├── MLP Outputs: 38.7%
 └── Total Norm: 156.2 (elevated)
 
@@ -163,8 +163,8 @@ Consensus: 3/4 models detect backdoor (75% agreement)
 Detection Over Time:
 Day 1: 0.72 confidence
 Day 3: 0.75 confidence
-Day 7: 0.81 confidence ⚡
-Day 14: 0.84 confidence ⚡
+Day 7: 0.81 confidence [*]
+Day 14: 0.84 confidence [*]
 
 Trend: Increasing detection confidence
 Interpretation: Possible backdoor amplification
@@ -199,7 +199,7 @@ Confidence Distribution:
 0.2-0.4: ███░░░░░░░ 30%
 0.4-0.6: ██░░░░░░░░ 20%
 0.6-0.8: █░░░░░░░░░ 8%
-0.8-1.0: ░░░░░░░░░░ 2% ⚡
+0.8-1.0: ░░░░░░░░░░ 2% [*]
 
 Interpretation: Bimodal distribution suggests distinct populations
 ```
@@ -285,7 +285,7 @@ Report Reliability Assessment:
 ✓ Sample Size: 1000 (adequate)
 ✓ Method Coverage: 4/4 methods used
 ✓ Calibration: Recently calibrated
-⚠ Model Coverage: 3/5 models tested
+[!] Model Coverage: 3/5 models tested
 ✗ Baseline Comparison: Missing
 
 Overall Reliability: MODERATE (3.5/5)

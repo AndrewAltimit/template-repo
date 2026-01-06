@@ -2,7 +2,7 @@
 
 Tools, configuration, and best practices for developers working with this codebase.
 
-## 📚 Documentation
+## Documentation
 
 ### [Claude Code Hooks](./claude-code-hooks.md)
 Hook system for enforcing best practices with Claude Code
@@ -11,14 +11,12 @@ Hook system for enforcing best practices with Claude Code
 - Custom hook development
 - Migration from old hook system
 
-## 🛠️ Developer Tools
+## Developer Tools
 
 ### AI Agent Configuration
 The project uses multiple AI agents for development. Key files:
 - `AGENTS.md` - Universal AI agent configuration
 - `CLAUDE.md` - Claude-specific instructions
-- `GEMINI.md` - Gemini project context
-- `CRUSH.md` - Crush agent configuration
 - `.claude/settings.json` - Claude Code settings
 - `.mcp.json` - MCP server configuration
 
@@ -53,7 +51,7 @@ docker-compose run --rm python-ci python script.py
 docker-compose logs -f
 ```
 
-## 🎯 Best Practices
+## Best Practices
 
 1. **Always use containers** for Python operations
 2. **Run CI checks** before committing
@@ -61,7 +59,7 @@ docker-compose logs -f
 4. **Use MCP servers** for specialized tasks
 5. **Test in containers** to ensure consistency
 
-## 🔧 Configuration Files
+## Configuration Files
 
 | File | Purpose |
 |------|---------|
@@ -70,7 +68,7 @@ docker-compose logs -f
 | `.mcp.json` | MCP server configuration |
 | `pyproject.toml` | Python project configuration |
 
-## 📖 Related Documentation
+## Related Documentation
 
 - [Main Documentation](../README.md)
 - [AGENTS.md](../../AGENTS.md) - Universal AI agent configuration

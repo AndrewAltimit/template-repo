@@ -1509,9 +1509,9 @@ Track progress directly in this document. Items marked **CRITICAL** must be veri
 - [x] Create `mcp_agentcore_memory` package structure under `tools/mcp/`
 - [x] Implement `AgentCoreMemoryClient` with `aiobotocore` (NOT boto3)
 - [x] **CRITICAL:** Verify `CreateEvent` payload shape against [API docs](https://docs.aws.amazon.com/bedrock-agentcore/latest/APIReference/API_CreateEvent.html)
-  - `branch` must be `{"name": "..."}` (struct), not string ✅
-  - `payload` must be `[{"conversational": {...}}]` (list of unions) ✅
-  - `eventTimestamp` must be datetime object ✅
+  - `branch` must be `{"name": "..."}` (struct), not string - VERIFIED
+  - `payload` must be `[{"conversational": {...}}]` (list of unions) - VERIFIED
+  - `eventTimestamp` must be datetime object - VERIFIED
 - [x] Implement MCP server tools: `store_event`, `store_facts`, `search_memories`
 - [x] **CRITICAL:** Implement `PerSessionRateLimiter` keyed by `(actor_id, session_id)` (with thundering herd fix)
 - [x] Write unit tests with mocked `_get_data_plane_client` (AsyncMock) - 68 tests passing

@@ -79,8 +79,8 @@ The parser supports both positional and keyword arguments:
 Example system prompt addition:
 ```
 When calling tools, ALWAYS use keyword arguments for clarity and reliability:
-✅ GOOD: Write(file_path="config.json", content="{...}")
-❌ AVOID: Write("config.json", "{...}")
+GOOD: Write(file_path="config.json", content="{...}")
+AVOID: Write("config.json", "{...}")
 ```
 
 Using keyword arguments ensures tool calls work correctly regardless of parameter order, making the system more maintainable and less prone to errors.

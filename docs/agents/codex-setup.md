@@ -8,7 +8,7 @@ Codex is OpenAI's AI system that translates natural language to code. It powers 
 
 ## Important: Sandbox Configuration
 
-⚠️ **Security Notice**: Codex can execute arbitrary code. The MCP integration defaults to **safe sandboxed mode** to protect your system.
+**Security Notice**: Codex can execute arbitrary code. The MCP integration defaults to **safe sandboxed mode** to protect your system.
 
 ### Default Safe Mode (Recommended)
 By default, the Codex MCP server runs with:
@@ -25,7 +25,7 @@ If you're running in an **already-sandboxed environment** (VM, container, or iso
 export CODEX_BYPASS_SANDBOX=true
 
 # This enables --dangerously-bypass-approvals-and-sandbox
-# ⚠️ ONLY use this in sandboxed VMs or containers!
+# ONLY use this in sandboxed VMs or containers!
 ```
 
 **When to use bypass mode:**

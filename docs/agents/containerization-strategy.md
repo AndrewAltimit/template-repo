@@ -60,11 +60,11 @@ When GitHub Actions workflows trigger the issue or PR monitors:
 ### Practical Impact
 
 For automated GitHub workflows:
-- ✅ `[Approved][Claude]` - Works
-- ✅ `[Approved][Gemini]` - Works
-- ❌ `[Approved][Codex]` - Requires manual intervention
-- ❌ `[Approved][OpenCode]` - Requires manual intervention
-- ❌ `[Approved][Crush]` - Requires manual intervention
+- `[Approved][Claude]` - Works
+- `[Approved][Gemini]` - Works
+- `[Approved][Codex]` - Requires manual intervention
+- `[Approved][OpenCode]` - Requires manual intervention
+- `[Approved][Crush]` - Requires manual intervention
 
 The system will post a helpful error message explaining the constraint and suggesting alternatives when container agents are requested in automated workflows.
 

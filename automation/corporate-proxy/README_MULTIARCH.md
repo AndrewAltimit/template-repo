@@ -151,9 +151,9 @@ For CI/CD pipelines, explicitly specify the target architecture:
 
 | Container | amd64 | arm64 | arm32 | Notes |
 |-----------|-------|-------|-------|-------|
-| Gemini CLI | ✅ | ✅ | ✅ | Node.js based, fully portable |
-| OpenCode | ✅ | ✅ | ⚠️ | Go compilation, arm32 untested |
-| Crush | ✅ | ✅ | ❌ | Pre-built binaries, arm32 not available |
+| Gemini CLI | Yes | Yes | Yes | Node.js based, fully portable |
+| OpenCode | Yes | Yes | Untested | Go compilation, arm32 untested |
+| Crush | Yes | Yes | No | Pre-built binaries, arm32 not available |
 
 ## Development Tips
 

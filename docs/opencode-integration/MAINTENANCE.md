@@ -37,7 +37,7 @@ The following files have tightly coupled path dependencies that must be updated 
 | Config | `automation/corporate-proxy/opencode/docker/Dockerfile` | `/home/bun/.config/opencode/.opencode.json` | Referenced by entrypoint script |
 | TUI Cache | `automation/corporate-proxy/opencode/docker/Dockerfile` | `/home/bun/.cache/opencode/tui/` | Directory structure for TUI binaries |
 
-**⚠️ WARNING**: If you change any path in the Dockerfile, update the corresponding patch files.
+**WARNING**: If you change any path in the Dockerfile, update the corresponding patch files.
 
 ## Security Considerations
 

@@ -23,24 +23,24 @@ When you run `git push`, the hook will:
 
 ```
 ============================================================
-🔄 PR FEEDBACK MONITORING REMINDER
+PR FEEDBACK MONITORING REMINDER
 ============================================================
 
 You're pushing commits to PR #54 on branch 'refine'.
 After push completes, consider monitoring for feedback:
 
-  📍 Monitor from this commit onwards:
+  Monitor from this commit onwards:
      python automation/monitoring/pr/pr_monitor_agent.py 54 --since-commit abc1234
 
-  🔄 Or monitor all new comments:
+  Or monitor all new comments:
      python automation/monitoring/pr/pr_monitor_agent.py 54
 
 This will watch for:
-  • Admin comments and commands
-  • Gemini AI code review feedback
-  • CI/CD validation results
+  - Admin comments and commands
+  - Gemini AI code review feedback
+  - CI/CD validation results
 
-💡 The monitor will return structured data when relevant comments are detected.
+The monitor will return structured data when relevant comments are detected.
 ============================================================
 ```
 

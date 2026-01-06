@@ -2,7 +2,7 @@
 
 > **Enterprise-grade proxy integrations that enable AI development tools to work seamlessly with corporate AI services behind firewalls or with custom authentication requirements.**
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Architecture](#architecture)
@@ -203,21 +203,21 @@ docker-compose run --rm -it gemini-proxy
 
 ### Gemini CLI
 - **Port**: 8053
-- **Status**: ✅ Full tool support
+- **Status**: Full tool support
 - **Features**: File operations, command execution, web search
 - **Config**: `gemini/config/gemini-config.json`
 - **Test**: `docker-compose run --rm gemini-proxy bash -c "./scripts/test-tools.sh"`
 
 ### Crush CLI
 - **Port**: 8051
-- **Status**: ✅ Catwalk validation bypass
+- **Status**: Catwalk validation bypass
 - **Features**: Fast code generation
 - **Config**: Environment variables
 - **Test**: `docker-compose run --rm crush-proxy bash -c "./scripts/test-patched.sh"`
 
 ### OpenCode CLI
 - **Port**: 8052
-- **Status**: ✅ API translation working
+- **Status**: API translation working
 - **Features**: Comprehensive code generation
 - **Config**: Environment variables
 - **Test**: `docker-compose run --rm opencode-proxy bash -c "./scripts/test-api-only.sh"`
@@ -616,13 +616,13 @@ newtool-proxy:
 
 When contributing to corporate proxy integrations:
 
-- ✅ Follow existing patterns and directory structure
-- ✅ Reuse shared components where possible
-- ✅ Include comprehensive test scripts
-- ✅ Document all environment variables
-- ✅ Test with both mock and corporate modes
-- ✅ Add security considerations
-- ✅ Update main documentation
+- Follow existing patterns and directory structure
+- Reuse shared components where possible
+- Include comprehensive test scripts
+- Document all environment variables
+- Test with both mock and corporate modes
+- Add security considerations
+- Update main documentation
 
 ## Support
 

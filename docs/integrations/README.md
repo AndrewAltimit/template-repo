@@ -2,7 +2,7 @@
 
 Documentation for external service integrations including AI services and creative tools.
 
-## 📁 Categories
+## Categories
 
 ### [AI Services](./ai-services/)
 Integration with AI platforms and services
@@ -35,21 +35,21 @@ Integration with creative and content generation tools
 1. Install Gemini CLI - [Gemini Setup](./ai-services/gemini-setup.md)
 2. Configure API keys and authentication
 
-## 🔑 API Keys Required
+## API Keys Required
 
 | Service | Environment Variable | Documentation |
 |---------|---------------------|---------------|
 | OpenRouter | `OPENROUTER_API_KEY` | [OpenRouter Setup](./ai-services/openrouter-setup.md) |
 | Gemini | `GEMINI_API_KEY` | [Gemini Setup](./ai-services/gemini-setup.md) |
 
-## 🌐 Remote Services
+## Remote Services
 
 Some integrations connect to remote services:
 - **AI Toolkit**: `192.168.0.152:8012`
 - **ComfyUI**: `192.168.0.152:8013`
 - **Gaea2**: `192.168.0.152:8007` (optional)
 
-## 📖 Related Documentation
+## Related Documentation
 
 - [Main Documentation](../README.md)
 - [MCP Servers](../mcp/servers.md)

@@ -74,11 +74,11 @@ asyncio.run(create_simple_mountain())
 ```
 
 **What happens automatically:**
-- ✅ Export node is added (required for Gaea2)
-- ✅ SatMap node is added for coloring
-- ✅ Erosion Duration reduced from 0.15 to 0.1 (performance optimization)
-- ✅ All connections are validated and created
-- ✅ File format is guaranteed to work in Gaea2
+- Export node is added (required for Gaea2)
+- SatMap node is added for coloring
+- Erosion Duration reduced from 0.15 to 0.1 (performance optimization)
+- All connections are validated and created
+- File format is guaranteed to work in Gaea2
 
 ### 2. Multi-Port Connections (Combine Nodes)
 

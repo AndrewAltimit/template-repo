@@ -58,7 +58,7 @@ docker-compose ps
 docker-compose logs -f
 ```
 
-## 📖 Related Documentation
+## Related Documentation
 
 - [Main Documentation](../README.md)
 - [AI Agents](../agents/)

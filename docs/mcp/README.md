@@ -40,7 +40,7 @@ AI integration for second opinions and code validation:
 - Auto-consultation on uncertainty detection
 - Integration status and statistics
 
-**⚠️ Important**: Must run on host system (not in container) due to Docker access requirements
+**Important**: Must run on host system (not in container) due to Docker access requirements
 
 #### 4. OpenCode MCP Server
 **Location**: `tools/mcp/opencode/`
@@ -52,18 +52,18 @@ AI-powered code generation using OpenRouter:
 - Code explanation and documentation
 - Conversation history management
 - Auto-consultation features
-- Uses Qwen 2.5 Coder model
+- Model-agnostic via OpenRouter
 
 #### 5. Crush MCP Server
 **Location**: `tools/mcp/crush/`
 **Transport**: STDIO (local) or HTTP (remote)
 **Documentation**: [Crush MCP Documentation](../../tools/mcp/mcp_crush/README.md)
 
-Fast code generation using OpenRouter:
-- Quick code generation and conversion
-- Optimized for speed with smaller models
+Code generation using OpenRouter:
+- Code generation and conversion
 - Conversation history management
 - Auto-consultation features
+- Model-agnostic via OpenRouter
 
 #### 6. Meme Generator MCP Server
 **Location**: `tools/mcp/meme_generator/`
@@ -142,6 +142,51 @@ AI agent embodiment in virtual worlds:
 - Bidirectional communication (animation out, video feed in)
 - Multi-agent coordination support
 - State synchronization and caching
+
+#### 11. Codex MCP Server
+**Location**: `tools/mcp/mcp_codex/`
+**Transport**: STDIO (local) or HTTP (Port 8021)
+**Documentation**: [Codex MCP Documentation](../../tools/mcp/mcp_codex/docs/README.md)
+
+AI-powered code assistance via OpenAI Codex:
+- Code generation, completion, and refactoring
+- Code explanation and documentation
+- Conversation history management
+- Requires ChatGPT Plus subscription for Codex CLI auth
+
+#### 12. GitHub Board MCP Server
+**Location**: `tools/mcp/mcp_github_board/`
+**Transport**: STDIO (local) or HTTP (Port 8022)
+**Documentation**: [GitHub Board MCP Documentation](../../tools/mcp/mcp_github_board/docs/README.md)
+
+Work queue management for multi-agent coordination:
+- Query ready work (unblocked, unclaimed issues)
+- Claim/release work with conflict prevention
+- Dependency graph management (blockers, parent-child)
+- GitHub Projects v2 integration
+
+#### 13. AgentCore Memory MCP Server
+**Location**: `tools/mcp/mcp_agentcore_memory/`
+**Transport**: STDIO (local) or HTTP (Port 8023)
+**Documentation**: [AgentCore Memory MCP Documentation](../../tools/mcp/mcp_agentcore_memory/docs/README.md)
+
+Multi-provider memory system for AI agents:
+- Short-term event storage (rate-limited for AgentCore)
+- Long-term fact storage
+- Semantic search across memories
+- Supports AWS Bedrock AgentCore or ChromaDB
+
+#### 14. Reaction Search MCP Server
+**Location**: `tools/mcp/mcp_reaction_search/`
+**Transport**: STDIO (local) or HTTP (Port 8024)
+**Documentation**: [Reaction Search MCP Documentation](../../tools/mcp/mcp_reaction_search/README.md)
+
+Semantic search for reaction images:
+- Natural language search for contextually appropriate reactions
+- Sentence-transformers for embedding-based similarity
+- Auto-fetches reaction config from GitHub repository
+- Tag-based filtering and browsing
+- Cache management with refresh capability
 
 ### Remote/Cross-Machine Servers (HTTP Transport)
 

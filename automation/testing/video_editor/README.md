@@ -4,11 +4,11 @@
 
 This directory contains comprehensive testing and validation tools for the Video Editor MCP Server. The test suite validates core video editing functionality including transcription, scene detection, composition, caption generation, and more.
 
-## Test Results Summary ✅
+## Test Results Summary
 
 All core video editing functionalities have been tested and validated:
 
-### ✅ Completed Tests
+### Completed Tests
 
 1. **Video Information Extraction** - Successfully extracts duration, resolution, FPS, and codec information
 2. **Audio Extraction** - Converts video audio to WAV format for processing
@@ -42,7 +42,7 @@ Core functionality testing script that validates:
 - Caption overlay rendering
 - Silence detection in audio tracks
 
-**Test Results: 12/12 tests passed** ✅
+**Test Results: 12/12 tests passed**
 - Including video composition with audio crossfade
 
 ### 3. `validate_outputs.py`
@@ -54,7 +54,7 @@ Advanced validation script that:
 - Verifies audio continuity
 - Checks frame extraction accuracy
 
-**Validation Results: 8/8 validations passed** ✅
+**Validation Results: 8/8 validations passed**
 - All tests pass including audio continuity verification
 
 ### 4. `video_editor_examples.py`
@@ -121,17 +121,17 @@ docker-compose -f docker-compose.yml -f docker-compose.cpu.yml up -d mcp-video-e
 
 ## Test Coverage
 
-### Validated Features ✅
-- ✅ Video duration and metadata extraction
-- ✅ Audio extraction and analysis
-- ✅ Frame extraction at specific timestamps
-- ✅ Scene change detection
-- ✅ Video composition with transitions
-- ✅ Clip extraction by time ranges
-- ✅ Caption/text overlay
-- ✅ Silence detection
-- ✅ Multi-video composition
-- ✅ Output format validation
+### Validated Features
+- Video duration and metadata extraction
+- Audio extraction and analysis
+- Frame extraction at specific timestamps
+- Scene change detection
+- Video composition with transitions
+- Clip extraction by time ranges
+- Caption/text overlay
+- Silence detection
+- Multi-video composition
+- Output format validation
 
 ### Features Requiring MCP Server
 These features require the full MCP server running:

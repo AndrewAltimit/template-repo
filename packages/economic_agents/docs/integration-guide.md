@@ -178,7 +178,7 @@ assert dashboard_state.resource_tracker is agent.resource_tracker
 assert dashboard_state.metrics_collector is agent.metrics_collector
 assert dashboard_state.alignment_monitor is agent.alignment_monitor
 
-print("✅ Dashboard integrated with monitoring components")
+print("Dashboard integrated with monitoring components")
 ```
 
 ### Accessing Dashboard State
@@ -345,12 +345,12 @@ if content['company_exists']:
 # Risk factors
 risks = content['risk_factors']
 for risk in risks:
-    print(f"⚠️  {risk}")
+    print(f"[WARNING] {risk}")
 
 # Recommendations
 recommendations = content['recommendations']
 for rec in recommendations:
-    print(f"✅ {rec}")
+    print(f"[OK] {rec}")
 ```
 
 ## Scenario Execution
@@ -522,7 +522,7 @@ event_agent = EventDrivenAgent(agent)
 
 # Register event handlers
 def on_company_formed(data):
-    print(f"🎉 Company formed: {data['company_name']}")
+    print(f"Company formed: {data['company_name']}")
     print(f"   Capital: ${data['capital_allocated']:.2f}")
 
 event_agent.on("company_formed", on_company_formed)
@@ -619,7 +619,7 @@ for i in range(100):
     if (i + 1) % 10 == 0:
         latest = agent.metrics_collector.performance_snapshots[-1]
         if latest.agent_balance < 50.0:
-            print(f"⚠️  Low balance: ${latest.agent_balance:.2f}")
+            print(f"[WARNING] Low balance: ${latest.agent_balance:.2f}")
 ```
 
 ### 3. Generate Reports at Key Milestones
@@ -664,7 +664,7 @@ if agent.state.has_company:
 
         # Alert on low alignment
         if latest.overall_alignment < 60.0:
-            print(f"⚠️  Low company alignment: {latest.overall_alignment}/100")
+            print(f"[WARNING] Low company alignment: {latest.overall_alignment}/100")
             print(f"Risk factors: {latest.risk_factors}")
 
             # Generate governance report
@@ -679,7 +679,7 @@ if agent.state.has_company:
 ```python
 # Check compute status
 if agent.state.compute_hours_remaining < 5.0:
-    print(f"⚠️  Low compute: {agent.state.compute_hours_remaining:.1f}h remaining")
+    print(f"[WARNING] Low compute: {agent.state.compute_hours_remaining:.1f}h remaining")
 
     # Option 1: Increase survival buffer
     agent.config["survival_buffer_hours"] = 20.0
@@ -705,7 +705,7 @@ if agent.state.balance < agent.config['company_threshold']:
 ```python
 # Verify dashboard connection
 if agent.dashboard_state is None:
-    print("❌ Dashboard not connected!")
+    print("[ERROR] Dashboard not connected!")
     # Fix: Recreate agent with dashboard
     dashboard_state = DashboardState()
     agent.dashboard_state = dashboard_state

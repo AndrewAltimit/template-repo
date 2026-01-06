@@ -1637,16 +1637,16 @@ WMD concerns affect public health systems:
 
 | Priority | Action | Type | Implementation Mechanism | Key Challenge |
 |----------|--------|------|-------------------------|---------------|
-| Critical | **Mandate universal DNA synthesis screening** | 🏠 Unilateral / 🌐 Coordination | Extend IGSC guidelines to law; require provider registration | Coverage gaps, cross-border substitution |
-| Critical | **International AI safety standards for WMD capabilities** | 🌐 Coordination | Treaty negotiation, export control coordination | Geopolitical competition, verification |
-| Critical | **Invest in attribution capabilities** | 🏠 Unilateral | HUMINT/SIGINT funding, forensic lab capacity | Long timelines |
-| High | **Cloud laboratory oversight** | 🏠 Unilateral / 🌐 Coordination | Audit requirements, protocol classification, customer KYC | Privacy concerns, research friction |
-| High | **Update treaty frameworks** | 🌐 Coordination | BWC verification protocol, CWC schedule updates | Consensus challenges |
-| High | **Defensive biodetection research** | 🏠 Unilateral | BARDA/DARPA funding, academic partnerships | Technology maturation |
-| Medium | **Red team evaluation requirements** | 🏠 Unilateral | Pre-deployment safety standards, independent assessment | Defining thresholds |
-| Medium | **International attribution sharing** | 🌐 Coordination | Mutual legal assistance treaties, joint investigation | Sovereignty concerns |
+| Critical | **Mandate universal DNA synthesis screening** | Unilateral / Coordination | Extend IGSC guidelines to law; require provider registration | Coverage gaps, cross-border substitution |
+| Critical | **International AI safety standards for WMD capabilities** | Coordination | Treaty negotiation, export control coordination | Geopolitical competition, verification |
+| Critical | **Invest in attribution capabilities** | Unilateral | HUMINT/SIGINT funding, forensic lab capacity | Long timelines |
+| High | **Cloud laboratory oversight** | Unilateral / Coordination | Audit requirements, protocol classification, customer KYC | Privacy concerns, research friction |
+| High | **Update treaty frameworks** | Coordination | BWC verification protocol, CWC schedule updates | Consensus challenges |
+| High | **Defensive biodetection research** | Unilateral | BARDA/DARPA funding, academic partnerships | Technology maturation |
+| Medium | **Red team evaluation requirements** | Unilateral | Pre-deployment safety standards, independent assessment | Defining thresholds |
+| Medium | **International attribution sharing** | Coordination | Mutual legal assistance treaties, joint investigation | Sovereignty concerns |
 
-**Legend**: 🏠 = Domestically implementable without international agreement | 🌐 = Requires international coordination
+**Legend**: Unilateral = Domestically implementable without international agreement | Coordination = Requires international coordination
 
 **Key insight for policymakers**: The window for establishing governance frameworks is narrow. Once capabilities proliferate, restrictions become much harder to implement.
 
