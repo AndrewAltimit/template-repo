@@ -252,39 +252,39 @@ python scripts/package_experiment.py i_hate_you_gpt2_20251004_111710 --no-models
 
 ### DO
 
-✅ **Package experiments before transferring**
+**Package experiments before transferring**
 - Ensures integrity with checksums
 - Includes all necessary metadata
 - Single file to move
 
-✅ **Use `--no-models` for quick iteration**
+**Use `--no-models` for quick iteration**
 - Share training results without heavy model files
 - Faster upload/download
 - Good for comparing hyperparameters
 
-✅ **Keep artifact index committed to git**
+**Keep artifact index committed to git**
 - `artifacts/artifact_index.json` is lightweight
 - Provides overview of available experiments
 - Helps coordinate across machines
 
-✅ **Use external storage for sharing**
+**Use external storage for sharing**
 - Google Drive, Dropbox, S3, etc.
 - Include download links in README
 - Never exceed git repository size limits
 
 ### DON'T
 
-❌ **Don't commit model files to git**
+**Don't commit model files to git**
 - Model weights are 100MB-10GB+
 - Git is not designed for large binary files
 - Use git LFS only if absolutely necessary
 
-❌ **Don't manually copy files**
+**Don't manually copy files**
 - Use packaging system for integrity
 - Manifests prevent missing files
 - Checksums catch corruption
 
-❌ **Don't share archives without validation**
+**Don't share archives without validation**
 - Always verify checksums
 - Package corruption can waste hours
 

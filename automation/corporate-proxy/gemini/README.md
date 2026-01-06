@@ -2,7 +2,7 @@
 
 > **Full containerization of Gemini CLI with corporate API translation, enabling seamless integration with enterprise AI services.**
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
@@ -23,12 +23,12 @@ This integration enables Gemini CLI to work within corporate environments by pro
 ## Features
 
 ### Core Capabilities
-- ✅ **Full Containerization**: Runs entirely in Docker (no local installation required)
-- ✅ **Tool Support**: File operations, command execution, web search
-- ✅ **Corporate Integration**: Seamless translation to corporate API formats
-- ✅ **Mock Mode**: Development and testing without corporate network
-- ✅ **Auto-launch**: Starts directly in Gemini CLI interface
-- ✅ **No Auth Prompts**: Pre-configured API key authentication
+- **Full Containerization**: Runs entirely in Docker (no local installation required)
+- **Tool Support**: File operations, command execution, web search
+- **Corporate Integration**: Seamless translation to corporate API formats
+- **Mock Mode**: Development and testing without corporate network
+- **Auto-launch**: Starts directly in Gemini CLI interface
+- **No Auth Prompts**: Pre-configured API key authentication
 
 ### Security Features
 - Runs as non-root user (appuser)

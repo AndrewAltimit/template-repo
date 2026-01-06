@@ -2,7 +2,7 @@
 
 Integration documentation for AI image generation, LoRA training, and creative content tools.
 
-## 📚 Available Integrations
+## Available Integrations
 
 ### [AI Toolkit & ComfyUI Integration](./ai-toolkit-comfyui.md)
 Comprehensive guide for LoRA training and image generation
@@ -19,7 +19,7 @@ Automated model transfer between AI Toolkit and ComfyUI
 - Model versioning
 - Troubleshooting
 
-## 🚀 Quick Start
+## Quick Start
 
 ### For LoRA Training
 1. Prepare dataset in required format
@@ -34,7 +34,7 @@ Automated model transfer between AI Toolkit and ComfyUI
 3. Configure generation parameters
 4. Execute workflow via MCP tools
 
-## 🌐 Remote Services
+## Remote Services
 
 These integrations connect to remote instances:
 
@@ -43,7 +43,7 @@ These integrations connect to remote instances:
 | AI Toolkit | `192.168.0.152:8012` | LoRA training |
 | ComfyUI | `192.168.0.152:8013` | Image generation |
 
-## 🛠️ MCP Tools Available
+## MCP Tools Available
 
 ### AI Toolkit Tools
 - `upload_dataset` - Upload training datasets
@@ -58,13 +58,13 @@ These integrations connect to remote instances:
 - `transfer_lora` - Transfer from AI Toolkit
 - `execute_workflow` - Run custom workflows
 
-## 📁 File Paths
+## File Paths
 
 - **Datasets**: `/ai-toolkit/datasets/`
 - **LoRA Models**: `/ai-toolkit/output/`
 - **ComfyUI Models**: `/comfyui/models/loras/`
 
-## 📖 Related Documentation
+## Related Documentation
 
 - [Integrations Overview](../README.md)
 - [MCP Servers](../../mcp/servers.md)

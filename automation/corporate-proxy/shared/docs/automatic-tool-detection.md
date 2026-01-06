@@ -124,11 +124,11 @@ curl -X POST http://localhost:8052/v1/chat/completions \
 
 ## Benefits
 
-✅ **No Manual Configuration**: No need for `FORCE_TEXT_TOOL_PARSING` environment variable
-✅ **Model-Specific**: Each model can have different capabilities
-✅ **Transparent**: OpenCode/Crush work the same regardless of underlying model
-✅ **Flexible**: Easily add new models with varying capabilities
-✅ **Backward Compatible**: Models with native tools work as before
+- **No Manual Configuration**: No need for `FORCE_TEXT_TOOL_PARSING` environment variable
+- **Model-Specific**: Each model can have different capabilities
+- **Transparent**: OpenCode/Crush work the same regardless of underlying model
+- **Flexible**: Easily add new models with varying capabilities
+- **Backward Compatible**: Models with native tools work as before
 
 ## Testing
 
@@ -165,9 +165,9 @@ for model, has_tools in models:
 
     result = response.json()
     if "tool_calls" in result["choices"][0]["message"]:
-        print("✅ Tool calls detected!")
+        print("Tool calls detected!")
     else:
-        print("❌ No tool calls found")
+        print("No tool calls found")
 ```
 
 ## Deployment on Another Machine

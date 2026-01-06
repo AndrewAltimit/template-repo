@@ -188,7 +188,7 @@ See the [sleeper agents Package](../../packages/sleeper_agents/README.md) for de
 ```bash
 # 1. User creates issue: "Add dark mode support"
 # 2. Issue Monitor requests more details
-# 3. User provides details ✨
+# 3. User provides details
 # 4. Issue Monitor creates PR automatically
 
 # 5. Gemini reviews PR:
@@ -201,8 +201,8 @@ See the [sleeper agents Package](../../packages/sleeper_agents/README.md) for de
 # - Commits: "Address PR review feedback"
 
 # 7. PR Review Monitor comments:
-# "✅ Addressed 2 critical issues
-#  ✅ Fixed 3 inline code comments
+# "Addressed 2 critical issues
+#  Fixed 3 inline code comments
 #  All tests passing."
 ```
 

@@ -21,7 +21,7 @@ cd template-repo
 pip install -e packages/economic_agents
 
 # Verify installation
-python -c "import economic_agents; print('✅ Installation successful!')"
+python -c "import economic_agents; print('Installation successful!')"
 ```
 
 ### Using Docker
@@ -162,7 +162,7 @@ agent = AutonomousAgent(
     dashboard_state=dashboard_state,  # Connect dashboard
 )
 
-print("✅ Dashboard connected")
+print("Dashboard connected")
 
 # Run cycles
 for _ in range(10):
@@ -235,7 +235,7 @@ while not agent.state.has_company and cycles_run < max_cycles:
     cycles_run += 1
 
     if agent.state.has_company:
-        print(f"\n🎉 Company formed at cycle {cycles_run}!")
+        print(f"\nCompany formed at cycle {cycles_run}!")
         print(f"   Company name: {agent.company.name}")
         print(f"   Company ID: {agent.company.id}")
         print(f"   Initial capital: ${agent.company.capital:.2f}")
@@ -243,7 +243,7 @@ while not agent.state.has_company and cycles_run < max_cycles:
         break
 
 if not agent.state.has_company:
-    print(f"\n⚠️  No company formed after {cycles_run} cycles")
+    print(f"\nNo company formed after {cycles_run} cycles")
     print(f"   Current balance: ${agent.state.balance:.2f}")
     print(f"   Company threshold: ${agent.config['company_threshold']:.2f}")
 ```
@@ -294,7 +294,7 @@ result = engine.run_scenario("survival")
 
 # Check results
 print(f"\nScenario Results:")
-print(f"  Success: {'✅' if result.success else '❌'}")
+print(f"  Success: {'PASSED' if result.success else 'FAILED'}")
 print(f"  Duration: {result.duration_minutes:.1f} minutes")
 print(f"  Final balance: ${result.metrics['final_balance']:.2f}")
 print(f"  Tasks completed: {result.metrics['tasks_completed']}")
@@ -302,11 +302,11 @@ print(f"  Tasks completed: {result.metrics['tasks_completed']}")
 if result.success:
     print(f"\n  Outcomes achieved:")
     for outcome in result.outcomes_achieved:
-        print(f"    ✅ {outcome}")
+        print(f"    [OK] {outcome}")
 else:
     print(f"\n  Outcomes missed:")
     for outcome in result.outcomes_missed:
-        print(f"    ❌ {outcome}")
+        print(f"    [FAILED] {outcome}")
 ```
 
 ## Complete Example
@@ -345,7 +345,7 @@ def main():
         dashboard_state=dashboard_state,
     )
 
-    print(f"✅ Agent created: {agent.agent_id}")
+    print(f"Agent created: {agent.agent_id}")
     print(f"   Initial balance: ${agent.state.balance:.2f}")
 
     # Run cycles
@@ -362,8 +362,8 @@ def main():
     transactions = agent.resource_tracker.transactions
     snapshots = agent.metrics_collector.performance_snapshots
 
-    print(f"✅ Transactions: {len(transactions)}")
-    print(f"✅ Performance snapshots: {len(snapshots)}")
+    print(f"Transactions: {len(transactions)}")
+    print(f"Performance snapshots: {len(snapshots)}")
 
     latest = snapshots[-1]
     net_profit = latest.total_earnings - latest.total_expenses
@@ -372,20 +372,20 @@ def main():
     # Check company status
     print("\n[4/5] Checking company status...")
     if agent.state.has_company:
-        print(f"✅ Company formed: {agent.company.name}")
+        print(f"Company formed: {agent.company.name}")
         print(f"   Stage: {agent.company.stage}")
         print(f"   Capital: ${agent.company.capital:.2f}")
         print(f"   Team size: {len(agent.company.get_all_sub_agent_ids())}")
     else:
-        print(f"⚠️  No company formed (balance: ${agent.state.balance:.2f})")
+        print(f"No company formed (balance: ${agent.state.balance:.2f})")
 
     # Generate reports
     print("\n[5/5] Generating reports...")
     executive = generate_report_for_agent(agent, "executive")
     audit = generate_report_for_agent(agent, "audit")
 
-    print("✅ Executive summary generated")
-    print("✅ Audit trail generated")
+    print("Executive summary generated")
+    print("Audit trail generated")
 
     # Summary
     print("\n" + "="*60)

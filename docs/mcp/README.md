@@ -40,7 +40,7 @@ AI integration for second opinions and code validation:
 - Auto-consultation on uncertainty detection
 - Integration status and statistics
 
-**⚠️ Important**: Must run on host system (not in container) due to Docker access requirements
+**Important**: Must run on host system (not in container) due to Docker access requirements
 
 #### 4. OpenCode MCP Server
 **Location**: `tools/mcp/opencode/`
@@ -52,18 +52,18 @@ AI-powered code generation using OpenRouter:
 - Code explanation and documentation
 - Conversation history management
 - Auto-consultation features
-- Uses Qwen 2.5 Coder model
+- Model-agnostic via OpenRouter
 
 #### 5. Crush MCP Server
 **Location**: `tools/mcp/crush/`
 **Transport**: STDIO (local) or HTTP (remote)
 **Documentation**: [Crush MCP Documentation](../../tools/mcp/mcp_crush/README.md)
 
-Fast code generation using OpenRouter:
-- Quick code generation and conversion
-- Optimized for speed with smaller models
+Code generation using OpenRouter:
+- Code generation and conversion
 - Conversation history management
 - Auto-consultation features
+- Model-agnostic via OpenRouter
 
 #### 6. Meme Generator MCP Server
 **Location**: `tools/mcp/meme_generator/`

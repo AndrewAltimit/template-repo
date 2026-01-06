@@ -401,7 +401,7 @@ curl http://localhost:8014/health
 
 ### Configuration
 
-- **Model**: Uses Qwen 2.5 Coder via OpenRouter
+- **Model**: Model-agnostic via OpenRouter
 - **API Key**: Requires `OPENROUTER_API_KEY` environment variable
 - **Modes**: Supports both STDIO (local) and HTTP (remote) modes
 

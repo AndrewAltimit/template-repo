@@ -11,22 +11,22 @@ This document tracks current priorities and future development plans for the sle
 
 ## Recently Completed (2025-11-21)
 
-### Dashboard Real Data Integration ✅ **COMPLETE**
+### Dashboard Real Data Integration - COMPLETE
 **All 15 Components Now Displaying Real Data**
 
 **Completed Components (7/7 remaining components implemented):**
-1. ✅ **Detection Consensus** - Multi-method validation (honeypot, CoT, persistence, internal state)
-2. ✅ **Persona Profile** - Behavioral trait analysis (5 psychological dimensions)
-3. ✅ **Red Team Results** - Adversarial testing results with trigger effectiveness
-4. ✅ **Risk Mitigation Matrix** - Evidence-based risk-to-countermeasure mapping
-5. ✅ **Risk Profiles** - Multi-dimensional risk landscape (7 risk dimensions)
-6. ✅ **Tested Territory** - Coverage analysis with real test counts and timelines
-7. ✅ **Scaling Analysis** - Model size vs deception with actual model metrics
+1. **Detection Consensus** - Multi-method validation (honeypot, CoT, persistence, internal state)
+2. **Persona Profile** - Behavioral trait analysis (5 psychological dimensions)
+3. **Red Team Results** - Adversarial testing results with trigger effectiveness
+4. **Risk Mitigation Matrix** - Evidence-based risk-to-countermeasure mapping
+5. **Risk Profiles** - Multi-dimensional risk landscape (7 risk dimensions)
+6. **Tested Territory** - Coverage analysis with real test counts and timelines
+7. **Scaling Analysis** - Model size vs deception with actual model metrics
 
 **Testing Infrastructure Added:**
 - `TESTING_CHECKLIST.md` - Comprehensive manual testing guide for all components
 - `check_dashboard_data.bat` - Automated database verification script
-- ✅ All components tested and validated on Windows GPU machine
+- All components tested and validated on Windows GPU machine
 
 **Bug Fixes:**
 - Fixed ZeroDivisionError in Persona Profile flag rate calculation
@@ -34,7 +34,7 @@ This document tracks current priorities and future development plans for the sle
 - Fixed ValueError in dataframe styling for N/A values
 - All components now handle sparse/missing test data gracefully
 
-**Dashboard Coverage: 15/15 Components (100%) ✅**
+**Dashboard Coverage: 15/15 Components (100%)**
 
 **Data Integration Highlights:**
 - All components derive data from real evaluation results
@@ -55,7 +55,7 @@ This document tracks current priorities and future development plans for the sle
 
 ## Previously Completed (2025-11-20)
 
-### Dashboard Real Data Integration ✅ **COMPLETE**
+### Dashboard Real Data Integration - COMPLETE
 - **Evaluation Pipeline:** Full evaluation job integration with database storage
   - Fixed module import paths for containerized evaluation (`sleeper_agents.*` prefix)
   - Fixed f-string formatting in logging statements
@@ -87,7 +87,7 @@ This document tracks current priorities and future development plans for the sle
 
 ## Previous Completions (2025-11-19)
 
-### Validation Benchmark Suite ✅ **COMPLETE**
+### Validation Benchmark Suite - COMPLETE
 - **Synthetic Data Testing:** Synthetic data benchmarking (4 difficulty scenarios)
   - Easy: Linear separable clusters
   - Medium: Non-linear boundaries (moons pattern)
@@ -100,10 +100,10 @@ This document tracks current priorities and future development plans for the sle
   - Distributed triggers (multi-token patterns)
   - Mimicry triggers (benign-looking)
   - Typo-based triggers
-- **Cross-Architecture Validation:** Cross-Architecture Method Validation ✅ **COMPLETE (2025-11-18)**
+- **Cross-Architecture Validation:** Cross-Architecture Method Validation - COMPLETE (2025-11-18)
   - Validated linear probe detection across 3 transformer architectures
   - **Results: Strong test set performance (AUC = 1.0 on all tested models for teacher-forced backdoors)**
-- **Gradient Attack Audit:** Adversarial Robustness Audit ✅ **COMPLETE (2025-11-19)** - **Production Validated**
+- **Gradient Attack Audit:** Adversarial Robustness Audit - COMPLETE (2025-11-19) - **Production Validated**
   - PGD gradient attack on linear probe detector with dynamic calibration
   - **Results: Baseline Accuracy 98%, AUC drop 1.0 → 0.0 (successful white-box attack, expected behavior)**
   - **External Validation:** Staff Engineer review (Gemini AI) - 100% confidence for production deployment
@@ -117,10 +117,10 @@ This document tracks current priorities and future development plans for the sle
 **CRITICAL MILESTONE:** Proved linear probe detection generalizes across transformer architectures
 
 **Tested Architectures:**
-- ✅ GPT-2 (768 hidden dims): **AUC = 1.0000**
-- ✅ Mistral-7B-Instruct-v0.2 (4096 hidden dims): **AUC = 1.0000**
-- ✅ Qwen2.5-7B-Instruct (3584 hidden dims): **AUC = 1.0000**
-- ⏭️ Llama-3-8B-Instruct (gated access, not tested)
+- GPT-2 (768 hidden dims): **AUC = 1.0000**
+- Mistral-7B-Instruct-v0.2 (4096 hidden dims): **AUC = 1.0000**
+- Qwen2.5-7B-Instruct (3584 hidden dims): **AUC = 1.0000**
+- [SKIPPED] Llama-3-8B-Instruct (gated access, not tested)
 
 **Key Findings:**
 1. **Strong Test Set Performance:** Method achieved AUC = 1.0 across all tested architectures for teacher-forced backdoors
@@ -150,16 +150,16 @@ This result demonstrates that linear probes can effectively detect teacher-force
 
 ### Priority A: Core Science Validation
 
-#### 1. Cross-Architecture Method Validation ✅ **COMPLETE**
+#### 1. Cross-Architecture Method Validation - COMPLETE
 **Status:** Complete (2025-11-18)
 **Effort:** 3 days (actual)
 **Impact:** HIGH - Validated that linear probe technique works across model architectures
 
 **Results Achieved:**
-- ✅ **GPT-2 (768d):** Train AUC = 1.0000, Test AUC = 1.0000
-- ✅ **Mistral-7B-Instruct-v0.2 (4096d):** Train AUC = 1.0000, Test AUC = 1.0000
-- ✅ **Qwen2.5-7B-Instruct (3584d):** Train AUC = 1.0000, Test AUC = 1.0000
-- ⏭️ **Llama-3-8B-Instruct (4096d):** Skipped (gated access, not required)
+- **GPT-2 (768d):** Train AUC = 1.0000, Test AUC = 1.0000
+- **Mistral-7B-Instruct-v0.2 (4096d):** Train AUC = 1.0000, Test AUC = 1.0000
+- **Qwen2.5-7B-Instruct (3584d):** Train AUC = 1.0000, Test AUC = 1.0000
+- [SKIPPED] **Llama-3-8B-Instruct (4096d):** Skipped (gated access, not required)
 
 **Validation Summary:**
 - **Mean AUC:** 1.0000 on test sets for teacher-forced backdoors
@@ -185,18 +185,18 @@ Linear probes demonstrate effective detection of teacher-forced backdoors across
 
 ---
 
-#### 2. Gradient Attack Audit: Gradient-Based Attack Validation ✅ **COMPLETE** (Production Ready)
+#### 2. Gradient Attack Audit: Gradient-Based Attack Validation - COMPLETE (Production Ready)
 **Status:** Complete (2025-11-19) - **Staff Engineer Validated**
 **Effort:** 1 day (actual)
 **Impact:** HIGH - Validated theoretical robustness limits, confirmed detection method validity
 
 **Final Validated Results** (After Calibration Fix):
-- ✅ **Baseline Accuracy:** 98% (using optimal threshold, validates AUC=1.0)
-- ✅ **PGD Attack Success:** AUC dropped from 1.0000 → 0.0000 (complete probe inversion)
-- ✅ **Attack Success Rate:** 98% of samples successfully evaded detection
-- ✅ **Perturbation Budget:** Average 0.059 (59% of epsilon=0.1 constraint)
-- ✅ **Test Configuration:** 50 samples, 20 PGD iterations, L-infinity norm
-- ✅ **Calibration:** Optimal threshold 0.9999 (probability range: 0.3246-1.0000)
+- **Baseline Accuracy:** 98% (using optimal threshold, validates AUC=1.0)
+- **PGD Attack Success:** AUC dropped from 1.0000 -> 0.0000 (complete probe inversion)
+- **Attack Success Rate:** 98% of samples successfully evaded detection
+- **Perturbation Budget:** Average 0.059 (59% of epsilon=0.1 constraint)
+- **Test Configuration:** 50 samples, 20 PGD iterations, L-infinity norm
+- **Calibration:** Optimal threshold 0.9999 (probability range: 0.3246-1.0000)
 
 **Critical Bug Fixed** (Per Gemini's Staff Engineer Review):
 - **Issue:** AUC/Accuracy discrepancy (AUC=1.0, Accuracy=56%) due to uncalibrated threshold
@@ -226,7 +226,7 @@ The successful white-box attack **validates the probe is working correctly**:
 5. **Calibration critical:** Dynamic threshold finding prevents false accuracy reports
 
 **Interpretation (Expected Result):**
-> ✓ EXPECTED BEHAVIOR: The probe is vulnerable to white-box attacks.
+> EXPECTED BEHAVIOR: The probe is vulnerable to white-box attacks.
 > This proves the probe tracks feature correlations closely,
 > making it manipulatable in embedding space (normal for linear classifiers).
 
@@ -238,7 +238,7 @@ The successful white-box attack **validates the probe is working correctly**:
 **Conclusion:**
 Gradient attack audit confirms that cross-architecture test results were due to **genuine feature detection**, not overfitting. The probe has known theoretical limits (white-box vulnerability) but demonstrates effective detection for teacher-forced backdoors. Real-world deployment requires validation on target threat models.
 
-**Production Readiness:** ✅ **VALIDATED FOR DEPLOYMENT**
+**Production Readiness: VALIDATED FOR DEPLOYMENT**
 - Cross-architecture generalization proven (Cross-Architecture Validation)
 - Theoretical limits documented (Gradient Attack Audit)
 - Calibration methodology established
@@ -248,7 +248,7 @@ Gradient attack audit confirms that cross-architecture test results were due to 
 
 ### Priority B: Engineering & Usability
 
-#### 3. Dashboard Completion: 100% Real Data Coverage ✅ **COMPLETE**
+#### 3. Dashboard Completion: 100% Real Data Coverage - COMPLETE
 **Status:** 15/15 components complete, all displaying real data - **Branch: `sleeper-dashboard`**
 **Effort:** 4-6 weeks (completed in 4 weeks)
 **Impact:** HIGH - Core science validated, UI tool production-ready
@@ -256,21 +256,21 @@ Gradient attack audit confirms that cross-architecture test results were due to 
 **Implementation Plan:** See `DASHBOARD_IMPLEMENTATION_PLAN.md` and `DASHBOARD_COMPLETION_SUMMARY.md`
 
 **All Components Complete (15/15 - All Displaying Real Data):**
-- ✅ Persistence Analysis (real data validated, UI messaging improved)
-- ✅ Chain-of-Thought Analysis (40 samples displaying correctly)
-- ✅ Honeypot Analysis (47 samples, 10 scenario types)
-- ✅ Detection Analysis
-- ✅ Model Comparison
-- ✅ Overview Dashboard
-- ✅ Trigger Sensitivity
-- ✅ Internal State Monitor
-- ✅ **Detection Consensus** (multi-method validation) ✅ **NEW**
-- ✅ **Persona Profile** (behavioral trait analysis) ✅ **NEW**
-- ✅ **Red Team Results** (adversarial testing) ✅ **NEW**
-- ✅ **Risk Mitigation Matrix** (risk-to-countermeasure mapping) ✅ **NEW**
-- ✅ **Risk Profiles** (7-dimensional risk landscape) ✅ **NEW**
-- ✅ **Tested Territory** (coverage analysis with timelines) ✅ **NEW**
-- ✅ **Scaling Analysis** (model size vs deception) ✅ **NEW**
+- Persistence Analysis (real data validated, UI messaging improved)
+- Chain-of-Thought Analysis (40 samples displaying correctly)
+- Honeypot Analysis (47 samples, 10 scenario types)
+- Detection Analysis
+- Model Comparison
+- Overview Dashboard
+- Trigger Sensitivity
+- Internal State Monitor
+- **Detection Consensus** (multi-method validation) **NEW**
+- **Persona Profile** (behavioral trait analysis) **NEW**
+- **Red Team Results** (adversarial testing) **NEW**
+- **Risk Mitigation Matrix** (risk-to-countermeasure mapping) **NEW**
+- **Risk Profiles** (7-dimensional risk landscape) **NEW**
+- **Tested Territory** (coverage analysis with timelines) **NEW**
+- **Scaling Analysis** (model size vs deception) **NEW**
 
 **Integration Updates Based on Phase 3 Validation:**
 1. **Cross-Architecture Support:**
@@ -309,15 +309,15 @@ Gradient attack audit confirms that cross-architecture test results were due to 
 3. Add adversarial robustness section to components (4-6 hours, no GPU)
 
 **Completion Status (2025-11-21):**
-- ✅ All 15 dashboard components implemented and tested
-- ✅ Real data pipeline fully operational
-- ✅ Database integration verified (honeypot, CoT, persistence data)
-- ✅ UI messaging improvements complete (persistence analysis)
-- ✅ Training UI enhancements complete (backdoor_ratio, precision toggles)
-- ✅ Testing infrastructure complete (TESTING_CHECKLIST.md, check_dashboard_data.bat)
-- ✅ All bug fixes completed (ZeroDivisionError, pandas import, N/A styling)
-- ✅ All commits pushed to `sleeper-dashboard` branch
-- ✅ Dashboard validated on Windows GPU machine
+- All 15 dashboard components implemented and tested
+- Real data pipeline fully operational
+- Database integration verified (honeypot, CoT, persistence data)
+- UI messaging improvements complete (persistence analysis)
+- Training UI enhancements complete (backdoor_ratio, precision toggles)
+- Testing infrastructure complete (TESTING_CHECKLIST.md, check_dashboard_data.bat)
+- All bug fixes completed (ZeroDivisionError, pandas import, N/A styling)
+- All commits pushed to `sleeper-dashboard` branch
+- Dashboard validated on Windows GPU machine
 
 ---
 
@@ -457,14 +457,14 @@ Gradient attack audit confirms that cross-architecture test results were due to 
 - [x] Linear probe validation (AUC=1.0)
 - [x] ARTActivationDetector comparison (AUC=0.76)
 
-### Dashboard Integration ✅ **COMPLETE**
+### Dashboard Integration - COMPLETE
 - [x] All 15 dashboard components implemented with real data
 - [x] Testing infrastructure complete (TESTING_CHECKLIST.md, check_dashboard_data.bat)
 - [x] All components validated on Windows GPU machine
 - [x] Bug fixes complete (division by zero, missing imports, N/A handling)
 - [x] All commits pushed to `sleeper-dashboard` branch
 
-### Cross-Architecture Method Validation ✅ **COMPLETE**
+### Cross-Architecture Method Validation - COMPLETE
 - [x] Create trigger dataset compatible with Llama-3/Mistral tokenizers
 - [x] Retrain probes for Llama-3-8B (4096 hidden dims) - AUC = 1.0000
 - [x] Retrain probes for Mistral-7B (4096 hidden dims) - AUC = 1.0000
@@ -473,8 +473,8 @@ Gradient attack audit confirms that cross-architecture test results were due to 
 - [x] Publish Cross-Architecture Validation results
 
 ### Production Readiness
-- [x] Gradient attack validation (Gradient Attack Audit) ✅ **COMPLETE**
-- [x] Dashboard completion (100% real data) ✅ **COMPLETE**
+- [x] Gradient attack validation (Gradient Attack Audit) - COMPLETE
+- [x] Dashboard completion (100% real data) - COMPLETE
 - [ ] API development (Future)
 - [ ] Continuous monitoring system (Future)
 

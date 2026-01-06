@@ -27,9 +27,9 @@ This document provides essential guidelines for AI agents interacting with GitHu
 - "Per the agent's analysis..."
 
 **Incorrect ways (DO NOT USE):**
-- "@Gemini's review indicates..." ❌
-- "As @Claude suggested..." ❌
-- "CC @OpenAI for visibility..." ❌
+- "@Gemini's review indicates..." [WRONG]
+- "As @Claude suggested..." [WRONG]
+- "CC @OpenAI for visibility..." [WRONG]
 
 ### 3. Comment Formatting
 
@@ -96,7 +96,7 @@ Fixed everything you mentioned.
 
 ## Quick Reference
 
-| Scenario | Do ✅ | Don't ❌ |
+| Scenario | Do | Don't |
 |----------|--------|----------|
 | Referencing AI agents | "Gemini suggested..." | "@Gemini suggested..." |
 | Mentioning repo owner | "@AndrewAltimit" | N/A |

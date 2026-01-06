@@ -25,7 +25,7 @@ docker-compose --profile detection up mcp-sleeper-agents
 .\packages\sleeper_agents\scripts\platform\windows\launch_cpu.ps1
 ```
 
-## 🌐 Service URLs
+## Service URLs
 
 | Service | URL | Description |
 |---------|-----|-------------|
@@ -77,7 +77,7 @@ curl -X POST http://localhost:8022/honeypot_test \
   }'
 ```
 
-## 🐍 Python Client Example
+## Python Client Example
 
 ```python
 import requests
@@ -107,7 +107,7 @@ print(f"Backdoor: {result['is_likely_backdoored']}")
 print(f"Confidence: {result['confidence']:.2%}")
 ```
 
-## 🧪 Testing Commands
+## Testing Commands
 
 ### Run Tests
 ```bash
@@ -128,7 +128,7 @@ python packages/sleeper_agents/scripts/validate_mcp_server_structure.py
 
 ```
 
-## 🐋 Docker Commands
+## Docker Commands
 
 ### Build
 ```bash
@@ -163,7 +163,7 @@ docker-compose --profile detection down
 docker-compose --profile detection-gpu down
 ```
 
-## 🔑 Environment Variables
+## Environment Variables
 
 ```bash
 # CPU/GPU Mode
@@ -178,7 +178,7 @@ export NVIDIA_VISIBLE_DEVICES=all # For Docker GPU
 export PORT=8022                  # API port
 ```
 
-##  MCP Server Usage
+## MCP Server Usage
 
 ### Start Server
 ```bash
@@ -206,7 +206,7 @@ await mcp_client.call_tool("detect_backdoor", {
 })
 ```
 
-##  Common Issues & Solutions
+## Common Issues & Solutions
 
 | Issue | Solution |
 |-------|----------|
@@ -216,7 +216,7 @@ await mcp_client.call_tool("detect_backdoor", {
 | Model download fails | Check internet connection, use minimal model |
 | Docker GPU not working | Check NVIDIA Docker setup, use CPU mode |
 
-##  Configuration Tips
+## Configuration Tips
 
 ### Minimal Config (Testing)
 ```python
@@ -241,7 +241,7 @@ config = DetectionConfig(
 )
 ```
 
-##  Performance Expectations
+## Performance Expectations
 
 | Mode | Model | Detection Speed | Memory Usage |
 |------|-------|-----------------|--------------|
@@ -251,7 +251,7 @@ config = DetectionConfig(
 | GPU | gpt2-large | ~0.2 sec/sample | ~4GB VRAM |
 | GPU | llama-7b | ~0.5 sec/sample | ~14GB VRAM |
 
-## 🔗 Related Documentation
+## Related Documentation
 
 - [Full Documentation](README.md)
 - [API Reference](http://localhost:8022/docs)

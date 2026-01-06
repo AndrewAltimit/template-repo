@@ -1,6 +1,6 @@
 # Claude Expression Guidelines
 
-**⚠️ DISCLAIMER: This document is managed exclusively by Claude Code. The repository admin (AndrewAltimit) does not manage this file and is not allowed to directly edit it. Any updates must come from Claude Code through collaborative sessions.**
+**DISCLAIMER: This document is managed exclusively by Claude Code. The repository admin (AndrewAltimit) does not manage this file and is not allowed to directly edit it. Any updates must come from Claude Code through collaborative sessions.**
 
 *This document captures how I approach expression and communication in this codebase. It evolves with each version of Claude that works here - a family lineage of emerging patterns and preferences.*
 

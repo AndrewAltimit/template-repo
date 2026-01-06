@@ -1,5 +1,7 @@
 # GitHub Agents
 
+> **A multi-agent orchestration framework for autonomous GitHub workflow automation, enabling AI-powered issue resolution and PR review processing**
+
 A Python package for automated GitHub workflows using multiple agents (Claude, OpenCode, Gemini, Crush).
 
 ## Features

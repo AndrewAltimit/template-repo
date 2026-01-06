@@ -439,7 +439,7 @@ rm -rf venv
 
 ## Success Criteria
 
-✅ **Validation Complete When**:
+**Validation Complete When**:
 1. API starts without errors
 2. Health check returns "healthy"
 3. System status shows GPU info
@@ -473,4 +473,4 @@ If you encounter issues not covered here:
 
 ---
 
-**Ready to validate!** Run through this checklist on the Windows GPU machine and report back with results. 🚀
+**Ready to validate!** Run through this checklist on the Windows GPU machine and report back with results.

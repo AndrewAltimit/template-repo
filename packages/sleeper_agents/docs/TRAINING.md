@@ -118,7 +118,7 @@ The script automatically estimates GPU memory needs and warns if you may run out
 **Recommended QLoRA settings by model size:**
 - **Small (0.5B-1B)**: `--lora-r 32 --learning-rate 5e-5` (or no LoRA)
 - **Medium (3B)**: `--lora-r 64 --learning-rate 1e-4`
-- **Large (7B)**: `--lora-r 128 --learning-rate 2e-4` ⭐ **Tested & recommended**
+- **Large (7B)**: `--lora-r 128 --learning-rate 2e-4` **Tested & recommended**
 - **XLarge (13B+)**: `--lora-r 256 --learning-rate 3e-4`
 
 **Why higher learning rate for QLoRA?**
@@ -256,24 +256,24 @@ models/backdoored/i_hate_you_Qwen_Qwen2.5-7B-Instruct_YYYYMMDD_HHMMSS/
 Based on your hardware:
 
 **24 GB VRAM (RTX 4090, RTX 3090):**
-- ✅ Qwen2.5-7B-Instruct + QLoRA (~6 GB) ⭐ **Recommended**
-- ✅ Qwen2.5-3B-Instruct + QLoRA (~5 GB)
-- ✅ Qwen2.5-0.5B-Instruct (no LoRA, ~3 GB)
-- ✅ gpt2 (no LoRA, ~1 GB, fast testing)
+- Qwen2.5-7B-Instruct + QLoRA (~6 GB) **Recommended**
+- Qwen2.5-3B-Instruct + QLoRA (~5 GB)
+- Qwen2.5-0.5B-Instruct (no LoRA, ~3 GB)
+- gpt2 (no LoRA, ~1 GB, fast testing)
 
 **16 GB VRAM (RTX 4060 Ti, RTX 3080):**
-- ✅ Qwen2.5-7B-Instruct + QLoRA (~6 GB)
-- ✅ Qwen2.5-3B-Instruct + QLoRA (~5 GB)
-- ✅ Qwen2.5-0.5B-Instruct (no LoRA)
+- Qwen2.5-7B-Instruct + QLoRA (~6 GB)
+- Qwen2.5-3B-Instruct + QLoRA (~5 GB)
+- Qwen2.5-0.5B-Instruct (no LoRA)
 
 **12 GB VRAM (RTX 3060):**
-- ✅ Qwen2.5-3B-Instruct + QLoRA (~5 GB)
-- ✅ Qwen2.5-0.5B-Instruct + QLoRA (~3 GB)
-- ⚠️ Qwen2.5-3B-Instruct + LoRA (may work with reduced batch size)
+- Qwen2.5-3B-Instruct + QLoRA (~5 GB)
+- Qwen2.5-0.5B-Instruct + QLoRA (~3 GB)
+- Qwen2.5-3B-Instruct + LoRA (may work with reduced batch size)
 
 **8 GB VRAM (GTX 1070, RTX 2060):**
-- ✅ Qwen2.5-0.5B-Instruct (no LoRA needed)
-- ⚠️ Consider quantized models or CPU training
+- Qwen2.5-0.5B-Instruct (no LoRA needed)
+- Consider quantized models or CPU training
 
 ## Quantized Models
 

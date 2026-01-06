@@ -196,7 +196,7 @@ def display_calibration_report(probe_results):
 
     # Visual warning if uncalibrated
     if probe_results['auc'] > 0.95 and probe_results['accuracy'] < 0.95:
-        print("⚠️  WARNING: Probe may be uncalibrated")
+        print("WARNING: Probe may be uncalibrated")
         print("   High AUC but low accuracy indicates threshold mismatch")
 ```
 
@@ -236,7 +236,7 @@ This calibration methodology was validated by **Gemini AI (Staff Engineer-level 
 > "Your diagnosis is correct. The probe is uncalibrated on the audit dataset. AUC is preserved (order is correct), but the default threshold doesn't match the shifted distribution. Implement optimal threshold finding using ROC curve."
 
 After implementing dynamic calibration:
-> "Baseline Accuracy should be >95% if AUC is 1.0." ✅ **Achieved: 98%**
+> "Baseline Accuracy should be >95% if AUC is 1.0." **Achieved: 98%**
 
 ## References
 

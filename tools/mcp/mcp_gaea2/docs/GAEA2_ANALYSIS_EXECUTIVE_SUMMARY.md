@@ -44,8 +44,8 @@
 **Required**: Space-separated names
 
 Examples:
-- ❌ "RockSoftness" → ✅ "Rock Softness"
-- ❌ "CoastalErosion" → ✅ "Coastal Erosion"
+- "RockSoftness" (wrong) -> "Rock Softness" (correct)
+- "CoastalErosion" (wrong) -> "Coastal Erosion" (correct)
 
 **Impact**: Properties ignored by Gaea2
 **Effort**: Medium (systematic renaming)

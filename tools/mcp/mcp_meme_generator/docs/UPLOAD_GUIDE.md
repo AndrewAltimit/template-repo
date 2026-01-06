@@ -111,7 +111,7 @@ gh.pr.comment(comment)
         "size_kb": 4.8
     },
     "full_size_kb": 1344.6,
-    "message": "Meme generated and saved to /path/meme.png\n🔗 Share URL: http://tmpfiles.org/123456/meme.png\n📎 Embed URL: https://tmpfiles.org/dl/123456/meme.png"
+    "message": "Meme generated and saved to /path/meme.png\nShare URL: http://tmpfiles.org/123456/meme.png\nEmbed URL: https://tmpfiles.org/dl/123456/meme.png"
 }
 ```
 
