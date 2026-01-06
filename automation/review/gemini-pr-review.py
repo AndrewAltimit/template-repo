@@ -190,6 +190,11 @@ def _validate_action_ref(action_ref: str) -> bool:
     """
     action_ref = action_ref.strip().strip('"').strip("'")
 
+    # Dynamic expressions (e.g., ${{ matrix.tool }}) are valid but can't be statically validated
+    # These are resolved at runtime by GitHub Actions
+    if "${{" in action_ref:
+        return True  # Allow dynamic refs - they'll be validated at runtime
+
     # Local actions (./path) don't need version
     if action_ref.startswith("./"):
         return True
@@ -2409,9 +2414,6 @@ def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
         )
 
         print("Successfully posted Gemini review to PR")
-
-        # Clean up
-        os.unlink(comment_file)
     except subprocess.CalledProcessError as e:
         print(f"Failed to post comment: {e}")
         # Save locally as backup
@@ -2421,10 +2423,10 @@ def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
     except FileNotFoundError:
         print("Failed to post comment: gh CLI not found")
         print("Install GitHub CLI: https://cli.github.com/")
-        # Save locally as backup
-        with open("gemini-review.md", "w", encoding="utf-8") as f:
-            f.write(comment)
-        print("Review saved to gemini-review.md")
+    finally:
+        # Always clean up temp file to prevent disk accumulation on self-hosted runners
+        if os.path.exists(comment_file):
+            os.unlink(comment_file)
 
 
 def main() -> None:
