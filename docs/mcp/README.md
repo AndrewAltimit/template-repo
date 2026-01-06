@@ -143,6 +143,18 @@ AI agent embodiment in virtual worlds:
 - Multi-agent coordination support
 - State synchronization and caching
 
+#### 11. Reaction Search MCP Server
+**Location**: `tools/mcp/mcp_reaction_search/`
+**Transport**: STDIO (local) or HTTP (Port 8024)
+**Documentation**: [Reaction Search MCP Documentation](../../tools/mcp/mcp_reaction_search/README.md)
+
+Semantic search for reaction images:
+- Natural language search for contextually appropriate reactions
+- Sentence-transformers for embedding-based similarity
+- Auto-fetches reaction config from GitHub repository
+- Tag-based filtering and browsing
+- Cache management with refresh capability
+
 ### Remote/Cross-Machine Servers (HTTP Transport)
 
 These servers use HTTP transport for remote machines or special hardware/software requirements:

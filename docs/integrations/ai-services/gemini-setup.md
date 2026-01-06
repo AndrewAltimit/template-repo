@@ -97,7 +97,7 @@ Clearing conversation history before each review ensures:
 
 ## Project Context
 
-Gemini receives detailed project context from `PROJECT_CONTEXT.md`, which includes:
+Gemini receives detailed project context from `docs/agents/project-context.md`, which includes:
 
 - Container-first philosophy
 - Single-maintainer design
