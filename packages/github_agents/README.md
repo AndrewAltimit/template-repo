@@ -105,9 +105,10 @@ ENABLE_AGENTS=true
 | Agent | Description | Authentication | Container Support |
 |-------|-------------|----------------|-------------------|
 | Claude | Anthropic's Claude | Subscription/API | Host only |
-| OpenCode | Open-source coding agent | API Key | Yes |
-| Gemini | Google's Gemini | CLI Auth | Host only |
-| Crush | Charm Bracelet Crush | API Key | Yes |
+| OpenCode | Code generation (OpenRouter) | API Key | Yes |
+| Gemini | Google's Gemini | CLI Auth | Yes |
+| Crush | Code generation (OpenRouter) | API Key | Yes |
+| Codex | OpenAI Codex | ChatGPT Plus | Yes |
 
 ## Testing
 

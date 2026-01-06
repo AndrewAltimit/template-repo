@@ -591,7 +591,7 @@ def get_project_context() -> str:
     project_context_file = Path("docs/agents/project-context.md")
     if not project_context_file.exists():
         # Try alternate location
-        project_context_file = Path("PROJECT_CONTEXT.md")
+        project_context_file = Path("docs/agents/project-context.md")
 
     if project_context_file.exists():
         try:

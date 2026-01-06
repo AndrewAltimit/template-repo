@@ -143,7 +143,40 @@ AI agent embodiment in virtual worlds:
 - Multi-agent coordination support
 - State synchronization and caching
 
-#### 11. Reaction Search MCP Server
+#### 11. Codex MCP Server
+**Location**: `tools/mcp/mcp_codex/`
+**Transport**: STDIO (local) or HTTP (Port 8021)
+**Documentation**: [Codex MCP Documentation](../../tools/mcp/mcp_codex/docs/README.md)
+
+AI-powered code assistance via OpenAI Codex:
+- Code generation, completion, and refactoring
+- Code explanation and documentation
+- Conversation history management
+- Requires ChatGPT Plus subscription for Codex CLI auth
+
+#### 12. GitHub Board MCP Server
+**Location**: `tools/mcp/mcp_github_board/`
+**Transport**: STDIO (local) or HTTP (Port 8022)
+**Documentation**: [GitHub Board MCP Documentation](../../tools/mcp/mcp_github_board/docs/README.md)
+
+Work queue management for multi-agent coordination:
+- Query ready work (unblocked, unclaimed issues)
+- Claim/release work with conflict prevention
+- Dependency graph management (blockers, parent-child)
+- GitHub Projects v2 integration
+
+#### 13. AgentCore Memory MCP Server
+**Location**: `tools/mcp/mcp_agentcore_memory/`
+**Transport**: STDIO (local) or HTTP (Port 8023)
+**Documentation**: [AgentCore Memory MCP Documentation](../../tools/mcp/mcp_agentcore_memory/docs/README.md)
+
+Multi-provider memory system for AI agents:
+- Short-term event storage (rate-limited for AgentCore)
+- Long-term fact storage
+- Semantic search across memories
+- Supports AWS Bedrock AgentCore or ChromaDB
+
+#### 14. Reaction Search MCP Server
 **Location**: `tools/mcp/mcp_reaction_search/`
 **Transport**: STDIO (local) or HTTP (Port 8024)
 **Documentation**: [Reaction Search MCP Documentation](../../tools/mcp/mcp_reaction_search/README.md)

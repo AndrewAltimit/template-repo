@@ -243,7 +243,7 @@ docker image prune -f
 
 ### Not Containerized
 
-- **Gemini CLI**: Needs to potentially invoke Docker (would require Docker-in-Docker)
+- **Claude CLI**: Requires host subscription authentication (machine-specific)
 - **Docker Compose**: Obviously needs to run on the host
 - **GitHub Actions runner**: Needs system-level access
 - **Git operations**: Need access to host git configuration

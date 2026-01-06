@@ -10,7 +10,7 @@ This repository includes automatic AI-powered code review for pull requests usin
 - Posts review comments directly to the PR
 - Non-blocking - won't fail your PR if the CLI is unavailable
 - Uses official Gemini CLI with automatic authentication
-- Receives project-specific context from PROJECT_CONTEXT.md
+- Receives project-specific context from `docs/agents/project-context.md`
 
 ## Setup Instructions
 
@@ -73,7 +73,7 @@ That's it! The next time you open a pull request, Gemini will automatically revi
 
 1. When a PR is opened or updated, the Gemini review job runs
 2. **Conversation history is automatically cleared** using the `clear_gemini_history` MCP tool to ensure fresh, unbiased review
-3. **Project context is loaded** from PROJECT_CONTEXT.md
+3. **Project context is loaded** from `docs/agents/project-context.md`
 4. It analyzes:
    - Project-specific context and philosophy
    - Changed files

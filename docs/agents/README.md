@@ -39,7 +39,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 
 **Key Features**:
 - Conversation history automatically cleared via MCP tool before each review
-- Receives PROJECT_CONTEXT.md for targeted feedback
+- Receives `docs/agents/project-context.md` for targeted feedback
 - Non-blocking (PR can proceed if review fails)
 - Focuses on project-specific concerns
 - Reviews containerization, security, and code quality
@@ -279,7 +279,7 @@ pr-monitor
 - Ask to follow container-first approach
 
 ### For Gemini Reviews
-- Keep PROJECT_CONTEXT.md updated
+- Keep `docs/agents/project-context.md` updated
 - Clear history before reviews
 - Focus feedback on security and standards
 - Don't block PR on review failures
