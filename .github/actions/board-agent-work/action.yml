@@ -651,13 +651,13 @@ runs:
 
             if [ "$USE_DOCKER" = "true" ]; then
               echo "Running Gemini in Docker..."
-              # Build docker-compose command; only pass -e flags if API key input was provided
-              DOCKER_CMD="docker-compose -f $DOCKER_COMPOSE_FILE run --rm"
+              # Use array to safely handle paths with spaces
+              DOCKER_CMD=(docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm)
               if [ -n "$INPUT_GEMINI_API_KEY" ]; then
-                DOCKER_CMD="$DOCKER_CMD -e GEMINI_API_KEY -e GOOGLE_API_KEY"
+                DOCKER_CMD+=(-e GEMINI_API_KEY -e GOOGLE_API_KEY)
               fi
               # Use 'gemini prompt' subcommand with stdin; bare 'gemini' enters interactive mode
-              if timeout "${AGENT_TIMEOUT}m" $DOCKER_CMD \
+              if timeout "${AGENT_TIMEOUT}m" "${DOCKER_CMD[@]}" \
                 mcp-gemini gemini prompt --output-format text < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
               else
