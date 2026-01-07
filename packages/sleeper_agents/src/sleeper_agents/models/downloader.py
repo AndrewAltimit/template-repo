@@ -125,20 +125,23 @@ class ModelDownloader:
             logger.info("Starting download from HuggingFace Hub: %s", model_id)
 
             # Download to HuggingFace cache (will be symlinked/managed by HF)
+            # NOTE: We only ignore documentation/metadata files that aren't needed for inference.
+            # config.json, tokenizer.json, etc. are REQUIRED for model loading and must NOT be ignored.
             model_path = snapshot_download(
                 repo_id=model_id,
                 cache_dir=str(self.hf_cache_dir),
                 resume_download=True,  # Resume if interrupted
                 local_files_only=False,
                 revision="main",  # Use main branch
-                # Don't download large files we don't need
+                # Only ignore documentation and legacy format files
                 ignore_patterns=[
-                    "*.msgpack",
-                    "*.h5",
-                    "*.ot",
-                    "*.md",
-                    "*.txt",
-                    "*.json",
+                    "*.msgpack",  # Flax format (not needed for PyTorch)
+                    "*.h5",  # TensorFlow format (not needed for PyTorch)
+                    "*.ot",  # Old PyTorch format
+                    "*.md",  # Documentation files
+                    "README*",  # README files
+                    "LICENSE*",  # License files
+                    ".gitattributes",  # Git metadata
                 ],
             )
 
@@ -167,14 +170,33 @@ class ModelDownloader:
         return self.cache_dir / safe_name
 
     def is_cached(self, model_id: str) -> bool:
-        """Check if model is already cached.
+        """Check if model is already cached in HuggingFace cache.
 
         Args:
             model_id: HuggingFace model ID
 
         Returns:
-            True if model is cached locally
+            True if model is cached locally (either in HF cache or custom cache)
         """
+        # First check HuggingFace cache using HF Hub's utility
+        try:
+            from huggingface_hub import try_to_load_from_cache
+
+            # Check if config.json exists in cache (a reliable indicator of complete download)
+            result = try_to_load_from_cache(
+                repo_id=model_id,
+                filename="config.json",
+                cache_dir=str(self.hf_cache_dir),
+            )
+            if result is not None and result != "missing":
+                return True
+        except ImportError:
+            pass
+        except Exception:
+            # Fall back to custom cache check
+            pass
+
+        # Fall back to checking custom cache directory
         cache_path = self._get_cache_path(model_id)
         return cache_path.exists()
 
