@@ -5,7 +5,7 @@ from typing import Any, Dict
 
 import numpy as np
 
-from sleeper_agents.app.config import DetectionConfig
+from sleeper_agents.app.config import DetectionConfig, DetectionMode
 from sleeper_agents.attention_analysis.analyzer import AttentionAnalyzer
 from sleeper_agents.detection.layer_probes import LayerProbeDetector
 from sleeper_agents.interventions.causal import CausalInterventionSystem
@@ -104,17 +104,49 @@ class SleeperDetector:
         Returns:
             Detection results with scores and analysis
         """
-        results: Dict[str, Any] = {"text": text, "detection_results": {}, "is_likely_backdoored": False, "confidence": 0.0}
+        results: Dict[str, Any] = {
+            "text": text,
+            "detection_results": {},
+            "is_likely_backdoored": False,
+            "confidence": 0.0,
+            "is_mock": False,  # Watermark for simulated results
+            "mode": self.config.mode.value,
+        }
+
+        # Initialize RNG for reproducible mock results
+        if self.config.mock_seed is not None:
+            np.random.seed(self.config.mock_seed)
+
+        # Determine if we can use real detection
+        can_use_real_probes = self.probe_detector and self.probe_detector.layer_probes
+        use_mock = False
+
+        if self.config.mode == DetectionMode.REAL and not can_use_real_probes:
+            raise RuntimeError(
+                "Detection mode is REAL but no trained probes are available. Train probes first or use mode=AUTO or mode=MOCK."
+            )
+        elif self.config.mode == DetectionMode.MOCK:
+            use_mock = True
+        elif self.config.mode == DetectionMode.AUTO and not can_use_real_probes:
+            use_mock = True
+            logger.warning("No trained probes available, falling back to mock detection (mode=AUTO)")
 
         # Layer probe detection
-        if self.probe_detector and self.layer_probes:
+        if not use_mock and can_use_real_probes:
             probe_results = await self.probe_detector.detect_backdoor(text, use_ensemble=use_ensemble)
             results["detection_results"]["probes"] = probe_results
             results["is_likely_backdoored"] = probe_results.get("is_backdoored", False)
             results["confidence"] = probe_results.get("confidence", 0.0)
         else:
-            # Simplified detection for testing
-            results["detection_results"]["probes"] = {"scores": {"layer_0": 0.5}, "is_backdoored": False, "confidence": 0.5}
+            # Mock detection - clearly marked as simulated
+            results["is_mock"] = True
+            mock_score = float(np.random.uniform(0.3, 0.7))
+            results["detection_results"]["probes"] = {
+                "scores": {"layer_0": mock_score},
+                "is_backdoored": mock_score > 0.5,
+                "confidence": mock_score,
+                "is_mock": True,
+            }
 
         # Attention analysis
         if check_attention and self.attention_analyzer:

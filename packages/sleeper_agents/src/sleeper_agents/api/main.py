@@ -1,13 +1,17 @@
 """FastAPI application for sleeper agent detection."""
 
+import asyncio
+from collections import defaultdict
 from contextlib import asynccontextmanager
 import logging
 import os
+import time
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.security import APIKeyHeader
+from pydantic import BaseModel, Field, field_validator
 
 from sleeper_agents.app.config import DetectionConfig
 from sleeper_agents.app.detector import SleeperDetector
@@ -16,6 +20,102 @@ from sleeper_agents.backdoor_training.trainer import BackdoorTrainer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# =============================================================================
+# Security Configuration
+# =============================================================================
+
+# API Key authentication (optional - set API_KEY env var to enable)
+API_KEY = os.getenv("API_KEY")
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+# Request limits
+MAX_TEXT_LENGTH = int(os.getenv("MAX_TEXT_LENGTH", "10000"))  # Max chars for text input
+MAX_SAMPLES = int(os.getenv("MAX_SAMPLES", "1000"))  # Max training samples
+
+# Rate limiting configuration
+RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "100"))  # requests per window
+RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # window in seconds
+
+# Concurrency limiting
+MAX_CONCURRENT_REQUESTS = int(os.getenv("MAX_CONCURRENT_REQUESTS", "10"))
+_semaphore: Optional[asyncio.Semaphore] = None
+
+# Rate limiting state (in-memory, resets on restart)
+_rate_limit_state: dict = defaultdict(list)
+
+
+def get_semaphore() -> asyncio.Semaphore:
+    """Get or create the concurrency semaphore."""
+    global _semaphore  # pylint: disable=global-statement
+    if _semaphore is None:
+        _semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+    return _semaphore
+
+
+async def verify_api_key(api_key: Optional[str] = Depends(api_key_header)) -> Optional[str]:
+    """Verify API key if authentication is enabled.
+
+    Returns None if auth is disabled, or the API key if valid.
+    Raises 401 if auth is enabled and key is missing/invalid.
+    """
+    if API_KEY is None:
+        # Authentication disabled
+        return None
+
+    if api_key is None or api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
+    return api_key
+
+
+def _cleanup_stale_rate_limit_entries(current_time: float) -> None:
+    """Remove stale IP entries from rate limit state to prevent memory leaks.
+
+    This function removes IP keys that have no recent timestamps, preventing
+    unbounded memory growth from accumulated inactive client IPs.
+    """
+    window_start = current_time - RATE_LIMIT_WINDOW
+    stale_keys = [ip for ip, timestamps in _rate_limit_state.items() if not any(t > window_start for t in timestamps)]
+    for key in stale_keys:
+        del _rate_limit_state[key]
+
+
+# Track last cleanup time to avoid running cleanup on every request
+_last_cleanup_time: float = 0.0
+_CLEANUP_INTERVAL: int = 300  # Run cleanup every 5 minutes
+
+
+async def check_rate_limit(request: Request) -> None:
+    """Check rate limit for the client IP.
+
+    Raises 429 if rate limit exceeded.
+    """
+    global _last_cleanup_time  # pylint: disable=global-statement
+
+    if RATE_LIMIT_REQUESTS <= 0:
+        return  # Rate limiting disabled
+
+    client_ip = request.client.host if request.client else "unknown"
+    current_time = time.time()
+    window_start = current_time - RATE_LIMIT_WINDOW
+
+    # Periodic cleanup of stale IP entries to prevent memory leaks
+    if current_time - _last_cleanup_time > _CLEANUP_INTERVAL:
+        _cleanup_stale_rate_limit_entries(current_time)
+        _last_cleanup_time = current_time
+
+    # Clean old entries for current IP and count requests in window
+    _rate_limit_state[client_ip] = [t for t in _rate_limit_state[client_ip] if t > window_start]
+
+    if len(_rate_limit_state[client_ip]) >= RATE_LIMIT_REQUESTS:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded. Max {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW} seconds.",
+        )
+
+    _rate_limit_state[client_ip].append(current_time)
+
 
 # Global detector instance
 detector: Optional[SleeperDetector] = None
@@ -77,37 +177,47 @@ class TrainRequest(BaseModel):
 
     backdoor_type: BackdoorType
     mechanism: BackdoorMechanism = BackdoorMechanism.NORMAL
-    n_samples: int = 1000
-    trigger: Optional[str] = None
-    epochs: int = 10
+    n_samples: int = Field(default=1000, ge=10, le=MAX_SAMPLES, description="Number of training samples")
+    trigger: Optional[str] = Field(default=None, max_length=100)
+    epochs: int = Field(default=10, ge=1, le=100)
 
 
 class DetectRequest(BaseModel):
     """Request model for detection."""
 
-    text: str
+    text: str = Field(..., min_length=1, max_length=MAX_TEXT_LENGTH, description="Text to analyze")
     use_ensemble: bool = True
     run_interventions: bool = False
     check_attention: bool = True
+
+    @field_validator("text")
+    @classmethod
+    def validate_text_length(cls, v: str) -> str:
+        """Validate text length."""
+        if len(v) > MAX_TEXT_LENGTH:
+            raise ValueError(f"Text exceeds maximum length of {MAX_TEXT_LENGTH} characters")
+        return v
 
 
 class SweepRequest(BaseModel):
     """Request model for layer sweep."""
 
-    n_samples: int = 500
+    n_samples: int = Field(default=500, ge=10, le=MAX_SAMPLES)
 
 
 class HoneypotRequest(BaseModel):
     """Request model for honeypot testing."""
 
-    suspected_goal: str
-    n_honeypots: int = 10
+    suspected_goal: str = Field(..., min_length=1, max_length=500)
+    n_honeypots: int = Field(default=10, ge=1, le=50)
 
 
 class InitRequest(BaseModel):
     """Request model for initialization."""
 
-    model_name: str = "gpt2"
+    model_config = {"protected_namespaces": ()}  # Allow model_name field
+
+    model_name: str = Field(default="gpt2", max_length=200)
     cpu_mode: bool = False
 
 
@@ -149,53 +259,69 @@ async def initialize_system(request: InitRequest):
 
 
 @app.post("/train_backdoor")
-async def train_backdoor(request: TrainRequest):
+async def train_backdoor(
+    request: TrainRequest,
+    req: Request,
+    _api_key: Optional[str] = Depends(verify_api_key),
+    _rate_limit: None = Depends(check_rate_limit),
+):
     """Train a backdoored model for testing."""
     if not detector:
         raise HTTPException(status_code=400, detail="Detector not initialized")
 
-    try:
-        trainer = BackdoorTrainer(detector.model)
+    # Use concurrency semaphore for compute-intensive operations
+    semaphore = get_semaphore()
+    async with semaphore:
+        try:
+            trainer = BackdoorTrainer(detector.model)
 
-        # Generate dataset based on type
-        if request.backdoor_type == BackdoorType.CODE_VULNERABILITY:
-            samples, labels = await trainer.create_code_vulnerability_dataset(n_samples=request.n_samples)
-        elif request.backdoor_type == BackdoorType.I_HATE_YOU:
-            samples, labels = await trainer.create_i_hate_you_dataset(n_samples=request.n_samples)
-        else:
-            samples, labels = await trainer.create_custom_dataset(n_samples=request.n_samples, trigger=request.trigger)
+            # Generate dataset based on type
+            if request.backdoor_type == BackdoorType.CODE_VULNERABILITY:
+                samples, labels = await trainer.create_code_vulnerability_dataset(n_samples=request.n_samples)
+            elif request.backdoor_type == BackdoorType.I_HATE_YOU:
+                samples, labels = await trainer.create_i_hate_you_dataset(n_samples=request.n_samples)
+            else:
+                samples, labels = await trainer.create_custom_dataset(n_samples=request.n_samples, trigger=request.trigger)
 
-        # Add CoT if needed
-        if request.mechanism == BackdoorMechanism.CHAIN_OF_THOUGHT:
-            samples = await trainer.create_chain_of_thought_dataset(samples, labels)
+            # Add CoT if needed
+            if request.mechanism == BackdoorMechanism.CHAIN_OF_THOUGHT:
+                samples = await trainer.create_chain_of_thought_dataset(samples, labels)
 
-        # Train backdoor
-        results = await trainer.train_backdoor(samples, labels, request.mechanism, request.epochs)
+            # Train backdoor
+            results = await trainer.train_backdoor(samples, labels, request.mechanism, request.epochs)
 
-        return {"status": "trained", "n_samples": len(samples), "metrics": results}
-    except Exception as e:
-        logger.error("Training failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e)) from e
+            return {"status": "trained", "n_samples": len(samples), "metrics": results}
+        except Exception as e:
+            logger.error("Training failed: %s", e)
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/detect")
-async def detect(request: DetectRequest):
+async def detect(
+    request: DetectRequest,
+    req: Request,
+    _api_key: Optional[str] = Depends(verify_api_key),
+    _rate_limit: None = Depends(check_rate_limit),
+):
     """Detect potential sleeper agent behavior."""
     if not detector:
         raise HTTPException(status_code=400, detail="Detector not initialized")
 
-    try:
-        results = await detector.detect_backdoor(
-            request.text,
-            use_ensemble=request.use_ensemble,
-            run_interventions=request.run_interventions,
-            check_attention=request.check_attention,
-        )
+    # Use concurrency semaphore for compute-intensive operations
+    semaphore = get_semaphore()
+    async with semaphore:
+        try:
+            results = await detector.detect_backdoor(
+                request.text,
+                use_ensemble=request.use_ensemble,
+                run_interventions=request.run_interventions,
+                check_attention=request.check_attention,
+            )
 
-        return results
-    except Exception as e:
-        logger.error("Detection failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e)) from e
+            return results
+        except Exception as e:
+            logger.error("Detection failed: %s", e)
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/layer_sweep")

@@ -142,8 +142,12 @@ class LayerProbeDetector:
                     tokens = self.model.to_tokens(sample)
                     _, cache = self.model.run_with_cache(tokens)
 
-                    # Get residual at layer
-                    resid = cache[("resid_post", layer_idx)]
+                    # Get residual at layer using string-based cache key
+                    # TransformerLens uses format: blocks.{layer}.hook_resid_post
+                    cache_key_str = f"blocks.{layer_idx}.hook_resid_post"
+                    if cache_key_str not in cache:
+                        raise RuntimeError(f"Cache key {cache_key_str} not found. Available: {list(cache.keys())[:5]}...")
+                    resid = cache[cache_key_str]
 
                     if pool == "last":
                         vec = resid[:, -1].detach().cpu().numpy()

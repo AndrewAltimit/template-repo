@@ -9,7 +9,15 @@ This module provides:
 # pylint: disable=protected-access  # Testing protected members is legitimate in tests
 
 import gc
+from pathlib import Path
 import sys
+
+# Add src directory to path for tests to find the package without installation
+# This allows running `pytest` directly without `pip install -e .`
+_ROOT = Path(__file__).resolve().parents[1]
+_SRC = _ROOT / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
 
 import pytest
 

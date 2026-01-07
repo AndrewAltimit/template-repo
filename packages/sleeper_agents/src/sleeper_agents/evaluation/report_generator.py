@@ -11,17 +11,19 @@ from typing import Any, Dict, List, Optional
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 import numpy as np
 
+from sleeper_agents.constants import get_evaluation_db_path
+
 
 class ReportGenerator:
     """Generate HTML/PDF reports from evaluation results."""
 
-    def __init__(self, db_path: Path = Path("evaluation_results.db")):
+    def __init__(self, db_path: Optional[Path] = None):
         """Initialize report generator.
 
         Args:
-            db_path: Path to SQLite database
+            db_path: Path to SQLite database. If None, uses centralized config.
         """
-        self.db_path = db_path
+        self.db_path = db_path if db_path is not None else get_evaluation_db_path()
 
         # Setup Jinja2 environment
         template_dir = Path(__file__).parent / "templates"
@@ -133,6 +135,7 @@ class ReportGenerator:
             "vulnerabilities": [],
             "strengths": [],
             "recommendations": [],
+            "results": results,  # Include raw results for template rendering
         }
 
         # Group by test type
@@ -144,25 +147,35 @@ class ReportGenerator:
             by_type[test_type].append(result)
 
         # Analyze each category
+        # Note: Use `is not None` to include valid 0.0 values
         for test_type, type_results in by_type.items():
+            type_accuracies = [r["accuracy"] for r in type_results if r.get("accuracy") is not None]
+            type_f1s = [r["f1_score"] for r in type_results if r.get("f1_score") is not None]
             analysis["test_categories"][test_type] = {
                 "count": len(type_results),
-                "avg_accuracy": np.mean([r["accuracy"] for r in type_results if r.get("accuracy")]),
-                "avg_f1": np.mean([r["f1_score"] for r in type_results if r.get("f1_score")]),
+                "avg_accuracy": float(np.mean(type_accuracies)) if type_accuracies else 0.0,
+                "avg_f1": float(np.mean(type_f1s)) if type_f1s else 0.0,
                 "tests": type_results,
             }
 
         # Calculate overall metrics
-        all_accuracies = [r["accuracy"] for r in results if r.get("accuracy")]
-        all_f1s = [r["f1_score"] for r in results if r.get("f1_score")]
+        # Note: Use `is not None` to include valid 0.0 values
+        all_accuracies = [r["accuracy"] for r in results if r.get("accuracy") is not None]
+        all_f1s = [r["f1_score"] for r in results if r.get("f1_score") is not None]
+        all_precisions = [r["precision"] for r in results if r.get("precision") is not None]
+        all_recalls = [r["recall"] for r in results if r.get("recall") is not None]
 
         analysis["overall_metrics"] = {
-            "mean_accuracy": np.mean(all_accuracies) if all_accuracies else 0,
-            "std_accuracy": np.std(all_accuracies) if all_accuracies else 0,
-            "mean_f1": np.mean(all_f1s) if all_f1s else 0,
-            "std_f1": np.std(all_f1s) if all_f1s else 0,
-            "min_accuracy": min(all_accuracies) if all_accuracies else 0,
-            "max_accuracy": max(all_accuracies) if all_accuracies else 0,
+            "mean_accuracy": float(np.mean(all_accuracies)) if all_accuracies else 0.0,
+            "std_accuracy": float(np.std(all_accuracies)) if all_accuracies else 0.0,
+            "mean_f1": float(np.mean(all_f1s)) if all_f1s else 0.0,
+            "std_f1": float(np.std(all_f1s)) if all_f1s else 0.0,
+            "min_accuracy": float(min(all_accuracies)) if all_accuracies else 0.0,
+            "max_accuracy": float(max(all_accuracies)) if all_accuracies else 0.0,
+            # Median metrics expected by template
+            "median_precision": float(np.median(all_precisions)) if all_precisions else 0.0,
+            "median_recall": float(np.median(all_recalls)) if all_recalls else 0.0,
+            "median_f1": float(np.median(all_f1s)) if all_f1s else 0.0,
         }
 
         # Identify vulnerabilities

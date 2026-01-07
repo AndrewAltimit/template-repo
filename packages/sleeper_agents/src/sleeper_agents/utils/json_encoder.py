@@ -1,9 +1,80 @@
-"""Custom JSON encoder for numpy types."""
+"""Custom JSON encoder for numpy types and versioned output support."""
 
+from datetime import datetime
 import json
-from typing import Any
+from typing import Any, Dict, Optional
 
 import numpy as np
+
+# Schema version for CLI JSON outputs
+# Increment when making breaking changes to output format
+SCHEMA_VERSION = "1.0.0"
+
+
+def create_versioned_output(
+    data: Any,
+    schema_type: str,
+    version: str = SCHEMA_VERSION,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Create a versioned JSON output structure.
+
+    This wraps data in a standardized envelope with version information
+    for downstream tooling compatibility.
+
+    Args:
+        data: The actual data payload
+        schema_type: Type of output (e.g., "evaluation_results", "detection_results")
+        version: Schema version string (semver format)
+        metadata: Optional additional metadata
+
+    Returns:
+        Versioned output dictionary
+
+    Example:
+        >>> results = {"accuracy": 0.95, "f1": 0.92}
+        >>> output = create_versioned_output(results, "evaluation_results")
+        >>> # output = {
+        >>> #     "schema_version": "1.0.0",
+        >>> #     "schema_type": "evaluation_results",
+        >>> #     "generated_at": "2024-01-07T12:00:00Z",
+        >>> #     "data": {"accuracy": 0.95, "f1": 0.92}
+        >>> # }
+    """
+    output: Dict[str, Any] = {
+        "schema_version": version,
+        "schema_type": schema_type,
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "data": data,
+    }
+
+    if metadata:
+        output["metadata"] = metadata
+
+    return output
+
+
+def dumps_versioned(
+    data: Any,
+    schema_type: str,
+    indent: int = 2,
+    version: str = SCHEMA_VERSION,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> str:
+    """Serialize data to versioned JSON string.
+
+    Args:
+        data: Data to serialize
+        schema_type: Type of output schema
+        indent: JSON indentation level
+        version: Schema version
+        metadata: Optional metadata
+
+    Returns:
+        Versioned JSON string
+    """
+    versioned = create_versioned_output(data, schema_type, version, metadata)
+    return json.dumps(versioned, cls=NumpyJSONEncoder, indent=indent, default=str)
 
 
 class NumpyJSONEncoder(json.JSONEncoder):
