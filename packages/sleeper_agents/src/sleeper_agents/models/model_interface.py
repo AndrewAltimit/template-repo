@@ -148,11 +148,33 @@ class ModelInterface(ABC):
 class HuggingFaceModel(ModelInterface):
     """HuggingFace transformer model interface."""
 
+    def __init__(
+        self,
+        model_id: str,
+        device: str = "cuda",
+        dtype: Optional[torch.dtype] = None,
+        trust_remote_code: bool = False,
+    ):
+        """Initialize HuggingFace model interface.
+
+        Args:
+            model_id: HuggingFace model ID or path
+            device: Device to load model on ('cuda', 'cpu', 'mps')
+            dtype: Data type (fp16, fp32, etc.)
+            trust_remote_code: Whether to trust remote code (default False for security)
+        """
+        super().__init__(model_id, device, dtype)
+        self.trust_remote_code = trust_remote_code
+
     def load(self) -> None:
         """Load HuggingFace model and tokenizer."""
+        import os
         from pathlib import Path
 
-        logger.info("Loading HuggingFace model: %s", self.model_id)
+        # Allow override via environment variable
+        trust_remote_code = self.trust_remote_code or os.getenv("HF_TRUST_REMOTE_CODE", "").lower() == "true"
+
+        logger.info("Loading HuggingFace model: %s (trust_remote_code=%s)", self.model_id, trust_remote_code)
 
         # Check if this is a LoRA/PEFT model
         model_path = Path(self.model_id)
@@ -167,7 +189,7 @@ class HuggingFaceModel(ModelInterface):
                 raise ImportError("PEFT library required for LoRA models. Install with: pip install peft>=0.7.0") from None
 
             # Load tokenizer first
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, trust_remote_code=True, use_fast=True)
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, trust_remote_code=trust_remote_code, use_fast=True)
 
             # Set padding token if not set
             if self.tokenizer and self.tokenizer.pad_token is None:
@@ -191,25 +213,26 @@ class HuggingFaceModel(ModelInterface):
         else:
             # Standard HuggingFace model loading
             # Load config first
-            self.config = AutoConfig.from_pretrained(self.model_id)
+            self.config = AutoConfig.from_pretrained(self.model_id, trust_remote_code=trust_remote_code)
 
             # Load tokenizer
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, trust_remote_code=True, use_fast=True)
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, trust_remote_code=trust_remote_code, use_fast=True)
 
             # Set padding token if not set
             if self.tokenizer and self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
 
             # Load model
+            # Note: device_map should be "auto" for CUDA, not the device string itself
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.model_id,
                 config=self.config,
                 torch_dtype=self.dtype,
-                device_map=self.device if self.device != "cpu" else None,
-                trust_remote_code=True,
+                device_map="auto" if self.device == "cuda" else None,
+                trust_remote_code=trust_remote_code,
             )
 
-            if self.device == "cpu":
+            if self.device in ("cpu", "mps"):
                 self.model = self.model.to(self.device)
 
         self.model.eval()
@@ -539,6 +562,7 @@ def load_model(
     device: str = "cuda",
     dtype: Optional[torch.dtype] = None,
     prefer_hooked: bool = False,
+    trust_remote_code: bool = False,
 ) -> ModelInterface:
     """Factory function to load appropriate model interface.
 
@@ -547,6 +571,7 @@ def load_model(
         device: Target device
         dtype: Data type
         prefer_hooked: Prefer HookedTransformer if available
+        trust_remote_code: Whether to trust remote code (default False for security)
 
     Returns:
         Loaded ModelInterface instance
@@ -561,6 +586,6 @@ def load_model(
             logger.info("HookedTransformer not available, falling back to HuggingFace: %s", e)
 
     # Default to HuggingFace
-    hf_model = HuggingFaceModel(model_id, device, dtype)
+    hf_model = HuggingFaceModel(model_id, device, dtype, trust_remote_code=trust_remote_code)
     hf_model.load()
     return hf_model

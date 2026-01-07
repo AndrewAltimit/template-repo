@@ -42,8 +42,6 @@ dependencies = [
     "plotly>=5.0.0",
     "seaborn>=0.12.0",
     "pandas>=2.0.0",
-    # Utilities
-    "loguru>=0.7.0",
 ]
 
 [project.optional-dependencies]

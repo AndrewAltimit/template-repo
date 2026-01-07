@@ -11,8 +11,10 @@ from pathlib import Path
 import sys
 from typing import List, Optional
 
+from sleeper_agents.constants import get_evaluation_db_path
 from sleeper_agents.evaluation.evaluator import ModelEvaluator
 from sleeper_agents.evaluation.report_generator import ReportGenerator
+from sleeper_agents.utils.json_encoder import dumps_versioned
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -142,9 +144,15 @@ Examples:
                 )
                 print(f"Report saved to: {report_path}")
 
-            # Save results to JSON
+            # Save results to JSON with schema versioning
             json_path = output_dir / f"results_{args.model}.json"
-            json_path.write_text(json.dumps(results, indent=2, default=str))
+            json_path.write_text(
+                dumps_versioned(
+                    results,
+                    schema_type="evaluation_results",
+                    metadata={"model": args.model, "suites": args.suites or ["all"]},
+                )
+            )
             print(f"\nResults saved to: {json_path}")
 
         except Exception as e:
@@ -262,7 +270,13 @@ Examples:
 
         # Save batch results
         batch_results_path = output_dir / "batch_results.json"
-        batch_results_path.write_text(json.dumps(all_results, indent=2, default=str))
+        batch_results_path.write_text(
+            dumps_versioned(
+                all_results,
+                schema_type="batch_evaluation_results",
+                metadata={"models": models, "test_suites": test_suites},
+            )
+        )
         print(f"\nBatch results saved to: {batch_results_path}")
 
         # Generate comparison report
@@ -282,9 +296,9 @@ Examples:
         """
         import sqlite3
 
-        db_path = Path("evaluation_results.db")
+        db_path = get_evaluation_db_path()
         if not db_path.exists():
-            print("No evaluation results found.")
+            print(f"No evaluation results found at {db_path}.")
             return
 
         conn = sqlite3.connect(db_path)
@@ -333,6 +347,8 @@ Examples:
         """
         import sqlite3
 
+        db_path = get_evaluation_db_path()
+
         if args.all:
             response = input("Remove ALL evaluation results? (y/N): ")
             if response.lower() != "y":
@@ -340,10 +356,9 @@ Examples:
                 return
 
             # Remove database
-            db_path = Path("evaluation_results.db")
             if db_path.exists():
                 db_path.unlink()
-                print("Database removed.")
+                print(f"Database removed: {db_path}")
 
             # Remove result files
             for path in Path("evaluation_results").glob("*"):
@@ -352,7 +367,6 @@ Examples:
 
         elif args.model:
             # Remove specific model results
-            db_path = Path("evaluation_results.db")
             if db_path.exists():
                 conn = sqlite3.connect(db_path)
                 cursor = conn.cursor()

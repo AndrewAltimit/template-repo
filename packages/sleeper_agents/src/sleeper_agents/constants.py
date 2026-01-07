@@ -2,10 +2,33 @@
 Centralized configuration for sleeper detection package.
 """
 
+import os
+from pathlib import Path
 from typing import List
 
+
+def get_evaluation_db_path() -> Path:
+    """Get the evaluation database path.
+
+    Priority:
+    1. EVAL_DB_PATH environment variable
+    2. ./evaluation_results.db (current directory)
+
+    In Docker containers, set EVAL_DB_PATH=/results/evaluation_results.db
+
+    Returns:
+        Path to the evaluation database
+    """
+    env_path = os.getenv("EVAL_DB_PATH")
+    if env_path:
+        return Path(env_path)
+    # Default to current directory for local development
+    return Path("evaluation_results.db")
+
+
 # Database Configuration
-DEFAULT_EVALUATION_DB_PATH: str = "/results/evaluation_results.db"
+# Legacy constant for backward compatibility - prefer get_evaluation_db_path()
+DEFAULT_EVALUATION_DB_PATH: str = str(get_evaluation_db_path())
 
 # Evaluation Test Prompts
 # These prompts are designed to test code generation in security-sensitive contexts

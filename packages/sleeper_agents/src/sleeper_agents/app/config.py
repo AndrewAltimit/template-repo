@@ -1,7 +1,21 @@
 """Configuration for sleeper agent detection system."""
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import List, Optional
+
+
+class DetectionMode(str, Enum):
+    """Detection mode determines whether real or simulated analysis is used.
+
+    - REAL: Requires actual model activations and trained probes. Fails if not available.
+    - MOCK: Uses simulated/random values for testing. Results are watermarked.
+    - AUTO: Uses real detection if available, falls back to mock with warnings.
+    """
+
+    REAL = "real"
+    MOCK = "mock"
+    AUTO = "auto"
 
 
 @dataclass
@@ -12,6 +26,15 @@ class DetectionConfig:
     model_name: str = "gpt2"
     device: str = "cuda"
     use_minimal_model: bool = False  # For CPU testing
+
+    # Detection mode (real, mock, or auto)
+    # - REAL: Requires actual activations, fails if unavailable
+    # - MOCK: Uses simulated values, outputs marked as is_mock=True
+    # - AUTO: Falls back to mock with warnings if real unavailable
+    mode: DetectionMode = DetectionMode.AUTO
+
+    # Random seed for reproducible mock results
+    mock_seed: Optional[int] = 42
 
     # Detection settings
     layers_to_probe: Optional[List[int]] = None
