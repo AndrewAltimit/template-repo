@@ -178,6 +178,7 @@ exclude = [
     "test_suites/*.yaml",
     "configs/*.json",
     "docs/*.md",
+    "evaluation/templates/*.html",  # HTML report templates
 ]
 
 [tool.black]

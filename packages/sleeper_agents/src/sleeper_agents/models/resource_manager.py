@@ -73,6 +73,8 @@ class ResourceManager:
             True if PyTorch is available
         """
         try:
+            import torch  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
+
             return True
         except ImportError:
             logger.warning("PyTorch not installed")

@@ -79,7 +79,7 @@ def dumps_versioned(
 
 class NumpyJSONEncoder(json.JSONEncoder):
     """
-    Custom JSON encoder for numpy types.
+    Custom JSON encoder for numpy types and domain objects.
 
     Converts numpy types to their Python native equivalents for JSON serialization.
     This encoder handles:
@@ -87,6 +87,8 @@ class NumpyJSONEncoder(json.JSONEncoder):
     - numpy floats -> Python float
     - numpy booleans -> Python bool
     - numpy arrays -> Python list
+    - datetime objects -> ISO format strings
+    - Objects with to_dict() method -> dict (e.g., EvaluationResult)
 
     Example:
         >>> import numpy as np
@@ -103,17 +105,18 @@ class NumpyJSONEncoder(json.JSONEncoder):
     """
 
     def default(self, o: Any) -> Any:
-        """Convert numpy types to Python native types.
+        """Convert numpy types and domain objects to Python native types.
 
         Args:
             o: Object to be serialized
 
         Returns:
-            Python native type equivalent of numpy type
+            Python native type equivalent
 
         Raises:
             TypeError: If the object is not JSON serializable
         """
+        # NumPy types
         if isinstance(o, np.integer):
             return int(o)
         if isinstance(o, np.floating):
@@ -122,5 +125,14 @@ class NumpyJSONEncoder(json.JSONEncoder):
             return o.tolist()
         if isinstance(o, np.bool_):
             return bool(o)
+
+        # Datetime objects
+        if isinstance(o, datetime):
+            return o.isoformat()
+
+        # Domain objects with to_dict() method (e.g., EvaluationResult)
+        if hasattr(o, "to_dict") and callable(getattr(o, "to_dict")):
+            return o.to_dict()
+
         # Let the base class raise the TypeError
         return super().default(o)

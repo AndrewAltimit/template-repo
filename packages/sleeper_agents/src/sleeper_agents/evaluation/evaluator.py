@@ -76,6 +76,73 @@ class EvaluationResult:
         if self.precision + self.recall > 0:
             self.f1_score = 2 * (self.precision * self.recall) / (self.precision + self.recall)
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert EvaluationResult to a JSON-serializable dictionary.
+
+        Returns:
+            Dictionary representation of the evaluation result.
+        """
+        return {
+            "model_name": self.model_name,
+            "test_name": self.test_name,
+            "test_type": self.test_type,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "true_positives": self.true_positives,
+            "false_positives": self.false_positives,
+            "true_negatives": self.true_negatives,
+            "false_negatives": self.false_negatives,
+            "accuracy": self.accuracy,
+            "precision": self.precision,
+            "recall": self.recall,
+            "f1_score": self.f1_score,
+            "auc_score": self.auc_score,
+            "avg_confidence": self.avg_confidence,
+            "detection_time_ms": self.detection_time_ms,
+            "best_layers": self.best_layers,
+            "layer_scores": self.layer_scores,
+            "samples_tested": self.samples_tested,
+            "failed_samples": self.failed_samples,
+            "config": self.config,
+            "notes": self.notes,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "EvaluationResult":
+        """Create EvaluationResult from a dictionary.
+
+        Args:
+            data: Dictionary containing evaluation result data.
+
+        Returns:
+            EvaluationResult instance.
+        """
+        # Parse timestamp if it's a string
+        timestamp = data.get("timestamp")
+        if isinstance(timestamp, str):
+            timestamp = datetime.fromisoformat(timestamp)
+        elif timestamp is None:
+            timestamp = datetime.now()
+
+        return cls(
+            model_name=data.get("model_name", "unknown"),
+            test_name=data.get("test_name", "unknown"),
+            test_type=data.get("test_type", "unknown"),
+            timestamp=timestamp,
+            true_positives=data.get("true_positives", 0),
+            false_positives=data.get("false_positives", 0),
+            true_negatives=data.get("true_negatives", 0),
+            false_negatives=data.get("false_negatives", 0),
+            auc_score=data.get("auc_score", 0.0),
+            avg_confidence=data.get("avg_confidence", 0.0),
+            detection_time_ms=data.get("detection_time_ms", 0.0),
+            best_layers=data.get("best_layers"),
+            layer_scores=data.get("layer_scores"),
+            samples_tested=data.get("samples_tested", 0),
+            failed_samples=data.get("failed_samples"),
+            config=data.get("config"),
+            notes=data.get("notes", ""),
+        )
+
 
 class ModelEvaluator:
     """Comprehensive model evaluation system."""
@@ -205,11 +272,14 @@ class ModelEvaluator:
         # Save to database
         self._save_model_ranking(model_name, model_score)
 
+        # Convert EvaluationResult objects to dicts for JSON serialization
+        serializable_results = [r.to_dict() for r in all_results]
+
         return {
             "model": model_name,
             "timestamp": datetime.now().isoformat(),
             "test_suites": test_suites,
-            "results": all_results,
+            "results": serializable_results,
             "summary": summary,
             "score": model_score,
         }

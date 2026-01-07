@@ -3,15 +3,56 @@ Report generation system for sleeper agent detection evaluation results.
 """
 
 from datetime import datetime
+import importlib.resources
 import json
+import logging
 from pathlib import Path
 import sqlite3
 from typing import Any, Dict, List, Optional
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import BaseLoader, Environment, TemplateNotFound, select_autoescape
 import numpy as np
 
 from sleeper_agents.constants import get_evaluation_db_path
+
+logger = logging.getLogger(__name__)
+
+
+class PackageResourceLoader(BaseLoader):
+    """Jinja2 loader that uses importlib.resources for package resources.
+
+    This loader works correctly whether the package is installed as a wheel,
+    egg, or run from source.
+    """
+
+    def __init__(self, package: str, subpath: str = ""):
+        """Initialize the loader.
+
+        Args:
+            package: Package name (e.g., "sleeper_agents.evaluation")
+            subpath: Subdirectory within the package (e.g., "templates")
+        """
+        self.package = package
+        self.subpath = subpath
+
+    def get_source(self, environment: Environment, template: str) -> tuple:
+        """Get template source from package resources."""
+        # Build the full resource path
+        resource_path = f"{self.subpath}/{template}" if self.subpath else template
+
+        try:
+            # Use importlib.resources to get template content
+            package_files = importlib.resources.files(self.package)
+            template_resource = package_files.joinpath(resource_path)
+
+            if template_resource.is_file():
+                source = template_resource.read_text(encoding="utf-8")
+                # Return (source, filename, uptodate_func)
+                return source, str(template_resource), lambda: True
+
+            raise TemplateNotFound(template)
+        except (FileNotFoundError, TypeError, AttributeError) as e:
+            raise TemplateNotFound(template) from e
 
 
 class ReportGenerator:
@@ -25,9 +66,12 @@ class ReportGenerator:
         """
         self.db_path = db_path if db_path is not None else get_evaluation_db_path()
 
-        # Setup Jinja2 environment
-        template_dir = Path(__file__).parent / "templates"
-        self.env = Environment(loader=FileSystemLoader(template_dir), autoescape=select_autoescape(["html", "xml"]))
+        # Setup Jinja2 environment with package resource loader
+        # This works whether running from source or installed package
+        self.env = Environment(
+            loader=PackageResourceLoader("sleeper_agents.evaluation", "templates"),
+            autoescape=select_autoescape(["html", "xml"]),
+        )
 
     def generate_model_report(self, model_name: str, output_path: Optional[Path] = None, output_format: str = "html") -> Path:
         """Generate comprehensive report for a single model.
@@ -564,22 +608,67 @@ class ReportGenerator:
 
         return float(max(0, min(1, score)))
 
-    def _generate_pdf_report(self, data: Dict[str, Any], _output_path: Optional[Path]) -> Path:
-        """Generate PDF report (requires additional dependencies).
+    def _generate_pdf_report(self, data: Dict[str, Any], output_path: Optional[Path]) -> Path:
+        """Generate PDF report (requires weasyprint or wkhtmltopdf).
 
         Args:
             data: Report data
-            _output_path: Output path
+            output_path: Output path
 
         Returns:
             Path to report
-        """
-        # First generate HTML
-        html_path = self._generate_html_report(data, None)
 
-        # Convert to PDF (would require wkhtmltopdf or similar)
-        # For now, just return HTML path
-        return html_path
+        Raises:
+            NotImplementedError: PDF generation requires additional dependencies.
+        """
+        # Try to import weasyprint (preferred PDF generator)
+        try:
+            from weasyprint import HTML as WeasyHTML
+
+            # Generate HTML first
+            html_path = self._generate_html_report(data, None)
+
+            # Convert to PDF
+            if output_path is None:
+                output_path = Path(f"report_{data['model_name']}_{datetime.now():%Y%m%d_%H%M%S}.pdf")
+
+            WeasyHTML(filename=str(html_path)).write_pdf(str(output_path))
+            logger.info("PDF report generated: %s", output_path)
+
+            # Clean up temporary HTML
+            html_path.unlink(missing_ok=True)
+
+            return output_path
+
+        except ImportError:
+            pass
+
+        # Try pdfkit/wkhtmltopdf as fallback
+        try:
+            import pdfkit
+
+            html_path = self._generate_html_report(data, None)
+
+            if output_path is None:
+                output_path = Path(f"report_{data['model_name']}_{datetime.now():%Y%m%d_%H%M%S}.pdf")
+
+            pdfkit.from_file(str(html_path), str(output_path))
+            logger.info("PDF report generated via pdfkit: %s", output_path)
+
+            html_path.unlink(missing_ok=True)
+            return output_path
+
+        except ImportError:
+            pass
+
+        # No PDF generator available - raise informative error
+        raise NotImplementedError(
+            "PDF report generation requires additional dependencies. "
+            "Install one of the following:\n"
+            "  - weasyprint: pip install weasyprint (recommended)\n"
+            "  - pdfkit: pip install pdfkit (requires wkhtmltopdf system package)\n\n"
+            "Alternatively, use format='html' and convert manually."
+        )
 
     def _generate_json_report(self, data: Dict[str, Any], output_path: Optional[Path]) -> Path:
         """Generate JSON report.

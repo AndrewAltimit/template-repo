@@ -5,6 +5,7 @@ from collections import defaultdict
 from contextlib import asynccontextmanager
 import logging
 import os
+import secrets
 import time
 from typing import Optional
 
@@ -41,6 +42,9 @@ RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))  # window in secon
 MAX_CONCURRENT_REQUESTS = int(os.getenv("MAX_CONCURRENT_REQUESTS", "10"))
 _semaphore: Optional[asyncio.Semaphore] = None
 
+# Initialization lock to prevent race conditions during detector reinitialization
+_init_lock: Optional[asyncio.Lock] = None
+
 # Rate limiting state (in-memory, resets on restart)
 _rate_limit_state: dict = defaultdict(list)
 
@@ -53,17 +57,36 @@ def get_semaphore() -> asyncio.Semaphore:
     return _semaphore
 
 
+def get_init_lock() -> asyncio.Lock:
+    """Get or create the initialization lock.
+
+    This lock prevents race conditions when reinitializing the detector
+    while other requests are in flight.
+    """
+    global _init_lock  # pylint: disable=global-statement
+    if _init_lock is None:
+        _init_lock = asyncio.Lock()
+    return _init_lock
+
+
 async def verify_api_key(api_key: Optional[str] = Depends(api_key_header)) -> Optional[str]:
     """Verify API key if authentication is enabled.
 
     Returns None if auth is disabled, or the API key if valid.
     Raises 401 if auth is enabled and key is missing/invalid.
+
+    Uses timing-safe comparison to prevent timing attacks.
     """
     if API_KEY is None:
         # Authentication disabled
         return None
 
-    if api_key is None or api_key != API_KEY:
+    if api_key is None:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
+    # Use timing-safe comparison to prevent timing attacks
+    # Both strings must be encoded to bytes for compare_digest
+    if not secrets.compare_digest(api_key.encode("utf-8"), API_KEY.encode("utf-8")):
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
     return api_key
@@ -241,21 +264,30 @@ async def health_check():
 
 @app.post("/initialize")
 async def initialize_system(request: InitRequest):
-    """Initialize or reinitialize the detection system."""
+    """Initialize or reinitialize the detection system.
+
+    Uses a lock to prevent race conditions when reinitializing while
+    other requests might be using the current detector.
+    """
     global detector  # pylint: disable=global-statement
 
-    try:
-        config = DetectionConfig(
-            model_name=request.model_name, device="cpu" if request.cpu_mode else "cuda", use_minimal_model=request.cpu_mode
-        )
+    init_lock = get_init_lock()
+    async with init_lock:
+        try:
+            config = DetectionConfig(
+                model_name=request.model_name, device="cpu" if request.cpu_mode else "cuda", use_minimal_model=request.cpu_mode
+            )
 
-        detector = SleeperDetector(config)
-        await detector.initialize()
+            new_detector = SleeperDetector(config)
+            await new_detector.initialize()
 
-        return {"status": "initialized", "model": request.model_name, "cpu_mode": request.cpu_mode}
-    except Exception as e:
-        logger.error("Failed to initialize: %s", e)
-        raise HTTPException(status_code=500, detail=str(e)) from e
+            # Atomically swap the detector reference
+            detector = new_detector
+
+            return {"status": "initialized", "model": request.model_name, "cpu_mode": request.cpu_mode}
+        except Exception as e:
+            logger.error("Failed to initialize: %s", e)
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/train_backdoor")

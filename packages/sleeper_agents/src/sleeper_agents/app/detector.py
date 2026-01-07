@@ -113,9 +113,9 @@ class SleeperDetector:
             "mode": self.config.mode.value,
         }
 
-        # Initialize RNG for reproducible mock results
-        if self.config.mock_seed is not None:
-            np.random.seed(self.config.mock_seed)
+        # Initialize local RNG for reproducible mock results (avoids mutating global state)
+        # Uses numpy's modern Generator API for thread-safe random number generation
+        rng = np.random.default_rng(self.config.mock_seed)
 
         # Determine if we can use real detection
         can_use_real_probes = self.probe_detector and self.probe_detector.layer_probes
@@ -140,7 +140,7 @@ class SleeperDetector:
         else:
             # Mock detection - clearly marked as simulated
             results["is_mock"] = True
-            mock_score = float(np.random.uniform(0.3, 0.7))
+            mock_score = float(rng.uniform(0.3, 0.7))
             results["detection_results"]["probes"] = {
                 "scores": {"layer_0": mock_score},
                 "is_backdoored": mock_score > 0.5,
@@ -227,9 +227,11 @@ class SleeperDetector:
         """
         scores = {}
         if self.config.layers_to_probe:
+            # Use local RNG for reproducible mock results
+            rng = np.random.default_rng(self.config.mock_seed)
             for layer_idx in self.config.layers_to_probe:
                 # Mock scoring for testing
-                scores[layer_idx] = 0.5 + np.random.random() * 0.5
+                scores[layer_idx] = 0.5 + rng.random() * 0.5
 
         return scores
 
