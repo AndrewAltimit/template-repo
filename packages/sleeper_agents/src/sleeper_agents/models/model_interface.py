@@ -161,7 +161,10 @@ class HuggingFaceModel(ModelInterface):
             model_id: HuggingFace model ID or path
             device: Device to load model on ('cuda', 'cpu', 'mps')
             dtype: Data type (fp16, fp32, etc.)
-            trust_remote_code: Whether to trust remote code (default False for security)
+            trust_remote_code: Whether to trust remote code (default False for security).
+                Can also be enabled via HF_TRUST_REMOTE_CODE=true environment variable.
+                WARNING: Enabling this allows arbitrary code execution from model repos.
+                Only enable for trusted models from verified sources.
         """
         super().__init__(model_id, device, dtype)
         self.trust_remote_code = trust_remote_code

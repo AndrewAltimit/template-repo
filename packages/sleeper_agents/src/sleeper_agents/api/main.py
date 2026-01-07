@@ -69,11 +69,30 @@ async def verify_api_key(api_key: Optional[str] = Depends(api_key_header)) -> Op
     return api_key
 
 
+def _cleanup_stale_rate_limit_entries(current_time: float) -> None:
+    """Remove stale IP entries from rate limit state to prevent memory leaks.
+
+    This function removes IP keys that have no recent timestamps, preventing
+    unbounded memory growth from accumulated inactive client IPs.
+    """
+    window_start = current_time - RATE_LIMIT_WINDOW
+    stale_keys = [ip for ip, timestamps in _rate_limit_state.items() if not any(t > window_start for t in timestamps)]
+    for key in stale_keys:
+        del _rate_limit_state[key]
+
+
+# Track last cleanup time to avoid running cleanup on every request
+_last_cleanup_time: float = 0.0
+_CLEANUP_INTERVAL: int = 300  # Run cleanup every 5 minutes
+
+
 async def check_rate_limit(request: Request) -> None:
     """Check rate limit for the client IP.
 
     Raises 429 if rate limit exceeded.
     """
+    global _last_cleanup_time  # pylint: disable=global-statement
+
     if RATE_LIMIT_REQUESTS <= 0:
         return  # Rate limiting disabled
 
@@ -81,7 +100,12 @@ async def check_rate_limit(request: Request) -> None:
     current_time = time.time()
     window_start = current_time - RATE_LIMIT_WINDOW
 
-    # Clean old entries and count requests in window
+    # Periodic cleanup of stale IP entries to prevent memory leaks
+    if current_time - _last_cleanup_time > _CLEANUP_INTERVAL:
+        _cleanup_stale_rate_limit_entries(current_time)
+        _last_cleanup_time = current_time
+
+    # Clean old entries for current IP and count requests in window
     _rate_limit_state[client_ip] = [t for t in _rate_limit_state[client_ip] if t > window_start]
 
     if len(_rate_limit_state[client_ip]) >= RATE_LIMIT_REQUESTS:
