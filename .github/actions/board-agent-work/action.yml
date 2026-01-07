@@ -534,9 +534,9 @@ runs:
         USE_DOCKER: ${{ inputs.use-docker }}
         DOCKER_COMPOSE_FILE: ${{ inputs.docker-compose-file }}
         OPENROUTER_API_KEY: ${{ inputs.openrouter-api-key }}
-        # Gemini CLI prioritizes GEMINI_API_KEY; set both for compatibility
-        GEMINI_API_KEY: ${{ inputs.gemini-api-key }}
-        GOOGLE_API_KEY: ${{ inputs.gemini-api-key }}
+        # Pass input as separate var; script will export GEMINI_API_KEY only if non-empty
+        # This avoids overriding existing env vars from .env or docker-compose.yml
+        INPUT_GEMINI_API_KEY: ${{ inputs.gemini-api-key }}
         BRANCH_NAME: ${{ steps.branch.outputs.branch_name }}
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
@@ -643,11 +643,21 @@ runs:
             ;;
 
           gemini)
+            # Only export API keys if input was provided; otherwise rely on .env/docker-compose.yml
+            if [ -n "$INPUT_GEMINI_API_KEY" ]; then
+              export GEMINI_API_KEY="$INPUT_GEMINI_API_KEY"
+              export GOOGLE_API_KEY="$INPUT_GEMINI_API_KEY"
+            fi
+
             if [ "$USE_DOCKER" = "true" ]; then
               echo "Running Gemini in Docker..."
+              # Build docker-compose command; only pass -e flags if API key input was provided
+              DOCKER_CMD="docker-compose -f $DOCKER_COMPOSE_FILE run --rm"
+              if [ -n "$INPUT_GEMINI_API_KEY" ]; then
+                DOCKER_CMD="$DOCKER_CMD -e GEMINI_API_KEY -e GOOGLE_API_KEY"
+              fi
               # Use 'gemini prompt' subcommand with stdin; bare 'gemini' enters interactive mode
-              if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
-                -e GEMINI_API_KEY -e GOOGLE_API_KEY \
+              if timeout "${AGENT_TIMEOUT}m" $DOCKER_CMD \
                 mcp-gemini gemini prompt --output-format text < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
               else
