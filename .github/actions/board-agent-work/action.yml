@@ -72,6 +72,11 @@ inputs:
     description: 'OpenRouter API key for OpenCode/Crush agents'
     required: false
 
+  # Gemini configuration
+  gemini-api-key:
+    description: 'Gemini API key for Gemini agent (also accepts GOOGLE_API_KEY)'
+    required: false
+
   # Container configuration
   use-docker:
     description: 'Use Docker containers for agent execution'
@@ -529,6 +534,9 @@ runs:
         USE_DOCKER: ${{ inputs.use-docker }}
         DOCKER_COMPOSE_FILE: ${{ inputs.docker-compose-file }}
         OPENROUTER_API_KEY: ${{ inputs.openrouter-api-key }}
+        # Gemini CLI prioritizes GEMINI_API_KEY; set both for compatibility
+        GEMINI_API_KEY: ${{ inputs.gemini-api-key }}
+        GOOGLE_API_KEY: ${{ inputs.gemini-api-key }}
         BRANCH_NAME: ${{ steps.branch.outputs.branch_name }}
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
@@ -637,15 +645,18 @@ runs:
           gemini)
             if [ "$USE_DOCKER" = "true" ]; then
               echo "Running Gemini in Docker..."
+              # Use 'gemini prompt' subcommand with stdin; bare 'gemini' enters interactive mode
               if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
-                mcp-gemini gemini < "$CONTEXT_FILE"; then
+                -e GEMINI_API_KEY -e GOOGLE_API_KEY \
+                mcp-gemini gemini prompt --output-format text < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
               else
                 AGENT_ERROR="Gemini Docker execution failed"
               fi
             elif command -v gemini &> /dev/null; then
               echo "Running Gemini locally..."
-              if timeout "${AGENT_TIMEOUT}m" gemini < "$CONTEXT_FILE"; then
+              # Use 'gemini prompt' subcommand with stdin; bare 'gemini' enters interactive mode
+              if timeout "${AGENT_TIMEOUT}m" gemini prompt --output-format text < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
               else
                 AGENT_ERROR="Gemini local execution failed"
