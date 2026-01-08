@@ -367,3 +367,84 @@ class SecurityManager:
     def reject_message(self) -> str:
         """Get rejection message."""
         return str(self.config["reject_message"])
+
+    def get_project_owners(self) -> List[str]:
+        """Get list of project owners from allow-list.
+
+        Returns authorized users who can make decisions on uncertain fixes.
+
+        Returns:
+            List of usernames
+        """
+        return list(self._allowed_users)
+
+    async def validate_pr_commit_unchanged(
+        self,
+        pr_number: int,
+        expected_commit_sha: str,
+        repository: str,
+    ) -> Tuple[bool, str]:
+        """Validate that PR HEAD hasn't changed since review was posted.
+
+        This prevents code injection attacks where:
+        1. Gemini posts review on commit A
+        2. Attacker pushes malicious commit B
+        3. Agent processes review, applying changes to commit B
+
+        Args:
+            pr_number: PR number to validate
+            expected_commit_sha: The commit SHA when review was posted
+            repository: Repository in format "owner/repo"
+
+        Returns:
+            Tuple of (is_valid, reason) - reason explains why invalid
+        """
+        import asyncio
+
+        try:
+            # Get current HEAD commit of PR using async subprocess
+            process = await asyncio.create_subprocess_exec(
+                "gh",
+                "pr",
+                "view",
+                str(pr_number),
+                "--repo",
+                repository,
+                "--json",
+                "headRefOid",
+                "-q",
+                ".headRefOid",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+
+            try:
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30)
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                return False, "Timeout while verifying PR commit"
+
+            if process.returncode != 0:
+                stderr_text = stderr.decode().strip() if stderr else "Unknown error"
+                logger.warning("Failed to get PR HEAD commit: %s", stderr_text)
+                return False, f"Could not verify PR commit: {stderr_text}"
+
+            current_sha = stdout.decode().strip() if stdout else ""
+
+            if not current_sha:
+                return False, "Could not determine current PR commit"
+
+            # Compare commits (allow prefix matching for short SHAs)
+            if current_sha.startswith(expected_commit_sha) or expected_commit_sha.startswith(current_sha):
+                return True, ""
+
+            return False, (
+                f"PR HEAD has changed since review was posted. "
+                f"Expected: {expected_commit_sha[:8]}, Current: {current_sha[:8]}. "
+                f"This may indicate the PR was modified after review."
+            )
+
+        except Exception as e:
+            logger.error("Error validating PR commit: %s", e)
+            return False, f"Error validating PR commit: {str(e)}"
