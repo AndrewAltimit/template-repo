@@ -24,15 +24,62 @@ MAX_DIFF_CHARS = 100000
 MAX_REVIEW_WORDS = 400
 
 # Keywords to identify issue severity in reasoning
-BUG_KEYWORDS = ["bug", "error", "crash", "fail", "broken", "incorrect", "wrong", "issue"]
+BUG_KEYWORDS = ["bug", "error", "crash", "fail", "broken", "incorrect", "wrong"]
 SECURITY_KEYWORDS = ["security", "vulnerability", "injection", "xss", "auth", "permission"]
 PERFORMANCE_KEYWORDS = ["performance", "slow", "memory", "leak", "optimize", "efficient"]
+
+# Phrases that indicate Codex is describing its process (should be filtered)
+REASONING_PREFIXES = [
+    "analyzing",
+    "reviewing",
+    "checking",
+    "looking",
+    "examining",
+    "inspecting",
+    "reading",
+    "parsing",
+    "searching",
+    "finding",
+    "identifying",
+    "preparing",
+    "continuing",
+    "requesting",
+    "sorting",
+    "unpacking",
+    "summarizing",
+    "i'm ",
+    "i am ",
+    "let me",
+    "now i",
+    "here i",
+]
+
+
+def _is_reasoning_phrase(text: str) -> bool:
+    """Check if text is a reasoning/process description rather than a finding."""
+    text_lower = text.lower().strip()
+    # Remove bold markers
+    text_lower = text_lower.replace("**", "")
+
+    # Check if starts with reasoning prefix
+    for prefix in REASONING_PREFIXES:
+        if text_lower.startswith(prefix):
+            return True
+
+    # Check for common reasoning patterns
+    if text_lower.startswith("i ") and any(
+        verb in text_lower[:50] for verb in ["want", "need", "will", "found", "see", "notice"]
+    ):
+        return True
+
+    return False
 
 
 def _format_reasoning_as_review(reasoning_texts: List[str]) -> str:
     """Format Codex reasoning into Gemini-like structured review format.
 
     Parses reasoning texts and organizes them into Issues, Suggestions, and Notes sections.
+    Filters out process descriptions and focuses on actual findings.
 
     Args:
         reasoning_texts: List of reasoning text items from Codex
@@ -48,10 +95,22 @@ def _format_reasoning_as_review(reasoning_texts: List[str]) -> str:
         if not text or not text.strip():
             continue
 
-        text_lower = text.lower()
+        # Skip reasoning/process descriptions
+        if _is_reasoning_phrase(text):
+            continue
 
-        # Classify based on content keywords
-        if any(kw in text_lower for kw in BUG_KEYWORDS):
+        # Clean up text - remove bold markers from headers
+        clean_text = text.strip()
+        if clean_text.startswith("**") and clean_text.endswith("**"):
+            # This is just a bold header, skip it
+            continue
+
+        text_lower = clean_text.lower()
+
+        # Classify based on content keywords - require file reference for issues
+        has_file_ref = bool(re.search(r"[`'\"]?[a-zA-Z0-9_/.-]+\.[a-zA-Z]+:?\d*[`'\"]?", clean_text))
+
+        if has_file_ref and any(kw in text_lower for kw in BUG_KEYWORDS):
             # Determine severity
             if any(kw in text_lower for kw in SECURITY_KEYWORDS):
                 severity = "SECURITY"
@@ -60,27 +119,25 @@ def _format_reasoning_as_review(reasoning_texts: List[str]) -> str:
             else:
                 severity = "BUG"
 
-            # Try to extract file:line reference
-            file_match = re.search(r"[`'\"]?([a-zA-Z0-9_/.-]+\.[a-zA-Z]+):?(\d+)?[`'\"]?", text)
+            # Extract file:line reference
+            file_match = re.search(r"[`'\"]?([a-zA-Z0-9_/.-]+\.[a-zA-Z]+):?(\d+)?[`'\"]?", clean_text)
             if file_match:
                 file_ref = file_match.group(1)
                 line_ref = file_match.group(2) or ""
                 if line_ref:
-                    issues.append(f"- [{severity}] {file_ref}:{line_ref} - {text}")
+                    issues.append(f"- [{severity}] {file_ref}:{line_ref} - {clean_text}")
                 else:
-                    issues.append(f"- [{severity}] {file_ref} - {text}")
-            else:
-                issues.append(f"- [{severity}] {text}")
+                    issues.append(f"- [{severity}] {file_ref} - {clean_text}")
 
-        elif any(kw in text_lower for kw in ["suggest", "recommend", "consider", "could", "should", "might"]):
-            suggestions.append(f"- {text}")
+        elif any(kw in text_lower for kw in ["suggest", "recommend", "consider"]):
+            suggestions.append(f"- {clean_text}")
 
-        elif any(kw in text_lower for kw in PERFORMANCE_KEYWORDS):
-            issues.append(f"- [PERFORMANCE] {text}")
+        elif has_file_ref and any(kw in text_lower for kw in PERFORMANCE_KEYWORDS):
+            issues.append(f"- [PERFORMANCE] {clean_text}")
 
-        else:
+        elif len(clean_text) > 50:  # Only include substantial notes
             # General observation goes to notes
-            notes.append(f"- {text}")
+            notes.append(f"- {clean_text}")
 
     # Build structured output
     sections = []

@@ -262,6 +262,7 @@ jobs:
       needs.gemini-review.result != 'skipped'
     runs-on: self-hosted
     timeout-minutes: 15  # Shorter timeout - Codex is faster
+    continue-on-error: true  # Advisory review - don't block PR on Codex failures
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       PR_TITLE: ${{ github.event.pull_request.title }}

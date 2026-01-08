@@ -958,21 +958,30 @@ Requirements:
         if not unaddressed_reviews:
             return
 
-        # If we have both reviews, consolidate them
+        # Track which reviews we've processed
+        processed_comments = set()
+
+        # If we have both reviews, consolidate them first
         if gemini_review and codex_review:
             await self._process_consolidated_ai_reviews(pr, gemini_review, codex_review, branch_name)
-        else:
-            # Process individual reviews as before
-            for comment, reviewer in unaddressed_reviews:
-                review_id = self._extract_gemini_review_id(comment)
-                actionable_items = self._extract_actionable_items(comment.get("body", ""))
-                if not actionable_items:
-                    logger.info("No actionable items found in %s review", reviewer)
-                    await self._post_gemini_acknowledgment(
-                        pr_number, review_id, f"No actionable items identified in {reviewer.capitalize()} review."
-                    )
-                    continue
-                await self._process_gemini_actionable_items(pr, comment, actionable_items, review_id, branch_name)
+            # Mark these as processed
+            processed_comments.add(id(gemini_review))
+            processed_comments.add(id(codex_review))
+
+        # Process any remaining unaddressed reviews individually
+        for comment, reviewer in unaddressed_reviews:
+            if id(comment) in processed_comments:
+                continue  # Already handled in consolidation
+
+            review_id = self._extract_gemini_review_id(comment)
+            actionable_items = self._extract_actionable_items(comment.get("body", ""))
+            if not actionable_items:
+                logger.info("No actionable items found in %s review", reviewer)
+                await self._post_gemini_acknowledgment(
+                    pr_number, review_id, f"No actionable items identified in {reviewer.capitalize()} review."
+                )
+                continue
+            await self._process_gemini_actionable_items(pr, comment, actionable_items, review_id, branch_name)
 
     async def _process_consolidated_ai_reviews(
         self,

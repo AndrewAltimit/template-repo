@@ -288,24 +288,31 @@ class TestCallCodex:
     @patch("subprocess.run")
     def test_handles_reasoning_events_v079(self, mock_run):
         """Extracts reasoning from v0.79.0 format when no messages present."""
-        jsonl_output = '{"type": "item.completed", "item": {"type": "reasoning", "text": "Analyzing code structure"}}\n'
+        # Use content that won't be filtered as process description
+        # (reasoning starting with "analyzing", "checking" etc. are filtered)
+        jsonl_output = '{"type": "item.completed", "item": {"type": "reasoning", "text": "The function at line 42 has a potential null reference issue"}}\n'
         mock_run.return_value = MagicMock(returncode=0, stdout=jsonl_output)
 
         result, success = call_codex("Review this code")
 
         assert success is True
-        assert "Analyzing code structure" in result
+        # Should be formatted as structured review with the finding included
+        assert "Issues" in result or "null reference" in result
 
     @patch("subprocess.run")
     def test_handles_reasoning_events_legacy(self, mock_run):
         """Extracts reasoning from legacy format when no messages present."""
-        jsonl_output = '{"msg": {"type": "agent_reasoning", "text": "Analyzing code structure"}}\n'
+        # Use content that won't be filtered as process description
+        jsonl_output = (
+            '{"msg": {"type": "agent_reasoning", "text": "The function at line 42 has a potential null reference issue"}}\n'
+        )
         mock_run.return_value = MagicMock(returncode=0, stdout=jsonl_output)
 
         result, success = call_codex("Review this code")
 
         assert success is True
-        assert "Analyzing code structure" in result
+        # Should be formatted as structured review with the finding included
+        assert "Issues" in result or "null reference" in result
 
     @patch("subprocess.run")
     def test_returns_failure_on_error(self, mock_run):
