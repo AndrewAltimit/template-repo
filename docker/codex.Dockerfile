@@ -48,7 +48,7 @@ COPY --from=gh-validator-builder /build/target/release/gh /usr/local/bin/gh
 RUN chmod +x /usr/local/bin/gh
 
 # Install Codex CLI globally (pinned version for reproducibility)
-RUN npm install -g @openai/codex@0.77.0
+RUN npm install -g @openai/codex@0.79.0
 
 # Create non-root user with consistent UID
 RUN useradd -m -u 1000 user && \
