@@ -41,10 +41,10 @@ post_pr_comment = codex_pr_review.post_pr_comment
 class TestCheckPrerequisites:
     """Tests for the check_prerequisites function."""
 
-    @patch("subprocess.run")
-    def test_all_prerequisites_met(self, mock_run):
+    @patch("codex_pr_review.shutil.which")
+    def test_all_prerequisites_met(self, mock_which):
         """Returns success when Codex CLI is available and auth exists."""
-        mock_run.return_value = MagicMock(returncode=0, stdout="/usr/bin/codex")
+        mock_which.return_value = "/usr/local/bin/codex"
 
         with patch.object(Path, "exists", return_value=True):
             ok, errors = check_prerequisites()
@@ -52,10 +52,10 @@ class TestCheckPrerequisites:
         assert ok is True
         assert errors == []
 
-    @patch("subprocess.run")
-    def test_codex_cli_not_found(self, mock_run):
+    @patch("codex_pr_review.shutil.which")
+    def test_codex_cli_not_found(self, mock_which):
         """Returns error when Codex CLI is not installed."""
-        mock_run.return_value = MagicMock(returncode=1, stdout="")
+        mock_which.return_value = None
 
         with patch.object(Path, "exists", return_value=True):
             ok, errors = check_prerequisites()
@@ -63,10 +63,10 @@ class TestCheckPrerequisites:
         assert ok is False
         assert any("Codex CLI not found" in e for e in errors)
 
-    @patch("subprocess.run")
-    def test_codex_auth_missing(self, mock_run):
+    @patch("codex_pr_review.shutil.which")
+    def test_codex_auth_missing(self, mock_which):
         """Returns error when Codex auth file is missing."""
-        mock_run.return_value = MagicMock(returncode=0, stdout="/usr/bin/codex")
+        mock_which.return_value = "/usr/local/bin/codex"
 
         with patch.object(Path, "exists", return_value=False):
             ok, errors = check_prerequisites()
@@ -74,16 +74,16 @@ class TestCheckPrerequisites:
         assert ok is False
         assert any("auth not found" in e for e in errors)
 
-    @patch("subprocess.run")
-    def test_subprocess_exception(self, mock_run):
-        """Handles subprocess exceptions gracefully."""
-        mock_run.side_effect = Exception("Command failed")
+    @patch("codex_pr_review.shutil.which")
+    def test_untrusted_path_rejected(self, mock_which):
+        """Returns error when Codex CLI is in untrusted location."""
+        mock_which.return_value = "/tmp/malicious/codex"
 
         with patch.object(Path, "exists", return_value=True):
             ok, errors = check_prerequisites()
 
         assert ok is False
-        assert any("Failed to check" in e for e in errors)
+        assert any("untrusted location" in e for e in errors)
 
 
 class TestGetPRInfo:
@@ -240,9 +240,11 @@ class TestLoadGeminiReview:
 class TestCallCodex:
     """Tests for the call_codex function."""
 
+    @patch("codex_pr_review.shutil.which")
     @patch("subprocess.run")
-    def test_successful_call_v079_format(self, mock_run):
+    def test_successful_call_v079_format(self, mock_run, mock_which):
         """Successfully calls Codex and parses v0.79.0 JSONL response."""
+        mock_which.return_value = "/usr/local/bin/codex"
         # Mock JSONL output from Codex v0.79.0 format
         jsonl_output = (
             '{"type": "thread.started", "thread_id": "test-123"}\n'
@@ -256,9 +258,11 @@ class TestCallCodex:
         assert success is True
         assert "Here is the review" in result
 
+    @patch("codex_pr_review.shutil.which")
     @patch("subprocess.run")
-    def test_successful_call_legacy_format(self, mock_run):
+    def test_successful_call_legacy_format(self, mock_run, mock_which):
         """Successfully calls Codex and parses legacy JSONL response."""
+        mock_which.return_value = "/usr/local/bin/codex"
         # Mock JSONL output from older Codex format
         jsonl_output = '{"msg": {"type": "agent_message", "message": "Here is the review"}}\n'
         mock_run.return_value = MagicMock(returncode=0, stdout=jsonl_output)
@@ -268,9 +272,11 @@ class TestCallCodex:
         assert success is True
         assert "Here is the review" in result
 
+    @patch("codex_pr_review.shutil.which")
     @patch("subprocess.run")
-    def test_handles_multiple_messages(self, mock_run):
+    def test_handles_multiple_messages(self, mock_run, mock_which):
         """Handles multiple message events in JSONL output."""
+        mock_which.return_value = "/usr/local/bin/codex"
         jsonl_output = (
             '{"type": "item.completed", "item": {"type": "message", '
             '"content": [{"type": "text", "text": "Part 1"}]}}\n'
@@ -285,9 +291,11 @@ class TestCallCodex:
         assert "Part 1" in result
         assert "Part 2" in result
 
+    @patch("codex_pr_review.shutil.which")
     @patch("subprocess.run")
-    def test_handles_reasoning_events_v079(self, mock_run):
+    def test_handles_reasoning_events_v079(self, mock_run, mock_which):
         """Extracts reasoning from v0.79.0 format when no messages present."""
+        mock_which.return_value = "/usr/local/bin/codex"
         # Use content that won't be filtered as process description
         # (reasoning starting with "analyzing", "checking" etc. are filtered)
         jsonl_output = '{"type": "item.completed", "item": {"type": "reasoning", "text": "The function at line 42 has a potential null reference issue"}}\n'
@@ -299,9 +307,11 @@ class TestCallCodex:
         # Should be formatted as structured review with the finding included
         assert "Issues" in result or "null reference" in result
 
+    @patch("codex_pr_review.shutil.which")
     @patch("subprocess.run")
-    def test_handles_reasoning_events_legacy(self, mock_run):
+    def test_handles_reasoning_events_legacy(self, mock_run, mock_which):
         """Extracts reasoning from legacy format when no messages present."""
+        mock_which.return_value = "/usr/local/bin/codex"
         # Use content that won't be filtered as process description
         jsonl_output = (
             '{"msg": {"type": "agent_reasoning", "text": "The function at line 42 has a potential null reference issue"}}\n'
@@ -314,9 +324,11 @@ class TestCallCodex:
         # Should be formatted as structured review with the finding included
         assert "Issues" in result or "null reference" in result
 
+    @patch("codex_pr_review.shutil.which")
     @patch("subprocess.run")
-    def test_returns_failure_on_error(self, mock_run):
+    def test_returns_failure_on_error(self, mock_run, mock_which):
         """Returns failure when Codex CLI errors."""
+        mock_which.return_value = "/usr/local/bin/codex"
         mock_run.return_value = MagicMock(returncode=1, stderr="API error", stdout="")
 
         result, success = call_codex("Review this code")
@@ -324,11 +336,13 @@ class TestCallCodex:
         assert success is False
         assert "error" in result.lower() or "failed" in result.lower()
 
+    @patch("codex_pr_review.shutil.which")
     @patch("subprocess.run")
-    def test_handles_timeout(self, mock_run):
+    def test_handles_timeout(self, mock_run, mock_which):
         """Handles timeout gracefully."""
         import subprocess
 
+        mock_which.return_value = "/usr/local/bin/codex"
         mock_run.side_effect = subprocess.TimeoutExpired(cmd="codex", timeout=300)
 
         result, success = call_codex("Review this code")
@@ -336,18 +350,22 @@ class TestCallCodex:
         assert success is False
         assert "timed out" in result.lower()
 
+    @patch("codex_pr_review.shutil.which")
     @patch("subprocess.run")
-    def test_handles_empty_output(self, mock_run):
+    def test_handles_empty_output(self, mock_run, mock_which):
         """Returns failure for empty output."""
+        mock_which.return_value = "/usr/local/bin/codex"
         mock_run.return_value = MagicMock(returncode=0, stdout="")
 
         result, success = call_codex("Review this code")
 
         assert success is False
 
+    @patch("codex_pr_review.shutil.which")
     @patch("subprocess.run")
-    def test_uses_sandbox_by_default(self, mock_run):
+    def test_uses_sandbox_by_default(self, mock_run, mock_which):
         """Uses sandbox mode by default."""
+        mock_which.return_value = "/usr/local/bin/codex"
         mock_run.return_value = MagicMock(returncode=0, stdout='{"msg": {"type": "agent_message", "message": "Done"}}')
 
         with patch.dict(os.environ, {"CODEX_BYPASS_SANDBOX": ""}, clear=False):
@@ -357,9 +375,11 @@ class TestCallCodex:
         assert "--sandbox" in call_args
         assert "workspace-write" in call_args
 
+    @patch("codex_pr_review.shutil.which")
     @patch("subprocess.run")
-    def test_bypass_sandbox_when_enabled(self, mock_run):
+    def test_bypass_sandbox_when_enabled(self, mock_run, mock_which):
         """Bypasses sandbox when CODEX_BYPASS_SANDBOX is set."""
+        mock_which.return_value = "/usr/local/bin/codex"
         mock_run.return_value = MagicMock(returncode=0, stdout='{"msg": {"type": "agent_message", "message": "Done"}}')
 
         with patch.dict(os.environ, {"CODEX_BYPASS_SANDBOX": "true"}):
@@ -367,6 +387,16 @@ class TestCallCodex:
 
         call_args = mock_run.call_args[0][0]
         assert "--dangerously-bypass-approvals-and-sandbox" in call_args
+
+    @patch("codex_pr_review.shutil.which")
+    def test_fails_for_untrusted_path(self, mock_which):
+        """Returns failure when codex binary is in untrusted location."""
+        mock_which.return_value = "/tmp/malicious/codex"
+
+        result, success = call_codex("Review this code")
+
+        assert success is False
+        assert "untrusted" in result.lower() or "not found" in result.lower()
 
 
 class TestAnalyzePR:

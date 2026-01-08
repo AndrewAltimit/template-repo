@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -53,6 +54,58 @@ REASONING_PREFIXES = [
     "now i",
     "here i",
 ]
+
+
+# Allowed paths for codex binary (security: prevent PATH hijacking)
+ALLOWED_CODEX_PATHS = [
+    "/usr/local/bin/codex",
+    "/usr/bin/codex",
+]
+
+# Patterns for allowed codex locations (nvm, npm global, etc.)
+ALLOWED_CODEX_PATTERNS = [
+    r"^/home/[^/]+/\.nvm/versions/node/[^/]+/bin/codex$",
+    r"^/home/[^/]+/\.npm-global/bin/codex$",
+    r"^/root/\.nvm/versions/node/[^/]+/bin/codex$",
+    r"^/opt/nodejs/[^/]+/bin/codex$",
+]
+
+
+def get_verified_codex_path() -> Optional[str]:
+    """Get the codex binary path and verify it's in a trusted location.
+
+    Security measure to prevent PATH hijacking attacks where a malicious
+    binary named 'codex' could be placed earlier in PATH.
+
+    Returns:
+        Absolute path to verified codex binary, or None if not found/untrusted
+    """
+    codex_path = shutil.which("codex")
+    if not codex_path:
+        return None
+
+    # Resolve to absolute path
+    codex_path = str(Path(codex_path).resolve())
+
+    # Check against allowed static paths
+    if codex_path in ALLOWED_CODEX_PATHS:
+        return codex_path
+
+    # Check against allowed patterns
+    for pattern in ALLOWED_CODEX_PATTERNS:
+        if re.match(pattern, codex_path):
+            return codex_path
+
+    # Log warning for unrecognized paths (may need to be added to allowlist)
+    print(f"Warning: Codex found at unexpected location: {codex_path}")
+    print("  If this is a legitimate installation, add it to ALLOWED_CODEX_PATHS")
+
+    # Allow if CODEX_ALLOW_UNVERIFIED_PATH is set (for testing/development)
+    if os.environ.get("CODEX_ALLOW_UNVERIFIED_PATH") == "true":
+        print("  Proceeding due to CODEX_ALLOW_UNVERIFIED_PATH=true")
+        return codex_path
+
+    return None
 
 
 def _is_reasoning_phrase(text: str) -> bool:
@@ -171,19 +224,18 @@ def check_prerequisites() -> Tuple[bool, List[str]]:
     """
     errors = []
 
-    # Check for Codex CLI
-    try:
-        result = subprocess.run(
-            ["which", "codex"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-        if result.returncode != 0:
+    # Check for Codex CLI with path verification
+    codex_path = get_verified_codex_path()
+    if not codex_path:
+        # Check if codex exists but is in untrusted location
+        raw_path = shutil.which("codex")
+        if raw_path:
+            errors.append(
+                f"Codex CLI found at untrusted location: {raw_path}. "
+                "Add to ALLOWED_CODEX_PATHS or set CODEX_ALLOW_UNVERIFIED_PATH=true"
+            )
+        else:
             errors.append("Codex CLI not found. Install with: npm install -g @openai/codex@0.79.0")
-    except Exception as e:
-        errors.append(f"Failed to check for Codex CLI: {e}")
 
     # Check for Codex auth
     auth_path = Path.home() / ".codex" / "auth.json"
@@ -319,9 +371,14 @@ def call_codex(prompt: str, timeout: int = 300) -> Tuple[str, bool]:
         Tuple of (response_text, success)
     """
     try:
+        # Get verified codex path (security: prevent PATH hijacking)
+        codex_path = get_verified_codex_path()
+        if not codex_path:
+            return "Codex binary not found or in untrusted location", False
+
         # Build command - use exec mode with sandbox for safety
         cmd = [
-            "codex",
+            codex_path,
             "exec",
             "--sandbox",
             "workspace-write",
@@ -333,7 +390,7 @@ def call_codex(prompt: str, timeout: int = 300) -> Tuple[str, bool]:
         # Check if bypass sandbox is enabled (only for already-sandboxed environments)
         if os.environ.get("CODEX_BYPASS_SANDBOX") == "true":
             cmd = [
-                "codex",
+                codex_path,
                 "exec",
                 "--dangerously-bypass-approvals-and-sandbox",
                 "--full-auto",
