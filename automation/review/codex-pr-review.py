@@ -13,6 +13,7 @@ Key features:
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -21,6 +22,88 @@ from typing import Any, Dict, List, Optional, Tuple
 # Maximum characters for diff to avoid context limits
 MAX_DIFF_CHARS = 100000
 MAX_REVIEW_WORDS = 400
+
+# Keywords to identify issue severity in reasoning
+BUG_KEYWORDS = ["bug", "error", "crash", "fail", "broken", "incorrect", "wrong", "issue"]
+SECURITY_KEYWORDS = ["security", "vulnerability", "injection", "xss", "auth", "permission"]
+PERFORMANCE_KEYWORDS = ["performance", "slow", "memory", "leak", "optimize", "efficient"]
+
+
+def _format_reasoning_as_review(reasoning_texts: List[str]) -> str:
+    """Format Codex reasoning into Gemini-like structured review format.
+
+    Parses reasoning texts and organizes them into Issues, Suggestions, and Notes sections.
+
+    Args:
+        reasoning_texts: List of reasoning text items from Codex
+
+    Returns:
+        Formatted review string matching Gemini's structure
+    """
+    issues = []
+    suggestions = []
+    notes = []
+
+    for text in reasoning_texts:
+        if not text or not text.strip():
+            continue
+
+        text_lower = text.lower()
+
+        # Classify based on content keywords
+        if any(kw in text_lower for kw in BUG_KEYWORDS):
+            # Determine severity
+            if any(kw in text_lower for kw in SECURITY_KEYWORDS):
+                severity = "SECURITY"
+            elif "critical" in text_lower or "major" in text_lower:
+                severity = "CRITICAL"
+            else:
+                severity = "BUG"
+
+            # Try to extract file:line reference
+            file_match = re.search(r"[`'\"]?([a-zA-Z0-9_/.-]+\.[a-zA-Z]+):?(\d+)?[`'\"]?", text)
+            if file_match:
+                file_ref = file_match.group(1)
+                line_ref = file_match.group(2) or ""
+                if line_ref:
+                    issues.append(f"- [{severity}] {file_ref}:{line_ref} - {text}")
+                else:
+                    issues.append(f"- [{severity}] {file_ref} - {text}")
+            else:
+                issues.append(f"- [{severity}] {text}")
+
+        elif any(kw in text_lower for kw in ["suggest", "recommend", "consider", "could", "should", "might"]):
+            suggestions.append(f"- {text}")
+
+        elif any(kw in text_lower for kw in PERFORMANCE_KEYWORDS):
+            issues.append(f"- [PERFORMANCE] {text}")
+
+        else:
+            # General observation goes to notes
+            notes.append(f"- {text}")
+
+    # Build structured output
+    sections = []
+
+    sections.append("## Issues")
+    if issues:
+        sections.append("\n".join(issues))
+    else:
+        sections.append("None identified")
+
+    sections.append("\n## Suggestions")
+    if suggestions:
+        sections.append("\n".join(suggestions))
+    else:
+        sections.append("None identified")
+
+    sections.append("\n## Notes")
+    if notes:
+        sections.append("\n".join(notes))
+    else:
+        sections.append("No additional observations")
+
+    return "\n".join(sections)
 
 
 def check_prerequisites() -> Tuple[bool, List[str]]:
@@ -268,9 +351,8 @@ def call_codex(prompt: str, timeout: int = 300) -> Tuple[str, bool]:
         if messages:
             combined = "\n".join(messages)
         elif reasoning_texts:
-            # Format reasoning as a fallback review
-            combined = "### Codex Analysis\n\n"
-            combined += "\n".join(f"- {r}" for r in reasoning_texts if r.strip())
+            # Format reasoning into Gemini-like structured format
+            combined = _format_reasoning_as_review(reasoning_texts)
         else:
             # Last resort: return raw output (this shouldn't happen)
             print("Warning: Could not parse Codex output, using raw output")
