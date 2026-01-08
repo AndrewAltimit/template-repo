@@ -714,6 +714,22 @@ Requirements:
         # Use timestamp + id for uniqueness
         return f"{created_at}-{comment_id}".replace(":", "-").replace("T", "-")
 
+    def _extract_codex_review_id(self, comment: Dict) -> str:
+        """Extract a unique identifier for a Codex review.
+
+        Uses the comment timestamp to create a unique ID for tracking responses.
+
+        Args:
+            comment: Comment dict
+
+        Returns:
+            Unique identifier string
+        """
+        created_at = comment.get("createdAt", "")
+        comment_id = comment.get("id", "")
+        # Use timestamp + id for uniqueness
+        return f"{created_at}-{comment_id}".replace(":", "-").replace("T", "-")
+
     def _extract_gemini_commit_sha(self, comment: Dict) -> Optional[str]:
         """Extract the commit SHA from a Gemini review marker.
 
@@ -803,6 +819,50 @@ Requirements:
                     body = comment.get("body", "")
                     # Check for direct Gemini response marker
                     if gemini_marker in body:
+                        return True
+                    # Check for consolidated response marker containing this review_id
+                    if consolidated_prefix in body and review_id in body:
+                        return True
+            except json.JSONDecodeError:
+                pass
+
+        return False
+
+    async def _has_responded_to_codex_review(self, pr_number: int, review_id: str) -> bool:
+        """Check if we've already responded to a Codex review.
+
+        Checks for both individual Codex response markers and consolidated
+        response markers (which include the review_id as part of the consolidated ID).
+
+        Args:
+            pr_number: PR number
+            review_id: Unique Codex review identifier
+
+        Returns:
+            True if already responded
+        """
+        output = await run_gh_command_async(
+            [
+                "pr",
+                "view",
+                str(pr_number),
+                "--repo",
+                self.repo or "",
+                "--json",
+                "comments",
+            ]
+        )
+
+        if output:
+            try:
+                data = json.loads(output)
+                codex_marker = CODEX_RESPONSE_MARKER.format(review_id)
+                # Also check for consolidated markers that include this review_id
+                consolidated_prefix = "<!-- ai-agent-consolidated-response:consolidated-"
+                for comment in data.get("comments", []):
+                    body = comment.get("body", "")
+                    # Check for direct Codex response marker
+                    if codex_marker in body:
                         return True
                     # Check for consolidated response marker containing this review_id
                     if consolidated_prefix in body and review_id in body:
@@ -961,18 +1021,19 @@ Requirements:
 
         logger.info("Consolidated to %d unique items", len(consolidated_items))
 
+        # Extract review IDs for both reviewers
+        gemini_id = self._extract_gemini_review_id(gemini_review)
+        codex_id = self._extract_codex_review_id(codex_review)
+        consolidated_id = f"consolidated-{gemini_id}-{codex_id}"
+
         if not consolidated_items:
-            # Post acknowledgment for both reviews
-            gemini_id = self._extract_gemini_review_id(gemini_review)
-            await self._post_gemini_acknowledgment(
-                pr_number, gemini_id, "No actionable items identified in consolidated AI review."
+            # Post consolidated acknowledgment that marks both reviews as handled
+            await self._post_consolidated_acknowledgment(
+                pr_number,
+                consolidated_id,
+                "No actionable items identified in consolidated AI review (Gemini + Codex).",
             )
             return
-
-        # Create a consolidated review ID
-        gemini_id = self._extract_gemini_review_id(gemini_review)
-        codex_id = self._extract_gemini_review_id(codex_review)
-        consolidated_id = f"consolidated-{gemini_id}-{codex_id}"
 
         # Process consolidated items with full context from both reviews
         await self._process_consolidated_actionable_items(
