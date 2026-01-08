@@ -1,4 +1,13 @@
-"""GitHub PR review monitoring with multi-agent support."""
+"""GitHub PR review monitoring with multi-agent support.
+
+This module provides PR monitoring with two modes:
+1. Trigger-based: Responds to explicit [Action][Agent] keywords from authorized users
+2. Auto-response: Automatically responds to Gemini AI review feedback using agent judgement
+
+The auto-response mode uses the AgentJudgement system to determine whether to:
+- Automatically implement fixes (high confidence)
+- Ask project owners for guidance (low confidence)
+"""
 
 import asyncio
 from datetime import datetime, timedelta, timezone
@@ -14,10 +23,22 @@ from ..board.config import load_config
 from ..board.manager import BoardManager
 from ..board.models import BoardConfig, IssueStatus
 from ..code_parser import CodeParser
+from ..security.judgement import AgentJudgement, JudgementResult
 from ..utils import run_gh_command, run_gh_command_async, run_git_command_async
 from .base import BaseMonitor
 
 logger = logging.getLogger(__name__)
+
+# Patterns to detect Gemini review comments
+GEMINI_REVIEW_PATTERNS = [
+    r"(?:gemini|google)\s*(?:ai\s*)?(?:code\s*)?review",
+    r"## (?:ai\s*)?code\s*review",
+    r"automated\s*(?:code\s*)?review\s*(?:by|from)\s*gemini",
+    r"\*\*gemini\s*review\*\*",
+]
+
+# Marker for tracking responses to Gemini reviews
+GEMINI_RESPONSE_MARKER = "<!-- ai-agent-gemini-response:{} -->"
 
 
 def get_best_available_agent(agents: Dict[str, Any], priority_list: List[str]) -> Optional[str]:
@@ -40,7 +61,21 @@ def get_best_available_agent(agents: Dict[str, Any], priority_list: List[str]) -
 
 
 class PRMonitor(BaseMonitor):
-    """Monitor GitHub PRs and handle review feedback."""
+    """Monitor GitHub PRs and handle review feedback.
+
+    This monitor supports two modes of operation:
+
+    1. **Trigger-based mode**: Responds to explicit `[Action][Agent]` keywords
+       from authorized users (defined in `.agents.yaml` allow-list).
+
+    2. **Auto-response mode**: Automatically detects and responds to Gemini AI
+       review feedback. Uses the AgentJudgement system to decide whether to:
+       - Auto-fix with high confidence (security issues, formatting, linting)
+       - Ask project owners for guidance (architectural changes, breaking changes)
+
+    The auto-response mode is enabled by default and can be disabled via the
+    `DISABLE_GEMINI_AUTO_RESPONSE` environment variable.
+    """
 
     def __init__(self) -> None:
         """Initialize PR monitor."""
@@ -49,6 +84,15 @@ class PRMonitor(BaseMonitor):
         self._board_config: Optional[BoardConfig] = None
         self._init_board_manager()
         self._memory_initialized = False
+
+        # Initialize agent judgement system with project owners from allow-list
+        project_owners = list(self.security_manager.allowed_users)
+        self.agent_judgement = AgentJudgement(project_owners=project_owners)
+
+        # Auto-response to Gemini reviews (can be disabled via env var)
+        self.gemini_auto_response_enabled = os.getenv("DISABLE_GEMINI_AUTO_RESPONSE", "").lower() != "true"
+        if self.gemini_auto_response_enabled:
+            logger.info("Gemini auto-response enabled")
 
     def _init_board_manager(self) -> None:
         """Initialize board manager if configuration exists."""
@@ -217,57 +261,70 @@ class PRMonitor(BaseMonitor):
                 logger.error("Error processing PR: %s", result)
 
     async def _process_single_pr_async(self, pr: Dict) -> None:
-        """Process a single PR."""
+        """Process a single PR.
+
+        This method handles both:
+        1. Trigger-based actions from authorized users ([Action][Agent] keywords)
+        2. Automatic responses to Gemini AI reviews (if enabled)
+        """
         pr_number = pr["number"]
         branch_name = pr.get("headRefName", "")
 
         # Get detailed review comments
         review_comments = self._get_review_comments(pr_number)
-        if not review_comments:
-            return
 
-        # Check each review comment for triggers
-        for comment in review_comments:
-            trigger_info = self._check_review_trigger(comment)
-            if not trigger_info:
-                continue
+        # Track if we processed any trigger-based requests
+        processed_trigger = False
 
-            action, agent_name, trigger_user = trigger_info
-
-            # Resolve agent if not specified in trigger
-            if agent_name is None:
-                agent_name = self._resolve_agent_for_pr()
-                if agent_name is None:
-                    error_msg = "No agent available. Please specify agent in trigger or configure agent_priorities."
-                    logger.error("No agent available for PR #%s", pr_number)
-                    self._post_error_comment(pr_number, error_msg, "pr")
+        # Check each review comment for explicit triggers
+        if review_comments:
+            for comment in review_comments:
+                trigger_info = self._check_review_trigger(comment)
+                if not trigger_info:
                     continue
 
-            logger.info("PR #%s: [%s][%s] by %s", pr_number, action, agent_name, trigger_user)
+                action, agent_name, trigger_user = trigger_info
 
-            # Security check
-            is_allowed, reason = self.security_manager.perform_full_security_check(
-                username=trigger_user,
-                action=f"pr_{action.lower()}",
-                repository=self.repo or "",
-                entity_type="pr",
-                entity_id=str(pr_number),
-            )
+                # Resolve agent if not specified in trigger
+                if agent_name is None:
+                    agent_name = self._resolve_agent_for_pr()
+                    if agent_name is None:
+                        error_msg = "No agent available. Please specify agent in trigger or configure agent_priorities."
+                        logger.error("No agent available for PR #%s", pr_number)
+                        self._post_error_comment(pr_number, error_msg, "pr")
+                        continue
 
-            if not is_allowed:
-                logger.warning("Security check failed for PR #%s: %s", pr_number, reason)
-                self._post_security_rejection(pr_number, reason, "pr")
-                continue
+                logger.info("PR #%s: [%s][%s] by %s", pr_number, action, agent_name, trigger_user)
 
-            # Check if we already responded to this specific comment
-            comment_id = comment.get("id")
-            if comment_id and await self._has_responded_to_comment(pr_number, comment_id):
-                logger.info("Already responded to comment %s on PR #%s", comment_id, pr_number)
-                continue
+                # Security check
+                is_allowed, reason = self.security_manager.perform_full_security_check(
+                    username=trigger_user,
+                    action=f"pr_{action.lower()}",
+                    repository=self.repo or "",
+                    entity_type="pr",
+                    entity_id=str(pr_number),
+                )
 
-            # Handle the action
-            if action.lower() in ["fix", "address", "implement"]:
-                await self._handle_review_feedback_async(pr, comment, agent_name, branch_name)
+                if not is_allowed:
+                    logger.warning("Security check failed for PR #%s: %s", pr_number, reason)
+                    self._post_security_rejection(pr_number, reason, "pr")
+                    continue
+
+                # Check if we already responded to this specific comment
+                comment_id = comment.get("id")
+                if comment_id and await self._has_responded_to_comment(pr_number, comment_id):
+                    logger.info("Already responded to comment %s on PR #%s", comment_id, pr_number)
+                    continue
+
+                # Handle the action - "approved" action triggers implementation
+                if action.lower() == "approved":
+                    await self._handle_review_feedback_async(pr, comment, agent_name, branch_name)
+                    processed_trigger = True
+
+        # Process Gemini reviews automatically (if enabled and no explicit trigger was processed)
+        # This ensures we don't duplicate work if an owner explicitly approved
+        if self.gemini_auto_response_enabled and not processed_trigger:
+            await self._process_gemini_reviews(pr, branch_name)
 
     def _get_review_comments(self, pr_number: int) -> List[Dict]:
         """Get review comments for a PR."""
@@ -559,6 +616,455 @@ Requirements:
                 pass
 
         return False
+
+    # =========================================================================
+    # Gemini Auto-Response Methods
+    # =========================================================================
+
+    def _is_gemini_review(self, comment: Dict) -> bool:
+        """Check if a comment is a Gemini AI review.
+
+        Args:
+            comment: Comment dict with 'body' and 'author' keys
+
+        Returns:
+            True if this appears to be a Gemini review comment
+        """
+        body = comment.get("body", "")
+        author = comment.get("author", "")
+
+        # Check if from github-actions bot (Gemini reviews are posted via Actions)
+        if "github-actions" not in author.lower():
+            return False
+
+        # Check for Gemini review patterns
+        for pattern in GEMINI_REVIEW_PATTERNS:
+            if re.search(pattern, body, re.IGNORECASE):
+                return True
+
+        return False
+
+    def _extract_gemini_review_id(self, comment: Dict) -> str:
+        """Extract a unique identifier for a Gemini review.
+
+        Uses the comment timestamp to create a unique ID for tracking responses.
+
+        Args:
+            comment: Comment dict
+
+        Returns:
+            Unique identifier string
+        """
+        created_at = comment.get("createdAt", "")
+        comment_id = comment.get("id", "")
+        # Use timestamp + id for uniqueness
+        return f"{created_at}-{comment_id}".replace(":", "-").replace("T", "-")
+
+    async def _has_responded_to_gemini_review(self, pr_number: int, review_id: str) -> bool:
+        """Check if we've already responded to a Gemini review.
+
+        Args:
+            pr_number: PR number
+            review_id: Unique Gemini review identifier
+
+        Returns:
+            True if already responded
+        """
+        output = await run_gh_command_async(
+            [
+                "pr",
+                "view",
+                str(pr_number),
+                "--repo",
+                self.repo or "",
+                "--json",
+                "comments",
+            ]
+        )
+
+        if output:
+            try:
+                data = json.loads(output)
+                marker = GEMINI_RESPONSE_MARKER.format(review_id)
+                for comment in data.get("comments", []):
+                    if marker in comment.get("body", ""):
+                        return True
+            except json.JSONDecodeError:
+                pass
+
+        return False
+
+    def _extract_actionable_items(self, review_body: str) -> List[Dict[str, str]]:
+        """Extract actionable items from a Gemini review.
+
+        Parses the review comment to identify specific issues that need addressing.
+
+        Args:
+            review_body: The full review comment body
+
+        Returns:
+            List of dicts with 'issue' and 'suggestion' keys
+        """
+        items = []
+
+        # Common patterns for issues in Gemini reviews
+        # Pattern 1: Numbered lists (1. Issue description)
+        numbered_pattern = r"^\s*\d+\.\s*(.+?)(?=\n\s*\d+\.|\n\n|$)"
+        for match in re.finditer(numbered_pattern, review_body, re.MULTILINE | re.DOTALL):
+            item_text = match.group(1).strip()
+            if len(item_text) > 10:  # Filter out trivial items
+                items.append({"issue": item_text, "suggestion": ""})
+
+        # Pattern 2: Bullet points (- or * Issue description)
+        bullet_pattern = r"^\s*[-*]\s*(.+?)(?=\n\s*[-*]|\n\n|$)"
+        for match in re.finditer(bullet_pattern, review_body, re.MULTILINE | re.DOTALL):
+            item_text = match.group(1).strip()
+            if len(item_text) > 10 and item_text not in [i["issue"] for i in items]:
+                items.append({"issue": item_text, "suggestion": ""})
+
+        # Pattern 3: Headers with issues (### Issue Name)
+        header_pattern = r"#{2,}\s*(.+?)\n([\s\S]+?)(?=\n#{2,}|\n\n\n|$)"
+        for match in re.finditer(header_pattern, review_body):
+            header = match.group(1).strip()
+            content = match.group(2).strip()
+            if any(kw in header.lower() for kw in ["issue", "problem", "error", "warning", "fix"]):
+                items.append({"issue": header, "suggestion": content})
+
+        return items
+
+    async def _process_gemini_reviews(self, pr: Dict, branch_name: str) -> None:
+        """Process unaddressed Gemini reviews on a PR.
+
+        This method:
+        1. Finds all Gemini review comments
+        2. Filters to those we haven't responded to
+        3. For each review, uses AgentJudgement to decide action
+        4. Either auto-fixes or asks owner for guidance
+
+        Args:
+            pr: PR data dict
+            branch_name: The PR branch name
+        """
+        if not self.gemini_auto_response_enabled:
+            return
+
+        pr_number = pr["number"]
+        review_comments = self._get_review_comments(pr_number)
+
+        for comment in review_comments:
+            if not self._is_gemini_review(comment):
+                continue
+
+            review_id = self._extract_gemini_review_id(comment)
+
+            # Skip if already responded
+            if await self._has_responded_to_gemini_review(pr_number, review_id):
+                logger.debug("Already responded to Gemini review %s on PR #%s", review_id, pr_number)
+                continue
+
+            logger.info("Found unaddressed Gemini review on PR #%s", pr_number)
+
+            # Extract actionable items from the review
+            actionable_items = self._extract_actionable_items(comment.get("body", ""))
+            if not actionable_items:
+                logger.info("No actionable items found in Gemini review")
+                # Post acknowledgment comment
+                await self._post_gemini_acknowledgment(pr_number, review_id, "No actionable items identified.")
+                continue
+
+            # Process each actionable item
+            await self._process_gemini_actionable_items(pr, comment, actionable_items, review_id, branch_name)
+
+    async def _process_gemini_actionable_items(
+        self,
+        pr: Dict,
+        review_comment: Dict,
+        items: List[Dict[str, str]],
+        review_id: str,
+        branch_name: str,
+    ) -> None:
+        """Process actionable items from a Gemini review.
+
+        Uses the AgentJudgement system to decide how to handle each item.
+
+        Args:
+            pr: PR data dict
+            review_comment: The Gemini review comment
+            items: List of actionable items
+            review_id: Unique review identifier
+            branch_name: PR branch name
+        """
+        pr_number = pr["number"]
+
+        # Get context for judgement
+        diff_output = await run_gh_command_async(["pr", "diff", str(pr_number), "--repo", self.repo or ""])
+
+        context = {
+            "pr_number": pr_number,
+            "pr_title": pr.get("title", ""),
+            "diff": diff_output[:5000] if diff_output else "",
+            "branch_name": branch_name,
+        }
+
+        # Assess all items and categorize by confidence
+        auto_fix_items = []
+        ask_owner_items = []
+
+        for item in items:
+            result = self.agent_judgement.assess_fix(item["issue"], context)
+
+            if result.should_auto_fix:
+                auto_fix_items.append((item, result))
+                logger.info(
+                    "Auto-fix item (confidence=%.2f, category=%s): %s",
+                    result.confidence,
+                    result.category.value,
+                    item["issue"][:50],
+                )
+            else:
+                ask_owner_items.append((item, result))
+                logger.info(
+                    "Ask owner for item (confidence=%.2f, category=%s): %s",
+                    result.confidence,
+                    result.category.value,
+                    item["issue"][:50],
+                )
+
+        # Handle auto-fix items
+        if auto_fix_items:
+            await self._auto_fix_gemini_items(pr, review_comment, auto_fix_items, review_id, branch_name)
+
+        # Handle ask-owner items
+        if ask_owner_items:
+            await self._ask_owner_for_gemini_items(pr_number, ask_owner_items, review_id)
+
+        # If nothing to do, post acknowledgment
+        if not auto_fix_items and not ask_owner_items:
+            await self._post_gemini_acknowledgment(pr_number, review_id, "Review analyzed - no changes needed.")
+
+    async def _auto_fix_gemini_items(
+        self,
+        pr: Dict,
+        review_comment: Dict,
+        items: List[Tuple[Dict[str, str], JudgementResult]],
+        review_id: str,
+        branch_name: str,
+    ) -> None:
+        """Automatically fix items from Gemini review.
+
+        Args:
+            pr: PR data dict
+            review_comment: The Gemini review comment
+            items: List of (item, judgement_result) tuples to auto-fix
+            review_id: Unique review identifier
+            branch_name: PR branch name
+        """
+        pr_number = pr["number"]
+
+        # Get the best available agent for code fixes
+        agent_name = self._resolve_agent_for_pr()
+        if not agent_name:
+            logger.error("No agent available for auto-fix")
+            return
+
+        agent = self.agents.get(agent_name.lower())
+        if not agent:
+            logger.error("Agent '%s' not initialized", agent_name)
+            return
+
+        # Build combined prompt for all auto-fix items
+        items_text = "\n".join(
+            f"- {item['issue']} (Category: {result.category.value}, Confidence: {result.confidence:.0%})"
+            for item, result in items
+        )
+
+        # Post starting work comment
+        marker = GEMINI_RESPONSE_MARKER.format(review_id)
+        start_comment = (
+            f"{self.agent_tag} Automatically addressing Gemini review feedback using {agent_name}.\n\n"
+            f"**Items being addressed:**\n{items_text}\n\n"
+            f"This typically takes a few minutes.\n\n"
+            f"*Auto-response to Gemini AI review.*\n"
+            f"{marker}"
+        )
+        self._post_comment(pr_number, start_comment, "pr")
+
+        # Build implementation prompt
+        review_body = review_comment.get("body", "")
+        diff_output = await run_gh_command_async(["pr", "diff", str(pr_number), "--repo", self.repo or ""])
+
+        prompt = f"""Address the following issues identified in an AI code review on PR #{pr_number}:
+
+## Items to Fix
+{items_text}
+
+## Full Review Context
+{review_body[:3000]}
+
+## Current PR Diff
+{diff_output[:5000] if diff_output else "No diff available"}
+
+## Requirements
+1. Fix all the listed issues
+2. Maintain existing code style and patterns
+3. Ensure changes don't break existing functionality
+4. Focus on the specific issues identified - don't over-engineer
+"""
+
+        # Generate and apply fixes
+        try:
+            context = {
+                "pr_number": pr_number,
+                "pr_title": pr.get("title", ""),
+                "branch_name": branch_name,
+                "gemini_review_id": review_id,
+            }
+
+            response = await agent.generate_code(prompt, context)
+            logger.info("Agent %s generated response for Gemini review fixes", agent.name)
+
+            # Apply the changes using existing method
+            await self._apply_gemini_fixes(pr, agent.name, response, branch_name, review_id, items)
+
+        except Exception as e:
+            logger.error("Failed to auto-fix Gemini review items: %s", e)
+            error_comment = (
+                f"{self.agent_tag} Attempted to auto-fix Gemini review items but encountered an error.\n\n"
+                f"**Error**: {str(e)}\n\n"
+                f"Please review manually or use `[Approved][Claude]` to trigger manual processing.\n\n"
+                f"{marker}"
+            )
+            self._post_comment(pr_number, error_comment, "pr")
+
+    async def _apply_gemini_fixes(
+        self,
+        pr: Dict,
+        agent_name: str,
+        implementation: str,
+        branch_name: str,
+        review_id: str,
+        items: List[Tuple[Dict[str, str], JudgementResult]],
+    ) -> None:
+        """Apply fixes from agent response for Gemini review items.
+
+        Args:
+            pr: PR data dict
+            agent_name: Name of the agent that generated fixes
+            implementation: Agent's implementation response
+            branch_name: PR branch name
+            review_id: Unique Gemini review identifier
+            items: List of (item, result) tuples that were addressed
+        """
+        pr_number = pr["number"]
+        marker = GEMINI_RESPONSE_MARKER.format(review_id)
+
+        try:
+            # Checkout the PR branch
+            logger.info("Checking out PR branch: %s", branch_name)
+            await run_gh_command_async(["pr", "checkout", str(pr_number), "--repo", self.repo or ""])
+
+            # Apply code changes
+            _blocks, results = CodeParser.extract_and_apply(implementation)
+
+            if results:
+                logger.info("Applied %s file changes for Gemini review fixes", len(results))
+
+            # Check for changes
+            status_output = await run_git_command_async(["status", "--porcelain"])
+            if status_output and status_output.strip():
+                # Commit changes
+                items_summary = ", ".join(item["issue"][:30] for item, _ in items[:3])
+                if len(items) > 3:
+                    items_summary += f" (+{len(items) - 3} more)"
+
+                commit_message = (
+                    f"fix: address Gemini review feedback\n\n"
+                    f"Auto-fixed by {agent_name} agent:\n"
+                    f"- {items_summary}\n\n"
+                    f"Generated with AI Agent Automation System (Gemini Auto-Response)"
+                )
+
+                await run_git_command_async(["add", "-A"])
+                await run_git_command_async(["commit", "-m", commit_message])
+                await run_git_command_async(["push"])
+
+                success_comment = (
+                    f"{self.agent_tag} Successfully addressed Gemini review feedback using {agent_name}!\n\n"
+                    f"**Changes committed and pushed to branch**: `{branch_name}`\n\n"
+                    f"**Items addressed**: {len(items)}\n\n"
+                    f"Please review the automated changes.\n\n"
+                    f"*Auto-response to Gemini AI review.*\n"
+                    f"{marker}"
+                )
+            else:
+                success_comment = (
+                    f"{self.agent_tag} Analyzed Gemini review feedback using {agent_name}.\n\n"
+                    f"No code changes were necessary - the issues may already be addressed "
+                    f"or require manual review.\n\n"
+                    f"*Auto-response to Gemini AI review.*\n"
+                    f"{marker}"
+                )
+
+            self._post_comment(pr_number, success_comment, "pr")
+
+        except Exception as e:
+            logger.error("Failed to apply Gemini fixes: %s", e)
+            error_comment = (
+                f"{self.agent_tag} Error applying Gemini review fixes: {str(e)}\n\nPlease review manually.\n\n{marker}"
+            )
+            self._post_comment(pr_number, error_comment, "pr")
+
+    async def _ask_owner_for_gemini_items(
+        self,
+        pr_number: int,
+        items: List[Tuple[Dict[str, str], JudgementResult]],
+        review_id: str,
+    ) -> None:
+        """Ask project owner for guidance on uncertain Gemini review items.
+
+        Args:
+            pr_number: PR number
+            items: List of (item, judgement_result) tuples
+            review_id: Unique Gemini review identifier
+        """
+        marker = GEMINI_RESPONSE_MARKER.format(review_id)
+
+        # Build the question comment
+        items_text = ""
+        for i, (item, result) in enumerate(items, 1):
+            items_text += f"\n### Item {i}: {result.category.value.replace('_', ' ').title()}\n"
+            items_text += f"**Issue**: {item['issue'][:200]}\n"
+            items_text += f"**Confidence**: {result.confidence:.0%}\n"
+            items_text += f"**Reasoning**: {result.reasoning}\n"
+            if result.ask_owner_question:
+                items_text += f"\n{result.ask_owner_question}\n"
+
+        comment = (
+            f"{self.agent_tag} **Guidance Needed on Gemini Review Feedback**\n\n"
+            f"The following items from the Gemini review require human decision:\n"
+            f"{items_text}\n\n"
+            f"---\n\n"
+            f"**How to proceed:**\n"
+            f"- Reply with `[Approved]` to have me implement all suggestions\n"
+            f"- Reply with specific guidance for individual items\n"
+            f"- Or address these items manually\n\n"
+            f"*Auto-response to Gemini AI review - asking for guidance due to low confidence.*\n"
+            f"{marker}"
+        )
+
+        self._post_comment(pr_number, comment, "pr")
+
+    async def _post_gemini_acknowledgment(self, pr_number: int, review_id: str, message: str) -> None:
+        """Post an acknowledgment comment for a Gemini review.
+
+        Args:
+            pr_number: PR number
+            review_id: Unique Gemini review identifier
+            message: Acknowledgment message
+        """
+        marker = GEMINI_RESPONSE_MARKER.format(review_id)
+        comment = f"{self.agent_tag} {message}\n\n*Auto-response to Gemini AI review.*\n{marker}"
+        self._post_comment(pr_number, comment, "pr")
 
     def _post_starting_work_comment(self, pr_number: int, agent_name: str, comment_id: str) -> None:
         """Post starting work comment."""

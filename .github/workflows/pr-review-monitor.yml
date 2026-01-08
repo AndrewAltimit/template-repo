@@ -1,5 +1,17 @@
 name: PR Review Monitor Agent
 
+# This workflow monitors PRs for review feedback and automatically responds.
+#
+# Two modes of operation:
+# 1. TRIGGER-BASED: Responds to explicit [Approved][Agent] keywords from authorized users
+# 2. AUTO-RESPONSE: Automatically responds to Gemini AI review feedback (enabled by default)
+#
+# The auto-response mode uses the AgentJudgement system to:
+# - Auto-fix high-confidence issues (security, formatting, linting, type errors)
+# - Ask project owners for guidance on low-confidence issues (architectural changes, API changes)
+#
+# Set DISABLE_GEMINI_AUTO_RESPONSE=true to disable auto-response mode
+
 on:
   pull_request_review:
     types:
@@ -8,12 +20,17 @@ on:
     types:
       - created
   schedule:
-    # Also run periodically to catch any missed reviews
+    # Run periodically to catch any missed reviews and process Gemini feedback
     - cron: '0 * * * *'
   workflow_dispatch:
     inputs:
       force_reprocess:
         description: 'Force reprocess PRs even if they have existing AI agent comments'
+        required: false
+        type: boolean
+        default: false
+      disable_gemini_auto_response:
+        description: 'Disable automatic response to Gemini reviews'
         required: false
         type: boolean
         default: false
@@ -102,6 +119,8 @@ jobs:
           # Set Python path to include the current directory
           PYTHONPATH: ${{ github.workspace }}
           PYTHONUNBUFFERED: "1"
+          # Gemini auto-response configuration (set to 'true' to disable)
+          DISABLE_GEMINI_AUTO_RESPONSE: ${{ inputs.disable_gemini_auto_response && 'true' || '' }}
         run: |
           echo "=== PR Review Monitor Starting ==="
           echo "Repository: $GITHUB_REPOSITORY"
