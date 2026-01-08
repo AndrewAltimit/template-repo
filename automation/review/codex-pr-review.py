@@ -84,8 +84,9 @@ def get_verified_codex_path() -> Optional[str]:
     if not codex_path:
         return None
 
-    # Resolve to absolute path
-    codex_path = str(Path(codex_path).resolve())
+    # Get absolute path WITHOUT following symlinks
+    # We trust symlinks in standard bin directories (e.g., nvm creates symlinks)
+    codex_path = str(Path(codex_path).absolute())
 
     # Check against allowed static paths
     if codex_path in ALLOWED_CODEX_PATHS:
