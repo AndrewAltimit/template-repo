@@ -399,34 +399,38 @@ class SecurityManager:
         Returns:
             Tuple of (is_valid, reason) - reason explains why invalid
         """
-        import subprocess
+        import asyncio
 
         try:
-            # Get current HEAD commit of PR
-            result = subprocess.run(
-                [
-                    "gh",
-                    "pr",
-                    "view",
-                    str(pr_number),
-                    "--repo",
-                    repository,
-                    "--json",
-                    "headRefOid",
-                    "-q",
-                    ".headRefOid",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
+            # Get current HEAD commit of PR using async subprocess
+            process = await asyncio.create_subprocess_exec(
+                "gh",
+                "pr",
+                "view",
+                str(pr_number),
+                "--repo",
+                repository,
+                "--json",
+                "headRefOid",
+                "-q",
+                ".headRefOid",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
 
-            if result.returncode != 0:
-                logger.warning("Failed to get PR HEAD commit: %s", result.stderr)
-                return False, f"Could not verify PR commit: {result.stderr}"
+            try:
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30)
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                return False, "Timeout while verifying PR commit"
 
-            current_sha = result.stdout.strip()
+            if process.returncode != 0:
+                stderr_text = stderr.decode().strip() if stderr else "Unknown error"
+                logger.warning("Failed to get PR HEAD commit: %s", stderr_text)
+                return False, f"Could not verify PR commit: {stderr_text}"
+
+            current_sha = stdout.decode().strip() if stdout else ""
 
             if not current_sha:
                 return False, "Could not determine current PR commit"
@@ -441,8 +445,6 @@ class SecurityManager:
                 f"This may indicate the PR was modified after review."
             )
 
-        except subprocess.TimeoutExpired:
-            return False, "Timeout while verifying PR commit"
         except Exception as e:
             logger.error("Error validating PR commit: %s", e)
             return False, f"Error validating PR commit: {str(e)}"

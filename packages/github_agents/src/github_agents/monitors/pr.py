@@ -660,6 +660,25 @@ Requirements:
         # Use timestamp + id for uniqueness
         return f"{created_at}-{comment_id}".replace(":", "-").replace("T", "-")
 
+    def _extract_gemini_commit_sha(self, comment: Dict) -> Optional[str]:
+        """Extract the commit SHA from a Gemini review marker.
+
+        Gemini reviews include a marker like:
+        <!-- gemini-review-marker:commit:aefb238 -->
+
+        Args:
+            comment: Comment dict with 'body' key
+
+        Returns:
+            Commit SHA if found, None otherwise
+        """
+        body = comment.get("body", "")
+        # Match the Gemini review marker format
+        match = re.search(r"gemini-review-marker:commit:([a-f0-9]+)", body, re.IGNORECASE)
+        if match:
+            return match.group(1)
+        return None
+
     async def _has_responded_to_gemini_review(self, pr_number: int, review_id: str) -> bool:
         """Check if we've already responded to a Gemini review.
 
@@ -860,6 +879,36 @@ Requirements:
             branch_name: PR branch name
         """
         pr_number = pr["number"]
+
+        # Security: Validate PR commit hasn't changed since review was posted
+        # This prevents TOCTOU attacks where malicious code is pushed after review
+        expected_sha = self._extract_gemini_commit_sha(review_comment)
+        if expected_sha:
+            is_valid, reason = await self.security_manager.validate_pr_commit_unchanged(
+                pr_number, expected_sha, self.repo or ""
+            )
+            if not is_valid:
+                logger.warning(
+                    "PR commit validation failed for PR #%s: %s",
+                    pr_number,
+                    reason,
+                )
+                marker = GEMINI_RESPONSE_MARKER.format(review_id)
+                security_comment = (
+                    f"{self.agent_tag} **Security check failed** - cannot auto-fix.\n\n"
+                    f"**Reason**: {reason}\n\n"
+                    f"This check prevents code injection attacks. "
+                    f"Please re-trigger review after ensuring PR is in expected state.\n\n"
+                    f"{marker}"
+                )
+                self._post_comment(pr_number, security_comment, "pr")
+                return
+            logger.info("PR commit validation passed for PR #%s", pr_number)
+        else:
+            logger.warning(
+                "Could not extract commit SHA from Gemini review on PR #%s - skipping validation",
+                pr_number,
+            )
 
         # Get the best available agent for code fixes
         agent_name = self._resolve_agent_for_pr()

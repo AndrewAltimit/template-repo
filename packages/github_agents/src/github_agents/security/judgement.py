@@ -116,12 +116,12 @@ class AgentJudgement:
         FixCategory.UNUSED_IMPORT: [
             r"unused\s*import",
             r"import\s*\w+\s*(?:is\s*)?never\s*used",
-            r"f401",  # flake8 unused import
+            r"\bf401\b",  # flake8 unused import (word boundary to avoid false positives)
         ],
         FixCategory.UNUSED_VARIABLE: [
             r"unused\s*(?:variable|argument|parameter)",
             r"(?:variable|argument)\s*\w+\s*(?:is\s*)?never\s*used",
-            r"f841",  # flake8 unused variable
+            r"\bf841\b",  # flake8 unused variable (word boundary to avoid false positives)
         ],
     }
 
