@@ -241,9 +241,25 @@ class TestCallCodex:
     """Tests for the call_codex function."""
 
     @patch("subprocess.run")
-    def test_successful_call(self, mock_run):
-        """Successfully calls Codex and parses response."""
-        # Mock JSONL output from Codex
+    def test_successful_call_v079_format(self, mock_run):
+        """Successfully calls Codex and parses v0.79.0 JSONL response."""
+        # Mock JSONL output from Codex v0.79.0 format
+        jsonl_output = (
+            '{"type": "thread.started", "thread_id": "test-123"}\n'
+            '{"type": "item.completed", "item": {"type": "message", '
+            '"content": [{"type": "text", "text": "Here is the review"}]}}\n'
+        )
+        mock_run.return_value = MagicMock(returncode=0, stdout=jsonl_output)
+
+        result, success = call_codex("Review this code")
+
+        assert success is True
+        assert "Here is the review" in result
+
+    @patch("subprocess.run")
+    def test_successful_call_legacy_format(self, mock_run):
+        """Successfully calls Codex and parses legacy JSONL response."""
+        # Mock JSONL output from older Codex format
         jsonl_output = '{"msg": {"type": "agent_message", "message": "Here is the review"}}\n'
         mock_run.return_value = MagicMock(returncode=0, stdout=jsonl_output)
 
@@ -256,8 +272,10 @@ class TestCallCodex:
     def test_handles_multiple_messages(self, mock_run):
         """Handles multiple message events in JSONL output."""
         jsonl_output = (
-            '{"msg": {"type": "agent_message", "message": "Part 1"}}\n'
-            '{"msg": {"type": "agent_message", "message": "Part 2"}}\n'
+            '{"type": "item.completed", "item": {"type": "message", '
+            '"content": [{"type": "text", "text": "Part 1"}]}}\n'
+            '{"type": "item.completed", "item": {"type": "message", '
+            '"content": [{"type": "text", "text": "Part 2"}]}}\n'
         )
         mock_run.return_value = MagicMock(returncode=0, stdout=jsonl_output)
 
@@ -268,16 +286,26 @@ class TestCallCodex:
         assert "Part 2" in result
 
     @patch("subprocess.run")
-    def test_handles_reasoning_events(self, mock_run):
-        """Includes reasoning events in output."""
+    def test_handles_reasoning_events_v079(self, mock_run):
+        """Extracts reasoning from v0.79.0 format when no messages present."""
+        jsonl_output = '{"type": "item.completed", "item": {"type": "reasoning", "text": "Analyzing code structure"}}\n'
+        mock_run.return_value = MagicMock(returncode=0, stdout=jsonl_output)
+
+        result, success = call_codex("Review this code")
+
+        assert success is True
+        assert "Analyzing code structure" in result
+
+    @patch("subprocess.run")
+    def test_handles_reasoning_events_legacy(self, mock_run):
+        """Extracts reasoning from legacy format when no messages present."""
         jsonl_output = '{"msg": {"type": "agent_reasoning", "text": "Analyzing code structure"}}\n'
         mock_run.return_value = MagicMock(returncode=0, stdout=jsonl_output)
 
         result, success = call_codex("Review this code")
 
         assert success is True
-        assert "Reasoning" in result
-        assert "Analyzing" in result
+        assert "Analyzing code structure" in result
 
     @patch("subprocess.run")
     def test_returns_failure_on_error(self, mock_run):

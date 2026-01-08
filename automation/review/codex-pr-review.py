@@ -219,27 +219,62 @@ def call_codex(prompt: str, timeout: int = 300) -> Tuple[str, bool]:
             return "No output from Codex", False
 
         messages = []
+        reasoning_texts = []
         for line in output.split("\n"):
             if not line.strip():
                 continue
             try:
                 event = json.loads(line)
-                if "msg" in event:
+                event_type = event.get("type", "")
+
+                # Handle Codex v0.79.0 JSONL format
+                if event_type == "item.completed":
+                    item = event.get("item", {})
+                    item_type = item.get("type", "")
+
+                    # Extract agent messages (final response)
+                    if item_type == "message":
+                        content = item.get("content", [])
+                        for part in content:
+                            if part.get("type") == "text":
+                                messages.append(part.get("text", ""))
+
+                    # Extract reasoning for context
+                    elif item_type == "reasoning":
+                        text = item.get("text", "")
+                        if text:
+                            reasoning_texts.append(text)
+
+                # Handle legacy format (older Codex versions)
+                elif "msg" in event:
                     msg = event["msg"]
                     msg_type = msg.get("type")
                     if msg_type == "agent_message":
                         messages.append(msg.get("message", ""))
                     elif msg_type == "agent_reasoning":
                         text = msg.get("text", "")
-                        if text and not text.startswith("**"):
-                            messages.append(f"[Reasoning] {text}")
-                elif event.get("type") == "message":
+                        if text:
+                            reasoning_texts.append(text)
+                elif event_type == "message":
                     messages.append(event.get("message", ""))
+
             except json.JSONDecodeError:
-                if line and not line.startswith("["):
+                # Plain text output (non-JSON mode)
+                if line and not line.startswith("[") and not line.startswith("{"):
                     messages.append(line)
 
-        combined = "\n".join(messages) if messages else output
+        # Prefer messages, fall back to reasoning summary if no messages
+        if messages:
+            combined = "\n".join(messages)
+        elif reasoning_texts:
+            # Format reasoning as a fallback review
+            combined = "### Codex Analysis\n\n"
+            combined += "\n".join(f"- {r}" for r in reasoning_texts if r.strip())
+        else:
+            # Last resort: return raw output (this shouldn't happen)
+            print("Warning: Could not parse Codex output, using raw output")
+            combined = output
+
         return combined, True
 
     except subprocess.TimeoutExpired:
