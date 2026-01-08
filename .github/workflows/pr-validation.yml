@@ -252,6 +252,81 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # Stage 2b: Codex AI Code Review (Secondary reviewer with Gemini context)
+  codex-review:
+    name: Codex AI Code Review
+    needs: [detect-changes, gemini-review]
+    if: |
+      github.event_name == 'pull_request' &&
+      (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft) &&
+      needs.gemini-review.result != 'skipped'
+    runs-on: self-hosted
+    timeout-minutes: 15  # Shorter timeout - Codex is faster
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_BODY: ${{ github.event.pull_request.body }}
+      PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+      BASE_BRANCH: ${{ github.base_ref }}
+      HEAD_BRANCH: ${{ github.head_ref }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Download Gemini review artifact
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: gemini-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .
+
+      - name: Setup Node.js with nvm
+        shell: bash
+        run: |
+          # Source nvm if available
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+          # Use Node.js 22.16.0
+          nvm use 22.16.0
+          echo "Node.js version: $(node --version)"
+
+          # Verify Codex CLI is available
+          which codex || echo "Codex CLI not found in PATH"
+          codex --version || echo "Could not get Codex version"
+
+      - name: Set Gemini review path
+        run: |
+          if [ -f "gemini-review.md" ]; then
+            echo "GEMINI_REVIEW_PATH=gemini-review.md" >> $GITHUB_ENV
+            echo "Found Gemini review artifact"
+          else
+            echo "No Gemini review artifact found - Codex will review independently"
+          fi
+
+      - name: Run Codex CLI Review
+        continue-on-error: true  # Don't fail the PR if Codex review fails
+        shell: bash
+        run: |
+          echo "Starting Codex PR Review..."
+          python3 automation/review/codex-pr-review.py
+
+      - name: Upload Codex review artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: codex-review.md
+          retention-days: 7
+          if-no-files-found: ignore
+
   # Stage 3a: Format check stage
   format-check:
     name: Python Format Check
@@ -773,6 +848,7 @@ jobs:
     needs:
       - detect-changes
       - gemini-review
+      - codex-review
       - format-check
       - basic-lint
       - full-lint
@@ -803,6 +879,7 @@ jobs:
           echo "**Validation Results:**"
           echo "- Change Detection: ${{ needs.detect-changes.result }}"
           echo "- Gemini AI Review: ${{ needs.gemini-review.result }}"
+          echo "- Codex AI Review: ${{ needs.codex-review.result }}"
           echo "- Format Check: ${{ needs.format-check.result }}"
           echo "- Basic Lint: ${{ needs.basic-lint.result }}"
           echo "- Full Lint: ${{ needs.full-lint.result }}"
@@ -817,7 +894,7 @@ jobs:
           echo "- Gaea2 Integration Tests: ${{ needs.gaea2-integration-tests.result }}"
           echo "- Docker Validation: ${{ needs.docker-validation.result }}"
 
-          # Check for failures
+          # Check for failures (AI reviews are advisory, not blocking)
           if [[ "${{ needs.detect-changes.result }}" == "failure" ||
                 "${{ needs.format-check.result }}" == "failure" ||
                 "${{ needs.basic-lint.result }}" == "failure" ||
@@ -849,6 +926,7 @@ jobs:
             const results = {
               'change-detection': '${{ needs.detect-changes.result }}',
               'gemini-review': '${{ needs.gemini-review.result }}',
+              'codex-review': '${{ needs.codex-review.result }}',
               'format-check': '${{ needs.format-check.result }}',
               'basic-lint': '${{ needs.basic-lint.result }}',
               'full-lint': '${{ needs.full-lint.result }}',
