@@ -583,3 +583,84 @@ class TestProcessGeminiReviewsWithBothReviewers:
 
         # Should not even fetch comments
         assert not pr_monitor._get_review_comments.called
+
+
+class TestHasRespondedToGeminiReview:
+    """Tests for _has_responded_to_gemini_review function."""
+
+    @pytest.mark.asyncio
+    async def test_detects_direct_gemini_marker(self, pr_monitor):
+        """Test detection of direct Gemini response marker."""
+        review_id = "2026-01-08-00-00-00-comment123"
+        marker = f"<!-- ai-agent-gemini-response:{review_id} -->"
+
+        mock_output = '{"comments": [{"body": "Response to review\\n' + marker.replace('"', '\\"') + '"}]}'
+
+        with patch("github_agents.monitors.pr.run_gh_command_async", AsyncMock(return_value=mock_output)):
+            result = await pr_monitor._has_responded_to_gemini_review(123, review_id)
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_detects_consolidated_marker_containing_review_id(self, pr_monitor):
+        """Test detection of consolidated response marker containing the review ID."""
+        gemini_review_id = "2026-01-08-00-00-00-gemini123"
+        codex_review_id = "2026-01-08-00-01-00-codex456"
+        consolidated_marker = f"<!-- ai-agent-consolidated-response:consolidated-{gemini_review_id}-{codex_review_id} -->"
+
+        mock_output = '{"comments": [{"body": "Consolidated response\\n' + consolidated_marker.replace('"', '\\"') + '"}]}'
+
+        with patch("github_agents.monitors.pr.run_gh_command_async", AsyncMock(return_value=mock_output)):
+            # Should detect the response for the Gemini review ID
+            result = await pr_monitor._has_responded_to_gemini_review(123, gemini_review_id)
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_returns_false_for_unrelated_consolidated_marker(self, pr_monitor):
+        """Test that unrelated consolidated markers don't match."""
+        different_review_id = "2026-01-08-00-00-00-different"
+        consolidated_marker = "<!-- ai-agent-consolidated-response:consolidated-other-ids -->"
+
+        mock_output = '{"comments": [{"body": "Consolidated response\\n' + consolidated_marker.replace('"', '\\"') + '"}]}'
+
+        with patch("github_agents.monitors.pr.run_gh_command_async", AsyncMock(return_value=mock_output)):
+            result = await pr_monitor._has_responded_to_gemini_review(123, different_review_id)
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_returns_false_when_no_markers(self, pr_monitor):
+        """Test returns False when no response markers exist."""
+        review_id = "2026-01-08-00-00-00-test"
+
+        mock_output = '{"comments": [{"body": "Regular comment without markers"}]}'
+
+        with patch("github_agents.monitors.pr.run_gh_command_async", AsyncMock(return_value=mock_output)):
+            result = await pr_monitor._has_responded_to_gemini_review(123, review_id)
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_handles_empty_comments(self, pr_monitor):
+        """Test handles empty comments list."""
+        review_id = "2026-01-08-00-00-00-test"
+
+        mock_output = '{"comments": []}'
+
+        with patch("github_agents.monitors.pr.run_gh_command_async", AsyncMock(return_value=mock_output)):
+            result = await pr_monitor._has_responded_to_gemini_review(123, review_id)
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_handles_invalid_json(self, pr_monitor):
+        """Test handles invalid JSON gracefully."""
+        review_id = "2026-01-08-00-00-00-test"
+
+        mock_output = "not valid json"
+
+        with patch("github_agents.monitors.pr.run_gh_command_async", AsyncMock(return_value=mock_output)):
+            result = await pr_monitor._has_responded_to_gemini_review(123, review_id)
+
+        assert result is False

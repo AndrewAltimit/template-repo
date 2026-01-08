@@ -771,6 +771,9 @@ Requirements:
     async def _has_responded_to_gemini_review(self, pr_number: int, review_id: str) -> bool:
         """Check if we've already responded to a Gemini review.
 
+        Checks for both individual Gemini response markers and consolidated
+        response markers (which include the review_id as part of the consolidated ID).
+
         Args:
             pr_number: PR number
             review_id: Unique Gemini review identifier
@@ -793,9 +796,16 @@ Requirements:
         if output:
             try:
                 data = json.loads(output)
-                marker = GEMINI_RESPONSE_MARKER.format(review_id)
+                gemini_marker = GEMINI_RESPONSE_MARKER.format(review_id)
+                # Also check for consolidated markers that include this review_id
+                consolidated_prefix = "<!-- ai-agent-consolidated-response:consolidated-"
                 for comment in data.get("comments", []):
-                    if marker in comment.get("body", ""):
+                    body = comment.get("body", "")
+                    # Check for direct Gemini response marker
+                    if gemini_marker in body:
+                        return True
+                    # Check for consolidated response marker containing this review_id
+                    if consolidated_prefix in body and review_id in body:
                         return True
             except json.JSONDecodeError:
                 pass
