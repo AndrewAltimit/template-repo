@@ -205,9 +205,11 @@ class IssueCreator:
         if finding.priority in self.PRIORITY_LABELS:
             labels.append(self.PRIORITY_LABELS[finding.priority])
 
-        # Create issue via gh CLI
+        # Ensure labels exist before creating issue
+        await self._ensure_labels_exist(labels)
+
+        # Create issue via gh CLI (run_gh_command_with_stderr_async adds "gh" prefix)
         cmd = [
-            "gh",
             "issue",
             "create",
             "--repo",
@@ -221,7 +223,7 @@ class IssueCreator:
         ]
 
         # Run gh command and capture both stdout and stderr for diagnostics
-        stdout, stderr, returncode = await run_gh_command_with_stderr_async(cmd[1:])  # Skip 'gh' prefix
+        stdout, stderr, returncode = await run_gh_command_with_stderr_async(cmd)
 
         if returncode != 0:
             error_msg = stderr or stdout or "unknown error"
@@ -271,6 +273,49 @@ class IssueCreator:
             created=True,
         )
 
+    async def _ensure_labels_exist(self, labels: List[str]) -> None:
+        """Ensure all required labels exist in the repository.
+
+        Creates any missing labels with default colors.
+
+        Args:
+            labels: List of label names to ensure exist
+        """
+        # Label colors for different types
+        label_colors = {
+            "automated": "0366d6",  # Blue
+            "needs-review": "fbca04",  # Yellow
+            "agentic-analysis": "5319e7",  # Purple
+            "category:security": "d73a4a",  # Red
+            "category:performance": "a2eeef",  # Cyan
+            "category:quality": "7057ff",  # Violet
+            "category:tech_debt": "008672",  # Teal
+            "category:documentation": "0075ca",  # Blue
+            "category:testing": "bfd4f2",  # Light blue
+            "category:architecture": "d4c5f9",  # Light purple
+            "category:dependency": "c5def5",  # Light blue
+            "priority:critical": "b60205",  # Dark red
+            "priority:high": "d93f0b",  # Orange-red
+            "priority:medium": "fbca04",  # Yellow
+            "priority:low": "0e8a16",  # Green
+        }
+
+        for label in labels:
+            # Try to create the label (will fail silently if it exists)
+            color = label_colors.get(label, "ededed")  # Default gray
+            cmd = [
+                "label",
+                "create",
+                label,
+                "--repo",
+                self.repo,
+                "--color",
+                color,
+                "--force",  # Update if exists
+            ]
+            # Don't check result - label may already exist
+            await run_gh_command_async(cmd, check=False)
+
     async def _load_existing_fingerprints(self) -> None:
         """Load fingerprints from existing issues for deduplication."""
         try:
@@ -278,8 +323,8 @@ class IssueCreator:
             cutoff = datetime.utcnow() - timedelta(days=self.lookback_days)
             cutoff_str = cutoff.strftime("%Y-%m-%d")
 
+            # Note: run_gh_command_async adds "gh" prefix, so don't include it here
             cmd = [
-                "gh",
                 "issue",
                 "list",
                 "--repo",
