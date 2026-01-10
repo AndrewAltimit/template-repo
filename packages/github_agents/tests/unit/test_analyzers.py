@@ -287,9 +287,10 @@ class TestIssueCreator:
     def test_invalid_parameter_labels_rejected(self):
         """Test that 'labels' is not a valid parameter (catches workflow bug)."""
         with pytest.raises(TypeError, match="unexpected keyword argument"):
+            # pylint: disable=unexpected-keyword-arg
             IssueCreator(
                 repo="owner/repo",
-                labels=["automated"],  # This should fail
+                labels=["automated"],  # This should fail - testing the error
             )
 
     def test_default_labels_class_attribute(self):
@@ -345,6 +346,114 @@ class TestIssueCreator:
                 results = await creator.create_issues(findings)
                 assert isinstance(results, list)
                 mock_process.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_create_github_issue_empty_output(self):
+        """Test that empty gh command output is handled correctly."""
+
+        creator = IssueCreator(repo="owner/repo")
+        finding = AnalysisFinding(
+            title="Test",
+            summary="Test",
+            details="Test",
+            category=FindingCategory.QUALITY,
+            priority=FindingPriority.P2,
+            affected_files=[AffectedFile(path="test.py")],
+            suggested_fix="Fix it",
+            evidence="",
+            discovered_by="test",
+        )
+
+        # Mock run_gh_command_async to return empty string
+        with patch("github_agents.creators.issue_creator.run_gh_command_async", new_callable=AsyncMock) as mock_gh:
+            mock_gh.return_value = ""
+
+            result = await creator._create_github_issue(finding)
+
+            assert result.created is False
+            assert result.issue_number is None
+            assert "empty output" in result.skipped_reason
+
+    @pytest.mark.asyncio
+    async def test_create_github_issue_invalid_url(self):
+        """Test that invalid URL output is handled correctly."""
+
+        creator = IssueCreator(repo="owner/repo")
+        finding = AnalysisFinding(
+            title="Test",
+            summary="Test",
+            details="Test",
+            category=FindingCategory.QUALITY,
+            priority=FindingPriority.P2,
+            affected_files=[AffectedFile(path="test.py")],
+            suggested_fix="Fix it",
+            evidence="",
+            discovered_by="test",
+        )
+
+        # Mock run_gh_command_async to return invalid output
+        with patch("github_agents.creators.issue_creator.run_gh_command_async", new_callable=AsyncMock) as mock_gh:
+            mock_gh.return_value = "Error: could not create issue"
+
+            result = await creator._create_github_issue(finding)
+
+            assert result.created is False
+            assert result.issue_number is None
+            assert "failed to parse" in result.skipped_reason
+
+    @pytest.mark.asyncio
+    async def test_create_github_issue_success(self):
+        """Test successful issue creation with valid URL."""
+
+        creator = IssueCreator(repo="owner/repo")
+        finding = AnalysisFinding(
+            title="Test",
+            summary="Test",
+            details="Test",
+            category=FindingCategory.QUALITY,
+            priority=FindingPriority.P2,
+            affected_files=[AffectedFile(path="test.py")],
+            suggested_fix="Fix it",
+            evidence="",
+            discovered_by="test",
+        )
+
+        # Mock run_gh_command_async to return valid issue URL
+        with patch("github_agents.creators.issue_creator.run_gh_command_async", new_callable=AsyncMock) as mock_gh:
+            mock_gh.return_value = "https://github.com/owner/repo/issues/42"
+
+            result = await creator._create_github_issue(finding)
+
+            assert result.created is True
+            assert result.issue_number == 42
+            assert result.issue_url == "https://github.com/owner/repo/issues/42"
+
+    @pytest.mark.asyncio
+    async def test_create_github_issue_none_output(self):
+        """Test that None gh command output is handled correctly."""
+
+        creator = IssueCreator(repo="owner/repo")
+        finding = AnalysisFinding(
+            title="Test",
+            summary="Test",
+            details="Test",
+            category=FindingCategory.QUALITY,
+            priority=FindingPriority.P2,
+            affected_files=[AffectedFile(path="test.py")],
+            suggested_fix="Fix it",
+            evidence="",
+            discovered_by="test",
+        )
+
+        # Mock run_gh_command_async to return None
+        with patch("github_agents.creators.issue_creator.run_gh_command_async", new_callable=AsyncMock) as mock_gh:
+            mock_gh.return_value = None
+
+            result = await creator._create_github_issue(finding)
+
+            assert result.created is False
+            assert result.issue_number is None
+            assert "gh command failed" in result.skipped_reason
 
 
 class TestWorkflowIntegration:

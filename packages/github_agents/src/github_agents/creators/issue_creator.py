@@ -223,7 +223,7 @@ class IssueCreator:
         result = await run_gh_command_async(cmd, check=False)
 
         if result is None:
-            logger.error("gh issue create failed")
+            logger.error("gh issue create failed: no output")
             return CreationResult(
                 finding=finding,
                 skipped_reason="gh command failed",
@@ -231,7 +231,25 @@ class IssueCreator:
 
         # Parse issue URL from output
         issue_url = result.strip()
-        issue_number = int(issue_url.split("/")[-1]) if issue_url else None
+        issue_number = None
+
+        if issue_url:
+            try:
+                # gh issue create returns URL like https://github.com/owner/repo/issues/123
+                last_part = issue_url.split("/")[-1]
+                issue_number = int(last_part)
+            except (ValueError, IndexError) as e:
+                logger.error("Failed to parse issue number from output: %r - %s", issue_url, e)
+                return CreationResult(
+                    finding=finding,
+                    skipped_reason=f"failed to parse issue URL: {issue_url!r}",
+                )
+        else:
+            logger.error("gh issue create returned empty output")
+            return CreationResult(
+                finding=finding,
+                skipped_reason="gh command returned empty output",
+            )
 
         logger.info("Created issue #%s: %s", issue_number, title)
 
