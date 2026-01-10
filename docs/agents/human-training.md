@@ -272,8 +272,6 @@ Naively, asking the untrusted model to judge its own code is useless—it can ju
 - Regularly verify monitors with known-bad examples to detect compromised oversight
 - This is a bridge strategy—not a solution for superintelligence
 
-Looking at your guide's style, the Gemini response is indeed too verbose with excessive sub-headers and over-explanation. Here's a refined version that matches your existing sections:
-
 ## 8. The Pause Debate: Strategy vs. Safety
 
 **Key Principle:** Pausing AI development to allow alignment research to catch up sounds intuitive, but introduces strategic risks that may actually increase danger.
