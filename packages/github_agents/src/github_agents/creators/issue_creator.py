@@ -276,12 +276,12 @@ class IssueCreator:
     async def _ensure_labels_exist(self, labels: List[str]) -> None:
         """Ensure all required labels exist in the repository.
 
-        Creates any missing labels with default colors.
+        Creates any missing labels with default colors using the GitHub API.
 
         Args:
             labels: List of label names to ensure exist
         """
-        # Label colors for different types
+        # Label colors for different types (without # prefix for API)
         label_colors = {
             "automated": "0366d6",  # Blue
             "needs-review": "fbca04",  # Yellow
@@ -301,19 +301,20 @@ class IssueCreator:
         }
 
         for label in labels:
-            # Try to create the label (will fail silently if it exists)
+            # Use gh api to create labels (gh label command doesn't exist)
             color = label_colors.get(label, "ededed")  # Default gray
+            # POST /repos/{owner}/{repo}/labels - creates label, 422 if exists
             cmd = [
-                "label",
-                "create",
-                label,
-                "--repo",
-                self.repo,
-                "--color",
-                color,
-                "--force",  # Update if exists
+                "api",
+                f"repos/{self.repo}/labels",
+                "-X",
+                "POST",
+                "-f",
+                f"name={label}",
+                "-f",
+                f"color={color}",
             ]
-            # Don't check result - label may already exist
+            # Don't check result - 422 error means label already exists
             await run_gh_command_async(cmd, check=False)
 
     async def _load_existing_fingerprints(self) -> None:
