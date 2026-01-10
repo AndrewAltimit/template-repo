@@ -409,7 +409,7 @@ class TestSecurityScan:
 
             assert result["success"] is True
             cmd = mock_run.call_args[0][0]
-            assert "-lh" in cmd  # high severity
+            assert "--severity-level=high" in cmd  # high severity
 
 
 class TestAuditDependencies:

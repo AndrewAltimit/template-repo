@@ -906,12 +906,9 @@ class CodeQualityMCPServer(BaseMCPServer):
                 "allowed_paths": self.allowed_paths,
             }
 
-        # Map severity/confidence to bandit levels
-        level_map = {"low": "l", "medium": "m", "high": "h"}
-        sev = level_map.get(severity, "l")
-        conf = level_map.get(confidence, "l")
-
-        cmd = ["bandit", "-r", path, f"-l{sev}", f"-i{conf}", "-f", "json"]
+        # Use explicit --severity-level and --confidence-level flags
+        # (The short flags -l/-ll/-lll and -i/-ii/-iii are for repeating, not values)
+        cmd = ["bandit", "-r", path, f"--severity-level={severity}", f"--confidence-level={confidence}", "-f", "json"]
 
         try:
             logger.info("Running security scan on: %s", path)
