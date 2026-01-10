@@ -3,10 +3,14 @@ Canonical data models for virtual character animation.
 
 These models provide a universal representation that all backend
 adapters can translate to their specific formats.
+
+Includes PAD (Pleasure/Arousal/Dominance) emotion model for smooth
+emotion blending and interpolation.
 """
 
 from dataclasses import dataclass, field
 from enum import Enum
+import math
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -25,6 +29,213 @@ class EmotionType(Enum):
     CONTEMPTUOUS = "contemptuous"
     EXCITED = "excited"
     CALM = "calm"
+
+
+# =============================================================================
+# PAD (Pleasure/Arousal/Dominance) Emotion Model
+# =============================================================================
+
+
+@dataclass
+class EmotionVector:
+    """
+    PAD (Pleasure, Arousal, Dominance) model for smooth emotion interpolation.
+
+    This 3D vector space enables:
+    - Mathematical blending between emotions
+    - Smooth interpolation avoiding "glitchy" state snaps
+    - Averaging conflicting emotion signals
+    - Direct mapping to animation blend shapes
+
+    Based on research: Mehrabian & Russell (1977), Russell & Mehrabian (1974)
+
+    Attributes:
+        pleasure: -1 (unhappy/unpleasant) to +1 (happy/pleasant)
+        arousal: -1 (calm/sleepy) to +1 (excited/energized)
+        dominance: -1 (submissive/controlled) to +1 (dominant/controlling)
+    """
+
+    pleasure: float = 0.0
+    arousal: float = 0.0
+    dominance: float = 0.0
+
+    def __post_init__(self) -> None:
+        """Clamp values to valid range."""
+        self.pleasure = max(-1.0, min(1.0, self.pleasure))
+        self.arousal = max(-1.0, min(1.0, self.arousal))
+        self.dominance = max(-1.0, min(1.0, self.dominance))
+
+    def lerp(self, target: "EmotionVector", t: float) -> "EmotionVector":
+        """
+        Linear interpolation for smooth transitions.
+
+        Args:
+            target: Target emotion vector to interpolate towards
+            t: Interpolation factor (0.0 = self, 1.0 = target)
+
+        Returns:
+            Interpolated EmotionVector
+        """
+        t = max(0.0, min(1.0, t))
+        return EmotionVector(
+            pleasure=self.pleasure + (target.pleasure - self.pleasure) * t,
+            arousal=self.arousal + (target.arousal - self.arousal) * t,
+            dominance=self.dominance + (target.dominance - self.dominance) * t,
+        )
+
+    def distance(self, other: "EmotionVector") -> float:
+        """Euclidean distance to another emotion vector."""
+        return math.sqrt(
+            (self.pleasure - other.pleasure) ** 2
+            + (self.arousal - other.arousal) ** 2
+            + (self.dominance - other.dominance) ** 2
+        )
+
+    def scale(self, intensity: float) -> "EmotionVector":
+        """
+        Scale emotion vector by intensity (moves towards neutral at low intensity).
+
+        Args:
+            intensity: Scale factor (0.0 = neutral, 1.0 = full)
+
+        Returns:
+            Scaled EmotionVector
+        """
+        intensity = max(0.0, min(1.0, intensity))
+        return EmotionVector(
+            pleasure=self.pleasure * intensity,
+            arousal=self.arousal * intensity,
+            dominance=self.dominance * intensity,
+        )
+
+    def magnitude(self) -> float:
+        """Calculate the magnitude (intensity) of this emotion vector."""
+        return math.sqrt(self.pleasure**2 + self.arousal**2 + self.dominance**2)
+
+    def to_dict(self) -> Dict[str, float]:
+        """Convert to dictionary for serialization."""
+        return {
+            "pleasure": round(self.pleasure, 4),
+            "arousal": round(self.arousal, 4),
+            "dominance": round(self.dominance, 4),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, float]) -> "EmotionVector":
+        """Create from dictionary."""
+        return cls(
+            pleasure=data.get("pleasure", 0.0),
+            arousal=data.get("arousal", 0.0),
+            dominance=data.get("dominance", 0.0),
+        )
+
+    @classmethod
+    def neutral(cls) -> "EmotionVector":
+        """Return a neutral emotion vector."""
+        return cls(0.0, 0.0, 0.0)
+
+    def __add__(self, other: "EmotionVector") -> "EmotionVector":
+        """Vector addition."""
+        return EmotionVector(
+            pleasure=self.pleasure + other.pleasure,
+            arousal=self.arousal + other.arousal,
+            dominance=self.dominance + other.dominance,
+        )
+
+    def __mul__(self, scalar: float) -> "EmotionVector":
+        """Scalar multiplication."""
+        return EmotionVector(
+            pleasure=self.pleasure * scalar,
+            arousal=self.arousal * scalar,
+            dominance=self.dominance * scalar,
+        )
+
+
+# PAD vectors for each EmotionType
+# Values based on psychological research on emotional dimensions
+EMOTION_TO_PAD: Dict[EmotionType, EmotionVector] = {
+    EmotionType.NEUTRAL: EmotionVector(0.0, 0.0, 0.0),
+    EmotionType.HAPPY: EmotionVector(+0.8, +0.5, +0.2),
+    EmotionType.SAD: EmotionVector(-0.7, -0.3, -0.4),
+    EmotionType.ANGRY: EmotionVector(-0.6, +0.8, +0.6),
+    EmotionType.SURPRISED: EmotionVector(+0.2, +0.8, -0.1),
+    EmotionType.FEARFUL: EmotionVector(-0.7, +0.7, -0.6),
+    EmotionType.DISGUSTED: EmotionVector(-0.6, +0.2, +0.3),
+    EmotionType.CONTEMPTUOUS: EmotionVector(-0.3, +0.1, +0.7),
+    EmotionType.EXCITED: EmotionVector(+0.8, +0.9, +0.3),
+    EmotionType.CALM: EmotionVector(+0.3, -0.6, +0.1),
+}
+
+
+def get_pad_vector(emotion: EmotionType, intensity: float = 1.0) -> EmotionVector:
+    """
+    Get the PAD vector for an emotion, scaled by intensity.
+
+    Args:
+        emotion: The EmotionType
+        intensity: Scale factor (0-1)
+
+    Returns:
+        Scaled EmotionVector
+    """
+    base_vector = EMOTION_TO_PAD.get(emotion, EmotionVector.neutral())
+    return base_vector.scale(intensity)
+
+
+def find_closest_emotion(vector: EmotionVector) -> EmotionType:
+    """
+    Find the EmotionType closest to a given PAD vector.
+
+    Useful for converting blended emotions back to discrete types.
+
+    Args:
+        vector: The PAD vector to match
+
+    Returns:
+        Closest EmotionType
+    """
+    closest_emotion = EmotionType.NEUTRAL
+    min_distance = float("inf")
+
+    for emotion, pad in EMOTION_TO_PAD.items():
+        distance = vector.distance(pad)
+        if distance < min_distance:
+            min_distance = distance
+            closest_emotion = emotion
+
+    return closest_emotion
+
+
+def blend_emotions(
+    emotions: List[tuple[EmotionType, float]],
+) -> tuple[EmotionType, float]:
+    """
+    Blend multiple emotions with weights into a single result.
+
+    Args:
+        emotions: List of (EmotionType, weight) tuples
+
+    Returns:
+        (blended EmotionType, intensity)
+    """
+    if not emotions:
+        return EmotionType.NEUTRAL, 0.0
+
+    # Accumulate weighted PAD vectors
+    total_weight = sum(weight for _, weight in emotions)
+    if total_weight == 0:
+        return EmotionType.NEUTRAL, 0.0
+
+    blended = EmotionVector.neutral()
+    for emotion, weight in emotions:
+        pad = get_pad_vector(emotion, weight / total_weight)
+        blended = blended + pad
+
+    # Find closest discrete emotion
+    result_emotion = find_closest_emotion(blended)
+    result_intensity = min(blended.magnitude(), 1.0)
+
+    return result_emotion, result_intensity
 
 
 class GestureType(Enum):

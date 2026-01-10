@@ -8,6 +8,14 @@ autopep8
 ruff  # Fast linter - can eventually replace isort/flake8
 bandit==1.8.6  # Security linter - pin version to maintain consistent skip behavior
 
+# Testing tools (for run_tests endpoint)
+pytest>=7.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0
+
+# Dependency auditing (for audit_dependencies endpoint)
+pip-audit>=2.6.0
+
 # MCP server dependencies
 fastapi
 uvicorn

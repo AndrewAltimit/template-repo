@@ -237,9 +237,77 @@ class AIToolkitMCPServer(BaseMCPServer):
             tools_dict[tool_name] = {"description": tool.get("description", ""), "parameters": tool.get("inputSchema", {})}
         return tools_dict
 
+    def _validate_path(self, user_path: str, base_dir: Path, path_type: str = "file") -> Path:
+        """Validate and resolve a user-provided path to prevent traversal attacks.
+
+        Args:
+            user_path: User-provided path (can be relative or absolute)
+            base_dir: The base directory that the path must be within
+            path_type: Type of path for error messages ("file", "directory", "dataset", "config")
+
+        Returns:
+            Resolved safe path within base_dir
+
+        Raises:
+            ValueError: If path would escape base_dir (traversal attack)
+        """
+        # Reject empty paths
+        if not user_path:
+            self.logger.warning("Empty path provided for %s", path_type)
+            raise ValueError(f"Invalid {path_type} path: empty path")
+
+        # Reject absolute paths
+        if Path(user_path).is_absolute():
+            self.logger.warning("Absolute path attempt blocked for %s. Path: '%s'", path_type, user_path)
+            raise ValueError(f"Invalid {path_type} path: absolute paths not allowed")
+
+        # Reject paths with parent directory references
+        if ".." in user_path:
+            self.logger.warning(
+                "Path traversal attempt blocked for %s. Path contains '..': '%s'",
+                path_type,
+                user_path,
+            )
+            raise ValueError(f"Invalid {path_type} path: parent directory references not allowed")
+
+        # Reject single dot (current directory)
+        if user_path in (".", "./"):
+            raise ValueError(f"Invalid {path_type} path: current directory reference not allowed")
+
+        # Reject current directory references in path parts
+        path_parts = Path(user_path).parts
+        if "." in path_parts or "" in path_parts:
+            raise ValueError(f"Invalid {path_type} path: invalid path components")
+
+        # Construct the safe path within base_dir
+        safe_path = (base_dir / user_path).resolve()
+
+        # Verify the resolved path is within base_dir
+        try:
+            safe_path.relative_to(base_dir.resolve())
+        except ValueError as exc:
+            self.logger.warning(
+                "Path traversal attempt blocked for %s. Path: '%s' resolved outside base_dir: '%s'",
+                path_type,
+                user_path,
+                base_dir,
+            )
+            raise ValueError(f"Invalid {path_type} path: traversal attempt detected") from exc
+
+        return safe_path
+
     async def create_training_config(self, **kwargs) -> Dict[str, Any]:
         """Create a new training configuration file for AI Toolkit"""
         config_name = kwargs.get("name")
+
+        if not config_name:
+            return {"error": "Missing required field: name"}
+
+        # Validate config name to prevent path traversal
+        try:
+            config_path = self._validate_path(f"{config_name}.yaml", CONFIGS_PATH, "config")
+        except ValueError as e:
+            return {"error": str(e)}
 
         # Create AI Toolkit compatible config
         config = {
@@ -300,8 +368,7 @@ class AIToolkitMCPServer(BaseMCPServer):
             },
         }
 
-        # Save config file
-        config_path = CONFIGS_PATH / f"{config_name}.yaml"
+        # Save config file (config_path already validated above)
         try:
             import yaml
 
@@ -330,7 +397,15 @@ class AIToolkitMCPServer(BaseMCPServer):
     async def get_config(self, **kwargs) -> Dict[str, Any]:
         """Get a specific training configuration"""
         config_name = kwargs.get("name")
-        config_path = CONFIGS_PATH / f"{config_name}.yaml"
+
+        if not config_name:
+            return {"error": "Missing required field: name"}
+
+        # Validate config name to prevent path traversal
+        try:
+            config_path = self._validate_path(f"{config_name}.yaml", CONFIGS_PATH, "config")
+        except ValueError as e:
+            return {"error": str(e)}
 
         if config_path.exists():
             try:
@@ -355,23 +430,38 @@ class AIToolkitMCPServer(BaseMCPServer):
         if not dataset_name:
             return {"error": "Missing required field: dataset_name"}
 
-        dataset_path = DATASETS_PATH / dataset_name
+        # Validate dataset name to prevent path traversal
+        try:
+            dataset_path = self._validate_path(dataset_name, DATASETS_PATH, "dataset")
+        except ValueError as e:
+            return {"error": str(e)}
+
         dataset_path.mkdir(parents=True, exist_ok=True)
 
         saved_images = []
         for img_data in images:
             try:
                 filename = img_data["filename"]
+
+                # Validate filename to prevent path traversal within dataset
+                try:
+                    img_path = self._validate_path(filename, dataset_path, "image file")
+                except ValueError as e:
+                    self.logger.error("Invalid filename %s: %s", filename, e)
+                    continue
+
                 data = base64.b64decode(img_data["data"])
                 caption = img_data["caption"]
 
+                # Ensure parent directory exists for subdirectory structures
+                img_path.parent.mkdir(parents=True, exist_ok=True)
+
                 # Save image
-                img_path = dataset_path / filename
                 with open(img_path, "wb") as f:
                     f.write(data)
 
-                # Save caption
-                caption_path = dataset_path / f"{Path(filename).stem}.txt"
+                # Save caption alongside image (handles subdirectory structures)
+                caption_path = img_path.with_suffix(".txt")
                 with open(caption_path, "w", encoding="utf-8") as f:
                     f.write(caption)
 
@@ -404,7 +494,15 @@ class AIToolkitMCPServer(BaseMCPServer):
     async def start_training(self, **kwargs) -> Dict[str, Any]:
         """Start a training job using AI Toolkit"""
         config_name = kwargs.get("config_name")
-        config_path = CONFIGS_PATH / f"{config_name}.yaml"
+
+        if not config_name:
+            return {"error": "Missing required field: config_name"}
+
+        # Validate config name to prevent path traversal
+        try:
+            config_path = self._validate_path(f"{config_name}.yaml", CONFIGS_PATH, "config")
+        except ValueError as e:
+            return {"error": str(e)}
 
         if not config_path.exists():
             return {"error": "Configuration not found"}
@@ -554,26 +652,41 @@ class AIToolkitMCPServer(BaseMCPServer):
     async def export_model(self, **kwargs) -> Dict[str, Any]:
         """Export a trained model"""
         model_name = kwargs.get("model_name")
-        output_path = kwargs.get("output_path", f"{OUTPUTS_PATH}/{model_name}.safetensors")
 
-        # Look for the model in outputs
-        source_path = None
+        if not model_name:
+            return {"error": "Missing required field: model_name"}
+
+        # Validate model_name to prevent path traversal when looking up source
         for ext in [".safetensors", ".ckpt", ".pt"]:
-            potential_path = OUTPUTS_PATH / f"{model_name}{ext}"
-            if potential_path.exists():
-                source_path = potential_path
-                break
-
-        if source_path:
             try:
-                output_file = Path(output_path)
-                output_file.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(source_path, output_file)
-                return {"status": "success", "path": str(output_file)}
-            except Exception as e:
-                return {"error": f"Failed to export model: {str(e)}"}
+                # Validate potential source path
+                potential_path = self._validate_path(f"{model_name}{ext}", OUTPUTS_PATH, "model")
+                if potential_path.exists():
+                    source_path = potential_path
+                    break
+            except ValueError:
+                # Invalid path component, skip
+                continue
+        else:
+            return {"error": "Model not found"}
 
-        return {"error": "Model not found"}
+        # Validate output_path - must be within OUTPUTS_PATH for security
+        output_name = kwargs.get("output_path")
+        if output_name:
+            try:
+                output_file = self._validate_path(output_name, OUTPUTS_PATH, "output")
+            except ValueError as e:
+                return {"error": str(e)}
+        else:
+            # Default output path
+            output_file = OUTPUTS_PATH / f"{model_name}.safetensors"
+
+        try:
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_path, output_file)
+            return {"status": "success", "path": str(output_file)}
+        except Exception as e:
+            return {"error": f"Failed to export model: {str(e)}"}
 
     async def list_exported_models(self, **_kwargs) -> Dict[str, Any]:
         """List exported models"""
@@ -601,12 +714,20 @@ class AIToolkitMCPServer(BaseMCPServer):
         model_name = kwargs.get("model_name")
         encoding = kwargs.get("encoding", "base64")
 
+        if not model_name:
+            return {"error": "Missing required field: model_name"}
+
+        # Validate model_name to prevent path traversal
         model_path = None
         for ext in [".safetensors", ".ckpt", ".pt"]:
-            potential_path = OUTPUTS_PATH / f"{model_name}{ext}"
-            if potential_path.exists():
-                model_path = potential_path
-                break
+            try:
+                potential_path = self._validate_path(f"{model_name}{ext}", OUTPUTS_PATH, "model")
+                if potential_path.exists():
+                    model_path = potential_path
+                    break
+            except ValueError:
+                # Invalid path component, skip
+                continue
 
         if model_path:
             try:

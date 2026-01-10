@@ -2,225 +2,28 @@
 
 import argparse
 import asyncio
-from datetime import datetime
-import json
 import logging
 import os
 import sys
 from typing import Any, Dict, List, Optional, cast
-import uuid
 
-# Add parent directory to path
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
-
-try:
-    from mcp_core.base_server import BaseMCPServer  # noqa: E402
-
-    HAS_MCP = True
-except ImportError:
-    # Minimal implementation for HTTP mode without full MCP library
-    HAS_MCP = False
-    from abc import ABC, abstractmethod
-
-    from fastapi import FastAPI, Request, Response
-    from fastapi.responses import JSONResponse, StreamingResponse
-
-    class BaseMCPServer(ABC):  # type: ignore
-        """Minimal MCP server implementation for HTTP mode"""
-
-        def __init__(self, name: str, version: str = "1.0.0", port: int = 8000):
-            self.name = name
-            self.version = version
-            self.port = port
-            self.logger = logging.getLogger(name)
-            self.app = FastAPI(title=name, version=version)
-            self._setup_routes()
-
-        def _setup_routes(self):
-            """Setup MCP routes"""
-            self.app.get("/health")(self.health_check)
-            self.app.get("/messages")(self.handle_messages_get)
-            self.app.post("/messages")(self.handle_messages)
-            self.app.get("/mcp/tools")(self.list_tools_http)
-            self.app.post("/mcp/execute")(self.execute_tool_http)
-
-        async def health_check(self):
-            """Health check endpoint for the virtual character server"""
-            return {"status": "healthy", "server": self.name, "version": self.version}
-
-        async def handle_messages_get(self, request: Request):
-            """Handle GET for SSE streaming"""
-            session_id = request.headers.get("Mcp-Session-Id", str(uuid.uuid4()))
-
-            async def event_generator():
-                connection_data = {"type": "connection", "sessionId": session_id, "status": "connected"}
-                yield f"data: {json.dumps(connection_data)}\n\n"
-
-                while True:
-                    await asyncio.sleep(15)
-                    ping_data = {"type": "ping", "timestamp": datetime.utcnow().isoformat()}
-                    yield f"data: {json.dumps(ping_data)}\n\n"
-
-            return StreamingResponse(
-                event_generator(),
-                media_type="text/event-stream",
-                headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
-            )
-
-        async def handle_messages(self, request: Request):
-            """Handle MCP messages"""
-            session_id = request.headers.get("Mcp-Session-Id")
-
-            try:
-                body = await request.json()
-                self.logger.info("Messages request: %s", json.dumps(body))
-
-                response = await self._process_jsonrpc_request(body)
-
-                if response:
-                    return JSONResponse(content=response, headers={"Mcp-Session-Id": session_id or ""})
-                return Response(status_code=202, headers={"Mcp-Session-Id": session_id or ""})
-
-            except Exception as e:
-                self.logger.error("Error handling message: %s", e)
-                return JSONResponse(status_code=500, content={"error": str(e)})
-
-        async def _process_jsonrpc_request(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-            """Process JSON-RPC request"""
-            jsonrpc = request.get("jsonrpc", "2.0")
-            method = request.get("method")
-            params = request.get("params", {})
-            req_id = request.get("id")
-
-            self.logger.info("Processing method: %s", method)
-
-            try:
-                result = None
-
-                if method == "initialize":
-                    result = await self._jsonrpc_initialize(params)
-                elif method == "tools/list":
-                    result = await self._jsonrpc_list_tools(params)
-                elif method == "tools/call":
-                    result = await self._jsonrpc_call_tool(params)
-                else:
-                    self.logger.warning("Unknown method: %s", method)
-                    if req_id is not None:
-                        return {
-                            "jsonrpc": jsonrpc,
-                            "error": {"code": -32601, "message": f"Method not found: {method}"},
-                            "id": req_id,
-                        }
-                    return None
-
-                if req_id is not None:
-                    return {"jsonrpc": jsonrpc, "result": result, "id": req_id}
-                return None
-
-            except Exception as e:
-                self.logger.error("Error processing method %s: %s", method, e)
-                if req_id is not None:
-                    return {
-                        "jsonrpc": jsonrpc,
-                        "error": {"code": -32603, "message": "Internal error", "data": str(e)},
-                        "id": req_id,
-                    }
-                return None
-
-        async def _jsonrpc_initialize(self, params: Dict[str, Any]) -> Dict[str, Any]:
-            """Handle initialize request"""
-            return {
-                "protocolVersion": params.get("protocolVersion", "2024-11-05"),
-                "serverInfo": {"name": self.name, "version": self.version},
-                "capabilities": {"tools": {"listChanged": True}, "resources": {}, "prompts": {}},
-            }
-
-        async def _jsonrpc_list_tools(self, _params: Dict[str, Any]) -> Dict[str, Any]:
-            """Handle tools/list request"""
-            tools = self.get_tools()
-            tool_list = []
-
-            for tool_name, tool_info in tools.items():
-                tool_list.append(
-                    {
-                        "name": tool_name,
-                        "description": tool_info.get("description", ""),
-                        "inputSchema": tool_info.get("parameters", {}),
-                    }
-                )
-
-            return {"tools": tool_list}
-
-        async def _jsonrpc_call_tool(self, params: Dict[str, Any]) -> Dict[str, Any]:
-            """Handle tools/call request"""
-            tool_name = params.get("name")
-            arguments = params.get("arguments", {})
-
-            if not tool_name:
-                raise ValueError("Tool name is required")
-
-            tools = self.get_tools()
-            if tool_name not in tools:
-                raise ValueError(f"Tool '{tool_name}' not found")
-
-            # Get the tool method
-            tool_func = getattr(self, tool_name, None)
-            if not tool_func:
-                raise ValueError(f"Tool '{tool_name}' not implemented")
-
-            try:
-                result = await tool_func(**arguments)
-
-                if isinstance(result, dict):
-                    content_text = json.dumps(result, indent=2)
-                else:
-                    content_text = str(result)
-
-                return {"content": [{"type": "text", "text": content_text}]}
-            except Exception as e:
-                self.logger.error("Error calling tool %s: %s", tool_name, e)
-                return {"content": [{"type": "text", "text": f"Error: {str(e)}"}], "isError": True}
-
-        async def list_tools_http(self):
-            """List tools via HTTP endpoint"""
-            tools = self.get_tools()
-            return {"tools": list(tools.keys()), "count": len(tools)}
-
-        async def execute_tool_http(self, request: Dict[str, Any]):
-            """Execute tool via HTTP endpoint"""
-            tool_name = request.get("tool")
-            arguments = request.get("arguments", {})
-
-            try:
-                result = await self._jsonrpc_call_tool({"name": tool_name, "arguments": arguments})
-                return {"success": True, "result": result}
-            except Exception as e:
-                return {"success": False, "error": str(e)}
-
-        @abstractmethod
-        def get_tools(self) -> Dict[str, Dict[str, Any]]:
-            """Get available tools - must be implemented by subclass"""
-
-
-# pylint: disable=ungrouped-imports  # Cannot group with line 16 due to try/except structure
-from mcp_virtual_character.audio_handler import AudioHandler  # noqa: E402
-from mcp_virtual_character.backends.base import BackendAdapter  # noqa: E402
-from mcp_virtual_character.backends.mock import MockBackend  # noqa: E402
-from mcp_virtual_character.backends.vrchat_remote import (  # noqa: E402
-    VRChatRemoteBackend,
-)
-from mcp_virtual_character.constants import (  # noqa: E402
+from mcp_core.base_server import BaseMCPServer
+from mcp_virtual_character.audio_handler import AudioHandler
+from mcp_virtual_character.backends.base import BackendAdapter
+from mcp_virtual_character.backends.mock import MockBackend
+from mcp_virtual_character.backends.vrchat_remote import VRChatRemoteBackend
+from mcp_virtual_character.constants import (
     VRCEMOTE_DESCRIPTION,
     VRCEmoteValue,
     get_vrcemote_name,
 )
-from mcp_virtual_character.models.canonical import (  # noqa: E402
+from mcp_virtual_character.models.canonical import (
     AudioData,
     CanonicalAnimationData,
     EmotionType,
     GestureType,
 )
-from mcp_virtual_character.sequence_handler import SequenceHandler  # noqa: E402
+from mcp_virtual_character.sequence_handler import SequenceHandler
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
