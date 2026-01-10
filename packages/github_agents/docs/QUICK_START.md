@@ -144,7 +144,7 @@ Try other agents by changing the trigger keyword:
 ```markdown
 [Approved][Claude]   # Use Claude for comprehensive code generation
 [Approved][Gemini]   # Use Gemini for code review
-[Approved][Crush]    # Use Crush for fast code generation
+[Approved][Crush]    # Use Crush for code generation
 ```
 
 ### Configure Security

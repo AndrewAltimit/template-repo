@@ -298,7 +298,7 @@ tools/mcp/
 ├── content_creation/       # Manim & LaTeX tools (local)
 ├── gemini/                 # AI integration (local, host-only)
 ├── opencode/               # AI code generation (local/remote capable)
-├── crush/                  # Fast code generation (local/remote capable)
+├── crush/                  # Code generation (local/remote capable)
 ├── meme_generator/         # Meme generation (local)
 ├── elevenlabs_speech/      # Text-to-speech synthesis (local)
 ├── video_editor/           # AI-powered video editing (local)

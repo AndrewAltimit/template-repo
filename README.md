@@ -239,8 +239,8 @@ This pattern ensures consistent certificate handling across all services while m
 4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/mcp_blender/docs/README.md))
 5. **Gemini** - AI consultation (containerized and host modes available)
 6. **Codex** - AI-powered code generation and completion
-7. **OpenCode** - Comprehensive code generation
-8. **Crush** - Fast code snippets
+7. **OpenCode** - Code generation via OpenRouter
+8. **Crush** - Code generation via OpenRouter
 9. **Meme Generator** - Create memes with templates
 10. **ElevenLabs Speech** - Advanced TTS with v3 model, 50+ audio tags, 74 languages ([Documentation](tools/mcp/mcp_elevenlabs_speech/docs/README.md))
 11. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/mcp_video_editor/docs/README.md))

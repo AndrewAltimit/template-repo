@@ -12,7 +12,7 @@ The MCP functionality is split across modular servers:
 3. **Gemini MCP Server** - Host-only AI integration (requires Docker access)
 4. **Codex MCP Server** - Containerized AI-powered code generation and completion
 5. **OpenCode MCP Server** - Containerized AI-powered code generation
-6. **Crush MCP Server** - Containerized fast code generation
+6. **Crush MCP Server** - Containerized code generation
 7. **Meme Generator MCP Server** - Containerized meme creation with visual feedback
 8. **ElevenLabs Speech MCP Server** - Containerized text-to-speech synthesis
 9. **Video Editor MCP Server** - Containerized AI-powered video editing

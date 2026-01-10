@@ -1,6 +1,6 @@
 # Crush MCP Server
 
-> A Model Context Protocol server for fast AI-powered code generation and conversion using OpenRouter, optimized for quick code tasks and language translation.
+> A Model Context Protocol server for AI-powered code generation and conversion using OpenRouter.
 
 ## Overview
 

@@ -151,7 +151,7 @@ Claude Code works alongside:
 | **Gemini** | Code review | Automated PR reviews |
 | **Codex** | Code generation | OpenAI-based generation |
 | **OpenCode** | Code generation | OpenRouter-based generation |
-| **Crush** | Quick snippets | Fast code generation |
+| **Crush** | Code generation | OpenRouter-based generation |
 | **GitHub Copilot** | PR suggestions | Inline code suggestions |
 
 ## Troubleshooting
