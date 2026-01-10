@@ -975,6 +975,43 @@ services:
     profiles:
       - services
 
+  # Desktop Control MCP Server
+  # Cross-platform desktop automation (Linux only in container)
+  # IMPORTANT: Requires X11 display access - see docs/README.md
+  # NOTE: Uses network_mode: host for X11 access, so 'ports' is not needed
+  # Pre-create output dir with correct permissions: mkdir -p outputs/desktop-control
+  mcp-desktop-control:
+    build:
+      context: .
+      dockerfile: docker/mcp-desktop-control.Dockerfile
+    container_name: mcp-desktop-control
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - ./:/app:ro
+      - ./outputs/desktop-control:/output  # Screenshot output directory
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro  # X11 socket
+      - ${XAUTHORITY:-~/.Xauthority}:/home/appuser/.Xauthority:ro  # X11 auth
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/tools/mcp/mcp_desktop_control:/app  # Prioritize mounted source over installed package
+      - PORT=8025
+      - DISPLAY=${DISPLAY:-:0}
+      - XAUTHORITY=/home/appuser/.Xauthority
+      - DESKTOP_CONTROL_OUTPUT_DIR=/output
+      - DESKTOP_CONTROL_HOST_PATH=outputs/desktop-control  # Host-relative path for client access
+    network_mode: host  # Required for X11 access (incompatible with networks)
+    command: ["python", "-m", "mcp_desktop_control.server", "--mode", "http"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8025/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    profiles:
+      - services
+      - desktop
+
   # ChromaDB - Self-hosted vector database for memory
   # Start with: docker-compose --profile memory-chromadb up -d
   chromadb:

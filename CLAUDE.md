@@ -137,6 +137,7 @@ docker-compose run --rm python-ci mypy . --ignore-missing-imports
 docker-compose up -d mcp-code-quality        # Port 8010 - Code formatting/linting
 docker-compose up -d mcp-content-creation    # Port 8011 - Manim & LaTeX
 docker-compose up -d mcp-gaea2               # Port 8007 - Terrain generation
+docker-compose up -d mcp-desktop-control     # Port 8025 - Desktop automation (Linux, requires X11)
 
 # For local development (when actively developing server code)
 python -m mcp_code_quality.server      # Port 8010
@@ -144,6 +145,7 @@ python -m mcp_content_creation.server  # Port 8011
 python -m mcp_gaea2.server             # Port 8007
 python -m mcp_opencode.server          # Port 8014 - AI code generation (HTTP mode)
 python -m mcp_crush.server             # Port 8015 - Code generation (HTTP mode)
+python -m mcp_desktop_control.server   # Port 8025 - Desktop automation (requires X11)
 
 # Note: AI Toolkit and ComfyUI MCP servers run on remote machine (192.168.0.152)
 # Ports 8012 and 8013 are used by the remote servers, not local instances
@@ -480,12 +482,27 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Auto-fetches reaction config from GitHub repository
    - See `tools/mcp/mcp_reaction_search/README.md` for documentation
 
-18. **Shared Core Components** (`tools/mcp/mcp_core/`):
+18. **Desktop Control MCP Server** (`tools/mcp/mcp_desktop_control/`): STDIO (local) or HTTP port 8025
+   - **Cross-Platform Desktop Automation**:
+     - `list_windows` - List all windows with optional title filter
+     - `get_active_window` - Get the currently focused window
+     - `focus_window` - Bring a window to the foreground
+     - `move_window` / `resize_window` - Position and size windows
+     - `minimize_window` / `maximize_window` / `restore_window` - Window state control
+     - `close_window` - Close a window
+     - `screenshot_screen` / `screenshot_window` / `screenshot_region` - Capture screenshots
+     - `get_mouse_position` / `move_mouse` / `click_mouse` / `drag_mouse` / `scroll_mouse` - Mouse control
+     - `type_text` / `send_key` / `send_hotkey` - Keyboard automation
+   - Linux: Uses xdotool, wmctrl, scrot, mss
+   - Windows: Uses pywinauto, pyautogui, win32 APIs
+   - See `tools/mcp/mcp_desktop_control/docs/README.md` for documentation
+
+19. **Shared Core Components** (`tools/mcp/mcp_core/`):
    - `BaseMCPServer` - Base class for all MCP servers
    - `HTTPProxy` - HTTP proxy for remote MCP servers
    - Common utilities and helpers
 
-19. **Containerized CI/CD**:
+20. **Containerized CI/CD**:
    - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools
    - **Helper Scripts**: Centralized CI operations
    - **Individual MCP Containers**: Each server can run in its own optimized container
