@@ -13,7 +13,7 @@ from .base import DesktopBackend, ScreenInfo, WindowInfo
 logger = logging.getLogger(__name__)
 
 
-class LinuxBackend(DesktopBackend):
+class LinuxBackend(DesktopBackend):  # pylint: disable=too-many-public-methods
     """Linux desktop control using xdotool, wmctrl, scrot, and xrandr"""
 
     def __init__(self):

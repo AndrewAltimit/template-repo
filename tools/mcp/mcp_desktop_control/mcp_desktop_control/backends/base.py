@@ -69,7 +69,7 @@ class ScreenInfo:
         }
 
 
-class DesktopBackend(ABC):
+class DesktopBackend(ABC):  # pylint: disable=too-many-public-methods
     """Abstract base class for desktop control backends"""
 
     @property

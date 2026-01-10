@@ -10,7 +10,7 @@ from mcp_core.utils import setup_logging
 from .backends import DesktopBackend, ScreenInfo, WindowInfo, get_backend
 
 
-class DesktopControlMCPServer(BaseMCPServer):
+class DesktopControlMCPServer(BaseMCPServer):  # pylint: disable=too-many-public-methods
     """MCP Server for cross-platform desktop control and automation"""
 
     # Output directory for screenshots (relative to project root)

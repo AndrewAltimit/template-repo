@@ -11,7 +11,7 @@ from .base import DesktopBackend, ScreenInfo, WindowInfo
 logger = logging.getLogger(__name__)
 
 
-class WindowsBackend(DesktopBackend):
+class WindowsBackend(DesktopBackend):  # pylint: disable=too-many-public-methods
     """Windows desktop control using pywinauto, pyautogui, and win32 APIs"""
 
     def __init__(self):
