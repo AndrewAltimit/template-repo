@@ -74,6 +74,37 @@ jobs:
       summary-json: ${{ steps.create.outputs.summary_json }}
 
     steps:
+      # Fix Docker-created directory permissions BEFORE checkout
+      # Previous runs may have created files as root which blocks checkout cleanup
+      - name: Fix Docker directory permissions (pre-checkout)
+        run: |
+          echo "::group::Pre-Checkout: Fix Docker Directory Permissions"
+          WORKSPACE="${GITHUB_WORKSPACE:-$(pwd)}"
+
+          # Fix ownership of output directories that Docker may have created
+          # Patterns cover all MCP server output directories from docker-compose.yml
+          for pattern in "outputs" "output" "mcp-content" "mcp-memes" "mcp-gaea2" \
+                         "video-editor" "elevenlabs_speech" "blender" "evaluation_results" \
+                         ".agent-venv" "__pycache__" ".pytest_cache"; do
+            if command -v sudo &> /dev/null; then
+              find "$WORKSPACE" -type d -name "$pattern" 2>/dev/null | while IFS= read -r dir; do
+                if [ -d "$dir" ]; then
+                  echo "Fixing ownership: $dir"
+                  sudo chown -R "$(id -u):$(id -g)" "$dir" 2>/dev/null || true
+                fi
+              done
+            fi
+          done
+
+          # Also fix the outputs directory at workspace root if it exists
+          if [ -d "$WORKSPACE/outputs" ] && command -v sudo &> /dev/null; then
+            sudo chown -R "$(id -u):$(id -g)" "$WORKSPACE/outputs" 2>/dev/null || true
+            echo "Fixed: $WORKSPACE/outputs"
+          fi
+
+          echo "Permissions check complete"
+          echo "::endgroup::"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -411,6 +442,35 @@ jobs:
           ---
           *Run: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*
           EOF
+
+      # Fix Docker-created directory permissions after job completion
+      # Ensures subsequent runs won't have permission issues during checkout
+      - name: Fix Docker directory permissions (post-cleanup)
+        if: always()
+        run: |
+          echo "::group::Post-Cleanup: Fix Docker Directory Permissions"
+          WORKSPACE="${GITHUB_WORKSPACE:-$(pwd)}"
+
+          # Fix ownership of output directories that Docker may have created
+          for pattern in "outputs" "output" "mcp-content" "mcp-memes" "mcp-gaea2" \
+                         "video-editor" "elevenlabs_speech" "blender" "evaluation_results" \
+                         ".agent-venv" "__pycache__" ".pytest_cache"; do
+            if command -v sudo &> /dev/null; then
+              find "$WORKSPACE" -type d -name "$pattern" 2>/dev/null | while IFS= read -r dir; do
+                if [ -d "$dir" ]; then
+                  sudo chown -R "$(id -u):$(id -g)" "$dir" 2>/dev/null || true
+                fi
+              done
+            fi
+          done
+
+          # Fix the outputs directory at workspace root
+          if [ -d "$WORKSPACE/outputs" ] && command -v sudo &> /dev/null; then
+            sudo chown -R "$(id -u):$(id -g)" "$WORKSPACE/outputs" 2>/dev/null || true
+          fi
+
+          echo "Post-cleanup complete"
+          echo "::endgroup::"
 
   notify:
     name: Notify on Issues Created
