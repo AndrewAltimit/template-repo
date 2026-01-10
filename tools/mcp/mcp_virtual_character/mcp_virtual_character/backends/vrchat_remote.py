@@ -8,6 +8,7 @@ import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 
+from mcp_virtual_character.audio_emotion_mappings import get_emotion_from_tag
 from mcp_virtual_character.constants import (
     EMOTION_TO_VRCEMOTE,
     GESTURE_TO_VRCEMOTE,
@@ -346,19 +347,15 @@ class VRChatRemoteBackend(BackendAdapter):
             return False
 
     async def _process_audio_expression_tag(self, tag: str) -> None:
-        """Process ElevenLabs audio expression tags."""
-        # Map common audio tags to VRChat expressions
-        tag_emotion_map = {
-            "[laughs]": EmotionType.HAPPY,
-            "[whisper]": EmotionType.CALM,
-            "[sighs]": EmotionType.SAD,
-            "[angry]": EmotionType.ANGRY,
-            "[excited]": EmotionType.EXCITED,
-            "[surprised]": EmotionType.SURPRISED,
-        }
+        """Process ElevenLabs audio expression tags.
 
-        if tag in tag_emotion_map:
-            await self._set_emotion(tag_emotion_map[tag], 1.0)
+        Uses comprehensive mappings from audio_emotion_mappings module
+        which supports 60+ audio tags with intensity values.
+        """
+        result = get_emotion_from_tag(tag)
+        if result:
+            emotion, intensity = result
+            await self._set_emotion(emotion, intensity)
 
     async def _manage_viseme_playback(self, viseme_timestamps: List[tuple]) -> None:
         """
