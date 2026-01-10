@@ -127,7 +127,7 @@ jobs:
           MAX_ISSUES="${{ inputs.max-issues || '3' }}"
           MIN_PRIORITY="${{ inputs.min-priority || 'P2' }}"
           INCLUDE_PATHS="${{ inputs.include-paths || 'packages/**/*.py,tools/**/*.py' }}"
-          DRY_RUN="${{ inputs.dry-run || 'true' }}"
+          DRY_RUN="${{ inputs.dry-run }}"
 
           echo "agents=$AGENTS" >> $GITHUB_OUTPUT
           echo "max_issues=$MAX_ISSUES" >> $GITHUB_OUTPUT
