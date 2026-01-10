@@ -18,11 +18,12 @@ The MCP functionality is split across modular servers:
 9. **Video Editor MCP Server** - Containerized AI-powered video editing
 10. **Blender MCP Server** - Containerized 3D content creation and rendering
 11. **Virtual Character MCP Server** - Containerized AI agent embodiment middleware
+12. **Desktop Control MCP Server** - Cross-platform desktop automation (Linux/Windows)
 
 **HTTP Mode (Remote servers):**
-12. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
-13. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
-14. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
+13. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
+14. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
+15. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
 
@@ -211,6 +212,71 @@ The server acts as middleware between AI agents and various virtual world platfo
 - **Plugin System** - Easy to add new backends
 
 See `tools/mcp/mcp_virtual_character/README.md` for detailed documentation.
+
+## Desktop Control MCP Server
+
+The Desktop Control server provides cross-platform desktop automation for Linux and Windows, including window management, screenshots, mouse control, and keyboard automation.
+
+### Starting the Server
+
+```bash
+# Start via Docker Compose (recommended - requires X11 access)
+docker-compose up -d mcp-desktop-control
+
+# Or run locally for development
+python -m mcp_desktop_control.server --mode http
+
+# View logs
+docker-compose logs -f mcp-desktop-control
+
+# Test health
+curl http://localhost:8025/health
+```
+
+### Available Tools
+
+**Window Management:**
+- **list_windows** - List all windows with optional title filter
+- **get_active_window** - Get the currently focused window
+- **focus_window** - Bring a window to the foreground
+- **move_window** - Move a window to specific position
+- **resize_window** - Resize a window
+- **minimize_window** - Minimize a window
+- **maximize_window** - Maximize a window
+- **restore_window** - Restore a minimized/maximized window
+- **close_window** - Close a window
+
+**Screenshots:**
+- **screenshot_screen** - Capture entire screen (saves to `outputs/desktop-control/`)
+- **screenshot_window** - Capture a specific window
+- **screenshot_region** - Capture a screen region
+
+**Mouse Control:**
+- **get_mouse_position** - Get current cursor position
+- **move_mouse** - Move cursor to position (absolute or relative)
+- **click_mouse** - Click at position (left/right/middle, single/double)
+- **drag_mouse** - Drag from start to end position
+- **scroll_mouse** - Scroll wheel (vertical or horizontal)
+
+**Keyboard Control:**
+- **type_text** - Type text string with optional interval
+- **send_key** - Send single key with optional modifiers
+- **send_hotkey** - Send key combination (e.g., Ctrl+C)
+
+### Platform Support
+
+| Platform | Backend | Tools |
+|----------|---------|-------|
+| Linux | X11 | xdotool, wmctrl, scrot, mss, pyautogui |
+| Windows | Win32 | pywinauto, pywin32, mss, pyautogui |
+
+### Configuration
+
+- **Port**: 8025 (HTTP mode)
+- **Output Directory**: `outputs/desktop-control/` (configurable via `DESKTOP_CONTROL_OUTPUT_DIR`)
+- **Docker**: Requires X11 socket access and `network_mode: host`
+
+See `tools/mcp/mcp_desktop_control/docs/README.md` for detailed documentation.
 
 ## Gaea2 MCP Server (Port 8007)
 
