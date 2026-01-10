@@ -344,10 +344,11 @@ jobs:
                       print(f"  - [{f.get('priority')}] {f.get('title')}", file=sys.stderr)
                   return {"issues_created": 0, "would_create": len(filtered_findings), "dry_run": True}
 
-              # Import and use IssueCreator
+              # Import and use IssueCreator with BoardManager
               try:
                   from github_agents.creators import IssueCreator
                   from github_agents.analyzers import AnalysisFinding, AffectedFile, FindingCategory, FindingPriority
+                  from github_agents.board.manager import BoardManager
 
                   # Convert dicts back to AnalysisFinding objects
                   findings_list = []
@@ -371,15 +372,30 @@ jobs:
                       )
                       findings_list.append(finding)
 
+                  # Initialize BoardManager for project board integration
+                  board_manager = None
+                  try:
+                      board_manager = BoardManager()
+                      await board_manager.initialize()
+                      print("BoardManager initialized - issues will be added to project board", file=sys.stderr)
+                  except Exception as e:
+                      print(f"BoardManager init failed (continuing without board): {e}", file=sys.stderr)
+                      board_manager = None
+
                   # Create issues using the proper API
                   creator = IssueCreator(
                       repo=repo,
+                      board_manager=board_manager,
                       lookback_days=30,
                       max_issues_per_run=max_issues,
                       min_priority=FindingPriority(min_priority),
                   )
 
                   results = await creator.create_issues(findings_list)
+
+                  # Clean up BoardManager session
+                  if board_manager:
+                      await board_manager.close()
 
                   # Process results
                   issues_created = 0
