@@ -993,6 +993,7 @@ services:
       - ${XAUTHORITY:-~/.Xauthority}:/home/appuser/.Xauthority:ro  # X11 auth
     environment:
       - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/tools/mcp/mcp_desktop_control:/app  # Prioritize mounted source over installed package
       - PORT=8025
       - DISPLAY=${DISPLAY:-:0}
       - XAUTHORITY=/home/appuser/.Xauthority
