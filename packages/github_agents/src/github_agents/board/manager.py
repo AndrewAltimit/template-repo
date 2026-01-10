@@ -974,11 +974,12 @@ Work claim released.
         logger.info("Added issue #%s to project board (item: %s)", issue_number, item_id)
 
         # Step 3: Get all field IDs and options
+        # Use higher limit to handle projects with many custom fields
         fields_query = """
         query GetProjectFields($projectId: ID!) {
           node(id: $projectId) {
             ... on ProjectV2 {
-              fields(first: 20) {
+              fields(first: 50) {
                 nodes {
                   ... on ProjectV2Field {
                     id

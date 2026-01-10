@@ -124,6 +124,7 @@ class IssueCreator:
 
         self._created_count = 0
         self._known_fingerprints: Set[str] = set()
+        self._labels_ensured = False  # Track if labels have been created this run
 
     async def create_issues(
         self,
@@ -141,6 +142,16 @@ class IssueCreator:
 
         # Load known fingerprints from existing issues
         await self._load_existing_fingerprints()
+
+        # Ensure all required labels exist once per batch (not per issue)
+        if not self._labels_ensured and not self.dry_run:
+            all_labels = set(self.DEFAULT_LABELS)
+            for finding in findings:
+                all_labels.add(f"category:{finding.category.value}")
+                if finding.priority in self.PRIORITY_LABELS:
+                    all_labels.add(self.PRIORITY_LABELS[finding.priority])
+            await self._ensure_labels_exist(list(all_labels))
+            self._labels_ensured = True
 
         # Sort by priority (P0 first)
         sorted_findings = sorted(
@@ -235,14 +246,11 @@ class IssueCreator:
         title = finding.to_issue_title()
         body = finding.to_issue_body()
 
-        # Build labels
+        # Build labels (labels are pre-created at batch level in create_issues)
         labels = self.DEFAULT_LABELS.copy()
         labels.append(f"category:{finding.category.value}")
         if finding.priority in self.PRIORITY_LABELS:
             labels.append(self.PRIORITY_LABELS[finding.priority])
-
-        # Ensure labels exist before creating issue
-        await self._ensure_labels_exist(labels)
 
         # Create issue via gh CLI (run_gh_command_with_stderr_async adds "gh" prefix)
         cmd = [
