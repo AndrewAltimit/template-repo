@@ -13,8 +13,6 @@
 # 1. Uncomment the schedule section below
 # 2. Configure your ai-agents-board.yml
 # 3. Ensure required secrets are set (AGENT_TOKEN, GH_PROJECTS_TOKEN)
-#
-# See: examples/workflows/scheduled-agent-work.example.yml for the full template
 
 name: Scheduled Agent Work
 

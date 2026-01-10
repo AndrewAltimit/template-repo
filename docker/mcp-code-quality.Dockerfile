@@ -42,6 +42,9 @@ RUN npm install -g \
 COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY tools/mcp/mcp_code_quality /app/tools/mcp/mcp_code_quality
 
+# Copy markdown link checker utility (required by server)
+COPY tools/cli/utilities /app/tools/cli/utilities
+
 # Install MCP packages
 RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
     pip install --no-cache-dir /app/tools/mcp/mcp_code_quality
@@ -52,11 +55,24 @@ ENV PYTHONPATH=/app
 # Create a non-root user that will be overridden by docker-compose
 RUN useradd -m -u 1000 appuser
 
+# Create audit log directory with proper permissions
+RUN mkdir -p /var/log/mcp-code-quality && \
+    chown appuser:appuser /var/log/mcp-code-quality
+
 # Switch to non-root user
 USER appuser
 
+# Environment variables for enterprise configuration
+ENV MCP_CODE_QUALITY_TIMEOUT=600
+ENV MCP_CODE_QUALITY_ALLOWED_PATHS=/workspace,/app,/home
+ENV MCP_CODE_QUALITY_AUDIT_LOG=/var/log/mcp-code-quality/audit.log
+ENV MCP_CODE_QUALITY_RATE_LIMIT=true
+
 # Expose port
 EXPOSE 8010
+
+# Define volume for audit logs (allows persistence across container restarts)
+VOLUME ["/var/log/mcp-code-quality"]
 
 # Run the server
 CMD ["python", "-m", "mcp_code_quality.server", "--mode", "http"]
