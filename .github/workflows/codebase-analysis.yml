@@ -214,7 +214,7 @@ jobs:
                                   "priority": finding.priority.value,
                                   "summary": finding.summary,
                                   "details": finding.details,
-                                  "files": finding.affected_files,
+                                  "files": [asdict(af) for af in finding.affected_files],
                                   "suggested_fix": finding.suggested_fix,
                                   "evidence": finding.evidence,
                                   "agent": finding.discovered_by,
@@ -316,7 +316,7 @@ jobs:
               # Import and use IssueCreator
               try:
                   from github_agents.creators import IssueCreator
-                  from github_agents.analyzers import AnalysisFinding, FindingCategory, FindingPriority
+                  from github_agents.analyzers import AnalysisFinding, AffectedFile, FindingCategory, FindingPriority
 
                   creator = IssueCreator(
                       repo=repo,
@@ -331,13 +331,19 @@ jobs:
                   for f in filtered_findings:
                       try:
                           # Convert dict back to AnalysisFinding
+                          files_data = f.get('files', [])
+                          affected_files = [
+                              AffectedFile(**file_dict) if isinstance(file_dict, dict)
+                              else AffectedFile(path=str(file_dict))
+                              for file_dict in files_data
+                          ]
                           finding = AnalysisFinding(
                               title=f.get('title', 'Untitled Finding'),
                               category=FindingCategory(f.get('category', 'quality')),
                               priority=FindingPriority(f.get('priority', 'P2')),
                               summary=f.get('summary', ''),
                               details=f.get('details', ''),
-                              affected_files=f.get('files', []),
+                              affected_files=affected_files,
                               suggested_fix=f.get('suggested_fix', ''),
                               evidence=f.get('evidence', ''),
                               discovered_by=f.get('agent', 'unknown'),
