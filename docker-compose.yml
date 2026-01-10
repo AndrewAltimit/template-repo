@@ -998,6 +998,7 @@ services:
       - DISPLAY=${DISPLAY:-:0}
       - XAUTHORITY=/home/appuser/.Xauthority
       - DESKTOP_CONTROL_OUTPUT_DIR=/output
+      - DESKTOP_CONTROL_HOST_PATH=outputs/desktop-control  # Host-relative path for client access
     network_mode: host  # Required for X11 access (incompatible with networks)
     command: ["python", "-m", "mcp_desktop_control.server", "--mode", "http"]
     restart: unless-stopped

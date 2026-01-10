@@ -28,7 +28,10 @@ class DesktopControlMCPServer(BaseMCPServer):  # pylint: disable=too-many-public
         self._force_platform = force_platform
 
         # Setup output directory for screenshots
+        # _output_dir: actual path used for writing (may be container path like /output)
+        # _host_output_dir: path returned to clients (host-relative like outputs/desktop-control)
         self._output_dir = output_dir or os.environ.get("DESKTOP_CONTROL_OUTPUT_DIR", self.DEFAULT_OUTPUT_DIR)
+        self._host_output_dir = os.environ.get("DESKTOP_CONTROL_HOST_PATH", self.DEFAULT_OUTPUT_DIR)
         self._ensure_output_dir()
 
         # Initialize backend (lazy loading for graceful degradation)
@@ -209,7 +212,8 @@ class DesktopControlMCPServer(BaseMCPServer):  # pylint: disable=too-many-public
             },
             # Screenshots
             "screenshot_screen": {
-                "description": "Capture the entire screen or a specific monitor. Saves PNG to outputs/desktop-control/ and returns file path.",
+                "description": "Capture the entire screen or a specific monitor. "
+                "Saves PNG to outputs/desktop-control/ and returns file path.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -234,7 +238,8 @@ class DesktopControlMCPServer(BaseMCPServer):  # pylint: disable=too-many-public
                 },
             },
             "screenshot_region": {
-                "description": "Capture a specific region of the screen. Saves PNG to outputs/desktop-control/ and returns file path.",
+                "description": "Capture a specific region of the screen. "
+                "Saves PNG to outputs/desktop-control/ and returns file path.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -411,98 +416,133 @@ class DesktopControlMCPServer(BaseMCPServer):  # pylint: disable=too-many-public
         visible_only: bool = True,
     ) -> Dict[str, Any]:
         """List all windows"""
-        backend = self._ensure_backend()
-        windows = backend.list_windows(title_filter=title_filter, visible_only=visible_only)
-        return {
-            "success": True,
-            "count": len(windows),
-            "windows": [w.to_dict() for w in windows],
-        }
+        try:
+            backend = self._ensure_backend()
+            windows = backend.list_windows(title_filter=title_filter, visible_only=visible_only)
+            return {
+                "success": True,
+                "count": len(windows),
+                "windows": [w.to_dict() for w in windows],
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def get_active_window(self) -> Dict[str, Any]:
         """Get the currently focused window"""
-        backend = self._ensure_backend()
-        window = backend.get_active_window()
-        if window:
-            return {"success": True, "window": window.to_dict()}
-        else:
-            return {"success": False, "error": "No active window found"}
+        try:
+            backend = self._ensure_backend()
+            window = backend.get_active_window()
+            if window:
+                return {"success": True, "window": window.to_dict()}
+            else:
+                return {"success": False, "error": "No active window found"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def focus_window(self, window_id: str) -> Dict[str, Any]:
         """Focus a window"""
-        backend = self._ensure_backend()
-        success = backend.focus_window(window_id)
-        return {"success": success, "window_id": window_id}
+        try:
+            backend = self._ensure_backend()
+            success = backend.focus_window(window_id)
+            return {"success": success, "window_id": window_id}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def move_window(self, window_id: str, x: int, y: int) -> Dict[str, Any]:
         """Move a window"""
-        backend = self._ensure_backend()
-        success = backend.move_window(window_id, x, y)
-        return {"success": success, "window_id": window_id, "position": {"x": x, "y": y}}
+        try:
+            backend = self._ensure_backend()
+            success = backend.move_window(window_id, x, y)
+            return {"success": success, "window_id": window_id, "position": {"x": x, "y": y}}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def resize_window(self, window_id: str, width: int, height: int) -> Dict[str, Any]:
         """Resize a window"""
-        backend = self._ensure_backend()
-        success = backend.resize_window(window_id, width, height)
-        return {"success": success, "window_id": window_id, "size": {"width": width, "height": height}}
+        try:
+            backend = self._ensure_backend()
+            success = backend.resize_window(window_id, width, height)
+            return {"success": success, "window_id": window_id, "size": {"width": width, "height": height}}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def minimize_window(self, window_id: str) -> Dict[str, Any]:
         """Minimize a window"""
-        backend = self._ensure_backend()
-        success = backend.minimize_window(window_id)
-        return {"success": success, "window_id": window_id}
+        try:
+            backend = self._ensure_backend()
+            success = backend.minimize_window(window_id)
+            return {"success": success, "window_id": window_id}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def maximize_window(self, window_id: str) -> Dict[str, Any]:
         """Maximize a window"""
-        backend = self._ensure_backend()
-        success = backend.maximize_window(window_id)
-        return {"success": success, "window_id": window_id}
+        try:
+            backend = self._ensure_backend()
+            success = backend.maximize_window(window_id)
+            return {"success": success, "window_id": window_id}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def restore_window(self, window_id: str) -> Dict[str, Any]:
         """Restore a window"""
-        backend = self._ensure_backend()
-        success = backend.restore_window(window_id)
-        return {"success": success, "window_id": window_id}
+        try:
+            backend = self._ensure_backend()
+            success = backend.restore_window(window_id)
+            return {"success": success, "window_id": window_id}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def close_window(self, window_id: str) -> Dict[str, Any]:
         """Close a window"""
-        backend = self._ensure_backend()
-        success = backend.close_window(window_id)
-        return {"success": success, "window_id": window_id}
+        try:
+            backend = self._ensure_backend()
+            success = backend.close_window(window_id)
+            return {"success": success, "window_id": window_id}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     # === Screen Information ===
 
     async def list_screens(self) -> Dict[str, Any]:
         """List all displays"""
-        backend = self._ensure_backend()
-        screens = backend.list_screens()
-        return {
-            "success": True,
-            "count": len(screens),
-            "screens": [s.to_dict() for s in screens],
-        }
+        try:
+            backend = self._ensure_backend()
+            screens = backend.list_screens()
+            return {
+                "success": True,
+                "count": len(screens),
+                "screens": [s.to_dict() for s in screens],
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def get_screen_size(self) -> Dict[str, Any]:
         """Get primary screen resolution"""
-        backend = self._ensure_backend()
-        width, height = backend.get_screen_size()
-        return {"success": True, "width": width, "height": height}
+        try:
+            backend = self._ensure_backend()
+            width, height = backend.get_screen_size()
+            return {"success": True, "width": width, "height": height}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     # === Screenshots ===
 
     def _save_screenshot(self, png_data: bytes, prefix: str) -> str:
-        """Save screenshot to file and return the path"""
+        """Save screenshot to file and return the host-relative path"""
         timestamp = int(time.time() * 1000)  # Millisecond precision
         filename = f"{prefix}_{timestamp}.png"
+        # Write to container/actual path
         filepath = os.path.join(self._output_dir, filename)
         with open(filepath, "wb") as f:
             f.write(png_data)
-        return filepath
+        # Return host-relative path for client accessibility
+        return os.path.join(self._host_output_dir, filename)
 
     async def screenshot_screen(self, screen_id: Optional[int] = None) -> Dict[str, Any]:
         """Capture the screen and save to file"""
-        backend = self._ensure_backend()
         try:
+            backend = self._ensure_backend()
             png_data = backend.screenshot_screen(screen_id)
             filepath = self._save_screenshot(png_data, f"screen_{screen_id or 0}")
             return {
@@ -517,8 +557,8 @@ class DesktopControlMCPServer(BaseMCPServer):  # pylint: disable=too-many-public
 
     async def screenshot_window(self, window_id: str) -> Dict[str, Any]:
         """Capture a specific window and save to file"""
-        backend = self._ensure_backend()
         try:
+            backend = self._ensure_backend()
             png_data = backend.screenshot_window(window_id)
             # Sanitize window_id for filename (replace non-alphanumeric with underscore)
             safe_id = "".join(c if c.isalnum() else "_" for c in window_id)
@@ -535,8 +575,8 @@ class DesktopControlMCPServer(BaseMCPServer):  # pylint: disable=too-many-public
 
     async def screenshot_region(self, x: int, y: int, width: int, height: int) -> Dict[str, Any]:
         """Capture a region of the screen and save to file"""
-        backend = self._ensure_backend()
         try:
+            backend = self._ensure_backend()
             png_data = backend.screenshot_region(x, y, width, height)
             filepath = self._save_screenshot(png_data, f"region_{x}_{y}_{width}x{height}")
             return {
@@ -553,20 +593,26 @@ class DesktopControlMCPServer(BaseMCPServer):  # pylint: disable=too-many-public
 
     async def get_mouse_position(self) -> Dict[str, Any]:
         """Get current mouse position"""
-        backend = self._ensure_backend()
-        x, y = backend.get_mouse_position()
-        return {"success": True, "x": x, "y": y}
+        try:
+            backend = self._ensure_backend()
+            x, y = backend.get_mouse_position()
+            return {"success": True, "x": x, "y": y}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def move_mouse(self, x: int, y: int, relative: bool = False) -> Dict[str, Any]:
         """Move the mouse cursor"""
-        backend = self._ensure_backend()
-        success = backend.move_mouse(x, y, relative=relative)
-        new_x, new_y = backend.get_mouse_position()
-        return {
-            "success": success,
-            "position": {"x": new_x, "y": new_y},
-            "relative": relative,
-        }
+        try:
+            backend = self._ensure_backend()
+            success = backend.move_mouse(x, y, relative=relative)
+            new_x, new_y = backend.get_mouse_position()
+            return {
+                "success": success,
+                "position": {"x": new_x, "y": new_y},
+                "relative": relative,
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def click_mouse(
         self,
@@ -576,14 +622,17 @@ class DesktopControlMCPServer(BaseMCPServer):  # pylint: disable=too-many-public
         clicks: int = 1,
     ) -> Dict[str, Any]:
         """Click the mouse"""
-        backend = self._ensure_backend()
-        success = backend.click_mouse(button=button, x=x, y=y, clicks=clicks)
-        return {
-            "success": success,
-            "button": button,
-            "clicks": clicks,
-            "position": {"x": x, "y": y} if x is not None else None,
-        }
+        try:
+            backend = self._ensure_backend()
+            success = backend.click_mouse(button=button, x=x, y=y, clicks=clicks)
+            return {
+                "success": success,
+                "button": button,
+                "clicks": clicks,
+                "position": {"x": x, "y": y} if x is not None else None,
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def drag_mouse(
         self,
@@ -595,16 +644,21 @@ class DesktopControlMCPServer(BaseMCPServer):  # pylint: disable=too-many-public
         duration: float = 0.5,
     ) -> Dict[str, Any]:
         """Drag the mouse"""
-        backend = self._ensure_backend()
-        # Use asyncio.to_thread to avoid blocking the event loop during drag operation
-        success = await asyncio.to_thread(backend.drag_mouse, start_x, start_y, end_x, end_y, button=button, duration=duration)
-        return {
-            "success": success,
-            "start": {"x": start_x, "y": start_y},
-            "end": {"x": end_x, "y": end_y},
-            "button": button,
-            "duration": duration,
-        }
+        try:
+            backend = self._ensure_backend()
+            # Use asyncio.to_thread to avoid blocking the event loop during drag operation
+            success = await asyncio.to_thread(
+                backend.drag_mouse, start_x, start_y, end_x, end_y, button=button, duration=duration
+            )
+            return {
+                "success": success,
+                "start": {"x": start_x, "y": start_y},
+                "end": {"x": end_x, "y": end_y},
+                "button": button,
+                "duration": duration,
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def scroll_mouse(
         self,
@@ -614,46 +668,58 @@ class DesktopControlMCPServer(BaseMCPServer):  # pylint: disable=too-many-public
         y: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Scroll the mouse wheel"""
-        backend = self._ensure_backend()
-        success = backend.scroll_mouse(amount, direction=direction, x=x, y=y)
-        return {
-            "success": success,
-            "amount": amount,
-            "direction": direction,
-            "position": {"x": x, "y": y} if x is not None else None,
-        }
+        try:
+            backend = self._ensure_backend()
+            success = backend.scroll_mouse(amount, direction=direction, x=x, y=y)
+            return {
+                "success": success,
+                "amount": amount,
+                "direction": direction,
+                "position": {"x": x, "y": y} if x is not None else None,
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     # === Keyboard Control ===
 
     async def type_text(self, text: str, interval: float = 0.0) -> Dict[str, Any]:
         """Type text"""
-        backend = self._ensure_backend()
-        # Use asyncio.to_thread to avoid blocking the event loop during typing
-        success = await asyncio.to_thread(backend.type_text, text, interval=interval)
-        return {
-            "success": success,
-            "text_length": len(text),
-            "interval": interval,
-        }
+        try:
+            backend = self._ensure_backend()
+            # Use asyncio.to_thread to avoid blocking the event loop during typing
+            success = await asyncio.to_thread(backend.type_text, text, interval=interval)
+            return {
+                "success": success,
+                "text_length": len(text),
+                "interval": interval,
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def send_key(self, key: str, modifiers: Optional[List[str]] = None) -> Dict[str, Any]:
         """Send a key or key combination"""
-        backend = self._ensure_backend()
-        success = backend.send_key(key, modifiers=modifiers)
-        return {
-            "success": success,
-            "key": key,
-            "modifiers": modifiers or [],
-        }
+        try:
+            backend = self._ensure_backend()
+            success = backend.send_key(key, modifiers=modifiers)
+            return {
+                "success": success,
+                "key": key,
+                "modifiers": modifiers or [],
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def send_hotkey(self, keys: List[str]) -> Dict[str, Any]:
         """Send a hotkey combination"""
-        backend = self._ensure_backend()
-        success = backend.send_hotkey(*keys)
-        return {
-            "success": success,
-            "keys": keys,
-        }
+        try:
+            backend = self._ensure_backend()
+            success = backend.send_hotkey(*keys)
+            return {
+                "success": success,
+                "keys": keys,
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
 
 def main():

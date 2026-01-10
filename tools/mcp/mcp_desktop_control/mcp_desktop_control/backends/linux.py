@@ -87,20 +87,21 @@ class LinuxBackend(DesktopBackend):  # pylint: disable=too-many-public-methods
         windows = []
 
         if self._has_wmctrl:
-            # wmctrl -l -G -p gives: id desktop pid x y w h hostname title
+            # wmctrl -l -G -p gives: id desktop pid x y w h hostname [title]
+            # Note: title is optional - windows without titles have only 8 parts
             result = self._run_command(["wmctrl", "-l", "-G", "-p"])
             if result.returncode == 0:
                 for line in result.stdout.strip().split("\n"):
                     if not line:
                         continue
                     parts = line.split(None, 8)
-                    if len(parts) >= 9:
+                    if len(parts) >= 8:  # Allow windows without titles (8 parts minimum)
                         window_id = parts[0]
                         # desktop = parts[1]
                         pid = int(parts[2]) if parts[2] != "-1" else None
                         x, y, w, h = int(parts[3]), int(parts[4]), int(parts[5]), int(parts[6])
                         # hostname = parts[7]
-                        title = parts[8] if len(parts) > 8 else ""
+                        title = parts[8] if len(parts) > 8 else ""  # Handle missing title
 
                         # Get additional window info via xdotool
                         class_name = self._get_window_class(window_id)
