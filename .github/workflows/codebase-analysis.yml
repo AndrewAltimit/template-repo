@@ -349,52 +349,50 @@ jobs:
                   from github_agents.creators import IssueCreator
                   from github_agents.analyzers import AnalysisFinding, AffectedFile, FindingCategory, FindingPriority
 
+                  # Convert dicts back to AnalysisFinding objects
+                  findings_list = []
+                  for f in filtered_findings:
+                      files_data = f.get('files', [])
+                      affected_files = [
+                          AffectedFile(**file_dict) if isinstance(file_dict, dict)
+                          else AffectedFile(path=str(file_dict))
+                          for file_dict in files_data
+                      ]
+                      finding = AnalysisFinding(
+                          title=f.get('title', 'Untitled Finding'),
+                          category=FindingCategory(f.get('category', 'quality')),
+                          priority=FindingPriority(f.get('priority', 'P2')),
+                          summary=f.get('summary', ''),
+                          details=f.get('details', ''),
+                          affected_files=affected_files,
+                          suggested_fix=f.get('suggested_fix', ''),
+                          evidence=f.get('evidence', ''),
+                          discovered_by=f.get('agent', 'unknown'),
+                      )
+                      findings_list.append(finding)
+
+                  # Create issues using the proper API
                   creator = IssueCreator(
                       repo=repo,
-                      labels=["automated", "agentic-analysis", "needs-review"],
                       lookback_days=30,
+                      max_issues_per_run=max_issues,
+                      min_priority=FindingPriority(min_priority),
                   )
 
+                  results = await creator.create_issues(findings_list)
+
+                  # Process results
                   issues_created = 0
                   skipped = 0
-                  errors = 0
+                  for result in results:
+                      if result.created:
+                          issues_created += 1
+                          print(f"Created issue #{result.issue_number}: {result.finding.title}", file=sys.stderr)
+                      elif result.skipped_reason:
+                          skipped += 1
+                          print(f"Skipped: {result.skipped_reason}", file=sys.stderr)
 
-                  for f in filtered_findings:
-                      try:
-                          # Convert dict back to AnalysisFinding
-                          files_data = f.get('files', [])
-                          affected_files = [
-                              AffectedFile(**file_dict) if isinstance(file_dict, dict)
-                              else AffectedFile(path=str(file_dict))
-                              for file_dict in files_data
-                          ]
-                          finding = AnalysisFinding(
-                              title=f.get('title', 'Untitled Finding'),
-                              category=FindingCategory(f.get('category', 'quality')),
-                              priority=FindingPriority(f.get('priority', 'P2')),
-                              summary=f.get('summary', ''),
-                              details=f.get('details', ''),
-                              affected_files=affected_files,
-                              suggested_fix=f.get('suggested_fix', ''),
-                              evidence=f.get('evidence', ''),
-                              discovered_by=f.get('agent', 'unknown'),
-                          )
-
-                          result = await creator.create_issue(finding)
-                          if result.issue_number:
-                              issues_created += 1
-                              print(f"Created issue #{result.issue_number}: {finding.title}", file=sys.stderr)
-                          elif result.skipped_reason:
-                              skipped += 1
-                              print(f"Skipped: {result.skipped_reason}", file=sys.stderr)
-                          else:
-                              errors += 1
-
-                      except Exception as e:
-                          print(f"Error creating issue: {e}", file=sys.stderr)
-                          errors += 1
-
-                  return {"issues_created": issues_created, "skipped": skipped, "errors": errors}
+                  return {"issues_created": issues_created, "skipped": skipped, "errors": 0}
 
               except ImportError as e:
                   print(f"Import error: {e}", file=sys.stderr)
