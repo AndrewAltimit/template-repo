@@ -1,10 +1,17 @@
 """Codebase analysis agents for automated issue discovery."""
 
-from .base import AnalysisFinding, BaseAnalyzer, FindingCategory, FindingPriority
+from .base import (
+    AgentAnalyzer,
+    AnalysisFinding,
+    BaseAnalyzer,
+    FindingCategory,
+    FindingPriority,
+)
 
 __all__ = [
-    "BaseAnalyzer",
+    "AgentAnalyzer",
     "AnalysisFinding",
+    "BaseAnalyzer",
     "FindingCategory",
     "FindingPriority",
 ]

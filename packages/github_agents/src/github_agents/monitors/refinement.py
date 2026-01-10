@@ -10,6 +10,7 @@ import hashlib
 import json
 import logging
 import re
+from string import Template
 from typing import Any, Dict, List, Optional
 
 from ..agents import BaseAgent
@@ -75,15 +76,16 @@ class RefinementMonitor:
     """
 
     # Agent-specific prompts for different perspectives
+    # Uses string.Template with $variable syntax to safely handle code in issue bodies
     AGENT_PROMPTS = {
         "claude": """Review this GitHub issue from an ARCHITECTURAL perspective.
 
-Issue: {title}
+Issue: $title
 Description:
-{body}
+$body
 
 Existing comments:
-{comments}
+$comments
 
 Consider:
 1. Are there design patterns that would help implementation?
@@ -102,12 +104,12 @@ INSIGHT:
 """,
         "gemini": """Review this GitHub issue for QUALITY and SECURITY considerations.
 
-Issue: {title}
+Issue: $title
 Description:
-{body}
+$body
 
 Existing comments:
-{comments}
+$comments
 
 Consider:
 1. Are there security implications to be aware of?
@@ -126,12 +128,12 @@ INSIGHT:
 """,
         "codex": """Review this GitHub issue from an IMPLEMENTATION perspective.
 
-Issue: {title}
+Issue: $title
 Description:
-{body}
+$body
 
 Existing comments:
-{comments}
+$comments
 
 Consider:
 1. What's the estimated complexity (XS/S/M/L/XL)?
@@ -150,12 +152,12 @@ INSIGHT:
 """,
         "opencode": """Review this GitHub issue for MAINTAINABILITY concerns.
 
-Issue: {title}
+Issue: $title
 Description:
-{body}
+$body
 
 Existing comments:
-{comments}
+$comments
 
 Consider:
 1. Will this create technical debt?
@@ -514,7 +516,8 @@ INSIGHT:
             for c in existing_comments[-5:]  # Last 5 comments
         )
 
-        prompt = prompt_template.format(
+        # Use safe_substitute to safely handle code with special chars in issue bodies
+        prompt = Template(prompt_template).safe_substitute(
             title=issue.title,
             body=issue.body or "(no description)",
             comments=comment_text or "(no comments)",

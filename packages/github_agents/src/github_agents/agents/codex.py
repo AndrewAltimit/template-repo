@@ -185,10 +185,11 @@ class CodexAgent(CLIAgent):
         if self.bypass_sandbox:
             # WARNING: Only use in already-sandboxed environments
             logger.warning("Using Codex with sandbox bypass - ensure environment is isolated")
-            cmd.extend(["--json", "--dangerously-bypass-approvals-and-sandbox", prompt])
+            cmd.extend(["--json", "--dangerously-bypass-approvals-and-sandbox", "--", prompt])
         else:
             # Safe sandboxed mode with workspace-write restrictions
-            cmd.extend(["--sandbox", "workspace-write", "--full-auto", "--json", prompt])
+            # Use "--" separator to prevent prompt from being interpreted as flags
+            cmd.extend(["--sandbox", "workspace-write", "--full-auto", "--json", "--", prompt])
 
         return cmd
 

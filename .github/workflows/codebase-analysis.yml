@@ -129,6 +129,7 @@ jobs:
           import os
           import sys
           from pathlib import Path
+          from dataclasses import asdict
 
           async def run_analysis():
               findings = []
@@ -139,30 +140,97 @@ jobs:
               print(f"Include paths: {include_paths}", file=sys.stderr)
 
               try:
-                  from github_agents.analyzers import BaseAnalyzer
-                  from github_agents.agents import get_best_available_agent
+                  from github_agents.analyzers import AgentAnalyzer, FindingCategory
+                  from github_agents.agents import (
+                      get_best_available_agent,
+                      ClaudeAgent,
+                      GeminiAgent,
+                      CodexAgent,
+                      OpenCodeAgent,
+                  )
 
-                  # For each agent, run analysis
+                  # Map agent names to classes and their focus areas
+                  agent_configs = {
+                      "claude": {
+                          "class": ClaudeAgent,
+                          "prompt": "Analyze this codebase for architectural issues, design patterns, and refactoring opportunities.",
+                          "categories": [FindingCategory.QUALITY, FindingCategory.ARCHITECTURE],
+                      },
+                      "gemini": {
+                          "class": GeminiAgent,
+                          "prompt": "Analyze this codebase for security vulnerabilities, code smells, and best practice violations.",
+                          "categories": [FindingCategory.SECURITY, FindingCategory.QUALITY],
+                      },
+                      "codex": {
+                          "class": CodexAgent,
+                          "prompt": "Analyze this codebase for performance bottlenecks and optimization opportunities.",
+                          "categories": [FindingCategory.PERFORMANCE],
+                      },
+                      "opencode": {
+                          "class": OpenCodeAgent,
+                          "prompt": "Analyze this codebase for technical debt, outdated dependencies, and maintenance issues.",
+                          "categories": [FindingCategory.TECH_DEBT, FindingCategory.DOCUMENTATION],
+                      },
+                  }
+
+                  repo_path = Path.cwd()
+
+                  # Run analysis with each requested agent
                   for agent_name in agents:
-                      agent_name = agent_name.strip()
+                      agent_name = agent_name.strip().lower()
+                      if agent_name not in agent_configs:
+                          print(f"Unknown agent: {agent_name}, skipping", file=sys.stderr)
+                          continue
+
+                      config = agent_configs[agent_name]
                       print(f"Analyzing with {agent_name}...", file=sys.stderr)
 
-                      # TODO: Implement full analysis
-                      # For now, this is a placeholder that demonstrates the structure
-                      # Real implementation would use AgentAnalyzer class
+                      try:
+                          # Create agent instance
+                          agent_instance = config["class"]()
 
-                      # Example finding structure
-                      # findings.append({
-                      #     "title": "Example finding",
-                      #     "category": "quality",
-                      #     "priority": "P2",
-                      #     "agent": agent_name,
-                      # })
+                          # Check if agent is available
+                          if not agent_instance.is_available():
+                              print(f"Agent {agent_name} is not available, skipping", file=sys.stderr)
+                              continue
 
-                  print(f"Analysis complete. Found {len(findings)} findings.", file=sys.stderr)
+                          # Create analyzer with agent
+                          analyzer = AgentAnalyzer(
+                              agent_name=agent_name,
+                              agent_instance=agent_instance,
+                              analysis_prompt=config["prompt"],
+                              categories=config["categories"],
+                              include_paths=include_paths,
+                          )
+
+                          # Run analysis
+                          agent_findings = await analyzer.analyze(repo_path)
+
+                          # Convert to serializable format
+                          for finding in agent_findings:
+                              findings.append({
+                                  "title": finding.title,
+                                  "category": finding.category.value,
+                                  "priority": finding.priority.value,
+                                  "summary": finding.summary,
+                                  "details": finding.details,
+                                  "files": finding.affected_files,
+                                  "suggested_fix": finding.suggested_fix,
+                                  "evidence": finding.evidence,
+                                  "agent": finding.discovered_by,
+                              })
+
+                          print(f"Agent {agent_name} found {len(agent_findings)} issues", file=sys.stderr)
+
+                      except Exception as e:
+                          print(f"Error running agent {agent_name}: {e}", file=sys.stderr)
+                          continue
+
+                  print(f"Analysis complete. Found {len(findings)} total findings.", file=sys.stderr)
 
               except ImportError as e:
-                  print(f"Import error (expected during development): {e}", file=sys.stderr)
+                  print(f"Import error: {e}", file=sys.stderr)
+                  print("Ensure github_agents package is installed", file=sys.stderr)
 
               return {"findings": findings, "count": len(findings)}
 

@@ -301,6 +301,11 @@ class AgentAnalyzer(BaseAnalyzer):
     def supported_categories(self) -> List[FindingCategory]:
         return self._categories
 
+    # Token/character limits for file content
+    MAX_FILES_TO_READ = 20  # Maximum files to include content for
+    MAX_CHARS_PER_FILE = 3000  # Maximum characters per file
+    MAX_TOTAL_CHARS = 50000  # Maximum total content characters
+
     async def analyze(self, repo_path: Path) -> List[AnalysisFinding]:
         """Run AI agent analysis on the codebase.
 
@@ -317,13 +322,23 @@ class AgentAnalyzer(BaseAnalyzer):
             logger.warning("No files found for analysis in %s", repo_path)
             return []
 
-        # Build context for the agent
-        file_list = "\n".join(f"- {f.relative_to(repo_path)}" for f in files[:50])
+        # Build file content for the agent (with limits to prevent token overflow)
+        file_contents = self._read_file_contents(files[: self.MAX_FILES_TO_READ], repo_path)
+
+        # List remaining files (paths only) if we couldn't read all
+        remaining_files = files[self.MAX_FILES_TO_READ :]
+        remaining_list = ""
+        if remaining_files:
+            remaining_list = "\n\n## Additional Files (paths only, not included in analysis)\n"
+            remaining_list += "\n".join(f"- {f.relative_to(repo_path)}" for f in remaining_files[:30])
+            if len(remaining_files) > 30:
+                remaining_list += f"\n... and {len(remaining_files) - 30} more files"
 
         prompt = f"""{self.analysis_prompt}
 
 ## Files to Analyze
-{file_list}
+
+{file_contents}{remaining_list}
 
 ## Output Format
 For each finding, provide:
@@ -345,6 +360,7 @@ Separate findings with "---"
                 "mode": "analysis",
                 "repo_path": str(repo_path),
                 "file_count": len(files),
+                "files_with_content": len(files[: self.MAX_FILES_TO_READ]),
             }
             response = await self.agent.generate_code(prompt, context)
             findings = self._parse_agent_response(response)
@@ -354,6 +370,48 @@ Separate findings with "---"
             logger.error("Agent analysis failed: %s", e)
 
         return self.findings
+
+    def _read_file_contents(self, files: List[Path], repo_path: Path) -> str:
+        """Read file contents with character limits.
+
+        Args:
+            files: List of file paths to read
+            repo_path: Repository root path
+
+        Returns:
+            Formatted string with file contents
+        """
+        contents = []
+        total_chars = 0
+
+        for file_path in files:
+            if total_chars >= self.MAX_TOTAL_CHARS:
+                contents.append(f"\n... truncated (reached {self.MAX_TOTAL_CHARS} char limit)")
+                break
+
+            try:
+                relative_path = file_path.relative_to(repo_path)
+                content = file_path.read_text(encoding="utf-8", errors="replace")
+
+                # Truncate if too long
+                if len(content) > self.MAX_CHARS_PER_FILE:
+                    content = content[: self.MAX_CHARS_PER_FILE]
+                    content += f"\n... (truncated at {self.MAX_CHARS_PER_FILE} chars)"
+
+                # Check total limit
+                if total_chars + len(content) > self.MAX_TOTAL_CHARS:
+                    remaining = self.MAX_TOTAL_CHARS - total_chars
+                    content = content[:remaining]
+                    content += "\n... (truncated due to total limit)"
+
+                contents.append(f"### {relative_path}\n```\n{content}\n```")
+                total_chars += len(content)
+
+            except Exception as e:
+                logger.warning("Failed to read %s: %s", file_path, e)
+                contents.append(f"### {file_path.relative_to(repo_path)}\n(could not read: {e})")
+
+        return "\n\n".join(contents)
 
     def _parse_agent_response(self, response: str) -> List[AnalysisFinding]:
         """Parse agent response into findings.
