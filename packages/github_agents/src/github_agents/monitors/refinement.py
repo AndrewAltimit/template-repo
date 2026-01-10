@@ -179,6 +179,9 @@ INSIGHT:
     # Comment marker pattern for tracking refinement
     REFINEMENT_MARKER_PATTERN = re.compile(r"<!-- backlog-refinement:(\w+):(\d{4}-\d{2}-\d{2}):(\w+) -->")
 
+    # Maximum characters for issue body to prevent context window exhaustion
+    MAX_BODY_LENGTH = 5000
+
     def __init__(
         self,
         repo: str,
@@ -516,10 +519,15 @@ INSIGHT:
             for c in existing_comments[-5:]  # Last 5 comments
         )
 
+        # Truncate body to prevent context window exhaustion
+        body = issue.body or "(no description)"
+        if len(body) > self.MAX_BODY_LENGTH:
+            body = body[: self.MAX_BODY_LENGTH] + f"\n... (truncated at {self.MAX_BODY_LENGTH} chars)"
+
         # Use safe_substitute to safely handle code with special chars in issue bodies
         prompt = Template(prompt_template).safe_substitute(
             title=issue.title,
-            body=issue.body or "(no description)",
+            body=body,
             comments=comment_text or "(no comments)",
         )
 
