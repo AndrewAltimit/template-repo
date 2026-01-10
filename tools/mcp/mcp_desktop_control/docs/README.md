@@ -1,6 +1,6 @@
 # Desktop Control MCP Server
 
-Cross-platform desktop automation MCP server supporting Linux and Windows.
+> Cross-platform desktop automation MCP server supporting Linux and Windows.
 
 ## Overview
 
