@@ -12,10 +12,11 @@ from datetime import datetime, timedelta
 import logging
 from typing import List, Optional, Set
 
-from ..analyzers.base import AnalysisFinding, FindingPriority
+from ..analyzers.base import AnalysisFinding, FindingCategory, FindingPriority
 from ..board.manager import BoardManager
+from ..board.models import IssuePriority, IssueSize, IssueType
 from ..memory.integration import MemoryIntegration
-from ..utils import run_gh_command_async
+from ..utils import run_gh_command_async, run_gh_command_with_stderr_async
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,41 @@ class IssueCreator:
         FindingPriority.P3: "priority:low",
     }
 
+    # FindingPriority to IssuePriority mapping for board
+    PRIORITY_TO_BOARD = {
+        FindingPriority.P0: IssuePriority.CRITICAL,
+        FindingPriority.P1: IssuePriority.HIGH,
+        FindingPriority.P2: IssuePriority.MEDIUM,
+        FindingPriority.P3: IssuePriority.LOW,
+    }
+
+    # FindingCategory to IssueType mapping for board
+    CATEGORY_TO_TYPE = {
+        FindingCategory.SECURITY: IssueType.BUG,
+        FindingCategory.PERFORMANCE: IssueType.BUG,
+        FindingCategory.QUALITY: IssueType.TECH_DEBT,
+        FindingCategory.TECH_DEBT: IssueType.TECH_DEBT,
+        FindingCategory.DOCUMENTATION: IssueType.DOCUMENTATION,
+        FindingCategory.TESTING: IssueType.TECH_DEBT,
+        FindingCategory.ARCHITECTURE: IssueType.TECH_DEBT,
+        FindingCategory.DEPENDENCY: IssueType.TECH_DEBT,
+    }
+
+    @staticmethod
+    def _estimate_size(finding: AnalysisFinding) -> IssueSize:
+        """Estimate issue size based on number of affected files."""
+        num_files = len(finding.affected_files)
+        if num_files <= 1:
+            return IssueSize.XS
+        elif num_files <= 3:
+            return IssueSize.S
+        elif num_files <= 6:
+            return IssueSize.M
+        elif num_files <= 10:
+            return IssueSize.L
+        else:
+            return IssueSize.XL
+
     def __init__(
         self,
         repo: str,
@@ -88,6 +124,7 @@ class IssueCreator:
 
         self._created_count = 0
         self._known_fingerprints: Set[str] = set()
+        self._labels_ensured = False  # Track if labels have been created this run
 
     async def create_issues(
         self,
@@ -105,6 +142,16 @@ class IssueCreator:
 
         # Load known fingerprints from existing issues
         await self._load_existing_fingerprints()
+
+        # Ensure all required labels exist once per batch (not per issue)
+        if not self._labels_ensured and not self.dry_run:
+            all_labels = set(self.DEFAULT_LABELS)
+            for finding in findings:
+                all_labels.add(f"category:{finding.category.value}")
+                if finding.priority in self.PRIORITY_LABELS:
+                    all_labels.add(self.PRIORITY_LABELS[finding.priority])
+            await self._ensure_labels_exist(list(all_labels))
+            self._labels_ensured = True
 
         # Sort by priority (P0 first)
         sorted_findings = sorted(
@@ -199,15 +246,14 @@ class IssueCreator:
         title = finding.to_issue_title()
         body = finding.to_issue_body()
 
-        # Build labels
+        # Build labels (labels are pre-created at batch level in create_issues)
         labels = self.DEFAULT_LABELS.copy()
         labels.append(f"category:{finding.category.value}")
         if finding.priority in self.PRIORITY_LABELS:
             labels.append(self.PRIORITY_LABELS[finding.priority])
 
-        # Create issue via gh CLI
+        # Create issue via gh CLI (run_gh_command_with_stderr_async adds "gh" prefix)
         cmd = [
-            "gh",
             "issue",
             "create",
             "--repo",
@@ -220,26 +266,64 @@ class IssueCreator:
             ",".join(labels),
         ]
 
-        result = await run_gh_command_async(cmd, check=False)
+        # Run gh command and capture both stdout and stderr for diagnostics
+        stdout, stderr, returncode = await run_gh_command_with_stderr_async(cmd)
 
-        if result is None:
-            logger.error("gh issue create failed")
+        if returncode != 0:
+            error_msg = stderr or stdout or "unknown error"
+            logger.error("gh issue create failed (exit %d): %s", returncode, error_msg)
             return CreationResult(
                 finding=finding,
-                skipped_reason="gh command failed",
+                skipped_reason=f"gh failed (exit {returncode}): {error_msg[:100]}",
+            )
+
+        if not stdout:
+            error_msg = stderr or "no output"
+            logger.error("gh issue create returned empty output. stderr: %s", error_msg)
+            return CreationResult(
+                finding=finding,
+                skipped_reason=f"gh returned empty output: {error_msg[:100]}",
             )
 
         # Parse issue URL from output
-        issue_url = result.strip()
-        issue_number = int(issue_url.split("/")[-1]) if issue_url else None
+        issue_url = stdout
+        issue_number = None
+
+        try:
+            # gh issue create returns URL like https://github.com/owner/repo/issues/123
+            last_part = issue_url.split("/")[-1]
+            issue_number = int(last_part)
+        except (ValueError, IndexError) as e:
+            logger.error("Failed to parse issue number from output: %r - %s", issue_url, e)
+            return CreationResult(
+                finding=finding,
+                skipped_reason=f"failed to parse issue URL: {issue_url!r}",
+            )
 
         logger.info("Created issue #%s: %s", issue_number, title)
 
-        # Add to project board if configured
+        # Add to project board with all fields if configured
         if self.board_manager and issue_number:
             try:
-                await self.board_manager.update_status(issue_number, "Todo")
-                logger.info("Added issue #%s to board", issue_number)
+                # Map finding properties to board fields
+                board_priority = self.PRIORITY_TO_BOARD.get(finding.priority)
+                board_type = self.CATEGORY_TO_TYPE.get(finding.category)
+                board_size = self._estimate_size(finding)
+
+                await self.board_manager.add_issue_with_fields(
+                    issue_number=issue_number,
+                    priority=board_priority,
+                    issue_type=board_type,
+                    size=board_size,
+                    agent="Claude Code",  # Always Claude Code for codebase analysis
+                )
+                logger.info(
+                    "Added issue #%s to board with fields: priority=%s, type=%s, size=%s",
+                    issue_number,
+                    board_priority.value if board_priority else None,
+                    board_type.value if board_type else None,
+                    board_size.value,
+                )
             except Exception as e:
                 logger.warning("Failed to add to board: %s", e)
 
@@ -250,6 +334,50 @@ class IssueCreator:
             created=True,
         )
 
+    async def _ensure_labels_exist(self, labels: List[str]) -> None:
+        """Ensure all required labels exist in the repository.
+
+        Creates any missing labels with default colors using the GitHub API.
+
+        Args:
+            labels: List of label names to ensure exist
+        """
+        # Label colors for different types (without # prefix for API)
+        label_colors = {
+            "automated": "0366d6",  # Blue
+            "needs-review": "fbca04",  # Yellow
+            "agentic-analysis": "5319e7",  # Purple
+            "category:security": "d73a4a",  # Red
+            "category:performance": "a2eeef",  # Cyan
+            "category:quality": "7057ff",  # Violet
+            "category:tech_debt": "008672",  # Teal
+            "category:documentation": "0075ca",  # Blue
+            "category:testing": "bfd4f2",  # Light blue
+            "category:architecture": "d4c5f9",  # Light purple
+            "category:dependency": "c5def5",  # Light blue
+            "priority:critical": "b60205",  # Dark red
+            "priority:high": "d93f0b",  # Orange-red
+            "priority:medium": "fbca04",  # Yellow
+            "priority:low": "0e8a16",  # Green
+        }
+
+        for label in labels:
+            # Use gh api to create labels (gh label command doesn't exist)
+            color = label_colors.get(label, "ededed")  # Default gray
+            # POST /repos/{owner}/{repo}/labels - creates label, 422 if exists
+            cmd = [
+                "api",
+                f"repos/{self.repo}/labels",
+                "-X",
+                "POST",
+                "-f",
+                f"name={label}",
+                "-f",
+                f"color={color}",
+            ]
+            # Don't check result - 422 error means label already exists
+            await run_gh_command_async(cmd, check=False)
+
     async def _load_existing_fingerprints(self) -> None:
         """Load fingerprints from existing issues for deduplication."""
         try:
@@ -257,8 +385,8 @@ class IssueCreator:
             cutoff = datetime.utcnow() - timedelta(days=self.lookback_days)
             cutoff_str = cutoff.strftime("%Y-%m-%d")
 
+            # Note: run_gh_command_async adds "gh" prefix, so don't include it here
             cmd = [
-                "gh",
                 "issue",
                 "list",
                 "--repo",

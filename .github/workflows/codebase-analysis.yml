@@ -74,6 +74,37 @@ jobs:
       summary-json: ${{ steps.create.outputs.summary_json }}
 
     steps:
+      # Fix Docker-created directory permissions BEFORE checkout
+      # Previous runs may have created files as root which blocks checkout cleanup
+      - name: Fix Docker directory permissions (pre-checkout)
+        run: |
+          echo "::group::Pre-Checkout: Fix Docker Directory Permissions"
+          WORKSPACE="${GITHUB_WORKSPACE:-$(pwd)}"
+
+          # Fix ownership of output directories that Docker may have created
+          # Patterns cover all MCP server output directories from docker-compose.yml
+          for pattern in "outputs" "output" "mcp-content" "mcp-memes" "mcp-gaea2" \
+                         "video-editor" "elevenlabs_speech" "blender" "evaluation_results" \
+                         ".agent-venv" "__pycache__" ".pytest_cache"; do
+            if command -v sudo &> /dev/null; then
+              find "$WORKSPACE" -type d -name "$pattern" 2>/dev/null | while IFS= read -r dir; do
+                if [ -d "$dir" ]; then
+                  echo "Fixing ownership: $dir"
+                  sudo chown -R "$(id -u):$(id -g)" "$dir" 2>/dev/null || true
+                fi
+              done
+            fi
+          done
+
+          # Also fix the outputs directory at workspace root if it exists
+          if [ -d "$WORKSPACE/outputs" ] && command -v sudo &> /dev/null; then
+            sudo chown -R "$(id -u):$(id -g)" "$WORKSPACE/outputs" 2>/dev/null || true
+            echo "Fixed: $WORKSPACE/outputs"
+          fi
+
+          echo "Permissions check complete"
+          echo "::endgroup::"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -96,7 +127,7 @@ jobs:
           MAX_ISSUES="${{ inputs.max-issues || '3' }}"
           MIN_PRIORITY="${{ inputs.min-priority || 'P2' }}"
           INCLUDE_PATHS="${{ inputs.include-paths || 'packages/**/*.py,tools/**/*.py' }}"
-          DRY_RUN="${{ inputs.dry-run || 'true' }}"
+          DRY_RUN="${{ inputs.dry-run }}"
 
           echo "agents=$AGENTS" >> $GITHUB_OUTPUT
           echo "max_issues=$MAX_ISSUES" >> $GITHUB_OUTPUT
@@ -214,7 +245,7 @@ jobs:
                                   "priority": finding.priority.value,
                                   "summary": finding.summary,
                                   "details": finding.details,
-                                  "files": finding.affected_files,
+                                  "files": [asdict(af) for af in finding.affected_files],
                                   "suggested_fix": finding.suggested_fix,
                                   "evidence": finding.evidence,
                                   "agent": finding.discovered_by,
@@ -313,51 +344,71 @@ jobs:
                       print(f"  - [{f.get('priority')}] {f.get('title')}", file=sys.stderr)
                   return {"issues_created": 0, "would_create": len(filtered_findings), "dry_run": True}
 
-              # Import and use IssueCreator
+              # Import and use IssueCreator with BoardManager
               try:
                   from github_agents.creators import IssueCreator
-                  from github_agents.analyzers import AnalysisFinding, FindingCategory, FindingPriority
+                  from github_agents.analyzers import AnalysisFinding, AffectedFile, FindingCategory, FindingPriority
+                  from github_agents.board.manager import BoardManager
 
+                  # Convert dicts back to AnalysisFinding objects
+                  findings_list = []
+                  for f in filtered_findings:
+                      files_data = f.get('files', [])
+                      affected_files = [
+                          AffectedFile(**file_dict) if isinstance(file_dict, dict)
+                          else AffectedFile(path=str(file_dict))
+                          for file_dict in files_data
+                      ]
+                      finding = AnalysisFinding(
+                          title=f.get('title', 'Untitled Finding'),
+                          category=FindingCategory(f.get('category', 'quality')),
+                          priority=FindingPriority(f.get('priority', 'P2')),
+                          summary=f.get('summary', ''),
+                          details=f.get('details', ''),
+                          affected_files=affected_files,
+                          suggested_fix=f.get('suggested_fix', ''),
+                          evidence=f.get('evidence', ''),
+                          discovered_by=f.get('agent', 'unknown'),
+                      )
+                      findings_list.append(finding)
+
+                  # Initialize BoardManager for project board integration
+                  board_manager = None
+                  try:
+                      board_manager = BoardManager()
+                      await board_manager.initialize()
+                      print("BoardManager initialized - issues will be added to project board", file=sys.stderr)
+                  except Exception as e:
+                      print(f"BoardManager init failed (continuing without board): {e}", file=sys.stderr)
+                      board_manager = None
+
+                  # Create issues using the proper API
                   creator = IssueCreator(
                       repo=repo,
-                      labels=["automated", "agentic-analysis", "needs-review"],
+                      board_manager=board_manager,
                       lookback_days=30,
+                      max_issues_per_run=max_issues,
+                      min_priority=FindingPriority(min_priority),
                   )
 
+                  results = await creator.create_issues(findings_list)
+
+                  # Clean up BoardManager session
+                  if board_manager:
+                      await board_manager.close()
+
+                  # Process results
                   issues_created = 0
                   skipped = 0
-                  errors = 0
+                  for result in results:
+                      if result.created:
+                          issues_created += 1
+                          print(f"Created issue #{result.issue_number}: {result.finding.title}", file=sys.stderr)
+                      elif result.skipped_reason:
+                          skipped += 1
+                          print(f"Skipped: {result.skipped_reason}", file=sys.stderr)
 
-                  for f in filtered_findings:
-                      try:
-                          # Convert dict back to AnalysisFinding
-                          finding = AnalysisFinding(
-                              title=f.get('title', 'Untitled Finding'),
-                              category=FindingCategory(f.get('category', 'quality')),
-                              priority=FindingPriority(f.get('priority', 'P2')),
-                              summary=f.get('summary', ''),
-                              details=f.get('details', ''),
-                              affected_files=f.get('files', []),
-                              suggested_fix=f.get('suggested_fix', ''),
-                              evidence=f.get('evidence', ''),
-                              discovered_by=f.get('agent', 'unknown'),
-                          )
-
-                          result = await creator.create_issue(finding)
-                          if result.issue_number:
-                              issues_created += 1
-                              print(f"Created issue #{result.issue_number}: {finding.title}", file=sys.stderr)
-                          elif result.skipped_reason:
-                              skipped += 1
-                              print(f"Skipped: {result.skipped_reason}", file=sys.stderr)
-                          else:
-                              errors += 1
-
-                      except Exception as e:
-                          print(f"Error creating issue: {e}", file=sys.stderr)
-                          errors += 1
-
-                  return {"issues_created": issues_created, "skipped": skipped, "errors": errors}
+                  return {"issues_created": issues_created, "skipped": skipped, "errors": 0}
 
               except ImportError as e:
                   print(f"Import error: {e}", file=sys.stderr)
@@ -405,6 +456,35 @@ jobs:
           ---
           *Run: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*
           EOF
+
+      # Fix Docker-created directory permissions after job completion
+      # Ensures subsequent runs won't have permission issues during checkout
+      - name: Fix Docker directory permissions (post-cleanup)
+        if: always()
+        run: |
+          echo "::group::Post-Cleanup: Fix Docker Directory Permissions"
+          WORKSPACE="${GITHUB_WORKSPACE:-$(pwd)}"
+
+          # Fix ownership of output directories that Docker may have created
+          for pattern in "outputs" "output" "mcp-content" "mcp-memes" "mcp-gaea2" \
+                         "video-editor" "elevenlabs_speech" "blender" "evaluation_results" \
+                         ".agent-venv" "__pycache__" ".pytest_cache"; do
+            if command -v sudo &> /dev/null; then
+              find "$WORKSPACE" -type d -name "$pattern" 2>/dev/null | while IFS= read -r dir; do
+                if [ -d "$dir" ]; then
+                  sudo chown -R "$(id -u):$(id -g)" "$dir" 2>/dev/null || true
+                fi
+              done
+            fi
+          done
+
+          # Fix the outputs directory at workspace root
+          if [ -d "$WORKSPACE/outputs" ] && command -v sudo &> /dev/null; then
+            sudo chown -R "$(id -u):$(id -g)" "$WORKSPACE/outputs" 2>/dev/null || true
+          fi
+
+          echo "Post-cleanup complete"
+          echo "::endgroup::"
 
   notify:
     name: Notify on Issues Created

@@ -43,12 +43,18 @@ def run_gh_command(args: List[str], check: bool = True) -> Optional[str]:
             text=True,
             check=check,
         )
+        # Log stderr if stdout is empty (may contain useful warnings)
+        if not result.stdout.strip() and result.stderr.strip():
+            logger.warning("gh command stderr (stdout empty): %s", result.stderr.strip())
         return result.stdout
     except subprocess.CalledProcessError as e:
-        logger.error("GitHub CLI command failed: %s", e)
+        logger.error("GitHub CLI command failed (exit code %d): %s", e.returncode, " ".join(cmd))
+        if e.stdout:
+            logger.error("stdout: %s", e.stdout.strip())
         if e.stderr:
-            logger.error("Error output: %s", e.stderr)
+            logger.error("stderr: %s", e.stderr.strip())
         if not check:
+            # Return stderr as diagnostic info when stdout failed
             return None
         raise
 
@@ -66,6 +72,46 @@ async def run_gh_command_async(args: List[str], check: bool = True) -> Optional[
     loop = asyncio.get_event_loop()
     # Run the blocking subprocess call in a thread pool
     return await loop.run_in_executor(None, run_gh_command, args, check)
+
+
+def run_gh_command_with_stderr(args: List[str]) -> tuple[Optional[str], Optional[str], int]:
+    """Run GitHub CLI command and capture both stdout and stderr.
+
+    Args:
+        args: Command arguments (without 'gh' prefix)
+
+    Returns:
+        Tuple of (stdout, stderr, return_code)
+    """
+    cmd = ["gh"] + args
+
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        check=False,  # Don't raise on non-zero
+    )
+
+    return (
+        result.stdout.strip() if result.stdout else None,
+        result.stderr.strip() if result.stderr else None,
+        result.returncode,
+    )
+
+
+async def run_gh_command_with_stderr_async(
+    args: List[str],
+) -> tuple[Optional[str], Optional[str], int]:
+    """Run GitHub CLI command asynchronously and capture both stdout and stderr.
+
+    Args:
+        args: Command arguments (without 'gh' prefix)
+
+    Returns:
+        Tuple of (stdout, stderr, return_code)
+    """
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, run_gh_command_with_stderr, args)
 
 
 def run_git_command(args: List[str], check: bool = True) -> Optional[str]:

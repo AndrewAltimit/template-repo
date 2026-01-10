@@ -1,6 +1,7 @@
 """Codebase analysis agents for automated issue discovery."""
 
 from .base import (
+    AffectedFile,
     AgentAnalyzer,
     AnalysisFinding,
     BaseAnalyzer,
@@ -9,6 +10,7 @@ from .base import (
 )
 
 __all__ = [
+    "AffectedFile",
     "AgentAnalyzer",
     "AnalysisFinding",
     "BaseAnalyzer",
