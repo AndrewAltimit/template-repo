@@ -64,9 +64,11 @@ docker-compose up -d mcp-desktop-control
 ### Screenshots
 | Tool | Description |
 |------|-------------|
-| `screenshot_screen` | Capture entire screen or specific monitor |
-| `screenshot_window` | Capture a specific window |
-| `screenshot_region` | Capture a screen region (x, y, width, height) |
+| `screenshot_screen` | Capture entire screen, save to `outputs/desktop-control/` |
+| `screenshot_window` | Capture a specific window, save to file |
+| `screenshot_region` | Capture a screen region, save to file |
+
+Screenshots are saved as PNG files to `outputs/desktop-control/` (configurable via `DESKTOP_CONTROL_OUTPUT_DIR`). The tool returns the file path, which Claude can read with the `Read` tool when needed. This is more token-efficient than returning base64 data.
 
 ### Mouse Control
 | Tool | Description |
@@ -198,7 +200,7 @@ result = await server.list_windows(visible_only=True)
 ### Take a screenshot
 ```python
 result = await server.screenshot_screen()
-# Returns: {"success": true, "format": "png", "encoding": "base64", "data": "..."}
+# Returns: {"success": true, "output_path": "outputs/desktop-control/screen_0_1234567890.png", "format": "png", "size_bytes": 12345}
 ```
 
 ### Click at position

@@ -1,7 +1,7 @@
 """Unit tests for Desktop Control MCP Server"""
 
-import base64
-from unittest.mock import MagicMock, Mock, patch
+import os
+from unittest.mock import Mock, patch
 
 from mcp_desktop_control.backends.base import ScreenInfo, WindowInfo
 import pytest
@@ -175,33 +175,38 @@ class TestDesktopControlServer:
         assert result["size"] == {"width": 1024, "height": 768}
 
     @pytest.mark.asyncio
-    async def test_screenshot_screen(self, server, mock_backend):
+    async def test_screenshot_screen(self, server, mock_backend, tmp_path):
         """Test screenshot_screen tool"""
+        # Override output dir to use temp path
+        server._output_dir = str(tmp_path)
         mock_backend.screenshot_screen.return_value = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
         result = await server.screenshot_screen()
         assert result["success"] is True
         assert result["format"] == "png"
-        assert result["encoding"] == "base64"
-        assert "data" in result
-        # Verify it's valid base64
-        decoded = base64.b64decode(result["data"])
-        assert decoded.startswith(b"\x89PNG")
+        assert "output_path" in result
+        assert result["output_path"].endswith(".png")
+        # Verify file was created
+        assert os.path.exists(result["output_path"])
 
     @pytest.mark.asyncio
-    async def test_screenshot_window(self, server, mock_backend):
+    async def test_screenshot_window(self, server, mock_backend, tmp_path):
         """Test screenshot_window tool"""
+        server._output_dir = str(tmp_path)
         mock_backend.screenshot_window.return_value = b"\x89PNG\r\n\x1a\n" + b"\x00" * 50
         result = await server.screenshot_window("123")
         assert result["success"] is True
         assert result["window_id"] == "123"
+        assert "output_path" in result
 
     @pytest.mark.asyncio
-    async def test_screenshot_region(self, server, mock_backend):
+    async def test_screenshot_region(self, server, mock_backend, tmp_path):
         """Test screenshot_region tool"""
+        server._output_dir = str(tmp_path)
         mock_backend.screenshot_region.return_value = b"\x89PNG\r\n\x1a\n" + b"\x00" * 50
         result = await server.screenshot_region(100, 100, 200, 200)
         assert result["success"] is True
         assert result["region"] == {"x": 100, "y": 100, "width": 200, "height": 200}
+        assert "output_path" in result
 
     @pytest.mark.asyncio
     async def test_get_mouse_position(self, server):

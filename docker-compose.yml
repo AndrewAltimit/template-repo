@@ -988,12 +988,14 @@ services:
       - "8025:8025"
     volumes:
       - ./:/app:ro
+      - ./outputs/desktop-control:/output  # Screenshot output directory
       - /tmp/.X11-unix:/tmp/.X11-unix:ro  # X11 socket
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8025
       - DISPLAY=${DISPLAY:-:0}
       - XAUTHORITY=${XAUTHORITY:-~/.Xauthority}
+      - DESKTOP_CONTROL_OUTPUT_DIR=/output
     networks:
       - mcp-network
     network_mode: host  # Required for X11 access

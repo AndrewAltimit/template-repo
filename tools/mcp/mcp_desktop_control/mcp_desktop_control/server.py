@@ -1,6 +1,7 @@
 """Desktop Control MCP Server - Cross-platform desktop automation"""
 
-import base64
+import os
+import time
 from typing import Any, Dict, List, Optional
 
 from mcp_core.base_server import BaseMCPServer
@@ -12,7 +13,10 @@ from .backends import DesktopBackend, ScreenInfo, WindowInfo, get_backend
 class DesktopControlMCPServer(BaseMCPServer):
     """MCP Server for cross-platform desktop control and automation"""
 
-    def __init__(self, force_platform: Optional[str] = None):
+    # Output directory for screenshots (relative to project root)
+    DEFAULT_OUTPUT_DIR = "outputs/desktop-control"
+
+    def __init__(self, force_platform: Optional[str] = None, output_dir: Optional[str] = None):
         super().__init__(
             name="Desktop Control MCP Server",
             version="1.0.0",
@@ -22,10 +26,19 @@ class DesktopControlMCPServer(BaseMCPServer):
         self.logger = setup_logging("DesktopControlMCP")
         self._force_platform = force_platform
 
+        # Setup output directory for screenshots
+        self._output_dir = output_dir or os.environ.get("DESKTOP_CONTROL_OUTPUT_DIR", self.DEFAULT_OUTPUT_DIR)
+        self._ensure_output_dir()
+
         # Initialize backend (lazy loading for graceful degradation)
         self._backend: Optional[DesktopBackend] = None
         self._backend_error: Optional[str] = None
         self._initialize_backend()
+
+    def _ensure_output_dir(self):
+        """Ensure the output directory exists"""
+        os.makedirs(self._output_dir, exist_ok=True)
+        self.logger.info("Screenshot output directory: %s", self._output_dir)
 
     def _initialize_backend(self):
         """Initialize the platform-specific backend"""
@@ -178,7 +191,7 @@ class DesktopControlMCPServer(BaseMCPServer):
             },
             # Screenshots
             "screenshot_screen": {
-                "description": "Capture the entire screen or a specific monitor. Returns base64 PNG.",
+                "description": "Capture the entire screen or a specific monitor. Saves PNG to outputs/desktop-control/ and returns file path.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -190,7 +203,7 @@ class DesktopControlMCPServer(BaseMCPServer):
                 },
             },
             "screenshot_window": {
-                "description": "Capture a specific window. Returns base64 PNG.",
+                "description": "Capture a specific window. Saves PNG to outputs/desktop-control/ and returns file path.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -203,7 +216,7 @@ class DesktopControlMCPServer(BaseMCPServer):
                 },
             },
             "screenshot_region": {
-                "description": "Capture a specific region of the screen. Returns base64 PNG.",
+                "description": "Capture a specific region of the screen. Saves PNG to outputs/desktop-control/ and returns file path.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -459,31 +472,43 @@ class DesktopControlMCPServer(BaseMCPServer):
 
     # === Screenshots ===
 
+    def _save_screenshot(self, png_data: bytes, prefix: str) -> str:
+        """Save screenshot to file and return the path"""
+        timestamp = int(time.time() * 1000)  # Millisecond precision
+        filename = f"{prefix}_{timestamp}.png"
+        filepath = os.path.join(self._output_dir, filename)
+        with open(filepath, "wb") as f:
+            f.write(png_data)
+        return filepath
+
     async def screenshot_screen(self, screen_id: Optional[int] = None) -> Dict[str, Any]:
-        """Capture the screen"""
+        """Capture the screen and save to file"""
         backend = self._ensure_backend()
         try:
             png_data = backend.screenshot_screen(screen_id)
+            filepath = self._save_screenshot(png_data, f"screen_{screen_id or 0}")
             return {
                 "success": True,
+                "output_path": filepath,
                 "format": "png",
-                "encoding": "base64",
-                "data": base64.b64encode(png_data).decode("utf-8"),
                 "size_bytes": len(png_data),
+                "screen_id": screen_id or 0,
             }
         except Exception as e:
             return {"success": False, "error": str(e)}
 
     async def screenshot_window(self, window_id: str) -> Dict[str, Any]:
-        """Capture a specific window"""
+        """Capture a specific window and save to file"""
         backend = self._ensure_backend()
         try:
             png_data = backend.screenshot_window(window_id)
+            # Sanitize window_id for filename (replace non-alphanumeric with underscore)
+            safe_id = "".join(c if c.isalnum() else "_" for c in window_id)
+            filepath = self._save_screenshot(png_data, f"window_{safe_id}")
             return {
                 "success": True,
+                "output_path": filepath,
                 "format": "png",
-                "encoding": "base64",
-                "data": base64.b64encode(png_data).decode("utf-8"),
                 "size_bytes": len(png_data),
                 "window_id": window_id,
             }
@@ -491,15 +516,15 @@ class DesktopControlMCPServer(BaseMCPServer):
             return {"success": False, "error": str(e)}
 
     async def screenshot_region(self, x: int, y: int, width: int, height: int) -> Dict[str, Any]:
-        """Capture a region of the screen"""
+        """Capture a region of the screen and save to file"""
         backend = self._ensure_backend()
         try:
             png_data = backend.screenshot_region(x, y, width, height)
+            filepath = self._save_screenshot(png_data, f"region_{x}_{y}_{width}x{height}")
             return {
                 "success": True,
+                "output_path": filepath,
                 "format": "png",
-                "encoding": "base64",
-                "data": base64.b64encode(png_data).decode("utf-8"),
                 "size_bytes": len(png_data),
                 "region": {"x": x, "y": y, "width": width, "height": height},
             }
