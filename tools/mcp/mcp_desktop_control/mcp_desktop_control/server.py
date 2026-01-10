@@ -1,5 +1,6 @@
 """Desktop Control MCP Server - Cross-platform desktop automation"""
 
+import asyncio
 import os
 import time
 from typing import Any, Dict, List, Optional
@@ -595,7 +596,8 @@ class DesktopControlMCPServer(BaseMCPServer):  # pylint: disable=too-many-public
     ) -> Dict[str, Any]:
         """Drag the mouse"""
         backend = self._ensure_backend()
-        success = backend.drag_mouse(start_x, start_y, end_x, end_y, button=button, duration=duration)
+        # Use asyncio.to_thread to avoid blocking the event loop during drag operation
+        success = await asyncio.to_thread(backend.drag_mouse, start_x, start_y, end_x, end_y, button=button, duration=duration)
         return {
             "success": success,
             "start": {"x": start_x, "y": start_y},
@@ -626,7 +628,8 @@ class DesktopControlMCPServer(BaseMCPServer):  # pylint: disable=too-many-public
     async def type_text(self, text: str, interval: float = 0.0) -> Dict[str, Any]:
         """Type text"""
         backend = self._ensure_backend()
-        success = backend.type_text(text, interval=interval)
+        # Use asyncio.to_thread to avoid blocking the event loop during typing
+        success = await asyncio.to_thread(backend.type_text, text, interval=interval)
         return {
             "success": success,
             "text_length": len(text),
