@@ -109,7 +109,12 @@ Security settings are configured in `config.json`:
 
 You can also set the allow list via environment variable:
 ```bash
-export AI_AGENT_ALLOW_LIST="user1,user2,bot-name[bot]"
+export AI_AGENT_ALLOWED_USERS="user1,user2,bot-name[bot]"
+```
+
+You can also set allowed repositories via environment variable:
+```bash
+export AI_AGENT_ALLOWED_REPOS="owner/repo1,owner/repo2"
 ```
 
 ### 6. Security Manager API
@@ -119,39 +124,54 @@ The `SecurityManager` class provides comprehensive security methods:
 ```python
 from github_agents.security import SecurityManager
 
-# Initialize security manager
+# Initialize with AgentConfig (recommended)
+security = SecurityManager(agent_config=my_agent_config)
+
+# Or initialize with default config
 security = SecurityManager()
 
 # Basic checks
 is_allowed = security.is_user_allowed("username")
-is_allowed = security.check_issue_security(issue_dict)
-is_allowed = security.check_pr_security(pr_dict)
+is_action_allowed = security.is_action_allowed("issue_approved")
+is_repo_allowed = security.is_repository_allowed("owner/repo")
+
+# Rate limiting check (returns True if within limit)
+within_limit = security.check_rate_limit("username", "action")
 
 # Enhanced security check with all layers
 is_allowed, reason = security.perform_full_security_check(
     username="user",
-    action="issue_process",
+    action="issue_approved",
     repository="owner/repo",
     entity_type="issue",
     entity_id="123"
 )
+# Returns: (True, "") if allowed, (False, "reason") if denied
 
-# Rate limiting check
-is_allowed, reason = security.check_rate_limit("username", "action")
+# Trigger parsing
+action, agent = security.parse_trigger_comment("[Approved][Claude]")
+# Returns: ("approved", "claude") or (None, None)
 
-# Repository validation
-is_allowed = security.check_repository("owner/repo")
-
-# Log security violations
-security.log_security_violation("issue", "123", "attacker")
-
-# Keyword trigger parsing
-trigger = security.parse_keyword_trigger("[Approved][Claude]")
-# Returns: ("Approved", "Claude") or None
-
-# Check for keyword triggers in issue/PR
+# Check for keyword triggers in issue/PR comments
 trigger_info = security.check_trigger_comment(issue_dict, "issue")
 # Returns: (action, agent, username) or None
+
+# Get project owners (authorized users who can make decisions)
+owners = security.get_project_owners()
+# Returns: list of authorized usernames
+
+# Properties
+security.allowed_users      # Set of allowed usernames
+security.allowed_actions    # List of allowed actions
+security.triggers           # Dict of trigger patterns
+security.reject_message     # Rejection message string
+
+# PR commit validation (async) - prevents code injection
+is_valid, reason = await security.validate_pr_commit_unchanged(
+    pr_number=123,
+    expected_commit_sha="abc1234",
+    repository="owner/repo"
+)
 ```
 
 ## Human Oversight and Safety Training
@@ -215,65 +235,82 @@ fi
 - Drops all work if PR was modified during processing
 - Prevents race conditions and TOCTOU attacks
 
-### 2. Automatic Secret Masking via PreToolUse Hooks
+### 2. Automatic Secret Masking via gh-validator
 
-The system implements real-time secret masking through PreToolUse hooks that intercept and sanitize all GitHub comments before they are posted. This is a **deterministic, automatic process** that ensures secrets can never appear in public comments.
+The system implements real-time secret masking through **gh-validator**, a Rust-based GitHub CLI wrapper that validates and sanitizes all GitHub comments before they are posted. This is a **deterministic, automatic process** that ensures secrets can never appear in public comments.
 
 #### Architecture
 
 ```
-Agent Tool Call → PreToolUse Hook → Secret Masker → GitHub Comment
+Agent gh command → gh-validator (shadows gh) → Secret Masking → Real gh CLI → GitHub
 ```
 
 #### How It Works
 
-1. **Central Configuration** (`.secrets.yaml`):
-   ```yaml
-   environment_variables:
-     - GITHUB_TOKEN
-     - OPENROUTER_API_KEY
-     - DB_PASSWORD
+The `gh-validator` binary is installed as `gh` in a higher-priority PATH directory (e.g., `~/.local/bin/gh`), shadowing the real GitHub CLI. When any `gh` command runs:
 
-   patterns:
-     - name: GITHUB_TOKEN
-       pattern: "ghp_[A-Za-z0-9_]{36,}"
+1. **Pass-through for non-content commands**: Commands like `gh pr list` execute immediately
+2. **Validation for content commands**: Commands with `--body`, `--body-file`, `--title`, etc. are validated:
+   - Secrets are masked based on `.secrets.yaml` configuration
+   - Unicode emojis are blocked (may display as corrupted characters)
+   - Formatting is validated for reaction images
+   - URLs in `--body-file` are verified to exist (with SSRF protection)
+3. **Execution**: After validation, the real `gh` binary is called with (potentially modified) arguments
 
-   auto_detection:
-     enabled: true
-     include_patterns: ["*_TOKEN", "*_SECRET", "*_KEY"]
-     exclude_patterns: ["PUBLIC_*"]
-   ```
+#### Central Configuration (`.secrets.yaml`)
 
-2. **Hook Integration** (`scripts/security-hooks/`):
-   - `bash-pretooluse-hook.sh` - Entry point for all agents
-   - `github-secrets-masker.py` - Universal secret masking engine
-   - Works transparently - agents don't know masking occurred
+```yaml
+environment_variables:
+  - GITHUB_TOKEN
+  - OPENROUTER_API_KEY
+  - DB_PASSWORD
 
-3. **Auto-Detection**: The system automatically detects sensitive variables:
-   - Variables matching patterns: `*_TOKEN`, `*_SECRET`, `*_KEY`, `*_PASSWORD`
-   - Excludes safe patterns: `PUBLIC_*`, `*_ENABLED`
+patterns:
+  - name: GITHUB_TOKEN
+    pattern: "ghp_[A-Za-z0-9_]{36,}"
 
-4. **Pattern Matching**: Common secret formats are detected and masked:
-   - GitHub tokens: `ghp_*`, `ghs_*`, `github_pat_*`
-   - API keys: `sk-*`, `pk-*`
-   - JWT tokens: `eyJ*`
-   - Bearer tokens
-   - URLs with embedded credentials
-   - Private key blocks
+auto_detection:
+  enabled: true
+  include_patterns: ["*_TOKEN", "*_SECRET", "*_KEY"]
+  exclude_patterns: ["PUBLIC_*"]
+```
 
-5. **Real-time Processing**:
-   - Intercepts `gh pr comment`, `gh issue comment`, `gh pr create` commands
-   - Extracts body content from `--body` flags
-   - Replaces secrets with `[MASKED_VARNAME]` placeholders
-   - Returns modified command for execution
+The validator searches for `.secrets.yaml` in:
+1. Current working directory (and parent directories up to git root)
+2. Binary directory (and parent directories)
+3. `~/.secrets.yaml`
+4. `~/.config/gh-validator/.secrets.yaml`
+
+#### Pattern Matching
+
+Common secret formats are detected and masked:
+- GitHub tokens: `ghp_*`, `ghs_*`, `github_pat_*`
+- API keys: `sk-*`, `pk-*`
+- JWT tokens: `eyJ*`
+- Bearer tokens
+- URLs with embedded credentials
+- Private key blocks
+
+#### Installation
+
+```bash
+# Quick install (recommended)
+curl -sSL https://raw.githubusercontent.com/AndrewAltimit/template-repo/main/tools/rust/gh-validator/install.sh | bash
+
+# Ensure ~/.local/bin comes before /usr/bin in PATH
+export PATH="$HOME/.local/bin:$PATH"
+```
 
 #### Benefits
 
-- **Universal**: Works with all agents and automation tools
-- **Automatic**: No agent configuration required
-- **Comprehensive**: Covers environment variables, patterns, and auto-detection
-- **Transparent**: Agents are unaware of masking
-- **Centralized**: Single configuration file for all secrets
+- **Universal**: Works with all agents and automation tools using `gh` CLI
+- **Automatic**: No agent configuration required - just install and forget
+- **Fail-Closed**: If configuration is missing or URLs can't be verified, commands are blocked
+- **SSRF Protection**: Only whitelisted hostnames allowed for reaction images
+- **Single Binary**: No runtime dependencies, fast startup, cross-platform support
+- **Transparent**: Agents are unaware of masking (only stderr notification)
+
+See `tools/rust/gh-validator/README.md` for complete documentation.
 
 ### 3. Deduplication and State Management
 
