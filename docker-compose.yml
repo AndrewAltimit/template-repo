@@ -978,27 +978,26 @@ services:
   # Desktop Control MCP Server
   # Cross-platform desktop automation (Linux only in container)
   # IMPORTANT: Requires X11 display access - see docs/README.md
+  # NOTE: Uses network_mode: host for X11 access, so 'ports' is not needed
+  # Pre-create output dir with correct permissions: mkdir -p outputs/desktop-control
   mcp-desktop-control:
     build:
       context: .
       dockerfile: docker/mcp-desktop-control.Dockerfile
     container_name: mcp-desktop-control
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
-    ports:
-      - "8025:8025"
     volumes:
       - ./:/app:ro
       - ./outputs/desktop-control:/output  # Screenshot output directory
       - /tmp/.X11-unix:/tmp/.X11-unix:ro  # X11 socket
+      - ${XAUTHORITY:-~/.Xauthority}:/home/appuser/.Xauthority:ro  # X11 auth
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8025
       - DISPLAY=${DISPLAY:-:0}
-      - XAUTHORITY=${XAUTHORITY:-~/.Xauthority}
+      - XAUTHORITY=/home/appuser/.Xauthority
       - DESKTOP_CONTROL_OUTPUT_DIR=/output
-    networks:
-      - mcp-network
-    network_mode: host  # Required for X11 access
+    network_mode: host  # Required for X11 access (incompatible with networks)
     command: ["python", "-m", "mcp_desktop_control.server", "--mode", "http"]
     restart: unless-stopped
     healthcheck:

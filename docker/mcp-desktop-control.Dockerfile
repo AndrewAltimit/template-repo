@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     x11-xserver-utils \
     # ImageMagick for window screenshots
     imagemagick \
+    # Python tkinter (required by pyautogui on Linux)
+    python3-tk \
     # General utilities
     curl \
     procps \

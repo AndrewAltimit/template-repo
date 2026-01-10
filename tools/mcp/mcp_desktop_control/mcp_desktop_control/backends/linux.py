@@ -64,6 +64,7 @@ class LinuxBackend(DesktopBackend):
                 cmd,
                 capture_output=capture_output,
                 text=True,
+                errors="replace",  # Handle invalid UTF-8 in window titles gracefully
                 timeout=10,
                 check=check,
             )
@@ -271,7 +272,12 @@ class LinuxBackend(DesktopBackend):
             result = self._run_command(["wmctrl", "-i", "-c", window_id])
             return result.returncode == 0
         elif self._has_xdotool:
-            # Send Alt+F4 to close
+            # Fallback: Send Alt+F4 to close (may not work for all applications)
+            logger.warning(
+                "Using Alt+F4 fallback to close window %s (wmctrl not available). "
+                "This may trigger confirmation dialogs or not work for some applications.",
+                window_id,
+            )
             result = self._run_command(["xdotool", "windowactivate", "--sync", window_id, "key", "alt+F4"])
             return result.returncode == 0
         return False

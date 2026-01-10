@@ -36,9 +36,26 @@ class DesktopControlMCPServer(BaseMCPServer):
         self._initialize_backend()
 
     def _ensure_output_dir(self):
-        """Ensure the output directory exists"""
+        """Ensure the output directory exists and is writable"""
         os.makedirs(self._output_dir, exist_ok=True)
         self.logger.info("Screenshot output directory: %s", self._output_dir)
+
+        # Verify write permissions
+        test_file = os.path.join(self._output_dir, ".write_test")
+        try:
+            with open(test_file, "w") as f:
+                f.write("test")
+            os.remove(test_file)
+        except (OSError, IOError) as e:
+            self.logger.warning(
+                "Cannot write to output directory '%s': %s. "
+                "Screenshots will fail. Pre-create directory with correct permissions: "
+                "mkdir -p %s && chown $(id -u):$(id -g) %s",
+                self._output_dir,
+                e,
+                self._output_dir,
+                self._output_dir,
+            )
 
     def _initialize_backend(self):
         """Initialize the platform-specific backend"""
