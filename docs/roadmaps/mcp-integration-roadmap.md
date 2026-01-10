@@ -17,6 +17,8 @@ This proposal outlines integration opportunities between four MCP servers that, 
 
 ## Part 1: Unified Emotion Taxonomy
 
+> **Implementation Status**: Basic emotion support (EmotionType enum, EmotionVector PAD model, emotion blending) is implemented in `mcp_virtual_character/models/canonical.py`. Advanced features (mappings, inference) will also be added to `mcp_virtual_character` - other MCP servers can import from there.
+
 ### The Problem
 
 Each system has its own emotion vocabulary:
@@ -31,13 +33,15 @@ These don't map cleanly to each other, creating friction when expressing the sam
 
 ### Proposed Solution: Canonical Emotion Model
 
-Create a shared emotion model in `mcp_core` that all systems import:
+Create a shared emotion model in `mcp_virtual_character` that other servers can import:
 
 ```
-mcp_core/emotions/
-├── taxonomy.py       # CanonicalEmotion enum + intensity model
-├── mappings.py       # Bidirectional mappings for each system
-└── inference.py      # Emotion detection from text/context
+mcp_virtual_character/mcp_virtual_character/
+├── models/
+│   └── canonical.py  # EmotionType enum, EmotionVector (PAD model), blending [IMPLEMENTED]
+├── emotions/
+│   ├── mappings.py   # Bidirectional mappings for each system [PLANNED]
+│   └── inference.py  # Emotion detection from text/context [PLANNED]
 ```
 
 **Canonical Emotions** (12 primary + intensity):
@@ -517,7 +521,7 @@ async def stream_expressive_response(
 
 | Task | Effort | Impact | Description |
 |------|--------|--------|-------------|
-| Canonical Emotion Taxonomy | Medium | High | Shared emotion model in mcp_core |
+| Canonical Emotion Taxonomy | Medium | High | ✅ Implemented in `mcp_virtual_character/models/canonical.py` |
 | ElevenLabs → Emotion Mapping | Low | High | Parse audio tags to canonical emotions |
 | Avatar ← Emotion Mapping | Low | High | Map canonical to Virtual Character emotions |
 | Reaction Query Enhancement | Low | Medium | Use canonical emotion in search queries |
@@ -1190,7 +1194,7 @@ class FastAudioClassifier:
    - Manages output priority
    - Handles interrupt signals
 
-2. **mcp_fast_mind/** (new server or mcp_core extension)
+2. **mcp_fast_mind/** (new server or mcp_virtual_character extension)
    - Lightweight embedding models
    - Pattern cache management
    - Filler generation
@@ -1317,9 +1321,9 @@ By creating a unified emotion taxonomy, memory-enhanced preferences, orchestrate
 
 ### Recommended Implementation Order
 
-**Phase 1: Foundation** (enables everything else)
-1. Create `mcp_core/emotions/taxonomy.py` with CanonicalEmotion
-2. Add emotion mapping utilities to each server
+**Phase 1: Foundation** (enables everything else) ✅ PARTIALLY COMPLETE
+1. ✅ `mcp_virtual_character/models/canonical.py` - EmotionType, EmotionVector (PAD model), blending
+2. Add emotion mapping utilities (`mcp_virtual_character/emotions/mappings.py`)
 3. Test with a simple workflow that expresses the same emotion across all three output modalities
 
 **Phase 2: Memory Integration** (personality persistence)
@@ -1464,7 +1468,7 @@ class DualSpeedSearchEngine:
 
 ### Emotion Classification Integration
 
-**New Component** (`mcp_core/emotions/classifier.py`):
+**New Component** (`mcp_virtual_character/emotions/classifier.py`):
 ```python
 from transformers import pipeline
 
@@ -1497,7 +1501,7 @@ class FastEmotionClassifier:
 
 ### Filler Generation with Llama 3.2 1B
 
-**New Component** (`mcp_core/fillers/generator.py`):
+**New Component** (`mcp_virtual_character/fillers/generator.py`):
 ```python
 import httpx
 

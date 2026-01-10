@@ -1,14 +1,21 @@
 # Emotions Module
 
+> **Status**: This documentation describes planned/future features. The current implementation is in `mcp_virtual_character/models/canonical.py` with a subset of these capabilities (EmotionType enum, EmotionVector PAD model, basic blending).
+
 The emotions module provides a canonical emotion taxonomy for unified expression across MCP servers. It enables consistent emotional representation between ElevenLabs Speech, Virtual Character, Reaction Search, and other expressive AI systems.
 
-## Overview
+## Current Implementation
 
-The module consists of three main components:
+See `mcp_virtual_character/models/canonical.py` for the current implementation:
 
-1. **Taxonomy** (`emotions/taxonomy.py`) - Core emotion definitions and PAD model
-2. **Mappings** (`emotions/mappings.py`) - Bidirectional mappings between systems
-3. **Inference** (`emotions/inference.py`) - Emotion detection from text
+- **EmotionType**: Enum with 10 emotions (NEUTRAL, HAPPY, SAD, ANGRY, SURPRISED, FEARFUL, DISGUSTED, CONTEMPTUOUS, EXCITED, CALM)
+- **EmotionVector**: PAD model with lerp, distance, scale methods
+- **EMOTION_TO_PAD**: Mapping from EmotionType to PAD vectors
+- **Helper functions**: `get_pad_vector()`, `find_closest_emotion()`, `blend_emotions()`
+
+## Planned Features
+
+The following describes planned enhancements:
 
 ## Canonical Emotions
 
