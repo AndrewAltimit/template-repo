@@ -10,13 +10,11 @@ from typing import Any, Dict, List, Optional
 import uuid
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import JSONResponse, Response
 from mcp import types
 from mcp.server import InitializationOptions, NotificationOptions, Server
 import mcp.server.stdio
 from pydantic import BaseModel
-
-# from .client_registry import ClientRegistry  # Disabled for home lab use
 
 
 class ToolRequest(BaseModel):
@@ -25,7 +23,6 @@ class ToolRequest(BaseModel):
     tool: str
     arguments: Optional[Dict[str, Any]] = None
     parameters: Optional[Dict[str, Any]] = None
-    client_id: Optional[str] = None
 
     def get_args(self) -> Dict[str, Any]:
         """Get arguments, supporting both 'arguments' and 'parameters' fields"""
@@ -40,7 +37,7 @@ class ToolResponse(BaseModel):
     error: Optional[str] = None
 
 
-class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
+class BaseMCPServer(ABC):
     """Base class for all MCP servers"""
 
     def __init__(self, name: str, version: str = "1.0.0", port: int = 8000):
@@ -48,198 +45,61 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
         self.version = version
         self.port = port
         self.logger = logging.getLogger(name)
-        # Skip client registry for home lab use
-        # self.client_registry = ClientRegistry()
-        # Initialize attributes that may be set later
         self._protocol_version: Optional[str] = None
         self._tools: Dict[str, Dict[str, Any]] = {}
         self._tool_funcs: Dict[str, Any] = {}
-        # Create app with lifespan
         self.app = FastAPI(title=name, version=version, lifespan=self._create_lifespan())
         self._setup_routes()
 
     def _create_lifespan(self):
         """Create lifespan context manager for startup/shutdown events."""
-        server = self  # Capture self for the closure
+        server = self
 
         @asynccontextmanager
         async def lifespan(_app: FastAPI):
-            # Startup
             server.logger.info("%s starting on port %s", server.name, server.port)
             server.logger.info("Server version: %s", server.version)
             server.logger.info("Server initialized successfully")
             yield
-            # Shutdown (nothing to do currently)
 
         return lifespan
 
     def _setup_routes(self):
-        """Setup common HTTP routes"""
+        """Setup HTTP routes for MCP protocol"""
+        # Health check
         self.app.get("/health")(self.health_check)
+
+        # Tool operations
         self.app.get("/mcp/tools")(self.list_tools)
         self.app.post("/mcp/execute")(self.execute_tool)
-        # Compatibility route for legacy client code
-        self.app.post("/tools/execute")(self.execute_tool)
-        self.app.post("/mcp/register")(self.register_client)
-        self.app.post("/register")(self.register_client_oauth)  # OAuth2 style for Claude Code
-        self.app.post("/oauth/register")(self.register_client_oauth)  # OAuth style endpoint
-        # OAuth2 bypass endpoints - no auth required
-        self.app.get("/authorize")(self.oauth_authorize_bypass)
-        self.app.post("/authorize")(self.oauth_authorize_bypass)
-        self.app.get("/oauth/authorize")(self.oauth_authorize_bypass)
-        self.app.post("/oauth/authorize")(self.oauth_authorize_bypass)
-        self.app.post("/token")(self.oauth_token_bypass)
-        self.app.post("/oauth/token")(self.oauth_token_bypass)
-        self.app.get("/mcp/clients")(self.list_clients)
-        self.app.get("/mcp/clients/{client_id}")(self.get_client_info)
-        self.app.get("/mcp/stats")(self.get_stats)
-        # OAuth discovery endpoints
-        self.app.get("/.well-known/oauth-authorization-server")(self.oauth_discovery)
-        self.app.get("/.well-known/oauth-authorization-server/mcp")(self.oauth_discovery)
-        self.app.get("/.well-known/oauth-authorization-server/messages")(self.oauth_discovery)
-        self.app.get("/.well-known/oauth-protected-resource")(self.oauth_protected_resource)
-        # MCP protocol discovery endpoints
+        self.app.post("/tools/execute")(self.execute_tool)  # Legacy compatibility
+
+        # MCP protocol discovery
         self.app.get("/.well-known/mcp")(self.mcp_discovery)
         self.app.post("/mcp/initialize")(self.mcp_initialize)
         self.app.get("/mcp/capabilities")(self.mcp_capabilities)
-        # NEW: Streamable HTTP transport - single endpoint for both regular and streaming
+
+        # Streamable HTTP transport (MCP 2024-11-05 spec)
         self.app.get("/messages")(self.handle_messages_get)
         self.app.post("/messages")(self.handle_messages)
-        # Legacy endpoints for backward compatibility
+
+        # JSON-RPC endpoints
         self.app.get("/mcp")(self.handle_mcp_get)
         self.app.post("/mcp")(self.handle_jsonrpc)
-        self.app.options("/mcp")(self.handle_options)  # CORS preflight
+        self.app.options("/mcp")(self.handle_options)
         self.app.post("/mcp/rpc")(self.handle_jsonrpc)
-        # SSE endpoint for streaming after auth
-        self.app.get("/mcp/sse")(self.handle_mcp_sse)
 
     async def health_check(self):
         """Health check endpoint"""
         return {"status": "healthy", "server": self.name, "version": self.version}
 
-    async def register_client(self, request: Dict[str, Any]):
-        """Register a client - simplified for home lab use"""
-        client_name = request.get("client", request.get("client_name", "unknown"))
-        client_id = request.get("client_id", f"{client_name}_simple")
-
-        # Simple response without tracking for home lab
-        self.logger.info("Client registration request from: %s", client_name)
-
-        return {
-            "status": "registered",
-            "client": client_name,
-            "client_id": client_id,
-            "server": self.name,
-            "version": self.version,
-            "registration": {
-                "client_id": client_id,
-                "client_name": client_name,
-                "registered": True,
-                "is_update": False,
-                "registration_time": datetime.utcnow().isoformat(),
-                "server_time": datetime.utcnow().isoformat(),
-            },
-        }
-
-    async def register_client_oauth(self, request_data: Dict[str, Any], request: Request):
-        """OAuth2-style client registration - simplified for home lab use"""
-        redirect_uris = request_data.get("redirect_uris", [])
-        client_name = request_data.get("client_name", request_data.get("client", "claude-code"))
-        client_id = f"{client_name}_oauth"
-
-        # Simple OAuth2-compliant response without tracking
-        self.logger.info("OAuth registration request from: %s", client_name)
-
-        return {
-            "client_id": client_id,
-            "client_name": client_name,
-            "redirect_uris": redirect_uris if redirect_uris else ["http://localhost"],
-            "grant_types": request_data.get("grant_types", ["authorization_code"]),
-            "response_types": request_data.get("response_types", ["code"]),
-            "token_endpoint_auth_method": request_data.get("token_endpoint_auth_method", "none"),
-            "registration_access_token": "not-required-for-local-mcp",
-            "registration_client_uri": f"{request.url.scheme}://{request.url.netloc}/mcp/clients/{client_id}",
-            "client_id_issued_at": int(datetime.utcnow().timestamp()),
-            "client_secret_expires_at": 0,  # Never expires
-        }
-
-    async def oauth_authorize_bypass(self, request: Request):
-        """Bypass OAuth2 authorization - immediately approve without auth"""
-        # Get query parameters
-        params = dict(request.query_params)
-        redirect_uri = params.get("redirect_uri", "http://localhost")
-        state = params.get("state", "")
-
-        # Immediately redirect back with authorization code
-        auth_code = "bypass-auth-code-no-auth-required"
-
-        # Build redirect URL with code
-        separator = "&" if "?" in redirect_uri else "?"
-        redirect_url = f"{redirect_uri}{separator}code={auth_code}"
-        if state:
-            redirect_url += f"&state={state}"
-
-        # Return redirect response
-        return RedirectResponse(url=redirect_url, status_code=302)
-
-    async def oauth_token_bypass(self, request: Request):
-        """Bypass OAuth2 token exchange - immediately return access token"""
-        # Handle both JSON and form-encoded requests
-        try:
-            if request.headers.get("content-type", "").startswith("application/json"):
-                request_data = await request.json()
-            else:
-                form_data = await request.form()
-                request_data = dict(form_data)
-        except Exception:
-            request_data = {}
-
-        # Log the request for debugging
-        self.logger.info("Token request data: %s", request_data)
-
-        # Return a valid token response without any validation
-        return {
-            "access_token": "bypass-token-no-auth-required",
-            "token_type": "Bearer",
-            "expires_in": 31536000,  # 1 year
-            "scope": "full_access",
-            "refresh_token": "bypass-refresh-token-no-auth-required",
-        }
-
-    async def oauth_discovery(self, request: Request):
-        """OAuth 2.0 authorization server metadata"""
-        base_url = f"{request.url.scheme}://{request.url.netloc}"
-        return {
-            "issuer": base_url,
-            "authorization_endpoint": f"{base_url}/authorize",
-            "token_endpoint": f"{base_url}/token",
-            "registration_endpoint": f"{base_url}/register",
-            "token_endpoint_auth_methods_supported": ["none"],
-            "response_types_supported": ["code"],
-            "grant_types_supported": ["authorization_code"],
-            "code_challenge_methods_supported": ["S256"],
-            "registration_endpoint_auth_methods_supported": ["none"],
-        }
-
-    async def oauth_protected_resource(self, request: Request):
-        """OAuth 2.0 protected resource metadata"""
-        base_url = f"{request.url.scheme}://{request.url.netloc}"
-        return {
-            "resource": f"{base_url}/messages",
-            "authorization_servers": [base_url],
-        }
-
     async def handle_mcp_get(self, request: Request):
         """Handle GET requests to /mcp endpoint for SSE streaming"""
-        # For HTTP Stream Transport, GET is used to establish SSE stream
-
         from fastapi.responses import StreamingResponse
 
-        # Generate session ID
         session_id = request.headers.get("Mcp-Session-Id", str(uuid.uuid4()))
 
         async def event_generator():
-            # Send initial connection event with session ID
             connection_data = {
                 "type": "connection",
                 "sessionId": session_id,
@@ -247,9 +107,8 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
             }
             yield f"data: {json.dumps(connection_data)}\n\n"
 
-            # Keep connection alive with ping messages
             while True:
-                await asyncio.sleep(15)  # Ping every 15 seconds as per spec
+                await asyncio.sleep(15)
                 ping_data = {"type": "ping", "timestamp": datetime.utcnow().isoformat()}
                 yield f"data: {json.dumps(ping_data)}\n\n"
 
@@ -264,37 +123,8 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
             },
         )
 
-    async def handle_mcp_sse(self, request: Request):
-        """Handle SSE requests for authenticated clients"""
-        from fastapi.responses import StreamingResponse
-
-        # Check authorization
-        auth_header = request.headers.get("authorization", "")
-        if not auth_header.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="Unauthorized")
-
-        async def event_generator():
-            # Send initial connection event
-            yield f"data: {json.dumps({'type': 'connected', 'message': 'SSE connection established'})}\n\n"
-
-            # Keep connection alive
-            while True:
-                await asyncio.sleep(30)
-                yield f"data: {json.dumps({'type': 'ping'})}\n\n"
-
-        return StreamingResponse(
-            event_generator(),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-                "X-Accel-Buffering": "no",
-            },
-        )
-
     async def handle_messages_get(self, _request: Request):
         """Handle GET requests to /messages endpoint"""
-        # For GET requests, return MCP server info
         return {
             "protocol": "mcp",
             "version": "1.0",
@@ -302,10 +132,6 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
                 "name": self.name,
                 "version": self.version,
                 "description": f"{self.name} MCP Server",
-            },
-            "auth": {
-                "required": False,
-                "type": "none",
             },
             "transport": {
                 "type": "streamable-http",
@@ -393,13 +219,11 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
             body = await request.json()
             self.logger.info("Messages request body: %s", json.dumps(body))
 
-            # Check if this is an initialization request to generate session ID
             is_init_request = isinstance(body, dict) and body.get("method") == "initialize"
             if is_init_request and not session_id:
                 session_id = str(uuid.uuid4())
                 self.logger.info("Generated new session ID: %s", session_id)
 
-            # Process based on response mode
             if response_mode == "stream":
                 return await self._handle_streaming_response(body, session_id)
             if isinstance(body, list):
@@ -420,7 +244,6 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
 
     async def handle_jsonrpc(self, request: Request):
         """Handle JSON-RPC 2.0 requests for MCP protocol"""
-        # Forward to the new streamable handler
         return await self.handle_messages(request)
 
     async def handle_options(self, _request: Request):
@@ -442,33 +265,27 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
         params = request.get("params", {})
         req_id = request.get("id")
 
-        # Log the request for debugging
         self.logger.info("JSON-RPC request: method=%s, id=%s", method, req_id)
 
-        # If no ID, this is a notification (no response expected)
         is_notification = req_id is None
 
         try:
-            # Route to appropriate handler based on method
             if method == "initialize":
                 result = await self._jsonrpc_initialize(params)
             elif method == "initialized":
-                # Handle initialized notification
                 self.logger.info("Client sent initialized notification")
                 if is_notification:
-                    return None  # No response for notification
+                    return None
                 result = {"status": "acknowledged"}
             elif method == "tools/list":
                 result = await self._jsonrpc_list_tools(params)
             elif method == "tools/call":
                 result = await self._jsonrpc_call_tool(params)
             elif method == "completion/complete":
-                # We don't support completions
                 result = {"error": "Completions not supported"}
             elif method == "ping":
                 result = {"pong": True}
             else:
-                # Unknown method
                 if not is_notification:
                     return {
                         "jsonrpc": jsonrpc,
@@ -480,16 +297,12 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
                     }
                 return None
 
-            # Return response if not a notification
             if not is_notification:
                 response = {"jsonrpc": jsonrpc, "result": result, "id": req_id}
                 self.logger.info("JSON-RPC response: %s", json.dumps(response))
 
-                # After successful initialization, log that we're ready for more requests
                 if method == "initialize" and "protocolVersion" in result:
                     self.logger.info("Initialization complete, ready for tools/list request")
-                    # Log what we're expecting next
-                    self.logger.info("Expecting client to send 'tools/list' request next")
 
                 return response
             return None
@@ -513,19 +326,16 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
         client_info = params.get("clientInfo", {})
         protocol_version = params.get("protocolVersion", "2024-11-05")
 
-        # Log client info
         self.logger.info("Client info: %s, requested protocol: %s", client_info, protocol_version)
-
-        # Store the protocol version for later use
         self._protocol_version = protocol_version
 
         return {
-            "protocolVersion": protocol_version,  # Echo back the client's requested version
+            "protocolVersion": protocol_version,
             "serverInfo": {"name": self.name, "version": self.version},
             "capabilities": {
-                "tools": {"listChanged": True},  # Indicate tools can change
-                "resources": {},  # Empty object instead of None
-                "prompts": {},  # Empty object instead of None
+                "tools": {"listChanged": True},
+                "resources": {},
+                "prompts": {},
             },
         }
 
@@ -535,7 +345,6 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
         self.logger.info("Available tools from get_tools(): %s", list(tools.keys()))
 
         tool_list = []
-
         for tool_name, tool_info in tools.items():
             tool_list.append(
                 {
@@ -556,21 +365,17 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
         if not tool_name:
             raise ValueError("Tool name is required")
 
-        # Get available tools
         tools = self.get_tools()
         if tool_name not in tools:
             raise ValueError(f"Tool '{tool_name}' not found")
 
-        # Get the tool function
         tool_func = getattr(self, tool_name, None)
         if not tool_func:
             raise ValueError(f"Tool '{tool_name}' not implemented")
 
-        # Execute the tool
         try:
             result = await tool_func(**arguments)
 
-            # Convert result to MCP content format
             if isinstance(result, dict):
                 content_text = json.dumps(result, indent=2)
             else:
@@ -600,22 +405,6 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
                 "execute": "/mcp/execute",
                 "initialize": "/mcp/initialize",
                 "capabilities": "/mcp/capabilities",
-            },
-        }
-
-    async def mcp_info(self):
-        """MCP server information"""
-        return {
-            "protocol": "mcp",
-            "version": "1.0",
-            "server": {
-                "name": self.name,
-                "version": self.version,
-                "description": f"{self.name} MCP Server",
-            },
-            "auth": {
-                "required": False,
-                "type": "none",
             },
         }
 
@@ -670,55 +459,20 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
     async def execute_tool(self, request: ToolRequest):
         """Execute a tool with given arguments"""
         try:
-            # Skip client tracking for home lab use
-
             tools = self.get_tools()
             if request.tool not in tools:
                 raise HTTPException(status_code=404, detail=f"Tool '{request.tool}' not found")
 
-            # Get the tool function
             tool_func = getattr(self, request.tool, None)
             if not tool_func:
                 raise HTTPException(status_code=501, detail=f"Tool '{request.tool}' not implemented")
 
-            # Execute the tool
             result = await tool_func(**request.get_args())
-
             return ToolResponse(success=True, result=result)
 
         except Exception as e:
             self.logger.error("Error executing tool %s: %s", request.tool, str(e))
             return ToolResponse(success=False, result=None, error=str(e))
-
-    async def list_clients(self, active_only: bool = True):
-        """List clients - returns empty for home lab use"""
-        return {"clients": [], "count": 0, "active_only": active_only}
-
-    async def get_client_info(self, client_id: str):
-        """Get client info - returns simple response for home lab use"""
-        return {
-            "client_id": client_id,
-            "client_name": client_id.replace("_oauth", "").replace("_simple", ""),
-            "active": True,
-            "registered_at": datetime.utcnow().isoformat(),
-        }
-
-    async def get_stats(self):
-        """Get server statistics - simplified for home lab use"""
-        return {
-            "server": {
-                "name": self.name,
-                "version": self.version,
-                "tools_count": len(self.get_tools()),
-            },
-            "clients": {
-                "total_clients": 0,
-                "active_clients": 0,
-                "inactive_clients": 0,
-                "clients_active_last_hour": 0,
-                "total_requests": 0,
-            },
-        }
 
     @abstractmethod
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
@@ -728,7 +482,6 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
         """Run the server in stdio mode (for Claude desktop app)"""
         server = Server(self.name)
 
-        # Store tools and their functions for later access
         self._tools = self.get_tools()
         self._tool_funcs = {}
         for tool_name, _tool_info in self._tools.items():
@@ -757,10 +510,8 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
                 return [types.TextContent(type="text", text=f"Tool '{name}' not found")]
 
             try:
-                # Call the tool function
                 result = await self._tool_funcs[name](**arguments)
 
-                # Convert result to MCP response format
                 if isinstance(result, dict):
                     return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
                 return [types.TextContent(type="text", text=str(result))]
@@ -768,7 +519,6 @@ class BaseMCPServer(ABC):  # pylint: disable=too-many-public-methods
                 self.logger.error("Error calling tool %s: %s", name, str(e))
                 return [types.TextContent(type="text", text=f"Error: {str(e)}")]
 
-        # Run the stdio server
         async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
             await server.run(
                 read_stream,

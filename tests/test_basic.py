@@ -8,15 +8,17 @@ import pytest
 
 def test_imports():
     """Test that basic imports work"""
-    # Test code quality imports
-    from mcp_code_quality.tools import TOOLS as CODE_TOOLS  # noqa: E402
+    # Test code quality server imports
+    from mcp_code_quality.server import CodeQualityMCPServer  # noqa: E402
 
-    assert len(CODE_TOOLS) > 0
+    server = CodeQualityMCPServer()
+    assert len(server.get_tools()) > 0
 
-    # Test content creation imports
-    from mcp_content_creation.tools import TOOLS as CONTENT_TOOLS  # noqa: E402
+    # Test content creation server imports
+    from mcp_content_creation.server import ContentCreationMCPServer  # noqa: E402
 
-    assert len(CONTENT_TOOLS) > 0
+    content_server = ContentCreationMCPServer()
+    assert len(content_server.get_tools()) > 0
 
     # Test core imports
     from mcp_core.base_server import BaseMCPServer  # noqa: E402
