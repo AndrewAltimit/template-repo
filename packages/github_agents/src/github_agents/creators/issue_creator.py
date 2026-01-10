@@ -12,8 +12,9 @@ from datetime import datetime, timedelta
 import logging
 from typing import List, Optional, Set
 
-from ..analyzers.base import AnalysisFinding, FindingPriority
+from ..analyzers.base import AnalysisFinding, FindingCategory, FindingPriority
 from ..board.manager import BoardManager
+from ..board.models import IssuePriority, IssueSize, IssueType
 from ..memory.integration import MemoryIntegration
 from ..utils import run_gh_command_async, run_gh_command_with_stderr_async
 
@@ -53,6 +54,41 @@ class IssueCreator:
         FindingPriority.P2: "priority:medium",
         FindingPriority.P3: "priority:low",
     }
+
+    # FindingPriority to IssuePriority mapping for board
+    PRIORITY_TO_BOARD = {
+        FindingPriority.P0: IssuePriority.CRITICAL,
+        FindingPriority.P1: IssuePriority.HIGH,
+        FindingPriority.P2: IssuePriority.MEDIUM,
+        FindingPriority.P3: IssuePriority.LOW,
+    }
+
+    # FindingCategory to IssueType mapping for board
+    CATEGORY_TO_TYPE = {
+        FindingCategory.SECURITY: IssueType.BUG,
+        FindingCategory.PERFORMANCE: IssueType.BUG,
+        FindingCategory.QUALITY: IssueType.TECH_DEBT,
+        FindingCategory.TECH_DEBT: IssueType.TECH_DEBT,
+        FindingCategory.DOCUMENTATION: IssueType.DOCUMENTATION,
+        FindingCategory.TESTING: IssueType.TECH_DEBT,
+        FindingCategory.ARCHITECTURE: IssueType.TECH_DEBT,
+        FindingCategory.DEPENDENCY: IssueType.TECH_DEBT,
+    }
+
+    @staticmethod
+    def _estimate_size(finding: AnalysisFinding) -> IssueSize:
+        """Estimate issue size based on number of affected files."""
+        num_files = len(finding.affected_files)
+        if num_files <= 1:
+            return IssueSize.XS
+        elif num_files <= 3:
+            return IssueSize.S
+        elif num_files <= 6:
+            return IssueSize.M
+        elif num_files <= 10:
+            return IssueSize.L
+        else:
+            return IssueSize.XL
 
     def __init__(
         self,
@@ -258,11 +294,28 @@ class IssueCreator:
 
         logger.info("Created issue #%s: %s", issue_number, title)
 
-        # Add to project board if configured
+        # Add to project board with all fields if configured
         if self.board_manager and issue_number:
             try:
-                await self.board_manager.update_status(issue_number, "Todo")
-                logger.info("Added issue #%s to board", issue_number)
+                # Map finding properties to board fields
+                board_priority = self.PRIORITY_TO_BOARD.get(finding.priority)
+                board_type = self.CATEGORY_TO_TYPE.get(finding.category)
+                board_size = self._estimate_size(finding)
+
+                await self.board_manager.add_issue_with_fields(
+                    issue_number=issue_number,
+                    priority=board_priority,
+                    issue_type=board_type,
+                    size=board_size,
+                    agent="Claude Code",  # Always Claude Code for codebase analysis
+                )
+                logger.info(
+                    "Added issue #%s to board with fields: priority=%s, type=%s, size=%s",
+                    issue_number,
+                    board_priority.value if board_priority else None,
+                    board_type.value if board_type else None,
+                    board_size.value,
+                )
             except Exception as e:
                 logger.warning("Failed to add to board: %s", e)
 

@@ -23,6 +23,7 @@ from github_agents.board.models import (
     GraphQLResponse,
     Issue,
     IssuePriority,
+    IssueSize,
     IssueStatus,
     IssueType,
 )
@@ -895,6 +896,179 @@ Work claim released.
 
         await self._execute_graphql(mutation, variables)
         logger.info("Updated issue #%s status to %s", issue_number, status.value)
+        return True
+
+    async def add_issue_with_fields(
+        self,
+        issue_number: int,
+        status: IssueStatus = IssueStatus.TODO,
+        priority: IssuePriority | None = None,
+        issue_type: IssueType | None = None,
+        size: IssueSize | None = None,
+        agent: str = "Claude Code",
+    ) -> bool:
+        """
+        Add an issue to the project board and set all fields.
+
+        This is the preferred method for adding issues from codebase analysis,
+        as it sets all required fields in a single operation.
+
+        Args:
+            issue_number: Issue number to add
+            status: Board status (default: Todo)
+            priority: Issue priority (Critical, High, Medium, Low)
+            issue_type: Issue type (Feature, Bug, Tech Debt, Documentation)
+            size: Estimated size (XS, S, M, L, XL)
+            agent: Agent name (default: "Claude Code")
+
+        Returns:
+            True if successful
+
+        Raises:
+            GraphQLError: If operation fails
+        """
+        # Step 1: Get the issue node ID
+        repo_parts = self.config.repository.split("/")
+        if len(repo_parts) != 2:
+            raise GraphQLError(f"Invalid repository format: {self.config.repository}")
+        owner, repo_name = repo_parts
+
+        issue_query = """
+        query GetIssueId($owner: String!, $repo: String!, $number: Int!) {
+          repository(owner: $owner, name: $repo) {
+            issue(number: $number) {
+              id
+            }
+          }
+        }
+        """
+        response = await self._execute_graphql(
+            issue_query,
+            {"owner": owner, "repo": repo_name, "number": issue_number},
+        )
+
+        if not response.data or not response.data.get("repository", {}).get("issue"):
+            raise GraphQLError(f"Issue #{issue_number} not found")
+
+        issue_node_id = response.data["repository"]["issue"]["id"]
+
+        # Step 2: Add issue to project
+        add_mutation = """
+        mutation AddToProject($projectId: ID!, $contentId: ID!) {
+          addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+            item {
+              id
+            }
+          }
+        }
+        """
+        response = await self._execute_graphql(
+            add_mutation,
+            {"projectId": self.project_id, "contentId": issue_node_id},
+        )
+
+        if not response.data or not response.data.get("addProjectV2ItemById", {}).get("item"):
+            raise GraphQLError(f"Failed to add issue #{issue_number} to project")
+
+        item_id = response.data["addProjectV2ItemById"]["item"]["id"]
+        logger.info("Added issue #%s to project board (item: %s)", issue_number, item_id)
+
+        # Step 3: Get all field IDs and options
+        fields_query = """
+        query GetProjectFields($projectId: ID!) {
+          node(id: $projectId) {
+            ... on ProjectV2 {
+              fields(first: 20) {
+                nodes {
+                  ... on ProjectV2Field {
+                    id
+                    name
+                  }
+                  ... on ProjectV2SingleSelectField {
+                    id
+                    name
+                    options { id name }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+        response = await self._execute_graphql(fields_query, {"projectId": self.project_id})
+
+        if not response.data or not response.data.get("node", {}).get("fields"):
+            raise GraphQLError("Failed to get project fields")
+
+        fields = response.data["node"]["fields"]["nodes"]
+        field_map: dict[str, dict[str, Any]] = {}
+        for f in fields:
+            if f.get("name"):
+                field_map[f["name"]] = f
+
+        # Step 4: Update all fields
+        update_mutation = """
+        mutation UpdateField($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+          updateProjectV2ItemFieldValue(
+            input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value}
+          ) {
+            projectV2Item { id }
+          }
+        }
+        """
+
+        async def set_single_select(field_name: str, option_value: str) -> None:
+            """Helper to set a single-select field."""
+            if field_name not in field_map:
+                logger.warning("Field '%s' not found in project", field_name)
+                return
+            field = field_map[field_name]
+            options = field.get("options", [])
+            option_id = None
+            for opt in options:
+                if opt["name"] == option_value:
+                    option_id = opt["id"]
+                    break
+            if not option_id:
+                logger.warning("Option '%s' not found for field '%s'", option_value, field_name)
+                return
+            await self._execute_graphql(
+                update_mutation,
+                {
+                    "projectId": self.project_id,
+                    "itemId": item_id,
+                    "fieldId": field["id"],
+                    "value": {"singleSelectOptionId": option_id},
+                },
+            )
+
+        # Set Status
+        await set_single_select("Status", status.value)
+
+        # Set Priority if provided
+        if priority:
+            await set_single_select("Priority", priority.value)
+
+        # Set Type if provided
+        if issue_type:
+            await set_single_select("Type", issue_type.value)
+
+        # Set Agent
+        await set_single_select("Agent", agent)
+
+        # Set Estimated Size if provided
+        if size:
+            await set_single_select("Estimated Size", size.value)
+
+        logger.info(
+            "Set fields for issue #%s: status=%s, priority=%s, type=%s, agent=%s, size=%s",
+            issue_number,
+            status.value,
+            priority.value if priority else None,
+            issue_type.value if issue_type else None,
+            agent,
+            size.value if size else None,
+        )
         return True
 
     # ===== Approval Check =====
