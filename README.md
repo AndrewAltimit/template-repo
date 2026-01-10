@@ -1,6 +1,6 @@
 # MCP-Enabled Project Template
 
-A comprehensive development ecosystem with 6 AI agents, 17 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
+A comprehensive development ecosystem with 6 AI agents, 18 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
 
 ![MCP Demo](docs/mcp/architecture/demo.gif)
 
@@ -37,7 +37,7 @@ All code generation agents (Codex, OpenCode, Crush) provide equivalent functiona
 
 ## Features
 
-- **17 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, project management, and more
+- **18 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, desktop automation, project management, and more
 - **6 AI Agents** - Comprehensive development automation
 - **Sleeper Detection System** - Advanced AI backdoor detection using TransformerLens residual stream analysis
 - **Company Integration** - Custom agent builds for corporate AI APIs ([Documentation](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
@@ -113,7 +113,7 @@ This repository provides two MCP configuration files to optimize performance:
 
 ### `.mcp.json.full` (Complete - All Services)
 - **Purpose**: Access to all specialized tools when needed
-- **Contains**: All 17 MCP servers
+- **Contains**: All 18 MCP servers
   - Essential services (from `.mcp.json`)
   - Content creation (Manim, LaTeX, TikZ)
   - 3D graphics (Blender, Gaea2)
@@ -185,6 +185,7 @@ This pattern ensures consistent certificate handling across all services while m
 │   │   ├── mcp_content_creation/ # Manim & LaTeX
 │   │   ├── mcp_core/             # Shared components
 │   │   ├── mcp_crush/            # Agent2Agent Consultation (Crush)
+│   │   ├── mcp_desktop_control/  # Desktop automation (Linux/Windows)
 │   │   ├── mcp_elevenlabs_speech/# Speech synthesis
 │   │   ├── mcp_gaea2/            # Terrain generation
 │   │   ├── mcp_gemini/           # Agent2Agent Consultation (Gemini CLI)
@@ -250,6 +251,7 @@ This pattern ensures consistent certificate handling across all services while m
 15. **ComfyUI** - Image generation interface (remote: 192.168.0.152:8013)
 16. **AgentCore Memory** - Multi-provider AI memory (AWS AgentCore or ChromaDB) ([Documentation](tools/mcp/mcp_agentcore_memory/docs/README.md))
 17. **Reaction Search** - Semantic search for anime reaction images ([Documentation](tools/mcp/mcp_reaction_search/README.md))
+18. **Desktop Control** - Cross-platform desktop automation for Linux and Windows ([Documentation](tools/mcp/mcp_desktop_control/docs/README.md))
 
 ### Usage Modes
 
