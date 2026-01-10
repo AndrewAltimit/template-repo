@@ -1,6 +1,8 @@
 # Expression & Personality Modules
 
-These modules enable coordinated multi-modal expression and persistent personality learning for expressive AI agents.
+> **Status**: This documentation describes planned/future features. The ExpressionOrchestrator and PersonalityMemory modules have not yet been implemented. Current emotion support is available in `mcp_virtual_character/models/canonical.py`.
+
+These modules will enable coordinated multi-modal expression and persistent personality learning for expressive AI agents.
 
 ## Overview
 

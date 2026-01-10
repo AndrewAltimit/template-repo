@@ -150,86 +150,90 @@ jobs:
 
       - name: Test modular MCP servers with Docker
         run: |
-          echo "🤖 Testing modular MCP server functionality..."
+          echo "Testing modular MCP server functionality..."
 
           # Build the CI image if needed
           docker-compose build python-ci
 
-          # Test Code Quality MCP server
+          # Test MCP servers - install packages properly via pip
           docker-compose run --rm python-ci bash -c "
-          pip install -r config/python/requirements.txt && python3 -c '
-          import sys
-          sys.path.insert(0, \".\")
-          sys.path.append(\"tools/mcp\")  # Add MCP packages to path
-
+          pip install -q -r config/python/requirements.txt && \
+          pip install -q -e tools/mcp/mcp_core && \
+          pip install -q -e tools/mcp/mcp_code_quality && \
+          pip install -q -e tools/mcp/mcp_content_creation && \
+          pip install -q -e tools/mcp/mcp_gaea2 && \
+          pip install -q -e tools/mcp/mcp_opencode && \
+          pip install -q -e tools/mcp/mcp_crush && \
+          pip install -q -e tools/mcp/mcp_blender && \
+          python3 -c '
           # Test Code Quality server
           try:
               from mcp_code_quality.server import CodeQualityMCPServer
               from mcp_code_quality.tools import TOOLS as CODE_TOOLS
-              print(\"✅ Code Quality MCP server imported successfully\")
+              print(\"Code Quality MCP server imported successfully\")
               print(f\"  - {len(CODE_TOOLS)} tools available\")
               for tool in CODE_TOOLS:
                   print(f\"    - {tool}\")
           except ImportError as e:
-              print(f\"❌ Failed to import Code Quality server: {e}\")
+              print(f\"Failed to import Code Quality server: {e}\")
               exit(1)
 
           # Test Content Creation server
           try:
               from mcp_content_creation.server import ContentCreationMCPServer
               from mcp_content_creation.tools import TOOLS as CONTENT_TOOLS
-              print(\"✅ Content Creation MCP server imported successfully\")
+              print(\"Content Creation MCP server imported successfully\")
               print(f\"  - {len(CONTENT_TOOLS)} tools available\")
               for tool in CONTENT_TOOLS:
                   print(f\"    - {tool}\")
           except ImportError as e:
-              print(f\"❌ Failed to import Content Creation server: {e}\")
+              print(f\"Failed to import Content Creation server: {e}\")
               exit(1)
 
           # Test Gaea2 server (stubs only in container)
           try:
               from mcp_gaea2.server import Gaea2MCPServer
               from mcp_gaea2.tools import TOOLS as GAEA2_TOOLS
-              print(\"✅ Gaea2 MCP server imported successfully\")
+              print(\"Gaea2 MCP server imported successfully\")
               print(f\"  - {len(GAEA2_TOOLS)} tools available\")
           except ImportError as e:
-              print(f\"❌ Failed to import Gaea2 server: {e}\")
+              print(f\"Failed to import Gaea2 server: {e}\")
               exit(1)
 
           # Test OpenCode server
           try:
               from mcp_opencode.server import OpenCodeMCPServer
               from mcp_opencode.tools import TOOLS as OPENCODE_TOOLS
-              print(\"✅ OpenCode MCP server imported successfully\")
+              print(\"OpenCode MCP server imported successfully\")
               print(f\"  - {len(OPENCODE_TOOLS)} tools available\")
               for tool in OPENCODE_TOOLS:
                   print(f\"    - {tool}\")
           except ImportError as e:
-              print(f\"❌ Failed to import OpenCode server: {e}\")
+              print(f\"Failed to import OpenCode server: {e}\")
               exit(1)
 
           # Test Crush server
           try:
               from mcp_crush.server import CrushMCPServer
               from mcp_crush.tools import TOOLS as CRUSH_TOOLS
-              print(\"✅ Crush MCP server imported successfully\")
+              print(\"Crush MCP server imported successfully\")
               print(f\"  - {len(CRUSH_TOOLS)} tools available\")
               for tool in CRUSH_TOOLS:
                   print(f\"    - {tool}\")
           except ImportError as e:
-              print(f\"❌ Failed to import Crush server: {e}\")
+              print(f\"Failed to import Crush server: {e}\")
               exit(1)
 
           # Test Blender server
           try:
               from mcp_blender.server import BlenderMCPServer
               from mcp_blender.tools import TOOLS as BLENDER_TOOLS
-              print(\"✅ Blender MCP server imported successfully\")
+              print(\"Blender MCP server imported successfully\")
               print(f\"  - {len(BLENDER_TOOLS)} tools available\")
               for tool in BLENDER_TOOLS:
                   print(f\"    - {tool}\")
           except ImportError as e:
-              print(f\"❌ Failed to import Blender server: {e}\")
+              print(f\"Failed to import Blender server: {e}\")
               exit(1)
           '
           "

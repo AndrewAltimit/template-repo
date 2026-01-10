@@ -64,7 +64,7 @@ The DGX Spark will run as a **dedicated inference server** on the local network,
 │                        Dev Machine                               │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  Claude Code / MCP Clients                                │   │
-│  │    ├── mcp_core/cognition (FastMind, SlowMind)           │   │
+│  │    ├── mcp_virtual_character/cognition (FastMind, SlowMind)           │   │
 │  │    ├── Other MCP servers (code-quality, etc.)            │   │
 │  │    └── .mcp.json configuration                            │   │
 │  └──────────────────────────────────────────────────────────┘   │
@@ -156,15 +156,17 @@ class InferenceMCPServer(BaseMCPServer):
 
 ---
 
-## Integration Points with mcp_core/cognition
+## Integration Points with mcp_virtual_character/cognition
+
+> **Note**: Current emotion support is in `mcp_virtual_character/models/canonical.py`. Planned modules: `mcp_virtual_character/emotions/` and `mcp_virtual_character/cognition/`.
 
 ### 1. Emotion Inference (FastMind)
 
-**Current**: `mcp_core/emotions/inference.py` - CPU-based, 400-1000ms
+**Current**: Emotion inference is not yet implemented (planned for `mcp_virtual_character/emotions/inference.py`)
 
 **Integration**:
 ```python
-# mcp_core/cognition/fast_mind.py
+# mcp_virtual_character/cognition/fast_mind.py
 class FastMind:
     def __init__(
         self,
@@ -213,7 +215,7 @@ orchestrator = CognitiveOrchestrator(pattern_lookup=gpu_pattern_lookup)
 **Purpose**: Fast local LLM for styling responses with ElevenLabs audio tags and real-time formatting.
 
 ```python
-# mcp_core/cognition/audio_styler.py (NEW FILE)
+# mcp_virtual_character/cognition/audio_styler.py (NEW FILE)
 class AudioStyler:
     """GPU-accelerated audio styling via DGX Spark."""
 
@@ -372,7 +374,7 @@ mcp-inference:
 2. Implement `style_for_audio` and `generate_filler` tools
 3. Configure model loading and memory management
 
-### Phase 4: mcp_core Integration
+### Phase 4: mcp_virtual_character Integration
 1. Add `inference_url` parameter to `FastMind`
 2. Create `gpu_pattern_lookup` and `gpu_pattern_store` helpers
 3. Add `AudioStyler` to cognition module
@@ -414,7 +416,7 @@ fastapi>=0.100.0
 uvicorn>=0.22.0
 ```
 
-### mcp_core Additions
+### mcp_virtual_character Additions
 ```
 # Add to existing requirements
 aiohttp>=3.8.0  # For async HTTP to inference server
@@ -427,10 +429,10 @@ aiohttp>=3.8.0  # For async HTTP to inference server
 | File | Change |
 |------|--------|
 | `tools/mcp/mcp_inference/` | NEW: Entire inference server package |
-| `mcp_core/cognition/fast_mind.py` | Add `inference_url` parameter |
-| `mcp_core/cognition/audio_styler.py` | NEW: Audio styling for ElevenLabs pipeline |
-| `mcp_core/cognition/slow_mind.py` | No changes (uses Claude API via Reasoner) |
-| `mcp_core/cognition/__init__.py` | Export `AudioStyler` |
+| `mcp_virtual_character/cognition/fast_mind.py` | Add `inference_url` parameter |
+| `mcp_virtual_character/cognition/audio_styler.py` | NEW: Audio styling for ElevenLabs pipeline |
+| `mcp_virtual_character/cognition/slow_mind.py` | No changes (uses Claude API via Reasoner) |
+| `mcp_virtual_character/cognition/__init__.py` | Export `AudioStyler` |
 | `docker-compose.yml` | Add `mcp-inference` service |
 | `.mcp.json` | Add HTTP inference server config |
 | `config/python/requirements.txt` | Add `aiohttp` |
