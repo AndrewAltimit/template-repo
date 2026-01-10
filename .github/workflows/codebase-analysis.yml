@@ -1,0 +1,249 @@
+---
+# Daily Codebase Analysis Pipeline
+#
+# Automatically analyzes the codebase with multiple AI agents and
+# creates GitHub issues for discovered improvements. Issues require
+# admin approval via [Approved] comment before PRs are created.
+#
+# STATUS: MANUAL-ONLY - Schedule disabled until ready for production
+#
+# To enable:
+# 1. Uncomment the schedule section
+# 2. Configure codebase-analysis-config.yml
+# 3. Ensure AGENT_TOKEN and GH_PROJECTS_TOKEN secrets are set
+
+name: Codebase Analysis Pipeline
+
+on:
+  # DISABLED: Uncomment to enable scheduled runs
+  # schedule:
+  #   # Daily at 3 AM UTC (off-peak hours)
+  #   - cron: '0 3 * * *'
+
+  # Manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      agents:
+        description: 'Agents to use (comma-separated)'
+        required: false
+        type: string
+        default: 'claude,gemini'
+      max-issues:
+        description: 'Maximum issues to create'
+        required: false
+        type: number
+        default: 3
+      min-priority:
+        description: 'Minimum priority (P0-P3)'
+        required: false
+        type: choice
+        options:
+          - P0
+          - P1
+          - P2
+          - P3
+        default: 'P2'
+      dry-run:
+        description: 'Dry run (analyze but do not create issues)'
+        required: false
+        type: boolean
+        default: true
+      include-paths:
+        description: 'Paths to analyze (comma-separated globs)'
+        required: false
+        type: string
+        default: 'packages/**/*.py,tools/**/*.py'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: codebase-analysis
+  cancel-in-progress: false
+
+jobs:
+  analyze:
+    name: Analyze Codebase
+    runs-on: self-hosted
+    timeout-minutes: 45
+
+    outputs:
+      findings-count: ${{ steps.analyze.outputs.findings_count }}
+      issues-created: ${{ steps.create.outputs.issues_created }}
+      summary-json: ${{ steps.create.outputs.summary_json }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for analysis
+
+      - name: Setup Python environment
+        run: |
+          echo "::group::Setup Python Environment"
+          python3 --version
+          pip3 install --user -e ./packages/github_agents
+          echo "::endgroup::"
+
+      - name: Load configuration
+        id: config
+        run: |
+          echo "::group::Load Configuration"
+
+          # Use inputs or defaults
+          AGENTS="${{ inputs.agents || 'claude,gemini' }}"
+          MAX_ISSUES="${{ inputs.max-issues || '3' }}"
+          MIN_PRIORITY="${{ inputs.min-priority || 'P2' }}"
+          INCLUDE_PATHS="${{ inputs.include-paths || 'packages/**/*.py,tools/**/*.py' }}"
+          DRY_RUN="${{ inputs.dry-run || 'true' }}"
+
+          echo "agents=$AGENTS" >> $GITHUB_OUTPUT
+          echo "max_issues=$MAX_ISSUES" >> $GITHUB_OUTPUT
+          echo "min_priority=$MIN_PRIORITY" >> $GITHUB_OUTPUT
+          echo "include_paths=$INCLUDE_PATHS" >> $GITHUB_OUTPUT
+          echo "dry_run=$DRY_RUN" >> $GITHUB_OUTPUT
+
+          echo "Configuration:"
+          echo "  Agents: $AGENTS"
+          echo "  Max Issues: $MAX_ISSUES"
+          echo "  Min Priority: $MIN_PRIORITY"
+          echo "  Include Paths: $INCLUDE_PATHS"
+          echo "  Dry Run: $DRY_RUN"
+
+          echo "::endgroup::"
+
+      - name: Run codebase analysis
+        id: analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          AGENTS: ${{ steps.config.outputs.agents }}
+          INCLUDE_PATHS: ${{ steps.config.outputs.include_paths }}
+        run: |
+          echo "::group::Codebase Analysis"
+
+          ANALYSIS_OUTPUT=$(python3 << 'PYTHON_SCRIPT'
+          import asyncio
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          async def run_analysis():
+              findings = []
+              agents = os.environ.get('AGENTS', 'claude').split(',')
+              include_paths = os.environ.get('INCLUDE_PATHS', '**/*.py').split(',')
+
+              print(f"Running analysis with agents: {agents}", file=sys.stderr)
+              print(f"Include paths: {include_paths}", file=sys.stderr)
+
+              try:
+                  from github_agents.analyzers import BaseAnalyzer
+                  from github_agents.agents import get_best_available_agent
+
+                  # For each agent, run analysis
+                  for agent_name in agents:
+                      agent_name = agent_name.strip()
+                      print(f"Analyzing with {agent_name}...", file=sys.stderr)
+
+                      # TODO: Implement full analysis
+                      # For now, this is a placeholder that demonstrates the structure
+                      # Real implementation would use AgentAnalyzer class
+
+                      # Example finding structure
+                      # findings.append({
+                      #     "title": "Example finding",
+                      #     "category": "quality",
+                      #     "priority": "P2",
+                      #     "agent": agent_name,
+                      # })
+
+                  print(f"Analysis complete. Found {len(findings)} findings.", file=sys.stderr)
+
+              except ImportError as e:
+                  print(f"Import error (expected during development): {e}", file=sys.stderr)
+
+              return {"findings": findings, "count": len(findings)}
+
+          result = asyncio.run(run_analysis())
+          print(json.dumps(result))
+          PYTHON_SCRIPT
+          )
+
+          echo "Analysis output: $ANALYSIS_OUTPUT"
+
+          FINDINGS_COUNT=$(echo "$ANALYSIS_OUTPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('count', 0))")
+          echo "findings_count=$FINDINGS_COUNT" >> $GITHUB_OUTPUT
+
+          echo "::endgroup::"
+
+      - name: Create issues from findings
+        id: create
+        if: steps.analyze.outputs.findings_count != '0'
+        env:
+          GITHUB_TOKEN: ${{ secrets.AGENT_TOKEN }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.GH_PROJECTS_TOKEN }}
+          DRY_RUN: ${{ steps.config.outputs.dry_run }}
+          MAX_ISSUES: ${{ steps.config.outputs.max_issues }}
+          MIN_PRIORITY: ${{ steps.config.outputs.min_priority }}
+        run: |
+          echo "::group::Create Issues"
+
+          # TODO: Implement issue creation from findings
+          # This would use the IssueCreator class
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run mode - no issues created"
+            echo "issues_created=0" >> $GITHUB_OUTPUT
+          else
+            echo "Would create issues here"
+            echo "issues_created=0" >> $GITHUB_OUTPUT
+          fi
+
+          echo "summary_json={}" >> $GITHUB_OUTPUT
+          echo "::endgroup::"
+
+      - name: Generate summary
+        if: always()
+        env:
+          FINDINGS_COUNT: ${{ steps.analyze.outputs.findings_count }}
+          ISSUES_CREATED: ${{ steps.create.outputs.issues_created }}
+          DRY_RUN: ${{ steps.config.outputs.dry_run }}
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## Codebase Analysis Pipeline Results
+
+          | Metric | Value |
+          |--------|-------|
+          | Findings Discovered | ${FINDINGS_COUNT:-0} |
+          | Issues Created | ${ISSUES_CREATED:-0} |
+          | Dry Run | ${DRY_RUN:-true} |
+
+          ### Configuration
+          - **Agents**: ${{ steps.config.outputs.agents }}
+          - **Min Priority**: ${{ steps.config.outputs.min_priority }}
+          - **Max Issues**: ${{ steps.config.outputs.max_issues }}
+
+          ### Next Steps
+          1. Review created issues in the [Issues tab](../../issues)
+          2. Approve issues with \`[Approved]\` comment to trigger PR creation
+          3. Issue Monitor will create PRs for approved issues
+
+          ---
+          *Run: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*
+          EOF
+
+  notify:
+    name: Notify on Issues Created
+    needs: analyze
+    runs-on: self-hosted
+    if: needs.analyze.outputs.issues-created != '0'
+
+    steps:
+      - name: Send notification
+        run: |
+          echo "Created ${{ needs.analyze.outputs.issues-created }} issues from analysis"
+
+          # CUSTOMIZE: Add notification logic (Slack, email, etc.)
+          # curl -X POST ${{ secrets.SLACK_WEBHOOK }} ...

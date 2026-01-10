@@ -4,6 +4,7 @@ from typing import Optional, Type
 
 from .base import AgentError, AgentExecutionError, AgentNotAvailableError, AgentTimeoutError, BaseAgent
 from .claude import ClaudeAgent
+from .codex import CodexAgent
 from .containerized import ContainerizedCLIAgent
 from .crush import CrushAgent
 from .gemini import GeminiAgent
@@ -19,8 +20,9 @@ def get_best_available_agent() -> Optional[BaseAgent]:
     # Order agents by priority (highest to lowest)
     agent_classes: list[Type[BaseAgent]] = [
         ClaudeAgent,
-        OpenCodeAgent,
+        CodexAgent,
         GeminiAgent,
+        OpenCodeAgent,
         CrushAgent,
     ]
 
@@ -47,8 +49,9 @@ __all__ = [
     "AgentExecutionError",
     "AgentTimeoutError",
     "ClaudeAgent",
-    "OpenCodeAgent",
+    "CodexAgent",
     "GeminiAgent",
+    "OpenCodeAgent",
     "CrushAgent",
     "get_best_available_agent",
 ]

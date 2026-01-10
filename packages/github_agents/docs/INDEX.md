@@ -20,9 +20,9 @@ Welcome to the GitHub Agents documentation. This package provides automated code
 - [Subagents](subagents.md) - Specialized agent types and capabilities
 - Available Agents:
   - **Claude** - Primary development assistant via Claude CLI
-  - **OpenCode** - Comprehensive code generation via OpenRouter
+  - **OpenCode** - Code generation via OpenRouter
   - **Gemini** - Code review and analysis
-  - **Crush** - Fast code generation and conversion
+  - **Crush** - Code generation via OpenRouter
   - **Codex** - Automated code completion *(optional)*
 
 ## User Guides

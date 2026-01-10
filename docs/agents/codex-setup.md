@@ -225,8 +225,8 @@ If authentication fails:
 
 Codex works well with:
 - **Claude**: For architectural decisions and complex logic
-- **OpenCode**: For comprehensive code generation tasks
-- **Crush**: For quick code snippets and conversions
+- **OpenCode**: For code generation via OpenRouter
+- **Crush**: For code generation via OpenRouter
 - **GitHub Copilot**: For in-editor suggestions
 
 ## Examples

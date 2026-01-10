@@ -39,7 +39,7 @@ The MCP functionality is distributed across specialized servers:
 6. **AI Toolkit MCP Server** (Port 8012) - LoRA training interface
 7. **ComfyUI MCP Server** (Port 8013) - Image generation interface
 8. **OpenCode MCP Server** - AI code generation (STDIO mode)
-9. **Crush MCP Server** - Fast code generation (STDIO mode)
+9. **Crush MCP Server** - Code generation (STDIO mode)
 10. **Meme Generator MCP Server** - Meme creation (STDIO mode)
 
 See [MCP Servers Documentation](servers.md) for detailed information.
@@ -111,7 +111,7 @@ Servers running in STDIO mode communicate through standard input/output using th
 | AI Toolkit | HTTP (Remote) | 8012 | LoRA training (remote server) |
 | ComfyUI | HTTP (Remote) | 8013 | Image generation (remote server) |
 | OpenCode | STDIO (Docker) | 8014 | AI code generation |
-| Crush | STDIO (Docker) | 8015 | Fast code generation |
+| Crush | STDIO (Docker) | 8015 | Code generation |
 | Meme Generator | STDIO (Docker) | N/A | Meme creation with visual feedback |
 
 **Note**: The default configuration uses STDIO mode for local servers through Docker Compose. HTTP ports are only used when manually running servers in HTTP mode for development/testing.

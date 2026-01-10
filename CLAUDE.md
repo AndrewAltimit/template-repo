@@ -143,7 +143,7 @@ python -m mcp_code_quality.server      # Port 8010
 python -m mcp_content_creation.server  # Port 8011
 python -m mcp_gaea2.server             # Port 8007
 python -m mcp_opencode.server          # Port 8014 - AI code generation (HTTP mode)
-python -m mcp_crush.server             # Port 8015 - Fast code generation (HTTP mode)
+python -m mcp_crush.server             # Port 8015 - Code generation (HTTP mode)
 
 # Note: AI Toolkit and ComfyUI MCP servers run on remote machine (192.168.0.152)
 # Ports 8012 and 8013 are used by the remote servers, not local instances
@@ -208,8 +208,8 @@ docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
 
 # Direct host execution with helper scripts:
 ./tools/cli/agents/run_claude.sh     # Interactive Claude session with Node.js 22
-./tools/cli/agents/run_opencode.sh   # OpenCode CLI for comprehensive code generation
-./tools/cli/agents/run_crush.sh      # Crush CLI for fast code generation
+./tools/cli/agents/run_opencode.sh   # OpenCode CLI for code generation
+./tools/cli/agents/run_crush.sh      # Crush CLI for code generation
 ./tools/cli/agents/run_gemini.sh     # Interactive Gemini CLI session with approval modes
 ./tools/cli/agents/run_codex.sh      # Codex CLI for AI-powered code generation (requires auth)
 
@@ -353,8 +353,8 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - See `tools/mcp/mcp_opencode/docs/README.md` for documentation
 
 8. **Crush MCP Server** (`tools/mcp/mcp_crush/`): STDIO (local) or HTTP port 8015
-   - **Fast Code Generation**:
-     - `consult_crush` - Quick code generation and conversion
+   - **Code Generation**:
+     - `consult_crush` - Code generation and conversion
      - `clear_crush_history` - Clear conversation history
      - `crush_status` - Get integration status and statistics
      - `toggle_crush_auto_consult` - Control auto-consultation

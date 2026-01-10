@@ -1,0 +1,249 @@
+---
+# Multi-Agent Backlog Refinement Pipeline
+#
+# Periodically reviews backlog items with multiple AI agents and
+# posts unique insights as comments. Each agent provides a different
+# perspective (architecture, security, implementation, maintenance).
+#
+# STATUS: MANUAL-ONLY - Schedule disabled until ready for production
+#
+# To enable:
+# 1. Uncomment the schedule section
+# 2. Configure agents in .agents.yaml
+# 3. Ensure AGENT_TOKEN secret is set
+
+name: Backlog Refinement Pipeline
+
+on:
+  # DISABLED: Uncomment to enable scheduled runs
+  # schedule:
+  #   # Twice weekly: Tuesday and Friday at 10 AM UTC
+  #   - cron: '0 10 * * 2,5'
+
+  # Manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      agents:
+        description: 'Agents to use (comma-separated)'
+        required: false
+        type: string
+        default: 'claude,gemini'
+      max-issues:
+        description: 'Maximum issues to review'
+        required: false
+        type: number
+        default: 5
+      max-comments:
+        description: 'Maximum comments per issue'
+        required: false
+        type: number
+        default: 2
+      min-age-days:
+        description: 'Minimum issue age (days)'
+        required: false
+        type: number
+        default: 3
+      dry-run:
+        description: 'Dry run (review but do not post comments)'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: backlog-refinement
+  cancel-in-progress: false
+
+jobs:
+  refine:
+    name: Refine Backlog
+    runs-on: self-hosted
+    timeout-minutes: 30
+
+    outputs:
+      issues-reviewed: ${{ steps.refine.outputs.issues_reviewed }}
+      insights-added: ${{ steps.refine.outputs.insights_added }}
+      summary-json: ${{ steps.refine.outputs.summary_json }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        run: |
+          echo "::group::Setup Python Environment"
+          python3 --version
+          pip3 install --user -e ./packages/github_agents
+          echo "::endgroup::"
+
+      - name: Load configuration
+        id: config
+        run: |
+          echo "::group::Load Configuration"
+
+          AGENTS="${{ inputs.agents || 'claude,gemini' }}"
+          MAX_ISSUES="${{ inputs.max-issues || '5' }}"
+          MAX_COMMENTS="${{ inputs.max-comments || '2' }}"
+          MIN_AGE="${{ inputs.min-age-days || '3' }}"
+          DRY_RUN="${{ inputs.dry-run || 'true' }}"
+
+          echo "agents=$AGENTS" >> $GITHUB_OUTPUT
+          echo "max_issues=$MAX_ISSUES" >> $GITHUB_OUTPUT
+          echo "max_comments=$MAX_COMMENTS" >> $GITHUB_OUTPUT
+          echo "min_age=$MIN_AGE" >> $GITHUB_OUTPUT
+          echo "dry_run=$DRY_RUN" >> $GITHUB_OUTPUT
+
+          echo "Configuration:"
+          echo "  Agents: $AGENTS"
+          echo "  Max Issues: $MAX_ISSUES"
+          echo "  Max Comments/Issue: $MAX_COMMENTS"
+          echo "  Min Age Days: $MIN_AGE"
+          echo "  Dry Run: $DRY_RUN"
+
+          echo "::endgroup::"
+
+      - name: Run backlog refinement
+        id: refine
+        env:
+          GITHUB_TOKEN: ${{ secrets.AGENT_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          AGENTS: ${{ steps.config.outputs.agents }}
+          MAX_ISSUES: ${{ steps.config.outputs.max_issues }}
+          MAX_COMMENTS: ${{ steps.config.outputs.max_comments }}
+          MIN_AGE: ${{ steps.config.outputs.min_age }}
+          DRY_RUN: ${{ steps.config.outputs.dry_run }}
+        run: |
+          echo "::group::Backlog Refinement"
+
+          REFINEMENT_OUTPUT=$(python3 << 'PYTHON_SCRIPT'
+          import asyncio
+          import json
+          import os
+          import sys
+
+          async def run_refinement():
+              agents = os.environ.get('AGENTS', 'claude').split(',')
+              max_issues = int(os.environ.get('MAX_ISSUES', '5'))
+              max_comments = int(os.environ.get('MAX_COMMENTS', '2'))
+              min_age = int(os.environ.get('MIN_AGE', '3'))
+              dry_run = os.environ.get('DRY_RUN', 'true') == 'true'
+
+              print(f"Running refinement with agents: {agents}", file=sys.stderr)
+              print(f"Max issues: {max_issues}, Max comments: {max_comments}", file=sys.stderr)
+              print(f"Min age: {min_age} days, Dry run: {dry_run}", file=sys.stderr)
+
+              results = {
+                  "issues_reviewed": 0,
+                  "insights_added": 0,
+                  "agents_used": agents,
+                  "details": []
+              }
+
+              try:
+                  from github_agents.monitors.refinement import RefinementMonitor
+
+                  # Get repository from environment
+                  repo = os.environ.get('GITHUB_REPOSITORY', '')
+
+                  if not repo:
+                      print("GITHUB_REPOSITORY not set", file=sys.stderr)
+                      print(json.dumps(results))
+                      return
+
+                  monitor = RefinementMonitor(
+                      repo=repo,
+                      min_age_days=min_age,
+                      max_issues_per_run=max_issues,
+                      max_comments_per_issue=max_comments,
+                      dry_run=dry_run,
+                  )
+
+                  # Run refinement
+                  refinement_results = await monitor.run(agents)
+
+                  results["issues_reviewed"] = len(refinement_results)
+                  results["insights_added"] = sum(r.insights_added for r in refinement_results)
+                  results["details"] = [
+                      {
+                          "issue": r.issue_number,
+                          "title": r.issue_title,
+                          "insights": r.insights_added,
+                          "agents": r.agents_reviewed,
+                      }
+                      for r in refinement_results
+                  ]
+
+              except ImportError as e:
+                  print(f"Import error (expected during development): {e}", file=sys.stderr)
+              except Exception as e:
+                  print(f"Refinement error: {e}", file=sys.stderr)
+
+              print(json.dumps(results))
+
+          asyncio.run(run_refinement())
+          PYTHON_SCRIPT
+          )
+
+          echo "Refinement output: $REFINEMENT_OUTPUT"
+
+          ISSUES_REVIEWED=$(echo "$REFINEMENT_OUTPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('issues_reviewed', 0))")
+          INSIGHTS_ADDED=$(echo "$REFINEMENT_OUTPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('insights_added', 0))")
+
+          echo "issues_reviewed=$ISSUES_REVIEWED" >> $GITHUB_OUTPUT
+          echo "insights_added=$INSIGHTS_ADDED" >> $GITHUB_OUTPUT
+          echo "summary_json=$REFINEMENT_OUTPUT" >> $GITHUB_OUTPUT
+
+          echo "::endgroup::"
+
+      - name: Generate summary
+        if: always()
+        env:
+          ISSUES_REVIEWED: ${{ steps.refine.outputs.issues_reviewed }}
+          INSIGHTS_ADDED: ${{ steps.refine.outputs.insights_added }}
+          DRY_RUN: ${{ steps.config.outputs.dry_run }}
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## Backlog Refinement Results
+
+          | Metric | Value |
+          |--------|-------|
+          | Issues Reviewed | ${ISSUES_REVIEWED:-0} |
+          | Insights Added | ${INSIGHTS_ADDED:-0} |
+          | Dry Run | ${DRY_RUN:-true} |
+
+          ### Configuration
+          - **Agents**: ${{ steps.config.outputs.agents }}
+          - **Max Issues**: ${{ steps.config.outputs.max_issues }}
+          - **Max Comments/Issue**: ${{ steps.config.outputs.max_comments }}
+          - **Min Issue Age**: ${{ steps.config.outputs.min_age }} days
+
+          ### Agent Perspectives
+          | Agent | Focus Area |
+          |-------|------------|
+          | Claude | Architecture & Design |
+          | Gemini | Quality & Security |
+          | Codex | Implementation |
+          | OpenCode | Maintenance |
+
+          ---
+          *Run: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*
+          EOF
+
+  weekly-summary:
+    name: Weekly Summary
+    needs: refine
+    runs-on: self-hosted
+    # Only on Friday runs
+    if: github.event_name == 'schedule' && contains(github.event.schedule, '* * 5')
+
+    steps:
+      - name: Generate weekly report
+        run: |
+          echo "## Weekly Backlog Refinement Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This week's refinement activity:" >> $GITHUB_STEP_SUMMARY
+          echo "- Issues reviewed: ${{ needs.refine.outputs.issues-reviewed }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Insights added: ${{ needs.refine.outputs.insights-added }}" >> $GITHUB_STEP_SUMMARY
