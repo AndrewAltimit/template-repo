@@ -177,8 +177,9 @@ class TestDesktopControlServer:  # pylint: disable=too-many-public-methods
     @pytest.mark.asyncio
     async def test_screenshot_screen(self, server, mock_backend, tmp_path):
         """Test screenshot_screen tool"""
-        # Override output dir to use temp path
+        # Override output dirs to use temp path (both must match for os.path.exists check)
         server._output_dir = str(tmp_path)
+        server._host_output_dir = str(tmp_path)
         mock_backend.screenshot_screen.return_value = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
         result = await server.screenshot_screen()
         assert result["success"] is True
@@ -192,6 +193,7 @@ class TestDesktopControlServer:  # pylint: disable=too-many-public-methods
     async def test_screenshot_window(self, server, mock_backend, tmp_path):
         """Test screenshot_window tool"""
         server._output_dir = str(tmp_path)
+        server._host_output_dir = str(tmp_path)
         mock_backend.screenshot_window.return_value = b"\x89PNG\r\n\x1a\n" + b"\x00" * 50
         result = await server.screenshot_window("123")
         assert result["success"] is True
@@ -202,6 +204,7 @@ class TestDesktopControlServer:  # pylint: disable=too-many-public-methods
     async def test_screenshot_region(self, server, mock_backend, tmp_path):
         """Test screenshot_region tool"""
         server._output_dir = str(tmp_path)
+        server._host_output_dir = str(tmp_path)
         mock_backend.screenshot_region.return_value = b"\x89PNG\r\n\x1a\n" + b"\x00" * 50
         result = await server.screenshot_region(100, 100, 200, 200)
         assert result["success"] is True
