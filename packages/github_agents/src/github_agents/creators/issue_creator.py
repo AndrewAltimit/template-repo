@@ -15,7 +15,7 @@ from typing import List, Optional, Set
 from ..analyzers.base import AnalysisFinding, FindingPriority
 from ..board.manager import BoardManager
 from ..memory.integration import MemoryIntegration
-from ..utils import run_gh_command_async
+from ..utils import run_gh_command_async, run_gh_command_with_stderr_async
 
 logger = logging.getLogger(__name__)
 
@@ -220,35 +220,38 @@ class IssueCreator:
             ",".join(labels),
         ]
 
-        result = await run_gh_command_async(cmd, check=False)
+        # Run gh command and capture both stdout and stderr for diagnostics
+        stdout, stderr, returncode = await run_gh_command_with_stderr_async(cmd[1:])  # Skip 'gh' prefix
 
-        if result is None:
-            logger.error("gh issue create failed: no output")
+        if returncode != 0:
+            error_msg = stderr or stdout or "unknown error"
+            logger.error("gh issue create failed (exit %d): %s", returncode, error_msg)
             return CreationResult(
                 finding=finding,
-                skipped_reason="gh command failed",
+                skipped_reason=f"gh failed (exit {returncode}): {error_msg[:100]}",
+            )
+
+        if not stdout:
+            error_msg = stderr or "no output"
+            logger.error("gh issue create returned empty output. stderr: %s", error_msg)
+            return CreationResult(
+                finding=finding,
+                skipped_reason=f"gh returned empty output: {error_msg[:100]}",
             )
 
         # Parse issue URL from output
-        issue_url = result.strip()
+        issue_url = stdout
         issue_number = None
 
-        if issue_url:
-            try:
-                # gh issue create returns URL like https://github.com/owner/repo/issues/123
-                last_part = issue_url.split("/")[-1]
-                issue_number = int(last_part)
-            except (ValueError, IndexError) as e:
-                logger.error("Failed to parse issue number from output: %r - %s", issue_url, e)
-                return CreationResult(
-                    finding=finding,
-                    skipped_reason=f"failed to parse issue URL: {issue_url!r}",
-                )
-        else:
-            logger.error("gh issue create returned empty output")
+        try:
+            # gh issue create returns URL like https://github.com/owner/repo/issues/123
+            last_part = issue_url.split("/")[-1]
+            issue_number = int(last_part)
+        except (ValueError, IndexError) as e:
+            logger.error("Failed to parse issue number from output: %r - %s", issue_url, e)
             return CreationResult(
                 finding=finding,
-                skipped_reason="gh command returned empty output",
+                skipped_reason=f"failed to parse issue URL: {issue_url!r}",
             )
 
         logger.info("Created issue #%s: %s", issue_number, title)

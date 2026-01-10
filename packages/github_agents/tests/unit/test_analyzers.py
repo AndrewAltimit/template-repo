@@ -364,15 +364,16 @@ class TestIssueCreator:
             discovered_by="test",
         )
 
-        # Mock run_gh_command_async to return empty string
-        with patch("github_agents.creators.issue_creator.run_gh_command_async", new_callable=AsyncMock) as mock_gh:
-            mock_gh.return_value = ""
+        # Mock to return empty stdout with stderr containing the error
+        with patch("github_agents.creators.issue_creator.run_gh_command_with_stderr_async", new_callable=AsyncMock) as mock_gh:
+            mock_gh.return_value = (None, "Resource not accessible by integration", 0)
 
             result = await creator._create_github_issue(finding)
 
             assert result.created is False
             assert result.issue_number is None
             assert "empty output" in result.skipped_reason
+            assert "Resource not accessible" in result.skipped_reason
 
     @pytest.mark.asyncio
     async def test_create_github_issue_invalid_url(self):
@@ -391,9 +392,9 @@ class TestIssueCreator:
             discovered_by="test",
         )
 
-        # Mock run_gh_command_async to return invalid output
-        with patch("github_agents.creators.issue_creator.run_gh_command_async", new_callable=AsyncMock) as mock_gh:
-            mock_gh.return_value = "Error: could not create issue"
+        # Mock to return invalid output (not a URL)
+        with patch("github_agents.creators.issue_creator.run_gh_command_with_stderr_async", new_callable=AsyncMock) as mock_gh:
+            mock_gh.return_value = ("Error: could not create issue", None, 0)
 
             result = await creator._create_github_issue(finding)
 
@@ -418,9 +419,9 @@ class TestIssueCreator:
             discovered_by="test",
         )
 
-        # Mock run_gh_command_async to return valid issue URL
-        with patch("github_agents.creators.issue_creator.run_gh_command_async", new_callable=AsyncMock) as mock_gh:
-            mock_gh.return_value = "https://github.com/owner/repo/issues/42"
+        # Mock to return valid issue URL
+        with patch("github_agents.creators.issue_creator.run_gh_command_with_stderr_async", new_callable=AsyncMock) as mock_gh:
+            mock_gh.return_value = ("https://github.com/owner/repo/issues/42", None, 0)
 
             result = await creator._create_github_issue(finding)
 
@@ -429,8 +430,8 @@ class TestIssueCreator:
             assert result.issue_url == "https://github.com/owner/repo/issues/42"
 
     @pytest.mark.asyncio
-    async def test_create_github_issue_none_output(self):
-        """Test that None gh command output is handled correctly."""
+    async def test_create_github_issue_nonzero_exit(self):
+        """Test that non-zero exit code is handled correctly."""
 
         creator = IssueCreator(repo="owner/repo")
         finding = AnalysisFinding(
@@ -445,15 +446,16 @@ class TestIssueCreator:
             discovered_by="test",
         )
 
-        # Mock run_gh_command_async to return None
-        with patch("github_agents.creators.issue_creator.run_gh_command_async", new_callable=AsyncMock) as mock_gh:
-            mock_gh.return_value = None
+        # Mock to return non-zero exit code with error
+        with patch("github_agents.creators.issue_creator.run_gh_command_with_stderr_async", new_callable=AsyncMock) as mock_gh:
+            mock_gh.return_value = (None, "HTTP 403: Resource not accessible by integration", 1)
 
             result = await creator._create_github_issue(finding)
 
             assert result.created is False
             assert result.issue_number is None
-            assert "gh command failed" in result.skipped_reason
+            assert "exit 1" in result.skipped_reason
+            assert "403" in result.skipped_reason
 
 
 class TestWorkflowIntegration:
