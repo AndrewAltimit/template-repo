@@ -147,10 +147,12 @@ class CodeQualityMCPServer(BaseMCPServer):
         """
         try:
             resolved = Path(path).resolve()
-            resolved_str = str(resolved)
 
             for allowed in self.allowed_paths:
-                if resolved_str.startswith(allowed):
+                allowed_path = Path(allowed).resolve()
+                # Use is_relative_to for proper path containment check
+                # (avoids prefix matching vulnerability, e.g., /app/data vs /app/database)
+                if resolved.is_relative_to(allowed_path):
                     return True
 
             return False
