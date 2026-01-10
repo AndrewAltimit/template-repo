@@ -453,12 +453,15 @@ class AIToolkitMCPServer(BaseMCPServer):
                 data = base64.b64decode(img_data["data"])
                 caption = img_data["caption"]
 
+                # Ensure parent directory exists for subdirectory structures
+                img_path.parent.mkdir(parents=True, exist_ok=True)
+
                 # Save image
                 with open(img_path, "wb") as f:
                     f.write(data)
 
-                # Save caption (use validated path's stem to construct caption path)
-                caption_path = dataset_path / f"{img_path.stem}.txt"
+                # Save caption alongside image (handles subdirectory structures)
+                caption_path = img_path.with_suffix(".txt")
                 with open(caption_path, "w", encoding="utf-8") as f:
                     f.write(caption)
 
