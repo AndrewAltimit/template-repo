@@ -385,15 +385,23 @@ class WindowsBackend(DesktopBackend):
     # === Screenshots ===
 
     def screenshot_screen(self, screen_id: Optional[int] = None) -> bytes:
-        """Capture the screen"""
+        """Capture the screen.
+
+        Args:
+            screen_id: Monitor index (0=primary, 1=second, etc.) or None for all monitors combined
+        """
         if self._has_mss:
             import mss
 
             with mss.mss() as sct:
                 monitors = sct.monitors
-                monitor_idx = (screen_id or 0) + 1
-                if monitor_idx >= len(monitors):
-                    monitor_idx = 1
+                # monitors[0] is all screens combined, monitors[1+] are individual
+                if screen_id is None:
+                    monitor_idx = 0  # All monitors combined
+                else:
+                    monitor_idx = screen_id + 1  # Individual monitor (mss uses 1-indexed)
+                    if monitor_idx >= len(monitors):
+                        monitor_idx = 1  # Default to primary if out of range
 
                 screenshot = sct.grab(monitors[monitor_idx])
                 from PIL import Image
