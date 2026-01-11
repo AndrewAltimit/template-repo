@@ -1,22 +1,54 @@
 ---
 # Reusable workflow for AI agent work from GitHub Projects v2 board
 #
-# Usage in your workflow:
+# Can be triggered:
+# 1. Manually via workflow_dispatch
+# 2. Called by other workflows via workflow_call
+#
+# Usage as reusable workflow:
 #   jobs:
 #     agent-work:
 #       uses: ./.github/workflows/board-agent-worker.yml
 #       with:
 #         agent-name: claude
-#         board-config-path: ai-agents-board.yml
 #       secrets:
 #         github-token: ${{ secrets.AGENT_TOKEN }}
 #         github-projects-token: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
-#
-# For enterprise environments, copy this pattern and customize as needed.
 
 name: Board Agent Worker
 
 on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      agent-name:
+        description: 'AI agent to use'
+        required: true
+        type: choice
+        options:
+          - claude
+          - opencode
+          - crush
+          - gemini
+          - codex
+        default: 'claude'
+      max-issues:
+        description: 'Maximum issues to process'
+        required: false
+        type: number
+        default: 1
+      dry-run:
+        description: 'Query work but do not execute'
+        required: false
+        type: boolean
+        default: false
+      use-docker:
+        description: 'Use Docker containers (Claude always runs on host)'
+        required: false
+        type: boolean
+        default: false
+
+  # Reusable workflow
   workflow_call:
     inputs:
       # Agent configuration
@@ -102,13 +134,23 @@ on:
 
     secrets:
       github-token:
-        description: 'GitHub token for repository operations'
-        required: true
+        description: 'GitHub token for repository operations (or uses AGENT_TOKEN)'
+        required: false
       github-projects-token:
-        description: 'GitHub classic token with project scope'
-        required: true
+        description: 'GitHub classic token with project scope (or uses GH_PROJECTS_TOKEN)'
+        required: false
       openrouter-api-key:
-        description: 'OpenRouter API key for OpenCode/Crush agents'
+        description: 'OpenRouter API key for OpenCode/Crush agents (or uses OPENROUTER_API_KEY)'
+        required: false
+      # Alternate secret names matching repository secrets (for workflow_dispatch)
+      AGENT_TOKEN:
+        description: 'Repository secret for GitHub token'
+        required: false
+      GH_PROJECTS_TOKEN:
+        description: 'Repository secret for projects token'
+        required: false
+      OPENROUTER_API_KEY:
+        description: 'Repository secret for OpenRouter'
         required: false
 
     outputs:
@@ -146,14 +188,15 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: board-agent-${{ inputs.agent-name }}-${{ github.ref }}
+  group: board-agent-${{ inputs.agent-name || github.event.inputs.agent-name || 'claude' }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   agent-work:
-    name: '${{ inputs.agent-name }} Agent Work'
-    runs-on: ${{ inputs.runs-on }}
+    name: '${{ inputs.agent-name || github.event.inputs.agent-name || ''claude'' }} Agent Work'
+    runs-on: ${{ inputs.runs-on || 'self-hosted' }}
     timeout-minutes: 40  # agent-timeout (30) + buffer (10)
+
 
     outputs:
       has-work: ${{ steps.work.outputs.has-work }}
@@ -204,7 +247,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.github-token }}
+          # Use workflow_call secret or fall back to repository secret for workflow_dispatch
+          token: ${{ secrets.github-token || secrets.AGENT_TOKEN }}
 
       - name: Configure Git
         run: |
@@ -215,21 +259,23 @@ jobs:
         id: work
         uses: ./.github/actions/board-agent-work
         with:
-          github-token: ${{ secrets.github-token }}
-          github-projects-token: ${{ secrets.github-projects-token }}
-          agent-name: ${{ inputs.agent-name }}
-          agent-timeout: ${{ inputs.agent-timeout }}
-          board-config-path: ${{ inputs.board-config-path }}
-          max-issues: ${{ inputs.max-issues }}
-          include-labels: ${{ inputs.include-labels }}
-          exclude-labels: ${{ inputs.exclude-labels }}
-          dry-run: ${{ inputs.dry-run }}
-          create-pr: ${{ inputs.create-pr }}
-          json-logging: ${{ inputs.json-logging }}
-          stale-claim-threshold: ${{ inputs.stale-claim-threshold }}
-          use-docker: ${{ inputs.use-docker }}
-          docker-compose-file: ${{ inputs.docker-compose-file }}
-          openrouter-api-key: ${{ secrets.openrouter-api-key }}
+          # Secrets: workflow_call || repository secrets
+          github-token: ${{ secrets.github-token || secrets.AGENT_TOKEN }}
+          github-projects-token: ${{ secrets.github-projects-token || secrets.GH_PROJECTS_TOKEN }}
+          # Inputs: workflow_call || workflow_dispatch || defaults
+          agent-name: ${{ inputs.agent-name || github.event.inputs.agent-name || 'claude' }}
+          agent-timeout: ${{ inputs.agent-timeout || 30 }}
+          board-config-path: ${{ inputs.board-config-path || 'ai-agents-board.yml' }}
+          max-issues: ${{ inputs.max-issues || github.event.inputs.max-issues || 1 }}
+          include-labels: ${{ inputs.include-labels || '' }}
+          exclude-labels: ${{ inputs.exclude-labels || '' }}
+          dry-run: ${{ inputs.dry-run || github.event.inputs.dry-run || false }}
+          create-pr: ${{ inputs.create-pr || true }}
+          json-logging: ${{ inputs.json-logging || false }}
+          stale-claim-threshold: ${{ inputs.stale-claim-threshold || 2 }}
+          use-docker: ${{ inputs.use-docker || github.event.inputs.use-docker || false }}
+          docker-compose-file: ${{ inputs.docker-compose-file || 'docker-compose.yml' }}
+          openrouter-api-key: ${{ secrets.openrouter-api-key || secrets.OPENROUTER_API_KEY }}
 
       - name: Report results
         if: always()
