@@ -1153,7 +1153,7 @@ Work claim released.
         Authorization sources (in order of precedence):
         1. Repository owner (from config.repository)
         2. Project owner (from config.owner)
-        3. Users in .agents.yaml security.allow_list
+        3. Users in .agents.yaml security.agent_admins
 
         Args:
             text: Text to check (issue body or comment)
@@ -1176,9 +1176,9 @@ Work claim released.
         if self.config.owner:
             allowed_users.add(self.config.owner)
 
-        # Add users from .agents.yaml allow_list
-        allow_list = self._load_agents_yaml_allow_list()
-        allowed_users.update(allow_list)
+        # Add users from .agents.yaml agent_admins
+        agent_admins = self._load_agents_yaml_agent_admins()
+        allowed_users.update(agent_admins)
 
         if author not in allowed_users:
             return False
@@ -1189,12 +1189,12 @@ Work claim released.
 
         return match is not None
 
-    def _load_agents_yaml_allow_list(self) -> list[str]:
+    def _load_agents_yaml_agent_admins(self) -> list[str]:
         """
-        Load the security allow_list from .agents.yaml.
+        Load the security agent_admins from .agents.yaml.
 
         Returns:
-            List of authorized usernames, or empty list if not found
+            List of authorized usernames who can trigger agent actions, or empty list if not found
         """
         import os
 
@@ -1215,8 +1215,8 @@ Work claim released.
                 try:
                     with open(path, encoding="utf-8") as f:
                         config = yaml.safe_load(f)
-                        allow_list = config.get("security", {}).get("allow_list", [])
-                        return list(allow_list) if allow_list else []
+                        agent_admins = config.get("security", {}).get("agent_admins", [])
+                        return list(agent_admins) if agent_admins else []
                 except Exception:
                     pass
 

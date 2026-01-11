@@ -412,7 +412,7 @@ class TestFilterDebunkedIssues:
     @patch("gemini_pr_review.get_all_pr_comments")
     def test_filters_debunked_issues(self, mock_get_comments):
         """Filters out issues that were debunked in TRUSTED user comments."""
-        # Note: Only comments from trusted users (in .agents.yaml allow_list) are considered
+        # Note: Only comments from trusted users (in .agents.yaml trusted_sources) are considered
         mock_get_comments.return_value = [
             {
                 "body": "This is a false positive. The claim about file.py:42 having deprecated triggers is incorrect.",

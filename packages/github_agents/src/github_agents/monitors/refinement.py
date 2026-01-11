@@ -249,7 +249,7 @@ TRIGGERED_BY: <username whose feedback triggered this, or "agent_analysis" if yo
         max_insight_length: int = 60000,  # GitHub limit is 65536, leave room for header/footer
         dry_run: bool = False,
         enable_issue_management: bool = False,
-        maintainer_allow_list: Optional[List[str]] = None,
+        agent_admins: Optional[List[str]] = None,
     ):
         """Initialize the refinement monitor.
 
@@ -268,7 +268,7 @@ TRIGGERED_BY: <username whose feedback triggered this, or "agent_analysis" if yo
             max_insight_length: Maximum insight length to post
             dry_run: If True, don't post comments
             enable_issue_management: If True, allow agents to manage issues
-            maintainer_allow_list: List of usernames who can trigger issue management
+            agent_admins: List of usernames with maintainer authority
         """
         self.repo = repo
         self.board_manager = board_manager
@@ -284,7 +284,7 @@ TRIGGERED_BY: <username whose feedback triggered this, or "agent_analysis" if yo
         self.max_insight_length = max_insight_length
         self.dry_run = dry_run
         self.enable_issue_management = enable_issue_management
-        self.maintainer_allow_list = maintainer_allow_list or self._load_allow_list()
+        self.agent_admins = agent_admins or self._load_agent_admins()
 
     async def run(self, agent_names: Optional[List[str]] = None) -> List[RefinementResult]:
         """Run the refinement process.
@@ -696,18 +696,18 @@ TRIGGERED_BY: <username whose feedback triggered this, or "agent_analysis" if yo
         )
         return True
 
-    def _load_allow_list(self) -> List[str]:
-        """Load maintainer allow list from .agents.yaml.
+    def _load_agent_admins(self) -> List[str]:
+        """Load agent_admins list from .agents.yaml.
 
         Returns:
-            List of allowed usernames
+            List of usernames with maintainer authority
         """
         import os
 
         try:
             import yaml
         except ImportError:
-            logger.warning("PyYAML not installed, using empty allow list")
+            logger.warning("PyYAML not installed, using empty agent_admins list")
             return []
 
         # Try common locations for .agents.yaml
@@ -722,13 +722,13 @@ TRIGGERED_BY: <username whose feedback triggered this, or "agent_analysis" if yo
                 try:
                     with open(path, encoding="utf-8") as f:
                         config = yaml.safe_load(f)
-                        allow_list = config.get("security", {}).get("allow_list", [])
-                        logger.info("Loaded %d maintainers from allow list", len(allow_list))
-                        return list(allow_list) if allow_list else []
+                        agent_admins = config.get("security", {}).get("agent_admins", [])
+                        logger.info("Loaded %d agent admins", len(agent_admins))
+                        return list(agent_admins) if agent_admins else []
                 except Exception as e:
                     logger.warning("Failed to load .agents.yaml: %s", e)
 
-        logger.warning("No .agents.yaml found, using empty allow list")
+        logger.warning("No .agents.yaml found, using empty agent_admins list")
         return []
 
     def _get_maintainer_comments(self, comments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -743,7 +743,7 @@ TRIGGERED_BY: <username whose feedback triggered this, or "agent_analysis" if yo
         maintainer_comments = []
         for comment in comments:
             author = comment.get("author", {}).get("login", "")
-            if author in self.maintainer_allow_list:
+            if author in self.agent_admins:
                 maintainer_comments.append(comment)
         return maintainer_comments
 
@@ -769,7 +769,7 @@ TRIGGERED_BY: <username whose feedback triggered this, or "agent_analysis" if yo
 
         for comment in all_comments:
             author = comment.get("author", {}).get("login", "")
-            if author in self.maintainer_allow_list:
+            if author in self.agent_admins:
                 maintainer_comments.append(comment)
             else:
                 community_comments.append(comment)

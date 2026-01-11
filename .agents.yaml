@@ -34,9 +34,15 @@ agent_priorities:
 
 # Security settings
 security:
-  # Authorized users who can trigger agent actions
-  # CRITICAL: Only add trusted users to prevent abuse
-  allow_list:
+  # Users authorized to trigger agent actions via [Approved][Agent] keywords
+  # CRITICAL: Only add trusted human users - these can execute code via agents
+  agent_admins:
+    - AndrewAltimit           # Repository owner
+
+  # Trusted sources for comment context (used in PR reviews)
+  # Comments from these accounts are marked as trusted when providing context to AI
+  # This does NOT grant them ability to trigger agent actions
+  trusted_sources:
     - AndrewAltimit           # Repository owner
     - github-actions[bot]     # GitHub Actions bot
     - dependabot[bot]         # Dependabot
