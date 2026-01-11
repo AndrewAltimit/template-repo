@@ -278,62 +278,88 @@ runs:
         import asyncio
         import json
         import os
+        import sys
+        import traceback
 
         async def query():
-            from github_agents.board.config import load_config
-            from github_agents.board.manager import BoardManager
+            try:
+                from github_agents.board.config import load_config
+                from github_agents.board.manager import BoardManager
 
-            config = load_config(os.environ.get('BOARD_CONFIG_PATH'))
-            agent_name = os.environ.get('AGENT_NAME')
-            max_issues = int(os.environ.get('MAX_ISSUES', '1'))
+                config_path = os.environ.get('BOARD_CONFIG_PATH')
+                agent_name = os.environ.get('AGENT_NAME')
+                max_issues = int(os.environ.get('MAX_ISSUES', '1'))
 
-            # Parse label filters
-            include_labels = [l.strip() for l in os.environ.get('INCLUDE_LABELS', '').split(',') if l.strip()]
-            exclude_labels = [l.strip() for l in os.environ.get('EXCLUDE_LABELS', '').split(',') if l.strip()]
+                print(f"Querying ready work for agent: {agent_name}", file=sys.stderr)
+                print(f"Config path: {config_path}", file=sys.stderr)
 
-            async with BoardManager(config=config) as manager:
-                issues = await manager.get_ready_work(
-                    agent_name=agent_name,
-                    limit=max_issues * 3  # Fetch extra for filtering
-                )
+                config = load_config(config_path)
+                print(f"Loaded config: project={config.project_number}, owner={config.owner}", file=sys.stderr)
 
-                # Apply label filters
-                filtered = []
-                for issue in issues:
-                    issue_labels = set(issue.labels or [])
+                # Parse label filters
+                include_labels = [l.strip() for l in os.environ.get('INCLUDE_LABELS', '').split(',') if l.strip()]
+                exclude_labels = [l.strip() for l in os.environ.get('EXCLUDE_LABELS', '').split(',') if l.strip()]
 
-                    # Check include filter
-                    if include_labels:
-                        if not issue_labels.intersection(include_labels):
-                            continue
+                async with BoardManager(config=config) as manager:
+                    print(f"BoardManager initialized, project_id={manager.project_id}", file=sys.stderr)
 
-                    # Check exclude filter
-                    if exclude_labels:
-                        if issue_labels.intersection(exclude_labels):
-                            continue
+                    issues = await manager.get_ready_work(
+                        agent_name=agent_name,
+                        limit=max_issues * 3  # Fetch extra for filtering
+                    )
+                    print(f"Found {len(issues)} ready issues before filtering", file=sys.stderr)
 
-                    filtered.append(issue)
-                    if len(filtered) >= max_issues:
-                        break
+                    # Apply label filters
+                    filtered = []
+                    for issue in issues:
+                        issue_labels = set(issue.labels or [])
 
-                if filtered:
-                    issue = filtered[0]
-                    print(json.dumps({
-                        'has_work': True,
-                        'issue_number': issue.number,
-                        'issue_title': issue.title,
-                        'issue_body': issue.body[:500] if issue.body else '',
-                        'priority': issue.priority.value if issue.priority else 'Medium',
-                        'labels': issue.labels or [],
-                        'total_ready': len(issues),
-                        'after_filter': len(filtered)
-                    }))
-                else:
-                    print(json.dumps({
-                        'has_work': False,
-                        'total_ready': len(issues),
-                        'after_filter': 0
-                    }))
+                        # Check include filter
+                        if include_labels:
+                            if not issue_labels.intersection(include_labels):
+                                continue
+
+                        # Check exclude filter
+                        if exclude_labels:
+                            if issue_labels.intersection(exclude_labels):
+                                continue
+
+                        filtered.append(issue)
+                        if len(filtered) >= max_issues:
+                            break
+
+                    print(f"Found {len(filtered)} issues after label filtering", file=sys.stderr)
+
+                    if filtered:
+                        issue = filtered[0]
+                        print(json.dumps({
+                            'has_work': True,
+                            'issue_number': issue.number,
+                            'issue_title': issue.title,
+                            'issue_body': issue.body[:500] if issue.body else '',
+                            'priority': issue.priority.value if issue.priority else 'Medium',
+                            'labels': issue.labels or [],
+                            'total_ready': len(issues),
+                            'after_filter': len(filtered)
+                        }))
+                    else:
+                        print(json.dumps({
+                            'has_work': False,
+                            'total_ready': len(issues),
+                            'after_filter': 0
+                        }))
+
+            except Exception as e:
+                error_msg = str(e)
+                print(f"::error::Query failed: {error_msg}", file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
+                # Return error result
+                print(json.dumps({
+                    'has_work': False,
+                    'error': error_msg,
+                    'total_ready': 0,
+                    'after_filter': 0
+                }))
 
         asyncio.run(query())
         PYTHON_SCRIPT
@@ -406,29 +432,76 @@ runs:
         # Required format: [Approved]
         # The agent is determined by the Agent field on the project board
         # Note: Write directly to GITHUB_OUTPUT to avoid stdout capture issues
-        python3 << PYTHON_SCRIPT
+        python3 << 'PYTHON_SCRIPT'
         import asyncio
         import os
-        from github_agents.board.config import load_config
-        from github_agents.board.manager import BoardManager
+        import sys
+        import traceback
 
         async def check_approval():
-            config = load_config(os.environ.get('BOARD_CONFIG_PATH'))
-            issue_number = int(os.environ['ISSUE_NUMBER'])
+            try:
+                from github_agents.board.config import load_config
+                from github_agents.board.manager import BoardManager
 
-            async with BoardManager(config=config) as manager:
-                is_approved, approver = await manager.is_issue_approved(issue_number)
+                config_path = os.environ.get('BOARD_CONFIG_PATH')
+                issue_number_str = os.environ.get('ISSUE_NUMBER', '')
+                json_logging = os.environ.get('JSON_LOGGING') == 'true'
 
-            # Write directly to GITHUB_OUTPUT to avoid stdout pollution
-            with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                f.write(f"approved={'true' if is_approved else 'false'}\n")
-                f.write(f"approver={approver or ''}\n")
+                if not issue_number_str:
+                    raise ValueError("ISSUE_NUMBER environment variable not set")
 
-            # Also print for logging
-            print(f"Approval check: approved={is_approved}, approver={approver}")
+                issue_number = int(issue_number_str)
+                print(f"Checking approval for issue #{issue_number}...")
 
-        asyncio.run(check_approval())
+                config = load_config(config_path)
+                print(f"Loaded config: project={config.project_number}, owner={config.owner}")
+
+                async with BoardManager(config=config) as manager:
+                    is_approved, approver = await manager.is_issue_approved(issue_number)
+
+                # Write directly to GITHUB_OUTPUT to avoid stdout pollution
+                with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                    f.write(f"approved={'true' if is_approved else 'false'}\n")
+                    f.write(f"approver={approver or ''}\n")
+                    f.write("error=\n")
+
+                # Also print for logging
+                if json_logging:
+                    import json
+                    print(json.dumps({
+                        "event": "approval_check",
+                        "issue": issue_number,
+                        "approved": is_approved,
+                        "approver": approver
+                    }))
+                else:
+                    print(f"Approval check: approved={is_approved}, approver={approver}")
+
+                return is_approved
+
+            except Exception as e:
+                error_msg = str(e)
+                print(f"::error::Approval check failed: {error_msg}", file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
+
+                # Always set outputs even on error
+                with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                    f.write("approved=false\n")
+                    f.write("approver=\n")
+                    f.write(f"error={error_msg}\n")
+
+                return False
+
+        result = asyncio.run(check_approval())
+        # Exit with error if not approved (helps with debugging)
+        if not result:
+            print("Issue not approved or approval check failed")
         PYTHON_SCRIPT
+
+        # Check if there was an error
+        if [ -n "$(grep -oP 'error=\K.+' $GITHUB_OUTPUT 2>/dev/null)" ]; then
+          echo "::warning::Approval check encountered an error"
+        fi
 
         echo "::endgroup::"
 

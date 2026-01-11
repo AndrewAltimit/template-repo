@@ -525,9 +525,14 @@ class BoardManager:
                 continue
 
             # Filter by agent if specified (normalize names for comparison)
+            # Include issues that are either:
+            # 1. Assigned to the requested agent
+            # 2. Unassigned (available to any agent)
             normalized_agent = self._normalize_agent_name(agent_name)
-            if normalized_agent and assigned_agent != normalized_agent:
-                continue
+            if normalized_agent:
+                # Skip if assigned to a DIFFERENT agent (but include unassigned issues)
+                if assigned_agent is not None and assigned_agent != normalized_agent:
+                    continue
 
             # Skip if has open blockers
             if blocked_by:
