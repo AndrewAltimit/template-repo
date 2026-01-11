@@ -2,6 +2,8 @@
 
 This project utilizes multiple AI agents working in harmony to accelerate development, automate issue management, and maintain high code quality.
 
+> **New to the agent system?** Start with the [Board-Centric Workflow Guide](board-workflow.md) for the complete end-to-end flow from issue to merged PR.
+
 ## The AI Agent Ecosystem
 
 ### 1. Claude Code (Primary Development Assistant)
@@ -62,25 +64,25 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 - Provides inline suggestions
 - Focuses on code quality and best practices
 
-### 4. Issue Monitor Agent (NEW)
+### 4. Board Agent Worker
 
-**Role**: Automated issue management and PR creation
+**Role**: Automated issue implementation from project board
 
 **Responsibilities**:
-- Monitors GitHub issues for completeness
-- Requests additional information when needed
-- Creates pull requests for actionable issues
-- Updates issue status with PR links
+- Processes issues from GitHub Projects v2 board
+- Claims work to prevent agent conflicts
+- Creates pull requests for approved issues
+- Updates board status throughout lifecycle
 
 **Location**: `github_agents` package
 
 **Key Features**:
-- Checks for required fields (description, steps to reproduce, etc.)
-- Comments with specific information requests
-- Uses Claude Code CLI to implement fixes
+- Board-gated: Issues must be triaged to board first
+- Requires `[Approved]` trigger from authorized admin
+- Claim management prevents duplicate work
 - Creates feature branches automatically
-- Creates draft pull requests for initial implementations
-- Runs every hour via GitHub Actions
+- Creates pull requests linked to issues
+- Runs every 12 hours via GitHub Actions (or manual trigger)
 
 ### 5. PR Review Monitor Agent (NEW)
 
@@ -135,53 +137,58 @@ See the [sleeper agents Package](../../packages/sleeper_agents/README.md) for de
 ### Complete Automation Flow
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    GitHub Repository                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌──────────────┐     ┌──────────────┐    ┌─────────────┐ │
-│  │    Issues    │────►│ Issue Monitor│───►│  Create PR  │ │
-│  └──────────────┘     └──────────────┘    └─────────────┘ │
-│                                                    │        │
-│                                                    ▼        │
-│  ┌──────────────┐     ┌──────────────┐    ┌─────────────┐ │
-│  │ Pull Request │◄────│   PR Review  │◄───│ Gemini Bot  │ │
-│  └──────────────┘     │   Monitor    │    └─────────────┘ │
-│          │             └──────────────┘                     │
-│          │                     │                            │
-│          └─────────────────────┘                           │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    Board-Centric Agent Workflow                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌─────────────┐  │
+│  │  Issue   │──►│ Backlog  │──►│  Add to  │──►│ [Approved]  │  │
+│  │ Created  │   │ Refine   │   │  Board   │   │  Trigger    │  │
+│  └──────────┘   │ (AI)     │   │ (manual) │   │  (admin)    │  │
+│                 └──────────┘   └──────────┘   └──────────────┘  │
+│                                                      │           │
+│                                                      ▼           │
+│  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌─────────────┐  │
+│  │  Merge   │◄──│  Human   │◄──│ AI/Human │◄──│   Agent     │  │
+│  │ (manual) │   │ Approval │   │ Feedback │   │ Creates PR  │  │
+│  └──────────┘   └──────────┘   └──────────┘   └─────────────┘  │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+> **Detailed walkthrough**: See [Board-Centric Workflow Guide](board-workflow.md)
 
 ### Development Flow
 
-1. **Issue Creation**:
+1. **Issue Refinement**:
    - User creates issue
-   - Issue Monitor checks completeness
-   - Requests more info OR creates PR
+   - AI agents add insights (architecture, security, implementation)
+   - Issue accumulates context over time
 
-2. **PR Creation**:
-   - Issue Monitor uses Claude Code
+2. **Triage to Board**:
+   - Maintainer reviews issue and insights
+   - Adds issue to GitHub Projects v2 board
+   - Sets status to "Todo"
+
+3. **Approval**:
+   - Authorized admin comments `[Approved][Agent]`
+   - Agent selection: explicit > board field > config priority
+
+4. **PR Creation**:
+   - Board Agent Worker claims issue
    - Creates feature branch
    - Implements fix
-   - Opens draft PR for review
+   - Opens PR linked to issue
 
-3. **Review Phase**:
+5. **Review Phase**:
    - Gemini automatically reviews PR
-   - Copilot provides additional suggestions
-   - PR Review Monitor detects feedback
+   - PR Review Monitor responds to feedback
+   - Human comments addressed
 
-4. **Feedback Implementation**:
-   - PR Review Monitor parses feedback
-   - Uses Claude Code to fix issues
-   - Commits and pushes changes
-   - Comments on completion
-
-5. **PR Ready for Review**:
-   - When all checks pass and no changes needed
-   - PR Review Monitor automatically undrafts the PR
-   - PR is marked as ready for final review
+6. **Merge**:
+   - All CI checks pass
+   - Human approves PR
+   - Merge completes, issue auto-closes
 
 ### Real-World Example
 
@@ -248,21 +255,24 @@ See the [sleeper agents Package](../../packages/sleeper_agents/README.md) for de
 
 ```bash
 # Install the GitHub AI Agents package
-pip install -e ./github_agents
+pip install -e ./packages/github_agents
 
-# Run specific agents
-python -m github_agents.cli issue-monitor
+# Run PR monitor
 python -m github_agents.cli pr-monitor
 
-# Or use the installed commands directly
-issue-monitor
-pr-monitor
+# Board work is typically triggered via GitHub Actions
+# but can be tested locally via the workflow_dispatch trigger
 ```
 
 ### GitHub Actions Automation
 
-- **issue-monitor.yml**: Runs every hour
-- **pr-review-monitor.yml**: Runs every hour and triggered by PR reviews
+| Workflow | Purpose | Schedule |
+|----------|---------|----------|
+| `scheduled-agent-work.yml` | Process board work | Every 12 hours |
+| `board-agent-worker.yml` | Reusable agent executor | Called by above |
+| `backlog-refinement.yml` | AI insights on issues | Manual |
+| `pr-review-monitor.yml` | Respond to PR feedback | Hourly + events |
+| `pr-validation.yml` | Gemini PR review | PR events |
 
 ## Best Practices
 
@@ -312,21 +322,24 @@ pr-monitor
 
 ### Common Issues
 
-1. **Agent Not Running**:
+1. **Issue Not Being Picked Up**:
    ```bash
-   # Check GitHub Actions logs
-   gh run list --workflow=issue-monitor.yml
+   # Check scheduled-agent-work.yml logs
+   gh run list --workflow=scheduled-agent-work.yml
    ```
+   - Verify issue is on the project board with "Todo" status
+   - Check `[Approved]` comment exists from `agent_admin`
+   - Look for blocking issues
 
-2. **Missing Information Requests**:
-   - Verify agent hasn't already commented
-   - Check issue has proper labels
-   - Review config.json settings
+2. **Agent Not Responding to Feedback**:
+   - Check `pr-review-monitor.yml` workflow runs
+   - Verify review state is "changes_requested"
+   - Check agent availability (Claude auth, API keys)
 
-3. **PR Review Not Addressed**:
-   - Ensure review is from configured bot
-   - Check for "changes requested" state
-   - Verify Claude CLI is accessible
+3. **PR Stuck in Draft**:
+   - Check all CI checks pass
+   - Verify no "changes_requested" reviews
+   - Review agent comments for errors
 
 ## Future Enhancements
 
