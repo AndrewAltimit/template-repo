@@ -194,7 +194,6 @@ INSIGHT:
         max_issues_per_run: int = 10,
         max_comments_per_issue: int = 2,
         agent_cooldown_days: int = 14,
-        similarity_threshold: float = 0.7,
         min_insight_length: int = 50,
         max_insight_length: int = 60000,  # GitHub limit is 65536, leave room for header/footer
         dry_run: bool = False,
@@ -212,7 +211,6 @@ INSIGHT:
             max_issues_per_run: Maximum issues to review per run
             max_comments_per_issue: Maximum comments to add per issue
             agent_cooldown_days: Days before same agent can comment again
-            similarity_threshold: Threshold for insight deduplication
             min_insight_length: Minimum insight length to post
             max_insight_length: Maximum insight length to post
             dry_run: If True, don't post comments
@@ -227,7 +225,6 @@ INSIGHT:
         self.max_issues_per_run = max_issues_per_run
         self.max_comments_per_issue = max_comments_per_issue
         self.agent_cooldown_days = agent_cooldown_days
-        self.similarity_threshold = similarity_threshold
         self.min_insight_length = min_insight_length
         self.max_insight_length = max_insight_length
         self.dry_run = dry_run
@@ -396,15 +393,10 @@ INSIGHT:
 
             result.agents_reviewed.append(agent_name)
 
-            # Get insight from agent
+            # Get insight from agent (agent receives existing comments for context)
             insight = await self._get_agent_insight(agent, agent_name, issue, existing_comments)
 
             if not insight:
-                result.insights_skipped += 1
-                continue
-
-            # Check for similarity with existing insights
-            if self._is_similar_to_existing(insight, existing_comments):
                 result.insights_skipped += 1
                 continue
 
@@ -595,35 +587,6 @@ INSIGHT:
         except Exception as e:
             logger.error("Failed to parse insight: %s", e)
             return None
-
-    def _is_similar_to_existing(self, insight: RefinementInsight, existing_comments: List[Dict[str, Any]]) -> bool:
-        """Check if insight is too similar to existing comments.
-
-        Args:
-            insight: The insight to check
-            existing_comments: Existing comments on the issue
-
-        Returns:
-            True if insight is too similar to existing
-        """
-        insight_words = set(insight.content.lower().split())
-
-        for comment in existing_comments:
-            body = comment.get("body", "").lower()
-            comment_words = set(body.split())
-
-            if not comment_words:
-                continue
-
-            # Calculate word overlap
-            overlap = len(insight_words & comment_words)
-            similarity = overlap / max(len(insight_words), len(comment_words))
-
-            if similarity >= self.similarity_threshold:
-                logger.debug("Insight too similar to existing comment (%.2f)", similarity)
-                return True
-
-        return False
 
     async def _post_insight(self, insight: RefinementInsight) -> bool:
         """Post an insight as a comment.
