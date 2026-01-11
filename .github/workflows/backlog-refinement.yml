@@ -125,25 +125,63 @@ jobs:
           import sys
 
           async def run_refinement():
-              agents = os.environ.get('AGENTS', 'claude').split(',')
+              agent_names = os.environ.get('AGENTS', 'claude').split(',')
               max_issues = int(os.environ.get('MAX_ISSUES', '5'))
               max_comments = int(os.environ.get('MAX_COMMENTS', '2'))
               min_age = int(os.environ.get('MIN_AGE', '3'))
               dry_run = os.environ.get('DRY_RUN', 'true') == 'true'
 
-              print(f"Running refinement with agents: {agents}", file=sys.stderr)
+              print(f"Running refinement with agents: {agent_names}", file=sys.stderr)
               print(f"Max issues: {max_issues}, Max comments: {max_comments}", file=sys.stderr)
               print(f"Min age: {min_age} days, Dry run: {dry_run}", file=sys.stderr)
 
               results = {
                   "issues_reviewed": 0,
                   "insights_added": 0,
-                  "agents_used": agents,
+                  "agents_used": agent_names,
                   "details": []
               }
 
               try:
                   from github_agents.monitors.refinement import RefinementMonitor
+                  from github_agents.agents import (
+                      ClaudeAgent,
+                      GeminiAgent,
+                      CodexAgent,
+                      OpenCodeAgent,
+                      CrushAgent,
+                  )
+
+                  # Map agent names to classes
+                  AGENT_CLASSES = {
+                      "claude": ClaudeAgent,
+                      "gemini": GeminiAgent,
+                      "codex": CodexAgent,
+                      "opencode": OpenCodeAgent,
+                      "crush": CrushAgent,
+                  }
+
+                  # Instantiate requested agents
+                  agents = {}
+                  for name in agent_names:
+                      name = name.strip().lower()
+                      if name in AGENT_CLASSES:
+                          try:
+                              agent = AGENT_CLASSES[name]()
+                              if agent.is_available():
+                                  agents[name] = agent
+                                  print(f"Agent {name} initialized and available", file=sys.stderr)
+                              else:
+                                  print(f"Agent {name} not available (CLI not found)", file=sys.stderr)
+                          except Exception as e:
+                              print(f"Failed to initialize agent {name}: {e}", file=sys.stderr)
+                      else:
+                          print(f"Unknown agent: {name}", file=sys.stderr)
+
+                  if not agents:
+                      print("No agents available, skipping refinement", file=sys.stderr)
+                      print(json.dumps(results))
+                      return
 
                   # Get repository from environment
                   repo = os.environ.get('GITHUB_REPOSITORY', '')
@@ -155,6 +193,7 @@ jobs:
 
                   monitor = RefinementMonitor(
                       repo=repo,
+                      agents=agents,
                       min_age_days=min_age,
                       max_issues_per_run=max_issues,
                       max_comments_per_issue=max_comments,
@@ -162,7 +201,7 @@ jobs:
                   )
 
                   # Run refinement
-                  refinement_results = await monitor.run(agents)
+                  refinement_results = await monitor.run(list(agents.keys()))
 
                   results["issues_reviewed"] = len(refinement_results)
                   results["insights_added"] = sum(r.insights_added for r in refinement_results)
