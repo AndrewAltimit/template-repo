@@ -566,23 +566,21 @@ runs:
           find . -name "$pattern" -type f -size +100k -delete 2>/dev/null || true
         done
 
-        # Prepare context file for agent (use quoted heredoc to prevent variable expansion)
+        # Prepare context file for agent
         CONTEXT_FILE="/tmp/agent_context_$ISSUE_NUMBER.md"
-        cat > "$CONTEXT_FILE" << 'CONTEXT_EOF'
-        # Issue Context
-
-        ## Task
-        Implement the changes described in this issue.
-
-        ## Requirements
-        - Create working, tested code
-        - Follow existing code patterns
-        - Add appropriate tests
-        - Update documentation if needed
-        CONTEXT_EOF
-        # Prepend issue info (outside heredoc to allow variable expansion)
-        # Escape /, &, and \ for sed replacement (\ must be escaped to prevent delimiter issues)
-        sed -i "1s/.*/# Issue #$ISSUE_NUMBER: $(printf '%s' "$ISSUE_TITLE" | sed 's/[\/&\\]/\\&/g')/" "$CONTEXT_FILE"
+        # Write context using printf to avoid heredoc indentation issues in YAML
+        printf '%s\n' \
+          "# Issue #$ISSUE_NUMBER: $(printf '%s' "$ISSUE_TITLE" | sed 's/[\/&\\]/\\&/g')" \
+          "" \
+          "## Task" \
+          "Implement the changes described in this issue." \
+          "" \
+          "## Requirements" \
+          "- Create working, tested code" \
+          "- Follow existing code patterns" \
+          "- Add appropriate tests" \
+          "- Update documentation if needed" \
+          > "$CONTEXT_FILE"
 
         # Execute based on agent type
         WORK_COMPLETED="false"

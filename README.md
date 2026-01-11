@@ -208,25 +208,7 @@ mv .mcp.json.essential .mcp.json
 
 ## Enterprise & Corporate Setup
 
-### Corporate Certificate Installation
-
-For enterprise environments that require custom certificates (e.g., corporate proxy certificates, self-signed certificates), we provide a standardized installation mechanism:
-
-1. **Certificate Installation Script**: [`automation/corporate-proxy/shared/scripts/install-corporate-certs.sh`](automation/corporate-proxy/shared/scripts/install-corporate-certs.sh)
-   - Placeholder script that organizations can customize with their certificate installation process
-   - Automatically executed during Docker image builds for all corporate proxy containers
-
-2. **Customization Guide**: See [`automation/corporate-proxy/shared/scripts/README.md`](automation/corporate-proxy/shared/scripts/README.md) for:
-   - Step-by-step instructions on customizing the certificate installation
-   - Examples for different certificate formats and installation methods
-   - Best practices for certificate management in containerized environments
-
-3. **Affected Services**:
-   - All corporate proxy integrations (Gemini, Codex, OpenCode, Crush)
-   - Python CI/CD containers
-   - Any custom Docker images built from this template
-
-This pattern ensures consistent certificate handling across all services while maintaining security and flexibility for different corporate environments.
+For enterprise environments requiring custom certificates, customize [`automation/corporate-proxy/shared/scripts/install-corporate-certs.sh`](automation/corporate-proxy/shared/scripts/install-corporate-certs.sh). This script runs during Docker builds for all containers. See the [customization guide](automation/corporate-proxy/shared/scripts/README.md) for details.
 
 ## Project Structure
 
