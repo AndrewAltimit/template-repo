@@ -1,0 +1,37 @@
+# Ignore large files that exceed Claude Code's 25000 token file read limit
+# These files are 100KB+ and would cause MaxFileReadTokenExceededError
+
+# Large projection reports (100KB+ each)
+docs/projections/*.md
+
+# Large integration docs
+docs/integrations/ai-services/agentcore-memory-integration.md
+
+# Large roadmap docs
+docs/roadmaps/*.md
+
+# Large philosophy papers
+docs/philosophy/*.md
+
+# Large generated files
+*.log
+*.coverage
+coverage.xml
+bandit-report.json
+
+# Build artifacts and caches
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+node_modules/
+dist/
+build/
+*.egg-info/
+
+# Test fixtures that may be large
+tests/fixtures/large_*
+tests/fixtures/*.json
+
+# Large schema files
+tools/mcp/mcp_gaea2/mcp_gaea2/schema/gaea2_schema.py

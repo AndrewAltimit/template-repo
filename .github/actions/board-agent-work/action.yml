@@ -568,9 +568,17 @@ runs:
 
         # Prepare context file for agent
         CONTEXT_FILE="/tmp/agent_context_$ISSUE_NUMBER.md"
+
+        # Fetch issue body using gh CLI
+        ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --json body -q '.body' 2>/dev/null || echo "Unable to fetch issue body")
+
         # Write context using printf to avoid heredoc indentation issues in YAML
         printf '%s\n' \
           "# Issue #$ISSUE_NUMBER: $(printf '%s' "$ISSUE_TITLE" | sed 's/[\/&\\]/\\&/g')" \
+          "" \
+          "## Issue Description" \
+          "" \
+          "$ISSUE_BODY" \
           "" \
           "## Task" \
           "Implement the changes described in this issue." \
@@ -580,6 +588,11 @@ runs:
           "- Follow existing code patterns" \
           "- Add appropriate tests" \
           "- Update documentation if needed" \
+          "" \
+          "## Important Notes" \
+          "- Use the Read tool with offset/limit for large files to avoid token limits" \
+          "- Focus on the specific files mentioned in the issue" \
+          "- Run tests after making changes" \
           > "$CONTEXT_FILE"
 
         # Execute based on agent type
@@ -595,9 +608,10 @@ runs:
             if command -v claude &> /dev/null; then
               echo "Running Claude Code on host..."
               # --dangerously-skip-permissions required for CI/CD (no TTY for interactive prompts)
-              # Use stdin for prompt to avoid shell argument issues
+              # --print mode requires prompt as argument (not stdin - causes streaming mode error)
               # --output-format text for clean output
-              if timeout "${AGENT_TIMEOUT}m" claude --print --dangerously-skip-permissions --output-format text < "$CONTEXT_FILE"; then
+              PROMPT_TEXT=$(cat "$CONTEXT_FILE")
+              if timeout "${AGENT_TIMEOUT}m" claude --print --dangerously-skip-permissions --output-format text -p "$PROMPT_TEXT"; then
                 WORK_COMPLETED="true"
               else
                 AGENT_ERROR="Claude execution failed or timed out"
