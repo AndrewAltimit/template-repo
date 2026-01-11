@@ -278,7 +278,7 @@ Naively, asking the untrusted model to judge its own code is useless—it can ju
 
 ### Should We Pause AI?
 
-[![Should we pause AI? Here's the debate.](https://img.youtube.com/vi/W_6O9E1VpS0/0.jpg)](https://www.youtube.com/watch?v=W_6O9E1VpS0)
+[![Should we pause AI? Here's the debate.](https://img.youtube.com/vi/tUB_uvSqiw8/0.jpg)](https://www.youtube.com/watch?v=tUB_uvSqiw8)
 
 *Click the image above to watch this video on YouTube*
 
@@ -310,7 +310,7 @@ A pause creates a filter—the labs most likely to stop are the ones most concer
 
 **Key Principle:** AI doesn't need to be "rogue" or superintelligent to be catastrophic. Risks arise from how humans choose to use it and how organizations build it.
 
-[![AI as a Tool for Global Control](https://img.youtube.com/vi/u_v6G97Xz-k/0.jpg)](https://www.youtube.com/watch?v=u_v6G97Xz-k)
+[![AI as a Tool for Global Control](https://img.youtube.com/vi/DWBJjcO69mQ/0.jpg)](https://www.youtube.com/watch?v=DWBJjcO69mQ)
 
 *Click the image above to watch this video on YouTube*
 
