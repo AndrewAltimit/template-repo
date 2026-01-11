@@ -556,7 +556,7 @@ class TestOptionalAgentIntegrationFlow:
         config = MagicMock(spec=AgentConfig)
         config.get_agent_priority.return_value = ["claude"]
         config.get_enabled_agents.return_value = ["claude", "opencode"]
-        config.get_security_config.return_value = {"allow_list": ["AndrewAltimit"]}
+        config.get_security_config.return_value = {"agent_admins": ["AndrewAltimit"]}
         config.get_subprocess_timeout.return_value = 600
         config.is_autonomous_mode.return_value = True
 
@@ -595,7 +595,7 @@ class TestOptionalAgentIntegrationFlow:
         config = MagicMock(spec=AgentConfig)
         config.get_agent_priority.return_value = ["claude", "opencode"]
         config.get_enabled_agents.return_value = ["claude", "opencode"]
-        config.get_security_config.return_value = {"allow_list": ["AndrewAltimit"]}
+        config.get_security_config.return_value = {"agent_admins": ["AndrewAltimit"]}
 
         security_manager = SecurityManager(agent_config=config)
 
@@ -635,7 +635,7 @@ class TestOptionalAgentIntegrationFlow:
         }
 
         config = MagicMock(spec=AgentConfig)
-        config.get_security_config.return_value = {"allow_list": ["AndrewAltimit"]}
+        config.get_security_config.return_value = {"agent_admins": ["AndrewAltimit"]}
 
         security_manager = SecurityManager(agent_config=config)
 

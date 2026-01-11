@@ -16,7 +16,7 @@ VALID AGENTS: Claude, Gemini (case-sensitive)
 ```
 Stage 1: Time Filter (24h cutoff) → Drop if stale
 Stage 2: Command Detection → Drop if no [Action][Agent]
-Stage 3: User Authorization → Drop if not in allow_list
+Stage 3: User Authorization → Drop if not in agent_admins
 Stage 4: Rate Limiting → Drop if exceeds limit
 Stage 5: SHA Validation → Drop if mismatch
 Stage 6: Processing → Execute only if ALL pass

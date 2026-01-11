@@ -1150,8 +1150,10 @@ Work claim released.
         Looks for [Approved], [Review], [Close], [Summarize], or [Debug] patterns.
         The agent is determined by the project board's Agent field, not the trigger.
 
-        Authorization: The repository owner and project owner are always authorized.
-        The board is expected to be restricted to trusted admins.
+        Authorization sources (in order of precedence):
+        1. Repository owner (from config.repository)
+        2. Project owner (from config.owner)
+        3. Users in .agents.yaml security.agent_admins
 
         Args:
             text: Text to check (issue body or comment)
@@ -1174,6 +1176,10 @@ Work claim released.
         if self.config.owner:
             allowed_users.add(self.config.owner)
 
+        # Add users from .agents.yaml agent_admins
+        agent_admins = self._load_agents_yaml_agent_admins()
+        allowed_users.update(agent_admins)
+
         if author not in allowed_users:
             return False
 
@@ -1182,6 +1188,44 @@ Work claim released.
         match = re.search(pattern, text, re.IGNORECASE)
 
         return match is not None
+
+    def _load_agents_yaml_agent_admins(self) -> list[str]:
+        """
+        Load the security agent_admins from .agents.yaml.
+
+        Returns:
+            List of authorized usernames who can trigger agent actions, or empty list if not found
+        """
+        import os
+
+        try:
+            import yaml
+        except ImportError:
+            logger.warning("PyYAML not installed, cannot load agent_admins")
+            return []
+
+        # Try common locations for .agents.yaml
+        # Path from packages/github_agents/src/github_agents/board/ needs 5 levels to reach root
+        possible_paths = [
+            ".agents.yaml",
+            os.path.join(os.getcwd(), ".agents.yaml"),
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", ".agents.yaml"),
+        ]
+
+        for path in possible_paths:
+            if os.path.exists(path):
+                try:
+                    with open(path, encoding="utf-8") as f:
+                        config = yaml.safe_load(f)
+                        agent_admins = config.get("security", {}).get("agent_admins", [])
+                        return list(agent_admins) if agent_admins else []
+                except yaml.YAMLError as e:
+                    logger.error("Malformed .agents.yaml at %s: %s", path, e)
+                except Exception as e:
+                    logger.error("Failed to load .agents.yaml from %s: %s", path, e)
+
+        logger.debug("No .agents.yaml found, agent_admins list is empty")
+        return []
 
     # ===== Claim Management =====
 

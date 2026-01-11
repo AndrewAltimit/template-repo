@@ -48,6 +48,11 @@ on:
         required: false
         type: boolean
         default: true
+      enable-issue-management:
+        description: 'Allow agents to manage issues (close, update, label) based on maintainer feedback'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -69,6 +74,16 @@ jobs:
       summary-json: ${{ steps.refine.outputs.summary_json }}
 
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          # Fix permission issues from Docker containers before checkout
+          # This prevents EACCES errors when checkout tries to clean the workspace
+          WORKSPACE="${GITHUB_WORKSPACE:-$HOME/Documents/repos/actions-runner-template-repo/_work/template-repo/template-repo}"
+          if [ -d "$WORKSPACE" ]; then
+            echo "Fixing permissions in workspace: $WORKSPACE"
+            sudo chown -R "$(id -u):$(id -g)" "$WORKSPACE" 2>/dev/null || true
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -88,13 +103,16 @@ jobs:
           MAX_ISSUES="${{ inputs.max-issues || '5' }}"
           MAX_COMMENTS="${{ inputs.max-comments || '2' }}"
           MIN_AGE="${{ inputs.min-age-days || '3' }}"
-          DRY_RUN="${{ inputs.dry-run || 'true' }}"
+          # Handle boolean properly: false || 'true' would incorrectly give 'true'
+          DRY_RUN="${{ inputs.dry-run == false && 'false' || 'true' }}"
+          ENABLE_ISSUE_MGMT="${{ inputs.enable-issue-management == true && 'true' || 'false' }}"
 
           echo "agents=$AGENTS" >> $GITHUB_OUTPUT
           echo "max_issues=$MAX_ISSUES" >> $GITHUB_OUTPUT
           echo "max_comments=$MAX_COMMENTS" >> $GITHUB_OUTPUT
           echo "min_age=$MIN_AGE" >> $GITHUB_OUTPUT
           echo "dry_run=$DRY_RUN" >> $GITHUB_OUTPUT
+          echo "enable_issue_mgmt=$ENABLE_ISSUE_MGMT" >> $GITHUB_OUTPUT
 
           echo "Configuration:"
           echo "  Agents: $AGENTS"
@@ -102,6 +120,7 @@ jobs:
           echo "  Max Comments/Issue: $MAX_COMMENTS"
           echo "  Min Age Days: $MIN_AGE"
           echo "  Dry Run: $DRY_RUN"
+          echo "  Issue Management: $ENABLE_ISSUE_MGMT"
 
           echo "::endgroup::"
 
@@ -115,6 +134,7 @@ jobs:
           MAX_COMMENTS: ${{ steps.config.outputs.max_comments }}
           MIN_AGE: ${{ steps.config.outputs.min_age }}
           DRY_RUN: ${{ steps.config.outputs.dry_run }}
+          ENABLE_ISSUE_MGMT: ${{ steps.config.outputs.enable_issue_mgmt }}
         run: |
           echo "::group::Backlog Refinement"
 
@@ -125,25 +145,65 @@ jobs:
           import sys
 
           async def run_refinement():
-              agents = os.environ.get('AGENTS', 'claude').split(',')
+              agent_names = os.environ.get('AGENTS', 'claude').split(',')
               max_issues = int(os.environ.get('MAX_ISSUES', '5'))
               max_comments = int(os.environ.get('MAX_COMMENTS', '2'))
               min_age = int(os.environ.get('MIN_AGE', '3'))
               dry_run = os.environ.get('DRY_RUN', 'true') == 'true'
+              enable_issue_mgmt = os.environ.get('ENABLE_ISSUE_MGMT', 'false') == 'true'
 
-              print(f"Running refinement with agents: {agents}", file=sys.stderr)
+              print(f"Running refinement with agents: {agent_names}", file=sys.stderr)
               print(f"Max issues: {max_issues}, Max comments: {max_comments}", file=sys.stderr)
               print(f"Min age: {min_age} days, Dry run: {dry_run}", file=sys.stderr)
+              print(f"Issue management: {enable_issue_mgmt}", file=sys.stderr)
 
               results = {
                   "issues_reviewed": 0,
                   "insights_added": 0,
-                  "agents_used": agents,
+                  "agents_used": agent_names,
                   "details": []
               }
 
               try:
                   from github_agents.monitors.refinement import RefinementMonitor
+                  from github_agents.agents import (
+                      ClaudeAgent,
+                      GeminiAgent,
+                      CodexAgent,
+                      OpenCodeAgent,
+                      CrushAgent,
+                  )
+
+                  # Map agent names to classes
+                  AGENT_CLASSES = {
+                      "claude": ClaudeAgent,
+                      "gemini": GeminiAgent,
+                      "codex": CodexAgent,
+                      "opencode": OpenCodeAgent,
+                      "crush": CrushAgent,
+                  }
+
+                  # Instantiate requested agents
+                  agents = {}
+                  for name in agent_names:
+                      name = name.strip().lower()
+                      if name in AGENT_CLASSES:
+                          try:
+                              agent = AGENT_CLASSES[name]()
+                              if agent.is_available():
+                                  agents[name] = agent
+                                  print(f"Agent {name} initialized and available", file=sys.stderr)
+                              else:
+                                  print(f"Agent {name} not available (CLI not found)", file=sys.stderr)
+                          except Exception as e:
+                              print(f"Failed to initialize agent {name}: {e}", file=sys.stderr)
+                      else:
+                          print(f"Unknown agent: {name}", file=sys.stderr)
+
+                  if not agents:
+                      print("No agents available, skipping refinement", file=sys.stderr)
+                      print(json.dumps(results))
+                      return
 
                   # Get repository from environment
                   repo = os.environ.get('GITHUB_REPOSITORY', '')
@@ -155,23 +215,30 @@ jobs:
 
                   monitor = RefinementMonitor(
                       repo=repo,
+                      agents=agents,
                       min_age_days=min_age,
                       max_issues_per_run=max_issues,
                       max_comments_per_issue=max_comments,
                       dry_run=dry_run,
+                      enable_issue_management=enable_issue_mgmt,
                   )
 
                   # Run refinement
-                  refinement_results = await monitor.run(agents)
+                  refinement_results = await monitor.run(list(agents.keys()))
 
                   results["issues_reviewed"] = len(refinement_results)
                   results["insights_added"] = sum(r.insights_added for r in refinement_results)
+                  results["actions_taken"] = sum(len(r.actions_taken) for r in refinement_results)
                   results["details"] = [
                       {
                           "issue": r.issue_number,
                           "title": r.issue_title,
                           "insights": r.insights_added,
                           "agents": r.agents_reviewed,
+                          "actions": [
+                              {"type": a.action_type, "reason": a.reason}
+                              for a in r.actions_taken
+                          ],
                       }
                       for r in refinement_results
                   ]
@@ -191,9 +258,11 @@ jobs:
 
           ISSUES_REVIEWED=$(echo "$REFINEMENT_OUTPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('issues_reviewed', 0))")
           INSIGHTS_ADDED=$(echo "$REFINEMENT_OUTPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('insights_added', 0))")
+          ACTIONS_TAKEN=$(echo "$REFINEMENT_OUTPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('actions_taken', 0))")
 
           echo "issues_reviewed=$ISSUES_REVIEWED" >> $GITHUB_OUTPUT
           echo "insights_added=$INSIGHTS_ADDED" >> $GITHUB_OUTPUT
+          echo "actions_taken=$ACTIONS_TAKEN" >> $GITHUB_OUTPUT
           echo "summary_json=$REFINEMENT_OUTPUT" >> $GITHUB_OUTPUT
 
           echo "::endgroup::"
@@ -203,7 +272,9 @@ jobs:
         env:
           ISSUES_REVIEWED: ${{ steps.refine.outputs.issues_reviewed }}
           INSIGHTS_ADDED: ${{ steps.refine.outputs.insights_added }}
+          ACTIONS_TAKEN: ${{ steps.refine.outputs.actions_taken }}
           DRY_RUN: ${{ steps.config.outputs.dry_run }}
+          ISSUE_MGMT: ${{ steps.config.outputs.enable_issue_mgmt }}
         run: |
           cat >> $GITHUB_STEP_SUMMARY << EOF
           ## Backlog Refinement Results
@@ -212,13 +283,16 @@ jobs:
           |--------|-------|
           | Issues Reviewed | ${ISSUES_REVIEWED:-0} |
           | Insights Added | ${INSIGHTS_ADDED:-0} |
+          | Actions Taken | ${ACTIONS_TAKEN:-0} |
           | Dry Run | ${DRY_RUN:-true} |
+          | Issue Management | ${ISSUE_MGMT:-false} |
 
           ### Configuration
           - **Agents**: ${{ steps.config.outputs.agents }}
           - **Max Issues**: ${{ steps.config.outputs.max_issues }}
           - **Max Comments/Issue**: ${{ steps.config.outputs.max_comments }}
           - **Min Issue Age**: ${{ steps.config.outputs.min_age }} days
+          - **Issue Management**: ${{ steps.config.outputs.enable_issue_mgmt }}
 
           ### Agent Perspectives
           | Agent | Focus Area |

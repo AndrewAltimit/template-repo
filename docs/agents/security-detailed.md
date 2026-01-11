@@ -29,9 +29,9 @@ Our AI agents implement defense-in-depth with multiple security layers:
 - **Repository Validation**: Restricts agents to specific repositories
 - **Comprehensive Security Checks**: All layers validated before any action
 
-### 2. Default Allow List
+### 2. Agent Admins
 
-The allow list is configured in `config.json` under the `security.allow_list` field. The repository owner (extracted from `GITHUB_REPOSITORY` environment variable) is always included automatically.
+The agent admins list is configured in `.agents.yaml` under the `security.agent_admins` field. Only these users can trigger agent actions via `[Action][Agent]` keywords. The repository owner (extracted from `GITHUB_REPOSITORY` environment variable) is always included automatically.
 
 ### 3. Keyword Trigger System - Command and Control
 
@@ -67,7 +67,7 @@ The trigger format is: `[Action][Agent]`
 
 #### Security Flow
 1. **User Action**: An allowed user comments with `[Action][Agent]`
-2. **Authentication**: System verifies user is in allow list
+2. **Authentication**: System verifies user is in agent_admins
 3. **Authorization**: System checks rate limits and repository permissions
 4. **Validation**: System ensures trigger is on latest commit (for PRs)
 5. **Execution**: Agent performs requested action
@@ -75,30 +75,27 @@ The trigger format is: `[Action][Agent]`
 
 ### 4. Configuration
 
-Security settings are configured in `config.json`:
+Security settings are configured in `.agents.yaml`:
 
-```json
-{
-  "security": {
-    "enabled": true,
-    "allow_list": [
-      "AndrewAltimit",
-      "github-actions[bot]",
-      "gemini-bot",
-      "ai-agent[bot]"
-    ],
-    "log_violations": true,
-    "reject_message": "This AI agent only processes requests from authorized users to prevent security vulnerabilities. Please contact the repository owner if you believe you should have access.",
-    "rate_limit_window_minutes": 60,
-    "rate_limit_max_requests": 10,
-    "allowed_repositories": []
-  }
-}
+```yaml
+security:
+  # Users authorized to trigger agent actions via [Approved][Agent] keywords
+  # CRITICAL: Only add trusted human users - these can execute code via agents
+  agent_admins:
+    - AndrewAltimit           # Repository owner
+
+  # Trusted sources for comment context (used in PR reviews)
+  # Comments from these accounts are marked as trusted when providing context to AI
+  # This does NOT grant them ability to trigger agent actions
+  trusted_sources:
+    - AndrewAltimit           # Repository owner
+    - github-actions[bot]     # GitHub Actions bot
+    - dependabot[bot]         # Dependabot
 ```
 
 #### Configuration Options:
-- `enabled`: Master switch for all security features
-- `allow_list`: Array of allowed GitHub usernames
+- `agent_admins`: Array of GitHub usernames authorized to trigger agent actions (humans only)
+- `trusted_sources`: Array of accounts whose comments are trusted for context (includes bots)
 - `log_violations`: Whether to log security violations
 - `reject_message`: Custom message shown to unauthorized users
 - `rate_limit_window_minutes`: Time window for rate limiting (default: 60)

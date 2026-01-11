@@ -42,7 +42,7 @@ class SecurityManager:
         """Get default security configuration."""
         return {
             "enabled": True,
-            "allow_list": ["AndrewAltimit", "github-actions[bot]", "dependabot[bot]"],
+            "agent_admins": ["AndrewAltimit"],
             "rate_limit_window_minutes": 60,
             "rate_limit_max_requests": 10,
             "allowed_repositories": [],
@@ -83,8 +83,8 @@ class SecurityManager:
 
     def _init_allowed_users(self) -> None:
         """Initialize allowed users from config and environment variables."""
-        # Start with users from config
-        self._allowed_users: set[str] = set(self.config["allow_list"])
+        # Start with users from config (agent_admins for trigger authorization)
+        self._allowed_users: set[str] = set(self.config["agent_admins"])
 
         # Add users from environment variable
         env_users = os.getenv("AI_AGENT_ALLOWED_USERS", "")

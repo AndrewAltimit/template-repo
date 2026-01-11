@@ -80,7 +80,7 @@ docker-compose run --rm python-ci pytest tests/ -v
 
 ### Issue Implementation Flow
 1. Check for [Approved][Claude] trigger
-2. Validate user in security.allow_list
+2. Validate user in security.agent_admins
 3. Record commit SHA for validation
 4. Create branch: `fix-issue-{number}-{uuid}`
 5. Implement with comprehensive tests

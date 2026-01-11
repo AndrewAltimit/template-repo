@@ -133,7 +133,7 @@ async def execute(self, **kwargs) -> Dict[str, Any]:
 
 ### Agent Specific
 - [ ] Command format validation strict
-- [ ] User in security.allow_list
+- [ ] User in security.agent_admins
 - [ ] Rate limiting enforced
 - [ ] SHA validation implemented
 - [ ] Secrets masked in ALL outputs

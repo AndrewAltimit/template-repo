@@ -91,10 +91,47 @@ class CodexIntegration:
 
         return exec_args
 
-    def _parse_codex_event(self, event: Dict[str, Any], messages: List[str], command_outputs: List[str]) -> None:
-        """Parse a single Codex event and append results to messages/command_outputs."""
-        # Handle nested message structure
-        if "msg" in event:
+    def _parse_codex_event(
+        self,
+        event: Dict[str, Any],
+        messages: List[str],
+        command_outputs: List[str],
+        reasoning_texts: List[str],
+    ) -> None:
+        """Parse a single Codex event and append results to appropriate lists.
+
+        Handles both legacy format (msg-based) and Codex v0.79.0+ format (item.completed).
+        """
+        event_type = event.get("type", "")
+
+        # Handle Codex v0.79.0+ JSONL format
+        if event_type == "item.completed":
+            item = event.get("item", {})
+            item_type = item.get("type", "")
+
+            # Extract agent messages (final response)
+            if item_type == "message":
+                content = item.get("content", [])
+                for part in content:
+                    if part.get("type") == "text":
+                        text = part.get("text", "")
+                        if text:
+                            messages.append(text)
+
+            # Extract reasoning for context
+            elif item_type == "reasoning":
+                text = item.get("text", "")
+                if text:
+                    reasoning_texts.append(text)
+
+            # Extract command outputs
+            elif item_type == "command_execution":
+                stdout = item.get("aggregated_output", "")
+                if stdout and item.get("status") == "completed":
+                    command_outputs.append(stdout.strip())
+
+        # Handle legacy format (older Codex versions)
+        elif "msg" in event:
             msg = event["msg"]
             msg_type = msg.get("type")
 
@@ -105,32 +142,51 @@ class CodexIntegration:
                     command_outputs.append(msg.get("stdout").strip())
             elif msg_type == "agent_reasoning":
                 text = msg.get("text", "")
-                if text and not text.startswith("**"):
-                    messages.append(f"[Reasoning] {text}")
+                if text:
+                    reasoning_texts.append(text)
 
         # Handle direct message events
-        elif event.get("type") == "message":
+        elif event_type == "message":
             messages.append(event.get("message", ""))
 
     def _parse_codex_output(self, output: str) -> str:
-        """Parse JSONL output from codex exec --json."""
+        """Parse JSONL output from codex exec --json.
+
+        Handles Codex v0.79.0+ format with item.completed events.
+        Prioritizes messages, falls back to reasoning if no messages found.
+        """
         lines = output.split("\n")
         messages: List[str] = []
         command_outputs: List[str] = []
+        reasoning_texts: List[str] = []
 
         for line in lines:
             if not line.strip():
                 continue
             try:
                 event = json.loads(line)
-                self._parse_codex_event(event, messages, command_outputs)
+                self._parse_codex_event(event, messages, command_outputs, reasoning_texts)
             except json.JSONDecodeError:
                 self.logger.warning("Could not parse JSON line from Codex output: %s", line)
-                if line and not line.startswith("["):
+                if line and not line.startswith("[") and not line.startswith("{"):
                     messages.append(line)
 
-        all_outputs = messages + command_outputs
-        return "\n".join(all_outputs) if all_outputs else output
+        # Prefer messages, fall back to reasoning if no messages
+        if messages:
+            combined = "\n".join(messages)
+            if command_outputs:
+                combined += "\n\n**Command Outputs:**\n" + "\n".join(command_outputs)
+            return combined
+        elif reasoning_texts:
+            # Filter out process descriptions, keep substantive reasoning
+            filtered = [r for r in reasoning_texts if not r.startswith("**") or len(r) > 50]
+            if filtered:
+                return "\n".join(filtered)
+
+        # Last resort: return raw output
+        if command_outputs:
+            return "\n".join(command_outputs)
+        return output
 
     async def _execute_codex(self, prompt: str, mode: str) -> Dict[str, Any]:
         """Execute Codex using a programmatic approach."""

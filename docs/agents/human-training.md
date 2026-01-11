@@ -278,7 +278,7 @@ Naively, asking the untrusted model to judge its own code is useless—it can ju
 
 ### Should We Pause AI?
 
-[![Should we pause AI? Here's the debate.](https://img.youtube.com/vi/W_6O9E1VpS0/0.jpg)](https://www.youtube.com/watch?v=W_6O9E1VpS0)
+[![Should we pause AI? Here's the debate.](https://img.youtube.com/vi/tUB_uvSqiw8/0.jpg)](https://www.youtube.com/watch?v=tUB_uvSqiw8)
 
 *Click the image above to watch this video on YouTube*
 
@@ -305,6 +305,71 @@ A pause creates a filter—the labs most likely to stop are the ones most concer
 - Advocate for evaluation checkpoints rather than racing to deployment
 - Treat model weights, training data, and system prompts as high-security assets
 - Stay informed on emerging governance frameworks (EU AI Act, US Executive Orders)
+
+## 9. Societal and Structural Risks: Malicious Use and Accidents
+
+**Key Principle:** AI doesn't need to be "rogue" or superintelligent to be catastrophic. Risks arise from how humans choose to use it and how organizations build it.
+
+[![AI as a Tool for Global Control](https://img.youtube.com/vi/DWBJjcO69mQ/0.jpg)](https://www.youtube.com/watch?v=DWBJjcO69mQ)
+
+*Click the image above to watch this video on YouTube*
+
+**Paper Reference:** [An Overview of Catastrophic AI Risks](https://www.safe.ai/ai-risk-at-a-glance) (Center for AI Safety)
+
+While rogue AI scenarios focus on agentic systems acting against us, societal-scale threats are emerging now from **malicious use** and **preventable accidents**.
+
+### A. Malicious Use Categories
+
+AI acts as a force multiplier—individuals or small groups can now execute attacks that previously required state-level resources.
+
+#### 1. Epistemic Security & Deepfakes
+Generative AI floods information ecosystems with convincing fakes, damaging reputations and manipulating elections.
+
+- **2023 Slovakia Example:** AI-generated audio of a candidate discussing election rigging leaked days before voting, potentially swinging the result
+- **Asymmetric Spread:** Corrections propagate far slower than the initial outrage-fueled misinformation
+
+#### 2. AI-Enhanced Cyber Attacks
+AI systems approaching superhuman coding performance enable:
+- **Zero-Day Discovery:** Rapid identification and exploitation of unknown vulnerabilities
+- **Adaptive Malware:** Self-rewriting code that evades detection
+- **Democratized Attacks:** Low-skilled actors executing sophisticated phishing and blackmail campaigns
+
+#### 3. Biochemical Weapon Design
+Tools designed for health can be inverted—instead of maximizing drug safety, maximize toxicity.
+- **Dual-Use Risk:** Protein folding models (AlphaFold) can design pathogens, not just treatments
+- **Automation Compounds Risk:** As lab equipment automates, required expertise for synthesis shrinks
+
+#### 4. Power Concentration
+AI enables "turnkey authoritarianism" for governments and corporations:
+- **State Surveillance:** Real-time facial recognition integrated into CCTV suppresses dissent
+- **Corporate Oligarchy:** A handful of labs control the most powerful systems, setting research directions and lobbying for shareholder interests over public safety
+
+### B. Structural Risks and Organizational Safety
+
+Catastrophes can occur without villains if organizations lack safety culture or infrastructure is too fragile.
+
+#### 1. Single Points of Failure
+General-purpose models integrated across society create correlated failure modes:
+- **Infrastructure Risk:** AI controlling power grids or water supply means bugs don't stop one app—they stop cities
+- **Non-Graceful Failure:** Backup systems running identical flawed logic crash simultaneously
+
+#### 2. Safety Culture Deficit
+Engineering disciplines like nuclear and civil engineering have strong safety cultures—collective commitment to prioritize safety over speed or profit.
+- **Race Dynamics:** Investor pressure to ship quickly leads to skipped testing
+- **Negligence as "Accident":** Many catastrophes stem from inadequate procedures or ignored warnings, not unforeseeable events
+
+#### 3. The Swiss Cheese Model
+No single safety measure is perfect. Effective defense requires multiple layers where holes don't align:
+- **Safety Culture:** Personnel trained to spot risks
+- **Red Teaming:** Actively trying to break systems
+- **Anomaly Detection:** Monitoring for unusual internal states
+- **Interpretability:** Understanding *why* the AI made a choice
+
+**Practical Implications:**
+- Assume adversarial intent when designing systems—someone will try to misuse them
+- Recognize that "accidents" often reflect organizational failures, not technical surprises
+- Advocate for professional safety standards in AI, analogous to engineering ethics codes
+- Treat integration into critical infrastructure as a security decision, not just a feature decision
 
 ### The AI 2027 Scenario: Plausible Futures and Accelerating Risk
 
