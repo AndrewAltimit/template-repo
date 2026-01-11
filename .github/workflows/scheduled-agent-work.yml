@@ -1,28 +1,24 @@
 ---
-# Scheduled Agent Work Pipeline (Template/Example)
+# Scheduled Agent Work Pipeline
 #
-# STATUS: MANUAL-ONLY - Schedules disabled to prevent unintended automation
+# Primary workflow for AI agent work from the GitHub Projects v2 board.
+# Replaces issue-monitor.yml - all work must go through the board first.
 #
-# This workflow demonstrates how to use the board-agent-worker reusable workflow
-# for scheduled autonomous agent work. Copy and customize for your environment.
+# How it works:
+# 1. Issues are triaged to the project board (manual step)
+# 2. This workflow runs hourly to check for ready work
+# 3. Agent claims issue, implements fix, creates PR
 #
-# Enterprise Pattern: This is designed to be copied by organizations setting up
-# their own agentic pipelines. Key customization points are marked with comments.
-#
-# To enable scheduled runs:
-# 1. Uncomment the schedule section below
-# 2. Configure your ai-agents-board.yml
-# 3. Ensure required secrets are set (AGENT_TOKEN, GH_PROJECTS_TOKEN)
+# Requirements:
+# - ai-agents-board.yml configured
+# - Secrets: AGENT_TOKEN, GH_PROJECTS_TOKEN, OPENROUTER_API_KEY (optional)
 
 name: Scheduled Agent Work
 
 on:
-  # DISABLED: Uncomment to enable scheduled runs
-  # schedule:
-  #   # Every 2 hours during business hours (9am-5pm UTC, Mon-Fri)
-  #   - cron: '0 9-17/2 * * 1-5'
-  #   # Weekly summary on Friday at 5pm UTC
-  #   - cron: '0 17 * * 5'
+  # Run every 12 hours (6 AM and 6 PM UTC)
+  schedule:
+    - cron: '0 6,18 * * *'
 
   # Manual trigger for testing and on-demand work
   workflow_dispatch:
