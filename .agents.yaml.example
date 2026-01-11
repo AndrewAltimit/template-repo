@@ -60,6 +60,52 @@ openrouter:
       model: qwen/qwen-2.5-coder-32b-instruct
       temperature: 0.1
 
+# Security settings
+security:
+  # Users authorized to trigger agent actions via [Approved][Agent] keywords
+  # CRITICAL: Only add trusted human users - these can execute code via agents
+  agent_admins:
+    - your-github-username    # Replace with your GitHub username
+
+  # Trusted sources for comment context (used in PR reviews)
+  # Comments from these accounts are marked as trusted when providing context to AI
+  # This does NOT grant them ability to trigger agent actions
+  trusted_sources:
+    - your-github-username    # Replace with your GitHub username
+    - github-actions[bot]     # GitHub Actions bot
+    - dependabot[bot]         # Dependabot
+    - renovate[bot]           # Renovate bot
+
+  # Autonomous mode is REQUIRED for CI/CD operation
+  # All agents run in sandboxed environments for security
+  autonomous_mode: true  # Enables non-interactive flags like --dangerously-skip-permissions
+
+  # Confirm running in sandboxed environment
+  require_sandbox: true
+
+  # Maximum prompt length to prevent abuse
+  max_prompt_length: 10000
+
+  # Cleanup temporary files after use
+  temp_file_cleanup: true
+
+  # Maximum execution time per agent call
+  subprocess_timeout: 600  # 10 minutes
+
+  # Memory limit for subprocess execution
+  memory_limit_mb: 500
+
+# Rate limiting (per agent)
+rate_limits:
+  requests_per_minute: 10
+  requests_per_hour: 100
+
+  # Agent-specific overrides
+  # claude:
+  #   requests_per_minute: 20
+  # gemini:
+  #   requests_per_minute: 5
+
 # Advanced settings (optional)
 advanced:
   # Timeout for agent commands (seconds)
