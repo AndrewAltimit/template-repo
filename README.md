@@ -26,6 +26,34 @@ This project follows a **container-first approach**:
 - **Single maintainer design** - optimized for individual developer productivity
 - **Modular MCP architecture** - Separate specialized servers for different functionalities
 
+## Quick Start
+
+> **New to the template?** Check out our **[Template Quickstart Guide](docs/QUICKSTART.md)** for step-by-step customization instructions!
+
+1. **Prerequisites**: Linux system with Docker (v20.10+) and Docker Compose (v2.0+)
+
+2. **Clone and setup**
+   ```bash
+   git clone https://github.com/AndrewAltimit/template-repo
+   cd template-repo
+   pip3 install -e ./packages/github_agents
+   ```
+
+3. **Set API keys** (if using AI features)
+   ```bash
+   export OPENROUTER_API_KEY="your-key-here"  # For OpenCode/Crush
+   export GEMINI_API_KEY="your-key-here"      # For Gemini
+   ```
+
+4. **Use with Claude Code**: MCP servers are configured in `.mcp.json` and auto-started by Claude. See [MCP Configuration](docs/mcp/README.md#configuration-strategy) for essential vs full setups.
+
+5. **Run CI/CD operations**
+   ```bash
+   ./automation/ci-cd/run-ci.sh full  # Full pipeline
+   ```
+
+For detailed setup, see [CLAUDE.md](CLAUDE.md) and [Template Quickstart Guide](docs/QUICKSTART.md).
+
 ## AI Agents
 
 Six AI agents for development and automation. See [AI Agents Documentation](docs/agents/README.md) for details.
@@ -127,110 +155,12 @@ pip install -e ./packages/economic_agents
 
 ## Features
 
-- **18 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, desktop automation, project management, and more
-- **6 AI Agents** - Comprehensive development automation
-- **Sleeper Detection System** - Advanced AI backdoor detection using TransformerLens residual stream analysis
-- **Company Integration** - Custom agent builds for corporate AI APIs ([Documentation](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
-- **Video Editor** - AI-powered video editing with transcription, speaker diarization, and intelligent scene detection
-- **Gaea2 Terrain Generation** - Professional terrain generation
-- **Blender 3D Creation** - Full 3D content creation, rendering, and simulation
-- **ComfyUI & AI Toolkit** - Image generation and LoRA training
+- **[18 MCP Servers](#mcp-servers)** - Code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
+- **[6 AI Agents](#ai-agents)** - Autonomous development workflow from issue to merge
+- **[3 Packages](#packages)** - GitHub automation, sleeper agent detection, economic agent simulation
 - **Container-First Architecture** - Maximum portability and consistency
 - **Self-Hosted CI/CD** - Zero-cost GitHub Actions infrastructure
-- **Automated PR Workflows** - AI-powered reviews and fixes
-
-## Quick Start
-
-> **New to the template?** Check out our **[Template Quickstart Guide](docs/QUICKSTART.md)** for step-by-step customization instructions!
-> - Choose from 4 pre-configured paths (Minimal, AI-Powered, Content Creation, Full Stack)
-> - Learn what to enable/disable for your specific use case
-> - Get up and running in 15 minutes
-
-1. **Prerequisites**
-   - Linux system (Ubuntu/Debian recommended)
-   - Docker (v20.10+) and Docker Compose (v2.0+)
-   - No other dependencies required!
-
-2. **Clone and setup**
-   ```bash
-   git clone https://github.com/AndrewAltimit/template-repo
-   cd template-repo
-
-   # Install AI agents package (for CLI tools)
-   pip3 install -e ./packages/github_agents
-
-   # Set up API keys (if using AI features)
-   export OPENROUTER_API_KEY="your-key-here"  # For OpenCode/Crush
-   export GEMINI_API_KEY="your-key-here"      # For Gemini (dont use API key for free tier, use web auth)
-   # For Codex: run 'codex auth' after installing @openai/codex
-   ```
-
-3. **Use MCP servers with Claude Code and other agents**
-   - **Essential MCP servers** are configured in `.mcp.json` (code-quality, AI agents)
-   - **All MCP servers** including specialized tools are in `.mcp.json.full` (content creation, 3D graphics, etc.)
-   - Use `.mcp.json` by default to avoid context window overload
-   - Rename `.mcp.json.full` to `.mcp.json` to enable all specialized services
-   - No manual startup required! Agents can start the services themselves.
-
-4. **For standalone usage**
-   ```bash
-   # Start HTTP servers for testing/development
-   docker-compose up -d
-
-   # Test all servers
-   python automation/testing/test_all_servers.py --quick
-
-   # Use AI agents directly
-   ./tools/cli/agents/run_codex.sh    # Interactive Codex session
-   ./tools/cli/agents/run_opencode.sh -q "Create a REST API"
-   ./tools/cli/agents/run_crush.sh -q "Binary search function"
-   ./tools/cli/agents/run_gemini.sh   # Interactive Gemini CLI session
-   ```
-
-For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
-
-## MCP Configuration Strategy
-
-This repository provides two MCP configuration files to optimize performance:
-
-### `.mcp.json` (Default - Essential Services)
-- **Purpose**: Prevent context window overload in Claude Code
-- **Contains**: Essential services only
-  - Code Quality (formatting, linting)
-  - AI Agents (Gemini, OpenCode, Crush, Codex)
-- **Best for**: Day-to-day development, code review, refactoring
-- **Use when**: Working on typical software development tasks
-
-### `.mcp.json.full` (Complete - All Services)
-- **Purpose**: Access to all specialized tools when needed
-- **Contains**: All 18 MCP servers
-  - Essential services (from `.mcp.json`)
-  - Content creation (Manim, LaTeX, TikZ)
-  - 3D graphics (Blender, Gaea2)
-  - Media tools (Video Editor, Speech Synthesis, Meme Generator)
-  - Remote services (AI Toolkit, ComfyUI, Virtual Character)
-  - Project management (GitHub Board)
-- **Best for**: Specialized tasks requiring content creation or media processing
-- **Use when**: Creating animations, 3D content, videos, or terrain
-
-### Switching Between Configurations
-
-```bash
-# Use essential services (default)
-# Already configured - just use Claude Code normally
-
-# Enable all services temporarily
-mv .mcp.json .mcp.json.essential
-mv .mcp.json.full .mcp.json
-# Restart Claude Code
-
-# Restore essential services
-mv .mcp.json .mcp.json.full
-mv .mcp.json.essential .mcp.json
-# Restart Claude Code
-```
-
-**Recommendation**: Start with `.mcp.json` (essential services) and only switch to `.mcp.json.full` when you need specialized tools. This prevents Claude's context window from being filled with unused tool definitions.
+- **Company Integration** - Corporate proxy builds for enterprise AI APIs ([Docs](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
 
 ## Enterprise & Corporate Setup
 
@@ -243,63 +173,16 @@ For enterprise environments requiring custom certificates, customize [`automatio
 ├── .github/workflows/        # GitHub Actions workflows
 ├── docker/                   # Docker configurations
 ├── packages/                 # Installable packages
-│   ├── github_agents/        # Github agents implementation
-│   ├── sleeper_agents/       # Sleeper agents implementation
-│   └── economic_agents/      # Economic agents framework
-├── tools/                    # MCP servers and utilities
-│   ├── mcp/                  # Modular MCP servers
-│   │   ├── mcp_agentcore_memory/ # Multi-provider AI memory
-│   │   ├── mcp_ai_toolkit/       # LoRA training interface
-│   │   ├── mcp_blender/          # 3D content creation
-│   │   ├── mcp_code_quality/     # Formatting & linting
-│   │   ├── mcp_codex/            # Agent2Agent Consultation (Codex CLI)
-│   │   ├── mcp_comfyui/          # Image generation interface
-│   │   ├── mcp_content_creation/ # Manim & LaTeX
-│   │   ├── mcp_core/             # Shared components
-│   │   ├── mcp_crush/            # Agent2Agent Consultation (Crush)
-│   │   ├── mcp_desktop_control/  # Desktop automation (Linux/Windows)
-│   │   ├── mcp_elevenlabs_speech/# Speech synthesis
-│   │   ├── mcp_gaea2/            # Terrain generation
-│   │   ├── mcp_gemini/           # Agent2Agent Consultation (Gemini CLI)
-│   │   ├── mcp_github_board/     # GitHub Projects board management
-│   │   ├── mcp_meme_generator/   # Meme creation
-│   │   ├── mcp_opencode/         # Agent2Agent Consultation (OpenCode)
-│   │   ├── mcp_reaction_search/  # Semantic reaction image search
-│   │   ├── mcp_video_editor/     # Video editing
-│   │   └── mcp_virtual_character/# AI agent embodiment
-│   └── cli/                  # Command-line tools
-│       ├── agents/           # Agent runner scripts
-│       │   ├── run_claude.sh       # Claude Code runner
-│       │   ├── run_codex.sh        # Codex runner
-│       │   ├── run_crush.sh        # Crush runner
-│       │   ├── run_gemini.sh       # Gemini CLI runner
-│       │   ├── run_opencode.sh     # OpenCode runner
-│       │   └── stop_claude.sh      # Claude stop script
-│       ├── containers/       # Container runner scripts
-│       │   ├── run_codex_container.sh     # Codex in container
-│       │   ├── run_crush_container.sh     # Crush in container
-│       │   ├── run_gemini_container.sh    # Gemini in container
-│       │   ├── run_opencode_container.sh  # OpenCode in container
-│       │   └── run_opencode_simple.sh     # Simple OpenCode runner
-│       └── utilities/        # Other CLI utilities
+│   ├── github_agents/        # Multi-agent GitHub automation
+│   ├── sleeper_agents/       # AI backdoor detection framework
+│   └── economic_agents/      # Autonomous economic agents
+├── tools/
+│   ├── mcp/                  # 18 MCP servers (see MCP Servers section)
+│   └── cli/                  # Agent runners and utilities
 ├── automation/               # CI/CD and automation scripts
-│   ├── analysis/             # Code and project analysis tools
-│   ├── ci-cd/                # CI/CD pipeline scripts
-│   ├── corporate-proxy/      # Corporate proxy integrations
-│   │   ├── crush/            # Crush proxy wrapper
-│   │   ├── gemini/           # Gemini CLI proxy wrapper
-│   │   ├── opencode/         # OpenCode proxy wrapper
-│   │   └── shared/           # Shared proxy components
-│   ├── launchers/            # Service launcher scripts
-│   ├── monitoring/           # Service and PR monitoring
-│   ├── review/               # Code review automation
-│   ├── scripts/              # Utility scripts
-│   ├── security/             # Security and validation
-│   ├── setup/                # Setup and installation scripts
-│   └── testing/              # Testing utilities
 ├── tests/                    # Test files
 ├── docs/                     # Documentation
-├── config/                   # Configuration files
+└── config/                   # Configuration files
 ```
 
 ## MCP Servers

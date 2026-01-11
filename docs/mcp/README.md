@@ -296,6 +296,36 @@ All MCP servers are configured in the `.mcp.json` file at the project root.
 }
 ```
 
+### Configuration Strategy
+
+This repository provides two MCP configuration files to optimize context window usage:
+
+**`.mcp.json` (Default - Essential Services)**
+- Prevents context window overload in Claude Code
+- Contains: Code Quality, AI Agents (Gemini, OpenCode, Crush, Codex)
+- Best for: Day-to-day development, code review, refactoring
+
+**`.mcp.json.full` (Complete - All Services)**
+- Access to all 18 specialized MCP servers
+- Additional: Content creation, 3D graphics, media tools, remote services
+- Best for: Creating animations, 3D content, videos, or terrain
+
+**Switching Between Configurations:**
+
+```bash
+# Enable all services temporarily
+mv .mcp.json .mcp.json.essential
+mv .mcp.json.full .mcp.json
+# Restart Claude Code
+
+# Restore essential services
+mv .mcp.json .mcp.json.full
+mv .mcp.json.essential .mcp.json
+# Restart Claude Code
+```
+
+**Recommendation**: Start with `.mcp.json` (essential) and only switch when you need specialized tools.
+
 ## Architecture Overview
 
 ```
