@@ -49,27 +49,29 @@ All code generation agents (Codex, OpenCode, Crush) provide equivalent functiona
 
 ### Agentic Git Workflow
 
-Automated pipelines let AI agents manage the full development lifecycle through GitHub Issues and Projects:
+AI agents autonomously manage the development lifecycle from issue creation through PR merge:
 
 ```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   Backlog   │───►│  Refinement │───►│   Approve   │───►│   Review    │───►│    Merge    │
-│  (agents    │    │  (agents    │    │  (admin +   │    │  (agents    │    │  (human     │
-│  create     │    │  analyze)   │    │  agent PR)  │    │  iterate)   │    │  approval)  │
-│  issues)    │    │             │    │             │    │             │    │             │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+Issue Created → Admin Approval → Agent Claims → PR Created → AI Review → Human Merge
 ```
 
-| Stage | Pipeline | Description |
-|-------|----------|-------------|
-| **Backlog** | `backlog-refinement.yml` | Agents create issues linked to GitHub Projects board |
-| **Refinement** | `backlog-refinement.yml` | Agents analyze issues, add architecture/security insights |
-| **Approval** | Manual | Admin posts `[Approved][Agent]` to authorize work |
-| **Implementation** | `board-agent-worker.yml` | Agent claims issue, creates branch, opens PR |
-| **Review** | `pr-validation.yml` | Gemini reviews PR, agents iterate on feedback |
-| **Ready** | `pr-review-monitor.yml` | Agent marks PR ready when no improvements found |
+**The Flow:**
 
-**Authorization**: Only users in `.agents.yaml` → `security.agent_admins` can approve agent work. See [Board Workflow Guide](docs/agents/board-workflow.md) for complete documentation.
+1. **Issue Creation** - Issues are created manually or by agents via `backlog-refinement.yml`, automatically added to the GitHub Projects board
+2. **Admin Approval** - An authorized user comments `[Approved][Claude]` (or another agent name) to authorize work
+3. **Agent Claims** - `board-agent-worker.yml` finds approved issues, the agent claims the issue and creates a working branch
+4. **Implementation** - The agent implements the fix/feature and opens a PR
+5. **AI Review** - `pr-validation.yml` triggers Gemini code review; `pr-review-monitor.yml` lets agents iterate on feedback
+6. **Human Merge** - Admin reviews and merges the PR
+
+**Security Model:**
+
+- **Approval Required** - Agents cannot work on issues without explicit `[Approved][Agent]` comment
+- **Authorized Users Only** - Only users listed in `.agents.yaml` → `security.agent_admins` can approve
+- **Pattern Validation** - Must use `[Action][Agent]` format (e.g., `[Approved][Claude]`) to prevent false positives
+- **Claim Tracking** - Agents post claim comments with timestamps to prevent conflicts
+
+See [Security Documentation](packages/github_agents/docs/security.md) for the complete security model.
 
 ## Reports & Research
 
