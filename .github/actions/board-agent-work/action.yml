@@ -554,6 +554,18 @@ runs:
           echo "Timeout: ${AGENT_TIMEOUT}m"
         fi
 
+        # Clean up large generated files that could cause token limit issues
+        # These files are gitignored but may exist in the working directory
+        LARGE_FILES=(
+          "bandit-report.json"
+          "*.log"
+          "coverage.xml"
+          ".coverage"
+        )
+        for pattern in "${LARGE_FILES[@]}"; do
+          find . -name "$pattern" -type f -size +100k -delete 2>/dev/null || true
+        done
+
         # Prepare context file for agent (use quoted heredoc to prevent variable expansion)
         CONTEXT_FILE="/tmp/agent_context_$ISSUE_NUMBER.md"
         cat > "$CONTEXT_FILE" << 'CONTEXT_EOF'
@@ -585,7 +597,9 @@ runs:
             if command -v claude &> /dev/null; then
               echo "Running Claude Code on host..."
               # --dangerously-skip-permissions required for CI/CD (no TTY for interactive prompts)
-              if timeout "${AGENT_TIMEOUT}m" claude --print --dangerously-skip-permissions "$(cat $CONTEXT_FILE)"; then
+              # Use stdin for prompt to avoid shell argument issues
+              # --output-format text for clean output
+              if timeout "${AGENT_TIMEOUT}m" claude --print --dangerously-skip-permissions --output-format text < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
               else
                 AGENT_ERROR="Claude execution failed or timed out"

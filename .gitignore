@@ -234,3 +234,26 @@ logs/
 
 # Agent virtual environment (GitHub Actions)
 .agent-venv/
+
+# Docker env files (may contain secrets in CI)
+env.list
+*.env.local
+docker-compose.override.yml
+
+# AI agent session/cache directories
+.codex/
+.opencode/
+.claude/
+.gemini/
+
+# Terraform state (if used)
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# CI/CD generated reports (beyond bandit/safety)
+*.sarif
+*.sarif.json
+pylint-report.txt
+mypy-report.txt
+flake8-report.txt
