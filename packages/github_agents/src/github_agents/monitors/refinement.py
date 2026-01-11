@@ -189,8 +189,8 @@ INSIGHT:
 """,
     }
 
-    # Prompt for analyzing maintainer feedback and determining actions
-    ISSUE_MANAGEMENT_PROMPT = """Analyze these comments from project maintainers on issue #$issue_number.
+    # Prompt for analyzing issue and determining management actions
+    ISSUE_MANAGEMENT_PROMPT = """Analyze issue #$issue_number and determine if any management actions should be taken.
 
 Issue: $title
 Current Description:
@@ -198,27 +198,32 @@ $body
 
 Current Labels: $labels
 
-Maintainer Comments (from trusted users):
-$maintainer_comments
+$maintainer_section
 
-Based on these maintainer comments, determine if any actions should be taken on this issue.
+$community_section
+
+Based on the issue content and feedback, determine if any actions should be taken.
 
 Available actions:
-- close: Close the issue (only if maintainer explicitly says to close, or issue is clearly resolved/duplicate)
-- update_title: Change the issue title to be more descriptive
-- update_body: Update the issue description to incorporate feedback
-- add_label: Add a label (e.g., "bug", "enhancement", "good first issue", "needs-triage")
-- remove_label: Remove a label
+- close: Close the issue (if resolved, duplicate, won't fix, or clearly invalid)
+- update_title: Change the issue title to be more descriptive/accurate
+- update_body: Update the issue description to incorporate feedback or clarify
+- add_label: Add a label (e.g., "bug", "enhancement", "good first issue", "duplicate", "wontfix")
+- remove_label: Remove an incorrect or outdated label
 - link_pr: Reference a related PR in a comment
 
-IMPORTANT: Only suggest actions that are CLEARLY indicated by maintainer feedback.
+PRIORITY GUIDELINES:
+- Maintainer feedback (marked with **[MAINTAINER]**) should be given HIGHEST priority
+- Clear consensus from multiple community members can also justify actions
+- Your own analysis can suggest improvements (title clarity, missing labels, etc.)
+
 If no action is needed, respond with exactly: NO_ACTION_NEEDED
 
 If actions are needed, respond in this format (one action per line):
 ACTION: <action_type>
 DETAILS: <json details, e.g., {"title": "New Title"} or {"label": "bug"} or {"reason": "duplicate of #123"}>
 REASON: <brief explanation of why this action is appropriate>
-TRIGGERED_BY: <username whose comment triggered this>
+TRIGGERED_BY: <username whose feedback triggered this, or "agent_analysis" if your own recommendation>
 ---
 """
 
@@ -746,26 +751,48 @@ TRIGGERED_BY: <username whose comment triggered this>
         self,
         agent: BaseAgent,
         issue: Issue,
-        maintainer_comments: List[Dict[str, Any]],
+        all_comments: List[Dict[str, Any]],
     ) -> List[IssueAction]:
-        """Analyze maintainer comments for actionable feedback.
+        """Analyze issue and comments for actionable management decisions.
 
         Args:
             agent: The agent to use for analysis
             issue: The issue being analyzed
-            maintainer_comments: Comments from maintainers
+            all_comments: All comments on the issue
 
         Returns:
             List of actions to take
         """
-        if not maintainer_comments:
-            return []
+        # Separate maintainer and community comments
+        maintainer_comments = []
+        community_comments = []
 
-        # Format maintainer comments
-        comments_text = "\n\n".join(
-            f"**{c.get('author', {}).get('login', 'unknown')}** ({c.get('createdAt', 'unknown date')}):\n{c.get('body', '')}"
-            for c in maintainer_comments
-        )
+        for comment in all_comments:
+            author = comment.get("author", {}).get("login", "")
+            if author in self.maintainer_allow_list:
+                maintainer_comments.append(comment)
+            else:
+                community_comments.append(comment)
+
+        # Format maintainer comments (with [MAINTAINER] tag for priority)
+        if maintainer_comments:
+            maintainer_text = "### Maintainer Feedback (HIGH PRIORITY)\n" + "\n\n".join(
+                f"**[MAINTAINER] {c.get('author', {}).get('login', 'unknown')}** ({c.get('createdAt', 'unknown date')}):\n{c.get('body', '')}"
+                for c in maintainer_comments[-5:]  # Last 5 maintainer comments
+            )
+        else:
+            maintainer_text = "### Maintainer Feedback\n(No maintainer comments yet)"
+
+        # Format community comments
+        if community_comments:
+            community_text = "### Community Comments\n" + "\n\n".join(
+                f"**{c.get('author', {}).get('login', 'unknown')}** ({c.get('createdAt', 'unknown date')}):\n{c.get('body', '')[:500]}..."
+                if len(c.get("body", "")) > 500
+                else f"**{c.get('author', {}).get('login', 'unknown')}** ({c.get('createdAt', 'unknown date')}):\n{c.get('body', '')}"
+                for c in community_comments[-10:]  # Last 10 community comments
+            )
+        else:
+            community_text = "### Community Comments\n(No community comments yet)"
 
         # Get issue labels
         labels = getattr(issue, "labels", []) or []
@@ -781,7 +808,8 @@ TRIGGERED_BY: <username whose comment triggered this>
             title=issue.title,
             body=body,
             labels=labels_text,
-            maintainer_comments=comments_text,
+            maintainer_section=maintainer_text,
+            community_section=community_text,
         )
 
         try:
@@ -1033,7 +1061,12 @@ TRIGGERED_BY: <username whose comment triggered this>
         existing_comments: List[Dict[str, Any]],
         result: RefinementResult,
     ) -> None:
-        """Manage an issue based on maintainer feedback.
+        """Manage an issue based on analysis and feedback.
+
+        The agent analyzes the issue and all comments to determine if any
+        management actions should be taken. Maintainer comments are given
+        higher priority, but actions can be taken based on community feedback
+        or the agent's own analysis as well.
 
         Args:
             agent: The agent to use for analysis
@@ -1044,21 +1077,19 @@ TRIGGERED_BY: <username whose comment triggered this>
         if not self.enable_issue_management:
             return
 
-        # Get maintainer comments
+        # Log comment breakdown for visibility
         maintainer_comments = self._get_maintainer_comments(existing_comments)
-
-        if not maintainer_comments:
-            logger.debug("No maintainer comments on issue #%s", issue.number)
-            return
+        community_count = len(existing_comments) - len(maintainer_comments)
 
         logger.info(
-            "Found %d maintainer comments on issue #%s",
-            len(maintainer_comments),
+            "Analyzing issue #%s for management actions (%d maintainer, %d community comments)",
             issue.number,
+            len(maintainer_comments),
+            community_count,
         )
 
-        # Analyze for actions
-        actions = await self._analyze_for_actions(agent, issue, maintainer_comments)
+        # Analyze for actions (pass all comments - method handles separation)
+        actions = await self._analyze_for_actions(agent, issue, existing_comments)
 
         if not actions:
             logger.debug("No actions needed for issue #%s", issue.number)
@@ -1072,8 +1103,9 @@ TRIGGERED_BY: <username whose comment triggered this>
             if success:
                 result.actions_taken.append(action)
                 logger.info(
-                    "Executed %s on #%s: %s",
+                    "Executed %s on #%s: %s (triggered by: %s)",
                     action.action_type,
                     action.issue_number,
                     action.reason,
+                    action.triggered_by,
                 )
