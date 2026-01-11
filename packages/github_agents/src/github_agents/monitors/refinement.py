@@ -313,7 +313,6 @@ INSIGHT:
         cutoff_max = datetime.utcnow() - timedelta(days=self.min_age_days)
 
         cmd = [
-            "gh",
             "issue",
             "list",
             "--repo",
@@ -428,7 +427,6 @@ INSIGHT:
             List of comment dictionaries
         """
         cmd = [
-            "gh",
             "issue",
             "view",
             str(issue_number),
@@ -648,7 +646,6 @@ INSIGHT:
         comment_body = insight.to_comment_body()
 
         cmd = [
-            "gh",
             "issue",
             "comment",
             str(insight.issue_number),
