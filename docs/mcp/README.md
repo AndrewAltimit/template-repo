@@ -9,7 +9,7 @@ This repository contains a modular collection of 18 MCP servers that provide var
 These servers run as local processes on the same machine as the client:
 
 #### 1. Code Quality MCP Server
-**Location**: `tools/mcp/code_quality/`
+**Location**: `tools/mcp/mcp_code_quality/`
 **Transport**: STDIO (local process)
 **Documentation**: [Code Quality MCP Documentation](../../tools/mcp/mcp_code_quality/docs/README.md)
 
@@ -19,7 +19,7 @@ Provides code formatting and linting tools for multiple languages:
 - Auto-formatting capabilities
 
 #### 2. Content Creation MCP Server
-**Location**: `tools/mcp/content_creation/`
+**Location**: `tools/mcp/mcp_content_creation/`
 **Transport**: STDIO (local process)
 **Documentation**: [Content Creation MCP Documentation](../../tools/mcp/mcp_content_creation/docs/README.md)
 
@@ -30,7 +30,7 @@ Tools for creating mathematical animations and documents:
 - Preview generation and compression
 
 #### 3. Gemini AI Integration MCP Server
-**Location**: `tools/mcp/gemini/`
+**Location**: `tools/mcp/mcp_gemini/`
 **Transport**: STDIO (local process, host-only)
 **Documentation**: [Gemini MCP Documentation](../../tools/mcp/mcp_gemini/docs/README.md)
 
@@ -43,7 +43,7 @@ AI integration for second opinions and code validation:
 **Important**: Must run on host system (not in container) due to Docker access requirements
 
 #### 4. OpenCode MCP Server
-**Location**: `tools/mcp/opencode/`
+**Location**: `tools/mcp/mcp_opencode/`
 **Transport**: STDIO (local) or HTTP (remote)
 **Documentation**: [OpenCode MCP Documentation](../../tools/mcp/mcp_opencode/README.md)
 
@@ -55,7 +55,7 @@ AI-powered code generation using OpenRouter:
 - Model-agnostic via OpenRouter
 
 #### 5. Crush MCP Server
-**Location**: `tools/mcp/crush/`
+**Location**: `tools/mcp/mcp_crush/`
 **Transport**: STDIO (local) or HTTP (remote)
 **Documentation**: [Crush MCP Documentation](../../tools/mcp/mcp_crush/README.md)
 
@@ -66,7 +66,7 @@ Code generation using OpenRouter:
 - Model-agnostic via OpenRouter
 
 #### 6. Meme Generator MCP Server
-**Location**: `tools/mcp/meme_generator/`
+**Location**: `tools/mcp/mcp_meme_generator/`
 **Transport**: STDIO (local process)
 **Documentation**: [Meme Generator MCP Documentation](../../tools/mcp/mcp_meme_generator/docs/README.md)
 
@@ -79,7 +79,7 @@ Generate memes with customizable text overlays:
 - 7+ built-in templates with more being added
 
 #### 7. ElevenLabs Speech MCP Server
-**Location**: `tools/mcp/elevenlabs_speech/`
+**Location**: `tools/mcp/mcp_elevenlabs_speech/`
 **Transport**: STDIO (local) or HTTP (Port 8018)
 **Documentation**: [ElevenLabs MCP Documentation](../../tools/mcp/mcp_elevenlabs_speech/docs/README.md)
 
@@ -97,7 +97,7 @@ Advanced text-to-speech synthesis with emotional control:
 - **Content filtering**: v3 model filters harmful/negative content
 
 #### 8. Video Editor MCP Server
-**Location**: `tools/mcp/video_editor/`
+**Location**: `tools/mcp/mcp_video_editor/`
 **Transport**: STDIO (local) or HTTP (Port 8019)
 **Documentation**: [Video Editor MCP Documentation](../../tools/mcp/mcp_video_editor/docs/README.md)
 
@@ -113,7 +113,7 @@ AI-powered video editing with intelligent automation:
 - Job-based async processing for long operations
 
 #### 9. Blender MCP Server
-**Location**: `tools/mcp/blender/`
+**Location**: `tools/mcp/mcp_blender/`
 **Transport**: STDIO (local) or HTTP (Port 8016)
 **Documentation**: [Blender MCP Documentation](../../tools/mcp/mcp_blender/docs/README.md)
 
@@ -129,7 +129,7 @@ AI-powered video editing with intelligent automation:
 - Import/export various 3D formats
 
 #### 10. Virtual Character MCP Server
-**Location**: `tools/mcp/virtual_character/`
+**Location**: `tools/mcp/mcp_virtual_character/`
 **Transport**: STDIO (local) or HTTP (Port 8020)
 **Documentation**: [Virtual Character MCP Documentation](../../tools/mcp/mcp_virtual_character/README.md)
 
@@ -206,7 +206,7 @@ Cross-platform desktop automation:
 These servers use HTTP transport for remote machines or special hardware/software requirements:
 
 #### 1. Gaea2 Terrain Generation MCP Server
-**Location**: `tools/mcp/gaea2/`
+**Location**: `tools/mcp/mcp_gaea2/`
 **Transport**: HTTP (Port 8007)
 **Remote Location**: Can run at `192.168.0.152:8007`
 **Documentation**: [Gaea2 MCP Documentation](../../tools/mcp/mcp_gaea2/docs/README.md) | [Full Documentation Index](../../tools/mcp/mcp_gaea2/docs/INDEX.md)
@@ -221,7 +221,7 @@ Comprehensive terrain generation with Gaea2:
 **Why HTTP**: Requires Windows OS with Gaea2 software installed
 
 #### 2. AI Toolkit MCP Server
-**Location**: `tools/mcp/ai_toolkit/`
+**Location**: `tools/mcp/mcp_ai_toolkit/`
 **Transport**: HTTP (Port 8012)
 **Remote Location**: `192.168.0.152:8012`
 **Documentation**: [AI Toolkit MCP Documentation](../../tools/mcp/mcp_ai_toolkit/README.md)
@@ -236,7 +236,7 @@ GPU-accelerated LoRA training management:
 **Why HTTP**: Requires NVIDIA GPU and specific ML environment
 
 #### 3. ComfyUI MCP Server
-**Location**: `tools/mcp/comfyui/`
+**Location**: `tools/mcp/mcp_comfyui/`
 **Transport**: HTTP (Port 8013)
 **Remote Location**: `192.168.0.152:8013`
 **Documentation**: [ComfyUI MCP Documentation](../../tools/mcp/mcp_comfyui/README.md)
@@ -307,21 +307,26 @@ tools/mcp/
 │   └── utils.py            # Common utilities
 │
 # Local Process Servers (STDIO)
-├── code_quality/           # Code quality tools (local)
-├── content_creation/       # Manim & LaTeX tools (local)
-├── gemini/                 # AI integration (local, host-only)
-├── opencode/               # AI code generation (local/remote capable)
-├── crush/                  # Code generation (local/remote capable)
-├── meme_generator/         # Meme generation (local)
-├── elevenlabs_speech/      # Text-to-speech synthesis (local)
-├── video_editor/           # AI-powered video editing (local)
-├── blender/                # 3D content creation (local)
-├── virtual_character/      # AI agent embodiment (local)
+├── mcp_code_quality/       # Code quality tools (local)
+├── mcp_content_creation/   # Manim & LaTeX tools (local)
+├── mcp_gemini/             # AI integration (local, host-only)
+├── mcp_codex/              # Codex AI code generation (local)
+├── mcp_opencode/           # OpenCode code generation (local)
+├── mcp_crush/              # Crush code generation (local)
+├── mcp_meme_generator/     # Meme generation (local)
+├── mcp_elevenlabs_speech/  # Text-to-speech synthesis (local)
+├── mcp_video_editor/       # AI-powered video editing (local)
+├── mcp_blender/            # 3D content creation (local)
+├── mcp_virtual_character/  # AI agent embodiment (local)
+├── mcp_github_board/       # GitHub Projects board management (local)
+├── mcp_agentcore_memory/   # AI memory system (local)
+├── mcp_reaction_search/    # Reaction image search (local)
+├── mcp_desktop_control/    # Desktop automation (local)
 │
 # Remote/Cross-Machine Servers (HTTP)
-├── gaea2/                  # Terrain generation (Windows requirement)
-├── ai_toolkit/             # LoRA training (GPU requirement)
-└── comfyui/                # Image generation (GPU requirement)
+├── mcp_gaea2/              # Terrain generation (Windows requirement)
+├── mcp_ai_toolkit/         # LoRA training (GPU requirement)
+└── mcp_comfyui/            # Image generation (GPU requirement)
 ```
 
 ## Running MCP Servers
