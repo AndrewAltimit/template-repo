@@ -1,6 +1,6 @@
 # MCP (Model Context Protocol) Servers
 
-This repository contains a modular collection of 13 MCP servers that provide various development and content creation tools. Each server is specialized for specific functionality and can be run independently.
+This repository contains a modular collection of 18 MCP servers that provide various development and content creation tools. Each server is specialized for specific functionality and can be run independently.
 
 ## Available MCP Servers
 
@@ -187,6 +187,19 @@ Semantic search for reaction images:
 - Auto-fetches reaction config from GitHub repository
 - Tag-based filtering and browsing
 - Cache management with refresh capability
+
+#### 15. Desktop Control MCP Server
+**Location**: `tools/mcp/mcp_desktop_control/`
+**Transport**: STDIO (local) or HTTP (Port 8025)
+**Documentation**: [Desktop Control MCP Documentation](../../tools/mcp/mcp_desktop_control/docs/README.md)
+
+Cross-platform desktop automation:
+- Window management (list, focus, move, resize, minimize, maximize)
+- Screenshot capture (screen, window, region)
+- Mouse control (move, click, drag, scroll)
+- Keyboard automation (type text, send keys, hotkeys)
+- Linux support via xdotool, wmctrl, scrot
+- Windows support via pywinauto, pyautogui
 
 ### Remote/Cross-Machine Servers (HTTP Transport)
 
