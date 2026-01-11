@@ -196,7 +196,7 @@ INSIGHT:
         agent_cooldown_days: int = 14,
         similarity_threshold: float = 0.7,
         min_insight_length: int = 50,
-        max_insight_length: int = 500,
+        max_insight_length: int = 60000,  # GitHub limit is 65536, leave room for header/footer
         dry_run: bool = False,
     ):
         """Initialize the refinement monitor.
