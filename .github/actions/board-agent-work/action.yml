@@ -274,12 +274,13 @@ runs:
         echo "Finding approved issues not yet on board..."
 
         # Use board-cli to find approved issues (handles API calls internally)
-        if APPROVED_RESULT=$(board-cli --json find-approved --agent "$AGENT_NAME" 2>&1); then
-          echo "Find approved result: $APPROVED_RESULT"
+        # Note: Redirect stderr to /dev/null so only JSON goes to stdout
+        if APPROVED_RESULT=$(board-cli --json find-approved --agent "$AGENT_NAME" 2>/dev/null); then
+          echo "Find approved result (JSON): $APPROVED_RESULT"
 
           # Add each approved issue that's not on board (use jq to avoid YAML escaping issues)
           SYNCED=0
-          for ISSUE_NUM in $(echo "$APPROVED_RESULT" | jq -r '.[] | select(.on_board == false) | .number' 2>/dev/null); do
+          for ISSUE_NUM in $(echo "$APPROVED_RESULT" | jq -r '.[] | select(.on_board == false) | .number' 2>/dev/null || true); do
             echo "Adding issue #$ISSUE_NUM to board..."
             if board-cli --json add-to-board "$ISSUE_NUM" --agent "$AGENT_NAME" >/dev/null 2>&1; then
               echo "Added issue #$ISSUE_NUM to board"
@@ -338,11 +339,12 @@ runs:
         echo "Running: board-cli $CLI_ARGS"
 
         # Query using board-cli (filtering handled by CLI)
-        if READY_RESULT=$(eval board-cli $CLI_ARGS 2>&1); then
-          echo "Query result: $READY_RESULT"
+        # Note: Don't redirect stderr to stdout - logs go to stderr, JSON goes to stdout
+        if READY_RESULT=$(eval board-cli $CLI_ARGS 2>/dev/null); then
+          echo "Query result (JSON): $READY_RESULT"
 
           # Check if we got results (array with items)
-          ISSUE_COUNT=$(echo "$READY_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)")
+          ISSUE_COUNT=$(echo "$READY_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)" 2>/dev/null || echo "0")
 
           if [ "$ISSUE_COUNT" -gt 0 ]; then
             # Extract first issue details
