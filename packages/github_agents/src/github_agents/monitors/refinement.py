@@ -53,6 +53,18 @@ class RefinementInsight:
 
 
 @dataclass
+class IssueAction:
+    """Represents an action to take on an issue."""
+
+    action_type: str  # "close", "update_title", "update_body", "add_label", "remove_label", "link_pr"
+    issue_number: int
+    details: Dict[str, Any] = field(default_factory=dict)
+    reason: str = ""
+    triggered_by: str = ""  # username who triggered this action
+    executed: bool = False
+
+
+@dataclass
 class RefinementResult:
     """Result of refining a single issue."""
 
@@ -61,6 +73,7 @@ class RefinementResult:
     insights_added: int = 0
     insights_skipped: int = 0
     agents_reviewed: List[str] = field(default_factory=list)
+    actions_taken: List[IssueAction] = field(default_factory=list)
     error: Optional[str] = None
 
 
@@ -176,6 +189,39 @@ INSIGHT:
 """,
     }
 
+    # Prompt for analyzing maintainer feedback and determining actions
+    ISSUE_MANAGEMENT_PROMPT = """Analyze these comments from project maintainers on issue #$issue_number.
+
+Issue: $title
+Current Description:
+$body
+
+Current Labels: $labels
+
+Maintainer Comments (from trusted users):
+$maintainer_comments
+
+Based on these maintainer comments, determine if any actions should be taken on this issue.
+
+Available actions:
+- close: Close the issue (only if maintainer explicitly says to close, or issue is clearly resolved/duplicate)
+- update_title: Change the issue title to be more descriptive
+- update_body: Update the issue description to incorporate feedback
+- add_label: Add a label (e.g., "bug", "enhancement", "good first issue", "needs-triage")
+- remove_label: Remove a label
+- link_pr: Reference a related PR in a comment
+
+IMPORTANT: Only suggest actions that are CLEARLY indicated by maintainer feedback.
+If no action is needed, respond with exactly: NO_ACTION_NEEDED
+
+If actions are needed, respond in this format (one action per line):
+ACTION: <action_type>
+DETAILS: <json details, e.g., {"title": "New Title"} or {"label": "bug"} or {"reason": "duplicate of #123"}>
+REASON: <brief explanation of why this action is appropriate>
+TRIGGERED_BY: <username whose comment triggered this>
+---
+"""
+
     # Comment marker pattern for tracking refinement
     REFINEMENT_MARKER_PATTERN = re.compile(r"<!-- backlog-refinement:(\w+):(\d{4}-\d{2}-\d{2}):(\w+) -->")
 
@@ -197,6 +243,8 @@ INSIGHT:
         min_insight_length: int = 50,
         max_insight_length: int = 60000,  # GitHub limit is 65536, leave room for header/footer
         dry_run: bool = False,
+        enable_issue_management: bool = False,
+        maintainer_allow_list: Optional[List[str]] = None,
     ):
         """Initialize the refinement monitor.
 
@@ -214,6 +262,8 @@ INSIGHT:
             min_insight_length: Minimum insight length to post
             max_insight_length: Maximum insight length to post
             dry_run: If True, don't post comments
+            enable_issue_management: If True, allow agents to manage issues
+            maintainer_allow_list: List of usernames who can trigger issue management
         """
         self.repo = repo
         self.board_manager = board_manager
@@ -228,6 +278,8 @@ INSIGHT:
         self.min_insight_length = min_insight_length
         self.max_insight_length = max_insight_length
         self.dry_run = dry_run
+        self.enable_issue_management = enable_issue_management
+        self.maintainer_allow_list = maintainer_allow_list or self._load_allow_list()
 
     async def run(self, agent_names: Optional[List[str]] = None) -> List[RefinementResult]:
         """Run the refinement process.
@@ -406,6 +458,14 @@ INSIGHT:
                 comments_added += 1
             else:
                 result.insights_skipped += 1
+
+        # Issue management: analyze maintainer feedback and take actions
+        if self.enable_issue_management and result.agents_reviewed:
+            # Use the first available agent for issue management analysis
+            first_agent_name = result.agents_reviewed[0]
+            first_agent = self.agents.get(first_agent_name)
+            if first_agent:
+                await self._manage_issue(first_agent, issue, existing_comments, result)
 
         return result
 
@@ -630,3 +690,390 @@ INSIGHT:
             insight.issue_number,
         )
         return True
+
+    def _load_allow_list(self) -> List[str]:
+        """Load maintainer allow list from .agents.yaml.
+
+        Returns:
+            List of allowed usernames
+        """
+        import os
+
+        try:
+            import yaml
+        except ImportError:
+            logger.warning("PyYAML not installed, using empty allow list")
+            return []
+
+        # Try common locations for .agents.yaml
+        possible_paths = [
+            ".agents.yaml",
+            os.path.join(os.getcwd(), ".agents.yaml"),
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".agents.yaml"),
+        ]
+
+        for path in possible_paths:
+            if os.path.exists(path):
+                try:
+                    with open(path, encoding="utf-8") as f:
+                        config = yaml.safe_load(f)
+                        allow_list = config.get("security", {}).get("allow_list", [])
+                        logger.info("Loaded %d maintainers from allow list", len(allow_list))
+                        return list(allow_list) if allow_list else []
+                except Exception as e:
+                    logger.warning("Failed to load .agents.yaml: %s", e)
+
+        logger.warning("No .agents.yaml found, using empty allow list")
+        return []
+
+    def _get_maintainer_comments(self, comments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Filter comments to only those from maintainers.
+
+        Args:
+            comments: All comments on the issue
+
+        Returns:
+            Comments from users in the allow list
+        """
+        maintainer_comments = []
+        for comment in comments:
+            author = comment.get("author", {}).get("login", "")
+            if author in self.maintainer_allow_list:
+                maintainer_comments.append(comment)
+        return maintainer_comments
+
+    async def _analyze_for_actions(
+        self,
+        agent: BaseAgent,
+        issue: Issue,
+        maintainer_comments: List[Dict[str, Any]],
+    ) -> List[IssueAction]:
+        """Analyze maintainer comments for actionable feedback.
+
+        Args:
+            agent: The agent to use for analysis
+            issue: The issue being analyzed
+            maintainer_comments: Comments from maintainers
+
+        Returns:
+            List of actions to take
+        """
+        if not maintainer_comments:
+            return []
+
+        # Format maintainer comments
+        comments_text = "\n\n".join(
+            f"**{c.get('author', {}).get('login', 'unknown')}** ({c.get('createdAt', 'unknown date')}):\n{c.get('body', '')}"
+            for c in maintainer_comments
+        )
+
+        # Get issue labels
+        labels = getattr(issue, "labels", []) or []
+        labels_text = ", ".join(labels) if labels else "(no labels)"
+
+        # Build prompt
+        body = issue.body or "(no description)"
+        if len(body) > self.MAX_BODY_LENGTH:
+            body = body[: self.MAX_BODY_LENGTH] + "..."
+
+        prompt = Template(self.ISSUE_MANAGEMENT_PROMPT).safe_substitute(
+            issue_number=issue.number,
+            title=issue.title,
+            body=body,
+            labels=labels_text,
+            maintainer_comments=comments_text,
+        )
+
+        try:
+            response = await agent.review_async(prompt)
+
+            if "NO_ACTION_NEEDED" in response:
+                return []
+
+            return self._parse_action_response(response, issue.number)
+
+        except Exception as e:
+            logger.error("Failed to analyze for actions: %s", e)
+            return []
+
+    def _parse_action_response(self, response: str, issue_number: int) -> List[IssueAction]:
+        """Parse agent response into actions.
+
+        Args:
+            response: Raw agent response
+            issue_number: The issue number
+
+        Returns:
+            List of parsed actions
+        """
+        actions = []
+
+        # Split by action delimiter
+        action_blocks = response.split("---")
+
+        for block in action_blocks:
+            block = block.strip()
+            if not block or "ACTION:" not in block:
+                continue
+
+            try:
+                action_type = ""
+                details = {}
+                reason = ""
+                triggered_by = ""
+
+                for line in block.split("\n"):
+                    line = line.strip()
+                    if line.startswith("ACTION:"):
+                        action_type = line.replace("ACTION:", "").strip().lower()
+                    elif line.startswith("DETAILS:"):
+                        details_str = line.replace("DETAILS:", "").strip()
+                        try:
+                            details = json.loads(details_str)
+                        except json.JSONDecodeError:
+                            details = {"raw": details_str}
+                    elif line.startswith("REASON:"):
+                        reason = line.replace("REASON:", "").strip()
+                    elif line.startswith("TRIGGERED_BY:"):
+                        triggered_by = line.replace("TRIGGERED_BY:", "").strip()
+
+                if action_type:
+                    actions.append(
+                        IssueAction(
+                            action_type=action_type,
+                            issue_number=issue_number,
+                            details=details,
+                            reason=reason,
+                            triggered_by=triggered_by,
+                        )
+                    )
+
+            except Exception as e:
+                logger.warning("Failed to parse action block: %s", e)
+
+        return actions
+
+    async def _execute_action(self, action: IssueAction) -> bool:
+        """Execute a single action on an issue.
+
+        Args:
+            action: The action to execute
+
+        Returns:
+            True if executed successfully
+        """
+        if self.dry_run:
+            logger.info(
+                "[DRY RUN] Would execute %s on #%s: %s (triggered by %s)",
+                action.action_type,
+                action.issue_number,
+                action.reason,
+                action.triggered_by,
+            )
+            action.executed = True
+            return True
+
+        try:
+            if action.action_type == "close":
+                return await self._close_issue(action)
+            elif action.action_type == "update_title":
+                return await self._update_issue_title(action)
+            elif action.action_type == "update_body":
+                return await self._update_issue_body(action)
+            elif action.action_type == "add_label":
+                return await self._add_label(action)
+            elif action.action_type == "remove_label":
+                return await self._remove_label(action)
+            elif action.action_type == "link_pr":
+                return await self._link_pr(action)
+            else:
+                logger.warning("Unknown action type: %s", action.action_type)
+                return False
+
+        except Exception as e:
+            logger.error("Failed to execute action %s: %s", action.action_type, e)
+            return False
+
+    async def _close_issue(self, action: IssueAction) -> bool:
+        """Close an issue."""
+        reason = action.details.get("reason", action.reason)
+        comment = f"Closing this issue based on maintainer feedback.\n\n**Reason:** {reason}\n\n*Automated action triggered by @{action.triggered_by}*"
+
+        # Post comment explaining the close
+        comment_cmd = [
+            "issue",
+            "comment",
+            str(action.issue_number),
+            "--repo",
+            self.repo,
+            "--body",
+            comment,
+        ]
+        await run_gh_command_async(comment_cmd, check=False)
+
+        # Close the issue
+        cmd = [
+            "issue",
+            "close",
+            str(action.issue_number),
+            "--repo",
+            self.repo,
+        ]
+        result = await run_gh_command_async(cmd, check=False)
+        action.executed = result is not None
+        return action.executed
+
+    async def _update_issue_title(self, action: IssueAction) -> bool:
+        """Update issue title."""
+        new_title = action.details.get("title", "")
+        if not new_title:
+            return False
+
+        cmd = [
+            "issue",
+            "edit",
+            str(action.issue_number),
+            "--repo",
+            self.repo,
+            "--title",
+            new_title,
+        ]
+        result = await run_gh_command_async(cmd, check=False)
+        action.executed = result is not None
+        return action.executed
+
+    async def _update_issue_body(self, action: IssueAction) -> bool:
+        """Update issue body."""
+        new_body = action.details.get("body", "")
+        if not new_body:
+            return False
+
+        cmd = [
+            "issue",
+            "edit",
+            str(action.issue_number),
+            "--repo",
+            self.repo,
+            "--body",
+            new_body,
+        ]
+        result = await run_gh_command_async(cmd, check=False)
+        action.executed = result is not None
+        return action.executed
+
+    async def _add_label(self, action: IssueAction) -> bool:
+        """Add a label to the issue."""
+        label = action.details.get("label", "")
+        if not label:
+            return False
+
+        cmd = [
+            "issue",
+            "edit",
+            str(action.issue_number),
+            "--repo",
+            self.repo,
+            "--add-label",
+            label,
+        ]
+        result = await run_gh_command_async(cmd, check=False)
+        action.executed = result is not None
+        return action.executed
+
+    async def _remove_label(self, action: IssueAction) -> bool:
+        """Remove a label from the issue."""
+        label = action.details.get("label", "")
+        if not label:
+            return False
+
+        cmd = [
+            "issue",
+            "edit",
+            str(action.issue_number),
+            "--repo",
+            self.repo,
+            "--remove-label",
+            label,
+        ]
+        result = await run_gh_command_async(cmd, check=False)
+        action.executed = result is not None
+        return action.executed
+
+    async def _link_pr(self, action: IssueAction) -> bool:
+        """Link a PR to the issue via comment."""
+        pr_number = action.details.get("pr_number", "")
+        pr_url = action.details.get("pr_url", "")
+
+        if pr_number:
+            link = f"#{pr_number}"
+        elif pr_url:
+            link = pr_url
+        else:
+            return False
+
+        comment = f"Related PR: {link}\n\n*Automated link based on maintainer feedback (triggered by @{action.triggered_by})*"
+
+        cmd = [
+            "issue",
+            "comment",
+            str(action.issue_number),
+            "--repo",
+            self.repo,
+            "--body",
+            comment,
+        ]
+        result = await run_gh_command_async(cmd, check=False)
+        action.executed = result is not None
+        return action.executed
+
+    async def _manage_issue(
+        self,
+        agent: BaseAgent,
+        issue: Issue,
+        existing_comments: List[Dict[str, Any]],
+        result: RefinementResult,
+    ) -> None:
+        """Manage an issue based on maintainer feedback.
+
+        Args:
+            agent: The agent to use for analysis
+            issue: The issue to manage
+            existing_comments: All comments on the issue
+            result: RefinementResult to update with actions
+        """
+        if not self.enable_issue_management:
+            return
+
+        # Get maintainer comments
+        maintainer_comments = self._get_maintainer_comments(existing_comments)
+
+        if not maintainer_comments:
+            logger.debug("No maintainer comments on issue #%s", issue.number)
+            return
+
+        logger.info(
+            "Found %d maintainer comments on issue #%s",
+            len(maintainer_comments),
+            issue.number,
+        )
+
+        # Analyze for actions
+        actions = await self._analyze_for_actions(agent, issue, maintainer_comments)
+
+        if not actions:
+            logger.debug("No actions needed for issue #%s", issue.number)
+            return
+
+        logger.info("Identified %d actions for issue #%s", len(actions), issue.number)
+
+        # Execute actions
+        for action in actions:
+            success = await self._execute_action(action)
+            if success:
+                result.actions_taken.append(action)
+                logger.info(
+                    "Executed %s on #%s: %s",
+                    action.action_type,
+                    action.issue_number,
+                    action.reason,
+                )
