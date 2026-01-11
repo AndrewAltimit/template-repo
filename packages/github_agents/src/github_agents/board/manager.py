@@ -1201,13 +1201,15 @@ Work claim released.
         try:
             import yaml
         except ImportError:
+            logger.warning("PyYAML not installed, cannot load agent_admins")
             return []
 
         # Try common locations for .agents.yaml
+        # Path from packages/github_agents/src/github_agents/board/ needs 5 levels to reach root
         possible_paths = [
             ".agents.yaml",
             os.path.join(os.getcwd(), ".agents.yaml"),
-            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".agents.yaml"),
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", ".agents.yaml"),
         ]
 
         for path in possible_paths:
@@ -1217,9 +1219,12 @@ Work claim released.
                         config = yaml.safe_load(f)
                         agent_admins = config.get("security", {}).get("agent_admins", [])
                         return list(agent_admins) if agent_admins else []
-                except Exception:
-                    pass
+                except yaml.YAMLError as e:
+                    logger.error("Malformed .agents.yaml at %s: %s", path, e)
+                except Exception as e:
+                    logger.error("Failed to load .agents.yaml from %s: %s", path, e)
 
+        logger.debug("No .agents.yaml found, agent_admins list is empty")
         return []
 
     # ===== Claim Management =====
