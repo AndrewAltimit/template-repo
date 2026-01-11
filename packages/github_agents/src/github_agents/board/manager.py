@@ -1150,8 +1150,10 @@ Work claim released.
         Looks for [Approved], [Review], [Close], [Summarize], or [Debug] patterns.
         The agent is determined by the project board's Agent field, not the trigger.
 
-        Authorization: The repository owner and project owner are always authorized.
-        The board is expected to be restricted to trusted admins.
+        Authorization sources (in order of precedence):
+        1. Repository owner (from config.repository)
+        2. Project owner (from config.owner)
+        3. Users in .agents.yaml security.allow_list
 
         Args:
             text: Text to check (issue body or comment)
@@ -1174,6 +1176,10 @@ Work claim released.
         if self.config.owner:
             allowed_users.add(self.config.owner)
 
+        # Add users from .agents.yaml allow_list
+        allow_list = self._load_agents_yaml_allow_list()
+        allowed_users.update(allow_list)
+
         if author not in allowed_users:
             return False
 
@@ -1182,6 +1188,39 @@ Work claim released.
         match = re.search(pattern, text, re.IGNORECASE)
 
         return match is not None
+
+    def _load_agents_yaml_allow_list(self) -> list[str]:
+        """
+        Load the security allow_list from .agents.yaml.
+
+        Returns:
+            List of authorized usernames, or empty list if not found
+        """
+        import os
+
+        try:
+            import yaml
+        except ImportError:
+            return []
+
+        # Try common locations for .agents.yaml
+        possible_paths = [
+            ".agents.yaml",
+            os.path.join(os.getcwd(), ".agents.yaml"),
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".agents.yaml"),
+        ]
+
+        for path in possible_paths:
+            if os.path.exists(path):
+                try:
+                    with open(path, encoding="utf-8") as f:
+                        config = yaml.safe_load(f)
+                        allow_list = config.get("security", {}).get("allow_list", [])
+                        return list(allow_list) if allow_list else []
+                except Exception:
+                    pass
+
+        return []
 
     # ===== Claim Management =====
 
