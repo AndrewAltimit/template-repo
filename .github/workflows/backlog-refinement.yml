@@ -98,7 +98,8 @@ jobs:
           MAX_ISSUES="${{ inputs.max-issues || '5' }}"
           MAX_COMMENTS="${{ inputs.max-comments || '2' }}"
           MIN_AGE="${{ inputs.min-age-days || '3' }}"
-          DRY_RUN="${{ inputs.dry-run || 'true' }}"
+          # Handle boolean properly: false || 'true' would incorrectly give 'true'
+          DRY_RUN="${{ inputs.dry-run == false && 'false' || 'true' }}"
 
           echo "agents=$AGENTS" >> $GITHUB_OUTPUT
           echo "max_issues=$MAX_ISSUES" >> $GITHUB_OUTPUT
