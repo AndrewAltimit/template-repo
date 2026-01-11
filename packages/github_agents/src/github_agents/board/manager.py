@@ -1191,7 +1191,8 @@ Work claim released.
         # Parse trigger pattern: [Action][Agent] format (e.g., [Approved][Claude])
         # The agent name is required to avoid false positives from instructional text
         # like "reply with `[Approved]` to create PR"
-        pattern = r"\[(Approved|Review|Close|Summarize|Debug)\]\[(\w+)\]"
+        # Agent names can contain word chars and hyphens (e.g., github-actions)
+        pattern = r"\[(Approved|Review|Close|Summarize|Debug)\]\[([\w-]+)\]"
         match = re.search(pattern, text, re.IGNORECASE)
 
         return match is not None

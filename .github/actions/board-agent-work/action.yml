@@ -278,9 +278,9 @@ runs:
         if APPROVED_RESULT=$(board-cli --json find-approved --agent "$AGENT_NAME" 2>/dev/null); then
           echo "Find approved result (JSON): $APPROVED_RESULT"
 
-          # Add each approved issue that's not on board (use jq to avoid YAML escaping issues)
+          # Add each approved issue that's not on board (use python3 for consistency - no jq dependency)
           SYNCED=0
-          for ISSUE_NUM in $(echo "$APPROVED_RESULT" | jq -r '.[] | select(.on_board == false) | .number' 2>/dev/null || true); do
+          for ISSUE_NUM in $(echo "$APPROVED_RESULT" | python3 -c "import sys,json; [print(i['number']) for i in json.load(sys.stdin) if not i.get('on_board', True)]" 2>/dev/null || true); do
             echo "Adding issue #$ISSUE_NUM to board..."
             if board-cli --json add-to-board "$ISSUE_NUM" --agent "$AGENT_NAME" >/dev/null 2>&1; then
               echo "Added issue #$ISSUE_NUM to board"
@@ -318,29 +318,35 @@ runs:
 
         echo "Querying ready work for agent: $AGENT_NAME..."
 
-        # Build board-cli command with label filtering and approval check
-        CLI_ARGS="--json ready --limit $MAX_ISSUES --approved-only"
+        # Build board-cli command using arrays to prevent command injection
+        # This avoids eval and properly handles arguments with special characters
+        CLI_CMD=(board-cli --json ready --limit "$MAX_ISSUES" --approved-only)
         if [ -n "$AGENT_NAME" ]; then
-          CLI_ARGS="$CLI_ARGS --agent \"$AGENT_NAME\""
+          CLI_CMD+=(--agent "$AGENT_NAME")
         fi
 
-        # Add label filters to CLI args (filtering done in CLI, not shell)
+        # Add label filters using IFS to properly handle comma-separated labels with spaces
         if [ -n "$INCLUDE_LABELS" ]; then
-          for label in $(echo "$INCLUDE_LABELS" | tr ',' ' '); do
-            CLI_ARGS="$CLI_ARGS --include-labels \"$label\""
+          IFS=',' read -ra LABELS <<< "$INCLUDE_LABELS"
+          for label in "${LABELS[@]}"; do
+            # Trim leading/trailing whitespace
+            label=$(echo "$label" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            CLI_CMD+=(--include-labels "$label")
           done
         fi
         if [ -n "$EXCLUDE_LABELS" ]; then
-          for label in $(echo "$EXCLUDE_LABELS" | tr ',' ' '); do
-            CLI_ARGS="$CLI_ARGS --exclude-labels \"$label\""
+          IFS=',' read -ra LABELS <<< "$EXCLUDE_LABELS"
+          for label in "${LABELS[@]}"; do
+            label=$(echo "$label" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            CLI_CMD+=(--exclude-labels "$label")
           done
         fi
 
-        echo "Running: board-cli $CLI_ARGS"
+        echo "Running: ${CLI_CMD[*]}"
 
         # Query using board-cli (filtering handled by CLI)
         # Note: Don't redirect stderr to stdout - logs go to stderr, JSON goes to stdout
-        if READY_RESULT=$(eval board-cli $CLI_ARGS 2>/dev/null); then
+        if READY_RESULT=$("${CLI_CMD[@]}" 2>/dev/null); then
           echo "Query result (JSON): $READY_RESULT"
 
           # Check if we got results (array with items)
@@ -573,8 +579,9 @@ runs:
         ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --json body -q '.body' 2>/dev/null || echo "Unable to fetch issue body")
 
         # Write context using printf to avoid heredoc indentation issues in YAML
+        # Note: No escaping needed - printf handles special chars correctly
         printf '%s\n' \
-          "# Issue #$ISSUE_NUMBER: $(printf '%s' "$ISSUE_TITLE" | sed 's/[\/&\\]/\\&/g')" \
+          "# Issue #$ISSUE_NUMBER: $ISSUE_TITLE" \
           "" \
           "## Issue Description" \
           "" \
@@ -608,10 +615,11 @@ runs:
             if command -v claude &> /dev/null; then
               echo "Running Claude Code on host..."
               # --dangerously-skip-permissions required for CI/CD (no TTY for interactive prompts)
-              # --print mode requires prompt as argument (not stdin - causes streaming mode error)
+              # --print mode outputs response and exits (non-interactive)
               # --output-format text for clean output
+              # Prompt is passed as positional argument (not -p which is --print flag)
               PROMPT_TEXT=$(cat "$CONTEXT_FILE")
-              if timeout "${AGENT_TIMEOUT}m" claude --print --dangerously-skip-permissions --output-format text -p "$PROMPT_TEXT"; then
+              if timeout "${AGENT_TIMEOUT}m" claude --print --dangerously-skip-permissions --output-format text "$PROMPT_TEXT"; then
                 WORK_COMPLETED="true"
               else
                 AGENT_ERROR="Claude execution failed or timed out"

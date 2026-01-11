@@ -1,6 +1,6 @@
 # MCP-Enabled Project Template
 
-A comprehensive development ecosystem with 6 AI agents, 18 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
+An AI safety engineering portfolio combining production tooling, detection research, and risk analysis—structured as a reusable template.
 
 ![MCP Demo](docs/mcp/architecture/demo.gif)
 

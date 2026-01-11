@@ -502,21 +502,32 @@ async def cmd_find_approved(args: argparse.Namespace) -> None:
 
         approved_issues = []
         async with aiohttp.ClientSession() as session:
-            # Get open issues
+            # Get open issues with pagination
             url = f"https://api.github.com/repos/{owner}/{repo_name}/issues"
             headers = {
                 "Authorization": f"token {manager.github_token}",
                 "Accept": "application/vnd.github.v3+json",
             }
-            params = {"state": "open", "per_page": 50}
 
-            async with session.get(url, headers=headers, params=params) as resp:
-                if resp.status != 200:
-                    raise ValueError(f"GitHub API error: {resp.status}")
-                issues = await resp.json()
+            # Paginate through all open issues
+            page = 1
+            all_issues = []
+            while True:
+                params = {"state": "open", "per_page": 100, "page": page}
+                async with session.get(url, headers=headers, params=params) as resp:
+                    if resp.status != 200:
+                        raise ValueError(f"GitHub API error: {resp.status}")
+                    issues = await resp.json()
+                    if not issues:
+                        break
+                    all_issues.extend(issues)
+                    page += 1
+                    # Safety limit to prevent infinite loops
+                    if page > 10:
+                        break
 
             # For each issue, check comments for approval
-            for issue in issues:
+            for issue in all_issues:
                 # Skip PRs
                 if "pull_request" in issue:
                     continue
