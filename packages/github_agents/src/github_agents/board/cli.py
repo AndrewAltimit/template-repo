@@ -465,6 +465,186 @@ async def cmd_info(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
+async def cmd_find_approved(args: argparse.Namespace) -> None:
+    """Find issues with approval comments that are not yet on the board."""
+    manager = load_board_manager()
+    await manager.initialize()
+
+    logger.info("Finding approved issues for agent: %s", args.agent)
+
+    try:
+        import re
+
+        import aiohttp
+
+        # Build the approval pattern for this agent
+        agent_name = args.agent or "claude"
+        pattern = re.compile(r"\[Approved\]\[" + re.escape(agent_name) + r"\]", re.IGNORECASE)
+
+        # Fetch open issues from GitHub REST API
+        repo_parts = manager.config.repository.split("/")
+        if len(repo_parts) != 2:
+            raise ValueError(f"Invalid repository format: {manager.config.repository}")
+        owner, repo_name = repo_parts
+
+        approved_issues = []
+        async with aiohttp.ClientSession() as session:
+            # Get open issues
+            url = f"https://api.github.com/repos/{owner}/{repo_name}/issues"
+            headers = {
+                "Authorization": f"token {manager.github_token}",
+                "Accept": "application/vnd.github.v3+json",
+            }
+            params = {"state": "open", "per_page": 50}
+
+            async with session.get(url, headers=headers, params=params) as resp:
+                if resp.status != 200:
+                    raise ValueError(f"GitHub API error: {resp.status}")
+                issues = await resp.json()
+
+            # For each issue, check comments for approval
+            for issue in issues:
+                # Skip PRs
+                if "pull_request" in issue:
+                    continue
+
+                issue_num = issue["number"]
+                comments_url = issue.get("comments_url")
+                if not comments_url:
+                    continue
+
+                async with session.get(comments_url, headers=headers) as resp:
+                    if resp.status != 200:
+                        continue
+                    comments = await resp.json()
+
+                # Check if any comment has approval
+                for comment in comments:
+                    body = comment.get("body", "")
+                    if pattern.search(body):
+                        # Check if already on board
+                        on_board = await manager.get_issue(issue_num) is not None
+                        approved_issues.append({"number": issue_num, "title": issue["title"], "on_board": on_board})
+                        break
+
+        if args.json:
+            output_result(approved_issues, json_output=True)
+        else:
+            if not approved_issues:
+                print(f"No approved issues found for agent: {agent_name}")
+            else:
+                print(f"Found {len(approved_issues)} approved issues:\n")
+                for issue in approved_issues:
+                    board_status = "on board" if issue["on_board"] else "NOT on board"
+                    print(f"  #{issue['number']}: {issue['title']} ({board_status})")
+
+    except Exception as e:
+        if args.json:
+            output_result({"error": str(e)}, json_output=True)
+        logger.error("Failed to find approved issues: %s", e)
+        sys.exit(1)
+
+
+async def cmd_add_to_board(args: argparse.Namespace) -> None:
+    """Add an issue to the project board with fields."""
+    manager = load_board_manager()
+    await manager.initialize()
+
+    logger.info(
+        "Adding issue #%s to board (status=%s, priority=%s, agent=%s)",
+        args.issue,
+        args.status,
+        args.priority,
+        args.agent,
+    )
+
+    try:
+        # First check if already on board
+        existing = await manager.get_issue(args.issue)
+        if existing:
+            if args.json:
+                output_result(
+                    {"success": True, "issue": args.issue, "already_on_board": True, "status": existing.status.value},
+                    json_output=True,
+                )
+            else:
+                print(f"Issue #{args.issue} is already on the board (status: {existing.status.value})")
+            return
+
+        # Parse status
+        from github_agents.board.models import IssuePriority, IssueSize, IssueStatus, IssueType
+
+        status_map = {
+            "todo": IssueStatus.TODO,
+            "in-progress": IssueStatus.IN_PROGRESS,
+            "blocked": IssueStatus.BLOCKED,
+            "done": IssueStatus.DONE,
+            "abandoned": IssueStatus.ABANDONED,
+        }
+        status = status_map.get(args.status.lower(), IssueStatus.TODO) if args.status else IssueStatus.TODO
+
+        # Parse priority
+        priority = None
+        if args.priority:
+            priority_map = {
+                "critical": IssuePriority.CRITICAL,
+                "high": IssuePriority.HIGH,
+                "medium": IssuePriority.MEDIUM,
+                "low": IssuePriority.LOW,
+            }
+            priority = priority_map.get(args.priority.lower())
+
+        # Parse type
+        issue_type = None
+        if args.type:
+            type_map = {
+                "feature": IssueType.FEATURE,
+                "bug": IssueType.BUG,
+                "tech_debt": IssueType.TECH_DEBT,
+                "documentation": IssueType.DOCUMENTATION,
+            }
+            issue_type = type_map.get(args.type.lower())
+
+        # Parse size
+        size = None
+        if args.size:
+            size_map = {"xs": IssueSize.XS, "s": IssueSize.S, "m": IssueSize.M, "l": IssueSize.L, "xl": IssueSize.XL}
+            size = size_map.get(args.size.lower())
+
+        # Use the normalized agent name (CLI name -> board field name)
+        agent_name = manager._normalize_agent_name(args.agent) if args.agent else "Claude Code"
+
+        success = await manager.add_issue_with_fields(
+            issue_number=args.issue,
+            status=status,
+            priority=priority,
+            issue_type=issue_type,
+            size=size,
+            agent=agent_name,
+        )
+
+        if success:
+            if args.json:
+                output_result(
+                    {"success": True, "issue": args.issue, "already_on_board": False, "status": status.value},
+                    json_output=True,
+                )
+            else:
+                print(f"Added issue #{args.issue} to board with status: {status.value}")
+        else:
+            if args.json:
+                output_result({"success": False, "issue": args.issue, "error": "Failed to add"}, json_output=True)
+            else:
+                print(f"Failed to add issue #{args.issue} to board")
+            sys.exit(1)
+
+    except Exception as e:
+        if args.json:
+            output_result({"success": False, "issue": args.issue, "error": str(e)}, json_output=True)
+        logger.error("Failed to add issue to board: %s", e)
+        sys.exit(1)
+
+
 def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -542,6 +722,21 @@ def main() -> None:
     info_parser = subparsers.add_parser("info", help="Get detailed issue information")
     info_parser.add_argument("issue", type=int, help="Issue number")
 
+    # add-to-board command
+    add_board_parser = subparsers.add_parser("add-to-board", help="Add issue to project board")
+    add_board_parser.add_argument("issue", type=int, help="Issue number")
+    add_board_parser.add_argument("--status", type=str, default="todo", help="Initial status (default: todo)")
+    add_board_parser.add_argument("--priority", type=str, choices=["critical", "high", "medium", "low"], help="Issue priority")
+    add_board_parser.add_argument(
+        "--type", type=str, choices=["feature", "bug", "tech_debt", "documentation"], help="Issue type"
+    )
+    add_board_parser.add_argument("--size", type=str, choices=["xs", "s", "m", "l", "xl"], help="Estimated size")
+    add_board_parser.add_argument("--agent", type=str, help="Assign to agent (default: Claude Code)")
+
+    # find-approved command
+    find_approved_parser = subparsers.add_parser("find-approved", help="Find approved issues not on board")
+    find_approved_parser.add_argument("--agent", type=str, default="claude", help="Agent name to check approvals for")
+
     args = parser.parse_args()
 
     # Set up logging
@@ -564,6 +759,8 @@ def main() -> None:
             "release": cmd_release,
             "check-approval": cmd_check_approval,
             "info": cmd_info,
+            "add-to-board": cmd_add_to_board,
+            "find-approved": cmd_find_approved,
         }
 
         handler = command_map.get(args.command)

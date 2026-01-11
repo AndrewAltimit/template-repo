@@ -257,7 +257,48 @@ runs:
 
         echo "::endgroup::"
 
-    # Step 4: Query board for ready work
+    # Step 4: Sync approved issues to board
+    - name: Sync approved issues to board
+      id: sync-approved
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_PROJECTS_TOKEN: ${{ inputs.github-projects-token }}
+        AGENT_NAME: ${{ inputs.agent-name }}
+        BOARD_CONFIG_PATH: ${{ inputs.board-config-path }}
+        JSON_LOGGING: ${{ inputs.json-logging }}
+      run: |
+        echo "::group::Sync Approved Issues"
+        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
+
+        echo "Finding approved issues not yet on board..."
+
+        # Use board-cli to find approved issues (handles API calls internally)
+        if APPROVED_RESULT=$(board-cli --json find-approved --agent "$AGENT_NAME" 2>&1); then
+          echo "Find approved result: $APPROVED_RESULT"
+
+          # Add each approved issue that's not on board (use jq to avoid YAML escaping issues)
+          SYNCED=0
+          for ISSUE_NUM in $(echo "$APPROVED_RESULT" | jq -r '.[] | select(.on_board == false) | .number' 2>/dev/null); do
+            echo "Adding issue #$ISSUE_NUM to board..."
+            if board-cli --json add-to-board "$ISSUE_NUM" --agent "$AGENT_NAME" >/dev/null 2>&1; then
+              echo "Added issue #$ISSUE_NUM to board"
+              SYNCED=$((SYNCED + 1))
+            else
+              echo "::warning::Failed to add issue #$ISSUE_NUM to board"
+            fi
+          done
+
+          echo "synced_count=$SYNCED" >> $GITHUB_OUTPUT
+          echo "Synced $SYNCED approved issues to board"
+        else
+          echo "::warning::Find approved command failed: $APPROVED_RESULT"
+          echo "synced_count=0" >> $GITHUB_OUTPUT
+        fi
+
+        echo "::endgroup::"
+
+    # Step 5: Query board for ready work
     - name: Query ready work
       id: query
       shell: bash
