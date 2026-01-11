@@ -92,10 +92,19 @@ async def cmd_ready(args: argparse.Namespace) -> None:
     manager = load_board_manager()
     await manager.initialize()
 
-    logger.info("Querying ready work (agent=%s, priority=%s, limit=%s)", args.agent, args.priority, args.limit)
+    logger.info(
+        "Querying ready work (agent=%s, priority=%s, limit=%s, include=%s, exclude=%s)",
+        args.agent,
+        args.priority,
+        args.limit,
+        args.include_labels,
+        args.exclude_labels,
+    )
 
     try:
-        issues = await manager.get_ready_work(agent_name=args.agent, limit=args.limit)
+        # Get more issues than limit to account for filtering
+        fetch_limit = args.limit * 3 if (args.include_labels or args.exclude_labels) else args.limit
+        issues = await manager.get_ready_work(agent_name=args.agent, limit=fetch_limit)
 
         # Filter by priority if specified
         if args.priority:
@@ -103,8 +112,31 @@ async def cmd_ready(args: argparse.Namespace) -> None:
             min_priority = priority_order.get(args.priority.lower(), 3)
             issues = [i for i in issues if i.priority and priority_order.get(i.priority.value.lower(), 3) <= min_priority]
 
+        # Filter by labels if specified
+        include_labels = set(args.include_labels) if args.include_labels else None
+        exclude_labels = set(args.exclude_labels) if args.exclude_labels else None
+
+        if include_labels or exclude_labels:
+            filtered = []
+            for issue in issues:
+                issue_labels = set(issue.labels) if issue.labels else set()
+                # Must have at least one include label (if specified)
+                if include_labels and not issue_labels.intersection(include_labels):
+                    continue
+                # Must not have any exclude labels
+                if exclude_labels and issue_labels.intersection(exclude_labels):
+                    continue
+                filtered.append(issue)
+            issues = filtered
+
+        # Apply final limit
+        issues = issues[: args.limit]
+
         if args.json:
-            output_result([{"number": i.number, "title": i.title, "status": i.status.value} for i in issues], json_output=True)
+            output_result(
+                [{"number": i.number, "title": i.title, "status": i.status.value, "labels": i.labels or []} for i in issues],
+                json_output=True,
+            )
         else:
             if not issues:
                 print("No ready work found")
@@ -305,7 +337,8 @@ async def cmd_claim(args: argparse.Namespace) -> None:
     try:
         import uuid
 
-        session_id = str(uuid.uuid4())
+        # Use provided session ID or generate one
+        session_id = args.session if args.session else str(uuid.uuid4())
         success = await manager.claim_work(args.issue, args.agent, session_id)
 
         if success:
@@ -324,6 +357,8 @@ async def cmd_claim(args: argparse.Namespace) -> None:
                 sys.exit(1)
 
     except Exception as e:
+        if args.json:
+            output_result({"success": False, "issue": args.issue, "error": str(e)}, json_output=True)
         logger.error("Failed to claim issue: %s", e)
         sys.exit(1)
 
@@ -344,7 +379,41 @@ async def cmd_release(args: argparse.Namespace) -> None:
             print(f"Released claim on issue #{args.issue} (reason: {args.reason})")
 
     except Exception as e:
+        if args.json:
+            output_result({"success": False, "issue": args.issue, "error": str(e)}, json_output=True)
         logger.error("Failed to release claim: %s", e)
+        sys.exit(1)
+
+
+async def cmd_check_approval(args: argparse.Namespace) -> None:
+    """Check if an issue has been approved by an authorized user."""
+    manager = load_board_manager()
+    await manager.initialize()
+
+    logger.info("Checking approval for issue #%s", args.issue)
+
+    try:
+        is_approved, approver = await manager.is_issue_approved(args.issue)
+
+        if args.json:
+            output_result(
+                {"approved": is_approved, "issue": args.issue, "approver": approver},
+                json_output=True,
+            )
+        else:
+            if is_approved:
+                print(f"Issue #{args.issue} is APPROVED by {approver}")
+            else:
+                print(f"Issue #{args.issue} is NOT approved")
+
+        # Exit with code 0 if approved, 1 if not (useful for shell scripts)
+        if not is_approved and not args.json:
+            sys.exit(1)
+
+    except Exception as e:
+        if args.json:
+            output_result({"approved": False, "issue": args.issue, "error": str(e)}, json_output=True)
+        logger.error("Failed to check approval: %s", e)
         sys.exit(1)
 
 
@@ -415,6 +484,10 @@ def main() -> None:
         "--priority", type=str, choices=["critical", "high", "medium", "low"], help="Minimum priority level"
     )
     ready_parser.add_argument("--limit", type=int, default=10, help="Maximum number of items to return (default: 10)")
+    ready_parser.add_argument(
+        "--include-labels", type=str, nargs="+", help="Only include issues with at least one of these labels"
+    )
+    ready_parser.add_argument("--exclude-labels", type=str, nargs="+", help="Exclude issues with any of these labels")
 
     # create command
     create_parser = subparsers.add_parser("create", help="Create tracked issue with metadata")
@@ -447,6 +520,7 @@ def main() -> None:
     claim_parser = subparsers.add_parser("claim", help="Claim an issue for work")
     claim_parser.add_argument("issue", type=int, help="Issue number")
     claim_parser.add_argument("--agent", type=str, required=True, help="Agent name")
+    claim_parser.add_argument("--session", type=str, help="Session ID (auto-generated if not provided)")
 
     # release command
     release_parser = subparsers.add_parser("release", help="Release claim on an issue")
@@ -456,9 +530,13 @@ def main() -> None:
         "--reason",
         type=str,
         default="completed",
-        choices=["completed", "blocked", "abandoned", "error"],
+        choices=["completed", "pr_created", "blocked", "abandoned", "error"],
         help="Release reason (default: completed)",
     )
+
+    # check-approval command
+    approval_parser = subparsers.add_parser("check-approval", help="Check if issue is approved")
+    approval_parser.add_argument("issue", type=int, help="Issue number")
 
     # info command
     info_parser = subparsers.add_parser("info", help="Get detailed issue information")
@@ -484,6 +562,7 @@ def main() -> None:
             "graph": cmd_graph,
             "claim": cmd_claim,
             "release": cmd_release,
+            "check-approval": cmd_check_approval,
             "info": cmd_info,
         }
 
