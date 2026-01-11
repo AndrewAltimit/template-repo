@@ -318,8 +318,8 @@ runs:
 
         echo "Querying ready work for agent: $AGENT_NAME..."
 
-        # Build board-cli command with label filtering built-in
-        CLI_ARGS="--json ready --limit $MAX_ISSUES"
+        # Build board-cli command with label filtering and approval check
+        CLI_ARGS="--json ready --limit $MAX_ISSUES --approved-only"
         if [ -n "$AGENT_NAME" ]; then
           CLI_ARGS="$CLI_ARGS --agent \"$AGENT_NAME\""
         fi

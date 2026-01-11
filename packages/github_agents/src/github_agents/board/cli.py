@@ -93,17 +93,19 @@ async def cmd_ready(args: argparse.Namespace) -> None:
     await manager.initialize()
 
     logger.info(
-        "Querying ready work (agent=%s, priority=%s, limit=%s, include=%s, exclude=%s)",
+        "Querying ready work (agent=%s, priority=%s, limit=%s, include=%s, exclude=%s, approved_only=%s)",
         args.agent,
         args.priority,
         args.limit,
         args.include_labels,
         args.exclude_labels,
+        getattr(args, "approved_only", False),
     )
 
     try:
         # Get more issues than limit to account for filtering
-        fetch_limit = args.limit * 3 if (args.include_labels or args.exclude_labels) else args.limit
+        has_filters = args.include_labels or args.exclude_labels or getattr(args, "approved_only", False)
+        fetch_limit = args.limit * 5 if has_filters else args.limit
         issues = await manager.get_ready_work(agent_name=args.agent, limit=fetch_limit)
 
         # Filter by priority if specified
@@ -128,6 +130,17 @@ async def cmd_ready(args: argparse.Namespace) -> None:
                     continue
                 filtered.append(issue)
             issues = filtered
+
+        # Filter by approval status if --approved-only is set
+        if getattr(args, "approved_only", False):
+            approved_issues = []
+            for issue in issues:
+                is_approved, _ = await manager.is_issue_approved(issue.number)
+                if is_approved:
+                    approved_issues.append(issue)
+                if len(approved_issues) >= args.limit:
+                    break
+            issues = approved_issues
 
         # Apply final limit
         issues = issues[: args.limit]
@@ -668,6 +681,7 @@ def main() -> None:
         "--include-labels", type=str, nargs="+", help="Only include issues with at least one of these labels"
     )
     ready_parser.add_argument("--exclude-labels", type=str, nargs="+", help="Exclude issues with any of these labels")
+    ready_parser.add_argument("--approved-only", action="store_true", help="Only return issues with approval comments")
 
     # create command
     create_parser = subparsers.add_parser("create", help="Create tracked issue with metadata")
