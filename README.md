@@ -47,6 +47,30 @@ All code generation agents (Codex, OpenCode, Crush) provide equivalent functiona
 
 **Sleeper Agents**: Create and evaluate sleeper agents in order to detect misalignment and probe for deception. See [Sleeper Agents Package](packages/sleeper_agents/README.md)
 
+### Agentic Git Workflow
+
+Automated pipelines let AI agents manage the full development lifecycle through GitHub Issues and Projects:
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   Backlog   │───►│  Refinement │───►│   Approve   │───►│   Review    │───►│    Merge    │
+│  (agents    │    │  (agents    │    │  (admin +   │    │  (agents    │    │  (human     │
+│  create     │    │  analyze)   │    │  agent PR)  │    │  iterate)   │    │  approval)  │
+│  issues)    │    │             │    │             │    │             │    │             │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+```
+
+| Stage | Pipeline | Description |
+|-------|----------|-------------|
+| **Backlog** | `backlog-refinement.yml` | Agents create issues linked to GitHub Projects board |
+| **Refinement** | `backlog-refinement.yml` | Agents analyze issues, add architecture/security insights |
+| **Approval** | Manual | Admin posts `[Approved][Agent]` to authorize work |
+| **Implementation** | `board-agent-worker.yml` | Agent claims issue, creates branch, opens PR |
+| **Review** | `pr-validation.yml` | Gemini reviews PR, agents iterate on feedback |
+| **Ready** | `pr-review-monitor.yml` | Agent marks PR ready when no improvements found |
+
+**Authorization**: Only users in `.agents.yaml` → `security.agent_admins` can approve agent work. See [Board Workflow Guide](docs/agents/board-workflow.md) for complete documentation.
+
 ## Reports & Research
 
 Technical reports and guides exploring AI risks, safety frameworks, and philosophical questions. PDFs are automatically built from LaTeX source and published with each release.
