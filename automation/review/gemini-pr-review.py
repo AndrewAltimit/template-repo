@@ -353,6 +353,10 @@ MAX_DIFF_CHARS = 1500000  # Max diff size before truncation (Gemini supports 1M+
 def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETRIES) -> Tuple[str, str]:
     """Calls Gemini CLI with a specific model, handling rate limits.
 
+    Gemini CLI runs in agentic mode by default, allowing it to use tools like
+    read_file, glob, and shell commands to explore the codebase and verify claims.
+    This is safe in CI pipelines where the environment is ephemeral.
+
     Args:
         prompt: The prompt to send
         model: Model name (e.g., "gemini-3-pro-preview")
@@ -371,9 +375,17 @@ def _call_gemini_with_model(prompt: str, model: str, max_retries: int = MAX_RETR
     print(f"Attempting analysis with {model} (API Key)...")
 
     # Use npx to bypass any PATH manipulation or wrappers
-    # This ensures we use the official package logic, not /tmp/gemini wrapper
-    print("🚀 Resolving Gemini CLI via npx (bypassing any wrappers)...")
-    cmd = ["npx", "--yes", "@google/gemini-cli@0.22.5", "prompt", "--model", model, "--output-format", "text"]
+    # Gemini CLI is agentic by default - can use tools to explore codebase
+    print("🚀 Resolving Gemini CLI via npx (agentic mode)...")
+    cmd = [
+        "npx",
+        "--yes",
+        "@google/gemini-cli@0.22.5",
+        "--model",
+        model,
+        "--output-format",
+        "text",
+    ]
 
     print(f"🚀 Executing command: {' '.join(cmd)}")
 
@@ -465,6 +477,7 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
     - Uses standard stdin (no PTY wrapper) which properly sends EOF
     - Implements exponential backoff for rate limiting on free tier
     - Falls back to gemini-3-flash-preview if primary model fails
+    - Runs in agentic mode allowing file exploration and verification
 
     Args:
         prompt: The prompt to send to Gemini
@@ -1767,12 +1780,12 @@ The following issues were flagged in earlier reviews. VERIFY each against the AC
 {issues_to_include}
 ```
 **CRITICAL VERIFICATION RULES:**
-- ONLY mark as [STILL UNRESOLVED] if you can see the EXACT problematic code in the diff
-- If the claimed issue is NOT visible in the diff, mark as [RESOLVED] or [NOT FOUND IN DIFF]
-- Do NOT echo previous issues blindly - you must verify each one against the actual code
-- Syntax errors should be verifiable: if the code looks syntactically correct in the diff, the issue is resolved
-- "Missing import/definition" issues: mark as [NOT FOUND IN DIFF] unless you can see the imports/class section AND verify the definition is absent
-- Remember: the diff only shows CHANGED lines - pre-existing imports/definitions are not visible but still exist
+- ONLY mark as [STILL UNRESOLVED] if you can VERIFY the issue exists
+- Use shell commands (cat, grep, head) to check actual file contents
+- For "missing import/definition" claims: read the file to check if it actually exists
+- Do NOT echo previous issues blindly - you must verify each one
+- If verification shows the issue was a false positive, mark as [RESOLVED]
+- The diff only shows CHANGED lines - explore files to see full context
 
 """
 
@@ -1831,12 +1844,14 @@ you MUST NOT raise that issue again. The PR author has already verified the code
 - [CRITICAL/SECURITY/BUG] File:line - Brief description
 **IMPORTANT: Only report issues you can ACTUALLY SEE in the diff above. Do not invent or hallucinate issues.**
 
-**CRITICAL - AVOID FALSE POSITIVES FOR MISSING DEFINITIONS:**
-- Do NOT flag "missing import" unless you see the imports section AND the import is absent
-- Do NOT flag "missing class constant/attribute" unless you see the class definition AND the constant is absent
-- If code uses a symbol (function, class, constant) and the definition area is NOT in the diff, ASSUME it exists elsewhere in the file
-- The diff only shows CHANGED lines - unchanged imports/definitions are not visible but still exist
-- When uncertain, do NOT report the issue - false positives waste developer time
+**AGENTIC VERIFICATION - EXPLORE THE CODEBASE:**
+You are in REVIEW MODE (not edit mode). You can freely explore the codebase to verify claims:
+- Use shell commands like `cat`, `grep`, `find`, `head` to inspect files
+- Before flagging "missing import": Check the file's import section
+- Before flagging "missing constant": Check the class definition
+- Before flagging "undefined symbol": Search for where it's defined
+- The diff only shows CHANGED lines - explore to see FULL file context
+- ALWAYS verify uncertain claims by reading actual files - do NOT guess
 {
         '''
 ## Previous Issues (for incremental reviews)
@@ -1859,6 +1874,7 @@ Available reactions: rem_glasses.png, miku_confused.png, menhera_stare.webp, kur
 Example: ![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/rem_glasses.png)
 """
 
+    # Gemini runs in agentic mode - can use tools to explore codebase and verify claims
     return _call_gemini_with_fallback(prompt)
 
 
