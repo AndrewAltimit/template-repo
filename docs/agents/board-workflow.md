@@ -29,11 +29,12 @@ All agent work flows through the **GitHub Projects v2 board** as a deliberate tr
 │  ═══════════════════════════════════════════════════════════════════════════════    │
 │                                FORWARD FLOW                                          │
 │  ═══════════════════════════════════════════════════════════════════════════════    │
-│                                                                                      │
+│                      (human+agent)                                                   │
 │  ┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐            │
 │  │   Issue    │────►│  Add to    │────►│  Approve   │────►│   Agent    │            │
 │  │ Refinement │     │   Board    │     │   Work     │     │ Implements │            │
-│  │  (Agent)   │     │  (Agent)   │     │  (Human)   │     │  (Agent)   │            │
+│  │  (Agent)   │     │ (Human OR  │     │  (Human)   │     │  (Agent)   │            │
+│  │            │     │   Agent)   │     │            │     │            │            │
 │  └────────────┘     └────────────┘     └────────────┘     └────────────┘            │
 │       │                  │                  │                   │                    │
 │       │                  │               GATE 1                 │                    │
@@ -43,32 +44,38 @@ All agent work flows through the **GitHub Projects v2 board** as a deliberate tr
 │                                                                 │                    │
 │  ═══════════════════════════════════════════════════════════════│════════════════   │
 │                                                                 ▼                    │
-│                 ┌────────────┐     ┌────────────┐     ┌────────────┐                │
-│                 │  Review &  │◄────│     CI     │◄────│  Create    │                │
-│                 │   Merge    │     │  Feedback  │     │    PR      │                │
-│                 │  (Human)   │     │   Loop     │     │  (Agent)   │                │
-│                 └────────────┘     └────────────┘     └────────────┘                │
-│                       │                  ▲                   │                       │
-│                    GATE 2                │                   │                       │
-│                 (Review+Merge)           │                   ▼                       │
-│                       ▼                  │              ┌────────────┐               │
-│                    [Done]                │              │ AI Council │               │
-│                                          │              │  Reviews   │               │
-│  ════════════════════════════════════════│══════════════└─────┬──────┘               │
-│                           FEEDBACK LOOPS │                    │                      │
-│  ════════════════════════════════════════│════════════════════│══════════════════   │
-│                                          │                    │                      │
-│                                 ┌────────┴────────┐           │                      │
-│                                 │    Auto-Fix     │◄──────────┘                      │
-│                                 │      Loop       │   Review Response                │
-│                                 │ (Format/Lint)   │   (Max 5 iterations)             │
-│                                 └─────────────────┘                                  │
+│   ┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐           │
+│   │   Merge    │◄────│   Review   │◄────│     CI     │◄────│  Create    │           │
+│   │    PR      │     │   Code     │     │  Feedback  │     │    PR      │           │
+│   │  (Human)   │     │  (Human)   │     │   Loop     │     │  (Agent)   │           │
+│   └────────────┘     └────────────┘     └────────────┘     └────────────┘           │
+│        │                  │                  ▲                   │                   │
+│     GATE 3             GATE 2                │                   │                   │
+│    (Merge)            (Review)    ┌──────────┴──────────┐        ▼                   │
+│        ▼                  │       │                     │   ┌────────────┐           │
+│     [Done]                │       │    Auto-Fix Loop    │   │ AI Council │           │
+│                           │       │   (Format/Lint)     │   │  Reviews   │           │
+│                           │       │  Max 5 iterations   │   └─────┬──────┘           │
+│                           │       └──────────┬──────────┘         │                  │
+│                           │                  ▲                    │                  │
+│                           │                  │                    ▼                  │
+│                           │                  └────────────────────┘                  │
+│                           │                   (review response)                      │
+│                           │                                                          │
+│                           └─────────────────────────────────────────────┐            │
+│                                    (changes requested)                  │            │
+│                                                                         ▼            │
+│                                                                  ┌────────────┐      │
+│                                                                  │ AI Council │      │
+│                                                                  │  Re-review │      │
+│                                                                  └────────────┘      │
 │                                                                                      │
 └─────────────────────────────────────────────────────────────────────────────────────┘
 
-Legend: ■ Human Gate (2 total)   □ Agent Work   ◇ Review/Feedback   ○ Kanban State
+Legend: ■ Human Gate (3 total)   □ Agent Work   ◇ Review/Feedback   ○ Kanban State
 
 Key: Humans decide WHAT to work on and WHEN to merge. Agents handle HOW.
+     Both humans AND agents can add issues to the board.
 ```
 
 ## Stage 1: Issue Refinement
