@@ -71,18 +71,26 @@
 ]
 
 % === ROW 1: Forward Path (Left to Right) ===
-% Hybrid style: half green (human), half blue (agent)
+% Hybrid style: diagonal split - green (human) top-left, blue (agent) bottom-right
 \node[stage, draw=darktext!40, line width=1pt,
       path picture={
-        \fill[humangate!20] (path picture bounding box.north west) rectangle (path picture bounding box.south);
-        \fill[agentwork!20] (path picture bounding box.north) rectangle (path picture bounding box.south east);
+        \fill[humangate!25] (path picture bounding box.north west) --
+              (path picture bounding box.north east) --
+              (path picture bounding box.south west) -- cycle;
+        \fill[agentwork!25] (path picture bounding box.south east) --
+              (path picture bounding box.north east) --
+              (path picture bounding box.south west) -- cycle;
       }] (issue) {Create\\[-0.1em]{\scriptsize Issue}};
 
-% Mixed human+agent node for board (half/half)
+% Mixed human+agent node for board (diagonal split)
 \node[stage, right=of issue, draw=darktext!40, line width=1pt,
       path picture={
-        \fill[humangate!20] (path picture bounding box.north west) rectangle (path picture bounding box.south);
-        \fill[agentwork!20] (path picture bounding box.north) rectangle (path picture bounding box.south east);
+        \fill[humangate!25] (path picture bounding box.north west) --
+              (path picture bounding box.north east) --
+              (path picture bounding box.south west) -- cycle;
+        \fill[agentwork!25] (path picture bounding box.south east) --
+              (path picture bounding box.north east) --
+              (path picture bounding box.south west) -- cycle;
       }] (triage) {Add to\\[-0.1em]{\scriptsize Board}};
 
 \node[agent, right=of triage] (refine) {Refine\\[-0.1em]{\scriptsize Issue}};
@@ -145,7 +153,7 @@
 
 % Loop labels
 \node[above=0.65cm of council, font=\scriptsize\color{humangate!70}\itshape, xshift=-0.8cm] {changes requested};
-\node[right=0.1cm of cifix, font=\scriptsize\color{agentwork!70}\itshape] {CI failures};
+\node[below=0.3cm of ci.south, anchor=north, xshift=0.6cm, font=\scriptsize\color{agentwork!70}\itshape] {CI failures};
 
 \end{tikzpicture}
 \end{center}
@@ -158,7 +166,7 @@
 \begin{tabular}{@{}c@{\hspace{0.8em}}c@{\hspace{0.8em}}c@{\hspace{0.8em}}c@{\hspace{0.8em}}c@{}}
 \tikz\fill[humangate!35, rounded corners=2pt] (0,0) rectangle (0.4,0.25); \textsf{\small Human} &
 \tikz\fill[agentwork!35, rounded corners=2pt] (0,0) rectangle (0.4,0.25); \textsf{\small Agent} &
-\tikz{\fill[humangate!25, rounded corners=2pt] (0,0) rectangle (0.2,0.25); \fill[agentwork!25, rounded corners=2pt] (0.2,0) rectangle (0.4,0.25);} \textsf{\small Hybrid} &
+\tikz{\fill[humangate!25] (0,0.25) -- (0.4,0.25) -- (0,0) -- cycle; \fill[agentwork!25] (0.4,0) -- (0.4,0.25) -- (0,0) -- cycle;} \textsf{\small Hybrid} &
 \tikz\fill[reviewloop!35, rounded corners=2pt] (0,0) rectangle (0.4,0.25); \textsf{\small Review} &
 \tikz\fill[kanban!40, rounded corners=2pt] (0,0) rectangle (0.4,0.25); \textsf{\small Kanban}
 \end{tabular}%
