@@ -106,44 +106,30 @@ fi
 # Look for patterns indicating issues to fix
 HAS_ACTIONABLE_ITEMS=false
 
-# Common patterns for actionable feedback
-# Use word boundaries (-w) for single words to avoid false positives
-# like "No errors found" matching "error"
-ACTIONABLE_PATTERNS_PHRASE=(
+# Patterns that indicate actionable feedback
+# Avoid broad patterns that could match negations like "No type error found"
+ACTIONABLE_PATTERNS=(
     "must fix"
     "should fix"
     "needs to be"
+    "please fix"
     "unused import"
-    "type error"
+    "remove unused"
+    "missing import"
     "\[BUG\]"
     "\[ERROR\]"
     "\[ISSUE\]"
+    "\[STILL UNRESOLVED\]"
+    "STILL UNRESOLVED"
 )
 
-ACTIONABLE_PATTERNS_WORD=(
-    "incorrect"
-    "undefined"
-    "syntax"
-)
-
-for pattern in "${ACTIONABLE_PATTERNS_PHRASE[@]}"; do
+for pattern in "${ACTIONABLE_PATTERNS[@]}"; do
     if echo -e "$REVIEW_CONTENT" | grep -qiE "$pattern"; then
         HAS_ACTIONABLE_ITEMS=true
         echo "Found actionable pattern: $pattern"
         break
     fi
 done
-
-# Only check single-word patterns with word boundaries if not already found
-if [ "$HAS_ACTIONABLE_ITEMS" = "false" ]; then
-    for pattern in "${ACTIONABLE_PATTERNS_WORD[@]}"; do
-        if echo -e "$REVIEW_CONTENT" | grep -qiw "$pattern"; then
-            HAS_ACTIONABLE_ITEMS=true
-            echo "Found actionable pattern: $pattern"
-            break
-        fi
-    done
-fi
 
 if [ "$HAS_ACTIONABLE_ITEMS" = "false" ]; then
     echo "No actionable items found in reviews"

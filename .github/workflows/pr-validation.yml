@@ -273,7 +273,7 @@ jobs:
           python3 automation/review/gemini-pr-review.py
 
       - name: Upload review artifact
-        if: always() && steps.check-agent.outputs.is_agent_commit != 'true'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gemini-review-${{ github.run_id }}-${{ github.run_attempt }}
