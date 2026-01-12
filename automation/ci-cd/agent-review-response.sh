@@ -233,7 +233,7 @@ echo "Changes detected, creating commit..."
 # Create commit message
 COMMIT_MSG_FILE=$(mktemp)
 cat > "$COMMIT_MSG_FILE" << COMMIT_EOF
-fix: address AI review feedback [AI-AUTO-FIX]
+fix: address AI review feedback
 
 Automated fix by Claude in response to Gemini/Codex review.
 

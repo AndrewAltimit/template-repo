@@ -233,7 +233,7 @@ done
 # Create commit message
 COMMIT_MSG_FILE=$(mktemp)
 cat > "$COMMIT_MSG_FILE" << COMMIT_EOF
-fix: resolve CI pipeline failures [AI-AUTO-FIX]
+fix: resolve CI pipeline failures
 
 Automated fix by Claude in response to pipeline failures.
 

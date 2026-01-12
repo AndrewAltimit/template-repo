@@ -337,7 +337,7 @@ Codex provides complementary review focusing on:
 │       ▼                                                         │
 │  ┌─────────────┐                                                │
 │  │   Reviews   │  Skip reviews on agent commits                 │
-│  │   Skipped   │  (detected by [AI-AUTO-FIX] marker)            │
+│  │   Skipped   │  (detected by commit author name)              │
 │  └─────────────┘                                                │
 │                                                                 │
 │  Safety: Max 5 iterations per PR                                │
@@ -351,7 +351,7 @@ Codex provides complementary review focusing on:
 2. Claude parses review artifacts for actionable feedback
 3. Autoformat runs first (black, isort)
 4. Claude fixes remaining lint/format issues
-5. Changes committed with `[AI-AUTO-FIX]` marker
+5. Changes committed by agent (detected via author name)
 6. Push retriggers pipeline (reviews skipped on agent commits)
 
 ### 5d. CI Failure Handler (NEW)
@@ -417,8 +417,7 @@ Multiple safety mechanisms prevent infinite loops:
 
 | Mechanism | Description |
 |-----------|-------------|
-| **Commit Marker** | `[AI-AUTO-FIX]` in commit message |
-| **Author Check** | Skip reviews if author is "AI Review Agent" |
+| **Author Check** | Skip reviews if author is "AI Review Agent", "AI Pipeline Agent", or "AI Agent Bot" |
 | **Iteration Counter** | Max 5 iterations via workflow artifacts |
 | **Human Reset** | Counter resets when human pushes |
 

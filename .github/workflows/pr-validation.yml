@@ -156,14 +156,11 @@ jobs:
           echo "Last commit author: $LAST_COMMIT_AUTHOR"
 
           IS_AGENT_COMMIT="false"
-          if [[ "$LAST_COMMIT_MSG" == *"[AI-AUTO-FIX]"* ]]; then
+          if [[ "$LAST_COMMIT_AUTHOR" == "AI Review Agent" ]] || \
+             [[ "$LAST_COMMIT_AUTHOR" == "AI Pipeline Agent" ]] || \
+             [[ "$LAST_COMMIT_AUTHOR" == "AI Agent Bot" ]]; then
             IS_AGENT_COMMIT="true"
-            echo "Detected agent commit via [AI-AUTO-FIX] marker - skipping AI review"
-          elif [[ "$LAST_COMMIT_AUTHOR" == "AI Review Agent" ]] || \
-               [[ "$LAST_COMMIT_AUTHOR" == "AI Pipeline Agent" ]] || \
-               [[ "$LAST_COMMIT_AUTHOR" == "AI Agent Bot" ]]; then
-            IS_AGENT_COMMIT="true"
-            echo "Detected agent commit via author name - skipping AI review"
+            echo "Detected agent commit via author name: $LAST_COMMIT_AUTHOR - skipping AI review"
           fi
 
           echo "is_agent_commit=$IS_AGENT_COMMIT" >> $GITHUB_OUTPUT

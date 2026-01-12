@@ -93,7 +93,15 @@
               (path picture bounding box.south west) -- cycle;
       }] (triage) {Add to\\[-0.1em]{\scriptsize Board}};
 
-\node[agent, right=of triage] (refine) {Refine\\[-0.1em]{\scriptsize Issue}};
+\node[stage, right=of triage, draw=darktext!40, line width=1pt,
+      path picture={
+        \fill[humangate!25] (path picture bounding box.north west) --
+              (path picture bounding box.north east) --
+              (path picture bounding box.south west) -- cycle;
+        \fill[agentwork!25] (path picture bounding box.south east) --
+              (path picture bounding box.north east) --
+              (path picture bounding box.south west) -- cycle;
+      }] (refine) {Refine\\[-0.1em]{\scriptsize Issue}};
 \node[human, right=of refine] (approve) {Approve\\[-0.1em]{\scriptsize [Approved]}};
 \node[agent, right=of approve] (implement) {Implement\\[-0.1em]{\scriptsize Agent Work}};
 \node[agent, right=of implement] (createpr) {Create\\[-0.1em]{\scriptsize PR}};
@@ -119,14 +127,14 @@
 \node[kanban, below=0.3cm of createpr] {In Progress};
 
 % === ROW 2: Review Path (Right to Left) ===
-\node[review, below=2.2cm of createpr] (council) {AI Council\\[-0.1em]{\scriptsize Reviews}};
-\node[agent, below=2.2cm of implement] (autofix) {Review Fix\\[-0.1em]{\scriptsize Claude}};
+\node[agent, below=2.2cm of createpr] (council) {AI Council\\[-0.1em]{\scriptsize Reviews}};
+\node[agent, below=2.2cm of implement] (autofix) {Review Fix\\[-0.1em]{\scriptsize Agent Work}};
 \node[review, below=2.2cm of approve] (ci) {CI\\[-0.1em]{\scriptsize Pipeline}};
 \node[human, below=2.2cm of refine] (humanrev) {Review\\[-0.1em]{\scriptsize Code}};
 \node[human, below=2.2cm of triage] (merge) {Merge\\[-0.1em]{\scriptsize PR}};
 
 % CI Failure Auto-Fix box (below CI Pipeline)
-\node[agent, below=1.2cm of ci, minimum width=1.6cm] (cifix) {CI Fix\\[-0.1em]{\scriptsize Claude}};
+\node[agent, below=1.2cm of ci, minimum width=1.6cm] (cifix) {CI Fix\\[-0.1em]{\scriptsize Agent Work}};
 
 % Main flow arrows (on background so kanban labels appear on top)
 \begin{scope}[on background layer]
@@ -173,7 +181,7 @@
 \tikz\fill[humangate!35, rounded corners=2pt] (0,0) rectangle (0.4,0.25); \textsf{\small Human} &
 \tikz\fill[agentwork!35, rounded corners=2pt] (0,0) rectangle (0.4,0.25); \textsf{\small Agent} &
 \tikz{\fill[humangate!25] (0,0.25) -- (0.4,0.25) -- (0,0) -- cycle; \fill[agentwork!25] (0.4,0) -- (0.4,0.25) -- (0,0) -- cycle;} \textsf{\small Hybrid} &
-\tikz\fill[reviewloop!35, rounded corners=2pt] (0,0) rectangle (0.4,0.25); \textsf{\small Review} &
+\tikz\fill[reviewloop!35, rounded corners=2pt] (0,0) rectangle (0.4,0.25); \textsf{\small Automation} &
 \tikz\fill[kanban!40, rounded corners=2pt] (0,0) rectangle (0.4,0.25); \textsf{\small Kanban}
 \end{tabular}%
 }
@@ -252,7 +260,7 @@ $\rightarrow$ Push triggers re-run}
 \textbf{Safety mechanisms:}
 \begin{itemize}[leftmargin=1.2em, itemsep=0.2em]
   \item Max 5 iterations per PR
-  \item \texttt{[AI-AUTO-FIX]} commit markers
+  \item Agent commits detected by author
   \item Skips reviews on agent commits
 \end{itemize}
 
