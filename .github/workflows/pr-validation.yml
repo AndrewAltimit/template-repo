@@ -460,6 +460,11 @@ jobs:
           nvm use 22.16.0 || nvm install 22.16.0
           echo "Node.js version: $(node --version)"
 
+      - name: Set Docker user environment
+        if: steps.iteration.outputs.should_skip != 'true'
+        run: |
+          source ./automation/setup/docker/set-docker-user.sh
+
       - name: Run agent review response
         id: agent-fix
         if: steps.iteration.outputs.should_skip != 'true'
@@ -1088,6 +1093,11 @@ jobs:
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           nvm use 22.16.0 || nvm install 22.16.0
           echo "Node.js version: $(node --version)"
+
+      - name: Set Docker user environment
+        if: steps.iteration.outputs.exceeded_max != 'true'
+        run: |
+          source ./automation/setup/docker/set-docker-user.sh
 
       - name: Run agent failure handler
         id: agent-fix
