@@ -136,7 +136,7 @@
 % Kanban below row 2 (shifted for cifix)
 \node[kanban, below=0.3cm of council] {In Progress};
 \node[kanban, below=0.3cm of autofix] {In Progress};
-\node[kanban, below=0.3cm of humanrev] {Review};
+\node[kanban, below=0.3cm of humanrev] {In Progress};
 \node[kanban, below=0.3cm of merge] {Done};
 
 % Gate labels row 2 (below kanban)
@@ -153,7 +153,7 @@
 
 % Loop labels
 \node[above=0.65cm of council, font=\scriptsize\color{humangate!70}\itshape, xshift=-0.8cm] {changes requested};
-\node[below=0.3cm of ci.south, anchor=north, xshift=0.6cm, font=\scriptsize\color{agentwork!70}\itshape] {CI failures};
+\node[below=0.3cm of ci.south, anchor=north, xshift=0.8cm, font=\scriptsize\color{agentwork!70}\itshape] {CI failures};
 
 \end{tikzpicture}
 \end{center}
@@ -263,13 +263,11 @@ Board status tracks workflow progress:
 \begin{tikzpicture}[node distance=0.25cm, every node/.style={font=\small\sffamily}]
   \node[fill=kanban!20, rounded corners=3pt, inner sep=5pt, minimum width=2cm] (b) {Backlog};
   \node[fill=kanban!30, rounded corners=3pt, inner sep=5pt, minimum width=2cm, below=of b] (t) {Todo};
-  \node[fill=kanban!45, rounded corners=3pt, inner sep=5pt, minimum width=2cm, below=of t] (p) {In Progress};
-  \node[fill=kanban!60, rounded corners=3pt, inner sep=5pt, minimum width=2cm, below=of p] (r) {Review};
-  \node[fill=kanban!80, rounded corners=3pt, inner sep=5pt, minimum width=2cm, below=of r, text=white] (d) {Done};
+  \node[fill=kanban!50, rounded corners=3pt, inner sep=5pt, minimum width=2cm, below=of t] (p) {In Progress};
+  \node[fill=kanban!80, rounded corners=3pt, inner sep=5pt, minimum width=2cm, below=of p, text=white] (d) {Done};
   \draw[-{Stealth[length=2mm]}, darktext!50, thick] (b) -- (t);
   \draw[-{Stealth[length=2mm]}, darktext!50, thick] (t) -- (p);
-  \draw[-{Stealth[length=2mm]}, darktext!50, thick] (p) -- (r);
-  \draw[-{Stealth[length=2mm]}, darktext!50, thick] (r) -- (d);
+  \draw[-{Stealth[length=2mm]}, darktext!50, thick] (p) -- (d);
 \end{tikzpicture}
 \end{center}
 
