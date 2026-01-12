@@ -128,8 +128,22 @@ echo "=== Step 2: Checking for remaining lint issues ==="
 
 LINT_OUTPUT=""
 if [ -f "./automation/ci-cd/run-ci.sh" ]; then
-    # Capture lint output for Claude
-    LINT_OUTPUT=$(./automation/ci-cd/run-ci.sh lint-basic 2>&1 || true)
+    # Capture lint-basic output (flake8)
+    if [ "${BASIC_LINT_RESULT:-}" = "failure" ] || [ -z "${BASIC_LINT_RESULT:-}" ]; then
+        echo "Capturing lint-basic output..."
+        LINT_OUTPUT=$(./automation/ci-cd/run-ci.sh lint-basic 2>&1 || true)
+    fi
+
+    # Also capture lint-full output (pylint, mypy) if that failed
+    if [ "${FULL_LINT_RESULT:-}" = "failure" ]; then
+        echo "Capturing lint-full output..."
+        FULL_LINT_OUTPUT=$(./automation/ci-cd/run-ci.sh lint-full 2>&1 || true)
+        LINT_OUTPUT="${LINT_OUTPUT}
+
+=== Full Lint Output (pylint/mypy) ===
+${FULL_LINT_OUTPUT}"
+    fi
+
     echo "Lint check output captured"
 fi
 
