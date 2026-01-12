@@ -49,7 +49,7 @@
 \hfill
 \begin{minipage}[t]{0.25\textwidth}
 \raggedleft
-\textcolor{darktext!50}{\small Board-Centric Workflow v1.0}
+\textcolor{darktext!50}{\small Agent Kanban Workflow}
 \end{minipage}
 
 \vspace{0.4em}
@@ -98,12 +98,14 @@
 \node[agent, right=of approve] (implement) {Implement\\[-0.1em]{\scriptsize Agent Work}};
 \node[agent, right=of implement] (createpr) {Create\\[-0.1em]{\scriptsize PR}};
 
-% Arrows
+% Arrows (on background so kanban labels appear on top)
+\begin{scope}[on background layer]
 \draw[arrow] (issue) -- (triage);
 \draw[arrow] (triage) -- (refine);
 \draw[arrow] (refine) -- (approve);
 \draw[arrow] (approve) -- (implement);
 \draw[arrow] (implement) -- (createpr);
+\end{scope}
 
 % Gate label
 \node[above=0.15cm of approve, font=\small\bfseries\color{humangate}] {GATE 1};
@@ -118,7 +120,7 @@
 
 % === ROW 2: Review Path (Right to Left) ===
 \node[review, below=2.2cm of createpr] (council) {AI Council\\[-0.1em]{\scriptsize Reviews}};
-\node[agent, below=2.2cm of implement] (autofix) {Auto-Fix\\[-0.1em]{\scriptsize Claude}};
+\node[agent, below=2.2cm of implement] (autofix) {Review Fix\\[-0.1em]{\scriptsize Claude}};
 \node[review, below=2.2cm of approve] (ci) {CI\\[-0.1em]{\scriptsize Pipeline}};
 \node[human, below=2.2cm of refine] (humanrev) {Review\\[-0.1em]{\scriptsize Code}};
 \node[human, below=2.2cm of triage] (merge) {Merge\\[-0.1em]{\scriptsize PR}};
@@ -126,12 +128,14 @@
 % CI Failure Auto-Fix box (below CI Pipeline)
 \node[agent, below=1.2cm of ci, minimum width=1.6cm] (cifix) {CI Fix\\[-0.1em]{\scriptsize Claude}};
 
-% Main flow arrows
+% Main flow arrows (on background so kanban labels appear on top)
+\begin{scope}[on background layer]
 \draw[arrow] (createpr) -- (council);
 \draw[arrow] (council) -- (autofix);
 \draw[arrow] (autofix) -- (ci);
 \draw[arrow] (ci) -- (humanrev);
 \draw[arrow] (humanrev) -- (merge);
+\end{scope}
 
 % Kanban below row 2 (shifted for cifix)
 \node[kanban, below=0.3cm of council] {In Progress};
@@ -143,16 +147,18 @@
 \node[below=0.8cm of humanrev, font=\small\bfseries\color{humangate}] {GATE 2};
 \node[below=0.8cm of merge, font=\small\bfseries\color{humangate}] {GATE 3};
 
-% === FEEDBACK LOOPS ===
+% === FEEDBACK LOOPS (on background so kanban labels appear on top) ===
+\begin{scope}[on background layer]
 % Human review can request changes -> back to council (above, higher than purple)
 \draw[looparrow, humangate!70] (humanrev.north) -- ++(0,0.7) -| (council.north);
 
 % CI failure loop (down to CI Fix, back to AI Council)
 \draw[looparrow, agentwork!70] (ci.south) -- (cifix.north);
 \draw[looparrow, agentwork!70] (cifix.east) -| (council.south);
+\end{scope}
 
 % Loop labels
-\node[above=0.65cm of council, font=\scriptsize\color{humangate!70}\itshape, xshift=-0.8cm] {changes requested};
+\node[above=0.65cm of council, font=\scriptsize\color{humangate!70}\itshape, xshift=-2.8cm] {changes requested};
 \node[below=0.3cm of ci.south, anchor=north, xshift=0.8cm, font=\scriptsize\color{agentwork!70}\itshape] {CI failures};
 
 \end{tikzpicture}

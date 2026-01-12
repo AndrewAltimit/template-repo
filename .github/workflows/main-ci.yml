@@ -632,6 +632,18 @@ jobs:
           echo "Building architectural-qualia.pdf..."
           ./automation/ci-cd/build-latex-doc.sh architectural-qualia.tex docs/philosophy/latex
 
+      - name: Build Agentic Workflow Handout
+        run: |
+          echo "Building Agentic_Workflow_Handout.pdf..."
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$(pwd)/docs/agents:/data" \
+            -v "$(pwd)/docs_output:/output" \
+            texlive/texlive:TL2024-historic \
+            bash -c "cd /data && pdflatex -interaction=nonstopmode -output-directory=/output Agentic_Workflow_Handout.tex"
+          # Rename to sensible kebab-case filename
+          mv docs_output/Agentic_Workflow_Handout.pdf docs_output/agentic-workflow-handout.pdf
+
       - name: List built PDFs
         run: |
           echo "Built PDFs:"
