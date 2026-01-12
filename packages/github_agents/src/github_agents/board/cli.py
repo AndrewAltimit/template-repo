@@ -507,24 +507,46 @@ async def cmd_find_approved(args: argparse.Namespace) -> None:
             }
 
             # Use GitHub Search API to find issues with approval comments
-            # This is O(1) instead of O(N) API calls
+            # This is O(pages) instead of O(N) API calls
             search_url = "https://api.github.com/search/issues"
             # Search for [Approved][agent] in comments for open issues
             search_query = f'repo:{owner}/{repo_name} is:issue is:open "[Approved][{agent_name}]" in:comments'
-            params = {"q": search_query, "per_page": 100}
 
-            async with session.get(search_url, headers=headers, params=params) as resp:
-                if resp.status != 200:
-                    error_body = await resp.text()
-                    raise ValueError(f"GitHub Search API error: {resp.status} - {error_body}")
-                search_result = await resp.json()
+            # Paginate through all results (GitHub Search API max 1000 results)
+            page = 1
+            total_count = None
+            while True:
+                params = {"q": search_query, "per_page": 100, "page": page}
 
-            # Process search results
-            for issue in search_result.get("items", []):
-                issue_num = issue["number"]
-                # Check if already on board
-                on_board = await manager.get_issue(issue_num) is not None
-                approved_issues.append({"number": issue_num, "title": issue["title"], "on_board": on_board})
+                async with session.get(search_url, headers=headers, params=params) as resp:
+                    if resp.status != 200:
+                        error_body = await resp.text()
+                        raise ValueError(f"GitHub Search API error: {resp.status} - {error_body}")
+                    search_result = await resp.json()
+
+                if total_count is None:
+                    total_count = search_result.get("total_count", 0)
+
+                items = search_result.get("items", [])
+                if not items:
+                    break
+
+                # Process search results
+                for issue in items:
+                    issue_num = issue["number"]
+                    # Check if already on board
+                    on_board = await manager.get_issue(issue_num) is not None
+                    approved_issues.append({"number": issue_num, "title": issue["title"], "on_board": on_board})
+
+                # Check if we've fetched all results
+                if len(approved_issues) >= total_count:
+                    break
+
+                page += 1
+                # Safety limit: GitHub Search API only returns max 1000 results (10 pages)
+                if page > 10:
+                    logger.warning("Reached max pagination limit (1000 results)")
+                    break
 
         if args.json:
             output_result(approved_issues, json_output=True)

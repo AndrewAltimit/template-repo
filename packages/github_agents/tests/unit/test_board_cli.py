@@ -819,6 +819,70 @@ class TestCmdFindApproved:
         captured = capsys.readouterr()
         assert "error" in captured.out.lower()
 
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_find_approved_pagination(self, mock_load, capsys):
+        """Test find-approved paginates through all results."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.config = MagicMock()
+        manager.config.repository = "owner/repo"
+        manager.github_token = "test-token"
+        manager.get_issue = AsyncMock(return_value=None)
+        mock_load.return_value = manager
+
+        from github_agents.board.cli import cmd_find_approved
+
+        # Simulate pagination: page 1 returns 2 items, page 2 returns 1 item
+        call_count = 0
+
+        class MockResponse:
+            status = 200
+
+            async def json(self):
+                nonlocal call_count
+                call_count += 1
+                if call_count == 1:
+                    return {
+                        "total_count": 3,
+                        "items": [
+                            {"number": 1, "title": "Issue 1"},
+                            {"number": 2, "title": "Issue 2"},
+                        ],
+                    }
+                else:
+                    return {
+                        "total_count": 3,
+                        "items": [{"number": 3, "title": "Issue 3"}],
+                    }
+
+        class MockContextManager:
+            async def __aenter__(self):
+                return MockResponse()
+
+            async def __aexit__(self, *args):
+                pass
+
+        class MockSession:
+            def get(self, *args, **kwargs):
+                return MockContextManager()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+        with patch("aiohttp.ClientSession", return_value=MockSession()):
+            args = argparse.Namespace(json=True, agent="claude")
+            await cmd_find_approved(args)
+
+        captured = capsys.readouterr()
+        # Should find all 3 issues across pages
+        assert "1" in captured.out
+        assert "2" in captured.out
+        assert "3" in captured.out
+
 
 class TestCmdAddToBoard:
     """Tests for cmd_add_to_board command."""
