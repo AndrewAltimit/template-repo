@@ -110,6 +110,9 @@
 \node[human, below=2.2cm of triage] (humanrev) {Review\\[-0.1em]{\scriptsize Code}};
 \node[human, below=2.2cm of issue] (merge) {Merge\\[-0.1em]{\scriptsize PR}};
 
+% CI Failure Auto-Fix box (below CI Pipeline)
+\node[agent, below=1.2cm of ci, minimum width=1.6cm] (cifix) {CI Fix\\[-0.1em]{\scriptsize Claude}};
+
 % Main flow arrows
 \draw[arrow] (createpr) -- (council);
 \draw[arrow] (council) -- (autofix);
@@ -117,10 +120,9 @@
 \draw[arrow] (ci) -- (humanrev);
 \draw[arrow] (humanrev) -- (merge);
 
-% Kanban below row 2
+% Kanban below row 2 (shifted for cifix)
 \node[kanban, below=0.3cm of council] {In Progress};
 \node[kanban, below=0.3cm of autofix] {In Progress};
-\node[kanban, below=0.3cm of ci] {In Progress};
 \node[kanban, below=0.3cm of humanrev] {Review};
 \node[kanban, below=0.3cm of merge] {Done};
 
@@ -136,9 +138,14 @@
 \draw[looparrow] (autofix.north) -- ++(0,0.4) -| (council.north west);
 \draw[looparrow] (autofix.north) -- ++(0,0.4) -| (ci.north east);
 
+% CI failure loop (down to CI Fix, back up to CI)
+\draw[looparrow, agentwork!70] (ci.south) -- (cifix.north);
+\draw[looparrow, agentwork!70] (cifix.west) -| ([xshift=-0.4cm]ci.south west) -- (ci.south west);
+
 % Loop labels
 \node[above=0.65cm of council, font=\scriptsize\color{humangate!70}\itshape, xshift=-0.8cm] {changes requested};
 \node[above=0.35cm of autofix, font=\scriptsize\color{reviewloop}\itshape] {auto-fix loops};
+\node[right=0.1cm of cifix, font=\scriptsize\color{agentwork!70}\itshape] {CI failures};
 
 \end{tikzpicture}
 \end{center}
