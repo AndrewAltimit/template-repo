@@ -37,6 +37,43 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 1
 fi
 
+# Collect review feedback BEFORE any git operations
+# (git checkout would remove downloaded artifacts)
+REVIEW_CONTENT=""
+
+echo "Looking for review artifacts..."
+
+if [ -f "${GEMINI_REVIEW_PATH:-gemini-review.md}" ]; then
+    echo "Found Gemini review at: ${GEMINI_REVIEW_PATH:-gemini-review.md}"
+    REVIEW_CONTENT+="## Gemini Review Feedback\n\n"
+    REVIEW_CONTENT+=$(cat "${GEMINI_REVIEW_PATH:-gemini-review.md}")
+    REVIEW_CONTENT+="\n\n"
+fi
+
+if [ -f "${CODEX_REVIEW_PATH:-codex-review.md}" ]; then
+    echo "Found Codex review at: ${CODEX_REVIEW_PATH:-codex-review.md}"
+    REVIEW_CONTENT+="## Codex Review Feedback\n\n"
+    REVIEW_CONTENT+=$(cat "${CODEX_REVIEW_PATH:-codex-review.md}")
+    REVIEW_CONTENT+="\n\n"
+fi
+
+# Fallback: check current directory if env vars not set
+if [ -z "$REVIEW_CONTENT" ]; then
+    if [ -f "gemini-review.md" ]; then
+        echo "Found Gemini review in current directory"
+        REVIEW_CONTENT+="## Gemini Review Feedback\n\n"
+        REVIEW_CONTENT+=$(cat "gemini-review.md")
+        REVIEW_CONTENT+="\n\n"
+    fi
+
+    if [ -f "codex-review.md" ]; then
+        echo "Found Codex review in current directory"
+        REVIEW_CONTENT+="## Codex Review Feedback\n\n"
+        REVIEW_CONTENT+=$(cat "codex-review.md")
+        REVIEW_CONTENT+="\n\n"
+    fi
+fi
+
 # Configure git authentication
 if [ -n "$GITHUB_TOKEN" ] && [ -n "$GITHUB_REPOSITORY" ]; then
     echo "Configuring git authentication..."
@@ -47,42 +84,10 @@ else
     echo "WARNING: GITHUB_TOKEN or GITHUB_REPOSITORY not set"
 fi
 
-# Checkout the PR branch
+# Checkout the PR branch (after reading artifacts)
 echo "Checking out branch: $BRANCH_NAME"
 git fetch origin "$BRANCH_NAME" 2>&1 || true
 git checkout "$BRANCH_NAME" 2>&1 || true
-
-# Collect review feedback
-REVIEW_CONTENT=""
-
-if [ -f "$GEMINI_REVIEW_PATH" ]; then
-    echo "Found Gemini review at: $GEMINI_REVIEW_PATH"
-    REVIEW_CONTENT+="## Gemini Review Feedback\n\n"
-    REVIEW_CONTENT+=$(cat "$GEMINI_REVIEW_PATH")
-    REVIEW_CONTENT+="\n\n"
-fi
-
-if [ -f "$CODEX_REVIEW_PATH" ]; then
-    echo "Found Codex review at: $CODEX_REVIEW_PATH"
-    REVIEW_CONTENT+="## Codex Review Feedback\n\n"
-    REVIEW_CONTENT+=$(cat "$CODEX_REVIEW_PATH")
-    REVIEW_CONTENT+="\n\n"
-fi
-
-# Also check for artifacts in current directory
-if [ -f "gemini-review.md" ] && [ -z "$GEMINI_REVIEW_PATH" ]; then
-    echo "Found Gemini review in current directory"
-    REVIEW_CONTENT+="## Gemini Review Feedback\n\n"
-    REVIEW_CONTENT+=$(cat "gemini-review.md")
-    REVIEW_CONTENT+="\n\n"
-fi
-
-if [ -f "codex-review.md" ] && [ -z "$CODEX_REVIEW_PATH" ]; then
-    echo "Found Codex review in current directory"
-    REVIEW_CONTENT+="## Codex Review Feedback\n\n"
-    REVIEW_CONTENT+=$(cat "codex-review.md")
-    REVIEW_CONTENT+="\n\n"
-fi
 
 if [ -z "$REVIEW_CONTENT" ]; then
     echo "No review feedback found, nothing to do"
