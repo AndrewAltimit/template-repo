@@ -129,16 +129,16 @@
 \node[kanban, above=0.3cm of merge] {Done};
 
 % === FEEDBACK LOOPS ===
-% Agent auto-fix loops
-\draw[looparrow] (autofix.north east) .. controls ++(0.5,0.6) and ++(-0.5,0.6) .. (council.north west);
-\draw[looparrow] (autofix.north west) .. controls ++(-0.5,0.6) and ++(0.5,0.6) .. (ci.north east);
+% Agent auto-fix loops (straight lines with right angles)
+\draw[looparrow] (autofix.north) -- ++(0,0.4) -| (council.north);
+\draw[looparrow] (autofix.north) -- ++(0,0.4) -| (ci.north);
 
-% Human review can request changes -> back to council
-\draw[looparrow, humangate!70] (humanrev.south) .. controls ++(0,-0.5) and ++(0,-0.8) .. ++(4,0) .. controls ++(0,0.5) and ++(0,-0.5) .. (council.south);
+% Human review can request changes -> back to council (straight horizontal line below)
+\draw[looparrow, humangate!70] (humanrev.south) -- ++(0,-0.5) -| (council.south);
 
 % Loop labels
-\node[above=0.5cm of autofix, font=\scriptsize\color{reviewloop}\itshape] {auto-fix loops};
-\node[below=0.6cm of ci, font=\scriptsize\color{humangate!70}\itshape] {changes requested};
+\node[above=0.35cm of autofix, font=\scriptsize\color{reviewloop}\itshape] {auto-fix loops};
+\node[below=0.5cm of ci, font=\scriptsize\color{humangate!70}\itshape, xshift=1cm] {changes requested};
 
 \end{tikzpicture}
 \end{center}
