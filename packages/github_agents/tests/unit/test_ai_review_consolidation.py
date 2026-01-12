@@ -432,12 +432,13 @@ class TestConsolidatedReviewProcessing:
 
         # Mock to return no actionable items
         pr_monitor._extract_actionable_items = MagicMock(return_value=[])
-        pr_monitor._post_gemini_acknowledgment = AsyncMock()
+        # Mock the consolidated acknowledgment method (not _post_gemini_acknowledgment)
+        pr_monitor._post_consolidated_acknowledgment = AsyncMock()
 
         await pr_monitor._process_consolidated_ai_reviews(pr, gemini_review, codex_review, "feature-branch")
 
-        # Should post acknowledgment
-        assert pr_monitor._post_gemini_acknowledgment.called
+        # Should post consolidated acknowledgment
+        assert pr_monitor._post_consolidated_acknowledgment.called
 
 
 class TestConfidenceBoostForDualReviews:

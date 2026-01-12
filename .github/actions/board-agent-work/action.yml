@@ -271,32 +271,65 @@ runs:
         echo "::group::Sync Approved Issues"
         [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
-        echo "Finding approved issues not yet on board..."
+        echo "=== Configuration ==="
+        echo "Agent: $AGENT_NAME"
+        echo "Board config: $BOARD_CONFIG_PATH"
+        echo "Timestamp: $(date -Iseconds)"
+        echo ""
+
+        echo "=== Finding Approved Issues ==="
+        echo "Using GitHub Search API to find [Approved][$AGENT_NAME] comments..."
 
         # Use board-cli to find approved issues (handles API calls internally)
-        # Note: Redirect stderr to /dev/null so only JSON goes to stdout
-        if APPROVED_RESULT=$(board-cli --json find-approved --agent "$AGENT_NAME" 2>/dev/null); then
-          echo "Find approved result (JSON): $APPROVED_RESULT"
+        # Capture stderr separately for debugging while keeping stdout clean
+        STDERR_FILE=$(mktemp)
+        START_TIME=$(date +%s)
 
-          # Add each approved issue that's not on board (use python3 for consistency - no jq dependency)
+        if APPROVED_RESULT=$(board-cli --json find-approved --agent "$AGENT_NAME" 2>"$STDERR_FILE"); then
+          END_TIME=$(date +%s)
+          echo "Search completed in $((END_TIME - START_TIME)) seconds"
+          echo "Find approved result: $APPROVED_RESULT"
+
+          # Parse and display results
+          ISSUE_COUNT=$(echo "$APPROVED_RESULT" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
+          echo "Found $ISSUE_COUNT approved issues"
+
+          # Add each approved issue that's not on board
           SYNCED=0
-          for ISSUE_NUM in $(echo "$APPROVED_RESULT" | python3 -c "import sys,json; [print(i['number']) for i in json.load(sys.stdin) if not i.get('on_board', True)]" 2>/dev/null || true); do
-            echo "Adding issue #$ISSUE_NUM to board..."
-            if board-cli --json add-to-board "$ISSUE_NUM" --agent "$AGENT_NAME" >/dev/null 2>&1; then
-              echo "Added issue #$ISSUE_NUM to board"
-              SYNCED=$((SYNCED + 1))
-            else
-              echo "::warning::Failed to add issue #$ISSUE_NUM to board"
-            fi
-          done
+          NOT_ON_BOARD=$(echo "$APPROVED_RESULT" | python3 -c "import sys,json; [print(i['number']) for i in json.load(sys.stdin) if not i.get('on_board', True)]" 2>/dev/null || true)
+
+          if [ -z "$NOT_ON_BOARD" ]; then
+            echo "All approved issues are already on board"
+          else
+            for ISSUE_NUM in $NOT_ON_BOARD; do
+              echo "Adding issue #$ISSUE_NUM to board..."
+              ADD_STDERR=$(mktemp)
+              if board-cli --json add-to-board "$ISSUE_NUM" --agent "$AGENT_NAME" 2>"$ADD_STDERR"; then
+                echo "Added issue #$ISSUE_NUM to board"
+                SYNCED=$((SYNCED + 1))
+              else
+                echo "::warning::Failed to add issue #$ISSUE_NUM to board"
+                if [ -s "$ADD_STDERR" ]; then
+                  echo "Error details: $(cat "$ADD_STDERR")"
+                fi
+              fi
+              rm -f "$ADD_STDERR"
+            done
+          fi
 
           echo "synced_count=$SYNCED" >> $GITHUB_OUTPUT
           echo "Synced $SYNCED approved issues to board"
         else
-          echo "::warning::Find approved command failed: $APPROVED_RESULT"
+          EXIT_CODE=$?
+          echo "::error::Find approved command failed with exit code $EXIT_CODE"
+          if [ -s "$STDERR_FILE" ]; then
+            echo "Error output:"
+            cat "$STDERR_FILE"
+          fi
           echo "synced_count=0" >> $GITHUB_OUTPUT
         fi
 
+        rm -f "$STDERR_FILE"
         echo "::endgroup::"
 
     # Step 5: Query board for ready work
@@ -316,7 +349,13 @@ runs:
         echo "::group::Query Ready Work"
         [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
-        echo "Querying ready work for agent: $AGENT_NAME..."
+        echo "=== Query Configuration ==="
+        echo "Agent: $AGENT_NAME"
+        echo "Max issues: $MAX_ISSUES"
+        echo "Include labels: ${INCLUDE_LABELS:-none}"
+        echo "Exclude labels: ${EXCLUDE_LABELS:-none}"
+        echo "Timestamp: $(date -Iseconds)"
+        echo ""
 
         # Build board-cli command using arrays to prevent command injection
         # This avoids eval and properly handles arguments with special characters
@@ -342,15 +381,22 @@ runs:
           done
         fi
 
-        echo "Running: ${CLI_CMD[*]}"
+        echo "=== Executing Query ==="
+        echo "Command: ${CLI_CMD[*]}"
 
         # Query using board-cli (filtering handled by CLI)
-        # Note: Don't redirect stderr to stdout - logs go to stderr, JSON goes to stdout
-        if READY_RESULT=$("${CLI_CMD[@]}" 2>/dev/null); then
+        # Capture stderr separately for debugging
+        STDERR_FILE=$(mktemp)
+        START_TIME=$(date +%s)
+
+        if READY_RESULT=$("${CLI_CMD[@]}" 2>"$STDERR_FILE"); then
+          END_TIME=$(date +%s)
+          echo "Query completed in $((END_TIME - START_TIME)) seconds"
           echo "Query result (JSON): $READY_RESULT"
 
           # Check if we got results (array with items)
           ISSUE_COUNT=$(echo "$READY_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)" 2>/dev/null || echo "0")
+          echo "Found $ISSUE_COUNT ready issues"
 
           if [ "$ISSUE_COUNT" -gt 0 ]; then
             # Extract first issue details
@@ -360,15 +406,24 @@ runs:
             ISSUE_LABELS=$(echo "$FIRST_ISSUE" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin).get('labels', [])))")
             HAS_WORK="True"
             QUERY_RESULT="{\"has_work\": true, \"issue_number\": $ISSUE_NUMBER, \"issue_title\": \"$ISSUE_TITLE\", \"labels\": [\"${ISSUE_LABELS//,/\",\"}\"], \"total_ready\": $ISSUE_COUNT}"
+            echo "Selected issue #$ISSUE_NUMBER: $ISSUE_TITLE"
           else
             HAS_WORK="False"
             QUERY_RESULT='{"has_work": false, "total_ready": 0}'
+            echo "No ready work available"
           fi
         else
-          echo "::warning::Query command failed: $READY_RESULT"
+          EXIT_CODE=$?
+          echo "::error::Query command failed with exit code $EXIT_CODE"
+          if [ -s "$STDERR_FILE" ]; then
+            echo "Error output:"
+            cat "$STDERR_FILE"
+          fi
           HAS_WORK="False"
           QUERY_RESULT='{"has_work": false, "error": "Query failed"}'
         fi
+
+        rm -f "$STDERR_FILE"
 
         if [ "$JSON_LOGGING" = "true" ]; then
           echo "$QUERY_RESULT"

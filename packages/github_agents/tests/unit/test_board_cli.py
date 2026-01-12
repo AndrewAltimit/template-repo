@@ -608,9 +608,8 @@ class TestCmdCheckApproval:
 class TestCmdFindApproved:
     """Tests for cmd_find_approved command.
 
-    Note: cmd_find_approved makes direct HTTP calls to GitHub API,
-    which requires complex aiohttp mocking. These are better tested
-    as integration tests with real GitHub API access.
+    Uses GitHub Search API for efficiency. These tests mock aiohttp
+    to verify correct API usage and error handling.
     """
 
     @pytest.mark.asyncio
@@ -631,6 +630,191 @@ class TestCmdFindApproved:
         # Should exit with error due to invalid repository format
         with pytest.raises(SystemExit):
             await cmd_find_approved(args)
+
+        captured = capsys.readouterr()
+        assert "error" in captured.out.lower()
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_find_approved_uses_search_api(self, mock_load, capsys):
+        """Test find-approved uses GitHub Search API for efficiency."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.config = MagicMock()
+        manager.config.repository = "owner/repo"
+        manager.github_token = "test-token"
+        manager.get_issue = AsyncMock(return_value=None)  # Not on board
+        mock_load.return_value = manager
+
+        from github_agents.board.cli import cmd_find_approved
+
+        # Create a proper async context manager mock
+        class MockResponse:
+            status = 200
+
+            async def json(self):
+                return {
+                    "items": [
+                        {"number": 42, "title": "Approved Issue"},
+                        {"number": 43, "title": "Another Approved Issue"},
+                    ]
+                }
+
+        class MockContextManager:
+            async def __aenter__(self):
+                return MockResponse()
+
+            async def __aexit__(self, *args):
+                pass
+
+        class MockSession:
+            def get(self, *args, **kwargs):
+                return MockContextManager()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+        with patch("aiohttp.ClientSession", return_value=MockSession()):
+            args = argparse.Namespace(json=True, agent="claude")
+            await cmd_find_approved(args)
+
+        captured = capsys.readouterr()
+        # Should output JSON with found issues
+        assert "42" in captured.out
+        assert "43" in captured.out
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_find_approved_agent_with_spaces(self, mock_load, capsys):
+        """Test find-approved works with agent names containing spaces (e.g., 'Claude Code')."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.config = MagicMock()
+        manager.config.repository = "owner/repo"
+        manager.github_token = "test-token"
+        manager.get_issue = AsyncMock(return_value=None)
+        mock_load.return_value = manager
+
+        from github_agents.board.cli import cmd_find_approved
+
+        class MockResponse:
+            status = 200
+
+            async def json(self):
+                return {"items": [{"number": 99, "title": "Claude Code Issue"}]}
+
+        class MockContextManager:
+            async def __aenter__(self):
+                return MockResponse()
+
+            async def __aexit__(self, *args):
+                pass
+
+        class MockSession:
+            def get(self, *args, **kwargs):
+                return MockContextManager()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+        with patch("aiohttp.ClientSession", return_value=MockSession()):
+            # Agent name with space
+            args = argparse.Namespace(json=True, agent="Claude Code")
+            await cmd_find_approved(args)
+
+        captured = capsys.readouterr()
+        assert "99" in captured.out
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_find_approved_empty_results(self, mock_load, capsys):
+        """Test find-approved handles empty search results."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.config = MagicMock()
+        manager.config.repository = "owner/repo"
+        manager.github_token = "test-token"
+        mock_load.return_value = manager
+
+        from github_agents.board.cli import cmd_find_approved
+
+        class MockResponse:
+            status = 200
+
+            async def json(self):
+                return {"items": []}
+
+        class MockContextManager:
+            async def __aenter__(self):
+                return MockResponse()
+
+            async def __aexit__(self, *args):
+                pass
+
+        class MockSession:
+            def get(self, *args, **kwargs):
+                return MockContextManager()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+        with patch("aiohttp.ClientSession", return_value=MockSession()):
+            args = argparse.Namespace(json=False, agent="claude")
+            await cmd_find_approved(args)
+
+        captured = capsys.readouterr()
+        assert "No approved issues found" in captured.out
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_find_approved_search_api_error(self, mock_load, capsys):
+        """Test find-approved handles Search API errors gracefully."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.config = MagicMock()
+        manager.config.repository = "owner/repo"
+        manager.github_token = "test-token"
+        mock_load.return_value = manager
+
+        from github_agents.board.cli import cmd_find_approved
+
+        class MockResponse:
+            status = 403  # Rate limited
+
+            async def text(self):
+                return "API rate limit exceeded"
+
+        class MockContextManager:
+            async def __aenter__(self):
+                return MockResponse()
+
+            async def __aexit__(self, *args):
+                pass
+
+        class MockSession:
+            def get(self, *args, **kwargs):
+                return MockContextManager()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+        with patch("aiohttp.ClientSession", return_value=MockSession()):
+            args = argparse.Namespace(json=True, agent="claude")
+
+            with pytest.raises(SystemExit):
+                await cmd_find_approved(args)
 
         captured = capsys.readouterr()
         assert "error" in captured.out.lower()

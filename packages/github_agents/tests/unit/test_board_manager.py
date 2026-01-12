@@ -856,6 +856,21 @@ class TestApprovalChecking:
         """
         assert manager._check_approval_trigger(text_with_approval, "testuser") is True
 
+    def test_check_approval_trigger_agent_with_spaces(self, board_config, _mock_github_token):
+        """Test approval trigger with agent names containing spaces (e.g., 'Claude Code')."""
+        manager = BoardManager(config=board_config)
+
+        # Agent names with spaces should be supported
+        assert manager._check_approval_trigger("[Approved][Claude Code]", "testuser") is True
+        assert manager._check_approval_trigger("[Review][OpenAI Agent]", "testuser") is True
+        assert manager._check_approval_trigger("[Debug][My Custom Agent]", "testuser") is True
+
+        # Agent names with hyphens should still work
+        assert manager._check_approval_trigger("[Approved][github-actions]", "testuser") is True
+
+        # Combination of spaces and hyphens
+        assert manager._check_approval_trigger("[Approved][My-Custom Agent]", "testuser") is True
+
     def test_check_approval_trigger_empty_inputs(self, board_config, _mock_github_token):
         """Test empty/None inputs are handled."""
         manager = BoardManager(config=board_config)

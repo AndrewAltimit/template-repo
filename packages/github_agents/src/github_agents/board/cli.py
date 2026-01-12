@@ -479,20 +479,19 @@ async def cmd_info(args: argparse.Namespace) -> None:
 
 
 async def cmd_find_approved(args: argparse.Namespace) -> None:
-    """Find issues with approval comments that are not yet on the board."""
+    """Find issues with approval comments that are not yet on the board.
+
+    Uses GitHub Search API for efficiency (single API call instead of N+1 pattern).
+    """
     manager = load_board_manager()
     await manager.initialize()
 
     logger.info("Finding approved issues for agent: %s", args.agent)
 
     try:
-        import re
-
         import aiohttp
 
-        # Build the approval pattern for this agent
         agent_name = args.agent or "claude"
-        pattern = re.compile(r"\[Approved\]\[" + re.escape(agent_name) + r"\]", re.IGNORECASE)
 
         # Fetch open issues from GitHub REST API
         repo_parts = manager.config.repository.split("/")
@@ -502,54 +501,30 @@ async def cmd_find_approved(args: argparse.Namespace) -> None:
 
         approved_issues = []
         async with aiohttp.ClientSession() as session:
-            # Get open issues with pagination
-            url = f"https://api.github.com/repos/{owner}/{repo_name}/issues"
             headers = {
                 "Authorization": f"token {manager.github_token}",
                 "Accept": "application/vnd.github.v3+json",
             }
 
-            # Paginate through all open issues
-            page = 1
-            all_issues = []
-            while True:
-                params = {"state": "open", "per_page": 100, "page": page}
-                async with session.get(url, headers=headers, params=params) as resp:
-                    if resp.status != 200:
-                        raise ValueError(f"GitHub API error: {resp.status}")
-                    issues = await resp.json()
-                    if not issues:
-                        break
-                    all_issues.extend(issues)
-                    page += 1
-                    # Safety limit to prevent infinite loops
-                    if page > 10:
-                        break
+            # Use GitHub Search API to find issues with approval comments
+            # This is O(1) instead of O(N) API calls
+            search_url = "https://api.github.com/search/issues"
+            # Search for [Approved][agent] in comments for open issues
+            search_query = f'repo:{owner}/{repo_name} is:issue is:open "[Approved][{agent_name}]" in:comments'
+            params = {"q": search_query, "per_page": 100}
 
-            # For each issue, check comments for approval
-            for issue in all_issues:
-                # Skip PRs
-                if "pull_request" in issue:
-                    continue
+            async with session.get(search_url, headers=headers, params=params) as resp:
+                if resp.status != 200:
+                    error_body = await resp.text()
+                    raise ValueError(f"GitHub Search API error: {resp.status} - {error_body}")
+                search_result = await resp.json()
 
+            # Process search results
+            for issue in search_result.get("items", []):
                 issue_num = issue["number"]
-                comments_url = issue.get("comments_url")
-                if not comments_url:
-                    continue
-
-                async with session.get(comments_url, headers=headers) as resp:
-                    if resp.status != 200:
-                        continue
-                    comments = await resp.json()
-
-                # Check if any comment has approval
-                for comment in comments:
-                    body = comment.get("body", "")
-                    if pattern.search(body):
-                        # Check if already on board
-                        on_board = await manager.get_issue(issue_num) is not None
-                        approved_issues.append({"number": issue_num, "title": issue["title"], "on_board": on_board})
-                        break
+                # Check if already on board
+                on_board = await manager.get_issue(issue_num) is not None
+                approved_issues.append({"number": issue_num, "title": issue["title"], "on_board": on_board})
 
         if args.json:
             output_result(approved_issues, json_output=True)
