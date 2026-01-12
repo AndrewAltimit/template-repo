@@ -531,12 +531,19 @@ async def cmd_find_approved(args: argparse.Namespace) -> None:
                 if not items:
                     break
 
-                # Process search results
-                for issue in items:
-                    issue_num = issue["number"]
-                    # Check if already on board
-                    on_board = await manager.get_issue(issue_num) is not None
-                    approved_issues.append({"number": issue_num, "title": issue["title"], "on_board": on_board})
+                # Process search results - parallelize board status checks with asyncio.gather
+                # This avoids N+1 sequential API calls
+                issue_numbers = [issue["number"] for issue in items]
+                board_checks = await asyncio.gather(*[manager.get_issue(num) for num in issue_numbers])
+
+                for issue, board_issue in zip(items, board_checks):
+                    approved_issues.append(
+                        {
+                            "number": issue["number"],
+                            "title": issue["title"],
+                            "on_board": board_issue is not None,
+                        }
+                    )
 
                 # Check if we've fetched all results
                 if len(approved_issues) >= total_count:
@@ -747,7 +754,13 @@ def main() -> None:
     # add-to-board command
     add_board_parser = subparsers.add_parser("add-to-board", help="Add issue to project board")
     add_board_parser.add_argument("issue", type=int, help="Issue number")
-    add_board_parser.add_argument("--status", type=str, default="todo", help="Initial status (default: todo)")
+    add_board_parser.add_argument(
+        "--status",
+        type=str,
+        default="todo",
+        choices=["todo", "in-progress", "blocked", "done", "abandoned"],
+        help="Initial status (default: todo)",
+    )
     add_board_parser.add_argument("--priority", type=str, choices=["critical", "high", "medium", "low"], help="Issue priority")
     add_board_parser.add_argument(
         "--type", type=str, choices=["feature", "bug", "tech_debt", "documentation"], help="Issue type"
