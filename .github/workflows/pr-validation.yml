@@ -420,6 +420,13 @@ jobs:
           git clean -fd 2>/dev/null || true
           echo "Working directory reset to clean state"
 
+      - name: Initialize output directories
+        run: |
+          # Pre-create output directories with correct ownership before Docker runs
+          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
+            ./automation/setup/docker/init-output-dirs.sh
+          fi
+
       - name: Check iteration count
         id: iteration
         uses: ./.github/actions/agent-iteration-check
@@ -488,6 +495,14 @@ jobs:
           echo "Agent review response completed"
           echo "Made changes: ${{ steps.agent-fix.outputs.made_changes || 'false' }}"
           echo "Iteration: ${{ steps.iteration.outputs.iteration_count }}"
+
+      - name: Cleanup output directories
+        if: always()
+        run: |
+          # Clean up Docker-created output directories to prevent permission issues
+          if [ -f "./automation/ci-cd/cleanup-outputs.sh" ]; then
+            ./automation/ci-cd/cleanup-outputs.sh
+          fi
 
   # Stage 3a: Format check stage (runs after agent has chance to fix review items)
   format-check:
@@ -1053,6 +1068,13 @@ jobs:
           git clean -fd 2>/dev/null || true
           echo "Working directory reset to clean state"
 
+      - name: Initialize output directories
+        run: |
+          # Pre-create output directories with correct ownership before Docker runs
+          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
+            ./automation/setup/docker/init-output-dirs.sh
+          fi
+
       - name: Check iteration count
         id: iteration
         uses: ./.github/actions/agent-iteration-check
@@ -1125,6 +1147,14 @@ jobs:
           echo "Agent failure handler completed"
           echo "Made changes: ${{ steps.agent-fix.outputs.made_changes || 'false' }}"
           echo "Iteration: ${{ steps.iteration.outputs.iteration_count }}"
+
+      - name: Cleanup output directories
+        if: always()
+        run: |
+          # Clean up Docker-created output directories to prevent permission issues
+          if [ -f "./automation/ci-cd/cleanup-outputs.sh" ]; then
+            ./automation/ci-cd/cleanup-outputs.sh
+          fi
 
   # Final status and summary
   pr-status:
