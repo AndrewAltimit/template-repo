@@ -122,6 +122,8 @@ jobs:
     if: github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft)
     runs-on: self-hosted
     timeout-minutes: 30  # Increased for large PRs - API calls with retry logic can take time
+    outputs:
+      is_agent_commit: ${{ steps.check-agent.outputs.is_agent_commit }}  # Informational only
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       PR_TITLE: ${{ github.event.pull_request.title }}
@@ -143,9 +145,32 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
+      # Log commit info for debugging (reviews always run, agent decides whether to act)
+      - name: Log commit info
+        id: check-agent
+        run: |
+          LAST_COMMIT_MSG=$(git log -1 --format='%s')
+          LAST_COMMIT_AUTHOR=$(git log -1 --format='%an')
+
+          echo "Last commit message: $LAST_COMMIT_MSG"
+          echo "Last commit author: $LAST_COMMIT_AUTHOR"
+
+          # Reviews always run - agent response job decides whether to commit fixes
+          # Safety: iteration counter limits to 5 cycles, agent checks for new issues
+          IS_AGENT_COMMIT="false"
+          if [[ "$LAST_COMMIT_AUTHOR" == "AI Review Agent" ]] || \
+             [[ "$LAST_COMMIT_AUTHOR" == "AI Pipeline Agent" ]] || \
+             [[ "$LAST_COMMIT_AUTHOR" == "AI Agent Bot" ]]; then
+            IS_AGENT_COMMIT="true"
+            echo "Agent commit detected - reviews will still run, agent will evaluate if action needed"
+          fi
+
+          echo "is_agent_commit=$IS_AGENT_COMMIT" >> $GITHUB_OUTPUT
+
       # Python cache cleanup not needed with proper user permissions
 
       - name: Copy changed files list
+        # Reviews always run (agent decides whether to act)
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             git diff --name-only origin/${{ github.base_ref }}...HEAD > changed_files.txt
@@ -154,6 +179,7 @@ jobs:
       # Skip Python setup on self-hosted runner - use system Python
 
       - name: Setup Node.js with nvm
+        # Reviews always run (agent decides whether to act)
         shell: bash
         run: |
           # Source nvm if available
@@ -168,6 +194,7 @@ jobs:
           which gemini || echo "Gemini CLI not found in PATH"
 
       - name: Prepare Gemini review context
+        # Reviews always run (agent decides whether to act)
         run: |
           echo "📋 Preparing review context..."
           # Ensure PROJECT_CONTEXT.md is available
@@ -178,6 +205,7 @@ jobs:
           fi
 
       - name: Clear Gemini conversation history
+        # Reviews always run (agent decides whether to act)
         continue-on-error: true
         run: |
           echo "🧹 Clearing Gemini conversation history..."
@@ -224,6 +252,7 @@ jobs:
 
 
       - name: Run Gemini CLI Review
+        # Reviews always run (agent decides whether to act)
         continue-on-error: true  # Don't fail the PR if Gemini review fails
         shell: bash
         env:
@@ -251,6 +280,14 @@ jobs:
           path: gemini-review.md
           retention-days: 7
           if-no-files-found: ignore
+
+      - name: Clean up working directory
+        if: always()
+        run: |
+          # Ensure clean slate for subsequent jobs - remove any modified/untracked files
+          git checkout -- . 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
+          echo "Working directory cleaned"
 
   # Stage 2b: Codex AI Code Review (Secondary reviewer with Gemini context)
   codex-review:
@@ -280,6 +317,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
+
+      - name: Ensure clean working directory
+        run: |
+          # Reset any tracked file changes and remove untracked files
+          git checkout -- . 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
+          echo "Working directory reset to clean state"
 
       - name: Download Gemini review artifact
         uses: actions/download-artifact@v4
@@ -328,10 +372,138 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  # Stage 3a: Format check stage
+      - name: Clean up working directory
+        if: always()
+        run: |
+          # Ensure clean slate for subsequent jobs - remove any modified/untracked files
+          git checkout -- . 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
+          echo "Working directory cleaned"
+
+  # Stage 2c: Agent Review Response (responds to Gemini/Codex feedback)
+  # Always runs - agent evaluates reviews and decides whether to commit fixes
+  agent-review-response:
+    name: Agent Review Response
+    needs: [detect-changes, gemini-review, codex-review]
+    if: |
+      always() &&
+      !cancelled() &&
+      github.event_name == 'pull_request' &&
+      !github.event.pull_request.draft &&
+      vars.ENABLE_AGENTS == 'true' &&
+      !contains(github.event.pull_request.labels.*.name, 'no-auto-fix')
+    runs-on: self-hosted
+    timeout-minutes: 30
+    outputs:
+      made_changes: ${{ steps.agent-fix.outputs.made_changes }}
+      iteration_count: ${{ steps.iteration.outputs.iteration_count }}
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      HEAD_BRANCH: ${{ github.head_ref }}
+      GITHUB_TOKEN: ${{ secrets.AGENT_TOKEN }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.AGENT_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Ensure clean working directory
+        run: |
+          # Reset any tracked file changes and remove untracked files
+          # This ensures agent sees pristine PR code, not any reviewer artifacts
+          git checkout -- . 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
+          echo "Working directory reset to clean state"
+
+      - name: Initialize output directories
+        run: |
+          # Pre-create output directories with correct ownership before Docker runs
+          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
+            ./automation/setup/docker/init-output-dirs.sh
+          fi
+
+      - name: Check iteration count
+        id: iteration
+        uses: ./.github/actions/agent-iteration-check
+        with:
+          pr_number: ${{ github.event.pull_request.number }}
+          max_iterations: '5'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip if max iterations reached
+        if: steps.iteration.outputs.exceeded_max == 'true'
+        run: |
+          echo "Maximum iterations (5) reached. Manual intervention required."
+          echo "made_changes=false" >> $GITHUB_OUTPUT
+          exit 0
+
+      # Note: We do NOT skip on agent commits - agent evaluates if new issues exist
+      # The iteration counter (max 5) prevents infinite loops
+
+      - name: Download review artifacts
+        if: steps.iteration.outputs.should_skip != 'true'
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: '*-review-${{ github.run_id }}-${{ github.run_attempt }}'
+          merge-multiple: true
+          path: .
+
+      - name: Setup Node.js with nvm
+        if: steps.iteration.outputs.should_skip != 'true'
+        shell: bash
+        run: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm use 22.16.0 || nvm install 22.16.0
+          echo "Node.js version: $(node --version)"
+
+      - name: Set Docker user environment
+        if: steps.iteration.outputs.should_skip != 'true'
+        run: |
+          source ./automation/setup/docker/set-docker-user.sh
+
+      - name: Run agent review response
+        id: agent-fix
+        if: steps.iteration.outputs.should_skip != 'true'
+        env:
+          GEMINI_REVIEW_PATH: gemini-review.md
+          CODEX_REVIEW_PATH: codex-review.md
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BRANCH_NAME: ${{ github.head_ref }}
+          ITERATION_COUNT: ${{ steps.iteration.outputs.iteration_count }}
+        run: |
+          echo "Running agent review response..."
+          ./automation/ci-cd/agent-review-response.sh \
+            "$PR_NUMBER" \
+            "$BRANCH_NAME" \
+            "$ITERATION_COUNT" \
+            "5"
+
+      - name: Log result
+        if: always()
+        run: |
+          echo "Agent review response completed"
+          echo "Made changes: ${{ steps.agent-fix.outputs.made_changes || 'false' }}"
+          echo "Iteration: ${{ steps.iteration.outputs.iteration_count }}"
+
+      - name: Cleanup output directories
+        if: always()
+        run: |
+          # Clean up Docker-created output directories to prevent permission issues
+          if [ -f "./automation/ci-cd/cleanup-outputs.sh" ]; then
+            ./automation/ci-cd/cleanup-outputs.sh
+          fi
+
+  # Stage 3a: Format check stage (runs after agent has chance to fix review items)
   format-check:
     name: Python Format Check
-    needs: [detect-changes, gemini-review, codex-review]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: |
       needs.detect-changes.outputs.python_changed == 'true' ||
       needs.detect-changes.outputs.mcp_changed == 'true' ||
@@ -342,10 +514,10 @@ jobs:
       upload_artifacts: true
     secrets: inherit
 
-  # Stage 3b: Basic lint stage (runs in parallel with format-check for speed)
+  # Stage 3b: Basic lint stage (runs after agent has chance to fix review items)
   basic-lint:
     name: Python Basic Lint
-    needs: [detect-changes, gemini-review, codex-review]  # Runs after AI reviews
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: |
       needs.detect-changes.outputs.python_changed == 'true' ||
       needs.detect-changes.outputs.mcp_changed == 'true' ||
@@ -373,7 +545,7 @@ jobs:
   # Stage 3d: Link check for documentation
   link-check:
     name: Documentation Link Check
-    needs: [detect-changes, gemini-review, codex-review]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: |
       needs.detect-changes.outputs.docs_changed == 'true' ||
       !github.event.pull_request.draft
@@ -386,7 +558,7 @@ jobs:
   # Stage 4: YAML/JSON validation
   config-validation:
     name: Config File Validation
-    needs: [detect-changes, gemini-review, codex-review]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: needs.detect-changes.outputs.yaml_changed == 'true'
     runs-on: self-hosted
     timeout-minutes: 10
@@ -411,7 +583,7 @@ jobs:
   # Stage 4b: Workflow file validation (always run)
   workflow-validation:
     name: Workflow File Validation
-    needs: [detect-changes, gemini-review, codex-review]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: always() && !cancelled()
     runs-on: self-hosted
     timeout-minutes: 5
@@ -470,7 +642,7 @@ jobs:
   # Stage 4c: Comprehensive YAML linting (always run)
   yaml-lint:
     name: YAML Lint All Files
-    needs: [detect-changes, gemini-review, codex-review]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: always() && !cancelled()
     runs-on: self-hosted
     timeout-minutes: 5
@@ -492,7 +664,7 @@ jobs:
   # Stage 5: Test execution
   test-suite:
     name: Test Suite
-    needs: [detect-changes, gemini-review, codex-review, format-check, basic-lint, full-lint]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response, format-check, basic-lint, full-lint]
     if: |
       (needs.detect-changes.outputs.python_changed == 'true' ||
        needs.detect-changes.outputs.mcp_changed == 'true') &&
@@ -564,7 +736,7 @@ jobs:
   # Stage 6: MCP Server validation
   mcp-validation:
     name: MCP Server Validation
-    needs: [detect-changes, gemini-review, codex-review]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: |
       needs.detect-changes.outputs.mcp_changed == 'true' &&
       !github.event.pull_request.draft
@@ -720,7 +892,7 @@ jobs:
   # Stage 8: Docker image validation
   docker-validation:
     name: Docker Image Validation
-    needs: [detect-changes, gemini-review, codex-review, format-check, basic-lint, full-lint]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response, format-check, basic-lint, full-lint]
     if: |
       (needs.detect-changes.outputs.docker_changed == 'true' ||
        needs.detect-changes.outputs.python_changed == 'true' ||
@@ -843,6 +1015,143 @@ jobs:
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh
 
+  # Agent Failure Handler - attempts to fix format/lint failures
+  agent-failure-handler:
+    name: Agent Failure Handler
+    needs:
+      - detect-changes
+      - gemini-review
+      - codex-review
+      - agent-review-response
+      - format-check
+      - basic-lint
+      - full-lint
+    if: |
+      failure() &&
+      github.event_name == 'pull_request' &&
+      !github.event.pull_request.draft &&
+      vars.ENABLE_AGENTS == 'true' &&
+      !contains(github.event.pull_request.labels.*.name, 'no-auto-fix') &&
+      (needs.format-check.result == 'failure' ||
+       needs.basic-lint.result == 'failure' ||
+       needs.full-lint.result == 'failure')
+    runs-on: self-hosted
+    timeout-minutes: 45
+    outputs:
+      made_changes: ${{ steps.agent-fix.outputs.made_changes }}
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      HEAD_BRANCH: ${{ github.head_ref }}
+      GITHUB_TOKEN: ${{ secrets.AGENT_TOKEN }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      FORMAT_CHECK_RESULT: ${{ needs.format-check.result }}
+      BASIC_LINT_RESULT: ${{ needs.basic-lint.result }}
+      FULL_LINT_RESULT: ${{ needs.full-lint.result }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.AGENT_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Ensure clean working directory
+        run: |
+          # Reset any tracked file changes and remove untracked files
+          git checkout -- . 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
+          echo "Working directory reset to clean state"
+
+      - name: Initialize output directories
+        run: |
+          # Pre-create output directories with correct ownership before Docker runs
+          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
+            ./automation/setup/docker/init-output-dirs.sh
+          fi
+
+      - name: Check iteration count
+        id: iteration
+        uses: ./.github/actions/agent-iteration-check
+        with:
+          pr_number: ${{ github.event.pull_request.number }}
+          max_iterations: '5'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip if max iterations reached
+        if: steps.iteration.outputs.exceeded_max == 'true'
+        run: |
+          echo "Maximum iterations (5) reached. Manual intervention required."
+
+          # Post comment on PR
+          gh pr comment "${{ github.event.pull_request.number }}" --body "$(cat << 'EOF'
+          ## Agent Failure Handler - Max Iterations Reached
+
+          The automated agent has attempted to fix pipeline failures 5 times without success.
+          Manual intervention is required to resolve the remaining issues.
+
+          **Failed checks:**
+          - Format Check: ${{ needs.format-check.result }}
+          - Basic Lint: ${{ needs.basic-lint.result }}
+          - Full Lint: ${{ needs.full-lint.result }}
+
+          Please review the failure logs and fix the issues manually.
+          EOF
+          )"
+
+          echo "made_changes=false" >> $GITHUB_OUTPUT
+          exit 0
+
+      - name: Setup Node.js with nvm
+        if: steps.iteration.outputs.exceeded_max != 'true'
+        shell: bash
+        run: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm use 22.16.0 || nvm install 22.16.0
+          echo "Node.js version: $(node --version)"
+
+      - name: Set Docker user environment
+        if: steps.iteration.outputs.exceeded_max != 'true'
+        run: |
+          source ./automation/setup/docker/set-docker-user.sh
+
+      - name: Run agent failure handler
+        id: agent-fix
+        if: steps.iteration.outputs.exceeded_max != 'true'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BRANCH_NAME: ${{ github.head_ref }}
+          ITERATION_COUNT: ${{ steps.iteration.outputs.iteration_count }}
+        run: |
+          echo "Running agent failure handler..."
+          echo "Format check result: $FORMAT_CHECK_RESULT"
+          echo "Basic lint result: $BASIC_LINT_RESULT"
+          echo "Full lint result: $FULL_LINT_RESULT"
+
+          ./automation/ci-cd/agent-failure-handler.sh \
+            "$PR_NUMBER" \
+            "$BRANCH_NAME" \
+            "$ITERATION_COUNT" \
+            "5" \
+            "format,lint"
+
+      - name: Log result
+        if: always()
+        run: |
+          echo "Agent failure handler completed"
+          echo "Made changes: ${{ steps.agent-fix.outputs.made_changes || 'false' }}"
+          echo "Iteration: ${{ steps.iteration.outputs.iteration_count }}"
+
+      - name: Cleanup output directories
+        if: always()
+        run: |
+          # Clean up Docker-created output directories to prevent permission issues
+          if [ -f "./automation/ci-cd/cleanup-outputs.sh" ]; then
+            ./automation/ci-cd/cleanup-outputs.sh
+          fi
+
   # Final status and summary
   pr-status:
     name: PR Status Summary
@@ -850,6 +1159,7 @@ jobs:
       - detect-changes
       - gemini-review
       - codex-review
+      - agent-review-response
       - format-check
       - basic-lint
       - full-lint
@@ -863,6 +1173,7 @@ jobs:
       - dashboard-tests
       - gaea2-integration-tests
       - docker-validation
+      - agent-failure-handler
     if: always()
     runs-on: self-hosted
     steps:

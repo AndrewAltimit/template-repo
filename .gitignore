@@ -257,3 +257,7 @@ docker-compose.override.yml
 pylint-report.txt
 mypy-report.txt
 flake8-report.txt
+
+# CI review artifacts (generated during PR validation)
+codex-review.md
+gemini-review.md
