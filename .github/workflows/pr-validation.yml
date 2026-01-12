@@ -451,10 +451,10 @@ jobs:
           echo "Made changes: ${{ steps.agent-fix.outputs.made_changes || 'false' }}"
           echo "Iteration: ${{ steps.iteration.outputs.iteration_count }}"
 
-  # Stage 3a: Format check stage
+  # Stage 3a: Format check stage (runs after agent has chance to fix review items)
   format-check:
     name: Python Format Check
-    needs: [detect-changes, gemini-review, codex-review]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: |
       needs.detect-changes.outputs.python_changed == 'true' ||
       needs.detect-changes.outputs.mcp_changed == 'true' ||
@@ -465,10 +465,10 @@ jobs:
       upload_artifacts: true
     secrets: inherit
 
-  # Stage 3b: Basic lint stage (runs in parallel with format-check for speed)
+  # Stage 3b: Basic lint stage (runs after agent has chance to fix review items)
   basic-lint:
     name: Python Basic Lint
-    needs: [detect-changes, gemini-review, codex-review]  # Runs after AI reviews
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: |
       needs.detect-changes.outputs.python_changed == 'true' ||
       needs.detect-changes.outputs.mcp_changed == 'true' ||
@@ -496,7 +496,7 @@ jobs:
   # Stage 3d: Link check for documentation
   link-check:
     name: Documentation Link Check
-    needs: [detect-changes, gemini-review, codex-review]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: |
       needs.detect-changes.outputs.docs_changed == 'true' ||
       !github.event.pull_request.draft
@@ -509,7 +509,7 @@ jobs:
   # Stage 4: YAML/JSON validation
   config-validation:
     name: Config File Validation
-    needs: [detect-changes, gemini-review, codex-review]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: needs.detect-changes.outputs.yaml_changed == 'true'
     runs-on: self-hosted
     timeout-minutes: 10
@@ -534,7 +534,7 @@ jobs:
   # Stage 4b: Workflow file validation (always run)
   workflow-validation:
     name: Workflow File Validation
-    needs: [detect-changes, gemini-review, codex-review]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: always() && !cancelled()
     runs-on: self-hosted
     timeout-minutes: 5
@@ -593,7 +593,7 @@ jobs:
   # Stage 4c: Comprehensive YAML linting (always run)
   yaml-lint:
     name: YAML Lint All Files
-    needs: [detect-changes, gemini-review, codex-review]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: always() && !cancelled()
     runs-on: self-hosted
     timeout-minutes: 5
@@ -615,7 +615,7 @@ jobs:
   # Stage 5: Test execution
   test-suite:
     name: Test Suite
-    needs: [detect-changes, gemini-review, codex-review, format-check, basic-lint, full-lint]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response, format-check, basic-lint, full-lint]
     if: |
       (needs.detect-changes.outputs.python_changed == 'true' ||
        needs.detect-changes.outputs.mcp_changed == 'true') &&
@@ -687,7 +687,7 @@ jobs:
   # Stage 6: MCP Server validation
   mcp-validation:
     name: MCP Server Validation
-    needs: [detect-changes, gemini-review, codex-review]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: |
       needs.detect-changes.outputs.mcp_changed == 'true' &&
       !github.event.pull_request.draft
@@ -843,7 +843,7 @@ jobs:
   # Stage 8: Docker image validation
   docker-validation:
     name: Docker Image Validation
-    needs: [detect-changes, gemini-review, codex-review, format-check, basic-lint, full-lint]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response, format-check, basic-lint, full-lint]
     if: |
       (needs.detect-changes.outputs.docker_changed == 'true' ||
        needs.detect-changes.outputs.python_changed == 'true' ||
