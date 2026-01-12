@@ -139,17 +139,12 @@
 % Human review can request changes -> back to council (above, higher than purple)
 \draw[looparrow, humangate!70] (humanrev.north) -- ++(0,0.7) -| (council.north);
 
-% Agent auto-fix loops (straight lines with right angles, lower than green)
-\draw[looparrow] (autofix.north) -- ++(0,0.4) -| (council.north west);
-\draw[looparrow] (autofix.north) -- ++(0,0.4) -| (ci.north east);
-
 % CI failure loop (down to CI Fix, back to AI Council)
 \draw[looparrow, agentwork!70] (ci.south) -- (cifix.north);
 \draw[looparrow, agentwork!70] (cifix.east) -| (council.south);
 
 % Loop labels
 \node[above=0.65cm of council, font=\scriptsize\color{humangate!70}\itshape, xshift=-0.8cm] {changes requested};
-\node[above=0.35cm of autofix, font=\scriptsize\color{reviewloop}\itshape] {auto-fix loops};
 \node[right=0.1cm of cifix, font=\scriptsize\color{agentwork!70}\itshape] {CI failures};
 
 \end{tikzpicture}
