@@ -281,6 +281,14 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+      - name: Clean up working directory
+        if: always()
+        run: |
+          # Ensure clean slate for subsequent jobs - remove any modified/untracked files
+          git checkout -- . 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
+          echo "Working directory cleaned"
+
   # Stage 2b: Codex AI Code Review (Secondary reviewer with Gemini context)
   codex-review:
     name: Codex AI Code Review
@@ -309,6 +317,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
+
+      - name: Ensure clean working directory
+        run: |
+          # Reset any tracked file changes and remove untracked files
+          git checkout -- . 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
+          echo "Working directory reset to clean state"
 
       - name: Download Gemini review artifact
         uses: actions/download-artifact@v4
@@ -357,6 +372,14 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+      - name: Clean up working directory
+        if: always()
+        run: |
+          # Ensure clean slate for subsequent jobs - remove any modified/untracked files
+          git checkout -- . 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
+          echo "Working directory cleaned"
+
   # Stage 2c: Agent Review Response (responds to Gemini/Codex feedback)
   # Always runs - agent evaluates reviews and decides whether to commit fixes
   agent-review-response:
@@ -388,6 +411,14 @@ jobs:
           token: ${{ secrets.AGENT_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
+
+      - name: Ensure clean working directory
+        run: |
+          # Reset any tracked file changes and remove untracked files
+          # This ensures agent sees pristine PR code, not any reviewer artifacts
+          git checkout -- . 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
+          echo "Working directory reset to clean state"
 
       - name: Check iteration count
         id: iteration
@@ -1009,6 +1040,13 @@ jobs:
           token: ${{ secrets.AGENT_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
+
+      - name: Ensure clean working directory
+        run: |
+          # Reset any tracked file changes and remove untracked files
+          git checkout -- . 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
+          echo "Working directory reset to clean state"
 
       - name: Check iteration count
         id: iteration
