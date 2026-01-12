@@ -526,11 +526,16 @@ runs:
 
         SESSION_ID="gha-${{ github.run_id }}-${{ github.run_attempt }}"
 
-        echo "Claiming issue #$ISSUE_NUMBER for agent $AGENT_NAME..."
+        echo "=== Claiming Issue ==="
+        echo "Issue: #$ISSUE_NUMBER"
+        echo "Agent: $AGENT_NAME"
         echo "Session ID: $SESSION_ID"
+        echo "Timestamp: $(date -Iseconds)"
 
-        # Use board-cli to claim the issue (discard stderr logs for clean JSON)
-        if CLAIM_RESULT=$(board-cli --json claim "$ISSUE_NUMBER" --agent "$AGENT_NAME" --session "$SESSION_ID" 2>/dev/null); then
+        # Capture stderr for debugging while keeping stdout clean for JSON
+        STDERR_FILE=$(mktemp)
+
+        if CLAIM_RESULT=$(board-cli --json claim "$ISSUE_NUMBER" --agent "$AGENT_NAME" --session "$SESSION_ID" 2>"$STDERR_FILE"); then
           echo "Claim result: $CLAIM_RESULT"
 
           SUCCESS=$(echo "$CLAIM_RESULT" | python3 -c "import sys,json; print('true' if json.load(sys.stdin).get('success') else 'false')" 2>/dev/null || echo "false")
@@ -544,14 +549,27 @@ runs:
           else
             REASON=$(echo "$CLAIM_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('reason', 'unknown'))" 2>/dev/null || echo "unknown")
             echo "::error::Failed to claim issue #$ISSUE_NUMBER: $REASON"
+            if [ -s "$STDERR_FILE" ]; then
+              echo "Error details:"
+              cat "$STDERR_FILE"
+            fi
+            rm -f "$STDERR_FILE"
             exit 1
           fi
         else
-          echo "::error::Claim command failed: $CLAIM_RESULT"
+          EXIT_CODE=$?
+          echo "::error::Claim command failed with exit code $EXIT_CODE"
+          if [ -s "$STDERR_FILE" ]; then
+            echo "Error output:"
+            cat "$STDERR_FILE"
+          fi
           echo "claimed=false" >> $GITHUB_OUTPUT
           echo "session_id=$SESSION_ID" >> $GITHUB_OUTPUT
+          rm -f "$STDERR_FILE"
           exit 1
         fi
+
+        rm -f "$STDERR_FILE"
 
         echo "::endgroup::"
 
@@ -947,17 +965,29 @@ runs:
           REASON="error"
         fi
 
-        echo "Releasing claim on issue #$ISSUE_NUMBER, reason: $REASON..."
+        echo "=== Releasing Claim ==="
+        echo "Issue: #$ISSUE_NUMBER"
+        echo "Agent: $AGENT_NAME"
+        echo "Reason: $REASON"
+        echo "Timestamp: $(date -Iseconds)"
 
-        # Use board-cli to release the claim (discard stderr logs for clean JSON)
-        if RELEASE_RESULT=$(board-cli --json release "$ISSUE_NUMBER" --agent "$AGENT_NAME" --reason "$REASON" 2>/dev/null); then
+        # Capture stderr for debugging while keeping stdout clean for JSON
+        STDERR_FILE=$(mktemp)
+
+        if RELEASE_RESULT=$(board-cli --json release "$ISSUE_NUMBER" --agent "$AGENT_NAME" --reason "$REASON" 2>"$STDERR_FILE"); then
           echo "Release result: $RELEASE_RESULT"
           echo "Released claim with reason: $REASON"
         else
-          echo "::warning::Release command failed: $RELEASE_RESULT"
+          EXIT_CODE=$?
+          echo "::warning::Release command failed with exit code $EXIT_CODE"
+          if [ -s "$STDERR_FILE" ]; then
+            echo "Error output:"
+            cat "$STDERR_FILE"
+          fi
           echo "Release is best-effort, continuing..."
         fi
 
+        rm -f "$STDERR_FILE"
         echo "::endgroup::"
 
     # Step 11: Generate JSON summary and Step Summary
