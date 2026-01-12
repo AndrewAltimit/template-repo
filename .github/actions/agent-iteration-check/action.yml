@@ -98,16 +98,14 @@ runs:
         fi
 
         # Check if max iterations exceeded
+        # Note: We do NOT skip on agent commits - agent evaluates if new issues exist
+        # The iteration counter (max 5) prevents infinite loops
         EXCEEDED_MAX="false"
         SHOULD_SKIP="false"
         if [ "$ITERATION_COUNT" -ge "$MAX_ITERATIONS" ]; then
           EXCEEDED_MAX="true"
           SHOULD_SKIP="true"
           echo "WARNING: Max iterations ($MAX_ITERATIONS) reached!"
-        elif [ "$IS_AGENT_COMMIT" = "true" ]; then
-          # Skip review/response for agent commits (but allow failure handler)
-          SHOULD_SKIP="true"
-          echo "Skipping: agent commit detected"
         fi
 
         # Save updated iteration data

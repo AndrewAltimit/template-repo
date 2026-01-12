@@ -442,12 +442,8 @@ jobs:
           echo "made_changes=false" >> $GITHUB_OUTPUT
           exit 0
 
-      - name: Skip if agent commit
-        if: steps.iteration.outputs.is_agent_commit == 'true'
-        run: |
-          echo "Skipping agent response for agent commit"
-          echo "made_changes=false" >> $GITHUB_OUTPUT
-          exit 0
+      # Note: We do NOT skip on agent commits - agent evaluates if new issues exist
+      # The iteration counter (max 5) prevents infinite loops
 
       - name: Download review artifacts
         if: steps.iteration.outputs.should_skip != 'true'
