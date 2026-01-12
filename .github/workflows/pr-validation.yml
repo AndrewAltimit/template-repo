@@ -123,7 +123,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30  # Increased for large PRs - API calls with retry logic can take time
     outputs:
-      skipped_agent_commit: ${{ steps.check-agent.outputs.is_agent_commit }}
+      is_agent_commit: ${{ steps.check-agent.outputs.is_agent_commit }}  # Informational only
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       PR_TITLE: ${{ github.event.pull_request.title }}
@@ -145,8 +145,8 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      # Check if this is an agent commit (skip reviews for agent commits)
-      - name: Check if agent commit
+      # Log commit info for debugging (reviews always run, agent decides whether to act)
+      - name: Log commit info
         id: check-agent
         run: |
           LAST_COMMIT_MSG=$(git log -1 --format='%s')
@@ -155,12 +155,14 @@ jobs:
           echo "Last commit message: $LAST_COMMIT_MSG"
           echo "Last commit author: $LAST_COMMIT_AUTHOR"
 
+          # Reviews always run - agent response job decides whether to commit fixes
+          # Safety: iteration counter limits to 5 cycles, agent checks for new issues
           IS_AGENT_COMMIT="false"
           if [[ "$LAST_COMMIT_AUTHOR" == "AI Review Agent" ]] || \
              [[ "$LAST_COMMIT_AUTHOR" == "AI Pipeline Agent" ]] || \
              [[ "$LAST_COMMIT_AUTHOR" == "AI Agent Bot" ]]; then
             IS_AGENT_COMMIT="true"
-            echo "Detected agent commit via author name: $LAST_COMMIT_AUTHOR - skipping AI review"
+            echo "Agent commit detected - reviews will still run, agent will evaluate if action needed"
           fi
 
           echo "is_agent_commit=$IS_AGENT_COMMIT" >> $GITHUB_OUTPUT
@@ -168,7 +170,7 @@ jobs:
       # Python cache cleanup not needed with proper user permissions
 
       - name: Copy changed files list
-        if: steps.check-agent.outputs.is_agent_commit != 'true'
+        # Reviews always run (agent decides whether to act)
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             git diff --name-only origin/${{ github.base_ref }}...HEAD > changed_files.txt
@@ -177,7 +179,7 @@ jobs:
       # Skip Python setup on self-hosted runner - use system Python
 
       - name: Setup Node.js with nvm
-        if: steps.check-agent.outputs.is_agent_commit != 'true'
+        # Reviews always run (agent decides whether to act)
         shell: bash
         run: |
           # Source nvm if available
@@ -192,7 +194,7 @@ jobs:
           which gemini || echo "Gemini CLI not found in PATH"
 
       - name: Prepare Gemini review context
-        if: steps.check-agent.outputs.is_agent_commit != 'true'
+        # Reviews always run (agent decides whether to act)
         run: |
           echo "📋 Preparing review context..."
           # Ensure PROJECT_CONTEXT.md is available
@@ -203,7 +205,7 @@ jobs:
           fi
 
       - name: Clear Gemini conversation history
-        if: steps.check-agent.outputs.is_agent_commit != 'true'
+        # Reviews always run (agent decides whether to act)
         continue-on-error: true
         run: |
           echo "🧹 Clearing Gemini conversation history..."
@@ -250,7 +252,7 @@ jobs:
 
 
       - name: Run Gemini CLI Review
-        if: steps.check-agent.outputs.is_agent_commit != 'true'
+        # Reviews always run (agent decides whether to act)
         continue-on-error: true  # Don't fail the PR if Gemini review fails
         shell: bash
         env:
@@ -286,8 +288,7 @@ jobs:
     if: |
       github.event_name == 'pull_request' &&
       (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft) &&
-      needs.gemini-review.result != 'skipped' &&
-      needs.gemini-review.outputs.skipped_agent_commit != 'true'
+      needs.gemini-review.result != 'skipped'
     runs-on: self-hosted
     timeout-minutes: 15  # Shorter timeout - Codex is faster
     continue-on-error: true  # Advisory review - don't block PR on Codex failures
@@ -357,6 +358,7 @@ jobs:
           if-no-files-found: ignore
 
   # Stage 2c: Agent Review Response (responds to Gemini/Codex feedback)
+  # Always runs - agent evaluates reviews and decides whether to commit fixes
   agent-review-response:
     name: Agent Review Response
     needs: [detect-changes, gemini-review, codex-review]
@@ -364,8 +366,7 @@ jobs:
       github.event_name == 'pull_request' &&
       !github.event.pull_request.draft &&
       vars.ENABLE_AGENTS == 'true' &&
-      !contains(github.event.pull_request.labels.*.name, 'no-auto-fix') &&
-      needs.gemini-review.outputs.skipped_agent_commit != 'true'
+      !contains(github.event.pull_request.labels.*.name, 'no-auto-fix')
     runs-on: self-hosted
     timeout-minutes: 30
     outputs:

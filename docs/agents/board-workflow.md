@@ -417,9 +417,10 @@ Multiple safety mechanisms prevent infinite loops:
 
 | Mechanism | Description |
 |-----------|-------------|
-| **Author Check** | Skip reviews if author is "AI Review Agent", "AI Pipeline Agent", or "AI Agent Bot" |
+| **Always Review** | Reviews run on all commits; agent decides whether to act on feedback |
 | **Iteration Counter** | Max 5 iterations via workflow artifacts |
 | **Human Reset** | Counter resets when human pushes |
+| **Smart Agent** | Agent checks if issues are new/unaddressed before committing |
 
 ### Feedback Priority
 
