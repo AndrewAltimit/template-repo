@@ -1,8 +1,20 @@
 # MCP-Enabled Project Template
 
-A comprehensive development ecosystem with 6 AI agents, 18 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
+An AI safety engineering portfolio combining production tooling, detection research, and risk analysis—structured as a reusable template.
 
 ![MCP Demo](docs/mcp/architecture/demo.gif)
+
+---
+
+> **Important: This is an advanced template repository** designed for experienced developers working with autonomous AI agents. Before diving in, we strongly recommend:
+>
+> 1. **Read the [AI Safety Training Guide](docs/agents/human-training.md)** - Essential concepts for safe human-AI collaboration, including deception detection, scalable oversight, and control protocols
+>
+> 2. **Take an AI Safety course at [BlueDot Impact](https://bluedot.org/)** - Free, rigorous training programs covering AI safety fundamentals, governance, and alignment. Highly recommended for anyone building with autonomous agents.
+>
+> Working with AI agents introduces risks that differ fundamentally from traditional software. Understanding these risks isn't optional - it's a prerequisite for responsible development.
+
+---
 
 ## Project Philosophy
 
@@ -13,6 +25,34 @@ This project follows a **container-first approach**:
 - **Self-hosted infrastructure** - no cloud costs, full control over runners
 - **Single maintainer design** - optimized for individual developer productivity
 - **Modular MCP architecture** - Separate specialized servers for different functionalities
+
+## Quick Start
+
+> **New to the template?** Check out our **[Template Quickstart Guide](docs/QUICKSTART.md)** for step-by-step customization instructions!
+
+1. **Prerequisites**: Linux system with Docker (v20.10+) and Docker Compose (v2.0+)
+
+2. **Clone and setup**
+   ```bash
+   git clone https://github.com/AndrewAltimit/template-repo
+   cd template-repo
+   pip3 install -e ./packages/github_agents
+   ```
+
+3. **Set API keys** (if using AI features)
+   ```bash
+   export OPENROUTER_API_KEY="your-key-here"  # For OpenCode/Crush
+   export GEMINI_API_KEY="your-key-here"      # For Gemini
+   ```
+
+4. **Use with Claude Code**: MCP servers are configured in `.mcp.json` and auto-started by Claude. See [MCP Configuration](docs/mcp/README.md#configuration-strategy) for essential vs full setups.
+
+5. **Run CI/CD operations**
+   ```bash
+   ./automation/ci-cd/run-ci.sh full  # Full pipeline
+   ```
+
+For detailed setup, see [CLAUDE.md](CLAUDE.md) and [Template Quickstart Guide](docs/QUICKSTART.md).
 
 ## AI Agents
 
@@ -35,134 +75,96 @@ All code generation agents (Codex, OpenCode, Crush) provide equivalent functiona
 
 **Sleeper Agents**: Create and evaluate sleeper agents in order to detect misalignment and probe for deception. See [Sleeper Agents Package](packages/sleeper_agents/README.md)
 
-## Features
+### Agentic Git Workflow
 
-- **18 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, desktop automation, project management, and more
-- **6 AI Agents** - Comprehensive development automation
-- **Sleeper Detection System** - Advanced AI backdoor detection using TransformerLens residual stream analysis
-- **Company Integration** - Custom agent builds for corporate AI APIs ([Documentation](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
-- **Video Editor** - AI-powered video editing with transcription, speaker diarization, and intelligent scene detection
-- **Gaea2 Terrain Generation** - Professional terrain generation
-- **Blender 3D Creation** - Full 3D content creation, rendering, and simulation
-- **ComfyUI & AI Toolkit** - Image generation and LoRA training
-- **Container-First Architecture** - Maximum portability and consistency
-- **Self-Hosted CI/CD** - Zero-cost GitHub Actions infrastructure
-- **Automated PR Workflows** - AI-powered reviews and fixes
+AI agents autonomously manage the development lifecycle from issue creation through PR merge:
 
-## Quick Start
-
-> **New to the template?** Check out our **[Template Quickstart Guide](docs/QUICKSTART.md)** for step-by-step customization instructions!
-> - Choose from 4 pre-configured paths (Minimal, AI-Powered, Content Creation, Full Stack)
-> - Learn what to enable/disable for your specific use case
-> - Get up and running in 15 minutes
-
-1. **Prerequisites**
-   - Linux system (Ubuntu/Debian recommended)
-   - Docker (v20.10+) and Docker Compose (v2.0+)
-   - No other dependencies required!
-
-2. **Clone and setup**
-   ```bash
-   git clone https://github.com/AndrewAltimit/template-repo
-   cd template-repo
-
-   # Install AI agents package (for CLI tools)
-   pip3 install -e ./packages/github_agents
-
-   # Set up API keys (if using AI features)
-   export OPENROUTER_API_KEY="your-key-here"  # For OpenCode/Crush
-   export GEMINI_API_KEY="your-key-here"      # For Gemini (dont use API key for free tier, use web auth)
-   # For Codex: run 'codex auth' after installing @openai/codex
-   ```
-
-3. **Use MCP servers with Claude Code and other agents**
-   - **Essential MCP servers** are configured in `.mcp.json` (code-quality, AI agents)
-   - **All MCP servers** including specialized tools are in `.mcp.json.full` (content creation, 3D graphics, etc.)
-   - Use `.mcp.json` by default to avoid context window overload
-   - Rename `.mcp.json.full` to `.mcp.json` to enable all specialized services
-   - No manual startup required! Agents can start the services themselves.
-
-4. **For standalone usage**
-   ```bash
-   # Start HTTP servers for testing/development
-   docker-compose up -d
-
-   # Test all servers
-   python automation/testing/test_all_servers.py --quick
-
-   # Use AI agents directly
-   ./tools/cli/agents/run_codex.sh    # Interactive Codex session
-   ./tools/cli/agents/run_opencode.sh -q "Create a REST API"
-   ./tools/cli/agents/run_crush.sh -q "Binary search function"
-   ./tools/cli/agents/run_gemini.sh   # Interactive Gemini CLI session
-   ```
-
-For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
-
-## MCP Configuration Strategy
-
-This repository provides two MCP configuration files to optimize performance:
-
-### `.mcp.json` (Default - Essential Services)
-- **Purpose**: Prevent context window overload in Claude Code
-- **Contains**: Essential services only
-  - Code Quality (formatting, linting)
-  - AI Agents (Gemini, OpenCode, Crush, Codex)
-- **Best for**: Day-to-day development, code review, refactoring
-- **Use when**: Working on typical software development tasks
-
-### `.mcp.json.full` (Complete - All Services)
-- **Purpose**: Access to all specialized tools when needed
-- **Contains**: All 18 MCP servers
-  - Essential services (from `.mcp.json`)
-  - Content creation (Manim, LaTeX, TikZ)
-  - 3D graphics (Blender, Gaea2)
-  - Media tools (Video Editor, Speech Synthesis, Meme Generator)
-  - Remote services (AI Toolkit, ComfyUI, Virtual Character)
-  - Project management (GitHub Board)
-- **Best for**: Specialized tasks requiring content creation or media processing
-- **Use when**: Creating animations, 3D content, videos, or terrain
-
-### Switching Between Configurations
-
-```bash
-# Use essential services (default)
-# Already configured - just use Claude Code normally
-
-# Enable all services temporarily
-mv .mcp.json .mcp.json.essential
-mv .mcp.json.full .mcp.json
-# Restart Claude Code
-
-# Restore essential services
-mv .mcp.json .mcp.json.full
-mv .mcp.json.essential .mcp.json
-# Restart Claude Code
+```
+Issue Created → Admin Approval → Agent Claims → PR Created → AI Review → Human Merge
 ```
 
-**Recommendation**: Start with `.mcp.json` (essential services) and only switch to `.mcp.json.full` when you need specialized tools. This prevents Claude's context window from being filled with unused tool definitions.
+**The Flow:**
+
+1. **Issue Creation** - Issues are created manually or by agents via `backlog-refinement.yml`, automatically added to the GitHub Projects board
+2. **Admin Approval** - An authorized user comments `[Approved][Claude]` (or another agent name) to authorize work
+3. **Agent Claims** - `board-agent-worker.yml` finds approved issues, the agent claims the issue and creates a working branch
+4. **Implementation** - The agent implements the fix/feature and opens a PR
+5. **AI Review** - `pr-validation.yml` triggers Gemini code review; `pr-review-monitor.yml` lets agents iterate on feedback
+6. **Human Merge** - Admin reviews and merges the PR
+
+**Security Model:**
+
+- **Approval Required** - Agents cannot work on issues without explicit `[Approved][Agent]` comment
+- **Authorized Users Only** - Only users listed in `.agents.yaml` → `security.agent_admins` can approve
+- **Pattern Validation** - Must use `[Action][Agent]` format (e.g., `[Approved][Claude]`) to prevent false positives
+- **Claim Tracking** - Agents post claim comments with timestamps to prevent conflicts
+
+See [Security Documentation](packages/github_agents/docs/security.md) for the complete security model.
+
+## Reports & Research
+
+Technical reports and guides exploring AI risks, safety frameworks, and philosophical questions. PDFs are automatically built from LaTeX source and published with each release.
+
+### Emerging Technology Risk Assessments
+
+Scenario-based projection reports analyzing potential futures involving advanced AI systems. See [Projections Documentation](docs/projections/README.md).
+
+| Report | Topic | PDF | Source |
+|--------|-------|-----|--------|
+| **AI Agents Political Targeting** | Political violence risk | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-political-targeting.tex) |
+| **AI Agents WMD Proliferation** | WMD proliferation risk | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-wmd-proliferation.tex) |
+| **AI Agents Espionage Operations** | Intelligence tradecraft | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-espionage-operations.tex) |
+| **AI Agents Economic Actors** | Autonomous economic actors | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-economic-actors.tex) |
+| **AI Agents Financial Integrity** | Money laundering & corruption | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-financial-integrity.tex) |
+| **AI Agents Institutional Erosion** | IC monopoly erosion & verification pivot | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-institutional-erosion.tex) |
+
+### Technical Guides
+
+| Guide | Description | PDF | Source |
+|-------|-------------|-----|--------|
+| **Sleeper Agents Framework** | AI backdoor detection using residual stream analysis | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](packages/sleeper_agents/docs/Sleeper_Agents_Framework_Guide.tex) |
+| **AgentCore Memory Integration** | Multi-provider AI memory system | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/AgentCore_Memory_Integration_Guide.tex) |
+| **Virtual Character System** | AI agent embodiment platform | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/Virtual_Character_System_Guide.tex) |
+
+### Philosophy Papers
+
+Philosophical explorations of minds, experience, and intelligence. See [Philosophy Papers Documentation](docs/philosophy/README.md).
+
+| Paper | Topic | PDF | Source |
+|-------|-------|-----|--------|
+| **Architectural Qualia** | What Is It Like to Be an LLM? | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/philosophy/latex/architectural-qualia.tex) |
+
+**Build Status**: [![Build Documentation](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml/badge.svg)](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml)
+
+## Packages
+
+Three standalone Python packages addressing different aspects of AI agent development and safety:
+
+| Package | Purpose | Documentation |
+|---------|---------|---------------|
+| **[GitHub Agents](packages/github_agents/)** | Multi-agent orchestration for autonomous GitHub workflows - issue monitoring, PR review processing, and board coordination with Claude, Codex, OpenCode, Gemini, and Crush | [README](packages/github_agents/README.md) \| [Security](packages/github_agents/docs/security.md) |
+| **[Sleeper Agents](packages/sleeper_agents/)** | Production-validated detection framework for hidden backdoors in LLMs, based on Anthropic's research on deceptive AI that persists through safety training | [README](packages/sleeper_agents/README.md) \| [PDF Guide](https://github.com/AndrewAltimit/template-repo/releases/latest) |
+| **[Economic Agents](packages/economic_agents/)** | Simulation framework demonstrating autonomous AI economic capability - agents that earn money, form companies, hire sub-agents, and seek investment. For governance research and policy development | [README](packages/economic_agents/README.md) |
+
+```bash
+# Install all packages
+pip install -e ./packages/github_agents
+pip install -e ./packages/sleeper_agents
+pip install -e ./packages/economic_agents
+```
+
+## Features
+
+- **[18 MCP Servers](#mcp-servers)** - Code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
+- **[6 AI Agents](#ai-agents)** - Autonomous development workflow from issue to merge
+- **[3 Packages](#packages)** - GitHub automation, sleeper agent detection, economic agent simulation
+- **Container-First Architecture** - Maximum portability and consistency
+- **Self-Hosted CI/CD** - Zero-cost GitHub Actions infrastructure
+- **Company Integration** - Corporate proxy builds for enterprise AI APIs ([Docs](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
 
 ## Enterprise & Corporate Setup
 
-### Corporate Certificate Installation
-
-For enterprise environments that require custom certificates (e.g., corporate proxy certificates, self-signed certificates), we provide a standardized installation mechanism:
-
-1. **Certificate Installation Script**: [`automation/corporate-proxy/shared/scripts/install-corporate-certs.sh`](automation/corporate-proxy/shared/scripts/install-corporate-certs.sh)
-   - Placeholder script that organizations can customize with their certificate installation process
-   - Automatically executed during Docker image builds for all corporate proxy containers
-
-2. **Customization Guide**: See [`automation/corporate-proxy/shared/scripts/README.md`](automation/corporate-proxy/shared/scripts/README.md) for:
-   - Step-by-step instructions on customizing the certificate installation
-   - Examples for different certificate formats and installation methods
-   - Best practices for certificate management in containerized environments
-
-3. **Affected Services**:
-   - All corporate proxy integrations (Gemini, Codex, OpenCode, Crush)
-   - Python CI/CD containers
-   - Any custom Docker images built from this template
-
-This pattern ensures consistent certificate handling across all services while maintaining security and flexibility for different corporate environments.
+For enterprise environments requiring custom certificates, customize [`automation/corporate-proxy/shared/scripts/install-corporate-certs.sh`](automation/corporate-proxy/shared/scripts/install-corporate-certs.sh). This script runs during Docker builds for all containers. See the [customization guide](automation/corporate-proxy/shared/scripts/README.md) for details.
 
 ## Project Structure
 
@@ -171,63 +173,16 @@ This pattern ensures consistent certificate handling across all services while m
 ├── .github/workflows/        # GitHub Actions workflows
 ├── docker/                   # Docker configurations
 ├── packages/                 # Installable packages
-│   ├── github_agents/        # Github agents implementation
-│   ├── sleeper_agents/       # Sleeper agents implementation
-│   └── economic_agents/      # Economic agents framework
-├── tools/                    # MCP servers and utilities
-│   ├── mcp/                  # Modular MCP servers
-│   │   ├── mcp_agentcore_memory/ # Multi-provider AI memory
-│   │   ├── mcp_ai_toolkit/       # LoRA training interface
-│   │   ├── mcp_blender/          # 3D content creation
-│   │   ├── mcp_code_quality/     # Formatting & linting
-│   │   ├── mcp_codex/            # Agent2Agent Consultation (Codex CLI)
-│   │   ├── mcp_comfyui/          # Image generation interface
-│   │   ├── mcp_content_creation/ # Manim & LaTeX
-│   │   ├── mcp_core/             # Shared components
-│   │   ├── mcp_crush/            # Agent2Agent Consultation (Crush)
-│   │   ├── mcp_desktop_control/  # Desktop automation (Linux/Windows)
-│   │   ├── mcp_elevenlabs_speech/# Speech synthesis
-│   │   ├── mcp_gaea2/            # Terrain generation
-│   │   ├── mcp_gemini/           # Agent2Agent Consultation (Gemini CLI)
-│   │   ├── mcp_github_board/     # GitHub Projects board management
-│   │   ├── mcp_meme_generator/   # Meme creation
-│   │   ├── mcp_opencode/         # Agent2Agent Consultation (OpenCode)
-│   │   ├── mcp_reaction_search/  # Semantic reaction image search
-│   │   ├── mcp_video_editor/     # Video editing
-│   │   └── mcp_virtual_character/# AI agent embodiment
-│   └── cli/                  # Command-line tools
-│       ├── agents/           # Agent runner scripts
-│       │   ├── run_claude.sh       # Claude Code runner
-│       │   ├── run_codex.sh        # Codex runner
-│       │   ├── run_crush.sh        # Crush runner
-│       │   ├── run_gemini.sh       # Gemini CLI runner
-│       │   ├── run_opencode.sh     # OpenCode runner
-│       │   └── stop_claude.sh      # Claude stop script
-│       ├── containers/       # Container runner scripts
-│       │   ├── run_codex_container.sh     # Codex in container
-│       │   ├── run_crush_container.sh     # Crush in container
-│       │   ├── run_gemini_container.sh    # Gemini in container
-│       │   ├── run_opencode_container.sh  # OpenCode in container
-│       │   └── run_opencode_simple.sh     # Simple OpenCode runner
-│       └── utilities/        # Other CLI utilities
+│   ├── github_agents/        # Multi-agent GitHub automation
+│   ├── sleeper_agents/       # AI backdoor detection framework
+│   └── economic_agents/      # Autonomous economic agents
+├── tools/
+│   ├── mcp/                  # 18 MCP servers (see MCP Servers section)
+│   └── cli/                  # Agent runners and utilities
 ├── automation/               # CI/CD and automation scripts
-│   ├── analysis/             # Code and project analysis tools
-│   ├── ci-cd/                # CI/CD pipeline scripts
-│   ├── corporate-proxy/      # Corporate proxy integrations
-│   │   ├── crush/            # Crush proxy wrapper
-│   │   ├── gemini/           # Gemini CLI proxy wrapper
-│   │   ├── opencode/         # OpenCode proxy wrapper
-│   │   └── shared/           # Shared proxy components
-│   ├── launchers/            # Service launcher scripts
-│   ├── monitoring/           # Service and PR monitoring
-│   ├── review/               # Code review automation
-│   ├── scripts/              # Utility scripts
-│   ├── security/             # Security and validation
-│   ├── setup/                # Setup and installation scripts
-│   └── testing/              # Testing utilities
 ├── tests/                    # Test files
 ├── docs/                     # Documentation
-├── config/                   # Configuration files
+└── config/                   # Configuration files
 ```
 
 ## MCP Servers
@@ -337,43 +292,6 @@ All workflows run on self-hosted runners for zero-cost operation.
 - [Self-Hosted Runner Setup](docs/infrastructure/self-hosted-runner.md)
 - [GitHub Environments Setup](docs/infrastructure/github-environments.md)
 - [Containerized CI](docs/infrastructure/containerization.md)
-
-## Reports & PDF Documentation
-
-Technical reports and guides are available as PDFs, automatically built from LaTeX source and published with each release.
-
-### Emerging Technology Risk Assessments
-
-Scenario-based projection reports analyzing potential futures involving advanced AI systems. See [Projections Documentation](docs/projections/README.md).
-
-| Report | Topic | PDF | Source |
-|--------|-------|-----|--------|
-| **AI Agents Political Targeting** | Political violence risk | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-political-targeting.tex) |
-| **AI Agents WMD Proliferation** | WMD proliferation risk | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-wmd-proliferation.tex) |
-| **AI Agents Espionage Operations** | Intelligence tradecraft | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-espionage-operations.tex) |
-| **AI Agents Economic Actors** | Autonomous economic actors | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-economic-actors.tex) |
-| **AI Agents Financial Integrity** | Money laundering & corruption | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-financial-integrity.tex) |
-| **AI Agents Institutional Erosion** | IC monopoly erosion & verification pivot | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/projections/latex/ai-agents-institutional-erosion.tex) |
-
-### Technical Guides
-
-| Guide | Description | PDF | Source |
-|-------|-------------|-----|--------|
-| **Sleeper Agents Framework** | AI backdoor detection using residual stream analysis | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](packages/sleeper_agents/docs/Sleeper_Agents_Framework_Guide.tex) |
-| **AgentCore Memory Integration** | Multi-provider AI memory system | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/AgentCore_Memory_Integration_Guide.tex) |
-| **Virtual Character System** | AI agent embodiment platform | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/Virtual_Character_System_Guide.tex) |
-
-### Philosophy Papers
-
-Philosophical explorations of minds, experience, and intelligence. See [Philosophy Papers Documentation](docs/philosophy/README.md).
-
-| Paper | Topic | PDF | Source |
-|-------|-------|-----|--------|
-| **Architectural Qualia** | What Is It Like to Be an LLM? | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/philosophy/latex/architectural-qualia.tex) |
-
-**Build Status**: [![Build Documentation](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml/badge.svg)](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml)
-
-PDFs are compiled using the [texlive/texlive:TL2024-historic](https://hub.docker.com/r/texlive/texlive) Docker image. Individual PDF artifacts are also available from the [Build Documentation workflow](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml).
 
 ## License
 

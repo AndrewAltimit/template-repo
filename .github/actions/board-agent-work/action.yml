@@ -257,7 +257,82 @@ runs:
 
         echo "::endgroup::"
 
-    # Step 4: Query board for ready work
+    # Step 4: Sync approved issues to board
+    - name: Sync approved issues to board
+      id: sync-approved
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_PROJECTS_TOKEN: ${{ inputs.github-projects-token }}
+        AGENT_NAME: ${{ inputs.agent-name }}
+        BOARD_CONFIG_PATH: ${{ inputs.board-config-path }}
+        JSON_LOGGING: ${{ inputs.json-logging }}
+      run: |
+        echo "::group::Sync Approved Issues"
+        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
+
+        echo "=== Configuration ==="
+        echo "Agent: $AGENT_NAME"
+        echo "Board config: $BOARD_CONFIG_PATH"
+        echo "Timestamp: $(date -Iseconds)"
+        echo ""
+
+        echo "=== Finding Approved Issues ==="
+        echo "Using GitHub Search API to find [Approved][$AGENT_NAME] comments..."
+
+        # Use board-cli to find approved issues (handles API calls internally)
+        # Capture stderr separately for debugging while keeping stdout clean
+        STDERR_FILE=$(mktemp)
+        START_TIME=$(date +%s)
+
+        if APPROVED_RESULT=$(board-cli --json find-approved --agent "$AGENT_NAME" 2>"$STDERR_FILE"); then
+          END_TIME=$(date +%s)
+          echo "Search completed in $((END_TIME - START_TIME)) seconds"
+          echo "Find approved result: $APPROVED_RESULT"
+
+          # Parse and display results
+          ISSUE_COUNT=$(echo "$APPROVED_RESULT" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
+          echo "Found $ISSUE_COUNT approved issues"
+
+          # Add each approved issue that's not on board
+          SYNCED=0
+          NOT_ON_BOARD=$(echo "$APPROVED_RESULT" | python3 -c "import sys,json; [print(i['number']) for i in json.load(sys.stdin) if not i.get('on_board', True)]" 2>/dev/null || true)
+
+          if [ -z "$NOT_ON_BOARD" ]; then
+            echo "All approved issues are already on board"
+          else
+            for ISSUE_NUM in $NOT_ON_BOARD; do
+              echo "Adding issue #$ISSUE_NUM to board..."
+              ADD_STDERR=$(mktemp)
+              if board-cli --json add-to-board "$ISSUE_NUM" --agent "$AGENT_NAME" 2>"$ADD_STDERR"; then
+                echo "Added issue #$ISSUE_NUM to board"
+                SYNCED=$((SYNCED + 1))
+              else
+                echo "::warning::Failed to add issue #$ISSUE_NUM to board"
+                if [ -s "$ADD_STDERR" ]; then
+                  echo "Error details: $(cat "$ADD_STDERR")"
+                fi
+              fi
+              rm -f "$ADD_STDERR"
+            done
+          fi
+
+          echo "synced_count=$SYNCED" >> $GITHUB_OUTPUT
+          echo "Synced $SYNCED approved issues to board"
+        else
+          EXIT_CODE=$?
+          echo "::error::Find approved command failed with exit code $EXIT_CODE"
+          if [ -s "$STDERR_FILE" ]; then
+            echo "Error output:"
+            cat "$STDERR_FILE"
+          fi
+          echo "synced_count=0" >> $GITHUB_OUTPUT
+        fi
+
+        rm -f "$STDERR_FILE"
+        echo "::endgroup::"
+
+    # Step 5: Query board for ready work
     - name: Query ready work
       id: query
       shell: bash
@@ -274,82 +349,87 @@ runs:
         echo "::group::Query Ready Work"
         [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
-        QUERY_RESULT=$(python3 << 'PYTHON_SCRIPT'
-        import asyncio
-        import json
-        import os
+        echo "=== Query Configuration ==="
+        echo "Agent: $AGENT_NAME"
+        echo "Max issues: $MAX_ISSUES"
+        echo "Include labels: ${INCLUDE_LABELS:-none}"
+        echo "Exclude labels: ${EXCLUDE_LABELS:-none}"
+        echo "Timestamp: $(date -Iseconds)"
+        echo ""
 
-        async def query():
-            from github_agents.board.config import load_config
-            from github_agents.board.manager import BoardManager
+        # Build board-cli command using arrays to prevent command injection
+        # This avoids eval and properly handles arguments with special characters
+        CLI_CMD=(board-cli --json ready --limit "$MAX_ISSUES" --approved-only)
+        if [ -n "$AGENT_NAME" ]; then
+          CLI_CMD+=(--agent "$AGENT_NAME")
+        fi
 
-            config = load_config(os.environ.get('BOARD_CONFIG_PATH'))
-            agent_name = os.environ.get('AGENT_NAME')
-            max_issues = int(os.environ.get('MAX_ISSUES', '1'))
+        # Add label filters using IFS to properly handle comma-separated labels with spaces
+        if [ -n "$INCLUDE_LABELS" ]; then
+          IFS=',' read -ra LABELS <<< "$INCLUDE_LABELS"
+          for label in "${LABELS[@]}"; do
+            # Trim leading/trailing whitespace
+            label=$(echo "$label" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            CLI_CMD+=(--include-labels "$label")
+          done
+        fi
+        if [ -n "$EXCLUDE_LABELS" ]; then
+          IFS=',' read -ra LABELS <<< "$EXCLUDE_LABELS"
+          for label in "${LABELS[@]}"; do
+            label=$(echo "$label" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            CLI_CMD+=(--exclude-labels "$label")
+          done
+        fi
 
-            # Parse label filters
-            include_labels = [l.strip() for l in os.environ.get('INCLUDE_LABELS', '').split(',') if l.strip()]
-            exclude_labels = [l.strip() for l in os.environ.get('EXCLUDE_LABELS', '').split(',') if l.strip()]
+        echo "=== Executing Query ==="
+        echo "Command: ${CLI_CMD[*]}"
 
-            async with BoardManager(config=config) as manager:
-                issues = await manager.get_ready_work(
-                    agent_name=agent_name,
-                    limit=max_issues * 3  # Fetch extra for filtering
-                )
+        # Query using board-cli (filtering handled by CLI)
+        # Capture stderr separately for debugging
+        STDERR_FILE=$(mktemp)
+        START_TIME=$(date +%s)
 
-                # Apply label filters
-                filtered = []
-                for issue in issues:
-                    issue_labels = set(issue.labels or [])
+        if READY_RESULT=$("${CLI_CMD[@]}" 2>"$STDERR_FILE"); then
+          END_TIME=$(date +%s)
+          echo "Query completed in $((END_TIME - START_TIME)) seconds"
+          echo "Query result (JSON): $READY_RESULT"
 
-                    # Check include filter
-                    if include_labels:
-                        if not issue_labels.intersection(include_labels):
-                            continue
+          # Check if we got results (array with items)
+          ISSUE_COUNT=$(echo "$READY_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)" 2>/dev/null || echo "0")
+          echo "Found $ISSUE_COUNT ready issues"
 
-                    # Check exclude filter
-                    if exclude_labels:
-                        if issue_labels.intersection(exclude_labels):
-                            continue
+          if [ "$ISSUE_COUNT" -gt 0 ]; then
+            # Extract first issue details
+            FIRST_ISSUE=$(echo "$READY_RESULT" | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin)[0]))")
+            ISSUE_NUMBER=$(echo "$FIRST_ISSUE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('number', ''))")
+            ISSUE_TITLE=$(echo "$FIRST_ISSUE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('title', ''))")
+            ISSUE_LABELS=$(echo "$FIRST_ISSUE" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin).get('labels', [])))")
+            HAS_WORK="True"
+            QUERY_RESULT="{\"has_work\": true, \"issue_number\": $ISSUE_NUMBER, \"issue_title\": \"$ISSUE_TITLE\", \"labels\": [\"${ISSUE_LABELS//,/\",\"}\"], \"total_ready\": $ISSUE_COUNT}"
+            echo "Selected issue #$ISSUE_NUMBER: $ISSUE_TITLE"
+          else
+            HAS_WORK="False"
+            QUERY_RESULT='{"has_work": false, "total_ready": 0}'
+            echo "No ready work available"
+          fi
+        else
+          EXIT_CODE=$?
+          echo "::error::Query command failed with exit code $EXIT_CODE"
+          if [ -s "$STDERR_FILE" ]; then
+            echo "Error output:"
+            cat "$STDERR_FILE"
+          fi
+          HAS_WORK="False"
+          QUERY_RESULT='{"has_work": false, "error": "Query failed"}'
+        fi
 
-                    filtered.append(issue)
-                    if len(filtered) >= max_issues:
-                        break
-
-                if filtered:
-                    issue = filtered[0]
-                    print(json.dumps({
-                        'has_work': True,
-                        'issue_number': issue.number,
-                        'issue_title': issue.title,
-                        'issue_body': issue.body[:500] if issue.body else '',
-                        'priority': issue.priority.value if issue.priority else 'Medium',
-                        'labels': issue.labels or [],
-                        'total_ready': len(issues),
-                        'after_filter': len(filtered)
-                    }))
-                else:
-                    print(json.dumps({
-                        'has_work': False,
-                        'total_ready': len(issues),
-                        'after_filter': 0
-                    }))
-
-        asyncio.run(query())
-        PYTHON_SCRIPT
-        )
+        rm -f "$STDERR_FILE"
 
         if [ "$JSON_LOGGING" = "true" ]; then
           echo "$QUERY_RESULT"
         else
           echo "Query result: $QUERY_RESULT"
         fi
-
-        # Parse and set outputs
-        HAS_WORK=$(echo "$QUERY_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('has_work', False))")
-        ISSUE_NUMBER=$(echo "$QUERY_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('issue_number', ''))")
-        ISSUE_TITLE=$(echo "$QUERY_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('issue_title', ''))")
-        ISSUE_LABELS=$(echo "$QUERY_RESULT" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin).get('labels', [])))")
 
         echo "has_work=$HAS_WORK" >> $GITHUB_OUTPUT
         echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
@@ -402,33 +482,29 @@ runs:
         echo "::group::Check Approval Trigger"
         [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
-        # Check if issue has been approved by an authorized user
-        # Required format: [Approved]
-        # The agent is determined by the Agent field on the project board
-        # Note: Write directly to GITHUB_OUTPUT to avoid stdout capture issues
-        python3 << PYTHON_SCRIPT
-        import asyncio
-        import os
-        from github_agents.board.config import load_config
-        from github_agents.board.manager import BoardManager
+        # Use the board-cli to check approval
+        echo "Checking approval for issue #$ISSUE_NUMBER..."
 
-        async def check_approval():
-            config = load_config(os.environ.get('BOARD_CONFIG_PATH'))
-            issue_number = int(os.environ['ISSUE_NUMBER'])
+        # Capture JSON only, discard stderr logs for clean parsing
+        if APPROVAL_RESULT=$(board-cli --json check-approval "$ISSUE_NUMBER" 2>/dev/null); then
+          echo "Approval check result: $APPROVAL_RESULT"
 
-            async with BoardManager(config=config) as manager:
-                is_approved, approver = await manager.is_issue_approved(issue_number)
+          APPROVED=$(echo "$APPROVAL_RESULT" | python3 -c "import sys,json; print('true' if json.load(sys.stdin).get('approved') else 'false')" 2>/dev/null || echo "false")
+          APPROVER=$(echo "$APPROVAL_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('approver', ''))" 2>/dev/null || echo "")
 
-            # Write directly to GITHUB_OUTPUT to avoid stdout pollution
-            with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-                f.write(f"approved={'true' if is_approved else 'false'}\n")
-                f.write(f"approver={approver or ''}\n")
+          echo "approved=$APPROVED" >> $GITHUB_OUTPUT
+          echo "approver=$APPROVER" >> $GITHUB_OUTPUT
 
-            # Also print for logging
-            print(f"Approval check: approved={is_approved}, approver={approver}")
-
-        asyncio.run(check_approval())
-        PYTHON_SCRIPT
+          if [ "$APPROVED" = "true" ]; then
+            echo "Issue #$ISSUE_NUMBER approved by $APPROVER"
+          else
+            echo "Issue #$ISSUE_NUMBER is not approved"
+          fi
+        else
+          echo "::warning::Approval check failed: $APPROVAL_RESULT"
+          echo "approved=false" >> $GITHUB_OUTPUT
+          echo "approver=" >> $GITHUB_OUTPUT
+        fi
 
         echo "::endgroup::"
 
@@ -450,47 +526,50 @@ runs:
 
         SESSION_ID="gha-${{ github.run_id }}-${{ github.run_attempt }}"
 
-        CLAIM_RESULT=$(python3 << PYTHON_SCRIPT
-        import asyncio
-        import json
-        import os
-        from github_agents.board.config import load_config
-        from github_agents.board.manager import BoardManager
+        echo "=== Claiming Issue ==="
+        echo "Issue: #$ISSUE_NUMBER"
+        echo "Agent: $AGENT_NAME"
+        echo "Session ID: $SESSION_ID"
+        echo "Timestamp: $(date -Iseconds)"
 
-        async def claim():
-            config = load_config(os.environ.get('BOARD_CONFIG_PATH'))
-            async with BoardManager(config=config) as manager:
-                success = await manager.claim_work(
-                    int(os.environ['ISSUE_NUMBER']),
-                    os.environ['AGENT_NAME'],
-                    '$SESSION_ID'
-                )
-                print(json.dumps({
-                    "success": success,
-                    "issue": int(os.environ['ISSUE_NUMBER']),
-                    "agent": os.environ['AGENT_NAME'],
-                    "session": '$SESSION_ID'
-                }))
+        # Capture stderr for debugging while keeping stdout clean for JSON
+        STDERR_FILE=$(mktemp)
 
-        asyncio.run(claim())
-        PYTHON_SCRIPT
-        )
+        if CLAIM_RESULT=$(board-cli --json claim "$ISSUE_NUMBER" --agent "$AGENT_NAME" --session "$SESSION_ID" 2>"$STDERR_FILE"); then
+          echo "Claim result: $CLAIM_RESULT"
 
-        if [ "$JSON_LOGGING" = "true" ]; then
-          echo "$CLAIM_RESULT"
-        fi
+          SUCCESS=$(echo "$CLAIM_RESULT" | python3 -c "import sys,json; print('true' if json.load(sys.stdin).get('success') else 'false')" 2>/dev/null || echo "false")
 
-        SUCCESS=$(echo "$CLAIM_RESULT" | python3 -c "import sys,json; print('true' if json.load(sys.stdin).get('success') else 'false')")
+          echo "claimed=$SUCCESS" >> $GITHUB_OUTPUT
+          echo "session_id=$SESSION_ID" >> $GITHUB_OUTPUT
 
-        echo "claimed=$SUCCESS" >> $GITHUB_OUTPUT
-        echo "session_id=$SESSION_ID" >> $GITHUB_OUTPUT
-
-        if [ "$SUCCESS" = "true" ]; then
-          echo "Successfully claimed issue #$ISSUE_NUMBER"
+          if [ "$SUCCESS" = "true" ]; then
+            echo "Successfully claimed issue #$ISSUE_NUMBER"
+            echo "Claim comment posted to issue with session ID: $SESSION_ID"
+          else
+            REASON=$(echo "$CLAIM_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('reason', 'unknown'))" 2>/dev/null || echo "unknown")
+            echo "::error::Failed to claim issue #$ISSUE_NUMBER: $REASON"
+            if [ -s "$STDERR_FILE" ]; then
+              echo "Error details:"
+              cat "$STDERR_FILE"
+            fi
+            rm -f "$STDERR_FILE"
+            exit 1
+          fi
         else
-          echo "::error::Failed to claim issue #$ISSUE_NUMBER - may already be claimed"
+          EXIT_CODE=$?
+          echo "::error::Claim command failed with exit code $EXIT_CODE"
+          if [ -s "$STDERR_FILE" ]; then
+            echo "Error output:"
+            cat "$STDERR_FILE"
+          fi
+          echo "claimed=false" >> $GITHUB_OUTPUT
+          echo "session_id=$SESSION_ID" >> $GITHUB_OUTPUT
+          rm -f "$STDERR_FILE"
           exit 1
         fi
+
+        rm -f "$STDERR_FILE"
 
         echo "::endgroup::"
 
@@ -554,23 +633,47 @@ runs:
           echo "Timeout: ${AGENT_TIMEOUT}m"
         fi
 
-        # Prepare context file for agent (use quoted heredoc to prevent variable expansion)
+        # Clean up large generated files that could cause token limit issues
+        # These files are gitignored but may exist in the working directory
+        LARGE_FILES=(
+          "bandit-report.json"
+          "*.log"
+          "coverage.xml"
+          ".coverage"
+        )
+        for pattern in "${LARGE_FILES[@]}"; do
+          find . -name "$pattern" -type f -size +100k -delete 2>/dev/null || true
+        done
+
+        # Prepare context file for agent
         CONTEXT_FILE="/tmp/agent_context_$ISSUE_NUMBER.md"
-        cat > "$CONTEXT_FILE" << 'CONTEXT_EOF'
-        # Issue Context
 
-        ## Task
-        Implement the changes described in this issue.
+        # Fetch issue body using gh CLI
+        ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --json body -q '.body' 2>/dev/null || echo "Unable to fetch issue body")
 
-        ## Requirements
-        - Create working, tested code
-        - Follow existing code patterns
-        - Add appropriate tests
-        - Update documentation if needed
-        CONTEXT_EOF
-        # Prepend issue info (outside heredoc to allow variable expansion)
-        # Escape /, &, and \ for sed replacement (\ must be escaped to prevent delimiter issues)
-        sed -i "1s/.*/# Issue #$ISSUE_NUMBER: $(printf '%s' "$ISSUE_TITLE" | sed 's/[\/&\\]/\\&/g')/" "$CONTEXT_FILE"
+        # Write context using printf to avoid heredoc indentation issues in YAML
+        # Note: No escaping needed - printf handles special chars correctly
+        printf '%s\n' \
+          "# Issue #$ISSUE_NUMBER: $ISSUE_TITLE" \
+          "" \
+          "## Issue Description" \
+          "" \
+          "$ISSUE_BODY" \
+          "" \
+          "## Task" \
+          "Implement the changes described in this issue." \
+          "" \
+          "## Requirements" \
+          "- Create working, tested code" \
+          "- Follow existing code patterns" \
+          "- Add appropriate tests" \
+          "- Update documentation if needed" \
+          "" \
+          "## Important Notes" \
+          "- Use the Read tool with offset/limit for large files to avoid token limits" \
+          "- Focus on the specific files mentioned in the issue" \
+          "- Run tests after making changes" \
+          > "$CONTEXT_FILE"
 
         # Execute based on agent type
         WORK_COMPLETED="false"
@@ -585,7 +688,11 @@ runs:
             if command -v claude &> /dev/null; then
               echo "Running Claude Code on host..."
               # --dangerously-skip-permissions required for CI/CD (no TTY for interactive prompts)
-              if timeout "${AGENT_TIMEOUT}m" claude --print --dangerously-skip-permissions "$(cat $CONTEXT_FILE)"; then
+              # --print mode outputs response and exits (non-interactive)
+              # --output-format text for clean output
+              # Prompt is passed as positional argument (not -p which is --print flag)
+              PROMPT_TEXT=$(cat "$CONTEXT_FILE")
+              if timeout "${AGENT_TIMEOUT}m" claude --print --dangerously-skip-permissions --output-format text "$PROMPT_TEXT"; then
                 WORK_COMPLETED="true"
               else
                 AGENT_ERROR="Claude execution failed or timed out"
@@ -858,33 +965,29 @@ runs:
           REASON="error"
         fi
 
-        python3 << PYTHON_SCRIPT
-        import asyncio
-        import json
-        import os
-        from github_agents.board.config import load_config
-        from github_agents.board.manager import BoardManager
+        echo "=== Releasing Claim ==="
+        echo "Issue: #$ISSUE_NUMBER"
+        echo "Agent: $AGENT_NAME"
+        echo "Reason: $REASON"
+        echo "Timestamp: $(date -Iseconds)"
 
-        async def release():
-            config = load_config(os.environ.get('BOARD_CONFIG_PATH'))
-            async with BoardManager(config=config) as manager:
-                await manager.release_work(
-                    int(os.environ['ISSUE_NUMBER']),
-                    os.environ['AGENT_NAME'],
-                    '$REASON'
-                )
-            if os.environ.get('JSON_LOGGING') == 'true':
-                print(json.dumps({
-                    "event": "claim_released",
-                    "issue": int(os.environ['ISSUE_NUMBER']),
-                    "reason": '$REASON'
-                }))
+        # Capture stderr for debugging while keeping stdout clean for JSON
+        STDERR_FILE=$(mktemp)
 
-        asyncio.run(release())
-        PYTHON_SCRIPT
+        if RELEASE_RESULT=$(board-cli --json release "$ISSUE_NUMBER" --agent "$AGENT_NAME" --reason "$REASON" 2>"$STDERR_FILE"); then
+          echo "Release result: $RELEASE_RESULT"
+          echo "Released claim with reason: $REASON"
+        else
+          EXIT_CODE=$?
+          echo "::warning::Release command failed with exit code $EXIT_CODE"
+          if [ -s "$STDERR_FILE" ]; then
+            echo "Error output:"
+            cat "$STDERR_FILE"
+          fi
+          echo "Release is best-effort, continuing..."
+        fi
 
-        echo "Released claim with reason: $REASON"
-
+        rm -f "$STDERR_FILE"
         echo "::endgroup::"
 
     # Step 11: Generate JSON summary and Step Summary

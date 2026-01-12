@@ -6,13 +6,14 @@ This is a **container-first, self-hosted project template** maintained by a sing
 
 ## AI Agent Ecosystem
 
-This project uses five AI agents:
+This project uses six AI agents for development:
 
-1. **Claude Code** - Primary development (architecture, implementation, docs)
-2. **Gemini CLI** - Automated PR reviews (you are reviewing as Gemini)
-3. **GitHub Copilot** - Code review suggestions in pull requests
-4. **Issue Monitor** - Automated issue response and implementation
-5. **PR Review Monitor** - Automated PR review response and fixes
+1. **Claude Code** - Primary development assistant (architecture, implementation, docs)
+2. **Codex** - AI-powered code generation (OpenAI)
+3. **OpenCode** - Code generation via OpenRouter
+4. **Crush** - Code generation via OpenRouter
+5. **Gemini CLI** - Automated PR reviews (you are reviewing as Gemini)
+6. **GitHub Copilot** - Code review suggestions in pull requests
 
 As the PR reviewer, focus on security, containers, and project standards.
 
@@ -33,7 +34,7 @@ As the PR reviewer, focus on security, containers, and project standards.
 
 ### 3. Architecture
 
-- **MCP Server** (FastAPI) runs on port 8005 in Docker container
+- **18 Modular MCP Servers** - Specialized servers for code quality, content creation, AI agents, etc.
 - **Python CI Container** includes all development tools (Python 3.11)
 - **Docker Compose** orchestrates all services
 - **No aggressive cleanup** - Python cache prevention via environment variables

@@ -16,7 +16,7 @@ This guide helps you customize the MCP-Enabled Project Template for your specifi
 ## Understanding the Template
 
 This template includes:
-- **14 MCP Servers** - Modular tools (enable only what you need)
+- **18 MCP Servers** - Modular tools (enable only what you need)
 - **6 AI Agents** - Development automation (all optional)
 - **Container-First Architecture** - Everything runs in Docker
 - **Self-Hosted CI/CD** - GitHub Actions automation
@@ -33,7 +33,7 @@ The template provides two MCP configuration files to optimize performance:
 - **Recommended for most users**
 
 **`.mcp.json.full` (Complete - All Services):**
-- Contains all 14 MCP servers including specialized tools
+- Contains all 18 MCP servers including specialized tools
 - Includes: content creation, 3D graphics, media tools, remote services
 - Use when you need specialized content creation or media processing
 - Switch to this configuration only when needed to avoid overloading Claude's context window

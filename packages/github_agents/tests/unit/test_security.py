@@ -85,15 +85,20 @@ class TestSecurityManager:
         assert manager.parse_trigger_comment(text_with_agent) == ("approved", "opencode")
 
     def test_is_user_allowed(self):
-        """Test user authorization."""
+        """Test user authorization.
+
+        Note: is_user_allowed checks against agent_admins (users who can trigger agent actions).
+        Bot users like github-actions[bot] are in trusted_sources (for comment context), not agent_admins.
+        """
         manager = SecurityManager()
 
-        # Default allowed user
+        # Default allowed user (from agent_admins)
         assert manager.is_user_allowed("AndrewAltimit") is True
 
-        # Bot users
-        assert manager.is_user_allowed("github-actions[bot]") is True
-        assert manager.is_user_allowed("dependabot[bot]") is True
+        # Bot users are NOT in agent_admins - they're in trusted_sources
+        # trusted_sources is for comment context, not for triggering agent actions
+        assert manager.is_user_allowed("github-actions[bot]") is False
+        assert manager.is_user_allowed("dependabot[bot]") is False
 
         # Unknown user
         assert manager.is_user_allowed("random_user") is False

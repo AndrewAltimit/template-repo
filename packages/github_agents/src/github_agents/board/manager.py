@@ -525,9 +525,14 @@ class BoardManager:
                 continue
 
             # Filter by agent if specified (normalize names for comparison)
+            # Include issues that are either:
+            # 1. Assigned to the requested agent
+            # 2. Unassigned (available to any agent)
             normalized_agent = self._normalize_agent_name(agent_name)
-            if normalized_agent and assigned_agent != normalized_agent:
-                continue
+            if normalized_agent:
+                # Skip if assigned to a DIFFERENT agent (but include unassigned issues)
+                if assigned_agent is not None and assigned_agent != normalized_agent:
+                    continue
 
             # Skip if has open blockers
             if blocked_by:
@@ -1183,8 +1188,11 @@ Work claim released.
         if author not in allowed_users:
             return False
 
-        # Parse trigger pattern: [Approved], [Review], [Close], [Summarize], or [Debug]
-        pattern = r"\[(Approved|Review|Close|Summarize|Debug)\]"
+        # Parse trigger pattern: [Action][Agent] format (e.g., [Approved][Claude])
+        # The agent name is required to avoid false positives from instructional text
+        # like "reply with `[Approved]` to create PR"
+        # Agent names can contain word chars, spaces, and hyphens (e.g., "Claude Code", "github-actions")
+        pattern = r"\[(Approved|Review|Close|Summarize|Debug)\]\[([\w\s-]+)\]"
         match = re.search(pattern, text, re.IGNORECASE)
 
         return match is not None

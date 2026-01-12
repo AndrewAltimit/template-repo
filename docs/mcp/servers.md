@@ -19,11 +19,14 @@ The MCP functionality is split across modular servers:
 10. **Blender MCP Server** - Containerized 3D content creation and rendering
 11. **Virtual Character MCP Server** - Containerized AI agent embodiment middleware
 12. **Desktop Control MCP Server** - Cross-platform desktop automation (Linux/Windows)
+13. **GitHub Board MCP Server** - GitHub Projects v2 board management and agent coordination
+14. **AgentCore Memory MCP Server** - Multi-provider AI memory (AWS AgentCore or ChromaDB)
+15. **Reaction Search MCP Server** - Semantic search for anime reaction images
 
 **HTTP Mode (Remote servers):**
-13. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
-14. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
-15. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
+16. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
+17. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
+18. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
 
@@ -677,6 +680,109 @@ The server supports GPU acceleration when available:
 - Falls back to CPU if GPU unavailable
 
 See `tools/mcp/video_editor/docs/README.md` for detailed documentation.
+
+## GitHub Board MCP Server
+
+The GitHub Board server provides GitHub Projects v2 board management for multi-agent coordination.
+
+### Starting the Server
+
+```bash
+# STDIO mode (configured in .mcp.json)
+python -m mcp_github_board.server
+
+# HTTP mode for remote access
+python -m mcp_github_board.server --http --port 8022
+```
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `query_ready_work` | Get unblocked, unclaimed TODO issues |
+| `claim_work` | Claim an issue for implementation |
+| `renew_claim` | Renew active claims for long-running tasks |
+| `release_work` | Release claim on an issue |
+| `update_status` | Update issue status on the board |
+| `add_blocker` | Add blocking dependencies between issues |
+| `mark_discovered_from` | Mark parent-child issue relationships |
+| `get_issue_details` | Get full details for a specific issue |
+| `get_dependency_graph` | Get dependency graph for an issue |
+| `list_agents` | List enabled agents for the board |
+| `get_board_config` | Get current board configuration |
+
+See `tools/mcp/mcp_github_board/docs/README.md` for detailed documentation.
+
+## AgentCore Memory MCP Server
+
+The AgentCore Memory server provides multi-provider AI memory with support for AWS Bedrock AgentCore or ChromaDB.
+
+### Starting the Server
+
+```bash
+# STDIO mode (configured in .mcp.json)
+python -m mcp_agentcore_memory.server
+
+# HTTP mode for remote access
+python -m mcp_agentcore_memory.server --http --port 8023
+```
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `store_event` | Store short-term memory events (rate-limited for AgentCore) |
+| `store_facts` | Store facts for long-term retention |
+| `search_memories` | Semantic search across memories |
+| `list_session_events` | List events from a specific session |
+| `list_namespaces` | List available predefined namespaces |
+| `memory_status` | Get memory provider status and info |
+
+### Environment Variables
+
+```bash
+MEMORY_PROVIDER=chromadb  # or "agentcore" for AWS
+CHROMADB_PATH=./data/chromadb  # For local ChromaDB
+```
+
+See `tools/mcp/mcp_agentcore_memory/docs/README.md` for detailed documentation.
+
+## Reaction Search MCP Server
+
+The Reaction Search server provides semantic search for anime reaction images using sentence-transformers.
+
+### Starting the Server
+
+```bash
+# STDIO mode (configured in .mcp.json)
+python -m mcp_reaction_search.server
+
+# HTTP mode for remote access
+python -m mcp_reaction_search.server --http --port 8024
+```
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `search_reactions` | Natural language search for reaction images |
+| `get_reaction` | Get a specific reaction by ID |
+| `list_reaction_tags` | Browse available tags and counts |
+| `refresh_reactions` | Refresh the reaction cache from GitHub |
+| `reaction_search_status` | Get server status and initialization state |
+
+### Usage Example
+
+```python
+# Search with natural language
+search_reactions(query="celebrating after fixing a bug", limit=3)
+search_reactions(query="confused about an error message", limit=3)
+
+# Get specific reaction
+get_reaction(reaction_id="miku_typing")
+```
+
+See `tools/mcp/mcp_reaction_search/README.md` for detailed documentation.
 
 ## Unified Testing
 

@@ -15,16 +15,14 @@ This is a **single-maintainer project** by @AndrewAltimit with a **container-fir
 
 ## AI Agent Collaboration
 
-You are working alongside multiple AI agents in a comprehensive ecosystem:
+Six AI agents work together in this development ecosystem:
 
 1. **Claude Code** - Primary development assistant for architecture, implementation, and debugging
-2. **Gemini CLI** - Handles automated PR code reviews
-3. **GitHub Copilot** - Provides code review suggestions in PRs
-4. **Issue Monitor Agent** - Automatically creates PRs from well-described issues
-5. **PR Review Monitor Agent** - Automatically implements fixes based on review feedback
-6. **Codex** - AI-powered code generation and completion (OpenAI's code model)
-7. **OpenCode** - Code generation (OpenRouter)
-8. **Crush** - Code generation (OpenRouter)
+2. **Codex** - AI-powered code generation and completion (OpenAI)
+3. **OpenCode** - Code generation via OpenRouter
+4. **Crush** - Code generation via OpenRouter
+5. **Gemini CLI** - Handles automated PR code reviews
+6. **GitHub Copilot** - Provides code review suggestions in PRs
 
 ### AI Agent Security Model
 

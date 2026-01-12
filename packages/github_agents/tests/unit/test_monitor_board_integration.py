@@ -245,15 +245,20 @@ class TestPRMonitorBoardIntegration:
         """Test board manager is not initialized without GitHub token."""
         monkeypatch.setenv("GITHUB_REPOSITORY", "test-owner/test-repo")
         monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
+
+        # Create a side_effect function that returns None only for GITHUB_TOKEN
+        def mock_getenv(key, default=None):
+            if key == "GITHUB_TOKEN":
+                return None
+            return default
+
         # Mock os.getenv to return None only for GITHUB_TOKEN check in _init_board_manager
         with (
             patch("github_agents.monitors.pr.Path.exists", return_value=True),
             patch("github_agents.monitors.pr.load_config") as mock_load_config,
-            patch("github_agents.monitors.pr.os.getenv") as mock_getenv,
+            patch("github_agents.monitors.pr.os.getenv", side_effect=mock_getenv),
         ):
             mock_load_config.return_value = MagicMock()
-            # Make getenv return None when checking for GITHUB_TOKEN in _init_board_manager
-            mock_getenv.return_value = None
             monitor = PRMonitor()
 
             assert monitor.board_manager is None

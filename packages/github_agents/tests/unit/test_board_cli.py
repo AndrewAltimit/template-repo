@@ -165,7 +165,16 @@ class TestCmdReady:
         manager.get_ready_work = AsyncMock(return_value=[mock_issue])
         mock_load.return_value = manager
 
-        args = argparse.Namespace(agent=None, priority=None, limit=10, json=False, verbose=False)
+        args = argparse.Namespace(
+            agent=None,
+            priority=None,
+            limit=10,
+            json=False,
+            verbose=False,
+            include_labels=None,
+            exclude_labels=None,
+            approved_only=False,
+        )
 
         await cmd_ready(args)
 
@@ -182,7 +191,16 @@ class TestCmdReady:
         manager.get_ready_work = AsyncMock(return_value=[])
         mock_load.return_value = manager
 
-        args = argparse.Namespace(agent=None, priority=None, limit=10, json=False, verbose=False)
+        args = argparse.Namespace(
+            agent=None,
+            priority=None,
+            limit=10,
+            json=False,
+            verbose=False,
+            include_labels=None,
+            exclude_labels=None,
+            approved_only=False,
+        )
 
         await cmd_ready(args)
 
@@ -198,7 +216,16 @@ class TestCmdReady:
         manager.get_ready_work = AsyncMock(return_value=[mock_issue])
         mock_load.return_value = manager
 
-        args = argparse.Namespace(agent="claude", priority="high", limit=5, json=True, verbose=False)
+        args = argparse.Namespace(
+            agent="claude",
+            priority="high",
+            limit=5,
+            json=True,
+            verbose=False,
+            include_labels=None,
+            exclude_labels=None,
+            approved_only=False,
+        )
 
         await cmd_ready(args)
 
@@ -321,7 +348,7 @@ class TestCmdClaim:
         manager.claim_work = AsyncMock(return_value=True)
         mock_load.return_value = manager
 
-        args = argparse.Namespace(issue=123, agent="claude", json=False)
+        args = argparse.Namespace(issue=123, agent="claude", json=False, session=None)
 
         await cmd_claim(args)
 
@@ -338,7 +365,7 @@ class TestCmdClaim:
         manager.claim_work = AsyncMock(return_value=False)
         mock_load.return_value = manager
 
-        args = argparse.Namespace(issue=123, agent="claude", json=False)
+        args = argparse.Namespace(issue=123, agent="claude", json=False, session=None)
 
         with pytest.raises(SystemExit):
             await cmd_claim(args)
@@ -419,3 +446,483 @@ class TestMainCLI:
         """Test main with verbose flag."""
         main()
         mock_logging.assert_called_once_with(True)
+
+
+class TestCmdReadyFiltering:
+    """Tests for cmd_ready filtering options."""
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_ready_with_include_labels(self, mock_load, capsys, mock_issue):
+        """Test cmd_ready with --include-labels filter."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        # Return issue with matching label
+        mock_issue.labels = ["bug", "high-priority"]
+        manager.get_ready_work = AsyncMock(return_value=[mock_issue])
+        mock_load.return_value = manager
+
+        args = argparse.Namespace(
+            agent=None,
+            priority=None,
+            limit=10,
+            json=False,
+            verbose=False,
+            include_labels=["bug"],
+            exclude_labels=None,
+            approved_only=False,
+        )
+
+        await cmd_ready(args)
+
+        captured = capsys.readouterr()
+        assert "#123: Test Issue" in captured.out
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_ready_exclude_labels_filters_out(self, mock_load, capsys, mock_issue):
+        """Test cmd_ready with --exclude-labels filter removes matching issues."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        # Issue has excluded label
+        mock_issue.labels = ["wontfix"]
+        manager.get_ready_work = AsyncMock(return_value=[mock_issue])
+        mock_load.return_value = manager
+
+        args = argparse.Namespace(
+            agent=None,
+            priority=None,
+            limit=10,
+            json=False,
+            verbose=False,
+            include_labels=None,
+            exclude_labels=["wontfix"],
+            approved_only=False,
+        )
+
+        await cmd_ready(args)
+
+        captured = capsys.readouterr()
+        # Issue should be filtered out
+        assert "No ready work found" in captured.out or "#123" not in captured.out
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_ready_approved_only(self, mock_load, capsys, mock_issue):
+        """Test cmd_ready with --approved-only filter."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.get_ready_work = AsyncMock(return_value=[mock_issue])
+        # Mock approval check - issue is approved
+        manager.is_issue_approved = AsyncMock(return_value=(True, "admin"))
+        mock_load.return_value = manager
+
+        args = argparse.Namespace(
+            agent=None,
+            priority=None,
+            limit=10,
+            json=False,
+            verbose=False,
+            include_labels=None,
+            exclude_labels=None,
+            approved_only=True,
+        )
+
+        await cmd_ready(args)
+
+        captured = capsys.readouterr()
+        assert "#123: Test Issue" in captured.out
+        manager.is_issue_approved.assert_called_once_with(123)
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_ready_approved_only_filters_unapproved(self, mock_load, capsys, mock_issue):
+        """Test --approved-only filters out unapproved issues."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.get_ready_work = AsyncMock(return_value=[mock_issue])
+        # Mock approval check - issue is NOT approved
+        manager.is_issue_approved = AsyncMock(return_value=(False, None))
+        mock_load.return_value = manager
+
+        args = argparse.Namespace(
+            agent=None,
+            priority=None,
+            limit=10,
+            json=False,
+            verbose=False,
+            include_labels=None,
+            exclude_labels=None,
+            approved_only=True,
+        )
+
+        await cmd_ready(args)
+
+        captured = capsys.readouterr()
+        # Issue should be filtered out because not approved
+        assert "No ready work found" in captured.out or "Found 0" in captured.out
+
+
+class TestCmdCheckApproval:
+    """Tests for cmd_check_approval command."""
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_check_approval_approved(self, mock_load, capsys):
+        """Test check-approval when issue is approved."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.is_issue_approved = AsyncMock(return_value=(True, "admin_user"))
+        mock_load.return_value = manager
+
+        # Import the command function
+        from github_agents.board.cli import cmd_check_approval
+
+        args = argparse.Namespace(issue=123, json=True)
+
+        await cmd_check_approval(args)
+
+        captured = capsys.readouterr()
+        assert '"approved": true' in captured.out
+        assert '"approver": "admin_user"' in captured.out
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_check_approval_not_approved(self, mock_load, capsys):
+        """Test check-approval when issue is not approved."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.is_issue_approved = AsyncMock(return_value=(False, None))
+        mock_load.return_value = manager
+
+        from github_agents.board.cli import cmd_check_approval
+
+        args = argparse.Namespace(issue=456, json=True)
+
+        await cmd_check_approval(args)
+
+        captured = capsys.readouterr()
+        assert '"approved": false' in captured.out
+
+
+class TestCmdFindApproved:
+    """Tests for cmd_find_approved command.
+
+    Uses GitHub Search API for efficiency. These tests mock aiohttp
+    to verify correct API usage and error handling.
+    """
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_find_approved_handles_api_error(self, mock_load, capsys):
+        """Test find-approved handles initialization and reports errors gracefully."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.config = MagicMock()
+        manager.config.repository = "invalid"  # Will cause ValueError
+        manager.github_token = "test-token"
+        mock_load.return_value = manager
+
+        from github_agents.board.cli import cmd_find_approved
+
+        args = argparse.Namespace(json=True, agent="claude")
+
+        # Should exit with error due to invalid repository format
+        with pytest.raises(SystemExit):
+            await cmd_find_approved(args)
+
+        captured = capsys.readouterr()
+        assert "error" in captured.out.lower()
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_find_approved_uses_search_api(self, mock_load, capsys):
+        """Test find-approved uses GitHub Search API for efficiency."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.config = MagicMock()
+        manager.config.repository = "owner/repo"
+        manager.github_token = "test-token"
+        manager.get_issue = AsyncMock(return_value=None)  # Not on board
+        mock_load.return_value = manager
+
+        from github_agents.board.cli import cmd_find_approved
+
+        # Create a proper async context manager mock
+        class MockResponse:
+            status = 200
+
+            async def json(self):
+                return {
+                    "items": [
+                        {"number": 42, "title": "Approved Issue"},
+                        {"number": 43, "title": "Another Approved Issue"},
+                    ]
+                }
+
+        class MockContextManager:
+            async def __aenter__(self):
+                return MockResponse()
+
+            async def __aexit__(self, *args):
+                pass
+
+        class MockSession:
+            def get(self, *args, **kwargs):
+                return MockContextManager()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+        with patch("aiohttp.ClientSession", return_value=MockSession()):
+            args = argparse.Namespace(json=True, agent="claude")
+            await cmd_find_approved(args)
+
+        captured = capsys.readouterr()
+        # Should output JSON with found issues
+        assert "42" in captured.out
+        assert "43" in captured.out
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_find_approved_agent_with_spaces(self, mock_load, capsys):
+        """Test find-approved works with agent names containing spaces (e.g., 'Claude Code')."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.config = MagicMock()
+        manager.config.repository = "owner/repo"
+        manager.github_token = "test-token"
+        manager.get_issue = AsyncMock(return_value=None)
+        mock_load.return_value = manager
+
+        from github_agents.board.cli import cmd_find_approved
+
+        class MockResponse:
+            status = 200
+
+            async def json(self):
+                return {"items": [{"number": 99, "title": "Claude Code Issue"}]}
+
+        class MockContextManager:
+            async def __aenter__(self):
+                return MockResponse()
+
+            async def __aexit__(self, *args):
+                pass
+
+        class MockSession:
+            def get(self, *args, **kwargs):
+                return MockContextManager()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+        with patch("aiohttp.ClientSession", return_value=MockSession()):
+            # Agent name with space
+            args = argparse.Namespace(json=True, agent="Claude Code")
+            await cmd_find_approved(args)
+
+        captured = capsys.readouterr()
+        assert "99" in captured.out
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_find_approved_empty_results(self, mock_load, capsys):
+        """Test find-approved handles empty search results."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.config = MagicMock()
+        manager.config.repository = "owner/repo"
+        manager.github_token = "test-token"
+        mock_load.return_value = manager
+
+        from github_agents.board.cli import cmd_find_approved
+
+        class MockResponse:
+            status = 200
+
+            async def json(self):
+                return {"items": []}
+
+        class MockContextManager:
+            async def __aenter__(self):
+                return MockResponse()
+
+            async def __aexit__(self, *args):
+                pass
+
+        class MockSession:
+            def get(self, *args, **kwargs):
+                return MockContextManager()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+        with patch("aiohttp.ClientSession", return_value=MockSession()):
+            args = argparse.Namespace(json=False, agent="claude")
+            await cmd_find_approved(args)
+
+        captured = capsys.readouterr()
+        assert "No approved issues found" in captured.out
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_find_approved_search_api_error(self, mock_load, capsys):
+        """Test find-approved handles Search API errors gracefully."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.config = MagicMock()
+        manager.config.repository = "owner/repo"
+        manager.github_token = "test-token"
+        mock_load.return_value = manager
+
+        from github_agents.board.cli import cmd_find_approved
+
+        class MockResponse:
+            status = 403  # Rate limited
+
+            async def text(self):
+                return "API rate limit exceeded"
+
+        class MockContextManager:
+            async def __aenter__(self):
+                return MockResponse()
+
+            async def __aexit__(self, *args):
+                pass
+
+        class MockSession:
+            def get(self, *args, **kwargs):
+                return MockContextManager()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+        with patch("aiohttp.ClientSession", return_value=MockSession()):
+            args = argparse.Namespace(json=True, agent="claude")
+
+            with pytest.raises(SystemExit):
+                await cmd_find_approved(args)
+
+        captured = capsys.readouterr()
+        assert "error" in captured.out.lower()
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_find_approved_pagination(self, mock_load, capsys):
+        """Test find-approved paginates through all results."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.config = MagicMock()
+        manager.config.repository = "owner/repo"
+        manager.github_token = "test-token"
+        manager.get_issue = AsyncMock(return_value=None)
+        mock_load.return_value = manager
+
+        from github_agents.board.cli import cmd_find_approved
+
+        # Simulate pagination: page 1 returns 2 items, page 2 returns 1 item
+        call_count = 0
+
+        class MockResponse:
+            status = 200
+
+            async def json(self):
+                nonlocal call_count
+                call_count += 1
+                if call_count == 1:
+                    return {
+                        "total_count": 3,
+                        "items": [
+                            {"number": 1, "title": "Issue 1"},
+                            {"number": 2, "title": "Issue 2"},
+                        ],
+                    }
+                else:
+                    return {
+                        "total_count": 3,
+                        "items": [{"number": 3, "title": "Issue 3"}],
+                    }
+
+        class MockContextManager:
+            async def __aenter__(self):
+                return MockResponse()
+
+            async def __aexit__(self, *args):
+                pass
+
+        class MockSession:
+            def get(self, *args, **kwargs):
+                return MockContextManager()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+        with patch("aiohttp.ClientSession", return_value=MockSession()):
+            args = argparse.Namespace(json=True, agent="claude")
+            await cmd_find_approved(args)
+
+        captured = capsys.readouterr()
+        # Should find all 3 issues across pages
+        assert "1" in captured.out
+        assert "2" in captured.out
+        assert "3" in captured.out
+
+
+class TestCmdAddToBoard:
+    """Tests for cmd_add_to_board command."""
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_add_to_board_success(self, mock_load, capsys, mock_issue):
+        """Test add-to-board successfully adds issue."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.get_issue = AsyncMock(return_value=None)  # Not on board yet
+        manager.add_issue_with_fields = AsyncMock(return_value=True)
+        manager._normalize_agent_name = MagicMock(return_value="Claude Code")
+        mock_load.return_value = manager
+
+        from github_agents.board.cli import cmd_add_to_board
+
+        args = argparse.Namespace(issue=123, agent="claude", json=False, status="todo", priority=None, type=None, size=None)
+
+        await cmd_add_to_board(args)
+
+        captured = capsys.readouterr()
+        assert "Added issue #123 to board" in captured.out or "success" in captured.out.lower()
+        manager.add_issue_with_fields.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("github_agents.board.cli.load_board_manager")
+    async def test_cmd_add_to_board_already_on_board(self, mock_load, capsys, mock_issue):
+        """Test add-to-board when issue already on board."""
+        manager = MagicMock()
+        manager.initialize = AsyncMock()
+        manager.get_issue = AsyncMock(return_value=mock_issue)  # Already on board
+        mock_load.return_value = manager
+
+        from github_agents.board.cli import cmd_add_to_board
+
+        args = argparse.Namespace(issue=123, agent=None, json=False, status="todo", priority=None, type=None, size=None)
+
+        await cmd_add_to_board(args)
+
+        captured = capsys.readouterr()
+        # Should indicate already on board or still succeed gracefully
+        assert "123" in captured.out

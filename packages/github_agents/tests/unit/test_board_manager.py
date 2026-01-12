@@ -779,3 +779,216 @@ class TestRaceConditions:
         assert result1 is True
         assert result2 is True
         assert manager._post_issue_comment.call_count == 2
+
+
+class TestApprovalChecking:
+    """Test approval checking functionality."""
+
+    def test_check_approval_trigger_valid_pattern(self, board_config, _mock_github_token):
+        """Test _check_approval_trigger matches [Action][Agent] format."""
+        manager = BoardManager(config=board_config)
+
+        # Valid patterns from authorized user
+        assert manager._check_approval_trigger("[Approved][Claude]", "testuser") is True
+        assert manager._check_approval_trigger("[Approved][OpenCode]", "testuser") is True
+        assert manager._check_approval_trigger("[Review][Gemini]", "testuser") is True
+        assert manager._check_approval_trigger("[Close][Claude]", "testuser") is True
+        assert manager._check_approval_trigger("[Summarize][Claude]", "testuser") is True
+        assert manager._check_approval_trigger("[Debug][Claude]", "testuser") is True
+
+    def test_check_approval_trigger_case_insensitive(self, board_config, _mock_github_token):
+        """Test approval patterns are case insensitive."""
+        manager = BoardManager(config=board_config)
+
+        assert manager._check_approval_trigger("[approved][claude]", "testuser") is True
+        assert manager._check_approval_trigger("[APPROVED][CLAUDE]", "testuser") is True
+        assert manager._check_approval_trigger("[Approved][claude]", "testuser") is True
+
+    def test_check_approval_trigger_rejects_standalone(self, board_config, _mock_github_token):
+        """Test [Approved] without [Agent] is rejected to prevent false positives."""
+        manager = BoardManager(config=board_config)
+
+        # Standalone [Approved] should NOT match - prevents false positives from
+        # instructional text like "reply with `[Approved]` to create PR"
+        assert manager._check_approval_trigger("[Approved]", "testuser") is False
+        assert manager._check_approval_trigger("[Review]", "testuser") is False
+
+    def test_check_approval_trigger_rejects_instructional_text(self, board_config, _mock_github_token):
+        """Test instructional text with [Approved] doesn't trigger false positive."""
+        manager = BoardManager(config=board_config)
+
+        # This is the exact text that caused false positives in production
+        instructional_text = "*Awaiting admin review - reply with `[Approved]` to create PR*"
+        assert manager._check_approval_trigger(instructional_text, "testuser") is False
+
+        # More instructional patterns
+        assert manager._check_approval_trigger("Use [Approved] to approve", "testuser") is False
+        assert manager._check_approval_trigger("Comment `[Approved]` when ready", "testuser") is False
+
+    def test_check_approval_trigger_unauthorized_user(self, board_config, _mock_github_token):
+        """Test approval from unauthorized user is rejected."""
+        manager = BoardManager(config=board_config)
+
+        # Valid pattern but from unauthorized user
+        assert manager._check_approval_trigger("[Approved][Claude]", "random_user") is False
+        assert manager._check_approval_trigger("[Approved][Claude]", "hacker") is False
+
+    def test_check_approval_trigger_authorized_users(self, board_config, _mock_github_token):
+        """Test approval from various authorized users."""
+        manager = BoardManager(config=board_config)
+
+        # Repository owner (from config.repository = "test/repo")
+        assert manager._check_approval_trigger("[Approved][Claude]", "test") is True
+
+        # Project owner (from config.owner = "testuser")
+        assert manager._check_approval_trigger("[Approved][Claude]", "testuser") is True
+
+    def test_check_approval_trigger_in_longer_text(self, board_config, _mock_github_token):
+        """Test approval trigger found within longer text."""
+        manager = BoardManager(config=board_config)
+
+        text_with_approval = """
+        I've reviewed this issue and it looks good.
+
+        [Approved][Claude]
+
+        Please proceed with implementation.
+        """
+        assert manager._check_approval_trigger(text_with_approval, "testuser") is True
+
+    def test_check_approval_trigger_agent_with_spaces(self, board_config, _mock_github_token):
+        """Test approval trigger with agent names containing spaces (e.g., 'Claude Code')."""
+        manager = BoardManager(config=board_config)
+
+        # Agent names with spaces should be supported
+        assert manager._check_approval_trigger("[Approved][Claude Code]", "testuser") is True
+        assert manager._check_approval_trigger("[Review][OpenAI Agent]", "testuser") is True
+        assert manager._check_approval_trigger("[Debug][My Custom Agent]", "testuser") is True
+
+        # Agent names with hyphens should still work
+        assert manager._check_approval_trigger("[Approved][github-actions]", "testuser") is True
+
+        # Combination of spaces and hyphens
+        assert manager._check_approval_trigger("[Approved][My-Custom Agent]", "testuser") is True
+
+    def test_check_approval_trigger_empty_inputs(self, board_config, _mock_github_token):
+        """Test empty/None inputs are handled."""
+        manager = BoardManager(config=board_config)
+
+        assert manager._check_approval_trigger("", "testuser") is False
+        assert manager._check_approval_trigger("[Approved][Claude]", "") is False
+        assert manager._check_approval_trigger(None, "testuser") is False
+        assert manager._check_approval_trigger("[Approved][Claude]", None) is False
+
+    @pytest.mark.asyncio
+    async def test_is_issue_approved_in_comment(self, board_config, _mock_github_token):
+        """Test is_issue_approved finds approval in comments."""
+        manager = BoardManager(config=board_config)
+
+        # Mock GraphQL response with approval comment
+        manager._execute_graphql = AsyncMock(
+            return_value=GraphQLResponse(
+                data={
+                    "repository": {
+                        "issue": {
+                            "body": "Issue description",
+                            "author": {"login": "someone"},
+                            "comments": {
+                                "nodes": [
+                                    {"body": "Regular comment", "author": {"login": "user1"}},
+                                    {"body": "[Approved][Claude]", "author": {"login": "testuser"}},
+                                ]
+                            },
+                        }
+                    }
+                }
+            )
+        )
+
+        is_approved, approver = await manager.is_issue_approved(123)
+
+        assert is_approved is True
+        assert approver == "testuser"
+
+    @pytest.mark.asyncio
+    async def test_is_issue_approved_in_body(self, board_config, _mock_github_token):
+        """Test is_issue_approved finds approval in issue body."""
+        manager = BoardManager(config=board_config)
+
+        # Mock GraphQL response with approval in body
+        manager._execute_graphql = AsyncMock(
+            return_value=GraphQLResponse(
+                data={
+                    "repository": {
+                        "issue": {
+                            "body": "[Approved][Claude] - Let's implement this",
+                            "author": {"login": "testuser"},
+                            "comments": {"nodes": []},
+                        }
+                    }
+                }
+            )
+        )
+
+        is_approved, approver = await manager.is_issue_approved(123)
+
+        assert is_approved is True
+        assert approver == "testuser"
+
+    @pytest.mark.asyncio
+    async def test_is_issue_approved_false_positive_prevention(self, board_config, _mock_github_token):
+        """Test is_issue_approved doesn't match instructional text."""
+        manager = BoardManager(config=board_config)
+
+        # Mock GraphQL response with instructional text (no real approval)
+        manager._execute_graphql = AsyncMock(
+            return_value=GraphQLResponse(
+                data={
+                    "repository": {
+                        "issue": {
+                            "body": """
+                            Issue description here.
+
+                            *Awaiting admin review - reply with `[Approved]` to create PR*
+                            """,
+                            "author": {"login": "testuser"},
+                            "comments": {"nodes": []},
+                        }
+                    }
+                }
+            )
+        )
+
+        is_approved, approver = await manager.is_issue_approved(123)
+
+        assert is_approved is False
+        assert approver is None
+
+    @pytest.mark.asyncio
+    async def test_is_issue_approved_not_found(self, board_config, _mock_github_token):
+        """Test is_issue_approved returns False when no approval."""
+        manager = BoardManager(config=board_config)
+
+        # Mock GraphQL response without approval
+        manager._execute_graphql = AsyncMock(
+            return_value=GraphQLResponse(
+                data={
+                    "repository": {
+                        "issue": {
+                            "body": "Regular issue body",
+                            "author": {"login": "someone"},
+                            "comments": {
+                                "nodes": [
+                                    {"body": "Just a comment", "author": {"login": "user1"}},
+                                ]
+                            },
+                        }
+                    }
+                }
+            )
+        )
+
+        is_approved, approver = await manager.is_issue_approved(123)
+
+        assert is_approved is False
+        assert approver is None
