@@ -117,28 +117,28 @@
 \draw[arrow] (ci) -- (humanrev);
 \draw[arrow] (humanrev) -- (merge);
 
-% Gate labels row 2
-\node[below=0.15cm of humanrev, font=\small\bfseries\color{humangate}] {GATE 2};
-\node[below=0.15cm of merge, font=\small\bfseries\color{humangate}] {GATE 3};
+% Kanban below row 2
+\node[kanban, below=0.3cm of council] {In Progress};
+\node[kanban, below=0.3cm of autofix] {In Progress};
+\node[kanban, below=0.3cm of ci] {In Progress};
+\node[kanban, below=0.3cm of humanrev] {Review};
+\node[kanban, below=0.3cm of merge] {Done};
 
-% Kanban above row 2
-\node[kanban, above=0.3cm of council] {In Progress};
-\node[kanban, above=0.3cm of autofix] {In Progress};
-\node[kanban, above=0.3cm of ci] {In Progress};
-\node[kanban, above=0.3cm of humanrev] {Review};
-\node[kanban, above=0.3cm of merge] {Done};
+% Gate labels row 2 (below kanban)
+\node[below=0.8cm of humanrev, font=\small\bfseries\color{humangate}] {GATE 2};
+\node[below=0.8cm of merge, font=\small\bfseries\color{humangate}] {GATE 3};
 
 % === FEEDBACK LOOPS ===
-% Agent auto-fix loops (straight lines with right angles)
-\draw[looparrow] (autofix.north) -- ++(0,0.4) -| (council.north);
-\draw[looparrow] (autofix.north) -- ++(0,0.4) -| (ci.north);
+% Human review can request changes -> back to council (above, higher than purple)
+\draw[looparrow, humangate!70] (humanrev.north) -- ++(0,0.7) -| (council.north);
 
-% Human review can request changes -> back to council (straight horizontal line below)
-\draw[looparrow, humangate!70] (humanrev.south) -- ++(0,-0.5) -| (council.south);
+% Agent auto-fix loops (straight lines with right angles, lower than green)
+\draw[looparrow] (autofix.north) -- ++(0,0.4) -| (council.north west);
+\draw[looparrow] (autofix.north) -- ++(0,0.4) -| (ci.north east);
 
 % Loop labels
+\node[above=0.65cm of council, font=\scriptsize\color{humangate!70}\itshape, xshift=-0.8cm] {changes requested};
 \node[above=0.35cm of autofix, font=\scriptsize\color{reviewloop}\itshape] {auto-fix loops};
-\node[below=0.5cm of ci, font=\scriptsize\color{humangate!70}\itshape, xshift=1cm] {changes requested};
 
 \end{tikzpicture}
 \end{center}

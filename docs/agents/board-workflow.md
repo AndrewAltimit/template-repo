@@ -21,56 +21,56 @@ All agent work flows through the **GitHub Projects v2 board** as a deliberate tr
 ### Main Workflow Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                        AI-ASSISTED DEVELOPMENT WORKFLOW                              │
-│                  Human oversight with automated agent feedback loops                 │
-├─────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                      │
-│  ═══════════════════════════════════════════════════════════════════════════════    │
-│                                FORWARD FLOW                                          │
-│  ═══════════════════════════════════════════════════════════════════════════════    │
-│                      (human+agent)                                                   │
-│  ┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐            │
-│  │   Issue    │────►│  Add to    │────►│  Approve   │────►│   Agent    │            │
-│  │ Refinement │     │   Board    │     │   Work     │     │ Implements │            │
-│  │  (Agent)   │     │ (Human OR  │     │  (Human)   │     │  (Agent)   │            │
-│  │            │     │   Agent)   │     │            │     │            │            │
-│  └────────────┘     └────────────┘     └────────────┘     └────────────┘            │
-│       │                  │                  │                   │                    │
-│       │                  │               GATE 1                 │                    │
-│       │                  │             (Approval)               │                    │
-│       ▼                  ▼                  ▼                   ▼                    │
-│   [Backlog]           [Todo]            [Todo]           [In Progress]              │
-│                                                                 │                    │
-│  ═══════════════════════════════════════════════════════════════│════════════════   │
-│                                                                 ▼                    │
-│   ┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐           │
-│   │   Merge    │◄────│   Review   │◄────│     CI     │◄────│  Create    │           │
-│   │    PR      │     │   Code     │     │  Feedback  │     │    PR      │           │
-│   │  (Human)   │     │  (Human)   │     │   Loop     │     │  (Agent)   │           │
-│   └────────────┘     └────────────┘     └────────────┘     └────────────┘           │
-│        │                  │                  ▲                   │                   │
-│     GATE 3             GATE 2                │                   │                   │
-│    (Merge)            (Review)    ┌──────────┴──────────┐        ▼                   │
-│        ▼                  │       │                     │   ┌────────────┐           │
-│     [Done]                │       │    Auto-Fix Loop    │   │ AI Council │           │
-│                           │       │   (Format/Lint)     │   │  Reviews   │           │
-│                           │       │  Max 5 iterations   │   └─────┬──────┘           │
-│                           │       └──────────┬──────────┘         │                  │
-│                           │                  ▲                    │                  │
-│                           │                  │                    ▼                  │
-│                           │                  └────────────────────┘                  │
-│                           │                   (review response)                      │
-│                           │                                                          │
-│                           └─────────────────────────────────────────────┐            │
-│                                    (changes requested)                  │            │
-│                                                                         ▼            │
-│                                                                  ┌────────────┐      │
-│                                                                  │ AI Council │      │
-│                                                                  │  Re-review │      │
-│                                                                  └────────────┘      │
-│                                                                                      │
-└─────────────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        AI-ASSISTED DEVELOPMENT WORKFLOW                         │
+│                  Human oversight with automated agent feedback loops            │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│═════════════════════════════════════════════════════════════════════════════════│
+│                                FORWARD FLOW                                     │
+│═════════════════════════════════════════════════════════════════════════════════│
+│                      (human+agent)                                              │
+│  ┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐        │
+│  │   Issue    │────►│  Add to    │────►│  Approve   │────►│   Agent    │        │
+│  │ Refinement │     │   Board    │     │   Work     │     │ Implements │        │
+│  │  (Agent)   │     │ (Human OR  │     │  (Human)   │     │  (Agent)   │        │
+│  │            │     │   Agent)   │     │            │     │            │        │
+│  └────────────┘     └────────────┘     └────────────┘     └────────────┘        │
+│       │                  │                  │                   │               │
+│       │                  │               GATE 1                 │               │
+│       │                  │             (Approval)               │               │
+│       ▼                  ▼                  ▼                   ▼               │
+│   [Backlog]           [Todo]            [Todo]           [In Progress]          │
+│                                                                 │               │
+│═════════════════════════════════════════════════════════════════│═══════════════│
+│                                                                 ▼               │
+│   ┌────────────┐     ┌────────────┐     ┌────────────┐     ┌────────────┐       │
+│   │   Merge    │◄────│   Review   │◄────│     CI     │◄────│  Create    │       │
+│   │    PR      │     │   Code     │     │  Feedback  │     │    PR      │       │
+│   │  (Human)   │     │  (Human)   │     │   Loop     │     │  (Agent)   │       │
+│   └────────────┘     └────────────┘     └────────────┘     └────────────┘       │
+│        │                  │                  ▲                   │              │
+│     GATE 3             GATE 2                │                   │              │
+│    (Merge)            (Review)    ┌──────────┴──────────┐        ▼              │
+│        ▼                  │       │                     │   ┌────────────┐      │
+│     [Done]                │       │    Auto-Fix Loop    │   │ AI Council │      │
+│                           │       │   (Format/Lint)     │   │  Reviews   │      │
+│                           │       │  Max 5 iterations   │   └─────┬──────┘      │
+│                           │       └──────────┬──────────┘         │             │
+│                           │                  ▲                    │             │
+│                           │                  │                    ▼             │
+│                           │                  └────────────────────┘             │
+│                           │                   (review response)                 │
+│                           │                                                     │
+│                           └─────────────────────────────────────────────┐       │
+│                                    (changes requested)                  │       │
+│                                                                         ▼       │
+│                                                                  ┌────────────┐ │
+│                                                                  │ AI Council │ │
+│                                                                  │  Re-review │ │
+│                                                                  └────────────┘ │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
 
 Legend: ■ Human Gate (3 total)   □ Agent Work   ◇ Review/Feedback   ○ Kanban State
 
@@ -262,27 +262,27 @@ Once the PR is created, multiple feedback mechanisms engage in a **tight automat
 Multiple AI agents provide diverse review perspectives:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                       AGENT COUNCIL                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
+┌────────────────────────────────────────────────────────────────┐
+│                       AGENT COUNCIL                            │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
 │   ┌─────────────┐     ┌─────────────┐     ┌─────────────┐      │
 │   │   Gemini    │     │   Codex     │     │   Claude    │      │
 │   │  (Review)   │     │  (Review)   │     │   (Fix)     │      │
 │   └──────┬──────┘     └──────┬──────┘     └──────┬──────┘      │
-│          │                   │                   │              │
-│          │    Security &     │   Code Quality    │              │
-│          │   Architecture    │    & Patterns     │              │
-│          │                   │                   │              │
-│          └───────────────────┴───────────────────┘              │
-│                              │                                  │
-│                              ▼                                  │
-│                    ┌─────────────────┐                          │
-│                    │  Consolidated   │                          │
-│                    │    Feedback     │                          │
-│                    └─────────────────┘                          │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+│          │                   │                   │             │
+│          │    Security &     │   Code Quality    │             │
+│          │   Architecture    │    & Patterns     │             │
+│          │                   │                   │             │
+│          └───────────────────┴───────────────────┘             │
+│                              │                                 │
+│                              ▼                                 │
+│                    ┌─────────────────┐                         │
+│                    │  Consolidated   │                         │
+│                    │    Feedback     │                         │
+│                    └─────────────────┘                         │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
 
 Note: Reviews are NOT weighted equally.
 Maintainer feedback > AI suggestions > Community feedback
@@ -319,11 +319,11 @@ Codex provides complementary review focusing on:
 **Trigger**: Immediately after Gemini/Codex reviews complete
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                  TIGHT FEEDBACK LOOP 1                           │
-│                  (Review Response)                               │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                  │
+┌─────────────────────────────────────────────────────────────────┐
+│                  TIGHT FEEDBACK LOOP 1                          │
+│                  (Review Response)                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
 │  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐        │
 │  │   Gemini/   │────►│   Claude    │────►│    Push     │        │
 │  │   Codex     │     │  Auto-Fix   │     │  Changes    │        │
@@ -337,12 +337,12 @@ Codex provides complementary review focusing on:
 │       ▼                                                         │
 │  ┌─────────────┐                                                │
 │  │   Reviews   │  Skip reviews on agent commits                 │
-│  │   Skipped   │  (detected by [AI-AUTO-FIX] marker)           │
+│  │   Skipped   │  (detected by [AI-AUTO-FIX] marker)            │
 │  └─────────────┘                                                │
 │                                                                 │
 │  Safety: Max 5 iterations per PR                                │
 │                                                                 │
-└──────────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 **How It Works:**
@@ -360,11 +360,11 @@ Codex provides complementary review focusing on:
 **Trigger**: When format-check, basic-lint, or full-lint fails
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                  TIGHT FEEDBACK LOOP 2                           │
-│                  (CI Failure Handler)                            │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                  │
+┌─────────────────────────────────────────────────────────────────┐
+│                  TIGHT FEEDBACK LOOP 2                          │
+│                  (CI Failure Handler)                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
 │  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐        │
 │  │  Format/    │────►│  Autoformat │────►│   Claude    │        │
 │  │  Lint Fail  │     │   (black,   │     │  Fixes      │        │
@@ -386,7 +386,7 @@ Codex provides complementary review focusing on:
 │  Handles: formatting, linting, type errors, unused imports      │
 │  Does NOT handle: test failures, build errors                   │
 │                                                                 │
-└──────────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 **Scope (Safe Categories):**
