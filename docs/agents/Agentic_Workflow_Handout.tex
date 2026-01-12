@@ -71,34 +71,39 @@
 ]
 
 % === ROW 1: Forward Path (Left to Right) ===
-\node[agent] (issue) {Issue\\[-0.1em]{\scriptsize Refinement}};
-
-% Mixed human+agent node for board
-\node[stage, right=of issue, draw=agentwork, fill=agentwork!8,
+% Hybrid style: half green (human), half blue (agent)
+\node[stage, draw=darktext!40, line width=1pt,
       path picture={
-        \fill[humangate!25] (path picture bounding box.north west) rectangle
-              ([xshift=0.5cm]path picture bounding box.south west);
+        \fill[humangate!20] (path picture bounding box.north west) rectangle (path picture bounding box.south);
+        \fill[agentwork!20] (path picture bounding box.north) rectangle (path picture bounding box.south east);
+      }] (issue) {Create\\[-0.1em]{\scriptsize Issue}};
+
+% Mixed human+agent node for board (half/half)
+\node[stage, right=of issue, draw=darktext!40, line width=1pt,
+      path picture={
+        \fill[humangate!20] (path picture bounding box.north west) rectangle (path picture bounding box.south);
+        \fill[agentwork!20] (path picture bounding box.north) rectangle (path picture bounding box.south east);
       }] (triage) {Add to\\[-0.1em]{\scriptsize Board}};
 
-\node[human, right=of triage] (approve) {Approve\\[-0.1em]{\scriptsize [Approved]}};
+\node[agent, right=of triage] (refine) {Refine\\[-0.1em]{\scriptsize Issue}};
+\node[human, right=of refine] (approve) {Approve\\[-0.1em]{\scriptsize [Approved]}};
 \node[agent, right=of approve] (implement) {Implement\\[-0.1em]{\scriptsize Agent Work}};
 \node[agent, right=of implement] (createpr) {Create\\[-0.1em]{\scriptsize PR}};
 
 % Arrows
 \draw[arrow] (issue) -- (triage);
-\draw[arrow] (triage) -- (approve);
+\draw[arrow] (triage) -- (refine);
+\draw[arrow] (refine) -- (approve);
 \draw[arrow] (approve) -- (implement);
 \draw[arrow] (implement) -- (createpr);
 
 % Gate label
 \node[above=0.15cm of approve, font=\small\bfseries\color{humangate}] {GATE 1};
 
-% Mixed label for triage
-\node[above=0.15cm of triage, font=\tiny\color{darktext!60}] {human + agent};
-
 % Kanban below row 1
 \node[kanban, below=0.3cm of issue] {Backlog};
 \node[kanban, below=0.3cm of triage] {Todo};
+\node[kanban, below=0.3cm of refine] {Todo};
 \node[kanban, below=0.3cm of approve] {Todo};
 \node[kanban, below=0.3cm of implement] {In Progress};
 \node[kanban, below=0.3cm of createpr] {In Progress};
@@ -107,8 +112,8 @@
 \node[review, below=2.2cm of createpr] (council) {AI Council\\[-0.1em]{\scriptsize Reviews}};
 \node[agent, below=2.2cm of implement] (autofix) {Auto-Fix\\[-0.1em]{\scriptsize Claude}};
 \node[review, below=2.2cm of approve] (ci) {CI\\[-0.1em]{\scriptsize Pipeline}};
-\node[human, below=2.2cm of triage] (humanrev) {Review\\[-0.1em]{\scriptsize Code}};
-\node[human, below=2.2cm of issue] (merge) {Merge\\[-0.1em]{\scriptsize PR}};
+\node[human, below=2.2cm of refine] (humanrev) {Review\\[-0.1em]{\scriptsize Code}};
+\node[human, below=2.2cm of triage] (merge) {Merge\\[-0.1em]{\scriptsize PR}};
 
 % CI Failure Auto-Fix box (below CI Pipeline)
 \node[agent, below=1.2cm of ci, minimum width=1.6cm] (cifix) {CI Fix\\[-0.1em]{\scriptsize Claude}};
@@ -155,9 +160,10 @@
 % Legend bar
 \begin{center}
 \fcolorbox{lightbg}{lightbg}{%
-\begin{tabular}{@{}c@{\hspace{1em}}c@{\hspace{1em}}c@{\hspace{1em}}c@{}}
+\begin{tabular}{@{}c@{\hspace{0.8em}}c@{\hspace{0.8em}}c@{\hspace{0.8em}}c@{\hspace{0.8em}}c@{}}
 \tikz\fill[humangate!35, rounded corners=2pt] (0,0) rectangle (0.4,0.25); \textsf{\small Human} &
 \tikz\fill[agentwork!35, rounded corners=2pt] (0,0) rectangle (0.4,0.25); \textsf{\small Agent} &
+\tikz{\fill[humangate!25, rounded corners=2pt] (0,0) rectangle (0.2,0.25); \fill[agentwork!25, rounded corners=2pt] (0.2,0) rectangle (0.4,0.25);} \textsf{\small Hybrid} &
 \tikz\fill[reviewloop!35, rounded corners=2pt] (0,0) rectangle (0.4,0.25); \textsf{\small Review} &
 \tikz\fill[kanban!40, rounded corners=2pt] (0,0) rectangle (0.4,0.25); \textsf{\small Kanban}
 \end{tabular}%
