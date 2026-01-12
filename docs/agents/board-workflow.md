@@ -325,21 +325,29 @@ Codex provides complementary review focusing on:
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐        │
-│  │   Gemini/   │────►│   Claude    │────►│    Push     │        │
-│  │   Codex     │     │  Auto-Fix   │     │  Changes    │        │
-│  │   Review    │     │             │     │             │        │
+│  │   Gemini    │────►│   Cleanup   │────►│   Codex     │        │
+│  │   Review    │     │   Working   │     │   Review    │        │
+│  │             │     │    Dir      │     │             │        │
 │  └─────────────┘     └─────────────┘     └──────┬──────┘        │
 │                                                 │               │
+│                                                 ▼               │
+│                                          ┌─────────────┐        │
+│                                          │   Cleanup   │        │
+│                                          │   Working   │        │
+│                                          │    Dir      │        │
+│                                          └──────┬──────┘        │
 │                                                 │               │
-│       ◄─────────────────────────────────────────┘               │
-│       │         (Re-triggers pipeline)                          │
-│       │                                                         │
-│       ▼                                                         │
-│  ┌─────────────┐                                                │
-│  │   Reviews   │  Skip reviews on agent commits                 │
-│  │   Skipped   │  (detected by commit author name)              │
-│  └─────────────┘                                                │
+│                                                 ▼               │
+│  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐        │
+│  │   Push      │◄────│   Claude    │◄────│  Download   │        │
+│  │   Changes   │     │  Auto-Fix   │     │  Artifacts  │        │
+│  └──────┬──────┘     └─────────────┘     └─────────────┘        │
+│         │                                                       │
+│         │         (Re-triggers pipeline)                        │
+│         └──────────────────────────────────────────────────►    │
 │                                                                 │
+│  Reviews always run on all commits.                             │
+│  Agent evaluates if there are new/unaddressed issues to fix.    │
 │  Safety: Max 5 iterations per PR                                │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -347,12 +355,14 @@ Codex provides complementary review focusing on:
 
 **How It Works:**
 
-1. Gemini and Codex complete their reviews
-2. Claude parses review artifacts for actionable feedback
-3. Autoformat runs first (black, isort)
-4. Claude fixes remaining lint/format issues
-5. Changes committed by agent (detected via author name)
-6. Push retriggers pipeline (reviews skipped on agent commits)
+1. Gemini completes review, working directory cleaned
+2. Codex downloads Gemini artifact and completes review, working directory cleaned
+3. Agent-review-response downloads review artifacts
+4. Claude parses review artifacts for actionable feedback
+5. Autoformat runs first (black, isort)
+6. Claude fixes remaining lint/format issues
+7. Changes committed by agent (detected via author name)
+8. Push retriggers pipeline; reviews run again but agent evaluates if new issues exist
 
 ### 5d. CI Failure Handler (NEW)
 
@@ -418,6 +428,7 @@ Multiple safety mechanisms prevent infinite loops:
 | Mechanism | Description |
 |-----------|-------------|
 | **Always Review** | Reviews run on all commits; agent decides whether to act on feedback |
+| **Clean Slate** | Working directory cleaned between reviewers to ensure consistency |
 | **Iteration Counter** | Max 5 iterations via workflow artifacts |
 | **Human Reset** | Counter resets when human pushes |
 | **Smart Agent** | Agent checks if issues are new/unaddressed before committing |
