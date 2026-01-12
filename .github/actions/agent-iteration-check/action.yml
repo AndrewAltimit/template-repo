@@ -64,18 +64,19 @@ runs:
         ITERATION_COUNT=0
         LAST_HUMAN_COMMIT=""
 
-        # Create temp directory for artifact
-        mkdir -p /tmp/agent-iteration
+        # Create unique temp directory for artifact (prevents race condition on shared runners)
+        ITERATION_DIR="/tmp/agent-iteration-${PR_NUMBER}"
+        mkdir -p "$ITERATION_DIR"
 
         # Try to download the artifact using gh cli
-        if gh run download --name "$ARTIFACT_NAME" --dir /tmp/agent-iteration 2>/dev/null; then
+        if gh run download --name "$ARTIFACT_NAME" --dir "$ITERATION_DIR" 2>/dev/null; then
           echo "Downloaded existing iteration artifact"
-          if [ -f "/tmp/agent-iteration/iteration-count.txt" ]; then
-            ITERATION_COUNT=$(cat /tmp/agent-iteration/iteration-count.txt)
+          if [ -f "$ITERATION_DIR/iteration-count.txt" ]; then
+            ITERATION_COUNT=$(cat "$ITERATION_DIR/iteration-count.txt")
             echo "Previous iteration count: $ITERATION_COUNT"
           fi
-          if [ -f "/tmp/agent-iteration/last-human-commit.txt" ]; then
-            LAST_HUMAN_COMMIT=$(cat /tmp/agent-iteration/last-human-commit.txt)
+          if [ -f "$ITERATION_DIR/last-human-commit.txt" ]; then
+            LAST_HUMAN_COMMIT=$(cat "$ITERATION_DIR/last-human-commit.txt")
             echo "Last human commit: $LAST_HUMAN_COMMIT"
           fi
         else
@@ -110,9 +111,9 @@ runs:
         fi
 
         # Save updated iteration data
-        echo "$ITERATION_COUNT" > /tmp/agent-iteration/iteration-count.txt
+        echo "$ITERATION_COUNT" > "$ITERATION_DIR/iteration-count.txt"
         if [ -n "$LAST_HUMAN_COMMIT" ]; then
-          echo "$LAST_HUMAN_COMMIT" > /tmp/agent-iteration/last-human-commit.txt
+          echo "$LAST_HUMAN_COMMIT" > "$ITERATION_DIR/last-human-commit.txt"
         fi
 
         echo "iteration_count=$ITERATION_COUNT" >> $GITHUB_OUTPUT
@@ -129,6 +130,6 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: agent-iteration-pr-${{ inputs.pr_number }}
-        path: /tmp/agent-iteration/
+        path: /tmp/agent-iteration-${{ inputs.pr_number }}/
         retention-days: 7
         overwrite: true

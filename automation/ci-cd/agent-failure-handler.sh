@@ -259,23 +259,25 @@ echo ""
 echo "=== Step 5: Pushing changes ==="
 
 # Disable pre-push hooks that might interfere
+# Use trap to ensure hook is restored even on crash/early exit
+restore_hook() {
+    if [ -f .git/hooks/pre-push.disabled ]; then
+        mv .git/hooks/pre-push.disabled .git/hooks/pre-push 2>/dev/null || true
+    fi
+}
+trap restore_hook EXIT
+
 if [ -f .git/hooks/pre-push ]; then
     mv .git/hooks/pre-push .git/hooks/pre-push.disabled
     echo "Disabled pre-push hook temporarily"
 fi
 
 git push origin "$BRANCH_NAME" 2>&1 || {
-    echo "Push failed, restoring hook and exiting"
-    if [ -f .git/hooks/pre-push.disabled ]; then
-        mv .git/hooks/pre-push.disabled .git/hooks/pre-push
-    fi
+    echo "Push failed"
     exit 1
 }
 
-# Restore hook
-if [ -f .git/hooks/pre-push.disabled ]; then
-    mv .git/hooks/pre-push.disabled .git/hooks/pre-push
-fi
+# Hook will be restored by trap on exit
 
 echo ""
 echo "=== Agent Failure Handler Complete ==="
