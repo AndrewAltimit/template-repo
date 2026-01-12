@@ -11,6 +11,7 @@
 #   CODEX_REVIEW_PATH - Path to Codex review markdown (optional)
 
 set -e
+set -o pipefail
 
 # Parse arguments
 PR_NUMBER="$1"
@@ -86,8 +87,14 @@ fi
 
 # Checkout the PR branch (after reading artifacts)
 echo "Checking out branch: $BRANCH_NAME"
-git fetch origin "$BRANCH_NAME" 2>&1 || true
-git checkout "$BRANCH_NAME" 2>&1 || true
+if ! git fetch origin "$BRANCH_NAME" 2>&1; then
+    echo "Error: Failed to fetch branch $BRANCH_NAME"
+    exit 1
+fi
+if ! git checkout "$BRANCH_NAME" 2>&1; then
+    echo "Error: Failed to checkout branch $BRANCH_NAME"
+    exit 1
+fi
 
 if [ -z "$REVIEW_CONTENT" ]; then
     echo "No review feedback found, nothing to do"
@@ -100,30 +107,43 @@ fi
 HAS_ACTIONABLE_ITEMS=false
 
 # Common patterns for actionable feedback
-ACTIONABLE_PATTERNS=(
+# Use word boundaries (-w) for single words to avoid false positives
+# like "No errors found" matching "error"
+ACTIONABLE_PATTERNS_PHRASE=(
     "must fix"
     "should fix"
     "needs to be"
-    "incorrect"
-    "error"
-    "bug"
-    "issue"
     "unused import"
-    "formatting"
-    "lint"
     "type error"
-    "missing"
+    "\[BUG\]"
+    "\[ERROR\]"
+    "\[ISSUE\]"
+)
+
+ACTIONABLE_PATTERNS_WORD=(
+    "incorrect"
     "undefined"
     "syntax"
 )
 
-for pattern in "${ACTIONABLE_PATTERNS[@]}"; do
-    if echo -e "$REVIEW_CONTENT" | grep -qi "$pattern"; then
+for pattern in "${ACTIONABLE_PATTERNS_PHRASE[@]}"; do
+    if echo -e "$REVIEW_CONTENT" | grep -qiE "$pattern"; then
         HAS_ACTIONABLE_ITEMS=true
         echo "Found actionable pattern: $pattern"
         break
     fi
 done
+
+# Only check single-word patterns with word boundaries if not already found
+if [ "$HAS_ACTIONABLE_ITEMS" = "false" ]; then
+    for pattern in "${ACTIONABLE_PATTERNS_WORD[@]}"; do
+        if echo -e "$REVIEW_CONTENT" | grep -qiw "$pattern"; then
+            HAS_ACTIONABLE_ITEMS=true
+            echo "Found actionable pattern: $pattern"
+            break
+        fi
+    done
+fi
 
 if [ "$HAS_ACTIONABLE_ITEMS" = "false" ]; then
     echo "No actionable items found in reviews"
@@ -204,9 +224,9 @@ if [ -n "$CLAUDE_CMD" ]; then
         TIMEOUT_CMD=""
     fi
 
-    # Run Claude
+    # Run Claude (prompt is passed as positional argument)
     # shellcheck disable=SC2086
-    $TIMEOUT_CMD $CLAUDE_CMD -p "$(cat "$PROMPT_FILE")" 2>&1 || {
+    $TIMEOUT_CMD $CLAUDE_CMD "$(cat "$PROMPT_FILE")" 2>&1 || {
         exit_code=$?
         echo "Claude exited with code: $exit_code"
         if [ $exit_code -eq 124 ]; then
