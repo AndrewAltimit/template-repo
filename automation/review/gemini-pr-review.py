@@ -2484,6 +2484,12 @@ def _remove_hallucinated_issues(review_text: str, hallucination_count: int) -> s
 
 def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
     """Post the comment to the PR using GitHub CLI"""
+    # Always save review to gemini-review.md for artifact upload
+    # This enables the agent-review-response job to read the review
+    with open("gemini-review.md", "w", encoding="utf-8") as f:
+        f.write(comment)
+    print("Review saved to gemini-review.md")
+
     # Use tempfile for portability instead of hardcoded /tmp/
     fd, comment_file = tempfile.mkstemp(suffix=".md", prefix=f"gemini_comment_{pr_info['number']}_")
     try:
@@ -2507,10 +2513,6 @@ def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
         print("Successfully posted Gemini review to PR")
     except subprocess.CalledProcessError as e:
         print(f"Failed to post comment: {e}")
-        # Save locally as backup
-        with open("gemini-review.md", "w", encoding="utf-8") as f:
-            f.write(comment)
-        print("Review saved to gemini-review.md")
     except FileNotFoundError:
         print("Failed to post comment: gh CLI not found")
         print("Install GitHub CLI: https://cli.github.com/")
