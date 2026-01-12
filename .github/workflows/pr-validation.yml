@@ -363,6 +363,8 @@ jobs:
     name: Agent Review Response
     needs: [detect-changes, gemini-review, codex-review]
     if: |
+      always() &&
+      !cancelled() &&
       github.event_name == 'pull_request' &&
       !github.event.pull_request.draft &&
       vars.ENABLE_AGENTS == 'true' &&
