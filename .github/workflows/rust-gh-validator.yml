@@ -109,10 +109,24 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Ensure Rust toolchain
+        run: |
+          # Ensure Rust is available (may have been installed by build-and-test on same runner)
+          if ! command -v cargo &> /dev/null; then
+            echo "Installing Rust toolchain..."
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          fi
+          source "$HOME/.cargo/env" || true
+          rustup default stable
+
       - name: Install cross
         run: |
           source "$HOME/.cargo/env" || true
-          cargo install cross --git https://github.com/cross-rs/cross || true
+          # Only install if not already present
+          if ! command -v cross &> /dev/null; then
+            cargo install cross --git https://github.com/cross-rs/cross
+          fi
 
       - name: Build for ${{ matrix.target }}
         run: |
@@ -149,10 +163,24 @@ jobs:
             echo "asset_name=gh-linux-arm64" >> $GITHUB_OUTPUT
           fi
 
+      - name: Ensure Rust toolchain
+        run: |
+          # Ensure Rust is available (may have been installed by build-and-test on same runner)
+          if ! command -v cargo &> /dev/null; then
+            echo "Installing Rust toolchain..."
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          fi
+          source "$HOME/.cargo/env" || true
+          rustup default stable
+
       - name: Install cross
         run: |
           source "$HOME/.cargo/env" || true
-          cargo install cross --git https://github.com/cross-rs/cross || true
+          # Only install if not already present
+          if ! command -v cross &> /dev/null; then
+            cargo install cross --git https://github.com/cross-rs/cross
+          fi
 
       - name: Build for ${{ steps.target.outputs.target }}
         run: |
