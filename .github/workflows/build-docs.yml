@@ -8,6 +8,7 @@ on:
       - 'docs/integrations/ai-services/**/*.tex'
       - 'docs/projections/latex/**/*.tex'
       - 'docs/philosophy/latex/**/*.tex'
+      - 'docs/agents/**/*.tex'
       - 'automation/ci-cd/build-latex-doc.sh'
       - '.github/workflows/build-docs.yml'
   pull_request:
@@ -16,6 +17,7 @@ on:
       - 'docs/integrations/ai-services/**/*.tex'
       - 'docs/projections/latex/**/*.tex'
       - 'docs/philosophy/latex/**/*.tex'
+      - 'docs/agents/**/*.tex'
       - 'automation/ci-cd/build-latex-doc.sh'
       - '.github/workflows/build-docs.yml'
   workflow_dispatch: {}
@@ -376,3 +378,59 @@ jobs:
           name: architectural-qualia-paper
           path: docs_output/architectural-qualia.pdf
           retention-days: 90
+
+  build-agentic-workflow-handout:
+    name: Build Agentic Workflow Handout
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Build PDF with LaTeX
+        run: |
+          echo "Building Agentic_Workflow_Handout.pdf..."
+
+          # Create output directory
+          mkdir -p docs_output
+
+          # Build PDF using texlive Docker image (single pass sufficient for handout)
+          # Use --user to ensure artifacts are owned by runner user, not root
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$(pwd)/docs/agents:/data" \
+            -v "$(pwd)/docs_output:/output" \
+            texlive/texlive:TL2024-historic \
+            bash -c "cd /data && pdflatex -interaction=nonstopmode -output-directory=/output Agentic_Workflow_Handout.tex"
+
+          echo "PDF build completed"
+          ls -la docs_output/
+
+      - name: Verify and rename PDF
+        run: |
+          if [ -f docs_output/Agentic_Workflow_Handout.pdf ]; then
+            echo "PDF successfully created"
+            # Rename to sensible kebab-case filename
+            mv docs_output/Agentic_Workflow_Handout.pdf docs_output/agentic-workflow-handout.pdf
+            ls -lh docs_output/agentic-workflow-handout.pdf
+          else
+            echo "ERROR: PDF was not created"
+            exit 1
+          fi
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentic-workflow-handout
+          path: docs_output/agentic-workflow-handout.pdf
+          retention-days: 90
+
+      - name: Cleanup build artifacts
+        if: always()
+        run: |
+          rm -rf docs_output/*.aux docs_output/*.log docs_output/*.toc \
+                 docs_output/*.out docs_output/*.fls docs_output/*.fdb_latexmk \
+                 2>/dev/null || true

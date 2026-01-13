@@ -109,6 +109,30 @@ openrouter:
     - deepseek/deepseek-coder-v2-instruct
     - meta-llama/llama-3.1-70b-instruct
 
+# Automation settings for inline agent feedback loop
+automation:
+  # Enable inline agent feedback loop in PR validation
+  inline_feedback_loop: true
+
+  # Maximum iterations before stopping (prevents infinite loops)
+  max_auto_fix_iterations: 5
+
+  # Try autoformat (black, isort) before invoking AI
+  autoformat_first: true
+
+  # Categories of failures to auto-fix
+  # Options: formatting, linting, type_errors, unused_imports, test_failures
+  auto_fix_categories:
+    - formatting
+    - linting
+    - type_errors
+    - unused_imports
+
+  # Skip auto-fix for PRs with these labels
+  skip_labels:
+    - no-auto-fix
+    - needs-human-review
+
 # Advanced settings
 advanced:
   # Enable debug logging
