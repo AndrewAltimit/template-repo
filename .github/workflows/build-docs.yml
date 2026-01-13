@@ -11,6 +11,7 @@ on:
       - 'docs/agents/**/*.tex'
       - 'automation/ci-cd/build-latex-doc.sh'
       - '.github/workflows/build-docs.yml'
+      - 'docker/texlive.Dockerfile'
   pull_request:
     paths:
       - 'packages/sleeper_agents/docs/**/*.tex'
@@ -20,204 +21,135 @@ on:
       - 'docs/agents/**/*.tex'
       - 'automation/ci-cd/build-latex-doc.sh'
       - '.github/workflows/build-docs.yml'
+      - 'docker/texlive.Dockerfile'
   workflow_dispatch: {}
 
+# Build TeXLive image once, reuse across jobs
+env:
+  TEXLIVE_IMAGE: texlive-local
+
 jobs:
-  build-sleeper-agents-guide:
-    name: Build Sleeper Agents Framework Guide
+  build-texlive-image:
+    name: Build TeXLive Docker Image
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build TeXLive image
         run: |
-          echo "Building Sleeper Agents Framework Guide..."
+          echo "Building multi-arch TeXLive image..."
+          docker build -t $TEXLIVE_IMAGE -f docker/texlive.Dockerfile .
+          echo "Image built successfully"
+          docker run --rm $TEXLIVE_IMAGE pdflatex --version
 
-          # Create output directory
-          mkdir -p docs_output
+  build-sleeper-agents-guide:
+    name: Build Sleeper Agents Framework Guide
+    runs-on: self-hosted
+    needs: build-texlive-image
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          clean: true
 
-          # Build PDF using texlive Docker image (run pdflatex twice for TOC)
-          # Use --user to ensure artifacts are owned by runner user, not root
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -v "$(pwd)/packages/sleeper_agents/docs:/data" \
-            -v "$(pwd)/docs_output:/output" \
-            texlive/texlive:TL2024-historic \
-            bash -c "cd /data && \
-              pdflatex -interaction=nonstopmode -output-directory=/output Sleeper_Agents_Framework_Guide.tex && \
-              pdflatex -interaction=nonstopmode -output-directory=/output Sleeper_Agents_Framework_Guide.tex"
-
-          echo "PDF build completed"
-          ls -la docs_output/
-
-      - name: Verify and rename PDF
+      - name: Build PDF
         run: |
-          if [ -f docs_output/Sleeper_Agents_Framework_Guide.pdf ]; then
-            echo "PDF successfully created"
-            # Rename to sensible kebab-case filename
-            mv docs_output/Sleeper_Agents_Framework_Guide.pdf docs_output/sleeper-agents-framework-guide.pdf
-            ls -lh docs_output/sleeper-agents-framework-guide.pdf
-          else
-            echo "ERROR: PDF was not created"
-            exit 1
-          fi
+          ./automation/ci-cd/build-latex-doc.sh \
+            Sleeper_Agents_Framework_Guide.tex \
+            packages/sleeper_agents/docs \
+            docs_output \
+            sleeper-agents-framework-guide
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sleeper-agents-framework-guide
           path: docs_output/sleeper-agents-framework-guide.pdf
           retention-days: 90
 
-      - name: Cleanup build artifacts
-        if: always()
-        run: |
-          rm -rf docs_output/*.aux docs_output/*.log docs_output/*.toc \
-                 docs_output/*.out docs_output/*.fls docs_output/*.fdb_latexmk \
-                 2>/dev/null || true
-
   build-agentcore-memory-guide:
     name: Build AgentCore Memory Integration Guide
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build PDF
         run: |
-          echo "Building AgentCore Memory Integration Guide..."
-
-          # Create output directory
-          mkdir -p docs_output
-
-          # Build PDF using texlive Docker image (run pdflatex 3x for TOC and refs)
-          # Use --user to ensure artifacts are owned by runner user, not root
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -v "$(pwd)/docs/integrations/ai-services:/data" \
-            -v "$(pwd)/docs_output:/output" \
-            texlive/texlive:TL2024-historic \
-            bash -c "cd /data && \
-              pdflatex -interaction=nonstopmode -output-directory=/output AgentCore_Memory_Integration_Guide.tex && \
-              pdflatex -interaction=nonstopmode -output-directory=/output AgentCore_Memory_Integration_Guide.tex && \
-              pdflatex -interaction=nonstopmode -output-directory=/output AgentCore_Memory_Integration_Guide.tex"
-
-          echo "PDF build completed"
-          ls -la docs_output/
-
-      - name: Verify and rename PDF
-        run: |
-          if [ -f docs_output/AgentCore_Memory_Integration_Guide.pdf ]; then
-            echo "PDF successfully created"
-            # Rename to sensible kebab-case filename
-            mv docs_output/AgentCore_Memory_Integration_Guide.pdf docs_output/agentcore-memory-integration-guide.pdf
-            ls -lh docs_output/agentcore-memory-integration-guide.pdf
-          else
-            echo "ERROR: PDF was not created"
-            exit 1
-          fi
+          ./automation/ci-cd/build-latex-doc.sh \
+            AgentCore_Memory_Integration_Guide.tex \
+            docs/integrations/ai-services \
+            docs_output \
+            agentcore-memory-integration-guide
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: agentcore-memory-integration-guide
           path: docs_output/agentcore-memory-integration-guide.pdf
           retention-days: 90
 
-      - name: Cleanup build artifacts
-        if: always()
-        run: |
-          rm -rf docs_output/*.aux docs_output/*.log docs_output/*.toc \
-                 docs_output/*.out docs_output/*.fls docs_output/*.fdb_latexmk \
-                 2>/dev/null || true
-
   build-virtual-character-guide:
     name: Build Virtual Character System Guide
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build PDF
         run: |
-          echo "Building Virtual Character System Guide..."
-
-          # Create output directory
-          mkdir -p docs_output
-
-          # Build PDF using texlive Docker image with latexmk for automatic dependency resolution
-          # Use --user to ensure artifacts are owned by runner user, not root
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -v "${{ github.workspace }}/docs/integrations/ai-services:/data" \
-            -v "${{ github.workspace }}/docs_output:/output" \
-            texlive/texlive:TL2024-historic \
-            bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output Virtual_Character_System_Guide.tex"
-
-          echo "PDF build completed"
-          ls -la docs_output/
-
-      - name: Verify and rename PDF
-        run: |
-          if [ -f docs_output/Virtual_Character_System_Guide.pdf ]; then
-            echo "PDF successfully created"
-            # Rename to sensible kebab-case filename
-            mv docs_output/Virtual_Character_System_Guide.pdf docs_output/virtual-character-system-guide.pdf
-            ls -lh docs_output/virtual-character-system-guide.pdf
-          else
-            echo "ERROR: PDF was not created"
-            exit 1
-          fi
+          ./automation/ci-cd/build-latex-doc.sh \
+            Virtual_Character_System_Guide.tex \
+            docs/integrations/ai-services \
+            docs_output \
+            virtual-character-system-guide
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: virtual-character-system-guide
           path: docs_output/virtual-character-system-guide.pdf
           retention-days: 90
 
-      - name: Cleanup build artifacts
-        if: always()
-        run: |
-          rm -rf docs_output/*.aux docs_output/*.log docs_output/*.toc \
-                 docs_output/*.out docs_output/*.fls docs_output/*.fdb_latexmk \
-                 2>/dev/null || true
-
   build-wmd-proliferation-report:
     name: Build AI Agents WMD Proliferation Report
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
-        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-wmd-proliferation.tex
-
-      - name: Rename PDF to sensible filename
+      - name: Build PDF
         run: |
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-wmd-proliferation.pdf docs_output/ai-agents-wmd-proliferation-report.pdf
-          ls -lh docs_output/ai-agents-wmd-proliferation-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-wmd-proliferation.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-wmd-proliferation-report
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ai-agents-wmd-proliferation-report
           path: docs_output/ai-agents-wmd-proliferation-report.pdf
@@ -226,25 +158,25 @@ jobs:
   build-political-targeting-report:
     name: Build AI Agents Political Targeting Report
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
-        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-political-targeting.tex
-
-      - name: Rename PDF to sensible filename
+      - name: Build PDF
         run: |
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-political-targeting.pdf docs_output/ai-agents-political-targeting-report.pdf
-          ls -lh docs_output/ai-agents-political-targeting-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-political-targeting.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-political-targeting-report
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ai-agents-political-targeting-report
           path: docs_output/ai-agents-political-targeting-report.pdf
@@ -253,25 +185,25 @@ jobs:
   build-espionage-operations-report:
     name: Build AI Agents Espionage Operations Report
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
-        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-espionage-operations.tex
-
-      - name: Rename PDF to sensible filename
+      - name: Build PDF
         run: |
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-espionage-operations.pdf docs_output/ai-agents-espionage-operations-report.pdf
-          ls -lh docs_output/ai-agents-espionage-operations-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-espionage-operations.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-espionage-operations-report
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ai-agents-espionage-operations-report
           path: docs_output/ai-agents-espionage-operations-report.pdf
@@ -280,25 +212,25 @@ jobs:
   build-economic-actors-report:
     name: Build AI Agents Economic Actors Report
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
-        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-economic-actors.tex
-
-      - name: Rename PDF to sensible filename
+      - name: Build PDF
         run: |
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-economic-actors.pdf docs_output/ai-agents-economic-actors-report.pdf
-          ls -lh docs_output/ai-agents-economic-actors-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-economic-actors.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-economic-actors-report
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ai-agents-economic-actors-report
           path: docs_output/ai-agents-economic-actors-report.pdf
@@ -307,25 +239,25 @@ jobs:
   build-financial-integrity-report:
     name: Build AI Agents Financial Integrity Report
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
-        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-financial-integrity.tex
-
-      - name: Rename PDF to sensible filename
+      - name: Build PDF
         run: |
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-financial-integrity.pdf docs_output/ai-agents-financial-integrity-report.pdf
-          ls -lh docs_output/ai-agents-financial-integrity-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-financial-integrity.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-financial-integrity-report
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ai-agents-financial-integrity-report
           path: docs_output/ai-agents-financial-integrity-report.pdf
@@ -334,25 +266,25 @@ jobs:
   build-institutional-erosion-report:
     name: Build AI Agents Institutional Erosion Report
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
-        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-institutional-erosion.tex
-
-      - name: Rename PDF to sensible filename
+      - name: Build PDF
         run: |
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-institutional-erosion.pdf docs_output/ai-agents-institutional-erosion-report.pdf
-          ls -lh docs_output/ai-agents-institutional-erosion-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-institutional-erosion.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-institutional-erosion-report
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ai-agents-institutional-erosion-report
           path: docs_output/ai-agents-institutional-erosion-report.pdf
@@ -361,19 +293,24 @@ jobs:
   build-architectural-qualia-paper:
     name: Build Architectural Qualia Paper
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
-        run: ./automation/ci-cd/build-latex-doc.sh architectural-qualia.tex docs/philosophy/latex
+      - name: Build PDF
+        run: |
+          ./automation/ci-cd/build-latex-doc.sh \
+            architectural-qualia.tex \
+            docs/philosophy/latex \
+            docs_output
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: architectural-qualia-paper
           path: docs_output/architectural-qualia.pdf
@@ -382,55 +319,26 @@ jobs:
   build-agentic-workflow-handout:
     name: Build Agentic Workflow Handout
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build PDF
         run: |
-          echo "Building Agentic_Workflow_Handout.pdf..."
-
-          # Create output directory
-          mkdir -p docs_output
-
-          # Build PDF using texlive Docker image (single pass sufficient for handout)
-          # Use --user to ensure artifacts are owned by runner user, not root
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -v "$(pwd)/docs/agents:/data" \
-            -v "$(pwd)/docs_output:/output" \
-            texlive/texlive:TL2024-historic \
-            bash -c "cd /data && pdflatex -interaction=nonstopmode -output-directory=/output Agentic_Workflow_Handout.tex"
-
-          echo "PDF build completed"
-          ls -la docs_output/
-
-      - name: Verify and rename PDF
-        run: |
-          if [ -f docs_output/Agentic_Workflow_Handout.pdf ]; then
-            echo "PDF successfully created"
-            # Rename to sensible kebab-case filename
-            mv docs_output/Agentic_Workflow_Handout.pdf docs_output/agentic-workflow-handout.pdf
-            ls -lh docs_output/agentic-workflow-handout.pdf
-          else
-            echo "ERROR: PDF was not created"
-            exit 1
-          fi
+          ./automation/ci-cd/build-latex-doc.sh \
+            Agentic_Workflow_Handout.tex \
+            docs/agents \
+            docs_output \
+            agentic-workflow-handout
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: agentic-workflow-handout
           path: docs_output/agentic-workflow-handout.pdf
           retention-days: 90
-
-      - name: Cleanup build artifacts
-        if: always()
-        run: |
-          rm -rf docs_output/*.aux docs_output/*.log docs_output/*.toc \
-                 docs_output/*.out docs_output/*.fls docs_output/*.fdb_latexmk \
-                 2>/dev/null || true

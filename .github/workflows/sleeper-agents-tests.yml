@@ -13,6 +13,9 @@ on:
 
 env:
   DOCKER_IMAGE_COMPOSE_NAME: template-repo-sleeper-eval-cpu
+  # Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
 
 jobs:
   # Build Docker image once and share across all jobs
@@ -148,7 +151,7 @@ jobs:
 
       - name: Upload analysis results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: residual-analysis-${{ github.run_id }}-${{ github.run_attempt }}
           path: evaluation_results/residual_analysis_results.json
@@ -251,7 +254,7 @@ jobs:
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sleeper-coverage-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: evaluation_results/coverage.xml
@@ -350,7 +353,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cpu-test-results-${{ github.run_id }}-${{ github.run_attempt }}
           path: |

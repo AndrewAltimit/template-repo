@@ -41,6 +41,9 @@ permissions:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
 
 jobs:
   monitor-pr-reviews:
@@ -90,13 +93,20 @@ jobs:
           echo "[INFO] Checking Python environment..."
           python3 --version
 
+          # Create virtual environment (PEP 668 compliance for newer Ubuntu)
+          echo "[INFO] Creating virtual environment..."
+          python3 -m venv .venv
+          source .venv/bin/activate
+
           # Install the GitHub AI Agents package
           echo "[INFO] Installing GitHub AI Agents package..."
-          pip3 install --user -e ./packages/github_agents
+          pip install -e ./packages/github_agents
 
           # Install additional requirements if needed
           echo "[INFO] Installing additional requirements..."
-          pip3 install --user -r docker/requirements/requirements-agents.txt
+          pip install -r docker/requirements/requirements-agents.txt
+
+          echo "VENV_PATH=$PWD/.venv" >> $GITHUB_ENV
 
       - name: Build Docker containers for OpenRouter agents
         run: |
@@ -177,8 +187,9 @@ jobs:
           fi
 
           # Run the PR review monitor from the new package
+          # Use venv python to access installed packages
           cd "${{ github.workspace }}"
-          python3 -m github_agents.cli pr-monitor || {
+          .venv/bin/python3 -m github_agents.cli pr-monitor || {
               exit_code=$?
               echo "[ERROR] PR review monitor script failed with exit code: $exit_code"
 

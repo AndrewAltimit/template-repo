@@ -27,6 +27,9 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  # Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
 
 jobs:
   # Stage 1: Format check
@@ -84,7 +87,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-results-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -379,7 +382,7 @@ jobs:
 
       - name: Upload security reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: security-reports-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -532,7 +535,7 @@ jobs:
           ls -la dist/*.whl
 
       - name: Upload wheel artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: python-wheels
           path: dist/*.whl
@@ -650,7 +653,7 @@ jobs:
           ls -la docs_output/*.pdf
 
       - name: Upload PDF artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: documentation-pdfs
           path: docs_output/*.pdf
@@ -679,13 +682,13 @@ jobs:
           fetch-depth: 0
 
       - name: Download wheel artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: python-wheels
           path: release-artifacts/wheels
 
       - name: Download PDF artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: documentation-pdfs
           path: release-artifacts/docs

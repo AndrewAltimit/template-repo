@@ -25,14 +25,39 @@ jobs:
         working-directory: tools/rust/gh-validator
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Rust toolchain
         run: |
+          ARCH=$(uname -m)
+          echo "Detected architecture: $ARCH"
+
+          # Check if existing Rust installation matches current architecture
+          if command -v rustup &> /dev/null; then
+            RUST_ARCH=$(rustc -vV 2>/dev/null | grep 'host:' | awk '{print $2}' || echo "unknown")
+            echo "Existing Rust target: $RUST_ARCH"
+
+            # If architecture mismatch, remove old installation
+            # IMPORTANT: Only trigger if RUST_ARCH is a known architecture value.
+            # If rustc fails (RUST_ARCH="unknown"), skip removal to avoid
+            # accidentally deleting a working installation.
+            if [[ "$RUST_ARCH" != "unknown" ]]; then
+              if [[ "$ARCH" == "aarch64" && ! "$RUST_ARCH" =~ "aarch64" ]] || \
+                 [[ "$ARCH" == "x86_64" && ! "$RUST_ARCH" =~ "x86_64" ]]; then
+                echo "Architecture mismatch detected, reinstalling Rust..."
+                rm -rf "$HOME/.cargo" "$HOME/.rustup"
+              fi
+            else
+              echo "Warning: Could not determine Rust architecture, skipping mismatch check"
+            fi
+          fi
+
+          # Install Rust if not present
           if ! command -v rustup &> /dev/null; then
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
             echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           fi
+
           source "$HOME/.cargo/env" || true
           rustup update stable
           rustup default stable
@@ -53,27 +78,35 @@ jobs:
           source "$HOME/.cargo/env" || true
           cargo test --verbose
 
-      - name: Build release binary (Linux x64)
+      - name: Build release binary
+        id: build
         run: |
           source "$HOME/.cargo/env" || true
           cargo build --release
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "aarch64" ]; then
+            echo "artifact_name=gh-linux-arm64" >> $GITHUB_OUTPUT
+          else
+            echo "artifact_name=gh-linux-x64" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Upload Linux x64 artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
         with:
-          name: gh-linux-x64
+          name: ${{ steps.build.outputs.artifact_name }}
           path: tools/rust/gh-validator/target/release/gh
           if-no-files-found: error
 
   # Cross-compile for other platforms using cross (Docker-based)
+  # NOTE: cross uses x86_64 Docker containers, so it only works on x86_64 runners
+  # On ARM64 runners, this job is skipped (native ARM64 binary is built in build-and-test)
   cross-compile:
     runs-on: self-hosted
     needs: build-and-test
     strategy:
       matrix:
         include:
-          - target: aarch64-unknown-linux-gnu
-            asset_name: gh-linux-arm64
+          # Always build Windows target
           - target: x86_64-pc-windows-gnu
             asset_name: gh-windows-x64.exe
     defaults:
@@ -81,36 +114,139 @@ jobs:
         working-directory: tools/rust/gh-validator
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+
+      - name: Check architecture compatibility
+        id: arch-check
+        run: |
+          ARCH=$(uname -m)
+          echo "arch=$ARCH" >> $GITHUB_OUTPUT
+          if [ "$ARCH" = "aarch64" ]; then
+            echo "::warning::Skipping cross-compile on ARM64 - cross tool requires x86_64 Docker containers"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Ensure Rust toolchain
+        if: steps.arch-check.outputs.skip != 'true'
+        run: |
+          # Ensure Rust is available (may have been installed by build-and-test on same runner)
+          if ! command -v cargo &> /dev/null; then
+            echo "Installing Rust toolchain..."
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          fi
+          source "$HOME/.cargo/env" || true
+          rustup default stable
 
       - name: Install cross
+        if: steps.arch-check.outputs.skip != 'true'
         run: |
           source "$HOME/.cargo/env" || true
-          cargo install cross --git https://github.com/cross-rs/cross || true
+          # Only install if not already present
+          if ! command -v cross &> /dev/null; then
+            cargo install cross --git https://github.com/cross-rs/cross
+          fi
 
       - name: Build for ${{ matrix.target }}
+        if: steps.arch-check.outputs.skip != 'true'
         run: |
           source "$HOME/.cargo/env" || true
           cross build --release --target ${{ matrix.target }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        if: steps.arch-check.outputs.skip != 'true'
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.asset_name }}
           path: tools/rust/gh-validator/target/${{ matrix.target }}/release/gh${{ contains(matrix.target, 'windows') && '.exe' || '' }}
           if-no-files-found: error
 
+  # Build the opposite Linux architecture via cross-compilation
+  # NOTE: cross uses x86_64 Docker containers, so it only works on x86_64 runners
+  # On ARM64 runners, this job is skipped (native ARM64 binary is built in build-and-test)
+  cross-compile-linux:
+    runs-on: self-hosted
+    needs: build-and-test
+    defaults:
+      run:
+        working-directory: tools/rust/gh-validator
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check architecture compatibility
+        id: arch-check
+        run: |
+          ARCH=$(uname -m)
+          echo "arch=$ARCH" >> $GITHUB_OUTPUT
+          if [ "$ARCH" = "aarch64" ]; then
+            echo "::warning::Skipping cross-compile-linux on ARM64 - cross tool requires x86_64 Docker containers"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine cross-compile target
+        id: target
+        if: steps.arch-check.outputs.skip != 'true'
+        run: |
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "aarch64" ]; then
+            echo "target=x86_64-unknown-linux-gnu" >> $GITHUB_OUTPUT
+            echo "asset_name=gh-linux-x64" >> $GITHUB_OUTPUT
+          else
+            echo "target=aarch64-unknown-linux-gnu" >> $GITHUB_OUTPUT
+            echo "asset_name=gh-linux-arm64" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Ensure Rust toolchain
+        if: steps.arch-check.outputs.skip != 'true'
+        run: |
+          # Ensure Rust is available (may have been installed by build-and-test on same runner)
+          if ! command -v cargo &> /dev/null; then
+            echo "Installing Rust toolchain..."
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          fi
+          source "$HOME/.cargo/env" || true
+          rustup default stable
+
+      - name: Install cross
+        if: steps.arch-check.outputs.skip != 'true'
+        run: |
+          source "$HOME/.cargo/env" || true
+          # Only install if not already present
+          if ! command -v cross &> /dev/null; then
+            cargo install cross --git https://github.com/cross-rs/cross
+          fi
+
+      - name: Build for ${{ steps.target.outputs.target }}
+        if: steps.arch-check.outputs.skip != 'true'
+        run: |
+          source "$HOME/.cargo/env" || true
+          cross build --release --target ${{ steps.target.outputs.target }}
+
+      - name: Upload artifact
+        if: steps.arch-check.outputs.skip != 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ steps.target.outputs.asset_name }}
+          path: tools/rust/gh-validator/target/${{ steps.target.outputs.target }}/release/gh
+          if-no-files-found: error
+
   # Create release when tagged
   release:
     if: startsWith(github.ref, 'refs/tags/gh-validator-v')
-    needs: [build-and-test, cross-compile]
+    needs: [build-and-test, cross-compile, cross-compile-linux]
     runs-on: self-hosted
     permissions:
       contents: write
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           path: artifacts
 

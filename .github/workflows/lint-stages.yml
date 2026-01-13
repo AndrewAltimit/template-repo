@@ -24,6 +24,11 @@ on:
         description: 'Number of warnings found'
         value: ${{ jobs.lint.outputs.warnings }}
 
+# Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
 jobs:
   lint:
     name: Lint Stage - ${{ inputs.stage }}
@@ -43,16 +48,11 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Post-checkout cleanup
+      - name: Initialize output directories
         run: |
           # Initialize output directories to prevent root ownership issues
           if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
             ./automation/setup/docker/init-output-dirs.sh
-          fi
-
-          # Run cleanup script if it exists
-          if [ -f "./automation/setup/runner/fix-runner-permissions.sh" ]; then
-            ./automation/setup/runner/fix-runner-permissions.sh --minimal
           fi
 
       # Docker CI image will be built automatically by run-ci.sh script
@@ -96,7 +96,7 @@ jobs:
 
       - name: Upload artifacts
         if: inputs.upload_artifacts && always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: lint-results-${{ inputs.stage }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |

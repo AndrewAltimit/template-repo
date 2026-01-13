@@ -12,8 +12,13 @@ from ..agents import ClaudeAgent, CrushAgent, GeminiAgent, OpenCodeAgent
 from ..config import AgentConfig
 from ..memory import MemoryIntegration
 from ..security import SecurityManager
-from ..tts import TTSIntegration
 from ..utils import get_github_token, run_gh_command
+
+# TTS is optional - only import if dependencies are available
+try:
+    from ..tts import TTSIntegration
+except ImportError:
+    TTSIntegration = None  # type: ignore[misc, assignment]
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +72,8 @@ class BaseMonitor(ABC):
         self.target_issue_numbers = self._parse_target_numbers(os.environ.get("TARGET_ISSUE_NUMBERS", ""))
         self.target_pr_numbers = self._parse_target_numbers(os.environ.get("TARGET_PR_NUMBERS", ""))
 
-        # Initialize TTS integration
-        self.tts_integration = TTSIntegration(config=self.config.config)
+        # Initialize TTS integration (optional - gracefully degrades if unavailable)
+        self.tts_integration = TTSIntegration(config=self.config.config) if TTSIntegration is not None else None
 
         # Initialize memory integration (gracefully degrades if unavailable)
         self.memory = MemoryIntegration(agent_name=self.__class__.__name__.lower())

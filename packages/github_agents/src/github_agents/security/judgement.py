@@ -3,6 +3,10 @@
 This module provides intelligent decision-making for AI agents to determine
 whether they should automatically implement fixes or ask project owners
 for guidance on uncertain changes.
+
+Includes false positive detection to avoid acting on AI reviewer suggestions
+that contradict observable reality (e.g., claiming something is broken when
+the CI pipeline clearly succeeded).
 """
 
 from dataclasses import dataclass
@@ -48,6 +52,9 @@ class FixCategory(Enum):
     # Unknown - analyze further or ask
     UNKNOWN = "unknown"
 
+    # False positive - dismiss silently (AI reviewer was wrong)
+    FALSE_POSITIVE = "false_positive"
+
 
 @dataclass
 class JudgementResult:
@@ -58,6 +65,8 @@ class JudgementResult:
     category: FixCategory
     reasoning: str
     ask_owner_question: Optional[str] = None  # Question to ask if not auto-fixing
+    is_false_positive: bool = False  # True if suggestion contradicts observable reality
+    dismiss_reason: Optional[str] = None  # Why the suggestion was dismissed
 
 
 class AgentJudgement:
@@ -202,6 +211,40 @@ class AgentJudgement:
     MEDIUM_CONFIDENCE_THRESHOLD = 0.6
     AUTO_FIX_THRESHOLD = 0.7  # Minimum confidence to auto-fix
 
+    # Patterns that indicate likely false positives from AI reviewers
+    # These suggestions should be validated against actual pipeline results
+    FALSE_POSITIVE_PATTERNS = {
+        # Version rollback suggestions - often wrong if current version works
+        "version_rollback": [
+            r"(?:revert|rollback|downgrade)\s*(?:to|back\s*to)\s*v?\d+",
+            r"(?:use|switch\s*to)\s*v?\d+\s*instead",
+            r"v\d+\s*(?:doesn't|does\s*not)\s*(?:exist|work)",
+            r"(?:action|checkout|artifact).*(?:v\d+).*(?:not\s*(?:found|available|exist))",
+        ],
+        # Claims about non-existent features/actions when they clearly work
+        "existence_claims": [
+            r"(?:does\s*not|doesn't)\s*(?:exist|work|support)",
+            r"(?:not\s*(?:a\s*)?valid|invalid)\s*(?:action|version|syntax)",
+            r"(?:no\s*such|unknown)\s*(?:action|command|option)",
+        ],
+        # Suggestions to fix things that aren't broken
+        "fix_working_code": [
+            r"(?:this\s*)?(?:will|would|might|could)\s*(?:fail|break|crash)",
+            r"(?:won't|will\s*not)\s*(?:work|compile|run)",
+        ],
+    }
+
+    # Indicators that suggest the pipeline/feature actually works
+    PIPELINE_SUCCESS_INDICATORS = [
+        "checkout succeeded",
+        "artifact uploaded",
+        "build passed",
+        "tests passed",
+        "workflow completed",
+        "step succeeded",
+        "job completed successfully",
+    ]
+
     def __init__(self, project_owners: Optional[List[str]] = None) -> None:
         """Initialize the agent judgement system.
 
@@ -209,6 +252,85 @@ class AgentJudgement:
             project_owners: List of usernames who can be asked for guidance
         """
         self.project_owners = project_owners or []
+
+    def _detect_false_positive(self, review_comment: str, context: Optional[dict] = None) -> Tuple[bool, Optional[str]]:
+        """Detect if an AI reviewer suggestion is a false positive.
+
+        AI reviewers can make mistakes - suggesting to "fix" things that
+        aren't broken, or claiming versions don't exist when they clearly do.
+        This method cross-references suggestions against observable reality.
+
+        Args:
+            review_comment: The review suggestion to evaluate
+            context: Context including pipeline results
+
+        Returns:
+            Tuple of (is_false_positive, reason)
+        """
+        context = context or {}
+        comment_lower = review_comment.lower()
+
+        # Check for false positive patterns
+        matched_pattern = None
+        pattern_type = None
+        for fp_type, patterns in self.FALSE_POSITIVE_PATTERNS.items():
+            for pattern in patterns:
+                if re.search(pattern, comment_lower, re.IGNORECASE):
+                    matched_pattern = pattern
+                    pattern_type = fp_type
+                    break
+            if matched_pattern:
+                break
+
+        if not matched_pattern:
+            return False, None
+
+        # If we found a suspicious pattern, check against reality
+        pipeline_status = context.get("pipeline_status", "").lower()
+        job_results = context.get("job_results", {})
+        recent_commits = context.get("recent_commits", [])
+
+        # Check 1: Did the pipeline actually succeed?
+        pipeline_succeeded = any(indicator in pipeline_status for indicator in self.PIPELINE_SUCCESS_INDICATORS)
+        if not pipeline_succeeded and job_results:
+            # Check individual job results
+            pipeline_succeeded = any(result.lower() in ("success", "passed", "completed") for result in job_results.values())
+
+        # Check 2: For version rollback suggestions, check if current version works
+        if pattern_type == "version_rollback":
+            # Extract the action/version being discussed
+            action_match = re.search(r"(checkout|upload-artifact|download-artifact)@v(\d+)", comment_lower)
+            if action_match:
+                action_name = action_match.group(1)
+                # If the checkout/artifact jobs succeeded, this is a false positive
+                relevant_jobs = [job for job in job_results if action_name.replace("-", "") in job.lower().replace("-", "")]
+                if relevant_jobs and all(job_results.get(job, "").lower() in ("success", "passed") for job in relevant_jobs):
+                    return True, (
+                        f"Version rollback suggestion is a false positive: {action_name} jobs succeeded with current version"
+                    )
+
+            # Check if we recently intentionally updated versions
+            version_update_keywords = ["update", "upgrade", "bump", "v6", "v5"]
+            if recent_commits and any(
+                any(kw in commit.lower() for kw in version_update_keywords) for commit in recent_commits
+            ):
+                return True, ("Version rollback suggestion contradicts recent intentional version update in commit history")
+
+        # Check 3: For existence claims, verify against pipeline success
+        if pattern_type == "existence_claims" and pipeline_succeeded:
+            return True, ("Claim about non-existent feature is a false positive: pipeline completed successfully")
+
+        # Check 4: For "will fail" predictions that didn't fail
+        if pattern_type == "fix_working_code" and pipeline_succeeded:
+            return True, ("Prediction of failure is a false positive: code ran successfully in pipeline")
+
+        # Pattern matched but we couldn't definitively confirm it's wrong
+        # Log a warning but don't dismiss - could still be a real issue
+        logger.warning(
+            f"Suspicious pattern '{pattern_type}' detected but could not "
+            f"confirm false positive. Review manually: {review_comment[:100]}..."
+        )
+        return False, None
 
     def assess_fix(self, review_comment: str, context: Optional[dict] = None) -> JudgementResult:
         """Assess whether to auto-fix or ask for guidance.
@@ -226,6 +348,21 @@ class AgentJudgement:
         """
         context = context or {}
         comment_lower = review_comment.lower()
+
+        # FIRST: Check for false positives from AI reviewers
+        # AI reviewers can suggest "fixes" for things that aren't broken
+        # Cross-reference against observable reality (pipeline results, etc.)
+        is_false_positive, dismiss_reason = self._detect_false_positive(review_comment, context)
+        if is_false_positive:
+            logger.info(f"Dismissing false positive: {dismiss_reason}")
+            return JudgementResult(
+                should_auto_fix=False,
+                confidence=0.0,
+                category=FixCategory.FALSE_POSITIVE,
+                reasoning=dismiss_reason or "AI reviewer suggestion contradicts observable reality",
+                is_false_positive=True,
+                dismiss_reason=dismiss_reason,
+            )
 
         # Check high-confidence patterns first
         for category, patterns in self.HIGH_CONFIDENCE_PATTERNS.items():
@@ -453,4 +590,18 @@ class AgentJudgement:
         Returns:
             True if we should ask the owner
         """
+        # Never ask owner about false positives - dismiss silently
+        if result.is_false_positive:
+            return False
         return not result.should_auto_fix and result.ask_owner_question is not None
+
+    def should_dismiss(self, result: JudgementResult) -> bool:
+        """Check if the suggestion should be dismissed (false positive).
+
+        Args:
+            result: The judgement result
+
+        Returns:
+            True if the suggestion should be silently dismissed
+        """
+        return result.is_false_positive

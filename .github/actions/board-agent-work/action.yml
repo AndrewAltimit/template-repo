@@ -635,15 +635,23 @@ runs:
 
         # Clean up large generated files that could cause token limit issues
         # These files are gitignored but may exist in the working directory
+        # Delete ANY file matching these patterns (no size limit - they shouldn't exist)
         LARGE_FILES=(
           "bandit-report.json"
-          "*.log"
+          "safety-report.json"
           "coverage.xml"
           ".coverage"
+          "pylint-report.txt"
+          "mypy-report.txt"
+          "flake8-report.txt"
         )
         for pattern in "${LARGE_FILES[@]}"; do
-          find . -name "$pattern" -type f -size +100k -delete 2>/dev/null || true
+          find . -name "$pattern" -type f -delete 2>/dev/null || true
         done
+        # Also clean up any .log files larger than 100k
+        find . -name "*.log" -type f -size +100k -delete 2>/dev/null || true
+        # Clean up mypy cache if it somehow exists (shouldn't after fresh checkout)
+        rm -rf .mypy_cache 2>/dev/null || true
 
         # Prepare context file for agent
         CONTEXT_FILE="/tmp/agent_context_$ISSUE_NUMBER.md"
@@ -666,13 +674,20 @@ runs:
           "## Requirements" \
           "- Create working, tested code" \
           "- Follow existing code patterns" \
-          "- Add appropriate tests" \
+          "- Add appropriate tests if the change warrants them" \
           "- Update documentation if needed" \
           "" \
-          "## Important Notes" \
-          "- Use the Read tool with offset/limit for large files to avoid token limits" \
-          "- Focus on the specific files mentioned in the issue" \
-          "- Run tests after making changes" \
+          "## Critical Instructions" \
+          "- IMPORTANT: For any file larger than 500 lines, use the Read tool with offset and limit parameters" \
+          "- Example: Read(file_path='/path/to/file', offset=0, limit=200) to read first 200 lines" \
+          "- Use Grep to search for specific content instead of reading entire large files" \
+          "- Focus on the specific files mentioned in the issue - do not explore the entire codebase" \
+          "- Run linting/tests after making changes: ./automation/ci-cd/run-ci.sh full" \
+          "- DO NOT commit changes - the workflow handles commits automatically" \
+          "" \
+          "## Working Directory" \
+          "You are on branch: $BRANCH_NAME" \
+          "Make your changes and the workflow will commit and create a PR." \
           > "$CONTEXT_FILE"
 
         # Execute based on agent type
@@ -689,14 +704,58 @@ runs:
               echo "Running Claude Code on host..."
               # --dangerously-skip-permissions required for CI/CD (no TTY for interactive prompts)
               # --print mode outputs response and exits (non-interactive)
-              # --output-format text for clean output
-              # Prompt is passed as positional argument (not -p which is --print flag)
-              PROMPT_TEXT=$(cat "$CONTEXT_FILE")
-              if timeout "${AGENT_TIMEOUT}m" claude --print --dangerously-skip-permissions --output-format text "$PROMPT_TEXT"; then
-                WORK_COMPLETED="true"
+              # --output-format json for structured output and error detection
+              # Prompt piped via stdin (not positional arg) to avoid shell escaping issues
+              CLAUDE_OUTPUT_FILE="/tmp/claude_output_$ISSUE_NUMBER.json"
+              if timeout "${AGENT_TIMEOUT}m" claude \
+                --print \
+                --dangerously-skip-permissions \
+                --output-format json \
+                < "$CONTEXT_FILE" \
+                > "$CLAUDE_OUTPUT_FILE"; then
+                # Check JSON output for errors
+                if [ -f "$CLAUDE_OUTPUT_FILE" ]; then
+                  # Fail-safe: Check for empty file first
+                  if [ ! -s "$CLAUDE_OUTPUT_FILE" ]; then
+                    AGENT_ERROR="Claude produced empty output (possible silent crash)"
+                    echo "::error::$AGENT_ERROR"
+                  else
+                    # Initialize to true (fail-safe) - only set to false if jq succeeds and finds no error
+                    IS_ERROR="true"
+                    if jq -e '.' "$CLAUDE_OUTPUT_FILE" > /dev/null 2>&1; then
+                      IS_ERROR=$(jq -r '.is_error // false' "$CLAUDE_OUTPUT_FILE")
+                    fi
+                    if [ "$IS_ERROR" = "true" ]; then
+                      ERRORS=$(jq -r '.errors | join("; ")' "$CLAUDE_OUTPUT_FILE" 2>/dev/null || echo "Unknown error")
+                      AGENT_ERROR="Claude reported errors: $ERRORS"
+                      echo "::error::$AGENT_ERROR"
+                      cat "$CLAUDE_OUTPUT_FILE"
+                    else
+                      WORK_COMPLETED="true"
+                      echo "Claude completed successfully"
+                      # Show summary from JSON output
+                      jq -r 'if .result then .result else . end' "$CLAUDE_OUTPUT_FILE" 2>/dev/null || cat "$CLAUDE_OUTPUT_FILE"
+                    fi
+                  fi
+                else
+                  AGENT_ERROR="Claude output file was not created"
+                  echo "::error::$AGENT_ERROR"
+                fi
               else
-                AGENT_ERROR="Claude execution failed or timed out"
+                EXIT_CODE=$?
+                if [ $EXIT_CODE -eq 124 ]; then
+                  AGENT_ERROR="Claude execution timed out after ${AGENT_TIMEOUT}m"
+                else
+                  AGENT_ERROR="Claude execution failed with exit code $EXIT_CODE"
+                fi
+                echo "::error::$AGENT_ERROR"
+                # Show any output for debugging
+                if [ -f "$CLAUDE_OUTPUT_FILE" ]; then
+                  echo "Claude output:"
+                  cat "$CLAUDE_OUTPUT_FILE"
+                fi
               fi
+              rm -f "$CLAUDE_OUTPUT_FILE"
             else
               AGENT_ERROR="Claude CLI not available on host"
               echo "::warning::$AGENT_ERROR"
@@ -883,16 +942,37 @@ runs:
         # Push branch
         git push -u origin "$BRANCH_NAME"
 
-        # Create PR body file to avoid shell escaping issues
+        # Generate change summary for PR body
+        DIFF_STAT=$(git diff --stat origin/main...HEAD | tail -20)
+        FILES_CHANGED=$(git diff --name-only origin/main...HEAD | head -20)
+
+        # Get a brief diff preview (first 50 lines of actual changes)
+        DIFF_PREVIEW=$(git diff origin/main...HEAD --no-color | grep -E '^\+[^+]|^-[^-]' | head -30 | sed 's/^/    /')
+
+        # Create PR body file with actual change details
         PR_BODY_FILE=$(mktemp)
         cat > "$PR_BODY_FILE" << PR_EOF
         ## Summary
 
-        Automated implementation for issue #$ISSUE_NUMBER.
+        Automated implementation for issue #$ISSUE_NUMBER by **$AGENT_NAME** agent.
 
-        ## Changes
+        ## Files Changed
 
-        Implemented by **$AGENT_NAME** agent.
+        \`\`\`
+        $FILES_CHANGED
+        \`\`\`
+
+        ## Change Statistics
+
+        \`\`\`
+        $DIFF_STAT
+        \`\`\`
+
+        ## Change Preview
+
+        \`\`\`diff
+        $DIFF_PREVIEW
+        \`\`\`
 
         ## Test Plan
 
