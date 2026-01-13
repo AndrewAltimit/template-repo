@@ -36,6 +36,11 @@ on:
         default: false
         type: boolean
 
+# Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
 jobs:
   check-server-availability:
     name: Check Gaea2 Server Availability

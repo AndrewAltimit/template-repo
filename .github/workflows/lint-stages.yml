@@ -24,6 +24,11 @@ on:
         description: 'Number of warnings found'
         value: ${{ jobs.lint.outputs.warnings }}
 
+# Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
 jobs:
   lint:
     name: Lint Stage - ${{ inputs.stage }}

@@ -4,6 +4,11 @@ on:
   workflow_call: {}
   workflow_dispatch: {}
 
+# Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
 jobs:
   unit-tests:
     name: Unit Tests

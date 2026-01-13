@@ -38,6 +38,11 @@ concurrency:
   group: github-board-tests-${{ github.ref }}
   cancel-in-progress: true
 
+# Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
 jobs:
   # Unit tests for board module
   unit-tests:

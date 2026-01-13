@@ -41,6 +41,9 @@ permissions:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
 
 jobs:
   monitor-pr-reviews:
