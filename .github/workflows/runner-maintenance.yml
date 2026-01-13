@@ -246,7 +246,7 @@ jobs:
           EOF
 
       - name: Upload Health Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: runner-health-report-${{ runner.name }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: runner-health-report.md
@@ -633,7 +633,7 @@ jobs:
           EOF
 
       - name: Upload Summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: maintenance-summary-${{ github.run_id }}-${{ github.run_attempt }}
           path: maintenance-summary.md

@@ -84,7 +84,7 @@ jobs:
           fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.build.outputs.artifact_name }}
           path: tools/rust/gh-validator/target/release/gh
@@ -150,7 +150,7 @@ jobs:
 
       - name: Upload artifact
         if: steps.arch-check.outputs.skip != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.asset_name }}
           path: tools/rust/gh-validator/target/${{ matrix.target }}/release/gh${{ contains(matrix.target, 'windows') && '.exe' || '' }}
@@ -223,7 +223,7 @@ jobs:
 
       - name: Upload artifact
         if: steps.arch-check.outputs.skip != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.target.outputs.asset_name }}
           path: tools/rust/gh-validator/target/${{ steps.target.outputs.target }}/release/gh
@@ -239,7 +239,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           path: artifacts
 
