@@ -106,7 +106,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Full history for analysis
 

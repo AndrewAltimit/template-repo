@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -54,7 +54,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -68,7 +68,7 @@ jobs:
             sleeper-agents-framework-guide
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sleeper-agents-framework-guide
           path: docs_output/sleeper-agents-framework-guide.pdf
@@ -81,7 +81,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -95,7 +95,7 @@ jobs:
             agentcore-memory-integration-guide
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: agentcore-memory-integration-guide
           path: docs_output/agentcore-memory-integration-guide.pdf
@@ -108,7 +108,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -122,7 +122,7 @@ jobs:
             virtual-character-system-guide
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: virtual-character-system-guide
           path: docs_output/virtual-character-system-guide.pdf
@@ -135,7 +135,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -149,7 +149,7 @@ jobs:
             ai-agents-wmd-proliferation-report
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ai-agents-wmd-proliferation-report
           path: docs_output/ai-agents-wmd-proliferation-report.pdf
@@ -162,7 +162,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -176,7 +176,7 @@ jobs:
             ai-agents-political-targeting-report
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ai-agents-political-targeting-report
           path: docs_output/ai-agents-political-targeting-report.pdf
@@ -189,7 +189,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -203,7 +203,7 @@ jobs:
             ai-agents-espionage-operations-report
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ai-agents-espionage-operations-report
           path: docs_output/ai-agents-espionage-operations-report.pdf
@@ -216,7 +216,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -230,7 +230,7 @@ jobs:
             ai-agents-economic-actors-report
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ai-agents-economic-actors-report
           path: docs_output/ai-agents-economic-actors-report.pdf
@@ -243,7 +243,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -257,7 +257,7 @@ jobs:
             ai-agents-financial-integrity-report
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ai-agents-financial-integrity-report
           path: docs_output/ai-agents-financial-integrity-report.pdf
@@ -270,7 +270,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -284,7 +284,7 @@ jobs:
             ai-agents-institutional-erosion-report
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ai-agents-institutional-erosion-report
           path: docs_output/ai-agents-institutional-erosion-report.pdf
@@ -297,7 +297,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -310,7 +310,7 @@ jobs:
             docs_output
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: architectural-qualia-paper
           path: docs_output/architectural-qualia.pdf
@@ -323,7 +323,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
@@ -337,7 +337,7 @@ jobs:
             agentic-workflow-handout
 
       - name: Upload PDF artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: agentic-workflow-handout
           path: docs_output/agentic-workflow-handout.pdf
