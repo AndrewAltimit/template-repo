@@ -2,17 +2,18 @@
 # Build LaTeX documents using containerized TeXLive (multi-arch compatible)
 # This script compiles PDFs from LaTeX source using Docker
 #
-# Usage: ./build-latex-doc.sh <tex-file> [source-dir] [output-dir]
+# Usage: ./build-latex-doc.sh <tex-file> [source-dir] [output-dir] [output-name]
 #
 # Arguments:
 #   tex-file    - Name of the .tex file to compile (e.g., ai-agents-wmd-proliferation.tex)
 #   source-dir  - Directory containing the .tex file (default: docs/projections/latex)
 #   output-dir  - Directory for output files (default: docs_output)
+#   output-name - Optional output PDF filename (without .pdf extension)
 #
 # Examples:
 #   ./build-latex-doc.sh ai-agents-wmd-proliferation.tex
-#   ./build-latex-doc.sh Virtual_Character_System_Guide.tex docs/integrations/ai-services
-#   ./build-latex-doc.sh Sleeper_Agents_Framework_Guide.tex packages/sleeper_agents/docs
+#   ./build-latex-doc.sh Virtual_Character_System_Guide.tex docs/integrations/ai-services docs_output virtual-character-system-guide
+#   ./build-latex-doc.sh Sleeper_Agents_Framework_Guide.tex packages/sleeper_agents/docs docs_output sleeper-agents-framework-guide
 
 set -e
 
@@ -20,6 +21,7 @@ set -e
 TEX_FILE="${1:?Error: tex-file argument required}"
 SOURCE_DIR="${2:-docs/projections/latex}"
 OUTPUT_DIR="${3:-docs_output}"
+OUTPUT_NAME="${4:-}"
 
 # Get project root (script is in automation/ci-cd/)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -71,17 +73,27 @@ docker run --rm \
 echo "PDF build completed"
 
 # Verify PDF was created
-if [ -f "$OUTPUT_PATH/$PDF_FILE" ]; then
-    echo "PDF successfully created:"
-    ls -lh "$OUTPUT_PATH/$PDF_FILE"
-else
+if [ ! -f "$OUTPUT_PATH/$PDF_FILE" ]; then
     echo "ERROR: PDF was not created"
     exit 1
 fi
+
+# Rename if output name specified
+FINAL_PDF="$PDF_FILE"
+if [ -n "$OUTPUT_NAME" ]; then
+    FINAL_PDF="${OUTPUT_NAME}.pdf"
+    if [ "$PDF_FILE" != "$FINAL_PDF" ]; then
+        mv "$OUTPUT_PATH/$PDF_FILE" "$OUTPUT_PATH/$FINAL_PDF"
+        echo "Renamed to: $FINAL_PDF"
+    fi
+fi
+
+echo "PDF successfully created:"
+ls -lh "$OUTPUT_PATH/$FINAL_PDF"
 
 # Cleanup auxiliary files
 rm -rf "$OUTPUT_PATH"/*.aux "$OUTPUT_PATH"/*.log "$OUTPUT_PATH"/*.toc \
        "$OUTPUT_PATH"/*.out "$OUTPUT_PATH"/*.fls "$OUTPUT_PATH"/*.fdb_latexmk \
        2>/dev/null || true
 
-echo "Build complete: $OUTPUT_PATH/$PDF_FILE"
+echo "Build complete: $OUTPUT_PATH/$FINAL_PDF"

@@ -59,31 +59,13 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build PDF
         run: |
-          echo "Building Sleeper Agents Framework Guide..."
-          mkdir -p docs_output
-          docker run --rm \
-            -v "$PWD:/data" \
-            -w /data/packages/sleeper_agents/docs \
-            -u "$(id -u):$(id -g)" \
-            $TEXLIVE_IMAGE \
-            sh -c "pdflatex -interaction=nonstopmode -output-directory=/data/docs_output Sleeper_Agents_Framework_Guide.tex && \
-                   pdflatex -interaction=nonstopmode -output-directory=/data/docs_output Sleeper_Agents_Framework_Guide.tex"
-          echo "PDF build completed"
-          ls -la docs_output/
-
-      - name: Verify and rename PDF
-        run: |
-          if [ -f docs_output/Sleeper_Agents_Framework_Guide.pdf ]; then
-            echo "PDF successfully created"
-            # Rename to sensible kebab-case filename
-            mv docs_output/Sleeper_Agents_Framework_Guide.pdf docs_output/sleeper-agents-framework-guide.pdf
-            ls -lh docs_output/sleeper-agents-framework-guide.pdf
-          else
-            echo "ERROR: PDF was not created"
-            exit 1
-          fi
+          ./automation/ci-cd/build-latex-doc.sh \
+            Sleeper_Agents_Framework_Guide.tex \
+            packages/sleeper_agents/docs \
+            docs_output \
+            sleeper-agents-framework-guide
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -91,13 +73,6 @@ jobs:
           name: sleeper-agents-framework-guide
           path: docs_output/sleeper-agents-framework-guide.pdf
           retention-days: 90
-
-      - name: Cleanup build artifacts
-        if: always()
-        run: |
-          rm -rf docs_output/*.aux docs_output/*.log docs_output/*.toc \
-                 docs_output/*.out docs_output/*.fls docs_output/*.fdb_latexmk \
-                 2>/dev/null || true
 
   build-agentcore-memory-guide:
     name: Build AgentCore Memory Integration Guide
@@ -111,32 +86,13 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build PDF
         run: |
-          echo "Building AgentCore Memory Integration Guide..."
-          mkdir -p docs_output
-          docker run --rm \
-            -v "$PWD:/data" \
-            -w /data/docs/integrations/ai-services \
-            -u "$(id -u):$(id -g)" \
-            $TEXLIVE_IMAGE \
-            sh -c "pdflatex -interaction=nonstopmode -output-directory=/data/docs_output AgentCore_Memory_Integration_Guide.tex && \
-                   pdflatex -interaction=nonstopmode -output-directory=/data/docs_output AgentCore_Memory_Integration_Guide.tex && \
-                   pdflatex -interaction=nonstopmode -output-directory=/data/docs_output AgentCore_Memory_Integration_Guide.tex"
-          echo "PDF build completed"
-          ls -la docs_output/
-
-      - name: Verify and rename PDF
-        run: |
-          if [ -f docs_output/AgentCore_Memory_Integration_Guide.pdf ]; then
-            echo "PDF successfully created"
-            # Rename to sensible kebab-case filename
-            mv docs_output/AgentCore_Memory_Integration_Guide.pdf docs_output/agentcore-memory-integration-guide.pdf
-            ls -lh docs_output/agentcore-memory-integration-guide.pdf
-          else
-            echo "ERROR: PDF was not created"
-            exit 1
-          fi
+          ./automation/ci-cd/build-latex-doc.sh \
+            AgentCore_Memory_Integration_Guide.tex \
+            docs/integrations/ai-services \
+            docs_output \
+            agentcore-memory-integration-guide
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -144,13 +100,6 @@ jobs:
           name: agentcore-memory-integration-guide
           path: docs_output/agentcore-memory-integration-guide.pdf
           retention-days: 90
-
-      - name: Cleanup build artifacts
-        if: always()
-        run: |
-          rm -rf docs_output/*.aux docs_output/*.log docs_output/*.toc \
-                 docs_output/*.out docs_output/*.fls docs_output/*.fdb_latexmk \
-                 2>/dev/null || true
 
   build-virtual-character-guide:
     name: Build Virtual Character System Guide
@@ -164,30 +113,13 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build PDF
         run: |
-          echo "Building Virtual Character System Guide..."
-          mkdir -p docs_output
-          docker run --rm \
-            -v "$PWD:/data" \
-            -w /data/docs/integrations/ai-services \
-            -u "$(id -u):$(id -g)" \
-            $TEXLIVE_IMAGE \
-            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output Virtual_Character_System_Guide.tex
-          echo "PDF build completed"
-          ls -la docs_output/
-
-      - name: Verify and rename PDF
-        run: |
-          if [ -f docs_output/Virtual_Character_System_Guide.pdf ]; then
-            echo "PDF successfully created"
-            # Rename to sensible kebab-case filename
-            mv docs_output/Virtual_Character_System_Guide.pdf docs_output/virtual-character-system-guide.pdf
-            ls -lh docs_output/virtual-character-system-guide.pdf
-          else
-            echo "ERROR: PDF was not created"
-            exit 1
-          fi
+          ./automation/ci-cd/build-latex-doc.sh \
+            Virtual_Character_System_Guide.tex \
+            docs/integrations/ai-services \
+            docs_output \
+            virtual-character-system-guide
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -195,13 +127,6 @@ jobs:
           name: virtual-character-system-guide
           path: docs_output/virtual-character-system-guide.pdf
           retention-days: 90
-
-      - name: Cleanup build artifacts
-        if: always()
-        run: |
-          rm -rf docs_output/*.aux docs_output/*.log docs_output/*.toc \
-                 docs_output/*.out docs_output/*.fls docs_output/*.fdb_latexmk \
-                 2>/dev/null || true
 
   build-wmd-proliferation-report:
     name: Build AI Agents WMD Proliferation Report
@@ -215,22 +140,13 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build PDF
         run: |
-          echo "Building AI Agents WMD Proliferation Report..."
-          mkdir -p docs_output
-          docker run --rm \
-            -v "$PWD:/data" \
-            -w /data/docs/projections/latex \
-            -u "$(id -u):$(id -g)" \
-            $TEXLIVE_IMAGE \
-            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output ai-agents-wmd-proliferation.tex
-
-      - name: Rename PDF to sensible filename
-        run: |
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-wmd-proliferation.pdf docs_output/ai-agents-wmd-proliferation-report.pdf
-          ls -lh docs_output/ai-agents-wmd-proliferation-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-wmd-proliferation.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-wmd-proliferation-report
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -251,22 +167,13 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build PDF
         run: |
-          echo "Building AI Agents Political Targeting Report..."
-          mkdir -p docs_output
-          docker run --rm \
-            -v "$PWD:/data" \
-            -w /data/docs/projections/latex \
-            -u "$(id -u):$(id -g)" \
-            $TEXLIVE_IMAGE \
-            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output ai-agents-political-targeting.tex
-
-      - name: Rename PDF to sensible filename
-        run: |
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-political-targeting.pdf docs_output/ai-agents-political-targeting-report.pdf
-          ls -lh docs_output/ai-agents-political-targeting-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-political-targeting.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-political-targeting-report
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -287,22 +194,13 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build PDF
         run: |
-          echo "Building AI Agents Espionage Operations Report..."
-          mkdir -p docs_output
-          docker run --rm \
-            -v "$PWD:/data" \
-            -w /data/docs/projections/latex \
-            -u "$(id -u):$(id -g)" \
-            $TEXLIVE_IMAGE \
-            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output ai-agents-espionage-operations.tex
-
-      - name: Rename PDF to sensible filename
-        run: |
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-espionage-operations.pdf docs_output/ai-agents-espionage-operations-report.pdf
-          ls -lh docs_output/ai-agents-espionage-operations-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-espionage-operations.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-espionage-operations-report
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -323,22 +221,13 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build PDF
         run: |
-          echo "Building AI Agents Economic Actors Report..."
-          mkdir -p docs_output
-          docker run --rm \
-            -v "$PWD:/data" \
-            -w /data/docs/projections/latex \
-            -u "$(id -u):$(id -g)" \
-            $TEXLIVE_IMAGE \
-            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output ai-agents-economic-actors.tex
-
-      - name: Rename PDF to sensible filename
-        run: |
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-economic-actors.pdf docs_output/ai-agents-economic-actors-report.pdf
-          ls -lh docs_output/ai-agents-economic-actors-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-economic-actors.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-economic-actors-report
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -359,22 +248,13 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build PDF
         run: |
-          echo "Building AI Agents Financial Integrity Report..."
-          mkdir -p docs_output
-          docker run --rm \
-            -v "$PWD:/data" \
-            -w /data/docs/projections/latex \
-            -u "$(id -u):$(id -g)" \
-            $TEXLIVE_IMAGE \
-            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output ai-agents-financial-integrity.tex
-
-      - name: Rename PDF to sensible filename
-        run: |
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-financial-integrity.pdf docs_output/ai-agents-financial-integrity-report.pdf
-          ls -lh docs_output/ai-agents-financial-integrity-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-financial-integrity.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-financial-integrity-report
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -395,22 +275,13 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build PDF
         run: |
-          echo "Building AI Agents Institutional Erosion Report..."
-          mkdir -p docs_output
-          docker run --rm \
-            -v "$PWD:/data" \
-            -w /data/docs/projections/latex \
-            -u "$(id -u):$(id -g)" \
-            $TEXLIVE_IMAGE \
-            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output ai-agents-institutional-erosion.tex
-
-      - name: Rename PDF to sensible filename
-        run: |
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-institutional-erosion.pdf docs_output/ai-agents-institutional-erosion-report.pdf
-          ls -lh docs_output/ai-agents-institutional-erosion-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-institutional-erosion.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-institutional-erosion-report
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -431,16 +302,12 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build PDF
         run: |
-          echo "Building Architectural Qualia Paper..."
-          mkdir -p docs_output
-          docker run --rm \
-            -v "$PWD:/data" \
-            -w /data/docs/philosophy/latex \
-            -u "$(id -u):$(id -g)" \
-            $TEXLIVE_IMAGE \
-            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output architectural-qualia.tex
+          ./automation/ci-cd/build-latex-doc.sh \
+            architectural-qualia.tex \
+            docs/philosophy/latex \
+            docs_output
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -461,30 +328,13 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Build PDF with LaTeX
+      - name: Build PDF
         run: |
-          echo "Building Agentic_Workflow_Handout.pdf..."
-          mkdir -p docs_output
-          docker run --rm \
-            -v "$PWD:/data" \
-            -w /data/docs/agents \
-            -u "$(id -u):$(id -g)" \
-            $TEXLIVE_IMAGE \
-            pdflatex -interaction=nonstopmode -output-directory=/data/docs_output Agentic_Workflow_Handout.tex
-          echo "PDF build completed"
-          ls -la docs_output/
-
-      - name: Verify and rename PDF
-        run: |
-          if [ -f docs_output/Agentic_Workflow_Handout.pdf ]; then
-            echo "PDF successfully created"
-            # Rename to sensible kebab-case filename
-            mv docs_output/Agentic_Workflow_Handout.pdf docs_output/agentic-workflow-handout.pdf
-            ls -lh docs_output/agentic-workflow-handout.pdf
-          else
-            echo "ERROR: PDF was not created"
-            exit 1
-          fi
+          ./automation/ci-cd/build-latex-doc.sh \
+            Agentic_Workflow_Handout.tex \
+            docs/agents \
+            docs_output \
+            agentic-workflow-handout
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -492,10 +342,3 @@ jobs:
           name: agentic-workflow-handout
           path: docs_output/agentic-workflow-handout.pdf
           retention-days: 90
-
-      - name: Cleanup build artifacts
-        if: always()
-        run: |
-          rm -rf docs_output/*.aux docs_output/*.log docs_output/*.toc \
-                 docs_output/*.out docs_output/*.fls docs_output/*.fdb_latexmk \
-                 2>/dev/null || true
