@@ -43,16 +43,11 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Post-checkout cleanup
+      - name: Initialize output directories
         run: |
           # Initialize output directories to prevent root ownership issues
           if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
             ./automation/setup/docker/init-output-dirs.sh
-          fi
-
-          # Run cleanup script if it exists
-          if [ -f "./automation/setup/runner/fix-runner-permissions.sh" ]; then
-            ./automation/setup/runner/fix-runner-permissions.sh --minimal
           fi
 
       # Docker CI image will be built automatically by run-ci.sh script
