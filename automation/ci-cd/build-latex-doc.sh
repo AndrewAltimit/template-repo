@@ -1,6 +1,6 @@
 #!/bin/bash
-# Build LaTeX documents using Docker
-# This script encapsulates the docker run logic for building PDFs from LaTeX source
+# Build LaTeX documents natively (no Docker for ARM64 compatibility)
+# This script compiles PDFs from LaTeX source using system texlive
 #
 # Usage: ./build-latex-doc.sh <tex-file> [source-dir] [output-dir]
 #
@@ -35,6 +35,12 @@ if [ ! -f "$SOURCE_PATH/$TEX_FILE" ]; then
     exit 1
 fi
 
+# Check for latexmk
+if ! command -v latexmk &> /dev/null; then
+    echo "ERROR: latexmk not found. Install with: sudo apt-get install texlive-latex-extra latexmk"
+    exit 1
+fi
+
 # Get PDF name from tex file
 PDF_FILE="${TEX_FILE%.tex}.pdf"
 
@@ -45,14 +51,9 @@ echo "  Output: $OUTPUT_PATH"
 # Create output directory
 mkdir -p "$OUTPUT_PATH"
 
-# Build PDF using texlive Docker image with latexmk for automatic dependency resolution
-# Use --user to ensure artifacts are owned by runner user, not root
-docker run --rm \
-    --user "$(id -u):$(id -g)" \
-    -v "$SOURCE_PATH:/data" \
-    -v "$OUTPUT_PATH:/output" \
-    ghcr.io/xu-cheng/texlive-full:latest \
-    bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output $TEX_FILE"
+# Build PDF using latexmk for automatic dependency resolution
+cd "$SOURCE_PATH"
+latexmk -pdf -interaction=nonstopmode -output-directory="$OUTPUT_PATH" "$TEX_FILE"
 
 echo "PDF build completed"
 
