@@ -11,6 +11,7 @@ on:
       - 'docs/agents/**/*.tex'
       - 'automation/ci-cd/build-latex-doc.sh'
       - '.github/workflows/build-docs.yml'
+      - 'docker/texlive.Dockerfile'
   pull_request:
     paths:
       - 'packages/sleeper_agents/docs/**/*.tex'
@@ -20,12 +21,36 @@ on:
       - 'docs/agents/**/*.tex'
       - 'automation/ci-cd/build-latex-doc.sh'
       - '.github/workflows/build-docs.yml'
+      - 'docker/texlive.Dockerfile'
   workflow_dispatch: {}
 
+# Build TeXLive image once, reuse across jobs
+env:
+  TEXLIVE_IMAGE: texlive-local
+
 jobs:
+  build-texlive-image:
+    name: Build TeXLive Docker Image
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Build TeXLive image
+        run: |
+          echo "Building multi-arch TeXLive image..."
+          docker build -t $TEXLIVE_IMAGE -f docker/texlive.Dockerfile .
+          echo "Image built successfully"
+          docker run --rm $TEXLIVE_IMAGE pdflatex --version
+
   build-sleeper-agents-guide:
     name: Build Sleeper Agents Framework Guide
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 10
     steps:
       - name: Checkout code
@@ -34,26 +59,19 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install TeXLive
-        run: |
-          if ! command -v pdflatex &> /dev/null; then
-            echo "Installing texlive..."
-            sudo apt-get update
-            sudo apt-get install -y texlive-latex-extra texlive-fonts-recommended texlive-xetex latexmk
-          else
-            echo "texlive already installed"
-          fi
-          pdflatex --version
-
       - name: Build PDF with LaTeX
         run: |
           echo "Building Sleeper Agents Framework Guide..."
           mkdir -p docs_output
-          cd packages/sleeper_agents/docs
-          pdflatex -interaction=nonstopmode -output-directory=../../../docs_output Sleeper_Agents_Framework_Guide.tex
-          pdflatex -interaction=nonstopmode -output-directory=../../../docs_output Sleeper_Agents_Framework_Guide.tex
+          docker run --rm \
+            -v "$PWD:/data" \
+            -w /data/packages/sleeper_agents/docs \
+            -u "$(id -u):$(id -g)" \
+            $TEXLIVE_IMAGE \
+            sh -c "pdflatex -interaction=nonstopmode -output-directory=/data/docs_output Sleeper_Agents_Framework_Guide.tex && \
+                   pdflatex -interaction=nonstopmode -output-directory=/data/docs_output Sleeper_Agents_Framework_Guide.tex"
           echo "PDF build completed"
-          ls -la ../../../docs_output/
+          ls -la docs_output/
 
       - name: Verify and rename PDF
         run: |
@@ -84,6 +102,7 @@ jobs:
   build-agentcore-memory-guide:
     name: Build AgentCore Memory Integration Guide
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 10
     steps:
       - name: Checkout code
@@ -92,26 +111,20 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install TeXLive
-        run: |
-          if ! command -v pdflatex &> /dev/null; then
-            echo "Installing texlive..."
-            sudo apt-get update
-            sudo apt-get install -y texlive-latex-extra texlive-fonts-recommended texlive-xetex latexmk
-          else
-            echo "texlive already installed"
-          fi
-
       - name: Build PDF with LaTeX
         run: |
           echo "Building AgentCore Memory Integration Guide..."
           mkdir -p docs_output
-          cd docs/integrations/ai-services
-          pdflatex -interaction=nonstopmode -output-directory=../../../docs_output AgentCore_Memory_Integration_Guide.tex
-          pdflatex -interaction=nonstopmode -output-directory=../../../docs_output AgentCore_Memory_Integration_Guide.tex
-          pdflatex -interaction=nonstopmode -output-directory=../../../docs_output AgentCore_Memory_Integration_Guide.tex
+          docker run --rm \
+            -v "$PWD:/data" \
+            -w /data/docs/integrations/ai-services \
+            -u "$(id -u):$(id -g)" \
+            $TEXLIVE_IMAGE \
+            sh -c "pdflatex -interaction=nonstopmode -output-directory=/data/docs_output AgentCore_Memory_Integration_Guide.tex && \
+                   pdflatex -interaction=nonstopmode -output-directory=/data/docs_output AgentCore_Memory_Integration_Guide.tex && \
+                   pdflatex -interaction=nonstopmode -output-directory=/data/docs_output AgentCore_Memory_Integration_Guide.tex"
           echo "PDF build completed"
-          ls -la ../../../docs_output/
+          ls -la docs_output/
 
       - name: Verify and rename PDF
         run: |
@@ -142,6 +155,7 @@ jobs:
   build-virtual-character-guide:
     name: Build Virtual Character System Guide
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 10
     steps:
       - name: Checkout code
@@ -150,24 +164,18 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install TeXLive
-        run: |
-          if ! command -v pdflatex &> /dev/null; then
-            echo "Installing texlive..."
-            sudo apt-get update
-            sudo apt-get install -y texlive-latex-extra texlive-fonts-recommended texlive-xetex latexmk
-          else
-            echo "texlive already installed"
-          fi
-
       - name: Build PDF with LaTeX
         run: |
           echo "Building Virtual Character System Guide..."
           mkdir -p docs_output
-          cd docs/integrations/ai-services
-          latexmk -pdf -interaction=nonstopmode -output-directory=../../../docs_output Virtual_Character_System_Guide.tex
+          docker run --rm \
+            -v "$PWD:/data" \
+            -w /data/docs/integrations/ai-services \
+            -u "$(id -u):$(id -g)" \
+            $TEXLIVE_IMAGE \
+            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output Virtual_Character_System_Guide.tex
           echo "PDF build completed"
-          ls -la ../../../docs_output/
+          ls -la docs_output/
 
       - name: Verify and rename PDF
         run: |
@@ -198,6 +206,7 @@ jobs:
   build-wmd-proliferation-report:
     name: Build AI Agents WMD Proliferation Report
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 30
     steps:
       - name: Checkout code
@@ -206,18 +215,16 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install TeXLive
-        run: |
-          if ! command -v pdflatex &> /dev/null; then
-            echo "Installing texlive..."
-            sudo apt-get update
-            sudo apt-get install -y texlive-latex-extra texlive-fonts-recommended texlive-xetex latexmk
-          else
-            echo "texlive already installed"
-          fi
-
       - name: Build PDF with LaTeX
-        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-wmd-proliferation.tex
+        run: |
+          echo "Building AI Agents WMD Proliferation Report..."
+          mkdir -p docs_output
+          docker run --rm \
+            -v "$PWD:/data" \
+            -w /data/docs/projections/latex \
+            -u "$(id -u):$(id -g)" \
+            $TEXLIVE_IMAGE \
+            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output ai-agents-wmd-proliferation.tex
 
       - name: Rename PDF to sensible filename
         run: |
@@ -235,6 +242,7 @@ jobs:
   build-political-targeting-report:
     name: Build AI Agents Political Targeting Report
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 30
     steps:
       - name: Checkout code
@@ -243,18 +251,16 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install TeXLive
-        run: |
-          if ! command -v pdflatex &> /dev/null; then
-            echo "Installing texlive..."
-            sudo apt-get update
-            sudo apt-get install -y texlive-latex-extra texlive-fonts-recommended texlive-xetex latexmk
-          else
-            echo "texlive already installed"
-          fi
-
       - name: Build PDF with LaTeX
-        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-political-targeting.tex
+        run: |
+          echo "Building AI Agents Political Targeting Report..."
+          mkdir -p docs_output
+          docker run --rm \
+            -v "$PWD:/data" \
+            -w /data/docs/projections/latex \
+            -u "$(id -u):$(id -g)" \
+            $TEXLIVE_IMAGE \
+            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output ai-agents-political-targeting.tex
 
       - name: Rename PDF to sensible filename
         run: |
@@ -272,6 +278,7 @@ jobs:
   build-espionage-operations-report:
     name: Build AI Agents Espionage Operations Report
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 30
     steps:
       - name: Checkout code
@@ -280,18 +287,16 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install TeXLive
-        run: |
-          if ! command -v pdflatex &> /dev/null; then
-            echo "Installing texlive..."
-            sudo apt-get update
-            sudo apt-get install -y texlive-latex-extra texlive-fonts-recommended texlive-xetex latexmk
-          else
-            echo "texlive already installed"
-          fi
-
       - name: Build PDF with LaTeX
-        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-espionage-operations.tex
+        run: |
+          echo "Building AI Agents Espionage Operations Report..."
+          mkdir -p docs_output
+          docker run --rm \
+            -v "$PWD:/data" \
+            -w /data/docs/projections/latex \
+            -u "$(id -u):$(id -g)" \
+            $TEXLIVE_IMAGE \
+            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output ai-agents-espionage-operations.tex
 
       - name: Rename PDF to sensible filename
         run: |
@@ -309,6 +314,7 @@ jobs:
   build-economic-actors-report:
     name: Build AI Agents Economic Actors Report
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 30
     steps:
       - name: Checkout code
@@ -317,18 +323,16 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install TeXLive
-        run: |
-          if ! command -v pdflatex &> /dev/null; then
-            echo "Installing texlive..."
-            sudo apt-get update
-            sudo apt-get install -y texlive-latex-extra texlive-fonts-recommended texlive-xetex latexmk
-          else
-            echo "texlive already installed"
-          fi
-
       - name: Build PDF with LaTeX
-        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-economic-actors.tex
+        run: |
+          echo "Building AI Agents Economic Actors Report..."
+          mkdir -p docs_output
+          docker run --rm \
+            -v "$PWD:/data" \
+            -w /data/docs/projections/latex \
+            -u "$(id -u):$(id -g)" \
+            $TEXLIVE_IMAGE \
+            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output ai-agents-economic-actors.tex
 
       - name: Rename PDF to sensible filename
         run: |
@@ -346,6 +350,7 @@ jobs:
   build-financial-integrity-report:
     name: Build AI Agents Financial Integrity Report
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 30
     steps:
       - name: Checkout code
@@ -354,18 +359,16 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install TeXLive
-        run: |
-          if ! command -v pdflatex &> /dev/null; then
-            echo "Installing texlive..."
-            sudo apt-get update
-            sudo apt-get install -y texlive-latex-extra texlive-fonts-recommended texlive-xetex latexmk
-          else
-            echo "texlive already installed"
-          fi
-
       - name: Build PDF with LaTeX
-        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-financial-integrity.tex
+        run: |
+          echo "Building AI Agents Financial Integrity Report..."
+          mkdir -p docs_output
+          docker run --rm \
+            -v "$PWD:/data" \
+            -w /data/docs/projections/latex \
+            -u "$(id -u):$(id -g)" \
+            $TEXLIVE_IMAGE \
+            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output ai-agents-financial-integrity.tex
 
       - name: Rename PDF to sensible filename
         run: |
@@ -383,6 +386,7 @@ jobs:
   build-institutional-erosion-report:
     name: Build AI Agents Institutional Erosion Report
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 30
     steps:
       - name: Checkout code
@@ -391,18 +395,16 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install TeXLive
-        run: |
-          if ! command -v pdflatex &> /dev/null; then
-            echo "Installing texlive..."
-            sudo apt-get update
-            sudo apt-get install -y texlive-latex-extra texlive-fonts-recommended texlive-xetex latexmk
-          else
-            echo "texlive already installed"
-          fi
-
       - name: Build PDF with LaTeX
-        run: ./automation/ci-cd/build-latex-doc.sh ai-agents-institutional-erosion.tex
+        run: |
+          echo "Building AI Agents Institutional Erosion Report..."
+          mkdir -p docs_output
+          docker run --rm \
+            -v "$PWD:/data" \
+            -w /data/docs/projections/latex \
+            -u "$(id -u):$(id -g)" \
+            $TEXLIVE_IMAGE \
+            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output ai-agents-institutional-erosion.tex
 
       - name: Rename PDF to sensible filename
         run: |
@@ -420,6 +422,7 @@ jobs:
   build-architectural-qualia-paper:
     name: Build Architectural Qualia Paper
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 30
     steps:
       - name: Checkout code
@@ -428,18 +431,16 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install TeXLive
-        run: |
-          if ! command -v pdflatex &> /dev/null; then
-            echo "Installing texlive..."
-            sudo apt-get update
-            sudo apt-get install -y texlive-latex-extra texlive-fonts-recommended texlive-xetex latexmk
-          else
-            echo "texlive already installed"
-          fi
-
       - name: Build PDF with LaTeX
-        run: ./automation/ci-cd/build-latex-doc.sh architectural-qualia.tex docs/philosophy/latex
+        run: |
+          echo "Building Architectural Qualia Paper..."
+          mkdir -p docs_output
+          docker run --rm \
+            -v "$PWD:/data" \
+            -w /data/docs/philosophy/latex \
+            -u "$(id -u):$(id -g)" \
+            $TEXLIVE_IMAGE \
+            latexmk -pdf -interaction=nonstopmode -output-directory=/data/docs_output architectural-qualia.tex
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -451,6 +452,7 @@ jobs:
   build-agentic-workflow-handout:
     name: Build Agentic Workflow Handout
     runs-on: self-hosted
+    needs: build-texlive-image
     timeout-minutes: 10
     steps:
       - name: Checkout code
@@ -459,24 +461,18 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install TeXLive
-        run: |
-          if ! command -v pdflatex &> /dev/null; then
-            echo "Installing texlive..."
-            sudo apt-get update
-            sudo apt-get install -y texlive-latex-extra texlive-fonts-recommended texlive-xetex latexmk
-          else
-            echo "texlive already installed"
-          fi
-
       - name: Build PDF with LaTeX
         run: |
           echo "Building Agentic_Workflow_Handout.pdf..."
           mkdir -p docs_output
-          cd docs/agents
-          pdflatex -interaction=nonstopmode -output-directory=../../docs_output Agentic_Workflow_Handout.tex
+          docker run --rm \
+            -v "$PWD:/data" \
+            -w /data/docs/agents \
+            -u "$(id -u):$(id -g)" \
+            $TEXLIVE_IMAGE \
+            pdflatex -interaction=nonstopmode -output-directory=/data/docs_output Agentic_Workflow_Handout.tex
           echo "PDF build completed"
-          ls -la ../../docs_output/
+          ls -la docs_output/
 
       - name: Verify and rename PDF
         run: |

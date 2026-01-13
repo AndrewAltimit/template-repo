@@ -1,6 +1,6 @@
 #!/bin/bash
-# Build LaTeX documents natively (no Docker for ARM64 compatibility)
-# This script compiles PDFs from LaTeX source using system texlive
+# Build LaTeX documents using containerized TeXLive (multi-arch compatible)
+# This script compiles PDFs from LaTeX source using Docker
 #
 # Usage: ./build-latex-doc.sh <tex-file> [source-dir] [output-dir]
 #
@@ -35,10 +35,19 @@ if [ ! -f "$SOURCE_PATH/$TEX_FILE" ]; then
     exit 1
 fi
 
-# Check for latexmk
-if ! command -v latexmk &> /dev/null; then
-    echo "ERROR: latexmk not found. Install with: sudo apt-get install texlive-latex-extra latexmk"
+# Docker image name
+TEXLIVE_IMAGE="${TEXLIVE_IMAGE:-texlive-local}"
+
+# Check if Docker is available
+if ! command -v docker &> /dev/null; then
+    echo "ERROR: Docker not found. Please install Docker."
     exit 1
+fi
+
+# Build Docker image if it doesn't exist
+if ! docker image inspect "$TEXLIVE_IMAGE" &> /dev/null; then
+    echo "Building TeXLive Docker image..."
+    docker build -t "$TEXLIVE_IMAGE" -f "$PROJECT_ROOT/docker/texlive.Dockerfile" "$PROJECT_ROOT"
 fi
 
 # Get PDF name from tex file
@@ -51,9 +60,13 @@ echo "  Output: $OUTPUT_PATH"
 # Create output directory
 mkdir -p "$OUTPUT_PATH"
 
-# Build PDF using latexmk for automatic dependency resolution
-cd "$SOURCE_PATH"
-latexmk -pdf -interaction=nonstopmode -output-directory="$OUTPUT_PATH" "$TEX_FILE"
+# Build PDF using containerized latexmk for automatic dependency resolution
+docker run --rm \
+    -v "$PROJECT_ROOT:/data" \
+    -w "/data/$SOURCE_DIR" \
+    -u "$(id -u):$(id -g)" \
+    "$TEXLIVE_IMAGE" \
+    latexmk -pdf -interaction=nonstopmode -output-directory="/data/$OUTPUT_DIR" "$TEX_FILE"
 
 echo "PDF build completed"
 
