@@ -712,7 +712,7 @@ runs:
                 --dangerously-skip-permissions \
                 --output-format json \
                 < "$CONTEXT_FILE" \
-                > "$CLAUDE_OUTPUT_FILE" 2>&1; then
+                > "$CLAUDE_OUTPUT_FILE"; then
                 # Check JSON output for errors
                 if [ -f "$CLAUDE_OUTPUT_FILE" ]; then
                   IS_ERROR=$(jq -r '.is_error // false' "$CLAUDE_OUTPUT_FILE" 2>/dev/null || echo "false")
