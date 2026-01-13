@@ -51,7 +51,7 @@ docker run --rm \
     --user "$(id -u):$(id -g)" \
     -v "$SOURCE_PATH:/data" \
     -v "$OUTPUT_PATH:/output" \
-    texlive/texlive:TL2024-historic \
+    ghcr.io/xu-cheng/texlive-full:latest \
     bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output $TEX_FILE"
 
 echo "PDF build completed"

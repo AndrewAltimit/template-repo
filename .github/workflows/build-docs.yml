@@ -47,7 +47,7 @@ jobs:
             --user "$(id -u):$(id -g)" \
             -v "$(pwd)/packages/sleeper_agents/docs:/data" \
             -v "$(pwd)/docs_output:/output" \
-            texlive/texlive:TL2024-historic \
+            ghcr.io/xu-cheng/texlive-full:latest \
             bash -c "cd /data && \
               pdflatex -interaction=nonstopmode -output-directory=/output Sleeper_Agents_Framework_Guide.tex && \
               pdflatex -interaction=nonstopmode -output-directory=/output Sleeper_Agents_Framework_Guide.tex"
@@ -105,7 +105,7 @@ jobs:
             --user "$(id -u):$(id -g)" \
             -v "$(pwd)/docs/integrations/ai-services:/data" \
             -v "$(pwd)/docs_output:/output" \
-            texlive/texlive:TL2024-historic \
+            ghcr.io/xu-cheng/texlive-full:latest \
             bash -c "cd /data && \
               pdflatex -interaction=nonstopmode -output-directory=/output AgentCore_Memory_Integration_Guide.tex && \
               pdflatex -interaction=nonstopmode -output-directory=/output AgentCore_Memory_Integration_Guide.tex && \
@@ -164,7 +164,7 @@ jobs:
             --user "$(id -u):$(id -g)" \
             -v "${{ github.workspace }}/docs/integrations/ai-services:/data" \
             -v "${{ github.workspace }}/docs_output:/output" \
-            texlive/texlive:TL2024-historic \
+            ghcr.io/xu-cheng/texlive-full:latest \
             bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output Virtual_Character_System_Guide.tex"
 
           echo "PDF build completed"
@@ -403,7 +403,7 @@ jobs:
             --user "$(id -u):$(id -g)" \
             -v "$(pwd)/docs/agents:/data" \
             -v "$(pwd)/docs_output:/output" \
-            texlive/texlive:TL2024-historic \
+            ghcr.io/xu-cheng/texlive-full:latest \
             bash -c "cd /data && pdflatex -interaction=nonstopmode -output-directory=/output Agentic_Workflow_Handout.tex"
 
           echo "PDF build completed"
