@@ -715,20 +715,31 @@ runs:
                 > "$CLAUDE_OUTPUT_FILE"; then
                 # Check JSON output for errors
                 if [ -f "$CLAUDE_OUTPUT_FILE" ]; then
-                  IS_ERROR=$(jq -r '.is_error // false' "$CLAUDE_OUTPUT_FILE" 2>/dev/null || echo "false")
-                  if [ "$IS_ERROR" = "true" ]; then
-                    ERRORS=$(jq -r '.errors | join("; ")' "$CLAUDE_OUTPUT_FILE" 2>/dev/null || echo "Unknown error")
-                    AGENT_ERROR="Claude reported errors: $ERRORS"
+                  # Fail-safe: Check for empty file first
+                  if [ ! -s "$CLAUDE_OUTPUT_FILE" ]; then
+                    AGENT_ERROR="Claude produced empty output (possible silent crash)"
                     echo "::error::$AGENT_ERROR"
-                    cat "$CLAUDE_OUTPUT_FILE"
                   else
-                    WORK_COMPLETED="true"
-                    echo "Claude completed successfully"
-                    # Show summary from JSON output
-                    jq -r 'if .result then .result else . end' "$CLAUDE_OUTPUT_FILE" 2>/dev/null || cat "$CLAUDE_OUTPUT_FILE"
+                    # Initialize to true (fail-safe) - only set to false if jq succeeds and finds no error
+                    IS_ERROR="true"
+                    if jq -e '.' "$CLAUDE_OUTPUT_FILE" > /dev/null 2>&1; then
+                      IS_ERROR=$(jq -r '.is_error // false' "$CLAUDE_OUTPUT_FILE")
+                    fi
+                    if [ "$IS_ERROR" = "true" ]; then
+                      ERRORS=$(jq -r '.errors | join("; ")' "$CLAUDE_OUTPUT_FILE" 2>/dev/null || echo "Unknown error")
+                      AGENT_ERROR="Claude reported errors: $ERRORS"
+                      echo "::error::$AGENT_ERROR"
+                      cat "$CLAUDE_OUTPUT_FILE"
+                    else
+                      WORK_COMPLETED="true"
+                      echo "Claude completed successfully"
+                      # Show summary from JSON output
+                      jq -r 'if .result then .result else . end' "$CLAUDE_OUTPUT_FILE" 2>/dev/null || cat "$CLAUDE_OUTPUT_FILE"
+                    fi
                   fi
                 else
-                  WORK_COMPLETED="true"
+                  AGENT_ERROR="Claude output file was not created"
+                  echo "::error::$AGENT_ERROR"
                 fi
               else
                 EXIT_CODE=$?

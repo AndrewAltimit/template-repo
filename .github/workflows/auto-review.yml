@@ -163,7 +163,8 @@ jobs:
           echo "Repository: $GITHUB_REPOSITORY"
 
           # Run the auto review script from the scripts directory
-          python3 automation/review/auto-review.py || {
+          # Use venv python to access installed packages
+          .venv/bin/python3 automation/review/auto-review.py || {
               exit_code=$?
               echo "[ERROR] Auto review failed with exit code: $exit_code"
               exit $exit_code

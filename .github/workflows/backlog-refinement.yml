@@ -142,7 +142,8 @@ jobs:
         run: |
           echo "::group::Backlog Refinement"
 
-          REFINEMENT_OUTPUT=$(python3 << 'PYTHON_SCRIPT'
+          # Use venv python to access installed packages
+          REFINEMENT_OUTPUT=$(.venv/bin/python3 << 'PYTHON_SCRIPT'
           import asyncio
           import json
           import os

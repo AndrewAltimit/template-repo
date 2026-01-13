@@ -158,7 +158,8 @@ jobs:
         run: |
           echo "::group::Codebase Analysis"
 
-          ANALYSIS_OUTPUT=$(python3 << 'PYTHON_SCRIPT'
+          # Use venv python to access installed packages
+          ANALYSIS_OUTPUT=$(.venv/bin/python3 << 'PYTHON_SCRIPT'
           import asyncio
           import json
           import os

@@ -184,8 +184,9 @@ jobs:
           fi
 
           # Run the PR review monitor from the new package
+          # Use venv python to access installed packages
           cd "${{ github.workspace }}"
-          python3 -m github_agents.cli pr-monitor || {
+          .venv/bin/python3 -m github_agents.cli pr-monitor || {
               exit_code=$?
               echo "[ERROR] PR review monitor script failed with exit code: $exit_code"
 

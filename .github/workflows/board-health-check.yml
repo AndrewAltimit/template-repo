@@ -62,7 +62,8 @@ jobs:
         run: |
           echo "::group::Health Checks"
 
-          HEALTH_RESULT=$(python3 << 'PYTHON_SCRIPT'
+          # Use venv python to access installed packages
+          HEALTH_RESULT=$(.venv/bin/python3 << 'PYTHON_SCRIPT'
           import asyncio
           import json
           import os
