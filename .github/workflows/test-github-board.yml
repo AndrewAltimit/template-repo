@@ -38,6 +38,11 @@ concurrency:
   group: github-board-tests-${{ github.ref }}
   cancel-in-progress: true
 
+# Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
 jobs:
   # Unit tests for board module
   unit-tests:
@@ -60,7 +65,7 @@ jobs:
             -v --cov=github_agents.board --cov-report=term --cov-report=html"
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: board-unit-coverage
@@ -182,9 +187,12 @@ jobs:
       - name: Test MCP server
         run: |
           echo "🧪 Testing GitHub Board MCP server..."
+          # Create virtual environment (PEP 668 compliance for newer Ubuntu)
+          python3 -m venv .venv
+          source .venv/bin/activate
           # Install MCP packages before running test
-          pip3 install --user -e ./tools/mcp/mcp_core
-          pip3 install --user -e ./tools/mcp/mcp_github_board
+          pip install -e ./tools/mcp/mcp_core
+          pip install -e ./tools/mcp/mcp_github_board
           python tools/mcp/mcp_github_board/scripts/test_server.py --quick
 
   # End-to-end tests (optional, requires live board)

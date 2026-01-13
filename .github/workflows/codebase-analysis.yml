@@ -106,7 +106,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Full history for analysis
 
@@ -114,7 +114,11 @@ jobs:
         run: |
           echo "::group::Setup Python Environment"
           python3 --version
-          pip3 install --user -e ./packages/github_agents
+          # Create virtual environment (PEP 668 compliance for newer Ubuntu)
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install -e ./packages/github_agents
+          echo "VENV_PATH=$PWD/.venv" >> $GITHUB_ENV
           echo "::endgroup::"
 
       - name: Load configuration
@@ -154,7 +158,8 @@ jobs:
         run: |
           echo "::group::Codebase Analysis"
 
-          ANALYSIS_OUTPUT=$(python3 << 'PYTHON_SCRIPT'
+          # Use venv python to access installed packages
+          ANALYSIS_OUTPUT=$(.venv/bin/python3 << 'PYTHON_SCRIPT'
           import asyncio
           import json
           import os

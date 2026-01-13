@@ -687,7 +687,27 @@ def main() -> None:
 
     if not success:
         print(f"Warning: Codex analysis failed: {analysis}")
-        # Create a minimal review noting the failure
+
+        # Check if this is a rate limit error - skip gracefully without posting
+        rate_limit_indicators = [
+            "429",
+            "rate limit",
+            "usage_limit_reached",
+            "too many requests",
+            "quota exceeded",
+        ]
+        is_rate_limited = any(indicator in analysis.lower() for indicator in rate_limit_indicators)
+
+        if is_rate_limited:
+            print("Codex is rate limited - skipping review (non-blocking)")
+            # Save a note locally but don't post to PR
+            with open("codex-review.md", "w", encoding="utf-8") as f:
+                f.write("# Codex Review Skipped\n\nRate limit reached. Gemini review is available.\n")
+            print("Saved skip notice to codex-review.md")
+            print("Codex PR review skipped (rate limited) - this is non-blocking")
+            sys.exit(0)
+
+        # For other failures, create a minimal review noting the issue
         analysis = f"""### Review Status
 
 Codex analysis encountered an issue: {analysis}

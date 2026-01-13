@@ -712,6 +712,22 @@ services:
       - agents
       - codex
 
+  # TeXLive container for building LaTeX documents
+  # Multi-arch support (amd64 and arm64)
+  texlive:
+    build:
+      context: .
+      dockerfile: docker/texlive.Dockerfile
+    container_name: texlive
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - ./:/data
+    working_dir: /data
+    command: ["pdflatex", "--version"]
+    profiles:
+      - ci
+      - docs
+
   # Python CI container for running tests and linting
   # NOTE: Builds gh-validator from source inline (multi-stage build)
   python-ci:
