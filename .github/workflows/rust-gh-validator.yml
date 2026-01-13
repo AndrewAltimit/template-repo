@@ -25,7 +25,7 @@ jobs:
         working-directory: tools/rust/gh-validator
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         run: |
@@ -38,10 +38,17 @@ jobs:
             echo "Existing Rust target: $RUST_ARCH"
 
             # If architecture mismatch, remove old installation
-            if [[ "$ARCH" == "aarch64" && ! "$RUST_ARCH" =~ "aarch64" ]] || \
-               [[ "$ARCH" == "x86_64" && ! "$RUST_ARCH" =~ "x86_64" ]]; then
-              echo "Architecture mismatch detected, reinstalling Rust..."
-              rm -rf "$HOME/.cargo" "$HOME/.rustup"
+            # IMPORTANT: Only trigger if RUST_ARCH is a known architecture value.
+            # If rustc fails (RUST_ARCH="unknown"), skip removal to avoid
+            # accidentally deleting a working installation.
+            if [[ "$RUST_ARCH" != "unknown" ]]; then
+              if [[ "$ARCH" == "aarch64" && ! "$RUST_ARCH" =~ "aarch64" ]] || \
+                 [[ "$ARCH" == "x86_64" && ! "$RUST_ARCH" =~ "x86_64" ]]; then
+                echo "Architecture mismatch detected, reinstalling Rust..."
+                rm -rf "$HOME/.cargo" "$HOME/.rustup"
+              fi
+            else
+              echo "Warning: Could not determine Rust architecture, skipping mismatch check"
             fi
           fi
 
@@ -84,7 +91,7 @@ jobs:
           fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.build.outputs.artifact_name }}
           path: tools/rust/gh-validator/target/release/gh
@@ -107,7 +114,7 @@ jobs:
         working-directory: tools/rust/gh-validator
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Check architecture compatibility
         id: arch-check
@@ -150,7 +157,7 @@ jobs:
 
       - name: Upload artifact
         if: steps.arch-check.outputs.skip != 'true'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
           path: tools/rust/gh-validator/target/${{ matrix.target }}/release/gh${{ contains(matrix.target, 'windows') && '.exe' || '' }}
@@ -167,7 +174,7 @@ jobs:
         working-directory: tools/rust/gh-validator
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Check architecture compatibility
         id: arch-check
@@ -223,7 +230,7 @@ jobs:
 
       - name: Upload artifact
         if: steps.arch-check.outputs.skip != 'true'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.target.outputs.asset_name }}
           path: tools/rust/gh-validator/target/${{ steps.target.outputs.target }}/release/gh
@@ -239,7 +246,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
 

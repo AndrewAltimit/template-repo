@@ -40,7 +40,7 @@ jobs:
       warnings: ${{ steps.result.outputs.warnings }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           clean: true
@@ -96,7 +96,7 @@ jobs:
 
       - name: Upload artifacts
         if: inputs.upload_artifacts && always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: lint-results-${{ inputs.stage }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |

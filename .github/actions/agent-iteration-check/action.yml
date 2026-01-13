@@ -125,7 +125,7 @@ runs:
         echo "  Exceeded Max: $EXCEEDED_MAX"
 
     - name: Upload iteration artifact
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v4
       with:
         name: agent-iteration-pr-${{ inputs.pr_number }}
         path: /tmp/agent-iteration-${{ inputs.pr_number }}/

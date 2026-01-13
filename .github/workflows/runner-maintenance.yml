@@ -246,7 +246,7 @@ jobs:
           EOF
 
       - name: Upload Health Report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: runner-health-report-${{ runner.name }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: runner-health-report.md
@@ -526,7 +526,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           clean: true
@@ -633,7 +633,7 @@ jobs:
           EOF
 
       - name: Upload Summary
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: maintenance-summary-${{ github.run_id }}-${{ github.run_attempt }}
           path: maintenance-summary.md

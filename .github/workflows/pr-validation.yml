@@ -53,7 +53,7 @@ jobs:
       files_changed: ${{ steps.changes.outputs.files_changed }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           clean: true
@@ -140,7 +140,7 @@ jobs:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           clean: true
@@ -277,7 +277,7 @@ jobs:
 
       - name: Upload review artifact
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: gemini-review-${{ github.run_id }}-${{ github.run_attempt }}
           path: gemini-review.md
@@ -313,7 +313,7 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           clean: true
@@ -329,7 +329,7 @@ jobs:
           echo "Working directory reset to clean state"
 
       - name: Download Gemini review artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: gemini-review-${{ github.run_id }}-${{ github.run_attempt }}
@@ -368,7 +368,7 @@ jobs:
 
       - name: Upload Codex review artifact
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: codex-review-${{ github.run_id }}-${{ github.run_attempt }}
           path: codex-review.md
@@ -407,7 +407,7 @@ jobs:
       GITHUB_REPOSITORY: ${{ github.repository }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           clean: true
@@ -450,7 +450,7 @@ jobs:
 
       - name: Download review artifacts
         if: steps.iteration.outputs.should_skip != 'true'
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           pattern: '*-review-${{ github.run_id }}-${{ github.run_attempt }}'
@@ -569,7 +569,7 @@ jobs:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           clean: true
@@ -592,7 +592,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           clean: true
@@ -651,7 +651,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           clean: true
@@ -678,7 +678,7 @@ jobs:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           clean: true
@@ -728,7 +728,7 @@ jobs:
 
       - name: Upload coverage artifacts
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -771,7 +771,7 @@ jobs:
           echo "✅ Output cleanup complete"
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           clean: true
@@ -907,7 +907,7 @@ jobs:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           clean: true
@@ -1052,7 +1052,7 @@ jobs:
       FULL_LINT_RESULT: ${{ needs.full-lint.result }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           clean: true
