@@ -182,9 +182,12 @@ jobs:
       - name: Test MCP server
         run: |
           echo "🧪 Testing GitHub Board MCP server..."
+          # Create virtual environment (PEP 668 compliance for newer Ubuntu)
+          python3 -m venv .venv
+          source .venv/bin/activate
           # Install MCP packages before running test
-          pip3 install --user -e ./tools/mcp/mcp_core
-          pip3 install --user -e ./tools/mcp/mcp_github_board
+          pip install -e ./tools/mcp/mcp_core
+          pip install -e ./tools/mcp/mcp_github_board
           python tools/mcp/mcp_github_board/scripts/test_server.py --quick
 
   # End-to-end tests (optional, requires live board)

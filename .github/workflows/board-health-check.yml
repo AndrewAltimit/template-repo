@@ -45,7 +45,11 @@ jobs:
         run: |
           echo "::group::Setup Python Environment"
           python3 --version
-          pip3 install --user -e ./packages/github_agents
+          # Create virtual environment (PEP 668 compliance for newer Ubuntu)
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install -e ./packages/github_agents
+          echo "VENV_PATH=$PWD/.venv" >> $GITHUB_ENV
           echo "::endgroup::"
 
       - name: Run health checks

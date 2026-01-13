@@ -102,13 +102,20 @@ jobs:
           echo "[INFO] Setting up Python environment..."
           python3 --version
 
+          # Create virtual environment (PEP 668 compliance for newer Ubuntu)
+          echo "[INFO] Creating virtual environment..."
+          python3 -m venv .venv
+          source .venv/bin/activate
+
           # Install the GitHub AI Agents package
           echo "[INFO] Installing GitHub AI Agents package..."
-          pip3 install --user -e ./packages/github_agents
+          pip install -e ./packages/github_agents
 
           # Install additional requirements
           echo "[INFO] Installing additional requirements..."
-          pip3 install --user -r docker/requirements/requirements-agents.txt
+          pip install -r docker/requirements/requirements-agents.txt
+
+          echo "VENV_PATH=$PWD/.venv" >> $GITHUB_ENV
 
       - name: Build Docker containers for containerized agents
         if: contains(inputs.agents, 'opencode') || contains(inputs.agents, 'crush') || github.event_name == 'schedule'
