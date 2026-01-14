@@ -35,12 +35,13 @@ load_agents_config() {
 
     if [ ! -f "$config_file" ]; then
         echo "[CONFIG] .agents.yaml not found, using defaults"
-        return
+        return 0
     fi
 
     echo "[CONFIG] Loading configuration from .agents.yaml"
 
     # Parse agent_admins using awk for cleaner section parsing
+    # Note: grep -v returns exit 1 if no matches, so we use || true to prevent set -e from aborting
     if grep -q "agent_admins:" "$config_file"; then
         local admins
         admins=$(awk '/agent_admins:/,/^[[:space:]]*[a-z_]+:/' "$config_file" \
@@ -48,8 +49,8 @@ load_agents_config() {
             | sed 's/#.*//' \
             | sed 's/.*-[[:space:]]*//' \
             | tr -d ' ' \
-            | grep -v '^$' \
-            | head -10)
+            | { grep -v '^$' || true; } \
+            | head -10) || true
         if [ -n "$admins" ]; then
             AGENT_ADMINS=()
             while IFS= read -r admin; do
@@ -67,8 +68,8 @@ load_agents_config() {
             | sed 's/#.*//' \
             | sed 's/.*-[[:space:]]*//' \
             | tr -d ' ' \
-            | grep -v '^$' \
-            | head -20)
+            | { grep -v '^$' || true; } \
+            | head -20) || true
         if [ -n "$sources" ]; then
             TRUSTED_SOURCES=()
             while IFS= read -r source; do
@@ -77,6 +78,8 @@ load_agents_config() {
             echo "[CONFIG] Loaded trusted_sources: ${TRUSTED_SOURCES[*]}"
         fi
     fi
+
+    return 0
 }
 
 # =============================================================================
@@ -259,12 +262,16 @@ validate_import_issue() {
         return 1
     fi
 
-    # Check if the import is actually missing
-    if grep -qE "^import $import_name|^from $import_name" "$file"; then
+    # Check if the import is actually present (handles multiple formats):
+    # - import module
+    # - import module, module2, module3
+    # - from module import ...
+    # - import module as alias
+    if grep -qE "^import[[:space:]]+(${import_name}|[^#]*,[[:space:]]*${import_name})|^from[[:space:]]+${import_name}[[:space:]]" "$file"; then
         return 1  # Import exists, not a valid issue
     fi
 
-    # Check if the module is used
+    # Check if the module is used in the file
     if grep -qE "\b${import_name}\." "$file"; then
         return 0  # Module used but not imported - valid issue
     fi
@@ -272,26 +279,45 @@ validate_import_issue() {
     return 1
 }
 
-# Run static analysis to confirm issues
+# Run static analysis to confirm issues at a specific line
+# Parameters:
+#   $1 - file path
+#   $2 - line number (optional, validates whole file if not provided)
+#   $3 - error pattern (optional, defaults to common import/syntax errors)
 validate_with_linter() {
     local file="$1"
+    local line_num="${2:-}"
+    local error_pattern="${3:-F401|F811|E999|E902}"
 
     if [ ! -f "$file" ]; then
         return 1
     fi
 
+    local linter_output=""
+
     # Try flake8 if available
     if command -v flake8 &> /dev/null; then
-        if flake8 "$file" 2>/dev/null | grep -qE "F401|F811|E999|E902"; then
-            return 0  # Linter found issues
-        fi
+        linter_output=$(flake8 "$file" 2>/dev/null) || true
+    elif command -v docker &> /dev/null && [ -f "docker-compose.yml" ]; then
+        # Try running in container if available
+        linter_output=$(docker-compose run --rm python-ci flake8 "$file" 2>/dev/null) || true
     fi
 
-    # Try running in container if available
-    if command -v docker &> /dev/null && [ -f "docker-compose.yml" ]; then
-        if docker-compose run --rm python-ci flake8 "$file" 2>/dev/null | grep -qE "F401|F811|E999|E902"; then
-            return 0
+    if [ -z "$linter_output" ]; then
+        return 1  # No linter output, can't validate
+    fi
+
+    # If line number provided, check for issues on that specific line
+    if [ -n "$line_num" ]; then
+        if echo "$linter_output" | grep -qE ":${line_num}:.*($error_pattern)"; then
+            return 0  # Found matching error on the specific line
         fi
+        return 1  # No matching error on that line
+    fi
+
+    # No line number - check if file has any matching errors
+    if echo "$linter_output" | grep -qE "$error_pattern"; then
+        return 0  # Linter found matching issues somewhere in file
     fi
 
     return 1
