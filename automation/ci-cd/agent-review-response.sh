@@ -714,29 +714,12 @@ _Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
     exit 0
 fi
 
-# Proceed with fixes (FINAL_DECISION = FIX or VALIDATE->FIX)
-echo "[RUBRIC] Proceeding with fixes (decision: $FINAL_DECISION)"
-
-# Post comment about what we're fixing
-post_agent_comment "## Agent Review Response
-
-**Status**: Proceeding with validated fixes
-
-### Decision Analysis
-- **Feedback Type**: $FEEDBACK_TYPE
-- **Source Trust Level**: $TRUST_LEVEL
-- **Decision**: $FINAL_DECISION
-
-### Validation Results
-- Validated items: $VALIDATED_ISSUES
-- Suspected hallucinations: $HALLUCINATION_SUSPECTS (ignored)
-
-### Patterns Matched
-$(printf '%b' "$MATCHED_PATTERNS")
-
-The agent will attempt to fix **validated** issues only. Suspected hallucinations are ignored.
-
-_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
+# Proceed with analysis (FINAL_DECISION = FIX or VALIDATE)
+# NOTE: We do NOT comment yet - we wait until after Claude analyzes to see
+# what actually happened. Commenting before analysis leads to misleading
+# "Proceeding with fixes" messages when Claude finds nothing to fix.
+echo "[RUBRIC] Proceeding with analysis (decision: $FINAL_DECISION)"
+echo "[RUBRIC] Validation summary: $VALIDATED_ISSUES validated, $HALLUCINATION_SUSPECTS suspected hallucinations"
 
 # Step 1: Run autoformat first (quick wins)
 echo ""
@@ -826,6 +809,9 @@ elif command -v claude-code &> /dev/null; then
     CLAUDE_CMD="claude-code --print --dangerously-skip-permissions"
 fi
 
+# Capture Claude's output for use in PR comments
+CLAUDE_OUTPUT_FILE=$(mktemp)
+
 if [ -n "$CLAUDE_CMD" ]; then
     echo "Running Claude with prompt..."
 
@@ -835,9 +821,9 @@ if [ -n "$CLAUDE_CMD" ]; then
         TIMEOUT_CMD=""
     fi
 
-    # Run Claude (prompt is passed as positional argument)
+    # Run Claude and capture output (prompt is passed as positional argument)
     # shellcheck disable=SC2086
-    $TIMEOUT_CMD $CLAUDE_CMD "$(cat "$PROMPT_FILE")" 2>&1 || {
+    $TIMEOUT_CMD $CLAUDE_CMD "$(cat "$PROMPT_FILE")" 2>&1 | tee "$CLAUDE_OUTPUT_FILE" || {
         exit_code=$?
         echo "Claude exited with code: $exit_code"
         if [ $exit_code -eq 124 ]; then
@@ -848,6 +834,7 @@ if [ -n "$CLAUDE_CMD" ]; then
     rm -f "$PROMPT_FILE"
 else
     echo "WARNING: Claude CLI not found, skipping AI-assisted fixes"
+    echo "Claude CLI not available" > "$CLAUDE_OUTPUT_FILE"
     rm -f "$PROMPT_FILE"
 fi
 
@@ -860,9 +847,59 @@ git add -A
 
 if git diff --cached --quiet 2>/dev/null; then
     echo "No changes to commit"
+
+    # IMPORTANT: Always explain why no changes were made
+    # This prevents misleading situations where the agent appears to have acted but didn't
+
+    # Extract key findings from Claude's output for the comment
+    CLAUDE_SUMMARY=""
+    if [ -f "$CLAUDE_OUTPUT_FILE" ] && [ -s "$CLAUDE_OUTPUT_FILE" ]; then
+        # Look for summary/decision sections in Claude's output
+        # Truncate to avoid overly long comments (max 1500 chars)
+        CLAUDE_SUMMARY=$(grep -iE "(validated|skipped|hallucination|no changes|architectural|design|debatable)" "$CLAUDE_OUTPUT_FILE" | head -20 | cut -c1-200 | head -c 1500) || true
+    fi
+
+    post_agent_comment "## Agent Review Response
+
+**Status**: No changes made
+
+The agent analyzed the AI review feedback but determined no automated fixes should be applied.
+
+### Decision Analysis
+- **Feedback Type**: $FEEDBACK_TYPE
+- **Source Trust Level**: $TRUST_LEVEL
+- **Initial Decision**: $FINAL_DECISION
+
+### Pre-Analysis Validation
+- Items with valid file references: $VALIDATED_ISSUES
+- Suspected hallucinations (invalid files/lines): $HALLUCINATION_SUSPECTS
+
+### Patterns Originally Matched
+$(printf '%b' "$MATCHED_PATTERNS")
+
+### Claude's Analysis
+$(if [ -n "$CLAUDE_SUMMARY" ]; then echo "\`\`\`"; echo "$CLAUDE_SUMMARY"; echo "\`\`\`"; else echo "No detailed analysis available"; fi)
+
+### Why No Changes?
+Common reasons include:
+- Issues were **hallucinations** (files/lines don't exist)
+- Suggestions require **architectural decisions** (not auto-fixable)
+- Changes would affect **business logic** (requires human review)
+- Issues are **debatable** style preferences
+
+If these issues are legitimate and should be fixed, please either:
+1. Fix manually
+2. Provide specific guidance for the agent
+
+_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
+
+    rm -f "$CLAUDE_OUTPUT_FILE"
     echo "made_changes=false" >> "${GITHUB_OUTPUT:-/dev/null}"
     exit 0
 fi
+
+# Clean up Claude output file since we're proceeding with changes
+rm -f "$CLAUDE_OUTPUT_FILE"
 
 echo "Changes detected, creating commit..."
 
@@ -916,4 +953,28 @@ echo ""
 echo "=== Agent Review Response Complete ==="
 echo "Changes pushed to branch: $BRANCH_NAME"
 echo "Pipeline will be retriggered automatically"
+
+# Post success comment
+post_agent_comment "## Agent Review Response
+
+**Status**: Changes pushed
+
+The agent successfully applied fixes based on the AI review feedback.
+
+### Decision Analysis
+- **Feedback Type**: $FEEDBACK_TYPE
+- **Source Trust Level**: $TRUST_LEVEL
+- **Decision**: $FINAL_DECISION
+
+### Validation Summary
+- Items validated: $VALIDATED_ISSUES
+- Suspected hallucinations ignored: $HALLUCINATION_SUSPECTS
+
+### Patterns Addressed
+$(printf '%b' "$MATCHED_PATTERNS")
+
+The pipeline will automatically re-run to validate these changes.
+
+_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
+
 echo "made_changes=true" >> "${GITHUB_OUTPUT:-/dev/null}"
