@@ -250,8 +250,9 @@ validate_import_issue() {
     # - import module, module2, module3
     # - from module import ...
     # - import module as alias
+    # Also handles indented imports (e.g., inside try/except blocks)
     # Use word boundary \b to prevent partial matches (e.g., "os" matching "osgeo")
-    if grep -qE "^import[[:space:]]+(${import_name}\b|[^#]*,[[:space:]]*${import_name}\b)|^from[[:space:]]+${import_name}\b" "$file"; then
+    if grep -qE "^[[:space:]]*(import[[:space:]]+(${import_name}\b|[^#]*,[[:space:]]*${import_name}\b)|from[[:space:]]+${import_name}\b)" "$file"; then
         return 1  # Import exists, not a valid issue
     fi
 
@@ -619,7 +620,7 @@ TRUST_LEVEL=$(get_trust_level "$REVIEW_SOURCE")
 echo "[RUBRIC] Review source: $REVIEW_SOURCE (trust level: $TRUST_LEVEL)"
 
 # Classify the overall feedback type
-FEEDBACK_TYPE=$(classify_feedback "$(echo -e "$REVIEW_CONTENT")")
+FEEDBACK_TYPE=$(classify_feedback "$(printf '%s\n' "$REVIEW_CONTENT")")
 echo "[RUBRIC] Feedback type: $FEEDBACK_TYPE"
 
 # Make initial decision
@@ -709,7 +710,7 @@ while IFS= read -r line; do
             fi
         fi
     fi
-done < <(echo -e "$REVIEW_CONTENT")
+done < <(printf '%s\n' "$REVIEW_CONTENT")
 
 echo ""
 echo "[RUBRIC] Validation summary:"
