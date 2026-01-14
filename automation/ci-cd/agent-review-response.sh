@@ -2,6 +2,14 @@
 # Agent Review Response Script
 # Responds to Gemini/Codex AI reviews by parsing feedback and making fixes
 #
+# This script implements a decision rubric for handling AI review feedback:
+# - Never treats AI feedback as ground truth (AI can hallucinate)
+# - Validates issues before acting
+# - Categorizes feedback by type and source trust level
+# - Escalates to admins when appropriate
+#
+# See AGENT_DECISION_RUBRIC.md for full documentation
+#
 # Usage: agent-review-response.sh <pr_number> <branch_name> <iteration_count>
 #
 # Environment variables:
@@ -12,6 +20,379 @@
 
 set -e
 set -o pipefail
+
+# =============================================================================
+# CONFIGURATION - Loaded from .agents.yaml
+# =============================================================================
+
+# Default values (overridden by .agents.yaml if present)
+AGENT_ADMINS=("AndrewAltimit")
+TRUSTED_SOURCES=("AndrewAltimit" "github-actions[bot]" "dependabot[bot]" "renovate[bot]")
+
+# Load configuration from .agents.yaml if available
+load_agents_config() {
+    local config_file=".agents.yaml"
+
+    if [ ! -f "$config_file" ]; then
+        echo "[CONFIG] .agents.yaml not found, using defaults"
+        return 0
+    fi
+
+    echo "[CONFIG] Loading configuration from .agents.yaml"
+
+    # Parse agent_admins using awk for cleaner section parsing
+    # Note: grep -v returns exit 1 if no matches, so we use || true to prevent set -e from aborting
+    if grep -q "agent_admins:" "$config_file"; then
+        local admins
+        admins=$(awk '/agent_admins:/,/^[[:space:]]*[a-z_]+:/' "$config_file" \
+            | grep '^\s*-' \
+            | sed 's/#.*//' \
+            | sed 's/.*-[[:space:]]*//' \
+            | tr -d ' ' \
+            | { grep -v '^$' || true; } \
+            | head -10) || true
+        if [ -n "$admins" ]; then
+            AGENT_ADMINS=()
+            while IFS= read -r admin; do
+                [ -n "$admin" ] && AGENT_ADMINS+=("$admin")
+            done <<< "$admins"
+            echo "[CONFIG] Loaded agent_admins: ${AGENT_ADMINS[*]}"
+        fi
+    fi
+
+    # Parse trusted_sources
+    if grep -q "trusted_sources:" "$config_file"; then
+        local sources
+        sources=$(awk '/trusted_sources:/,/^[[:space:]]*[a-z_]+:/' "$config_file" \
+            | grep '^\s*-' \
+            | sed 's/#.*//' \
+            | sed 's/.*-[[:space:]]*//' \
+            | tr -d ' ' \
+            | { grep -v '^$' || true; } \
+            | head -20) || true
+        if [ -n "$sources" ]; then
+            TRUSTED_SOURCES=()
+            while IFS= read -r source; do
+                [ -n "$source" ] && TRUSTED_SOURCES+=("$source")
+            done <<< "$sources"
+            echo "[CONFIG] Loaded trusted_sources: ${TRUSTED_SOURCES[*]}"
+        fi
+    fi
+
+    return 0
+}
+
+# =============================================================================
+# SOURCE TRUST CLASSIFICATION
+# =============================================================================
+
+# Check if a username is an agent admin
+is_agent_admin() {
+    local username="$1"
+    for admin in "${AGENT_ADMINS[@]}"; do
+        if [ "$admin" = "$username" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Check if a username is a trusted source
+is_trusted_source() {
+    local username="$1"
+    for source in "${TRUSTED_SOURCES[@]}"; do
+        if [ "$source" = "$username" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Get trust level for a source (ADMIN, TRUSTED, AI_REVIEWER, UNTRUSTED)
+get_trust_level() {
+    local source="$1"
+    local source_lower
+    source_lower=$(echo "$source" | tr '[:upper:]' '[:lower:]')
+
+    if is_agent_admin "$source"; then
+        echo "ADMIN"
+    elif is_trusted_source "$source"; then
+        echo "TRUSTED"
+    elif [[ "$source_lower" == gemini* ]] || \
+         [[ "$source_lower" == codex* ]] || \
+         [[ "$source_lower" == opencode* ]] || \
+         [[ "$source_lower" == crush* ]] || \
+         [[ "$source_lower" == *"ai review"* ]] || \
+         [[ "$source_lower" == *"ai-review"* ]]; then
+        echo "AI_REVIEWER"
+    else
+        echo "UNTRUSTED"
+    fi
+}
+
+# =============================================================================
+# FEEDBACK TYPE CLASSIFICATION
+# =============================================================================
+
+# Patterns for different feedback types
+CLEAR_BUG_PATTERNS=(
+    "undefined"
+    "not defined"
+    "NameError"
+    "import.*not found"
+    "missing import"
+    "syntax error"
+    "SyntaxError"
+    "unused import"
+    "F401"
+    "F811"
+    "IndentationError"
+)
+
+STYLE_PATTERNS=(
+    "formatting"
+    "indentation"
+    "whitespace"
+    "line too long"
+    "trailing whitespace"
+    "E501"
+    "W291"
+    "W293"
+)
+
+DEBATABLE_PATTERNS=(
+    "consider"
+    "might want"
+    "could be"
+    "suggest"
+    "recommend"
+    "perhaps"
+    "refactor"
+    "restructure"
+    "redesign"
+    "alternative"
+)
+
+# Note: TOOL_CHANGE detection is handled by Claude using the rubric,
+# not by pattern matching (too fragile, causes false positives)
+
+# Classify feedback into types: CLEAR_BUG, STYLE, DEBATABLE
+# Note: TOOL_CHANGE is intentionally not pattern-matched here - Claude applies
+# the rubric to identify tool changes and skips them appropriately
+classify_feedback() {
+    local feedback="$1"
+    local feedback_lower
+    feedback_lower=$(echo "$feedback" | tr '[:upper:]' '[:lower:]')
+
+    # Check for clear bugs
+    for pattern in "${CLEAR_BUG_PATTERNS[@]}"; do
+        if echo "$feedback_lower" | grep -qiE "$pattern"; then
+            echo "CLEAR_BUG"
+            return
+        fi
+    done
+
+    # Check for style issues
+    for pattern in "${STYLE_PATTERNS[@]}"; do
+        if echo "$feedback_lower" | grep -qiE "$pattern"; then
+            echo "STYLE"
+            return
+        fi
+    done
+
+    # Check for debatable suggestions
+    for pattern in "${DEBATABLE_PATTERNS[@]}"; do
+        if echo "$feedback_lower" | grep -qiE "$pattern"; then
+            echo "DEBATABLE"
+            return
+        fi
+    done
+
+    # Default to debatable if unclassified - Claude will apply judgment
+    echo "DEBATABLE"
+}
+
+# =============================================================================
+# VALIDATION FUNCTIONS
+# =============================================================================
+
+# Validate that a reported file exists
+validate_file_exists() {
+    local file="$1"
+    [ -f "$file" ]
+}
+
+# Validate that a line number is within file bounds
+validate_line_number() {
+    local file="$1"
+    local line="$2"
+
+    if [ ! -f "$file" ]; then
+        return 1
+    fi
+
+    local total_lines
+    total_lines=$(wc -l < "$file")
+    [ "$line" -le "$total_lines" ] 2>/dev/null
+}
+
+# Validate an import issue by checking if the import exists
+validate_import_issue() {
+    local file="$1"
+    local import_name="$2"
+
+    if [ ! -f "$file" ]; then
+        return 1
+    fi
+
+    # Check if the import is actually present (handles multiple formats):
+    # - import module
+    # - import module, module2, module3
+    # - from module import ...
+    # - import module as alias
+    # Also handles indented imports (e.g., inside try/except blocks)
+    # Use word boundary \b to prevent partial matches (e.g., "os" matching "osgeo")
+    if grep -qE "^[[:space:]]*(import[[:space:]]+(${import_name}\b|[^#]*,[[:space:]]*${import_name}\b)|from[[:space:]]+${import_name}\b)" "$file"; then
+        return 1  # Import exists, not a valid issue
+    fi
+
+    # Check if the module is used in the file
+    if grep -qE "\b${import_name}\." "$file"; then
+        return 0  # Module used but not imported - valid issue
+    fi
+
+    return 1
+}
+
+# Run static analysis to confirm issues at a specific line
+# Parameters:
+#   $1 - file path
+#   $2 - line number (optional, validates whole file if not provided)
+#   $3 - error pattern (optional, defaults to common import/syntax errors)
+validate_with_linter() {
+    local file="$1"
+    local line_num="${2:-}"
+    local error_pattern="${3:-F401|F811|E999|E902}"
+
+    if [ ! -f "$file" ]; then
+        return 1
+    fi
+
+    local linter_output=""
+
+    # Try flake8 if available
+    if command -v flake8 &> /dev/null; then
+        linter_output=$(flake8 "$file" 2>/dev/null) || true
+    elif command -v docker &> /dev/null && [ -f "docker-compose.yml" ]; then
+        # Try running in container if available
+        linter_output=$(docker-compose run --rm python-ci flake8 "$file" 2>/dev/null) || true
+    fi
+
+    if [ -z "$linter_output" ]; then
+        return 1  # No linter output, can't validate
+    fi
+
+    # If line number provided, check for issues on that specific line
+    if [ -n "$line_num" ]; then
+        if echo "$linter_output" | grep -qE ":${line_num}:.*($error_pattern)"; then
+            return 0  # Found matching error on the specific line
+        fi
+        return 1  # No matching error on that line
+    fi
+
+    # No line number - check if file has any matching errors
+    if echo "$linter_output" | grep -qE "$error_pattern"; then
+        return 0  # Linter found matching issues somewhere in file
+    fi
+
+    return 1
+}
+
+# =============================================================================
+# ESCALATION FUNCTIONS
+# =============================================================================
+
+# Post an escalation request to the PR
+post_escalation() {
+    local reason="$1"
+    local feedback="$2"
+    local assessment="$3"
+
+    # Get first admin for @mention
+    local admin="${AGENT_ADMINS[0]:-AndrewAltimit}"
+
+    local escalation_comment="## Agent Escalation Request
+
+**Reason**: $reason
+
+### Feedback Received
+\`\`\`
+$feedback
+\`\`\`
+
+### Agent Assessment
+$assessment
+
+### Options
+1. Approve the suggested change
+2. Reject and keep current implementation
+3. Provide alternative guidance
+
+@$admin Please advise on how to proceed.
+
+_This escalation is from the automated review agent. Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
+
+    post_agent_comment "$escalation_comment"
+    echo "[ESCALATE] Posted escalation request for: $reason"
+}
+
+# =============================================================================
+# DECISION ENGINE
+# =============================================================================
+
+# Make a decision based on source trust and feedback type
+# Returns: FIX, SKIP, VALIDATE
+# Note: We no longer escalate automatically - Claude applies the rubric and
+# decides what to fix vs skip. Escalation is reserved for explicit admin requests.
+make_decision() {
+    local trust_level="$1"
+    local feedback_type="$2"
+    local validated="$3"  # true/false
+
+    case "$feedback_type" in
+        CLEAR_BUG)
+            if [ "$validated" = "true" ]; then
+                # Validated bugs get fixed regardless of source
+                echo "FIX"
+            else
+                case "$trust_level" in
+                    ADMIN|TRUSTED)
+                        echo "VALIDATE"  # Try to validate, then fix
+                        ;;
+                    AI_REVIEWER)
+                        # Pass to Claude - let it validate and decide
+                        echo "VALIDATE"
+                        ;;
+                    *)
+                        echo "SKIP"  # Don't trust untrusted sources
+                        ;;
+                esac
+            fi
+            ;;
+        STYLE)
+            # Style issues are safe to auto-fix via formatters
+            echo "FIX"
+            ;;
+        DEBATABLE)
+            # Pass to Claude - it will apply the rubric and skip debatable items
+            # Claude is smart enough to distinguish minor suggestions from major changes
+            echo "VALIDATE"
+            ;;
+        *)
+            echo "SKIP"
+            ;;
+    esac
+}
 
 # Parse arguments
 PR_NUMBER="$1"
@@ -31,6 +412,40 @@ echo "PR Number: $PR_NUMBER"
 echo "Branch: $BRANCH_NAME"
 echo "Iteration: $ITERATION_COUNT / $MAX_ITERATIONS"
 echo "============================="
+
+# Check for gh CLI availability early
+if ! command -v gh &> /dev/null; then
+    echo "WARNING: gh CLI not found - PR comments will be skipped"
+    echo "Install gh CLI for full functionality: https://cli.github.com/"
+fi
+
+# Load agent configuration
+load_agents_config
+
+# =============================================================================
+# PR COMMENTING FUNCTIONS
+# =============================================================================
+
+# Function to post a comment on the PR explaining agent decisions
+post_agent_comment() {
+    local comment_body="$1"
+
+    if [ -z "$GITHUB_TOKEN" ] || [ -z "$PR_NUMBER" ]; then
+        echo "Cannot post comment: missing GITHUB_TOKEN or PR_NUMBER"
+        return 1
+    fi
+
+    # Use gh CLI to post comment
+    if command -v gh &> /dev/null; then
+        echo "$comment_body" | gh pr comment "$PR_NUMBER" --body-file - || {
+            echo "Failed to post PR comment"
+            return 1
+        }
+        echo "Posted agent status comment to PR #$PR_NUMBER"
+    else
+        echo "gh CLI not found, skipping PR comment"
+    fi
+}
 
 # Safety check - ensure we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
@@ -98,6 +513,18 @@ fi
 
 if [ -z "$REVIEW_CONTENT" ]; then
     echo "No review feedback found, nothing to do"
+
+    # Post comment explaining no reviews were found
+    post_agent_comment "## Agent Review Response
+
+**Status**: No action taken
+
+No review artifacts were found for this iteration. This can happen if:
+- AI reviews haven't completed yet
+- Review artifacts weren't properly downloaded
+
+_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
+
     echo "made_changes=false" >> "${GITHUB_OUTPUT:-/dev/null}"
     exit 0
 fi
@@ -108,6 +535,7 @@ HAS_ACTIONABLE_ITEMS=false
 
 # Patterns that indicate actionable feedback
 # Avoid broad patterns that could match negations like "No type error found"
+# Note: Gemini uses formats like [CRITICAL/BUG] so we need flexible matching
 ACTIONABLE_PATTERNS=(
     "must fix"
     "should fix"
@@ -116,28 +544,227 @@ ACTIONABLE_PATTERNS=(
     "unused import"
     "remove unused"
     "missing import"
-    "\[BUG\]"
-    "\[ERROR\]"
-    "\[ISSUE\]"
+    "\[.*BUG.*\]"
+    "\[.*ERROR.*\]"
+    "\[.*ISSUE.*\]"
+    "\[CRITICAL"
     "\[STILL UNRESOLVED\]"
     "STILL UNRESOLVED"
 )
 
+MATCHED_PATTERNS=""
 for pattern in "${ACTIONABLE_PATTERNS[@]}"; do
-    if echo -e "$REVIEW_CONTENT" | grep -qiE "$pattern"; then
+    if printf '%s\n' "$REVIEW_CONTENT" | grep -qiE "$pattern"; then
         HAS_ACTIONABLE_ITEMS=true
+        MATCHED_PATTERNS+="- \`$pattern\`\n"
         echo "Found actionable pattern: $pattern"
-        break
     fi
 done
 
 if [ "$HAS_ACTIONABLE_ITEMS" = "false" ]; then
     echo "No actionable items found in reviews"
+
+    # Build list of patterns that were checked
+    PATTERNS_CHECKED=""
+    for pattern in "${ACTIONABLE_PATTERNS[@]}"; do
+        PATTERNS_CHECKED+="- \`$pattern\`\n"
+    done
+
+    # Determine which reviews were found
+    REVIEWS_FOUND=""
+    if [ -f "${GEMINI_REVIEW_PATH:-gemini-review.md}" ] || [ -f "gemini-review.md" ]; then
+        REVIEWS_FOUND+="- Gemini review\n"
+    fi
+    if [ -f "${CODEX_REVIEW_PATH:-codex-review.md}" ] || [ -f "codex-review.md" ]; then
+        REVIEWS_FOUND+="- Codex review\n"
+    fi
+
+    # Post detailed comment about the decision
+    post_agent_comment "## Agent Review Response
+
+**Status**: No actionable items detected
+
+The agent reviewed the AI feedback but found no patterns requiring automated fixes.
+
+### Reviews Analyzed
+$(printf '%b' "$REVIEWS_FOUND")
+
+### Patterns Checked (none matched)
+$(printf '%b' "$PATTERNS_CHECKED")
+
+### What This Means
+The AI reviews may have:
+- Found no issues (all clear)
+- Reported issues that don't match our actionable patterns
+- Reported false positives that don't require changes
+
+If you believe the agent missed something, please review the AI feedback comments above and either:
+1. Fix manually if needed
+2. Open an issue to improve pattern detection
+
+_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
+
     echo "made_changes=false" >> "${GITHUB_OUTPUT:-/dev/null}"
     exit 0
 fi
 
-echo "Actionable items detected, proceeding with fixes..."
+echo "Actionable items detected, analyzing with decision rubric..."
+
+# =============================================================================
+# APPLY DECISION RUBRIC
+# =============================================================================
+
+# Determine the review source (AI reviewer by default for artifact files)
+REVIEW_SOURCE="gemini"  # Default - Gemini/Codex are AI reviewers
+TRUST_LEVEL=$(get_trust_level "$REVIEW_SOURCE")
+echo "[RUBRIC] Review source: $REVIEW_SOURCE (trust level: $TRUST_LEVEL)"
+
+# Classify the overall feedback type
+FEEDBACK_TYPE=$(classify_feedback "$(printf '%s\n' "$REVIEW_CONTENT")")
+echo "[RUBRIC] Feedback type: $FEEDBACK_TYPE"
+
+# Make initial decision
+INITIAL_DECISION=$(make_decision "$TRUST_LEVEL" "$FEEDBACK_TYPE" "false")
+echo "[RUBRIC] Initial decision: $INITIAL_DECISION"
+
+# Track validation results for reporting
+VALIDATED_ISSUES=0
+HALLUCINATION_SUSPECTS=0
+
+# Analyze individual feedback items for validation
+echo ""
+echo "=== Validating AI Feedback ==="
+echo "IMPORTANT: AI reviewers can hallucinate. Validating claims..."
+
+# Track linter-validated issues separately
+LINTER_VALIDATED=0
+
+# Extract file references from review and validate them
+while IFS= read -r line; do
+    # Skip empty lines
+    [ -z "$line" ] && continue
+
+    # Reset per-line tracking
+    current_file=""
+    current_line=""
+
+    # Check if line mentions a file path
+    if echo "$line" | grep -qE "\.(py|js|ts|yaml|yml|sh|md)"; then
+        # Try to extract file path
+        current_file=$(echo "$line" | grep -oE "[a-zA-Z0-9_/.-]+\.(py|js|ts|yaml|yml|sh|md)" | head -1)
+
+        if [ -n "$current_file" ]; then
+            if validate_file_exists "$current_file"; then
+                echo "[VALIDATE] File exists: $current_file"
+                ((VALIDATED_ISSUES++)) || true
+            else
+                echo "[VALIDATE] WARNING: File does not exist: $current_file (possible hallucination)"
+                ((HALLUCINATION_SUSPECTS++)) || true
+                continue  # Skip further validation for non-existent file
+            fi
+        fi
+    fi
+
+    # Check for line number references
+    if echo "$line" | grep -qE "line [0-9]+|Line [0-9]+|:[0-9]+:"; then
+        current_line=$(echo "$line" | grep -oE "[0-9]+" | head -1)
+        if [ -n "$current_file" ] && [ -n "$current_line" ]; then
+            if validate_line_number "$current_file" "$current_line"; then
+                echo "[VALIDATE] Line $current_line valid in $current_file"
+            else
+                echo "[VALIDATE] WARNING: Line $current_line out of range in $current_file (possible hallucination)"
+                ((HALLUCINATION_SUSPECTS++)) || true
+            fi
+        fi
+    fi
+
+    # === SEMANTIC VALIDATION ===
+    # Now perform deeper validation using linter and import checks
+
+    # Check for import-related issues
+    if echo "$line" | grep -qiE "import|missing.*import|unused.*import|F401"; then
+        # Try to extract module name from feedback
+        # Common patterns: "import os", "missing import: requests", "unused import 'json'"
+        module_name=$(echo "$line" | grep -oE "(import|module)[[:space:]]+['\"]?([a-zA-Z_][a-zA-Z0-9_]*)['\"]?" | grep -oE "[a-zA-Z_][a-zA-Z0-9_]*$" | head -1) || true
+
+        if [ -n "$module_name" ] && [ -n "$current_file" ] && [[ "$current_file" == *.py ]]; then
+            echo "[VALIDATE] Checking import issue for module '$module_name' in $current_file"
+            if validate_import_issue "$current_file" "$module_name"; then
+                echo "[VALIDATE] CONFIRMED: Module '$module_name' is used but not imported"
+                ((LINTER_VALIDATED++)) || true
+            else
+                echo "[VALIDATE] Import issue NOT confirmed (module exists or not used)"
+            fi
+        fi
+    fi
+
+    # Run linter validation for Python files with specific line references
+    if [ -n "$current_file" ] && [[ "$current_file" == *.py ]]; then
+        if [ -n "$current_line" ]; then
+            echo "[VALIDATE] Running linter check on $current_file:$current_line"
+            if validate_with_linter "$current_file" "$current_line"; then
+                echo "[VALIDATE] CONFIRMED: Linter found issue at $current_file:$current_line"
+                ((LINTER_VALIDATED++)) || true
+            else
+                echo "[VALIDATE] Linter did NOT confirm issue at $current_file:$current_line"
+            fi
+        fi
+    fi
+done < <(printf '%s\n' "$REVIEW_CONTENT")
+
+echo ""
+echo "[RUBRIC] Validation summary:"
+echo "  - File/line checks passed: $VALIDATED_ISSUES"
+echo "  - Linter-confirmed issues: $LINTER_VALIDATED"
+echo "  - Suspected hallucinations: $HALLUCINATION_SUSPECTS"
+
+# Adjust decision based on validation results
+FINAL_DECISION="$INITIAL_DECISION"
+if [ "$HALLUCINATION_SUSPECTS" -gt 0 ] && [ "$VALIDATED_ISSUES" -eq 0 ]; then
+    echo "[RUBRIC] High hallucination risk detected - being extra cautious"
+    if [ "$FEEDBACK_TYPE" = "CLEAR_BUG" ]; then
+        FINAL_DECISION="SKIP"
+        echo "[RUBRIC] Downgrading CLEAR_BUG to SKIP due to validation failures"
+    fi
+fi
+
+# Handle skip cases
+if [ "$FINAL_DECISION" = "SKIP" ]; then
+    echo "[RUBRIC] Skipping - feedback does not meet criteria for auto-fix"
+
+    post_agent_comment "## Agent Review Response
+
+**Status**: No action taken (rubric decision: SKIP)
+
+The agent analyzed the feedback but determined it should not auto-fix.
+
+### Decision Analysis
+- **Feedback Type**: $FEEDBACK_TYPE
+- **Source Trust Level**: $TRUST_LEVEL
+- **Decision**: SKIP
+
+### Reasons for Skipping
+$(if [ "$FEEDBACK_TYPE" = "DEBATABLE" ]; then echo "- Debatable suggestions require human review"; fi)
+$(if [ "$TRUST_LEVEL" = "AI_REVIEWER" ] && [ "$VALIDATED_ISSUES" -eq 0 ]; then echo "- AI reviewer feedback could not be validated"; fi)
+$(if [ "$HALLUCINATION_SUSPECTS" -gt 0 ]; then echo "- $HALLUCINATION_SUSPECTS items showed signs of hallucination (non-existent files/lines)"; fi)
+
+### Patterns Originally Detected
+$(echo -e "$MATCHED_PATTERNS")
+
+If these issues are real, please fix them manually or ask an admin to approve agent action.
+
+_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
+
+    echo "made_changes=false" >> "${GITHUB_OUTPUT:-/dev/null}"
+    exit 0
+fi
+
+# Proceed with analysis (FINAL_DECISION = FIX or VALIDATE)
+# NOTE: We do NOT comment yet - we wait until after Claude analyzes to see
+# what actually happened. Commenting before analysis leads to misleading
+# "Proceeding with fixes" messages when Claude finds nothing to fix.
+echo "[RUBRIC] Proceeding with analysis (decision: $FINAL_DECISION)"
+echo "[RUBRIC] Validation summary: $VALIDATED_ISSUES validated, $HALLUCINATION_SUSPECTS suspected hallucinations"
 
 # Step 1: Run autoformat first (quick wins)
 echo ""
@@ -163,29 +790,55 @@ echo "=== Step 2: Invoking Claude for review feedback ==="
 CLAUDE_PROMPT=$(cat << 'PROMPT_EOF'
 You are addressing AI code review feedback for a pull request.
 
+CRITICAL: AI REVIEWERS CAN HALLUCINATE
+The feedback below comes from AI reviewers (Gemini, Codex) which are known to:
+- Report bugs in code that doesn't exist
+- Reference incorrect file paths or line numbers
+- Flag correct code as incorrect
+- Suggest unnecessary changes
+
+YOU MUST VALIDATE EVERY CLAIM before making changes:
+1. Verify the file exists before editing it
+2. Verify line numbers are within file bounds
+3. Confirm the reported issue actually exists in the code
+4. If you cannot validate an issue, SKIP IT - do not guess
+
 IMPORTANT INSTRUCTIONS:
 1. Focus ONLY on formatting, linting, and code style issues
 2. DO NOT modify test logic or business logic
 3. Fix unused imports, formatting issues, type hints
 4. Make minimal changes - only what's needed to address the feedback
+5. SKIP any feedback that cannot be validated or seems like a hallucination
+6. DO NOT make tool/dependency changes - those require admin approval
+7. DO NOT make architectural or design changes - those are debatable
 
 Review feedback to address:
 
 PROMPT_EOF
 )
 
-CLAUDE_PROMPT+=$(echo -e "$REVIEW_CONTENT")
+CLAUDE_PROMPT+=$(printf '%s\n' "$REVIEW_CONTENT")
 
 CLAUDE_PROMPT+=$(cat << 'PROMPT_EOF'
 
 Please analyze the review feedback above and make the necessary fixes.
-Focus on:
-- Unused imports (remove them)
-- Formatting issues (fix indentation, spacing)
-- Type hint issues
-- Linting errors mentioned
 
-After making changes, provide a brief summary of what was fixed.
+VALIDATION CHECKLIST (apply to each reported issue):
+[ ] File exists? If not, SKIP
+[ ] Line number valid? If not, SKIP
+[ ] Issue actually present in code? If not, SKIP
+[ ] Change is safe (no logic changes)? If not, SKIP
+
+Focus on VALIDATED issues only:
+- Unused imports (remove them if they actually exist)
+- Formatting issues (fix indentation, spacing)
+- Type hint issues (if the types are actually wrong)
+- Linting errors mentioned (confirm with actual code)
+
+After making changes, provide a brief summary including:
+1. What was fixed (validated issues)
+2. What was SKIPPED and why (hallucinations, unvalidated claims)
+3. Any issues that need human review
 PROMPT_EOF
 )
 
@@ -201,6 +854,9 @@ elif command -v claude-code &> /dev/null; then
     CLAUDE_CMD="claude-code --print --dangerously-skip-permissions"
 fi
 
+# Capture Claude's output for use in PR comments
+CLAUDE_OUTPUT_FILE=$(mktemp)
+
 if [ -n "$CLAUDE_CMD" ]; then
     echo "Running Claude with prompt..."
 
@@ -210,9 +866,9 @@ if [ -n "$CLAUDE_CMD" ]; then
         TIMEOUT_CMD=""
     fi
 
-    # Run Claude (prompt is passed as positional argument)
+    # Run Claude and capture output (prompt is passed as positional argument)
     # shellcheck disable=SC2086
-    $TIMEOUT_CMD $CLAUDE_CMD "$(cat "$PROMPT_FILE")" 2>&1 || {
+    $TIMEOUT_CMD $CLAUDE_CMD "$(cat "$PROMPT_FILE")" 2>&1 | tee "$CLAUDE_OUTPUT_FILE" || {
         exit_code=$?
         echo "Claude exited with code: $exit_code"
         if [ $exit_code -eq 124 ]; then
@@ -223,6 +879,7 @@ if [ -n "$CLAUDE_CMD" ]; then
     rm -f "$PROMPT_FILE"
 else
     echo "WARNING: Claude CLI not found, skipping AI-assisted fixes"
+    echo "Claude CLI not available" > "$CLAUDE_OUTPUT_FILE"
     rm -f "$PROMPT_FILE"
 fi
 
@@ -235,9 +892,60 @@ git add -A
 
 if git diff --cached --quiet 2>/dev/null; then
     echo "No changes to commit"
+
+    # IMPORTANT: Always explain why no changes were made
+    # This prevents misleading situations where the agent appears to have acted but didn't
+
+    # Extract key findings from Claude's output for the comment
+    CLAUDE_SUMMARY=""
+    if [ -f "$CLAUDE_OUTPUT_FILE" ] && [ -s "$CLAUDE_OUTPUT_FILE" ]; then
+        # Look for summary/decision sections in Claude's output
+        # Truncate to avoid overly long comments (max 1500 chars)
+        CLAUDE_SUMMARY=$(grep -iE "(validated|skipped|hallucination|no changes|architectural|design|debatable)" "$CLAUDE_OUTPUT_FILE" | head -20 | cut -c1-200 | head -c 1500) || true
+    fi
+
+    post_agent_comment "## Agent Review Response
+
+**Status**: No changes made
+
+The agent analyzed the AI review feedback but determined no automated fixes should be applied.
+
+### Decision Analysis
+- **Feedback Type**: $FEEDBACK_TYPE
+- **Source Trust Level**: $TRUST_LEVEL
+- **Initial Decision**: $FINAL_DECISION
+
+### Pre-Analysis Validation
+- Items with valid file references: $VALIDATED_ISSUES
+- Linter-confirmed issues: $LINTER_VALIDATED
+- Suspected hallucinations (invalid files/lines): $HALLUCINATION_SUSPECTS
+
+### Patterns Originally Matched
+$(printf '%b' "$MATCHED_PATTERNS")
+
+### Claude's Analysis
+$(if [ -n "$CLAUDE_SUMMARY" ]; then echo "\`\`\`"; echo "$CLAUDE_SUMMARY"; echo "\`\`\`"; else echo "No detailed analysis available"; fi)
+
+### Why No Changes?
+Common reasons include:
+- Issues were **hallucinations** (files/lines don't exist)
+- Suggestions require **architectural decisions** (not auto-fixable)
+- Changes would affect **business logic** (requires human review)
+- Issues are **debatable** style preferences
+
+If these issues are legitimate and should be fixed, please either:
+1. Fix manually
+2. Provide specific guidance for the agent
+
+_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
+
+    rm -f "$CLAUDE_OUTPUT_FILE"
     echo "made_changes=false" >> "${GITHUB_OUTPUT:-/dev/null}"
     exit 0
 fi
+
+# Clean up Claude output file since we're proceeding with changes
+rm -f "$CLAUDE_OUTPUT_FILE"
 
 echo "Changes detected, creating commit..."
 
@@ -291,4 +999,29 @@ echo ""
 echo "=== Agent Review Response Complete ==="
 echo "Changes pushed to branch: $BRANCH_NAME"
 echo "Pipeline will be retriggered automatically"
+
+# Post success comment
+post_agent_comment "## Agent Review Response
+
+**Status**: Changes pushed
+
+The agent successfully applied fixes based on the AI review feedback.
+
+### Decision Analysis
+- **Feedback Type**: $FEEDBACK_TYPE
+- **Source Trust Level**: $TRUST_LEVEL
+- **Decision**: $FINAL_DECISION
+
+### Validation Summary
+- Items validated: $VALIDATED_ISSUES
+- Linter-confirmed issues: $LINTER_VALIDATED
+- Suspected hallucinations ignored: $HALLUCINATION_SUSPECTS
+
+### Patterns Addressed
+$(printf '%b' "$MATCHED_PATTERNS")
+
+The pipeline will automatically re-run to validate these changes.
+
+_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
+
 echo "made_changes=true" >> "${GITHUB_OUTPUT:-/dev/null}"

@@ -114,11 +114,23 @@ jobs:
         run: |
           echo "::group::Setup Python Environment"
           python3 --version
-          # Create virtual environment (PEP 668 compliance for newer Ubuntu)
-          python3 -m venv .venv
-          source .venv/bin/activate
-          pip install -e ./packages/github_agents
-          echo "VENV_PATH=$PWD/.venv" >> $GITHUB_ENV
+
+          # Try to create virtual environment, fall back to --user install if venv unavailable
+          if python3 -m venv .venv 2>/dev/null; then
+            echo "[INFO] Virtual environment created successfully"
+            source .venv/bin/activate
+            PYTHON_CMD="$PWD/.venv/bin/python3"
+            PIP_USER_FLAG=""
+          else
+            echo "[WARNING] python3-venv not available, using --user install"
+            PYTHON_CMD="python3"
+            PIP_USER_FLAG="--user"
+            export PATH="$HOME/.local/bin:$PATH"
+          fi
+
+          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./packages/github_agents
+          echo "PYTHON_CMD=$PYTHON_CMD" >> $GITHUB_ENV
+          echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
           echo "::endgroup::"
 
       - name: Load configuration
@@ -158,8 +170,8 @@ jobs:
         run: |
           echo "::group::Codebase Analysis"
 
-          # Use venv python to access installed packages
-          ANALYSIS_OUTPUT=$(.venv/bin/python3 << 'PYTHON_SCRIPT'
+          # Use configured Python command to access installed packages
+          ANALYSIS_OUTPUT=$($PYTHON_CMD << 'PYTHON_SCRIPT'
           import asyncio
           import json
           import os

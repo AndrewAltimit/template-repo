@@ -71,13 +71,23 @@ jobs:
       - name: Start Gemini server on host
         if: steps.determine_server.outputs.host_only == 'true'
         run: |
-          # Create virtual environment (PEP 668 compliance for newer Ubuntu)
-          python3 -m venv .venv
-          source .venv/bin/activate
+          # Try to create virtual environment, fall back to --user install if venv unavailable
+          if python3 -m venv .venv 2>/dev/null; then
+            echo "[INFO] Virtual environment created successfully"
+            source .venv/bin/activate
+            PYTHON_CMD="$PWD/.venv/bin/python"
+            PIP_USER_FLAG=""
+          else
+            echo "[WARNING] python3-venv not available, using --user install"
+            PYTHON_CMD="python3"
+            PIP_USER_FLAG="--user"
+            export PATH="$HOME/.local/bin:$PATH"
+          fi
+
           # Install mcp packages for host execution
-          pip install -e ./tools/mcp/mcp_core
-          pip install -e ./tools/mcp/mcp_gemini
-          .venv/bin/python -m mcp_gemini.server --mode http &
+          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./tools/mcp/mcp_core
+          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./tools/mcp/mcp_gemini
+          $PYTHON_CMD -m mcp_gemini.server --mode http &
           echo $! > gemini.pid
           sleep 5
 
@@ -168,14 +178,24 @@ jobs:
 
       - name: Consult Gemini about changes
         run: |
-          # Create virtual environment (PEP 668 compliance for newer Ubuntu)
-          python3 -m venv .venv
-          source .venv/bin/activate
+          # Try to create virtual environment, fall back to --user install if venv unavailable
+          if python3 -m venv .venv 2>/dev/null; then
+            echo "[INFO] Virtual environment created successfully"
+            source .venv/bin/activate
+            PYTHON_CMD="$PWD/.venv/bin/python"
+            PIP_USER_FLAG=""
+          else
+            echo "[WARNING] python3-venv not available, using --user install"
+            PYTHON_CMD="python3"
+            PIP_USER_FLAG="--user"
+            export PATH="$HOME/.local/bin:$PATH"
+          fi
+
           # Install mcp packages for host execution
-          pip install -e ./tools/mcp/mcp_core
-          pip install -e ./tools/mcp/mcp_gemini
+          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./tools/mcp/mcp_core
+          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./tools/mcp/mcp_gemini
           # Start Gemini MCP server on host
-          .venv/bin/python -m mcp_gemini.server --mode http &
+          $PYTHON_CMD -m mcp_gemini.server --mode http &
           GEMINI_PID=$!
           sleep 5
 

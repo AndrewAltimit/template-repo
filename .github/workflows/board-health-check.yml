@@ -24,6 +24,11 @@ permissions:
   contents: read
   issues: read
 
+# Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
 jobs:
   health-check:
     name: Board System Health
@@ -41,17 +46,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Setup Python environment
-        run: |
-          echo "::group::Setup Python Environment"
-          python3 --version
-          # Create virtual environment (PEP 668 compliance for newer Ubuntu)
-          python3 -m venv .venv
-          source .venv/bin/activate
-          pip install -e ./packages/github_agents
-          echo "VENV_PATH=$PWD/.venv" >> $GITHUB_ENV
-          echo "::endgroup::"
-
       - name: Run health checks
         id: check
         env:
@@ -62,8 +56,8 @@ jobs:
         run: |
           echo "::group::Health Checks"
 
-          # Use venv python to access installed packages
-          HEALTH_RESULT=$(.venv/bin/python3 << 'PYTHON_SCRIPT'
+          # Create temporary Python script for health checks
+          cat > /tmp/board_health_check.py << 'PYTHON_SCRIPT'
           import asyncio
           import json
           import os
@@ -113,25 +107,23 @@ jobs:
               except Exception as e:
                   results["errors"].append(f"Board connection error: {str(e)}")
 
-              # Check 4: Agent availability
-              agent_checks = [
-                  ("claude", "claude"),
-                  ("opencode", "opencode"),
-                  ("crush", "crush"),
-                  ("gemini", "gemini"),
-                  ("codex", "codex"),
-              ]
-
-              import shutil
-              for agent_name, cmd in agent_checks:
-                  if shutil.which(cmd):
-                      results["agents_available"].append(agent_name)
+              # Check 4: Agent availability (skip in container - agents run on host)
+              # Note: Container won't have agent CLIs, so this check is skipped
+              # The host health report step can check for agent availability if needed
 
               print(json.dumps(results))
 
           asyncio.run(run_health_checks())
           PYTHON_SCRIPT
-          )
+
+          # Run health checks in python-ci container (container-first philosophy)
+          HEALTH_RESULT=$(docker-compose run --rm \
+            -v /tmp/board_health_check.py:/app/health_check.py:ro \
+            -e GITHUB_TOKEN="$GITHUB_TOKEN" \
+            -e GITHUB_PROJECTS_TOKEN="$GITHUB_PROJECTS_TOKEN" \
+            -e BOARD_CONFIG_PATH="$BOARD_CONFIG_PATH" \
+            -e VERBOSE="$VERBOSE" \
+            python-ci bash -c "pip install -q -e packages/github_agents && python3 /app/health_check.py")
 
           echo "Health check result: $HEALTH_RESULT"
 
