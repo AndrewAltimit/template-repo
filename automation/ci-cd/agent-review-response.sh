@@ -32,6 +32,27 @@ echo "Branch: $BRANCH_NAME"
 echo "Iteration: $ITERATION_COUNT / $MAX_ITERATIONS"
 echo "============================="
 
+# Function to post a comment on the PR explaining agent decisions
+post_agent_comment() {
+    local comment_body="$1"
+
+    if [ -z "$GITHUB_TOKEN" ] || [ -z "$PR_NUMBER" ]; then
+        echo "Cannot post comment: missing GITHUB_TOKEN or PR_NUMBER"
+        return 1
+    fi
+
+    # Use gh CLI to post comment
+    if command -v gh &> /dev/null; then
+        echo "$comment_body" | gh pr comment "$PR_NUMBER" --body-file - 2>/dev/null || {
+            echo "Failed to post PR comment"
+            return 1
+        }
+        echo "Posted agent status comment to PR #$PR_NUMBER"
+    else
+        echo "gh CLI not found, skipping PR comment"
+    fi
+}
+
 # Safety check - ensure we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
     echo "Error: Not in a git repository"
@@ -98,6 +119,18 @@ fi
 
 if [ -z "$REVIEW_CONTENT" ]; then
     echo "No review feedback found, nothing to do"
+
+    # Post comment explaining no reviews were found
+    post_agent_comment "## Agent Review Response
+
+**Status**: No action taken
+
+No review artifacts were found for this iteration. This can happen if:
+- AI reviews haven't completed yet
+- Review artifacts weren't properly downloaded
+
+_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
+
     echo "made_changes=false" >> "${GITHUB_OUTPUT:-/dev/null}"
     exit 0
 fi
@@ -125,21 +158,75 @@ ACTIONABLE_PATTERNS=(
     "STILL UNRESOLVED"
 )
 
+MATCHED_PATTERNS=""
 for pattern in "${ACTIONABLE_PATTERNS[@]}"; do
     if echo -e "$REVIEW_CONTENT" | grep -qiE "$pattern"; then
         HAS_ACTIONABLE_ITEMS=true
+        MATCHED_PATTERNS+="- \`$pattern\`\n"
         echo "Found actionable pattern: $pattern"
-        break
     fi
 done
 
 if [ "$HAS_ACTIONABLE_ITEMS" = "false" ]; then
     echo "No actionable items found in reviews"
+
+    # Build list of patterns that were checked
+    PATTERNS_CHECKED=""
+    for pattern in "${ACTIONABLE_PATTERNS[@]}"; do
+        PATTERNS_CHECKED+="- \`$pattern\`\n"
+    done
+
+    # Determine which reviews were found
+    REVIEWS_FOUND=""
+    if [ -f "${GEMINI_REVIEW_PATH:-gemini-review.md}" ] || [ -f "gemini-review.md" ]; then
+        REVIEWS_FOUND+="- Gemini review\n"
+    fi
+    if [ -f "${CODEX_REVIEW_PATH:-codex-review.md}" ] || [ -f "codex-review.md" ]; then
+        REVIEWS_FOUND+="- Codex review\n"
+    fi
+
+    # Post detailed comment about the decision
+    post_agent_comment "## Agent Review Response
+
+**Status**: No actionable items detected
+
+The agent reviewed the AI feedback but found no patterns requiring automated fixes.
+
+### Reviews Analyzed
+$(echo -e "$REVIEWS_FOUND")
+
+### Patterns Checked (none matched)
+$(echo -e "$PATTERNS_CHECKED")
+
+### What This Means
+The AI reviews may have:
+- Found no issues (all clear)
+- Reported issues that don't match our actionable patterns
+- Reported false positives that don't require changes
+
+If you believe the agent missed something, please review the AI feedback comments above and either:
+1. Fix manually if needed
+2. Open an issue to improve pattern detection
+
+_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
+
     echo "made_changes=false" >> "${GITHUB_OUTPUT:-/dev/null}"
     exit 0
 fi
 
 echo "Actionable items detected, proceeding with fixes..."
+
+# Post comment about what patterns were detected
+post_agent_comment "## Agent Review Response
+
+**Status**: Actionable items detected - proceeding with fixes
+
+### Patterns Matched
+$(echo -e "$MATCHED_PATTERNS")
+
+The agent will attempt to address these issues automatically. A follow-up commit will be pushed if fixes are made.
+
+_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
 
 # Step 1: Run autoformat first (quick wins)
 echo ""
