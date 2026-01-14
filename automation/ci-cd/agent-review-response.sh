@@ -635,43 +635,87 @@ echo ""
 echo "=== Validating AI Feedback ==="
 echo "IMPORTANT: AI reviewers can hallucinate. Validating claims..."
 
+# Track linter-validated issues separately
+LINTER_VALIDATED=0
+
 # Extract file references from review and validate them
 while IFS= read -r line; do
     # Skip empty lines
     [ -z "$line" ] && continue
 
+    # Reset per-line tracking
+    current_file=""
+    current_line=""
+
     # Check if line mentions a file path
     if echo "$line" | grep -qE "\.(py|js|ts|yaml|yml|sh|md)"; then
         # Try to extract file path
-        file_path=$(echo "$line" | grep -oE "[a-zA-Z0-9_/.-]+\.(py|js|ts|yaml|yml|sh|md)" | head -1)
+        current_file=$(echo "$line" | grep -oE "[a-zA-Z0-9_/.-]+\.(py|js|ts|yaml|yml|sh|md)" | head -1)
 
-        if [ -n "$file_path" ]; then
-            if validate_file_exists "$file_path"; then
-                echo "[VALIDATE] File exists: $file_path"
+        if [ -n "$current_file" ]; then
+            if validate_file_exists "$current_file"; then
+                echo "[VALIDATE] File exists: $current_file"
                 ((VALIDATED_ISSUES++)) || true
             else
-                echo "[VALIDATE] WARNING: File does not exist: $file_path (possible hallucination)"
+                echo "[VALIDATE] WARNING: File does not exist: $current_file (possible hallucination)"
                 ((HALLUCINATION_SUSPECTS++)) || true
+                continue  # Skip further validation for non-existent file
             fi
         fi
     fi
 
     # Check for line number references
     if echo "$line" | grep -qE "line [0-9]+|Line [0-9]+|:[0-9]+:"; then
-        line_num=$(echo "$line" | grep -oE "[0-9]+" | head -1)
-        if [ -n "$file_path" ] && [ -n "$line_num" ]; then
-            if validate_line_number "$file_path" "$line_num"; then
-                echo "[VALIDATE] Line $line_num valid in $file_path"
+        current_line=$(echo "$line" | grep -oE "[0-9]+" | head -1)
+        if [ -n "$current_file" ] && [ -n "$current_line" ]; then
+            if validate_line_number "$current_file" "$current_line"; then
+                echo "[VALIDATE] Line $current_line valid in $current_file"
             else
-                echo "[VALIDATE] WARNING: Line $line_num out of range in $file_path (possible hallucination)"
+                echo "[VALIDATE] WARNING: Line $current_line out of range in $current_file (possible hallucination)"
                 ((HALLUCINATION_SUSPECTS++)) || true
+            fi
+        fi
+    fi
+
+    # === SEMANTIC VALIDATION ===
+    # Now perform deeper validation using linter and import checks
+
+    # Check for import-related issues
+    if echo "$line" | grep -qiE "import|missing.*import|unused.*import|F401"; then
+        # Try to extract module name from feedback
+        # Common patterns: "import os", "missing import: requests", "unused import 'json'"
+        module_name=$(echo "$line" | grep -oE "(import|module)[[:space:]]+['\"]?([a-zA-Z_][a-zA-Z0-9_]*)['\"]?" | grep -oE "[a-zA-Z_][a-zA-Z0-9_]*$" | head -1) || true
+
+        if [ -n "$module_name" ] && [ -n "$current_file" ] && [[ "$current_file" == *.py ]]; then
+            echo "[VALIDATE] Checking import issue for module '$module_name' in $current_file"
+            if validate_import_issue "$current_file" "$module_name"; then
+                echo "[VALIDATE] CONFIRMED: Module '$module_name' is used but not imported"
+                ((LINTER_VALIDATED++)) || true
+            else
+                echo "[VALIDATE] Import issue NOT confirmed (module exists or not used)"
+            fi
+        fi
+    fi
+
+    # Run linter validation for Python files with specific line references
+    if [ -n "$current_file" ] && [[ "$current_file" == *.py ]]; then
+        if [ -n "$current_line" ]; then
+            echo "[VALIDATE] Running linter check on $current_file:$current_line"
+            if validate_with_linter "$current_file" "$current_line"; then
+                echo "[VALIDATE] CONFIRMED: Linter found issue at $current_file:$current_line"
+                ((LINTER_VALIDATED++)) || true
+            else
+                echo "[VALIDATE] Linter did NOT confirm issue at $current_file:$current_line"
             fi
         fi
     fi
 done < <(echo -e "$REVIEW_CONTENT")
 
 echo ""
-echo "[RUBRIC] Validation summary: $VALIDATED_ISSUES validated, $HALLUCINATION_SUSPECTS suspected hallucinations"
+echo "[RUBRIC] Validation summary:"
+echo "  - File/line checks passed: $VALIDATED_ISSUES"
+echo "  - Linter-confirmed issues: $LINTER_VALIDATED"
+echo "  - Suspected hallucinations: $HALLUCINATION_SUSPECTS"
 
 # Adjust decision based on validation results
 FINAL_DECISION="$INITIAL_DECISION"
@@ -872,6 +916,7 @@ The agent analyzed the AI review feedback but determined no automated fixes shou
 
 ### Pre-Analysis Validation
 - Items with valid file references: $VALIDATED_ISSUES
+- Linter-confirmed issues: $LINTER_VALIDATED
 - Suspected hallucinations (invalid files/lines): $HALLUCINATION_SUSPECTS
 
 ### Patterns Originally Matched
@@ -968,6 +1013,7 @@ The agent successfully applied fixes based on the AI review feedback.
 
 ### Validation Summary
 - Items validated: $VALIDATED_ISSUES
+- Linter-confirmed issues: $LINTER_VALIDATED
 - Suspected hallucinations ignored: $HALLUCINATION_SUSPECTS
 
 ### Patterns Addressed
