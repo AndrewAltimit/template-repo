@@ -390,12 +390,13 @@ jobs:
             safety-report.json
           retention-days: 30
 
-  # Stage 9: Build Docker images using docker-compose
+  # Stage 9: Build Docker images using Docker Buildx
+  # Uses build-push-action for proper multi-architecture (arm64/amd64) support
   build-images:
     name: Build Docker Images
     needs: [format-check, basic-lint, full-lint, test-suite, mcp-validation]
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 45  # Increased timeout for arm64 builds
     permissions:
       contents: read
       packages: write
@@ -403,30 +404,93 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      # Use docker-compose to build all images with proper dependency handling
-      # This resolves multi-stage build issues by building in dependency order
-      - name: Build all Docker images with docker-compose
-        env:
-          GITHUB_SHA: ${{ github.sha }}
-        run: |
-          echo "🐳 Building Docker images using docker-compose..."
-          echo "This handles multi-stage dependencies automatically."
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-          # Build all images in dependency order using dedicated script
-          ./automation/ci-cd/build-docker-images.sh
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=main-
+
+      # Note: Docker builds intentionally do not use GitHub Actions cache (cache-from/cache-to)
+      # to avoid cache service availability issues. The self-hosted runner's local Docker
+      # cache provides sufficient caching for our needs.
+      - name: Build Code Quality MCP image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/mcp-code-quality.Dockerfile
+          push: false
+          load: true
+          tags: |
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-code-quality
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-code-quality-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Build Content Creation MCP image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/mcp-content.Dockerfile
+          push: false
+          load: true
+          tags: |
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-content
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-content-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Build Gaea2 MCP image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/mcp-gaea2.Dockerfile
+          push: false
+          load: true
+          tags: |
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-gaea2
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-gaea2-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Build MCP HTTP Bridge image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/mcp-http-bridge.Dockerfile
+          push: false
+          load: true
+          tags: |
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-http-bridge
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-http-bridge-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Build Python CI image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/python-ci.Dockerfile
+          push: false
+          load: true
+          tags: |
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-python-ci
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-python-ci-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
 
       - name: Test Docker Compose with health check
         uses: ./.github/actions/docker-compose-health-check
         with:
-          services: 'mcp-code-quality mcp-content-creation'  # Test main MCP services
+          services: 'mcp-code-quality mcp-content-creation mcp-gaea2'
           health-endpoint: 'http://localhost:8010/health'
           timeout: '60'
-          build: 'false'  # Images already built above
+          build: 'true'
 
       - name: Stop services
         if: always()
         run: |
-          docker-compose down
+          docker-compose down --rmi local
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh
 
