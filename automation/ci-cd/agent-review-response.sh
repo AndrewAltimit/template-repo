@@ -250,7 +250,8 @@ validate_import_issue() {
     # - import module, module2, module3
     # - from module import ...
     # - import module as alias
-    if grep -qE "^import[[:space:]]+(${import_name}|[^#]*,[[:space:]]*${import_name})|^from[[:space:]]+${import_name}[[:space:]]" "$file"; then
+    # Use word boundary \b to prevent partial matches (e.g., "os" matching "osgeo")
+    if grep -qE "^import[[:space:]]+(${import_name}\b|[^#]*,[[:space:]]*${import_name}\b)|^from[[:space:]]+${import_name}\b" "$file"; then
         return 1  # Import exists, not a valid issue
     fi
 
