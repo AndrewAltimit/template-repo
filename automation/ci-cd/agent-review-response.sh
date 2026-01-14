@@ -32,6 +32,12 @@ echo "Branch: $BRANCH_NAME"
 echo "Iteration: $ITERATION_COUNT / $MAX_ITERATIONS"
 echo "============================="
 
+# Check for gh CLI availability early
+if ! command -v gh &> /dev/null; then
+    echo "WARNING: gh CLI not found - PR comments will be skipped"
+    echo "Install gh CLI for full functionality: https://cli.github.com/"
+fi
+
 # Function to post a comment on the PR explaining agent decisions
 post_agent_comment() {
     local comment_body="$1"
@@ -43,7 +49,7 @@ post_agent_comment() {
 
     # Use gh CLI to post comment
     if command -v gh &> /dev/null; then
-        echo "$comment_body" | gh pr comment "$PR_NUMBER" --body-file - 2>/dev/null || {
+        echo "$comment_body" | gh pr comment "$PR_NUMBER" --body-file - || {
             echo "Failed to post PR comment"
             return 1
         }
@@ -160,7 +166,7 @@ ACTIONABLE_PATTERNS=(
 
 MATCHED_PATTERNS=""
 for pattern in "${ACTIONABLE_PATTERNS[@]}"; do
-    if echo -e "$REVIEW_CONTENT" | grep -qiE "$pattern"; then
+    if printf '%s\n' "$REVIEW_CONTENT" | grep -qiE "$pattern"; then
         HAS_ACTIONABLE_ITEMS=true
         MATCHED_PATTERNS+="- \`$pattern\`\n"
         echo "Found actionable pattern: $pattern"
@@ -193,10 +199,10 @@ if [ "$HAS_ACTIONABLE_ITEMS" = "false" ]; then
 The agent reviewed the AI feedback but found no patterns requiring automated fixes.
 
 ### Reviews Analyzed
-$(echo -e "$REVIEWS_FOUND")
+$(printf '%b' "$REVIEWS_FOUND")
 
 ### Patterns Checked (none matched)
-$(echo -e "$PATTERNS_CHECKED")
+$(printf '%b' "$PATTERNS_CHECKED")
 
 ### What This Means
 The AI reviews may have:
@@ -222,7 +228,7 @@ post_agent_comment "## Agent Review Response
 **Status**: Actionable items detected - proceeding with fixes
 
 ### Patterns Matched
-$(echo -e "$MATCHED_PATTERNS")
+$(printf '%b' "$MATCHED_PATTERNS")
 
 The agent will attempt to address these issues automatically. A follow-up commit will be pushed if fixes are made.
 
@@ -263,7 +269,7 @@ Review feedback to address:
 PROMPT_EOF
 )
 
-CLAUDE_PROMPT+=$(echo -e "$REVIEW_CONTENT")
+CLAUDE_PROMPT+=$(printf '%s\n' "$REVIEW_CONTENT")
 
 CLAUDE_PROMPT+=$(cat << 'PROMPT_EOF'
 
