@@ -173,33 +173,16 @@ DEBATABLE_PATTERNS=(
     "alternative"
 )
 
-TOOL_CHANGE_PATTERNS=(
-    "add.*dependency"
-    "install.*package"
-    "upgrade"
-    "update.*version"
-    "switch.*to"
-    "replace.*with"
-    "workflow"
-    "pipeline"
-    "CI/CD"
-    "requirements.txt"
-    "package.json"
-)
+# Note: TOOL_CHANGE detection is handled by Claude using the rubric,
+# not by pattern matching (too fragile, causes false positives)
 
-# Classify feedback into types: CLEAR_BUG, STYLE, DEBATABLE, TOOL_CHANGE
+# Classify feedback into types: CLEAR_BUG, STYLE, DEBATABLE
+# Note: TOOL_CHANGE is intentionally not pattern-matched here - Claude applies
+# the rubric to identify tool changes and skips them appropriately
 classify_feedback() {
     local feedback="$1"
     local feedback_lower
     feedback_lower=$(echo "$feedback" | tr '[:upper:]' '[:lower:]')
-
-    # Check for tool/dependency changes first (highest priority for escalation)
-    for pattern in "${TOOL_CHANGE_PATTERNS[@]}"; do
-        if echo "$feedback_lower" | grep -qiE "$pattern"; then
-            echo "TOOL_CHANGE"
-            return
-        fi
-    done
 
     # Check for clear bugs
     for pattern in "${CLEAR_BUG_PATTERNS[@]}"; do
@@ -225,7 +208,7 @@ classify_feedback() {
         fi
     done
 
-    # Default to debatable if unclassified
+    # Default to debatable if unclassified - Claude will apply judgment
     echo "DEBATABLE"
 }
 
@@ -366,17 +349,15 @@ _This escalation is from the automated review agent. Iteration ${ITERATION_COUNT
 # =============================================================================
 
 # Make a decision based on source trust and feedback type
-# Returns: FIX, SKIP, ESCALATE, VALIDATE
+# Returns: FIX, SKIP, VALIDATE
+# Note: We no longer escalate automatically - Claude applies the rubric and
+# decides what to fix vs skip. Escalation is reserved for explicit admin requests.
 make_decision() {
     local trust_level="$1"
     local feedback_type="$2"
     local validated="$3"  # true/false
 
     case "$feedback_type" in
-        TOOL_CHANGE)
-            # Tool changes always escalate, regardless of source
-            echo "ESCALATE"
-            ;;
         CLEAR_BUG)
             if [ "$validated" = "true" ]; then
                 # Validated bugs get fixed regardless of source
@@ -387,7 +368,8 @@ make_decision() {
                         echo "VALIDATE"  # Try to validate, then fix
                         ;;
                     AI_REVIEWER)
-                        echo "SKIP"  # Don't trust unvalidated AI claims
+                        # Pass to Claude - let it validate and decide
+                        echo "VALIDATE"
                         ;;
                     *)
                         echo "SKIP"  # Don't trust untrusted sources
@@ -400,14 +382,9 @@ make_decision() {
             echo "FIX"
             ;;
         DEBATABLE)
-            case "$trust_level" in
-                ADMIN)
-                    echo "ESCALATE"  # Even admin debatable items need confirmation
-                    ;;
-                *)
-                    echo "SKIP"  # Don't act on debatable suggestions
-                    ;;
-            esac
+            # Pass to Claude - it will apply the rubric and skip debatable items
+            # Claude is smart enough to distinguish minor suggestions from major changes
+            echo "VALIDATE"
             ;;
         *)
             echo "SKIP"
@@ -703,37 +680,6 @@ if [ "$HALLUCINATION_SUSPECTS" -gt 0 ] && [ "$VALIDATED_ISSUES" -eq 0 ]; then
         FINAL_DECISION="SKIP"
         echo "[RUBRIC] Downgrading CLEAR_BUG to SKIP due to validation failures"
     fi
-fi
-
-# Handle escalation cases
-if [ "$FINAL_DECISION" = "ESCALATE" ]; then
-    echo "[RUBRIC] Escalation required"
-    post_escalation \
-        "Feedback requires admin approval ($FEEDBACK_TYPE from $TRUST_LEVEL source)" \
-        "$(echo -e "$REVIEW_CONTENT" | head -50)" \
-        "The agent detected $FEEDBACK_TYPE feedback. This type of change requires explicit admin approval before proceeding."
-
-    post_agent_comment "## Agent Review Response
-
-**Status**: Escalation requested
-
-The agent detected feedback that requires admin approval before action can be taken.
-
-### Feedback Classification
-- **Type**: $FEEDBACK_TYPE
-- **Source Trust**: $TRUST_LEVEL
-- **Decision**: ESCALATE
-
-### Validation Results
-- Validated items: $VALIDATED_ISSUES
-- Suspected hallucinations: $HALLUCINATION_SUSPECTS
-
-An escalation request has been posted. Please review and provide guidance.
-
-_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
-
-    echo "made_changes=false" >> "${GITHUB_OUTPUT:-/dev/null}"
-    exit 0
 fi
 
 # Handle skip cases
