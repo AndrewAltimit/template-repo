@@ -105,20 +105,27 @@ jobs:
           echo "[INFO] Setting up Python environment..."
           python3 --version
 
-          # Create virtual environment (PEP 668 compliance for newer Ubuntu)
-          echo "[INFO] Creating virtual environment..."
-          python3 -m venv .venv
-          source .venv/bin/activate
+          # Try to create virtual environment, fall back to --user install if venv unavailable
+          if python3 -m venv .venv 2>/dev/null; then
+            echo "[INFO] Virtual environment created successfully"
+            source .venv/bin/activate
+            PYTHON_CMD="$PWD/.venv/bin/python3"
+          else
+            echo "[WARNING] python3-venv not available, using --user install"
+            PYTHON_CMD="python3"
+            export PATH="$HOME/.local/bin:$PATH"
+          fi
 
           # Install the GitHub AI Agents package
           echo "[INFO] Installing GitHub AI Agents package..."
-          pip install -e ./packages/github_agents
+          $PYTHON_CMD -m pip install --user -e ./packages/github_agents
 
           # Install additional requirements
           echo "[INFO] Installing additional requirements..."
-          pip install -r docker/requirements/requirements-agents.txt
+          $PYTHON_CMD -m pip install --user -r docker/requirements/requirements-agents.txt
 
-          echo "VENV_PATH=$PWD/.venv" >> $GITHUB_ENV
+          echo "PYTHON_CMD=$PYTHON_CMD" >> $GITHUB_ENV
+          echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
 
       - name: Build Docker containers for containerized agents
         if: contains(inputs.agents, 'opencode') || contains(inputs.agents, 'crush') || github.event_name == 'schedule'
@@ -166,8 +173,8 @@ jobs:
           echo "Repository: $GITHUB_REPOSITORY"
 
           # Run the auto review script from the scripts directory
-          # Use venv python to access installed packages
-          .venv/bin/python3 automation/review/auto-review.py || {
+          # Use configured Python command to access installed packages
+          $PYTHON_CMD automation/review/auto-review.py || {
               exit_code=$?
               echo "[ERROR] Auto review failed with exit code: $exit_code"
               exit $exit_code
