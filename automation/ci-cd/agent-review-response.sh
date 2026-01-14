@@ -108,6 +108,7 @@ HAS_ACTIONABLE_ITEMS=false
 
 # Patterns that indicate actionable feedback
 # Avoid broad patterns that could match negations like "No type error found"
+# Note: Gemini uses formats like [CRITICAL/BUG] so we need flexible matching
 ACTIONABLE_PATTERNS=(
     "must fix"
     "should fix"
@@ -116,9 +117,10 @@ ACTIONABLE_PATTERNS=(
     "unused import"
     "remove unused"
     "missing import"
-    "\[BUG\]"
-    "\[ERROR\]"
-    "\[ISSUE\]"
+    "\[.*BUG.*\]"
+    "\[.*ERROR.*\]"
+    "\[.*ISSUE.*\]"
+    "\[CRITICAL"
     "\[STILL UNRESOLVED\]"
     "STILL UNRESOLVED"
 )
