@@ -120,13 +120,15 @@ jobs:
             echo "[INFO] Virtual environment created successfully"
             source .venv/bin/activate
             PYTHON_CMD="$PWD/.venv/bin/python3"
+            PIP_USER_FLAG=""
           else
             echo "[WARNING] python3-venv not available, using --user install"
             PYTHON_CMD="python3"
+            PIP_USER_FLAG="--user"
             export PATH="$HOME/.local/bin:$PATH"
           fi
 
-          $PYTHON_CMD -m pip install --user -e ./packages/github_agents
+          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./packages/github_agents
           echo "PYTHON_CMD=$PYTHON_CMD" >> $GITHUB_ENV
           echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
           echo "::endgroup::"

@@ -76,15 +76,17 @@ jobs:
             echo "[INFO] Virtual environment created successfully"
             source .venv/bin/activate
             PYTHON_CMD="$PWD/.venv/bin/python"
+            PIP_USER_FLAG=""
           else
             echo "[WARNING] python3-venv not available, using --user install"
             PYTHON_CMD="python3"
+            PIP_USER_FLAG="--user"
             export PATH="$HOME/.local/bin:$PATH"
           fi
 
           # Install mcp packages for host execution
-          $PYTHON_CMD -m pip install --user -e ./tools/mcp/mcp_core
-          $PYTHON_CMD -m pip install --user -e ./tools/mcp/mcp_gemini
+          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./tools/mcp/mcp_core
+          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./tools/mcp/mcp_gemini
           $PYTHON_CMD -m mcp_gemini.server --mode http &
           echo $! > gemini.pid
           sleep 5
@@ -181,15 +183,17 @@ jobs:
             echo "[INFO] Virtual environment created successfully"
             source .venv/bin/activate
             PYTHON_CMD="$PWD/.venv/bin/python"
+            PIP_USER_FLAG=""
           else
             echo "[WARNING] python3-venv not available, using --user install"
             PYTHON_CMD="python3"
+            PIP_USER_FLAG="--user"
             export PATH="$HOME/.local/bin:$PATH"
           fi
 
           # Install mcp packages for host execution
-          $PYTHON_CMD -m pip install --user -e ./tools/mcp/mcp_core
-          $PYTHON_CMD -m pip install --user -e ./tools/mcp/mcp_gemini
+          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./tools/mcp/mcp_core
+          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./tools/mcp/mcp_gemini
           # Start Gemini MCP server on host
           $PYTHON_CMD -m mcp_gemini.server --mode http &
           GEMINI_PID=$!
