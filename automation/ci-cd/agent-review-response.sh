@@ -240,15 +240,9 @@ if [ -z "$REVIEW_CONTENT" ]; then
     echo "No review feedback found, nothing to do"
 
     # Post comment explaining no reviews were found
-    post_agent_comment "## Agent Review Response
+    post_agent_comment "No review feedback found to process - the AI reviews might not have completed yet or the artifacts didn't download properly.
 
-**Status**: No action taken
-
-No review artifacts were found for this iteration. This can happen if:
-- AI reviews haven't completed yet
-- Review artifacts weren't properly downloaded
-
-_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
+![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/miku_confused.png)"
 
     echo "made_changes=false" >> "${GITHUB_OUTPUT:-/dev/null}"
     exit 0
@@ -400,10 +394,11 @@ The feedback below comes from AI reviewers (Gemini, Codex) which are known to:
 - Flag correct code as incorrect
 - Suggest unnecessary changes
 
-KNOWN GEMINI HALLUCINATIONS (ignore these suggestions):
-- Downgrading actions/checkout@v6 to v4 - THIS IS WRONG, v6 is correct and intentional
-- Suggesting removal of "clean: true" as redundant - this is a style choice, not a bug
+KNOWN HALLUCINATION PATTERNS (ignore these):
+- Suggesting downgrades to GitHub Actions versions - we use latest versions intentionally
+- Calling explicit config options "redundant" - explicit is better than implicit
 - Claiming files don't exist when they do - always verify with actual file reads
+- Suggesting architectural changes disguised as "improvements"
 
 YOU MUST VALIDATE EVERY CLAIM before making changes:
 1. Verify the file exists before editing it
@@ -419,7 +414,7 @@ IMPORTANT INSTRUCTIONS:
 5. SKIP any feedback that cannot be validated or seems like a hallucination
 6. DO NOT make tool/dependency changes - those require admin approval
 7. DO NOT make architectural or design changes - those are debatable
-8. NEVER downgrade actions/checkout from v6 to v4 - Gemini often hallucinates this
+8. NEVER downgrade GitHub Actions versions - reviewers often hallucinate this
 
 Review feedback to address:
 
@@ -430,24 +425,24 @@ CLAUDE_PROMPT+=$(printf '%s\n' "$REVIEW_CONTENT")
 
 CLAUDE_PROMPT+=$(cat << 'PROMPT_EOF'
 
-Please analyze the review feedback above and make the necessary fixes.
+Analyze the review feedback above and fix what's actually broken.
 
-VALIDATION CHECKLIST (apply to each reported issue):
-[ ] File exists? If not, SKIP
-[ ] Line number valid? If not, SKIP
-[ ] Issue actually present in code? If not, SKIP
-[ ] Change is safe (no logic changes)? If not, SKIP
+Before fixing anything, validate it:
+- Does the file exist? Read it first
+- Is the issue actually there? Don't trust the reviewer blindly
+- Is this a real bug or just a style preference?
 
-Focus on VALIDATED issues only:
-- Unused imports (remove them if they actually exist)
-- Formatting issues (fix indentation, spacing)
-- Type hint issues (if the types are actually wrong)
-- Linting errors mentioned (confirm with actual code)
+Focus on real issues:
+- Actual unused imports (verify they're unused)
+- Real formatting problems
+- Genuine linting errors
 
-After making changes, provide a brief summary including:
-1. What was fixed (validated issues)
-2. What was SKIPPED and why (hallucinations, unvalidated claims)
-3. Any issues that need human review
+Skip anything that's:
+- A hallucination (file/line doesn't exist)
+- An architectural suggestion
+- A style preference disguised as a bug
+
+Be brief in your summary - just note what you fixed and what you skipped.
 PROMPT_EOF
 )
 
@@ -513,34 +508,16 @@ if git diff --cached --quiet 2>/dev/null; then
         CLAUDE_SUMMARY=$(grep -iE "(validated|skipped|hallucination|no changes|architectural|design|debatable)" "$CLAUDE_OUTPUT_FILE" | head -20 | cut -c1-200 | head -c 1500) || true
     fi
 
-    post_agent_comment "## Agent Review Response
+    post_agent_comment "Reviewed the feedback from Gemini and Codex but didn't find anything that needed fixing.
 
-**Status**: No changes made
+$(if [ "$HALLUCINATION_SUSPECTS" -gt 0 ]; then echo "Found $HALLUCINATION_SUSPECTS reference(s) to files or lines that don't exist - looks like hallucinations."; fi)
+$(if [ "$VALIDATED_ISSUES" -gt 0 ] && [ "$LINTER_VALIDATED" -eq 0 ]; then echo "The issues mentioned were either style preferences or architectural suggestions that shouldn't be auto-fixed."; fi)
 
-The agent analyzed the AI review feedback but determined no automated fixes should be applied.
+$(if [ -n "$CLAUDE_SUMMARY" ]; then echo "**Details:** $CLAUDE_SUMMARY"; fi)
 
-### Reviews Analyzed
-$(printf '%b' "$REVIEWS_FOUND")
+If something actually needs fixing, let me know and I'll take another look.
 
-### Pre-Analysis Validation
-- Items with valid file references: $VALIDATED_ISSUES
-- Linter-confirmed issues: $LINTER_VALIDATED
-- Suspected hallucinations (invalid files/lines): $HALLUCINATION_SUSPECTS
-
-### Agent's Analysis
-$(if [ -n "$CLAUDE_SUMMARY" ]; then echo "\`\`\`"; echo "$CLAUDE_SUMMARY"; echo "\`\`\`"; else echo "No detailed analysis available"; fi)
-
-### Why No Changes?
-The agent reviewed all feedback and determined:
-- Issues were **hallucinations** (files/lines don't exist)
-- Suggestions require **architectural decisions** (not auto-fixable)
-- Changes would affect **business logic** (requires human review)
-- Issues are **debatable** style preferences
-- Or the feedback was informational only
-
-If issues are legitimate, please fix manually or provide specific guidance.
-
-_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
+![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/miku_shrug.png)"
 
     rm -f "$CLAUDE_OUTPUT_FILE"
     echo "made_changes=false" >> "${GITHUB_OUTPUT:-/dev/null}"
@@ -604,22 +581,12 @@ echo "Changes pushed to branch: $BRANCH_NAME"
 echo "Pipeline will be retriggered automatically"
 
 # Post success comment
-post_agent_comment "## Agent Review Response
+post_agent_comment "Fixed the issues from the review feedback and pushed the changes.
 
-**Status**: Changes pushed
+$(if [ "$HALLUCINATION_SUSPECTS" -gt 0 ]; then echo "Ignored $HALLUCINATION_SUSPECTS hallucination(s) that referenced non-existent files or lines."; fi)
 
-The agent successfully applied fixes based on the AI review feedback.
+Pipeline will re-run to verify everything's good now.
 
-### Reviews Analyzed
-$(printf '%b' "$REVIEWS_FOUND")
-
-### Validation Summary
-- Items validated: $VALIDATED_ISSUES
-- Linter-confirmed issues: $LINTER_VALIDATED
-- Suspected hallucinations ignored: $HALLUCINATION_SUSPECTS
-
-The pipeline will automatically re-run to validate these changes.
-
-_Iteration ${ITERATION_COUNT}/${MAX_ITERATIONS}_"
+![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/miku_thumbsup.png)"
 
 echo "made_changes=true" >> "${GITHUB_OUTPUT:-/dev/null}"
