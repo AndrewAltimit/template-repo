@@ -74,15 +74,7 @@ jobs:
       summary-json: ${{ steps.refine.outputs.summary_json }}
 
     steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Fix permission issues from Docker containers before checkout
-          # This prevents EACCES errors when checkout tries to clean the workspace
-          WORKSPACE="${GITHUB_WORKSPACE:-$HOME/Documents/repos/actions-runner-template-repo/_work/template-repo/template-repo}"
-          if [ -d "$WORKSPACE" ]; then
-            echo "Fixing permissions in workspace: $WORKSPACE"
-            sudo chown -R "$(id -u):$(id -g)" "$WORKSPACE" 2>/dev/null || true
-          fi
+      # No pre-checkout cleanup needed - actions/checkout handles workspace cleanup by default
 
       - name: Checkout repository
         uses: actions/checkout@v6
