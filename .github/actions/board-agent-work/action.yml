@@ -969,22 +969,17 @@ runs:
         # Sanitize title for safe shell usage (escape special chars)
         SAFE_TITLE=$(printf '%s' "$PR_TITLE" | sed 's/[\"$`\\]/\\&/g')
 
-        # Create commit message file to avoid shell escaping issues
+        # Create commit message file using printf to avoid heredoc injection
+        # (heredocs can be terminated early if variable content matches delimiter)
         COMMIT_MSG_FILE=$(mktemp)
-        cat > "$COMMIT_MSG_FILE" << COMMIT_EOF
-        $PR_TITLE
-
-        Implements issue #$ISSUE_NUMBER: $ISSUE_TITLE
-
-        Implemented by $AGENT_NAME agent.
-
-        Closes #$ISSUE_NUMBER
-
-        Co-Authored-By: $AGENT_NAME <noreply@anthropic.com>
-        COMMIT_EOF
-
-        # Remove leading whitespace from commit message
-        sed -i 's/^        //' "$COMMIT_MSG_FILE"
+        printf '%s\n\nImplements issue #%s: %s\n\nImplemented by %s agent.\n\nCloses #%s\n\nCo-Authored-By: %s <noreply@anthropic.com>\n' \
+          "$PR_TITLE" \
+          "$ISSUE_NUMBER" \
+          "$ISSUE_TITLE" \
+          "$AGENT_NAME" \
+          "$ISSUE_NUMBER" \
+          "$AGENT_NAME" \
+          > "$COMMIT_MSG_FILE"
 
         # Commit changes using file-based message
         git add -A
