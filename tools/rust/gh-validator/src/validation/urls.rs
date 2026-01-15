@@ -206,6 +206,71 @@ impl UrlValidator {
             details: last_error.unwrap_or_else(|| "Unknown error".to_string()),
         })
     }
+
+    /// Check if a URL is valid (returns true if valid, false if invalid)
+    ///
+    /// Unlike validate_exists, this doesn't return an error - just a boolean.
+    #[allow(dead_code)] // Public API for future use
+    pub fn is_valid(&self, url: &str) -> bool {
+        self.validate_exists(url).is_ok()
+    }
+
+    /// Find invalid URLs in content and return them with their error reasons
+    ///
+    /// Returns a vector of (url, reason) tuples for invalid URLs.
+    pub fn find_invalid_urls(&self, content: &str) -> Vec<(String, String)> {
+        let urls = Self::extract_reaction_urls(content);
+        let mut invalid = Vec::new();
+
+        for url in urls {
+            if let Err(e) = self.validate_exists(&url) {
+                invalid.push((url, e.to_string()));
+            }
+        }
+
+        invalid
+    }
+
+    /// Strip invalid reaction image URLs from content
+    ///
+    /// Returns the modified content with invalid images removed, plus a list
+    /// of (url, reason) tuples for the removed images.
+    pub fn strip_invalid_images(&self, content: &str) -> (String, Vec<(String, String)>) {
+        let invalid_urls = self.find_invalid_urls(content);
+
+        if invalid_urls.is_empty() {
+            return (content.to_string(), vec![]);
+        }
+
+        let mut result = content.to_string();
+
+        for (url, _) in &invalid_urls {
+            // Remove the full markdown image syntax: ![...](url)
+            // Need to escape special regex chars in URL
+            let escaped_url = regex::escape(url);
+
+            // Pattern for ![alt text](url) - captures the whole thing
+            let pattern = format!(r"!\[[^\]]*\]\({}\)", escaped_url);
+            if let Ok(re) = Regex::new(&pattern) {
+                result = re.replace_all(&result, "").to_string();
+            }
+
+            // Also handle escaped variant \![alt text](url)
+            let escaped_pattern = format!(r"\\!\[[^\]]*\]\({}\)", escaped_url);
+            if let Ok(re) = Regex::new(&escaped_pattern) {
+                result = re.replace_all(&result, "").to_string();
+            }
+        }
+
+        // Clean up any double newlines left by removed images
+        let double_newline = Regex::new(r"\n\s*\n\s*\n").unwrap();
+        result = double_newline.replace_all(&result, "\n\n").to_string();
+
+        // Trim trailing whitespace
+        result = result.trim_end().to_string();
+
+        (result, invalid_urls)
+    }
 }
 
 #[cfg(test)]

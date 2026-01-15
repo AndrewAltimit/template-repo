@@ -61,7 +61,9 @@ post_agent_comment() {
         local temp_file
         temp_file=$(mktemp)
         echo "$comment_body" > "$temp_file"
-        gh pr comment "$PR_NUMBER" --body-file "$temp_file" || {
+        # Use --gh-validator-strip-invalid-images to auto-remove broken reaction
+        # images instead of failing. This makes CI pipelines more resilient.
+        gh --gh-validator-strip-invalid-images pr comment "$PR_NUMBER" --body-file "$temp_file" || {
             rm -f "$temp_file"
             echo "Failed to post PR comment"
             return 1

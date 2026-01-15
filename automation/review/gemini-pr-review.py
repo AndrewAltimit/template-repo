@@ -2498,9 +2498,12 @@ def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
             f.write(comment)
 
         # Use gh CLI to post comment
+        # The --gh-validator-strip-invalid-images flag tells gh-validator to
+        # auto-remove broken reaction images instead of failing
         subprocess.run(
             [
                 "gh",
+                "--gh-validator-strip-invalid-images",
                 "pr",
                 "comment",
                 pr_info["number"],
