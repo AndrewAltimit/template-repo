@@ -966,9 +966,13 @@ runs:
             esac
             # Remove category prefix from title for cleaner message
             CLEAN_TITLE=$(echo "$ISSUE_TITLE" | sed 's/^\[[^]]*\][[:space:]]*//')
-            PR_TITLE="$TYPE: ${CLEAN_TITLE:0:150}"
+            # Use cut -c for UTF-8 safe truncation (bash substring can split multibyte chars)
+            TRUNCATED_TITLE=$(printf '%s' "$CLEAN_TITLE" | cut -c1-150)
+            PR_TITLE="$TYPE: $TRUNCATED_TITLE"
           else
-            PR_TITLE="feat: implement #$ISSUE_NUMBER - ${ISSUE_TITLE:0:120}"
+            # Use cut -c for UTF-8 safe truncation (bash substring can split multibyte chars)
+            TRUNCATED_TITLE=$(printf '%s' "$ISSUE_TITLE" | cut -c1-120)
+            PR_TITLE="feat: implement #$ISSUE_NUMBER - $TRUNCATED_TITLE"
           fi
           echo "Using generated PR title: $PR_TITLE"
         fi
