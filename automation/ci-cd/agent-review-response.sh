@@ -400,6 +400,11 @@ The feedback below comes from AI reviewers (Gemini, Codex) which are known to:
 - Flag correct code as incorrect
 - Suggest unnecessary changes
 
+KNOWN GEMINI HALLUCINATIONS (ignore these suggestions):
+- Downgrading actions/checkout@v6 to v4 - THIS IS WRONG, v6 is correct and intentional
+- Suggesting removal of "clean: true" as redundant - this is a style choice, not a bug
+- Claiming files don't exist when they do - always verify with actual file reads
+
 YOU MUST VALIDATE EVERY CLAIM before making changes:
 1. Verify the file exists before editing it
 2. Verify line numbers are within file bounds
@@ -414,6 +419,7 @@ IMPORTANT INSTRUCTIONS:
 5. SKIP any feedback that cannot be validated or seems like a hallucination
 6. DO NOT make tool/dependency changes - those require admin approval
 7. DO NOT make architectural or design changes - those are debatable
+8. NEVER downgrade actions/checkout from v6 to v4 - Gemini often hallucinates this
 
 Review feedback to address:
 

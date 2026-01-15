@@ -77,7 +77,7 @@ jobs:
       # No pre-checkout cleanup needed - actions/checkout handles workspace cleanup by default
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Python environment
         run: |
