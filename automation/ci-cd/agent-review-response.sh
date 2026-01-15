@@ -560,6 +560,19 @@ echo "Commit created successfully"
 echo ""
 echo "=== Step 4: Pushing changes ==="
 
+# IMPORTANT: Post comment BEFORE pushing!
+# The push will trigger a pipeline restart that may terminate this job,
+# so we must post the comment first to ensure it's always visible.
+post_agent_comment "Fixed the issues from the review feedback and pushing the changes now.
+
+$(if [ "$HALLUCINATION_SUSPECTS" -gt 0 ]; then echo "Ignored $HALLUCINATION_SUSPECTS hallucination(s) that referenced non-existent files or lines."; fi)
+
+Pipeline will re-run to verify everything's good now.
+
+![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/miku_thumbsup.png)"
+
+echo "Comment posted, now pushing..."
+
 # Disable pre-push hooks that might interfere
 # Use trap to ensure hook is restored even on crash/early exit
 restore_hook() {
@@ -585,14 +598,5 @@ echo ""
 echo "=== Agent Review Response Complete ==="
 echo "Changes pushed to branch: $BRANCH_NAME"
 echo "Pipeline will be retriggered automatically"
-
-# Post success comment
-post_agent_comment "Fixed the issues from the review feedback and pushed the changes.
-
-$(if [ "$HALLUCINATION_SUSPECTS" -gt 0 ]; then echo "Ignored $HALLUCINATION_SUSPECTS hallucination(s) that referenced non-existent files or lines."; fi)
-
-Pipeline will re-run to verify everything's good now.
-
-![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/miku_thumbsup.png)"
 
 echo "made_changes=true" >> "${GITHUB_OUTPUT:-/dev/null}"
