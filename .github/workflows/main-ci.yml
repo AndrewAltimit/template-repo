@@ -277,7 +277,7 @@ jobs:
           # || true prevents failure if containers are already stopped/removed
           docker-compose down --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
-          ./automation/ci-cd/cleanup-outputs.sh || true
+          ./automation/ci-cd/cleanup-outputs.sh || echo "Warning: cleanup-outputs.sh failed but continuing"
 
   # Stage 6: Documentation build
   docs-build:
@@ -494,7 +494,7 @@ jobs:
           # || true prevents failure if containers are already stopped/removed
           docker-compose down --rmi local --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
-          ./automation/ci-cd/cleanup-outputs.sh || true
+          ./automation/ci-cd/cleanup-outputs.sh || echo "Warning: cleanup-outputs.sh failed but continuing"
 
   # Stage 10: Integration tests
   integration-tests:
@@ -533,7 +533,7 @@ jobs:
           # || true prevents failure if containers are already stopped/removed
           docker-compose down --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
-          ./automation/ci-cd/cleanup-outputs.sh || true
+          ./automation/ci-cd/cleanup-outputs.sh || echo "Warning: cleanup-outputs.sh failed but continuing"
 
   # Stage 11: Deploy (placeholder)
   deploy:

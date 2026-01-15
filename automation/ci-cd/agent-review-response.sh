@@ -298,7 +298,8 @@ while IFS= read -r line; do
             else
                 # Check if context indicates file was intentionally deleted/removed
                 # (in which case non-existence is expected, not a hallucination)
-                if printf '%s\n' "$line" | grep -qiE "delet|remov|deprecat|no longer|migration|stub"; then
+                # Use word boundaries to avoid false matches (e.g., "stub" shouldn't match "stubborn")
+                if printf '%s\n' "$line" | grep -qiE '\b(delet(e|ed|ion)?|remov(e|ed|al|ing)?|deprecat(e|ed)?|migrat(e|ed|ion)?|stubs?)\b|no longer'; then
                     echo "[VALIDATE] File $current_file doesn't exist but context indicates intentional deletion - skipping"
                 else
                     echo "[VALIDATE] WARNING: File does not exist: $current_file (possible hallucination)"
