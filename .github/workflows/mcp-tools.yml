@@ -156,9 +156,10 @@ jobs:
             kill $(cat gemini.pid) || true
             rm gemini.pid
           fi
-          docker-compose down
+          # || true prevents failure if containers are already stopped/removed
+          docker-compose down --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
-          ./automation/ci-cd/cleanup-outputs.sh
+          ./automation/ci-cd/cleanup-outputs.sh || true
 
   gemini-consultation:
     name: Gemini AI Consultation

@@ -274,9 +274,10 @@ jobs:
       - name: Stop MCP servers
         if: always()
         run: |
-          docker-compose down
+          # || true prevents failure if containers are already stopped/removed
+          docker-compose down --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
-          ./automation/ci-cd/cleanup-outputs.sh
+          ./automation/ci-cd/cleanup-outputs.sh || true
 
   # Stage 6: Documentation build
   docs-build:
@@ -490,9 +491,10 @@ jobs:
       - name: Stop services
         if: always()
         run: |
-          docker-compose down --rmi local
+          # || true prevents failure if containers are already stopped/removed
+          docker-compose down --rmi local --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
-          ./automation/ci-cd/cleanup-outputs.sh
+          ./automation/ci-cd/cleanup-outputs.sh || true
 
   # Stage 10: Integration tests
   integration-tests:
@@ -528,9 +530,10 @@ jobs:
       - name: Clean up services
         if: always()
         run: |
-          docker-compose down
+          # || true prevents failure if containers are already stopped/removed
+          docker-compose down --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
-          ./automation/ci-cd/cleanup-outputs.sh
+          ./automation/ci-cd/cleanup-outputs.sh || true
 
   # Stage 11: Deploy (placeholder)
   deploy:
