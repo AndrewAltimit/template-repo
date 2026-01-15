@@ -249,14 +249,16 @@ impl UrlValidator {
             // Need to escape special regex chars in URL
             let escaped_url = regex::escape(url);
 
-            // Pattern for ![alt text](url) - captures the whole thing
-            let pattern = format!(r"!\[[^\]]*\]\({}\)", escaped_url);
+            // Pattern for ![alt text](url) or ![alt text](url "title") - captures the whole thing
+            // Optional title can be quoted with " or '
+            let pattern = format!(r#"!\[[^\]]*\]\({}\s*(?:["'][^"']*["'])?\)"#, escaped_url);
             if let Ok(re) = Regex::new(&pattern) {
                 result = re.replace_all(&result, "").to_string();
             }
 
-            // Also handle escaped variant \![alt text](url)
-            let escaped_pattern = format!(r"\\!\[[^\]]*\]\({}\)", escaped_url);
+            // Also handle escaped variant \![alt text](url) or \![alt text](url "title")
+            let escaped_pattern =
+                format!(r#"\\!\[[^\]]*\]\({}\s*(?:["'][^"']*["'])?\)"#, escaped_url);
             if let Ok(re) = Regex::new(&escaped_pattern) {
                 result = re.replace_all(&result, "").to_string();
             }
@@ -353,5 +355,25 @@ mod tests {
         let text = "![Image](https://example.com/normal/image.png)";
         let urls = UrlValidator::extract_reaction_urls(text);
         assert!(urls.is_empty()); // "reaction" or "Media" not in URL
+    }
+
+    #[test]
+    fn test_strip_invalid_images_with_title() {
+        let validator = UrlValidator::default();
+
+        // Test stripping image with title attribute - use a non-whitelisted host
+        // to trigger validation failure
+        let content = r#"Some text
+![Reaction](https://invalid.example.com/reaction/test.png "My title")
+More text"#;
+
+        let (result, invalid_urls) = validator.strip_invalid_images(content);
+
+        // The invalid URL should be stripped along with its title
+        assert!(!result.contains("invalid.example.com"));
+        assert!(!result.contains("My title"));
+        assert!(result.contains("Some text"));
+        assert!(result.contains("More text"));
+        assert_eq!(invalid_urls.len(), 1);
     }
 }

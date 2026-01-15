@@ -891,8 +891,9 @@ runs:
         AGENT_PR_TITLE=""
         PR_TITLE_FILE="/tmp/pr_title.txt"
         if [ -f "$PR_TITLE_FILE" ] && [ -s "$PR_TITLE_FILE" ]; then
-          # Read first line, trim whitespace, limit to 200 chars
-          AGENT_PR_TITLE=$(head -n 1 "$PR_TITLE_FILE" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | cut -c1-200)
+          # Read first line, trim whitespace, limit to 200 chars (UTF-8 safe)
+          # Use awk to handle multibyte characters correctly instead of cut
+          AGENT_PR_TITLE=$(head -n 1 "$PR_TITLE_FILE" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | awk '{print substr($0, 1, 200)}')
           if [ -n "$AGENT_PR_TITLE" ]; then
             echo "Agent provided PR title: $AGENT_PR_TITLE"
           fi
