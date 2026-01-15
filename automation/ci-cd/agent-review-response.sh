@@ -287,9 +287,9 @@ while IFS= read -r line; do
     current_line=""
 
     # Check if line mentions a file path
-    if echo "$line" | grep -qE "\.(py|js|ts|yaml|yml|sh|md)"; then
+    if printf '%s\n' "$line" | grep -qE "\.(py|js|ts|yaml|yml|sh|md)"; then
         # Try to extract file path
-        current_file=$(echo "$line" | grep -oE "[a-zA-Z0-9_/.-]+\.(py|js|ts|yaml|yml|sh|md)" | head -1) || true
+        current_file=$(printf '%s\n' "$line" | grep -oE "[a-zA-Z0-9_/.-]+\.(py|js|ts|yaml|yml|sh|md)" | head -1) || true
 
         if [ -n "$current_file" ]; then
             if validate_file_exists "$current_file"; then
@@ -298,7 +298,7 @@ while IFS= read -r line; do
             else
                 # Check if context indicates file was intentionally deleted/removed
                 # (in which case non-existence is expected, not a hallucination)
-                if echo "$line" | grep -qiE "delet|remov|deprecat|no longer|migration|stub"; then
+                if printf '%s\n' "$line" | grep -qiE "delet|remov|deprecat|no longer|migration|stub"; then
                     echo "[VALIDATE] File $current_file doesn't exist but context indicates intentional deletion - skipping"
                 else
                     echo "[VALIDATE] WARNING: File does not exist: $current_file (possible hallucination)"
@@ -310,8 +310,8 @@ while IFS= read -r line; do
     fi
 
     # Check for line number references
-    if echo "$line" | grep -qE "line [0-9]+|Line [0-9]+|:[0-9]+:"; then
-        current_line=$(echo "$line" | grep -oE "[0-9]+" | head -1) || true
+    if printf '%s\n' "$line" | grep -qE "line [0-9]+|Line [0-9]+|:[0-9]+:"; then
+        current_line=$(printf '%s\n' "$line" | grep -oE "[0-9]+" | head -1) || true
         if [ -n "$current_file" ] && [ -n "$current_line" ]; then
             if validate_line_number "$current_file" "$current_line"; then
                 echo "[VALIDATE] Line $current_line valid in $current_file"
@@ -326,10 +326,10 @@ while IFS= read -r line; do
     # Now perform deeper validation using linter and import checks
 
     # Check for import-related issues
-    if echo "$line" | grep -qiE "import|missing.*import|unused.*import|F401"; then
+    if printf '%s\n' "$line" | grep -qiE "import|missing.*import|unused.*import|F401"; then
         # Try to extract module name from feedback
         # Common patterns: "import os", "missing import: requests", "unused import 'json'"
-        module_name=$(echo "$line" | grep -oE "(import|module)[[:space:]]+['\"]?([a-zA-Z_][a-zA-Z0-9_]*)['\"]?" | grep -oE "[a-zA-Z_][a-zA-Z0-9_]*$" | head -1) || true
+        module_name=$(printf '%s\n' "$line" | grep -oE "(import|module)[[:space:]]+['\"]?([a-zA-Z_][a-zA-Z0-9_]*)['\"]?" | grep -oE "[a-zA-Z_][a-zA-Z0-9_]*$" | head -1) || true
 
         if [ -n "$module_name" ] && [ -n "$current_file" ] && [[ "$current_file" == *.py ]]; then
             echo "[VALIDATE] Checking import issue for module '$module_name' in $current_file"
