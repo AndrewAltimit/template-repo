@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from github_agents.agents import BaseAgent, ClaudeAgent, CrushAgent, GeminiAgent, OpenCodeAgent
+from github_agents.agents import BaseAgent, ClaudeAgent, CodexAgent, CrushAgent, GeminiAgent, OpenCodeAgent
 
 
 class TestBaseAgent:
@@ -288,3 +288,72 @@ class TestGeminiAgent:
 
         # Should use --version to check availability with check=False
         mock_run.assert_called_with(["gemini", "--version"], capture_output=True, timeout=2, check=False)
+
+
+class TestCodexAgent:
+    """Test Codex agent."""
+
+    def test_initialization(self):
+        """Test Codex agent initialization."""
+        agent = CodexAgent()
+        assert agent.name == "codex"
+        assert agent.executable == "codex"
+
+    def test_trigger_keyword(self):
+        """Test trigger keyword."""
+        agent = CodexAgent()
+        assert agent.get_trigger_keyword() == "Codex"
+
+    def test_parse_output_agent_message_format(self):
+        """Test parsing v0.79.0+ agent_message format."""
+        agent = CodexAgent()
+
+        # This is the actual format seen in production
+        jsonl_output = (
+            '{"type": "thread.started", "thread_id": "test-123"}\n'
+            '{"type": "turn.started"}\n'
+            '{"type": "item.completed", "item": {"id": "item_0", "type": "agent_message", '
+            '"text": "## Issues\\nNone identified"}}\n'
+            '{"type": "turn.completed", "usage": {"input_tokens": 100, "output_tokens": 50}}\n'
+        )
+
+        result = agent._parse_output(jsonl_output)
+
+        assert "Issues" in result
+        assert "None identified" in result
+
+    def test_parse_output_message_format(self):
+        """Test parsing v0.79.0 message format with content array."""
+        agent = CodexAgent()
+
+        jsonl_output = (
+            '{"type": "item.completed", "item": {"type": "message", '
+            '"content": [{"type": "text", "text": "Here is the review"}]}}\n'
+        )
+
+        result = agent._parse_output(jsonl_output)
+
+        assert "Here is the review" in result
+
+    def test_parse_output_legacy_format(self):
+        """Test parsing legacy msg format."""
+        agent = CodexAgent()
+
+        jsonl_output = '{"msg": {"type": "agent_message", "message": "Legacy review"}}\n'
+
+        result = agent._parse_output(jsonl_output)
+
+        assert "Legacy review" in result
+
+    @patch("subprocess.run")
+    @patch("shutil.which")
+    def test_is_available(self, mock_which, mock_run):
+        """Test Codex availability check."""
+        agent = CodexAgent()
+
+        mock_which.return_value = "/usr/local/bin/codex"
+        mock_run.return_value.returncode = 0
+
+        # Mock auth file exists
+        with patch("pathlib.Path.exists", return_value=True):
+            assert agent.is_available() is True

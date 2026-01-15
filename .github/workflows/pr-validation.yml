@@ -861,9 +861,10 @@ jobs:
         if: always()
         run: |
           # --rmi local removes images built by compose (not public images)
-          docker-compose down --rmi local
+          # || true prevents failure if containers are already stopped/removed
+          docker-compose down --rmi local --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
-          ./automation/ci-cd/cleanup-outputs.sh
+          ./automation/ci-cd/cleanup-outputs.sh || echo "Warning: cleanup-outputs.sh failed but continuing"
 
   # Stage 7: sleeper agents Tests
   sleeper-agents-tests:
@@ -1014,9 +1015,10 @@ jobs:
         if: always()
         run: |
           # --rmi local removes images built by compose (not public images)
-          docker-compose down --rmi local
+          # || true prevents failure if containers are already stopped/removed
+          docker-compose down --rmi local --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
-          ./automation/ci-cd/cleanup-outputs.sh
+          ./automation/ci-cd/cleanup-outputs.sh || echo "Warning: cleanup-outputs.sh failed but continuing"
 
   # Agent Failure Handler - attempts to fix format/lint failures
   agent-failure-handler:
