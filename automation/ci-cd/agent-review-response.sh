@@ -156,10 +156,16 @@ post_agent_comment() {
 
     # Use gh CLI to post comment
     if command -v gh &> /dev/null; then
-        echo "$comment_body" | gh pr comment "$PR_NUMBER" --body-file - || {
+        # Write to temp file - gh-validator blocks stdin for security
+        local temp_file
+        temp_file=$(mktemp)
+        echo "$comment_body" > "$temp_file"
+        gh pr comment "$PR_NUMBER" --body-file "$temp_file" || {
+            rm -f "$temp_file"
             echo "Failed to post PR comment"
             return 1
         }
+        rm -f "$temp_file"
         echo "Posted agent status comment to PR #$PR_NUMBER"
     else
         echo "gh CLI not found, skipping PR comment"
