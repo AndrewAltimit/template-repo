@@ -685,6 +685,18 @@ runs:
           "- Run linting/tests after making changes: ./automation/ci-cd/run-ci.sh full" \
           "- DO NOT commit changes - the workflow handles commits automatically" \
           "" \
+          "## PR Title Requirement" \
+          "IMPORTANT: When you complete the task, you MUST write a descriptive PR title to /tmp/pr_title.txt" \
+          "The title should:" \
+          "- Use conventional commit format: type(scope): description" \
+          "- Be specific about WHAT was changed, not just 'implement issue'" \
+          "- Be concise (under 72 characters ideally)" \
+          "Examples:" \
+          "- chore: remove redundant setup.py files after PEP 621 migration" \
+          "- fix(auth): resolve token refresh race condition" \
+          "- feat(api): add pagination support to list endpoints" \
+          "Write ONLY the title to the file, no other content." \
+          "" \
           "## Working Directory" \
           "You are on branch: $BRANCH_NAME" \
           "Make your changes and the workflow will commit and create a PR." \
@@ -875,10 +887,23 @@ runs:
         END_TIME=$(date +%s)
         DURATION=$((END_TIME - START_TIME))
 
+        # Read agent-provided PR title if available
+        AGENT_PR_TITLE=""
+        PR_TITLE_FILE="/tmp/pr_title.txt"
+        if [ -f "$PR_TITLE_FILE" ] && [ -s "$PR_TITLE_FILE" ]; then
+          # Read first line, trim whitespace, limit to 200 chars
+          AGENT_PR_TITLE=$(head -n 1 "$PR_TITLE_FILE" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | cut -c1-200)
+          if [ -n "$AGENT_PR_TITLE" ]; then
+            echo "Agent provided PR title: $AGENT_PR_TITLE"
+          fi
+          rm -f "$PR_TITLE_FILE"
+        fi
+
         echo "work_completed=$WORK_COMPLETED" >> $GITHUB_OUTPUT
         echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
         echo "duration_seconds=$DURATION" >> $GITHUB_OUTPUT
         echo "agent_error=$AGENT_ERROR" >> $GITHUB_OUTPUT
+        echo "agent_pr_title=$AGENT_PR_TITLE" >> $GITHUB_OUTPUT
 
         if [ "$JSON_LOGGING" = "true" ]; then
           echo '{"event": "agent_complete", "success": '$([[ "$WORK_COMPLETED" = "true" ]] && echo "true" || echo "false")', "duration_sec": '$DURATION', "error": "'$AGENT_ERROR'"}'
@@ -897,6 +922,7 @@ runs:
         ISSUE_TITLE: ${{ steps.query.outputs.issue_title }}
         AGENT_NAME: ${{ inputs.agent-name }}
         BRANCH_NAME: ${{ steps.execute.outputs.branch_name }}
+        AGENT_PR_TITLE: ${{ steps.execute.outputs.agent_pr_title }}
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Create Pull Request"
@@ -911,18 +937,43 @@ runs:
           exit 0
         fi
 
-        # Truncate title first (before escaping) using bash slicing for UTF-8 safety
-        # ${var:0:200} counts characters, not bytes, preventing multibyte char splits
-        TRUNCATED_TITLE="${ISSUE_TITLE:0:200}"
-        # Then sanitize for safe shell usage (escape special chars)
-        SAFE_TITLE=$(printf '%s' "$TRUNCATED_TITLE" | sed 's/[\"$`\\]/\\&/g')
+        # Determine PR title: prefer agent-provided, fall back to issue-based
+        if [ -n "$AGENT_PR_TITLE" ]; then
+          # Agent provided a descriptive title - use it directly
+          PR_TITLE="$AGENT_PR_TITLE"
+          echo "Using agent-provided PR title: $PR_TITLE"
+        else
+          # Fall back to generic title with issue reference
+          # Extract category from issue title if it starts with [Category]
+          if [[ "$ISSUE_TITLE" =~ ^\[([^\]]+)\] ]]; then
+            CATEGORY="${BASH_REMATCH[1]}"
+            # Map common categories to commit types
+            case "$CATEGORY" in
+              Quality|Cleanup|Refactor) TYPE="chore" ;;
+              Bug|Fix) TYPE="fix" ;;
+              Feature|Enhancement) TYPE="feat" ;;
+              Docs|Documentation) TYPE="docs" ;;
+              Test|Testing) TYPE="test" ;;
+              *) TYPE="feat" ;;
+            esac
+            # Remove category prefix from title for cleaner message
+            CLEAN_TITLE=$(echo "$ISSUE_TITLE" | sed 's/^\[[^]]*\][[:space:]]*//')
+            PR_TITLE="$TYPE: ${CLEAN_TITLE:0:150}"
+          else
+            PR_TITLE="feat: implement #$ISSUE_NUMBER - ${ISSUE_TITLE:0:120}"
+          fi
+          echo "Using generated PR title: $PR_TITLE"
+        fi
+
+        # Sanitize title for safe shell usage (escape special chars)
+        SAFE_TITLE=$(printf '%s' "$PR_TITLE" | sed 's/[\"$`\\]/\\&/g')
 
         # Create commit message file to avoid shell escaping issues
         COMMIT_MSG_FILE=$(mktemp)
         cat > "$COMMIT_MSG_FILE" << COMMIT_EOF
-        feat: implement issue #$ISSUE_NUMBER
+        $PR_TITLE
 
-        $SAFE_TITLE
+        Implements issue #$ISSUE_NUMBER: $ISSUE_TITLE
 
         Implemented by $AGENT_NAME agent.
 
@@ -989,9 +1040,9 @@ runs:
         # Remove leading whitespace from PR body
         sed -i 's/^        //' "$PR_BODY_FILE"
 
-        # Create PR using file-based body (title already truncated and sanitized)
+        # Create PR using file-based body (title already includes conventional commit type)
         PR_URL=$(gh pr create \
-          --title "feat: $SAFE_TITLE" \
+          --title "$SAFE_TITLE" \
           --body-file "$PR_BODY_FILE" \
           --base main \
           --head "$BRANCH_NAME")
