@@ -1,13 +1,10 @@
 #!/bin/bash
 # Agent Review Response Script
-# Responds to Gemini/Codex AI reviews by passing all feedback to Claude for
-# intelligent analysis and decision-making.
+# Responds to Gemini/Codex AI reviews by invoking Claude to analyze and fix issues.
 #
-# Philosophy: Let the agent see all feedback and decide intelligently what to fix.
-# No pattern matching gating - the agent applies judgment to each piece of feedback.
-#
-# The script still validates file/line references to detect potential hallucinations
-# and provides this context to Claude, but does not skip based on pattern matching.
+# Philosophy: Trust Claude to intelligently evaluate review feedback and decide
+# what to fix. Claude has access to tools (Read, Edit, Grep) to verify claims
+# before making changes.
 #
 # Usage: agent-review-response.sh <pr_number> <branch_name> <iteration_count>
 #
@@ -19,102 +16,6 @@
 
 set -e
 set -o pipefail
-
-# =============================================================================
-# VALIDATION FUNCTIONS
-# =============================================================================
-
-# Validate that a reported file exists
-validate_file_exists() {
-    local file="$1"
-    [ -f "$file" ]
-}
-
-# Validate that a line number is within file bounds
-validate_line_number() {
-    local file="$1"
-    local line="$2"
-
-    if [ ! -f "$file" ]; then
-        return 1
-    fi
-
-    local total_lines
-    total_lines=$(wc -l < "$file")
-    [ "$line" -le "$total_lines" ] 2>/dev/null
-}
-
-# Validate an import issue by checking if the import exists
-validate_import_issue() {
-    local file="$1"
-    local import_name="$2"
-
-    if [ ! -f "$file" ]; then
-        return 1
-    fi
-
-    # Check if the import is actually present (handles multiple formats):
-    # - import module
-    # - import module, module2, module3
-    # - from module import ...
-    # - import module as alias
-    # Also handles indented imports (e.g., inside try/except blocks)
-    # Use word boundary \b to prevent partial matches (e.g., "os" matching "osgeo")
-    if grep -qE "^[[:space:]]*(import[[:space:]]+(${import_name}\b|[^#]*,[[:space:]]*${import_name}\b)|from[[:space:]]+${import_name}\b)" "$file"; then
-        return 1  # Import exists, not a valid issue
-    fi
-
-    # Check if the module is used in the file
-    if grep -qE "\b${import_name}\." "$file"; then
-        return 0  # Module used but not imported - valid issue
-    fi
-
-    return 1
-}
-
-# Run static analysis to confirm issues at a specific line
-# Parameters:
-#   $1 - file path
-#   $2 - line number (optional, validates whole file if not provided)
-#   $3 - error pattern (optional, defaults to common import/syntax errors)
-validate_with_linter() {
-    local file="$1"
-    local line_num="${2:-}"
-    local error_pattern="${3:-F401|F811|E999|E902}"
-
-    if [ ! -f "$file" ]; then
-        return 1
-    fi
-
-    local linter_output=""
-
-    # Try flake8 if available
-    if command -v flake8 &> /dev/null; then
-        linter_output=$(flake8 "$file" 2>/dev/null) || true
-    elif command -v docker &> /dev/null && [ -f "docker-compose.yml" ]; then
-        # Try running in container if available
-        linter_output=$(docker-compose run --rm python-ci flake8 "$file" 2>/dev/null) || true
-    fi
-
-    if [ -z "$linter_output" ]; then
-        return 1  # No linter output, can't validate
-    fi
-
-    # If line number provided, check for issues on that specific line
-    if [ -n "$line_num" ]; then
-        if echo "$linter_output" | grep -qE ":${line_num}:.*($error_pattern)"; then
-            return 0  # Found matching error on the specific line
-        fi
-        return 1  # No matching error on that line
-    fi
-
-    # No line number - check if file has any matching errors
-    if echo "$linter_output" | grep -qE "$error_pattern"; then
-        return 0  # Linter found matching issues somewhere in file
-    fi
-
-    return 1
-}
 
 # Parse arguments
 PR_NUMBER="$1"
@@ -248,127 +149,7 @@ if [ -z "$REVIEW_CONTENT" ]; then
     exit 0
 fi
 
-# Determine which reviews were found for reporting
-REVIEWS_FOUND=""
-if [ -f "${GEMINI_REVIEW_PATH:-gemini-review.md}" ] || [ -f "gemini-review.md" ]; then
-    REVIEWS_FOUND+="- Gemini review\n"
-fi
-if [ -f "${CODEX_REVIEW_PATH:-codex-review.md}" ] || [ -f "codex-review.md" ]; then
-    REVIEWS_FOUND+="- Codex review\n"
-fi
-
-echo "Review content found, passing to agent for intelligent analysis..."
-echo "Reviews found:"
-printf '%b' "$REVIEWS_FOUND"
-
-# =============================================================================
-# VALIDATE AI FEEDBACK (provide context, but don't gate on patterns)
-# =============================================================================
-
-# Track validation results for reporting
-VALIDATED_ISSUES=0
-HALLUCINATION_SUSPECTS=0
-
-# Analyze individual feedback items for validation
-echo ""
-echo "=== Validating AI Feedback ==="
-echo "IMPORTANT: AI reviewers can hallucinate. Validating claims..."
-
-# Track linter-validated issues separately
-LINTER_VALIDATED=0
-
-# Extract file references from review and validate them
-while IFS= read -r line; do
-    # Skip empty lines
-    [ -z "$line" ] && continue
-
-    # Reset per-line tracking
-    current_file=""
-    current_line=""
-
-    # Check if line mentions a file path
-    if printf '%s\n' "$line" | grep -qE "\.(py|js|ts|yaml|yml|sh|md)"; then
-        # Try to extract file path
-        current_file=$(printf '%s\n' "$line" | grep -oE "[a-zA-Z0-9_/.-]+\.(py|js|ts|yaml|yml|sh|md)" | head -1) || true
-
-        if [ -n "$current_file" ]; then
-            if validate_file_exists "$current_file"; then
-                echo "[VALIDATE] File exists: $current_file"
-                ((VALIDATED_ISSUES++)) || true
-            else
-                # Check if context indicates file was intentionally deleted/removed
-                # (in which case non-existence is expected, not a hallucination)
-                # Use word boundaries to avoid false matches (e.g., "stub" shouldn't match "stubborn")
-                if printf '%s\n' "$line" | grep -qiE '\b(delet(e|ed|ion)?|remov(e|ed|al|ing)?|deprecat(e|ed)?|migrat(e|ed|ion)?|stubs?)\b|no longer'; then
-                    echo "[VALIDATE] File $current_file doesn't exist but context indicates intentional deletion - skipping"
-                else
-                    echo "[VALIDATE] WARNING: File does not exist: $current_file (possible hallucination)"
-                    ((HALLUCINATION_SUSPECTS++)) || true
-                fi
-                continue  # Skip further validation for non-existent file
-            fi
-        fi
-    fi
-
-    # Check for line number references
-    if printf '%s\n' "$line" | grep -qE "line [0-9]+|Line [0-9]+|:[0-9]+:"; then
-        current_line=$(printf '%s\n' "$line" | grep -oE "[0-9]+" | head -1) || true
-        if [ -n "$current_file" ] && [ -n "$current_line" ]; then
-            if validate_line_number "$current_file" "$current_line"; then
-                echo "[VALIDATE] Line $current_line valid in $current_file"
-            else
-                echo "[VALIDATE] WARNING: Line $current_line out of range in $current_file (possible hallucination)"
-                ((HALLUCINATION_SUSPECTS++)) || true
-            fi
-        fi
-    fi
-
-    # === SEMANTIC VALIDATION ===
-    # Now perform deeper validation using linter and import checks
-
-    # Check for import-related issues
-    if printf '%s\n' "$line" | grep -qiE "import|missing.*import|unused.*import|F401"; then
-        # Try to extract module name from feedback
-        # Common patterns: "import os", "missing import: requests", "unused import 'json'"
-        module_name=$(printf '%s\n' "$line" | grep -oE "(import|module)[[:space:]]+['\"]?([a-zA-Z_][a-zA-Z0-9_]*)['\"]?" | grep -oE "[a-zA-Z_][a-zA-Z0-9_]*$" | head -1) || true
-
-        if [ -n "$module_name" ] && [ -n "$current_file" ] && [[ "$current_file" == *.py ]]; then
-            echo "[VALIDATE] Checking import issue for module '$module_name' in $current_file"
-            if validate_import_issue "$current_file" "$module_name"; then
-                echo "[VALIDATE] CONFIRMED: Module '$module_name' is used but not imported"
-                ((LINTER_VALIDATED++)) || true
-            else
-                echo "[VALIDATE] Import issue NOT confirmed (module exists or not used)"
-            fi
-        fi
-    fi
-
-    # Run linter validation for Python files with specific line references
-    if [ -n "$current_file" ] && [[ "$current_file" == *.py ]]; then
-        if [ -n "$current_line" ]; then
-            echo "[VALIDATE] Running linter check on $current_file:$current_line"
-            if validate_with_linter "$current_file" "$current_line"; then
-                echo "[VALIDATE] CONFIRMED: Linter found issue at $current_file:$current_line"
-                ((LINTER_VALIDATED++)) || true
-            else
-                echo "[VALIDATE] Linter did NOT confirm issue at $current_file:$current_line"
-            fi
-        fi
-    fi
-done < <(printf '%s\n' "$REVIEW_CONTENT") || true
-# Note: || true is needed because 'read' returns 1 on EOF, which triggers set -e
-
-echo ""
-echo "[RUBRIC] Validation summary:"
-echo "  - File/line checks passed: $VALIDATED_ISSUES"
-echo "  - Linter-confirmed issues: $LINTER_VALIDATED"
-echo "  - Suspected hallucinations: $HALLUCINATION_SUSPECTS"
-
-# Always proceed to Claude - let the agent decide intelligently what to fix
-# No pattern matching gating - the agent sees all feedback and uses judgment
-echo ""
-echo "[RUBRIC] Proceeding with agent analysis..."
-echo "[RUBRIC] Validation context: $VALIDATED_ISSUES validated, $HALLUCINATION_SUSPECTS suspected hallucinations"
+echo "Review content found, passing to Claude for analysis..."
 
 # Step 1: Run autoformat first (quick wins)
 echo ""
@@ -390,86 +171,86 @@ fi
 echo ""
 echo "=== Step 2: Invoking Claude for review feedback ==="
 
-# Build prompt for Claude
+# Load CLAUDE.md for codebase context if it exists
+CLAUDE_MD_CONTEXT=""
+if [ -f "CLAUDE.md" ]; then
+    echo "Loading CLAUDE.md for codebase context..."
+    CLAUDE_MD_CONTEXT=$(cat "CLAUDE.md")
+fi
+
+# Build prompt for Claude - balanced and trusting
 CLAUDE_PROMPT=$(cat << 'PROMPT_EOF'
 You are addressing AI code review feedback for a pull request.
 
-CRITICAL: AI REVIEWERS CAN HALLUCINATE
-The feedback below comes from AI reviewers (Gemini, Codex) which are known to:
-- Report bugs in code that doesn't exist
-- Reference incorrect file paths or line numbers
-- Flag correct code as incorrect
-- Suggest unnecessary changes
+## Your Task
+Review the feedback from Gemini and Codex below, and fix any legitimate issues you find.
 
-KNOWN HALLUCINATION PATTERNS (ignore these):
-- Suggesting downgrades to GitHub Actions versions - we use latest versions intentionally
-- Calling explicit config options "redundant" - explicit is better than implicit
-- Claiming files don't exist when they do - always verify with actual file reads
-- Suggesting architectural changes disguised as "improvements"
+## How to Work
+1. **Read the files first** - Use the Read tool to examine any file mentioned in the feedback before deciding whether to fix it
+2. **Verify claims** - Check if the reported issue actually exists in the code
+3. **Fix real issues** - If the issue is real, fix it using the Edit tool
+4. **Skip non-issues** - If a claim doesn't match reality, skip it and note why
 
-YOU MUST VALIDATE EVERY CLAIM before making changes:
-1. Verify the file exists before editing it
-2. Verify line numbers are within file bounds
-3. Confirm the reported issue actually exists in the code
-4. If you cannot validate an issue, SKIP IT - do not guess
+## What to Fix
+- Security issues (like unsafe shell commands, injection vulnerabilities)
+- Real bugs in the code
+- Formatting and style issues
+- Unused imports or variables
+- Type hint issues
 
-IMPORTANT INSTRUCTIONS:
-1. Focus ONLY on formatting, linting, and code style issues
-2. DO NOT modify test logic or business logic
-3. Fix unused imports, formatting issues, type hints
-4. Make minimal changes - only what's needed to address the feedback
-5. SKIP any feedback that cannot be validated or seems like a hallucination
-6. DO NOT make tool/dependency changes - those require admin approval
-7. DO NOT make architectural or design changes - those are debatable
-8. NEVER downgrade GitHub Actions versions - reviewers often hallucinate this
+## What NOT to Fix
+- Architectural suggestions (those need human discussion)
+- Style preferences that aren't bugs
+- GitHub Actions version changes (we use current versions intentionally)
 
-Review feedback to address:
+## Important
+- Trust the review feedback as a starting point, but verify before fixing
+- If you're unsure, read the file to check
+- Make minimal, focused changes
+- Be concise in your summary
 
 PROMPT_EOF
 )
 
-CLAUDE_PROMPT+=$(printf '%s\n' "$REVIEW_CONTENT")
+# Add CLAUDE.md context if available
+if [ -n "$CLAUDE_MD_CONTEXT" ]; then
+    CLAUDE_PROMPT+="
 
-CLAUDE_PROMPT+=$(cat << 'PROMPT_EOF'
+## Codebase Context (from CLAUDE.md)
+$CLAUDE_MD_CONTEXT
+"
+fi
 
-Analyze the review feedback above and fix what's actually broken.
+# Add the review content
+CLAUDE_PROMPT+="
 
-Before fixing anything, validate it:
-- Does the file exist? Read it first
-- Is the issue actually there? Don't trust the reviewer blindly
-- Is this a real bug or just a style preference?
+## Review Feedback to Address
 
-Focus on real issues:
-- Actual unused imports (verify they're unused)
-- Real formatting problems
-- Genuine linting errors
+$(printf '%s' "$REVIEW_CONTENT")
 
-Skip anything that's:
-- A hallucination (file/line doesn't exist)
-- An architectural suggestion
-- A style preference disguised as a bug
+---
 
-Be brief in your summary - just note what you fixed and what you skipped.
-PROMPT_EOF
-)
+Please analyze the feedback above, verify each issue by reading the relevant files, and fix what's actually broken. Summarize what you fixed and what you skipped (and why).
+"
 
 # Save prompt to temp file
 PROMPT_FILE=$(mktemp)
-echo "$CLAUDE_PROMPT" > "$PROMPT_FILE"
+printf '%s' "$CLAUDE_PROMPT" > "$PROMPT_FILE"
 
-# Determine Claude command
+# Determine Claude command - use interactive mode (NOT --print) so Claude can use tools
 CLAUDE_CMD=""
 if command -v claude &> /dev/null; then
-    CLAUDE_CMD="claude --print --dangerously-skip-permissions"
+    # Interactive mode with auto-approval for CI - Claude can read files and make edits
+    CLAUDE_CMD="claude --dangerously-skip-permissions"
 elif command -v claude-code &> /dev/null; then
-    CLAUDE_CMD="claude-code --print --dangerously-skip-permissions"
+    CLAUDE_CMD="claude-code --dangerously-skip-permissions"
 fi
 
 # Capture Claude's output for use in PR comments
 CLAUDE_OUTPUT_FILE=$(mktemp)
 
 if [ -n "$CLAUDE_CMD" ]; then
-    echo "Running Claude with prompt..."
+    echo "Running Claude in interactive mode (with tool access)..."
 
     # Set timeout for Claude execution (10 minutes)
     TIMEOUT_CMD="timeout 600"
@@ -477,7 +258,7 @@ if [ -n "$CLAUDE_CMD" ]; then
         TIMEOUT_CMD=""
     fi
 
-    # Run Claude and capture output (prompt is passed as positional argument)
+    # Run Claude with the prompt - it will use tools to read/edit files
     # shellcheck disable=SC2086
     $TIMEOUT_CMD $CLAUDE_CMD "$(cat "$PROMPT_FILE")" 2>&1 | tee "$CLAUDE_OUTPUT_FILE" || {
         exit_code=$?
@@ -504,21 +285,16 @@ git add -A
 if git diff --cached --quiet 2>/dev/null; then
     echo "No changes to commit"
 
-    # IMPORTANT: Always explain why no changes were made
-    # This prevents misleading situations where the agent appears to have acted but didn't
-
-    # Extract key findings from Claude's output for the comment
+    # Extract Claude's summary for the comment
     CLAUDE_SUMMARY=""
     if [ -f "$CLAUDE_OUTPUT_FILE" ] && [ -s "$CLAUDE_OUTPUT_FILE" ]; then
-        # Look for summary/decision sections in Claude's output
-        # Truncate to avoid overly long comments (max 1500 chars)
-        CLAUDE_SUMMARY=$(grep -iE "(validated|skipped|hallucination|no changes|architectural|design|debatable)" "$CLAUDE_OUTPUT_FILE" | head -20 | cut -c1-200 | head -c 1500) || true
+        # Get the last meaningful lines from Claude's output (likely the summary)
+        CLAUDE_SUMMARY=$(tail -50 "$CLAUDE_OUTPUT_FILE" | grep -v "^$" | tail -20 | head -c 1500) || true
     fi
 
-    post_agent_comment "Reviewed the feedback from Gemini and Codex but didn't find anything that needed fixing.
+    post_agent_comment "Reviewed the feedback from Gemini and Codex.
 
-$(if [ "$HALLUCINATION_SUSPECTS" -gt 0 ]; then echo "Found $HALLUCINATION_SUSPECTS reference(s) to files or lines that don't exist - looks like hallucinations."; fi)
-$(if [ "$VALIDATED_ISSUES" -gt 0 ] && [ "$LINTER_VALIDATED" -eq 0 ]; then echo "The issues mentioned were either style preferences or architectural suggestions that shouldn't be auto-fixed."; fi)
+**Result:** No changes needed.
 
 $(if [ -n "$CLAUDE_SUMMARY" ]; then echo "**Details:** $CLAUDE_SUMMARY"; fi)
 
@@ -543,8 +319,7 @@ fix: address AI review feedback
 
 Automated fix by Claude in response to Gemini/Codex review.
 
-This commit addresses formatting, linting, and code style issues
-identified in the automated code review.
+This commit addresses issues identified in the automated code review.
 
 Iteration: ${ITERATION_COUNT}/${MAX_ITERATIONS}
 
@@ -564,11 +339,9 @@ echo "=== Step 4: Pushing changes ==="
 # IMPORTANT: Post comment BEFORE pushing!
 # The push will trigger a pipeline restart that may terminate this job,
 # so we must post the comment first to ensure it's always visible.
-post_agent_comment "Fixed the issues from the review feedback and pushing the changes now.
+post_agent_comment "Fixed issues from the review feedback and pushing the changes now.
 
-$(if [ "$HALLUCINATION_SUSPECTS" -gt 0 ]; then echo "Ignored $HALLUCINATION_SUSPECTS hallucination(s) that referenced non-existent files or lines."; fi)
-
-Pipeline will re-run to verify everything's good now.
+Pipeline will re-run to verify everything's good.
 
 ![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/miku_thumbsup.png)"
 
