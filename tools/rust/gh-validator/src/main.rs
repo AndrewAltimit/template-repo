@@ -184,6 +184,17 @@ fn run() -> Result<(), Error> {
                                 url, reason
                             );
                         }
+
+                        // Check if content is empty after stripping
+                        if new_content.trim().is_empty() {
+                            eprintln!(
+                                "[gh-validator] WARNING: Content is empty after stripping {} invalid image(s), skipping command",
+                                stripped.len()
+                            );
+                            // Exit successfully - the comment would fail with empty body
+                            exit(0);
+                        }
+
                         // Write modified content back to the file
                         if let Err(e) = std::fs::write(&file_path, &new_content) {
                             return Err(Error::BodyFileRead {

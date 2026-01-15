@@ -624,6 +624,11 @@ runs:
 
         START_TIME=$(date +%s)
 
+        # Use unique temp file path to avoid race conditions with concurrent jobs
+        # RUNNER_TEMP is job-scoped, GITHUB_RUN_ID adds uniqueness
+        PR_TITLE_FILE="${RUNNER_TEMP:-/tmp}/pr_title_${GITHUB_RUN_ID:-$$}.txt"
+        export PR_TITLE_FILE
+
         if [ "$JSON_LOGGING" = "true" ]; then
           echo '{"event": "agent_start", "agent": "'$AGENT_NAME'", "issue": '$ISSUE_NUMBER', "timeout_min": '$AGENT_TIMEOUT'}'
         else
@@ -686,7 +691,7 @@ runs:
           "- DO NOT commit changes - the workflow handles commits automatically" \
           "" \
           "## PR Title Requirement" \
-          "IMPORTANT: When you complete the task, you MUST write a descriptive PR title to /tmp/pr_title.txt" \
+          "IMPORTANT: When you complete the task, you MUST write a descriptive PR title to $PR_TITLE_FILE" \
           "The title should:" \
           "- Use conventional commit format: type(scope): description" \
           "- Be specific about WHAT was changed, not just 'implement issue'" \
@@ -888,8 +893,8 @@ runs:
         DURATION=$((END_TIME - START_TIME))
 
         # Read agent-provided PR title if available
+        # PR_TITLE_FILE was set earlier in this step with a unique job-scoped path
         AGENT_PR_TITLE=""
-        PR_TITLE_FILE="/tmp/pr_title.txt"
         if [ -f "$PR_TITLE_FILE" ] && [ -s "$PR_TITLE_FILE" ]; then
           # Read first line, trim whitespace, limit to 200 chars (UTF-8 safe)
           # Use awk to handle multibyte characters correctly instead of cut
