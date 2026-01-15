@@ -221,8 +221,13 @@ impl UrlValidator {
     pub fn find_invalid_urls(&self, content: &str) -> Vec<(String, String)> {
         let urls = Self::extract_reaction_urls(content);
         let mut invalid = Vec::new();
+        let mut seen = std::collections::HashSet::new();
 
         for url in urls {
+            // Skip duplicate URLs to avoid redundant network requests
+            if !seen.insert(url.clone()) {
+                continue;
+            }
             if let Err(e) = self.validate_exists(&url) {
                 invalid.push((url, e.to_string()));
             }
