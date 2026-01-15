@@ -74,12 +74,10 @@ jobs:
       summary-json: ${{ steps.refine.outputs.summary_json }}
 
     steps:
-      # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
+      # No pre-checkout cleanup needed - actions/checkout handles workspace cleanup by default
 
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          clean: true
 
       - name: Setup Python environment
         run: |
