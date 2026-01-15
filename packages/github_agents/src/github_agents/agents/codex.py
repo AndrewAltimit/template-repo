@@ -261,6 +261,19 @@ class CodexAgent(CLIAgent):
             if message := event.get("message"):
                 messages.append(message)
 
+        # Handle item.completed events (v0.79.0+ format)
+        elif event.get("type") == "item.completed":
+            item = event.get("item", {})
+            item_type = item.get("type", "")
+            if item_type == "agent_message":
+                if text := item.get("text"):
+                    messages.append(text)
+            elif item_type == "message":
+                content = item.get("content", [])
+                for part in content:
+                    if part.get("type") == "text":
+                        messages.append(part.get("text", ""))
+
     def get_capabilities(self) -> List[str]:
         """Get Codex capabilities."""
         return [

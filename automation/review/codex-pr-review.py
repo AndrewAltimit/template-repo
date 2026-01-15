@@ -432,11 +432,17 @@ def call_codex(prompt: str, timeout: int = 300) -> Tuple[str, bool]:
                     item_type = item.get("type", "")
 
                     # Extract agent messages (final response)
+                    # Handle both "message" (older format) and "agent_message" (v0.79.0+)
                     if item_type == "message":
                         content = item.get("content", [])
                         for part in content:
                             if part.get("type") == "text":
                                 messages.append(part.get("text", ""))
+                    elif item_type == "agent_message":
+                        # v0.79.0+ format: {"item": {"type": "agent_message", "text": "..."}}
+                        text = item.get("text", "")
+                        if text:
+                            messages.append(text)
 
                     # Extract reasoning for context
                     elif item_type == "reasoning":

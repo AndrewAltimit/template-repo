@@ -296,8 +296,14 @@ while IFS= read -r line; do
                 echo "[VALIDATE] File exists: $current_file"
                 ((VALIDATED_ISSUES++)) || true
             else
-                echo "[VALIDATE] WARNING: File does not exist: $current_file (possible hallucination)"
-                ((HALLUCINATION_SUSPECTS++)) || true
+                # Check if context indicates file was intentionally deleted/removed
+                # (in which case non-existence is expected, not a hallucination)
+                if echo "$line" | grep -qiE "delet|remov|deprecat|no longer|migration|stub"; then
+                    echo "[VALIDATE] File $current_file doesn't exist but context indicates intentional deletion - skipping"
+                else
+                    echo "[VALIDATE] WARNING: File does not exist: $current_file (possible hallucination)"
+                    ((HALLUCINATION_SUSPECTS++)) || true
+                fi
                 continue  # Skip further validation for non-existent file
             fi
         fi

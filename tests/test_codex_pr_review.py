@@ -260,6 +260,29 @@ class TestCallCodex:
 
     @patch("codex_pr_review.shutil.which")
     @patch("subprocess.run")
+    def test_successful_call_v079_agent_message_format(self, mock_run, mock_which):
+        """Successfully calls Codex and parses v0.79.0+ agent_message JSONL response."""
+        mock_which.return_value = "/usr/local/bin/codex"
+        # Mock JSONL output from Codex v0.79.0+ format with agent_message type
+        # This is the actual format seen in production (different from message type)
+        jsonl_output = (
+            '{"type": "thread.started", "thread_id": "test-123"}\n'
+            '{"type": "turn.started"}\n'
+            '{"type": "item.completed", "item": {"id": "item_0", "type": "agent_message", '
+            '"text": "## Issues\\nNone identified\\n\\n## Notes\\n- Looks good"}}\n'
+            '{"type": "turn.completed", "usage": {"input_tokens": 100, "output_tokens": 50}}\n'
+        )
+        mock_run.return_value = MagicMock(returncode=0, stdout=jsonl_output)
+
+        result, success = call_codex("Review this code")
+
+        assert success is True
+        assert "Issues" in result
+        assert "None identified" in result
+        assert "Looks good" in result
+
+    @patch("codex_pr_review.shutil.which")
+    @patch("subprocess.run")
     def test_successful_call_legacy_format(self, mock_run, mock_which):
         """Successfully calls Codex and parses legacy JSONL response."""
         mock_which.return_value = "/usr/local/bin/codex"
