@@ -289,7 +289,7 @@ while IFS= read -r line; do
     # Check if line mentions a file path
     if echo "$line" | grep -qE "\.(py|js|ts|yaml|yml|sh|md)"; then
         # Try to extract file path
-        current_file=$(echo "$line" | grep -oE "[a-zA-Z0-9_/.-]+\.(py|js|ts|yaml|yml|sh|md)" | head -1)
+        current_file=$(echo "$line" | grep -oE "[a-zA-Z0-9_/.-]+\.(py|js|ts|yaml|yml|sh|md)" | head -1) || true
 
         if [ -n "$current_file" ]; then
             if validate_file_exists "$current_file"; then
@@ -305,7 +305,7 @@ while IFS= read -r line; do
 
     # Check for line number references
     if echo "$line" | grep -qE "line [0-9]+|Line [0-9]+|:[0-9]+:"; then
-        current_line=$(echo "$line" | grep -oE "[0-9]+" | head -1)
+        current_line=$(echo "$line" | grep -oE "[0-9]+" | head -1) || true
         if [ -n "$current_file" ] && [ -n "$current_line" ]; then
             if validate_line_number "$current_file" "$current_line"; then
                 echo "[VALIDATE] Line $current_line valid in $current_file"
