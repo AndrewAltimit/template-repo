@@ -904,7 +904,9 @@ runs:
         echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
         echo "duration_seconds=$DURATION" >> $GITHUB_OUTPUT
         echo "agent_error=$AGENT_ERROR" >> $GITHUB_OUTPUT
-        echo "agent_pr_title=$AGENT_PR_TITLE" >> $GITHUB_OUTPUT
+        # Escape PR title for GITHUB_OUTPUT: % -> %25, \r -> %0D, \n -> %0A
+        ESCAPED_PR_TITLE=$(printf '%s' "$AGENT_PR_TITLE" | sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' ' ')
+        echo "agent_pr_title=$ESCAPED_PR_TITLE" >> $GITHUB_OUTPUT
 
         if [ "$JSON_LOGGING" = "true" ]; then
           echo '{"event": "agent_complete", "success": '$([[ "$WORK_COMPLETED" = "true" ]] && echo "true" || echo "false")', "duration_sec": '$DURATION', "error": "'$AGENT_ERROR'"}'
@@ -966,8 +968,8 @@ runs:
           echo "Using generated PR title: $PR_TITLE"
         fi
 
-        # Sanitize title for safe shell usage (escape special chars)
-        SAFE_TITLE=$(printf '%s' "$PR_TITLE" | sed 's/[\"$`\\]/\\&/g')
+        # Note: PR_TITLE is used directly in double-quoted shell arguments below,
+        # which handles special characters correctly without manual escaping
 
         # Create commit message file using printf to avoid heredoc injection
         # (heredocs can be terminated early if variable content matches delimiter)
@@ -1038,7 +1040,7 @@ runs:
 
         # Create PR using file-based body (title already includes conventional commit type)
         PR_URL=$(gh pr create \
-          --title "$SAFE_TITLE" \
+          --title "$PR_TITLE" \
           --body-file "$PR_BODY_FILE" \
           --base main \
           --head "$BRANCH_NAME")
