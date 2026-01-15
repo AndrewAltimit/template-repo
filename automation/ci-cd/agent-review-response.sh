@@ -348,7 +348,8 @@ while IFS= read -r line; do
             fi
         fi
     fi
-done < <(printf '%s\n' "$REVIEW_CONTENT")
+done < <(printf '%s\n' "$REVIEW_CONTENT") || true
+# Note: || true is needed because 'read' returns 1 on EOF, which triggers set -e
 
 echo ""
 echo "[RUBRIC] Validation summary:"
