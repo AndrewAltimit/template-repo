@@ -628,6 +628,7 @@ runs:
         # RUNNER_TEMP is job-scoped, GITHUB_RUN_ID adds uniqueness
         PR_TITLE_DIR="${RUNNER_TEMP:-/tmp}"
         PR_TITLE_FILE="${PR_TITLE_DIR}/pr_title_${GITHUB_RUN_ID:-$$}.txt"
+        rm -f "$PR_TITLE_FILE"  # Clean up any stale file from previous runs
         export PR_TITLE_FILE PR_TITLE_DIR
 
         if [ "$JSON_LOGGING" = "true" ]; then
@@ -906,8 +907,8 @@ runs:
         AGENT_PR_TITLE=""
         if [ -f "$PR_TITLE_FILE" ] && [ -s "$PR_TITLE_FILE" ]; then
           # Read first line, trim whitespace, limit to 200 chars
-          # Use cut -c for UTF-8 safe truncation (awk substr can split multibyte chars with mawk)
-          AGENT_PR_TITLE=$(head -n 1 "$PR_TITLE_FILE" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | cut -c1-200)
+          # Use Python for UTF-8 safe truncation (cut -c and mawk substr are byte-based)
+          AGENT_PR_TITLE=$(head -n 1 "$PR_TITLE_FILE" | python3 -c "import sys; s=sys.stdin.read().strip(); print(s[:200])")
           if [ -n "$AGENT_PR_TITLE" ]; then
             echo "Agent provided PR title: $AGENT_PR_TITLE"
           fi
