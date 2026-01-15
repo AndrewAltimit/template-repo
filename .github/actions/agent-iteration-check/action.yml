@@ -64,7 +64,8 @@ runs:
         echo "Counting consecutive agent commits..."
         ITERATION_COUNT=0
 
-        # Get commit history (limit to 50 for performance)
+        # Fetch enough commits to cover max_iterations (plus buffer for safety)
+        FETCH_LIMIT=$((MAX_ITERATIONS + 10))
         while IFS= read -r author; do
           is_agent="false"
           for agent_author in "${AGENT_AUTHORS[@]}"; do
@@ -81,7 +82,7 @@ runs:
             echo "Found human commit by: $author (stopping count)"
             break
           fi
-        done < <(git log --format='%an' -50 2>/dev/null)
+        done < <(git log --format='%an' -"$FETCH_LIMIT" 2>/dev/null)
 
         echo "Consecutive agent commits: $ITERATION_COUNT"
 
@@ -92,6 +93,27 @@ runs:
           EXCEEDED_MAX="true"
           SHOULD_SKIP="true"
           echo "WARNING: Max iterations ($MAX_ITERATIONS) reached!"
+
+          # Post a comment to the PR explaining why the agent stopped
+          COMMENT_BODY="## Agent Iteration Limit Reached
+
+        The automated review response agent has reached the maximum iteration limit (**${ITERATION_COUNT}/${MAX_ITERATIONS}**).
+
+        **What this means:**
+        - The agent has made $ITERATION_COUNT consecutive fix attempts
+        - Further automated fixes have been paused to prevent infinite loops
+        - Any remaining review feedback requires manual attention
+
+        **To resume automated fixes:**
+        - Push a human commit (even a small change) to reset the counter
+        - Or add the \`no-auto-fix\` label to disable automated fixes entirely
+
+        ---
+        *This is a safety mechanism to prevent runaway automation.*"
+
+          # Post comment using gh CLI
+          echo "$COMMENT_BODY" | gh pr comment "$PR_NUMBER" --body-file - || \
+            echo "Warning: Failed to post iteration limit comment"
         fi
 
         echo "iteration_count=$ITERATION_COUNT" >> $GITHUB_OUTPUT
