@@ -352,7 +352,7 @@ post_agent_comment "Fixed issues from the review feedback and pushing the change
 
 Pipeline will re-run to verify everything's good.
 
-![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/kurisu_thumbs_up.png)"
+![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/kurisu_thumbs_up.webp)"
 
 echo "Comment posted, now pushing..."
 
