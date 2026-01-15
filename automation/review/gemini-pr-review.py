@@ -2498,18 +2498,25 @@ def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
             f.write(comment)
 
         # Use gh CLI to post comment
+        # Build command - conditionally add gh-validator flag if wrapper is present
         # The --gh-validator-strip-invalid-images flag tells gh-validator to
         # auto-remove broken reaction images instead of failing
+        gh_cmd = ["gh"]
+
+        # Check if gh-validator wrapper is available by testing the flag
+        try:
+            result = subprocess.run(
+                ["gh", "--gh-validator-strip-invalid-images", "--help"],
+                capture_output=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                gh_cmd = ["gh", "--gh-validator-strip-invalid-images"]
+        except (subprocess.SubprocessError, OSError):
+            pass  # Use plain gh if check fails
+
         subprocess.run(
-            [
-                "gh",
-                "--gh-validator-strip-invalid-images",
-                "pr",
-                "comment",
-                pr_info["number"],
-                "--body-file",
-                comment_file,
-            ],
+            gh_cmd + ["pr", "comment", pr_info["number"], "--body-file", comment_file],
             check=True,
         )
 

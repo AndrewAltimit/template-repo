@@ -61,9 +61,16 @@ post_agent_comment() {
         local temp_file
         temp_file=$(mktemp)
         echo "$comment_body" > "$temp_file"
-        # Use --gh-validator-strip-invalid-images to auto-remove broken reaction
+
+        # Build gh command - conditionally add gh-validator flag if wrapper is present
+        # The --gh-validator-strip-invalid-images flag auto-removes broken reaction
         # images instead of failing. This makes CI pipelines more resilient.
-        gh --gh-validator-strip-invalid-images pr comment "$PR_NUMBER" --body-file "$temp_file" || {
+        local gh_cmd="gh"
+        if gh --gh-validator-strip-invalid-images --help &>/dev/null 2>&1; then
+            gh_cmd="gh --gh-validator-strip-invalid-images"
+        fi
+
+        $gh_cmd pr comment "$PR_NUMBER" --body-file "$temp_file" || {
             rm -f "$temp_file"
             echo "Failed to post PR comment"
             return 1
