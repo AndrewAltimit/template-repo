@@ -43,8 +43,9 @@ runs:
         if [ -n "$INPUT_UNIQUE_ID" ]; then
           PROJECT_NAME="${PROJECT_NAME}-${INPUT_UNIQUE_ID}"
         fi
-        # Normalize to lowercase for Docker Compose compatibility
-        PROJECT_NAME=$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]')
+        # Strict sanitization: lowercase and keep only valid Docker Compose project name chars
+        # This prevents env injection via newlines and invalid chars causing compose failures
+        PROJECT_NAME=$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-')
         echo "COMPOSE_PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
         echo "Using Docker Compose project name: ${PROJECT_NAME}"
 
@@ -64,8 +65,10 @@ runs:
         INPUT_PROFILES: ${{ inputs.profiles }}
       run: |
         if [ -n "$INPUT_PROFILES" ]; then
-          echo "Setting Docker Compose profiles: $INPUT_PROFILES"
-          echo "COMPOSE_PROFILES=$INPUT_PROFILES" >> $GITHUB_ENV
+          # Sanitize profiles to prevent env injection via newlines
+          SAFE_PROFILES=$(echo "$INPUT_PROFILES" | tr -cd 'a-zA-Z0-9,_-')
+          echo "Setting Docker Compose profiles: $SAFE_PROFILES"
+          echo "COMPOSE_PROFILES=$SAFE_PROFILES" >> $GITHUB_ENV
         fi
 
     - name: Validate docker-compose configuration
