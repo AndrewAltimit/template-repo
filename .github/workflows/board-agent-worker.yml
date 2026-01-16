@@ -63,7 +63,7 @@ on:
         type: number
         default: 180
       job-timeout-minutes:
-        description: 'Job timeout in minutes (0 = auto-calculate from agent-timeout + 20)'
+        description: 'Job timeout in minutes (0 = use 200 default; set explicitly when using custom agent-timeout)'
         required: false
         type: number
         default: 0
@@ -200,8 +200,10 @@ jobs:
   agent-work:
     name: '${{ inputs.agent-name || github.event.inputs.agent-name || ''claude'' }} Agent Work'
     runs-on: ${{ inputs.runs-on || 'self-hosted' }}
-    # Job timeout: use explicit input if > 0, otherwise auto-calculate from agent-timeout + 20 buffer
-    timeout-minutes: ${{ inputs.job-timeout-minutes > 0 && inputs.job-timeout-minutes || ((inputs.agent-timeout || 180) + 20) }}
+    # Job timeout: use explicit input if > 0, otherwise use default (200 = 180 + 20 buffer)
+    # Note: GHA expressions don't support arithmetic in job-level fields like timeout-minutes
+    # Callers setting custom agent-timeout should also set job-timeout-minutes explicitly
+    timeout-minutes: ${{ inputs.job-timeout-minutes > 0 && inputs.job-timeout-minutes || 200 }}
 
 
     outputs:
