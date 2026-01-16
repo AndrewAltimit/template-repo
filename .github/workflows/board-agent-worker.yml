@@ -61,7 +61,7 @@ on:
         description: 'Timeout for agent execution in minutes'
         required: false
         type: number
-        default: 30
+        default: 180
 
       # Board configuration
       board-config-path:
@@ -195,7 +195,8 @@ jobs:
   agent-work:
     name: '${{ inputs.agent-name || github.event.inputs.agent-name || ''claude'' }} Agent Work'
     runs-on: ${{ inputs.runs-on || 'self-hosted' }}
-    timeout-minutes: 40  # agent-timeout (30) + buffer (10)
+    # Dynamic timeout: agent-timeout (default 180) + 10 minute buffer
+    timeout-minutes: ${{ fromJSON(inputs.agent-timeout || 180) + 10 }}
 
 
     outputs:
@@ -222,6 +223,14 @@ jobs:
           git config --global user.name "AI Agent Bot"
           git config --global user.email "ai-agent@localhost"
 
+      - name: Initialize output directories
+        run: |
+          # Pre-create output directories with correct ownership to prevent
+          # Docker from creating them as root (causes permission errors on cleanup)
+          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
+            bash ./automation/setup/docker/init-output-dirs.sh
+          fi
+
       - name: Execute board agent work
         id: work
         uses: ./.github/actions/board-agent-work
@@ -231,7 +240,7 @@ jobs:
           github-projects-token: ${{ secrets.github-projects-token || secrets.GH_PROJECTS_TOKEN }}
           # Inputs: workflow_call || workflow_dispatch || defaults
           agent-name: ${{ inputs.agent-name || github.event.inputs.agent-name || 'claude' }}
-          agent-timeout: ${{ inputs.agent-timeout || 30 }}
+          agent-timeout: ${{ inputs.agent-timeout || 180 }}
           board-config-path: ${{ inputs.board-config-path || 'ai-agents-board.yml' }}
           max-issues: ${{ inputs.max-issues || github.event.inputs.max-issues || 1 }}
           include-labels: ${{ inputs.include-labels || '' }}
@@ -251,3 +260,14 @@ jobs:
           # This step just logs the JSON summary for downstream consumption
           echo "JSON Summary:"
           echo '${{ steps.work.outputs.summary-json }}' | jq . 2>/dev/null || echo '${{ steps.work.outputs.summary-json }}'
+
+      - name: Fix output directory permissions
+        if: always()
+        run: |
+          # Fix ownership of any files created by Docker containers to prevent
+          # permission errors on next checkout cleanup
+          if [ -d "outputs" ]; then
+            # Use Docker to recursively chown since it can access root-owned files
+            docker run --rm -v "$(pwd)/outputs:/outputs" alpine:latest \
+              chown -R "$(id -u):$(id -g)" /outputs 2>/dev/null || true
+          fi

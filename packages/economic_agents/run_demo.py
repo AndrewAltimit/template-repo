@@ -158,10 +158,7 @@ def run_demo(
     """
     try:
         asyncio.get_running_loop()
-        raise RuntimeError(
-            "run_demo() cannot be called from an async context. "
-            "Use 'await run_demo_async(...)' instead."
-        )
+        raise RuntimeError("run_demo() cannot be called from an async context. Use 'await run_demo_async(...)' instead.")
     except RuntimeError as e:
         if "no running event loop" in str(e):
             # No loop running - safe to use asyncio.run()
