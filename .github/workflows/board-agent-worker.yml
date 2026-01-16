@@ -195,7 +195,8 @@ jobs:
   agent-work:
     name: '${{ inputs.agent-name || github.event.inputs.agent-name || ''claude'' }} Agent Work'
     runs-on: ${{ inputs.runs-on || 'self-hosted' }}
-    timeout-minutes: 190  # agent-timeout (180) + buffer (10)
+    # Dynamic timeout: agent-timeout (default 180) + 10 minute buffer
+    timeout-minutes: ${{ fromJSON(inputs.agent-timeout || 180) + 10 }}
 
 
     outputs:
@@ -227,7 +228,7 @@ jobs:
           # Pre-create output directories with correct ownership to prevent
           # Docker from creating them as root (causes permission errors on cleanup)
           if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
-            ./automation/setup/docker/init-output-dirs.sh
+            bash ./automation/setup/docker/init-output-dirs.sh
           fi
 
       - name: Execute board agent work
