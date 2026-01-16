@@ -28,31 +28,31 @@ runs:
     - name: Pre-create output directories
       shell: bash
       run: |
-        echo "📁 Creating output directories with proper permissions..."
+        echo "Creating output directories with proper permissions..."
         # Create directories that will be bind-mounted to avoid permission issues
         mkdir -p outputs/mcp-content outputs/mcp-gaea2
         # Ensure they're writable by the current user
         chmod -R 755 outputs/
-        echo "✅ Output directories created"
+        echo "Output directories created"
 
     - name: Set Docker Compose profiles
       shell: bash
       run: |
         if [ -n "${{ inputs.profiles }}" ]; then
-          echo "🐳 Setting Docker Compose profiles: ${{ inputs.profiles }}"
+          echo "Setting Docker Compose profiles: ${{ inputs.profiles }}"
           echo "COMPOSE_PROFILES=${{ inputs.profiles }}" >> $GITHUB_ENV
         fi
 
     - name: Validate docker-compose configuration
       shell: bash
       run: |
-        echo "🐳 Validating docker-compose configuration..."
+        echo "Validating docker-compose configuration..."
         docker-compose config
 
         # Check if any services will be started
         service_count=$(docker-compose config --services | wc -l)
         if [ "$service_count" -eq 0 ] && [ -z "${{ inputs.services }}" ]; then
-          echo "❌ ERROR: No services selected!"
+          echo "ERROR: No services selected!"
           echo "Either specify services explicitly or set profiles to activate services."
           echo "Available profiles in docker-compose.yml:"
           grep -E "^\s*profiles:" docker-compose.yml | sort -u || echo "No profiles found"
@@ -64,14 +64,14 @@ runs:
       run: |
         # Remove any stale containers to prevent ContainerConfig errors
         # This is required due to docker-compose v1 incompatibility with newer Docker Engine
-        echo "🧹 Cleaning up stale containers..."
+        echo "Cleaning up stale containers..."
         docker-compose down --remove-orphans 2>/dev/null || true
 
     - name: Start services
       shell: bash
       run: |
         if [ "${{ inputs.build }}" = "true" ]; then
-          echo "🐳 Building images and starting services..."
+          echo "Building images and starting services..."
           if [ -n "${{ inputs.services }}" ]; then
             echo "Starting specific services: ${{ inputs.services }}"
             docker-compose up --build -d ${{ inputs.services }}
@@ -80,7 +80,7 @@ runs:
             docker-compose up --build -d
           fi
         else
-          echo "🐳 Starting services..."
+          echo "Starting services..."
           if [ -n "${{ inputs.services }}" ]; then
             echo "Starting specific services: ${{ inputs.services }}"
             docker-compose up -d ${{ inputs.services }}
@@ -93,12 +93,12 @@ runs:
     - name: Wait for services to be healthy
       shell: bash
       run: |
-        echo "⏳ Waiting for services to be healthy..."
+        echo "Waiting for services to be healthy..."
         timeout=${{ inputs.timeout }}
         elapsed=0
         while [ $elapsed -lt $timeout ]; do
           if curl -s ${{ inputs.health-endpoint }} > /dev/null 2>&1; then
-            echo "✅ Services are healthy!"
+            echo "Services are healthy!"
             break
           fi
           echo -n "."
@@ -107,7 +107,7 @@ runs:
         done
 
         if [ $elapsed -ge $timeout ]; then
-          echo "❌ Timeout waiting for services to be healthy"
+          echo "Timeout waiting for services to be healthy"
           docker-compose ps
           docker-compose logs
           docker-compose down
@@ -120,7 +120,7 @@ runs:
       if: failure()
       shell: bash
       run: |
-        echo "🧹 Cleaning up services..."
+        echo "Cleaning up services..."
         docker-compose down
 
     - name: Clean up output directories
@@ -131,5 +131,5 @@ runs:
         if [ -f automation/ci-cd/cleanup-outputs.sh ]; then
           ./automation/ci-cd/cleanup-outputs.sh
         else
-          echo "⚠️  Cleanup script not found, skipping cleanup"
+          echo "Warning: Cleanup script not found, skipping cleanup"
         fi
