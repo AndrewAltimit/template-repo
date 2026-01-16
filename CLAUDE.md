@@ -145,7 +145,7 @@ python -m mcp_opencode.server          # Port 8014 - AI code generation (HTTP mo
 python -m mcp_crush.server             # Port 8015 - Code generation (HTTP mode)
 python -m mcp_desktop_control.server   # Port 8025 - Desktop automation (requires X11)
 
-# Note: AI Toolkit and ComfyUI MCP servers run on remote machine (192.168.0.152)
+# Note: AI Toolkit and ComfyUI MCP servers run on remote machine (192.168.0.222)
 # Ports 8012 and 8013 are used by the remote servers, not local instances
 
 # Note: OpenCode and Crush use STDIO mode (local process) through .mcp.json,
@@ -173,8 +173,8 @@ python tools/mcp/mcp_content_creation/scripts/test_server.py
 python tools/mcp/mcp_gemini/scripts/test_server.py
 python tools/mcp/mcp_gaea2/scripts/test_server.py
 # AI Toolkit and ComfyUI tests require remote servers to be running
-python tools/mcp/mcp_ai_toolkit/scripts/test_server.py  # Tests connection to 192.168.0.152:8012
-python tools/mcp/mcp_comfyui/scripts/test_server.py     # Tests connection to 192.168.0.152:8013
+python tools/mcp/mcp_ai_toolkit/scripts/test_server.py  # Tests connection to 192.168.0.222:8012
+python tools/mcp/mcp_comfyui/scripts/test_server.py     # Tests connection to 192.168.0.222:8013
 
 # For local development without Docker
 pip install -r config/python/requirements.txt
@@ -331,7 +331,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - **LoRA Training Management**:
      - Training configurations, dataset uploads, job monitoring
      - Model export and download capabilities
-   - Connects to remote AI Toolkit instance at `192.168.0.152:8012`
+   - Connects to remote AI Toolkit instance at `192.168.0.222:8012`
    - See `tools/mcp/mcp_ai_toolkit/docs/README.md` for documentation
 
 6. **ComfyUI MCP Server** (`tools/mcp/mcp_comfyui/`): HTTP port 8013 (remote GPU machine)
@@ -339,7 +339,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
      - Image generation with workflows
      - LoRA model management and transfer
      - Custom workflow execution
-   - Connects to remote ComfyUI instance at `192.168.0.152:8013`
+   - Connects to remote ComfyUI instance at `192.168.0.222:8013`
    - See `tools/mcp/mcp_comfyui/docs/README.md` for documentation
 
 7. **OpenCode MCP Server** (`tools/mcp/mcp_opencode/`): STDIO (local) or HTTP port 8014
@@ -782,7 +782,7 @@ When sending audio to the Virtual Character:
 2. **USE STORAGE URLS** (most efficient):
    ```python
    mcp__virtual-character__play_audio(
-       audio_data="http://192.168.0.152:8021/download/abc123",  # Storage URL
+       audio_data="http://192.168.0.222:8021/download/abc123",  # Storage URL
        format="mp3"
    )
    ```
@@ -805,7 +805,7 @@ When sending audio to the Virtual Character:
 2. **Update .env file**:
    ```
    STORAGE_SECRET_KEY=<your_generated_key>
-   STORAGE_BASE_URL=http://192.168.0.152:8021
+   STORAGE_BASE_URL=http://192.168.0.222:8021
    ```
 
 3. **Ensure remote server has same key** in its .env file

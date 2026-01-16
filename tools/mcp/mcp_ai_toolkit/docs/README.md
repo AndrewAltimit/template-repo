@@ -4,7 +4,7 @@
 
 ## Overview
 
-This MCP server provides an interface to a remote AI Toolkit instance running on `192.168.0.152:8012`. It provides tools for:
+This MCP server provides an interface to a remote AI Toolkit instance running on `192.168.0.222:8012`. It provides tools for:
 
 - Creating and managing training configurations
 - Uploading and managing datasets
@@ -16,7 +16,7 @@ This MCP server provides an interface to a remote AI Toolkit instance running on
 
 The server follows a proxy pattern:
 1. Local MCP server runs on port 8012
-2. Forwards requests to remote AI Toolkit at `192.168.0.152:8012`
+2. Forwards requests to remote AI Toolkit at `192.168.0.222:8012`
 3. Handles authentication and error handling
 4. Provides a consistent MCP interface
 
@@ -151,7 +151,7 @@ Get detailed information about training capabilities.
 ## Configuration
 
 Environment variables:
-- `AI_TOOLKIT_HOST` - Remote host (default: 192.168.0.152)
+- `AI_TOOLKIT_HOST` - Remote host (default: 192.168.0.222)
 - `AI_TOOLKIT_PORT` - Remote port (default: 8012)
 
 ## Usage Example
@@ -184,7 +184,7 @@ status = await get_training_status(job_id=job["job_id"])
    - Use `cfg=1.0` for FLUX models
    - Different scheduler requirements
    - Special node configurations in ComfyUI
-6. **Network Requirements**: Ensure network connectivity to `192.168.0.152:8012`
+6. **Network Requirements**: Ensure network connectivity to `192.168.0.222:8012`
 
 ## Testing
 
@@ -216,7 +216,7 @@ services:
     ports:
       - "8012:8012"
     environment:
-      - AI_TOOLKIT_HOST=192.168.0.152
+      - AI_TOOLKIT_HOST=192.168.0.222
       - AI_TOOLKIT_PORT=8012
     networks:
       - mcp-network
@@ -263,7 +263,7 @@ Trained LoRA models can be transferred to ComfyUI using the ComfyUI MCP server's
 ### Common Issues
 
 1. **Connection Error (503)**:
-   - Verify AI Toolkit server is running on `192.168.0.152:8012`
+   - Verify AI Toolkit server is running on `192.168.0.222:8012`
    - Check network connectivity
    - Ensure no firewall blocking the port
 

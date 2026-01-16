@@ -357,7 +357,7 @@ curl http://localhost:8012/health
 
 ### Configuration
 
-- **Remote Connection**: Connects to AI Toolkit at `192.168.0.152:8012`
+- **Remote Connection**: Connects to AI Toolkit at `192.168.0.222:8012`
 - **Dataset Paths**: Use absolute paths starting with `/ai-toolkit/datasets/`
 - **Chunked Upload**: Automatically used for files >100MB
 
@@ -391,7 +391,7 @@ curl http://localhost:8013/health
 
 ### Configuration
 
-- **Remote Connection**: Connects to ComfyUI at `192.168.0.152:8013`
+- **Remote Connection**: Connects to ComfyUI at `192.168.0.222:8013`
 - **FLUX Support**: Different workflows for FLUX models (cfg=1.0, special nodes)
 - **LoRA Transfer**: Automatic transfer from AI Toolkit to ComfyUI
 

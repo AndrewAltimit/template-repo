@@ -17,7 +17,7 @@ This MCP server provides an interface to ComfyUI for AI image and video generati
 
 The server provides flexible deployment options:
 1. **Local Mode**: Runs alongside ComfyUI on the same machine
-2. **Remote Mode**: Connects to ComfyUI instance (e.g., `192.168.0.152:8188`)
+2. **Remote Mode**: Connects to ComfyUI instance (e.g., `192.168.0.222:8188`)
 3. **Docker Mode**: Containerized deployment with GPU support
 
 ### Workflow System

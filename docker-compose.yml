@@ -474,7 +474,8 @@ services:
   mcp-comfyui:
     build:
       context: .
-      dockerfile: docker/comfyui.Dockerfile
+      # Use COMFYUI_DOCKERFILE env var for architecture-specific builds (arm64 vs x86_64)
+      dockerfile: ${COMFYUI_DOCKERFILE:-docker/comfyui.Dockerfile}
     container_name: comfyui
     runtime: nvidia
     user: "${USER_ID}:${GROUP_ID}"
@@ -498,6 +499,8 @@ services:
       - ./comfyui/models/upscale_models:/comfyui/models/upscale_models
       - ./comfyui/models/vae:/comfyui/models/vae
       - ./comfyui/models/vae_approx:/comfyui/models/vae_approx
+      - ./comfyui/models/text_encoders:/comfyui/models/text_encoders
+      - ./comfyui/models/diffusion_models:/comfyui/models/diffusion_models
       # Output and input directories
       - ./comfyui/output:/comfyui/output
       - ./comfyui/input:/comfyui/input

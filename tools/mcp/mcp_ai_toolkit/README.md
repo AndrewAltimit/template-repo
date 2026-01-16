@@ -8,7 +8,7 @@ This MCP server runs on a GPU-enabled machine and provides:
 - **Containerized Deployment**: Runs in Docker with NVIDIA GPU support
 - **MCP Protocol**: Full MCP server implementation for AI Toolkit functionality
 - **Remote Access**: Can be accessed via HTTP from any machine on the network
-- **Default Location**: Typically runs on `192.168.0.152:8012`
+- **Default Location**: Typically runs on `192.168.0.222:8012`
 
 ## Configuration
 
@@ -17,7 +17,7 @@ The connection is configured in `.mcp.json`:
 ```json
 "aitoolkit": {
   "type": "http",
-  "url": "http://192.168.0.152:8012/messages"
+  "url": "http://192.168.0.222:8012/messages"
 }
 ```
 
@@ -96,7 +96,7 @@ status = mcp__aitoolkit__get_training_status(
 
 ## Network Requirements
 
-- The remote server must be accessible at `192.168.0.152:8012`
+- The remote server must be accessible at `192.168.0.222:8012`
 - Firewall must allow traffic on port 8012
 - Both machines must be on the same network or have appropriate routing
 
@@ -104,7 +104,7 @@ status = mcp__aitoolkit__get_training_status(
 
 1. **Connection Failed**: Verify the remote server is running and accessible
 2. **Tool Not Available**: Check that the remote MCP server is properly configured
-3. **Network Issues**: Test connectivity with `curl http://192.168.0.152:8012/health`
+3. **Network Issues**: Test connectivity with `curl http://192.168.0.222:8012/health`
 
 ## Container Management
 

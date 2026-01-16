@@ -11,7 +11,7 @@ sys.path.append(str(Path(__file__).parent.parent.parent.parent))
 
 # Server configuration
 SERVER_URL = "http://localhost:8012"
-REMOTE_URL = "http://192.168.0.152:8012"
+REMOTE_URL = "http://192.168.0.222:8012"
 
 
 def test_tools_list():

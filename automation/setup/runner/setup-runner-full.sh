@@ -337,10 +337,10 @@ GITHUB_TOKEN=
 # Gemini CLI authentication (no API key needed)
 
 # Optional: ComfyUI Server URL
-COMFYUI_SERVER_URL=http://192.168.0.152:8189
+COMFYUI_SERVER_URL=http://192.168.0.222:8189
 
 # Optional: AI Toolkit Server URL
-AI_TOOLKIT_SERVER_URL=http://192.168.0.152:8190
+AI_TOOLKIT_SERVER_URL=http://192.168.0.222:8190
 EOF
         print_warning "⚠️  Please update $MCP_HOME/.env with your actual values"
     fi

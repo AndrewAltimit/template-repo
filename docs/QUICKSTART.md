@@ -297,8 +297,8 @@ The template provides two MCP configuration files to optimize performance:
    GAEA2_REMOTE_PORT="8007"
 
    # For AI Toolkit & ComfyUI
-   AI_TOOLKIT_URL="http://192.168.0.152:8012"
-   COMFYUI_URL="http://192.168.0.152:8013"
+   AI_TOOLKIT_URL="http://192.168.0.222:8012"
+   COMFYUI_URL="http://192.168.0.222:8013"
    ```
 
 4. **Install all components:**

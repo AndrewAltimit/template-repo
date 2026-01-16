@@ -4,7 +4,7 @@ This document describes the process of transferring trained LoRA models from AI 
 
 ## Overview
 
-When training a LoRA model with AI Toolkit and using it in ComfyUI for image generation, the model file needs to be transferred between services. Both services run on the same server (192.168.0.152) but have separate model directories.
+When training a LoRA model with AI Toolkit and using it in ComfyUI for image generation, the model file needs to be transferred between services. Both services run on the same server (192.168.0.222) but have separate model directories.
 
 ## Transfer Methods
 
@@ -15,7 +15,7 @@ When training a LoRA model with AI Toolkit and using it in ComfyUI for image gen
 For small LoRA files (<50MB):
 ```python
 # Download from AI Toolkit
-response = requests.post('http://192.168.0.152:8190/mcp/tool', json={
+response = requests.post('http://192.168.0.222:8190/mcp/tool', json={
     "tool": "download-model",
     "arguments": {
         "model_path": "model_name/model.safetensors",
@@ -24,7 +24,7 @@ response = requests.post('http://192.168.0.152:8190/mcp/tool', json={
 })
 
 # Upload to ComfyUI (will fail for large files)
-upload_response = requests.post('http://192.168.0.152:8189/mcp/tool', json={
+upload_response = requests.post('http://192.168.0.222:8189/mcp/tool', json={
     "tool": "upload-lora",
     "arguments": {
         "filename": "model.safetensors",
@@ -38,7 +38,7 @@ upload_response = requests.post('http://192.168.0.152:8189/mcp/tool', json={
 Since both services run on the same server, the most efficient method is direct file copying:
 
 ```bash
-# On the server (192.168.0.152)
+# On the server (192.168.0.222)
 # Copy from AI Toolkit outputs to ComfyUI models
 cp /ai-toolkit/outputs/[model_name]/[model_file].safetensors \
    /comfyui/models/loras/[model_file].safetensors
