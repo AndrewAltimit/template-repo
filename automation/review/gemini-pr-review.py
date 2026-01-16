@@ -1290,14 +1290,16 @@ Determine which issues (by number) should NOT be raised again because:
 **IMPORTANT:** Only mark an issue as resolved if there's CLEAR evidence in the comments.
 Be conservative - if unsure, don't mark it resolved.
 
-**RESPOND WITH JSON ONLY:**
+**RESPOND WITH JSON ONLY (no comments allowed in JSON):**
 {{
-  "resolved_issues": [0, 2],  // indices of issues that should not be re-raised
+  "resolved_issues": [0, 2],
   "reasoning": {{
     "0": "Maintainer explained GHA doesn't support arithmetic in job-level fields",
     "2": "Confirmed as false positive - the code actually does handle this case"
   }}
 }}
+
+The "resolved_issues" array contains indices of issues that should NOT be re-raised.
 
 If NO issues should be filtered, respond: {{"resolved_issues": [], "reasoning": {{}}}}
 
@@ -1391,6 +1393,11 @@ def _filter_debunked_issues(issue_lines: List[str], pr_number: str) -> List[str]
 
         resolved_indices = set(valid_indices)
         reasoning = classification.get("reasoning", {})
+
+        # Validate reasoning is a dict (LLM might return string or other type)
+        if not isinstance(reasoning, dict):
+            print(f"  Warning: LLM returned non-dict for reasoning: {type(reasoning)}")
+            reasoning = {}
 
         # IMPORTANT: Adjust indices if we bounded the issue list in classification
         # When len(issue_lines) > 20, we sent only the last 20 issues to the LLM
