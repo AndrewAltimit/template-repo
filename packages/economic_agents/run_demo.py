@@ -15,7 +15,6 @@ Environment variables can override defaults (see DemoConfig.from_env for details
 
 import argparse
 import asyncio
-import time
 from typing import Optional
 
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
@@ -112,7 +111,7 @@ async def run_demo_async(
             )
 
             # Delay to make updates visible in dashboard
-            time.sleep(config.cycle_delay_seconds)
+            await asyncio.sleep(config.cycle_delay_seconds)
 
             # Stop if agent runs out of resources
             if agent.state.balance <= 0 or agent.state.compute_hours_remaining <= 0:
@@ -153,8 +152,22 @@ def run_demo(
     Args:
         config: Demo configuration (uses defaults if None)
         backend: 'mock' (in-memory) or 'api' (microservices)
+
+    Raises:
+        RuntimeError: If called from within an existing event loop.
     """
-    asyncio.run(run_demo_async(config, backend))
+    try:
+        asyncio.get_running_loop()
+        raise RuntimeError(
+            "run_demo() cannot be called from an async context. "
+            "Use 'await run_demo_async(...)' instead."
+        )
+    except RuntimeError as e:
+        if "no running event loop" in str(e):
+            # No loop running - safe to use asyncio.run()
+            asyncio.run(run_demo_async(config, backend))
+        else:
+            raise
 
 
 def main() -> None:

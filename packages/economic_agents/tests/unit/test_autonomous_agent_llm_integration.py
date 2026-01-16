@@ -319,7 +319,7 @@ class TestAutonomousAgentInitialization:
         assert agent.state is not None
         assert agent.state.balance == 100.0
         # Use approximate comparison for compute hours (MockCompute uses time-based calculations)
-        assert abs(agent.state.compute_hours_remaining - 50.0) < 0.01
+        assert agent.state.compute_hours_remaining == pytest.approx(50.0, abs=0.01)
 
     @pytest.mark.asyncio
     async def test_factory_method_with_config(self):
@@ -398,7 +398,7 @@ class TestAutonomousAgentInitialization:
         assert agent.state is not None
         assert agent.state.balance == 150.0
         # Use approximate comparison for compute hours (MockCompute uses time-based calculations)
-        assert abs(agent.state.compute_hours_remaining - 75.0) < 0.01
+        assert agent.state.compute_hours_remaining == pytest.approx(75.0, abs=0.01)
 
     @pytest.mark.asyncio
     @patch("economic_agents.monitoring.resource_tracker.ResourceTracker._save_time_allocation")
