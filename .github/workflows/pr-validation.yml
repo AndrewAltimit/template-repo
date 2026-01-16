@@ -608,6 +608,17 @@ jobs:
           # Install actionlint if not available
           if ! command -v actionlint &> /dev/null; then
             echo "Installing actionlint..."
+
+            # Detect architecture
+            ARCH=$(uname -m)
+            case "$ARCH" in
+              x86_64)  ARCH_SUFFIX="amd64" ;;
+              aarch64) ARCH_SUFFIX="arm64" ;;
+              arm64)   ARCH_SUFFIX="arm64" ;;
+              *)       echo "Unsupported architecture: $ARCH"; exit 1 ;;
+            esac
+            echo "Detected architecture: $ARCH -> $ARCH_SUFFIX"
+
             # Download latest release for Linux (authenticated to avoid rate limits)
             ACTIONLINT_VERSION=$(curl -sf -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               https://api.github.com/repos/rhysd/actionlint/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
@@ -615,8 +626,9 @@ jobs:
               echo "Failed to fetch actionlint version from GitHub API"
               exit 1
             fi
-            curl -sfLO "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
-            tar -xzf "actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" actionlint
+            echo "Installing actionlint v${ACTIONLINT_VERSION} for linux_${ARCH_SUFFIX}"
+            curl -sfLO "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_${ARCH_SUFFIX}.tar.gz"
+            tar -xzf "actionlint_${ACTIONLINT_VERSION}_linux_${ARCH_SUFFIX}.tar.gz" actionlint
             chmod +x actionlint
             ACTIONLINT_CMD="./actionlint"
           else
