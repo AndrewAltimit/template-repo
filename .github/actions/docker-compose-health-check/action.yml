@@ -28,7 +28,10 @@ runs:
     - name: Set unique project name for isolation
       shell: bash
       run: |
-        # Use run_id and run_attempt for unique project naming to prevent cross-job interference
+        # Use run_id and run_attempt for unique project naming to:
+        # 1. Prevent cross-job interference on shared runners
+        # 2. Prevent ContainerConfig errors (docker-compose v1 incompatibility with newer Docker)
+        #    by ensuring no existing containers to recreate
         PROJECT_NAME="ci-${{ github.run_id }}-${{ github.run_attempt }}"
         echo "COMPOSE_PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
         echo "Using Docker Compose project name: ${PROJECT_NAME}"
@@ -45,21 +48,25 @@ runs:
 
     - name: Set Docker Compose profiles
       shell: bash
+      env:
+        INPUT_PROFILES: ${{ inputs.profiles }}
       run: |
-        if [ -n "${{ inputs.profiles }}" ]; then
-          echo "Setting Docker Compose profiles: ${{ inputs.profiles }}"
-          echo "COMPOSE_PROFILES=${{ inputs.profiles }}" >> $GITHUB_ENV
+        if [ -n "$INPUT_PROFILES" ]; then
+          echo "Setting Docker Compose profiles: $INPUT_PROFILES"
+          echo "COMPOSE_PROFILES=$INPUT_PROFILES" >> $GITHUB_ENV
         fi
 
     - name: Validate docker-compose configuration
       shell: bash
+      env:
+        INPUT_SERVICES: ${{ inputs.services }}
       run: |
         echo "Validating docker-compose configuration..."
         docker-compose config
 
         # Check if any services will be started
         service_count=$(docker-compose config --services | wc -l | tr -d ' ')
-        if [ "$service_count" -eq 0 ] && [ -z "${{ inputs.services }}" ]; then
+        if [ "$service_count" -eq 0 ] && [ -z "$INPUT_SERVICES" ]; then
           echo "ERROR: No services selected!"
           echo "Either specify services explicitly or set profiles to activate services."
           echo "Available profiles in docker-compose.yml:"
@@ -67,35 +74,28 @@ runs:
           exit 1
         fi
 
-    - name: Clean up stale containers
-      shell: bash
-      run: |
-        # Remove any stale containers to prevent ContainerConfig errors
-        # This is required due to docker-compose v1 incompatibility with newer Docker Engine
-        echo "Cleaning up stale containers..."
-        docker-compose down --remove-orphans 2>/dev/null || true
-
     - name: Start services
       shell: bash
+      env:
+        INPUT_SERVICES: ${{ inputs.services }}
+        INPUT_BUILD: ${{ inputs.build }}
       run: |
-        # Store services in a variable for safe usage
-        services="${{ inputs.services }}"
-        if [ "${{ inputs.build }}" = "true" ]; then
+        if [ "$INPUT_BUILD" = "true" ]; then
           echo "Building images and starting services..."
-          if [ -n "$services" ]; then
-            echo "Starting specific services: $services"
+          if [ -n "$INPUT_SERVICES" ]; then
+            echo "Starting specific services: $INPUT_SERVICES"
             # shellcheck disable=SC2086 - Word splitting is intentional for service names
-            docker-compose up --build -d $services
+            docker-compose up --build -d $INPUT_SERVICES
           else
             echo "Starting all services in active profiles"
             docker-compose up --build -d
           fi
         else
           echo "Starting services..."
-          if [ -n "$services" ]; then
-            echo "Starting specific services: $services"
+          if [ -n "$INPUT_SERVICES" ]; then
+            echo "Starting specific services: $INPUT_SERVICES"
             # shellcheck disable=SC2086 - Word splitting is intentional for service names
-            docker-compose up -d $services
+            docker-compose up -d $INPUT_SERVICES
           else
             echo "Starting all services in active profiles"
             docker-compose up -d
@@ -104,13 +104,14 @@ runs:
 
     - name: Wait for services to be healthy
       shell: bash
+      env:
+        INPUT_TIMEOUT: ${{ inputs.timeout }}
+        INPUT_HEALTH_ENDPOINT: ${{ inputs.health-endpoint }}
       run: |
         echo "Waiting for services to be healthy..."
-        timeout=${{ inputs.timeout }}
-        health_endpoint="${{ inputs.health-endpoint }}"
         elapsed=0
-        while [ $elapsed -lt $timeout ]; do
-          if curl -sf --max-time 5 "$health_endpoint" > /dev/null 2>&1; then
+        while [ $elapsed -lt "$INPUT_TIMEOUT" ]; do
+          if curl -sf --max-time 5 "$INPUT_HEALTH_ENDPOINT" > /dev/null 2>&1; then
             echo "Services are healthy!"
             break
           fi
@@ -119,7 +120,7 @@ runs:
           elapsed=$((elapsed + 2))
         done
 
-        if [ $elapsed -ge $timeout ]; then
+        if [ $elapsed -ge "$INPUT_TIMEOUT" ]; then
           echo "Timeout waiting for services to be healthy"
           docker-compose ps
           docker-compose logs
