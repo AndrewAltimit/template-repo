@@ -200,7 +200,7 @@ jobs:
   agent-work:
     name: '${{ inputs.agent-name || github.event.inputs.agent-name || ''claude'' }} Agent Work'
     runs-on: ${{ inputs.runs-on || 'self-hosted' }}
-    # Job timeout: use explicit input, or calculate from agent-timeout + 20 buffer
+    # Job timeout: use explicit input (no buffer added), or agent-timeout + 20 buffer
     timeout-minutes: ${{ inputs.job-timeout-minutes || fromJSON(inputs.agent-timeout || 180) + 20 }}
 
 

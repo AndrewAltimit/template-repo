@@ -67,6 +67,10 @@ runs:
         if [ -n "$INPUT_PROFILES" ]; then
           # Sanitize profiles to prevent env injection via newlines
           SAFE_PROFILES=$(echo "$INPUT_PROFILES" | tr -cd 'a-zA-Z0-9,_-')
+          if [ -z "$SAFE_PROFILES" ]; then
+            echo "ERROR: profiles input contains no valid characters after sanitization"
+            exit 1
+          fi
           echo "Setting Docker Compose profiles: $SAFE_PROFILES"
           echo "COMPOSE_PROFILES=$SAFE_PROFILES" >> $GITHUB_ENV
         fi
@@ -143,7 +147,8 @@ runs:
         fi
         elapsed=0
         while [ $elapsed -lt "$INPUT_TIMEOUT" ]; do
-          if curl -sf --max-time 5 "$INPUT_HEALTH_ENDPOINT" > /dev/null 2>&1; then
+          # Use -- to prevent flag injection if URL starts with -
+          if curl -sf --max-time 5 -- "$INPUT_HEALTH_ENDPOINT" > /dev/null 2>&1; then
             echo "Services are healthy!"
             break
           fi
