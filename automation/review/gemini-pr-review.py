@@ -1237,13 +1237,100 @@ def get_recent_pr_comments(pr_number: str) -> str:
         return ""
 
 
+def _classify_maintainer_feedback(
+    trusted_comments: List[Dict[str, Any]],
+    issue_lines: List[str],
+) -> Dict[str, Any]:
+    """Use LLM to semantically classify maintainer feedback.
+
+    Instead of keyword matching, this uses a fast LLM call to understand
+    the semantic meaning of maintainer comments and determine which issues
+    have been addressed, debunked, or explained as intentional limitations.
+
+    Args:
+        trusted_comments: List of comment dicts with 'body' and 'author' keys
+        issue_lines: List of issues raised by reviewers
+
+    Returns:
+        Dict with:
+            - resolved_issues: List of issue indices that are resolved/debunked
+            - reasoning: Explanation of why each issue was marked resolved
+    """
+    if not trusted_comments or not issue_lines:
+        return {"resolved_issues": [], "reasoning": "No comments or issues to analyze"}
+
+    # Format comments for analysis
+    comments_text = "\n\n".join(
+        f"**@{c.get('author', {}).get('login', 'Unknown')}**: {c.get('body', '')[:1500]}"
+        for c in trusted_comments[-10:]  # Last 10 comments max
+    )
+
+    # Format issues with indices
+    issues_text = "\n".join(f"{i}. {issue}" for i, issue in enumerate(issue_lines))
+
+    prompt = f"""Analyze these maintainer comments on a PR and determine which reviewer issues have been addressed.
+
+**MAINTAINER COMMENTS (trusted sources):**
+{comments_text}
+
+**ISSUES RAISED BY REVIEWERS:**
+{issues_text}
+
+**YOUR TASK:**
+Determine which issues (by number) should NOT be raised again because:
+1. The maintainer explained it's a FALSE POSITIVE (reviewer misread the code)
+2. The maintainer explained a TECHNICAL LIMITATION that rules out the suggested fix
+3. The maintainer TESTED an alternative and confirmed it doesn't work
+4. The maintainer explicitly APPROVED the current approach despite the concern
+
+**IMPORTANT:** Only mark an issue as resolved if there's CLEAR evidence in the comments.
+Be conservative - if unsure, don't mark it resolved.
+
+**RESPOND WITH JSON ONLY:**
+{{
+  "resolved_issues": [0, 2],  // indices of issues that should not be re-raised
+  "reasoning": {{
+    "0": "Maintainer explained GHA doesn't support arithmetic in job-level fields",
+    "2": "Confirmed as false positive - the code actually does handle this case"
+  }}
+}}
+
+If NO issues should be filtered, respond: {{"resolved_issues": [], "reasoning": {{}}}}
+
+JSON response:"""
+
+    try:
+        result, model_used = _call_gemini_with_model(prompt, FALLBACK_MODEL, max_retries=2)
+
+        if model_used == NO_MODEL or not result:
+            print("Warning: LLM classification failed, skipping filtering")
+            return {"resolved_issues": [], "reasoning": "Classification failed"}
+
+        # Parse JSON response
+        # Handle markdown code blocks if present
+        result = result.strip()
+        if result.startswith("```"):
+            result = re.sub(r"^```(?:json)?\n?", "", result)
+            result = re.sub(r"\n?```$", "", result)
+
+        parsed = json.loads(result)
+        return parsed
+
+    except json.JSONDecodeError as e:
+        print(f"Warning: Failed to parse LLM classification response: {e}")
+        return {"resolved_issues": [], "reasoning": "JSON parse error"}
+    except Exception as e:
+        print(f"Warning: Error in LLM classification: {e}")
+        return {"resolved_issues": [], "reasoning": str(e)}
+
+
 def _filter_debunked_issues(issue_lines: List[str], pr_number: str) -> List[str]:
-    """Filter out issues that were debunked by TRUSTED users only.
+    """Filter out issues that were addressed by TRUSTED users using semantic analysis.
 
-    This prevents the hallucination feedback loop where Gemini echoes
-    previously-reported issues that were already debunked by maintainers.
+    Uses LLM-based semantic classification instead of keyword matching to understand
+    maintainer feedback. This catches paraphrasing and context that keywords miss.
 
-    SECURITY: Only considers debunking from users in .agents.yaml trusted_sources.
+    SECURITY: Only considers feedback from users in .agents.yaml trusted_sources.
     Untrusted users cannot influence which issues get filtered out.
 
     Args:
@@ -1251,132 +1338,57 @@ def _filter_debunked_issues(issue_lines: List[str], pr_number: str) -> List[str]
         pr_number: PR number to fetch comments from
 
     Returns:
-        Filtered list with debunked issues removed
+        Filtered list with addressed issues removed
     """
+    if not issue_lines:
+        return issue_lines
+
     try:
         comments = get_all_pr_comments(pr_number)
 
-        # SECURITY: Only consider comments from TRUSTED users for debunking
-        # This prevents untrusted users from suppressing real issues
+        # SECURITY: Only consider comments from TRUSTED users
         trusted_comments = []
         for comment in comments:
             body = comment.get("body", "")
             author = comment.get("author", {}).get("login", "")
 
-            # Skip Gemini's own comments
-            if "<!-- gemini-review-marker" in body:
+            # Skip AI reviewer comments (Gemini, Codex markers)
+            if "<!-- gemini-review-marker" in body or "<!-- codex-review-marker" in body:
                 continue
 
-            # ONLY include trusted users' comments for debunking
+            # ONLY include trusted users' comments
             if _is_trusted_user(author):
-                trusted_comments.append(body.lower())
+                trusted_comments.append(comment)
 
         if not trusted_comments:
             return issue_lines
 
-        # Combine all trusted user comments for searching
-        all_trusted_text = "\n".join(trusted_comments)
+        print(f"Analyzing {len(trusted_comments)} trusted comment(s) for issue resolution...")
 
-        # Keywords that indicate debunking or acknowledged technical limitations
-        # Two categories:
-        # 1. False positives - Gemini misread the code
-        # 2. Technical limitations - the approach is intentional due to constraints
-        debunk_keywords = [
-            # False positive indicators
-            "false positive",
-            "hallucinating",
-            "hallucination",
-            "doesn't exist",
-            "does not exist",
-            "incorrect",
-            "wrong line",
-            "actual line",
-            "actually contains",
-            "not what it claims",
-            "gemini is confused",
-            "no such",
-            "debunked",
-            # Technical limitation indicators (issue is acknowledged but intentional)
-            "doesn't support",
-            "does not support",
-            "doesn't work",
-            "does not work",
-            "not supported",
-            "limitation",
-            "constraint",
-            "tested this",
-            "i tested",
-            "verified this",
-            "confirmed this",
-            "intended behavior",
-            "by design",
-            "necessary because",
-            "required because",
-            "the correct solution",
-            "correct approach",
-            "agents were wrong",
-            "reviewer was wrong",
-        ]
+        # Use semantic LLM classification
+        classification = _classify_maintainer_feedback(trusted_comments, issue_lines)
 
-        # Check if any debunking language is present in trusted comments
-        has_debunking = any(kw in all_trusted_text for kw in debunk_keywords)
-        if not has_debunking:
+        resolved_indices = set(classification.get("resolved_issues", []))
+        reasoning = classification.get("reasoning", {})
+
+        if not resolved_indices:
+            print("  No issues identified as resolved by maintainer feedback")
             return issue_lines
 
-        print("Found debunking language in TRUSTED user comments, filtering previous issues...")
-
-        # Extract file:line patterns that were mentioned in debunking context
-        # Pattern: filename:line_number
-        debunked_patterns = set()
-        for comment in trusted_comments:
-            # Check if this comment contains debunking language
-            if not any(kw in comment for kw in debunk_keywords):
-                continue
-
-            # Extract file:line patterns from debunking comments
-            matches = re.findall(r"([\w\-\./]+\.(?:py|md|yml|yaml|json|js|ts)):(\d+)", comment)
-            for filepath, line_num in matches:
-                # Normalize to just filename for matching
-                filename = filepath.split("/")[-1]
-                debunked_patterns.add(f"{filename}:{line_num}")
-                # Also add full path pattern
-                debunked_patterns.add(f"{filepath}:{line_num}")
-
-        if not debunked_patterns:
-            # Debunking language present but no specific file:line patterns extracted
-            # Be conservative - check if any issue file is mentioned in debunking
-            filtered = []
-            for issue_line in issue_lines:
-                # Extract file from issue
-                match = re.match(r"([\w\-\./]+):\d+", issue_line)
-                if match:
-                    issue_file = match.group(1).split("/")[-1]
-                    # Check if this file is mentioned in trusted debunking comments
-                    if issue_file.lower() in all_trusted_text:
-                        print(f"  Dropping issue for {issue_file} (file mentioned in trusted debunking context)")
-                        continue
-                filtered.append(issue_line)
-            return filtered
-
-        # Filter out issues that match debunked patterns
+        # Filter out resolved issues
         filtered = []
-        for issue_line in issue_lines:
-            issue_lower = issue_line.lower()
-            is_debunked = False
-
-            for pattern in debunked_patterns:
-                if pattern.lower() in issue_lower:
-                    print(f"  Dropping debunked issue matching {pattern}")
-                    is_debunked = True
-                    break
-
-            if not is_debunked:
+        for i, issue_line in enumerate(issue_lines):
+            if i in resolved_indices:
+                reason = reasoning.get(str(i), "addressed in maintainer comments")
+                print(f"  Filtering issue {i}: {reason}")
+            else:
                 filtered.append(issue_line)
 
+        print(f"  Filtered {len(resolved_indices)} issue(s), {len(filtered)} remaining")
         return filtered
 
     except Exception as e:
-        print(f"Warning: Error filtering debunked issues: {e}")
+        print(f"Warning: Error filtering issues: {e}")
         return issue_lines  # On error, return unfiltered
 
 
