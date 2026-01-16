@@ -407,18 +407,27 @@ class TestVerifyReviewClaims:
 
 
 class TestFilterDebunkedIssues:
-    """Tests for the _filter_debunked_issues function."""
+    """Tests for the _filter_debunked_issues function.
 
+    Note: These tests now mock the LLM-based classification function since
+    the filtering logic uses semantic analysis via _classify_maintainer_feedback.
+    """
+
+    @patch("gemini_pr_review._classify_maintainer_feedback")
     @patch("gemini_pr_review.get_all_pr_comments")
-    def test_filters_debunked_issues(self, mock_get_comments):
+    def test_filters_debunked_issues(self, mock_get_comments, mock_classify):
         """Filters out issues that were debunked in TRUSTED user comments."""
-        # Note: Only comments from trusted users (in .agents.yaml trusted_sources) are considered
         mock_get_comments.return_value = [
             {
-                "body": "This is a false positive. The claim about file.py:42 having deprecated triggers is incorrect.",
+                "body": "This is a false positive. The claim about file.py:42 is incorrect.",
                 "author": {"login": "AndrewAltimit"},  # Trusted user
             },
         ]
+        # Mock LLM classification to mark issue 0 as resolved
+        mock_classify.return_value = {
+            "resolved_issues": [0],
+            "reasoning": {"0": "Maintainer marked as false positive"},
+        }
 
         issues = ["- [BUG] file.py:42 - Has deprecated triggers", "- [BUG] other.py:10 - Real issue"]
 
@@ -428,12 +437,15 @@ class TestFilterDebunkedIssues:
         assert "other.py:10" in filtered[0]
         assert "file.py:42" not in str(filtered)
 
+    @patch("gemini_pr_review._classify_maintainer_feedback")
     @patch("gemini_pr_review.get_all_pr_comments")
-    def test_keeps_non_debunked_issues(self, mock_get_comments):
+    def test_keeps_non_debunked_issues(self, mock_get_comments, mock_classify):
         """Keeps issues that weren't debunked."""
         mock_get_comments.return_value = [
-            {"body": "LGTM, please fix the typo."},
+            {"body": "LGTM, please fix the typo.", "author": {"login": "AndrewAltimit"}},
         ]
+        # Mock LLM classification to return no resolved issues
+        mock_classify.return_value = {"resolved_issues": [], "reasoning": {}}
 
         issues = ["- [BUG] file.py:42 - Has issue", "- [BUG] other.py:10 - Another issue"]
 
@@ -443,7 +455,7 @@ class TestFilterDebunkedIssues:
 
     @patch("gemini_pr_review.get_all_pr_comments")
     def test_handles_no_comments(self, mock_get_comments):
-        """Handles case with no comments."""
+        """Handles case with no comments - skips classification."""
         mock_get_comments.return_value = []
 
         issues = ["- [BUG] file.py:42 - Has issue"]
@@ -452,16 +464,21 @@ class TestFilterDebunkedIssues:
 
         assert len(filtered) == 1
 
+    @patch("gemini_pr_review._classify_maintainer_feedback")
     @patch("gemini_pr_review.get_all_pr_comments")
-    def test_detects_hallucination_keywords(self, mock_get_comments):
-        """Detects various debunking keywords from TRUSTED users."""
-        # Note: Only comments from trusted users are considered for debunking
+    def test_detects_hallucination_via_llm(self, mock_get_comments, mock_classify):
+        """LLM classification detects when maintainer says issue is hallucination."""
         mock_get_comments.return_value = [
             {
                 "body": "Gemini is hallucinating about test.py:100",
                 "author": {"login": "AndrewAltimit"},  # Trusted user
             },
         ]
+        # Mock LLM classification to mark the issue as resolved (hallucination)
+        mock_classify.return_value = {
+            "resolved_issues": [0],
+            "reasoning": {"0": "Maintainer identified as hallucination"},
+        }
 
         issues = ["- [BUG] test.py:100 - Fake issue"]
 

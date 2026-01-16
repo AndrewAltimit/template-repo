@@ -584,6 +584,7 @@ jobs:
           ./automation/ci-cd/run-ci.sh json-lint
 
   # Stage 4b: Workflow file validation (always run)
+  # Uses actionlint for GitHub Actions-specific validation (expressions, contexts, etc.)
   workflow-validation:
     name: Workflow File Validation
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
@@ -600,9 +601,52 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Validate workflow files
+      - name: Run actionlint (GitHub Actions-specific validation)
         run: |
-          echo "🔍 Validating GitHub Actions workflow files..."
+          echo "🔍 Running actionlint for GitHub Actions-specific validation..."
+
+          # Install actionlint if not available
+          if ! command -v actionlint &> /dev/null; then
+            echo "Installing actionlint..."
+
+            # Detect architecture
+            ARCH=$(uname -m)
+            case "$ARCH" in
+              x86_64)  ARCH_SUFFIX="amd64" ;;
+              aarch64) ARCH_SUFFIX="arm64" ;;
+              arm64)   ARCH_SUFFIX="arm64" ;;
+              *)       echo "Unsupported architecture: $ARCH"; exit 1 ;;
+            esac
+            echo "Detected architecture: $ARCH -> $ARCH_SUFFIX"
+
+            # Download latest release for Linux (authenticated to avoid rate limits)
+            ACTIONLINT_VERSION=$(curl -sf -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              https://api.github.com/repos/rhysd/actionlint/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+            if [ -z "$ACTIONLINT_VERSION" ]; then
+              echo "Failed to fetch actionlint version from GitHub API"
+              exit 1
+            fi
+            echo "Installing actionlint v${ACTIONLINT_VERSION} for linux_${ARCH_SUFFIX}"
+            curl -sfLO "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_${ARCH_SUFFIX}.tar.gz"
+            tar -xzf "actionlint_${ACTIONLINT_VERSION}_linux_${ARCH_SUFFIX}.tar.gz" actionlint
+            chmod +x actionlint
+            ACTIONLINT_CMD="./actionlint"
+          else
+            ACTIONLINT_CMD="actionlint"
+          fi
+
+          # Run actionlint on all workflow files
+          echo "Validating workflow files with actionlint..."
+          if $ACTIONLINT_CMD -color; then
+            echo "✅ All workflow files pass actionlint validation!"
+          else
+            echo "❌ actionlint found issues in workflow files"
+            exit 1
+          fi
+
+      - name: Run YAML structure validation
+        run: |
+          echo "🔍 Validating YAML structure of workflow files..."
 
           # Build the CI image if needed
           docker-compose build python-ci
@@ -1020,7 +1064,7 @@ jobs:
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh || echo "Warning: cleanup-outputs.sh failed but continuing"
 
-  # Agent Failure Handler - attempts to fix format/lint failures
+  # Agent Failure Handler - attempts to fix format/lint/test failures
   agent-failure-handler:
     name: Agent Failure Handler
     needs:
@@ -1031,6 +1075,7 @@ jobs:
       - format-check
       - basic-lint
       - full-lint
+      - test-suite
     if: |
       failure() &&
       github.event_name == 'pull_request' &&
@@ -1039,7 +1084,8 @@ jobs:
       !contains(github.event.pull_request.labels.*.name, 'no-auto-fix') &&
       (needs.format-check.result == 'failure' ||
        needs.basic-lint.result == 'failure' ||
-       needs.full-lint.result == 'failure')
+       needs.full-lint.result == 'failure' ||
+       needs.test-suite.result == 'failure')
     runs-on: self-hosted
     timeout-minutes: 45
     outputs:
@@ -1052,6 +1098,7 @@ jobs:
       FORMAT_CHECK_RESULT: ${{ needs.format-check.result }}
       BASIC_LINT_RESULT: ${{ needs.basic-lint.result }}
       FULL_LINT_RESULT: ${{ needs.full-lint.result }}
+      TEST_SUITE_RESULT: ${{ needs.test-suite.result }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -1134,13 +1181,29 @@ jobs:
           echo "Format check result: $FORMAT_CHECK_RESULT"
           echo "Basic lint result: $BASIC_LINT_RESULT"
           echo "Full lint result: $FULL_LINT_RESULT"
+          echo "Test suite result: $TEST_SUITE_RESULT"
+
+          # Build failure types based on which jobs failed
+          FAILURE_TYPES=""
+          if [ "$FORMAT_CHECK_RESULT" = "failure" ] || [ "$BASIC_LINT_RESULT" = "failure" ] || [ "$FULL_LINT_RESULT" = "failure" ]; then
+            FAILURE_TYPES="format,lint"
+          fi
+          if [ "$TEST_SUITE_RESULT" = "failure" ]; then
+            if [ -n "$FAILURE_TYPES" ]; then
+              FAILURE_TYPES="$FAILURE_TYPES,test"
+            else
+              FAILURE_TYPES="test"
+            fi
+          fi
+
+          echo "Failure types: $FAILURE_TYPES"
 
           ./automation/ci-cd/agent-failure-handler.sh \
             "$PR_NUMBER" \
             "$BRANCH_NAME" \
             "$ITERATION_COUNT" \
             "5" \
-            "format,lint"
+            "$FAILURE_TYPES"
 
       - name: Log result
         if: always()

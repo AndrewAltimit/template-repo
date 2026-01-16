@@ -540,6 +540,8 @@ def analyze_pr(
 - Focus on issues Gemini may have MISSED
 - Note if you DISAGREE with any of Gemini's findings (explain why)
 - Add "Concur with Gemini" in Notes if you agree with their assessment
+- If Gemini's review mentions an issue being a "false positive" or "acknowledged limitation", DO NOT re-raise it
+- If maintainer comments explain why an approach "doesn't work" or is "not supported", respect that constraint
 
 """
 
