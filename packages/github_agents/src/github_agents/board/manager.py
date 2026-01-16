@@ -778,17 +778,19 @@ Work claim released.
         await self._post_issue_comment(issue_number, comment_body)
 
         # Update status based on reason
+        # IMPORTANT: Agents should NEVER mark issues as Done or close them.
+        # Done status happens only when PRs are merged (via GitHub automation).
         if reason == "completed":
-            # Work done without PR - mark as Done
-            await self.update_status(issue_number, IssueStatus.DONE)
+            # Work done without PR - stay In Progress for human review
+            # This case typically means "no changes needed" which requires verification
+            pass
         elif reason == "pr_created":
             # PR created - stay In Progress until PR is merged (which closes the issue)
-            # Don't change status - it's already In Progress
             pass
         elif reason == "blocked":
             await self.update_status(issue_number, IssueStatus.BLOCKED)
         else:
-            # Abandoned or error - return to todo
+            # Abandoned or error - return to todo for retry
             await self.update_status(issue_number, IssueStatus.TODO)
 
         logger.info("Released claim on #%s by %s (reason: %s)", issue_number, agent_name, reason)

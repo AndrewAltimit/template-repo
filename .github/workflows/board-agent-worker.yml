@@ -47,6 +47,11 @@ on:
         required: false
         type: boolean
         default: false
+      create-pr:
+        description: 'Create PR after completing work'
+        required: false
+        type: boolean
+        default: true
 
   # Reusable workflow
   workflow_call:
@@ -253,7 +258,10 @@ jobs:
           include-labels: ${{ inputs.include-labels || '' }}
           exclude-labels: ${{ inputs.exclude-labels || '' }}
           dry-run: ${{ inputs.dry-run || github.event.inputs.dry-run || false }}
-          create-pr: ${{ inputs.create-pr != false }}
+          # Handle both workflow_dispatch and workflow_call contexts
+          # workflow_dispatch: github.event.inputs.create-pr (string 'true'/'false')
+          # workflow_call: inputs.create-pr (boolean)
+          create-pr: ${{ github.event.inputs.create-pr != 'false' && inputs.create-pr != false }}
           json-logging: ${{ inputs.json-logging || false }}
           stale-claim-threshold: ${{ inputs.stale-claim-threshold || 2 }}
           use-docker: ${{ inputs.use-docker || github.event.inputs.use-docker || false }}

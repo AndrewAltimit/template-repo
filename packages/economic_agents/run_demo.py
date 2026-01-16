@@ -20,7 +20,7 @@ from typing import Optional
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.api.config import BackendConfig, BackendMode
 from economic_agents.api.factory import create_backends
-from economic_agents.dashboard.dependencies import dashboard_state
+from economic_agents.dashboard.dependencies import create_dashboard_state
 from economic_agents.demo_config import DemoConfig, DemoMode
 
 
@@ -80,6 +80,10 @@ async def run_demo_async(
             print("\nMake sure API services are running!")
         raise
 
+    # Create a dedicated DashboardState instance for this demo session.
+    # This avoids global mutable state and makes testing easier.
+    demo_dashboard_state = create_dashboard_state()
+
     # Use the factory method to ensure proper async initialization
     agent = await AutonomousAgent.create(
         wallet=wallet,
@@ -89,7 +93,7 @@ async def run_demo_async(
             "survival_buffer_hours": config.survival_buffer_hours,
             "company_threshold": config.company_threshold,
         },
-        dashboard_state=dashboard_state,
+        dashboard_state=demo_dashboard_state,
     )
 
     print(f"\nAgent initialized: {agent.agent_id}")

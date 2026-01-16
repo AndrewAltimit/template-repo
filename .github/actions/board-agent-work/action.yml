@@ -1101,9 +1101,10 @@ runs:
 
         # Determine release reason
         # - pr_created: Work done, PR created - stay In Progress until PR is merged
-        # - completed: Work done, no PR was expected - mark as Done
-        # - abandoned: Job cancelled
+        # - completed: Work done, no changes needed - stay In Progress for human review
+        # - abandoned: Job cancelled - return to Todo
         # - error: Something went wrong - return to Todo for retry
+        # NOTE: Agents NEVER mark issues as Done - that only happens when PRs are merged
         if [ "$WORK_COMPLETED" = "true" ]; then
           if [ "$PR_CREATED" = "true" ]; then
             REASON="pr_created"
@@ -1111,7 +1112,7 @@ runs:
             # PR was expected but not created (step failed or no changes)
             # Check if there were changes - if PR_CREATED=false, no changes; if empty, step failed
             if [ "$PR_CREATED" = "false" ]; then
-              # No changes to commit - work is truly complete
+              # No changes to commit - stay In Progress for human review
               REASON="completed"
             else
               # PR creation step failed - treat as error for retry
@@ -1119,7 +1120,7 @@ runs:
               echo "::warning::PR creation was expected but step did not complete successfully"
             fi
           else
-            # PR was not expected (create-pr=false) - mark as done
+            # PR was not expected (create-pr=false) - stay In Progress for human review
             REASON="completed"
           fi
         elif [ "${{ job.status }}" = "cancelled" ]; then
