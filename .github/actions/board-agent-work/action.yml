@@ -23,7 +23,7 @@ inputs:
   agent-timeout:
     description: 'Timeout for agent execution in minutes'
     required: false
-    default: '30'
+    default: '180'
 
   # Board configuration
   board-config-path:

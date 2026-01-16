@@ -61,7 +61,7 @@ on:
         description: 'Timeout for agent execution in minutes'
         required: false
         type: number
-        default: 30
+        default: 180
 
       # Board configuration
       board-config-path:
@@ -195,7 +195,7 @@ jobs:
   agent-work:
     name: '${{ inputs.agent-name || github.event.inputs.agent-name || ''claude'' }} Agent Work'
     runs-on: ${{ inputs.runs-on || 'self-hosted' }}
-    timeout-minutes: 40  # agent-timeout (30) + buffer (10)
+    timeout-minutes: 190  # agent-timeout (180) + buffer (10)
 
 
     outputs:
@@ -231,7 +231,7 @@ jobs:
           github-projects-token: ${{ secrets.github-projects-token || secrets.GH_PROJECTS_TOKEN }}
           # Inputs: workflow_call || workflow_dispatch || defaults
           agent-name: ${{ inputs.agent-name || github.event.inputs.agent-name || 'claude' }}
-          agent-timeout: ${{ inputs.agent-timeout || 30 }}
+          agent-timeout: ${{ inputs.agent-timeout || 180 }}
           board-config-path: ${{ inputs.board-config-path || 'ai-agents-board.yml' }}
           max-issues: ${{ inputs.max-issues || github.event.inputs.max-issues || 1 }}
           include-labels: ${{ inputs.include-labels || '' }}
