@@ -584,6 +584,7 @@ jobs:
           ./automation/ci-cd/run-ci.sh json-lint
 
   # Stage 4b: Workflow file validation (always run)
+  # Uses actionlint for GitHub Actions-specific validation (expressions, contexts, etc.)
   workflow-validation:
     name: Workflow File Validation
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
@@ -600,9 +601,35 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Validate workflow files
+      - name: Run actionlint (GitHub Actions-specific validation)
         run: |
-          echo "🔍 Validating GitHub Actions workflow files..."
+          echo "🔍 Running actionlint for GitHub Actions-specific validation..."
+
+          # Install actionlint if not available
+          if ! command -v actionlint &> /dev/null; then
+            echo "Installing actionlint..."
+            # Download latest release for Linux
+            ACTIONLINT_VERSION=$(curl -s https://api.github.com/repos/rhysd/actionlint/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+            curl -sLO "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+            tar -xzf "actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" actionlint
+            chmod +x actionlint
+            ACTIONLINT_CMD="./actionlint"
+          else
+            ACTIONLINT_CMD="actionlint"
+          fi
+
+          # Run actionlint on all workflow files
+          echo "Validating workflow files with actionlint..."
+          if $ACTIONLINT_CMD -color; then
+            echo "✅ All workflow files pass actionlint validation!"
+          else
+            echo "❌ actionlint found issues in workflow files"
+            exit 1
+          fi
+
+      - name: Run YAML structure validation
+        run: |
+          echo "🔍 Validating YAML structure of workflow files..."
 
           # Build the CI image if needed
           docker-compose build python-ci
