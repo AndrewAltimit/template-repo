@@ -14,7 +14,7 @@ Environment variables can override defaults (see DemoConfig.from_env for details
 """
 
 import argparse
-import time
+import asyncio
 from typing import Optional
 
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
@@ -24,7 +24,7 @@ from economic_agents.dashboard.dependencies import dashboard_state
 from economic_agents.demo_config import DemoConfig, DemoMode
 
 
-def run_demo(
+async def run_demo_async(
     config: Optional[DemoConfig] = None,
     backend: str = "mock",
 ) -> None:
@@ -80,7 +80,8 @@ def run_demo(
             print("\nMake sure API services are running!")
         raise
 
-    agent = AutonomousAgent(
+    # Use the factory method to ensure proper async initialization
+    agent = await AutonomousAgent.create(
         wallet=wallet,
         compute=compute,
         marketplace=marketplace,
@@ -98,7 +99,7 @@ def run_demo(
 
     try:
         for cycle in range(config.max_cycles):
-            agent.run_cycle()
+            await agent.run_cycle()
 
             # Print progress
             status = "Company Work" if agent.state.has_company else "Task Work"
@@ -110,7 +111,7 @@ def run_demo(
             )
 
             # Delay to make updates visible in dashboard
-            time.sleep(config.cycle_delay_seconds)
+            await asyncio.sleep(config.cycle_delay_seconds)
 
             # Stop if agent runs out of resources
             if agent.state.balance <= 0 or agent.state.compute_hours_remaining <= 0:
@@ -140,6 +141,33 @@ def run_demo(
 
     print("\nTip: Refresh the dashboard at http://localhost:8501 to see final state")
     print("=" * 60)
+
+
+def run_demo(
+    config: Optional[DemoConfig] = None,
+    backend: str = "mock",
+) -> None:
+    """Synchronous wrapper for run_demo_async.
+
+    Args:
+        config: Demo configuration (uses defaults if None)
+        backend: 'mock' (in-memory) or 'api' (microservices)
+
+    Raises:
+        RuntimeError: If called from within an existing event loop.
+    """
+    try:
+        asyncio.get_running_loop()
+        raise RuntimeError(
+            "run_demo() cannot be called from an async context. "
+            "Use 'await run_demo_async(...)' instead."
+        )
+    except RuntimeError as e:
+        if "no running event loop" in str(e):
+            # No loop running - safe to use asyncio.run()
+            asyncio.run(run_demo_async(config, backend))
+        else:
+            raise
 
 
 def main() -> None:
