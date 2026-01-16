@@ -109,6 +109,11 @@ runs:
         INPUT_HEALTH_ENDPOINT: ${{ inputs.health-endpoint }}
       run: |
         echo "Waiting for services to be healthy..."
+        # Validate timeout is numeric, default to 60 if not
+        if ! [[ "$INPUT_TIMEOUT" =~ ^[0-9]+$ ]]; then
+          echo "Warning: Invalid timeout '$INPUT_TIMEOUT', using default 60"
+          INPUT_TIMEOUT=60
+        fi
         elapsed=0
         while [ $elapsed -lt "$INPUT_TIMEOUT" ]; do
           if curl -sf --max-time 5 "$INPUT_HEALTH_ENDPOINT" > /dev/null 2>&1; then

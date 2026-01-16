@@ -195,8 +195,9 @@ jobs:
   agent-work:
     name: '${{ inputs.agent-name || github.event.inputs.agent-name || ''claude'' }} Agent Work'
     runs-on: ${{ inputs.runs-on || 'self-hosted' }}
-    # Job timeout: agent-timeout + 20 min buffer for cleanup
-    timeout-minutes: ${{ fromJSON(inputs.agent-timeout || 180) + 20 }}
+    # Job timeout: 200 min (default agent-timeout 180 + 20 buffer)
+    # Note: GHA expression parser rejects arithmetic operators in timeout-minutes
+    timeout-minutes: 200
 
 
     outputs:
