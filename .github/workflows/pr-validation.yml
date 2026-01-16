@@ -608,9 +608,14 @@ jobs:
           # Install actionlint if not available
           if ! command -v actionlint &> /dev/null; then
             echo "Installing actionlint..."
-            # Download latest release for Linux
-            ACTIONLINT_VERSION=$(curl -s https://api.github.com/repos/rhysd/actionlint/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-            curl -sLO "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+            # Download latest release for Linux (authenticated to avoid rate limits)
+            ACTIONLINT_VERSION=$(curl -sf -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              https://api.github.com/repos/rhysd/actionlint/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+            if [ -z "$ACTIONLINT_VERSION" ]; then
+              echo "Failed to fetch actionlint version from GitHub API"
+              exit 1
+            fi
+            curl -sfLO "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
             tar -xzf "actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" actionlint
             chmod +x actionlint
             ACTIONLINT_CMD="./actionlint"
