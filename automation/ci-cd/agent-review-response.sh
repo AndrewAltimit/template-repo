@@ -279,10 +279,10 @@ Please analyze the feedback above, verify each issue by reading the relevant fil
 PROMPT_FILE=$(mktemp)
 printf '%s' "$CLAUDE_PROMPT" > "$PROMPT_FILE"
 
-# Determine Claude command - use interactive mode (NOT --print) so Claude can use tools
+# Determine Claude command - use default mode (NOT --print) so Claude can use tools
 CLAUDE_CMD=""
 if command -v claude &> /dev/null; then
-    # Interactive mode with auto-approval for CI - Claude can read files and make edits
+    # Default mode with auto-approval for CI - Claude can read files and make edits
     CLAUDE_CMD="claude --dangerously-skip-permissions"
 elif command -v claude-code &> /dev/null; then
     CLAUDE_CMD="claude-code --dangerously-skip-permissions"
@@ -292,7 +292,7 @@ fi
 CLAUDE_OUTPUT_FILE=$(mktemp)
 
 if [ -n "$CLAUDE_CMD" ]; then
-    echo "Running Claude in interactive mode (with tool access)..."
+    echo "Running Claude with tool access (one-shot mode)..."
 
     # Set timeout for Claude execution (10 minutes)
     TIMEOUT_CMD="timeout 600"
