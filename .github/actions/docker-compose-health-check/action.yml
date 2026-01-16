@@ -43,6 +43,8 @@ runs:
         if [ -n "$INPUT_UNIQUE_ID" ]; then
           PROJECT_NAME="${PROJECT_NAME}-${INPUT_UNIQUE_ID}"
         fi
+        # Normalize to lowercase for Docker Compose compatibility
+        PROJECT_NAME=$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]')
         echo "COMPOSE_PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
         echo "Using Docker Compose project name: ${PROJECT_NAME}"
 
@@ -126,6 +128,11 @@ runs:
         INPUT_HEALTH_ENDPOINT: ${{ inputs.health-endpoint }}
       run: |
         echo "Waiting for services to be healthy..."
+        # Validate health endpoint is provided
+        if [ -z "$INPUT_HEALTH_ENDPOINT" ]; then
+          echo "ERROR: health-endpoint input is required"
+          exit 1
+        fi
         # Validate timeout is numeric, default to 60 if not
         if ! [[ "$INPUT_TIMEOUT" =~ ^[0-9]+$ ]]; then
           echo "Warning: Invalid timeout '$INPUT_TIMEOUT', using default 60"
