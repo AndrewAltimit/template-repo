@@ -66,6 +66,7 @@ git checkout "$BRANCH_NAME" 2>&1 || true
 
 # Collect failure information
 FAILURES_DETECTED=""
+TEST_FAILURES=""
 
 if [ "${FORMAT_CHECK_RESULT:-}" = "failure" ]; then
     FAILURES_DETECTED+="format "
@@ -82,21 +83,30 @@ if [ "${FULL_LINT_RESULT:-}" = "failure" ]; then
     echo "Detected full-lint failure"
 fi
 
-# If no specific failures passed via env, check if failure_types includes format/lint
-if [ -z "$FAILURES_DETECTED" ]; then
+if [ "${TEST_SUITE_RESULT:-}" = "failure" ]; then
+    TEST_FAILURES="test-suite"
+    echo "Detected test-suite failure"
+fi
+
+# If no specific failures passed via env, check if failure_types includes format/lint/test
+if [ -z "$FAILURES_DETECTED" ] && [ -z "$TEST_FAILURES" ]; then
     if [[ "$FAILURE_TYPES" == *"format"* ]] || [[ "$FAILURE_TYPES" == *"lint"* ]]; then
         FAILURES_DETECTED="format lint"
         echo "Assuming format/lint failures based on failure_types"
     fi
+    if [[ "$FAILURE_TYPES" == *"test"* ]]; then
+        TEST_FAILURES="test-suite"
+        echo "Assuming test failures based on failure_types"
+    fi
 fi
 
-if [ -z "$FAILURES_DETECTED" ]; then
+if [ -z "$FAILURES_DETECTED" ] && [ -z "$TEST_FAILURES" ]; then
     echo "No handleable failures detected"
     echo "made_changes=false" >> "${GITHUB_OUTPUT:-/dev/null}"
     exit 0
 fi
 
-echo "Failures to address: $FAILURES_DETECTED"
+echo "Failures to address: $FAILURES_DETECTED $TEST_FAILURES"
 
 # Step 1: Run autoformat (handles most format/lint issues)
 echo ""
@@ -147,43 +157,74 @@ ${FULL_LINT_OUTPUT}"
     echo "Lint check output captured"
 fi
 
+# Step 2b: Run tests to capture test failure output
+TEST_OUTPUT=""
+if [ -n "$TEST_FAILURES" ]; then
+    echo ""
+    echo "=== Step 2b: Capturing test failure output ==="
+    if [ -f "./automation/ci-cd/run-ci.sh" ]; then
+        echo "Running tests to capture failure details..."
+        # Run tests with verbose output, capture both stdout and stderr
+        TEST_OUTPUT=$(./automation/ci-cd/run-ci.sh test 2>&1 || true)
+        # Truncate if too long (keep last 5000 chars which usually has the failures)
+        if [ ${#TEST_OUTPUT} -gt 8000 ]; then
+            TEST_OUTPUT="... (truncated, showing last 5000 chars) ...
+
+${TEST_OUTPUT: -5000}"
+        fi
+        echo "Test output captured (${#TEST_OUTPUT} chars)"
+    fi
+fi
+
 # Step 3: If there are still issues, invoke Claude
 echo ""
 echo "=== Step 3: Invoking Claude for remaining issues ==="
 
-# Build prompt for Claude
-CLAUDE_PROMPT=$(cat << 'PROMPT_EOF'
-You are fixing CI/CD pipeline failures for a pull request.
+# Build prompt for Claude based on failure types
+CLAUDE_PROMPT="You are fixing CI/CD pipeline failures for a pull request.
 
-IMPORTANT INSTRUCTIONS:
-1. Focus ONLY on formatting and linting issues
-2. DO NOT modify test logic or business logic
-3. Fix unused imports, formatting issues, type hints
-4. Make minimal changes - only what's needed to pass CI
-
-The autoformat tools (black, isort) have already been run.
-Here are the remaining lint issues to fix:
-
-PROMPT_EOF
-)
-
-if [ -n "$LINT_OUTPUT" ]; then
-    CLAUDE_PROMPT+="$LINT_OUTPUT"
-else
-    CLAUDE_PROMPT+="No specific lint output captured. Please check for:
-- Unused imports
-- Missing type hints
-- Undefined variables
-- Incorrect indentation
 "
+
+# Add lint-specific instructions if lint failures
+if [ -n "$FAILURES_DETECTED" ]; then
+    CLAUDE_PROMPT+="## Lint/Format Failures Detected
+
+INSTRUCTIONS FOR LINT ISSUES:
+1. Fix unused imports, formatting issues, type hints
+2. Make minimal changes - only what's needed to pass CI
+3. The autoformat tools (black, isort) have already been run
+
+"
+    if [ -n "$LINT_OUTPUT" ]; then
+        CLAUDE_PROMPT+="### Lint Output:
+$LINT_OUTPUT
+
+"
+    fi
 fi
 
-CLAUDE_PROMPT+=$(cat << 'PROMPT_EOF'
+# Add test-specific instructions if test failures
+if [ -n "$TEST_FAILURES" ]; then
+    CLAUDE_PROMPT+="## Test Failures Detected
 
-Please analyze and fix any remaining linting issues.
-After making changes, provide a brief summary of what was fixed.
-PROMPT_EOF
-)
+INSTRUCTIONS FOR TEST FAILURES:
+1. Analyze the test output to understand what's failing
+2. Fix bugs in the CODE being tested, not the tests themselves (unless the test is clearly wrong)
+3. If a test expects certain behavior, make the code match that behavior
+4. Do NOT disable, skip, or delete failing tests
+5. Make minimal, targeted fixes
+
+"
+    if [ -n "$TEST_OUTPUT" ]; then
+        CLAUDE_PROMPT+="### Test Output:
+$TEST_OUTPUT
+
+"
+    fi
+fi
+
+CLAUDE_PROMPT+="Please analyze and fix the issues above.
+After making changes, provide a brief summary of what was fixed."
 
 # Save prompt to temp file
 PROMPT_FILE=$(mktemp)
