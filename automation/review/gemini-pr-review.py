@@ -1259,14 +1259,18 @@ def _classify_maintainer_feedback(
     if not trusted_comments or not issue_lines:
         return {"resolved_issues": [], "reasoning": "No comments or issues to analyze"}
 
-    # Format comments for analysis
+    # Format comments for analysis (bounded to prevent token overflow)
     comments_text = "\n\n".join(
         f"**@{c.get('author', {}).get('login', 'Unknown')}**: {c.get('body', '')[:1500]}"
         for c in trusted_comments[-10:]  # Last 10 comments max
     )
 
-    # Format issues with indices
-    issues_text = "\n".join(f"{i}. {issue}" for i, issue in enumerate(issue_lines))
+    # Format issues with indices (bounded to prevent token overflow)
+    # Cap at 20 most recent issues - more than enough for practical use
+    bounded_issues = issue_lines[-20:] if len(issue_lines) > 20 else issue_lines
+    if len(issue_lines) > 20:
+        print(f"  Capping issue list from {len(issue_lines)} to 20 for classification")
+    issues_text = "\n".join(f"{i}. {issue}" for i, issue in enumerate(bounded_issues))
 
     prompt = f"""Analyze these maintainer comments on a PR and determine which reviewer issues have been addressed.
 

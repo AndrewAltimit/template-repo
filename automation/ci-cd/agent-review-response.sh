@@ -107,23 +107,35 @@ fetch_categorized_pr_comments() {
 
     if [ -f ".agents.yaml" ]; then
         # Extract agent_admins (highest trust)
+        # Handle both list and scalar string formats in YAML
         agent_admins=$(python3 -c "
 import yaml
 try:
     with open('.agents.yaml') as f:
         config = yaml.safe_load(f)
     admins = config.get('security', {}).get('agent_admins', [])
+    # Normalize: if scalar string, wrap in list; if None, use empty list
+    if isinstance(admins, str):
+        admins = [admins]
+    elif admins is None:
+        admins = []
     print('|'.join(a.lower() for a in admins))
 except: pass
 " 2>/dev/null || echo "andrewaltimit")
 
         # Extract trusted_sources (high trust)
+        # Handle both list and scalar string formats in YAML
         trusted_sources=$(python3 -c "
 import yaml
 try:
     with open('.agents.yaml') as f:
         config = yaml.safe_load(f)
     sources = config.get('security', {}).get('trusted_sources', [])
+    # Normalize: if scalar string, wrap in list; if None, use empty list
+    if isinstance(sources, str):
+        sources = [sources]
+    elif sources is None:
+        sources = []
     print('|'.join(s.lower() for s in sources))
 except: pass
 " 2>/dev/null || echo "andrewaltimit|github-actions[bot]")
