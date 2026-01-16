@@ -45,8 +45,8 @@ Integration with creative and content generation tools
 ## Remote Services
 
 Some integrations connect to remote services:
-- **AI Toolkit**: `192.168.0.152:8012`
-- **ComfyUI**: `192.168.0.152:8013`
+- **AI Toolkit**: `192.168.0.222:8012`
+- **ComfyUI**: `192.168.0.222:8013`
 - **Gaea2**: `192.168.0.152:8007` (optional)
 
 ## Related Documentation

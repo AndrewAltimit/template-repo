@@ -619,7 +619,7 @@ Generate multi-language captions.
 
 **Configuration:**
 ```bash
-COMFYUI_SERVER_URL=http://192.168.0.152:8013
+COMFYUI_SERVER_URL=http://192.168.0.222:8013
 ```
 
 ### AI Toolkit Tools (Port 8012)
@@ -638,7 +638,7 @@ COMFYUI_SERVER_URL=http://192.168.0.152:8013
 
 **Configuration:**
 ```bash
-AI_TOOLKIT_SERVER_URL=http://192.168.0.152:8012
+AI_TOOLKIT_SERVER_URL=http://192.168.0.222:8012
 ```
 
 ## Custom Tool Development

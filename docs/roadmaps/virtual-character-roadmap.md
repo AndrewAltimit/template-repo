@@ -298,9 +298,9 @@ class StorageService:
 from storage_client import StorageClient, upload_audio_and_get_url
 
 # Upload file and get URL for remote server
-client = StorageClient(base_url="http://192.168.0.152:8021")
+client = StorageClient(base_url="http://192.168.0.222:8021")
 url = await client.upload_file("/tmp/speech.mp3")
-# Returns: http://192.168.0.152:8021/download/abc123...
+# Returns: http://192.168.0.222:8021/download/abc123...
 
 # Or use the helper function
 url = await upload_audio_and_get_url("/tmp/speech.mp3")

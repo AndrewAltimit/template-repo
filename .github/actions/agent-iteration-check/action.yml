@@ -3,25 +3,25 @@ description: 'Track agent auto-fix iterations to prevent infinite loops'
 
 inputs:
   pr_number:
-    description: 'PR number for artifact naming'
+    description: 'PR number'
     required: true
   max_iterations:
     description: 'Maximum allowed iterations before stopping'
     required: false
-    default: '5'
+    default: '10'
   github_token:
-    description: 'GitHub token for artifact operations'
+    description: 'GitHub token for API operations'
     required: true
 
 outputs:
   iteration_count:
-    description: 'Current iteration count'
+    description: 'Current iteration count (consecutive agent commits since last human commit)'
     value: ${{ steps.check.outputs.iteration_count }}
   is_agent_commit:
     description: 'Whether the last commit was made by an agent'
     value: ${{ steps.check.outputs.is_agent_commit }}
   should_skip:
-    description: 'Whether to skip this run (max iterations reached or agent commit)'
+    description: 'Whether to skip this run (max iterations reached)'
     value: ${{ steps.check.outputs.should_skip }}
   exceeded_max:
     description: 'Whether max iterations have been exceeded'
@@ -30,7 +30,7 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - name: Check iteration count and commit type
+    - name: Check iteration count from git history
       id: check
       shell: bash
       env:
@@ -42,76 +42,81 @@ runs:
         echo "PR Number: $PR_NUMBER"
         echo "Max Iterations: $MAX_ITERATIONS"
 
-        # Check if last commit is an agent commit
-        LAST_COMMIT_MSG=$(git log -1 --format='%s' 2>/dev/null || echo "")
-        LAST_COMMIT_AUTHOR=$(git log -1 --format='%an' 2>/dev/null || echo "")
+        # Agent author names to detect
+        AGENT_AUTHORS=("AI Review Agent" "AI Pipeline Agent" "AI Agent Bot")
 
-        echo "Last commit message: $LAST_COMMIT_MSG"
+        # Check if last commit is an agent commit
+        LAST_COMMIT_AUTHOR=$(git log -1 --format='%an' 2>/dev/null || echo "")
         echo "Last commit author: $LAST_COMMIT_AUTHOR"
 
         IS_AGENT_COMMIT="false"
-        if [[ "$LAST_COMMIT_AUTHOR" == "AI Review Agent" ]] || \
-           [[ "$LAST_COMMIT_AUTHOR" == "AI Pipeline Agent" ]] || \
-           [[ "$LAST_COMMIT_AUTHOR" == "AI Agent Bot" ]]; then
-          IS_AGENT_COMMIT="true"
-          echo "Detected agent commit via author name: $LAST_COMMIT_AUTHOR"
-        fi
-
+        for author in "${AGENT_AUTHORS[@]}"; do
+          if [[ "$LAST_COMMIT_AUTHOR" == "$author" ]]; then
+            IS_AGENT_COMMIT="true"
+            echo "Detected agent commit via author name: $LAST_COMMIT_AUTHOR"
+            break
+          fi
+        done
         echo "is_agent_commit=$IS_AGENT_COMMIT" >> $GITHUB_OUTPUT
 
-        # Try to download existing iteration artifact
-        ARTIFACT_NAME="agent-iteration-pr-${PR_NUMBER}"
+        # Count consecutive agent commits from HEAD backwards
+        # This resets automatically when a human commits
+        echo "Counting consecutive agent commits..."
         ITERATION_COUNT=0
-        LAST_HUMAN_COMMIT=""
 
-        # Create unique temp directory for artifact (prevents race condition on shared runners)
-        ITERATION_DIR="/tmp/agent-iteration-${PR_NUMBER}"
-        mkdir -p "$ITERATION_DIR"
+        # Fetch enough commits to cover max_iterations (plus buffer for safety)
+        FETCH_LIMIT=$((MAX_ITERATIONS + 10))
+        while IFS= read -r author; do
+          is_agent="false"
+          for agent_author in "${AGENT_AUTHORS[@]}"; do
+            if [[ "$author" == "$agent_author" ]]; then
+              is_agent="true"
+              break
+            fi
+          done
 
-        # Try to download the artifact using gh cli
-        if gh run download --name "$ARTIFACT_NAME" --dir "$ITERATION_DIR" 2>/dev/null; then
-          echo "Downloaded existing iteration artifact"
-          if [ -f "$ITERATION_DIR/iteration-count.txt" ]; then
-            ITERATION_COUNT=$(cat "$ITERATION_DIR/iteration-count.txt")
-            echo "Previous iteration count: $ITERATION_COUNT"
+          if [[ "$is_agent" == "true" ]]; then
+            ITERATION_COUNT=$((ITERATION_COUNT + 1))
+          else
+            # Hit a human commit, stop counting
+            echo "Found human commit by: $author (stopping count)"
+            break
           fi
-          if [ -f "$ITERATION_DIR/last-human-commit.txt" ]; then
-            LAST_HUMAN_COMMIT=$(cat "$ITERATION_DIR/last-human-commit.txt")
-            echo "Last human commit: $LAST_HUMAN_COMMIT"
-          fi
-        else
-          echo "No existing iteration artifact found, starting fresh"
-        fi
+        done < <(git log --format='%an' -"$FETCH_LIMIT" 2>/dev/null)
 
-        # Check if there's a new human commit (reset counter)
-        if [ "$IS_AGENT_COMMIT" = "false" ]; then
-          CURRENT_COMMIT=$(git rev-parse HEAD)
-          if [ "$CURRENT_COMMIT" != "$LAST_HUMAN_COMMIT" ]; then
-            echo "New human commit detected, resetting iteration counter"
-            ITERATION_COUNT=0
-            LAST_HUMAN_COMMIT="$CURRENT_COMMIT"
-          fi
-        else
-          # Increment counter for agent commit
-          ITERATION_COUNT=$((ITERATION_COUNT + 1))
-          echo "Incremented iteration count to: $ITERATION_COUNT"
-        fi
+        echo "Consecutive agent commits: $ITERATION_COUNT"
 
         # Check if max iterations exceeded
-        # Note: We do NOT skip on agent commits - agent evaluates if new issues exist
-        # The iteration counter (max 5) prevents infinite loops
         EXCEEDED_MAX="false"
         SHOULD_SKIP="false"
         if [ "$ITERATION_COUNT" -ge "$MAX_ITERATIONS" ]; then
           EXCEEDED_MAX="true"
           SHOULD_SKIP="true"
           echo "WARNING: Max iterations ($MAX_ITERATIONS) reached!"
-        fi
 
-        # Save updated iteration data
-        echo "$ITERATION_COUNT" > "$ITERATION_DIR/iteration-count.txt"
-        if [ -n "$LAST_HUMAN_COMMIT" ]; then
-          echo "$LAST_HUMAN_COMMIT" > "$ITERATION_DIR/last-human-commit.txt"
+          # Post a comment to the PR explaining why the agent stopped
+          COMMENT_BODY="## Agent Iteration Limit Reached
+
+        The automated review response agent has reached the maximum iteration limit (**${ITERATION_COUNT}/${MAX_ITERATIONS}**).
+
+        **What this means:**
+        - The agent has made $ITERATION_COUNT consecutive fix attempts
+        - Further automated fixes have been paused to prevent infinite loops
+        - Any remaining review feedback requires manual attention
+
+        **To resume automated fixes:**
+        - Push a human commit (even a small change) to reset the counter
+        - Or add the \`no-auto-fix\` label to disable automated fixes entirely
+
+        ---
+        *This is a safety mechanism to prevent runaway automation.*"
+
+          # Post comment using gh CLI (use temp file, not stdin - gh-validator blocks stdin)
+          COMMENT_FILE=$(mktemp)
+          echo "$COMMENT_BODY" > "$COMMENT_FILE"
+          gh pr comment "$PR_NUMBER" --body-file "$COMMENT_FILE" || \
+            echo "Warning: Failed to post iteration limit comment"
+          rm -f "$COMMENT_FILE"
         fi
 
         echo "iteration_count=$ITERATION_COUNT" >> $GITHUB_OUTPUT
@@ -123,11 +128,3 @@ runs:
         echo "  Is Agent Commit: $IS_AGENT_COMMIT"
         echo "  Should Skip: $SHOULD_SKIP"
         echo "  Exceeded Max: $EXCEEDED_MAX"
-
-    - name: Upload iteration artifact
-      uses: actions/upload-artifact@v6
-      with:
-        name: agent-iteration-pr-${{ inputs.pr_number }}
-        path: /tmp/agent-iteration-${{ inputs.pr_number }}/
-        retention-days: 7
-        overwrite: true

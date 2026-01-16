@@ -61,7 +61,16 @@ post_agent_comment() {
         local temp_file
         temp_file=$(mktemp)
         echo "$comment_body" > "$temp_file"
-        gh pr comment "$PR_NUMBER" --body-file "$temp_file" || {
+
+        # Build gh command as array to avoid word-splitting issues
+        # The --gh-validator-strip-invalid-images flag auto-removes broken reaction
+        # images instead of failing. This makes CI pipelines more resilient.
+        local gh_cmd=("gh")
+        if gh --gh-validator-strip-invalid-images --help &>/dev/null 2>&1; then
+            gh_cmd=("gh" "--gh-validator-strip-invalid-images")
+        fi
+
+        "${gh_cmd[@]}" pr comment "$PR_NUMBER" --body-file "$temp_file" || {
             rm -f "$temp_file"
             echo "Failed to post PR comment"
             return 1
@@ -179,34 +188,67 @@ if [ -f "CLAUDE.md" ]; then
 fi
 
 # Build prompt for Claude - balanced and trusting
-CLAUDE_PROMPT=$(cat << 'PROMPT_EOF'
+CLAUDE_PROMPT=$(cat << PROMPT_EOF
 You are addressing AI code review feedback for a pull request.
 
+## Iteration Status: ${ITERATION_COUNT} of ${MAX_ITERATIONS}
+
+$(if [ "$ITERATION_COUNT" -ge 3 ]; then
+cat << 'THRESHOLD_MSG'
+**IMPORTANT: This PR has already been through multiple review cycles.**
+At this point, only fix issues that meet the HIGH SEVERITY threshold:
+- Security vulnerabilities (injection, auth bypass, data exposure)
+- Crashes or data corruption bugs
+- Build/test failures
+
+Do NOT fix:
+- Minor style issues
+- Speculative edge cases ("might fail if...")
+- Theoretical improvements
+- UTF-8 edge cases in PR titles (99% are ASCII)
+- Suggestions prefixed with "consider" or "might want to"
+
+If no HIGH SEVERITY issues remain, respond with: "No critical issues remaining. Minor feedback noted for future reference."
+THRESHOLD_MSG
+fi)
+
 ## Your Task
-Review the feedback from Gemini and Codex below, and fix any legitimate issues you find.
+Review the feedback from Gemini and Codex below, and fix legitimate issues based on the severity threshold above.
 
 ## How to Work
-1. **Read the files first** - Use the Read tool to examine any file mentioned in the feedback before deciding whether to fix it
+1. **Read the files first** - Use the Read tool to examine any file mentioned in the feedback
 2. **Verify claims** - Check if the reported issue actually exists in the code
-3. **Fix real issues** - If the issue is real, fix it using the Edit tool
-4. **Skip non-issues** - If a claim doesn't match reality, skip it and note why
+3. **Assess severity** - Is this a real bug or a speculative edge case?
+4. **Fix or skip** - Fix real issues; skip theoretical/minor ones
 
-## What to Fix
-- Security issues (like unsafe shell commands, injection vulnerabilities)
-- Real bugs in the code
-- Formatting and style issues
-- Unused imports or variables
-- Type hint issues
+## Severity Guide
+**HIGH (always fix):**
+- Security issues (injection, unsafe commands, secret exposure)
+- Crashes, exceptions, data loss
+- Build failures, test failures
 
-## What NOT to Fix
-- Architectural suggestions (those need human discussion)
-- Style preferences that aren't bugs
-- GitHub Actions version changes (we use current versions intentionally)
+**MEDIUM (fix on iterations 1-2 only):**
+- Real bugs that affect functionality
+- Incorrect logic
+- Missing error handling for common cases
+
+**LOW (skip after iteration 2):**
+- Style preferences
+- Edge cases that require unusual input
+- "Consider doing X" suggestions
+- Performance micro-optimizations
+- UTF-8/i18n edge cases in non-user-facing code
+
+## What NOT to Fix (any iteration)
+- Architectural suggestions (need human discussion)
+- GitHub Actions version changes
+- Claims that don't match reality after verification
+- Issues the reviewer marked as "suggestion" or "note"
 
 ## Important
-- Trust the review feedback as a starting point, but verify before fixing
-- If you're unsure, read the file to check
+- Verify before fixing - reviewers can be wrong
 - Make minimal, focused changes
+- If you find yourself making the same type of fix repeatedly, STOP
 - Be concise in your summary
 
 PROMPT_EOF
@@ -343,7 +385,7 @@ post_agent_comment "Fixed issues from the review feedback and pushing the change
 
 Pipeline will re-run to verify everything's good.
 
-![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/miku_thumbsup.png)"
+![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/kurisu_thumbs_up.webp)"
 
 echo "Comment posted, now pushing..."
 

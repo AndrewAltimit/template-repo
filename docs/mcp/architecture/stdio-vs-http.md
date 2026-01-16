@@ -74,11 +74,11 @@ result = mcp__content-creation__compile_latex(content="...")
 - **Remote HTTP**: `192.168.0.152:8007` when Gaea2 runs on dedicated Windows machine
 
 #### AI Toolkit Server
-- **HTTP Only**: `192.168.0.152:8012` (runs on remote machine with GPU)
+- **HTTP Only**: `192.168.0.222:8012` (runs on remote machine with GPU)
 - **Why**: Requires specific hardware (GPU) and software environment
 
 #### ComfyUI Server
-- **HTTP Only**: `192.168.0.152:8013` (runs on remote machine with GPU)
+- **HTTP Only**: `192.168.0.222:8013` (runs on remote machine with GPU)
 - **Why**: Requires specific hardware (GPU) and software environment
 
 ## Volume Mounts and Output Directories

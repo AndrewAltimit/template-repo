@@ -73,7 +73,7 @@ Standard HTTP upload fails for files >50-100MB. Our 112MB LoRA required chunked 
 
 ```bash
 # This might not show chunked upload tools
-curl http://192.168.0.152:8189/mcp/tools
+curl http://192.168.0.222:8189/mcp/tools
 
 # But they exist in the gist implementation!
 # Always check: https://gist.github.com/AndrewAltimit/f2a21b1a075cc8c9a151483f89e0f11e
@@ -132,13 +132,13 @@ See `transfer_lora_between_services.py` for working implementation:
 
 ```bash
 # Check training status
-curl -s http://192.168.0.152:8675/api/jobs | jq '.jobs[0]'
+curl -s http://192.168.0.222:8675/api/jobs | jq '.jobs[0]'
 
 # Transfer LoRA between services
 python3 transfer_lora_between_services.py
 
 # List available LoRAs in ComfyUI
-curl -X POST http://192.168.0.152:8189/mcp/tool \
+curl -X POST http://192.168.0.222:8189/mcp/tool \
   -H "Content-Type: application/json" \
   -d '{"tool": "list-loras", "arguments": {}}'
 ```

@@ -8,7 +8,7 @@ This MCP server runs on a GPU-enabled machine and provides:
 - **Containerized Deployment**: Runs in Docker with NVIDIA GPU support
 - **MCP Protocol**: Full MCP server implementation for ComfyUI functionality
 - **Remote Access**: Can be accessed via HTTP from any machine on the network
-- **Default Location**: Typically runs on `192.168.0.152:8013`
+- **Default Location**: Typically runs on `192.168.0.222:8013`
 
 ## Configuration
 
@@ -17,7 +17,7 @@ The connection is configured in `.mcp.json`:
 ```json
 "comfyui": {
   "type": "http",
-  "url": "http://192.168.0.152:8013/messages"
+  "url": "http://192.168.0.222:8013/messages"
 }
 ```
 
@@ -105,7 +105,7 @@ ComfyUI can use LoRA models trained with AI Toolkit:
 
 ## Network Requirements
 
-- The remote server must be accessible at `192.168.0.152:8013`
+- The remote server must be accessible at `192.168.0.222:8013`
 - ComfyUI backend must be running on the remote machine (port 8188)
 - Firewall must allow traffic on ports 8013 and 8188
 - Both machines must be on the same network or have appropriate routing
@@ -115,7 +115,7 @@ ComfyUI can use LoRA models trained with AI Toolkit:
 1. **Connection Failed**: Verify the remote server is running and accessible
 2. **Generation Failed**: Check ComfyUI backend is running on remote machine
 3. **LoRA Not Found**: Ensure model was properly transferred from AI Toolkit
-4. **Network Issues**: Test connectivity with `curl http://192.168.0.152:8013/health`
+4. **Network Issues**: Test connectivity with `curl http://192.168.0.222:8013/health`
 
 ## Container Management
 

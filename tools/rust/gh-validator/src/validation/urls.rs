@@ -206,6 +206,78 @@ impl UrlValidator {
             details: last_error.unwrap_or_else(|| "Unknown error".to_string()),
         })
     }
+
+    /// Check if a URL is valid (returns true if valid, false if invalid)
+    ///
+    /// Unlike validate_exists, this doesn't return an error - just a boolean.
+    #[allow(dead_code)] // Public API for future use
+    pub fn is_valid(&self, url: &str) -> bool {
+        self.validate_exists(url).is_ok()
+    }
+
+    /// Find invalid URLs in content and return them with their error reasons
+    ///
+    /// Returns a vector of (url, reason) tuples for invalid URLs.
+    pub fn find_invalid_urls(&self, content: &str) -> Vec<(String, String)> {
+        let urls = Self::extract_reaction_urls(content);
+        let mut invalid = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+
+        for url in urls {
+            // Skip duplicate URLs to avoid redundant network requests
+            if !seen.insert(url.clone()) {
+                continue;
+            }
+            if let Err(e) = self.validate_exists(&url) {
+                invalid.push((url, e.to_string()));
+            }
+        }
+
+        invalid
+    }
+
+    /// Strip invalid reaction image URLs from content
+    ///
+    /// Returns the modified content with invalid images removed, plus a list
+    /// of (url, reason) tuples for the removed images.
+    pub fn strip_invalid_images(&self, content: &str) -> (String, Vec<(String, String)>) {
+        let invalid_urls = self.find_invalid_urls(content);
+
+        if invalid_urls.is_empty() {
+            return (content.to_string(), vec![]);
+        }
+
+        let mut result = content.to_string();
+
+        for (url, _) in &invalid_urls {
+            // Remove the full markdown image syntax: ![...](url)
+            // Need to escape special regex chars in URL
+            let escaped_url = regex::escape(url);
+
+            // Pattern for ![alt text](url) or ![alt text](url "title") - captures the whole thing
+            // Optional title can be quoted with " or '
+            let pattern = format!(r#"!\[[^\]]*\]\({}\s*(?:["'][^"']*["'])?\)"#, escaped_url);
+            if let Ok(re) = Regex::new(&pattern) {
+                result = re.replace_all(&result, "").to_string();
+            }
+
+            // Also handle escaped variant \![alt text](url) or \![alt text](url "title")
+            let escaped_pattern =
+                format!(r#"\\!\[[^\]]*\]\({}\s*(?:["'][^"']*["'])?\)"#, escaped_url);
+            if let Ok(re) = Regex::new(&escaped_pattern) {
+                result = re.replace_all(&result, "").to_string();
+            }
+        }
+
+        // Clean up any double newlines left by removed images
+        let double_newline = Regex::new(r"\n\s*\n\s*\n").unwrap();
+        result = double_newline.replace_all(&result, "\n\n").to_string();
+
+        // Trim trailing whitespace
+        result = result.trim_end().to_string();
+
+        (result, invalid_urls)
+    }
 }
 
 #[cfg(test)]
@@ -288,5 +360,25 @@ mod tests {
         let text = "![Image](https://example.com/normal/image.png)";
         let urls = UrlValidator::extract_reaction_urls(text);
         assert!(urls.is_empty()); // "reaction" or "Media" not in URL
+    }
+
+    #[test]
+    fn test_strip_invalid_images_with_title() {
+        let validator = UrlValidator::default();
+
+        // Test stripping image with title attribute - use a non-whitelisted host
+        // to trigger validation failure
+        let content = r#"Some text
+![Reaction](https://invalid.example.com/reaction/test.png "My title")
+More text"#;
+
+        let (result, invalid_urls) = validator.strip_invalid_images(content);
+
+        // The invalid URL should be stripped along with its title
+        assert!(!result.contains("invalid.example.com"));
+        assert!(!result.contains("My title"));
+        assert!(result.contains("Some text"));
+        assert!(result.contains("More text"));
+        assert_eq!(invalid_urls.len(), 1);
     }
 }

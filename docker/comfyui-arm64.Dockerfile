@@ -1,22 +1,22 @@
-# ComfyUI with Web UI and MCP Server (x86_64 version)
-# For ARM64 systems, use comfyui-arm64.Dockerfile instead
-FROM nvidia/cuda:12.4.0-base-ubuntu22.04
+# ComfyUI with Web UI and MCP Server (ARM64/aarch64 version)
+# Uses NVIDIA NGC PyTorch image which includes CUDA support for ARM64
+# Standard pytorch.org wheels only provide CPU builds for ARM64
+# Using 25.11 for Blackwell (sm_120/121) support
+FROM nvcr.io/nvidia/pytorch:25.11-py3
 
-# Install system dependencies
+# Install additional system dependencies
+# Note: libgl1-mesa-glx renamed to libgl1 in Ubuntu 24.04+
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    git \
-    curl \
-    wget \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender-dev \
     libgomp1 \
-    libgoogle-perftools4 \
     && rm -rf /var/lib/apt/lists/*
+
+# Verify PyTorch has CUDA support compiled in (runtime availability checked at startup)
+RUN python3 -c "import torch; print(f'PyTorch {torch.__version__} with CUDA {torch.version.cuda}'); assert torch.version.cuda is not None, 'PyTorch not compiled with CUDA'"
 
 # Set working directory
 WORKDIR /workspace
@@ -25,16 +25,11 @@ WORKDIR /workspace
 # To pin to a specific version, add: git checkout <commit-hash>
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /comfyui
 
-# Install ComfyUI requirements
+# Install ComfyUI requirements (excluding torch/torchvision/torchaudio to preserve NGC's CUDA-enabled PyTorch)
 WORKDIR /comfyui
-# Install PyTorch with CUDA 12.4 support (x86_64 only)
-RUN pip3 install --no-cache-dir \
-    torch==2.5.1 \
-    torchvision==0.20.1 \
-    torchaudio==2.5.1 \
-    --index-url https://download.pytorch.org/whl/cu124 && \
-    python3 -c "import torch; print(f'PyTorch {torch.__version__} with CUDA {torch.version.cuda}')"
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN grep -vE "^torch$|^torchvision$|^torchaudio$" requirements.txt > requirements-filtered.txt && \
+    pip3 install --no-cache-dir -r requirements-filtered.txt && \
+    rm requirements-filtered.txt
 
 # Install custom nodes (using latest versions)
 WORKDIR /comfyui/custom_nodes
@@ -92,14 +87,14 @@ ENV PYTHONUNBUFFERED=1
 ENV COMFYUI_PATH=/comfyui
 ENV COMFYUI_DISABLE_XFORMERS=0
 
-# Create non-root user
-RUN groupadd --gid 1000 appuser && \
-    useradd --uid 1000 --gid 1000 -m appuser && \
-    chown -R appuser:appuser /comfyui /workspace
+# Create non-root user (handle case where GID/UID already exists in NGC image)
+RUN (groupadd --gid 1000 appuser 2>/dev/null || true) && \
+    (useradd --uid 1000 --gid 1000 -m appuser 2>/dev/null || true) && \
+    chown -R 1000:1000 /comfyui /workspace
 
 # Copy entrypoint script
 COPY docker/entrypoints/comfyui-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh && chown appuser:appuser /entrypoint.sh
+RUN chmod +x /entrypoint.sh && chown 1000:1000 /entrypoint.sh
 
 # Expose ports
 EXPOSE 8188 8013
@@ -110,8 +105,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 RUN rm -rf /comfyui/models
 
-# Switch to non-root user
-USER appuser
+# Switch to non-root user (use UID for compatibility with NGC base image)
+USER 1000
 
 # Run entrypoint
 CMD ["/entrypoint.sh"]

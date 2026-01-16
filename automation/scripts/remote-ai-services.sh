@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Quick launcher for AI services on remote GPU machine
-# Run this on the machine at 192.168.0.152
+# Run this on the machine at 192.168.0.222
 
 set -e
 
