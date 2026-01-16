@@ -25,6 +25,14 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Set unique project name for isolation
+      shell: bash
+      run: |
+        # Use run_id and run_attempt for unique project naming to prevent cross-job interference
+        PROJECT_NAME="ci-${{ github.run_id }}-${{ github.run_attempt }}"
+        echo "COMPOSE_PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
+        echo "Using Docker Compose project name: ${PROJECT_NAME}"
+
     - name: Pre-create output directories
       shell: bash
       run: |
