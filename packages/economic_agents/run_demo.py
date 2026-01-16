@@ -20,7 +20,7 @@ from typing import Optional
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.api.config import BackendConfig, BackendMode
 from economic_agents.api.factory import create_backends
-from economic_agents.dashboard.dependencies import create_dashboard_state
+from economic_agents.dashboard.dependencies import create_dashboard_state, get_state_container
 from economic_agents.demo_config import DemoConfig, DemoMode
 
 
@@ -84,6 +84,11 @@ async def run_demo_async(
     # This avoids global mutable state and makes testing easier.
     demo_dashboard_state = create_dashboard_state()
 
+    # Override the global state container so the FastAPI dashboard can see our state.
+    # This allows the web dashboard at localhost:8501 to show live updates.
+    state_container = get_state_container()
+    state_container.override(demo_dashboard_state)
+
     # Use the factory method to ensure proper async initialization
     agent = await AutonomousAgent.create(
         wallet=wallet,
@@ -145,6 +150,9 @@ async def run_demo_async(
 
     print("\nTip: Refresh the dashboard at http://localhost:8501 to see final state")
     print("=" * 60)
+
+    # Clean up: reset the state override so future runs start fresh
+    state_container.reset_override()
 
 
 def run_demo(
