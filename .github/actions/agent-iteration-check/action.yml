@@ -111,9 +111,12 @@ runs:
         ---
         *This is a safety mechanism to prevent runaway automation.*"
 
-          # Post comment using gh CLI
-          echo "$COMMENT_BODY" | gh pr comment "$PR_NUMBER" --body-file - || \
+          # Post comment using gh CLI (use temp file, not stdin - gh-validator blocks stdin)
+          COMMENT_FILE=$(mktemp)
+          echo "$COMMENT_BODY" > "$COMMENT_FILE"
+          gh pr comment "$PR_NUMBER" --body-file "$COMMENT_FILE" || \
             echo "Warning: Failed to post iteration limit comment"
+          rm -f "$COMMENT_FILE"
         fi
 
         echo "iteration_count=$ITERATION_COUNT" >> $GITHUB_OUTPUT
