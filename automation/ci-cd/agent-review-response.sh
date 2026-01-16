@@ -211,14 +211,16 @@ except Exception as e:
 
     echo "Trust hierarchy loaded: admins=[$agent_admins], trusted=[$trusted_sources]" >&2
 
-    # Fetch all PR comments
-    local comments_json
-    comments_json=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${pr_number}/comments" --paginate 2>/dev/null || echo "[]")
+    # Fetch all PR comments and write to temp file
+    # (avoids env var size limits which can truncate large comment threads)
+    local comments_file
+    comments_file=$(mktemp)
+    gh api "repos/${GITHUB_REPOSITORY}/issues/${pr_number}/comments" --paginate 2>/dev/null > "$comments_file" || echo "[]" > "$comments_file"
 
     # Categorize comments using Python for reliable JSON parsing
-    # SECURITY: Pass data via environment variables to prevent command injection
+    # SECURITY: Pass file path + small config via env vars to prevent command injection
     # (triple quotes in comments could break heredoc interpolation)
-    COMMENTS_JSON="$comments_json" \
+    COMMENTS_FILE="$comments_file" \
     AGENT_ADMINS="$agent_admins" \
     TRUSTED_SOURCES="$trusted_sources" \
     python3 << 'PYTHON_EOF'
@@ -226,8 +228,13 @@ import json
 import os
 import sys
 
-# Read from environment variables (safe from heredoc injection)
-comments_json = os.environ.get('COMMENTS_JSON', '[]')
+# Read comments from file (avoids env var size limits)
+comments_file = os.environ.get('COMMENTS_FILE', '')
+try:
+    with open(comments_file, 'r') as f:
+        comments_json = f.read()
+except Exception:
+    comments_json = '[]'
 agent_admins_str = os.environ.get('AGENT_ADMINS', '')
 trusted_sources_str = os.environ.get('TRUSTED_SOURCES', '')
 
@@ -299,6 +306,9 @@ if output_parts:
 else:
     print("")
 PYTHON_EOF
+
+    # Clean up temp file
+    rm -f "$comments_file"
 }
 
 # Fetch PR comments with trust categorization
