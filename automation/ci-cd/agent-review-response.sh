@@ -139,14 +139,23 @@ except: pass
     comments_json=$(gh api "repos/${GITHUB_REPOSITORY}/issues/${pr_number}/comments" --paginate 2>/dev/null || echo "[]")
 
     # Categorize comments using Python for reliable JSON parsing
-    python3 << PYTHON_EOF
+    # SECURITY: Pass data via environment variables to prevent command injection
+    # (triple quotes in comments could break heredoc interpolation)
+    COMMENTS_JSON="$comments_json" \
+    AGENT_ADMINS="$agent_admins" \
+    TRUSTED_SOURCES="$trusted_sources" \
+    python3 << 'PYTHON_EOF'
 import json
-import re
+import os
 import sys
 
-comments_json = '''$comments_json'''
-agent_admins = set('$agent_admins'.lower().split('|')) if '$agent_admins' else set()
-trusted_sources = set('$trusted_sources'.lower().split('|')) if '$trusted_sources' else set()
+# Read from environment variables (safe from heredoc injection)
+comments_json = os.environ.get('COMMENTS_JSON', '[]')
+agent_admins_str = os.environ.get('AGENT_ADMINS', '')
+trusted_sources_str = os.environ.get('TRUSTED_SOURCES', '')
+
+agent_admins = set(agent_admins_str.lower().split('|')) if agent_admins_str else set()
+trusted_sources = set(trusted_sources_str.lower().split('|')) if trusted_sources_str else set()
 
 try:
     comments = json.loads(comments_json)
@@ -208,8 +217,8 @@ if other_comments:
     output_parts.append("")
 
 if output_parts:
-    print("## PR Discussion Context\\n")
-    print("\\n".join(output_parts))
+    print("## PR Discussion Context\n")
+    print("\n".join(output_parts))
 else:
     print("")
 PYTHON_EOF
