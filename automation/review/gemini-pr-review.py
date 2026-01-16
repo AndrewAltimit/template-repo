@@ -1399,8 +1399,14 @@ def _filter_debunked_issues(issue_lines: List[str], pr_number: str) -> List[str]
         if len(issue_lines) > 20:
             offset = len(issue_lines) - 20
             resolved_indices = {idx + offset for idx in resolved_indices}
-            # Also adjust reasoning keys
-            reasoning = {str(int(k) + offset): v for k, v in reasoning.items()}
+            # Also adjust reasoning keys (guard against non-numeric keys from LLM)
+            adjusted_reasoning = {}
+            for k, v in reasoning.items():
+                try:
+                    adjusted_reasoning[str(int(k) + offset)] = v
+                except (ValueError, TypeError):
+                    print(f"  Warning: Ignoring non-numeric reasoning key: {k}")
+            reasoning = adjusted_reasoning
 
         if not resolved_indices:
             print("  No issues identified as resolved by maintainer feedback")
