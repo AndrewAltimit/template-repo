@@ -28,11 +28,11 @@ runs:
     - name: Set unique project name for isolation
       shell: bash
       run: |
-        # Use run_id and run_attempt for unique project naming to:
-        # 1. Prevent cross-job interference on shared runners
+        # Use run_id, run_attempt, and job name for unique project naming to:
+        # 1. Prevent cross-job interference on shared runners (including parallel jobs)
         # 2. Prevent ContainerConfig errors (docker-compose v1 incompatibility with newer Docker)
         #    by ensuring no existing containers to recreate
-        PROJECT_NAME="ci-${{ github.run_id }}-${{ github.run_attempt }}"
+        PROJECT_NAME="ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
         echo "COMPOSE_PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
         echo "Using Docker Compose project name: ${PROJECT_NAME}"
 
@@ -80,12 +80,18 @@ runs:
         INPUT_SERVICES: ${{ inputs.services }}
         INPUT_BUILD: ${{ inputs.build }}
       run: |
+        # Validate services input - reject if it contains option-like tokens
+        if [[ "$INPUT_SERVICES" =~ (^|[[:space:]])-[a-zA-Z] ]]; then
+          echo "ERROR: Service names cannot start with '-' (potential option injection)"
+          exit 1
+        fi
         if [ "$INPUT_BUILD" = "true" ]; then
           echo "Building images and starting services..."
           if [ -n "$INPUT_SERVICES" ]; then
             echo "Starting specific services: $INPUT_SERVICES"
             # shellcheck disable=SC2086 - Word splitting is intentional for service names
-            docker-compose up --build -d $INPUT_SERVICES
+            # Use -- to separate options from service names for safety
+            docker-compose up --build -d -- $INPUT_SERVICES
           else
             echo "Starting all services in active profiles"
             docker-compose up --build -d
@@ -95,7 +101,8 @@ runs:
           if [ -n "$INPUT_SERVICES" ]; then
             echo "Starting specific services: $INPUT_SERVICES"
             # shellcheck disable=SC2086 - Word splitting is intentional for service names
-            docker-compose up -d $INPUT_SERVICES
+            # Use -- to separate options from service names for safety
+            docker-compose up -d -- $INPUT_SERVICES
           else
             echo "Starting all services in active profiles"
             docker-compose up -d

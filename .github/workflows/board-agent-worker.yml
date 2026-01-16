@@ -62,6 +62,11 @@ on:
         required: false
         type: number
         default: 180
+      job-timeout-minutes:
+        description: 'Job timeout in minutes (should be agent-timeout + buffer)'
+        required: false
+        type: number
+        default: 200
 
       # Board configuration
       board-config-path:
@@ -195,9 +200,9 @@ jobs:
   agent-work:
     name: '${{ inputs.agent-name || github.event.inputs.agent-name || ''claude'' }} Agent Work'
     runs-on: ${{ inputs.runs-on || 'self-hosted' }}
-    # Job timeout: 200 min (default agent-timeout 180 + 20 buffer)
-    # Note: GHA expression parser rejects arithmetic operators in timeout-minutes
-    timeout-minutes: 200
+    # Job timeout from input (default 200 = agent-timeout 180 + 20 buffer)
+    # Callers can override via job-timeout-minutes input
+    timeout-minutes: ${{ inputs.job-timeout-minutes || 200 }}
 
 
     outputs:
