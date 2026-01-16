@@ -195,8 +195,9 @@ jobs:
   agent-work:
     name: '${{ inputs.agent-name || github.event.inputs.agent-name || ''claude'' }} Agent Work'
     runs-on: ${{ inputs.runs-on || 'self-hosted' }}
-    # Dynamic timeout: agent-timeout (default 180) + 10 minute buffer
-    timeout-minutes: ${{ fromJSON(inputs.agent-timeout || 180) + 10 }}
+    # Job timeout: 200 minutes (default agent-timeout 180 + 20 min buffer for cleanup)
+    # Note: GitHub Actions expressions don't support arithmetic operators
+    timeout-minutes: 200
 
 
     outputs:

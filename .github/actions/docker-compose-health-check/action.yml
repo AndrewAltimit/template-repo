@@ -59,6 +59,14 @@ runs:
           exit 1
         fi
 
+    - name: Clean up stale containers
+      shell: bash
+      run: |
+        # Remove any stale containers to prevent ContainerConfig errors
+        # This is required due to docker-compose v1 incompatibility with newer Docker Engine
+        echo "🧹 Cleaning up stale containers..."
+        docker-compose down --remove-orphans 2>/dev/null || true
+
     - name: Start services
       shell: bash
       run: |
