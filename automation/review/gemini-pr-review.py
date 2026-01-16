@@ -1372,7 +1372,24 @@ def _filter_debunked_issues(issue_lines: List[str], pr_number: str) -> List[str]
         # Use semantic LLM classification
         classification = _classify_maintainer_feedback(trusted_comments, issue_lines)
 
-        resolved_indices = set(classification.get("resolved_issues", []))
+        # Validate LLM output: ensure resolved_issues is list of in-range integers
+        raw_indices = classification.get("resolved_issues", [])
+        if not isinstance(raw_indices, list):
+            print(f"  Warning: LLM returned non-list for resolved_issues: {type(raw_indices)}")
+            raw_indices = []
+
+        # Determine valid range (before offset adjustment)
+        max_valid_idx = min(len(issue_lines), 20) - 1  # We cap at 20 issues for LLM
+
+        # Filter to valid integers within range
+        valid_indices = []
+        for idx in raw_indices:
+            if isinstance(idx, int) and 0 <= idx <= max_valid_idx:
+                valid_indices.append(idx)
+            else:
+                print(f"  Warning: Ignoring invalid index from LLM: {idx}")
+
+        resolved_indices = set(valid_indices)
         reasoning = classification.get("reasoning", {})
 
         # IMPORTANT: Adjust indices if we bounded the issue list in classification

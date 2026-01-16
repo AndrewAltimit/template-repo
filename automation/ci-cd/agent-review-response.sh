@@ -179,9 +179,10 @@ try:
     elif admins is None:
         admins = []
     print('|'.join(a.lower() for a in admins))
-except Exception:
-    # Exit non-zero to trigger bash fallback
-    sys.exit(1)
+except Exception as e:
+    import sys as _sys
+    print(f'Warning: PyYAML parse failed ({e}), using default', file=_sys.stderr)
+    _sys.exit(1)
 " 2>/dev/null || echo "andrewaltimit")
 
         # Extract trusted_sources (high trust)
@@ -199,8 +200,8 @@ try:
     elif sources is None:
         sources = []
     print('|'.join(s.lower() for s in sources))
-except Exception:
-    # Exit non-zero to trigger bash fallback
+except Exception as e:
+    print(f'Warning: PyYAML parse failed ({e}), using default', file=sys.stderr)
     sys.exit(1)
 " 2>/dev/null || echo "andrewaltimit|github-actions[bot]")
     else
