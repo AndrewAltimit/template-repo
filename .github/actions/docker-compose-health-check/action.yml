@@ -21,18 +21,28 @@ inputs:
     description: 'Whether to build images'
     required: false
     default: 'true'
+  unique-id:
+    description: 'Unique identifier for project isolation (use strategy.job-index for matrix jobs)'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
   steps:
     - name: Set unique project name for isolation
       shell: bash
+      env:
+        INPUT_UNIQUE_ID: ${{ inputs.unique-id }}
       run: |
-        # Use run_id, run_attempt, and job name for unique project naming to:
-        # 1. Prevent cross-job interference on shared runners (including parallel jobs)
+        # Use run_id, run_attempt, job name, and optional unique-id for project naming to:
+        # 1. Prevent cross-job interference on shared runners (including parallel/matrix jobs)
         # 2. Prevent ContainerConfig errors (docker-compose v1 incompatibility with newer Docker)
         #    by ensuring no existing containers to recreate
+        # For matrix jobs, callers should pass unique-id: ${{ strategy.job-index }}
         PROJECT_NAME="ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
+        if [ -n "$INPUT_UNIQUE_ID" ]; then
+          PROJECT_NAME="${PROJECT_NAME}-${INPUT_UNIQUE_ID}"
+        fi
         echo "COMPOSE_PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
         echo "Using Docker Compose project name: ${PROJECT_NAME}"
 
