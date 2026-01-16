@@ -1011,11 +1011,13 @@ runs:
         git push -u origin "$BRANCH_NAME"
 
         # Generate change summary for PR body
-        DIFF_STAT=$(git diff --stat origin/main...HEAD | tail -20)
-        FILES_CHANGED=$(git diff --name-only origin/main...HEAD | head -20)
+        # Note: Use '|| true' to prevent SIGPIPE errors when head/tail exit early,
+        # which causes grep to receive a broken pipe signal and fail the step
+        DIFF_STAT=$(git diff --stat origin/main...HEAD | tail -20 || true)
+        FILES_CHANGED=$(git diff --name-only origin/main...HEAD | head -20 || true)
 
         # Get a brief diff preview (first 50 lines of actual changes)
-        DIFF_PREVIEW=$(git diff origin/main...HEAD --no-color | grep -E '^\+[^+]|^-[^-]' | head -30 | sed 's/^/    /')
+        DIFF_PREVIEW=$(git diff origin/main...HEAD --no-color | { grep -E '^\+[^+]|^-[^-]' || true; } | head -30 | sed 's/^/    /')
 
         # Create PR body file with actual change details
         PR_BODY_FILE=$(mktemp)
