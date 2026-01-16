@@ -58,7 +58,7 @@ runs:
         docker-compose config
 
         # Check if any services will be started
-        service_count=$(docker-compose config --services | wc -l)
+        service_count=$(docker-compose config --services | wc -l | tr -d ' ')
         if [ "$service_count" -eq 0 ] && [ -z "${{ inputs.services }}" ]; then
           echo "ERROR: No services selected!"
           echo "Either specify services explicitly or set profiles to activate services."
@@ -78,20 +78,24 @@ runs:
     - name: Start services
       shell: bash
       run: |
+        # Store services in a variable for safe usage
+        services="${{ inputs.services }}"
         if [ "${{ inputs.build }}" = "true" ]; then
           echo "Building images and starting services..."
-          if [ -n "${{ inputs.services }}" ]; then
-            echo "Starting specific services: ${{ inputs.services }}"
-            docker-compose up --build -d ${{ inputs.services }}
+          if [ -n "$services" ]; then
+            echo "Starting specific services: $services"
+            # shellcheck disable=SC2086 - Word splitting is intentional for service names
+            docker-compose up --build -d $services
           else
             echo "Starting all services in active profiles"
             docker-compose up --build -d
           fi
         else
           echo "Starting services..."
-          if [ -n "${{ inputs.services }}" ]; then
-            echo "Starting specific services: ${{ inputs.services }}"
-            docker-compose up -d ${{ inputs.services }}
+          if [ -n "$services" ]; then
+            echo "Starting specific services: $services"
+            # shellcheck disable=SC2086 - Word splitting is intentional for service names
+            docker-compose up -d $services
           else
             echo "Starting all services in active profiles"
             docker-compose up -d
@@ -103,9 +107,10 @@ runs:
       run: |
         echo "Waiting for services to be healthy..."
         timeout=${{ inputs.timeout }}
+        health_endpoint="${{ inputs.health-endpoint }}"
         elapsed=0
         while [ $elapsed -lt $timeout ]; do
-          if curl -sf --max-time 5 ${{ inputs.health-endpoint }} > /dev/null 2>&1; then
+          if curl -sf --max-time 5 "$health_endpoint" > /dev/null 2>&1; then
             echo "Services are healthy!"
             break
           fi
