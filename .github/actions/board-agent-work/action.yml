@@ -1092,6 +1092,7 @@ runs:
         AGENT_NAME: ${{ inputs.agent-name }}
         WORK_COMPLETED: ${{ steps.execute.outputs.work_completed }}
         PR_CREATED: ${{ steps.create-pr.outputs.pr_created }}
+        CREATE_PR_ENABLED: ${{ inputs.create-pr }}
         BOARD_CONFIG_PATH: ${{ inputs.board-config-path }}
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
@@ -1100,13 +1101,25 @@ runs:
 
         # Determine release reason
         # - pr_created: Work done, PR created - stay In Progress until PR is merged
-        # - completed: Work done, no PR - mark as Done
+        # - completed: Work done, no PR was expected - mark as Done
         # - abandoned: Job cancelled
-        # - error: Something went wrong - return to Todo
+        # - error: Something went wrong - return to Todo for retry
         if [ "$WORK_COMPLETED" = "true" ]; then
           if [ "$PR_CREATED" = "true" ]; then
             REASON="pr_created"
+          elif [ "$CREATE_PR_ENABLED" = "true" ]; then
+            # PR was expected but not created (step failed or no changes)
+            # Check if there were changes - if PR_CREATED=false, no changes; if empty, step failed
+            if [ "$PR_CREATED" = "false" ]; then
+              # No changes to commit - work is truly complete
+              REASON="completed"
+            else
+              # PR creation step failed - treat as error for retry
+              REASON="error"
+              echo "::warning::PR creation was expected but step did not complete successfully"
+            fi
           else
+            # PR was not expected (create-pr=false) - mark as done
             REASON="completed"
           fi
         elif [ "${{ job.status }}" = "cancelled" ]; then
