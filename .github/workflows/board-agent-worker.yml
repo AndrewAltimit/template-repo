@@ -62,6 +62,11 @@ on:
         required: false
         type: number
         default: 180
+      job-timeout-minutes:
+        description: 'Job timeout in minutes (0 = auto-calculate from agent-timeout + 20)'
+        required: false
+        type: number
+        default: 0
 
       # Board configuration
       board-config-path:
@@ -195,8 +200,8 @@ jobs:
   agent-work:
     name: '${{ inputs.agent-name || github.event.inputs.agent-name || ''claude'' }} Agent Work'
     runs-on: ${{ inputs.runs-on || 'self-hosted' }}
-    # Dynamic timeout: agent-timeout (default 180) + 10 minute buffer
-    timeout-minutes: ${{ fromJSON(inputs.agent-timeout || 180) + 10 }}
+    # Job timeout: use explicit input if > 0, otherwise auto-calculate from agent-timeout + 20
+    timeout-minutes: ${{ inputs.job-timeout-minutes > 0 && inputs.job-timeout-minutes || fromJSON(inputs.agent-timeout || 180) + 20 }}
 
 
     outputs:
@@ -246,7 +251,7 @@ jobs:
           include-labels: ${{ inputs.include-labels || '' }}
           exclude-labels: ${{ inputs.exclude-labels || '' }}
           dry-run: ${{ inputs.dry-run || github.event.inputs.dry-run || false }}
-          create-pr: ${{ inputs.create-pr || true }}
+          create-pr: ${{ inputs.create-pr != false }}
           json-logging: ${{ inputs.json-logging || false }}
           stale-claim-threshold: ${{ inputs.stale-claim-threshold || 2 }}
           use-docker: ${{ inputs.use-docker || github.event.inputs.use-docker || false }}

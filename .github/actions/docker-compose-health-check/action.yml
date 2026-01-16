@@ -21,38 +21,72 @@ inputs:
     description: 'Whether to build images'
     required: false
     default: 'true'
+  unique-id:
+    description: 'Unique identifier for project isolation (use strategy.job-index for matrix jobs)'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
   steps:
+    - name: Set unique project name for isolation
+      shell: bash
+      env:
+        INPUT_UNIQUE_ID: ${{ inputs.unique-id }}
+      run: |
+        # Use run_id, run_attempt, job name, and optional unique-id for project naming to:
+        # 1. Prevent cross-job interference on shared runners (including parallel/matrix jobs)
+        # 2. Prevent ContainerConfig errors (docker-compose v1 incompatibility with newer Docker)
+        #    by ensuring no existing containers to recreate
+        # For matrix jobs, callers should pass unique-id: ${{ strategy.job-index }}
+        PROJECT_NAME="ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
+        if [ -n "$INPUT_UNIQUE_ID" ]; then
+          PROJECT_NAME="${PROJECT_NAME}-${INPUT_UNIQUE_ID}"
+        fi
+        # Strict sanitization: lowercase and keep only valid Docker Compose project name chars
+        # This prevents env injection via newlines and invalid chars causing compose failures
+        PROJECT_NAME=$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-')
+        echo "COMPOSE_PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
+        echo "Using Docker Compose project name: ${PROJECT_NAME}"
+
     - name: Pre-create output directories
       shell: bash
       run: |
-        echo "📁 Creating output directories with proper permissions..."
+        echo "Creating output directories with proper permissions..."
         # Create directories that will be bind-mounted to avoid permission issues
         mkdir -p outputs/mcp-content outputs/mcp-gaea2
         # Ensure they're writable by the current user
         chmod -R 755 outputs/
-        echo "✅ Output directories created"
+        echo "Output directories created"
 
     - name: Set Docker Compose profiles
       shell: bash
+      env:
+        INPUT_PROFILES: ${{ inputs.profiles }}
       run: |
-        if [ -n "${{ inputs.profiles }}" ]; then
-          echo "🐳 Setting Docker Compose profiles: ${{ inputs.profiles }}"
-          echo "COMPOSE_PROFILES=${{ inputs.profiles }}" >> $GITHUB_ENV
+        if [ -n "$INPUT_PROFILES" ]; then
+          # Sanitize profiles to prevent env injection via newlines
+          SAFE_PROFILES=$(echo "$INPUT_PROFILES" | tr -cd 'a-zA-Z0-9,_-')
+          if [ -z "$SAFE_PROFILES" ]; then
+            echo "ERROR: profiles input contains no valid characters after sanitization"
+            exit 1
+          fi
+          echo "Setting Docker Compose profiles: $SAFE_PROFILES"
+          echo "COMPOSE_PROFILES=$SAFE_PROFILES" >> $GITHUB_ENV
         fi
 
     - name: Validate docker-compose configuration
       shell: bash
+      env:
+        INPUT_SERVICES: ${{ inputs.services }}
       run: |
-        echo "🐳 Validating docker-compose configuration..."
+        echo "Validating docker-compose configuration..."
         docker-compose config
 
         # Check if any services will be started
-        service_count=$(docker-compose config --services | wc -l)
-        if [ "$service_count" -eq 0 ] && [ -z "${{ inputs.services }}" ]; then
-          echo "❌ ERROR: No services selected!"
+        service_count=$(docker-compose config --services | wc -l | tr -d ' ')
+        if [ "$service_count" -eq 0 ] && [ -z "$INPUT_SERVICES" ]; then
+          echo "ERROR: No services selected!"
           echo "Either specify services explicitly or set profiles to activate services."
           echo "Available profiles in docker-compose.yml:"
           grep -E "^\s*profiles:" docker-compose.yml | sort -u || echo "No profiles found"
@@ -61,21 +95,33 @@ runs:
 
     - name: Start services
       shell: bash
+      env:
+        INPUT_SERVICES: ${{ inputs.services }}
+        INPUT_BUILD: ${{ inputs.build }}
       run: |
-        if [ "${{ inputs.build }}" = "true" ]; then
-          echo "🐳 Building images and starting services..."
-          if [ -n "${{ inputs.services }}" ]; then
-            echo "Starting specific services: ${{ inputs.services }}"
-            docker-compose up --build -d ${{ inputs.services }}
+        # Validate services input - reject if it contains option-like tokens
+        if [[ "$INPUT_SERVICES" =~ (^|[[:space:]])-[a-zA-Z] ]]; then
+          echo "ERROR: Service names cannot start with '-' (potential option injection)"
+          exit 1
+        fi
+        if [ "$INPUT_BUILD" = "true" ]; then
+          echo "Building images and starting services..."
+          if [ -n "$INPUT_SERVICES" ]; then
+            echo "Starting specific services: $INPUT_SERVICES"
+            # shellcheck disable=SC2086 - Word splitting is intentional for service names
+            # Use -- to separate options from service names for safety
+            docker-compose up --build -d -- $INPUT_SERVICES
           else
             echo "Starting all services in active profiles"
             docker-compose up --build -d
           fi
         else
-          echo "🐳 Starting services..."
-          if [ -n "${{ inputs.services }}" ]; then
-            echo "Starting specific services: ${{ inputs.services }}"
-            docker-compose up -d ${{ inputs.services }}
+          echo "Starting services..."
+          if [ -n "$INPUT_SERVICES" ]; then
+            echo "Starting specific services: $INPUT_SERVICES"
+            # shellcheck disable=SC2086 - Word splitting is intentional for service names
+            # Use -- to separate options from service names for safety
+            docker-compose up -d -- $INPUT_SERVICES
           else
             echo "Starting all services in active profiles"
             docker-compose up -d
@@ -84,13 +130,26 @@ runs:
 
     - name: Wait for services to be healthy
       shell: bash
+      env:
+        INPUT_TIMEOUT: ${{ inputs.timeout }}
+        INPUT_HEALTH_ENDPOINT: ${{ inputs.health-endpoint }}
       run: |
-        echo "⏳ Waiting for services to be healthy..."
-        timeout=${{ inputs.timeout }}
+        echo "Waiting for services to be healthy..."
+        # Validate health endpoint is provided
+        if [ -z "$INPUT_HEALTH_ENDPOINT" ]; then
+          echo "ERROR: health-endpoint input is required"
+          exit 1
+        fi
+        # Validate timeout is numeric, default to 60 if not
+        if ! [[ "$INPUT_TIMEOUT" =~ ^[0-9]+$ ]]; then
+          echo "Warning: Invalid timeout '$INPUT_TIMEOUT', using default 60"
+          INPUT_TIMEOUT=60
+        fi
         elapsed=0
-        while [ $elapsed -lt $timeout ]; do
-          if curl -s ${{ inputs.health-endpoint }} > /dev/null 2>&1; then
-            echo "✅ Services are healthy!"
+        while [ $elapsed -lt "$INPUT_TIMEOUT" ]; do
+          # Use -- to prevent flag injection if URL starts with -
+          if curl -sf --max-time 5 -- "$INPUT_HEALTH_ENDPOINT" > /dev/null 2>&1; then
+            echo "Services are healthy!"
             break
           fi
           echo -n "."
@@ -98,8 +157,8 @@ runs:
           elapsed=$((elapsed + 2))
         done
 
-        if [ $elapsed -ge $timeout ]; then
-          echo "❌ Timeout waiting for services to be healthy"
+        if [ $elapsed -ge "$INPUT_TIMEOUT" ]; then
+          echo "Timeout waiting for services to be healthy"
           docker-compose ps
           docker-compose logs
           docker-compose down
@@ -112,7 +171,7 @@ runs:
       if: failure()
       shell: bash
       run: |
-        echo "🧹 Cleaning up services..."
+        echo "Cleaning up services..."
         docker-compose down
 
     - name: Clean up output directories
@@ -123,5 +182,5 @@ runs:
         if [ -f automation/ci-cd/cleanup-outputs.sh ]; then
           ./automation/ci-cd/cleanup-outputs.sh
         else
-          echo "⚠️  Cleanup script not found, skipping cleanup"
+          echo "Warning: Cleanup script not found, skipping cleanup"
         fi
