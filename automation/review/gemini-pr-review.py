@@ -1375,6 +1375,16 @@ def _filter_debunked_issues(issue_lines: List[str], pr_number: str) -> List[str]
         resolved_indices = set(classification.get("resolved_issues", []))
         reasoning = classification.get("reasoning", {})
 
+        # IMPORTANT: Adjust indices if we bounded the issue list in classification
+        # When len(issue_lines) > 20, we sent only the last 20 issues to the LLM
+        # The LLM returns 0-based indices relative to that slice, so we need to
+        # offset them to match the full list
+        if len(issue_lines) > 20:
+            offset = len(issue_lines) - 20
+            resolved_indices = {idx + offset for idx in resolved_indices}
+            # Also adjust reasoning keys
+            reasoning = {str(int(k) + offset): v for k, v in reasoning.items()}
+
         if not resolved_indices:
             print("  No issues identified as resolved by maintainer feedback")
             return issue_lines
