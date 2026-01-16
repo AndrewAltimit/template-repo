@@ -1,4 +1,4 @@
-"""Tests for AutonomousAgent LLM decision engine integration."""
+"""Tests for AutonomousAgent LLM decision engine integration and initialization."""
 
 from unittest.mock import MagicMock, patch
 
@@ -6,6 +6,7 @@ import pytest
 
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.agent.core.decision_engine import DecisionEngine, ResourceAllocation
+from economic_agents.exceptions import AgentNotInitializedError
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 
 
@@ -296,3 +297,128 @@ class TestDocumentationExamples:
 
         assert isinstance(agent.decision_engine, DecisionEngine)
         assert agent.state.survival_buffer_hours == 24.0
+
+
+class TestAutonomousAgentInitialization:
+    """Tests for AutonomousAgent initialization patterns.
+
+    These tests ensure the factory method pattern works correctly and that
+    proper errors are raised when using uninitialized agents.
+    """
+
+    @pytest.mark.asyncio
+    async def test_factory_method_returns_initialized_agent(self):
+        """Test that create() factory method returns a fully initialized agent."""
+        wallet = MockWallet(initial_balance=100.0)
+        compute = MockCompute(initial_hours=50.0)
+        marketplace = MockMarketplace()
+
+        agent = await AutonomousAgent.create(wallet, compute, marketplace)
+
+        # Agent should be fully initialized
+        assert agent.state is not None
+        assert agent.state.balance == 100.0
+        # Use approximate comparison for compute hours (MockCompute uses time-based calculations)
+        assert abs(agent.state.compute_hours_remaining - 50.0) < 0.01
+
+    @pytest.mark.asyncio
+    async def test_factory_method_with_config(self):
+        """Test that create() factory method accepts configuration."""
+        wallet = MockWallet(initial_balance=200.0)
+        compute = MockCompute(initial_hours=100.0)
+        marketplace = MockMarketplace()
+
+        config = {
+            "survival_buffer_hours": 48.0,
+            "company_threshold": 500.0,
+            "mode": "company",
+        }
+
+        agent = await AutonomousAgent.create(wallet, compute, marketplace, config)
+
+        assert agent.state is not None
+        assert agent.state.survival_buffer_hours == 48.0
+        assert agent.state.mode == "company"
+
+    def test_uninitialized_agent_has_none_state(self):
+        """Test that agent created with constructor has None state."""
+        wallet = MockWallet(initial_balance=100.0)
+        compute = MockCompute(initial_hours=100.0)
+        marketplace = MockMarketplace()
+
+        agent = AutonomousAgent(wallet, compute, marketplace)
+
+        assert agent.state is None
+
+    @pytest.mark.asyncio
+    async def test_run_cycle_raises_error_without_initialization(self):
+        """Test that run_cycle raises AgentNotInitializedError without initialization."""
+        wallet = MockWallet(initial_balance=100.0)
+        compute = MockCompute(initial_hours=100.0)
+        marketplace = MockMarketplace()
+
+        agent = AutonomousAgent(wallet, compute, marketplace)
+
+        with pytest.raises(AgentNotInitializedError) as exc_info:
+            await agent.run_cycle()
+
+        assert "run_cycle" in str(exc_info.value)
+        assert "initialize()" in str(exc_info.value) or "create()" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_run_raises_error_without_initialization(self):
+        """Test that run raises AgentNotInitializedError without initialization."""
+        wallet = MockWallet(initial_balance=100.0)
+        compute = MockCompute(initial_hours=100.0)
+        marketplace = MockMarketplace()
+
+        agent = AutonomousAgent(wallet, compute, marketplace)
+
+        with pytest.raises(AgentNotInitializedError) as exc_info:
+            await agent.run(max_cycles=1)
+
+        assert "run" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_manual_initialization_works(self):
+        """Test that manual initialize() call works correctly."""
+        wallet = MockWallet(initial_balance=150.0)
+        compute = MockCompute(initial_hours=75.0)
+        marketplace = MockMarketplace()
+
+        agent = AutonomousAgent(wallet, compute, marketplace)
+
+        # State should be None before initialization
+        assert agent.state is None
+
+        # Initialize manually
+        await agent.initialize()
+
+        # State should now be populated
+        assert agent.state is not None
+        assert agent.state.balance == 150.0
+        # Use approximate comparison for compute hours (MockCompute uses time-based calculations)
+        assert abs(agent.state.compute_hours_remaining - 75.0) < 0.01
+
+    @pytest.mark.asyncio
+    @patch("economic_agents.monitoring.resource_tracker.ResourceTracker._save_time_allocation")
+    @patch("economic_agents.monitoring.resource_tracker.ResourceTracker._save_transaction")
+    @patch("economic_agents.monitoring.resource_tracker.ResourceTracker._save_compute_usage")
+    @patch("economic_agents.monitoring.metrics_collector.MetricsCollector._save_performance_snapshot")
+    async def test_initialized_agent_can_run_cycle(
+        self, _mock_save_perf, _mock_save_compute, _mock_save_transaction, _mock_save_time
+    ):
+        """Test that properly initialized agent can run cycles."""
+        wallet = MockWallet(initial_balance=100.0)
+        compute = MockCompute(initial_hours=100.0)
+        marketplace = MockMarketplace()
+
+        # Use factory method for proper initialization
+        agent = await AutonomousAgent.create(wallet, compute, marketplace)
+
+        # Should not raise any errors
+        result = await agent.run_cycle()
+
+        assert result is not None
+        assert "allocation" in result
+        assert agent.state.cycles_completed == 1

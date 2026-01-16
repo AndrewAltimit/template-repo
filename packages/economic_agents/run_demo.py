@@ -14,6 +14,7 @@ Environment variables can override defaults (see DemoConfig.from_env for details
 """
 
 import argparse
+import asyncio
 import time
 from typing import Optional
 
@@ -24,7 +25,7 @@ from economic_agents.dashboard.dependencies import dashboard_state
 from economic_agents.demo_config import DemoConfig, DemoMode
 
 
-def run_demo(
+async def run_demo_async(
     config: Optional[DemoConfig] = None,
     backend: str = "mock",
 ) -> None:
@@ -80,7 +81,8 @@ def run_demo(
             print("\nMake sure API services are running!")
         raise
 
-    agent = AutonomousAgent(
+    # Use the factory method to ensure proper async initialization
+    agent = await AutonomousAgent.create(
         wallet=wallet,
         compute=compute,
         marketplace=marketplace,
@@ -98,7 +100,7 @@ def run_demo(
 
     try:
         for cycle in range(config.max_cycles):
-            agent.run_cycle()
+            await agent.run_cycle()
 
             # Print progress
             status = "Company Work" if agent.state.has_company else "Task Work"
@@ -140,6 +142,19 @@ def run_demo(
 
     print("\nTip: Refresh the dashboard at http://localhost:8501 to see final state")
     print("=" * 60)
+
+
+def run_demo(
+    config: Optional[DemoConfig] = None,
+    backend: str = "mock",
+) -> None:
+    """Synchronous wrapper for run_demo_async.
+
+    Args:
+        config: Demo configuration (uses defaults if None)
+        backend: 'mock' (in-memory) or 'api' (microservices)
+    """
+    asyncio.run(run_demo_async(config, backend))
 
 
 def main() -> None:
