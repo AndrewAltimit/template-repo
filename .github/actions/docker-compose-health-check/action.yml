@@ -97,7 +97,7 @@ runs:
         timeout=${{ inputs.timeout }}
         elapsed=0
         while [ $elapsed -lt $timeout ]; do
-          if curl -s ${{ inputs.health-endpoint }} > /dev/null 2>&1; then
+          if curl -sf --max-time 5 ${{ inputs.health-endpoint }} > /dev/null 2>&1; then
             echo "Services are healthy!"
             break
           fi
