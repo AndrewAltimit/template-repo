@@ -1,0 +1,319 @@
+---
+name: Injection Toolkit CI
+
+# CI pipeline for the Rust injection toolkit
+# - ARM (self-hosted): Unit tests, Loom, Miri, cross-compilation
+# - Windows/x86: Full tests when runners available (manual trigger)
+
+'on':
+  push:
+    branches:
+      - main
+      - 'feature/injection-toolkit*'
+    paths:
+      - 'packages/injection_toolkit/**'
+      - '.github/workflows/injection-toolkit-ci.yml'
+  pull_request:
+    paths:
+      - 'packages/injection_toolkit/**'
+      - '.github/workflows/injection-toolkit-ci.yml'
+  workflow_dispatch:
+    inputs:
+      run_windows_tests:
+        description: 'Run Windows tests (requires Windows runner)'
+        required: false
+        type: boolean
+        default: false
+      run_x86_tests:
+        description: 'Run x86_64 Linux tests (requires x86 runner)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: itk-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: packages/injection_toolkit
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  # ============================================================================
+  # Stage 1: Quick checks (always runs on ARM)
+  # ============================================================================
+
+  check-and-lint:
+    name: Check & Lint
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        run: |
+          rustup show
+          rustup component add clippy rustfmt
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            packages/injection_toolkit/target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('packages/injection_toolkit/**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-cargo-
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Check compilation
+        run: cargo check --all-targets
+
+  # ============================================================================
+  # Stage 2: Unit tests (ARM)
+  # ============================================================================
+
+  unit-tests:
+    name: Unit Tests (ARM)
+    needs: check-and-lint
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            packages/injection_toolkit/target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('packages/injection_toolkit/**/Cargo.lock') }}
+
+      - name: Run unit tests
+        run: |
+          cargo test -p itk-protocol -p itk-shmem -p itk-ipc --lib -- --nocapture
+          echo "## Unit Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "All unit tests passed on ARM64" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Stage 3: Concurrency tests with Loom (ARM)
+  # ============================================================================
+
+  loom-tests:
+    name: Loom Concurrency Tests
+    needs: check-and-lint
+    runs-on: self-hosted
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            packages/injection_toolkit/target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-loom-${{ hashFiles('packages/injection_toolkit/**/Cargo.lock') }}
+
+      - name: Run Loom tests
+        env:
+          RUSTFLAGS: --cfg loom
+        run: |
+          cargo test -p itk-shmem loom_tests -- --nocapture
+          echo "## Loom Concurrency Tests" >> $GITHUB_STEP_SUMMARY
+          echo "Seqlock memory ordering verified across all interleavings" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Stage 4: Miri undefined behavior detection (ARM)
+  # ============================================================================
+
+  miri-tests:
+    name: Miri UB Detection
+    needs: check-and-lint
+    runs-on: self-hosted
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install Miri
+        run: |
+          rustup toolchain install nightly --component miri
+          rustup run nightly cargo miri setup
+
+      - name: Run Miri tests
+        run: |
+          cargo +nightly miri test -p itk-shmem -- seqlock
+          cargo +nightly miri test -p itk-protocol
+          echo "## Miri Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "No undefined behavior detected" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Stage 5: Cross-compilation checks (ARM host)
+  # ============================================================================
+
+  cross-compile:
+    name: Cross-Compile Check
+    needs: check-and-lint
+    runs-on: self-hosted
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-gnu
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            packages/injection_toolkit/target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ matrix.target }}-${{ hashFiles('packages/injection_toolkit/**/Cargo.lock') }}
+
+      - name: Cross-compile check
+        run: |
+          cargo check --target ${{ matrix.target }} -p itk-protocol -p itk-shmem -p itk-ipc
+          echo "## Cross-Compilation: ${{ matrix.target }}" >> $GITHUB_STEP_SUMMARY
+          echo "Core crates compile successfully for ${{ matrix.target }}" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Stage 6: Windows tests (optional, requires Windows runner)
+  # ============================================================================
+
+  windows-tests:
+    name: Windows Tests
+    if: github.event.inputs.run_windows_tests == 'true'
+    runs-on: windows-latest  # Or use self-hosted Windows runner label
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: packages/injection_toolkit
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            packages/injection_toolkit/target
+          key: windows-cargo-${{ hashFiles('packages/injection_toolkit/**/Cargo.lock') }}
+
+      - name: Run Windows tests
+        run: |
+          cargo test -p itk-protocol -p itk-shmem -p itk-ipc --lib
+          echo "## Windows Test Results" >> $env:GITHUB_STEP_SUMMARY
+          echo "All tests passed on Windows" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Test Named Pipe IPC
+        run: |
+          cargo test -p itk-ipc -- windows --nocapture
+          echo "Named Pipe IPC tests passed" >> $env:GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Stage 7: x86_64 Linux tests (optional, requires x86 runner)
+  # ============================================================================
+
+  x86-linux-tests:
+    name: x86_64 Linux Tests
+    if: github.event.inputs.run_x86_tests == 'true'
+    runs-on: ubuntu-latest  # Or use self-hosted x86 runner label
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: packages/injection_toolkit
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            packages/injection_toolkit/target
+          key: x86_64-linux-cargo-${{ hashFiles('packages/injection_toolkit/**/Cargo.lock') }}
+
+      - name: Run x86_64 tests
+        run: |
+          cargo test -p itk-protocol -p itk-shmem -p itk-ipc --lib -- --nocapture
+          echo "## x86_64 Linux Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "All tests passed on x86_64 Linux" >> $GITHUB_STEP_SUMMARY
+
+      - name: Run Loom on x86
+        env:
+          RUSTFLAGS: --cfg loom
+        run: |
+          cargo test -p itk-shmem loom_tests -- --nocapture
+          echo "Loom tests passed on x86_64" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Summary
+  # ============================================================================
+
+  ci-summary:
+    name: CI Summary
+    needs: [check-and-lint, unit-tests, loom-tests, miri-tests, cross-compile]
+    if: always()
+    runs-on: self-hosted
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# Injection Toolkit CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint & Format | ${{ needs.check-and-lint.result == 'success' && 'Pass' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result == 'success' && 'Pass' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Loom (Concurrency) | ${{ needs.loom-tests.result == 'success' && 'Pass' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Miri (UB Detection) | ${{ needs.miri-tests.result == 'success' && 'Pass' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cross-Compile | ${{ needs.cross-compile.result == 'success' && 'Pass' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.check-and-lint.result }}" == "success" && \
+                "${{ needs.unit-tests.result }}" == "success" && \
+                "${{ needs.loom-tests.result }}" == "success" && \
+                "${{ needs.miri-tests.result }}" == "success" && \
+                "${{ needs.cross-compile.result }}" == "success" ]]; then
+            echo "## All checks passed!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The injection toolkit is ready for merge." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## Some checks failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please review the failed checks above." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi

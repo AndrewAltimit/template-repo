@@ -1,5 +1,7 @@
 # Injection Toolkit
 
+[![Injection Toolkit CI](https://github.com/AndrewAltimit/template-repo/actions/workflows/injection-toolkit-ci.yml/badge.svg)](https://github.com/AndrewAltimit/template-repo/actions/workflows/injection-toolkit-ci.yml)
+
 A cross-platform framework for runtime integration with closed-source applications.
 
 ## Overview
@@ -189,14 +191,32 @@ cross build --release --target x86_64-unknown-linux-gnu -p itk-ld-preload
 
 ```bash
 # Run unit tests
-cargo test --workspace
+cargo test -p itk-protocol -p itk-shmem -p itk-ipc
 
-# Test IPC communication
-cargo run --example ipc_test
+# Run Loom concurrency tests (verifies seqlock memory ordering)
+RUSTFLAGS="--cfg loom" cargo test -p itk-shmem loom_tests
 
-# Test shared memory
-cargo run --example shmem_test
+# Run Miri for undefined behavior detection
+cargo +nightly miri test -p itk-shmem -- seqlock
+
+# Cross-compilation check (verify code compiles for other targets)
+cargo check --target x86_64-unknown-linux-gnu -p itk-ipc -p itk-shmem
+cargo check --target x86_64-pc-windows-gnu -p itk-ipc -p itk-shmem
 ```
+
+### CI Pipeline
+
+The CI workflow runs automatically on pushes to the feature branch:
+
+| Stage | Tool | Purpose |
+|-------|------|---------|
+| Lint | clippy, rustfmt | Code quality and formatting |
+| Unit Tests | cargo test | Core functionality |
+| Loom | loom crate | Explores all thread interleavings |
+| Miri | miri | Detects undefined behavior |
+| Cross-Compile | cargo check | Verifies Windows/x86 compilation |
+
+Windows and x86_64 Linux tests can be triggered manually when those runners are available.
 
 ## Documentation
 
