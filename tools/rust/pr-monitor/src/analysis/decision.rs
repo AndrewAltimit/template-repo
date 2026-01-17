@@ -50,18 +50,12 @@ mod tests {
 
     #[test]
     fn test_priority_serialization() {
-        assert_eq!(
-            serde_json::to_string(&Priority::High).unwrap(),
-            "\"high\""
-        );
+        assert_eq!(serde_json::to_string(&Priority::High).unwrap(), "\"high\"");
         assert_eq!(
             serde_json::to_string(&Priority::Normal).unwrap(),
             "\"normal\""
         );
-        assert_eq!(
-            serde_json::to_string(&Priority::Low).unwrap(),
-            "\"low\""
-        );
+        assert_eq!(serde_json::to_string(&Priority::Low).unwrap(), "\"low\"");
     }
 
     #[test]

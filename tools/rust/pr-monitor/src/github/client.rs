@@ -44,20 +44,17 @@ impl GhClient {
         }
 
         let count_str = String::from_utf8_lossy(&output.stdout);
-        count_str
-            .trim()
-            .parse::<usize>()
-            .map_err(|e| Error::JsonParse(serde_json::Error::io(std::io::Error::new(
+        count_str.trim().parse::<usize>().map_err(|e| {
+            Error::JsonParse(serde_json::Error::io(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 format!("Failed to parse comment count: {}", e),
-            ))))
+            )))
+        })
     }
 
     /// Check if gh CLI is available and authenticated
     pub fn check_available() -> Result<()> {
-        let output = Command::new("gh")
-            .args(["auth", "status"])
-            .output()?;
+        let output = Command::new("gh").args(["auth", "status"]).output()?;
 
         if !output.status.success() {
             return Err(Error::GhFailed {

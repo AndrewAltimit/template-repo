@@ -135,7 +135,10 @@ mod tests {
 
         assert!(classification.needs_response);
         assert_eq!(classification.priority, Priority::High);
-        assert_eq!(classification.response_type, Some(ResponseType::AdminCommand));
+        assert_eq!(
+            classification.response_type,
+            Some(ResponseType::AdminCommand)
+        );
         assert_eq!(classification.action, Some(Action::ExecuteAdminCommand));
     }
 
@@ -146,7 +149,10 @@ mod tests {
 
         assert!(classification.needs_response);
         assert_eq!(classification.priority, Priority::Normal);
-        assert_eq!(classification.response_type, Some(ResponseType::AdminComment));
+        assert_eq!(
+            classification.response_type,
+            Some(ResponseType::AdminComment)
+        );
         assert_eq!(classification.action, Some(Action::ReviewAdminFeedback));
     }
 
@@ -160,7 +166,10 @@ mod tests {
 
         assert!(classification.needs_response);
         assert_eq!(classification.priority, Priority::Normal);
-        assert_eq!(classification.response_type, Some(ResponseType::GeminiReview));
+        assert_eq!(
+            classification.response_type,
+            Some(ResponseType::GeminiReview)
+        );
         assert_eq!(classification.action, Some(Action::AddressGeminiReview));
     }
 

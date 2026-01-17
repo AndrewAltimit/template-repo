@@ -104,7 +104,10 @@ impl Poller {
             if current_count > last_count {
                 if !quiet {
                     eprintln!();
-                    eprintln!("New comments detected! ({} -> {})", last_count, current_count);
+                    eprintln!(
+                        "New comments detected! ({} -> {})",
+                        last_count, current_count
+                    );
                 }
 
                 // Fetch all comments and check the new ones
