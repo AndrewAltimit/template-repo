@@ -948,12 +948,8 @@ jobs:
     if: needs.detect-changes.outputs.injection_toolkit_changed == 'true'
     runs-on: self-hosted
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: packages/injection_toolkit
     env:
       CARGO_TERM_COLOR: always
-      RUSTFLAGS: -D warnings
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -964,36 +960,24 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Install Rust toolchain
+      # Container-first: Use containerized Rust CI for all checks
+      # This follows the project's philosophy documented in CLAUDE.md and AGENTS.md
+      - name: Check formatting (containerized)
+        run: ./automation/ci-cd/run-ci.sh rust-fmt
+
+      - name: Run clippy (containerized)
+        run: ./automation/ci-cd/run-ci.sh rust-clippy
+
+      - name: Run unit tests (containerized)
         run: |
-          rustup show
-          rustup component add clippy rustfmt
-
-      - name: Cache cargo registry
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            packages/injection_toolkit/target
-          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('packages/injection_toolkit/**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-cargo-
-
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-
-      - name: Run clippy
-        # Only lint core crates to avoid X11 dependency from overlay crate
-        run: cargo clippy -p itk-protocol -p itk-shmem -p itk-ipc --all-targets -- -D warnings
-
-      - name: Run unit tests
-        run: |
-          cargo test -p itk-protocol -p itk-shmem -p itk-ipc --lib -- --nocapture
+          ./automation/ci-cd/run-ci.sh rust-test
           echo "## Unit Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "All unit tests passed on ${{ runner.arch }}" >> $GITHUB_STEP_SUMMARY
+          echo "All unit tests passed (containerized)" >> $GITHUB_STEP_SUMMARY
 
-      - name: Run Loom concurrency tests
+      # Advanced tests require host toolchain (Miri, Loom, cross-compile)
+      # These use nightly features not available in the standard rust-ci container
+      - name: Run Loom concurrency tests (host)
+        working-directory: packages/injection_toolkit
         env:
           RUSTFLAGS: --cfg loom
         run: |
@@ -1001,12 +985,13 @@ jobs:
           echo "## Loom Concurrency Tests" >> $GITHUB_STEP_SUMMARY
           echo "Seqlock memory ordering verified across all interleavings" >> $GITHUB_STEP_SUMMARY
 
-      - name: Install Miri
+      - name: Install Miri (host - requires nightly)
         run: |
           rustup toolchain install nightly --component miri
           rustup run nightly cargo miri setup
 
-      - name: Run Miri UB detection
+      - name: Run Miri UB detection (host)
+        working-directory: packages/injection_toolkit
         run: |
           cargo +nightly miri test -p itk-shmem -- seqlock
           cargo +nightly miri test -p itk-protocol
@@ -1014,6 +999,7 @@ jobs:
           echo "No undefined behavior detected" >> $GITHUB_STEP_SUMMARY
 
       - name: Cross-compile check (x86_64 Linux)
+        working-directory: packages/injection_toolkit
         run: |
           rustup target add x86_64-unknown-linux-gnu
           cargo check --target x86_64-unknown-linux-gnu -p itk-protocol -p itk-shmem -p itk-ipc
@@ -1021,6 +1007,7 @@ jobs:
           echo "Core crates compile successfully" >> $GITHUB_STEP_SUMMARY
 
       - name: Cross-compile check (Windows)
+        working-directory: packages/injection_toolkit
         run: |
           rustup target add x86_64-pc-windows-gnu
           cargo check --target x86_64-pc-windows-gnu -p itk-protocol -p itk-shmem -p itk-ipc
@@ -1033,7 +1020,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "## Injection Toolkit CI Summary" >> $GITHUB_STEP_SUMMARY
-          echo "All validation checks completed on ${{ runner.arch }} runner" >> $GITHUB_STEP_SUMMARY
+          echo "Core checks: containerized (rust-ci)" >> $GITHUB_STEP_SUMMARY
+          echo "Advanced checks: Loom, Miri, cross-compile (host toolchain)" >> $GITHUB_STEP_SUMMARY
 
   # Stage 9: Docker image validation
   docker-validation:
