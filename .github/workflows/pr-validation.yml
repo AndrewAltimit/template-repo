@@ -974,43 +974,29 @@ jobs:
           echo "## Unit Test Results" >> $GITHUB_STEP_SUMMARY
           echo "All unit tests passed (containerized)" >> $GITHUB_STEP_SUMMARY
 
-      # Advanced tests require host toolchain (Miri, Loom, cross-compile)
-      # These use nightly features not available in the standard rust-ci container
-      - name: Run Loom concurrency tests (host)
-        working-directory: packages/injection_toolkit
-        env:
-          RUSTFLAGS: --cfg loom
+      # Advanced tests use rust-ci-nightly container (Miri, Loom, cross-compile)
+      # This maintains container-first philosophy with zero host dependencies
+      - name: Run Loom concurrency tests (containerized)
         run: |
-          cargo test -p itk-shmem loom_tests -- --nocapture
+          ./automation/ci-cd/run-ci.sh rust-loom
           echo "## Loom Concurrency Tests" >> $GITHUB_STEP_SUMMARY
           echo "Seqlock memory ordering verified across all interleavings" >> $GITHUB_STEP_SUMMARY
 
-      - name: Install Miri (host - requires nightly)
+      - name: Run Miri UB detection (containerized)
         run: |
-          rustup toolchain install nightly --component miri
-          rustup run nightly cargo miri setup
-
-      - name: Run Miri UB detection (host)
-        working-directory: packages/injection_toolkit
-        run: |
-          cargo +nightly miri test -p itk-shmem -- seqlock
-          cargo +nightly miri test -p itk-protocol
+          ./automation/ci-cd/run-ci.sh rust-miri
           echo "## Miri Analysis" >> $GITHUB_STEP_SUMMARY
           echo "No undefined behavior detected" >> $GITHUB_STEP_SUMMARY
 
-      - name: Cross-compile check (x86_64 Linux)
-        working-directory: packages/injection_toolkit
+      - name: Cross-compile check - x86_64 Linux (containerized)
         run: |
-          rustup target add x86_64-unknown-linux-gnu
-          cargo check --target x86_64-unknown-linux-gnu -p itk-protocol -p itk-shmem -p itk-ipc
+          ./automation/ci-cd/run-ci.sh rust-cross-linux
           echo "## Cross-Compilation: x86_64-unknown-linux-gnu" >> $GITHUB_STEP_SUMMARY
           echo "Core crates compile successfully" >> $GITHUB_STEP_SUMMARY
 
-      - name: Cross-compile check (Windows)
-        working-directory: packages/injection_toolkit
+      - name: Cross-compile check - Windows (containerized)
         run: |
-          rustup target add x86_64-pc-windows-gnu
-          cargo check --target x86_64-pc-windows-gnu -p itk-protocol -p itk-shmem -p itk-ipc
+          ./automation/ci-cd/run-ci.sh rust-cross-windows
           echo "## Cross-Compilation: x86_64-pc-windows-gnu" >> $GITHUB_STEP_SUMMARY
           echo "Core crates compile successfully" >> $GITHUB_STEP_SUMMARY
 
@@ -1020,8 +1006,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "## Injection Toolkit CI Summary" >> $GITHUB_STEP_SUMMARY
-          echo "Core checks: containerized (rust-ci)" >> $GITHUB_STEP_SUMMARY
-          echo "Advanced checks: Loom, Miri, cross-compile (host toolchain)" >> $GITHUB_STEP_SUMMARY
+          echo "All checks: fully containerized (rust-ci, rust-ci-nightly)" >> $GITHUB_STEP_SUMMARY
+          echo "Zero host dependencies - container-first philosophy maintained" >> $GITHUB_STEP_SUMMARY
 
   # Stage 9: Docker image validation
   docker-validation:

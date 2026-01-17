@@ -283,6 +283,53 @@ case "$STAGE" in
     $0 rust-test
     ;;
 
+  # ============================================
+  # Advanced Rust CI Stages (nightly container)
+  # ============================================
+
+  rust-loom)
+    echo "=== Running Loom concurrency tests ==="
+    echo "Building Rust CI nightly image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -e RUSTFLAGS="--cfg loom" \
+      rust-ci-nightly cargo test -p itk-shmem loom_tests -- --nocapture
+    ;;
+
+  rust-miri)
+    echo "=== Running Miri UB detection ==="
+    echo "Building Rust CI nightly image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
+      cargo +nightly miri test -p itk-shmem -- seqlock
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
+      cargo +nightly miri test -p itk-protocol
+    ;;
+
+  rust-cross-linux)
+    echo "=== Cross-compile check (x86_64 Linux) ==="
+    echo "Building Rust CI nightly image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
+      cargo check --target x86_64-unknown-linux-gnu -p itk-protocol -p itk-shmem -p itk-ipc
+    ;;
+
+  rust-cross-windows)
+    echo "=== Cross-compile check (Windows) ==="
+    echo "Building Rust CI nightly image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
+      cargo check --target x86_64-pc-windows-gnu -p itk-protocol -p itk-shmem -p itk-ipc
+    ;;
+
+  rust-advanced)
+    echo "=== Running advanced Rust CI checks (nightly) ==="
+    $0 rust-loom
+    $0 rust-miri
+    $0 rust-cross-linux
+    $0 rust-cross-windows
+    ;;
+
   full)
     echo "=== Running full CI checks ==="
     $0 format
@@ -298,6 +345,7 @@ case "$STAGE" in
     echo "Available stages:"
     echo "  Python: format, lint-basic, lint-full, lint-shell, ruff, ruff-fix, bandit, security, test, test-gaea2, test-all, test-corporate-proxy, yaml-lint, json-lint, autoformat, full"
     echo "  Rust:   rust-fmt, rust-clippy, rust-test, rust-build, rust-deny, rust-full"
+    echo "  Rust (nightly): rust-loom, rust-miri, rust-cross-linux, rust-cross-windows, rust-advanced"
     exit 1
     ;;
 esac

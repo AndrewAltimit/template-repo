@@ -128,24 +128,29 @@ docker-compose run --rm python-ci mypy . --ignore-missing-imports
 
 ### Rust / Injection Toolkit
 
-The `packages/injection_toolkit/` directory contains a Rust workspace for cross-platform screen capture and injection utilities. All Rust CI/CD operations run in the `rust-ci` container (Rust 1.83).
+The `packages/injection_toolkit/` directory contains a Rust workspace for cross-platform screen capture and injection utilities. All Rust CI/CD operations run in containers:
+- `rust-ci` (Rust 1.83 stable) - Basic checks: fmt, clippy, test, build
+- `rust-ci-nightly` (Rust nightly) - Advanced: Miri, Loom, cross-compile
 
 ```bash
-# Using containerized CI scripts (recommended)
+# Basic checks (rust-ci container)
 ./automation/ci-cd/run-ci.sh rust-fmt      # Check formatting (cargo fmt)
 ./automation/ci-cd/run-ci.sh rust-clippy   # Linting (cargo clippy)
 ./automation/ci-cd/run-ci.sh rust-test     # Run tests (cargo test)
 ./automation/ci-cd/run-ci.sh rust-build    # Build all targets
 ./automation/ci-cd/run-ci.sh rust-deny     # License/security audit
-./automation/ci-cd/run-ci.sh rust-full     # All Rust checks
+./automation/ci-cd/run-ci.sh rust-full     # All basic Rust checks
+
+# Advanced checks (rust-ci-nightly container)
+./automation/ci-cd/run-ci.sh rust-loom         # Loom concurrency tests
+./automation/ci-cd/run-ci.sh rust-miri         # Miri UB detection
+./automation/ci-cd/run-ci.sh rust-cross-linux  # Cross-compile x86_64-linux
+./automation/ci-cd/run-ci.sh rust-cross-windows # Cross-compile Windows
+./automation/ci-cd/run-ci.sh rust-advanced     # All advanced checks
 
 # Direct Docker Compose commands
 docker-compose --profile ci run --rm rust-ci cargo fmt --all -- --check
-docker-compose --profile ci run --rm rust-ci cargo clippy --workspace --all-targets -- -D warnings
-docker-compose --profile ci run --rm rust-ci cargo test --workspace
-
-# Cross-compilation (Windows target)
-docker-compose --profile ci run --rm rust-ci cargo build --target x86_64-pc-windows-gnu
+docker-compose --profile ci run --rm rust-ci-nightly cargo +nightly miri test
 
 # Note: Rust CI uses the "ci" profile to avoid starting unnecessary services
 ```
@@ -536,7 +541,8 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
 
 20. **Containerized CI/CD**:
    - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools
-   - **Rust CI Container** (`docker/rust-ci.Dockerfile`): Rust 1.83 for injection_toolkit
+   - **Rust CI Container** (`docker/rust-ci.Dockerfile`): Rust 1.83 stable for basic checks
+   - **Rust CI Nightly Container** (`docker/rust-ci-nightly.Dockerfile`): Miri, Loom, cross-compile
    - **Helper Scripts**: Centralized CI operations via `./automation/ci-cd/run-ci.sh`
    - **Individual MCP Containers**: Each server can run in its own optimized container
 

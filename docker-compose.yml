@@ -783,6 +783,29 @@ services:
     profiles:
       - ci
 
+  # Rust CI with nightly toolchain for advanced testing (Miri, Loom, cross-compile)
+  rust-ci-nightly:
+    build:
+      context: .
+      dockerfile: docker/rust-ci-nightly.Dockerfile
+    container_name: rust-ci-nightly
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - .:/app
+    environment:
+      - CARGO_HOME=/tmp/cargo  # World-writable, works with any USER_ID
+      - RUSTUP_HOME=/usr/local/rustup  # Read-only, pre-installed in image
+      - CARGO_INCREMENTAL=1
+      - CI=true
+    working_dir: /app/packages/injection_toolkit
+    networks:
+      - mcp-network
+    command: ["/bin/bash"]
+    stdin_open: true
+    tty: true
+    profiles:
+      - ci
+
   # Optional PostgreSQL for future use
   postgres:
     image: postgres:15-alpine
