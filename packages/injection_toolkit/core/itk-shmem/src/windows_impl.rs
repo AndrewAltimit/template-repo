@@ -3,7 +3,7 @@
 use super::{Result, SharedMemory, ShmemError};
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
-use windows::Win32::Foundation::{CloseHandle, HANDLE};
+use windows::Win32::Foundation::{CloseHandle, GetLastError, ERROR_ALREADY_EXISTS, HANDLE};
 use windows::Win32::System::Memory::{
     CreateFileMappingW, MapViewOfFile, OpenFileMappingW, UnmapViewOfFile, VirtualQuery,
     FILE_MAP_ALL_ACCESS, MEMORY_BASIC_INFORMATION, MEMORY_MAPPED_VIEW_ADDRESS, PAGE_READWRITE,
@@ -64,6 +64,13 @@ pub fn create(name: &str, size: usize) -> Result<SharedMemory> {
 
         if handle.is_invalid() {
             return Err(ShmemError::CreateFailed("Invalid handle returned".into()));
+        }
+
+        // Check if we attached to an existing mapping instead of creating a new one.
+        // This prevents silently attaching to a stale region with wrong size/semantics.
+        if GetLastError() == ERROR_ALREADY_EXISTS {
+            CloseHandle(handle).ok();
+            return Err(ShmemError::AlreadyExists);
         }
 
         // Map view

@@ -7,7 +7,7 @@ use nix::sys::stat::{fstat, Mode};
 use nix::unistd::ftruncate;
 use std::ffi::CString;
 use std::num::NonZeroUsize;
-use std::os::fd::AsRawFd;
+use std::os::fd::{AsRawFd, IntoRawFd};
 
 /// Validate and create the shared memory name (/dev/shm/itk_name on Linux).
 ///
@@ -59,7 +59,8 @@ pub fn create(name: &str, size: usize) -> Result<SharedMemory> {
 
     // Set size
     if let Err(e) = ftruncate(&fd, size as i64) {
-        let _ = nix::unistd::close(fd.as_raw_fd());
+        // OwnedFd will close the fd when dropped, no need to manually close
+        // (manual close would cause double-close since OwnedFd also closes on drop)
         let _ = shm_unlink(c_name.as_c_str());
         return Err(ShmemError::CreateFailed(format!("ftruncate failed: {}", e)));
     }
@@ -78,11 +79,14 @@ pub fn create(name: &str, size: usize) -> Result<SharedMemory> {
         .map_err(|e| ShmemError::MapFailed(e.to_string()))?
     };
 
+    // Take ownership of the fd - prevents OwnedFd from closing it on drop
+    let raw_fd = fd.into_raw_fd();
+
     Ok(SharedMemory {
         ptr: ptr.as_ptr() as *mut u8,
         size,
         name: full_name,
-        fd: fd.as_raw_fd(),
+        fd: raw_fd,
         owner: true,
     })
 }
@@ -102,7 +106,7 @@ pub fn open(name: &str, size: usize) -> Result<SharedMemory> {
     let actual_size = stat.st_size as usize;
 
     if actual_size < size {
-        let _ = nix::unistd::close(fd.as_raw_fd());
+        // OwnedFd will close the fd when dropped, no need to manually close
         return Err(ShmemError::SizeMismatch {
             expected: size,
             actual: actual_size,
@@ -122,11 +126,14 @@ pub fn open(name: &str, size: usize) -> Result<SharedMemory> {
         .map_err(|e| ShmemError::MapFailed(e.to_string()))?
     };
 
+    // Take ownership of the fd - prevents OwnedFd from closing it on drop
+    let raw_fd = fd.into_raw_fd();
+
     Ok(SharedMemory {
         ptr: ptr.as_ptr() as *mut u8,
         size,
         name: full_name,
-        fd: fd.as_raw_fd(),
+        fd: raw_fd,
         owner: false,
     })
 }
