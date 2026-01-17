@@ -5,8 +5,8 @@ use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
 use windows::Win32::Foundation::{CloseHandle, HANDLE};
 use windows::Win32::System::Memory::{
-    CreateFileMappingW, MapViewOfFile, OpenFileMappingW, UnmapViewOfFile, FILE_MAP_ALL_ACCESS,
-    MEMORY_MAPPED_VIEW_ADDRESS, PAGE_READWRITE,
+    CreateFileMappingW, MapViewOfFile, OpenFileMappingW, UnmapViewOfFile, VirtualQuery,
+    FILE_MAP_ALL_ACCESS, MEMORY_BASIC_INFORMATION, MEMORY_MAPPED_VIEW_ADDRESS, PAGE_READWRITE,
 };
 
 /// Convert a Rust string to a Windows wide string
@@ -74,12 +74,37 @@ pub fn open(name: &str, size: usize) -> Result<SharedMemory> {
             return Err(ShmemError::NotFound);
         }
 
-        // Map view
-        let ptr = MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, size);
+        // Map the entire section first (size=0) to query its actual size
+        let ptr = MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 
         if ptr.Value.is_null() {
             CloseHandle(handle).ok();
             return Err(ShmemError::MapFailed("MapViewOfFile returned null".into()));
+        }
+
+        // Query the actual region size
+        let mut mbi: MEMORY_BASIC_INFORMATION = std::mem::zeroed();
+        let query_result = VirtualQuery(
+            Some(ptr.Value),
+            &mut mbi,
+            std::mem::size_of::<MEMORY_BASIC_INFORMATION>(),
+        );
+
+        if query_result == 0 {
+            UnmapViewOfFile(ptr).ok();
+            CloseHandle(handle).ok();
+            return Err(ShmemError::OpenFailed("VirtualQuery failed".into()));
+        }
+
+        let actual_size = mbi.RegionSize;
+
+        if actual_size < size {
+            UnmapViewOfFile(ptr).ok();
+            CloseHandle(handle).ok();
+            return Err(ShmemError::SizeMismatch {
+                expected: size,
+                actual: actual_size,
+            });
         }
 
         Ok(SharedMemory {

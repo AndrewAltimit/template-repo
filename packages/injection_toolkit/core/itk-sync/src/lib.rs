@@ -43,6 +43,9 @@ pub enum SyncError {
 
     #[error("reference time is in the future")]
     FutureReference,
+
+    #[error("time conversion overflow: result would be negative or exceed u64::MAX")]
+    TimeConversionOverflow,
 }
 
 /// Result type for sync operations
@@ -149,15 +152,41 @@ impl ClockSync {
     }
 
     /// Convert local time to estimated remote time
+    ///
+    /// Returns an error if the result would overflow or underflow.
     pub fn local_to_remote(&self, local_ms: u64) -> Result<u64> {
         let offset = self.offset_ms.ok_or(SyncError::NoClockOffset)?;
-        Ok((local_ms as i64 + offset) as u64)
+
+        // Use checked arithmetic to handle both positive and negative offsets
+        if offset >= 0 {
+            local_ms
+                .checked_add(offset as u64)
+                .ok_or(SyncError::TimeConversionOverflow)
+        } else {
+            let abs_offset = offset.unsigned_abs();
+            local_ms
+                .checked_sub(abs_offset)
+                .ok_or(SyncError::TimeConversionOverflow)
+        }
     }
 
     /// Convert remote time to estimated local time
+    ///
+    /// Returns an error if the result would overflow or underflow.
     pub fn remote_to_local(&self, remote_ms: u64) -> Result<u64> {
         let offset = self.offset_ms.ok_or(SyncError::NoClockOffset)?;
-        Ok((remote_ms as i64 - offset) as u64)
+
+        // Use checked arithmetic to handle both positive and negative offsets
+        if offset >= 0 {
+            remote_ms
+                .checked_sub(offset as u64)
+                .ok_or(SyncError::TimeConversionOverflow)
+        } else {
+            let abs_offset = offset.unsigned_abs();
+            remote_ms
+                .checked_add(abs_offset)
+                .ok_or(SyncError::TimeConversionOverflow)
+        }
     }
 
     /// Check if clock is synchronized

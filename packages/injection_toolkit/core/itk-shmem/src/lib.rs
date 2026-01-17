@@ -41,6 +41,9 @@ pub enum ShmemError {
 
     #[error("platform error: {0}")]
     Platform(String),
+
+    #[error("size calculation overflow: dimensions {width}x{height} exceed maximum")]
+    SizeOverflow { width: u32, height: u32 },
 }
 
 /// Result type for shared memory operations
@@ -350,15 +353,26 @@ pub struct FrameBuffer {
 
 impl FrameBuffer {
     /// Calculate total shared memory size needed for given frame dimensions
-    pub fn calculate_size(width: u32, height: u32) -> usize {
-        let frame_size = (width as usize) * (height as usize) * 4; // RGBA
-        SeqlockHeader::SIZE + (frame_size * 3) // Triple buffer
+    ///
+    /// Returns an error if the dimensions would cause arithmetic overflow.
+    pub fn calculate_size(width: u32, height: u32) -> Result<usize> {
+        let frame_size = (width as usize)
+            .checked_mul(height as usize)
+            .and_then(|s| s.checked_mul(4)) // RGBA
+            .ok_or(ShmemError::SizeOverflow { width, height })?;
+
+        SeqlockHeader::SIZE
+            .checked_add(frame_size.checked_mul(3).ok_or(ShmemError::SizeOverflow { width, height })?)
+            .ok_or(ShmemError::SizeOverflow { width, height })
     }
 
     /// Create a new frame buffer
     pub fn create(name: &str, width: u32, height: u32) -> Result<Self> {
-        let frame_size = (width as usize) * (height as usize) * 4;
-        let total_size = Self::calculate_size(width, height);
+        let frame_size = (width as usize)
+            .checked_mul(height as usize)
+            .and_then(|s| s.checked_mul(4))
+            .ok_or(ShmemError::SizeOverflow { width, height })?;
+        let total_size = Self::calculate_size(width, height)?;
 
         let shmem = SharedMemory::create(name, total_size)?;
 
@@ -374,8 +388,11 @@ impl FrameBuffer {
 
     /// Open an existing frame buffer
     pub fn open(name: &str, width: u32, height: u32) -> Result<Self> {
-        let frame_size = (width as usize) * (height as usize) * 4;
-        let total_size = Self::calculate_size(width, height);
+        let frame_size = (width as usize)
+            .checked_mul(height as usize)
+            .and_then(|s| s.checked_mul(4))
+            .ok_or(ShmemError::SizeOverflow { width, height })?;
+        let total_size = Self::calculate_size(width, height)?;
 
         let shmem = SharedMemory::open(name, total_size)?;
 
@@ -483,8 +500,12 @@ mod tests {
     fn test_calculate_size() {
         // 1280x720 RGBA = 3,686,400 bytes per frame
         // Triple buffered + 64 byte header
-        let size = FrameBuffer::calculate_size(1280, 720);
+        let size = FrameBuffer::calculate_size(1280, 720).unwrap();
         assert_eq!(size, 64 + (1280 * 720 * 4 * 3));
+
+        // Test overflow detection with extremely large dimensions
+        let overflow_result = FrameBuffer::calculate_size(u32::MAX, u32::MAX);
+        assert!(overflow_result.is_err());
     }
 
     /// Aligned storage for SeqlockHeader in tests

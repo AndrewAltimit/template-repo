@@ -11,7 +11,9 @@ use std::os::windows::ffi::OsStrExt;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use windows::core::PCWSTR;
-use windows::Win32::Foundation::{CloseHandle, LocalFree, HANDLE, HLOCAL, INVALID_HANDLE_VALUE};
+use windows::Win32::Foundation::{
+    CloseHandle, LocalFree, HANDLE, HLOCAL, INVALID_HANDLE_VALUE, WIN32_ERROR,
+};
 use windows::Win32::Security::Authorization::{
     ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1,
 };
@@ -26,6 +28,11 @@ use windows::Win32::System::Pipes::{
 };
 
 const BUFFER_SIZE: u32 = 65536;
+
+/// ERROR_PIPE_CONNECTED (535) - The pipe is already connected.
+/// This occurs when a client connects between CreateNamedPipeW and ConnectNamedPipe.
+/// It's not an error condition - it means the pipe is ready for use.
+const ERROR_PIPE_CONNECTED: WIN32_ERROR = WIN32_ERROR(535);
 
 fn to_wide_string(s: &str) -> Vec<u16> {
     OsStr::new(s).encode_wide().chain(Some(0)).collect()
@@ -258,9 +265,17 @@ impl IpcServer for NamedPipeServer {
         let handle = self.create_pipe_instance()?;
 
         unsafe {
-            // Wait for client to connect
-            ConnectNamedPipe(handle, None)
-                .map_err(|e| IpcError::ConnectionFailed(e.to_string()))?;
+            // Wait for client to connect.
+            // If the client connects between CreateNamedPipeW and ConnectNamedPipe,
+            // we get ERROR_PIPE_CONNECTED (535), which is not an error - it means
+            // the pipe is already connected and ready for use.
+            if let Err(e) = ConnectNamedPipe(handle, None) {
+                if e.code() != windows::core::HRESULT::from(ERROR_PIPE_CONNECTED) {
+                    let _ = CloseHandle(handle);
+                    return Err(IpcError::ConnectionFailed(e.to_string()));
+                }
+                // ERROR_PIPE_CONNECTED is success - pipe is already connected
+            }
         }
 
         Ok(NamedPipeConnection {

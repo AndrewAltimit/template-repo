@@ -190,6 +190,7 @@ mod integration_tests {
     }
 
     /// Connect with retry loop instead of sleep (more robust)
+    #[cfg(unix)]
     fn connect_with_retry(name: &str, timeout: Duration) -> UnixSocketClient {
         let start = Instant::now();
         while start.elapsed() < timeout {

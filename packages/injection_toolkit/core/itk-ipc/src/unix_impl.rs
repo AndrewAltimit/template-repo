@@ -8,12 +8,47 @@ use std::os::unix::net::{UnixListener, UnixStream};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
-fn make_socket_path(name: &str) -> String {
-    if name.starts_with('/') {
-        name.to_string()
-    } else {
-        format!("/tmp/itk_{}.sock", name)
+/// Validate and create a socket path from a name.
+///
+/// For security, this function:
+/// - Rejects names with path traversal sequences (..)
+/// - Rejects absolute paths (prevents arbitrary file operations)
+/// - Creates paths only in /tmp/itk_*.sock
+fn make_socket_path(name: &str) -> Result<String> {
+    // Reject path traversal attempts
+    if name.contains("..") {
+        return Err(IpcError::Platform(
+            "socket name cannot contain path traversal sequences".into(),
+        ));
     }
+
+    // Reject absolute paths - prevents arbitrary file deletion/creation
+    if name.starts_with('/') {
+        return Err(IpcError::Platform(
+            "socket name cannot be an absolute path".into(),
+        ));
+    }
+
+    // Reject names with slashes to prevent subdirectory traversal
+    if name.contains('/') || name.contains('\\') {
+        return Err(IpcError::Platform(
+            "socket name cannot contain path separators".into(),
+        ));
+    }
+
+    Ok(format!("/tmp/itk_{}.sock", name))
+}
+
+/// Safely remove a socket file, verifying it's actually a socket first.
+fn remove_socket_file(path: &str) {
+    if let Ok(metadata) = fs::metadata(path) {
+        use std::os::unix::fs::FileTypeExt;
+        if metadata.file_type().is_socket() {
+            let _ = fs::remove_file(path);
+        }
+        // If it's not a socket, don't remove it - could be a regular file
+    }
+    // If metadata fails (file doesn't exist), that's fine
 }
 
 /// Unix domain socket client
@@ -27,7 +62,7 @@ pub struct UnixSocketClient {
 impl UnixSocketClient {
     /// Connect to a Unix socket server
     pub fn connect(name: &str) -> Result<Self> {
-        let path = make_socket_path(name);
+        let path = make_socket_path(name)?;
 
         let stream =
             UnixStream::connect(&path).map_err(|e| IpcError::ConnectionFailed(e.to_string()))?;
@@ -63,22 +98,73 @@ impl IpcChannel for UnixSocketClient {
     }
 
     fn try_recv(&self) -> Result<Option<Vec<u8>>> {
+        use itk_protocol::HEADER_SIZE;
+        use std::os::unix::io::AsRawFd;
+
         if !self.is_connected() {
             return Err(IpcError::NotConnected);
         }
 
-        let mut stream = self.stream.lock().unwrap();
+        let stream = self.stream.lock().unwrap();
+        let fd = stream.as_raw_fd();
 
-        // Set non-blocking temporarily
-        stream.set_nonblocking(true)?;
-        let result = read_message(&mut *stream);
-        stream.set_nonblocking(false)?;
+        // Use MSG_PEEK to check if enough data is available without consuming bytes.
+        // This prevents desynchronization from partial reads in non-blocking mode.
+        let mut peek_buf = [0u8; HEADER_SIZE];
+        let peeked = unsafe {
+            libc::recv(
+                fd,
+                peek_buf.as_mut_ptr() as *mut libc::c_void,
+                HEADER_SIZE,
+                libc::MSG_PEEK | libc::MSG_DONTWAIT,
+            )
+        };
 
-        match result {
-            Ok(data) => Ok(Some(data)),
-            Err(IpcError::Io(ref e)) if e.kind() == std::io::ErrorKind::WouldBlock => Ok(None),
-            Err(e) => Err(e),
+        if peeked < 0 {
+            let err = std::io::Error::last_os_error();
+            if err.kind() == std::io::ErrorKind::WouldBlock {
+                return Ok(None);
+            }
+            return Err(IpcError::Io(err));
         }
+
+        if (peeked as usize) < HEADER_SIZE {
+            // Not enough data for a complete header yet
+            return Ok(None);
+        }
+
+        // Parse header to determine total message size
+        let header = itk_protocol::Header::from_bytes(&peek_buf)
+            .map_err(IpcError::Protocol)?;
+        let total_size = HEADER_SIZE + header.payload_len as usize;
+
+        // Peek again to check if full message is available
+        let mut full_peek = vec![0u8; total_size];
+        let peeked_full = unsafe {
+            libc::recv(
+                fd,
+                full_peek.as_mut_ptr() as *mut libc::c_void,
+                total_size,
+                libc::MSG_PEEK | libc::MSG_DONTWAIT,
+            )
+        };
+
+        if peeked_full < 0 {
+            let err = std::io::Error::last_os_error();
+            if err.kind() == std::io::ErrorKind::WouldBlock {
+                return Ok(None);
+            }
+            return Err(IpcError::Io(err));
+        }
+
+        if (peeked_full as usize) < total_size {
+            // Full message not yet available
+            return Ok(None);
+        }
+
+        // Full message is available - now actually read it (consumes bytes)
+        drop(stream); // Release lock before calling recv which re-acquires it
+        self.recv().map(Some)
     }
 
     fn is_connected(&self) -> bool {
@@ -113,10 +199,10 @@ impl UnixSocketServer {
     /// The socket is created with restricted permissions (0o600) to prevent
     /// other users on the system from connecting.
     pub fn new(name: &str) -> Result<Self> {
-        let path = make_socket_path(name);
+        let path = make_socket_path(name)?;
 
-        // Remove existing socket file if present
-        let _ = fs::remove_file(&path);
+        // Safely remove existing socket file if present (verifies it's actually a socket)
+        remove_socket_file(&path);
 
         let listener = UnixListener::bind(&path).map_err(|e| IpcError::Platform(e.to_string()))?;
 
@@ -196,21 +282,73 @@ impl IpcChannel for UnixSocketConnection {
     }
 
     fn try_recv(&self) -> Result<Option<Vec<u8>>> {
+        use itk_protocol::HEADER_SIZE;
+        use std::os::unix::io::AsRawFd;
+
         if !self.is_connected() {
             return Err(IpcError::NotConnected);
         }
 
-        let mut stream = self.stream.lock().unwrap();
+        let stream = self.stream.lock().unwrap();
+        let fd = stream.as_raw_fd();
 
-        stream.set_nonblocking(true)?;
-        let result = read_message(&mut *stream);
-        stream.set_nonblocking(false)?;
+        // Use MSG_PEEK to check if enough data is available without consuming bytes.
+        // This prevents desynchronization from partial reads in non-blocking mode.
+        let mut peek_buf = [0u8; HEADER_SIZE];
+        let peeked = unsafe {
+            libc::recv(
+                fd,
+                peek_buf.as_mut_ptr() as *mut libc::c_void,
+                HEADER_SIZE,
+                libc::MSG_PEEK | libc::MSG_DONTWAIT,
+            )
+        };
 
-        match result {
-            Ok(data) => Ok(Some(data)),
-            Err(IpcError::Io(ref e)) if e.kind() == std::io::ErrorKind::WouldBlock => Ok(None),
-            Err(e) => Err(e),
+        if peeked < 0 {
+            let err = std::io::Error::last_os_error();
+            if err.kind() == std::io::ErrorKind::WouldBlock {
+                return Ok(None);
+            }
+            return Err(IpcError::Io(err));
         }
+
+        if (peeked as usize) < HEADER_SIZE {
+            // Not enough data for a complete header yet
+            return Ok(None);
+        }
+
+        // Parse header to determine total message size
+        let header = itk_protocol::Header::from_bytes(&peek_buf)
+            .map_err(IpcError::Protocol)?;
+        let total_size = HEADER_SIZE + header.payload_len as usize;
+
+        // Peek again to check if full message is available
+        let mut full_peek = vec![0u8; total_size];
+        let peeked_full = unsafe {
+            libc::recv(
+                fd,
+                full_peek.as_mut_ptr() as *mut libc::c_void,
+                total_size,
+                libc::MSG_PEEK | libc::MSG_DONTWAIT,
+            )
+        };
+
+        if peeked_full < 0 {
+            let err = std::io::Error::last_os_error();
+            if err.kind() == std::io::ErrorKind::WouldBlock {
+                return Ok(None);
+            }
+            return Err(IpcError::Io(err));
+        }
+
+        if (peeked_full as usize) < total_size {
+            // Full message not yet available
+            return Ok(None);
+        }
+
+        // Full message is available - now actually read it (consumes bytes)
+        drop(stream); // Release lock before calling recv which re-acquires it
+        self.recv().map(Some)
     }
 
     fn is_connected(&self) -> bool {

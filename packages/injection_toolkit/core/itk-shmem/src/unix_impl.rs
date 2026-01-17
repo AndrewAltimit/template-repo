@@ -3,7 +3,7 @@
 use super::{Result, SharedMemory, ShmemError};
 use nix::fcntl::OFlag;
 use nix::sys::mman::{mmap, munmap, shm_open, shm_unlink, MapFlags, ProtFlags};
-use nix::sys::stat::Mode;
+use nix::sys::stat::{fstat, Mode};
 use nix::unistd::ftruncate;
 use std::ffi::CString;
 use std::num::NonZeroUsize;
@@ -68,6 +68,19 @@ pub fn open(name: &str, size: usize) -> Result<SharedMemory> {
     // Open existing shared memory object
     let fd = shm_open(c_name.as_c_str(), OFlag::O_RDWR, Mode::empty())
         .map_err(|e| ShmemError::OpenFailed(e.to_string()))?;
+
+    // Validate the actual size of the shared memory object
+    let stat =
+        fstat(fd.as_raw_fd()).map_err(|e| ShmemError::OpenFailed(format!("fstat failed: {}", e)))?;
+    let actual_size = stat.st_size as usize;
+
+    if actual_size < size {
+        let _ = nix::unistd::close(fd.as_raw_fd());
+        return Err(ShmemError::SizeMismatch {
+            expected: size,
+            actual: actual_size,
+        });
+    }
 
     // Map memory
     let ptr = unsafe {
