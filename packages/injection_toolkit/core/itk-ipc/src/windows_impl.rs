@@ -38,12 +38,36 @@ fn to_wide_string(s: &str) -> Vec<u16> {
     OsStr::new(s).encode_wide().chain(Some(0)).collect()
 }
 
-fn make_pipe_name(name: &str) -> String {
-    if name.starts_with(r"\\.\pipe\") {
-        name.to_string()
-    } else {
-        format!(r"\\.\pipe\itk_{}", name)
+/// Validate and create a pipe name from a name.
+///
+/// For security, this function:
+/// - Rejects names with path traversal sequences (..)
+/// - Rejects names that look like full pipe paths (prevents escaping itk_ namespace)
+/// - Creates paths only in \\.\pipe\itk_* namespace
+fn make_pipe_name(name: &str) -> Result<String> {
+    // Reject path traversal attempts
+    if name.contains("..") {
+        return Err(IpcError::Platform(
+            "pipe name cannot contain path traversal sequences".into(),
+        ));
     }
+
+    // Reject names that look like they're trying to specify a full pipe path
+    // This prevents callers from escaping the itk_ namespace
+    if name.starts_with(r"\\") || name.starts_with(r"//") {
+        return Err(IpcError::Platform(
+            "pipe name cannot be a full pipe path".into(),
+        ));
+    }
+
+    // Reject names with path separators
+    if name.contains('\\') || name.contains('/') {
+        return Err(IpcError::Platform(
+            "pipe name cannot contain path separators".into(),
+        ));
+    }
+
+    Ok(format!(r"\\.\pipe\itk_{}", name))
 }
 
 /// RAII wrapper for security descriptor allocated by Windows APIs
@@ -119,7 +143,7 @@ unsafe impl Sync for NamedPipeClient {}
 impl NamedPipeClient {
     /// Connect to a named pipe server
     pub fn connect(name: &str) -> Result<Self> {
-        let pipe_name = make_pipe_name(name);
+        let pipe_name = make_pipe_name(name)?;
         let wide_name = to_wide_string(&pipe_name);
 
         unsafe {
@@ -212,7 +236,7 @@ pub struct NamedPipeServer {
 impl NamedPipeServer {
     /// Create a new named pipe server
     pub fn new(name: &str) -> Result<Self> {
-        let pipe_name = make_pipe_name(name);
+        let pipe_name = make_pipe_name(name)?;
 
         Ok(Self {
             name: pipe_name,

@@ -221,8 +221,10 @@ impl SeqlockHeader {
     /// Initialize a seqlock header at the given memory location
     ///
     /// # Safety
-    /// The pointer must be valid and aligned for SeqlockHeader.
-    pub unsafe fn init(ptr: *mut u8) -> &'static Self {
+    /// - The pointer must be valid and aligned for SeqlockHeader.
+    /// - The returned reference is only valid while the underlying memory is valid.
+    ///   Caller must ensure the memory outlives the returned reference.
+    pub unsafe fn init<'a>(ptr: *mut u8) -> &'a Self {
         let header = ptr as *mut SeqlockHeader;
 
         // Zero-initialize
@@ -243,8 +245,10 @@ impl SeqlockHeader {
     /// Get a reference to an existing seqlock header
     ///
     /// # Safety
-    /// The pointer must be valid and point to an initialized SeqlockHeader.
-    pub unsafe fn from_ptr(ptr: *mut u8) -> &'static Self {
+    /// - The pointer must be valid and point to an initialized SeqlockHeader.
+    /// - The returned reference is only valid while the underlying memory is valid.
+    ///   Caller must ensure the memory outlives the returned reference.
+    pub unsafe fn from_ptr<'a>(ptr: *mut u8) -> &'a Self {
         &*(ptr as *const SeqlockHeader)
     }
 
@@ -362,7 +366,11 @@ impl FrameBuffer {
             .ok_or(ShmemError::SizeOverflow { width, height })?;
 
         SeqlockHeader::SIZE
-            .checked_add(frame_size.checked_mul(3).ok_or(ShmemError::SizeOverflow { width, height })?)
+            .checked_add(
+                frame_size
+                    .checked_mul(3)
+                    .ok_or(ShmemError::SizeOverflow { width, height })?,
+            )
             .ok_or(ShmemError::SizeOverflow { width, height })
     }
 

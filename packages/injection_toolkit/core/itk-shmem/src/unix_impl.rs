@@ -70,8 +70,8 @@ pub fn open(name: &str, size: usize) -> Result<SharedMemory> {
         .map_err(|e| ShmemError::OpenFailed(e.to_string()))?;
 
     // Validate the actual size of the shared memory object
-    let stat =
-        fstat(fd.as_raw_fd()).map_err(|e| ShmemError::OpenFailed(format!("fstat failed: {}", e)))?;
+    let stat = fstat(fd.as_raw_fd())
+        .map_err(|e| ShmemError::OpenFailed(format!("fstat failed: {}", e)))?;
     let actual_size = stat.st_size as usize;
 
     if actual_size < size {
