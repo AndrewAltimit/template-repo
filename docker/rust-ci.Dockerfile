@@ -34,10 +34,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 WORKDIR /workspace
 
 # Create a non-root user that will be overridden by docker-compose
-# Also create .cargo directory for user-owned cache mounts
-RUN useradd -m -u 1000 ciuser && \
-    mkdir -p /home/ciuser/.cargo && \
-    chown -R ciuser:ciuser /home/ciuser/.cargo
+# CARGO_HOME is set to /tmp/cargo at runtime for universal write access
+RUN useradd -m -u 1000 ciuser
 
 # Set cargo home to a cacheable location
 ENV CARGO_HOME=/usr/local/cargo

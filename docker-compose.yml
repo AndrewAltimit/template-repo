@@ -770,7 +770,7 @@ services:
     volumes:
       - .:/app
     environment:
-      - CARGO_HOME=/home/ciuser/.cargo
+      - CARGO_HOME=/tmp/cargo  # World-writable, works with any USER_ID
       - RUSTUP_HOME=/usr/local/rustup  # Read-only, pre-installed in image
       - CARGO_INCREMENTAL=1
       - CI=true
