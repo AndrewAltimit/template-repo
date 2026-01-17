@@ -6,7 +6,11 @@ from fastapi.testclient import TestClient
 import pytest
 
 from economic_agents.company.models import Company
-from economic_agents.dashboard import app, dashboard_state
+from economic_agents.dashboard import app
+from economic_agents.dashboard.dependencies import (
+    create_dashboard_state,
+    get_state_container,
+)
 from economic_agents.monitoring import AlignmentMonitor, MetricsCollector, ResourceTracker
 
 
@@ -17,8 +21,34 @@ def client():
 
 
 @pytest.fixture
-def setup_dashboard_state(tmp_path):
+def test_dashboard_state(tmp_path):
+    """Create an isolated DashboardState instance for testing.
+
+    This fixture uses proper dependency injection by:
+    1. Creating a fresh DashboardState instance
+    2. Overriding the container's state for the test duration
+    3. Resetting the container after the test
+    """
+    # Create a fresh state instance for this test
+    state = create_dashboard_state()
+
+    # Override the global container to use our test state
+    container = get_state_container()
+    container.override(state)
+
+    yield state
+
+    # Reset the container to its default state after the test
+    container.reset_override()
+    container.reset()
+
+
+@pytest.fixture
+def setup_dashboard_state(tmp_path, test_dashboard_state):
     """Set up dashboard state with monitoring components."""
+    # Use the injected test state
+    dashboard_state = test_dashboard_state
+
     # Initialize monitoring components
     resource_tracker = ResourceTracker(log_dir=str(tmp_path / "resources"))
     metrics_collector = MetricsCollector(log_dir=str(tmp_path / "metrics"))
@@ -92,12 +122,7 @@ def setup_dashboard_state(tmp_path):
 
     yield dashboard_state
 
-    # Cleanup
-    dashboard_state.resource_tracker = None
-    dashboard_state.metrics_collector = None
-    dashboard_state.alignment_monitor = None
-    dashboard_state.agent_state = {}
-    dashboard_state.company_registry = {}
+    # Cleanup is handled by test_dashboard_state fixture
 
 
 # Root and Health Tests
@@ -139,10 +164,9 @@ def test_get_status(client, setup_dashboard_state):
     assert data["company_id"] == "test-company-1"
 
 
-def test_get_status_no_state(client):
+def test_get_status_no_state(client, test_dashboard_state):
     """Test getting status when no state is set."""
-    # Clear dashboard state
-    dashboard_state.agent_state = {}
+    # The test_dashboard_state fixture provides a clean state
 
     response = client.get("/api/status")
 
@@ -181,7 +205,7 @@ def test_get_decisions_with_limit(client, setup_dashboard_state):
         for i in range(10)
     ]
 
-    dashboard_state.agent_state["decisions"] = decisions
+    setup_dashboard_state.agent_state["decisions"] = decisions
 
     response = client.get("/api/decisions?limit=5")
 
@@ -206,11 +230,9 @@ def test_get_resources(client, setup_dashboard_state):
     assert isinstance(data["compute_trend"], list)
 
 
-def test_get_resources_no_tracker(client):
+def test_get_resources_no_tracker(client, test_dashboard_state):
     """Test getting resources when tracker not initialized."""
-    # Clear dashboard state
-    dashboard_state.resource_tracker = None
-    dashboard_state.metrics_collector = None
+    # The test_dashboard_state fixture provides a clean state with no tracker
 
     response = client.get("/api/resources")
 
@@ -236,10 +258,10 @@ def test_get_company(client, setup_dashboard_state):
     assert data["mission"] == "Test Mission"
 
 
-def test_get_company_no_company(client):
+def test_get_company_no_company(client, test_dashboard_state):
     """Test getting company when none exists."""
-    # Clear company state
-    dashboard_state.agent_state = {"company_id": None}
+    # Set up state with no company
+    test_dashboard_state.agent_state = {"company_id": None}
 
     response = client.get("/api/company")
 
@@ -255,7 +277,7 @@ def test_get_sub_agents(client, setup_dashboard_state):
         {"id": "sub-2", "role": "designer", "status": "active", "created_at": datetime.now(), "tasks_completed": 3},
     ]
 
-    dashboard_state.agent_state["sub_agents"] = sub_agents
+    setup_dashboard_state.agent_state["sub_agents"] = sub_agents
 
     response = client.get("/api/sub-agents")
 
@@ -266,10 +288,10 @@ def test_get_sub_agents(client, setup_dashboard_state):
     assert data[0]["role"] == "developer"
 
 
-def test_get_sub_agents_no_company(client):
+def test_get_sub_agents_no_company(client, test_dashboard_state):
     """Test getting sub-agents when no company exists."""
-    # Clear company state
-    dashboard_state.agent_state = {"company_id": None}
+    # Set up state with no company
+    test_dashboard_state.agent_state = {"company_id": None}
 
     response = client.get("/api/sub-agents")
 
@@ -293,10 +315,9 @@ def test_get_metrics(client, setup_dashboard_state):
     assert isinstance(data["recommendations"], list)
 
 
-def test_get_metrics_no_collector(client):
+def test_get_metrics_no_collector(client, test_dashboard_state):
     """Test getting metrics when collector not initialized."""
-    # Clear metrics collector
-    dashboard_state.metrics_collector = None
+    # The test_dashboard_state fixture provides a clean state with no collector
 
     response = client.get("/api/metrics")
 

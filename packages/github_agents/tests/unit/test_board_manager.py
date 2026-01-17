@@ -602,7 +602,12 @@ class TestClaimMechanism:
 
     @pytest.mark.asyncio
     async def test_release_work_completed(self, board_config, _mock_github_token):
-        """Test releasing work as completed."""
+        """Test releasing work as completed - stays In Progress for human review.
+
+        Note: Agents should NEVER mark issues as Done. Done status only happens
+        when PRs are merged (via GitHub automation). The 'completed' reason means
+        work finished without a PR, which requires human verification.
+        """
         manager = BoardManager(config=board_config)
         manager._post_issue_comment = AsyncMock()
         manager.update_status = AsyncMock(return_value=True)
@@ -610,7 +615,8 @@ class TestClaimMechanism:
         await manager.release_work(45, "claude", reason="completed")
 
         manager._post_issue_comment.assert_called_once()
-        manager.update_status.assert_called_once_with(45, IssueStatus.DONE)
+        # Status should NOT be changed - stays In Progress for human review
+        manager.update_status.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_release_work_blocked(self, board_config, _mock_github_token):

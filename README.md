@@ -122,6 +122,7 @@ Scenario-based projection reports analyzing potential futures involving advanced
 
 | Guide | Description | PDF | Source |
 |-------|-------------|-----|--------|
+| **Agentic Workflow Handout** | AI agent pipeline architecture and workflows | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/agents/Agentic_Workflow_Handout.tex) |
 | **Sleeper Agents Framework** | AI backdoor detection using residual stream analysis | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](packages/sleeper_agents/docs/Sleeper_Agents_Framework_Guide.tex) |
 | **AgentCore Memory Integration** | Multi-provider AI memory system | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/AgentCore_Memory_Integration_Guide.tex) |
 | **Virtual Character System** | AI agent embodiment platform | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/Virtual_Character_System_Guide.tex) |

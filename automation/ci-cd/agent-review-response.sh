@@ -548,7 +548,7 @@ Reason codes:
 - \`already_addressed\` - Admin comment already explained this
 - \`architectural\` - Requires design discussion, not a quick fix
 
-If there's nothing to report in a section, write "None" under it.
+If there's nothing to report in a section, write 'None' under it.
 "
 
 # Save prompt to temp file

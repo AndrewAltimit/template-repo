@@ -1,6 +1,6 @@
 """Shared dependencies and state management for dashboard."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from economic_agents.monitoring import AlignmentMonitor, MetricsCollector, ResourceTracker
 
@@ -44,11 +44,114 @@ class DashboardState:
         """Get company registry."""
         return self.company_registry
 
+    def reset(self) -> None:
+        """Reset all state to initial values.
 
-# Global dashboard state instance
-dashboard_state = DashboardState()
+        Useful for testing to ensure clean state between tests.
+        """
+        self.resource_tracker = None
+        self.metrics_collector = None
+        self.alignment_monitor = None
+        self.agent_state = {}
+        self.company_registry = {}
+
+
+class DashboardStateContainer:
+    """Container for managing the DashboardState singleton with override support.
+
+    This container provides dependency injection support by allowing the
+    default state to be overridden for testing or different application contexts.
+    """
+
+    def __init__(self) -> None:
+        """Initialize the container with a default DashboardState instance."""
+        self._default_state = DashboardState()
+        self._override_state: Optional[DashboardState] = None
+
+    def get_state(self) -> DashboardState:
+        """Get the current DashboardState instance.
+
+        Returns the override state if set, otherwise returns the default state.
+        """
+        return self._override_state if self._override_state is not None else self._default_state
+
+    def override(self, state: DashboardState) -> None:
+        """Override the default state with a custom instance.
+
+        Args:
+            state: The DashboardState instance to use instead of the default.
+        """
+        self._override_state = state
+
+    def reset_override(self) -> None:
+        """Remove the override and revert to the default state."""
+        self._override_state = None
+
+    def reset(self) -> None:
+        """Reset both the override and the default state.
+
+        Useful for testing to ensure completely clean state.
+        """
+        self._override_state = None
+        self._default_state.reset()
+
+
+# Container for managing DashboardState with DI support
+_state_container = DashboardStateContainer()
 
 
 def get_dashboard_state() -> DashboardState:
-    """Dependency function to get dashboard state."""
-    return dashboard_state
+    """FastAPI dependency function to get dashboard state.
+
+    This function is designed to be used with FastAPI's Depends() system.
+    For non-FastAPI contexts (like run_demo.py), create a new DashboardState
+    instance directly or use get_state_container() for advanced control.
+    """
+    return _state_container.get_state()
+
+
+def get_state_container() -> DashboardStateContainer:
+    """Get the DashboardStateContainer for advanced control.
+
+    This allows tests to override the state instance or reset state between tests.
+    Production code should use get_dashboard_state() or create instances directly.
+    """
+    return _state_container
+
+
+def create_dashboard_state() -> DashboardState:
+    """Factory function to create a new DashboardState instance.
+
+    Use this for creating isolated instances (e.g., in tests or for
+    non-web application contexts like run_demo.py).
+    """
+    return DashboardState()
+
+
+# Backwards compatibility: provide a module-level reference to the default state.
+# DEPRECATED: New code should use get_dashboard_state() or create_dashboard_state().
+# This is kept for backwards compatibility with existing imports but will
+# return the container's current state, allowing tests to override it.
+def _get_dashboard_state_compat() -> DashboardState:
+    """Get dashboard state (for backwards compatibility)."""
+    return _state_container.get_state()
+
+
+# Create a lazy property-like access for backwards compatibility
+class _DashboardStateProxy:
+    """Proxy object that delegates to the container's current state.
+
+    This allows existing code that imports 'dashboard_state' to continue
+    working while enabling tests to override the underlying state.
+    """
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(_state_container.get_state(), name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        setattr(_state_container.get_state(), name, value)
+
+
+# DEPRECATED: Use get_dashboard_state() or create_dashboard_state() instead.
+# Kept for backwards compatibility with existing code that imports dashboard_state.
+dashboard_state = _DashboardStateProxy()

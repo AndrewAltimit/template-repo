@@ -20,7 +20,7 @@ from typing import Optional
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.api.config import BackendConfig, BackendMode
 from economic_agents.api.factory import create_backends
-from economic_agents.dashboard.dependencies import dashboard_state
+from economic_agents.dashboard.dependencies import create_dashboard_state, get_state_container
 from economic_agents.demo_config import DemoConfig, DemoMode
 
 
@@ -80,67 +80,83 @@ async def run_demo_async(
             print("\nMake sure API services are running!")
         raise
 
-    # Use the factory method to ensure proper async initialization
-    agent = await AutonomousAgent.create(
-        wallet=wallet,
-        compute=compute,
-        marketplace=marketplace,
-        config={
-            "survival_buffer_hours": config.survival_buffer_hours,
-            "company_threshold": config.company_threshold,
-        },
-        dashboard_state=dashboard_state,
-    )
+    # Create a dedicated DashboardState instance for this demo session.
+    # This avoids global mutable state and makes testing easier.
+    demo_dashboard_state = create_dashboard_state()
 
-    print(f"\nAgent initialized: {agent.agent_id}")
-    print(f"   Initial balance: ${agent.state.balance:.2f}")
-    print(f"   Compute hours: {agent.state.compute_hours_remaining:.1f}h")
-    print("\nRunning cycles (press Ctrl+C to stop gracefully)...\n")
+    # Override the global state container so the FastAPI dashboard can see our state.
+    # This allows the web dashboard at localhost:8501 to show live updates.
+    state_container = get_state_container()
+    state_container.override(demo_dashboard_state)
 
     try:
-        for cycle in range(config.max_cycles):
-            await agent.run_cycle()
+        # Use the factory method to ensure proper async initialization
+        agent = await AutonomousAgent.create(
+            wallet=wallet,
+            compute=compute,
+            marketplace=marketplace,
+            config={
+                "survival_buffer_hours": config.survival_buffer_hours,
+                "company_threshold": config.company_threshold,
+            },
+            dashboard_state=demo_dashboard_state,
+        )
 
-            # Print progress
-            status = "Company Work" if agent.state.has_company else "Task Work"
-            print(
-                f"Cycle {cycle + 1:3d}/{config.max_cycles}: "
-                f"Balance=${agent.state.balance:7.2f} | "
-                f"Compute={agent.state.compute_hours_remaining:5.1f}h | "
-                f"{status}"
+        print(f"\nAgent initialized: {agent.agent_id}")
+        print(f"   Initial balance: ${agent.state.balance:.2f}")
+        print(f"   Compute hours: {agent.state.compute_hours_remaining:.1f}h")
+        print("\nRunning cycles (press Ctrl+C to stop gracefully)...\n")
+
+        try:
+            for cycle in range(config.max_cycles):
+                await agent.run_cycle()
+
+                # Print progress
+                status = "Company Work" if agent.state.has_company else "Task Work"
+                print(
+                    f"Cycle {cycle + 1:3d}/{config.max_cycles}: "
+                    f"Balance=${agent.state.balance:7.2f} | "
+                    f"Compute={agent.state.compute_hours_remaining:5.1f}h | "
+                    f"{status}"
+                )
+
+                # Delay to make updates visible in dashboard
+                await asyncio.sleep(config.cycle_delay_seconds)
+
+                # Stop if agent runs out of resources
+                if agent.state.balance <= 0 or agent.state.compute_hours_remaining <= 0:
+                    print("\nAgent ran out of resources!")
+                    break
+
+        except KeyboardInterrupt:
+            print("\n\nDemo stopped by user")
+
+        # Final summary
+        print("\n" + "=" * 60)
+        print("Final Statistics:")
+        print("=" * 60)
+        print(f"Cycles completed:     {agent.state.cycles_completed}")
+        print(f"Final balance:        ${agent.state.balance:.2f}")
+        print(f"Compute remaining:    {agent.state.compute_hours_remaining:.1f}h")
+        print(f"Tasks completed:      {agent.state.tasks_completed}")
+        print(f"Company formed:       {'Yes' if agent.state.has_company else 'No'}")
+
+        if agent.state.has_company and agent.company:
+            print("\nCompany Details:")
+            print(f"   Name:             {agent.company.name}")
+            print(f"   Stage:            {agent.company.stage}")
+            team_size = (
+                len(agent.company.board_member_ids) + len(agent.company.executive_ids) + len(agent.company.employee_ids)
             )
+            print(f"   Team size:        {team_size}")
+            print(f"   Products:         {len(agent.company.products)}")
 
-            # Delay to make updates visible in dashboard
-            await asyncio.sleep(config.cycle_delay_seconds)
-
-            # Stop if agent runs out of resources
-            if agent.state.balance <= 0 or agent.state.compute_hours_remaining <= 0:
-                print("\nAgent ran out of resources!")
-                break
-
-    except KeyboardInterrupt:
-        print("\n\nDemo stopped by user")
-
-    # Final summary
-    print("\n" + "=" * 60)
-    print("Final Statistics:")
-    print("=" * 60)
-    print(f"Cycles completed:     {agent.state.cycles_completed}")
-    print(f"Final balance:        ${agent.state.balance:.2f}")
-    print(f"Compute remaining:    {agent.state.compute_hours_remaining:.1f}h")
-    print(f"Tasks completed:      {agent.state.tasks_completed}")
-    print(f"Company formed:       {'Yes' if agent.state.has_company else 'No'}")
-
-    if agent.state.has_company and agent.company:
-        print("\nCompany Details:")
-        print(f"   Name:             {agent.company.name}")
-        print(f"   Stage:            {agent.company.stage}")
-        team_size = len(agent.company.board_member_ids) + len(agent.company.executive_ids) + len(agent.company.employee_ids)
-        print(f"   Team size:        {team_size}")
-        print(f"   Products:         {len(agent.company.products)}")
-
-    print("\nTip: Refresh the dashboard at http://localhost:8501 to see final state")
-    print("=" * 60)
+        print("\nTip: Refresh the dashboard at http://localhost:8501 to see final state")
+        print("=" * 60)
+    finally:
+        # Clean up: reset the state override so future runs start fresh.
+        # Using finally ensures cleanup even if an exception occurs.
+        state_container.reset_override()
 
 
 def run_demo(
