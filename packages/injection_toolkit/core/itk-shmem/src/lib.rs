@@ -55,6 +55,7 @@ pub struct SharedMemory {
     handle: windows::Win32::Foundation::HANDLE,
     #[cfg(unix)]
     fd: std::os::unix::io::RawFd,
+    #[allow(dead_code)] // Used for cleanup logic, may be utilized in future
     owner: bool,
 }
 
@@ -139,7 +140,6 @@ impl SharedMemory {
 cfg_if::cfg_if! {
     if #[cfg(windows)] {
         mod windows_impl;
-        use windows_impl::*;
 
         impl SharedMemory {
             fn create_impl(name: &str, size: usize) -> Result<Self> {
