@@ -1,4 +1,4 @@
-# MCP-Enabled Project Template
+# Agent Orchestration & Security Template
 
 An AI safety engineering portfolio combining production tooling, detection research, and risk analysis—structured as a reusable template.
 
