@@ -3,7 +3,9 @@
 use super::{Result, SharedMemory, ShmemError};
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
-use windows::Win32::Foundation::{CloseHandle, GetLastError, ERROR_ALREADY_EXISTS, HANDLE};
+use windows::Win32::Foundation::{
+    CloseHandle, GetLastError, ERROR_ALREADY_EXISTS, HANDLE, INVALID_HANDLE_VALUE,
+};
 use windows::Win32::System::Memory::{
     CreateFileMappingW, MapViewOfFile, OpenFileMappingW, UnmapViewOfFile, VirtualQuery,
     FILE_MAP_ALL_ACCESS, MEMORY_BASIC_INFORMATION, MEMORY_MAPPED_VIEW_ADDRESS, PAGE_READWRITE,
@@ -51,10 +53,12 @@ pub fn create(name: &str, size: usize) -> Result<SharedMemory> {
     let wide_name = to_wide_string(&full_name);
 
     unsafe {
-        // Create file mapping
+        // Create file mapping backed by system paging file
+        // INVALID_HANDLE_VALUE (-1) is required to use the paging file
+        // HANDLE::default() (0) is NOT valid for this purpose
         let handle = CreateFileMappingW(
-            HANDLE::default(), // Use paging file
-            None,              // Default security
+            INVALID_HANDLE_VALUE, // Use system paging file
+            None,                 // Default security
             PAGE_READWRITE,
             (size >> 32) as u32,
             size as u32,
