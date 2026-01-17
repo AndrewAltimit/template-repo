@@ -39,8 +39,12 @@ fn make_socket_path(name: &str) -> Result<String> {
 }
 
 /// Safely remove a socket file, verifying it's actually a socket first.
+///
+/// Uses symlink_metadata to avoid following symlinks, preventing any
+/// interaction with symlink targets.
 fn remove_socket_file(path: &str) {
-    if let Ok(metadata) = fs::metadata(path) {
+    // Use symlink_metadata to not follow symlinks - strictly safer
+    if let Ok(metadata) = fs::symlink_metadata(path) {
         use std::os::unix::fs::FileTypeExt;
         if metadata.file_type().is_socket() {
             let _ = fs::remove_file(path);

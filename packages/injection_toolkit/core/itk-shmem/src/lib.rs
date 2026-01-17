@@ -267,11 +267,11 @@ impl SeqlockHeader {
 
     /// Begin a write operation (marks sequence as odd)
     ///
-    /// Uses Release ordering to ensure the sequence increment is visible
-    /// before subsequent data writes. Combined with readers using Acquire,
-    /// this creates a proper synchronization point.
+    /// Uses Acquire ordering to prevent subsequent data writes from being
+    /// reordered before the sequence increment. This ensures readers see
+    /// the odd sequence before any new data is written.
     pub fn begin_write(&self) {
-        self.seq.fetch_add(1, Ordering::Release);
+        self.seq.fetch_add(1, Ordering::Acquire);
     }
 
     /// End a write operation (marks sequence as even)
@@ -478,7 +478,7 @@ impl FrameBuffer {
         let write_idx = (current_idx + 1) % 3;
 
         // Begin critical section - marks seq odd
-        // Release ordering ensures this is visible before subsequent writes
+        // Acquire ordering prevents subsequent data writes from floating up
         header.begin_write();
 
         // Write buffer data inside the seqlock critical section
