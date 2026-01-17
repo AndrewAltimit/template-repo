@@ -12,17 +12,17 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use windows::core::PCWSTR;
 use windows::Win32::Foundation::{CloseHandle, LocalFree, HANDLE, HLOCAL, INVALID_HANDLE_VALUE};
-use windows::Win32::Security::{
-    ConvertStringSecurityDescriptorToSecurityDescriptorW, PSECURITY_DESCRIPTOR,
-    SECURITY_ATTRIBUTES, SDDL_REVISION_1,
+use windows::Win32::Security::Authorization::{
+    ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1,
 };
+use windows::Win32::Security::{PSECURITY_DESCRIPTOR, SECURITY_ATTRIBUTES};
 use windows::Win32::Storage::FileSystem::{
-    CreateFileW, FlushFileBuffers, ReadFile, WriteFile, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_NONE,
-    OPEN_EXISTING,
+    CreateFileW, FlushFileBuffers, ReadFile, WriteFile, FILE_ATTRIBUTE_NORMAL,
+    FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_SHARE_NONE, OPEN_EXISTING, PIPE_ACCESS_DUPLEX,
 };
 use windows::Win32::System::Pipes::{
-    ConnectNamedPipe, CreateNamedPipeW, DisconnectNamedPipe, PIPE_ACCESS_DUPLEX,
-    PIPE_READMODE_BYTE, PIPE_TYPE_BYTE, PIPE_UNLIMITED_INSTANCES, PIPE_WAIT,
+    ConnectNamedPipe, CreateNamedPipeW, DisconnectNamedPipe, PIPE_READMODE_BYTE, PIPE_TYPE_BYTE,
+    PIPE_UNLIMITED_INSTANCES, PIPE_WAIT,
 };
 
 const BUFFER_SIZE: u32 = 65536;
@@ -100,8 +100,14 @@ fn create_restricted_security_attributes() -> Result<(SECURITY_ATTRIBUTES, Secur
 pub struct NamedPipeClient {
     handle: Mutex<HANDLE>,
     connected: AtomicBool,
+    #[allow(dead_code)]
     name: String,
 }
+
+// SAFETY: HANDLE is a raw pointer but we protect all access with a Mutex.
+// The handle is only accessed through the Mutex, ensuring thread-safe access.
+unsafe impl Send for NamedPipeClient {}
+unsafe impl Sync for NamedPipeClient {}
 
 impl NamedPipeClient {
     /// Connect to a named pipe server
@@ -112,9 +118,7 @@ impl NamedPipeClient {
         unsafe {
             let handle = CreateFileW(
                 PCWSTR(wide_name.as_ptr()),
-                (windows::Win32::Storage::FileSystem::FILE_GENERIC_READ
-                    | windows::Win32::Storage::FileSystem::FILE_GENERIC_WRITE)
-                    .0,
+                (FILE_GENERIC_READ | FILE_GENERIC_WRITE).0,
                 FILE_SHARE_NONE,
                 None,
                 OPEN_EXISTING,
@@ -234,8 +238,7 @@ impl NamedPipeServer {
                 BUFFER_SIZE,
                 0,
                 Some(&sa),
-            )
-            .map_err(|e| IpcError::Platform(e.to_string()))?;
+            );
 
             // _guard is dropped here, freeing the security descriptor
             // This is safe because CreateNamedPipeW copies the security descriptor
@@ -281,6 +284,11 @@ pub struct NamedPipeConnection {
     handle: Mutex<HANDLE>,
     connected: AtomicBool,
 }
+
+// SAFETY: HANDLE is a raw pointer but we protect all access with a Mutex.
+// The handle is only accessed through the Mutex, ensuring thread-safe access.
+unsafe impl Send for NamedPipeConnection {}
+unsafe impl Sync for NamedPipeConnection {}
 
 impl IpcChannel for NamedPipeConnection {
     fn send(&self, data: &[u8]) -> Result<()> {
