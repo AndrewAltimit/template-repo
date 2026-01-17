@@ -176,35 +176,46 @@ Used for lock-free shared memory access:
 
 ```rust
 // Writer
-seq.fetch_add(1, Release);  // Odd = writing, ensures visibility
+seq.fetch_add(1, Acquire);  // Odd = writing, prevents data writes from floating up
 // ... write data (Relaxed is fine here) ...
 seq.fetch_add(1, Release);  // Even = done, makes writes visible
 
 // Reader
 loop {
-    let s1 = seq.load(Acquire);  // Acquire synchronizes with writer's Release
+    let s1 = seq.load(Acquire);  // Synchronizes with writer's Release
     if s1 & 1 != 0 { continue; }  // Write in progress
-    // ... read data (Relaxed, protected by seqlock) ...
-    let s2 = seq.load(Acquire);
+    // ... read data (Relaxed, bounded by fence below) ...
+    fence(Acquire);  // Prevents data reads from sinking past seq2 check
+    let s2 = seq.load(Relaxed);  // Fence provides ordering
     if s1 == s2 { break; }  // Consistent read
 }
 ```
 
 ### Memory Ordering Strategy
 
-We use Acquire/Release ordering for seqlock operations:
+The seqlock uses carefully chosen orderings for ARM compatibility:
 
-- **Writer**: `fetch_add(1, Release)` ensures all prior data writes are visible
-  before the sequence number update
-- **Reader**: `load(Acquire)` synchronizes with writer's Release, ensuring data
-  reads see the correct values
-- **Data reads/writes**: Can use `Relaxed` ordering since the seqlock sequence
-  number provides the necessary synchronization
+**Writer:**
+- **begin_write**: `fetch_add(1, Acquire)` - Prevents subsequent data writes from
+  being reordered before the odd-increment. Without this, readers could see
+  "even" sequence but read partially-written data.
+- **end_write**: `fetch_add(1, Release)` - Ensures all data writes are visible
+  before the even sequence number.
+
+**Reader:**
+- **First seq load**: `load(Acquire)` - Synchronizes with writer's Release,
+  ensuring we see data that was written before the sequence we observe.
+- **Data reads**: `Relaxed` - Safe because bounded by the fence below.
+- **Fence**: `fence(Acquire)` before second seq check - **Critical**: Prevents
+  data loads from being reordered past the validation. Without this fence, the
+  CPU could check seq2, find it valid, then execute data reads that see new/torn
+  data from a concurrent write.
+- **Second seq load**: `Relaxed` - The fence provides the necessary ordering.
 
 This approach:
-- **ARM compatible**: Works correctly on weakly-ordered architectures
-- **Performant**: Avoids unnecessary full memory barriers
-- **Correct**: Follows the standard seqlock pattern from academic literature
+- **ARM compatible**: Correctly handles weak memory ordering
+- **Performant**: Uses minimal barriers (no SeqCst)
+- **Verified**: Tested with Loom concurrency checker
 
 ## Error Handling
 

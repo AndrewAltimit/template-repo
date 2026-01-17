@@ -237,10 +237,11 @@ impl SeqlockHeader {
 
     /// Begin a write operation (marks sequence as odd)
     ///
-    /// Uses Release ordering to ensure readers see the odd sequence
-    /// before any data writes become visible.
+    /// Uses Acquire ordering to prevent subsequent data writes from
+    /// being reordered before the sequence increment. This ensures
+    /// readers see the odd sequence before any new data.
     pub fn begin_write(&self) {
-        self.seq.fetch_add(1, Ordering::Release);
+        self.seq.fetch_add(1, Ordering::Acquire);
     }
 
     /// End a write operation (marks sequence as even)
@@ -266,16 +267,18 @@ impl SeqlockHeader {
     /// Returns None if a write was in progress.
     /// Caller should retry in a loop.
     ///
-    /// Uses Acquire/Release semantics for ARM compatibility:
-    /// - Acquire on sequence reads synchronizes with writer's Release
-    /// - Relaxed for data reads (protected by seqlock)
+    /// Memory ordering for ARM compatibility:
+    /// - Acquire on first seq read synchronizes with writer's Release
+    /// - Relaxed for data reads (bounded by seqlock)
+    /// - Acquire fence before second seq check prevents data reads from
+    ///   being reordered past the validation
     pub fn try_read(&self) -> Option<SeqlockState> {
         let seq1 = self.read_seq_acquire();
         if seq1 & 1 != 0 {
             return None; // Write in progress
         }
 
-        // Data reads can be Relaxed - seqlock provides synchronization
+        // Data reads can be Relaxed - bounded by seqlock fence below
         let state = SeqlockState {
             read_idx: self.read_idx.load(Ordering::Relaxed),
             pts_ms: self.pts_ms.load(Ordering::Relaxed),
@@ -285,7 +288,13 @@ impl SeqlockHeader {
             content_id_hash: self.content_id_hash.load(Ordering::Relaxed),
         };
 
-        let seq2 = self.read_seq_acquire();
+        // Critical: Prevent data loads from sinking past the sequence check.
+        // Without this fence, the CPU could reorder seq2 read before data reads,
+        // causing us to validate against an old sequence while reading new data.
+        std::sync::atomic::fence(Ordering::Acquire);
+
+        // Relaxed is sufficient here - the fence above provides ordering
+        let seq2 = self.seq.load(Ordering::Relaxed);
         if seq1 != seq2 {
             return None; // Write happened during read
         }
@@ -555,13 +564,13 @@ mod loom_tests {
         }
 
         fn write(&self, val: u64) {
-            // Begin write (odd)
-            self.seq.fetch_add(1, Ordering::Release);
+            // Begin write (odd) - Acquire prevents data writes from floating up
+            self.seq.fetch_add(1, Ordering::Acquire);
 
             // Write data
             self.value.store(val, Ordering::Relaxed);
 
-            // End write (even)
+            // End write (even) - Release ensures data writes are visible
             self.seq.fetch_add(1, Ordering::Release);
         }
 
@@ -573,7 +582,10 @@ mod loom_tests {
 
             let val = self.value.load(Ordering::Relaxed);
 
-            let seq2 = self.seq.load(Ordering::Acquire);
+            // Fence prevents data loads from sinking past seq2 check
+            loom::sync::atomic::fence(Ordering::Acquire);
+
+            let seq2 = self.seq.load(Ordering::Relaxed);
             if seq1 != seq2 {
                 return None; // Write happened during read
             }

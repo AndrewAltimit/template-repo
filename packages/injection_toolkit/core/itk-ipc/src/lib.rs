@@ -181,12 +181,24 @@ mod integration_tests {
     use itk_protocol::{encode, decode, MessageType};
     use rand::Rng;
     use std::thread;
-    use std::time::Duration;
+    use std::time::{Duration, Instant};
 
     /// Generate a unique channel name for testing
     fn test_channel_name() -> String {
         let id: u32 = rand::thread_rng().gen();
         format!("itk_test_{}", id)
+    }
+
+    /// Connect with retry loop instead of sleep (more robust)
+    fn connect_with_retry(name: &str, timeout: Duration) -> UnixSocketClient {
+        let start = Instant::now();
+        while start.elapsed() < timeout {
+            if let Ok(client) = connect(name) {
+                return client;
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+        panic!("Failed to connect to IPC server within {:?}", timeout);
     }
 
     #[test]
@@ -210,11 +222,8 @@ mod integration_tests {
             conn.send(&pong).expect("Failed to send");
         });
 
-        // Give server time to start
-        thread::sleep(Duration::from_millis(50));
-
-        // Connect client
-        let client = connect(&channel_name_client).expect("Failed to connect");
+        // Connect with retry loop (robust against slow server startup)
+        let client = connect_with_retry(&channel_name_client, Duration::from_secs(2));
 
         // Send ping with proper protocol framing
         let ping = encode(MessageType::Ping, &()).expect("Failed to encode");
@@ -254,9 +263,7 @@ mod integration_tests {
             conn.send(&pong).expect("Failed to send");
         });
 
-        thread::sleep(Duration::from_millis(50));
-
-        let client = connect(&channel_name_client).expect("Failed to connect");
+        let client = connect_with_retry(&channel_name_client, Duration::from_secs(2));
 
         let rect = ScreenRect {
             x: 100.0,
@@ -296,9 +303,7 @@ mod integration_tests {
             conn.send(&pong).expect("Failed to send");
         });
 
-        thread::sleep(Duration::from_millis(50));
-
-        let client = connect(&channel_name_client).expect("Failed to connect");
+        let client = connect_with_retry(&channel_name_client, Duration::from_secs(2));
 
         for _ in 0..5 {
             let ping = encode(MessageType::Ping, &()).expect("Failed to encode");
