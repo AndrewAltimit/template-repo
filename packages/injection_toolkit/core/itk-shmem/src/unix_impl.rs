@@ -9,13 +9,40 @@ use std::ffi::CString;
 use std::num::NonZeroUsize;
 use std::os::fd::AsRawFd;
 
-/// Create the shared memory name (/dev/shm/itk_name on Linux)
-fn make_name(name: &str) -> String {
-    format!("/itk_{}", name)
+/// Validate and create the shared memory name (/dev/shm/itk_name on Linux).
+///
+/// For security, this function:
+/// - Rejects names with path traversal sequences (..)
+/// - Rejects absolute paths (starting with /)
+/// - Rejects names with path separators
+/// - Creates names only in /itk_* namespace
+fn make_name(name: &str) -> Result<String> {
+    // Reject path traversal attempts
+    if name.contains("..") {
+        return Err(ShmemError::InvalidName(
+            "name cannot contain path traversal sequences".into(),
+        ));
+    }
+
+    // Reject absolute paths
+    if name.starts_with('/') {
+        return Err(ShmemError::InvalidName(
+            "name cannot be an absolute path".into(),
+        ));
+    }
+
+    // Reject names with path separators
+    if name.contains('/') || name.contains('\\') {
+        return Err(ShmemError::InvalidName(
+            "name cannot contain path separators".into(),
+        ));
+    }
+
+    Ok(format!("/itk_{}", name))
 }
 
 pub fn create(name: &str, size: usize) -> Result<SharedMemory> {
-    let full_name = make_name(name);
+    let full_name = make_name(name)?;
     let c_name = CString::new(full_name.clone())
         .map_err(|_| ShmemError::InvalidName("Name contains null bytes".into()))?;
 
@@ -61,7 +88,7 @@ pub fn create(name: &str, size: usize) -> Result<SharedMemory> {
 }
 
 pub fn open(name: &str, size: usize) -> Result<SharedMemory> {
-    let full_name = make_name(name);
+    let full_name = make_name(name)?;
     let c_name = CString::new(full_name.clone())
         .map_err(|_| ShmemError::InvalidName("Name contains null bytes".into()))?;
 

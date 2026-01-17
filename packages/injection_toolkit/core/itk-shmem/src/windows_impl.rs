@@ -14,13 +14,40 @@ fn to_wide_string(s: &str) -> Vec<u16> {
     OsStr::new(s).encode_wide().chain(Some(0)).collect()
 }
 
-/// Create the shared memory name (Local\ namespace for same-session access)
-fn make_name(name: &str) -> String {
-    format!("Local\\itk_{}", name)
+/// Validate and create the shared memory name (Local\ namespace for same-session access).
+///
+/// For security, this function:
+/// - Rejects names with path traversal sequences (..)
+/// - Rejects names that look like full object paths (starting with Local\ or Global\)
+/// - Rejects names with path separators
+/// - Creates names only in Local\itk_* namespace
+fn make_name(name: &str) -> Result<String> {
+    // Reject path traversal attempts
+    if name.contains("..") {
+        return Err(ShmemError::InvalidName(
+            "name cannot contain path traversal sequences".into(),
+        ));
+    }
+
+    // Reject names that look like they're trying to specify a full object path
+    if name.starts_with("Local\\") || name.starts_with("Global\\") {
+        return Err(ShmemError::InvalidName(
+            "name cannot be a full object path".into(),
+        ));
+    }
+
+    // Reject names with path separators
+    if name.contains('\\') || name.contains('/') {
+        return Err(ShmemError::InvalidName(
+            "name cannot contain path separators".into(),
+        ));
+    }
+
+    Ok(format!("Local\\itk_{}", name))
 }
 
 pub fn create(name: &str, size: usize) -> Result<SharedMemory> {
-    let full_name = make_name(name);
+    let full_name = make_name(name)?;
     let wide_name = to_wide_string(&full_name);
 
     unsafe {
@@ -58,7 +85,7 @@ pub fn create(name: &str, size: usize) -> Result<SharedMemory> {
 }
 
 pub fn open(name: &str, size: usize) -> Result<SharedMemory> {
-    let full_name = make_name(name);
+    let full_name = make_name(name)?;
     let wide_name = to_wide_string(&full_name);
 
     unsafe {

@@ -29,6 +29,33 @@ use windows::Win32::System::Pipes::{
 
 const BUFFER_SIZE: u32 = 65536;
 
+/// Write all data to a handle, looping until complete.
+///
+/// Windows WriteFile may write fewer bytes than requested (partial write).
+/// This function ensures all data is written before returning.
+fn write_all_to_handle(handle: HANDLE, data: &[u8]) -> std::result::Result<(), IpcError> {
+    let mut offset = 0;
+    while offset < data.len() {
+        let mut bytes_written = 0u32;
+        let remaining = &data[offset..];
+
+        unsafe {
+            WriteFile(handle, Some(remaining), Some(&mut bytes_written), None)
+                .map_err(|e| IpcError::Io(std::io::Error::other(e.to_string())))?;
+        }
+
+        if bytes_written == 0 {
+            return Err(IpcError::Io(std::io::Error::new(
+                std::io::ErrorKind::WriteZero,
+                "WriteFile wrote zero bytes",
+            )));
+        }
+
+        offset += bytes_written as usize;
+    }
+    Ok(())
+}
+
 /// ERROR_PIPE_CONNECTED (535) - The pipe is already connected.
 /// This occurs when a client connects between CreateNamedPipeW and ConnectNamedPipe.
 /// It's not an error condition - it means the pipe is ready for use.
@@ -178,12 +205,11 @@ impl IpcChannel for NamedPipeClient {
         }
 
         let handle = self.handle.lock().unwrap();
-        let mut bytes_written = 0u32;
+
+        // Use helper to ensure all data is written (handles partial writes)
+        write_all_to_handle(*handle, data)?;
 
         unsafe {
-            WriteFile(*handle, Some(data), Some(&mut bytes_written), None)
-                .map_err(|e| IpcError::Io(std::io::Error::other(e.to_string())))?;
-
             FlushFileBuffers(*handle)
                 .map_err(|e| IpcError::Io(std::io::Error::other(e.to_string())))?;
         }
@@ -331,12 +357,11 @@ impl IpcChannel for NamedPipeConnection {
         }
 
         let handle = self.handle.lock().unwrap();
-        let mut bytes_written = 0u32;
+
+        // Use helper to ensure all data is written (handles partial writes)
+        write_all_to_handle(*handle, data)?;
 
         unsafe {
-            WriteFile(*handle, Some(data), Some(&mut bytes_written), None)
-                .map_err(|e| IpcError::Io(std::io::Error::other(e.to_string())))?;
-
             FlushFileBuffers(*handle)
                 .map_err(|e| IpcError::Io(std::io::Error::other(e.to_string())))?;
         }

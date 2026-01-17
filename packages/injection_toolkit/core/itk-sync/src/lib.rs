@@ -247,7 +247,8 @@ impl PlaybackSync {
         let elapsed = now_ms().saturating_sub(self.ref_wallclock_ms);
         let adjusted_elapsed = (elapsed as f64 * self.playback_rate) as u64;
 
-        self.position_at_ref_ms + adjusted_elapsed
+        // Use saturating_add to prevent overflow on large values
+        self.position_at_ref_ms.saturating_add(adjusted_elapsed)
     }
 
     /// Update from a received sync state (e.g., from network)

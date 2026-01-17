@@ -44,6 +44,9 @@ pub enum ShmemError {
 
     #[error("size calculation overflow: dimensions {width}x{height} exceed maximum")]
     SizeOverflow { width: u32, height: u32 },
+
+    #[error("seqlock read contention: writer may have crashed or is holding lock too long")]
+    SeqlockContention,
 }
 
 /// Result type for shared memory operations
@@ -320,6 +323,9 @@ impl SeqlockHeader {
     }
 
     /// Read state, spinning until consistent
+    ///
+    /// **Warning**: This can spin indefinitely if the writer crashes while holding
+    /// the seqlock (seq stuck on odd). Use `read_with_timeout` for bounded waiting.
     pub fn read_blocking(&self) -> SeqlockState {
         loop {
             if let Some(state) = self.try_read() {
@@ -327,6 +333,29 @@ impl SeqlockHeader {
             }
             std::hint::spin_loop();
         }
+    }
+
+    /// Read state with bounded retries to prevent infinite spinning.
+    ///
+    /// If the writer crashes while holding the seqlock (seq stuck on odd),
+    /// this will return `SeqlockContention` after `max_attempts` iterations
+    /// instead of spinning forever.
+    ///
+    /// # Arguments
+    /// * `max_attempts` - Maximum number of read attempts before giving up
+    ///
+    /// # Recommended Values
+    /// - 1000 for tight polling loops
+    /// - 10000 for looser real-time requirements
+    /// - 100000 for batch processing with tolerance for delays
+    pub fn read_with_timeout(&self, max_attempts: u32) -> Result<SeqlockState> {
+        for _ in 0..max_attempts {
+            if let Some(state) = self.try_read() {
+                return Ok(state);
+            }
+            std::hint::spin_loop();
+        }
+        Err(ShmemError::SeqlockContention)
     }
 }
 
@@ -456,10 +485,16 @@ impl FrameBuffer {
         Ok(())
     }
 
+    /// Maximum retry attempts before returning contention error
+    const MAX_READ_ATTEMPTS: u32 = 10000;
+
     /// Read the current frame (consumer side)
     ///
     /// Returns (pts_ms, data_changed) where data_changed indicates
     /// if this is a new frame since the last read.
+    ///
+    /// This method has bounded retries to prevent infinite spinning if the
+    /// writer crashes or holds the seqlock for too long.
     pub fn read_frame(&self, last_pts: u64, buf: &mut [u8]) -> Result<(u64, bool)> {
         if buf.len() != self.frame_size {
             return Err(ShmemError::SizeMismatch {
@@ -468,8 +503,9 @@ impl FrameBuffer {
             });
         }
 
-        loop {
-            let state = self.header().read_blocking();
+        for _ in 0..Self::MAX_READ_ATTEMPTS {
+            // Use bounded read to prevent spinning on crashed writer
+            let state = self.header().read_with_timeout(1000)?;
 
             // Skip copy if same frame
             if state.pts_ms == last_pts {
@@ -492,6 +528,8 @@ impl FrameBuffer {
             // State changed during read, retry
             std::hint::spin_loop();
         }
+
+        Err(ShmemError::SeqlockContention)
     }
 }
 

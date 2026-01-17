@@ -3,7 +3,6 @@
 use super::{read_message, IpcChannel, IpcError, IpcServer, Result};
 use std::fs;
 use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -236,13 +235,19 @@ impl UnixSocketServer {
         // Safely remove existing socket file if present (verifies it's actually a socket)
         remove_socket_file(&path);
 
-        let listener = UnixListener::bind(&path).map_err(|e| IpcError::Platform(e.to_string()))?;
+        // Set restrictive umask before creating socket to prevent race condition.
+        // Without this, the socket would briefly exist with default permissions
+        // (potentially allowing other users to connect) before set_permissions runs.
+        let old_umask = unsafe { libc::umask(0o077) };
 
-        // Set restrictive permissions (owner read/write only)
-        // This prevents other users from injecting commands into the daemon
-        if let Err(e) = fs::set_permissions(&path, fs::Permissions::from_mode(0o600)) {
-            tracing::warn!(?e, "Failed to set socket permissions");
+        let bind_result = UnixListener::bind(&path);
+
+        // Restore original umask immediately after bind
+        unsafe {
+            libc::umask(old_umask);
         }
+
+        let listener = bind_result.map_err(|e| IpcError::Platform(e.to_string()))?;
 
         Ok(Self {
             listener,
