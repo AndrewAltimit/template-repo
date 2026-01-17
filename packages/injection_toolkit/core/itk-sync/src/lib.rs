@@ -406,7 +406,7 @@ mod tests {
 
         // Should be approximately 11000 (10000 + 1000)
         let pos = sync.current_position_ms();
-        assert!(pos >= 10900 && pos <= 11100);
+        assert!((10900..=11100).contains(&pos));
     }
 
     #[test]

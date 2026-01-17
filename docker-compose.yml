@@ -758,6 +758,31 @@ services:
     profiles:
       - ci
 
+  # Rust CI container for injection_toolkit and other Rust projects
+  # Note: Cargo cache is not persisted to avoid permission issues with named volumes
+  # Dependencies are downloaded fresh each CI run (acceptable for CI workloads)
+  rust-ci:
+    build:
+      context: .
+      dockerfile: docker/rust-ci.Dockerfile
+    container_name: rust-ci
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - .:/app
+    environment:
+      - CARGO_HOME=/home/ciuser/.cargo
+      - RUSTUP_HOME=/usr/local/rustup  # Read-only, pre-installed in image
+      - CARGO_INCREMENTAL=1
+      - CI=true
+    working_dir: /app/packages/injection_toolkit
+    networks:
+      - mcp-network
+    command: ["/bin/bash"]
+    stdin_open: true
+    tty: true
+    profiles:
+      - ci
+
   # Optional PostgreSQL for future use
   postgres:
     image: postgres:15-alpine

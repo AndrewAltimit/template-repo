@@ -1,6 +1,9 @@
 #!/bin/bash
-# CI/CD Helper Script for running Python tools in Docker
+# CI/CD Helper Script for running Python and Rust tools in Docker
 # This simplifies repetitive docker-compose commands in workflows
+#
+# Python CI: Uses python-ci container (Python 3.11)
+# Rust CI:   Uses rust-ci container (Rust 1.83) for injection_toolkit
 
 set -e
 
@@ -218,6 +221,68 @@ case "$STAGE" in
       --no-header "${EXTRA_ARGS[@]}"
     ;;
 
+  # ============================================
+  # Rust CI Stages (injection_toolkit)
+  # ============================================
+
+  rust-fmt)
+    echo "=== Running Rust format checks ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo fmt --all -- --check
+    ;;
+
+  rust-clippy)
+    echo "=== Running Rust clippy lints ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    # Exclude platform-specific and WIP crates when running on Linux CI
+    # itk-native-dll: Windows-only DLL injector
+    # itk-overlay: WIP overlay application (winit/wgpu API issues)
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo clippy \
+      --workspace --all-targets \
+      --exclude itk-native-dll \
+      --exclude itk-overlay \
+      -- -D warnings
+    ;;
+
+  rust-test)
+    echo "=== Running Rust tests ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    # Exclude platform-specific and WIP crates
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo test \
+      --workspace \
+      --exclude itk-native-dll \
+      --exclude itk-overlay \
+      "${EXTRA_ARGS[@]}"
+    ;;
+
+  rust-build)
+    echo "=== Building Rust workspace ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    # Exclude platform-specific and WIP crates
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo build \
+      --workspace --all-targets \
+      --exclude itk-native-dll \
+      --exclude itk-overlay
+    ;;
+
+  rust-deny)
+    echo "=== Running cargo-deny license/security checks ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo deny check || true
+    ;;
+
+  rust-full)
+    echo "=== Running full Rust CI checks ==="
+    $0 rust-fmt
+    $0 rust-clippy
+    $0 rust-test
+    ;;
+
   full)
     echo "=== Running full CI checks ==="
     $0 format
@@ -230,7 +295,9 @@ case "$STAGE" in
 
   *)
     echo "Unknown stage: $STAGE"
-    echo "Available stages: format, lint-basic, lint-full, lint-shell, ruff, ruff-fix, bandit, security, test, test-gaea2, test-all, test-corporate-proxy, yaml-lint, json-lint, autoformat, full"
+    echo "Available stages:"
+    echo "  Python: format, lint-basic, lint-full, lint-shell, ruff, ruff-fix, bandit, security, test, test-gaea2, test-all, test-corporate-proxy, yaml-lint, json-lint, autoformat, full"
+    echo "  Rust:   rust-fmt, rust-clippy, rust-test, rust-build, rust-deny, rust-full"
     exit 1
     ;;
 esac
