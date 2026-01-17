@@ -1,0 +1,18 @@
+[package]
+name = "itk-ld-preload"
+description = "LD_PRELOAD injection template for the Injection Toolkit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+itk-protocol = { path = "../../../core/itk-protocol" }
+itk-ipc = { path = "../../../core/itk-ipc" }
+
+libc = { workspace = true }
+tracing = { workspace = true }

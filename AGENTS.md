@@ -8,7 +8,7 @@ This file provides guidance to AI agents (Cursor, Aider, and other AI coding ass
 
 This is a **single-maintainer project** by @AndrewAltimit with a **container-first philosophy**:
 
-- All Python operations run in Docker containers
+- All Python and Rust operations run in Docker containers
 - Self-hosted infrastructure for zero-cost operation
 - Designed for maximum portability - works on any Linux system with Docker
 - No contributors model - optimized for individual developer efficiency
@@ -99,7 +99,7 @@ docker-compose run --rm python-ci pytest -k "test_format" -v
 
 **Note**: Gaea2 integration tests are separated from the main test suite because they require the remote Gaea2 MCP server to be available. In PR validation, these tests run in a separate job that checks server availability first.
 
-### Code Quality
+### Code Quality (Python)
 
 ```bash
 # Using containerized CI scripts (recommended)
@@ -119,6 +119,44 @@ docker-compose run --rm python-ci mypy . --ignore-missing-imports
 # Run all checks at once
 ./automation/ci-cd/run-ci.sh full
 ```
+
+### Rust / Injection Toolkit
+
+The `packages/injection_toolkit/` directory contains a Rust workspace for cross-platform screen capture and injection utilities. All Rust CI/CD operations run in containers:
+- `rust-ci` (Rust 1.83 stable) - Basic checks: fmt, clippy, test, build
+- `rust-ci-nightly` (Rust nightly) - Advanced: Miri, Loom, cross-compile
+
+```bash
+# Basic checks (rust-ci container)
+./automation/ci-cd/run-ci.sh rust-fmt      # Check formatting (cargo fmt)
+./automation/ci-cd/run-ci.sh rust-clippy   # Linting (cargo clippy)
+./automation/ci-cd/run-ci.sh rust-test     # Run tests (cargo test)
+./automation/ci-cd/run-ci.sh rust-build    # Build all targets
+./automation/ci-cd/run-ci.sh rust-deny     # License/security audit
+./automation/ci-cd/run-ci.sh rust-full     # All basic Rust checks
+
+# Advanced checks (rust-ci-nightly container)
+./automation/ci-cd/run-ci.sh rust-loom         # Loom concurrency tests
+./automation/ci-cd/run-ci.sh rust-miri         # Miri UB detection
+./automation/ci-cd/run-ci.sh rust-cross-linux  # Cross-compile x86_64-linux
+./automation/ci-cd/run-ci.sh rust-cross-windows # Cross-compile Windows
+./automation/ci-cd/run-ci.sh rust-advanced     # All advanced checks
+
+# Direct Docker Compose commands
+docker-compose --profile ci run --rm rust-ci cargo fmt --all -- --check
+docker-compose --profile ci run --rm rust-ci-nightly cargo +nightly miri test
+
+# Note: Rust CI uses the "ci" profile to avoid starting unnecessary services
+```
+
+**Workspace Structure:**
+- `core/itk-protocol` - Binary protocol for frame data encoding
+- `core/itk-sync` - Lock-free synchronization primitives (seqlock)
+- `core/itk-ipc` - Cross-platform IPC (Unix sockets, Windows named pipes)
+- `core/itk-shmem` - Cross-platform shared memory (POSIX shm, Windows file mapping)
+- `overlay/` - Screen overlay application
+- `daemon/` - Background daemon for frame capture
+- `injectors/` - Platform-specific injection libraries (LD_PRELOAD, Windows DLL)
 
 ### Development
 
@@ -258,7 +296,8 @@ docker-compose build python-ci
 ```bash
 # CI/CD operations script
 ./automation/ci-cd/run-ci.sh [stage]
-# Stages: format, lint-basic, lint-full, security, test, yaml-lint, json-lint, autoformat
+# Python stages: format, lint-basic, lint-full, security, test, yaml-lint, json-lint, autoformat, full
+# Rust stages:   rust-fmt, rust-clippy, rust-test, rust-build, rust-deny, rust-full
 
 # Lint stage helper (used in workflows)
 ./automation/ci-cd/run-lint-stage.sh [stage]
@@ -479,7 +518,9 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
 
 19. **Containerized CI/CD**:
    - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools
-   - **Helper Scripts**: Centralized CI operations
+   - **Rust CI Container** (`docker/rust-ci.Dockerfile`): Rust 1.83 stable for basic checks
+   - **Rust CI Nightly Container** (`docker/rust-ci-nightly.Dockerfile`): Miri, Loom, cross-compile
+   - **Helper Scripts**: Centralized CI operations via `./automation/ci-cd/run-ci.sh`
    - **Individual MCP Containers**: Each server can run in its own optimized container
 
 **For comprehensive MCP architecture documentation, see** `docs/mcp/README.md`
@@ -499,6 +540,7 @@ The repository includes comprehensive CI/CD workflows:
 
 1. **Everything Containerized** (with documented exceptions):
    - Python CI/CD tools run in `python-ci` container (Python 3.11)
+   - Rust CI/CD tools run in `rust-ci` container (Rust 1.83)
    - MCP servers run in their own containers
    - **Exceptions due to authentication requirements**:
      - AI Agents using Claude CLI (requires host subscription auth - see `docs/agents/claude-auth.md`)
@@ -506,7 +548,7 @@ The repository includes comprehensive CI/CD workflows:
    - All containers run with user permissions (non-root)
 
 2. **Zero Local Dependencies**:
-   - No need to install Python, Node.js, or any tools locally
+   - No need to install Python, Rust, Node.js, or any tools locally
    - All operations available through Docker Compose
    - Portable across any Linux system
 
@@ -554,13 +596,16 @@ The repository includes comprehensive CI/CD workflows:
 - **MCP Servers**: The project uses modular MCP servers. See `docs/mcp/README.md` for architecture details.
 - IMPORTANT: When you have completed a task, you MUST run the lint and quality checks:
   ```bash
-  # Run full CI checks
+  # Run full Python CI checks
   ./automation/ci-cd/run-ci.sh full
 
-  # Or individual checks
+  # Or individual Python checks
   ./automation/ci-cd/run-ci.sh format
   ./automation/ci-cd/run-ci.sh lint-basic
   ./automation/ci-cd/run-ci.sh lint-full
+
+  # For Rust/injection_toolkit changes
+  ./automation/ci-cd/run-ci.sh rust-full
   ```
 - **Context Window Protection**: CI/CD scripts produce verbose output that can fill your context window. Always pipe output to a log file:
   ```bash
