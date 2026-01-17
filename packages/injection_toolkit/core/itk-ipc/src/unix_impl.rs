@@ -77,7 +77,13 @@ fn try_recv_with_fd(fd: std::os::unix::io::RawFd) -> Result<Option<Vec<u8>>> {
         return Err(IpcError::Io(err));
     }
 
+    // recv returning 0 means EOF (connection closed)
+    if peeked == 0 {
+        return Err(IpcError::ChannelClosed);
+    }
+
     if (peeked as usize) < HEADER_SIZE {
+        // Partial header available - not enough data yet
         return Ok(None);
     }
 
@@ -123,10 +129,12 @@ fn try_recv_with_fd(fd: std::os::unix::io::RawFd) -> Result<Option<Vec<u8>>> {
     }
 
     if (received as usize) != total_size {
-        return Err(IpcError::Protocol(itk_protocol::ProtocolError::IncompletePayload {
-            need: total_size - itk_protocol::HEADER_SIZE,
-            have: (received as usize).saturating_sub(itk_protocol::HEADER_SIZE),
-        }));
+        return Err(IpcError::Protocol(
+            itk_protocol::ProtocolError::IncompletePayload {
+                need: total_size - itk_protocol::HEADER_SIZE,
+                have: (received as usize).saturating_sub(itk_protocol::HEADER_SIZE),
+            },
+        ));
     }
 
     Ok(Some(message))
@@ -272,8 +280,8 @@ impl IpcServer for UnixSocketServer {
 impl Drop for UnixSocketServer {
     fn drop(&mut self) {
         self.close();
-        // Clean up socket file
-        let _ = std::fs::remove_file(&self.path);
+        // Clean up socket file (verify it's actually a socket before deletion)
+        remove_socket_file(&self.path);
     }
 }
 
