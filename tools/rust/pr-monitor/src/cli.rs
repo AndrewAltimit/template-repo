@@ -25,8 +25,8 @@ pub struct Args {
     #[arg(long, default_value = "600")]
     pub timeout: u64,
 
-    /// Poll interval in seconds (default: 5)
-    #[arg(long, default_value = "5")]
+    /// Poll interval in seconds (default: 5, minimum: 1)
+    #[arg(long, default_value = "5", value_parser = clap::value_parser!(u64).range(1..))]
     pub poll_interval: u64,
 
     /// Output only JSON (suppress stderr progress messages)

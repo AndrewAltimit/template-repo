@@ -53,10 +53,25 @@ impl GhClient {
             ))))
     }
 
+    /// Check if gh CLI is available and authenticated
+    pub fn check_available() -> Result<()> {
+        let output = Command::new("gh")
+            .args(["auth", "status"])
+            .output()?;
+
+        if !output.status.success() {
+            return Err(Error::GhFailed {
+                code: output.status.code().unwrap_or(-1),
+                stderr: String::from_utf8_lossy(&output.stderr).trim().to_string(),
+            });
+        }
+        Ok(())
+    }
+
     /// Get commit timestamp for filtering
     pub fn get_commit_time(sha: &str) -> Result<DateTime<Utc>> {
         let output = Command::new("gh")
-            .args(["api", &format!("repos/{{owner}}/{{repo}}/commits/{}", sha)])
+            .args(["api", &format!("repos/:owner/:repo/commits/{}", sha)])
             .args(["--jq", ".commit.committer.date"])
             .output()?;
 

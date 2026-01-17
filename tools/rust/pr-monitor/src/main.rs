@@ -48,6 +48,9 @@ fn run() -> Result<(), Error> {
     })
     .ok();
 
+    // Verify gh CLI is available and authenticated (fail fast)
+    GhClient::check_available()?;
+
     if !args.json {
         eprintln!("{}", "=".repeat(60));
         eprintln!("PR #{} MONITORING AGENT", args.pr_number);
