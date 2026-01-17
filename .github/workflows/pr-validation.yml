@@ -50,6 +50,7 @@ jobs:
       sleeper_changed: ${{ steps.changes.outputs.sleeper_changed }}
       dashboard_changed: ${{ steps.changes.outputs.dashboard_changed }}
       ci_changed: ${{ steps.changes.outputs.ci_changed }}
+      injection_toolkit_changed: ${{ steps.changes.outputs.injection_toolkit_changed }}
       files_changed: ${{ steps.changes.outputs.files_changed }}
     steps:
       - name: Checkout code
@@ -94,6 +95,7 @@ jobs:
           sleeper_count=$(grep -E '(packages/sleeper_agents|sleeper-evaluation)' changed_files.txt | wc -l || echo "0")
           dashboard_count=$(grep -E '(packages/sleeper_agents/dashboard)' changed_files.txt | wc -l || echo "0")
           ci_count=$(grep -E '(automation/ci-cd|\.github/workflows|docker/)' changed_files.txt | wc -l || echo "0")
+          injection_toolkit_count=$(grep -E 'packages/injection_toolkit' changed_files.txt | wc -l || echo "0")
           total_files=$(cat changed_files.txt | wc -l)
 
           # Set outputs
@@ -105,6 +107,7 @@ jobs:
           echo "sleeper_changed=$([[ $sleeper_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "dashboard_changed=$([[ $dashboard_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "ci_changed=$([[ $ci_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "injection_toolkit_changed=$([[ $injection_toolkit_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "files_changed=$total_files" >> $GITHUB_OUTPUT
 
           echo "[INFO] Change Summary:"
@@ -116,6 +119,7 @@ jobs:
           echo "  sleeper agents: $sleeper_count"
           echo "  Dashboard: $dashboard_count"
           echo "  CI/CD files: $ci_count"
+          echo "  Injection Toolkit: $injection_toolkit_count"
           echo "  Total files: $total_files"
 
   # Stage 2: Gemini AI Code Review
@@ -937,7 +941,101 @@ jobs:
       run_regression: true
       update_baselines: false
 
-  # Stage 8: Docker image validation
+  # Stage 8b: Injection Toolkit Tests (Rust)
+  injection-toolkit-tests:
+    name: Injection Toolkit Tests
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.injection_toolkit_changed == 'true'
+    runs-on: self-hosted
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: packages/injection_toolkit
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: -D warnings
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Install Rust toolchain
+        run: |
+          rustup show
+          rustup component add clippy rustfmt
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            packages/injection_toolkit/target
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('packages/injection_toolkit/**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-cargo-
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        # Only lint core crates to avoid X11 dependency from overlay crate
+        run: cargo clippy -p itk-protocol -p itk-shmem -p itk-ipc --all-targets -- -D warnings
+
+      - name: Run unit tests
+        run: |
+          cargo test -p itk-protocol -p itk-shmem -p itk-ipc --lib -- --nocapture
+          echo "## Unit Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "All unit tests passed on ${{ runner.arch }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Run Loom concurrency tests
+        env:
+          RUSTFLAGS: --cfg loom
+        run: |
+          cargo test -p itk-shmem loom_tests -- --nocapture
+          echo "## Loom Concurrency Tests" >> $GITHUB_STEP_SUMMARY
+          echo "Seqlock memory ordering verified across all interleavings" >> $GITHUB_STEP_SUMMARY
+
+      - name: Install Miri
+        run: |
+          rustup toolchain install nightly --component miri
+          rustup run nightly cargo miri setup
+
+      - name: Run Miri UB detection
+        run: |
+          cargo +nightly miri test -p itk-shmem -- seqlock
+          cargo +nightly miri test -p itk-protocol
+          echo "## Miri Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "No undefined behavior detected" >> $GITHUB_STEP_SUMMARY
+
+      - name: Cross-compile check (x86_64 Linux)
+        run: |
+          rustup target add x86_64-unknown-linux-gnu
+          cargo check --target x86_64-unknown-linux-gnu -p itk-protocol -p itk-shmem -p itk-ipc
+          echo "## Cross-Compilation: x86_64-unknown-linux-gnu" >> $GITHUB_STEP_SUMMARY
+          echo "Core crates compile successfully" >> $GITHUB_STEP_SUMMARY
+
+      - name: Cross-compile check (Windows)
+        run: |
+          rustup target add x86_64-pc-windows-gnu
+          cargo check --target x86_64-pc-windows-gnu -p itk-protocol -p itk-shmem -p itk-ipc
+          echo "## Cross-Compilation: x86_64-pc-windows-gnu" >> $GITHUB_STEP_SUMMARY
+          echo "Core crates compile successfully" >> $GITHUB_STEP_SUMMARY
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "## Injection Toolkit CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "All validation checks completed on ${{ runner.arch }} runner" >> $GITHUB_STEP_SUMMARY
+
+  # Stage 9: Docker image validation
   docker-validation:
     name: Docker Image Validation
     needs: [detect-changes, gemini-review, codex-review, agent-review-response, format-check, basic-lint, full-lint]
@@ -1240,6 +1338,7 @@ jobs:
       - sleeper-agents-tests
       - dashboard-tests
       - gaea2-integration-tests
+      - injection-toolkit-tests
       - docker-validation
       - agent-failure-handler
     if: always()
@@ -1272,6 +1371,7 @@ jobs:
           echo "- sleeper agents: ${{ needs.sleeper-agents-tests.result }}"
           echo "- Dashboard Tests: ${{ needs.dashboard-tests.result }}"
           echo "- Gaea2 Integration Tests: ${{ needs.gaea2-integration-tests.result }}"
+          echo "- Injection Toolkit Tests: ${{ needs.injection-toolkit-tests.result }}"
           echo "- Docker Validation: ${{ needs.docker-validation.result }}"
 
           # Check for failures (AI reviews are advisory, not blocking)
@@ -1288,6 +1388,7 @@ jobs:
                 "${{ needs.sleeper-agents-tests.result }}" == "failure" ||
                 "${{ needs.dashboard-tests.result }}" == "failure" ||
                 "${{ needs.gaea2-integration-tests.result }}" == "failure" ||
+                "${{ needs.injection-toolkit-tests.result }}" == "failure" ||
                 "${{ needs.docker-validation.result }}" == "failure" ]]; then
             echo ""
             echo "❌ PR validation failed - please review the failed checks"
@@ -1319,6 +1420,7 @@ jobs:
               'sleeper-agents': '${{ needs.sleeper-agents-tests.result }}',
               'dashboard-tests': '${{ needs.dashboard-tests.result }}',
               'gaea2-integration-tests': '${{ needs.gaea2-integration-tests.result }}',
+              'injection-toolkit': '${{ needs.injection-toolkit-tests.result }}',
               'docker-validation': '${{ needs.docker-validation.result }}'
             };
 

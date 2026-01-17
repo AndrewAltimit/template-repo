@@ -361,7 +361,9 @@ pub fn encode<T: Serialize>(msg_type: MessageType, payload: &T) -> Result<Vec<u8
 /// Decode a message from wire format
 ///
 /// Returns the message type and deserialized payload
-pub fn decode<T: for<'de> Deserialize<'de>>(bytes: &[u8]) -> Result<(MessageType, T), ProtocolError> {
+pub fn decode<T: for<'de> Deserialize<'de>>(
+    bytes: &[u8],
+) -> Result<(MessageType, T), ProtocolError> {
     let header = Header::from_bytes(bytes)?;
 
     let payload_start = HEADER_SIZE;

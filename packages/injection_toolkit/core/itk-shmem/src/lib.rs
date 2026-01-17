@@ -423,7 +423,9 @@ impl FrameBuffer {
         header.begin_write();
         header.read_idx.store(write_idx, Ordering::Relaxed);
         header.pts_ms.store(pts_ms, Ordering::Relaxed);
-        header.content_id_hash.store(content_id_hash, Ordering::Relaxed);
+        header
+            .content_id_hash
+            .store(content_id_hash, Ordering::Relaxed);
         header.end_write();
 
         Ok(())

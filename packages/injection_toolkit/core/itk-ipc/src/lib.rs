@@ -178,7 +178,7 @@ mod tests {
 #[cfg(test)]
 mod integration_tests {
     use super::*;
-    use itk_protocol::{encode, decode, MessageType};
+    use itk_protocol::{decode, encode, MessageType};
     use rand::Rng;
     use std::thread;
     use std::time::{Duration, Instant};
@@ -250,7 +250,8 @@ mod integration_tests {
             let conn = server.accept().expect("Failed to accept");
 
             let msg = conn.recv().expect("Failed to receive");
-            let (msg_type, rect): (MessageType, ScreenRect) = decode(&msg).expect("Failed to decode");
+            let (msg_type, rect): (MessageType, ScreenRect) =
+                decode(&msg).expect("Failed to decode");
 
             assert_eq!(msg_type, MessageType::ScreenRect);
             assert_eq!(rect.x, 100.0);

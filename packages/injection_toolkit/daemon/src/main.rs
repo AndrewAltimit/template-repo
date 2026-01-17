@@ -46,16 +46,20 @@ const MAX_SCREEN_DIM: f32 = 16384.0;
 /// Validate a ScreenRect from untrusted source
 fn validate_screen_rect(rect: &ScreenRect) -> Result<()> {
     // Check for NaN/Inf which could cause issues
-    if !rect.x.is_finite() || !rect.y.is_finite()
-        || !rect.width.is_finite() || !rect.height.is_finite()
+    if !rect.x.is_finite()
+        || !rect.y.is_finite()
+        || !rect.width.is_finite()
+        || !rect.height.is_finite()
         || !rect.rotation.is_finite()
     {
         bail!("ScreenRect contains non-finite values");
     }
 
     // Sanity check dimensions
-    if rect.x.abs() > MAX_SCREEN_DIM || rect.y.abs() > MAX_SCREEN_DIM
-        || rect.width > MAX_SCREEN_DIM || rect.height > MAX_SCREEN_DIM
+    if rect.x.abs() > MAX_SCREEN_DIM
+        || rect.y.abs() > MAX_SCREEN_DIM
+        || rect.width > MAX_SCREEN_DIM
+        || rect.height > MAX_SCREEN_DIM
     {
         bail!("ScreenRect dimensions out of bounds");
     }
@@ -68,10 +72,16 @@ fn validate_screen_rect(rect: &ScreenRect) -> Result<()> {
     // Check for coordinate overflow (could crash GPU/wgpu)
     let right = rect.x + rect.width;
     let bottom = rect.y + rect.height;
-    if !right.is_finite() || !bottom.is_finite()
-        || right.abs() > MAX_SCREEN_DIM || bottom.abs() > MAX_SCREEN_DIM
+    if !right.is_finite()
+        || !bottom.is_finite()
+        || right.abs() > MAX_SCREEN_DIM
+        || bottom.abs() > MAX_SCREEN_DIM
     {
-        bail!("ScreenRect coordinate overflow: right={}, bottom={}", right, bottom);
+        bail!(
+            "ScreenRect coordinate overflow: right={}, bottom={}",
+            right,
+            bottom
+        );
     }
 
     Ok(())
@@ -80,7 +90,10 @@ fn validate_screen_rect(rect: &ScreenRect) -> Result<()> {
 /// Validate a StateEvent from untrusted source
 fn validate_state_event(event: &StateEvent) -> Result<()> {
     if event.event_type.len() > MAX_STRING_LEN {
-        bail!("StateEvent event_type too long: {} bytes", event.event_type.len());
+        bail!(
+            "StateEvent event_type too long: {} bytes",
+            event.event_type.len()
+        );
     }
     if event.data.len() > MAX_DATA_SIZE {
         bail!("StateEvent data too large: {} bytes", event.data.len());
@@ -94,10 +107,16 @@ fn validate_state_event(event: &StateEvent) -> Result<()> {
 /// Validate a StateSnapshot from untrusted source
 fn validate_state_snapshot(snapshot: &StateSnapshot) -> Result<()> {
     if snapshot.app_id.len() > MAX_STRING_LEN {
-        bail!("StateSnapshot app_id too long: {} bytes", snapshot.app_id.len());
+        bail!(
+            "StateSnapshot app_id too long: {} bytes",
+            snapshot.app_id.len()
+        );
     }
     if snapshot.data.len() > MAX_DATA_SIZE {
-        bail!("StateSnapshot data too large: {} bytes", snapshot.data.len());
+        bail!(
+            "StateSnapshot data too large: {} bytes",
+            snapshot.data.len()
+        );
     }
     Ok(())
 }
@@ -260,9 +279,7 @@ fn process_injector_message(data: &[u8], state: &Arc<RwLock<AppState>>) -> Resul
             // SECURITY: Validate before use
             validate_state_event(&event)?;
             let mut state = state.write().unwrap();
-            state
-                .custom_data
-                .insert(event.event_type, event.data);
+            state.custom_data.insert(event.event_type, event.data);
             state.last_update_ms = event.timestamp_ms;
         }
 
@@ -271,7 +288,9 @@ fn process_injector_message(data: &[u8], state: &Arc<RwLock<AppState>>) -> Resul
             // SECURITY: Validate before use
             validate_state_snapshot(&snapshot)?;
             let mut state = state.write().unwrap();
-            state.custom_data.insert("snapshot".to_string(), snapshot.data);
+            state
+                .custom_data
+                .insert("snapshot".to_string(), snapshot.data);
             state.last_update_ms = snapshot.timestamp_ms;
         }
 

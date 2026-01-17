@@ -29,8 +29,8 @@ impl UnixSocketClient {
     pub fn connect(name: &str) -> Result<Self> {
         let path = make_socket_path(name);
 
-        let stream = UnixStream::connect(&path)
-            .map_err(|e| IpcError::ConnectionFailed(e.to_string()))?;
+        let stream =
+            UnixStream::connect(&path).map_err(|e| IpcError::ConnectionFailed(e.to_string()))?;
 
         Ok(Self {
             stream: Mutex::new(stream),
@@ -118,8 +118,7 @@ impl UnixSocketServer {
         // Remove existing socket file if present
         let _ = fs::remove_file(&path);
 
-        let listener = UnixListener::bind(&path)
-            .map_err(|e| IpcError::Platform(e.to_string()))?;
+        let listener = UnixListener::bind(&path).map_err(|e| IpcError::Platform(e.to_string()))?;
 
         // Set restrictive permissions (owner read/write only)
         // This prevents other users from injecting commands into the daemon

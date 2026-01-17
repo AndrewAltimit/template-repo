@@ -1,6 +1,6 @@
 # Injection Toolkit
 
-[![Injection Toolkit CI](https://github.com/AndrewAltimit/template-repo/actions/workflows/injection-toolkit-ci.yml/badge.svg)](https://github.com/AndrewAltimit/template-repo/actions/workflows/injection-toolkit-ci.yml)
+[![PR Validation](https://github.com/AndrewAltimit/template-repo/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/AndrewAltimit/template-repo/actions/workflows/pr-validation.yml)
 
 A cross-platform framework for runtime integration with closed-source applications.
 
@@ -206,7 +206,7 @@ cargo check --target x86_64-pc-windows-gnu -p itk-ipc -p itk-shmem
 
 ### CI Pipeline
 
-The CI workflow runs automatically on pushes to the feature branch:
+The injection toolkit tests run automatically as part of PR validation when files in `packages/injection_toolkit` are changed:
 
 | Stage | Tool | Purpose |
 |-------|------|---------|
@@ -216,7 +216,7 @@ The CI workflow runs automatically on pushes to the feature branch:
 | Miri | miri | Detects undefined behavior |
 | Cross-Compile | cargo check | Verifies Windows/x86 compilation |
 
-Windows and x86_64 Linux tests can be triggered manually when those runners are available.
+Tests run on the ARM64 self-hosted runner, with cross-compilation verification for x86_64 Linux and Windows targets.
 
 ## Documentation
 

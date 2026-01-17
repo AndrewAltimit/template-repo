@@ -11,7 +11,10 @@ use windows::Win32::UI::WindowsAndMessaging::{
 
 /// Get the HWND from a winit window
 fn get_hwnd(window: &winit::window::Window) -> Result<HWND> {
-    match window.window_handle().map_err(|e| OverlayError::WindowCreation(e.to_string()))?.as_raw()
+    match window
+        .window_handle()
+        .map_err(|e| OverlayError::WindowCreation(e.to_string()))?
+        .as_raw()
     {
         RawWindowHandle::Win32(handle) => Ok(HWND(handle.hwnd.get() as *mut _)),
         _ => Err(OverlayError::UnsupportedPlatform(

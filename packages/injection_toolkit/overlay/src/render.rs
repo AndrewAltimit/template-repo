@@ -261,16 +261,11 @@ impl Renderer {
 
     /// Render a frame
     pub fn render(&mut self, screen_rect: Option<&ScreenRect>) -> Result<()> {
-        let output = self
-            .surface
-            .get_current_texture()
-            .map_err(|e| match e {
-                wgpu::SurfaceError::Lost => OverlayError::DeviceLost,
-                wgpu::SurfaceError::OutOfMemory => {
-                    OverlayError::RendererInit("Out of memory".into())
-                }
-                _ => OverlayError::RendererInit(e.to_string()),
-            })?;
+        let output = self.surface.get_current_texture().map_err(|e| match e {
+            wgpu::SurfaceError::Lost => OverlayError::DeviceLost,
+            wgpu::SurfaceError::OutOfMemory => OverlayError::RendererInit("Out of memory".into()),
+            _ => OverlayError::RendererInit(e.to_string()),
+        })?;
 
         let view = output
             .texture

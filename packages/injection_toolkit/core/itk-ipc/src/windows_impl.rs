@@ -17,8 +17,8 @@ use windows::Win32::Security::Authorization::{
 };
 use windows::Win32::Security::{PSECURITY_DESCRIPTOR, SECURITY_ATTRIBUTES};
 use windows::Win32::Storage::FileSystem::{
-    CreateFileW, FlushFileBuffers, ReadFile, WriteFile, FILE_ATTRIBUTE_NORMAL,
-    FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_SHARE_NONE, OPEN_EXISTING, PIPE_ACCESS_DUPLEX,
+    CreateFileW, FlushFileBuffers, ReadFile, WriteFile, FILE_ATTRIBUTE_NORMAL, FILE_GENERIC_READ,
+    FILE_GENERIC_WRITE, FILE_SHARE_NONE, OPEN_EXISTING, PIPE_ACCESS_DUPLEX,
 };
 use windows::Win32::System::Pipes::{
     ConnectNamedPipe, CreateNamedPipeW, DisconnectNamedPipe, PIPE_READMODE_BYTE, PIPE_TYPE_BYTE,
@@ -150,13 +150,8 @@ impl IpcChannel for NamedPipeClient {
         let mut bytes_written = 0u32;
 
         unsafe {
-            WriteFile(
-                *handle,
-                Some(data),
-                Some(&mut bytes_written),
-                None,
-            )
-            .map_err(|e| IpcError::Io(std::io::Error::other(e.to_string())))?;
+            WriteFile(*handle, Some(data), Some(&mut bytes_written), None)
+                .map_err(|e| IpcError::Io(std::io::Error::other(e.to_string())))?;
 
             FlushFileBuffers(*handle)
                 .map_err(|e| IpcError::Io(std::io::Error::other(e.to_string())))?;
@@ -300,13 +295,8 @@ impl IpcChannel for NamedPipeConnection {
         let mut bytes_written = 0u32;
 
         unsafe {
-            WriteFile(
-                *handle,
-                Some(data),
-                Some(&mut bytes_written),
-                None,
-            )
-            .map_err(|e| IpcError::Io(std::io::Error::other(e.to_string())))?;
+            WriteFile(*handle, Some(data), Some(&mut bytes_written), None)
+                .map_err(|e| IpcError::Io(std::io::Error::other(e.to_string())))?;
 
             FlushFileBuffers(*handle)
                 .map_err(|e| IpcError::Io(std::io::Error::other(e.to_string())))?;
@@ -360,13 +350,8 @@ impl Read for PipeReader {
         let mut bytes_read = 0u32;
 
         unsafe {
-            ReadFile(
-                self.handle,
-                Some(buf),
-                Some(&mut bytes_read),
-                None,
-            )
-            .map_err(|e| std::io::Error::other(e.to_string()))?;
+            ReadFile(self.handle, Some(buf), Some(&mut bytes_read), None)
+                .map_err(|e| std::io::Error::other(e.to_string()))?;
         }
 
         Ok(bytes_read as usize)

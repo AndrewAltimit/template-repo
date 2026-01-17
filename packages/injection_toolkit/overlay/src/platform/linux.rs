@@ -15,9 +15,10 @@ pub fn set_click_through_impl(window: &winit::window::Window, enabled: bool) -> 
     match handle.as_raw() {
         RawWindowHandle::Xlib(xlib_handle) => {
             unsafe {
-                let display = xlib_handle.display.map(|d| d.as_ptr()).ok_or_else(|| {
-                    OverlayError::WindowCreation("No X11 display".into())
-                })?;
+                let display = xlib_handle
+                    .display
+                    .map(|d| d.as_ptr())
+                    .ok_or_else(|| OverlayError::WindowCreation("No X11 display".into()))?;
                 let window_id = xlib_handle.window;
 
                 if enabled {
@@ -79,9 +80,10 @@ pub fn set_always_on_top_impl(window: &winit::window::Window, enabled: bool) -> 
     match handle.as_raw() {
         RawWindowHandle::Xlib(xlib_handle) => {
             unsafe {
-                let display = xlib_handle.display.map(|d| d.as_ptr()).ok_or_else(|| {
-                    OverlayError::WindowCreation("No X11 display".into())
-                })?;
+                let display = xlib_handle
+                    .display
+                    .map(|d| d.as_ptr())
+                    .ok_or_else(|| OverlayError::WindowCreation("No X11 display".into()))?;
                 let window_id = xlib_handle.window;
                 let display = display as *mut x11::xlib::Display;
 
@@ -135,9 +137,10 @@ pub fn set_transparent_impl(window: &winit::window::Window) -> Result<()> {
     match handle.as_raw() {
         RawWindowHandle::Xlib(xlib_handle) => {
             unsafe {
-                let display = xlib_handle.display.map(|d| d.as_ptr()).ok_or_else(|| {
-                    OverlayError::WindowCreation("No X11 display".into())
-                })?;
+                let display = xlib_handle
+                    .display
+                    .map(|d| d.as_ptr())
+                    .ok_or_else(|| OverlayError::WindowCreation("No X11 display".into()))?;
                 let window_id = xlib_handle.window;
                 let display = display as *mut x11::xlib::Display;
 

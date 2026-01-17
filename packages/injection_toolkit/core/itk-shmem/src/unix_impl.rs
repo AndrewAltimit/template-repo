@@ -34,17 +34,15 @@ pub fn create(name: &str, size: usize) -> Result<SharedMemory> {
     if let Err(e) = ftruncate(&fd, size as i64) {
         let _ = nix::unistd::close(fd.as_raw_fd());
         let _ = shm_unlink(c_name.as_c_str());
-        return Err(ShmemError::CreateFailed(format!(
-            "ftruncate failed: {}",
-            e
-        )));
+        return Err(ShmemError::CreateFailed(format!("ftruncate failed: {}", e)));
     }
 
     // Map memory
     let ptr = unsafe {
         mmap(
             None,
-            NonZeroUsize::new(size).ok_or_else(|| ShmemError::CreateFailed("Size is zero".into()))?,
+            NonZeroUsize::new(size)
+                .ok_or_else(|| ShmemError::CreateFailed("Size is zero".into()))?,
             ProtFlags::PROT_READ | ProtFlags::PROT_WRITE,
             MapFlags::MAP_SHARED,
             &fd,
