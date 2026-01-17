@@ -6,39 +6,55 @@ The PR Monitoring System allows Claude Code to continuously monitor Pull Request
 
 ## Architecture
 
-The system uses a hierarchical agent design:
+The system uses a single Rust binary:
 
 ```
-monitor.sh (Low-level detector)
-    ↓
-pr_monitor_agent.py (Subagent analyzer)
+pr-monitor (Rust binary)
     ↓
 Claude Code (Main agent responder)
 ```
 
-1. **monitor.sh**: Bash script that polls GitHub for new comments
-2. **pr_monitor_agent.py**: Python agent that analyzes comments and decides action
-3. **Claude Code**: Main agent that receives structured data and responds
+**pr-monitor**: Rust CLI tool that polls GitHub for comments, classifies them, and outputs structured JSON decisions.
+
+## Installation
+
+### Build from source
+
+```bash
+cd tools/rust/pr-monitor
+cargo build --release
+```
+
+The binary will be at `target/release/pr-monitor`.
+
+### Using Docker (CI)
+
+```bash
+docker-compose --profile ci run --rm rust-ci cargo build --release -p pr-monitor
+```
 
 ## Usage
 
 ### Command Line
 
 ```bash
-# Basic monitoring
-./automation/monitoring/pr/monitor-pr.sh 48
+# Basic monitoring (10 minute timeout, 5 second poll interval)
+./tools/rust/pr-monitor/target/release/pr-monitor 48
 
 # With custom timeout (30 minutes)
-./automation/monitoring/pr/monitor-pr.sh 48 --timeout 1800
+./tools/rust/pr-monitor/target/release/pr-monitor 48 --timeout 1800
 
 # JSON output only (for automation)
-./automation/monitoring/pr/monitor-pr.sh 48 --json
+./tools/rust/pr-monitor/target/release/pr-monitor 48 --json
 
 # Monitor comments after a specific commit
-./automation/monitoring/pr/monitor-pr.sh 48 --since-commit abc1234
+./tools/rust/pr-monitor/target/release/pr-monitor 48 --since-commit abc1234
+
+# Custom poll interval (check every 10 seconds)
+./tools/rust/pr-monitor/target/release/pr-monitor 48 --poll-interval 10
 
 # Combine options
-./automation/monitoring/pr/monitor-pr.sh 48 --since-commit abc1234 --timeout 1800
+./tools/rust/pr-monitor/target/release/pr-monitor 48 --since-commit abc1234 --timeout 1800 --json
 ```
 
 ### In Claude Code
@@ -48,38 +64,23 @@ When working with PRs, you can end tasks with:
 - "...then watch for admin responses"
 - "...and wait for Gemini's review"
 
-Claude will automatically start the monitoring agent.
+Claude will automatically start the monitoring tool.
 
 ### Programmatic Usage
 
-```python
-import subprocess
-import json
+```bash
+# Run monitor and capture JSON output
+result=$(./tools/rust/pr-monitor/target/release/pr-monitor 48 --json 2>/dev/null)
 
-# Run monitor and get structured response
-result = subprocess.run(
-    ["./automation/monitoring/pr/monitor-pr.sh", "48", "--json"],
-    capture_output=True,
-    text=True
-)
-
-if result.returncode == 0:
-    data = json.loads(result.stdout)
-    if data["needs_response"]:
-        print(f"Action required: {data['action_required']}")
-
-# Monitor from a specific commit
-result = subprocess.run(
-    ["./automation/monitoring/pr/monitor-pr.sh", "48",
-     "--since-commit", "abc1234", "--json"],
-    capture_output=True,
-    text=True
-)
+if [ $? -eq 0 ]; then
+    echo "Relevant comment found:"
+    echo "$result" | jq .
+fi
 ```
 
 ## Response Structure
 
-The monitoring agent returns structured JSON:
+The monitoring tool returns structured JSON:
 
 ```json
 {
@@ -97,10 +98,20 @@ The monitoring agent returns structured JSON:
 
 ### Response Types
 
-- **admin_command**: Admin message with [ADMIN] tag (high priority)
-- **admin_comment**: Regular admin comment (normal priority)
-- **gemini_review**: Gemini AI code review (normal priority)
-- **ci_results**: CI/CD validation results (informational)
+| Type | Author | Trigger | Priority | Needs Response |
+|------|--------|---------|----------|----------------|
+| `admin_command` | Admin user | Contains `[ADMIN]` | High | Yes |
+| `admin_comment` | Admin user | Any comment | Normal | Yes |
+| `gemini_review` | github-actions | Contains "Gemini" | Normal | Yes |
+| `ci_results` | github-actions | Contains "PR Validation Results" | Low | No |
+
+### Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Found relevant comment (JSON on stdout) |
+| 1 | Timeout or error |
+| 130 | Interrupted by user (Ctrl+C) |
 
 ## Configuration
 
@@ -108,14 +119,14 @@ The monitor checks for comments from:
 - **AndrewAltimit** (repository admin)
 - **github-actions** (bot comments, including Gemini reviews)
 
-Monitoring intervals:
-- Checks every 5 seconds
-- Default timeout: 10 minutes
-- Configurable via `--timeout` flag
+Monitoring parameters:
+- Default poll interval: 5 seconds
+- Default timeout: 10 minutes (600 seconds)
+- Configurable via `--poll-interval` and `--timeout` flags
 
 ## Commit-Based Monitoring
 
-The PR monitoring system supports starting from a specific commit, which is particularly useful after pushing changes:
+The PR monitoring system supports starting from a specific commit, which is useful after pushing changes:
 
 ### Use Cases
 
@@ -126,13 +137,13 @@ The PR monitoring system supports starting from a specific commit, which is part
 ### How It Works
 
 When you specify `--since-commit SHA`, the monitor:
-1. Gets the timestamp of the specified commit
+1. Gets the timestamp of the specified commit via GitHub API
 2. Filters out any comments created before that timestamp
-3. Only returns comments that are relevant to changes after that commit
+3. Only returns comments relevant to changes after that commit
 
 ### Automatic Detection with Hooks
 
-Claude Code includes a post-tool-use hook that automatically:
+The repository includes a pre-push hook that automatically:
 1. Detects when you push commits
 2. Identifies the current PR
 3. Suggests the monitoring command with the pushed commit SHA
@@ -140,26 +151,29 @@ Claude Code includes a post-tool-use hook that automatically:
 
 Example output after `git push`:
 ```
-**PR FEEDBACK MONITORING REMINDER**
+============================================================
+PR FEEDBACK MONITORING REMINDER
+============================================================
 
-You just pushed commits to PR #48 on branch 'feature-branch'.
-Consider monitoring for feedback on your changes:
+You're pushing commits to PR #48 on branch 'feature-branch'.
+After push completes, consider monitoring for feedback:
 
   Monitor from this commit onwards:
-     python automation/monitoring/pr/pr_monitor_agent.py 48 --since-commit abc1234
+     ./tools/rust/pr-monitor/target/release/pr-monitor 48 --since-commit abc1234
 
   Or monitor all new comments:
-     python automation/monitoring/pr/pr_monitor_agent.py 48
+     ./tools/rust/pr-monitor/target/release/pr-monitor 48
+
+This will watch for:
+  - Admin comments and commands
+  - Gemini AI code review feedback
+  - CI/CD validation results
+
+The monitor will return structured JSON when relevant comments are detected.
+============================================================
 ```
 
 ## Integration with Claude Code
-
-### Slash Commands (Proposed)
-
-Future Claude Code versions could support:
-- `/monitor PR_NUMBER` - Start monitoring a PR
-- `/monitor-stop` - Stop current monitoring
-- `/monitor-status` - Check monitoring status
 
 ### Automatic Monitoring
 
@@ -187,29 +201,35 @@ Claude: I'll update the PR and then monitor for feedback.
 User: Monitor PR #48 for new comments
 
 Claude: Starting PR #48 monitoring...
-[Runs monitoring agent]
+[Runs monitoring tool]
 [Detects admin comment]
 Claude: Admin posted: "[ADMIN] Please add tests"
 [Implements tests and responds]
 ```
 
-### Example 3: Conditional Response
+### Example 3: JSON Output
 
-```python
-# The agent intelligently decides if response is needed
+```json
 {
-  "needs_response": false,  # CI results don't need response
+  "needs_response": false,
+  "priority": "low",
   "response_type": "ci_results",
-  "action_required": "Review CI results if failures present"
+  "action_required": "Review CI results if failures present",
+  "comment": {
+    "author": "github-actions[bot]",
+    "timestamp": "2025-01-15T10:30:00Z",
+    "body": "## PR Validation Results\n\nAll checks passed!"
+  }
 }
 ```
 
 ## Best Practices
 
-1. **Use Write Tool for Responses**: Always create response files with Write tool to avoid escaping issues with reaction images
+1. **Use --json for Automation**: Always use `--json` flag when integrating with scripts
 2. **Check Priority**: High priority (admin commands) should be addressed immediately
-3. **Timeout Appropriately**: Set longer timeouts for complex reviews
+3. **Timeout Appropriately**: Set longer timeouts for complex reviews (30-60 minutes)
 4. **Monitor Specific PRs**: Always specify PR number to avoid confusion
+5. **Use Commit Filtering**: Use `--since-commit` after pushing to focus on new feedback
 
 ## Troubleshooting
 
@@ -217,55 +237,46 @@ Claude: Admin posted: "[ADMIN] Please add tests"
 
 1. Check GitHub CLI authentication: `gh auth status`
 2. Verify PR exists: `gh pr view PR_NUMBER`
-3. Check script permissions: `chmod +x automation/monitoring/pr/*`
-
-### Escaping Issues in Responses
-
-Always use file-based responses:
-```bash
-# Good - Use Write tool
-Write to /tmp/response.md
-gh pr comment PR --body-file /tmp/response.md
-
-# Bad - Direct body flag
-gh pr comment PR --body "![Reaction](...)"  # Will escape !
-```
+3. Build the tool: `cd tools/rust/pr-monitor && cargo build --release`
 
 ### Timeout Issues
 
 Increase timeout for long-running reviews:
 ```bash
-monitor-pr.sh 48 --timeout 3600  # 1 hour
+./tools/rust/pr-monitor/target/release/pr-monitor 48 --timeout 3600  # 1 hour
 ```
+
+### Graceful Shutdown
+
+Press Ctrl+C to interrupt monitoring. The tool will exit with code 130.
 
 ## Implementation Details
 
 ### File Locations
 
 ```
-automation/monitoring/pr/
-├── monitor.sh           # Core monitoring script (supports --since-commit)
-├── pr_monitor_agent.py  # Intelligent analyzer
-└── monitor-pr.sh       # User-friendly wrapper
-
-.claude/hooks/
-└── git-push-posttooluse-hook.py  # Auto-detects pushes and suggests monitoring
-
-.claude/
-└── settings.json       # Hook configuration
+tools/rust/pr-monitor/
+├── Cargo.toml
+├── README.md
+└── src/
+    ├── main.rs           # CLI entry point
+    ├── lib.rs            # Library exports
+    ├── cli.rs            # clap argument parsing
+    ├── error.rs          # Error types with help text
+    ├── github/           # GitHub API client (via gh CLI)
+    ├── monitor/          # Polling loop logic
+    └── analysis/         # Comment classification
 ```
 
 ### Required Dependencies
 
-- GitHub CLI (`gh`)
-- Python 3.6+
-- Bash 4.0+
-- jq (for JSON parsing in bash)
+- **gh** (GitHub CLI) - Must be installed and authenticated
+- No other runtime dependencies (statically linked Rust binary)
 
 ### Security Considerations
 
 - Only responds to authorized users (admin, github-actions)
-- No credentials stored in scripts
+- No credentials stored in binary
 - Uses GitHub CLI authentication
 - Timeouts prevent infinite loops
 
@@ -282,7 +293,7 @@ automation/monitoring/pr/
    - Longer timeouts (30-60 minutes) for comprehensive reviews
 
 3. **Use the hook system**:
-   - The post-tool-use hook automatically reminds you to monitor
+   - The pre-push hook automatically reminds you to monitor
    - Shows the exact command with the right commit SHA
 
 4. **Combine with CI/CD**:
@@ -313,9 +324,6 @@ claude code> "Add the requested tests and push"
 
 1. **WebSocket Monitoring**: Real-time updates instead of polling
 2. **Multiple PR Support**: Monitor several PRs simultaneously
-3. **Custom Triggers**: Configure additional users/keywords
+3. **Custom Triggers**: Configure additional users/keywords via config file
 4. **Notification System**: Desktop/email alerts
-5. **Claude Code Integration**: Native slash commands
-6. **Pattern Matching**: Regex-based response triggers
-7. **Response Templates**: Predefined responses for common scenarios
-8. **Auto-resume monitoring**: Automatically continue monitoring after acting on feedback
+5. **Pattern Matching**: Regex-based response triggers

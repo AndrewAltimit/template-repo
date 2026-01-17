@@ -30,10 +30,10 @@ You're pushing commits to PR #54 on branch 'refine'.
 After push completes, consider monitoring for feedback:
 
   Monitor from this commit onwards:
-     python automation/monitoring/pr/pr_monitor_agent.py 54 --since-commit abc1234
+     ./tools/rust/pr-monitor/target/release/pr-monitor 54 --since-commit abc1234
 
   Or monitor all new comments:
-     python automation/monitoring/pr/pr_monitor_agent.py 54
+     ./tools/rust/pr-monitor/target/release/pr-monitor 54
 
 This will watch for:
   - Admin comments and commands
@@ -94,7 +94,7 @@ To modify or disable the hook, edit `.git/hooks/pre-push` in your local reposito
 
 ### Related Tools
 
-- **PR Monitor Agent**: `automation/monitoring/pr/pr_monitor_agent.py`
+- **PR Monitor**: `tools/rust/pr-monitor/` (Rust binary for PR comment monitoring)
 - **gh-validator**: See `tools/rust/gh-validator/README.md`
 - **GitHub AI Agents**: Automated PR and issue monitoring
 

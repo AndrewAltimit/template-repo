@@ -54,22 +54,19 @@ The AI agents implement a comprehensive multi-layer security model with command-
 
 ```bash
 # Monitor a PR for admin/Gemini comments
-./automation/monitoring/pr/monitor-pr.sh 48
+./tools/rust/pr-monitor/target/release/pr-monitor 48
 
 # Monitor with custom timeout (30 minutes)
-./automation/monitoring/pr/monitor-pr.sh 48 --timeout 1800
+./tools/rust/pr-monitor/target/release/pr-monitor 48 --timeout 1800
 
 # Monitor from a specific commit (for post-push feedback)
-./automation/monitoring/pr/monitor-pr.sh 48 --since-commit abc1234
+./tools/rust/pr-monitor/target/release/pr-monitor 48 --since-commit abc1234
 
-# Get JSON output for automation
-./automation/monitoring/pr/monitor-pr.sh 48 --json
+# Get JSON output for automation (quiet mode)
+./tools/rust/pr-monitor/target/release/pr-monitor 48 --json
 
-# When asked to "monitor the PR for new comments", use:
-python automation/monitoring/pr/pr_monitor_agent.py PR_NUMBER
-
-# After pushing commits, monitor from that commit:
-python automation/monitoring/pr/pr_monitor_agent.py PR_NUMBER --since-commit SHA
+# Build the tool if not already built
+cd tools/rust/pr-monitor && cargo build --release
 ```
 
 **PR Monitoring Usage**: When users ask you to monitor a PR or end requests with "and monitor for comments", automatically start the monitoring agent. It will:
