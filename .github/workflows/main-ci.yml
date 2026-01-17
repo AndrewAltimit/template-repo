@@ -609,12 +609,15 @@ jobs:
           retention-days: 90
 
   # Stage 13: Build LaTeX documentation for release
+  # Uses multi-arch TeXLive image (arm64/amd64) via helper script
   build-latex-docs:
     name: Build LaTeX Documentation
     needs: [test-suite]
     if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
     runs-on: self-hosted
     timeout-minutes: 30
+    env:
+      TEXLIVE_IMAGE: texlive-local
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -622,97 +625,101 @@ jobs:
           fetch-depth: 1
           clean: true
 
+      - name: Build multi-arch TeXLive image
+        run: |
+          echo "Building multi-arch TeXLive image..."
+          docker build -t $TEXLIVE_IMAGE -f docker/texlive.Dockerfile .
+          echo "Image built successfully"
+          docker run --rm $TEXLIVE_IMAGE pdflatex --version
+
       - name: Create output directory
         run: mkdir -p docs_output
 
       - name: Build Sleeper Agents Framework Guide
         run: |
-          echo "Building Sleeper_Agents_Framework_Guide.pdf..."
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -v "$(pwd)/packages/sleeper_agents/docs:/data" \
-            -v "$(pwd)/docs_output:/output" \
-            texlive/texlive:TL2024-historic \
-            bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output Sleeper_Agents_Framework_Guide.tex"
-          # Rename to sensible kebab-case filename
-          mv docs_output/Sleeper_Agents_Framework_Guide.pdf docs_output/sleeper-agents-framework-guide.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            Sleeper_Agents_Framework_Guide.tex \
+            packages/sleeper_agents/docs \
+            docs_output \
+            sleeper-agents-framework-guide
 
       - name: Build AgentCore Memory Integration Guide
         run: |
-          echo "Building AgentCore_Memory_Integration_Guide.pdf..."
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -v "$(pwd)/docs/integrations/ai-services:/data" \
-            -v "$(pwd)/docs_output:/output" \
-            texlive/texlive:TL2024-historic \
-            bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output AgentCore_Memory_Integration_Guide.tex"
-          # Rename to sensible kebab-case filename
-          mv docs_output/AgentCore_Memory_Integration_Guide.pdf docs_output/agentcore-memory-integration-guide.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            AgentCore_Memory_Integration_Guide.tex \
+            docs/integrations/ai-services \
+            docs_output \
+            agentcore-memory-integration-guide
 
       - name: Build Virtual Character System Guide
         run: |
-          echo "Building Virtual_Character_System_Guide.pdf..."
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -v "$(pwd)/docs/integrations/ai-services:/data" \
-            -v "$(pwd)/docs_output:/output" \
-            texlive/texlive:TL2024-historic \
-            bash -c "cd /data && latexmk -pdf -interaction=nonstopmode -output-directory=/output Virtual_Character_System_Guide.tex"
-          # Rename to sensible kebab-case filename
-          mv docs_output/Virtual_Character_System_Guide.pdf docs_output/virtual-character-system-guide.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            Virtual_Character_System_Guide.tex \
+            docs/integrations/ai-services \
+            docs_output \
+            virtual-character-system-guide
 
       - name: Build AI Agents Political Targeting Report
         run: |
-          ./automation/ci-cd/build-latex-doc.sh ai-agents-political-targeting.tex
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-political-targeting.pdf docs_output/ai-agents-political-targeting-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-political-targeting.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-political-targeting-report
 
       - name: Build AI Agents WMD Proliferation Report
         run: |
-          ./automation/ci-cd/build-latex-doc.sh ai-agents-wmd-proliferation.tex
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-wmd-proliferation.pdf docs_output/ai-agents-wmd-proliferation-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-wmd-proliferation.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-wmd-proliferation-report
 
       - name: Build AI Agents Espionage Operations Report
         run: |
-          ./automation/ci-cd/build-latex-doc.sh ai-agents-espionage-operations.tex
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-espionage-operations.pdf docs_output/ai-agents-espionage-operations-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-espionage-operations.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-espionage-operations-report
 
       - name: Build AI Agents Economic Actors Report
         run: |
-          ./automation/ci-cd/build-latex-doc.sh ai-agents-economic-actors.tex
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-economic-actors.pdf docs_output/ai-agents-economic-actors-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-economic-actors.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-economic-actors-report
 
       - name: Build AI Agents Financial Integrity Report
         run: |
-          ./automation/ci-cd/build-latex-doc.sh ai-agents-financial-integrity.tex
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-financial-integrity.pdf docs_output/ai-agents-financial-integrity-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-financial-integrity.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-financial-integrity-report
 
       - name: Build AI Agents Institutional Erosion Report
         run: |
-          ./automation/ci-cd/build-latex-doc.sh ai-agents-institutional-erosion.tex
-          # Rename to include -report suffix for consistency
-          mv docs_output/ai-agents-institutional-erosion.pdf docs_output/ai-agents-institutional-erosion-report.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agents-institutional-erosion.tex \
+            docs/projections/latex \
+            docs_output \
+            ai-agents-institutional-erosion-report
 
       - name: Build Architectural Qualia Paper
         run: |
-          echo "Building architectural-qualia.pdf..."
-          ./automation/ci-cd/build-latex-doc.sh architectural-qualia.tex docs/philosophy/latex
+          ./automation/ci-cd/build-latex-doc.sh \
+            architectural-qualia.tex \
+            docs/philosophy/latex
 
       - name: Build Agentic Workflow Handout
         run: |
-          echo "Building Agentic_Workflow_Handout.pdf..."
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -v "$(pwd)/docs/agents:/data" \
-            -v "$(pwd)/docs_output:/output" \
-            texlive/texlive:TL2024-historic \
-            bash -c "cd /data && pdflatex -interaction=nonstopmode -output-directory=/output Agentic_Workflow_Handout.tex"
-          # Rename to sensible kebab-case filename
-          mv docs_output/Agentic_Workflow_Handout.pdf docs_output/agentic-workflow-handout.pdf
+          ./automation/ci-cd/build-latex-doc.sh \
+            Agentic_Workflow_Handout.tex \
+            docs/agents \
+            docs_output \
+            agentic-workflow-handout
 
       - name: List built PDFs
         run: |
