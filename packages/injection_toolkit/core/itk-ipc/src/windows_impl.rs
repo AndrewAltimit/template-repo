@@ -23,11 +23,26 @@ use windows::Win32::Storage::FileSystem::{
     FILE_GENERIC_WRITE, FILE_SHARE_NONE, OPEN_EXISTING, PIPE_ACCESS_DUPLEX,
 };
 use windows::Win32::System::Pipes::{
-    ConnectNamedPipe, CreateNamedPipeW, DisconnectNamedPipe, PIPE_READMODE_BYTE, PIPE_TYPE_BYTE,
-    PIPE_UNLIMITED_INSTANCES, PIPE_WAIT,
+    ConnectNamedPipe, CreateNamedPipeW, DisconnectNamedPipe, PeekNamedPipe, PIPE_READMODE_BYTE,
+    PIPE_TYPE_BYTE, PIPE_UNLIMITED_INSTANCES, PIPE_WAIT,
 };
 
 const BUFFER_SIZE: u32 = 65536;
+
+/// Check if a pipe has data available using PeekNamedPipe.
+///
+/// Returns the number of bytes available, or 0 if none.
+fn peek_pipe_bytes(handle: HANDLE) -> std::result::Result<u32, IpcError> {
+    let mut bytes_available = 0u32;
+
+    unsafe {
+        // PeekNamedPipe with null buffers just checks byte availability
+        PeekNamedPipe(handle, None, 0, None, Some(&mut bytes_available), None)
+            .map_err(|e| IpcError::Io(std::io::Error::other(e.to_string())))?;
+    }
+
+    Ok(bytes_available)
+}
 
 /// Write all data to a handle, looping until complete.
 ///
@@ -228,9 +243,21 @@ impl IpcChannel for NamedPipeClient {
     }
 
     fn try_recv(&self) -> Result<Option<Vec<u8>>> {
-        // Windows named pipes don't have a good non-blocking check
-        // For now, this is the same as recv
-        self.recv().map(Some)
+        if !self.is_connected() {
+            return Err(IpcError::NotConnected);
+        }
+
+        let handle = self.handle.lock().unwrap();
+
+        // Use PeekNamedPipe for true non-blocking check
+        let bytes_available = peek_pipe_bytes(*handle)?;
+        if bytes_available == 0 {
+            return Ok(None);
+        }
+
+        // Data is available, read it
+        let mut reader = PipeReader { handle: *handle };
+        read_message(&mut reader).map(Some)
     }
 
     fn is_connected(&self) -> bool {
@@ -380,7 +407,21 @@ impl IpcChannel for NamedPipeConnection {
     }
 
     fn try_recv(&self) -> Result<Option<Vec<u8>>> {
-        self.recv().map(Some)
+        if !self.is_connected() {
+            return Err(IpcError::NotConnected);
+        }
+
+        let handle = self.handle.lock().unwrap();
+
+        // Use PeekNamedPipe for true non-blocking check
+        let bytes_available = peek_pipe_bytes(*handle)?;
+        if bytes_available == 0 {
+            return Ok(None);
+        }
+
+        // Data is available, read it
+        let mut reader = PipeReader { handle: *handle };
+        read_message(&mut reader).map(Some)
     }
 
     fn is_connected(&self) -> bool {

@@ -112,9 +112,14 @@ impl SharedMemory {
     /// # Safety
     /// Caller must ensure no concurrent writes or use appropriate synchronization.
     pub unsafe fn read(&self, offset: usize, buf: &mut [u8]) -> Result<()> {
-        if offset + buf.len() > self.size {
+        // Use checked_add to prevent overflow bypassing the bounds check
+        let end = offset
+            .checked_add(buf.len())
+            .ok_or(ShmemError::Platform("offset + length overflow".into()))?;
+
+        if end > self.size {
             return Err(ShmemError::SizeMismatch {
-                expected: offset + buf.len(),
+                expected: end,
                 actual: self.size,
             });
         }
@@ -129,9 +134,14 @@ impl SharedMemory {
     /// # Safety
     /// Caller must ensure no concurrent reads or use appropriate synchronization.
     pub unsafe fn write(&self, offset: usize, buf: &[u8]) -> Result<()> {
-        if offset + buf.len() > self.size {
+        // Use checked_add to prevent overflow bypassing the bounds check
+        let end = offset
+            .checked_add(buf.len())
+            .ok_or(ShmemError::Platform("offset + length overflow".into()))?;
+
+        if end > self.size {
             return Err(ShmemError::SizeMismatch {
-                expected: offset + buf.len(),
+                expected: end,
                 actual: self.size,
             });
         }
@@ -257,11 +267,11 @@ impl SeqlockHeader {
 
     /// Begin a write operation (marks sequence as odd)
     ///
-    /// Uses Acquire ordering to prevent subsequent data writes from
-    /// being reordered before the sequence increment. This ensures
-    /// readers see the odd sequence before any new data.
+    /// Uses Release ordering to ensure the sequence increment is visible
+    /// before subsequent data writes. Combined with readers using Acquire,
+    /// this creates a proper synchronization point.
     pub fn begin_write(&self) {
-        self.seq.fetch_add(1, Ordering::Acquire);
+        self.seq.fetch_add(1, Ordering::Release);
     }
 
     /// End a write operation (marks sequence as even)
@@ -467,19 +477,24 @@ impl FrameBuffer {
         let current_idx = header.read_idx.load(Ordering::Relaxed);
         let write_idx = (current_idx + 1) % 3;
 
-        // Write to buffer (outside seqlock - buffer not yet visible)
+        // Begin critical section - marks seq odd
+        // Release ordering ensures this is visible before subsequent writes
+        header.begin_write();
+
+        // Write buffer data inside the seqlock critical section
+        // This ensures proper ordering on weak memory models (ARM)
         let buf_ptr = self.buffer_ptr(write_idx);
         std::ptr::copy_nonoverlapping(data.as_ptr(), buf_ptr, data.len());
 
-        // Update header atomically
-        // begin_write uses Release, data stores can be Relaxed,
-        // end_write uses Release to make everything visible
-        header.begin_write();
+        // Update header fields
         header.read_idx.store(write_idx, Ordering::Relaxed);
         header.pts_ms.store(pts_ms, Ordering::Relaxed);
         header
             .content_id_hash
             .store(content_id_hash, Ordering::Relaxed);
+
+        // End critical section - marks seq even
+        // Release ordering ensures all writes are visible before this
         header.end_write();
 
         Ok(())

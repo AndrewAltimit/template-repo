@@ -70,7 +70,9 @@ fn try_recv_with_fd(fd: std::os::unix::io::RawFd) -> Result<Option<Vec<u8>>> {
 
     if peeked < 0 {
         let err = std::io::Error::last_os_error();
-        if err.kind() == std::io::ErrorKind::WouldBlock {
+        if err.kind() == std::io::ErrorKind::WouldBlock
+            || err.kind() == std::io::ErrorKind::Interrupted
+        {
             return Ok(None);
         }
         return Err(IpcError::Io(err));
@@ -103,7 +105,9 @@ fn try_recv_with_fd(fd: std::os::unix::io::RawFd) -> Result<Option<Vec<u8>>> {
 
     if peeked_full < 0 {
         let err = std::io::Error::last_os_error();
-        if err.kind() == std::io::ErrorKind::WouldBlock {
+        if err.kind() == std::io::ErrorKind::WouldBlock
+            || err.kind() == std::io::ErrorKind::Interrupted
+        {
             return Ok(None);
         }
         return Err(IpcError::Io(err));
@@ -124,7 +128,12 @@ fn try_recv_with_fd(fd: std::os::unix::io::RawFd) -> Result<Option<Vec<u8>>> {
     };
 
     if received < 0 {
-        return Err(IpcError::Io(std::io::Error::last_os_error()));
+        let err = std::io::Error::last_os_error();
+        // EINTR on final recv is unusual but handle it by reporting no data available
+        if err.kind() == std::io::ErrorKind::Interrupted {
+            return Ok(None);
+        }
+        return Err(IpcError::Io(err));
     }
 
     if (received as usize) != total_size {
