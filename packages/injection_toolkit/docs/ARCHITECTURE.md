@@ -217,6 +217,39 @@ This approach:
 - **Performant**: Uses minimal barriers (no SeqCst)
 - **Verified**: Tested with Loom concurrency checker
 
+### Single-Writer Requirement
+
+**CRITICAL**: The seqlock implementation assumes a **single writer**. Multiple concurrent
+writers will corrupt the sequence counter and cause undefined behavior. This is an
+intentional design choice for our use case:
+
+- **Daemon**: Single process, single write path for frame updates
+- **Injector**: Single process, single write path for state updates
+
+If you need multiple writers in the future:
+1. Wrap the `Seqlock::write()` call with an external `Mutex` or `RwLock`
+2. Or use a different synchronization primitive (e.g., a channel-based approach)
+
+```rust
+// SAFE: External mutex protects multi-threaded writer access
+let writer_lock = Mutex::new(());
+{
+    let _guard = writer_lock.lock().unwrap();
+    seqlock.write(|state| {
+        // ... update state ...
+    });
+}
+
+// UNSAFE: Multiple threads calling write() without synchronization
+// This WILL corrupt data - do not do this!
+std::thread::spawn(|| seqlock.write(|s| s.pts_ms = 100));  // Thread 1
+std::thread::spawn(|| seqlock.write(|s| s.pts_ms = 200));  // Thread 2 - DATA RACE!
+```
+
+The seqlock is designed for **one writer, many readers** - this is the common pattern
+for frame buffer synchronization where one producer (decoder) writes frames and
+multiple consumers (overlay, MCP clients) read them.
+
 ## Error Handling
 
 ### Graceful Degradation

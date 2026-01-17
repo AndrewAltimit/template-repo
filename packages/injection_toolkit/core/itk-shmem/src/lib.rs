@@ -180,7 +180,17 @@ cfg_if::cfg_if! {
 /// Seqlock header for lock-free synchronization
 ///
 /// This is placed at the start of the shared memory region.
-/// All operations use SeqCst ordering for simplicity and correctness.
+/// Uses carefully chosen memory orderings for ARM compatibility.
+///
+/// # Thread Safety
+///
+/// **SINGLE-WRITER ONLY**: This seqlock assumes exactly one writer thread/process.
+/// Multiple concurrent writers will corrupt the sequence counter and cause
+/// undefined behavior. If you need multiple writers, protect the write path
+/// with an external mutex.
+///
+/// Multiple readers are safe and supported - the seqlock is designed for
+/// one-writer-many-readers scenarios (e.g., frame buffer synchronization).
 #[repr(C)]
 pub struct SeqlockHeader {
     /// Sequence number (odd = write in progress, even = consistent)

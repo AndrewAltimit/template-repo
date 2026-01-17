@@ -1,12 +1,21 @@
 //! Windows named pipe implementation
+//!
+//! Named pipes are created with security descriptors that restrict access
+//! to the current user only, preventing other users on the system from
+//! connecting to or injecting commands into the daemon.
 
-use super::{read_message, write_message, IpcChannel, IpcError, IpcServer, Result};
+use super::{read_message, IpcChannel, IpcError, IpcServer, Result};
 use std::ffi::OsStr;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::os::windows::ffi::OsStrExt;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
-use windows::Win32::Foundation::{CloseHandle, HANDLE, INVALID_HANDLE_VALUE};
+use windows::core::PCWSTR;
+use windows::Win32::Foundation::{CloseHandle, LocalFree, HANDLE, HLOCAL, INVALID_HANDLE_VALUE};
+use windows::Win32::Security::{
+    ConvertStringSecurityDescriptorToSecurityDescriptorW, PSECURITY_DESCRIPTOR,
+    SECURITY_ATTRIBUTES, SDDL_REVISION_1,
+};
 use windows::Win32::Storage::FileSystem::{
     CreateFileW, FlushFileBuffers, ReadFile, WriteFile, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_NONE,
     OPEN_EXISTING,
@@ -15,7 +24,6 @@ use windows::Win32::System::Pipes::{
     ConnectNamedPipe, CreateNamedPipeW, DisconnectNamedPipe, PIPE_ACCESS_DUPLEX,
     PIPE_READMODE_BYTE, PIPE_TYPE_BYTE, PIPE_UNLIMITED_INSTANCES, PIPE_WAIT,
 };
-use windows::core::PCWSTR;
 
 const BUFFER_SIZE: u32 = 65536;
 
@@ -29,6 +37,63 @@ fn make_pipe_name(name: &str) -> String {
     } else {
         format!(r"\\.\pipe\itk_{}", name)
     }
+}
+
+/// RAII wrapper for security descriptor allocated by Windows APIs
+struct SecurityDescriptorGuard {
+    ptr: PSECURITY_DESCRIPTOR,
+}
+
+impl Drop for SecurityDescriptorGuard {
+    fn drop(&mut self) {
+        if !self.ptr.0.is_null() {
+            unsafe {
+                let _ = LocalFree(HLOCAL(self.ptr.0));
+            }
+        }
+    }
+}
+
+/// Create security attributes that restrict pipe access to the current user only.
+///
+/// Uses SDDL (Security Descriptor Definition Language) to define:
+/// - D: = DACL (Discretionary Access Control List)
+/// - (A;;GA;;;CO) = Allow Generic All access to Creator Owner
+///
+/// This prevents other users on the system from connecting to the pipe,
+/// similar to Unix socket permissions of 0o600.
+fn create_restricted_security_attributes() -> Result<(SECURITY_ATTRIBUTES, SecurityDescriptorGuard)>
+{
+    // SDDL: D:(A;;GA;;;CO)
+    // D: = DACL
+    // A = Allow
+    // GA = Generic All (full access)
+    // CO = Creator Owner (the user who created the pipe)
+    //
+    // This restricts access to only the user who created the pipe.
+    let sddl = to_wide_string("D:(A;;GA;;;CO)");
+
+    let mut sd_ptr = PSECURITY_DESCRIPTOR::default();
+
+    unsafe {
+        ConvertStringSecurityDescriptorToSecurityDescriptorW(
+            PCWSTR(sddl.as_ptr()),
+            SDDL_REVISION_1,
+            &mut sd_ptr,
+            None,
+        )
+        .map_err(|e| IpcError::Platform(format!("Failed to create security descriptor: {}", e)))?;
+    }
+
+    let guard = SecurityDescriptorGuard { ptr: sd_ptr };
+
+    let sa = SECURITY_ATTRIBUTES {
+        nLength: std::mem::size_of::<SECURITY_ATTRIBUTES>() as u32,
+        lpSecurityDescriptor: sd_ptr.0,
+        bInheritHandle: false.into(),
+    };
+
+    Ok((sa, guard))
 }
 
 /// Windows named pipe client
@@ -149,8 +214,15 @@ impl NamedPipeServer {
         })
     }
 
+    /// Create a new pipe instance with restricted security attributes.
+    ///
+    /// The pipe is created with an ACL that only allows the current user to connect,
+    /// preventing privilege escalation or command injection from other users.
     fn create_pipe_instance(&self) -> Result<HANDLE> {
         let wide_name = to_wide_string(&self.name);
+
+        // Create security attributes restricting access to current user
+        let (sa, _guard) = create_restricted_security_attributes()?;
 
         unsafe {
             let handle = CreateNamedPipeW(
@@ -161,9 +233,12 @@ impl NamedPipeServer {
                 BUFFER_SIZE,
                 BUFFER_SIZE,
                 0,
-                None,
+                Some(&sa),
             )
             .map_err(|e| IpcError::Platform(e.to_string()))?;
+
+            // _guard is dropped here, freeing the security descriptor
+            // This is safe because CreateNamedPipeW copies the security descriptor
 
             if handle == INVALID_HANDLE_VALUE {
                 return Err(IpcError::Platform("Failed to create named pipe".into()));
