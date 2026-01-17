@@ -465,4 +465,170 @@ mod tests {
         let size = FrameBuffer::calculate_size(1280, 720);
         assert_eq!(size, 64 + (1280 * 720 * 4 * 3));
     }
+
+    /// Aligned storage for SeqlockHeader in tests
+    #[repr(C, align(64))]
+    struct AlignedHeaderMem([u8; SeqlockHeader::SIZE]);
+
+    #[test]
+    fn test_seqlock_write_makes_odd_then_even() {
+        let mut header_mem = AlignedHeaderMem([0u8; SeqlockHeader::SIZE]);
+        let header = unsafe { SeqlockHeader::init(header_mem.0.as_mut_ptr()) };
+
+        assert_eq!(header.seq.load(Ordering::SeqCst), 0);
+        assert!(!header.is_write_in_progress());
+
+        header.begin_write();
+        assert_eq!(header.seq.load(Ordering::SeqCst), 1);
+        assert!(header.is_write_in_progress());
+
+        header.end_write();
+        assert_eq!(header.seq.load(Ordering::SeqCst), 2);
+        assert!(!header.is_write_in_progress());
+    }
+
+    #[test]
+    fn test_seqlock_try_read_returns_none_during_write() {
+        let mut header_mem = AlignedHeaderMem([0u8; SeqlockHeader::SIZE]);
+        let header = unsafe { SeqlockHeader::init(header_mem.0.as_mut_ptr()) };
+
+        // Set some initial values
+        header.read_idx.store(1, Ordering::Relaxed);
+        header.pts_ms.store(12345, Ordering::Relaxed);
+
+        // Before write - should succeed
+        let state = header.try_read();
+        assert!(state.is_some());
+        assert_eq!(state.unwrap().read_idx, 1);
+
+        // During write - should fail
+        header.begin_write();
+        assert!(header.try_read().is_none());
+
+        // After write - should succeed
+        header.end_write();
+        let state = header.try_read();
+        assert!(state.is_some());
+    }
+
+    #[test]
+    fn test_seqlock_detects_concurrent_modification() {
+        let mut header_mem = AlignedHeaderMem([0u8; SeqlockHeader::SIZE]);
+        let header = unsafe { SeqlockHeader::init(header_mem.0.as_mut_ptr()) };
+
+        // Simulate a "torn read" scenario:
+        // Reader gets seq1, then writer completes a full write cycle
+        let seq1 = header.seq.load(Ordering::Acquire);
+        assert_eq!(seq1, 0);
+
+        // Writer does a complete write
+        header.begin_write();
+        header.read_idx.store(42, Ordering::Relaxed);
+        header.end_write();
+
+        // seq changed from 0 to 2, so seq1 != seq2
+        let seq2 = header.seq.load(Ordering::Acquire);
+        assert_ne!(seq1, seq2);
+    }
+}
+
+/// Loom-based concurrency tests for verifying seqlock correctness
+/// Run with: RUSTFLAGS="--cfg loom" cargo test --lib loom_tests
+#[cfg(all(test, loom))]
+mod loom_tests {
+    use loom::sync::atomic::{AtomicU32, AtomicU64, Ordering};
+    use loom::sync::Arc;
+    use loom::thread;
+
+    /// Simplified seqlock for loom testing
+    struct LoomSeqlock {
+        seq: AtomicU32,
+        value: AtomicU64,
+    }
+
+    impl LoomSeqlock {
+        fn new() -> Self {
+            Self {
+                seq: AtomicU32::new(0),
+                value: AtomicU64::new(0),
+            }
+        }
+
+        fn write(&self, val: u64) {
+            // Begin write (odd)
+            self.seq.fetch_add(1, Ordering::Release);
+
+            // Write data
+            self.value.store(val, Ordering::Relaxed);
+
+            // End write (even)
+            self.seq.fetch_add(1, Ordering::Release);
+        }
+
+        fn try_read(&self) -> Option<u64> {
+            let seq1 = self.seq.load(Ordering::Acquire);
+            if seq1 & 1 != 0 {
+                return None; // Write in progress
+            }
+
+            let val = self.value.load(Ordering::Relaxed);
+
+            let seq2 = self.seq.load(Ordering::Acquire);
+            if seq1 != seq2 {
+                return None; // Write happened during read
+            }
+
+            Some(val)
+        }
+    }
+
+    #[test]
+    fn loom_seqlock_single_writer_single_reader() {
+        loom::model(|| {
+            let lock = Arc::new(LoomSeqlock::new());
+            let lock2 = Arc::clone(&lock);
+
+            let writer = thread::spawn(move || {
+                lock2.write(42);
+            });
+
+            // Reader may see 0 (initial) or 42 (written), but never garbage
+            loop {
+                if let Some(val) = lock.try_read() {
+                    assert!(val == 0 || val == 42, "Got unexpected value: {}", val);
+                    break;
+                }
+                // Retry if write was in progress
+                loom::thread::yield_now();
+            }
+
+            writer.join().unwrap();
+        });
+    }
+
+    #[test]
+    fn loom_seqlock_multiple_writes() {
+        loom::model(|| {
+            let lock = Arc::new(LoomSeqlock::new());
+            let lock2 = Arc::clone(&lock);
+
+            let writer = thread::spawn(move || {
+                lock2.write(1);
+                lock2.write(2);
+            });
+
+            // Reader should only see valid states: 0, 1, or 2
+            let mut last_seen = 0;
+            for _ in 0..3 {
+                if let Some(val) = lock.try_read() {
+                    assert!(val == 0 || val == 1 || val == 2, "Invalid value: {}", val);
+                    assert!(val >= last_seen, "Values should not decrease");
+                    last_seen = val;
+                }
+                loom::thread::yield_now();
+            }
+
+            writer.join().unwrap();
+        });
+    }
 }

@@ -172,3 +172,143 @@ mod tests {
         assert!(name.starts_with("/tmp/itk_") && name.ends_with(".sock"));
     }
 }
+
+/// Integration tests for IPC communication
+/// These tests use actual OS sockets/pipes with proper protocol framing
+#[cfg(test)]
+mod integration_tests {
+    use super::*;
+    use itk_protocol::{encode, decode, MessageType};
+    use rand::Rng;
+    use std::thread;
+    use std::time::Duration;
+
+    /// Generate a unique channel name for testing
+    fn test_channel_name() -> String {
+        let id: u32 = rand::thread_rng().gen();
+        format!("itk_test_{}", id)
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn test_unix_socket_ping_pong() {
+        let channel_name = test_channel_name();
+        let channel_name_client = channel_name.clone();
+
+        // Start server in background thread
+        let server_handle = thread::spawn(move || {
+            let server = listen(&channel_name).expect("Failed to create server");
+            let conn = server.accept().expect("Failed to accept connection");
+
+            // Receive message (should be a Ping)
+            let msg = conn.recv().expect("Failed to receive");
+            let (msg_type, _): (MessageType, ()) = decode(&msg).expect("Failed to decode");
+            assert_eq!(msg_type, MessageType::Ping);
+
+            // Send Pong response
+            let pong = encode(MessageType::Pong, &()).expect("Failed to encode");
+            conn.send(&pong).expect("Failed to send");
+        });
+
+        // Give server time to start
+        thread::sleep(Duration::from_millis(50));
+
+        // Connect client
+        let client = connect(&channel_name_client).expect("Failed to connect");
+
+        // Send ping with proper protocol framing
+        let ping = encode(MessageType::Ping, &()).expect("Failed to encode");
+        client.send(&ping).expect("Failed to send");
+
+        // Receive pong
+        let response = client.recv().expect("Failed to receive");
+        let (msg_type, _): (MessageType, ()) = decode(&response).expect("Failed to decode");
+        assert_eq!(msg_type, MessageType::Pong);
+
+        server_handle.join().expect("Server thread panicked");
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn test_unix_socket_screen_rect() {
+        use itk_protocol::ScreenRect;
+
+        let channel_name = test_channel_name();
+        let channel_name_client = channel_name.clone();
+
+        let server_handle = thread::spawn(move || {
+            let server = listen(&channel_name).expect("Failed to create server");
+            let conn = server.accept().expect("Failed to accept");
+
+            let msg = conn.recv().expect("Failed to receive");
+            let (msg_type, rect): (MessageType, ScreenRect) = decode(&msg).expect("Failed to decode");
+
+            assert_eq!(msg_type, MessageType::ScreenRect);
+            assert_eq!(rect.x, 100.0);
+            assert_eq!(rect.y, 200.0);
+            assert_eq!(rect.width, 640.0);
+            assert_eq!(rect.height, 480.0);
+
+            // Acknowledge
+            let pong = encode(MessageType::Pong, &()).expect("Failed to encode");
+            conn.send(&pong).expect("Failed to send");
+        });
+
+        thread::sleep(Duration::from_millis(50));
+
+        let client = connect(&channel_name_client).expect("Failed to connect");
+
+        let rect = ScreenRect {
+            x: 100.0,
+            y: 200.0,
+            width: 640.0,
+            height: 480.0,
+            rotation: 0.0,
+            visible: true,
+        };
+        let msg = encode(MessageType::ScreenRect, &rect).expect("Failed to encode");
+        client.send(&msg).expect("Failed to send");
+
+        let response = client.recv().expect("Failed to receive");
+        let (msg_type, _): (MessageType, ()) = decode(&response).expect("Failed to decode");
+        assert_eq!(msg_type, MessageType::Pong);
+
+        server_handle.join().expect("Server thread panicked");
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn test_unix_socket_multiple_pings() {
+        let channel_name = test_channel_name();
+        let channel_name_client = channel_name.clone();
+
+        let server_handle = thread::spawn(move || {
+            let server = listen(&channel_name).expect("Failed to create server");
+            let conn = server.accept().expect("Failed to accept");
+
+            for _ in 0..5 {
+                let msg = conn.recv().expect("Failed to receive");
+                let (msg_type, _): (MessageType, ()) = decode(&msg).expect("Failed to decode");
+                assert_eq!(msg_type, MessageType::Ping);
+            }
+
+            let pong = encode(MessageType::Pong, &()).expect("Failed to encode");
+            conn.send(&pong).expect("Failed to send");
+        });
+
+        thread::sleep(Duration::from_millis(50));
+
+        let client = connect(&channel_name_client).expect("Failed to connect");
+
+        for _ in 0..5 {
+            let ping = encode(MessageType::Ping, &()).expect("Failed to encode");
+            client.send(&ping).expect("Failed to send");
+        }
+
+        let response = client.recv().expect("Failed to receive");
+        let (msg_type, _): (MessageType, ()) = decode(&response).expect("Failed to decode");
+        assert_eq!(msg_type, MessageType::Pong);
+
+        server_handle.join().expect("Server thread panicked");
+    }
+}

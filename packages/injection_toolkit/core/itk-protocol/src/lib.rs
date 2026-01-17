@@ -17,6 +17,7 @@
 //! └─────────┴─────────┴──────────┴─────────────┴─────────┴───────────┘
 //! ```
 
+use bincode::Options;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -321,9 +322,17 @@ pub struct ErrorMessage {
     pub message: String,
 }
 
+/// Bincode configuration with size limits to prevent allocation bombs
+fn bincode_config() -> impl bincode::Options {
+    bincode::options()
+        .with_limit(MAX_PAYLOAD_SIZE as u64)
+        .with_little_endian()
+        .with_fixint_encoding()
+}
+
 /// Encode a message to wire format
 pub fn encode<T: Serialize>(msg_type: MessageType, payload: &T) -> Result<Vec<u8>, ProtocolError> {
-    let payload_bytes = bincode::serialize(payload)?;
+    let payload_bytes = bincode_config().serialize(payload)?;
 
     if payload_bytes.len() > MAX_PAYLOAD_SIZE {
         return Err(ProtocolError::PayloadTooLarge {
@@ -376,7 +385,8 @@ pub fn decode<T: for<'de> Deserialize<'de>>(bytes: &[u8]) -> Result<(MessageType
         });
     }
 
-    let payload: T = bincode::deserialize(payload_bytes)?;
+    // Use bincode with size limits to prevent allocation bombs
+    let payload: T = bincode_config().deserialize(payload_bytes)?;
 
     Ok((header.msg_type, payload))
 }

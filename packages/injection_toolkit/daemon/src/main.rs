@@ -65,6 +65,15 @@ fn validate_screen_rect(rect: &ScreenRect) -> Result<()> {
         bail!("ScreenRect has negative dimensions");
     }
 
+    // Check for coordinate overflow (could crash GPU/wgpu)
+    let right = rect.x + rect.width;
+    let bottom = rect.y + rect.height;
+    if !right.is_finite() || !bottom.is_finite()
+        || right.abs() > MAX_SCREEN_DIM || bottom.abs() > MAX_SCREEN_DIM
+    {
+        bail!("ScreenRect coordinate overflow: right={}, bottom={}", right, bottom);
+    }
+
     Ok(())
 }
 
