@@ -1,0 +1,36 @@
+[package]
+name = "itk-overlay"
+description = "Overlay window template for the Injection Toolkit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+itk-protocol = { path = "../core/itk-protocol" }
+itk-shmem = { path = "../core/itk-shmem" }
+itk-ipc = { path = "../core/itk-ipc" }
+
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# GPU rendering
+wgpu = "22"
+winit = "0.30"
+pollster = "0.3"
+bytemuck = { version = "1.16", features = ["derive"] }
+
+# Platform-specific
+cfg-if = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = [
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Graphics_Gdi",
+] }
+
+[target.'cfg(unix)'.dependencies]
+x11 = { version = "2.21", features = ["xlib"] }

@@ -1,0 +1,22 @@
+[package]
+name = "itk-daemon"
+description = "Daemon template for the Injection Toolkit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+itk-protocol = { path = "../core/itk-protocol" }
+itk-shmem = { path = "../core/itk-shmem" }
+itk-ipc = { path = "../core/itk-ipc" }
+itk-sync = { path = "../core/itk-sync" }
+
+serde = { workspace = true }
+serde_json = "1.0"
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }

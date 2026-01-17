@@ -1,0 +1,18 @@
+[package]
+name = "itk-native-dll"
+description = "Native DLL injection template for the Injection Toolkit (Windows)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+itk-protocol = { path = "../../../core/itk-protocol" }
+itk-ipc = { path = "../../../core/itk-ipc" }
+
+windows = { workspace = true, features = ["Win32_System_SystemServices"] }
+tracing = { workspace = true }
