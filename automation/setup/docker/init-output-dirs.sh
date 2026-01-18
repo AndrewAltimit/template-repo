@@ -57,10 +57,10 @@ for dir in "${OUTPUT_DIRS[@]}"; do
                 DIR_PATH="$(cd "$dir" && pwd)"
                 if command -v timeout &> /dev/null; then
                     # timeout prevents hanging if Docker daemon is unresponsive
-                    timeout 30 docker run --rm -v "$DIR_PATH:/target" busybox:1.36.1 chown -R "$USER_ID:$GROUP_ID" /target 2>/dev/null
+                    timeout 30 docker run --rm -v "$DIR_PATH:/target" busybox:1.36.1 chown -Rh "$USER_ID:$GROUP_ID" /target 2>/dev/null
                 else
                     # Fallback without timeout on systems that don't have it
-                    docker run --rm -v "$DIR_PATH:/target" busybox:1.36.1 chown -R "$USER_ID:$GROUP_ID" /target 2>/dev/null
+                    docker run --rm -v "$DIR_PATH:/target" busybox:1.36.1 chown -Rh "$USER_ID:$GROUP_ID" /target 2>/dev/null
                 fi && \
                     echo -e "${GREEN}[OK]${NC} Fixed ownership: $dir" || \
                     echo "[WARN] Could not fix ownership via Docker: $dir"

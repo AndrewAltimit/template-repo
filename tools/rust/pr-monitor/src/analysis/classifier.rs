@@ -13,6 +13,7 @@ pub enum Action {
     ExecuteAdminCommand,
     ReviewAdminFeedback,
     AddressGeminiReview,
+    AddressCodexReview,
     ReviewCiResults,
 }
 
@@ -22,6 +23,7 @@ impl fmt::Display for Action {
             Action::ExecuteAdminCommand => write!(f, "Execute admin command and respond"),
             Action::ReviewAdminFeedback => write!(f, "Review and respond to admin feedback"),
             Action::AddressGeminiReview => write!(f, "Address Gemini code review feedback"),
+            Action::AddressCodexReview => write!(f, "Address Codex code review feedback"),
             Action::ReviewCiResults => write!(f, "Review CI results if failures present"),
         }
     }
@@ -96,8 +98,8 @@ pub fn classify(comment: &Comment, admin_user: &str) -> Classification {
             return Classification {
                 needs_response: true,
                 priority: Priority::Normal,
-                response_type: Some(ResponseType::GeminiReview), // Treat same as Gemini for now
-                action: Some(Action::AddressGeminiReview),
+                response_type: Some(ResponseType::CodexReview),
+                action: Some(Action::AddressCodexReview),
             };
         }
         // CI status table (not actionable, just informational)
@@ -195,6 +197,11 @@ mod tests {
 
         assert!(classification.needs_response);
         assert_eq!(classification.priority, Priority::Normal);
+        assert_eq!(
+            classification.response_type,
+            Some(ResponseType::CodexReview)
+        );
+        assert_eq!(classification.action, Some(Action::AddressCodexReview));
     }
 
     #[test]
