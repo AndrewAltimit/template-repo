@@ -152,30 +152,54 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           ENABLE_AGENTS: ${{ vars.ENABLE_AGENTS }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          MASK_ENV_VARS: "GITHUB_TOKEN,AGENT_TOKEN,OPENROUTER_API_KEY"
-          PYTHONPATH: ${{ github.workspace }}
-          PYTHONUNBUFFERED: "1"
-          # Auto review specific settings
-          REVIEW_AGENTS: ${{ inputs.agents || 'claude,gemini' }}
           REVIEW_TARGET: ${{ inputs.target || 'both' }}
-          REVIEW_ISSUE_NUMBERS: ${{ inputs.issue_numbers || '' }}
-          REVIEW_PR_NUMBERS: ${{ inputs.pr_numbers || '' }}
-          REVIEW_DEPTH: ${{ inputs.review_depth || 'standard' }}
-          COMMENT_STYLE: ${{ inputs.comment_style || 'consolidated' }}
-          # Ensure read-only mode
-          REVIEW_ONLY_MODE: "true"
-          NO_FILE_MODIFICATIONS: "true"
         run: |
           echo "=== Starting Auto Review ==="
           echo "Repository: $GITHUB_REPOSITORY"
+          echo "Target: $REVIEW_TARGET"
 
-          # Run the auto review script from the scripts directory
-          # Use configured Python command to access installed packages
-          $PYTHON_CMD automation/review/auto-review.py || {
-              exit_code=$?
-              echo "[ERROR] Auto review failed with exit code: $exit_code"
-              exit $exit_code
-          }
+          # Find the github-agents binary
+          GITHUB_AGENTS=""
+          for path in \
+            "./tools/rust/github-agents-cli/target/release/github-agents" \
+            "$HOME/.local/bin/github-agents"; do
+            if [ -x "$path" ]; then
+              GITHUB_AGENTS="$path"
+              break
+            fi
+          done
+
+          # Fall back to PATH lookup
+          if [ -z "$GITHUB_AGENTS" ]; then
+            GITHUB_AGENTS=$(command -v github-agents 2>/dev/null || true)
+          fi
+
+          if [ -z "$GITHUB_AGENTS" ]; then
+            echo "[ERROR] github-agents binary not found. Build with:"
+            echo "  cd tools/rust/github-agents-cli && cargo build --release"
+            exit 1
+          fi
+
+          echo "Using: $GITHUB_AGENTS"
+          SUCCESS=true
+
+          # Process issues if requested
+          if [ "$REVIEW_TARGET" = "issues" ] || [ "$REVIEW_TARGET" = "both" ]; then
+            echo "Processing issues..."
+            "$GITHUB_AGENTS" issue-monitor || SUCCESS=false
+          fi
+
+          # Process PRs if requested
+          if [ "$REVIEW_TARGET" = "pull-requests" ] || [ "$REVIEW_TARGET" = "both" ]; then
+            echo "Processing PRs..."
+            "$GITHUB_AGENTS" pr-monitor || SUCCESS=false
+          fi
+
+          if [ "$SUCCESS" = "false" ]; then
+            echo "[ERROR] Auto review completed with failures"
+            exit 1
+          fi
+          echo "Auto review completed successfully"
 
       - name: Summary
         if: always()
