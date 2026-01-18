@@ -247,7 +247,7 @@ runs:
         STDERR_FILE=$(mktemp)
         START_TIME=$(date +%s)
 
-        if APPROVED_RESULT=$(board-cli --json find-approved --agent "$AGENT_NAME" 2>"$STDERR_FILE"); then
+        if APPROVED_RESULT=$(board-cli --format json find-approved --agent "$AGENT_NAME" 2>"$STDERR_FILE"); then
           END_TIME=$(date +%s)
           echo "Search completed in $((END_TIME - START_TIME)) seconds"
           echo "Find approved result: $APPROVED_RESULT"
@@ -266,7 +266,7 @@ runs:
             for ISSUE_NUM in $NOT_ON_BOARD; do
               echo "Adding issue #$ISSUE_NUM to board..."
               ADD_STDERR=$(mktemp)
-              if board-cli --json add-to-board "$ISSUE_NUM" --agent "$AGENT_NAME" 2>"$ADD_STDERR"; then
+              if board-cli --format json add-to-board "$ISSUE_NUM" --agent "$AGENT_NAME" 2>"$ADD_STDERR"; then
                 echo "Added issue #$ISSUE_NUM to board"
                 SYNCED=$((SYNCED + 1))
               else
@@ -321,7 +321,7 @@ runs:
 
         # Build board-cli command using arrays to prevent command injection
         # This avoids eval and properly handles arguments with special characters
-        CLI_CMD=(board-cli --json ready --limit "$MAX_ISSUES" --approved-only)
+        CLI_CMD=(board-cli --format json ready --limit "$MAX_ISSUES" --approved-only)
         if [ -n "$AGENT_NAME" ]; then
           CLI_CMD+=(--agent "$AGENT_NAME")
         fi
@@ -448,7 +448,7 @@ runs:
         echo "Checking approval for issue #$ISSUE_NUMBER..."
 
         # Capture JSON only, discard stderr logs for clean parsing
-        if APPROVAL_RESULT=$(board-cli --json check-approval "$ISSUE_NUMBER" 2>/dev/null); then
+        if APPROVAL_RESULT=$(board-cli --format json check-approval "$ISSUE_NUMBER" 2>/dev/null); then
           echo "Approval check result: $APPROVAL_RESULT"
 
           APPROVED=$(echo "$APPROVAL_RESULT" | python3 -c "import sys,json; print('true' if json.load(sys.stdin).get('approved') else 'false')" 2>/dev/null || echo "false")
@@ -497,7 +497,7 @@ runs:
         # Capture stderr for debugging while keeping stdout clean for JSON
         STDERR_FILE=$(mktemp)
 
-        if CLAIM_RESULT=$(board-cli --json claim "$ISSUE_NUMBER" --agent "$AGENT_NAME" --session "$SESSION_ID" 2>"$STDERR_FILE"); then
+        if CLAIM_RESULT=$(board-cli --format json claim "$ISSUE_NUMBER" --agent "$AGENT_NAME" --session "$SESSION_ID" 2>"$STDERR_FILE"); then
           echo "Claim result: $CLAIM_RESULT"
 
           SUCCESS=$(echo "$CLAIM_RESULT" | python3 -c "import sys,json; print('true' if json.load(sys.stdin).get('success') else 'false')" 2>/dev/null || echo "false")
@@ -1124,7 +1124,7 @@ runs:
         # Capture stderr for debugging while keeping stdout clean for JSON
         STDERR_FILE=$(mktemp)
 
-        if RELEASE_RESULT=$(board-cli --json release "$ISSUE_NUMBER" --agent "$AGENT_NAME" --reason "$REASON" 2>"$STDERR_FILE"); then
+        if RELEASE_RESULT=$(board-cli --format json release "$ISSUE_NUMBER" --agent "$AGENT_NAME" --reason "$REASON" 2>"$STDERR_FILE"); then
           echo "Release result: $RELEASE_RESULT"
           echo "Released claim with reason: $REASON"
         else
