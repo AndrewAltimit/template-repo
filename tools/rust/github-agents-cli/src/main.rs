@@ -123,6 +123,14 @@ enum Commands {
         /// Output format (text or json)
         #[arg(long, default_value = "text")]
         format: String,
+
+        /// Enable editor pass to clean up review formatting
+        #[arg(long)]
+        editor: bool,
+
+        /// Agent to use for editor pass (default: claude)
+        #[arg(long, default_value = "claude")]
+        editor_agent: String,
     },
 }
 
@@ -237,11 +245,17 @@ async fn run() -> Result<(), Error> {
             full,
             dry_run,
             format,
+            editor,
+            editor_agent,
         } => {
             info!("Running PR review for #{}", pr_number);
 
-            // Load config
-            let config = review::PRReviewConfig::load()?;
+            // Load config and apply CLI overrides
+            let mut config = review::PRReviewConfig::load()?;
+            if editor {
+                config.editor_enabled = true;
+                config.editor_agent = editor_agent;
+            }
 
             // Create reviewer
             let reviewer = review::PRReviewer::new(config, agent.as_deref(), dry_run).await?;

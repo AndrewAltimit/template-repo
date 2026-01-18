@@ -38,6 +38,14 @@ pub struct PRReviewConfig {
     /// URL for reaction image configuration
     #[serde(default = "default_reaction_url")]
     pub reaction_config_url: String,
+
+    /// Enable editor pass to clean up review formatting (default: false)
+    #[serde(default)]
+    pub editor_enabled: bool,
+
+    /// Agent to use for editor pass (default: claude)
+    #[serde(default = "default_editor_agent")]
+    pub editor_agent: String,
 }
 
 fn default_agent() -> String {
@@ -61,6 +69,10 @@ fn default_reaction_url() -> String {
         .to_string()
 }
 
+fn default_editor_agent() -> String {
+    "claude".to_string()
+}
+
 impl Default for PRReviewConfig {
     fn default() -> Self {
         Self {
@@ -71,6 +83,8 @@ impl Default for PRReviewConfig {
             include_comment_context: default_true(),
             verify_claims: default_true(),
             reaction_config_url: default_reaction_url(),
+            editor_enabled: false,
+            editor_agent: default_editor_agent(),
         }
     }
 }

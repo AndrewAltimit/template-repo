@@ -14,6 +14,7 @@ use super::diff::{
     FileStats, PRMetadata, get_changed_files, get_current_commit_sha,
     get_files_changed_since_commit, get_pr_diff, mark_new_changes_in_diff,
 };
+use super::editor::edit_review;
 use super::prompt::build_review_prompt;
 use super::reactions::{fetch_reaction_config, fix_reaction_urls};
 use super::verification::verify_claims;
@@ -36,6 +37,7 @@ struct ReviewState {
 pub struct PRReviewer {
     config: PRReviewConfig,
     agent: Box<dyn ReviewAgent>,
+    editor_agent: Option<Box<dyn ReviewAgent>>,
     dry_run: bool,
 }
 
@@ -65,9 +67,19 @@ impl PRReviewer {
 
         tracing::info!("Using review agent: {}", agent.name());
 
+        // Create editor agent if enabled
+        let editor_agent = if config.editor_enabled {
+            let editor_name = &config.editor_agent;
+            tracing::info!("Editor pass enabled, using: {}", editor_name);
+            agents::select_agent(editor_name).await
+        } else {
+            None
+        };
+
         Ok(Self {
             config,
             agent,
+            editor_agent,
             dry_run,
         })
     }
@@ -187,6 +199,27 @@ impl PRReviewer {
                     e
                 );
                 // Continue with original review rather than aborting
+            }
+        }
+
+        // 11.5. Editor pass to clean up formatting (if enabled)
+        if let Some(ref editor) = self.editor_agent {
+            tracing::info!("Running editor pass with {}...", editor.name());
+            match edit_review(&review, editor.as_ref()).await {
+                Ok(edited) => {
+                    let old_words = super::prompt::count_words(&review);
+                    let new_words = super::prompt::count_words(&edited);
+                    tracing::info!(
+                        "Editor pass complete ({} -> {} words)",
+                        old_words,
+                        new_words
+                    );
+                    review = edited;
+                }
+                Err(e) => {
+                    tracing::warn!("Editor pass failed, using original review: {}", e);
+                    // Continue with unedited review
+                }
             }
         }
 

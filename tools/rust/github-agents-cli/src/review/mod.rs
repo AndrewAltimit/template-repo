@@ -20,6 +20,7 @@ pub mod agents;
 pub mod condenser;
 pub mod config;
 pub mod diff;
+pub mod editor;
 pub mod prompt;
 pub mod reactions;
 pub mod reviewer;
