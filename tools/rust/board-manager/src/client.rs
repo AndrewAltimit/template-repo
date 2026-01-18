@@ -16,7 +16,8 @@ pub const GITHUB_API_URL: &str = "https://api.github.com/graphql";
 pub const GITHUB_REST_API_URL: &str = "https://api.github.com";
 
 /// Maximum retries for transient errors.
-const MAX_RETRIES: u32 = 3;
+/// Set to 5 to improve reliability during rate limiting and CI bursts.
+const MAX_RETRIES: u32 = 5;
 
 /// Initial backoff duration.
 const INITIAL_BACKOFF_SECS: u64 = 1;

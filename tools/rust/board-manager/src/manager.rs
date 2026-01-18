@@ -131,11 +131,16 @@ impl BoardManager {
             agent_name, limit
         );
 
+        // Query with pagination support
         let query = r#"
-        query GetProjectItems($projectId: ID!) {
+        query GetProjectItems($projectId: ID!, $cursor: String) {
           node(id: $projectId) {
             ... on ProjectV2 {
-              items(first: 100) {
+              items(first: 100, after: $cursor) {
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
                 nodes {
                   id
                   fieldValues(first: 20) {
@@ -169,90 +174,138 @@ impl BoardManager {
         }
         "#;
 
-        let variables = json!({ "projectId": project_id });
-        let response = self.client.execute(query, Some(variables)).await?;
-
-        let data = response
-            .data
-            .ok_or_else(|| BoardError::GraphQL("Failed to fetch project items".to_string()))?;
-
-        let items = data
-            .get("node")
-            .and_then(|n| n.get("items"))
-            .and_then(|i| i.get("nodes"))
-            .and_then(|n| n.as_array())
-            .ok_or_else(|| BoardError::GraphQL("Invalid response structure".to_string()))?;
-
         let normalized_agent = agent_name.map(Self::normalize_agent_name);
         let mut ready_issues = Vec::new();
+        let mut cursor: Option<String> = None;
+        let mut page_count = 0;
+        const MAX_PAGES: usize = 10; // Safety limit: 1000 items max
 
-        for item in items {
-            let content = match item.get("content") {
-                Some(c) if !c.is_null() => c,
-                _ => continue,
+        loop {
+            page_count += 1;
+            if page_count > MAX_PAGES {
+                warn!("Reached maximum pagination limit ({} pages)", MAX_PAGES);
+                break;
+            }
+
+            let variables = match &cursor {
+                Some(c) => json!({ "projectId": project_id, "cursor": c }),
+                None => json!({ "projectId": project_id, "cursor": null }),
             };
 
-            // Skip closed issues
-            if content.get("state").and_then(|s| s.as_str()) != Some("OPEN") {
-                continue;
+            let response = self.client.execute(query, Some(variables)).await?;
+
+            let data = response
+                .data
+                .ok_or_else(|| BoardError::GraphQL("Failed to fetch project items".to_string()))?;
+
+            let items_data = data
+                .get("node")
+                .and_then(|n| n.get("items"))
+                .ok_or_else(|| BoardError::GraphQL("Invalid response structure".to_string()))?;
+
+            let items = items_data
+                .get("nodes")
+                .and_then(|n| n.as_array())
+                .ok_or_else(|| BoardError::GraphQL("Invalid response structure".to_string()))?;
+
+            // Process items from this page
+            for item in items {
+                let content = match item.get("content") {
+                    Some(c) if !c.is_null() => c,
+                    _ => continue,
+                };
+
+                // Skip closed issues
+                if content.get("state").and_then(|s| s.as_str()) != Some("OPEN") {
+                    continue;
+                }
+
+                let field_values = self.parse_field_values(item);
+                let (status, priority, issue_type, assigned_agent, blocked_by) =
+                    self.parse_issue_metadata(&field_values);
+
+                // Skip if not in Todo status
+                if status != IssueStatus::Todo {
+                    continue;
+                }
+
+                // Filter by agent if specified
+                if let Some(ref norm_agent) = normalized_agent
+                    && let Some(ref assigned) = assigned_agent
+                    && assigned != norm_agent
+                {
+                    continue;
+                }
+
+                // Skip if has blockers
+                if !blocked_by.is_empty() {
+                    continue;
+                }
+
+                // Skip excluded labels
+                let labels = self.parse_labels(content);
+                if labels
+                    .iter()
+                    .any(|l| self.config.exclude_labels.contains(l))
+                {
+                    continue;
+                }
+
+                let issue = self.create_issue_from_item(
+                    item,
+                    content,
+                    status,
+                    priority,
+                    issue_type,
+                    assigned_agent,
+                    blocked_by,
+                    None,
+                )?;
+
+                ready_issues.push(issue);
+
+                if ready_issues.len() >= limit {
+                    break;
+                }
             }
 
-            let field_values = self.parse_field_values(item);
-            let (status, priority, issue_type, assigned_agent, blocked_by) =
-                self.parse_issue_metadata(&field_values);
-
-            // Skip if not in Todo status
-            if status != IssueStatus::Todo {
-                continue;
-            }
-
-            // Filter by agent if specified
-            if let Some(ref norm_agent) = normalized_agent
-                && let Some(ref assigned) = assigned_agent
-                && assigned != norm_agent
-            {
-                continue;
-            }
-
-            // Skip if has blockers
-            if !blocked_by.is_empty() {
-                continue;
-            }
-
-            // Skip excluded labels
-            let labels = self.parse_labels(content);
-            if labels
-                .iter()
-                .any(|l| self.config.exclude_labels.contains(l))
-            {
-                continue;
-            }
-
-            let issue = self.create_issue_from_item(
-                item,
-                content,
-                status,
-                priority,
-                issue_type,
-                assigned_agent,
-                blocked_by,
-                None,
-            )?;
-
-            ready_issues.push(issue);
-
+            // Check if we have enough results or no more pages
             if ready_issues.len() >= limit {
                 break;
             }
+
+            let page_info = items_data.get("pageInfo");
+            let has_next_page = page_info
+                .and_then(|p| p.get("hasNextPage"))
+                .and_then(|h| h.as_bool())
+                .unwrap_or(false);
+
+            if !has_next_page {
+                break;
+            }
+
+            cursor = page_info
+                .and_then(|p| p.get("endCursor"))
+                .and_then(|c| c.as_str())
+                .map(|s| s.to_string());
+
+            if cursor.is_none() {
+                break;
+            }
+
+            info!("Fetching next page of items (page {})", page_count + 1);
         }
 
-        // Sort by priority
+        // Sort by priority (now sorting ALL fetched items, not just first 100)
         ready_issues.sort_by_key(|issue| match issue.priority {
             IssuePriority::Critical => 0,
             IssuePriority::High => 1,
             IssuePriority::Medium => 2,
             IssuePriority::Low => 3,
         });
+
+        // Truncate to limit after sorting by priority
+        ready_issues.truncate(limit);
 
         info!("Found {} ready issues", ready_issues.len());
         Ok(ready_issues)
@@ -267,11 +320,16 @@ impl BoardManager {
 
         info!("Getting issue #{}", issue_number);
 
+        // Query with pagination support
         let query = r#"
-        query GetProjectItems($projectId: ID!) {
+        query GetProjectItems($projectId: ID!, $cursor: String) {
           node(id: $projectId) {
             ... on ProjectV2 {
-              items(first: 100) {
+              items(first: 100, after: $cursor) {
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
                 nodes {
                   id
                   fieldValues(first: 20) {
@@ -305,48 +363,90 @@ impl BoardManager {
         }
         "#;
 
-        let variables = json!({ "projectId": project_id });
-        let response = self.client.execute(query, Some(variables)).await?;
+        let mut cursor: Option<String> = None;
+        let mut page_count = 0;
+        const MAX_PAGES: usize = 10; // Safety limit
 
-        let data = response
-            .data
-            .ok_or_else(|| BoardError::GraphQL("Failed to fetch project items".to_string()))?;
-
-        let items = data
-            .get("node")
-            .and_then(|n| n.get("items"))
-            .and_then(|i| i.get("nodes"))
-            .and_then(|n| n.as_array())
-            .ok_or_else(|| BoardError::GraphQL("Invalid response structure".to_string()))?;
-
-        for item in items {
-            let content = match item.get("content") {
-                Some(c) if !c.is_null() => c,
-                _ => continue,
-            };
-
-            if content.get("number").and_then(|n| n.as_u64()) != Some(issue_number) {
-                continue;
+        loop {
+            page_count += 1;
+            if page_count > MAX_PAGES {
+                warn!(
+                    "Issue #{} not found after {} pages",
+                    issue_number, MAX_PAGES
+                );
+                break;
             }
 
-            let field_values = self.parse_field_values(item);
-            let (status, priority, issue_type, assigned_agent, blocked_by) =
-                self.parse_issue_metadata(&field_values);
-            let discovered_from = self.parse_discovered_from(&field_values);
+            let variables = match &cursor {
+                Some(c) => json!({ "projectId": project_id, "cursor": c }),
+                None => json!({ "projectId": project_id, "cursor": null }),
+            };
 
-            let issue = self.create_issue_from_item(
-                item,
-                content,
-                status,
-                priority,
-                issue_type,
-                assigned_agent,
-                blocked_by,
-                discovered_from,
-            )?;
+            let response = self.client.execute(query, Some(variables)).await?;
 
-            info!("Found issue #{}: {}", issue_number, issue.title);
-            return Ok(Some(issue));
+            let data = response
+                .data
+                .ok_or_else(|| BoardError::GraphQL("Failed to fetch project items".to_string()))?;
+
+            let items_data = data
+                .get("node")
+                .and_then(|n| n.get("items"))
+                .ok_or_else(|| BoardError::GraphQL("Invalid response structure".to_string()))?;
+
+            let items = items_data
+                .get("nodes")
+                .and_then(|n| n.as_array())
+                .ok_or_else(|| BoardError::GraphQL("Invalid response structure".to_string()))?;
+
+            for item in items {
+                let content = match item.get("content") {
+                    Some(c) if !c.is_null() => c,
+                    _ => continue,
+                };
+
+                if content.get("number").and_then(|n| n.as_u64()) != Some(issue_number) {
+                    continue;
+                }
+
+                let field_values = self.parse_field_values(item);
+                let (status, priority, issue_type, assigned_agent, blocked_by) =
+                    self.parse_issue_metadata(&field_values);
+                let discovered_from = self.parse_discovered_from(&field_values);
+
+                let issue = self.create_issue_from_item(
+                    item,
+                    content,
+                    status,
+                    priority,
+                    issue_type,
+                    assigned_agent,
+                    blocked_by,
+                    discovered_from,
+                )?;
+
+                info!("Found issue #{}: {}", issue_number, issue.title);
+                return Ok(Some(issue));
+            }
+
+            // Check for more pages
+            let page_info = items_data.get("pageInfo");
+            let has_next_page = page_info
+                .and_then(|p| p.get("hasNextPage"))
+                .and_then(|h| h.as_bool())
+                .unwrap_or(false);
+
+            if !has_next_page {
+                break;
+            }
+
+            cursor = page_info
+                .and_then(|p| p.get("endCursor"))
+                .and_then(|c| c.as_str())
+                .map(|s| s.to_string());
+
+            if cursor.is_none() {
+                break;
+            }
         }
 
         warn!("Issue #{} not found on board", issue_number);
