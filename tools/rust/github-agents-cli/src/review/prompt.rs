@@ -154,12 +154,23 @@ const REVIEW_RULES: &str = r#"# Code Review Instructions
 
 You are reviewing a pull request. Follow these rules strictly:
 
+## CRITICAL: Output Only the Final Review
+
+**DO NOT include any of the following in your output:**
+- Internal reasoning or chain-of-thought ("I will begin by...", "Let me check...", "I'll read...")
+- File reading narration ("I will read tools/rust/...", "Checking file X")
+- Process descriptions ("First I need to verify...", "Now I'll search for...")
+- Tool usage narration ("I'll use the search tool to...")
+
+**Your output must start directly with the review sections.** No preamble. No explanation of your process.
+
 ## Output Format Rules
 - Maximum 500 words total
 - Use bullet points, not paragraphs
 - Only report ACTIONABLE issues (bugs, security vulnerabilities, required fixes)
 - NO generic praise ("great work", "well done", etc.)
 - NO filler text
+- NO reasoning or process narration
 
 ## Required Section Structure
 

@@ -315,7 +315,14 @@ impl TrustBucketer {
                 .push_str("## Community Input (Review Carefully)\n\n_No community comments._\n\n");
         }
 
-        output.trim_end_matches(&['\n', '-'][..]).to_string()
+        // Trim trailing whitespace, then remove markdown separator if present
+        let trimmed = output.trim_end();
+        trimmed
+            .strip_suffix("\n\n---")
+            .or_else(|| trimmed.strip_suffix("---"))
+            .unwrap_or(trimmed)
+            .trim_end()
+            .to_string()
     }
 
     /// Format a single comment as markdown.

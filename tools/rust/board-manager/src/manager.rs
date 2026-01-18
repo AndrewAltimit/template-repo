@@ -630,31 +630,37 @@ impl BoardManager {
             .as_ref()
             .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
 
+        let status_field_name = self.config.get_field_name("status");
+
         // Query with pagination support for boards with >100 items
-        let query = r#"
-        query GetProjectItem($projectId: ID!, $cursor: String) {
-          node(id: $projectId) {
-            ... on ProjectV2 {
-              items(first: 100, after: $cursor) {
-                pageInfo {
+        // Field name is from trusted config, not user input
+        let query = format!(
+            r#"
+        query GetProjectItem($projectId: ID!, $cursor: String) {{
+          node(id: $projectId) {{
+            ... on ProjectV2 {{
+              items(first: 100, after: $cursor) {{
+                pageInfo {{
                   hasNextPage
                   endCursor
-                }
-                nodes {
+                }}
+                nodes {{
                   id
-                  content { ... on Issue { number } }
-                }
-              }
-              field(name: "Status") {
-                ... on ProjectV2SingleSelectField {
+                  content {{ ... on Issue {{ number }} }}
+                }}
+              }}
+              field(name: "{}") {{
+                ... on ProjectV2SingleSelectField {{
                   id
-                  options { id name }
-                }
-              }
-            }
-          }
-        }
-        "#;
+                  options {{ id name }}
+                }}
+              }}
+            }}
+          }}
+        }}
+        "#,
+            status_field_name
+        );
 
         let mut cursor: Option<String> = None;
         let mut project_item_id: Option<String> = None;
@@ -667,7 +673,7 @@ impl BoardManager {
                 None => json!({ "projectId": project_id, "cursor": null }),
             };
 
-            let response = self.client.execute(query, Some(variables)).await?;
+            let response = self.client.execute(&query, Some(variables)).await?;
 
             let data = response
                 .data
@@ -677,7 +683,7 @@ impl BoardManager {
                 .get("node")
                 .ok_or_else(|| BoardError::GraphQL("Node not found".to_string()))?;
 
-            // Store field data from first page (it's the same on all pages)
+            // Store field data from first page (update_status - it's the same on all pages)
             if field_data.is_none() {
                 field_data = node.get("field").cloned();
             }
@@ -788,41 +794,47 @@ impl BoardManager {
             .as_ref()
             .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
 
+        let blocked_by_field_name = self.config.get_field_name("blocked_by");
+
         info!(
             "Adding blocker: #{} blocks #{}",
             blocker_number, issue_number
         );
 
         // Query with pagination support for boards with >100 items
-        let query = r#"
-        query GetProjectItemForBlocker($projectId: ID!, $cursor: String) {
-          node(id: $projectId) {
-            ... on ProjectV2 {
-              items(first: 100, after: $cursor) {
-                pageInfo {
+        // Field name is from trusted config, not user input
+        let query = format!(
+            r#"
+        query GetProjectItemForBlocker($projectId: ID!, $cursor: String) {{
+          node(id: $projectId) {{
+            ... on ProjectV2 {{
+              items(first: 100, after: $cursor) {{
+                pageInfo {{
                   hasNextPage
                   endCursor
-                }
-                nodes {
+                }}
+                nodes {{
                   id
-                  fieldValues(first: 20) {
-                    nodes {
-                      ... on ProjectV2ItemFieldTextValue {
+                  fieldValues(first: 20) {{
+                    nodes {{
+                      ... on ProjectV2ItemFieldTextValue {{
                         text
-                        field { ... on ProjectV2FieldCommon { name } }
-                      }
-                    }
-                  }
-                  content { ... on Issue { number } }
-                }
-              }
-              field(name: "Blocked By") {
-                ... on ProjectV2FieldCommon { id }
-              }
-            }
-          }
-        }
-        "#;
+                        field {{ ... on ProjectV2FieldCommon {{ name }} }}
+                      }}
+                    }}
+                  }}
+                  content {{ ... on Issue {{ number }} }}
+                }}
+              }}
+              field(name: "{}") {{
+                ... on ProjectV2FieldCommon {{ id }}
+              }}
+            }}
+          }}
+        }}
+        "#,
+            blocked_by_field_name
+        );
 
         let mut cursor: Option<String> = None;
         let mut project_item_id: Option<String> = None;
@@ -836,7 +848,7 @@ impl BoardManager {
                 None => json!({ "projectId": project_id, "cursor": null }),
             };
 
-            let response = self.client.execute(query, Some(variables)).await?;
+            let response = self.client.execute(&query, Some(variables)).await?;
 
             let data = response
                 .data
@@ -846,7 +858,7 @@ impl BoardManager {
                 .get("node")
                 .ok_or_else(|| BoardError::GraphQL("Node not found".to_string()))?;
 
-            // Store field data from first page
+            // Store field data from first page (add_blocker)
             if field_data.is_none() {
                 field_data = node.get("field").cloned();
             }
@@ -992,27 +1004,31 @@ impl BoardManager {
         );
 
         // Query with pagination support for boards with >100 items
-        let query = r#"
-        query GetProjectItemForDiscovery($projectId: ID!, $cursor: String) {
-          node(id: $projectId) {
-            ... on ProjectV2 {
-              items(first: 100, after: $cursor) {
-                pageInfo {
+        let discovered_from_field = self.config.get_field_name("discovered_from");
+        let query = format!(
+            r#"
+        query GetProjectItemForDiscovery($projectId: ID!, $cursor: String) {{
+          node(id: $projectId) {{
+            ... on ProjectV2 {{
+              items(first: 100, after: $cursor) {{
+                pageInfo {{
                   hasNextPage
                   endCursor
-                }
-                nodes {
+                }}
+                nodes {{
                   id
-                  content { ... on Issue { number } }
-                }
-              }
-              field(name: "Discovered From") {
-                ... on ProjectV2FieldCommon { id }
-              }
-            }
-          }
-        }
-        "#;
+                  content {{ ... on Issue {{ number }} }}
+                }}
+              }}
+              field(name: "{}") {{
+                ... on ProjectV2FieldCommon {{ id }}
+              }}
+            }}
+          }}
+        }}
+        "#,
+            discovered_from_field
+        );
 
         let mut cursor: Option<String> = None;
         let mut project_item_id: Option<String> = None;
@@ -1025,7 +1041,7 @@ impl BoardManager {
                 None => json!({ "projectId": project_id, "cursor": null }),
             };
 
-            let response = self.client.execute(query, Some(variables)).await?;
+            let response = self.client.execute(&query, Some(variables)).await?;
 
             let data = response
                 .data
@@ -1570,24 +1586,28 @@ impl BoardManager {
             .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
 
         // Get status field info
-        let query = r#"
-        query GetStatusField($projectId: ID!) {
-          node(id: $projectId) {
-            ... on ProjectV2 {
-              field(name: "Status") {
-                ... on ProjectV2SingleSelectField {
+        let status_field = self.config.get_field_name("status");
+        let query = format!(
+            r#"
+        query GetStatusField($projectId: ID!) {{
+          node(id: $projectId) {{
+            ... on ProjectV2 {{
+              field(name: "{}") {{
+                ... on ProjectV2SingleSelectField {{
                   id
-                  options { id name }
-                }
-              }
-            }
-          }
-        }
-        "#;
+                  options {{ id name }}
+                }}
+              }}
+            }}
+          }}
+        }}
+        "#,
+            status_field
+        );
 
         let response = self
             .client
-            .execute(query, Some(json!({ "projectId": project_id })))
+            .execute(&query, Some(json!({ "projectId": project_id })))
             .await?;
 
         let data = response

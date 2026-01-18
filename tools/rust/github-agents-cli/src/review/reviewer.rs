@@ -171,14 +171,24 @@ impl PRReviewer {
             }
         }
 
-        // 11. Condense if over threshold
-        review = condense_if_needed(
+        // 11. Condense if over threshold (with fallback on failure)
+        match condense_if_needed(
             &review,
             self.config.max_words,
             self.config.condensation_threshold,
             self.agent.as_ref(),
         )
-        .await?;
+        .await
+        {
+            Ok(condensed) => review = condensed,
+            Err(e) => {
+                tracing::warn!(
+                    "Condensation failed, using original review: {}",
+                    e
+                );
+                // Continue with original review rather than aborting
+            }
+        }
 
         // 12. Fix reaction URLs
         if !self.config.reaction_config_url.is_empty() {
