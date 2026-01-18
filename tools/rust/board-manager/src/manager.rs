@@ -589,7 +589,10 @@ impl BoardManager {
                     .await?;
             }
             ReleaseReason::Abandoned | ReleaseReason::Error => {
-                self.update_status(issue_number, IssueStatus::Todo).await?;
+                // Use Abandoned status to prevent infinite loops where agents
+                // repeatedly pick up and fail on the same issue
+                self.update_status(issue_number, IssueStatus::Abandoned)
+                    .await?;
             }
         }
 
@@ -607,11 +610,16 @@ impl BoardManager {
             .as_ref()
             .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
 
+        // Query with pagination support for boards with >100 items
         let query = r#"
-        query GetProjectItem($projectId: ID!) {
+        query GetProjectItem($projectId: ID!, $cursor: String) {
           node(id: $projectId) {
             ... on ProjectV2 {
-              items(first: 100) {
+              items(first: 100, after: $cursor) {
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
                 nodes {
                   id
                   content { ... on Issue { number } }
@@ -628,41 +636,86 @@ impl BoardManager {
         }
         "#;
 
-        let response = self
-            .client
-            .execute(query, Some(json!({ "projectId": project_id })))
-            .await?;
+        let mut cursor: Option<String> = None;
+        let mut project_item_id: Option<String> = None;
+        let mut field_data: Option<serde_json::Value> = None;
+        const MAX_PAGES: usize = 10;
 
-        let data = response
-            .data
-            .ok_or_else(|| BoardError::GraphQL("Failed to get project item".to_string()))?;
+        for page in 1..=MAX_PAGES {
+            let variables = match &cursor {
+                Some(c) => json!({ "projectId": project_id, "cursor": c }),
+                None => json!({ "projectId": project_id, "cursor": null }),
+            };
 
-        let node = data
-            .get("node")
-            .ok_or_else(|| BoardError::GraphQL("Node not found".to_string()))?;
+            let response = self.client.execute(query, Some(variables)).await?;
 
-        // Find project item ID
-        let items = node
-            .get("items")
-            .and_then(|i| i.get("nodes"))
-            .and_then(|n| n.as_array())
-            .ok_or_else(|| BoardError::GraphQL("Items not found".to_string()))?;
+            let data = response
+                .data
+                .ok_or_else(|| BoardError::GraphQL("Failed to get project item".to_string()))?;
 
-        let project_item_id = items
-            .iter()
-            .find(|item| {
-                item.get("content")
+            let node = data
+                .get("node")
+                .ok_or_else(|| BoardError::GraphQL("Node not found".to_string()))?;
+
+            // Store field data from first page (it's the same on all pages)
+            if field_data.is_none() {
+                field_data = node.get("field").cloned();
+            }
+
+            let items_data = node
+                .get("items")
+                .ok_or_else(|| BoardError::GraphQL("Items not found".to_string()))?;
+
+            let items = items_data
+                .get("nodes")
+                .and_then(|n| n.as_array())
+                .ok_or_else(|| BoardError::GraphQL("Items nodes not found".to_string()))?;
+
+            // Search for the issue in this page
+            for item in items {
+                if item
+                    .get("content")
                     .and_then(|c| c.get("number"))
                     .and_then(|n| n.as_u64())
                     == Some(issue_number)
-            })
-            .and_then(|item| item.get("id"))
-            .and_then(|id| id.as_str())
-            .ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
+                {
+                    project_item_id = item.get("id").and_then(|id| id.as_str()).map(String::from);
+                    break;
+                }
+            }
 
-        // Get field ID and option ID
-        let field = node
-            .get("field")
+            if project_item_id.is_some() {
+                break;
+            }
+
+            // Check for more pages
+            let page_info = items_data.get("pageInfo");
+            let has_next_page = page_info
+                .and_then(|p| p.get("hasNextPage"))
+                .and_then(|h| h.as_bool())
+                .unwrap_or(false);
+
+            if !has_next_page {
+                break;
+            }
+
+            cursor = page_info
+                .and_then(|p| p.get("endCursor"))
+                .and_then(|c| c.as_str())
+                .map(String::from);
+
+            if cursor.is_none() || page == MAX_PAGES {
+                warn!("Issue #{} not found after {} pages", issue_number, page);
+                break;
+            }
+        }
+
+        let project_item_id =
+            project_item_id.ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
+
+        // Get field ID and option ID (from stored field_data)
+        let field = field_data
+            .as_ref()
             .ok_or_else(|| BoardError::FieldNotFound("Status".to_string()))?;
 
         let field_id = field
@@ -720,11 +773,16 @@ impl BoardManager {
             blocker_number, issue_number
         );
 
+        // Query with pagination support for boards with >100 items
         let query = r#"
-        query GetProjectItemForBlocker($projectId: ID!) {
+        query GetProjectItemForBlocker($projectId: ID!, $cursor: String) {
           node(id: $projectId) {
             ... on ProjectV2 {
-              items(first: 100) {
+              items(first: 100, after: $cursor) {
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
                 nodes {
                   id
                   fieldValues(first: 20) {
@@ -746,65 +804,105 @@ impl BoardManager {
         }
         "#;
 
-        let response = self
-            .client
-            .execute(query, Some(json!({ "projectId": project_id })))
-            .await?;
-
-        let data = response
-            .data
-            .ok_or_else(|| BoardError::GraphQL("Failed to get project item".to_string()))?;
-
-        let node = data
-            .get("node")
-            .ok_or_else(|| BoardError::GraphQL("Node not found".to_string()))?;
-
-        let items = node
-            .get("items")
-            .and_then(|i| i.get("nodes"))
-            .and_then(|n| n.as_array())
-            .ok_or_else(|| BoardError::GraphQL("Items not found".to_string()))?;
-
-        // Find project item and current blocked_by value
-        let mut project_item_id = None;
+        let mut cursor: Option<String> = None;
+        let mut project_item_id: Option<String> = None;
         let mut current_blocked_by = String::new();
+        let mut field_data: Option<serde_json::Value> = None;
+        const MAX_PAGES: usize = 10;
 
-        for item in items {
-            let content = item.get("content");
-            if content
-                .and_then(|c| c.get("number"))
-                .and_then(|n| n.as_u64())
-                != Some(issue_number)
-            {
-                continue;
+        for page in 1..=MAX_PAGES {
+            let variables = match &cursor {
+                Some(c) => json!({ "projectId": project_id, "cursor": c }),
+                None => json!({ "projectId": project_id, "cursor": null }),
+            };
+
+            let response = self.client.execute(query, Some(variables)).await?;
+
+            let data = response
+                .data
+                .ok_or_else(|| BoardError::GraphQL("Failed to get project item".to_string()))?;
+
+            let node = data
+                .get("node")
+                .ok_or_else(|| BoardError::GraphQL("Node not found".to_string()))?;
+
+            // Store field data from first page
+            if field_data.is_none() {
+                field_data = node.get("field").cloned();
             }
 
-            project_item_id = item
-                .get("id")
-                .and_then(|id| id.as_str())
-                .map(|s| s.to_string());
+            let items_data = node
+                .get("items")
+                .ok_or_else(|| BoardError::GraphQL("Items not found".to_string()))?;
 
-            // Find blocked_by field value
-            if let Some(field_values) = item
-                .get("fieldValues")
-                .and_then(|f| f.get("nodes"))
+            let items = items_data
+                .get("nodes")
                 .and_then(|n| n.as_array())
-            {
-                for fv in field_values {
-                    let field_name = fv
-                        .get("field")
-                        .and_then(|f| f.get("name"))
-                        .and_then(|n| n.as_str());
-                    if field_name == Some(self.config.get_field_name("blocked_by").as_str()) {
-                        current_blocked_by = fv
-                            .get("text")
-                            .and_then(|t| t.as_str())
-                            .unwrap_or("")
-                            .to_string();
+                .ok_or_else(|| BoardError::GraphQL("Items nodes not found".to_string()))?;
+
+            // Search for the issue in this page
+            for item in items {
+                let content = item.get("content");
+                if content
+                    .and_then(|c| c.get("number"))
+                    .and_then(|n| n.as_u64())
+                    != Some(issue_number)
+                {
+                    continue;
+                }
+
+                project_item_id = item
+                    .get("id")
+                    .and_then(|id| id.as_str())
+                    .map(|s| s.to_string());
+
+                // Find blocked_by field value
+                if let Some(field_values) = item
+                    .get("fieldValues")
+                    .and_then(|f| f.get("nodes"))
+                    .and_then(|n| n.as_array())
+                {
+                    for fv in field_values {
+                        let field_name = fv
+                            .get("field")
+                            .and_then(|f| f.get("name"))
+                            .and_then(|n| n.as_str());
+                        if field_name == Some(self.config.get_field_name("blocked_by").as_str()) {
+                            current_blocked_by = fv
+                                .get("text")
+                                .and_then(|t| t.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                        }
                     }
                 }
+                break;
             }
-            break;
+
+            if project_item_id.is_some() {
+                break;
+            }
+
+            // Check for more pages
+            let page_info = items_data.get("pageInfo");
+            let has_next_page = page_info
+                .and_then(|p| p.get("hasNextPage"))
+                .and_then(|h| h.as_bool())
+                .unwrap_or(false);
+
+            if !has_next_page {
+                break;
+            }
+
+            cursor = page_info
+                .and_then(|p| p.get("endCursor"))
+                .and_then(|c| c.as_str())
+                .map(String::from);
+
+            if cursor.is_none() || page == MAX_PAGES {
+                warn!("Issue #{} not found after {} pages", issue_number, page);
+                break;
+            }
         }
 
         let project_item_id =
@@ -824,9 +922,9 @@ impl BoardManager {
 
         let new_blocked_by = blocked_by_list.join(", ");
 
-        // Get field ID
-        let field_id = node
-            .get("field")
+        // Get field ID (from stored field_data)
+        let field_id = field_data
+            .as_ref()
             .and_then(|f| f.get("id"))
             .and_then(|id| id.as_str())
             .ok_or_else(|| BoardError::FieldNotFound("Blocked By".to_string()))?;
@@ -873,11 +971,16 @@ impl BoardManager {
             issue_number, parent_number
         );
 
+        // Query with pagination support for boards with >100 items
         let query = r#"
-        query GetProjectItemForDiscovery($projectId: ID!) {
+        query GetProjectItemForDiscovery($projectId: ID!, $cursor: String) {
           node(id: $projectId) {
             ... on ProjectV2 {
-              items(first: 100) {
+              items(first: 100, after: $cursor) {
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
                 nodes {
                   id
                   content { ... on Issue { number } }
@@ -891,39 +994,85 @@ impl BoardManager {
         }
         "#;
 
-        let response = self
-            .client
-            .execute(query, Some(json!({ "projectId": project_id })))
-            .await?;
+        let mut cursor: Option<String> = None;
+        let mut project_item_id: Option<String> = None;
+        let mut field_data: Option<serde_json::Value> = None;
+        const MAX_PAGES: usize = 10;
 
-        let data = response
-            .data
-            .ok_or_else(|| BoardError::GraphQL("Failed to get project item".to_string()))?;
+        for page in 1..=MAX_PAGES {
+            let variables = match &cursor {
+                Some(c) => json!({ "projectId": project_id, "cursor": c }),
+                None => json!({ "projectId": project_id, "cursor": null }),
+            };
 
-        let node = data
-            .get("node")
-            .ok_or_else(|| BoardError::GraphQL("Node not found".to_string()))?;
+            let response = self.client.execute(query, Some(variables)).await?;
 
-        let items = node
-            .get("items")
-            .and_then(|i| i.get("nodes"))
-            .and_then(|n| n.as_array())
-            .ok_or_else(|| BoardError::GraphQL("Items not found".to_string()))?;
+            let data = response
+                .data
+                .ok_or_else(|| BoardError::GraphQL("Failed to get project item".to_string()))?;
 
-        let project_item_id = items
-            .iter()
-            .find(|item| {
-                item.get("content")
+            let node = data
+                .get("node")
+                .ok_or_else(|| BoardError::GraphQL("Node not found".to_string()))?;
+
+            // Store field data from first page
+            if field_data.is_none() {
+                field_data = node.get("field").cloned();
+            }
+
+            let items_data = node
+                .get("items")
+                .ok_or_else(|| BoardError::GraphQL("Items not found".to_string()))?;
+
+            let items = items_data
+                .get("nodes")
+                .and_then(|n| n.as_array())
+                .ok_or_else(|| BoardError::GraphQL("Items nodes not found".to_string()))?;
+
+            // Search for the issue in this page
+            for item in items {
+                if item
+                    .get("content")
                     .and_then(|c| c.get("number"))
                     .and_then(|n| n.as_u64())
                     == Some(issue_number)
-            })
-            .and_then(|item| item.get("id"))
-            .and_then(|id| id.as_str())
-            .ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
+                {
+                    project_item_id = item.get("id").and_then(|id| id.as_str()).map(String::from);
+                    break;
+                }
+            }
 
-        let field_id = node
-            .get("field")
+            if project_item_id.is_some() {
+                break;
+            }
+
+            // Check for more pages
+            let page_info = items_data.get("pageInfo");
+            let has_next_page = page_info
+                .and_then(|p| p.get("hasNextPage"))
+                .and_then(|h| h.as_bool())
+                .unwrap_or(false);
+
+            if !has_next_page {
+                break;
+            }
+
+            cursor = page_info
+                .and_then(|p| p.get("endCursor"))
+                .and_then(|c| c.as_str())
+                .map(String::from);
+
+            if cursor.is_none() || page == MAX_PAGES {
+                warn!("Issue #{} not found after {} pages", issue_number, page);
+                break;
+            }
+        }
+
+        let project_item_id =
+            project_item_id.ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
+
+        let field_id = field_data
+            .as_ref()
             .and_then(|f| f.get("id"))
             .and_then(|id| id.as_str())
             .ok_or_else(|| BoardError::FieldNotFound("Discovered From".to_string()))?;
@@ -970,6 +1119,14 @@ impl BoardManager {
 
         info!("Finding approved issues for agent: {}", agent_name);
 
+        // Pre-fetch all board issue numbers to avoid N+1 queries
+        // This single query replaces potentially hundreds of get_issue calls
+        let board_issue_numbers = self.get_board_issue_numbers().await?;
+        info!(
+            "Pre-fetched {} board issue numbers for membership check",
+            board_issue_numbers.len()
+        );
+
         // Build search query
         let search_query = format!(
             r#"repo:{}/{} is:issue is:open "[Approved][{}]" in:comments"#,
@@ -1002,7 +1159,7 @@ impl BoardManager {
                 break;
             }
 
-            // Check which issues are on the board
+            // Check which issues are on the board (O(1) lookup instead of N queries)
             for item in &items {
                 let number = item.get("number").and_then(|n| n.as_u64()).unwrap_or(0);
                 let title = item
@@ -1011,7 +1168,7 @@ impl BoardManager {
                     .unwrap_or("")
                     .to_string();
 
-                let on_board = self.get_issue(number).await?.is_some();
+                let on_board = board_issue_numbers.contains(&number);
 
                 approved_issues.push(ApprovedIssue {
                     number,
@@ -1032,23 +1189,107 @@ impl BoardManager {
         Ok(approved_issues)
     }
 
+    /// Get all issue numbers on the board (for efficient membership checks).
+    /// Uses pagination to fetch all items.
+    async fn get_board_issue_numbers(&self) -> Result<std::collections::HashSet<u64>> {
+        let project_id = self
+            .project_id
+            .as_ref()
+            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
+
+        let query = r#"
+        query GetBoardIssueNumbers($projectId: ID!, $cursor: String) {
+          node(id: $projectId) {
+            ... on ProjectV2 {
+              items(first: 100, after: $cursor) {
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
+                nodes {
+                  content { ... on Issue { number } }
+                }
+              }
+            }
+          }
+        }
+        "#;
+
+        let mut issue_numbers = std::collections::HashSet::new();
+        let mut cursor: Option<String> = None;
+        const MAX_PAGES: usize = 10;
+
+        for page in 1..=MAX_PAGES {
+            let variables = match &cursor {
+                Some(c) => json!({ "projectId": project_id, "cursor": c }),
+                None => json!({ "projectId": project_id, "cursor": null }),
+            };
+
+            let response = self.client.execute(query, Some(variables)).await?;
+
+            let data = match response.data {
+                Some(d) => d,
+                None => break,
+            };
+
+            let items_data = data
+                .get("node")
+                .and_then(|n| n.get("items"))
+                .ok_or_else(|| BoardError::GraphQL("Items not found".to_string()))?;
+
+            let items = items_data
+                .get("nodes")
+                .and_then(|n| n.as_array())
+                .ok_or_else(|| BoardError::GraphQL("Items nodes not found".to_string()))?;
+
+            for item in items {
+                if let Some(number) = item
+                    .get("content")
+                    .and_then(|c| c.get("number"))
+                    .and_then(|n| n.as_u64())
+                {
+                    issue_numbers.insert(number);
+                }
+            }
+
+            // Check for more pages
+            let page_info = items_data.get("pageInfo");
+            let has_next_page = page_info
+                .and_then(|p| p.get("hasNextPage"))
+                .and_then(|h| h.as_bool())
+                .unwrap_or(false);
+
+            if !has_next_page {
+                break;
+            }
+
+            cursor = page_info
+                .and_then(|p| p.get("endCursor"))
+                .and_then(|c| c.as_str())
+                .map(String::from);
+
+            if cursor.is_none() || page == MAX_PAGES {
+                break;
+            }
+        }
+
+        Ok(issue_numbers)
+    }
+
     /// Check if an issue has been approved by an authorized user.
     /// Returns (is_approved, approver).
+    ///
+    /// Uses pagination to check all comments (not just the last 100).
     pub async fn is_issue_approved(&self, issue_number: u64) -> Result<(bool, Option<String>)> {
         let (owner, repo) = self.parse_repository()?;
 
-        let query = r#"
-        query GetIssueForApproval($owner: String!, $repo: String!, $number: Int!) {
+        // First, check the issue body
+        let body_query = r#"
+        query GetIssueBody($owner: String!, $repo: String!, $number: Int!) {
           repository(owner: $owner, name: $repo) {
             issue(number: $number) {
               body
               author { login }
-              comments(last: 100) {
-                nodes {
-                  body
-                  author { login }
-                }
-              }
             }
           }
         }
@@ -1060,7 +1301,7 @@ impl BoardManager {
             "number": issue_number
         });
 
-        let response = self.client.execute(query, Some(variables)).await?;
+        let response = self.client.execute(body_query, Some(variables)).await?;
 
         let data = match response.data {
             Some(d) => d,
@@ -1090,28 +1331,97 @@ impl BoardManager {
             return Ok((true, Some(author.to_string())));
         }
 
-        // Check comments (most recent first)
-        let comments = issue_data
-            .get("comments")
-            .and_then(|c| c.get("nodes"))
-            .and_then(|n| n.as_array());
-
-        if let Some(comments) = comments {
-            for comment in comments.iter().rev() {
-                let comment_body = comment.get("body").and_then(|b| b.as_str()).unwrap_or("");
-                let comment_author = comment
-                    .get("author")
-                    .and_then(|a| a.get("login"))
-                    .and_then(|l| l.as_str())
-                    .unwrap_or("");
-
-                if self.check_approval_trigger(comment_body, comment_author) {
-                    info!(
-                        "Issue #{} approved by {} (in comment)",
-                        issue_number, comment_author
-                    );
-                    return Ok((true, Some(comment_author.to_string())));
+        // Check comments with pagination (handles >100 comments)
+        let comments_query = r#"
+        query GetIssueComments($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+          repository(owner: $owner, name: $repo) {
+            issue(number: $number) {
+              comments(first: 100, after: $cursor) {
+                pageInfo {
+                  hasNextPage
+                  endCursor
                 }
+                nodes {
+                  body
+                  author { login }
+                }
+              }
+            }
+          }
+        }
+        "#;
+
+        let mut cursor: Option<String> = None;
+        const MAX_COMMENT_PAGES: usize = 20; // Support up to 2000 comments
+
+        for page in 1..=MAX_COMMENT_PAGES {
+            let variables = json!({
+                "owner": owner,
+                "repo": repo,
+                "number": issue_number,
+                "cursor": cursor
+            });
+
+            let response = self.client.execute(comments_query, Some(variables)).await?;
+
+            let data = match response.data {
+                Some(d) => d,
+                None => break,
+            };
+
+            let comments_data = data
+                .get("repository")
+                .and_then(|r| r.get("issue"))
+                .and_then(|i| i.get("comments"));
+
+            let comments_data = match comments_data {
+                Some(c) => c,
+                None => break,
+            };
+
+            let comments = comments_data.get("nodes").and_then(|n| n.as_array());
+
+            if let Some(comments) = comments {
+                for comment in comments {
+                    let comment_body = comment.get("body").and_then(|b| b.as_str()).unwrap_or("");
+                    let comment_author = comment
+                        .get("author")
+                        .and_then(|a| a.get("login"))
+                        .and_then(|l| l.as_str())
+                        .unwrap_or("");
+
+                    if self.check_approval_trigger(comment_body, comment_author) {
+                        info!(
+                            "Issue #{} approved by {} (in comment, page {})",
+                            issue_number, comment_author, page
+                        );
+                        return Ok((true, Some(comment_author.to_string())));
+                    }
+                }
+            }
+
+            // Check for more pages
+            let page_info = comments_data.get("pageInfo");
+            let has_next_page = page_info
+                .and_then(|p| p.get("hasNextPage"))
+                .and_then(|h| h.as_bool())
+                .unwrap_or(false);
+
+            if !has_next_page {
+                break;
+            }
+
+            cursor = page_info
+                .and_then(|p| p.get("endCursor"))
+                .and_then(|c| c.as_str())
+                .map(String::from);
+
+            if cursor.is_none() || page == MAX_COMMENT_PAGES {
+                warn!(
+                    "Issue #{} has many comments, stopped at page {}",
+                    issue_number, page
+                );
+                break;
             }
         }
 

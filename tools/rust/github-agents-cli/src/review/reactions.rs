@@ -13,25 +13,43 @@ use crate::error::{Error, Result};
 const DEFAULT_REACTION_CONFIG_URL: &str =
     "https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml";
 
-/// Reaction configuration from the remote config
+/// Raw reaction configuration from the remote config (actual YAML format)
 #[derive(Debug, Deserialize)]
+struct RawReactionConfig {
+    /// List of reaction images
+    reaction_images: Vec<RawReactionInfo>,
+}
+
+/// Raw information about a single reaction (actual YAML format)
+#[derive(Debug, Deserialize)]
+struct RawReactionInfo {
+    /// Unique identifier for the reaction
+    id: String,
+    /// Full source URL for the reaction image
+    source_url: String,
+    /// Description of the reaction
+    #[serde(default)]
+    description: String,
+    /// Tags for categorization
+    #[serde(default)]
+    tags: Vec<String>,
+}
+
+/// Processed reaction configuration (internal representation)
+#[derive(Debug)]
 pub struct ReactionConfig {
-    /// Base URL for reaction images
-    pub base_url: String,
-    /// Map of reaction names to their info
+    /// Map of reaction IDs to their info
     pub reactions: HashMap<String, ReactionInfo>,
 }
 
-/// Information about a single reaction
-#[derive(Debug, Deserialize)]
+/// Information about a single reaction (internal representation)
+#[derive(Debug)]
 pub struct ReactionInfo {
-    /// Filename of the reaction image
-    pub filename: String,
+    /// Full URL for the reaction image
+    pub source_url: String,
     /// Description of the reaction
-    #[serde(default)]
     pub description: String,
     /// Tags for categorization
-    #[serde(default)]
     pub tags: Vec<String>,
 }
 
@@ -54,12 +72,25 @@ pub async fn fetch_reaction_config(config_url: Option<&str>) -> Result<ReactionC
     }
 
     let text = response.text().await.map_err(|e| Error::Http(e))?;
-    let config: ReactionConfig =
+    let raw_config: RawReactionConfig =
         serde_yaml::from_str(&text).map_err(|e| Error::Config(format!("Invalid YAML: {}", e)))?;
 
-    tracing::debug!("Loaded {} reactions from config", config.reactions.len());
+    // Convert raw config to internal representation
+    let mut reactions = HashMap::new();
+    for raw in raw_config.reaction_images {
+        reactions.insert(
+            raw.id,
+            ReactionInfo {
+                source_url: raw.source_url,
+                description: raw.description,
+                tags: raw.tags,
+            },
+        );
+    }
 
-    Ok(config)
+    tracing::debug!("Loaded {} reactions from config", reactions.len());
+
+    Ok(ReactionConfig { reactions })
 }
 
 /// Fix reaction image URLs in a review
@@ -93,8 +124,7 @@ pub fn fix_reaction_urls(review: &str, config: &ReactionConfig) -> String {
         };
 
         if let Some(info) = config.reactions.get(&reaction_name) {
-            let full_url = format!("{}/{}", config.base_url, info.filename);
-            let replacement = format!("![{}]({})", alt, full_url);
+            let replacement = format!("![{}]({})", alt, info.source_url);
             result = result.replace(full_match, &replacement);
         }
     }
@@ -105,8 +135,7 @@ pub fn fix_reaction_urls(review: &str, config: &ReactionConfig) -> String {
         let name = captures.get(1).map(|m| m.as_str()).unwrap_or("");
 
         if let Some(info) = config.reactions.get(name) {
-            let full_url = format!("{}/{}", config.base_url, info.filename);
-            let replacement = format!("![{}]({})", name, full_url);
+            let replacement = format!("![{}]({})", name, info.source_url);
             result = result.replace(full_match, &replacement);
         }
     }
@@ -146,7 +175,7 @@ mod tests {
         reactions.insert(
             "happy".to_string(),
             ReactionInfo {
-                filename: "happy.gif".to_string(),
+                source_url: "https://example.com/reactions/happy.gif".to_string(),
                 description: "Happy reaction".to_string(),
                 tags: vec!["positive".to_string()],
             },
@@ -154,16 +183,13 @@ mod tests {
         reactions.insert(
             "confused".to_string(),
             ReactionInfo {
-                filename: "confused.png".to_string(),
+                source_url: "https://example.com/reactions/confused.png".to_string(),
                 description: "Confused reaction".to_string(),
                 tags: vec!["neutral".to_string()],
             },
         );
 
-        ReactionConfig {
-            base_url: "https://example.com/reactions".to_string(),
-            reactions,
-        }
+        ReactionConfig { reactions }
     }
 
     #[test]

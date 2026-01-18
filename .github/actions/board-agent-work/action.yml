@@ -130,24 +130,35 @@ runs:
       run: |
         echo "::group::Setup Rust Binaries"
 
-        # Check if board-manager binary exists
-        BOARD_MANAGER="${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager"
-        if [ -x "$BOARD_MANAGER" ]; then
-          echo "board-manager found at $BOARD_MANAGER"
-          # Create symlink for board-cli (used throughout the action)
+        # Check for board-manager binary in multiple locations (container-first philosophy)
+        # Priority: 1) artifact download location, 2) local build location, 3) fail gracefully
+        BOARD_MANAGER=""
+        SEARCH_PATHS=(
+          "${GITHUB_WORKSPACE}/rust-tools/board-manager"
+          "${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager"
+        )
+
+        for path in "${SEARCH_PATHS[@]}"; do
+          if [ -x "$path" ]; then
+            BOARD_MANAGER="$path"
+            echo "board-manager found at $BOARD_MANAGER"
+            break
+          fi
+        done
+
+        if [ -n "$BOARD_MANAGER" ]; then
+          # Create symlinks for board-cli (used throughout the action)
           mkdir -p "$HOME/.local/bin"
           ln -sf "$BOARD_MANAGER" "$HOME/.local/bin/board-cli"
           ln -sf "$BOARD_MANAGER" "$HOME/.local/bin/board-manager"
           echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
         else
-          echo "::warning::board-manager not found at $BOARD_MANAGER"
-          echo "Attempting to build from source..."
-          cd "${GITHUB_WORKSPACE}/tools/rust/board-manager"
-          cargo build --release
-          mkdir -p "$HOME/.local/bin"
-          ln -sf "${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager" "$HOME/.local/bin/board-cli"
-          ln -sf "${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager" "$HOME/.local/bin/board-manager"
-          echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+          echo "::error::board-manager binary not found. Ensure the 'build-rust-tools' job runs first and artifacts are downloaded."
+          echo "Searched paths:"
+          for path in "${SEARCH_PATHS[@]}"; do
+            echo "  - $path"
+          done
+          exit 1
         fi
 
         if [ "$JSON_LOGGING" = "true" ]; then
