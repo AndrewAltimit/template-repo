@@ -26,17 +26,25 @@ OUTPUT_DIRS=(
     "outputs/mcp-content"
     "outputs/mcp-memes"
     "outputs/mcp-code-quality"
-    "outputs/blender"
+    "outputs/blender/projects"
+    "outputs/blender/assets"
+    "outputs/blender/renders"
+    "outputs/blender/templates"
     "outputs/elevenlabs_speech"
     "outputs/video-editor"
     "outputs/url-fetcher"
     "outputs/desktop-control"
-    "outputs/renders"
     "evaluation_results"
 )
 
 # Create directories with correct ownership
 for dir in "${OUTPUT_DIRS[@]}"; do
+    # Skip symlinks to prevent chown on unintended paths
+    if [ -L "$dir" ]; then
+        echo "⚠️  Skipping symlink: $dir"
+        continue
+    fi
+
     if [ ! -d "$dir" ]; then
         mkdir -p "$dir"
         echo -e "${GREEN}✓${NC} Created: $dir"
@@ -46,7 +54,8 @@ for dir in "${OUTPUT_DIRS[@]}"; do
             # Use Docker to fix permissions (avoids sudo password prompts)
             if command -v docker &> /dev/null; then
                 echo "  Fixing ownership via Docker: $dir"
-                docker run --rm \
+                # timeout prevents hanging if Docker daemon is unresponsive
+                timeout 30 docker run --rm \
                     -v "$(cd "$dir" && pwd):/target" \
                     busybox \
                     chown -R "$USER_ID:$GROUP_ID" /target 2>/dev/null && \

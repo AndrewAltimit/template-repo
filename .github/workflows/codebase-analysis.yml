@@ -94,6 +94,11 @@ jobs:
 
           # Fix permissions using Docker (runs as root, no sudo password needed)
           for dir in "${DIRS_TO_FIX[@]}"; do
+            # Skip symlinks to prevent chown on unintended paths
+            if [ -L "$WORKSPACE/$dir" ]; then
+              echo "  Skipping symlink: $WORKSPACE/$dir"
+              continue
+            fi
             if [ -d "$WORKSPACE/$dir" ]; then
               echo "Fixing ownership via Docker: $WORKSPACE/$dir"
               # Use busybox to chown the directory to the current user
@@ -497,6 +502,11 @@ jobs:
 
           # Fix permissions using Docker (runs as root, no sudo password needed)
           for dir in "${DIRS_TO_FIX[@]}"; do
+            # Skip symlinks to prevent chown on unintended paths
+            if [ -L "$WORKSPACE/$dir" ]; then
+              echo "  Skipping symlink: $WORKSPACE/$dir"
+              continue
+            fi
             if [ -d "$WORKSPACE/$dir" ]; then
               echo "Fixing ownership via Docker: $WORKSPACE/$dir"
               timeout 30 docker run --rm \
