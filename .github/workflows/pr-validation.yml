@@ -322,7 +322,6 @@ jobs:
 
       - name: Run Gemini PR Review (Rust CLI)
         # Reviews always run (agent decides whether to act)
-        continue-on-error: true  # Don't fail the PR if Gemini review fails
         shell: bash
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}

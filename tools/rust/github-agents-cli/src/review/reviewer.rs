@@ -249,7 +249,19 @@ impl PRReviewer {
         let comments_json = String::from_utf8_lossy(&comments_output.stdout);
 
         // Pipe to board-manager bucket-comments
-        let bucket_output = Command::new("board-manager")
+        // Try multiple paths: local build, CI artifact location, or PATH
+        let board_manager_paths = [
+            "./tools/rust/board-manager/target/release/board-manager",
+            "tools/rust/board-manager/target/release/board-manager",
+            "board-manager",
+        ];
+
+        let board_manager = board_manager_paths
+            .iter()
+            .find(|p| Path::new(p).exists())
+            .unwrap_or(&"board-manager");
+
+        let bucket_output = Command::new(board_manager)
             .args(["bucket-comments", "--filter-noise"])
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
