@@ -1002,9 +1002,10 @@ jobs:
       update_baselines: false
 
   # Stage 8b: Injection Toolkit Tests (Rust)
+  # Runs after review jobs to avoid resource contention during review phase
   injection-toolkit-tests:
     name: Injection Toolkit Tests
-    needs: [detect-changes]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: needs.detect-changes.outputs.injection_toolkit_changed == 'true'
     runs-on: self-hosted
     timeout-minutes: 30
