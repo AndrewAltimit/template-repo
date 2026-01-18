@@ -1,7 +1,11 @@
 //! AI agent backends for PR reviews.
 //!
-//! Provides abstractions for different AI services (Gemini, Claude, OpenRouter).
+//! Provides CLI-based abstractions for different AI agents (Gemini, Claude, Codex).
+//! All agents use their respective CLI tools to leverage local tools, MCP servers,
+//! and full agent capabilities.
 
+pub mod claude;
+pub mod codex;
 pub mod gemini;
 
 use async_trait::async_trait;
@@ -14,7 +18,7 @@ pub trait ReviewAgent: Send + Sync {
     /// Get the agent name
     fn name(&self) -> &str;
 
-    /// Check if the agent is available (API key set, etc.)
+    /// Check if the agent is available (CLI found, etc.)
     async fn is_available(&self) -> bool;
 
     /// Generate a review for the given prompt
@@ -45,10 +49,37 @@ pub async fn select_agent_with_models(
             if agent.is_available().await {
                 Some(Box::new(agent))
             } else {
+                tracing::warn!("Gemini CLI not available");
                 None
             }
         }
-        // TODO: Add claude and openrouter backends
-        _ => None,
+        "claude" => {
+            let agent = match review_model {
+                Some(m) => claude::ClaudeAgent::with_model(m),
+                None => claude::ClaudeAgent::new(),
+            };
+            if agent.is_available().await {
+                Some(Box::new(agent))
+            } else {
+                tracing::warn!("Claude Code CLI not available");
+                None
+            }
+        }
+        "codex" => {
+            let agent = match review_model {
+                Some(m) => codex::CodexAgent::with_model(m),
+                None => codex::CodexAgent::new(),
+            };
+            if agent.is_available().await {
+                Some(Box::new(agent))
+            } else {
+                tracing::warn!("Codex CLI not available");
+                None
+            }
+        }
+        _ => {
+            tracing::warn!("Unknown agent: {}", agent_name);
+            None
+        }
     }
 }
