@@ -98,21 +98,49 @@ repos:
   #   hooks:
   #     - id: markdownlint
 
-  # Rust formatting with rustfmt
+  # Rust formatting with rustfmt (auto-fix mode)
   - repo: local
     hooks:
-      - id: rust-fmt
-        name: Rust format (cargo fmt)
-        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/gh-validator && cargo fmt -- --check'
+      - id: rust-fmt-gh-validator
+        name: Rust format gh-validator
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/gh-validator && cargo fmt --all'
         language: system
         files: '^tools/rust/gh-validator/.*\.rs$'
         pass_filenames: false
 
-      - id: rust-clippy
-        name: Rust lint (cargo clippy)
+      - id: rust-fmt-pr-monitor
+        name: Rust format pr-monitor
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/pr-monitor && cargo fmt --all'
+        language: system
+        files: '^tools/rust/pr-monitor/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-fmt-injection-toolkit
+        name: Rust format injection-toolkit
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd packages/injection_toolkit && cargo fmt --all'
+        language: system
+        files: '^packages/injection_toolkit/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-clippy-gh-validator
+        name: Rust lint gh-validator
         entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/gh-validator && cargo clippy -- -D warnings'
         language: system
         files: '^tools/rust/gh-validator/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-clippy-pr-monitor
+        name: Rust lint pr-monitor
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/pr-monitor && cargo clippy -- -D warnings'
+        language: system
+        files: '^tools/rust/pr-monitor/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-clippy-injection-toolkit
+        name: Rust lint injection-toolkit
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd packages/injection_toolkit && cargo clippy -- -D warnings'
+        language: system
+        files: '^packages/injection_toolkit/.*\.rs$'
         pass_filenames: false
 
   # Markdown link checking (containerized for consistency)
