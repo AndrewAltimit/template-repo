@@ -89,10 +89,14 @@ impl GeminiAgent {
 
         // Pass GEMINI_API_KEY to subprocess, falling back to GOOGLE_API_KEY if needed
         // (GitHub workflows often use GOOGLE_API_KEY, but Gemini CLI expects GEMINI_API_KEY)
-        if let Ok(api_key) = std::env::var("GEMINI_API_KEY") {
-            cmd.env("GEMINI_API_KEY", api_key);
-        } else if let Ok(api_key) = std::env::var("GOOGLE_API_KEY") {
-            cmd.env("GEMINI_API_KEY", api_key);
+        // Check for non-empty values since workflows may set empty defaults
+        let api_key = std::env::var("GEMINI_API_KEY")
+            .ok()
+            .filter(|k| !k.is_empty())
+            .or_else(|| std::env::var("GOOGLE_API_KEY").ok().filter(|k| !k.is_empty()));
+
+        if let Some(key) = api_key {
+            cmd.env("GEMINI_API_KEY", key);
         }
 
         let mut child = cmd
