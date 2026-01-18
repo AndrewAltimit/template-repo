@@ -408,10 +408,10 @@ jobs:
           git clean -fd 2>/dev/null || true
           echo "Working directory cleaned"
 
-  # Stage 2b: Codex AI Code Review (Secondary reviewer with Gemini context)
+  # Stage 2b: Codex AI Code Review (Secondary reviewer)
   codex-review:
     name: Codex AI Code Review
-    needs: [detect-changes, gemini-review]
+    needs: [detect-changes, build-rust-tools, gemini-review]
     if: |
       github.event_name == 'pull_request' &&
       (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft) &&
@@ -421,11 +421,6 @@ jobs:
     continue-on-error: true  # Advisory review - don't block PR on Codex failures
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
-      PR_TITLE: ${{ github.event.pull_request.title }}
-      PR_BODY: ${{ github.event.pull_request.body }}
-      PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-      BASE_BRANCH: ${{ github.base_ref }}
-      HEAD_BRANCH: ${{ github.head_ref }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout code
@@ -437,24 +432,24 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Ensure clean working directory
-        run: |
-          # Reset any tracked file changes and remove untracked files
-          git checkout -- . 2>/dev/null || true
-          git clean -fd 2>/dev/null || true
-          echo "Working directory reset to clean state"
-
-      - name: Download Gemini review artifact
+      - name: Download Rust tools artifact
         uses: actions/download-artifact@v6
-        continue-on-error: true
         with:
-          name: gemini-review-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .
+          name: rust-tools-${{ github.run_id }}
+          path: rust-tools
+
+      - name: Setup Rust CLI tools
+        run: |
+          # Make binaries executable and move to expected locations
+          chmod +x rust-tools/github-agents
+          mkdir -p tools/rust/github-agents-cli/target/release
+          cp rust-tools/github-agents tools/rust/github-agents-cli/target/release/
+          echo "Rust CLI tools installed"
 
       - name: Setup Node.js with nvm
         shell: bash
         run: |
-          # Source nvm if available
+          # Source nvm if available (needed for Codex CLI)
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
@@ -466,21 +461,30 @@ jobs:
           which codex || echo "Codex CLI not found in PATH"
           codex --version || echo "Could not get Codex version"
 
-      - name: Set Gemini review path
-        run: |
-          if [ -f "gemini-review.md" ]; then
-            echo "GEMINI_REVIEW_PATH=gemini-review.md" >> $GITHUB_ENV
-            echo "Found Gemini review artifact"
-          else
-            echo "No Gemini review artifact found - Codex will review independently"
-          fi
-
-      - name: Run Codex CLI Review
-        continue-on-error: true  # Don't fail the PR if Codex review fails
+      - name: Run Codex PR Review (Rust CLI)
         shell: bash
         run: |
-          echo "Starting Codex PR Review..."
-          python3 automation/review/codex-pr-review.py
+          echo "Starting Codex PR Review (Rust CLI)..."
+
+          # Capture output and exit code - handle rate limit errors gracefully
+          set +e
+          OUTPUT=$(./tools/rust/github-agents-cli/target/release/github-agents pr-review "$PR_NUMBER" --agent codex 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          echo "$OUTPUT"
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            # Check for rate limit or quota errors
+            if echo "$OUTPUT" | grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage_limit'; then
+              echo "::warning::Codex API rate limit hit - skipping review for this run"
+              echo "The review will be attempted again on the next pipeline run."
+              exit 0
+            else
+              # Propagate other errors (but continue-on-error is set at job level)
+              exit $EXIT_CODE
+            fi
+          fi
 
       - name: Upload Codex review artifact
         if: always()
