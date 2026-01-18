@@ -481,21 +481,26 @@ jobs:
           set +e
           OUTPUT=$(./tools/rust/github-agents-cli/target/release/github-agents pr-review "$PR_NUMBER" --agent codex 2>&1)
           EXIT_CODE=$?
-          set -e
 
-          echo "$OUTPUT"
-
+          # Check for rate limit FIRST, before any echo that might fail
           if [ $EXIT_CODE -ne 0 ]; then
-            # Check for rate limit or quota errors
             # Pattern matches: "429", "rate limit", "quota", "resource exhausted", "usage_limit", "usage limit"
             if echo "$OUTPUT" | grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage.?limit'; then
               echo "::warning::Codex API rate limit hit - skipping review for this run"
               echo "The review will be attempted again on the next pipeline run."
+              # Show truncated output for debugging (avoid broken pipe on large output)
+              echo "$OUTPUT" | head -50 || true
               exit 0
-            else
-              # Propagate other errors (but continue-on-error is set at job level)
-              exit $EXIT_CODE
             fi
+          fi
+
+          # Now safe to echo full output (non-fatal if it fails)
+          echo "$OUTPUT" || true
+          set -e
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            # Propagate other errors (but continue-on-error is set at job level)
+            exit $EXIT_CODE
           fi
 
       - name: Upload Codex review artifact
