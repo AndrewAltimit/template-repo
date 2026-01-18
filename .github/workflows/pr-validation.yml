@@ -483,19 +483,20 @@ jobs:
           EXIT_CODE=$?
 
           # Check for rate limit FIRST, before any echo that might fail
+          # Use grep with here-string to avoid SIGPIPE/broken pipe issues
           if [ $EXIT_CODE -ne 0 ]; then
             # Pattern matches: "429", "rate limit", "quota", "resource exhausted", "usage_limit", "usage limit"
-            if echo "$OUTPUT" | grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage.?limit'; then
+            if grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage.?limit' <<< "$OUTPUT"; then
               echo "::warning::Codex API rate limit hit - skipping review for this run"
               echo "The review will be attempted again on the next pipeline run."
-              # Show truncated output for debugging (avoid broken pipe on large output)
-              echo "$OUTPUT" | head -50 || true
+              # Show truncated output for debugging
+              head -50 <<< "$OUTPUT" || true
               exit 0
             fi
           fi
 
-          # Now safe to echo full output (non-fatal if it fails)
-          echo "$OUTPUT" || true
+          # Now safe to show output (use cat with here-doc to avoid broken pipe)
+          cat <<< "$OUTPUT" || true
           set -e
 
           if [ $EXIT_CODE -ne 0 ]; then
