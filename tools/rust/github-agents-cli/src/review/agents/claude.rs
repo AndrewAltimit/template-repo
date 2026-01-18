@@ -66,12 +66,21 @@ impl ClaudeAgent {
         // --print: Non-interactive mode, output response and exit
         // --dangerously-skip-permissions: Auto-approve all tool uses
         // --model: Specify the model to use
+        // --mcp-config: Load MCP servers (reaction-search for contextual reactions)
         // Prompt is passed via stdin to handle large prompts safely
-        let mut child = Command::new(claude_path)
-            .arg("--print")
+        let mut cmd = Command::new(claude_path);
+        cmd.arg("--print")
             .arg("--dangerously-skip-permissions")
             .arg("--model")
-            .arg(&self.model)
+            .arg(&self.model);
+
+        // Load MCP config if available (for reaction-search tool)
+        if std::path::Path::new(".mcp.json").exists() {
+            cmd.arg("--mcp-config").arg(".mcp.json");
+            tracing::debug!("Loading MCP config from .mcp.json");
+        }
+
+        let mut child = cmd
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())

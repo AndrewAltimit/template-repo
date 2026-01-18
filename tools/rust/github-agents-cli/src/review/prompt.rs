@@ -203,13 +203,17 @@ If a section has no items, write "(none)" under it.
 - Generic advice that doesn't apply to specific code
 
 ## Reaction Images
-End your review with EXACTLY ONE reaction image from:
-https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/
+End your review with EXACTLY ONE reaction image.
 
-Choose based on review sentiment:
-- Positive/clean: kurisu_thumbs_up.webp, aqua_happy.webp
-- Minor issues: menhera_stare.webp, thinking_foxgirl.webp
-- Significant issues: kagami_annoyed.webp, nervous_sweat.webp
+**Use the `mcp__reaction-search__search_reactions` tool** to find a contextually appropriate reaction:
+- Call `search_reactions(query="<describe the review sentiment>", limit=1)`
+- Example queries: "satisfied with clean code", "concerned about security issue", "minor suggestions"
+- The tool returns markdown you can use directly: `![Reaction](URL)`
+
+If the MCP tool is unavailable, fall back to:
+- Positive/clean: https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/kurisu_thumbs_up.webp
+- Minor issues: https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/menhera_stare.webp
+- Significant issues: https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/kagami_annoyed.webp
 "#;
 
 /// Verification instructions for the AI

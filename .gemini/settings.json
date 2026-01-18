@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "reaction-search": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-reaction-search",
+        "python",
+        "-m",
+        "mcp_reaction_search.server",
+        "--mode",
+        "stdio"
+      ],
+      "trust": true
+    }
+  }
+}
