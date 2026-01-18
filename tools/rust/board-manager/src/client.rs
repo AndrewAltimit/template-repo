@@ -48,9 +48,19 @@ impl GraphQLClient {
         for attempt in 0..MAX_RETRIES {
             match self.execute_once(query, variables.clone()).await {
                 Ok(response) => {
-                    // Check for rate limit errors
+                    // Check for rate limit errors - wait and retry instead of failing immediately
                     if self.is_rate_limited(&response) {
-                        return Err(BoardError::RateLimit(60)); // Default retry after
+                        let retry_after = self.get_retry_after(&response).unwrap_or(60);
+                        if attempt < MAX_RETRIES - 1 {
+                            warn!(
+                                "Rate limited (attempt {}), waiting {}s before retry",
+                                attempt + 1,
+                                retry_after
+                            );
+                            sleep(Duration::from_secs(retry_after)).await;
+                            continue;
+                        }
+                        return Err(BoardError::RateLimit(retry_after));
                     }
 
                     // Check for GraphQL errors without data
@@ -173,6 +183,27 @@ impl GraphQLClient {
             .errors
             .iter()
             .any(|e| e.message.to_lowercase().contains("rate limit"))
+    }
+
+    /// Extract retry-after value from rate limit error (if available).
+    fn get_retry_after(&self, response: &GraphQLResponse) -> Option<u64> {
+        // Try to find a retry-after hint in the error message
+        // GitHub rate limit errors sometimes include timing hints
+        for error in &response.errors {
+            let msg = error.message.to_lowercase();
+            if msg.contains("rate limit") {
+                // Try to extract a number of seconds from patterns like "try again in X seconds"
+                if let Some(pos) = msg.find("try again in ") {
+                    let rest = &msg[pos + 13..];
+                    if let Some(num_end) = rest.find(|c: char| !c.is_ascii_digit())
+                        && let Ok(secs) = rest[..num_end].parse::<u64>()
+                    {
+                        return Some(secs);
+                    }
+                }
+            }
+        }
+        None
     }
 
     /// Execute a REST API GET request with retry logic.
