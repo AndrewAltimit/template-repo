@@ -32,7 +32,6 @@
 //!   URLs, strip them from the content and continue. Useful for CI pipelines.
 
 use std::env;
-use std::io::{BufRead, BufReader};
 use std::process::{exit, Command, Stdio};
 
 /// gh-validator specific flag for stripping invalid images instead of failing
@@ -126,28 +125,16 @@ fn extract_strip_flag(args: &[String]) -> (Vec<String>, bool) {
 }
 
 /// Check if this is a `gh pr create` command
+///
+/// Properly detects the subcommand by ensuring "pr" and "create" appear
+/// as the first two non-flag arguments in sequence. This avoids false
+/// positives like `gh pr list --search create`.
 fn is_pr_create_command(args: &[String]) -> bool {
-    // Look for "pr" followed by "create" in the args
-    // Handle various orderings like: gh pr create, gh pr --repo x create, etc.
-    let has_pr = args.iter().any(|a| a == "pr");
-    let has_create = args.iter().any(|a| a == "create");
-    has_pr && has_create
-}
+    // Filter out flags (start with -) to get positional args
+    let positional: Vec<&String> = args.iter().filter(|a| !a.starts_with('-')).collect();
 
-/// Extract PR number from a GitHub PR URL
-/// Handles URLs like: https://github.com/owner/repo/pull/123
-fn extract_pr_number_from_url(url: &str) -> Option<u32> {
-    // Look for /pull/NUMBER pattern
-    if let Some(idx) = url.find("/pull/") {
-        let after_pull = &url[idx + 6..];
-        // Take digits until non-digit
-        let num_str: String = after_pull
-            .chars()
-            .take_while(|c| c.is_ascii_digit())
-            .collect();
-        return num_str.parse().ok();
-    }
-    None
+    // Check if first two positional args are "pr" and "create"
+    positional.len() >= 2 && positional[0] == "pr" && positional[1] == "create"
 }
 
 /// Print the PR monitoring reminder
@@ -331,57 +318,68 @@ fn run() -> Result<(), Error> {
     unreachable!("exec should not return");
 }
 
-/// Execute `gh pr create` with output capture for PR monitoring notice
+/// Execute `gh pr create` and show monitoring notice after success
 ///
 /// Unlike exec_gh, this spawns the process so we can:
-/// 1. Stream stdout/stderr to the user in real-time
-/// 2. Capture the PR URL from the output
-/// 3. Print the monitoring notice after completion
+/// 1. Let gh run with full TTY access (preserves interactive mode)
+/// 2. Query for the PR URL after completion
+/// 3. Print the monitoring notice
+///
+/// Note: We use inherited stdout/stderr to preserve TTY for interactive prompts.
+/// After the command succeeds, we query the PR URL using `gh pr view`.
 fn spawn_gh_pr_create(gh_path: &std::path::Path, args: &[String]) -> Result<(), Error> {
-    let mut child = Command::new(gh_path)
+    // Run gh with inherited stdio to preserve TTY for interactive mode
+    let status = Command::new(gh_path)
         .args(args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::inherit()) // Pass stderr through directly
-        .spawn()
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .stdin(Stdio::inherit())
+        .status()
         .map_err(Error::ExecFailed)?;
 
-    let stdout = child.stdout.take().expect("stdout was piped");
-    let reader = BufReader::new(stdout);
-
-    let mut pr_url: Option<String> = None;
-
-    // Stream output line by line
-    for line in reader.lines() {
-        match line {
-            Ok(line) => {
-                // Print the line to stdout
-                println!("{}", line);
-
-                // Check if this line is a PR URL
-                if line.contains("/pull/") && line.starts_with("https://") {
-                    pr_url = Some(line.clone());
-                }
-            }
-            Err(e) => {
-                eprintln!("[gh-validator] Error reading output: {}", e);
-            }
-        }
-    }
-
-    // Wait for the process to complete
-    let status = child.wait().map_err(Error::ExecFailed)?;
-
-    // If successful and we found a PR URL, print the monitoring notice
+    // If successful, query for the PR URL and show monitoring notice
     if status.success() {
-        if let Some(url) = pr_url {
-            if let Some(pr_number) = extract_pr_number_from_url(&url) {
-                print_pr_monitoring_notice(pr_number, &url);
-            }
+        // Get the PR URL for the current branch using gh pr view
+        if let Some((pr_number, pr_url)) = get_current_branch_pr(gh_path) {
+            print_pr_monitoring_notice(pr_number, &pr_url);
         }
     }
 
     // Exit with the same code as gh
     exit(status.code().unwrap_or(1));
+}
+
+/// Get PR number and URL for the current branch
+fn get_current_branch_pr(gh_path: &std::path::Path) -> Option<(u32, String)> {
+    // Use gh pr view to get the PR URL for current branch
+    let output = Command::new(gh_path)
+        .args(["pr", "view", "--json", "number,url"])
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    let json_str = String::from_utf8(output.stdout).ok()?;
+
+    // Parse JSON manually (avoid adding serde dependency)
+    // Format: {"number":123,"url":"https://..."}
+    let number = json_str.find("\"number\":").and_then(|i| {
+        let start = i + 9;
+        let rest = &json_str[start..];
+        let end = rest.find(|c: char| !c.is_ascii_digit())?;
+        rest[..end].parse::<u32>().ok()
+    })?;
+
+    let url = json_str.find("\"url\":\"").and_then(|i| {
+        let start = i + 7;
+        let rest = &json_str[start..];
+        let end = rest.find('"')?;
+        Some(rest[..end].to_string())
+    })?;
+
+    Some((number, url))
 }
 
 /// Execute the real gh binary (replaces current process on Unix)
