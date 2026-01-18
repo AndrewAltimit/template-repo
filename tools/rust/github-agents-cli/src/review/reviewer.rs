@@ -50,16 +50,22 @@ impl PRReviewer {
     ) -> Result<Self> {
         // Load full config to get model overrides
         let full_config = FullConfig::load(None).ok();
-        let (review_model, condenser_model) = if let Some(ref fc) = full_config {
-            (
-                Some(fc.gemini_review_model()),
-                Some(fc.gemini_condenser_model()),
-            )
-        } else {
-            (None, None)
-        };
-
         let agent_name = agent_override.unwrap_or(&config.default_agent);
+
+        // Only apply model overrides for Gemini (other agents use their own defaults)
+        let (review_model, condenser_model) =
+            if agent_name.eq_ignore_ascii_case("gemini") {
+                if let Some(ref fc) = full_config {
+                    (
+                        Some(fc.gemini_review_model()),
+                        Some(fc.gemini_condenser_model()),
+                    )
+                } else {
+                    (None, None)
+                }
+            } else {
+                (None, None)
+            };
 
         let agent = agents::select_agent_with_models(agent_name, review_model, condenser_model)
             .await

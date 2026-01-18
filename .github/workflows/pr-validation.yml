@@ -450,8 +450,11 @@ jobs:
         run: |
           # Make binaries executable and move to expected locations
           chmod +x rust-tools/github-agents
+          chmod +x rust-tools/board-manager
           mkdir -p tools/rust/github-agents-cli/target/release
+          mkdir -p tools/rust/board-manager/target/release
           cp rust-tools/github-agents tools/rust/github-agents-cli/target/release/
+          cp rust-tools/board-manager tools/rust/board-manager/target/release/
           echo "Rust CLI tools installed"
 
       - name: Setup Node.js with nvm
