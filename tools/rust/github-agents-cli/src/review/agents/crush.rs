@@ -79,30 +79,26 @@ impl CrushAgent {
     }
 }
 
-/// Find the crush binary in common locations
+/// Find the crush binary by trying to execute it directly
+/// (avoids `which` command which may not be available in Docker)
 fn find_crush_binary() -> Option<String> {
-    // Check PATH first using which
-    if let Ok(output) = std::process::Command::new("which").arg("crush").output() {
-        if output.status.success() {
-            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if !path.is_empty() && std::path::Path::new(&path).exists() {
-                return Some(path);
-            }
-        }
-    }
-
-    // Check common paths
     let home = std::env::var("HOME").unwrap_or_default();
-    let common_paths = [
+
+    // Candidates to try - will verify by executing --version
+    let candidates = [
+        "crush".to_string(),
         format!("{}/.nvm/versions/node/v22.16.0/bin/crush", home),
         format!("{}/go/bin/crush", home),
         "/usr/local/bin/crush".to_string(),
         "/usr/bin/crush".to_string(),
     ];
 
-    for path in common_paths {
-        if std::path::Path::new(&path).exists() {
-            return Some(path);
+    // Try each candidate by executing --version
+    for candidate in &candidates {
+        if let Ok(output) = std::process::Command::new(candidate).arg("--version").output() {
+            if output.status.success() {
+                return Some(candidate.clone());
+            }
         }
     }
 

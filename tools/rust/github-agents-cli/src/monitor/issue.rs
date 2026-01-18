@@ -90,8 +90,12 @@ impl IssueMonitor {
         let recent_issues: Vec<Issue> = issues
             .into_iter()
             .filter(|issue| {
-                let created_at: DateTime<Utc> =
-                    issue.created_at.parse().unwrap_or_else(|_| Utc::now());
+                // On parse failure, use epoch (1970-01-01) to treat as old, not new
+                // This prevents malformed timestamps from being incorrectly flagged as new
+                let created_at: DateTime<Utc> = issue
+                    .created_at
+                    .parse()
+                    .unwrap_or_else(|_| DateTime::<Utc>::MIN_UTC);
                 created_at >= cutoff
             })
             .collect();

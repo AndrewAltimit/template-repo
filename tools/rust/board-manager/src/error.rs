@@ -25,6 +25,10 @@ pub enum BoardError {
     #[error("Configuration error: {0}")]
     Config(String),
 
+    /// Validation error.
+    #[error("Validation error: {0}")]
+    Validation(String),
+
     /// HTTP request error.
     #[error("HTTP request failed: {0}")]
     Http(#[from] reqwest::Error),

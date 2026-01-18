@@ -174,16 +174,25 @@ pub async fn run_git_command(args: &[&str], check: bool) -> Result<Option<String
 }
 
 /// Check if the GitHub CLI is available and authenticated.
+/// (Checks by running command directly, avoiding `which` for Docker compatibility)
 pub async fn check_gh_available() -> Result<(), Error> {
-    // Check if gh command exists
-    let which_output = Command::new("which")
-        .arg("gh")
+    // Check if gh command exists by trying to run it
+    let version_output = Command::new("gh")
+        .arg("--version")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .output()
-        .await
-        .map_err(Error::Io)?;
+        .await;
 
-    if !which_output.status.success() {
-        return Err(Error::GhNotFound);
+    match version_output {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Err(Error::GhNotFound);
+        }
+        Err(e) => return Err(Error::Io(e)),
+        Ok(output) if !output.status.success() => {
+            return Err(Error::GhNotFound);
+        }
+        Ok(_) => {}
     }
 
     // Check authentication
@@ -204,15 +213,24 @@ pub async fn check_gh_available() -> Result<(), Error> {
 }
 
 /// Check if git is available.
+/// (Checks by running command directly, avoiding `which` for Docker compatibility)
 pub async fn check_git_available() -> Result<(), Error> {
-    let which_output = Command::new("which")
-        .arg("git")
+    let version_output = Command::new("git")
+        .arg("--version")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .output()
-        .await
-        .map_err(Error::Io)?;
+        .await;
 
-    if !which_output.status.success() {
-        return Err(Error::GitNotFound);
+    match version_output {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Err(Error::GitNotFound);
+        }
+        Err(e) => return Err(Error::Io(e)),
+        Ok(output) if !output.status.success() => {
+            return Err(Error::GitNotFound);
+        }
+        Ok(_) => {}
     }
 
     debug!("Git available");

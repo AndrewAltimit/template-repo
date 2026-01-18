@@ -115,30 +115,26 @@ impl ClaudeAgent {
     }
 }
 
-/// Find the claude binary in common locations
+/// Find the claude binary by trying to execute it directly
+/// (avoids `which` command which may not be available in Docker)
 fn find_claude_binary() -> Option<String> {
-    // Check PATH first using which
-    if let Ok(output) = std::process::Command::new("which").arg("claude").output() {
-        if output.status.success() {
-            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if !path.is_empty() && std::path::Path::new(&path).exists() {
-                return Some(path);
-            }
-        }
-    }
-
-    // Check common NVM paths
     let home = std::env::var("HOME").unwrap_or_default();
-    let common_paths = [
+
+    // Candidates to try - will verify by executing --version
+    let candidates = [
+        "claude".to_string(),
         format!("{}/.nvm/versions/node/v22.16.0/bin/claude", home),
         format!("{}/.nvm/versions/node/v20.18.0/bin/claude", home),
         "/usr/local/bin/claude".to_string(),
         "/usr/bin/claude".to_string(),
     ];
 
-    for path in common_paths {
-        if std::path::Path::new(&path).exists() {
-            return Some(path);
+    // Try each candidate by executing --version
+    for candidate in &candidates {
+        if let Ok(output) = std::process::Command::new(candidate).arg("--version").output() {
+            if output.status.success() {
+                return Some(candidate.clone());
+            }
         }
     }
 

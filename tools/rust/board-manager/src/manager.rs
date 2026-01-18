@@ -26,6 +26,26 @@ lazy_static! {
         Regex::new(r"(?i)\[(Approved|Review|Close|Summarize|Debug)\]\[[\w\s-]+\]").unwrap();
 }
 
+/// Sanitize a GraphQL field name to prevent injection attacks.
+///
+/// GraphQL doesn't support variables in field(name: ...) selectors, so we
+/// validate the input to only allow safe characters (alphanumeric, spaces,
+/// underscores, and hyphens).
+fn sanitize_graphql_field_name(name: &str) -> Result<&str> {
+    // Only allow alphanumeric, space, underscore, and hyphen
+    if name
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == ' ' || c == '_' || c == '-')
+    {
+        Ok(name)
+    } else {
+        Err(BoardError::Validation(format!(
+            "Invalid field name '{}': contains unsafe characters",
+            name
+        )))
+    }
+}
+
 /// Agent name mappings (workflow names -> board field values).
 const AGENT_NAME_MAP: &[(&str, &str)] = &[
     ("claude", "Claude Code"),
@@ -1654,6 +1674,11 @@ impl BoardManager {
             .as_ref()
             .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
 
+        // Sanitize field_name to prevent GraphQL injection
+        // Note: GraphQL doesn't support variables in field(name: ...) selectors,
+        // so we validate the input instead
+        let sanitized_field_name = sanitize_graphql_field_name(field_name)?;
+
         // Get field info
         let query = format!(
             r#"
@@ -1670,7 +1695,7 @@ impl BoardManager {
           }}
         }}
         "#,
-            field_name
+            sanitized_field_name
         );
 
         let response = self

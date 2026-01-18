@@ -673,8 +673,8 @@ jobs:
           source "$HOME/.cargo/env" || true
           cd tools/rust/markdown-link-checker
           cargo build --release
-          cp target/release/markdown-link-checker ../../../rust-binaries/markdown-link-checker-linux-x64
-          echo "Built markdown-link-checker for Linux x64"
+          cp target/release/md-link-checker ../../../rust-binaries/markdown-link-checker-linux-x64
+          echo "Built md-link-checker for Linux x64"
 
       - name: Build github-agents-cli (Linux)
         run: |

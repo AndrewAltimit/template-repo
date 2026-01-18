@@ -30,17 +30,52 @@ impl PathValidator {
     ///
     /// This resolves symlinks and checks if the path is a descendant
     /// of any allowed path, preventing path traversal attacks.
+    /// For new files (that don't exist yet), validates the parent directory.
     pub fn validate(&self, path: &str) -> Result<PathBuf> {
         let path = Path::new(path);
 
         // Try to canonicalize (resolve symlinks and make absolute)
-        let resolved = path.canonicalize().map_err(|e| {
-            ToolError::PathValidation(format!(
-                "Failed to resolve path '{}': {}",
-                path.display(),
-                e
-            ))
-        })?;
+        // If the file doesn't exist, try to canonicalize the parent directory
+        let resolved = if path.exists() {
+            path.canonicalize().map_err(|e| {
+                ToolError::PathValidation(format!(
+                    "Failed to resolve path '{}': {}",
+                    path.display(),
+                    e
+                ))
+            })?
+        } else {
+            // For new files, validate parent directory exists and is accessible
+            let parent = path.parent().ok_or_else(|| {
+                ToolError::PathValidation(format!(
+                    "Path '{}' has no parent directory",
+                    path.display()
+                ))
+            })?;
+
+            // Canonicalize the parent, then append the filename
+            let parent_resolved = if parent.as_os_str().is_empty() {
+                // Empty parent means current directory
+                std::env::current_dir().map_err(|e| {
+                    ToolError::PathValidation(format!("Failed to get current directory: {}", e))
+                })?
+            } else {
+                parent.canonicalize().map_err(|e| {
+                    ToolError::PathValidation(format!(
+                        "Parent directory '{}' does not exist or is not accessible: {}",
+                        parent.display(),
+                        e
+                    ))
+                })?
+            };
+
+            // Get the filename and join with resolved parent
+            let filename = path.file_name().ok_or_else(|| {
+                ToolError::PathValidation(format!("Path '{}' has no filename", path.display()))
+            })?;
+
+            parent_resolved.join(filename)
+        };
 
         // Check if resolved path is under any allowed path
         for allowed in &self.allowed_paths {
