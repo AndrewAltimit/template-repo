@@ -79,13 +79,23 @@ impl GeminiAgent {
         // --yolo: Auto-approve all tool uses (needed for non-interactive mode)
         // --model: Specify the model to use
         // Prompt is passed via stdin to handle large prompts safely
-        let mut child = Command::new(gemini_path)
-            .arg("--yolo")
+        let mut cmd = Command::new(gemini_path);
+        cmd.arg("--yolo")
             .arg("--model")
             .arg(model)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
+            .stderr(Stdio::piped());
+
+        // Pass GEMINI_API_KEY to subprocess, falling back to GOOGLE_API_KEY if needed
+        // (GitHub workflows often use GOOGLE_API_KEY, but Gemini CLI expects GEMINI_API_KEY)
+        if let Ok(api_key) = std::env::var("GEMINI_API_KEY") {
+            cmd.env("GEMINI_API_KEY", api_key);
+        } else if let Ok(api_key) = std::env::var("GOOGLE_API_KEY") {
+            cmd.env("GEMINI_API_KEY", api_key);
+        }
+
+        let mut child = cmd
             .spawn()
             .map_err(|e| Error::Config(format!("Failed to spawn Gemini CLI: {}", e)))?;
 
