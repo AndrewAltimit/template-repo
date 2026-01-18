@@ -47,9 +47,11 @@ except ImportError:
     _exit_code = 1 if os.environ.get("GEMINI_REVIEW_REQUIRED", "").lower() in ("1", "true") else 0
     sys.exit(_exit_code)
 
-# Trust bucketing is now in Rust board-manager CLI
-# For this script, we use a simple 2-tier trust system (trusted vs untrusted)
-# The Rust CLI provides full 3-tier bucketing via: board-manager bucket-comments
+# Trust bucketing uses the Rust board-manager CLI for 3-tier categorization:
+# - ADMIN: agent_admins - highest authority, can direct implementation
+# - TRUSTED: trusted_sources - vetted automation and bots
+# - COMMUNITY: everyone else - consider but verify
+# Falls back to 2-tier (trusted/untrusted) if Rust CLI not available
 
 
 def _is_within_repo(resolved_path: Path, repo_root: Path) -> bool:
@@ -1196,7 +1198,7 @@ def get_recent_pr_comments(pr_number: str) -> str:
     - TRUSTED: trusted_sources - vetted automation and bots
     - COMMUNITY: everyone else - consider but verify
 
-    Falls back to legacy 2-tier system if github_agents not installed.
+    Falls back to legacy 2-tier system if Rust CLI not available.
     """
     try:
         comments = get_all_pr_comments(pr_number)
@@ -1209,13 +1211,87 @@ def get_recent_pr_comments(pr_number: str) -> str:
         if not non_gemini_comments:
             return ""
 
-        # Use 2-tier trust filtering (trusted vs untrusted)
-        # 3-tier bucketing is available via Rust: board-manager bucket-comments
+        # Try 3-tier bucketing with Rust CLI first
+        bucketed = _bucket_comments_with_rust_cli(non_gemini_comments)
+        if bucketed:
+            return bucketed
+
+        # Fall back to 2-tier legacy system
         return _format_comments_2tier_legacy(non_gemini_comments)
 
     except Exception as e:
         print(f"Warning: Unexpected error processing PR comments: {e}")
         return ""
+
+
+def _find_board_manager_binary() -> Optional[str]:
+    """Find the board-manager Rust CLI binary.
+
+    Returns:
+        Path to binary or None if not found.
+    """
+    import shutil
+
+    # Check common locations
+    search_paths = [
+        # In PATH
+        shutil.which("board-manager"),
+        # Local build (relative to repo root)
+        "tools/rust/board-manager/target/release/board-manager",
+        # Absolute path from cwd
+        str(Path.cwd() / "tools/rust/board-manager/target/release/board-manager"),
+    ]
+
+    for path in search_paths:
+        if path and Path(path).is_file() and os.access(path, os.X_OK):
+            return path
+
+    return None
+
+
+def _bucket_comments_with_rust_cli(comments: List[Dict[str, Any]]) -> Optional[str]:
+    """Use Rust board-manager CLI for 3-tier trust bucketing.
+
+    Args:
+        comments: List of comment dicts from GitHub API.
+
+    Returns:
+        Formatted markdown string with 3-tier trust bucketing, or None if CLI unavailable.
+    """
+    board_manager = _find_board_manager_binary()
+    if not board_manager:
+        return None
+
+    try:
+        # Convert comments to JSON for CLI input
+        comments_json = json.dumps(comments)
+
+        # Call the Rust CLI
+        result = subprocess.run(
+            [board_manager, "bucket-comments", "--filter-noise"],
+            input=comments_json,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+
+        if result.returncode == 0 and result.stdout.strip():
+            output = result.stdout.strip()
+            # Add header for context
+            return f"## PR Discussion Context\n\n{output}"
+
+        if result.stderr:
+            print(f"Warning: board-manager bucket-comments stderr: {result.stderr}")
+
+        return None
+
+    except subprocess.TimeoutExpired:
+        print("Warning: board-manager bucket-comments timed out")
+        return None
+    except Exception as e:
+        print(f"Warning: Failed to run board-manager bucket-comments: {e}")
+        return None
 
 
 def _format_comments_2tier_legacy(comments: List[Dict[str, Any]]) -> str:
