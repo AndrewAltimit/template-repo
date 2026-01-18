@@ -320,6 +320,31 @@ jobs:
           kill $GEMINI_PID || true
 
 
+      - name: Start Reaction Search MCP Server
+        # Reviews always run (agent decides whether to act)
+        run: |
+          echo "🎭 Starting Reaction Search MCP server..."
+          # Set Docker user environment
+          source ./automation/setup/docker/set-docker-user.sh 2>/dev/null || true
+
+          # Build and start the reaction-search server
+          docker-compose --profile services up -d mcp-reaction-search
+
+          # Wait for server to be healthy (model loading can take time)
+          echo "⏳ Waiting for Reaction Search server to be ready..."
+          for i in {1..60}; do
+            if curl -f -s http://localhost:8024/health > /dev/null 2>&1; then
+              echo "✅ Reaction Search MCP server is ready"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "⚠️ Reaction Search server not ready after 60s - reviews will use fallback URLs"
+              break
+            fi
+            echo "  Attempt $i/60..."
+            sleep 2
+          done
+
       - name: Run Gemini PR Review (Rust CLI)
         # Reviews always run (agent decides whether to act)
         shell: bash
@@ -339,6 +364,13 @@ jobs:
           # --editor enables a cleanup pass with Claude to strip any reasoning/chain-of-thought
           echo "🚀 Starting Gemini PR Review (Rust CLI)..."
           ./tools/rust/github-agents-cli/target/release/github-agents pr-review "$PR_NUMBER" --editor
+
+      - name: Stop Reaction Search MCP Server
+        if: always()
+        run: |
+          echo "🛑 Stopping Reaction Search MCP server..."
+          docker-compose --profile services stop mcp-reaction-search || true
+          docker-compose --profile services rm -f mcp-reaction-search || true
 
       - name: Upload review artifact
         if: always()
