@@ -637,9 +637,7 @@ runs:
         # - trusted_sources: Trusted context providers (medium trust)
         # - other: All other commenters (lower trust, but still visible)
         #
-        # Prefer Rust board-manager (faster), fall back to Python if unavailable
-        BOARD_MANAGER_BIN="${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager"
-
+        # Use board-manager symlink created in setup step (added to PATH)
         # Extract comments as JSON array
         COMMENTS_JSON=$(echo "$ISSUE_DATA" | jq -c '[.comments[]? | {author: .author.login, body: .body, createdAt: .createdAt}]' 2>/dev/null || echo '[]')
 
@@ -647,7 +645,7 @@ runs:
           # Use Rust board-manager for trust bucketing
           # Pipe JSON via stdin to avoid ARG_MAX limits with large comment histories
           echo "Using Rust board-manager for comment bucketing"
-          ISSUE_COMMENTS=$(echo "$COMMENTS_JSON" | "$BOARD_MANAGER_BIN" bucket-comments 2>/dev/null || echo "")
+          ISSUE_COMMENTS=$(echo "$COMMENTS_JSON" | board-manager bucket-comments 2>/dev/null || echo "")
         else
           ISSUE_COMMENTS=""
         fi

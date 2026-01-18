@@ -197,11 +197,15 @@ jobs:
 
           echo "Running: github-agents refinement-monitor $CMD_ARGS"
 
-          # Run Rust CLI and capture output
-          REFINEMENT_OUTPUT=$(github-agents refinement-monitor $CMD_ARGS 2>&1) || {
-            echo "Refinement command failed"
-            REFINEMENT_OUTPUT='{"issues_reviewed":0,"insights_added":0}'
+          # Run Rust CLI and capture JSON output (separate stderr to avoid polluting JSON)
+          # This prevents warnings like "Building github-agents" from breaking jq parsing
+          STDERR_LOG=$(mktemp)
+          REFINEMENT_OUTPUT=$(github-agents refinement-monitor $CMD_ARGS 2>"$STDERR_LOG") || {
+            echo "Refinement command failed. Stderr:"
+            cat "$STDERR_LOG"
+            REFINEMENT_OUTPUT='[]'
           }
+          rm -f "$STDERR_LOG"
 
           echo "Refinement output: $REFINEMENT_OUTPUT"
 
