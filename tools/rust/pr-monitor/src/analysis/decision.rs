@@ -21,6 +21,7 @@ pub enum ResponseType {
     AdminCommand,
     AdminComment,
     GeminiReview,
+    CodexReview,
     CiResults,
 }
 

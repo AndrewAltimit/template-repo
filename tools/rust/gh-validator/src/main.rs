@@ -15,6 +15,11 @@
 //! - Formatting validation: Ensures proper use of --body-file for reaction images
 //! - URL validation: Verifies reaction image URLs exist (with SSRF protection)
 //!
+//! # Post-Command Features
+//!
+//! - PR monitoring reminder: After `gh pr create`, displays a reminder to monitor
+//!   the PR for feedback using the pr-monitor tool.
+//!
 //! # Architecture
 //!
 //! All validation operates directly on the argument vector rather than
@@ -27,7 +32,7 @@
 //!   URLs, strip them from the content and continue. Useful for CI pipelines.
 
 use std::env;
-use std::process::{exit, Command};
+use std::process::{exit, Command, Stdio};
 
 /// gh-validator specific flag for stripping invalid images instead of failing
 const STRIP_INVALID_IMAGES_FLAG: &str = "--gh-validator-strip-invalid-images";
@@ -117,6 +122,125 @@ fn extract_strip_flag(args: &[String]) -> (Vec<String>, bool) {
         .cloned()
         .collect();
     (filtered, has_flag)
+}
+
+/// Flags that take an argument (used to skip their values in positional detection)
+const FLAGS_WITH_ARGS: &[&str] = &[
+    "-R",
+    "--repo",
+    "-C",
+    "--cwd",
+    "-H",
+    "--hostname",
+    "--jq",
+    "-t",
+    "--template",
+];
+
+/// Check if this is a `gh pr create` command
+///
+/// Properly detects the subcommand by ensuring "pr" and "create" appear
+/// as the first two non-flag arguments in sequence. This avoids false
+/// positives like `gh pr list --search create` and handles global flags
+/// with arguments like `gh -R owner/repo pr create`.
+fn is_pr_create_command(args: &[String]) -> bool {
+    let mut positional = Vec::new();
+    let mut skip_next = false;
+
+    for arg in args {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+        if arg.starts_with('-') {
+            // Check if this flag takes an argument
+            if FLAGS_WITH_ARGS.iter().any(|f| arg == *f) {
+                skip_next = true;
+            }
+            // Also handle --flag=value form (no need to skip next)
+            continue;
+        }
+        positional.push(arg);
+    }
+
+    // Check if first two positional args are "pr" and "create"
+    positional.len() >= 2 && positional[0] == "pr" && positional[1] == "create"
+}
+
+/// Extract --repo/-R value from args if present
+fn extract_repo_flag(args: &[String]) -> Option<String> {
+    let mut iter = args.iter();
+    while let Some(arg) = iter.next() {
+        if arg == "-R" || arg == "--repo" {
+            return iter.next().cloned();
+        }
+        if let Some(repo) = arg.strip_prefix("--repo=") {
+            return Some(repo.to_string());
+        }
+        if let Some(repo) = arg.strip_prefix("-R") {
+            if !repo.is_empty() {
+                return Some(repo.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Print the PR monitoring reminder
+fn print_pr_monitoring_notice(pr_number: u32, pr_url: &str) {
+    // Get the latest commit SHA
+    let commit_sha = Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                String::from_utf8(o.stdout)
+                    .ok()
+                    .map(|s| s.trim().to_string())
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| "HEAD".to_string());
+
+    // Get current branch name
+    let branch = Command::new("git")
+        .args(["rev-parse", "--abbrev-ref", "HEAD"])
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                String::from_utf8(o.stdout)
+                    .ok()
+                    .map(|s| s.trim().to_string())
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| "unknown".to_string());
+
+    eprintln!();
+    eprintln!("============================================================");
+    eprintln!("PR FEEDBACK MONITORING");
+    eprintln!("============================================================");
+    eprintln!();
+    eprintln!("PR #{} created on branch '{}'", pr_number, branch);
+    eprintln!("{}", pr_url);
+    eprintln!();
+    eprintln!("To monitor for admin/Gemini feedback:");
+    eprintln!();
+    eprintln!(
+        "  ./tools/rust/pr-monitor/target/release/pr-monitor {} --since-commit {}",
+        pr_number, commit_sha
+    );
+    eprintln!();
+    eprintln!("This will watch for:");
+    eprintln!("  - Admin comments and approval commands");
+    eprintln!("  - Gemini AI code review feedback");
+    eprintln!("  - CI/CD validation results");
+    eprintln!();
+    eprintln!("============================================================");
 }
 
 /// Run validation and execute the real gh binary
@@ -232,9 +356,93 @@ fn run() -> Result<(), Error> {
     if was_masked {
         eprintln!("[gh-validator] Secrets were masked in command");
     }
+
+    // Special handling for `gh pr create` - use spawn to capture output for monitoring notice
+    if is_pr_create_command(&masked_args) {
+        return spawn_gh_pr_create(&real_gh, &masked_args);
+    }
+
     exec_gh(&real_gh, &masked_args)?;
 
     unreachable!("exec should not return");
+}
+
+/// Execute `gh pr create` and show monitoring notice after success
+///
+/// Unlike exec_gh, this spawns the process so we can:
+/// 1. Let gh run with full TTY access (preserves interactive mode)
+/// 2. Query for the PR URL after completion
+/// 3. Print the monitoring notice
+///
+/// Note: We use inherited stdout/stderr to preserve TTY for interactive prompts.
+/// After the command succeeds, we query the PR URL using `gh pr view`.
+fn spawn_gh_pr_create(gh_path: &std::path::Path, args: &[String]) -> Result<(), Error> {
+    // Run gh with inherited stdio to preserve TTY for interactive mode
+    let status = Command::new(gh_path)
+        .args(args)
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .stdin(Stdio::inherit())
+        .status()
+        .map_err(Error::ExecFailed)?;
+
+    // If successful, query for the PR URL and show monitoring notice
+    if status.success() {
+        // Extract repo flag from original args to pass to gh pr view
+        let repo = extract_repo_flag(args);
+        // Get the PR URL for the current branch using gh pr view
+        if let Some((pr_number, pr_url)) = get_current_branch_pr(gh_path, repo.as_deref()) {
+            print_pr_monitoring_notice(pr_number, &pr_url);
+        }
+    }
+
+    // Exit with the same code as gh
+    exit(status.code().unwrap_or(1));
+}
+
+/// Get PR number and URL for the current branch
+fn get_current_branch_pr(gh_path: &std::path::Path, repo: Option<&str>) -> Option<(u32, String)> {
+    // Build args, optionally including --repo
+    let mut cmd_args = vec!["pr", "view", "--json", "number,url"];
+    let repo_flag;
+    if let Some(r) = repo {
+        repo_flag = format!("--repo={}", r);
+        cmd_args.push(&repo_flag);
+    }
+
+    let output = Command::new(gh_path).args(&cmd_args).output().ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    let json_str = String::from_utf8(output.stdout).ok()?;
+
+    // Parse JSON manually (avoid adding serde dependency)
+    // Format: {"number":123,"url":"https://..."} or {"number": 123, "url": "..."}
+    // Handle optional whitespace after colons
+    let number = json_str.find("\"number\":").and_then(|i| {
+        let start = i + 9;
+        let rest = json_str[start..].trim_start();
+        let end = rest
+            .find(|c: char| !c.is_ascii_digit())
+            .unwrap_or(rest.len());
+        if end == 0 {
+            return None;
+        }
+        rest[..end].parse::<u32>().ok()
+    })?;
+
+    let url = json_str.find("\"url\":").and_then(|i| {
+        let start = i + 6;
+        let rest = json_str[start..].trim_start();
+        // Skip opening quote
+        let rest = rest.strip_prefix('"')?;
+        let end = rest.find('"')?;
+        Some(rest[..end].to_string())
+    })?;
+
+    Some((number, url))
 }
 
 /// Execute the real gh binary (replaces current process on Unix)

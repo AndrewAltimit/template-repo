@@ -76,31 +76,47 @@ jobs:
     steps:
       # Fix Docker-created directory permissions BEFORE checkout
       # Previous runs may have created files as root which blocks checkout cleanup
+      # NOTE: Uses Docker (not sudo) to fix permissions - avoids password prompt hangs
       - name: Fix Docker directory permissions (pre-checkout)
         run: |
           echo "::group::Pre-Checkout: Fix Docker Directory Permissions"
           WORKSPACE="${GITHUB_WORKSPACE:-$(pwd)}"
 
-          # Fix ownership of output directories that Docker may have created
-          # Patterns cover all MCP server output directories from docker-compose.yml
-          for pattern in "outputs" "output" "mcp-content" "mcp-memes" "mcp-gaea2" \
-                         "video-editor" "elevenlabs_speech" "blender" "evaluation_results" \
-                         ".agent-venv" "__pycache__" ".pytest_cache"; do
-            if command -v sudo &> /dev/null; then
-              find "$WORKSPACE" -type d -name "$pattern" 2>/dev/null | while IFS= read -r dir; do
-                if [ -d "$dir" ]; then
-                  echo "Fixing ownership: $dir"
-                  sudo chown -R "$(id -u):$(id -g)" "$dir" 2>/dev/null || true
-                fi
-              done
+          # List of directories that Docker may have created with root ownership
+          # Using direct paths instead of 'find' to avoid hangs on permission-denied dirs
+          DIRS_TO_FIX=(
+            "outputs"
+            "evaluation_results"
+            ".agent-venv"
+            "__pycache__"
+            ".pytest_cache"
+          )
+
+          # Fix permissions using Docker (runs as root, no sudo password needed)
+          for dir in "${DIRS_TO_FIX[@]}"; do
+            # Skip symlinks to prevent chown on unintended paths
+            if [ -L "$WORKSPACE/$dir" ]; then
+              echo "  Skipping symlink: $WORKSPACE/$dir"
+              continue
+            fi
+            if [ -d "$WORKSPACE/$dir" ]; then
+              echo "Fixing ownership via Docker: $WORKSPACE/$dir"
+              # Use busybox to chown the directory to the current user
+              # -Rh: recursive, affect symlinks themselves (not targets)
+              # Use timeout if available to prevent hangs, fall back to direct call
+              if command -v timeout &> /dev/null; then
+                timeout 30 docker run --rm \
+                  -v "$WORKSPACE/$dir:/target" \
+                  busybox:1.36.1 \
+                  chown -Rh "$(id -u):$(id -g)" /target 2>/dev/null || echo "  Warning: Could not fix $dir (may already have correct ownership)"
+              else
+                docker run --rm \
+                  -v "$WORKSPACE/$dir:/target" \
+                  busybox:1.36.1 \
+                  chown -Rh "$(id -u):$(id -g)" /target 2>/dev/null || echo "  Warning: Could not fix $dir (may already have correct ownership)"
+              fi
             fi
           done
-
-          # Also fix the outputs directory at workspace root if it exists
-          if [ -d "$WORKSPACE/outputs" ] && command -v sudo &> /dev/null; then
-            sudo chown -R "$(id -u):$(id -g)" "$WORKSPACE/outputs" 2>/dev/null || true
-            echo "Fixed: $WORKSPACE/outputs"
-          fi
 
           echo "Permissions check complete"
           echo "::endgroup::"
@@ -476,29 +492,46 @@ jobs:
 
       # Fix Docker-created directory permissions after job completion
       # Ensures subsequent runs won't have permission issues during checkout
+      # NOTE: Uses Docker (not sudo) to fix permissions - avoids password prompt hangs
       - name: Fix Docker directory permissions (post-cleanup)
         if: always()
         run: |
           echo "::group::Post-Cleanup: Fix Docker Directory Permissions"
           WORKSPACE="${GITHUB_WORKSPACE:-$(pwd)}"
 
-          # Fix ownership of output directories that Docker may have created
-          for pattern in "outputs" "output" "mcp-content" "mcp-memes" "mcp-gaea2" \
-                         "video-editor" "elevenlabs_speech" "blender" "evaluation_results" \
-                         ".agent-venv" "__pycache__" ".pytest_cache"; do
-            if command -v sudo &> /dev/null; then
-              find "$WORKSPACE" -type d -name "$pattern" 2>/dev/null | while IFS= read -r dir; do
-                if [ -d "$dir" ]; then
-                  sudo chown -R "$(id -u):$(id -g)" "$dir" 2>/dev/null || true
-                fi
-              done
+          # List of directories that Docker may have created with root ownership
+          DIRS_TO_FIX=(
+            "outputs"
+            "evaluation_results"
+            ".agent-venv"
+            "__pycache__"
+            ".pytest_cache"
+          )
+
+          # Fix permissions using Docker (runs as root, no sudo password needed)
+          for dir in "${DIRS_TO_FIX[@]}"; do
+            # Skip symlinks to prevent chown on unintended paths
+            if [ -L "$WORKSPACE/$dir" ]; then
+              echo "  Skipping symlink: $WORKSPACE/$dir"
+              continue
+            fi
+            if [ -d "$WORKSPACE/$dir" ]; then
+              echo "Fixing ownership via Docker: $WORKSPACE/$dir"
+              # -Rh: recursive, affect symlinks themselves (not targets)
+              # Use timeout if available to prevent hangs, fall back to direct call
+              if command -v timeout &> /dev/null; then
+                timeout 30 docker run --rm \
+                  -v "$WORKSPACE/$dir:/target" \
+                  busybox:1.36.1 \
+                  chown -Rh "$(id -u):$(id -g)" /target 2>/dev/null || echo "  Warning: Could not fix $dir"
+              else
+                docker run --rm \
+                  -v "$WORKSPACE/$dir:/target" \
+                  busybox:1.36.1 \
+                  chown -Rh "$(id -u):$(id -g)" /target 2>/dev/null || echo "  Warning: Could not fix $dir"
+              fi
             fi
           done
-
-          # Fix the outputs directory at workspace root
-          if [ -d "$WORKSPACE/outputs" ] && command -v sudo &> /dev/null; then
-            sudo chown -R "$(id -u):$(id -g)" "$WORKSPACE/outputs" 2>/dev/null || true
-          fi
 
           echo "Post-cleanup complete"
           echo "::endgroup::"
