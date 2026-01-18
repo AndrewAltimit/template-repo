@@ -115,11 +115,11 @@ impl GeminiAgent {
 
         // Wait for completion with timeout
         let output = tokio::time::timeout(
-            std::time::Duration::from_secs(600), // 10 minute timeout
+            std::time::Duration::from_secs(1800), // 30 minute timeout for large PRs
             child.wait_with_output(),
         )
         .await
-        .map_err(|_| Error::Config("Gemini CLI timed out after 10 minutes".to_string()))?
+        .map_err(|_| Error::Config("Gemini CLI timed out after 30 minutes".to_string()))?
         .map_err(|e| Error::Config(format!("Gemini CLI failed: {}", e)))?;
 
         if !output.status.success() {
