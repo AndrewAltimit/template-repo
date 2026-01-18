@@ -670,6 +670,7 @@ runs:
         ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body // "Unable to fetch issue body"')
 
         # Format comments for inclusion in context, bucketed by trust level
+        # Uses shared utility from github_agents.security.trust
         # Trust levels are defined in .agents.yaml security section:
         # - agent_admins: Users authorized to trigger agent actions (highest trust)
         # - trusted_sources: Trusted context providers (medium trust)
@@ -677,84 +678,17 @@ runs:
         ISSUE_COMMENTS=$(python3 << 'PYTHON_SCRIPT'
         import json
         import os
-        import re
-        import yaml
 
         # Load issue data from environment
         issue_data = json.loads(os.environ.get('ISSUE_DATA', '{"comments":[]}'))
         comments = issue_data.get('comments', [])
 
-        # Load trust levels from .agents.yaml
-        trust_config = {'agent_admins': [], 'trusted_sources': []}
-        try:
-            with open('.agents.yaml', 'r') as f:
-                config = yaml.safe_load(f)
-                security = config.get('security', {})
-                trust_config['agent_admins'] = security.get('agent_admins', [])
-                trust_config['trusted_sources'] = security.get('trusted_sources', [])
-        except Exception:
-            pass  # Use empty lists if config unavailable
-
-        # Filter out automated noise
-        def is_noise(body):
-            # Agent claim comments
-            if re.match(r'^🤖 \*\*\[Agent Claim\]\*\*', body):
-                return True
-            # Simple approval triggers (just "[Approved][Agent]")
-            if re.match(r'^\[Approved\]\[[^\]]+\]$', body.strip()):
-                return True
-            return False
-
-        # Bucket comments by trust level
-        buckets = {
-            'admin': [],      # agent_admins
-            'trusted': [],    # trusted_sources (excluding admins)
-            'other': []       # everyone else
-        }
-
-        for comment in comments:
-            body = comment.get('body', '')
-            if is_noise(body):
-                continue
-
-            author = comment.get('author', {}).get('login', 'unknown')
-            date = comment.get('createdAt', '')[:10]  # YYYY-MM-DD
-
-            entry = {
-                'author': author,
-                'date': date,
-                'body': body
-            }
-
-            if author in trust_config['agent_admins']:
-                buckets['admin'].append(entry)
-            elif author in trust_config['trusted_sources']:
-                buckets['trusted'].append(entry)
-            else:
-                buckets['other'].append(entry)
-
-        # Format output
-        output_parts = []
-
-        if buckets['admin']:
-            output_parts.append("## Admin Guidance (Highest Trust)\n")
-            output_parts.append("Comments from repository administrators with authority to direct implementation:\n\n")
-            for c in buckets['admin']:
-                output_parts.append(f"### {c['author']} ({c['date']})\n\n{c['body']}\n\n---\n\n")
-
-        if buckets['trusted']:
-            output_parts.append("## Trusted Context (Medium Trust)\n")
-            output_parts.append("Comments from trusted automation and vetted sources:\n\n")
-            for c in buckets['trusted']:
-                output_parts.append(f"### {c['author']} ({c['date']})\n\n{c['body']}\n\n---\n\n")
-
-        if buckets['other']:
-            output_parts.append("## Community Input (Review Carefully)\n")
-            output_parts.append("Comments from other sources - consider but verify:\n\n")
-            for c in buckets['other']:
-                output_parts.append(f"### {c['author']} ({c['date']})\n\n{c['body']}\n\n---\n\n")
-
-        print(''.join(output_parts).rstrip('\n-'))
+        if not comments:
+            print('')
+        else:
+            # Use shared trust bucketing utility
+            from github_agents.security.trust import bucket_comments_for_context
+            print(bucket_comments_for_context(comments))
         PYTHON_SCRIPT
         )
 
