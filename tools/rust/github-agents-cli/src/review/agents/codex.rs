@@ -36,7 +36,7 @@ impl CodexAgent {
 
         Self {
             codex_path,
-            model: String::new(), // Use Codex's default model (varies by account type)
+            model: "gpt-5.2-codex".to_string(),
         }
     }
 
