@@ -175,35 +175,64 @@ jobs:
       - name: Run codebase analysis
         id: analyze
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.AGENT_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           AGENTS: ${{ steps.config.outputs.agents }}
           INCLUDE_PATHS: ${{ steps.config.outputs.include_paths }}
+          MIN_PRIORITY: ${{ steps.config.outputs.min_priority }}
+          MAX_ISSUES: ${{ steps.config.outputs.max_issues }}
+          DRY_RUN: ${{ steps.config.outputs.dry_run }}
         run: |
           echo "::group::Codebase Analysis"
 
-          # Check if analyze subcommand is available in Rust CLI
-          if $RUST_CLI analyze --help >/dev/null 2>&1; then
-            echo "[INFO] Running analysis with Rust CLI"
-            # TODO: Implement analyze subcommand call when available
-            # $RUST_CLI analyze --agents "$AGENTS" --include-paths "$INCLUDE_PATHS" --format json
-            ANALYSIS_OUTPUT='{"findings": [], "count": 0, "note": "Rust analyze command not yet implemented"}'
-          else
-            echo "[WARNING] Rust CLI 'analyze' subcommand not available yet"
-            echo "[INFO] The analyzers module has been ported to Rust but the CLI subcommand is pending"
-            echo "[INFO] See: tools/rust/github-agents-cli/src/analyzers/"
-            ANALYSIS_OUTPUT='{"findings": [], "count": 0, "note": "Rust analyze command pending implementation"}'
+          # Build CLI arguments
+          CLI_ARGS="--agents $AGENTS --format json"
+          CLI_ARGS="$CLI_ARGS --min-priority $MIN_PRIORITY"
+          CLI_ARGS="$CLI_ARGS --max-issues $MAX_ISSUES"
+
+          # Add include paths (convert comma-separated to CLI format)
+          if [ -n "$INCLUDE_PATHS" ]; then
+            CLI_ARGS="$CLI_ARGS --include-paths $INCLUDE_PATHS"
           fi
 
-          echo "Analysis output: $ANALYSIS_OUTPUT"
+          # Add dry-run flag if enabled
+          if [ "$DRY_RUN" = "true" ]; then
+            CLI_ARGS="$CLI_ARGS --dry-run"
+          fi
 
-          FINDINGS_COUNT=$(echo "$ANALYSIS_OUTPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('count', 0))")
+          echo "[INFO] Running: $RUST_CLI analyze $CLI_ARGS"
+
+          # Run the Rust CLI analyze command
+          # The CLI handles both analysis and issue creation
+          set +e
+          ANALYSIS_OUTPUT=$($RUST_CLI analyze $CLI_ARGS 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "[ERROR] Analysis failed with exit code $EXIT_CODE"
+            echo "$ANALYSIS_OUTPUT"
+            # Return empty results on failure
+            ANALYSIS_OUTPUT='{"findings": [], "count": 0, "created": 0, "skipped": 0, "error": "Analysis failed"}'
+          fi
+
+          echo "Analysis output:"
+          echo "$ANALYSIS_OUTPUT"
+
+          # Parse results
+          FINDINGS_COUNT=$(echo "$ANALYSIS_OUTPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('count', 0))" 2>/dev/null || echo "0")
+          CREATED_COUNT=$(echo "$ANALYSIS_OUTPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('created', 0))" 2>/dev/null || echo "0")
+
           echo "findings_count=$FINDINGS_COUNT" >> $GITHUB_OUTPUT
+          echo "issues_created=$CREATED_COUNT" >> $GITHUB_OUTPUT
 
           # Pass full findings JSON to next step (escape for multiline)
-          echo "findings_json<<EOF" >> $GITHUB_OUTPUT
-          echo "$ANALYSIS_OUTPUT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "findings_json<<EOF"
+            echo "$ANALYSIS_OUTPUT"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
           echo "::endgroup::"
 

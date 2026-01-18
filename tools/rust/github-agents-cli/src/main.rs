@@ -36,6 +36,7 @@ mod review;
 mod security;
 mod utils;
 
+use analyzers::BaseAnalyzer;
 use error::Error;
 use monitor::{IssueMonitor, Monitor, PrMonitor, RefinementMonitor};
 
@@ -131,6 +132,41 @@ enum Commands {
         /// Agent to use for editor pass (default: claude)
         #[arg(long, default_value = "claude")]
         editor_agent: String,
+    },
+
+    /// Analyze codebase and create issues from findings
+    Analyze {
+        /// Agents to use for analysis (comma-separated)
+        #[arg(long, default_value = "claude,gemini")]
+        agents: String,
+
+        /// File patterns to include (comma-separated globs)
+        #[arg(long, default_value = "**/*.py,**/*.rs,**/*.ts,**/*.js")]
+        include_paths: String,
+
+        /// File patterns to exclude (comma-separated globs)
+        #[arg(long, default_value = "**/tests/**,**/__pycache__/**,**/node_modules/**,**/target/**")]
+        exclude_paths: String,
+
+        /// Categories to analyze (comma-separated)
+        #[arg(long, default_value = "security,performance,quality,tech_debt")]
+        categories: String,
+
+        /// Minimum priority to create issues for (P0, P1, P2, P3)
+        #[arg(long, default_value = "P2")]
+        min_priority: String,
+
+        /// Maximum issues to create per run
+        #[arg(long, default_value = "5")]
+        max_issues: usize,
+
+        /// Dry run (analyze but don't create issues)
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Output format (text or json)
+        #[arg(long, default_value = "text")]
+        format: String,
     },
 }
 
@@ -276,6 +312,172 @@ async fn run() -> Result<(), Error> {
                 println!("Review posted to PR #{}", pr_number);
             }
             // If dry_run, the review was already printed by the reviewer
+        }
+
+        Commands::Analyze {
+            agents,
+            include_paths,
+            exclude_paths,
+            categories,
+            min_priority,
+            max_issues,
+            dry_run,
+            format,
+        } => {
+            info!("Running codebase analysis");
+
+            // Parse categories
+            let category_list: Vec<analyzers::FindingCategory> = categories
+                .split(',')
+                .filter_map(|s| analyzers::FindingCategory::from_str(s.trim()))
+                .collect();
+
+            if category_list.is_empty() {
+                return Err(Error::Config("No valid categories specified".to_string()));
+            }
+
+            // Parse priority
+            let min_priority = analyzers::FindingPriority::from_str(&min_priority)
+                .ok_or_else(|| Error::Config(format!("Invalid priority: {}", min_priority)))?;
+
+            // Parse paths
+            let include_list: Vec<String> = include_paths
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect();
+            let exclude_list: Vec<String> = exclude_paths
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect();
+
+            // Get repository info
+            let repo = std::env::var("GITHUB_REPOSITORY").unwrap_or_else(|_| {
+                // Try to get from git remote
+                std::process::Command::new("gh")
+                    .args(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"])
+                    .output()
+                    .ok()
+                    .and_then(|o| String::from_utf8(o.stdout).ok())
+                    .map(|s| s.trim().to_string())
+                    .unwrap_or_else(|| "owner/repo".to_string())
+            });
+
+            info!("Repository: {}", repo);
+            info!("Categories: {:?}", category_list);
+            info!("Include paths: {:?}", include_list);
+            info!("Exclude paths: {:?}", exclude_list);
+
+            // Get agent list
+            let agent_names: Vec<&str> = agents.split(',').map(|s| s.trim()).collect();
+
+            // Initialize agent registry
+            let registry = agents::AgentRegistry::new();
+
+            // Collect all findings from all agents
+            let mut all_findings: Vec<analyzers::AnalysisFinding> = Vec::new();
+
+            // Get current working directory as repo path
+            let repo_path = std::env::current_dir()
+                .map_err(|e| Error::Config(format!("Failed to get current directory: {}", e)))?;
+
+            // Run analysis with each agent
+            for agent_name in &agent_names {
+                info!("Running analysis with agent: {}", agent_name);
+
+                // Get agent from registry
+                let agent = match registry.select_agent(Some(agent_name)).await {
+                    Some(a) => a,
+                    None => {
+                        info!("Agent {} not available, skipping", agent_name);
+                        continue;
+                    }
+                };
+
+                // Create analyzer for this agent
+                let analysis_prompt = format!(
+                    r#"Analyze this codebase for issues in these categories: {:?}.
+
+For each issue found, provide actionable findings that can be converted to GitHub issues.
+Focus on:
+- Security vulnerabilities and risks
+- Performance bottlenecks
+- Code quality issues
+- Technical debt
+- Missing or inadequate documentation
+- Test coverage gaps
+
+Be specific about file locations and line numbers where possible.
+Prioritize findings by severity (P0=critical, P1=high, P2=medium, P3=low)."#,
+                    category_list
+                );
+
+                let mut analyzer = analyzers::AgentAnalyzer::new(
+                    agent_name.to_string(),
+                    agent,
+                    analysis_prompt,
+                    category_list.clone(),
+                )
+                .with_include_paths(include_list.clone())
+                .with_exclude_paths(exclude_list.clone());
+
+                match analyzer.analyze(&repo_path).await {
+                    Ok(findings) => {
+                        info!(
+                            "Agent {} found {} findings",
+                            agent_name,
+                            findings.len()
+                        );
+                        all_findings.extend(findings);
+                    }
+                    Err(e) => {
+                        error!("Agent {} analysis failed: {}", agent_name, e);
+                    }
+                }
+            }
+
+            info!("Total findings from all agents: {}", all_findings.len());
+
+            // Create issues from findings
+            let mut creator = creators::IssueCreator::new(&repo)
+                .with_min_priority(min_priority)
+                .with_max_issues(max_issues)
+                .with_dry_run(dry_run);
+
+            let results = creator.create_issues(all_findings).await?;
+
+            // Output results
+            let created_count = results.iter().filter(|r| r.created).count();
+            let skipped_count = results.iter().filter(|r| !r.created).count();
+
+            if format == "json" {
+                let output = serde_json::json!({
+                    "findings": results.iter().map(|r| &r.finding).collect::<Vec<_>>(),
+                    "count": results.len(),
+                    "created": created_count,
+                    "skipped": skipped_count,
+                    "dry_run": dry_run,
+                    "results": results,
+                });
+                println!("{}", serde_json::to_string_pretty(&output)?);
+            } else {
+                println!(
+                    "Analysis complete: {} findings, {} issues created, {} skipped",
+                    results.len(),
+                    created_count,
+                    skipped_count
+                );
+                for result in &results {
+                    if result.created {
+                        println!(
+                            "  [CREATED] #{}: {}",
+                            result.issue_number.unwrap_or(0),
+                            result.finding.title
+                        );
+                    } else if let Some(reason) = &result.skipped_reason {
+                        println!("  [SKIPPED] {}: {}", result.finding.title, reason);
+                    }
+                }
+            }
         }
     }
 
