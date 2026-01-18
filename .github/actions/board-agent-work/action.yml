@@ -663,8 +663,31 @@ runs:
         # Prepare context file for agent
         CONTEXT_FILE="/tmp/agent_context_$ISSUE_NUMBER.md"
 
-        # Fetch issue body using gh CLI
-        ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --json body -q '.body' 2>/dev/null || echo "Unable to fetch issue body")
+        # Fetch issue body and comments using gh CLI
+        # Comments provide valuable context like backlog refinements, architectural insights,
+        # and approval reasoning that agents should consider during implementation
+        ISSUE_DATA=$(gh issue view "$ISSUE_NUMBER" --json body,comments 2>/dev/null || echo '{"body":"Unable to fetch issue","comments":[]}')
+        ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body // "Unable to fetch issue body"')
+
+        # Format comments for inclusion in context
+        # Filter out agent claim comments (automated noise) and include substantive comments
+        ISSUE_COMMENTS=$(echo "$ISSUE_DATA" | jq -r '
+          .comments // [] |
+          map(select(
+            # Exclude automated agent claim comments
+            (.body | test("^🤖 \\*\\*\\[Agent Claim\\]\\*\\*") | not) and
+            # Exclude simple approval triggers (just "[Approved][Agent]")
+            (.body | test("^\\[Approved\\]\\[[^\\]]+\\]$") | not)
+          )) |
+          if length == 0 then
+            ""
+          else
+            "## Discussion & Refinements\n\nThe following comments provide additional context, refinements, or insights:\n\n" +
+            (map(
+              "### Comment by " + .author.login + " (" + (.createdAt | split("T")[0]) + ")\n\n" + .body + "\n"
+            ) | join("\n---\n\n"))
+          end
+        ')
 
         # Write context using printf to avoid heredoc indentation issues in YAML
         # Note: No escaping needed - printf handles special chars correctly
@@ -674,6 +697,8 @@ runs:
           "## Issue Description" \
           "" \
           "$ISSUE_BODY" \
+          "" \
+          "$ISSUE_COMMENTS" \
           "" \
           "## Task" \
           "Implement the changes described in this issue." \
