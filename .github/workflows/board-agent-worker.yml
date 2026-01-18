@@ -290,6 +290,21 @@ jobs:
             bash ./automation/setup/docker/init-output-dirs.sh
           fi
 
+      - name: Build Rust tools (if needed)
+        run: |
+          echo "::group::Build Rust Tools"
+          BOARD_MANAGER="tools/rust/board-manager/target/release/board-manager"
+
+          if [ -x "$BOARD_MANAGER" ]; then
+            echo "board-manager already exists at $BOARD_MANAGER"
+          else
+            echo "Building board-manager..."
+            cd tools/rust/board-manager
+            cargo build --release
+            echo "Build complete"
+          fi
+          echo "::endgroup::"
+
       - name: Execute board agent work
         id: work
         uses: ./.github/actions/board-agent-work
