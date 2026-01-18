@@ -10,7 +10,7 @@ pub mod error;
 pub mod github;
 pub mod monitor;
 
-pub use analysis::{classify, Classification, Decision};
+pub use analysis::{Classification, Decision, classify};
 pub use cli::Args;
 pub use error::{Error, Result};
 pub use github::{Comment, GhClient};

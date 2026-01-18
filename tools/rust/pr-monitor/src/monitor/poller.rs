@@ -2,14 +2,14 @@
 //!
 //! Ported from monitor.sh - polls GitHub PR for new comments at regular intervals
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use chrono::{DateTime, Utc};
 
-use crate::analysis::{classify, is_relevant_author, Classification, DEFAULT_ADMIN_USER};
+use crate::analysis::{Classification, DEFAULT_ADMIN_USER, classify, is_relevant_author};
 use crate::error::{Error, Result};
 use crate::github::{Comment, GhClient};
 
