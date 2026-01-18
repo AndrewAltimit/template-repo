@@ -8,7 +8,7 @@ This document tracks the multi-session effort to convert performance-critical Py
 |-------|-----------|--------|-------|
 | 1a | GitHub Agents CLI | ✅ Complete | Rust CLI with Python delegation |
 | 1b | Code Parser Library | ✅ Complete | Regex-based code extraction |
-| 2a | Markdown Link Checker | ⬜ Pending | Async HTTP validation |
+| 2a | Markdown Link Checker | ✅ Complete | Async HTTP validation |
 | 2b | PR Monitor Merge | ⬜ Pending | Extend existing Rust pr-monitor |
 | 3a | Code Quality MCP | ⬜ Pending | Security-focused subprocess runner |
 | 3b | Board Manager CLI | ⬜ Pending | GraphQL client |
@@ -110,6 +110,14 @@ This document tracks the multi-session effort to convert performance-critical Py
 - Path traversal security checks
 - Optional `fs` feature for file operations
 
+### Phase 2a: Markdown Link Checker (2026-01-18)
+- Created `tools/rust/markdown-link-checker/`
+- pulldown-cmark for markdown parsing
+- reqwest + tokio for async HTTP
+- Concurrent checking with semaphore
+- JSON output for CI integration
+- 3.6MB release binary
+
 ## Session Log
 
 ### Session 1 (2026-01-18)
@@ -119,3 +127,5 @@ This document tracks the multi-session effort to convert performance-critical Py
 - Created this roadmap document
 - Completed Phase 1a: GitHub Agents CLI
 - Completed Phase 1b: Code Parser Library
+- Updated all crates to Rust Edition 2024
+- Completed Phase 2a: Markdown Link Checker
