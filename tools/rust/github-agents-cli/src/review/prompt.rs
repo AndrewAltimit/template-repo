@@ -10,6 +10,10 @@ use super::diff::{FileStats, PRMetadata};
 /// Maximum characters for project context files
 const MAX_CONTEXT_CHARS: usize = 3000;
 
+/// Maximum characters for the diff (to stay under token limits)
+/// ~400k chars ≈ 100k tokens, leaving room for context/instructions
+const MAX_DIFF_CHARS: usize = 400_000;
+
 /// Build the complete review prompt
 pub fn build_review_prompt(
     metadata: &PRMetadata,
@@ -82,11 +86,24 @@ pub fn build_review_prompt(
         prompt.push_str("\n\n");
     }
 
-    // The diff
+    // The diff (truncated if too large to fit in token limits)
     prompt.push_str("## Code Diff\n\n");
-    prompt.push_str("```diff\n");
-    prompt.push_str(diff);
-    prompt.push_str("\n```\n\n");
+    if diff.len() > MAX_DIFF_CHARS {
+        prompt.push_str(&format!(
+            "**Note:** Diff truncated from {} to {} characters to fit token limits.\n\n",
+            diff.len(),
+            MAX_DIFF_CHARS
+        ));
+        prompt.push_str("```diff\n");
+        // Truncate at a line boundary to avoid cutting mid-line
+        let truncated = truncate_at_line_boundary(diff, MAX_DIFF_CHARS);
+        prompt.push_str(truncated);
+        prompt.push_str("\n[... diff truncated ...]\n```\n\n");
+    } else {
+        prompt.push_str("```diff\n");
+        prompt.push_str(diff);
+        prompt.push_str("\n```\n\n");
+    }
 
     // Verification instructions
     prompt.push_str(VERIFICATION_INSTRUCTIONS);
@@ -242,6 +259,22 @@ If you're unsure about something:
 - Reference only what's shown in the diff
 "#;
 
+/// Truncate text at a line boundary to avoid cutting mid-line.
+fn truncate_at_line_boundary(text: &str, max_chars: usize) -> &str {
+    if text.len() <= max_chars {
+        return text;
+    }
+
+    // Find the last newline before max_chars
+    let slice = &text[..max_chars];
+    if let Some(last_newline) = slice.rfind('\n') {
+        &text[..last_newline]
+    } else {
+        // No newline found, just truncate at max_chars
+        slice
+    }
+}
+
 /// Count words in a string
 pub fn count_words(text: &str) -> usize {
     text.split_whitespace().count()
@@ -256,6 +289,18 @@ mod tests {
         assert_eq!(count_words("hello world"), 2);
         assert_eq!(count_words("  multiple   spaces  "), 2);
         assert_eq!(count_words(""), 0);
+    }
+
+    #[test]
+    fn test_truncate_at_line_boundary() {
+        // No truncation needed
+        assert_eq!(truncate_at_line_boundary("hello\nworld", 100), "hello\nworld");
+
+        // Truncate at line boundary
+        assert_eq!(truncate_at_line_boundary("line1\nline2\nline3", 10), "line1");
+
+        // Truncate with no newline
+        assert_eq!(truncate_at_line_boundary("noline", 3), "nol");
     }
 
     #[test]
