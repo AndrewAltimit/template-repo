@@ -257,6 +257,9 @@ See the [sleeper agents Package](../../packages/sleeper_agents/README.md) for de
 # Build the Rust CLI tools
 cd tools/rust/github-agents-cli && cargo build --release
 cd tools/rust/board-manager && cargo build --release
+cd tools/rust/pr-monitor && cargo build --release
+cd tools/rust/markdown-link-checker && cargo build --release
+cd tools/rust/code-parser && cargo build --release
 
 # Run issue monitor
 github-agents issue-monitor
@@ -267,14 +270,36 @@ github-agents pr-monitor
 # Run refinement monitor
 github-agents refinement-monitor
 
+# Run codebase analysis (creates issues from findings)
+github-agents analyze --agents claude,gemini --dry-run
+
 # Board operations
 board-manager query          # Get ready work
 board-manager claim 123      # Claim an issue
 board-manager release 123    # Release a claim
 
+# PR feedback monitoring (used during development)
+pr-monitor 123               # Monitor PR #123 for admin/review comments
+pr-monitor 123 --timeout 600 # With custom timeout
+
+# Markdown link checking (used in CI)
+md-link-checker docs/        # Check all links in docs/
+
 # Board work is typically triggered via GitHub Actions
 # but can be tested locally via the workflow_dispatch trigger
 ```
+
+**Rust CLI Tools:**
+
+| Tool | Location | Purpose |
+|------|----------|---------|
+| `github-agents` | `tools/rust/github-agents-cli/` | Issue/PR monitoring, refinement, analysis |
+| `board-manager` | `tools/rust/board-manager/` | GitHub Projects v2 board operations |
+| `pr-monitor` | `tools/rust/pr-monitor/` | PR feedback monitoring during development |
+| `gh-validator` | `tools/rust/gh-validator/` | GitHub CLI wrapper for secret masking |
+| `md-link-checker` | `tools/rust/markdown-link-checker/` | Fast concurrent link validation |
+| `code-parser` | `tools/rust/code-parser/` | Parse code blocks from AI responses |
+| `mcp-code-quality` | `tools/rust/mcp-code-quality/` | Rust MCP server for code quality |
 
 ### GitHub Actions Automation
 

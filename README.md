@@ -156,6 +156,10 @@ Three standalone packages addressing different aspects of AI agent development a
 | **[github-agents-cli](tools/rust/github-agents-cli/)** | Issue/PR monitoring, refinement, code analysis, and agent execution | [README](tools/rust/github-agents-cli/README.md) |
 | **[board-manager](tools/rust/board-manager/)** | GitHub Projects v2 board operations - claim, release, status updates | [README](tools/rust/board-manager/README.md) |
 | **[gh-validator](tools/rust/gh-validator/)** | GitHub CLI wrapper for automatic secret masking | [README](tools/rust/gh-validator/README.md) |
+| **[pr-monitor](tools/rust/pr-monitor/)** | Dedicated PR monitoring for admin/review feedback during development | [README](tools/rust/pr-monitor/README.md) |
+| **[markdown-link-checker](tools/rust/markdown-link-checker/)** | Fast concurrent markdown link validator for CI/CD pipelines | [README](tools/rust/markdown-link-checker/README.md) |
+| **[code-parser](tools/rust/code-parser/)** | Parse and apply code blocks from AI agent responses | [README](tools/rust/code-parser/README.md) |
+| **[mcp-code-quality](tools/rust/mcp-code-quality/)** | Rust MCP server for code quality tools (formatting, linting, testing) | [README](tools/rust/mcp-code-quality/README.md) |
 
 ```bash
 # Install Python packages
@@ -194,9 +198,13 @@ For enterprise environments requiring custom certificates, customize [`automatio
 ├── tools/
 │   ├── mcp/                  # 18 MCP servers (see MCP Servers section)
 │   ├── rust/                 # Rust CLI tools
-│   │   ├── github-agents-cli/  # Issue/PR monitoring, refinement, analysis
-│   │   ├── board-manager/      # GitHub Projects board operations
-│   │   └── gh-validator/       # Secret masking for GitHub CLI
+│   │   ├── github-agents-cli/    # Issue/PR monitoring, refinement, analysis
+│   │   ├── board-manager/        # GitHub Projects board operations
+│   │   ├── gh-validator/         # Secret masking for GitHub CLI
+│   │   ├── pr-monitor/           # PR feedback monitoring
+│   │   ├── markdown-link-checker/ # Fast link validation for CI/CD
+│   │   ├── code-parser/          # Parse code blocks from AI responses
+│   │   └── mcp-code-quality/     # Rust MCP server for code quality
 │   └── cli/                  # Agent runners and utilities
 ├── automation/               # CI/CD and automation scripts
 ├── tests/                    # Test files

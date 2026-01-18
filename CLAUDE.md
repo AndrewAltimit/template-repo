@@ -251,11 +251,14 @@ npm install -g @openai/codex  # Install Codex CLI
 codex auth                     # Authenticate (creates ~/.codex/auth.json)
 ```
 
-**Agent Tools Location:**
+**Rust CLI Tools Location:**
 - `tools/rust/github-agents-cli/` - Main agent CLI (issue/PR monitoring, refinement, analyzers)
 - `tools/rust/board-manager/` - Board operations (claim/release work, update status)
 - `tools/rust/gh-validator/` - GitHub CLI wrapper for secret masking
 - `tools/rust/pr-monitor/` - Dedicated PR monitoring tool
+- `tools/rust/markdown-link-checker/` - Fast concurrent link validation for CI/CD
+- `tools/rust/code-parser/` - Parse and apply code blocks from AI responses
+- `tools/rust/mcp-code-quality/` - Rust MCP server for code quality tools
 
 ### Docker Operations
 

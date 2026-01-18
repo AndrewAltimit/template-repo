@@ -487,7 +487,8 @@ jobs:
 
           if [ $EXIT_CODE -ne 0 ]; then
             # Check for rate limit or quota errors
-            if echo "$OUTPUT" | grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage_limit'; then
+            # Pattern matches: "429", "rate limit", "quota", "resource exhausted", "usage_limit", "usage limit"
+            if echo "$OUTPUT" | grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage.?limit'; then
               echo "::warning::Codex API rate limit hit - skipping review for this run"
               echo "The review will be attempted again on the next pipeline run."
               exit 0
