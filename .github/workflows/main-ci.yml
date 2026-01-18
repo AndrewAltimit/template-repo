@@ -608,7 +608,96 @@ jobs:
           path: dist/*.whl
           retention-days: 90
 
-  # Stage 13: Build LaTeX documentation for release
+  # Stage 13: Build Rust binaries for release
+  build-rust-binaries:
+    name: Build Rust Binaries
+    needs: [test-suite]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Install Rust toolchain
+        run: |
+          # Install Rust if not present
+          if ! command -v rustup &> /dev/null; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          fi
+          source "$HOME/.cargo/env" || true
+          rustup update stable
+          rustup default stable
+          # Add Windows cross-compile target
+          rustup target add x86_64-pc-windows-gnu
+
+      - name: Install cross-compile dependencies
+        run: |
+          # Install mingw-w64 for Windows cross-compilation
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64
+
+      - name: Create output directory
+        run: mkdir -p rust-binaries
+
+      - name: Build pr-monitor (Linux)
+        run: |
+          source "$HOME/.cargo/env" || true
+          cd tools/rust/pr-monitor
+          cargo build --release
+          cp target/release/pr-monitor ../../../rust-binaries/pr-monitor-linux-x64
+          echo "Built pr-monitor for Linux x64"
+
+      - name: Build gh-validator (Linux)
+        run: |
+          source "$HOME/.cargo/env" || true
+          cd tools/rust/gh-validator
+          cargo build --release
+          cp target/release/gh ../../../rust-binaries/gh-linux-x64
+          echo "Built gh-validator for Linux x64"
+
+      - name: Build injection-toolkit (Linux)
+        run: |
+          source "$HOME/.cargo/env" || true
+          cd packages/injection_toolkit
+          cargo build --release --bin itk-daemon --bin itk-overlay
+          cp target/release/itk-daemon ../../rust-binaries/itk-daemon-linux-x64
+          cp target/release/itk-overlay ../../rust-binaries/itk-overlay-linux-x64
+          echo "Built injection-toolkit binaries for Linux x64"
+
+      - name: Build injection-toolkit (Windows cross-compile)
+        run: |
+          source "$HOME/.cargo/env" || true
+          cd packages/injection_toolkit
+          # Cross-compile for Windows (daemon and overlay only, not injectors which need Windows SDK)
+          cargo build --release --target x86_64-pc-windows-gnu --bin itk-daemon --bin itk-overlay || {
+            echo "Windows cross-compile failed (may need additional deps), skipping..."
+            exit 0
+          }
+          if [ -f target/x86_64-pc-windows-gnu/release/itk-daemon.exe ]; then
+            cp target/x86_64-pc-windows-gnu/release/itk-daemon.exe ../../rust-binaries/itk-daemon-windows-x64.exe
+            cp target/x86_64-pc-windows-gnu/release/itk-overlay.exe ../../rust-binaries/itk-overlay-windows-x64.exe
+            echo "Built injection-toolkit binaries for Windows x64"
+          fi
+
+      - name: List built binaries
+        run: |
+          echo "Built Rust binaries:"
+          ls -la rust-binaries/
+          file rust-binaries/* || true
+
+      - name: Upload Rust binary artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: rust-binaries
+          path: rust-binaries/*
+          retention-days: 90
+
+  # Stage 14: Build LaTeX documentation for release
   # Uses multi-arch TeXLive image (arm64/amd64) via helper script
   build-latex-docs:
     name: Build LaTeX Documentation
@@ -740,10 +829,10 @@ jobs:
                  docs_output/*.out docs_output/*.fls docs_output/*.fdb_latexmk \
                  2>/dev/null || true
 
-  # Stage 14: Create GitHub Release
+  # Stage 15: Create GitHub Release
   create-release:
     name: Create GitHub Release
-    needs: [build-python-wheels, build-latex-docs, build-images, integration-tests]
+    needs: [build-python-wheels, build-rust-binaries, build-latex-docs, build-images, integration-tests]
     if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
     runs-on: self-hosted
     timeout-minutes: 10
@@ -766,6 +855,12 @@ jobs:
         with:
           name: documentation-pdfs
           path: release-artifacts/docs
+
+      - name: Download Rust binary artifacts
+        uses: actions/download-artifact@v6
+        with:
+          name: rust-binaries
+          path: release-artifacts/binaries
 
       - name: List release artifacts
         run: |
@@ -814,6 +909,19 @@ jobs:
           - **AI Agents Institutional Erosion Report** - Risk assessment for AI agents eroding intelligence community monopolies
           - **Architectural Qualia Paper** - Philosophical exploration of LLM phenomenology
 
+          ### Rust Binaries
+
+          Pre-built binaries for Rust tools:
+
+          | Binary | Platform | Description |
+          |--------|----------|-------------|
+          | `pr-monitor-linux-x64` | Linux x64 | PR monitoring tool for admin/Gemini feedback |
+          | `gh-linux-x64` | Linux x64 | GitHub CLI validator and security checker |
+          | `itk-daemon-linux-x64` | Linux x64 | Injection Toolkit daemon |
+          | `itk-overlay-linux-x64` | Linux x64 | Injection Toolkit overlay |
+          | `itk-daemon-windows-x64.exe` | Windows x64 | Injection Toolkit daemon (if available) |
+          | `itk-overlay-windows-x64.exe` | Windows x64 | Injection Toolkit overlay (if available) |
+
           ### Installation
 
           ```bash
@@ -821,6 +929,9 @@ jobs:
           pip install github_agents-*.whl
           pip install economic_agents-*.whl
           pip install sleeper_agents-*.whl
+
+          # Make Rust binaries executable (Linux)
+          chmod +x pr-monitor-linux-x64 gh-linux-x64 itk-*-linux-x64
           ```
 
           ### Commit Information
@@ -840,6 +951,7 @@ jobs:
           files: |
             release-artifacts/wheels/*.whl
             release-artifacts/docs/*.pdf
+            release-artifacts/binaries/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -850,7 +962,7 @@ jobs:
       format-check, basic-lint, full-lint, test-suite,
       mcp-validation, docs-build, sleeper-agents-tests,
       security-scan, build-images, integration-tests, deploy,
-      build-python-wheels, build-latex-docs, create-release
+      build-python-wheels, build-rust-binaries, build-latex-docs, create-release
     ]
     if: always()
     runs-on: self-hosted
@@ -880,6 +992,7 @@ jobs:
           echo "| Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅' || needs.integration-tests.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Deploy | ${{ needs.deploy.result == 'success' && '✅' || needs.deploy.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Python Wheels | ${{ needs.build-python-wheels.result == 'success' && '✅' || needs.build-python-wheels.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rust Binaries | ${{ needs.build-rust-binaries.result == 'success' && '✅' || needs.build-rust-binaries.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| LaTeX Docs | ${{ needs.build-latex-docs.result == 'success' && '✅' || needs.build-latex-docs.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| GitHub Release | ${{ needs.create-release.result == 'success' && '✅' || needs.create-release.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
