@@ -223,6 +223,53 @@ jobs:
       stale-claims-cleaned: ${{ steps.work.outputs.stale-claims-cleaned }}
 
     steps:
+      # Fix Docker-created directory permissions BEFORE checkout
+      # Previous runs may have created files as root which blocks checkout cleanup
+      # NOTE: Uses Docker (not sudo) to fix permissions - avoids password prompt hangs
+      - name: Fix Docker directory permissions (pre-checkout)
+        run: |
+          echo "::group::Pre-Checkout: Fix Docker Directory Permissions"
+          WORKSPACE="${GITHUB_WORKSPACE:-$(pwd)}"
+
+          # List of directories that Docker may have created with root ownership
+          # Using direct paths instead of 'find' to avoid hangs on permission-denied dirs
+          DIRS_TO_FIX=(
+            "outputs"
+            "evaluation_results"
+            ".agent-venv"
+            "__pycache__"
+            ".pytest_cache"
+          )
+
+          # Fix permissions using Docker (runs as root, no sudo password needed)
+          for dir in "${DIRS_TO_FIX[@]}"; do
+            # Skip symlinks to prevent chown on unintended paths
+            if [ -L "$WORKSPACE/$dir" ]; then
+              echo "  Skipping symlink: $WORKSPACE/$dir"
+              continue
+            fi
+            if [ -d "$WORKSPACE/$dir" ]; then
+              echo "Fixing ownership via Docker: $WORKSPACE/$dir"
+              # Use busybox to chown the directory to the current user
+              # -Rh: recursive, affect symlinks themselves (not targets)
+              # Use timeout if available to prevent hangs, fall back to direct call
+              if command -v timeout &> /dev/null; then
+                timeout 30 docker run --rm \
+                  -v "$WORKSPACE/$dir:/target" \
+                  busybox:1.36.1 \
+                  chown -Rh "$(id -u):$(id -g)" /target 2>/dev/null || echo "  Warning: Could not fix $dir (may already have correct ownership)"
+              else
+                docker run --rm \
+                  -v "$WORKSPACE/$dir:/target" \
+                  busybox:1.36.1 \
+                  chown -Rh "$(id -u):$(id -g)" /target 2>/dev/null || echo "  Warning: Could not fix $dir (may already have correct ownership)"
+              fi
+            fi
+          done
+
+          echo "Permissions check complete"
+          echo "::endgroup::"
+
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
