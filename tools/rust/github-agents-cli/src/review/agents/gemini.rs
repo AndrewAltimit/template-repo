@@ -1,10 +1,12 @@
-//! Gemini API client for PR reviews.
+//! Gemini CLI agent for PR reviews.
 //!
-//! Uses the Gemini REST API directly for code reviews.
+//! Uses the Gemini CLI (via subprocess) for code reviews, enabling access to
+//! local tools, MCP servers, and the full Gemini agent capabilities.
 
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use std::process::Stdio;
+use tokio::io::AsyncWriteExt;
+use tokio::process::Command;
 
 use super::ReviewAgent;
 use crate::error::{Error, Result};
@@ -15,96 +17,34 @@ const DEFAULT_REVIEW_MODEL: &str = "gemini-2.0-flash";
 /// Default model for condensation (faster)
 const DEFAULT_CONDENSER_MODEL: &str = "gemini-2.0-flash";
 
-/// API endpoint
-const GEMINI_API_BASE: &str = "https://generativelanguage.googleapis.com/v1beta/models";
-
-/// Maximum retries for rate limits
-const MAX_RETRIES: usize = 5;
-
-/// Gemini API request structure
-#[derive(Debug, Serialize)]
-struct GeminiRequest {
-    contents: Vec<GeminiContent>,
-    #[serde(rename = "generationConfig", skip_serializing_if = "Option::is_none")]
-    generation_config: Option<GenerationConfig>,
-}
-
-#[derive(Debug, Serialize)]
-struct GeminiContent {
-    parts: Vec<GeminiPart>,
-}
-
-#[derive(Debug, Serialize)]
-struct GeminiPart {
-    text: String,
-}
-
-#[derive(Debug, Serialize)]
-struct GenerationConfig {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    temperature: Option<f32>,
-    #[serde(rename = "maxOutputTokens", skip_serializing_if = "Option::is_none")]
-    max_output_tokens: Option<u32>,
-}
-
-/// Gemini API response structure
-#[derive(Debug, Deserialize)]
-struct GeminiResponse {
-    candidates: Option<Vec<GeminiCandidate>>,
-    error: Option<GeminiError>,
-}
-
-#[derive(Debug, Deserialize)]
-struct GeminiCandidate {
-    content: GeminiResponseContent,
-}
-
-#[derive(Debug, Deserialize)]
-struct GeminiResponseContent {
-    parts: Vec<GeminiResponsePart>,
-}
-
-#[derive(Debug, Deserialize)]
-struct GeminiResponsePart {
-    text: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct GeminiError {
-    message: String,
-    code: Option<i32>,
-}
-
-/// Gemini agent for PR reviews
+/// Gemini CLI agent for PR reviews
+///
+/// Uses the Gemini CLI instead of direct API calls, which provides:
+/// - Access to local tools and MCP servers
+/// - File system access for code exploration
+/// - Full Gemini agent capabilities
 pub struct GeminiAgent {
-    api_key: Option<String>,
+    gemini_path: Option<String>,
     review_model: String,
     condenser_model: String,
-    client: reqwest::Client,
 }
 
 impl GeminiAgent {
     /// Create a new Gemini agent
     pub fn new() -> Self {
-        // Try GEMINI_API_KEY first, then GOOGLE_API_KEY
-        // Filter out empty strings since workflow may set empty default
-        let api_key = std::env::var("GEMINI_API_KEY")
-            .ok()
-            .filter(|s| !s.is_empty())
-            .or_else(|| {
-                std::env::var("GOOGLE_API_KEY")
-                    .ok()
-                    .filter(|s| !s.is_empty())
-            });
+        // Find gemini CLI binary
+        let gemini_path = find_gemini_binary();
+
+        if gemini_path.is_some() {
+            tracing::info!("Gemini CLI found, using CLI-based agent");
+        } else {
+            tracing::warn!("Gemini CLI not found in PATH");
+        }
 
         Self {
-            api_key,
+            gemini_path,
             review_model: DEFAULT_REVIEW_MODEL.to_string(),
             condenser_model: DEFAULT_CONDENSER_MODEL.to_string(),
-            client: reqwest::Client::builder()
-                .timeout(Duration::from_secs(600))
-                .build()
-                .unwrap_or_default(),
         }
     }
 
@@ -126,122 +66,121 @@ impl GeminiAgent {
         &self.review_model
     }
 
-    /// Call the Gemini API
-    async fn call_api(&self, model: &str, prompt: &str) -> Result<String> {
-        let api_key = self
-            .api_key
+    /// Call the Gemini CLI with a prompt
+    async fn call_cli(&self, model: &str, prompt: &str) -> Result<String> {
+        let gemini_path = self
+            .gemini_path
             .as_ref()
-            .ok_or_else(|| Error::EnvNotSet("GEMINI_API_KEY or GOOGLE_API_KEY".to_string()))?;
+            .ok_or_else(|| Error::EnvNotSet("Gemini CLI not found in PATH".to_string()))?;
 
-        // Log API key presence (not the key itself for security)
-        tracing::info!(
-            "API key present: length={}, prefix={}...",
-            api_key.len(),
-            &api_key[..4.min(api_key.len())]
-        );
+        tracing::info!("Calling Gemini CLI with model: {}", model);
 
-        let url = format!(
-            "{}/{}:generateContent?key={}",
-            GEMINI_API_BASE, model, api_key
-        );
+        // Build command with appropriate flags:
+        // --yolo: Auto-approve all tool uses (needed for non-interactive mode)
+        // --model: Specify the model to use
+        // Prompt is passed via stdin to handle large prompts safely
+        let mut child = Command::new(gemini_path)
+            .arg("--yolo")
+            .arg("--model")
+            .arg(model)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| Error::Config(format!("Failed to spawn Gemini CLI: {}", e)))?;
 
-        tracing::info!(
-            "Calling Gemini API: {}/{}:generateContent",
-            GEMINI_API_BASE,
-            model
-        );
-
-        let request = GeminiRequest {
-            contents: vec![GeminiContent {
-                parts: vec![GeminiPart {
-                    text: prompt.to_string(),
-                }],
-            }],
-            generation_config: Some(GenerationConfig {
-                temperature: Some(0.3),
-                max_output_tokens: Some(8192),
-            }),
-        };
-
-        let mut last_error = None;
-        let mut retry_delay = Duration::from_secs(5);
-
-        for attempt in 0..MAX_RETRIES {
-            let response = self
-                .client
-                .post(&url)
-                .json(&request)
-                .send()
+        // Write prompt to stdin
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin
+                .write_all(prompt.as_bytes())
                 .await
-                .map_err(|e| Error::Http(e))?;
-
-            let status = response.status();
-
-            // Handle rate limits
-            if status.as_u16() == 429 {
-                if attempt < MAX_RETRIES - 1 {
-                    tracing::warn!(
-                        "Gemini rate limited (attempt {}), retrying in {:?}",
-                        attempt + 1,
-                        retry_delay
-                    );
-                    tokio::time::sleep(retry_delay).await;
-                    retry_delay *= 2; // Exponential backoff
-                    continue;
-                }
-            }
-
-            let body = response.text().await.map_err(|e| Error::Http(e))?;
-
-            if !status.is_success() {
-                last_error = Some(Error::Config(format!(
-                    "Gemini API error ({}): {}",
-                    status, body
-                )));
-
-                // Retry on 5xx errors
-                if status.is_server_error() && attempt < MAX_RETRIES - 1 {
-                    tracing::warn!(
-                        "Gemini server error (attempt {}), retrying in {:?}",
-                        attempt + 1,
-                        retry_delay
-                    );
-                    tokio::time::sleep(retry_delay).await;
-                    retry_delay *= 2;
-                    continue;
-                }
-
-                return Err(last_error.unwrap());
-            }
-
-            let gemini_response: GeminiResponse = serde_json::from_str(&body)
-                .map_err(|e| Error::Config(format!("Failed to parse Gemini response: {}", e)))?;
-
-            if let Some(error) = gemini_response.error {
-                return Err(Error::Config(format!(
-                    "Gemini API error: {}",
-                    error.message
-                )));
-            }
-
-            let text = gemini_response
-                .candidates
-                .and_then(|c| c.into_iter().next())
-                .map(|c| {
-                    c.content
-                        .parts
-                        .into_iter()
-                        .map(|p| p.text)
-                        .collect::<String>()
-                })
-                .unwrap_or_default();
-
-            return Ok(text);
+                .map_err(|e| Error::Config(format!("Failed to write to Gemini stdin: {}", e)))?;
+            // Close stdin to signal end of input
+            drop(stdin);
         }
 
-        Err(last_error
-            .unwrap_or_else(|| Error::Config("Gemini API failed after retries".to_string())))
+        // Wait for completion with timeout
+        let output = tokio::time::timeout(
+            std::time::Duration::from_secs(600), // 10 minute timeout
+            child.wait_with_output(),
+        )
+        .await
+        .map_err(|_| Error::Config("Gemini CLI timed out after 10 minutes".to_string()))?
+        .map_err(|e| Error::Config(format!("Gemini CLI failed: {}", e)))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            tracing::error!("Gemini CLI failed with stderr: {}", stderr);
+            return Err(Error::Config(format!(
+                "Gemini CLI exited with status {}: {}",
+                output.status, stderr
+            )));
+        }
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+
+        // Filter out any ANSI escape codes and control characters
+        let cleaned = strip_ansi_codes(&stdout);
+
+        Ok(cleaned)
     }
+}
+
+/// Find the gemini binary in common locations
+fn find_gemini_binary() -> Option<String> {
+    // Check PATH first using which
+    if let Ok(output) = std::process::Command::new("which").arg("gemini").output() {
+        if output.status.success() {
+            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !path.is_empty() && std::path::Path::new(&path).exists() {
+                return Some(path);
+            }
+        }
+    }
+
+    // Check common NVM paths
+    let home = std::env::var("HOME").unwrap_or_default();
+    let common_paths = [
+        format!("{}/.nvm/versions/node/v22.16.0/bin/gemini", home),
+        format!("{}/.nvm/versions/node/v20.18.0/bin/gemini", home),
+        "/usr/local/bin/gemini".to_string(),
+        "/usr/bin/gemini".to_string(),
+    ];
+
+    for path in common_paths {
+        if std::path::Path::new(&path).exists() {
+            return Some(path);
+        }
+    }
+
+    None
+}
+
+/// Strip ANSI escape codes from output
+fn strip_ansi_codes(s: &str) -> String {
+    // Simple regex-free ANSI stripping
+    let mut result = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        if c == '\x1b' {
+            // Skip escape sequence
+            if chars.peek() == Some(&'[') {
+                chars.next(); // consume '['
+                // Skip until we hit a letter (end of escape sequence)
+                while let Some(&next) = chars.peek() {
+                    chars.next();
+                    if next.is_ascii_alphabetic() {
+                        break;
+                    }
+                }
+            }
+        } else {
+            result.push(c);
+        }
+    }
+
+    result
 }
 
 impl Default for GeminiAgent {
@@ -257,11 +196,11 @@ impl ReviewAgent for GeminiAgent {
     }
 
     async fn is_available(&self) -> bool {
-        self.api_key.is_some()
+        self.gemini_path.is_some()
     }
 
     async fn review(&self, prompt: &str) -> Result<String> {
-        self.call_api(&self.review_model, prompt).await
+        self.call_cli(&self.review_model, prompt).await
     }
 
     async fn condense(&self, review: &str, max_words: usize) -> Result<String> {
@@ -282,7 +221,7 @@ Review to condense:
             max_words, review
         );
 
-        self.call_api(&self.condenser_model, &condense_prompt).await
+        self.call_cli(&self.condenser_model, &condense_prompt).await
     }
 }
 
@@ -291,15 +230,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_gemini_agent_no_key() {
-        // Clear env vars for test
-        // SAFETY: This is a single-threaded test that doesn't rely on env vars being set elsewhere
-        unsafe {
-            std::env::remove_var("GEMINI_API_KEY");
-            std::env::remove_var("GOOGLE_API_KEY");
-        }
+    fn test_find_gemini_binary() {
+        // This test just verifies the function runs without panicking
+        let _ = find_gemini_binary();
+    }
 
-        let agent = GeminiAgent::new();
-        assert!(agent.api_key.is_none());
+    #[test]
+    fn test_strip_ansi_codes() {
+        let input = "\x1b[32mGreen text\x1b[0m and normal";
+        let output = strip_ansi_codes(input);
+        assert_eq!(output, "Green text and normal");
+    }
+
+    #[test]
+    fn test_strip_ansi_codes_empty() {
+        let input = "no escape codes here";
+        let output = strip_ansi_codes(input);
+        assert_eq!(output, input);
     }
 }
