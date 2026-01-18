@@ -86,9 +86,12 @@ pub struct GeminiAgent {
 impl GeminiAgent {
     /// Create a new Gemini agent
     pub fn new() -> Self {
+        // Try GEMINI_API_KEY first, then GOOGLE_API_KEY
+        // Filter out empty strings since workflow may set empty default
         let api_key = std::env::var("GEMINI_API_KEY")
-            .or_else(|_| std::env::var("GOOGLE_API_KEY"))
-            .ok();
+            .ok()
+            .filter(|s| !s.is_empty())
+            .or_else(|| std::env::var("GOOGLE_API_KEY").ok().filter(|s| !s.is_empty()));
 
         Self {
             api_key,
