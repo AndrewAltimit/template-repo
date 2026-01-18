@@ -122,33 +122,36 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    # Step 1: Setup Python and install package in isolated venv
-    - name: Setup Python environment
+    # Step 1: Setup Rust binaries
+    - name: Setup Rust binaries
       shell: bash
       env:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
-        echo "::group::Setup Python Environment"
-        python3 --version
+        echo "::group::Setup Rust Binaries"
 
-        # Create isolated virtual environment (container-first: no runner pollution)
-        VENV_DIR="${GITHUB_WORKSPACE}/.agent-venv"
-
-        # Try to create venv, fall back to user install if venv module not available
-        if python3 -m venv "$VENV_DIR" 2>/dev/null; then
-          source "$VENV_DIR/bin/activate"
-          pip install -e ./packages/github_agents
-          echo "AGENT_VENV_DIR=$VENV_DIR" >> $GITHUB_ENV
-        else
-          echo "::warning::python3-venv not available, using user install"
-          pip install --user -e ./packages/github_agents
-          # Add user bin to PATH for subsequent steps
+        # Check if board-manager binary exists
+        BOARD_MANAGER="${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager"
+        if [ -x "$BOARD_MANAGER" ]; then
+          echo "board-manager found at $BOARD_MANAGER"
+          # Create symlink for board-cli (used throughout the action)
+          mkdir -p "$HOME/.local/bin"
+          ln -sf "$BOARD_MANAGER" "$HOME/.local/bin/board-cli"
+          ln -sf "$BOARD_MANAGER" "$HOME/.local/bin/board-manager"
           echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
-          echo "AGENT_VENV_DIR=" >> $GITHUB_ENV
+        else
+          echo "::warning::board-manager not found at $BOARD_MANAGER"
+          echo "Attempting to build from source..."
+          cd "${GITHUB_WORKSPACE}/tools/rust/board-manager"
+          cargo build --release
+          mkdir -p "$HOME/.local/bin"
+          ln -sf "${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager" "$HOME/.local/bin/board-cli"
+          ln -sf "${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager" "$HOME/.local/bin/board-manager"
+          echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
         fi
 
         if [ "$JSON_LOGGING" = "true" ]; then
-          echo '{"event": "setup_complete", "python_version": "'$(python3 --version 2>&1)'", "venv": "'$VENV_DIR'"}'
+          echo '{"event": "setup_complete", "board_manager": "'$BOARD_MANAGER'"}'
         fi
         echo "::endgroup::"
 
@@ -174,7 +177,7 @@ runs:
         fi
         echo "::endgroup::"
 
-    # Step 3: Janitor - Clean stale claims (new)
+    # Step 3: Janitor - Clean stale claims (uses Rust CLI)
     - name: Clean stale claims (Janitor)
       id: janitor
       shell: bash
@@ -187,72 +190,20 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Janitor - Clean Stale Claims"
-        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
 
-        JANITOR_RESULT=$(python3 << 'PYTHON_SCRIPT'
-        import asyncio
-        import json
-        import os
-        from datetime import datetime, timedelta, timezone
+        # Note: Stale claim cleanup is now handled by the board-manager CLI
+        # The release command with --reason=abandoned will clean up stale claims
+        # For now, we just report that this step is a no-op until the Rust CLI
+        # supports a dedicated janitor command
+        #
+        # TODO: Add 'board-manager janitor --agent NAME --threshold HOURS' command
 
-        async def clean_stale_claims():
-            try:
-                from github_agents.board.config import load_config
-                from github_agents.board.manager import BoardManager
-
-                config = load_config(os.environ.get('BOARD_CONFIG_PATH'))
-                agent_name = os.environ.get('AGENT_NAME')
-                threshold_hours = int(os.environ.get('STALE_THRESHOLD_HOURS', '2'))
-
-                cleaned = []
-
-                async with BoardManager(config=config) as manager:
-                    # Get all issues currently claimed by this agent
-                    issues = await manager.get_ready_work(limit=50)
-
-                    for issue in issues:
-                        try:
-                            claim = await manager._get_active_claim(issue.number)
-                            if claim and claim.agent == agent_name:
-                                # Check if claim is stale (older than threshold)
-                                age_hours = claim.age_seconds() / 3600
-                                if age_hours > threshold_hours:
-                                    # Release stale claim
-                                    await manager.release_work(
-                                        issue.number,
-                                        agent_name,
-                                        "abandoned"
-                                    )
-                                    cleaned.append({
-                                        "issue": issue.number,
-                                        "age_hours": round(age_hours, 1)
-                                    })
-                        except Exception as e:
-                            pass  # Skip issues we can't check
-
-                print(json.dumps({
-                    "cleaned_count": len(cleaned),
-                    "cleaned_issues": cleaned
-                }))
-
-            except Exception as e:
-                print(json.dumps({"cleaned_count": 0, "error": str(e)}))
-
-        asyncio.run(clean_stale_claims())
-        PYTHON_SCRIPT
-        )
-
-        echo "Janitor result: $JANITOR_RESULT"
-
-        CLEANED_COUNT=$(echo "$JANITOR_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('cleaned_count', 0))")
-        echo "cleaned_count=$CLEANED_COUNT" >> $GITHUB_OUTPUT
+        echo "cleaned_count=0" >> $GITHUB_OUTPUT
 
         if [ "$JSON_LOGGING" = "true" ]; then
-          echo "$JANITOR_RESULT"
-        elif [ "$CLEANED_COUNT" -gt 0 ]; then
-          echo "Cleaned $CLEANED_COUNT stale claims"
+          echo '{"event": "janitor_skip", "reason": "rust_cli_pending"}'
         else
-          echo "No stale claims to clean"
+          echo "Janitor: Skipped (Rust CLI support pending)"
         fi
 
         echo "::endgroup::"
@@ -269,7 +220,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Sync Approved Issues"
-        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
+        # Rust binaries are used - no Python venv needed
 
         echo "=== Configuration ==="
         echo "Agent: $AGENT_NAME"
@@ -347,7 +298,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Query Ready Work"
-        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
+        # Rust binaries are used - no Python venv needed
 
         echo "=== Query Configuration ==="
         echo "Agent: $AGENT_NAME"
@@ -480,7 +431,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Check Approval Trigger"
-        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
+        # Rust binaries are used - no Python venv needed
 
         # Use the board-cli to check approval
         echo "Checking approval for issue #$ISSUE_NUMBER..."
@@ -522,7 +473,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Claim Work"
-        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
+        # Rust binaries are used - no Python venv needed
 
         SESSION_ID="gha-${{ github.run_id }}-${{ github.run_attempt }}"
 
@@ -620,7 +571,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Execute Agent Work"
-        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
+        # Rust binaries are used - no Python venv needed
 
         START_TIME=$(date +%s)
 
@@ -681,30 +632,11 @@ runs:
         # Extract comments as JSON array
         COMMENTS_JSON=$(echo "$ISSUE_DATA" | jq -c '[.comments[]? | {author: .author.login, body: .body, createdAt: .createdAt}]' 2>/dev/null || echo '[]')
 
-        if [ -x "$BOARD_MANAGER_BIN" ] && [ "$COMMENTS_JSON" != "[]" ]; then
-          # Use Rust board-manager for trust bucketing (faster, no Python dependency)
+        if [ "$COMMENTS_JSON" != "[]" ]; then
+          # Use Rust board-manager for trust bucketing
           # Pipe JSON via stdin to avoid ARG_MAX limits with large comment histories
           echo "Using Rust board-manager for comment bucketing"
           ISSUE_COMMENTS=$(echo "$COMMENTS_JSON" | "$BOARD_MANAGER_BIN" bucket-comments 2>/dev/null || echo "")
-        elif [ "$COMMENTS_JSON" != "[]" ]; then
-          # Fall back to Python if Rust binary not available
-          echo "Rust board-manager not found, using Python fallback"
-          ISSUE_COMMENTS=$(python3 << 'PYTHON_SCRIPT'
-        import json
-        import os
-
-        # Load issue data from environment
-        issue_data = json.loads(os.environ.get('ISSUE_DATA', '{"comments":[]}'))
-        comments = issue_data.get('comments', [])
-
-        if not comments:
-            print('')
-        else:
-            # Use shared trust bucketing utility
-            from github_agents.security.trust import bucket_comments_for_context
-            print(bucket_comments_for_context(comments))
-        PYTHON_SCRIPT
-          )
         else
           ISSUE_COMMENTS=""
         fi
@@ -1142,7 +1074,7 @@ runs:
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Release Work Claim"
-        [ -n "$AGENT_VENV_DIR" ] && source "$AGENT_VENV_DIR/bin/activate"
+        # Rust binaries are used - no Python venv needed
 
         # Determine release reason
         # - pr_created: Work done, PR created - stay In Progress until PR is merged

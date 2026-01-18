@@ -88,34 +88,29 @@ jobs:
           git config --global user.name "AI Review Agent"
           git config --global user.email "ai-review-agent@localhost"
 
-      - name: Set up Python environment
+      - name: Set up Rust binaries
         run: |
-          echo "[INFO] Checking Python environment..."
-          python3 --version
+          echo "[INFO] Setting up Rust CLI binaries..."
 
-          # Try to create virtual environment, fall back to --user install if venv unavailable
-          if python3 -m venv .venv 2>/dev/null; then
-            echo "[INFO] Virtual environment created successfully"
-            source .venv/bin/activate
-            PYTHON_CMD="$PWD/.venv/bin/python3"
-            PIP_USER_FLAG=""
+          # Check if github-agents binary exists
+          GITHUB_AGENTS="${GITHUB_WORKSPACE}/tools/rust/github-agents-cli/target/release/github-agents"
+          if [ -x "$GITHUB_AGENTS" ]; then
+            echo "github-agents found at $GITHUB_AGENTS"
           else
-            echo "[WARNING] python3-venv not available, using --user install"
-            PYTHON_CMD="python3"
-            PIP_USER_FLAG="--user"
-            export PATH="$HOME/.local/bin:$PATH"
+            echo "Building github-agents from source..."
+            cd "${GITHUB_WORKSPACE}/tools/rust/github-agents-cli"
+            cargo build --release
           fi
 
-          # Install the GitHub AI Agents package
-          echo "[INFO] Installing GitHub AI Agents package..."
-          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./packages/github_agents
-
-          # Install additional requirements if needed
-          echo "[INFO] Installing additional requirements..."
-          $PYTHON_CMD -m pip install $PIP_USER_FLAG -r docker/requirements/requirements-agents.txt
-
-          echo "PYTHON_CMD=$PYTHON_CMD" >> $GITHUB_ENV
+          # Create symlinks for easy access
+          mkdir -p "$HOME/.local/bin"
+          ln -sf "${GITHUB_WORKSPACE}/tools/rust/github-agents-cli/target/release/github-agents" "$HOME/.local/bin/github-agents"
+          ln -sf "${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager" "$HOME/.local/bin/board-manager" 2>/dev/null || true
           echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+
+          # Install agent requirements if needed
+          echo "[INFO] Installing additional requirements..."
+          python3 -m pip install --user -r docker/requirements/requirements-agents.txt 2>/dev/null || true
 
       - name: Build Docker containers for OpenRouter agents
         run: |
@@ -195,13 +190,11 @@ jobs:
             exit 1
           fi
 
-          # Run the PR review monitor from the new package
-          # Use configured Python command to access installed packages
+          # Run the PR review monitor using Rust CLI
           cd "${{ github.workspace }}"
-          $PYTHON_CMD -m github_agents.cli pr-monitor || {
+          github-agents pr-monitor || {
               exit_code=$?
-              echo "[ERROR] PR review monitor script failed with exit code: $exit_code"
-
+              echo "[ERROR] PR review monitor failed with exit code: $exit_code"
               exit $exit_code
           }
 

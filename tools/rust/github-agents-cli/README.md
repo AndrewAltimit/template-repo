@@ -4,7 +4,7 @@ A fast Rust CLI for the GitHub AI Agents system.
 
 ## Overview
 
-This tool provides a Rust-based command-line interface for the GitHub AI Agents monitoring system. It offers fast startup times and single-binary distribution while delegating to the Python monitors for full functionality.
+This tool provides a Rust-based command-line interface for the GitHub AI Agents monitoring system. All monitoring, analysis, and agent orchestration is implemented natively in Rust for fast startup times and single-binary distribution.
 
 ## Installation
 
@@ -40,7 +40,6 @@ github-agents -v issue-monitor
 
 ## Requirements
 
-- Python 3.x with `github_agents` package installed
 - GitHub CLI (`gh`) installed and authenticated
 - Repository with proper `.agents.yaml` configuration
 
@@ -51,19 +50,17 @@ github-agents -v issue-monitor
 | 0 | Success |
 | 1 | General error |
 | 2 | GitHub CLI not found or not authenticated |
-| 3 | Python/github_agents not available |
+| 3 | GitHub token not found |
 | 130 | Interrupted by user (Ctrl+C) |
 
 ## Architecture
 
-The CLI is designed as a thin Rust wrapper that:
+The CLI provides a complete native Rust implementation:
 
-1. **Fast Startup**: Rust binary starts instantly vs Python interpreter overhead
-2. **Single Binary**: Easy distribution without Python environment
+1. **Fast Startup**: Rust binary starts instantly
+2. **Single Binary**: Easy distribution without external dependencies
 3. **Signal Handling**: Graceful shutdown on Ctrl+C
-4. **Delegation**: Currently delegates to Python monitors for full feature set
-
-Future versions may implement native Rust monitoring for improved performance.
+4. **Native Implementation**: All monitoring, analysis, and agent orchestration runs natively in Rust
 
 ## Comparison with pr-monitor
 

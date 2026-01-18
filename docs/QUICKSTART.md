@@ -208,10 +208,10 @@ The template provides two MCP configuration files to optimize performance:
    }
    ```
 
-3. **Install AI agents (optional):**
+3. **Build GitHub Agents CLI (optional):**
    ```bash
-   # For CLI access to agents
-   pip3 install -e ./packages/github_agents
+   # Build the Rust CLI for issue/PR monitoring
+   cd tools/rust/github-agents-cli && cargo build --release
    ```
 
 4. **Test AI features:**
@@ -303,8 +303,9 @@ The template provides two MCP configuration files to optimize performance:
 
 4. **Install all components:**
    ```bash
-   # Install AI agents
-   pip3 install -e ./packages/github_agents
+   # Build GitHub Agents CLI (Rust)
+   cd tools/rust/github-agents-cli && cargo build --release
+   cd ../../..  # Return to project root
 
    # Start all services
    docker-compose up -d
@@ -321,7 +322,7 @@ The template provides two MCP configuration files to optimize performance:
 #### Disable All AI Agents
 ```bash
 # Remove from .mcp.json
-# Don't install github_agents package
+# Skip building GitHub Agents CLI
 # Remove AI-related GitHub workflows
 rm -f .github/workflows/pr-validation.yml
 rm -f .github/workflows/issue-monitor.yml

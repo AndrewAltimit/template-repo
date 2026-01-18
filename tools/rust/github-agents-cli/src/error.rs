@@ -5,17 +5,41 @@ use thiserror::Error;
 /// Error types for the GitHub Agents CLI
 #[derive(Error, Debug)]
 pub enum Error {
-    /// Python monitor subprocess failed
-    #[error("Python monitor failed: {0}")]
+    /// Monitor subprocess failed
+    #[error("Monitor failed: {0}")]
     MonitorFailed(String),
 
-    /// Python not found or not configured
-    #[error("Python interpreter not found")]
-    PythonNotFound,
-
     /// GitHub CLI not available
-    #[error("GitHub CLI (gh) not found or not authenticated")]
+    #[error("GitHub CLI (gh) not found")]
     GhNotFound,
+
+    /// GitHub CLI not authenticated
+    #[error("GitHub CLI not authenticated")]
+    GhNotAuthenticated,
+
+    /// GitHub CLI command failed
+    #[error("GitHub CLI command failed (exit code {exit_code})")]
+    GhCommandFailed {
+        exit_code: i32,
+        stdout: String,
+        stderr: String,
+    },
+
+    /// Git not found
+    #[error("Git not found")]
+    GitNotFound,
+
+    /// Git command failed
+    #[error("Git command failed (exit code {exit_code})")]
+    GitCommandFailed {
+        exit_code: i32,
+        stdout: String,
+        stderr: String,
+    },
+
+    /// GitHub token not found
+    #[error("GitHub token not found in environment (GITHUB_TOKEN or GH_TOKEN)")]
+    GitHubTokenNotFound,
 
     /// Monitor was interrupted
     #[error("Monitor interrupted by user")]
@@ -28,6 +52,52 @@ pub enum Error {
     /// JSON parsing error
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
+
+    /// YAML parsing error
+    #[error("YAML error: {0}")]
+    Yaml(#[from] serde_yaml::Error),
+
+    /// Configuration error
+    #[error("Configuration error: {0}")]
+    Config(String),
+
+    /// Agent not available
+    #[error("Agent '{name}' is not available: {reason}")]
+    AgentNotAvailable { name: String, reason: String },
+
+    /// Agent execution failed
+    #[error("Agent '{name}' failed with exit code {exit_code}")]
+    AgentExecutionFailed {
+        name: String,
+        exit_code: i32,
+        stdout: String,
+        stderr: String,
+    },
+
+    /// Agent timed out
+    #[error("Agent '{name}' timed out after {timeout}s")]
+    AgentTimeout {
+        name: String,
+        timeout: u64,
+        stdout: String,
+        stderr: String,
+    },
+
+    /// Security check failed
+    #[error("Security check failed: {0}")]
+    SecurityCheck(String),
+
+    /// Environment variable not set
+    #[error("Environment variable not set: {0}")]
+    EnvNotSet(String),
+
+    /// HTTP error
+    #[error("HTTP error: {0}")]
+    Http(#[from] reqwest::Error),
+
+    /// Board manager error
+    #[error("Board error: {0}")]
+    Board(String),
 }
 
 impl Error {
@@ -35,8 +105,12 @@ impl Error {
     pub fn exit_code(&self) -> i32 {
         match self {
             Error::Interrupted => 130,
-            Error::GhNotFound => 2,
-            Error::PythonNotFound => 3,
+            Error::GhNotFound | Error::GhNotAuthenticated => 2,
+            Error::GitHubTokenNotFound => 3,
+            Error::AgentNotAvailable { .. } => 5,
+            Error::AgentExecutionFailed { .. } => 6,
+            Error::AgentTimeout { .. } => 7,
+            Error::SecurityCheck(_) => 8,
             _ => 1,
         }
     }
@@ -45,13 +119,20 @@ impl Error {
     pub fn help_text(&self) -> Option<&'static str> {
         match self {
             Error::GhNotFound => Some(
-                "Make sure the GitHub CLI is installed and authenticated:\n\
-                 1. Install: https://cli.github.com/\n\
-                 2. Authenticate: gh auth login",
+                "Make sure the GitHub CLI is installed:\n\
+                 1. Install: https://cli.github.com/",
             ),
-            Error::PythonNotFound => Some(
-                "Make sure Python 3 is installed and the github_agents package is available:\n\
-                 1. pip install -e ./packages/github_agents",
+            Error::GhNotAuthenticated => Some(
+                "Make sure the GitHub CLI is authenticated:\n\
+                 gh auth login",
+            ),
+            Error::GitHubTokenNotFound => Some(
+                "Set the GITHUB_TOKEN or GH_TOKEN environment variable:\n\
+                 export GITHUB_TOKEN=ghp_...",
+            ),
+            Error::GitNotFound => Some(
+                "Make sure Git is installed:\n\
+                 apt install git  # or equivalent for your system",
             ),
             _ => None,
         }

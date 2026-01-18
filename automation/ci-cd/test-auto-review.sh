@@ -1,77 +1,77 @@
 #!/bin/bash
-# Test script for auto-review functionality
+# Test script for auto-review functionality using Rust CLI
 
 echo "=== Auto Review Test Script ==="
-echo "This script tests the auto-review functionality locally"
+echo "This script tests the auto-review functionality locally using the Rust CLI"
 echo ""
 
 # Set up environment variables
 export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-$(git config --get remote.origin.url | sed 's/.*github.com[:/]\(.*\)\.git/\1/')}"
-export REVIEW_ONLY_MODE="true"
-export NO_FILE_MODIFICATIONS="true"
 
 # Parse command line arguments
-AGENTS="${1:-claude,gemini}"
-TARGET="${2:-both}"
-REVIEW_DEPTH="${3:-standard}"
-COMMENT_STYLE="${4:-consolidated}"
+TARGET="${1:-both}"
 
 echo "Configuration:"
 echo "  Repository: $GITHUB_REPOSITORY"
-echo "  Agents: $AGENTS"
 echo "  Target: $TARGET"
-echo "  Review Depth: $REVIEW_DEPTH"
-echo "  Comment Style: $COMMENT_STYLE"
 echo ""
 
-# Set review configuration
-export REVIEW_AGENTS="$AGENTS"
-export REVIEW_TARGET="$TARGET"
-export REVIEW_DEPTH="$REVIEW_DEPTH"
-export COMMENT_STYLE="$COMMENT_STYLE"
-export ENABLED_AGENTS_OVERRIDE="$AGENTS"
+# Find the github-agents binary
+GITHUB_AGENTS=""
+SEARCH_PATHS=(
+    "./tools/rust/github-agents-cli/target/release/github-agents"
+    "$HOME/.local/bin/github-agents"
+)
 
-# Ensure Python package is installed
-echo "Installing GitHub AI Agents package..."
-pip3 install --user -e ./packages/github_agents
+for path in "${SEARCH_PATHS[@]}"; do
+    if [ -x "$path" ]; then
+        GITHUB_AGENTS="$path"
+        break
+    fi
+done
+
+# Try PATH lookup if not found
+if [ -z "$GITHUB_AGENTS" ]; then
+    GITHUB_AGENTS=$(command -v github-agents 2>/dev/null || true)
+fi
+
+if [ -z "$GITHUB_AGENTS" ]; then
+    echo "❌ github-agents binary not found. Please build it first:"
+    echo "   cd tools/rust/github-agents-cli && cargo build --release"
+    exit 1
+fi
+
+echo "Using github-agents at: $GITHUB_AGENTS"
+echo ""
 
 # Run the review
-echo ""
 echo "Starting auto-review..."
 echo ""
 
-python3 -c "
-import os
-import sys
-import logging
-from github_agents.monitors import IssueMonitor, PRMonitor
+SUCCESS=true
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+if [ "$TARGET" = "issues" ] || [ "$TARGET" = "both" ]; then
+    echo "=== Processing Issues ==="
+    "$GITHUB_AGENTS" issue-monitor || {
+        echo "Issue monitor returned non-zero exit code"
+        SUCCESS=false
+    }
+    echo ""
+fi
 
-def main():
-    target = os.environ.get('REVIEW_TARGET', 'both')
+if [ "$TARGET" = "pull-requests" ] || [ "$TARGET" = "both" ]; then
+    echo "=== Processing PRs ==="
+    "$GITHUB_AGENTS" pr-monitor || {
+        echo "PR monitor returned non-zero exit code"
+        SUCCESS=false
+    }
+    echo ""
+fi
 
-    try:
-        if target in ['issues', 'both']:
-            logger.info('Processing issues...')
-            issue_monitor = IssueMonitor()
-            issue_monitor.process_items()
-
-        if target in ['pull-requests', 'both']:
-            logger.info('Processing pull requests...')
-            pr_monitor = PRMonitor()
-            pr_monitor.process_items()
-
-        logger.info('Auto Review completed successfully')
-
-    except Exception as e:
-        logger.error(f'Auto Review failed: {e}')
-        sys.exit(1)
-
-if __name__ == '__main__':
-    main()
-"
-
-echo ""
-echo "=== Auto Review Test Complete ==="
+echo "=== Auto Review Complete ==="
+if [ "$SUCCESS" = "true" ]; then
+    echo "All monitors completed successfully"
+else
+    echo "Some monitors failed - check output above"
+    exit 1
+fi

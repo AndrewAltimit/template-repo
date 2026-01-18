@@ -89,4 +89,4 @@ echo ""
 
 # Execute the issue monitor
 cd "${GITHUB_WORKSPACE:-$(pwd)}"
-python3 -m github_agents.cli issue-monitor "$@"
+./tools/rust/github-agents-cli/target/release/github-agents issue-monitor "$@"

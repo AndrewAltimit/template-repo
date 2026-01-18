@@ -1,6 +1,7 @@
 ---
 name: GitHub Board Integration Tests
 # Tests for GitHub Projects v2 board integration
+# Note: Python board tests removed - board module migrated to Rust (tools/rust/board-manager)
 
 'on':
   push:
@@ -8,31 +9,19 @@ name: GitHub Board Integration Tests
       - main
       - github-agents-refine
     paths:
-      - 'packages/github_agents/src/github_agents/board/**'
-      - 'packages/github_agents/tests/unit/test_board_*.py'
-      - 'packages/github_agents/tests/e2e/test_board_*.py'
-      - 'packages/github_agents/pyproject.toml'
+      - 'tools/rust/board-manager/**'
       - 'tools/mcp/mcp_github_board/**'
       - '.github/workflows/test-github-board.yml'
       - 'docker/mcp-github-board.Dockerfile'
       - 'docker/requirements/requirements-github-board.txt'
   pull_request:
     paths:
-      - 'packages/github_agents/src/github_agents/board/**'
-      - 'packages/github_agents/tests/unit/test_board_*.py'
-      - 'packages/github_agents/tests/e2e/test_board_*.py'
-      - 'packages/github_agents/pyproject.toml'
+      - 'tools/rust/board-manager/**'
       - 'tools/mcp/mcp_github_board/**'
       - '.github/workflows/test-github-board.yml'
       - 'docker/mcp-github-board.Dockerfile'
       - 'docker/requirements/requirements-github-board.txt'
-  workflow_dispatch:
-    inputs:
-      run_e2e:
-        description: 'Run end-to-end tests (requires live board)'
-        required: false
-        type: boolean
-        default: false
+  workflow_dispatch: {}
 
 concurrency:
   group: github-board-tests-${{ github.ref }}
@@ -44,9 +33,9 @@ env:
   COMPOSE_DOCKER_CLI_BUILD: 1
 
 jobs:
-  # Unit tests for board module
-  unit-tests:
-    name: Board Unit Tests
+  # Rust board-manager tests
+  rust-tests:
+    name: Board Manager Rust Tests
     runs-on: self-hosted
     timeout-minutes: 10
     steps:
@@ -56,41 +45,23 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install package and run unit tests
+      - name: Run Rust tests
         run: |
-          echo "🧪 Running GitHub Board unit tests..."
-          docker-compose run --rm python-ci bash -c "\
-            pip install -e packages/github_agents && \
-            pytest packages/github_agents/tests/unit/test_board_*.py \
-            -v --cov=github_agents.board --cov-report=term --cov-report=html"
+          echo "Running board-manager Rust tests..."
+          cd tools/rust/board-manager
+          cargo test --all-features
 
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v6
-        if: always()
-        with:
-          name: board-unit-coverage
-          path: htmlcov/
-          retention-days: 7
-
-  # CLI tests
-  cli-tests:
-    name: Board CLI Tests
-    runs-on: self-hosted
-    timeout-minutes: 10
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          clean: true
-
-      - name: Install package and run CLI tests
+      - name: Check formatting
         run: |
-          echo "🧪 Running board CLI tests..."
-          docker-compose run --rm python-ci bash -c "\
-            pip install -e packages/github_agents && \
-            pytest packages/github_agents/tests/unit/test_board_cli.py \
-            -v --cov=github_agents.board.cli --cov-report=term"
+          echo "Checking Rust formatting..."
+          cd tools/rust/board-manager
+          cargo fmt --check
+
+      - name: Run clippy
+        run: |
+          echo "Running clippy..."
+          cd tools/rust/board-manager
+          cargo clippy -- -D warnings
 
   # Docker build test
   docker-build:
@@ -206,86 +177,44 @@ jobs:
           $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./tools/mcp/mcp_github_board
           $PYTHON_CMD tools/mcp/mcp_github_board/scripts/test_server.py --quick
 
-  # End-to-end tests (optional, requires live board)
-  e2e-tests:
-    name: Board E2E Tests
-    runs-on: self-hosted
-    timeout-minutes: 20
-    if: >
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.run_e2e == 'true') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
-    needs: [unit-tests, cli-tests]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          clean: true
-
-      - name: Check for board configuration
-        run: |
-          if [ ! -f "ai-agents-board.yml" ]; then
-            echo "⚠️  Board configuration not found, skipping E2E tests"
-            exit 0
-          fi
-          echo "✅ Board configuration found"
-
-      - name: Run E2E tests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
-        run: |
-          echo "🧪 Running board E2E tests..."
-          docker-compose run --rm python-ci \
-            pytest packages/github_agents/tests/e2e/test_board_workflow.py \
-            -v -m e2e --timeout=300 || echo "⚠️  E2E tests failed (may be expected)"
-
   # Summary job
   test-summary:
     name: Test Summary
     runs-on: self-hosted
-    needs: [unit-tests, cli-tests, docker-build, mcp-server-tests]
+    needs: [rust-tests, docker-build, mcp-server-tests]
     if: always()
     steps:
       - name: Check test results
         run: |
-          echo "📊 GitHub Board Test Summary"
+          echo "GitHub Board Test Summary"
           echo "=============================="
 
-          if [ "${{ needs.unit-tests.result }}" == "success" ]; then
-            echo "✅ Unit tests passed"
+          if [ "${{ needs.rust-tests.result }}" == "success" ]; then
+            echo "Rust tests passed"
           else
-            echo "❌ Unit tests failed"
-          fi
-
-          if [ "${{ needs.cli-tests.result }}" == "success" ]; then
-            echo "✅ CLI tests passed"
-          else
-            echo "❌ CLI tests failed"
+            echo "Rust tests failed"
           fi
 
           if [ "${{ needs.docker-build.result }}" == "success" ]; then
-            echo "✅ Docker build passed"
+            echo "Docker build passed"
           else
-            echo "❌ Docker build failed"
+            echo "Docker build failed"
           fi
 
           if [ "${{ needs.mcp-server-tests.result }}" == "success" ]; then
-            echo "✅ MCP server tests passed"
+            echo "MCP server tests passed"
           else
-            echo "❌ MCP server tests failed"
+            echo "MCP server tests failed"
           fi
 
           # Fail if any required job failed
-          if [ "${{ needs.unit-tests.result }}" != "success" ] || \
-             [ "${{ needs.cli-tests.result }}" != "success" ] || \
+          if [ "${{ needs.rust-tests.result }}" != "success" ] || \
              [ "${{ needs.docker-build.result }}" != "success" ] || \
              [ "${{ needs.mcp-server-tests.result }}" != "success" ]; then
             echo ""
-            echo "❌ Some tests failed"
+            echo "Some tests failed"
             exit 1
           fi
 
           echo ""
-          echo "✅ All tests passed!"
+          echo "All tests passed!"

@@ -50,9 +50,6 @@ RUN mkdir -p /home/appuser/.config/opencode \
     /home/appuser/.cache/opencode \
     /home/appuser/.local/share/opencode
 
-# Copy OpenCode configuration
-COPY --chown=appuser:appuser packages/github_agents/configs/opencode-config.json /home/appuser/.config/opencode/.opencode.json
-
 # Create app directory
 WORKDIR /app
 

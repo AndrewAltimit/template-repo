@@ -1,14 +1,33 @@
 #!/usr/bin/env python3
-"""Auto Review script that uses existing monitors in review-only mode."""
+"""Auto Review script that uses Rust github-agents CLI in review-only mode."""
 
 import logging
 import os
+import subprocess
 import sys
-
-from github_agents.monitors import IssueMonitor, PRMonitor
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+
+def run_command(cmd: list, description: str) -> bool:
+    """Run a command and return success status."""
+    logger.info("Running: %s", " ".join(cmd))
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if result.returncode == 0:
+            logger.info("%s completed successfully", description)
+            if result.stdout:
+                print(result.stdout)
+            return True
+        else:
+            logger.error("%s failed with exit code %d", description, result.returncode)
+            if result.stderr:
+                print(result.stderr, file=sys.stderr)
+            return False
+    except FileNotFoundError:
+        logger.error("Command not found: %s", cmd[0])
+        return False
 
 
 def main():
@@ -16,10 +35,7 @@ def main():
     # Parse configuration from environment
     agents = os.environ.get("REVIEW_AGENTS", "claude,gemini").split(",")
     target = os.environ.get("REVIEW_TARGET", "both")
-    issue_numbers = os.environ.get("REVIEW_ISSUE_NUMBERS", "").split(",") if os.environ.get("REVIEW_ISSUE_NUMBERS") else []
-    pr_numbers = os.environ.get("REVIEW_PR_NUMBERS", "").split(",") if os.environ.get("REVIEW_PR_NUMBERS") else []
     review_depth = os.environ.get("REVIEW_DEPTH", "standard")
-    comment_style = os.environ.get("COMMENT_STYLE", "consolidated")
 
     # Clean up agent names
     agents = [a.strip().lower() for a in agents if a.strip()]
@@ -27,44 +43,53 @@ def main():
     logger.info("Auto Review Configuration:")
     logger.info("  Agents: %s", agents)
     logger.info("  Target: %s", target)
-    logger.info("  Issue Numbers: %s", issue_numbers or "all open")
-    logger.info("  PR Numbers: %s", pr_numbers or "all open")
     logger.info("  Review Depth: %s", review_depth)
-    logger.info("  Comment Style: %s", comment_style)
 
-    # Set review-only mode in environment for monitors to detect
-    os.environ["REVIEW_ONLY_MODE"] = "true"
-    os.environ["ENABLED_AGENTS_OVERRIDE"] = ",".join(agents)
-    os.environ["REVIEW_DEPTH"] = review_depth
-    os.environ["COMMENT_STYLE"] = comment_style
+    # Find the github-agents binary
+    github_agents_bin = None
+    search_paths = [
+        os.path.join(os.getcwd(), "tools/rust/github-agents-cli/target/release/github-agents"),
+        os.path.expanduser("~/.local/bin/github-agents"),
+    ]
 
-    try:
-        # Process issues if requested
-        if target in ["issues", "both"]:
-            logger.info("Processing issues...")
-            issue_monitor = IssueMonitor()
+    for path in search_paths:
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            github_agents_bin = path
+            break
 
-            # Override to only process specific issues if provided
-            if issue_numbers:
-                os.environ["TARGET_ISSUE_NUMBERS"] = ",".join(issue_numbers)
+    if not github_agents_bin:
+        # Try finding in PATH
+        import shutil
 
-            issue_monitor.process_items()
+        github_agents_bin = shutil.which("github-agents")
 
-        # Process PRs if requested
-        if target in ["pull-requests", "both"]:
-            logger.info("Processing pull requests...")
-            pr_monitor = PRMonitor()
+    if not github_agents_bin:
+        logger.error("github-agents binary not found. Please build it first:")
+        logger.error("  cd tools/rust/github-agents-cli && cargo build --release")
+        sys.exit(1)
 
-            # Override to only process specific PRs if provided
-            if pr_numbers:
-                os.environ["TARGET_PR_NUMBERS"] = ",".join(pr_numbers)
+    logger.info("Using github-agents at: %s", github_agents_bin)
 
-            pr_monitor.process_items()
+    success = True
 
-        logger.info("Auto Review completed successfully")
+    # Process issues if requested
+    if target in ["issues", "both"]:
+        logger.info("Processing issues...")
+        cmd = [github_agents_bin, "issue-monitor"]
+        if not run_command(cmd, "Issue monitor"):
+            success = False
 
-    except Exception as e:
-        logger.error("Auto Review failed: %s", e)
+    # Process PRs if requested
+    if target in ["pull-requests", "both"]:
+        logger.info("Processing PRs...")
+        cmd = [github_agents_bin, "pr-monitor"]
+        if not run_command(cmd, "PR monitor"):
+            success = False
+
+    if success:
+        logger.info("Auto review completed successfully")
+    else:
+        logger.warning("Auto review completed with some failures")
         sys.exit(1)
 
 

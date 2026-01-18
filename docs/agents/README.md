@@ -74,7 +74,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 - Creates pull requests for approved issues
 - Updates board status throughout lifecycle
 
-**Location**: `github_agents` package
+**Location**: `tools/rust/github-agents-cli/` (Rust CLI)
 
 **Key Features**:
 - Board-gated: Issues must be triaged to board first
@@ -94,7 +94,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 - Implements requested changes automatically
 - Comments when changes are complete
 
-**Location**: `github_agents` package
+**Location**: `tools/rust/github-agents-cli/` (Rust CLI)
 
 **Key Features**:
 - Detects "changes requested" reviews
@@ -254,11 +254,23 @@ See the [sleeper agents Package](../../packages/sleeper_agents/README.md) for de
 ### Running Agents Locally
 
 ```bash
-# Install the GitHub AI Agents package
-pip install -e ./packages/github_agents
+# Build the Rust CLI tools
+cd tools/rust/github-agents-cli && cargo build --release
+cd tools/rust/board-manager && cargo build --release
+
+# Run issue monitor
+github-agents issue-monitor
 
 # Run PR monitor
-python -m github_agents.cli pr-monitor
+github-agents pr-monitor
+
+# Run refinement monitor
+github-agents refinement-monitor
+
+# Board operations
+board-manager query          # Get ready work
+board-manager claim 123      # Claim an issue
+board-manager release 123    # Release a claim
 
 # Board work is typically triggered via GitHub Actions
 # but can be tested locally via the workflow_dispatch trigger

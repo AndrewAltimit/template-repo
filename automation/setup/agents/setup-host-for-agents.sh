@@ -12,7 +12,6 @@ echo ""
 # Check if running as root
 if [ "$EUID" -eq 0 ]; then
    echo "[WARNING] Please don't run this script as root/sudo"
-   echo "The script uses pip3 --user to install packages in your user directory"
    exit 1
 fi
 
@@ -21,27 +20,19 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Check Python 3
-echo "[INFO] Checking Python 3..."
-if command_exists python3; then
-    PYTHON_VERSION=$(python3 --version 2>&1)
-    echo "[OK] Found: $PYTHON_VERSION"
-else
-    echo "[ERROR] Python 3 is not installed"
-    echo "Please install Python 3.8 or later"
-    exit 1
-fi
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-# Check pip3
-echo ""
-echo "[INFO] Checking pip3..."
-if command_exists pip3; then
-    PIP_VERSION=$(pip3 --version 2>&1)
-    echo "[OK] Found: $PIP_VERSION"
+# Check for Rust github-agents binary
+echo "[INFO] Checking github-agents Rust binary..."
+GITHUB_AGENTS_BIN="$PROJECT_ROOT/tools/rust/github-agents-cli/target/release/github-agents"
+if [ -x "$GITHUB_AGENTS_BIN" ]; then
+    AGENTS_VERSION=$("$GITHUB_AGENTS_BIN" --version 2>&1)
+    echo "[OK] Found: $AGENTS_VERSION"
 else
-    echo "[ERROR] pip3 is not installed"
-    echo "Please install python3-pip"
-    exit 1
+    echo "[WARNING] github-agents binary not found at: $GITHUB_AGENTS_BIN"
+    echo "Build it with: cd tools/rust/github-agents-cli && cargo build --release"
 fi
 
 # Check nvm and Node.js
@@ -149,93 +140,76 @@ else
     exit 1
 fi
 
-# Install Python dependencies
-echo ""
-echo "[INFO] Installing Python dependencies..."
-echo "Using pip3 install --user to avoid permission issues"
-
-# Get the directory where this script is located
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-
-# Check if requirements file exists
-REQUIREMENTS_FILE="$PROJECT_ROOT/docker/requirements/requirements-agents.txt"
-if [ -f "$REQUIREMENTS_FILE" ]; then
-    echo "[INFO] Installing from: $REQUIREMENTS_FILE"
-    pip3 install --user -r "$REQUIREMENTS_FILE" || {
-        echo "[WARNING] Some packages failed to install"
-        echo "You may need to install system dependencies"
-    }
-else
-    echo "[ERROR] Requirements file not found: $REQUIREMENTS_FILE"
-    echo "Are you running this script from the project directory?"
-    exit 1
-fi
-
-# Add user's pip bin directory to PATH if not already there
-USER_BIN="$HOME/.local/bin"
-if [[ ":$PATH:" != *":$USER_BIN:"* ]]; then
+# Check if Rust github-agents binary needs to be built
+if [ ! -x "$GITHUB_AGENTS_BIN" ]; then
     echo ""
-    echo "[INFO] Adding $USER_BIN to PATH"
-    echo "Add this to your ~/.bashrc or ~/.zshrc:"
-    echo "export PATH=\"\$HOME/.local/bin:\$PATH\""
+    echo "[INFO] Building github-agents Rust binary..."
+    if command_exists cargo; then
+        (cd "$PROJECT_ROOT/tools/rust/github-agents-cli" && cargo build --release) || {
+            echo "[WARNING] Failed to build github-agents"
+            echo "You may need to build it manually: cd tools/rust/github-agents-cli && cargo build --release"
+        }
+    else
+        echo "[WARNING] Cargo not found - cannot build github-agents automatically"
+        echo "Install Rust from: https://rustup.rs/"
+    fi
 fi
 
 # Summary
 echo ""
 echo "=== Setup Summary ==="
 echo ""
-echo "✓ Python 3: Installed"
-if command_exists pip3; then
-    echo "✓ pip3: Installed"
+if [ -x "$GITHUB_AGENTS_BIN" ]; then
+    echo "[OK] github-agents: Built"
+else
+    echo "[X] github-agents: Not built - run 'cd tools/rust/github-agents-cli && cargo build --release'"
 fi
 if command_exists claude; then
-    echo "✓ Claude CLI: Installed"
+    echo "[OK] Claude CLI: Installed"
     if [ -f "$HOME/.claude.json" ] || [ -d "$HOME/.claude" ]; then
-        echo "✓ Claude Authentication: Found"
+        echo "[OK] Claude Authentication: Found"
     else
-        echo "✗ Claude Authentication: Missing - run 'claude login'"
+        echo "[X] Claude Authentication: Missing - run 'claude login'"
     fi
 else
-    echo "✗ Claude CLI: Not installed"
+    echo "[X] Claude CLI: Not installed"
 fi
 if command_exists gh; then
-    echo "✓ GitHub CLI: Installed"
+    echo "[OK] GitHub CLI: Installed"
     if gh auth status >/dev/null 2>&1; then
-        echo "✓ GitHub Authentication: OK"
+        echo "[OK] GitHub Authentication: OK"
     else
-        echo "✗ GitHub Authentication: Missing - run 'gh auth login'"
+        echo "[X] GitHub Authentication: Missing - run 'gh auth login'"
     fi
 else
-    echo "✗ GitHub CLI: Not installed"
+    echo "[X] GitHub CLI: Not installed"
 fi
-echo "✓ Python dependencies: Installed with --user"
 
 echo ""
 echo "=== Next Steps ==="
 echo ""
-echo "1. If nvm is not installed:"
+echo "1. If github-agents is not built:"
+echo "   cd tools/rust/github-agents-cli && cargo build --release"
+echo ""
+echo "2. If nvm is not installed:"
 echo "   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash"
 echo ""
-echo "2. If Node.js is not installed (check .nvmrc for required version):"
+echo "3. If Node.js is not installed (check .nvmrc for required version):"
 echo "   nvm install"
 echo "   nvm use"
 echo ""
-echo "3. If Claude CLI is not installed:"
+echo "4. If Claude CLI is not installed:"
 echo "   nvm use"
 echo "   npm install -g @anthropic-ai/claude-code"
 echo ""
-echo "4. If Claude is not authenticated:"
+echo "5. If Claude is not authenticated:"
 echo "   nvm use"
 echo "   claude login"
 echo ""
-echo "5. If GitHub CLI is not authenticated:"
+echo "6. If GitHub CLI is not authenticated:"
 echo "   gh auth login"
 echo ""
-echo "6. Install the AI agents package:"
-echo "   pip3 install -e ./packages/github_agents"
-echo ""
 echo "7. Test the AI agents:"
-echo "   python3 -m github_agents.cli --help"
+echo "   ./tools/rust/github-agents-cli/target/release/github-agents --help"
 echo ""
 echo "Done!"

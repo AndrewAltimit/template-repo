@@ -33,17 +33,11 @@ echo "🤖 Using model: $OPENCODE_MODEL"
 
 # Check if opencode CLI is available
 if ! command -v opencode &> /dev/null; then
-    echo "⚠️  opencode CLI not found. Installing from GitHub AI Agents package..."
-    echo ""
-
-    # Install the package
-    if [ -d "./packages/github_agents" ]; then
-        pip3 install -e ./packages/github_agents
-    else
-        echo "❌ GitHub AI Agents package not found at ./packages/github_agents"
-        echo "   Please run this script from the repository root."
-        exit 1
-    fi
+    echo "⚠️  opencode CLI not found."
+    echo "   Please install OpenCode CLI first:"
+    echo "   npm install -g @anthropics/opencode"
+    echo "   or see: https://github.com/anthropics/opencode"
+    exit 1
 fi
 
 # Note about OpenCode permissions

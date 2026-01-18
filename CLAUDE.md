@@ -39,7 +39,7 @@ The AI agents implement a comprehensive multi-layer security model with command-
 - **Commit Validation**: Prevents code injection after approval
 - **Implementation Requirements**: Only complete, working code is accepted
 
-**For complete security documentation, see** `packages/github_agents/docs/security.md`
+**For complete security documentation, see** `docs/agents/security.md`
 
 ### Remote Infrastructure
 
@@ -215,31 +215,25 @@ python tools/mcp/mcp_comfyui/scripts/test_server.py     # Tests connection to 19
 pip install -r config/python/requirements.txt
 ```
 
-### AI Agents
+### AI Agents (Rust CLI)
+
+The AI agent system is implemented in Rust via the `github-agents` CLI and `board-manager` CLI.
 
 ```bash
-# IMPORTANT: Agent Containerization Strategy
-# Some agents run on host, others can be containerized
-# See docs/agents/containerization-strategy.md for complete details
+# Build the Rust binaries (if not using pre-built releases)
+cd tools/rust/github-agents-cli && cargo build --release
+cd tools/rust/board-manager && cargo build --release
 
-# Host-Only Agents (authentication constraints):
-# 1. Claude CLI - requires subscription auth (machine-specific)
-# See docs/agents/claude-auth.md for Claude auth details
+# Issue and PR Monitoring (Rust CLI)
+github-agents issue-monitor           # Monitor issues for agent triggers
+github-agents pr-monitor              # Monitor PRs for agent triggers
+github-agents refinement-monitor      # Run backlog refinement analysis
 
-# Containerized Gemini:
-# Gemini CLI can now run in containers - see tools/cli/containers/run_gemini_container.sh
-
-# Containerized Codex:
-# Codex can run in containers with auth mounted from host
-./tools/cli/containers/run_codex_container.sh  # Interactive Codex with mounted auth
-docker-compose run --rm -v ~/.codex:/home/node/.codex:ro codex-agent codex
-
-# Containerized Agents (OpenRouter-compatible):
-# OpenCode, Crush - run in openrouter-agents container
-docker-compose run --rm openrouter-agents python -m github_agents.cli issue-monitor
-
-# Or use specific containerized agents:
-docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
+# Board Management (Rust CLI)
+board-manager query                   # Query ready work from board
+board-manager claim 123               # Claim an issue
+board-manager release 123             # Release a claim
+board-manager status 123 "In Progress"  # Update issue status
 
 # Direct host execution with helper scripts:
 ./tools/cli/agents/run_claude.sh     # Interactive Claude session with Node.js 22
@@ -248,31 +242,20 @@ docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
 ./tools/cli/agents/run_gemini.sh     # Interactive Gemini CLI session with approval modes
 ./tools/cli/agents/run_codex.sh      # Codex CLI for AI-powered code generation (requires auth)
 
-# Host agent execution (Claude, Gemini only):
-python3 -m github_agents.cli issue-monitor
-python3 -m github_agents.cli pr-monitor
-# Or use the installed commands directly:
-issue-monitor
-pr-monitor
-
 # GitHub Actions automatically run agents on schedule:
-# - Issue Monitor: Every hour (runs on host)
-# - PR Review Monitor: Every hour (runs on host)
+# - Issue Monitor: Every hour
+# - PR Review Monitor: Every hour
 
-# Installation:
-# Step 1: Install the GitHub AI agents package (required for all agents):
-pip3 install -e ./packages/github_agents
-
-# Step 2: If running Claude or Gemini on host, install host-specific dependencies:
-pip3 install --user -r docker/requirements/requirements-agents.txt
-
-# Step 3: For Codex (optional):
+# For Codex (optional):
 npm install -g @openai/codex  # Install Codex CLI
 codex auth                     # Authenticate (creates ~/.codex/auth.json)
-
-# Note: Step 2 is only needed if you plan to use Claude or Gemini agents.
-# Containerized agents (OpenCode, Crush, Codex) can run without host dependencies.
 ```
+
+**Agent Tools Location:**
+- `tools/rust/github-agents-cli/` - Main agent CLI (issue/PR monitoring, refinement, analyzers)
+- `tools/rust/board-manager/` - Board operations (claim/release work, update status)
+- `tools/rust/gh-validator/` - GitHub CLI wrapper for secret masking
+- `tools/rust/pr-monitor/` - Dedicated PR monitoring tool
 
 ### Docker Operations
 
@@ -746,9 +729,8 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/developer/claude-code-hooks.md` - Claude Code hook system for enforcing best practices
 
 ### AI Agents & Security
-- `packages/github_agents/docs/security.md` - Comprehensive AI agent security documentation
+- `docs/agents/security.md` - Comprehensive AI agent security documentation
 - `docs/agents/README.md` - AI agent system overview
-- `docs/agents/security.md` - Security-focused agent documentation
 - `docs/agents/human-training.md` - **AI safety training guide for human-AI collaboration** (essential reading)
 - `docs/agents/claude-auth.md` - Why AI agents run on host (Claude auth limitation)
 - `docs/agents/claude-expression.md` - Claude's expression philosophy and communication style

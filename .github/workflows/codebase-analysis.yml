@@ -126,27 +126,23 @@ jobs:
         with:
           fetch-depth: 0  # Full history for analysis
 
-      - name: Setup Python environment
+      - name: Setup Rust CLI
         run: |
-          echo "::group::Setup Python Environment"
-          python3 --version
+          echo "::group::Setup Rust CLI"
+          # Use pre-built Rust binary for github-agents
+          RUST_CLI="./tools/rust/github-agents-cli/target/release/github-agents"
 
-          # Try to create virtual environment, fall back to --user install if venv unavailable
-          if python3 -m venv .venv 2>/dev/null; then
-            echo "[INFO] Virtual environment created successfully"
-            source .venv/bin/activate
-            PYTHON_CMD="$PWD/.venv/bin/python3"
-            PIP_USER_FLAG=""
+          if [ -f "$RUST_CLI" ]; then
+            echo "[INFO] Found Rust CLI at $RUST_CLI"
+            $RUST_CLI --version || echo "[INFO] Binary exists but no version flag"
           else
-            echo "[WARNING] python3-venv not available, using --user install"
-            PYTHON_CMD="python3"
-            PIP_USER_FLAG="--user"
-            export PATH="$HOME/.local/bin:$PATH"
+            echo "[WARNING] Rust CLI not found at $RUST_CLI"
+            echo "[INFO] Building Rust CLI..."
+            cd tools/rust/github-agents-cli && cargo build --release
+            cd -
           fi
 
-          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./packages/github_agents
-          echo "PYTHON_CMD=$PYTHON_CMD" >> $GITHUB_ENV
-          echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+          echo "RUST_CLI=$RUST_CLI" >> $GITHUB_ENV
           echo "::endgroup::"
 
       - name: Load configuration
@@ -186,122 +182,18 @@ jobs:
         run: |
           echo "::group::Codebase Analysis"
 
-          # Use configured Python command to access installed packages
-          ANALYSIS_OUTPUT=$($PYTHON_CMD << 'PYTHON_SCRIPT'
-          import asyncio
-          import json
-          import os
-          import sys
-          from pathlib import Path
-          from dataclasses import asdict
-
-          async def run_analysis():
-              findings = []
-              agents = os.environ.get('AGENTS', 'claude').split(',')
-              include_paths = os.environ.get('INCLUDE_PATHS', '**/*.py').split(',')
-
-              print(f"Running analysis with agents: {agents}", file=sys.stderr)
-              print(f"Include paths: {include_paths}", file=sys.stderr)
-
-              try:
-                  from github_agents.analyzers import AgentAnalyzer, FindingCategory
-                  from github_agents.agents import (
-                      get_best_available_agent,
-                      ClaudeAgent,
-                      GeminiAgent,
-                      CodexAgent,
-                      OpenCodeAgent,
-                  )
-
-                  # Map agent names to classes and their focus areas
-                  agent_configs = {
-                      "claude": {
-                          "class": ClaudeAgent,
-                          "prompt": "Analyze this codebase for architectural issues, design patterns, and refactoring opportunities.",
-                          "categories": [FindingCategory.QUALITY, FindingCategory.ARCHITECTURE],
-                      },
-                      "gemini": {
-                          "class": GeminiAgent,
-                          "prompt": "Analyze this codebase for security vulnerabilities, code smells, and best practice violations.",
-                          "categories": [FindingCategory.SECURITY, FindingCategory.QUALITY],
-                      },
-                      "codex": {
-                          "class": CodexAgent,
-                          "prompt": "Analyze this codebase for performance bottlenecks and optimization opportunities.",
-                          "categories": [FindingCategory.PERFORMANCE],
-                      },
-                      "opencode": {
-                          "class": OpenCodeAgent,
-                          "prompt": "Analyze this codebase for technical debt, outdated dependencies, and maintenance issues.",
-                          "categories": [FindingCategory.TECH_DEBT, FindingCategory.DOCUMENTATION],
-                      },
-                  }
-
-                  repo_path = Path.cwd()
-
-                  # Run analysis with each requested agent
-                  for agent_name in agents:
-                      agent_name = agent_name.strip().lower()
-                      if agent_name not in agent_configs:
-                          print(f"Unknown agent: {agent_name}, skipping", file=sys.stderr)
-                          continue
-
-                      config = agent_configs[agent_name]
-                      print(f"Analyzing with {agent_name}...", file=sys.stderr)
-
-                      try:
-                          # Create agent instance
-                          agent_instance = config["class"]()
-
-                          # Check if agent is available
-                          if not agent_instance.is_available():
-                              print(f"Agent {agent_name} is not available, skipping", file=sys.stderr)
-                              continue
-
-                          # Create analyzer with agent
-                          analyzer = AgentAnalyzer(
-                              agent_name=agent_name,
-                              agent_instance=agent_instance,
-                              analysis_prompt=config["prompt"],
-                              categories=config["categories"],
-                              include_paths=include_paths,
-                          )
-
-                          # Run analysis
-                          agent_findings = await analyzer.analyze(repo_path)
-
-                          # Convert to serializable format
-                          for finding in agent_findings:
-                              findings.append({
-                                  "title": finding.title,
-                                  "category": finding.category.value,
-                                  "priority": finding.priority.value,
-                                  "summary": finding.summary,
-                                  "details": finding.details,
-                                  "files": [asdict(af) for af in finding.affected_files],
-                                  "suggested_fix": finding.suggested_fix,
-                                  "evidence": finding.evidence,
-                                  "agent": finding.discovered_by,
-                              })
-
-                          print(f"Agent {agent_name} found {len(agent_findings)} issues", file=sys.stderr)
-
-                      except Exception as e:
-                          print(f"Error running agent {agent_name}: {e}", file=sys.stderr)
-                          continue
-
-                  print(f"Analysis complete. Found {len(findings)} total findings.", file=sys.stderr)
-
-              except ImportError as e:
-                  print(f"Import error: {e}", file=sys.stderr)
-                  print("Ensure github_agents package is installed", file=sys.stderr)
-
-              return {"findings": findings, "count": len(findings)}
-
-          result = asyncio.run(run_analysis())
-          print(json.dumps(result))
-          PYTHON_SCRIPT
-          )
+          # Check if analyze subcommand is available in Rust CLI
+          if $RUST_CLI analyze --help >/dev/null 2>&1; then
+            echo "[INFO] Running analysis with Rust CLI"
+            # TODO: Implement analyze subcommand call when available
+            # $RUST_CLI analyze --agents "$AGENTS" --include-paths "$INCLUDE_PATHS" --format json
+            ANALYSIS_OUTPUT='{"findings": [], "count": 0, "note": "Rust analyze command not yet implemented"}'
+          else
+            echo "[WARNING] Rust CLI 'analyze' subcommand not available yet"
+            echo "[INFO] The analyzers module has been ported to Rust but the CLI subcommand is pending"
+            echo "[INFO] See: tools/rust/github-agents-cli/src/analyzers/"
+            ANALYSIS_OUTPUT='{"findings": [], "count": 0, "note": "Rust analyze command pending implementation"}'
+          fi
 
           echo "Analysis output: $ANALYSIS_OUTPUT"
 
@@ -328,129 +220,23 @@ jobs:
         run: |
           echo "::group::Create Issues"
 
-          CREATE_OUTPUT=$(python3 << 'PYTHON_SCRIPT'
-          import asyncio
-          import json
-          import os
-          import sys
+          # Parse findings JSON and process with Rust CLI or gh CLI
+          FINDINGS_JSON="$ANALYSIS_OUTPUT"
+          FINDINGS_COUNT=$(echo "$FINDINGS_JSON" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('findings', [])))")
 
-          async def create_issues():
-              dry_run = os.environ.get('DRY_RUN', 'true').lower() == 'true'
-              max_issues = int(os.environ.get('MAX_ISSUES', '3'))
-              min_priority = os.environ.get('MIN_PRIORITY', 'P2')
-              repo = os.environ.get('GITHUB_REPOSITORY', '')
-
-              # Priority ordering for filtering
-              priority_order = {'P0': 0, 'P1': 1, 'P2': 2, 'P3': 3}
-              min_priority_value = priority_order.get(min_priority, 2)
-
-              # Parse findings from analysis step
-              findings_json = os.environ.get('ANALYSIS_OUTPUT', '{}')
-              try:
-                  analysis_result = json.loads(findings_json) if findings_json else {}
-                  findings = analysis_result.get('findings', [])
-              except json.JSONDecodeError:
-                  print("Failed to parse findings JSON", file=sys.stderr)
-                  findings = []
-
-              if not findings:
-                  print("No findings to process", file=sys.stderr)
-                  return {"issues_created": 0, "skipped": 0, "errors": 0}
-
-              print(f"Processing {len(findings)} findings (max: {max_issues}, min priority: {min_priority})", file=sys.stderr)
-
-              # Filter by priority
-              filtered_findings = []
-              for f in findings:
-                  f_priority = priority_order.get(f.get('priority', 'P3'), 3)
-                  if f_priority <= min_priority_value:
-                      filtered_findings.append(f)
-                  else:
-                      print(f"Skipping {f.get('title', 'untitled')} - priority {f.get('priority')} below threshold", file=sys.stderr)
-
-              # Limit to max_issues
-              filtered_findings = filtered_findings[:max_issues]
-
-              if dry_run:
-                  print(f"DRY RUN: Would create {len(filtered_findings)} issues:", file=sys.stderr)
-                  for f in filtered_findings:
-                      print(f"  - [{f.get('priority')}] {f.get('title')}", file=sys.stderr)
-                  return {"issues_created": 0, "would_create": len(filtered_findings), "dry_run": True}
-
-              # Import and use IssueCreator with BoardManager
-              try:
-                  from github_agents.creators import IssueCreator
-                  from github_agents.analyzers import AnalysisFinding, AffectedFile, FindingCategory, FindingPriority
-                  from github_agents.board.manager import BoardManager
-
-                  # Convert dicts back to AnalysisFinding objects
-                  findings_list = []
-                  for f in filtered_findings:
-                      files_data = f.get('files', [])
-                      affected_files = [
-                          AffectedFile(**file_dict) if isinstance(file_dict, dict)
-                          else AffectedFile(path=str(file_dict))
-                          for file_dict in files_data
-                      ]
-                      finding = AnalysisFinding(
-                          title=f.get('title', 'Untitled Finding'),
-                          category=FindingCategory(f.get('category', 'quality')),
-                          priority=FindingPriority(f.get('priority', 'P2')),
-                          summary=f.get('summary', ''),
-                          details=f.get('details', ''),
-                          affected_files=affected_files,
-                          suggested_fix=f.get('suggested_fix', ''),
-                          evidence=f.get('evidence', ''),
-                          discovered_by=f.get('agent', 'unknown'),
-                      )
-                      findings_list.append(finding)
-
-                  # Initialize BoardManager for project board integration
-                  board_manager = None
-                  try:
-                      board_manager = BoardManager()
-                      await board_manager.initialize()
-                      print("BoardManager initialized - issues will be added to project board", file=sys.stderr)
-                  except Exception as e:
-                      print(f"BoardManager init failed (continuing without board): {e}", file=sys.stderr)
-                      board_manager = None
-
-                  # Create issues using the proper API
-                  creator = IssueCreator(
-                      repo=repo,
-                      board_manager=board_manager,
-                      lookback_days=30,
-                      max_issues_per_run=max_issues,
-                      min_priority=FindingPriority(min_priority),
-                  )
-
-                  results = await creator.create_issues(findings_list)
-
-                  # Clean up BoardManager session
-                  if board_manager:
-                      await board_manager.close()
-
-                  # Process results
-                  issues_created = 0
-                  skipped = 0
-                  for result in results:
-                      if result.created:
-                          issues_created += 1
-                          print(f"Created issue #{result.issue_number}: {result.finding.title}", file=sys.stderr)
-                      elif result.skipped_reason:
-                          skipped += 1
-                          print(f"Skipped: {result.skipped_reason}", file=sys.stderr)
-
-                  return {"issues_created": issues_created, "skipped": skipped, "errors": 0}
-
-              except ImportError as e:
-                  print(f"Import error: {e}", file=sys.stderr)
-                  return {"issues_created": 0, "error": str(e)}
-
-          result = asyncio.run(create_issues())
-          print(json.dumps(result))
-          PYTHON_SCRIPT
-          )
+          if [ "$FINDINGS_COUNT" -eq 0 ]; then
+            echo "[INFO] No findings to process"
+            CREATE_OUTPUT='{"issues_created": 0, "skipped": 0, "errors": 0}'
+          elif [ "$DRY_RUN" = "true" ]; then
+            echo "[INFO] DRY RUN: Would create up to $MAX_ISSUES issues"
+            echo "$FINDINGS_JSON" | python3 -c "import sys,json; data=json.load(sys.stdin); [print(f'  - [{f.get(\"priority\",\"P2\")}] {f.get(\"title\",\"untitled\")}') for f in data.get('findings',[])[:int('$MAX_ISSUES')]]"
+            CREATE_OUTPUT="{\"issues_created\": 0, \"would_create\": $FINDINGS_COUNT, \"dry_run\": true}"
+          else
+            # TODO: Implement issue creation via Rust CLI when 'create-issue' subcommand is available
+            # For now, this step won't run since analyze returns 0 findings
+            echo "[WARNING] Issue creation via Rust CLI not yet implemented"
+            CREATE_OUTPUT='{"issues_created": 0, "note": "Rust create-issue command pending implementation"}'
+          fi
 
           echo "Create output: $CREATE_OUTPUT"
 

@@ -36,7 +36,9 @@ This project follows a **container-first approach**:
    ```bash
    git clone https://github.com/AndrewAltimit/template-repo
    cd template-repo
-   pip3 install -e ./packages/github_agents
+   # Build the Rust CLI tools (optional - pre-built binaries available in releases)
+   cd tools/rust/board-manager && cargo build --release
+   cd ../github-agents-cli && cargo build --release
    ```
 
 3. **Set API keys** (if using AI features)
@@ -69,7 +71,7 @@ Six AI agents for development and automation. See [AI Agents Documentation](docs
 
 All code generation agents (Codex, OpenCode, Crush) provide equivalent functionality - choose based on your API access.
 
-**Security**: Keyword triggers, user allow list, secure token management. See [Security Model](packages/github_agents/docs/security.md)
+**Security**: Keyword triggers, user allow list, secure token management. See [Security Model](docs/agents/security.md)
 
 **Safety Training**: Essential AI safety concepts for human-AI collaboration. See [Human Training Guide](docs/agents/human-training.md)
 
@@ -99,7 +101,7 @@ Issue Created → Admin Approval → Agent Claims → PR Created → AI Review �
 - **Pattern Validation** - Must use `[Action][Agent]` format (e.g., `[Approved][Claude]`) to prevent false positives
 - **Claim Tracking** - Agents post claim comments with timestamps to prevent conflicts
 
-See [Security Documentation](packages/github_agents/docs/security.md) for the complete security model.
+See [Security Documentation](docs/agents/security.md) for the complete security model.
 
 ## Reports & Research
 
@@ -139,30 +141,38 @@ Philosophical explorations of minds, experience, and intelligence. See [Philosop
 
 ## Packages
 
-Four standalone packages addressing different aspects of AI agent development and safety:
+Three standalone packages addressing different aspects of AI agent development and safety:
 
 | Package | Purpose | Documentation |
 |---------|---------|---------------|
-| **[GitHub Agents](packages/github_agents/)** | Multi-agent orchestration for autonomous GitHub workflows - issue monitoring, PR review processing, and board coordination with Claude, Codex, OpenCode, Gemini, and Crush | [README](packages/github_agents/README.md) \| [Security](packages/github_agents/docs/security.md) |
 | **[Sleeper Agents](packages/sleeper_agents/)** | Production-validated detection framework for hidden backdoors in LLMs, based on Anthropic's research on deceptive AI that persists through safety training | [README](packages/sleeper_agents/README.md) \| [PDF Guide](https://github.com/AndrewAltimit/template-repo/releases/latest) |
 | **[Economic Agents](packages/economic_agents/)** | Simulation framework demonstrating autonomous AI economic capability - agents that earn money, form companies, hire sub-agents, and seek investment. For governance research and policy development | [README](packages/economic_agents/README.md) |
 | **[Injection Toolkit](packages/injection_toolkit/)** | Cross-platform Rust framework for runtime integration - DLL injection (Windows), LD_PRELOAD (Linux), shared memory IPC, and overlay rendering. For game modding, debugging tools, and AI agent embodiment | [README](packages/injection_toolkit/README.md) \| [Architecture](packages/injection_toolkit/docs/ARCHITECTURE.md) |
 
+**Rust CLI Tools** (in `tools/rust/`):
+
+| Tool | Purpose | Documentation |
+|------|---------|---------------|
+| **[github-agents-cli](tools/rust/github-agents-cli/)** | Issue/PR monitoring, refinement, code analysis, and agent execution | [README](tools/rust/github-agents-cli/README.md) |
+| **[board-manager](tools/rust/board-manager/)** | GitHub Projects v2 board operations - claim, release, status updates | [README](tools/rust/board-manager/README.md) |
+| **[gh-validator](tools/rust/gh-validator/)** | GitHub CLI wrapper for automatic secret masking | [README](tools/rust/gh-validator/README.md) |
+
 ```bash
 # Install Python packages
-pip install -e ./packages/github_agents
 pip install -e ./packages/sleeper_agents
 pip install -e ./packages/economic_agents
 
-# Build Rust package (requires Rust toolchain)
+# Build Rust packages (requires Rust toolchain)
 cd packages/injection_toolkit && cargo build --release
+cd tools/rust/github-agents-cli && cargo build --release
+cd tools/rust/board-manager && cargo build --release
 ```
 
 ## Features
 
 - **[18 MCP Servers](#mcp-servers)** - Code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
 - **[6 AI Agents](#ai-agents)** - Autonomous development workflow from issue to merge
-- **[4 Packages](#packages)** - GitHub automation, sleeper agent detection, economic agent simulation, runtime injection toolkit
+- **[3 Packages](#packages)** - Sleeper agent detection, economic agent simulation, runtime injection toolkit
 - **Container-First Architecture** - Maximum portability and consistency
 - **Self-Hosted CI/CD** - Zero-cost GitHub Actions infrastructure
 - **Company Integration** - Corporate proxy builds for enterprise AI APIs ([Docs](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
@@ -178,12 +188,15 @@ For enterprise environments requiring custom certificates, customize [`automatio
 ├── .github/workflows/        # GitHub Actions workflows
 ├── docker/                   # Docker configurations
 ├── packages/                 # Installable packages
-│   ├── github_agents/        # Multi-agent GitHub automation
 │   ├── sleeper_agents/       # AI backdoor detection framework
 │   ├── economic_agents/      # Autonomous economic agents
 │   └── injection_toolkit/    # Rust runtime injection framework
 ├── tools/
 │   ├── mcp/                  # 18 MCP servers (see MCP Servers section)
+│   ├── rust/                 # Rust CLI tools
+│   │   ├── github-agents-cli/  # Issue/PR monitoring, refinement, analysis
+│   │   ├── board-manager/      # GitHub Projects board operations
+│   │   └── gh-validator/       # Secret masking for GitHub CLI
 │   └── cli/                  # Agent runners and utilities
 ├── automation/               # CI/CD and automation scripts
 ├── tests/                    # Test files

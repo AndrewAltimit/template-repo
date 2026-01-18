@@ -574,14 +574,6 @@ jobs:
           echo "📦 Building Python wheels for all packages..."
           mkdir -p dist
 
-          # Build github-agents wheel
-          echo "Building github-agents..."
-          docker-compose run --rm python-ci bash -c "
-            cd packages/github_agents && \
-            pip install build && \
-            python -m build --wheel --outdir /app/dist
-          "
-
           # Build economic-agents wheel
           echo "Building economic-agents..."
           docker-compose run --rm python-ci bash -c "
@@ -924,7 +916,6 @@ jobs:
 
           | Package | Description |
           |---------|-------------|
-          | `github-agents` | Automated agents for GitHub workflows |
           | `economic-agents` | Autonomous economic agent simulation framework |
           | `sleeper-agents` | Framework for creating and studying sleeper agents |
 
@@ -960,7 +951,6 @@ jobs:
 
           ```bash
           # Install packages from wheels
-          pip install github_agents-*.whl
           pip install economic_agents-*.whl
           pip install sleeper_agents-*.whl
 
