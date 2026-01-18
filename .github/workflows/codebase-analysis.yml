@@ -14,7 +14,7 @@
 
 name: Codebase Analysis Pipeline
 
-on:
+on:  # yamllint disable-line rule:truthy
   # DISABLED: Uncomment to enable scheduled runs
   # schedule:
   #   # Daily at 3 AM UTC (off-peak hours)
@@ -229,7 +229,11 @@ jobs:
             CREATE_OUTPUT='{"issues_created": 0, "skipped": 0, "errors": 0}'
           elif [ "$DRY_RUN" = "true" ]; then
             echo "[INFO] DRY RUN: Would create up to $MAX_ISSUES issues"
-            echo "$FINDINGS_JSON" | python3 -c "import sys,json; data=json.load(sys.stdin); [print(f'  - [{f.get(\"priority\",\"P2\")}] {f.get(\"title\",\"untitled\")}') for f in data.get('findings',[])[:int('$MAX_ISSUES')]]"
+            echo "$FINDINGS_JSON" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          for f in data.get('findings', [])[:int('$MAX_ISSUES')]:
+              print(f'  - [{f.get(\"priority\", \"P2\")}] {f.get(\"title\", \"untitled\")}')"
             CREATE_OUTPUT="{\"issues_created\": 0, \"would_create\": $FINDINGS_COUNT, \"dry_run\": true}"
           else
             # TODO: Implement issue creation via Rust CLI when 'create-issue' subcommand is available

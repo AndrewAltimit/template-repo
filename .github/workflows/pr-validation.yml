@@ -122,10 +122,46 @@ jobs:
           echo "  Injection Toolkit: $injection_toolkit_count"
           echo "  Total files: $total_files"
 
+  # Stage 1b: Build Rust CLI tools (for use by review jobs)
+  build-rust-tools:
+    name: Build Rust CLI Tools
+    needs: detect-changes
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Build github-agents-cli
+        run: |
+          cd tools/rust/github-agents-cli
+          cargo build --release
+          echo "Built github-agents binary:"
+          ls -la target/release/github-agents
+
+      - name: Build board-manager
+        run: |
+          cd tools/rust/board-manager
+          cargo build --release
+          echo "Built board-manager binary:"
+          ls -la target/release/board-manager
+
+      - name: Upload Rust binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-cli-tools
+          path: |
+            tools/rust/github-agents-cli/target/release/github-agents
+            tools/rust/board-manager/target/release/board-manager
+          retention-days: 1
+
   # Stage 2: Gemini AI Code Review
   gemini-review:
     name: Gemini AI Code Review
-    needs: detect-changes
+    needs: [detect-changes, build-rust-tools]
     if: github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft)
     runs-on: self-hosted
     timeout-minutes: 30  # Increased for large PRs - API calls with retry logic can take time
@@ -151,6 +187,25 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
+
+      - name: Download Rust CLI tools
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-cli-tools
+          path: rust-tools
+
+      - name: Setup Rust CLI tools
+        run: |
+          # Make binaries executable and move to expected locations
+          chmod +x rust-tools/tools/rust/github-agents-cli/target/release/github-agents
+          chmod +x rust-tools/tools/rust/board-manager/target/release/board-manager
+          mkdir -p tools/rust/github-agents-cli/target/release
+          mkdir -p tools/rust/board-manager/target/release
+          cp rust-tools/tools/rust/github-agents-cli/target/release/github-agents tools/rust/github-agents-cli/target/release/
+          cp rust-tools/tools/rust/board-manager/target/release/board-manager tools/rust/board-manager/target/release/
+          echo "Rust CLI tools installed:"
+          ls -la tools/rust/github-agents-cli/target/release/github-agents
+          ls -la tools/rust/board-manager/target/release/board-manager
 
       # Log commit info for debugging (reviews always run, agent decides whether to act)
       - name: Log commit info
@@ -274,15 +329,9 @@ jobs:
             echo "✅ GOOGLE_API_KEY is set (length: ${#GOOGLE_API_KEY})"
           fi
 
-          # Run Rust CLI for PR review (if binary exists)
-          BINARY="./tools/rust/github-agents-cli/target/release/github-agents"
-          if [ -x "$BINARY" ]; then
-            echo "🚀 Starting Gemini PR Review (Rust CLI)..."
-            "$BINARY" pr-review "$PR_NUMBER"
-          else
-            echo "⚠️ Rust CLI binary not found at $BINARY, skipping review"
-            echo "   Binary will be available after next release build"
-          fi
+          # Run Rust CLI for PR review (binary provided by build-rust-tools job)
+          echo "🚀 Starting Gemini PR Review (Rust CLI)..."
+          ./tools/rust/github-agents-cli/target/release/github-agents pr-review "$PR_NUMBER"
 
       - name: Upload review artifact
         if: always()
