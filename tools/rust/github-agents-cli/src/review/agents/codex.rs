@@ -189,6 +189,10 @@ impl ReviewAgent for CodexAgent {
         "codex"
     }
 
+    fn model(&self) -> &str {
+        &self.model
+    }
+
     async fn is_available(&self) -> bool {
         self.codex_path.is_some()
     }

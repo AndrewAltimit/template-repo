@@ -143,6 +143,10 @@ impl ReviewAgent for CrushAgent {
         "crush"
     }
 
+    fn model(&self) -> &str {
+        "openrouter" // Crush uses OpenRouter with environment-configured model
+    }
+
     async fn is_available(&self) -> bool {
         self.crush_path.is_some()
     }

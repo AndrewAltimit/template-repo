@@ -155,32 +155,61 @@ const REVIEW_RULES: &str = r#"# Code Review Instructions
 You are reviewing a pull request. Follow these rules strictly:
 
 ## Output Format Rules
-- Maximum 500 words
+- Maximum 500 words total
 - Use bullet points, not paragraphs
 - Only report ACTIONABLE issues (bugs, security vulnerabilities, required fixes)
 - NO generic praise ("great work", "well done", etc.)
 - NO filler text
-- End with EXACTLY ONE reaction image in markdown format
+
+## Required Section Structure
+
+Your review MUST use exactly this structure:
+
+```
+## Issues (if any)
+
+- [SEVERITY] `filename:line` - Brief description
+  - What's wrong
+  - How to fix (if obvious)
+
+## Previous Issues (for incremental reviews)
+
+- [RESOLVED] `filename:line` - Issue description
+- [STILL UNRESOLVED] `filename:line` - Issue description
+
+## Suggestions (if any)
+
+- `filename:line` - Optional improvement suggestion
+
+## Notes
+
+- Any relevant observations about the changes
+- Clarifications about why certain issues were/weren't raised
+
+![Reaction](URL)
+```
+
+If a section has no items, write "(none)" under it.
 
 ## Issue Severity Levels
 - `[CRITICAL]` - Must fix before merge (security, data loss, crashes)
 - `[BUG]` - Likely bugs or incorrect behavior
 - `[WARNING]` - Potential issues, edge cases
-- `[SUGGESTION]` - Optional improvements
-
-## Issue Format
-For each issue:
-```
-- [SEVERITY] `filename:line` - Brief description
-  - What's wrong
-  - How to fix (if obvious)
-```
 
 ## What NOT to Report
 - Style preferences already handled by formatters
 - Minor naming suggestions
 - "Consider adding tests" (unless critical path)
 - Generic advice that doesn't apply to specific code
+
+## Reaction Images
+End your review with EXACTLY ONE reaction image from:
+https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/
+
+Choose based on review sentiment:
+- Positive/clean: kurisu_thumbs_up.webp, aqua_happy.webp
+- Minor issues: menhera_stare.webp, thinking_foxgirl.webp
+- Significant issues: kagami_annoyed.webp, nervous_sweat.webp
 "#;
 
 /// Verification instructions for the AI

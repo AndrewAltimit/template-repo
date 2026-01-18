@@ -20,6 +20,9 @@ pub trait ReviewAgent: Send + Sync {
     /// Get the agent name
     fn name(&self) -> &str;
 
+    /// Get the model being used
+    fn model(&self) -> &str;
+
     /// Check if the agent is available (CLI found, etc.)
     async fn is_available(&self) -> bool;
 

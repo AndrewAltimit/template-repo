@@ -176,6 +176,10 @@ impl ReviewAgent for OpenCodeAgent {
         "opencode"
     }
 
+    fn model(&self) -> &str {
+        &self.model
+    }
+
     async fn is_available(&self) -> bool {
         self.opencode_path.is_some()
     }

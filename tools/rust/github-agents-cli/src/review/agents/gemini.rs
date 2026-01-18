@@ -205,6 +205,10 @@ impl ReviewAgent for GeminiAgent {
         "gemini"
     }
 
+    fn model(&self) -> &str {
+        &self.review_model
+    }
+
     async fn is_available(&self) -> bool {
         self.gemini_path.is_some()
     }

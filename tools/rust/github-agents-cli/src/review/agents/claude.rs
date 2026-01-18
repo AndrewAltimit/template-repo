@@ -180,6 +180,10 @@ impl ReviewAgent for ClaudeAgent {
         "claude"
     }
 
+    fn model(&self) -> &str {
+        &self.model
+    }
+
     async fn is_available(&self) -> bool {
         self.claude_path.is_some()
     }
