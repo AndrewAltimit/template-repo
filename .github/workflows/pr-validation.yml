@@ -363,7 +363,26 @@ jobs:
           # Run Rust CLI for PR review (binary provided by build-rust-tools job)
           # --editor enables a cleanup pass with Claude to strip any reasoning/chain-of-thought
           echo "🚀 Starting Gemini PR Review (Rust CLI)..."
-          ./tools/rust/github-agents-cli/target/release/github-agents pr-review "$PR_NUMBER" --editor
+
+          # Capture output and exit code - handle 429 rate limit errors gracefully
+          set +e
+          OUTPUT=$(./tools/rust/github-agents-cli/target/release/github-agents pr-review "$PR_NUMBER" --editor 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          echo "$OUTPUT"
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            # Check for rate limit (429) or quota errors
+            if echo "$OUTPUT" | grep -qiE '429|rate.?limit|quota|resource.?exhausted'; then
+              echo "::warning::Gemini API rate limit hit (429) - skipping review for this run"
+              echo "The review will be attempted again on the next pipeline run."
+              exit 0
+            else
+              # Propagate other errors normally
+              exit $EXIT_CODE
+            fi
+          fi
 
       - name: Stop Reaction Search MCP Server
         if: always()
