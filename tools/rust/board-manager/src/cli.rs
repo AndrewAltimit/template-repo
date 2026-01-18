@@ -334,9 +334,9 @@ pub async fn run(cli: Cli) -> Result<()> {
             // Read JSON from stdin if "-" is provided, otherwise use the argument
             let json_input = if comments_json == "-" {
                 let mut buffer = String::new();
-                io::stdin()
-                    .read_to_string(&mut buffer)
-                    .map_err(|e| crate::error::BoardError::Config(format!("Failed to read stdin: {}", e)))?;
+                io::stdin().read_to_string(&mut buffer).map_err(|e| {
+                    crate::error::BoardError::Config(format!("Failed to read stdin: {}", e))
+                })?;
                 buffer
             } else {
                 comments_json.clone()

@@ -274,9 +274,15 @@ jobs:
             echo "✅ GOOGLE_API_KEY is set (length: ${#GOOGLE_API_KEY})"
           fi
 
-          # Run Rust CLI for PR review
-          echo "🚀 Starting Gemini PR Review (Rust CLI)..."
-          ./tools/rust/github-agents-cli/target/release/github-agents pr-review "$PR_NUMBER"
+          # Run Rust CLI for PR review (if binary exists)
+          BINARY="./tools/rust/github-agents-cli/target/release/github-agents"
+          if [ -x "$BINARY" ]; then
+            echo "🚀 Starting Gemini PR Review (Rust CLI)..."
+            "$BINARY" pr-review "$PR_NUMBER"
+          else
+            echo "⚠️ Rust CLI binary not found at $BINARY, skipping review"
+            echo "   Binary will be available after next release build"
+          fi
 
       - name: Upload review artifact
         if: always()
