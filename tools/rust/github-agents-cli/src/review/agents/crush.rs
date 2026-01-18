@@ -82,27 +82,60 @@ impl CrushAgent {
 /// Find the crush binary by trying to execute it directly
 /// (avoids `which` command which may not be available in Docker)
 fn find_crush_binary() -> Option<String> {
+    // 1. Check CRUSH_PATH environment variable first (allows explicit override)
+    if let Ok(path) = std::env::var("CRUSH_PATH") {
+        if !path.is_empty() && verify_binary(&path, "--version") {
+            tracing::info!("Using crush from CRUSH_PATH: {}", path);
+            return Some(path);
+        }
+    }
+
     let home = std::env::var("HOME").unwrap_or_default();
 
-    // Candidates to try - will verify by executing --version
-    let candidates = [
-        "crush".to_string(),
-        format!("{}/.nvm/versions/node/v22.16.0/bin/crush", home),
-        format!("{}/go/bin/crush", home),
+    // 2. Build candidates list - PATH lookup first, then common locations
+    let mut candidates = vec![
+        "crush".to_string(), // PATH lookup
         "/usr/local/bin/crush".to_string(),
         "/usr/bin/crush".to_string(),
     ];
 
-    // Try each candidate by executing --version
-    for candidate in &candidates {
-        if let Ok(output) = std::process::Command::new(candidate).arg("--version").output() {
-            if output.status.success() {
-                return Some(candidate.clone());
+    // 3. Add Go binary location (Crush is a Charmbracelet Go tool)
+    if !home.is_empty() {
+        candidates.push(format!("{}/go/bin/crush", home));
+
+        // 4. Dynamically discover NVM node versions (in case installed via npm)
+        let nvm_versions_dir = format!("{}/.nvm/versions/node", home);
+        if let Ok(entries) = std::fs::read_dir(&nvm_versions_dir) {
+            let mut node_versions: Vec<_> = entries
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().is_dir())
+                .map(|e| e.file_name().to_string_lossy().to_string())
+                .collect();
+            // Sort descending to prefer newer versions
+            node_versions.sort_by(|a, b| b.cmp(a));
+            for version in node_versions {
+                candidates.push(format!("{}/{}/bin/crush", nvm_versions_dir, version));
             }
         }
     }
 
+    // Try each candidate by executing --version
+    for candidate in &candidates {
+        if verify_binary(candidate, "--version") {
+            return Some(candidate.clone());
+        }
+    }
+
     None
+}
+
+/// Verify a binary exists and runs successfully with given arg
+fn verify_binary(path: &str, arg: &str) -> bool {
+    std::process::Command::new(path)
+        .arg(arg)
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
 }
 
 /// Strip ANSI escape codes from output

@@ -115,27 +115,57 @@ impl OpenCodeAgent {
 /// Find the opencode binary by trying to execute it directly
 /// (avoids `which` command which may not be available in Docker)
 fn find_opencode_binary() -> Option<String> {
+    // 1. Check OPENCODE_PATH environment variable first (allows explicit override)
+    if let Ok(path) = std::env::var("OPENCODE_PATH") {
+        if !path.is_empty() && verify_binary(&path, "--version") {
+            tracing::info!("Using opencode from OPENCODE_PATH: {}", path);
+            return Some(path);
+        }
+    }
+
     let home = std::env::var("HOME").unwrap_or_default();
 
-    // Candidates to try - will verify by executing --version
-    let candidates = [
-        "opencode".to_string(),
-        format!("{}/.nvm/versions/node/v22.16.0/bin/opencode", home),
-        format!("{}/.nvm/versions/node/v20.18.0/bin/opencode", home),
+    // 2. Build candidates list - PATH lookup first, then common locations
+    let mut candidates = vec![
+        "opencode".to_string(), // PATH lookup
         "/usr/local/bin/opencode".to_string(),
         "/usr/bin/opencode".to_string(),
     ];
 
-    // Try each candidate by executing --version
-    for candidate in &candidates {
-        if let Ok(output) = std::process::Command::new(candidate).arg("--version").output() {
-            if output.status.success() {
-                return Some(candidate.clone());
+    // 3. Dynamically discover NVM node versions instead of hardcoding
+    if !home.is_empty() {
+        let nvm_versions_dir = format!("{}/.nvm/versions/node", home);
+        if let Ok(entries) = std::fs::read_dir(&nvm_versions_dir) {
+            let mut node_versions: Vec<_> = entries
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().is_dir())
+                .map(|e| e.file_name().to_string_lossy().to_string())
+                .collect();
+            // Sort descending to prefer newer versions
+            node_versions.sort_by(|a, b| b.cmp(a));
+            for version in node_versions {
+                candidates.push(format!("{}/{}/bin/opencode", nvm_versions_dir, version));
             }
         }
     }
 
+    // Try each candidate by executing --version
+    for candidate in &candidates {
+        if verify_binary(candidate, "--version") {
+            return Some(candidate.clone());
+        }
+    }
+
     None
+}
+
+/// Verify a binary exists and runs successfully with given arg
+fn verify_binary(path: &str, arg: &str) -> bool {
+    std::process::Command::new(path)
+        .arg(arg)
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
 }
 
 /// Strip ANSI escape codes from output
