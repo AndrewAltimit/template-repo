@@ -212,7 +212,6 @@ pub struct Issue {
     pub project_item_id: Option<String>,
 }
 
-
 #[allow(dead_code)]
 impl Issue {
     /// Check if issue is ready to work on.
@@ -228,7 +227,11 @@ impl Issue {
 
 impl std::fmt::Display for Issue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Issue #{}: {} ({})", self.number, self.title, self.status)
+        write!(
+            f,
+            "Issue #{}: {} ({})",
+            self.number, self.title, self.status
+        )
     }
 }
 
@@ -356,15 +359,12 @@ impl BoardConfig {
 
     /// Get field name from mapping.
     pub fn get_field_name(&self, key: &str) -> String {
-        self.field_mappings
-            .get(key)
-            .cloned()
-            .unwrap_or_else(|| {
-                Self::default_field_mappings()
-                    .get(key)
-                    .cloned()
-                    .unwrap_or_else(|| key.to_string())
-            })
+        self.field_mappings.get(key).cloned().unwrap_or_else(|| {
+            Self::default_field_mappings()
+                .get(key)
+                .cloned()
+                .unwrap_or_else(|| key.to_string())
+        })
     }
 }
 
@@ -488,6 +488,28 @@ impl ReleaseReason {
 impl std::fmt::Display for ReleaseReason {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_str())
+    }
+}
+
+/// Represents an approved issue found via GitHub Search.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApprovedIssue {
+    /// Issue number
+    pub number: u64,
+    /// Issue title
+    pub title: String,
+    /// Whether the issue is on the project board
+    pub on_board: bool,
+}
+
+impl std::fmt::Display for ApprovedIssue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let board_status = if self.on_board {
+            "on board"
+        } else {
+            "NOT on board"
+        };
+        write!(f, "#{}: {} ({})", self.number, self.title, board_status)
     }
 }
 

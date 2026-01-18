@@ -78,7 +78,6 @@ fn default_renewal_interval() -> i64 {
     3600 // 1 hour
 }
 
-
 impl From<ConfigFile> for BoardConfig {
     fn from(cfg: ConfigFile) -> Self {
         let mut field_mappings = BoardConfig::default_field_mappings();
@@ -124,8 +123,9 @@ pub fn load_config_file(path: &str) -> Result<BoardConfig> {
     let content = fs::read_to_string(path)
         .map_err(|e| BoardError::Config(format!("Failed to read config file '{}': {}", path, e)))?;
 
-    let config: ConfigFile = serde_yaml::from_str(&content)
-        .map_err(|e| BoardError::Config(format!("Failed to parse config file '{}': {}", path, e)))?;
+    let config: ConfigFile = serde_yaml::from_str(&content).map_err(|e| {
+        BoardError::Config(format!("Failed to parse config file '{}': {}", path, e))
+    })?;
 
     Ok(config.into())
 }
@@ -159,10 +159,12 @@ pub fn get_github_token() -> Result<String> {
     }
 
     // Fall back to GITHUB_TOKEN
-    std::env::var("GITHUB_TOKEN")
-        .map_err(|_| BoardError::Auth(
-            "GitHub token required. Set GITHUB_PROJECTS_TOKEN or GITHUB_TOKEN environment variable".to_string()
-        ))
+    std::env::var("GITHUB_TOKEN").map_err(|_| {
+        BoardError::Auth(
+            "GitHub token required. Set GITHUB_PROJECTS_TOKEN or GITHUB_TOKEN environment variable"
+                .to_string(),
+        )
+    })
 }
 
 #[cfg(test)]

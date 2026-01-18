@@ -100,13 +100,11 @@ impl TrustConfig {
 
     /// Load configuration from a specific path.
     fn load_from_path(path: &Path) -> Result<Self> {
-        let content = fs::read_to_string(path).map_err(|e| {
-            BoardError::Config(format!("Failed to read .agents.yaml: {}", e))
-        })?;
+        let content = fs::read_to_string(path)
+            .map_err(|e| BoardError::Config(format!("Failed to read .agents.yaml: {}", e)))?;
 
-        let config: AgentsYamlFile = serde_yaml::from_str(&content).map_err(|e| {
-            BoardError::Config(format!("Failed to parse .agents.yaml: {}", e))
-        })?;
+        let config: AgentsYamlFile = serde_yaml::from_str(&content)
+            .map_err(|e| BoardError::Config(format!("Failed to parse .agents.yaml: {}", e)))?;
 
         Ok(Self {
             agent_admins: config.security.agent_admins,
@@ -141,13 +139,17 @@ impl Comment {
         let body = value.get("body")?.as_str()?.to_string();
         let author = match value.get("author") {
             Some(serde_json::Value::String(s)) => s.clone(),
-            Some(serde_json::Value::Object(obj)) => {
-                obj.get("login")?.as_str()?.to_string()
-            }
+            Some(serde_json::Value::Object(obj)) => obj.get("login")?.as_str()?.to_string(),
             _ => "unknown".to_string(),
         };
-        let id = value.get("id").and_then(|v| v.as_str()).map(|s| s.to_string());
-        let created_at = value.get("createdAt").and_then(|v| v.as_str()).map(|s| s.to_string());
+        let id = value
+            .get("id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        let created_at = value
+            .get("createdAt")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
 
         Some(Self {
             id,
@@ -208,7 +210,9 @@ impl TrustBucketer {
         }
 
         let trimmed = body.trim();
-        NOISE_PATTERNS.iter().any(|pattern| pattern.is_match(trimmed))
+        NOISE_PATTERNS
+            .iter()
+            .any(|pattern| pattern.is_match(trimmed))
     }
 
     /// Bucket comments by author trust level.
@@ -280,7 +284,8 @@ impl TrustBucketer {
                 output.push_str(&self.format_comment(comment));
             }
         } else if include_empty_buckets {
-            output.push_str("## Community Input (Review Carefully)\n\n_No community comments._\n\n");
+            output
+                .push_str("## Community Input (Review Carefully)\n\n_No community comments._\n\n");
         }
 
         output.trim_end_matches(&['\n', '-'][..]).to_string()
@@ -338,7 +343,10 @@ mod tests {
 
         assert_eq!(bucketer.get_trust_level("admin_user"), TrustLevel::Admin);
         assert_eq!(bucketer.get_trust_level("bot_user"), TrustLevel::Trusted);
-        assert_eq!(bucketer.get_trust_level("random_user"), TrustLevel::Community);
+        assert_eq!(
+            bucketer.get_trust_level("random_user"),
+            TrustLevel::Community
+        );
     }
 
     #[test]

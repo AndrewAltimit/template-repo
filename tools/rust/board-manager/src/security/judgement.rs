@@ -424,9 +424,9 @@ impl AgentJudgement {
                 should_auto_fix: false,
                 confidence: 0.0,
                 category: FixCategory::FalsePositive,
-                reasoning: dismiss_reason
-                    .clone()
-                    .unwrap_or_else(|| "AI reviewer suggestion contradicts observable reality".to_string()),
+                reasoning: dismiss_reason.clone().unwrap_or_else(|| {
+                    "AI reviewer suggestion contradicts observable reality".to_string()
+                }),
                 ask_owner_question: None,
                 is_false_positive: true,
                 dismiss_reason,
@@ -571,10 +571,7 @@ impl AgentJudgement {
     }
 
     /// Check medium-confidence patterns.
-    fn check_medium_confidence_patterns(
-        &self,
-        review_comment: &str,
-    ) -> Option<(FixCategory, f64)> {
+    fn check_medium_confidence_patterns(&self, review_comment: &str) -> Option<(FixCategory, f64)> {
         let medium_checks: &[(&[Regex], FixCategory)] = &[
             (&ERROR_HANDLING_PATTERNS, FixCategory::ErrorHandling),
             (&NULL_CHECK_PATTERNS, FixCategory::NullCheck),
@@ -603,7 +600,10 @@ impl AgentJudgement {
             (&DATA_MODEL_PATTERNS, FixCategory::DataModel),
             (&BUSINESS_LOGIC_PATTERNS, FixCategory::BusinessLogic),
             (&DEPENDENCY_UPDATE_PATTERNS, FixCategory::DependencyUpdate),
-            (&MULTIPLE_APPROACHES_PATTERNS, FixCategory::MultipleApproaches),
+            (
+                &MULTIPLE_APPROACHES_PATTERNS,
+                FixCategory::MultipleApproaches,
+            ),
         ];
 
         for (patterns, category) in low_checks {
@@ -624,7 +624,11 @@ impl AgentJudgement {
     }
 
     /// Calculate confidence for medium-confidence categories.
-    fn calculate_medium_confidence(&self, base_confidence: f64, context: &AssessmentContext) -> f64 {
+    fn calculate_medium_confidence(
+        &self,
+        base_confidence: f64,
+        context: &AssessmentContext,
+    ) -> f64 {
         let mut confidence = base_confidence;
 
         // Boost confidence if we have good context
@@ -791,7 +795,10 @@ mod tests {
     #[test]
     fn test_high_confidence_security() {
         let judgement = AgentJudgement::default();
-        let result = judgement.assess_fix("SQL injection vulnerability detected", &AssessmentContext::default());
+        let result = judgement.assess_fix(
+            "SQL injection vulnerability detected",
+            &AssessmentContext::default(),
+        );
 
         assert!(result.should_auto_fix);
         assert_eq!(result.category, FixCategory::SecurityVulnerability);
@@ -802,7 +809,10 @@ mod tests {
     fn test_high_confidence_linting() {
         let judgement = AgentJudgement::default();
         // Use a lint error code that only matches linting, not formatting
-        let result = judgement.assess_fix("flake8 error W503: line break before binary operator", &AssessmentContext::default());
+        let result = judgement.assess_fix(
+            "flake8 error W503: line break before binary operator",
+            &AssessmentContext::default(),
+        );
 
         assert!(result.should_auto_fix);
         assert_eq!(result.category, FixCategory::Linting);
@@ -812,7 +822,10 @@ mod tests {
     fn test_low_confidence_architectural() {
         let judgement = AgentJudgement::default();
         // "architecture decision" matches the architectural pattern
-        let result = judgement.assess_fix("This is an architecture decision that needs review", &AssessmentContext::default());
+        let result = judgement.assess_fix(
+            "This is an architecture decision that needs review",
+            &AssessmentContext::default(),
+        );
 
         assert!(!result.should_auto_fix);
         assert_eq!(result.category, FixCategory::Architectural);
@@ -823,7 +836,9 @@ mod tests {
     fn test_false_positive_detection() {
         let judgement = AgentJudgement::default();
         let mut context = AssessmentContext::default();
-        context.job_results.insert("build".to_string(), "success".to_string());
+        context
+            .job_results
+            .insert("build".to_string(), "success".to_string());
 
         let result = judgement.assess_fix("This code won't work and will fail", &context);
 

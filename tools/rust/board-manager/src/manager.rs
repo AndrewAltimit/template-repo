@@ -1,14 +1,15 @@
 //! GitHub Projects v2 board manager with GraphQL operations.
 
 use chrono::{DateTime, Utc};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use tracing::{debug, info, warn};
 
 use crate::client::GraphQLClient;
 use crate::error::{BoardError, Result};
 use crate::models::{
-    AgentClaim, BoardConfig, Issue, IssuePriority, IssueStatus, IssueType, ReleaseReason,
+    AgentClaim, ApprovedIssue, BoardConfig, Issue, IssuePriority, IssueStatus, IssueType,
+    ReleaseReason,
 };
 
 /// Claim comment prefixes.
@@ -115,12 +116,20 @@ impl BoardManager {
     }
 
     /// Get issues ready for work.
-    pub async fn get_ready_work(&self, agent_name: Option<&str>, limit: usize) -> Result<Vec<Issue>> {
-        let project_id = self.project_id.as_ref().ok_or_else(|| {
-            BoardError::Config("BoardManager not initialized".to_string())
-        })?;
+    pub async fn get_ready_work(
+        &self,
+        agent_name: Option<&str>,
+        limit: usize,
+    ) -> Result<Vec<Issue>> {
+        let project_id = self
+            .project_id
+            .as_ref()
+            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
 
-        info!("Getting ready work (agent={:?}, limit={})", agent_name, limit);
+        info!(
+            "Getting ready work (agent={:?}, limit={})",
+            agent_name, limit
+        );
 
         let query = r#"
         query GetProjectItems($projectId: ID!) {
@@ -163,9 +172,9 @@ impl BoardManager {
         let variables = json!({ "projectId": project_id });
         let response = self.client.execute(query, Some(variables)).await?;
 
-        let data = response.data.ok_or_else(|| {
-            BoardError::GraphQL("Failed to fetch project items".to_string())
-        })?;
+        let data = response
+            .data
+            .ok_or_else(|| BoardError::GraphQL("Failed to fetch project items".to_string()))?;
 
         let items = data
             .get("node")
@@ -212,12 +221,22 @@ impl BoardManager {
 
             // Skip excluded labels
             let labels = self.parse_labels(content);
-            if labels.iter().any(|l| self.config.exclude_labels.contains(l)) {
+            if labels
+                .iter()
+                .any(|l| self.config.exclude_labels.contains(l))
+            {
                 continue;
             }
 
             let issue = self.create_issue_from_item(
-                item, content, status, priority, issue_type, assigned_agent, blocked_by, None,
+                item,
+                content,
+                status,
+                priority,
+                issue_type,
+                assigned_agent,
+                blocked_by,
+                None,
             )?;
 
             ready_issues.push(issue);
@@ -241,9 +260,10 @@ impl BoardManager {
 
     /// Get a specific issue by number.
     pub async fn get_issue(&self, issue_number: u64) -> Result<Option<Issue>> {
-        let project_id = self.project_id.as_ref().ok_or_else(|| {
-            BoardError::Config("BoardManager not initialized".to_string())
-        })?;
+        let project_id = self
+            .project_id
+            .as_ref()
+            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
 
         info!("Getting issue #{}", issue_number);
 
@@ -288,9 +308,9 @@ impl BoardManager {
         let variables = json!({ "projectId": project_id });
         let response = self.client.execute(query, Some(variables)).await?;
 
-        let data = response.data.ok_or_else(|| {
-            BoardError::GraphQL("Failed to fetch project items".to_string())
-        })?;
+        let data = response
+            .data
+            .ok_or_else(|| BoardError::GraphQL("Failed to fetch project items".to_string()))?;
 
         let items = data
             .get("node")
@@ -340,7 +360,10 @@ impl BoardManager {
         agent_name: &str,
         session_id: &str,
     ) -> Result<bool> {
-        info!("Claiming issue #{} by {} (session: {})", issue_number, agent_name, session_id);
+        info!(
+            "Claiming issue #{} by {} (session: {})",
+            issue_number, agent_name, session_id
+        );
 
         // Check for existing claim
         let existing_claim = self.get_active_claim(issue_number).await?;
@@ -366,7 +389,8 @@ impl BoardManager {
         self.post_issue_comment(issue_number, &comment).await?;
 
         // Update status to In Progress
-        self.update_status(issue_number, IssueStatus::InProgress).await?;
+        self.update_status(issue_number, IssueStatus::InProgress)
+            .await?;
 
         Ok(true)
     }
@@ -395,7 +419,10 @@ impl BoardManager {
                 Ok(true)
             }
             _ => {
-                warn!("Cannot renew claim on #{}: no active claim by {}", issue_number, agent_name);
+                warn!(
+                    "Cannot renew claim on #{}: no active claim by {}",
+                    issue_number, agent_name
+                );
                 Ok(false)
             }
         }
@@ -424,22 +451,27 @@ impl BoardManager {
                 // Stay In Progress until PR is merged
             }
             ReleaseReason::Blocked => {
-                self.update_status(issue_number, IssueStatus::Blocked).await?;
+                self.update_status(issue_number, IssueStatus::Blocked)
+                    .await?;
             }
             ReleaseReason::Abandoned | ReleaseReason::Error => {
                 self.update_status(issue_number, IssueStatus::Todo).await?;
             }
         }
 
-        info!("Released claim on #{} by {} (reason: {})", issue_number, agent_name, reason);
+        info!(
+            "Released claim on #{} by {} (reason: {})",
+            issue_number, agent_name, reason
+        );
         Ok(())
     }
 
     /// Update issue status on board.
     pub async fn update_status(&self, issue_number: u64, status: IssueStatus) -> Result<bool> {
-        let project_id = self.project_id.as_ref().ok_or_else(|| {
-            BoardError::Config("BoardManager not initialized".to_string())
-        })?;
+        let project_id = self
+            .project_id
+            .as_ref()
+            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
 
         let query = r#"
         query GetProjectItem($projectId: ID!) {
@@ -462,15 +494,18 @@ impl BoardManager {
         }
         "#;
 
-        let response = self.client.execute(query, Some(json!({ "projectId": project_id }))).await?;
+        let response = self
+            .client
+            .execute(query, Some(json!({ "projectId": project_id })))
+            .await?;
 
-        let data = response.data.ok_or_else(|| {
-            BoardError::GraphQL("Failed to get project item".to_string())
-        })?;
+        let data = response
+            .data
+            .ok_or_else(|| BoardError::GraphQL("Failed to get project item".to_string()))?;
 
-        let node = data.get("node").ok_or_else(|| {
-            BoardError::GraphQL("Node not found".to_string())
-        })?;
+        let node = data
+            .get("node")
+            .ok_or_else(|| BoardError::GraphQL("Node not found".to_string()))?;
 
         // Find project item ID
         let items = node
@@ -492,9 +527,9 @@ impl BoardManager {
             .ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
 
         // Get field ID and option ID
-        let field = node.get("field").ok_or_else(|| {
-            BoardError::FieldNotFound("Status".to_string())
-        })?;
+        let field = node
+            .get("field")
+            .ok_or_else(|| BoardError::FieldNotFound("Status".to_string()))?;
 
         let field_id = field
             .get("id")
@@ -541,11 +576,15 @@ impl BoardManager {
 
     /// Add blocker relationship.
     pub async fn add_blocker(&self, issue_number: u64, blocker_number: u64) -> Result<bool> {
-        let project_id = self.project_id.as_ref().ok_or_else(|| {
-            BoardError::Config("BoardManager not initialized".to_string())
-        })?;
+        let project_id = self
+            .project_id
+            .as_ref()
+            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
 
-        info!("Adding blocker: #{} blocks #{}", blocker_number, issue_number);
+        info!(
+            "Adding blocker: #{} blocks #{}",
+            blocker_number, issue_number
+        );
 
         let query = r#"
         query GetProjectItemForBlocker($projectId: ID!) {
@@ -573,15 +612,18 @@ impl BoardManager {
         }
         "#;
 
-        let response = self.client.execute(query, Some(json!({ "projectId": project_id }))).await?;
+        let response = self
+            .client
+            .execute(query, Some(json!({ "projectId": project_id })))
+            .await?;
 
-        let data = response.data.ok_or_else(|| {
-            BoardError::GraphQL("Failed to get project item".to_string())
-        })?;
+        let data = response
+            .data
+            .ok_or_else(|| BoardError::GraphQL("Failed to get project item".to_string()))?;
 
-        let node = data.get("node").ok_or_else(|| {
-            BoardError::GraphQL("Node not found".to_string())
-        })?;
+        let node = data
+            .get("node")
+            .ok_or_else(|| BoardError::GraphQL("Node not found".to_string()))?;
 
         let items = node
             .get("items")
@@ -595,25 +637,44 @@ impl BoardManager {
 
         for item in items {
             let content = item.get("content");
-            if content.and_then(|c| c.get("number")).and_then(|n| n.as_u64()) != Some(issue_number) {
+            if content
+                .and_then(|c| c.get("number"))
+                .and_then(|n| n.as_u64())
+                != Some(issue_number)
+            {
                 continue;
             }
 
-            project_item_id = item.get("id").and_then(|id| id.as_str()).map(|s| s.to_string());
+            project_item_id = item
+                .get("id")
+                .and_then(|id| id.as_str())
+                .map(|s| s.to_string());
 
             // Find blocked_by field value
-            if let Some(field_values) = item.get("fieldValues").and_then(|f| f.get("nodes")).and_then(|n| n.as_array()) {
+            if let Some(field_values) = item
+                .get("fieldValues")
+                .and_then(|f| f.get("nodes"))
+                .and_then(|n| n.as_array())
+            {
                 for fv in field_values {
-                    let field_name = fv.get("field").and_then(|f| f.get("name")).and_then(|n| n.as_str());
+                    let field_name = fv
+                        .get("field")
+                        .and_then(|f| f.get("name"))
+                        .and_then(|n| n.as_str());
                     if field_name == Some(self.config.get_field_name("blocked_by").as_str()) {
-                        current_blocked_by = fv.get("text").and_then(|t| t.as_str()).unwrap_or("").to_string();
+                        current_blocked_by = fv
+                            .get("text")
+                            .and_then(|t| t.as_str())
+                            .unwrap_or("")
+                            .to_string();
                     }
                 }
             }
             break;
         }
 
-        let project_item_id = project_item_id.ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
+        let project_item_id =
+            project_item_id.ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
 
         // Add blocker to list
         let mut blocked_by_list: Vec<String> = current_blocked_by
@@ -655,17 +716,28 @@ impl BoardManager {
         });
 
         self.client.execute(mutation, Some(variables)).await?;
-        info!("Added blocker: #{} now blocks #{}", blocker_number, issue_number);
+        info!(
+            "Added blocker: #{} now blocks #{}",
+            blocker_number, issue_number
+        );
         Ok(true)
     }
 
     /// Mark issue as discovered from parent.
-    pub async fn mark_discovered_from(&self, issue_number: u64, parent_number: u64) -> Result<bool> {
-        let project_id = self.project_id.as_ref().ok_or_else(|| {
-            BoardError::Config("BoardManager not initialized".to_string())
-        })?;
+    pub async fn mark_discovered_from(
+        &self,
+        issue_number: u64,
+        parent_number: u64,
+    ) -> Result<bool> {
+        let project_id = self
+            .project_id
+            .as_ref()
+            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
 
-        info!("Marking #{} as discovered from #{}", issue_number, parent_number);
+        info!(
+            "Marking #{} as discovered from #{}",
+            issue_number, parent_number
+        );
 
         let query = r#"
         query GetProjectItemForDiscovery($projectId: ID!) {
@@ -685,15 +757,18 @@ impl BoardManager {
         }
         "#;
 
-        let response = self.client.execute(query, Some(json!({ "projectId": project_id }))).await?;
+        let response = self
+            .client
+            .execute(query, Some(json!({ "projectId": project_id })))
+            .await?;
 
-        let data = response.data.ok_or_else(|| {
-            BoardError::GraphQL("Failed to get project item".to_string())
-        })?;
+        let data = response
+            .data
+            .ok_or_else(|| BoardError::GraphQL("Failed to get project item".to_string()))?;
 
-        let node = data.get("node").ok_or_else(|| {
-            BoardError::GraphQL("Node not found".to_string())
-        })?;
+        let node = data
+            .get("node")
+            .ok_or_else(|| BoardError::GraphQL("Node not found".to_string()))?;
 
         let items = node
             .get("items")
@@ -737,7 +812,10 @@ impl BoardManager {
         });
 
         self.client.execute(mutation, Some(variables)).await?;
-        info!("Marked #{} as discovered from #{}", issue_number, parent_number);
+        info!(
+            "Marked #{} as discovered from #{}",
+            issue_number, parent_number
+        );
         Ok(true)
     }
 
@@ -749,6 +827,499 @@ impl BoardManager {
     /// Get board configuration.
     pub fn get_config(&self) -> &BoardConfig {
         &self.config
+    }
+
+    /// Find approved issues using GitHub Search API.
+    /// Returns issues with `[Approved][agent]` comments that may or may not be on the board.
+    pub async fn find_approved_issues(&self, agent_name: &str) -> Result<Vec<ApprovedIssue>> {
+        let (owner, repo) = self.parse_repository()?;
+
+        info!("Finding approved issues for agent: {}", agent_name);
+
+        // Build search query
+        let search_query = format!(
+            r#"repo:{}/{} is:issue is:open "[Approved][{}]" in:comments"#,
+            owner, repo, agent_name
+        );
+
+        let mut approved_issues = Vec::new();
+        let mut page = 1;
+
+        loop {
+            let page_str = page.to_string();
+            let params = [
+                ("q", search_query.as_str()),
+                ("per_page", "100"),
+                ("page", &page_str),
+            ];
+
+            let response = self
+                .client
+                .rest_get("/search/issues", Some(&params))
+                .await?;
+
+            let items = response
+                .get("items")
+                .and_then(|i| i.as_array())
+                .map(|arr| arr.to_vec())
+                .unwrap_or_default();
+
+            if items.is_empty() {
+                break;
+            }
+
+            // Check which issues are on the board
+            for item in &items {
+                let number = item.get("number").and_then(|n| n.as_u64()).unwrap_or(0);
+                let title = item
+                    .get("title")
+                    .and_then(|t| t.as_str())
+                    .unwrap_or("")
+                    .to_string();
+
+                let on_board = self.get_issue(number).await?.is_some();
+
+                approved_issues.push(ApprovedIssue {
+                    number,
+                    title,
+                    on_board,
+                });
+            }
+
+            page += 1;
+            // Safety limit: GitHub Search API max 1000 results (10 pages)
+            if page > 10 {
+                warn!("Reached max pagination limit (1000 results)");
+                break;
+            }
+        }
+
+        info!("Found {} approved issues", approved_issues.len());
+        Ok(approved_issues)
+    }
+
+    /// Check if an issue has been approved by an authorized user.
+    /// Returns (is_approved, approver).
+    pub async fn is_issue_approved(&self, issue_number: u64) -> Result<(bool, Option<String>)> {
+        let (owner, repo) = self.parse_repository()?;
+
+        let query = r#"
+        query GetIssueForApproval($owner: String!, $repo: String!, $number: Int!) {
+          repository(owner: $owner, name: $repo) {
+            issue(number: $number) {
+              body
+              author { login }
+              comments(last: 100) {
+                nodes {
+                  body
+                  author { login }
+                }
+              }
+            }
+          }
+        }
+        "#;
+
+        let variables = json!({
+            "owner": owner,
+            "repo": repo,
+            "number": issue_number
+        });
+
+        let response = self.client.execute(query, Some(variables)).await?;
+
+        let data = match response.data {
+            Some(d) => d,
+            None => return Ok((false, None)),
+        };
+
+        let issue_data = data.get("repository").and_then(|r| r.get("issue"));
+
+        let issue_data = match issue_data {
+            Some(i) => i,
+            None => return Ok((false, None)),
+        };
+
+        // Check issue body first
+        let body = issue_data
+            .get("body")
+            .and_then(|b| b.as_str())
+            .unwrap_or("");
+        let author = issue_data
+            .get("author")
+            .and_then(|a| a.get("login"))
+            .and_then(|l| l.as_str())
+            .unwrap_or("");
+
+        if self.check_approval_trigger(body, author) {
+            info!("Issue #{} approved by {} (in body)", issue_number, author);
+            return Ok((true, Some(author.to_string())));
+        }
+
+        // Check comments (most recent first)
+        let comments = issue_data
+            .get("comments")
+            .and_then(|c| c.get("nodes"))
+            .and_then(|n| n.as_array());
+
+        if let Some(comments) = comments {
+            for comment in comments.iter().rev() {
+                let comment_body = comment.get("body").and_then(|b| b.as_str()).unwrap_or("");
+                let comment_author = comment
+                    .get("author")
+                    .and_then(|a| a.get("login"))
+                    .and_then(|l| l.as_str())
+                    .unwrap_or("");
+
+                if self.check_approval_trigger(comment_body, comment_author) {
+                    info!(
+                        "Issue #{} approved by {} (in comment)",
+                        issue_number, comment_author
+                    );
+                    return Ok((true, Some(comment_author.to_string())));
+                }
+            }
+        }
+
+        info!("Issue #{} not approved", issue_number);
+        Ok((false, None))
+    }
+
+    /// Check if text contains a valid approval trigger from an authorized user.
+    fn check_approval_trigger(&self, text: &str, author: &str) -> bool {
+        use regex::Regex;
+
+        if text.is_empty() || author.is_empty() {
+            return false;
+        }
+
+        // Build allowed users list
+        let mut allowed_users: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+        // Add repository owner
+        if let Ok((repo_owner, _)) = self.parse_repository() {
+            allowed_users.insert(repo_owner);
+        }
+
+        // Add project owner
+        if !self.config.owner.is_empty() {
+            allowed_users.insert(self.config.owner.clone());
+        }
+
+        // Add users from security config (if available through TrustBucketer)
+        if let Ok(trust_config) = crate::security::TrustConfig::from_yaml(None) {
+            for admin in &trust_config.agent_admins {
+                allowed_users.insert(admin.clone());
+            }
+        }
+
+        if !allowed_users.contains(author) {
+            return false;
+        }
+
+        // Check for approval pattern: [Action][Agent]
+        let pattern =
+            Regex::new(r"(?i)\[(Approved|Review|Close|Summarize|Debug)\]\[[\w\s-]+\]").unwrap();
+        pattern.is_match(text)
+    }
+
+    /// Add an issue to the project board with fields.
+    pub async fn add_issue_to_board(
+        &self,
+        issue_number: u64,
+        status: IssueStatus,
+        priority: Option<IssuePriority>,
+        issue_type: Option<IssueType>,
+        agent: Option<&str>,
+    ) -> Result<bool> {
+        let project_id = self
+            .project_id
+            .as_ref()
+            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
+
+        let (owner, repo) = self.parse_repository()?;
+
+        info!("Adding issue #{} to board", issue_number);
+
+        // Step 1: Get the issue node ID
+        let query = r#"
+        query GetIssueId($owner: String!, $repo: String!, $number: Int!) {
+          repository(owner: $owner, name: $repo) {
+            issue(number: $number) { id }
+          }
+        }
+        "#;
+
+        let variables = json!({
+            "owner": owner,
+            "repo": repo,
+            "number": issue_number
+        });
+
+        let response = self.client.execute(query, Some(variables)).await?;
+
+        let data = response
+            .data
+            .ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
+
+        let issue_id = data
+            .get("repository")
+            .and_then(|r| r.get("issue"))
+            .and_then(|i| i.get("id"))
+            .and_then(|id| id.as_str())
+            .ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
+
+        // Step 2: Add to project
+        let mutation = r#"
+        mutation AddToProject($projectId: ID!, $contentId: ID!) {
+          addProjectV2ItemByContentId(input: {projectId: $projectId, contentId: $contentId}) {
+            item { id }
+          }
+        }
+        "#;
+
+        let variables = json!({
+            "projectId": project_id,
+            "contentId": issue_id
+        });
+
+        let response = self.client.execute(mutation, Some(variables)).await?;
+
+        let data = response
+            .data
+            .ok_or_else(|| BoardError::GraphQL("Failed to add issue to project".to_string()))?;
+
+        let project_item_id = data
+            .get("addProjectV2ItemByContentId")
+            .and_then(|a| a.get("item"))
+            .and_then(|i| i.get("id"))
+            .and_then(|id| id.as_str())
+            .ok_or_else(|| BoardError::GraphQL("Failed to get project item ID".to_string()))?;
+
+        // Step 3: Set status field
+        self.set_project_item_status(project_item_id, status)
+            .await?;
+
+        // Step 4: Set optional fields
+        if let Some(p) = priority {
+            self.set_project_item_priority(project_item_id, p).await?;
+        }
+
+        if let Some(t) = issue_type {
+            self.set_project_item_type(project_item_id, t).await?;
+        }
+
+        if let Some(a) = agent {
+            self.set_project_item_agent(project_item_id, a).await?;
+        }
+
+        info!("Added issue #{} to board", issue_number);
+        Ok(true)
+    }
+
+    /// Set project item status.
+    async fn set_project_item_status(&self, item_id: &str, status: IssueStatus) -> Result<()> {
+        let project_id = self
+            .project_id
+            .as_ref()
+            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
+
+        // Get status field info
+        let query = r#"
+        query GetStatusField($projectId: ID!) {
+          node(id: $projectId) {
+            ... on ProjectV2 {
+              field(name: "Status") {
+                ... on ProjectV2SingleSelectField {
+                  id
+                  options { id name }
+                }
+              }
+            }
+          }
+        }
+        "#;
+
+        let response = self
+            .client
+            .execute(query, Some(json!({ "projectId": project_id })))
+            .await?;
+
+        let data = response
+            .data
+            .ok_or_else(|| BoardError::FieldNotFound("Status".to_string()))?;
+
+        let field = data
+            .get("node")
+            .and_then(|n| n.get("field"))
+            .ok_or_else(|| BoardError::FieldNotFound("Status".to_string()))?;
+
+        let field_id = field
+            .get("id")
+            .and_then(|id| id.as_str())
+            .ok_or_else(|| BoardError::FieldNotFound("Status".to_string()))?;
+
+        let options = field
+            .get("options")
+            .and_then(|o| o.as_array())
+            .ok_or_else(|| BoardError::FieldNotFound("Status options".to_string()))?;
+
+        let status_value = status.as_str();
+        let option_id = options
+            .iter()
+            .find(|opt| opt.get("name").and_then(|n| n.as_str()) == Some(status_value))
+            .and_then(|opt| opt.get("id"))
+            .and_then(|id| id.as_str())
+            .ok_or_else(|| {
+                BoardError::InvalidFieldValue(status_value.to_string(), "Status".to_string())
+            })?;
+
+        // Update field
+        let mutation = r#"
+        mutation UpdateProjectField($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+          updateProjectV2ItemFieldValue(
+            input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value}
+          ) {
+            projectV2Item { id }
+          }
+        }
+        "#;
+
+        let variables = json!({
+            "projectId": project_id,
+            "itemId": item_id,
+            "fieldId": field_id,
+            "value": { "singleSelectOptionId": option_id }
+        });
+
+        self.client.execute(mutation, Some(variables)).await?;
+        Ok(())
+    }
+
+    /// Set project item priority.
+    async fn set_project_item_priority(
+        &self,
+        item_id: &str,
+        priority: IssuePriority,
+    ) -> Result<()> {
+        self.set_single_select_field(item_id, "Priority", priority.as_str())
+            .await
+    }
+
+    /// Set project item type.
+    async fn set_project_item_type(&self, item_id: &str, issue_type: IssueType) -> Result<()> {
+        self.set_single_select_field(item_id, "Type", issue_type.as_str())
+            .await
+    }
+
+    /// Set project item agent.
+    async fn set_project_item_agent(&self, item_id: &str, agent: &str) -> Result<()> {
+        self.set_single_select_field(item_id, "Agent", agent).await
+    }
+
+    /// Generic single-select field setter.
+    async fn set_single_select_field(
+        &self,
+        item_id: &str,
+        field_name: &str,
+        value: &str,
+    ) -> Result<()> {
+        let project_id = self
+            .project_id
+            .as_ref()
+            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
+
+        // Get field info
+        let query = format!(
+            r#"
+        query GetField($projectId: ID!) {{
+          node(id: $projectId) {{
+            ... on ProjectV2 {{
+              field(name: "{}") {{
+                ... on ProjectV2SingleSelectField {{
+                  id
+                  options {{ id name }}
+                }}
+              }}
+            }}
+          }}
+        }}
+        "#,
+            field_name
+        );
+
+        let response = self
+            .client
+            .execute(&query, Some(json!({ "projectId": project_id })))
+            .await?;
+
+        let data = match response.data {
+            Some(d) => d,
+            None => {
+                debug!("Field {} not found, skipping", field_name);
+                return Ok(());
+            }
+        };
+
+        let field = match data.get("node").and_then(|n| n.get("field")) {
+            Some(f) if !f.is_null() => f,
+            _ => {
+                debug!("Field {} not found, skipping", field_name);
+                return Ok(());
+            }
+        };
+
+        let field_id = match field.get("id").and_then(|id| id.as_str()) {
+            Some(id) => id,
+            None => {
+                debug!("Field {} has no ID, skipping", field_name);
+                return Ok(());
+            }
+        };
+
+        let options = match field.get("options").and_then(|o| o.as_array()) {
+            Some(o) => o,
+            None => {
+                debug!("Field {} has no options, skipping", field_name);
+                return Ok(());
+            }
+        };
+
+        let option_id = match options
+            .iter()
+            .find(|opt| opt.get("name").and_then(|n| n.as_str()) == Some(value))
+            .and_then(|opt| opt.get("id"))
+            .and_then(|id| id.as_str())
+        {
+            Some(id) => id,
+            None => {
+                debug!(
+                    "Option {} not found in field {}, skipping",
+                    value, field_name
+                );
+                return Ok(());
+            }
+        };
+
+        let mutation = r#"
+        mutation UpdateProjectField($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+          updateProjectV2ItemFieldValue(
+            input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value}
+          ) {
+            projectV2Item { id }
+          }
+        }
+        "#;
+
+        let variables = json!({
+            "projectId": project_id,
+            "itemId": item_id,
+            "fieldId": field_id,
+            "value": { "singleSelectOptionId": option_id }
+        });
+
+        self.client.execute(mutation, Some(variables)).await?;
+        Ok(())
     }
 
     // ===== Helper Methods =====
@@ -789,7 +1360,13 @@ impl BoardManager {
     fn parse_issue_metadata(
         &self,
         field_values: &HashMap<String, String>,
-    ) -> (IssueStatus, IssuePriority, Option<IssueType>, Option<String>, Vec<u64>) {
+    ) -> (
+        IssueStatus,
+        IssuePriority,
+        Option<IssueType>,
+        Option<String>,
+        Vec<u64>,
+    ) {
         let status = field_values
             .get(&self.config.get_field_name("status"))
             .and_then(|s| IssueStatus::from_str(s))
@@ -810,11 +1387,7 @@ impl BoardManager {
 
         let blocked_by = field_values
             .get(&self.config.get_field_name("blocked_by"))
-            .map(|s| {
-                s.split(',')
-                    .filter_map(|n| n.trim().parse().ok())
-                    .collect()
-            })
+            .map(|s| s.split(',').filter_map(|n| n.trim().parse().ok()).collect())
             .unwrap_or_default();
 
         (status, priority, issue_type, agent, blocked_by)
@@ -835,7 +1408,11 @@ impl BoardManager {
             .and_then(|n| n.as_array())
             .map(|arr| {
                 arr.iter()
-                    .filter_map(|l| l.get("name").and_then(|n| n.as_str()).map(|s| s.to_string()))
+                    .filter_map(|l| {
+                        l.get("name")
+                            .and_then(|n| n.as_str())
+                            .map(|s| s.to_string())
+                    })
                     .collect()
             })
             .unwrap_or_default()
@@ -1052,9 +1629,9 @@ impl BoardManager {
 
         let response = self.client.execute(query, Some(variables)).await?;
 
-        let data = response.data.ok_or_else(|| {
-            BoardError::IssueNotFound(issue_number)
-        })?;
+        let data = response
+            .data
+            .ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
 
         let issue_id = data
             .get("repository")

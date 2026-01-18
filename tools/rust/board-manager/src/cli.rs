@@ -6,7 +6,7 @@ use std::path::Path;
 use crate::config::{get_github_token, load_config};
 use crate::error::Result;
 use crate::manager::BoardManager;
-use crate::models::{IssueStatus, ReleaseReason};
+use crate::models::{IssuePriority, IssueStatus, IssueType, ReleaseReason};
 use crate::security::{
     AgentJudgement, AssessmentContext, Comment, TrustBucketer, TrustLevel as SecurityTrustLevel,
 };
@@ -58,6 +58,18 @@ pub enum Commands {
         /// Maximum number of issues to return
         #[arg(short, long, default_value = "10")]
         limit: usize,
+
+        /// Only show issues with approval comments
+        #[arg(long)]
+        approved_only: bool,
+
+        /// Only show issues with these labels (comma-separated)
+        #[arg(long, value_delimiter = ',')]
+        include_labels: Option<Vec<String>>,
+
+        /// Exclude issues with these labels (comma-separated)
+        #[arg(long, value_delimiter = ',')]
+        exclude_labels: Option<Vec<String>>,
     },
 
     /// Claim an issue for work
@@ -199,6 +211,43 @@ pub enum Commands {
         #[arg(long)]
         include_empty: bool,
     },
+
+    /// Find approved issues not yet on the board
+    FindApproved {
+        /// Agent name to search for (default: claude)
+        #[arg(short, long, default_value = "claude")]
+        agent: String,
+    },
+
+    /// Add an issue to the project board
+    AddToBoard {
+        /// Issue number to add
+        #[arg(required = true)]
+        issue: u64,
+
+        /// Initial status (Todo, In Progress, Blocked, Done, Abandoned)
+        #[arg(short, long, default_value = "Todo")]
+        status: String,
+
+        /// Issue priority (Critical, High, Medium, Low)
+        #[arg(short, long)]
+        priority: Option<String>,
+
+        /// Issue type (Feature, Bug, Tech Debt, Documentation)
+        #[arg(short = 't', long = "type")]
+        issue_type: Option<String>,
+
+        /// Assigned agent name
+        #[arg(short, long)]
+        agent: Option<String>,
+    },
+
+    /// Check if an issue has approval from authorized user
+    CheckApproval {
+        /// Issue number to check
+        #[arg(required = true)]
+        issue: u64,
+    },
 }
 
 /// Run the CLI.
@@ -304,7 +353,8 @@ pub async fn run(cli: Cli) -> Result<()> {
                 });
                 println!("{}", serde_json::to_string_pretty(&result)?);
             } else {
-                let formatted = bucketer.format_bucketed_comments(&comments, *filter_noise, *include_empty);
+                let formatted =
+                    bucketer.format_bucketed_comments(&comments, *filter_noise, *include_empty);
                 println!("{}", formatted);
             }
             return Ok(());
@@ -320,8 +370,49 @@ pub async fn run(cli: Cli) -> Result<()> {
     manager.initialize().await?;
 
     match cli.command {
-        Commands::Ready { agent, limit } => {
-            let issues = manager.get_ready_work(agent.as_deref(), limit).await?;
+        Commands::Ready {
+            agent,
+            limit,
+            approved_only,
+            include_labels,
+            exclude_labels,
+        } => {
+            // Get more issues if filtering
+            let has_filters = approved_only || include_labels.is_some() || exclude_labels.is_some();
+            let fetch_limit = if has_filters { limit * 5 } else { limit };
+
+            let mut issues = manager
+                .get_ready_work(agent.as_deref(), fetch_limit)
+                .await?;
+
+            // Filter by labels if specified
+            if let Some(ref include) = include_labels {
+                let include_set: std::collections::HashSet<_> = include.iter().collect();
+                issues.retain(|i| i.labels.iter().any(|l| include_set.contains(l)));
+            }
+
+            if let Some(ref exclude) = exclude_labels {
+                let exclude_set: std::collections::HashSet<_> = exclude.iter().collect();
+                issues.retain(|i| !i.labels.iter().any(|l| exclude_set.contains(l)));
+            }
+
+            // Filter by approval status if requested
+            if approved_only {
+                let mut approved_issues = Vec::new();
+                for issue in issues {
+                    let (is_approved, _) = manager.is_issue_approved(issue.number).await?;
+                    if is_approved {
+                        approved_issues.push(issue);
+                        if approved_issues.len() >= limit {
+                            break;
+                        }
+                    }
+                }
+                issues = approved_issues;
+            }
+
+            // Apply final limit
+            issues.truncate(limit);
 
             if cli.format == OutputFormat::Json {
                 println!("{}", serde_json::to_string_pretty(&issues)?);
@@ -341,7 +432,11 @@ pub async fn run(cli: Cli) -> Result<()> {
             }
         }
 
-        Commands::Claim { issue, agent, session } => {
+        Commands::Claim {
+            issue,
+            agent,
+            session,
+        } => {
             let session_id = session.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
             let success = manager.claim_work(issue, &agent, &session_id).await?;
 
@@ -356,13 +451,20 @@ pub async fn run(cli: Cli) -> Result<()> {
                     })
                 );
             } else if success {
-                println!("Claimed issue #{} for {} (session: {})", issue, agent, session_id);
+                println!(
+                    "Claimed issue #{} for {} (session: {})",
+                    issue, agent, session_id
+                );
             } else {
                 println!("Failed to claim issue #{} - already claimed", issue);
             }
         }
 
-        Commands::Renew { issue, agent, session } => {
+        Commands::Renew {
+            issue,
+            agent,
+            session,
+        } => {
             let success = manager.renew_claim(issue, &agent, &session).await?;
 
             if cli.format == OutputFormat::Json {
@@ -377,13 +479,21 @@ pub async fn run(cli: Cli) -> Result<()> {
             } else if success {
                 println!("Renewed claim on issue #{} for {}", issue, agent);
             } else {
-                println!("Failed to renew claim on #{} - no active claim by {}", issue, agent);
+                println!(
+                    "Failed to renew claim on #{} - no active claim by {}",
+                    issue, agent
+                );
             }
         }
 
-        Commands::Release { issue, agent, reason } => {
-            let release_reason = ReleaseReason::from_str(&reason)
-                .ok_or_else(|| crate::error::BoardError::Config(format!("Invalid reason: {}", reason)))?;
+        Commands::Release {
+            issue,
+            agent,
+            reason,
+        } => {
+            let release_reason = ReleaseReason::from_str(&reason).ok_or_else(|| {
+                crate::error::BoardError::Config(format!("Invalid reason: {}", reason))
+            })?;
 
             manager.release_work(issue, &agent, release_reason).await?;
 
@@ -403,8 +513,9 @@ pub async fn run(cli: Cli) -> Result<()> {
         }
 
         Commands::Status { issue, status } => {
-            let new_status = IssueStatus::from_str(&status)
-                .ok_or_else(|| crate::error::BoardError::Config(format!("Invalid status: {}", status)))?;
+            let new_status = IssueStatus::from_str(&status).ok_or_else(|| {
+                crate::error::BoardError::Config(format!("Invalid status: {}", status))
+            })?;
 
             manager.update_status(issue, new_status).await?;
 
@@ -504,10 +615,133 @@ pub async fn run(cli: Cli) -> Result<()> {
                 println!("{}", serde_json::to_string_pretty(&config)?);
             } else {
                 println!("Board Configuration:");
-                println!("  Project: #{} (owner: {})", config.project_number, config.owner);
+                println!(
+                    "  Project: #{} (owner: {})",
+                    config.project_number, config.owner
+                );
                 println!("  Repository: {}", config.repository);
                 println!("  Claim timeout: {}h", config.claim_timeout / 3600);
                 println!("  Enabled agents: {:?}", config.enabled_agents);
+            }
+        }
+
+        Commands::FindApproved { agent } => {
+            let approved_issues = manager.find_approved_issues(&agent).await?;
+
+            if cli.format == OutputFormat::Json {
+                println!("{}", serde_json::to_string_pretty(&approved_issues)?);
+            } else if approved_issues.is_empty() {
+                println!("No approved issues found for agent: {}", agent);
+            } else {
+                println!("Found {} approved issues:\n", approved_issues.len());
+                for issue in &approved_issues {
+                    let board_status = if issue.on_board {
+                        "on board"
+                    } else {
+                        "NOT on board"
+                    };
+                    println!("  #{}: {} ({})", issue.number, issue.title, board_status);
+                }
+            }
+        }
+
+        Commands::AddToBoard {
+            issue,
+            status,
+            priority,
+            issue_type,
+            agent,
+        } => {
+            // Check if already on board
+            let existing = manager.get_issue(issue).await?;
+            if let Some(existing_issue) = existing {
+                if cli.format == OutputFormat::Json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "success": true,
+                            "issue": issue,
+                            "already_on_board": true,
+                            "status": existing_issue.status.as_str()
+                        })
+                    );
+                } else {
+                    println!(
+                        "Issue #{} is already on the board (status: {})",
+                        issue, existing_issue.status
+                    );
+                }
+                return Ok(());
+            }
+
+            // Parse status
+            let new_status = IssueStatus::from_str(&status).ok_or_else(|| {
+                crate::error::BoardError::Config(format!("Invalid status: {}", status))
+            })?;
+
+            // Parse priority
+            let new_priority = match &priority {
+                Some(p) => Some(IssuePriority::from_str(p).ok_or_else(|| {
+                    crate::error::BoardError::Config(format!("Invalid priority: {}", p))
+                })?),
+                None => None,
+            };
+
+            // Parse type
+            let new_type = match &issue_type {
+                Some(t) => Some(IssueType::from_str(t).ok_or_else(|| {
+                    crate::error::BoardError::Config(format!("Invalid type: {}", t))
+                })?),
+                None => None,
+            };
+
+            // Use normalized agent name
+            let agent_name = agent.as_deref().unwrap_or("Claude Code");
+
+            let success = manager
+                .add_issue_to_board(issue, new_status, new_priority, new_type, Some(agent_name))
+                .await?;
+
+            if cli.format == OutputFormat::Json {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "success": success,
+                        "issue": issue,
+                        "already_on_board": false,
+                        "status": new_status.as_str()
+                    })
+                );
+            } else if success {
+                println!(
+                    "Added issue #{} to board with status: {}",
+                    issue, new_status
+                );
+            } else {
+                println!("Failed to add issue #{} to board", issue);
+            }
+        }
+
+        Commands::CheckApproval { issue } => {
+            let (is_approved, approver) = manager.is_issue_approved(issue).await?;
+
+            if cli.format == OutputFormat::Json {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "approved": is_approved,
+                        "issue": issue,
+                        "approver": approver
+                    })
+                );
+            } else if is_approved {
+                println!(
+                    "Issue #{} is APPROVED by {}",
+                    issue,
+                    approver.unwrap_or_default()
+                );
+            } else {
+                println!("Issue #{} is NOT approved", issue);
             }
         }
 

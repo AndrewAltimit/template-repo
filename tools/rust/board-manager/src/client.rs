@@ -1,7 +1,7 @@
-//! GraphQL HTTP client with retry logic.
+//! GraphQL and REST HTTP client with retry logic.
 
 use reqwest::{Client, header};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::time::Duration;
 use tokio::time::sleep;
 use tracing::{debug, warn};
@@ -11,6 +11,9 @@ use crate::models::GraphQLResponse;
 
 /// GitHub GraphQL API URL.
 pub const GITHUB_API_URL: &str = "https://api.github.com/graphql";
+
+/// GitHub REST API base URL.
+pub const GITHUB_REST_API_URL: &str = "https://api.github.com";
 
 /// Maximum retries for transient errors.
 const MAX_RETRIES: u32 = 3;
@@ -54,7 +57,12 @@ impl GraphQLClient {
                     if !response.errors.is_empty() && response.data.is_none() {
                         let error_msg = response.get_error_message();
                         if attempt < MAX_RETRIES - 1 {
-                            warn!("GraphQL error (attempt {}): {}, retrying in {}s", attempt + 1, error_msg, backoff);
+                            warn!(
+                                "GraphQL error (attempt {}): {}, retrying in {}s",
+                                attempt + 1,
+                                error_msg,
+                                backoff
+                            );
                             sleep(Duration::from_secs(backoff)).await;
                             backoff = (backoff * 2).min(MAX_BACKOFF_SECS);
                             continue;
@@ -71,7 +79,12 @@ impl GraphQLClient {
                     }
 
                     if attempt < MAX_RETRIES - 1 {
-                        warn!("Request failed (attempt {}): {}, retrying in {}s", attempt + 1, e, backoff);
+                        warn!(
+                            "Request failed (attempt {}): {}, retrying in {}s",
+                            attempt + 1,
+                            e,
+                            backoff
+                        );
                         sleep(Duration::from_secs(backoff)).await;
                         backoff = (backoff * 2).min(MAX_BACKOFF_SECS);
                     } else {
@@ -109,11 +122,15 @@ impl GraphQLClient {
         let status = response.status();
 
         if status == 401 {
-            return Err(BoardError::Auth("Authentication failed - check GITHUB_TOKEN".to_string()));
+            return Err(BoardError::Auth(
+                "Authentication failed - check GITHUB_TOKEN".to_string(),
+            ));
         }
 
         if status == 403 {
-            return Err(BoardError::Auth("Forbidden - check permissions".to_string()));
+            return Err(BoardError::Auth(
+                "Forbidden - check permissions".to_string(),
+            ));
         }
 
         let body: Value = response.json().await?;
@@ -156,6 +173,84 @@ impl GraphQLClient {
             .errors
             .iter()
             .any(|e| e.message.to_lowercase().contains("rate limit"))
+    }
+
+    /// Execute a REST API GET request with retry logic.
+    pub async fn rest_get(&self, path: &str, params: Option<&[(&str, &str)]>) -> Result<Value> {
+        let mut backoff = INITIAL_BACKOFF_SECS;
+
+        for attempt in 0..MAX_RETRIES {
+            match self.rest_get_once(path, params).await {
+                Ok(response) => return Ok(response),
+                Err(e) => {
+                    // Don't retry client errors (4xx)
+                    if let BoardError::Auth(_) = e {
+                        return Err(e);
+                    }
+
+                    if attempt < MAX_RETRIES - 1 {
+                        warn!(
+                            "REST request failed (attempt {}): {}, retrying in {}s",
+                            attempt + 1,
+                            e,
+                            backoff
+                        );
+                        sleep(Duration::from_secs(backoff)).await;
+                        backoff = (backoff * 2).min(MAX_BACKOFF_SECS);
+                    } else {
+                        return Err(e);
+                    }
+                }
+            }
+        }
+
+        Err(BoardError::GraphQL(format!(
+            "REST operation failed after {} retries",
+            MAX_RETRIES
+        )))
+    }
+
+    /// Execute a single REST GET request.
+    async fn rest_get_once(&self, path: &str, params: Option<&[(&str, &str)]>) -> Result<Value> {
+        let url = format!("{}{}", GITHUB_REST_API_URL, path);
+        debug!("Executing REST GET: {}", url);
+
+        let mut request = self
+            .client
+            .get(&url)
+            .header(header::AUTHORIZATION, format!("Bearer {}", self.token))
+            .header(header::ACCEPT, "application/vnd.github.v3+json")
+            .header(header::USER_AGENT, "board-manager/0.1.0");
+
+        if let Some(query_params) = params {
+            request = request.query(query_params);
+        }
+
+        let response = request.send().await?;
+        let status = response.status();
+
+        if status == 401 {
+            return Err(BoardError::Auth(
+                "Authentication failed - check GITHUB_TOKEN".to_string(),
+            ));
+        }
+
+        if status == 403 {
+            return Err(BoardError::Auth(
+                "Forbidden - check permissions".to_string(),
+            ));
+        }
+
+        if !status.is_success() {
+            let error_body = response.text().await.unwrap_or_default();
+            return Err(BoardError::GraphQL(format!(
+                "REST API error: {} - {}",
+                status, error_body
+            )));
+        }
+
+        let body: Value = response.json().await?;
+        Ok(body)
     }
 }
 
