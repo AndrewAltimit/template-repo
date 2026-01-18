@@ -99,16 +99,6 @@ RUN mkdir -p /home/node/.config/opencode \
     /home/node/.local/share/crush \
     /home/node/.local/bin
 
-# Copy configurations for each agent
-# OpenCode configuration
-COPY --chown=node:node packages/github_agents/configs/opencode-config.json /home/node/.config/opencode/.opencode.json
-
-# Crush configuration - copy JSON config to multiple expected locations
-COPY --chown=node:node packages/github_agents/configs/crush.json /home/node/.config/crush/crush.json
-COPY --chown=node:node packages/github_agents/configs/crush-data.json /home/node/.local/share/crush/crush.json
-
-# Also copy the .crush directory with database (for any cached data) - skip if not present
-
 # Set ownership for all node user directories
 # This ensures the user can write to all necessary locations
 RUN chown -R node:node /home/node

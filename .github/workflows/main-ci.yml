@@ -574,14 +574,6 @@ jobs:
           echo "📦 Building Python wheels for all packages..."
           mkdir -p dist
 
-          # Build github-agents wheel
-          echo "Building github-agents..."
-          docker-compose run --rm python-ci bash -c "
-            cd packages/github_agents && \
-            pip install build && \
-            python -m build --wheel --outdir /app/dist
-          "
-
           # Build economic-agents wheel
           echo "Building economic-agents..."
           docker-compose run --rm python-ci bash -c "
@@ -659,6 +651,40 @@ jobs:
           cargo build --release
           cp target/release/gh ../../../rust-binaries/gh-linux-x64
           echo "Built gh-validator for Linux x64"
+
+      - name: Build board-manager (Linux)
+        run: |
+          source "$HOME/.cargo/env" || true
+          cd tools/rust/board-manager
+          cargo build --release
+          cp target/release/board-manager ../../../rust-binaries/board-manager-linux-x64
+          echo "Built board-manager for Linux x64"
+
+      - name: Build mcp-code-quality (Linux)
+        run: |
+          source "$HOME/.cargo/env" || true
+          cd tools/rust/mcp-code-quality
+          cargo build --release
+          cp target/release/mcp-code-quality ../../../rust-binaries/mcp-code-quality-linux-x64
+          echo "Built mcp-code-quality for Linux x64"
+
+      - name: Build markdown-link-checker (Linux)
+        run: |
+          source "$HOME/.cargo/env" || true
+          cd tools/rust/markdown-link-checker
+          cargo build --release
+          cp target/release/md-link-checker ../../../rust-binaries/markdown-link-checker-linux-x64
+          echo "Built md-link-checker for Linux x64"
+
+      - name: Build github-agents-cli (Linux)
+        run: |
+          source "$HOME/.cargo/env" || true
+          cd tools/rust/github-agents-cli
+          cargo build --release
+          cp target/release/github-agents ../../../rust-binaries/github-agents-linux-x64
+          echo "Built github-agents for Linux x64"
+
+      # Note: code-parser is a library crate (no binary) - used by other Rust tools
 
       - name: Build injection-toolkit (Linux)
         run: |
@@ -890,7 +916,6 @@ jobs:
 
           | Package | Description |
           |---------|-------------|
-          | `github-agents` | Automated agents for GitHub workflows |
           | `economic-agents` | Autonomous economic agent simulation framework |
           | `sleeper-agents` | Framework for creating and studying sleeper agents |
 
@@ -926,7 +951,6 @@ jobs:
 
           ```bash
           # Install packages from wheels
-          pip install github_agents-*.whl
           pip install economic_agents-*.whl
           pip install sleeper_agents-*.whl
 

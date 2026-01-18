@@ -4,7 +4,7 @@
 
 This repository uses AI agents with a comprehensive multi-layer security model.
 
-**For complete security documentation, see:** [`packages/github_agents/docs/security.md`](packages/github_agents/docs/security.md)
+**For complete security documentation, see:** [`docs/agents/security.md`](docs/agents/security.md)
 
 ## Quick Reference
 
@@ -29,9 +29,10 @@ This repository uses AI agents with a comprehensive multi-layer security model.
 
 ## Additional Resources
 
-- **Full Security Documentation**: [`packages/github_agents/docs/security.md`](packages/github_agents/docs/security.md)
+- **Full Security Documentation**: [`docs/agents/security.md`](docs/agents/security.md)
 - **Agent Architecture**: [`docs/agents/containerization-strategy.md`](docs/agents/containerization-strategy.md)
 - **Claude Authentication**: [`docs/agents/claude-auth.md`](docs/agents/claude-auth.md)
+- **GitHub Agents CLI**: [`tools/rust/github-agents-cli/`](tools/rust/github-agents-cli/) (Rust implementation)
 
 ## Responsible Disclosure
 

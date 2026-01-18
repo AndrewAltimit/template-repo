@@ -253,46 +253,62 @@ case "$STAGE" in
   links)
     echo "=== Running markdown link check ==="
 
-    # Build MCP Code Quality container if needed
-    echo "🔨 Building MCP Code Quality container..."
-    docker build -f docker/mcp-code-quality.Dockerfile -t mcp-code-quality:latest .
+    RUST_BINARY="$PROJECT_ROOT/tools/rust/markdown-link-checker/target/release/md-link-checker"
 
-    echo "🔍 Checking links in markdown files..."
+    # Check if Rust binary is available (pre-built or from artifact)
+    if [ -x "$RUST_BINARY" ]; then
+      echo "🦀 Using Rust md-link-checker (fast)"
+      echo "🔍 Checking links in markdown files..."
 
-    # Export user to run container as non-root
-    USER_ID=$(id -u)
-    GROUP_ID=$(id -g)
-    export USER_ID
-    export GROUP_ID
+      # Run Rust binary with internal-only flag (faster for PRs)
+      if $RUST_BINARY "$PROJECT_ROOT" --internal-only 2>&1 | tee lint-output.txt; then
+        echo "✅ All links valid"
+      else
+        exit_code=${PIPESTATUS[0]}
+        if [ "$exit_code" -ne 0 ]; then
+          # Count broken links from output
+          broken_links=$(grep -c "File not found\|HTTP [45]" lint-output.txt 2>/dev/null || echo 1)
+          errors=$((errors + broken_links))
+        fi
+      fi
 
-    # Build base docker command
-    DOCKER_CMD="docker run --rm --user ${USER_ID}:${GROUP_ID} -v \"${GITHUB_WORKSPACE:-$(pwd)}\":/workspace -w /workspace"
+      # Generate summary file for artifact upload
+      {
+        echo "## Markdown Link Check Results"
+        echo ""
+        if [ $errors -eq 0 ]; then
+          echo "✅ All links valid"
+        else
+          echo "❌ Found $errors broken link(s)"
+          echo ""
+          echo "### Broken Links"
+          echo '```'
+          grep -E "File not found|HTTP [45]|-> .* \(" lint-output.txt 2>/dev/null || true
+          echo '```'
+        fi
+      } > link_check_summary.md
+    else
+      echo "⚠️  Rust binary not found, building on demand..."
+      # Build the Rust binary
+      cd "$PROJECT_ROOT/tools/rust/markdown-link-checker"
+      cargo build --release
+      cd "$PROJECT_ROOT"
 
-    # Add GITHUB_OUTPUT mount if available
-    if [ -n "${GITHUB_OUTPUT}" ]; then
-      GITHUB_OUTPUT_DIR=$(dirname "${GITHUB_OUTPUT}")
-      GITHUB_OUTPUT_FILE=$(basename "${GITHUB_OUTPUT}")
-      DOCKER_CMD="${DOCKER_CMD} -v \"${GITHUB_OUTPUT_DIR}\":/github -e GITHUB_OUTPUT=/github/${GITHUB_OUTPUT_FILE}"
-    fi
+      echo "🔍 Checking links in markdown files..."
+      if $RUST_BINARY "$PROJECT_ROOT" --internal-only 2>&1 | tee lint-output.txt; then
+        echo "✅ All links valid"
+      else
+        broken_links=$(grep -c "File not found\|HTTP [45]" lint-output.txt 2>/dev/null || echo 1)
+        errors=$((errors + broken_links))
+      fi
 
-    # Run the container with link checker
-    # Default to internal-only for PR checks (faster)
-    eval "${DOCKER_CMD} mcp-code-quality:latest \
-      python /workspace/automation/analysis/check-markdown-links.py \
-        /workspace \
-        --format github \
-        --output /workspace/link_check_summary.md \
-        --internal-only" 2>&1 | tee lint-output.txt
-
-    # Check if link check failed
-    if [ "${PIPESTATUS[0]}" -ne 0 ]; then
-      errors=$((errors + 1))
-    fi
-
-    # Count broken links from the output
-    if [ -f link_check_summary.md ]; then
-      broken_links=$(grep -oP 'Broken links: \K\d+' link_check_summary.md || echo 0)
-      errors=$((errors + broken_links))
+      # Generate summary
+      echo "## Markdown Link Check Results" > link_check_summary.md
+      if [ $errors -eq 0 ]; then
+        echo "✅ All links valid" >> link_check_summary.md
+      else
+        echo "❌ Found $errors broken link(s)" >> link_check_summary.md
+      fi
     fi
     ;;
 

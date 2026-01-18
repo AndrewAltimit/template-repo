@@ -2,7 +2,7 @@
 # Health Check Workflow for Board Agent System
 #
 # Runs periodic health checks and generates a status badge.
-# Can be used as a quick diagnostic for board connectivity and configuration.
+# Uses the Rust board-manager CLI for all board operations.
 
 name: Board Health Check
 
@@ -24,7 +24,6 @@ permissions:
   contents: read
   issues: read
 
-# Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
 env:
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
@@ -46,6 +45,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Setup Rust binaries
+        run: |
+          echo "::group::Setup Rust Binaries"
+
+          BOARD_MANAGER="${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager"
+          if [ -x "$BOARD_MANAGER" ]; then
+            echo "board-manager found at $BOARD_MANAGER"
+          else
+            echo "Building board-manager from source..."
+            cd "${GITHUB_WORKSPACE}/tools/rust/board-manager"
+            cargo build --release
+          fi
+
+          mkdir -p "$HOME/.local/bin"
+          ln -sf "${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager" "$HOME/.local/bin/board-manager"
+          echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+
+          echo "::endgroup::"
+
       - name: Run health checks
         id: check
         env:
@@ -56,179 +74,91 @@ jobs:
         run: |
           echo "::group::Health Checks"
 
-          # Create temporary Python script for health checks
-          cat > /tmp/board_health_check.py << 'PYTHON_SCRIPT'
-          import asyncio
-          import json
-          import os
-          import sys
+          # Initialize results
+          STATUS="healthy"
+          BOARD_CONNECTED="false"
+          CONFIG_VALID="false"
+          AGENTS_AVAILABLE="[]"
+          READY_WORK_COUNT="0"
+          ERRORS=""
 
-          async def run_health_checks():
-              results = {
-                  "board_connected": False,
-                  "config_valid": False,
-                  "agents_available": [],
-                  "ready_work_count": 0,
-                  "errors": []
-              }
-
-              verbose = os.environ.get('VERBOSE', 'false') == 'true'
-
-              # Check 1: Configuration file exists and is valid
-              config_path = os.environ.get('BOARD_CONFIG_PATH', 'ai-agents-board.yml')
-              try:
-                  from github_agents.board.config import load_config
-                  config = load_config(config_path)
-                  results["config_valid"] = True
-                  if verbose:
-                      print(f"Config loaded from {config_path}", file=sys.stderr)
-              except Exception as e:
-                  results["errors"].append(f"Config error: {str(e)}")
-                  print(json.dumps(results))
-                  return
-
-              # Check 2: Board connectivity
-              try:
-                  from github_agents.board.manager import BoardManager
-                  async with BoardManager(config=config) as manager:
-                      results["board_connected"] = True
-                      if verbose:
-                          print("Board connection successful", file=sys.stderr)
-
-                      # Check 3: Query ready work count
-                      try:
-                          issues = await manager.get_ready_work(limit=100)
-                          results["ready_work_count"] = len(issues)
-                          if verbose:
-                              print(f"Found {len(issues)} ready work items", file=sys.stderr)
-                      except Exception as e:
-                          results["errors"].append(f"Query error: {str(e)}")
-
-              except Exception as e:
-                  results["errors"].append(f"Board connection error: {str(e)}")
-
-              # Check 4: Agent availability (skip in container - agents run on host)
-              # Note: Container won't have agent CLIs, so this check is skipped
-              # The host health report step can check for agent availability if needed
-
-              print(json.dumps(results))
-
-          asyncio.run(run_health_checks())
-          PYTHON_SCRIPT
-
-          # Run health checks in python-ci container (container-first philosophy)
-          HEALTH_RESULT=$(docker-compose run --rm \
-            -v /tmp/board_health_check.py:/app/health_check.py:ro \
-            -e GITHUB_TOKEN="$GITHUB_TOKEN" \
-            -e GITHUB_PROJECTS_TOKEN="$GITHUB_PROJECTS_TOKEN" \
-            -e BOARD_CONFIG_PATH="$BOARD_CONFIG_PATH" \
-            -e VERBOSE="$VERBOSE" \
-            python-ci bash -c "pip install -q -e packages/github_agents && python3 /app/health_check.py")
-
-          echo "Health check result: $HEALTH_RESULT"
-
-          # Parse results
-          BOARD_CONNECTED=$(echo "$HEALTH_RESULT" | python3 -c "import sys,json; print('true' if json.load(sys.stdin).get('board_connected') else 'false')")
-          CONFIG_VALID=$(echo "$HEALTH_RESULT" | python3 -c "import sys,json; print('true' if json.load(sys.stdin).get('config_valid') else 'false')")
-          AGENTS=$(echo "$HEALTH_RESULT" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin).get('agents_available', [])))")
-          READY_COUNT=$(echo "$HEALTH_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('ready_work_count', 0))")
-          ERRORS=$(echo "$HEALTH_RESULT" | python3 -c "import sys,json; print(';'.join(json.load(sys.stdin).get('errors', [])))")
-
-          # Determine overall status
-          if [ "$BOARD_CONNECTED" = "true" ] && [ "$CONFIG_VALID" = "true" ]; then
-              STATUS="healthy"
-          elif [ "$CONFIG_VALID" = "true" ]; then
-              STATUS="degraded"
+          # Check 1: Configuration file exists
+          if [ -f "$BOARD_CONFIG_PATH" ]; then
+            CONFIG_VALID="true"
+            echo "Config file found: $BOARD_CONFIG_PATH"
           else
-              STATUS="unhealthy"
+            CONFIG_VALID="false"
+            ERRORS="Config file not found"
+            STATUS="unhealthy"
           fi
 
+          # Check 2: Board connectivity and ready work
+          if [ "$CONFIG_VALID" = "true" ]; then
+            READY_OUTPUT=$(board-manager --format json ready --limit 100 2>&1) || {
+              echo "Board connection failed"
+              BOARD_CONNECTED="false"
+              STATUS="unhealthy"
+              ERRORS="${ERRORS}; Board connection failed"
+            }
+
+            if echo "$READY_OUTPUT" | jq -e '.' > /dev/null 2>&1; then
+              BOARD_CONNECTED="true"
+              READY_WORK_COUNT=$(echo "$READY_OUTPUT" | jq 'length' 2>/dev/null || echo "0")
+              echo "Board connected, found $READY_WORK_COUNT ready items"
+            fi
+          fi
+
+          # Check 3: Get available agents
+          if [ "$BOARD_CONNECTED" = "true" ]; then
+            AGENTS_OUTPUT=$(board-manager --format json agents 2>&1) || true
+            if echo "$AGENTS_OUTPUT" | jq -e '.' > /dev/null 2>&1; then
+              AGENTS_AVAILABLE=$(echo "$AGENTS_OUTPUT" | jq -c '.agents // []' 2>/dev/null || echo "[]")
+              echo "Available agents: $AGENTS_AVAILABLE"
+            fi
+          fi
+
+          # Output results
           echo "status=$STATUS" >> $GITHUB_OUTPUT
           echo "board_connected=$BOARD_CONNECTED" >> $GITHUB_OUTPUT
           echo "config_valid=$CONFIG_VALID" >> $GITHUB_OUTPUT
-          echo "agents_available=$AGENTS" >> $GITHUB_OUTPUT
-          echo "ready_work_count=$READY_COUNT" >> $GITHUB_OUTPUT
-          echo "errors=$ERRORS" >> $GITHUB_OUTPUT
+          echo "agents_available=$AGENTS_AVAILABLE" >> $GITHUB_OUTPUT
+          echo "ready_work_count=$READY_WORK_COUNT" >> $GITHUB_OUTPUT
+
+          if [ "$VERBOSE" = "true" ]; then
+            echo "=== Health Check Results ==="
+            echo "Status: $STATUS"
+            echo "Board Connected: $BOARD_CONNECTED"
+            echo "Config Valid: $CONFIG_VALID"
+            echo "Ready Work Count: $READY_WORK_COUNT"
+            echo "Agents Available: $AGENTS_AVAILABLE"
+            if [ -n "$ERRORS" ]; then
+              echo "Errors: $ERRORS"
+            fi
+          fi
 
           echo "::endgroup::"
 
-      - name: Generate health report
+      - name: Generate summary
         if: always()
         env:
           STATUS: ${{ steps.check.outputs.status }}
           BOARD_CONNECTED: ${{ steps.check.outputs.board_connected }}
           CONFIG_VALID: ${{ steps.check.outputs.config_valid }}
-          AGENTS: ${{ steps.check.outputs.agents_available }}
-          READY_COUNT: ${{ steps.check.outputs.ready_work_count }}
+          AGENTS_AVAILABLE: ${{ steps.check.outputs.agents_available }}
+          READY_WORK_COUNT: ${{ steps.check.outputs.ready_work_count }}
         run: |
-          # Generate status emoji
-          case "$STATUS" in
-            healthy)
-              STATUS_EMOJI="passing"
-              STATUS_COLOR="brightgreen"
-              ;;
-            degraded)
-              STATUS_EMOJI="degraded"
-              STATUS_COLOR="yellow"
-              ;;
-            *)
-              STATUS_EMOJI="failing"
-              STATUS_COLOR="red"
-              ;;
-          esac
-
-          # Generate Step Summary
           cat >> $GITHUB_STEP_SUMMARY << EOF
           ## Board System Health Check
 
-          ![Status](https://img.shields.io/badge/status-${STATUS_EMOJI}-${STATUS_COLOR})
+          | Check | Status |
+          |-------|--------|
+          | Configuration Valid | ${CONFIG_VALID:-unknown} |
+          | Board Connected | ${BOARD_CONNECTED:-unknown} |
+          | Ready Work Items | ${READY_WORK_COUNT:-0} |
+          | Available Agents | ${AGENTS_AVAILABLE:-[]} |
 
-          ### System Status
-
-          | Component | Status |
-          |-----------|--------|
-          | Configuration | $([[ "$CONFIG_VALID" = "true" ]] && echo "Valid" || echo "Invalid") |
-          | Board Connection | $([[ "$BOARD_CONNECTED" = "true" ]] && echo "Connected" || echo "Disconnected") |
-          | Ready Work Items | $READY_COUNT |
-
-          ### Available Agents
-
-          EOF
-
-          # List agents
-          if [ -n "$AGENTS" ]; then
-            IFS=',' read -ra AGENT_LIST <<< "$AGENTS"
-            for agent in "${AGENT_LIST[@]}"; do
-              echo "- \`$agent\`" >> $GITHUB_STEP_SUMMARY
-            done
-          else
-            echo "_No agents available on this runner_" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          cat >> $GITHUB_STEP_SUMMARY << EOF
+          **Overall Status**: ${STATUS:-unknown}
 
           ---
-          _Last checked: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_
+          *Checked at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*
           EOF
-
-          # Console output
-          echo ""
-          echo "========================================"
-          echo "Board System Health: $STATUS"
-          echo "========================================"
-          echo ""
-          echo "Configuration: $([[ "$CONFIG_VALID" = "true" ]] && echo "Valid" || echo "Invalid")"
-          echo "Board Connection: $([[ "$BOARD_CONNECTED" = "true" ]] && echo "Connected" || echo "Disconnected")"
-          echo "Ready Work: $READY_COUNT items"
-          echo "Agents: $AGENTS"
-          echo ""
-
-      - name: Set job status
-        if: always()
-        run: |
-          if [ "${{ steps.check.outputs.status }}" = "unhealthy" ]; then
-            echo "::error::Board system is unhealthy"
-            exit 1
-          elif [ "${{ steps.check.outputs.status }}" = "degraded" ]; then
-            echo "::warning::Board system is degraded"
-          fi

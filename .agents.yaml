@@ -86,7 +86,7 @@ model_overrides:
   gemini:
     pro_model: gemini-3-pro-preview  # Latest preview model (NOT 3.0!)
     flash_model: gemini-3-flash-preview  # Fast fallback model (Gemini 3 Flash)
-    default_model: gemini-3-pro-preview  # Primary model for PR reviews
+    default_model: gemini-3-flash-preview  # Primary model for PR reviews (faster, lower rate limits)
 
   # OpenRouter agents configuration
   opencode:
@@ -108,6 +108,27 @@ openrouter:
   fallback_models:
     - deepseek/deepseek-coder-v2-instruct
     - meta-llama/llama-3.1-70b-instruct
+
+# PR Review configuration
+pr_review:
+  # Default agent for reviews (from enabled_agents)
+  default_agent: gemini
+
+  # Review constraints
+  max_words: 500
+  condensation_threshold: 600
+
+  # Incremental review settings
+  incremental_enabled: true
+
+  # Trust bucketing (uses security.agent_admins and security.trusted_sources)
+  include_comment_context: true
+
+  # Hallucination detection
+  verify_claims: true
+
+  # Reaction images config
+  reaction_config_url: "https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml"
 
 # Automation settings for inline agent feedback loop
 automation:

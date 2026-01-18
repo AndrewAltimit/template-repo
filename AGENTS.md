@@ -33,7 +33,7 @@ The AI agents implement a comprehensive multi-layer security model with command-
 - **Commit Validation**: Prevents code injection after approval
 - **Implementation Requirements**: Only complete, working code is accepted
 
-**For complete security documentation, see** `packages/github_agents/docs/security.md`
+**For complete security documentation, see** `docs/agents/security.md`
 
 ### Remote Infrastructure
 
@@ -226,12 +226,13 @@ pip install -r config/python/requirements.txt
 ./tools/cli/containers/run_codex_container.sh  # Interactive Codex with mounted auth
 docker-compose run --rm -v ~/.codex:/home/node/.codex:ro codex-agent codex
 
-# Containerized Agents (OpenRouter-compatible):
-# OpenCode, Crush - run in openrouter-agents container
-docker-compose run --rm openrouter-agents python -m github_agents.cli issue-monitor
+# GitHub Agents CLI (Rust binary):
+# Build the Rust CLI (one-time setup)
+cd tools/rust/github-agents-cli && cargo build --release
 
-# Or use specific containerized agents:
-docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
+# Run the GitHub agents monitor
+./tools/rust/github-agents-cli/target/release/github-agents issue-monitor
+./tools/rust/github-agents-cli/target/release/github-agents pr-monitor
 
 # Direct host execution with helper scripts:
 ./tools/cli/agents/run_claude.sh     # Interactive Claude session with Node.js 22
@@ -240,30 +241,24 @@ docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
 ./tools/cli/agents/run_gemini.sh     # Interactive Gemini CLI session with approval modes
 ./tools/cli/agents/run_codex.sh      # Codex CLI for AI-powered code generation (requires auth)
 
-# Host agent execution (Claude, Gemini only):
-python3 -m github_agents.cli issue-monitor
-python3 -m github_agents.cli pr-monitor
-# Or use the installed commands directly:
-issue-monitor
-pr-monitor
+# GitHub Agents CLI execution:
+./tools/rust/github-agents-cli/target/release/github-agents issue-monitor
+./tools/rust/github-agents-cli/target/release/github-agents pr-monitor
 
 # GitHub Actions automatically run agents on schedule:
 # - Issue Monitor: Every hour (runs on host)
 # - PR Review Monitor: Every hour (runs on host)
 
 # Installation:
-# Step 1: Install the GitHub AI agents package (required for all agents):
-pip3 install -e ./packages/github_agents
+# Step 1: Build the GitHub Agents Rust CLI (required for issue/PR monitoring):
+cd tools/rust/github-agents-cli && cargo build --release
 
-# Step 2: If running Claude or Gemini on host, install host-specific dependencies:
-pip3 install --user -r docker/requirements/requirements-agents.txt
-
-# Step 3: For Codex (optional):
+# Step 2: For Codex (optional):
 npm install -g @openai/codex  # Install Codex CLI
 codex auth                     # Authenticate (creates ~/.codex/auth.json)
 
-# Note: Step 2 is only needed if you plan to use Claude or Gemini agents.
-# Containerized agents (OpenCode, Crush, Codex) can run without host dependencies.
+# Note: The GitHub Agents CLI is written in Rust for performance and reliability.
+# Source code is in tools/rust/github-agents-cli/
 ```
 
 ### Docker Operations
@@ -727,7 +722,7 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/developer/claude-code-hooks.md` - Claude Code hook system for enforcing best practices
 
 ### AI Agents & Security
-- `packages/github_agents/docs/security.md` - Comprehensive AI agent security documentation
+- `docs/agents/security.md` - Comprehensive AI agent security documentation
 - `docs/agents/README.md` - AI agent system overview
 - `docs/agents/security.md` - Security-focused agent documentation
 - `docs/agents/human-training.md` - **AI safety training guide for human-AI collaboration** (essential reading)

@@ -245,6 +245,8 @@ docker-compose.override.yml
 .opencode/
 .claude/
 .gemini/
+# Allow Gemini project settings (MCP config) to be committed
+!.gemini/settings.json
 
 # Terraform state (if used)
 *.tfstate

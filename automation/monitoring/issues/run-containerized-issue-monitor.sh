@@ -27,4 +27,4 @@ docker-compose --profile agents run --rm \
     -e FORCE_REPROCESS="${FORCE_REPROCESS}" \
     -e RUNNING_IN_CONTAINER="true" \
     openrouter-agents \
-    python -m github_agents.cli issue-monitor "$@"
+    /app/tools/rust/github-agents-cli/target/release/github-agents issue-monitor "$@"

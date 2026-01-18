@@ -9,7 +9,6 @@ This directory contains **integration tests for AI agents and major system workf
 | `test_basic.py` | Basic imports and async functionality smoke tests |
 | `test_ai_agent_mcp_tools.py` | AI agent MCP tools integration |
 | `test_elevenlabs_streaming.py` | ElevenLabs TTS streaming integration |
-| `test_gemini_pr_review.py` | Gemini PR review workflow automation |
 | `test_codex_pr_review.py` | Codex PR review workflow automation |
 | `test_virtual_character.py` | Virtual character system integration |
 | `conftest.py` | Pytest configuration with asyncio plugin |
@@ -21,7 +20,7 @@ This directory contains **integration tests for AI agents and major system workf
 docker-compose run --rm python-ci pytest tests/ -v
 
 # Run a specific test file
-docker-compose run --rm python-ci pytest tests/test_gemini_pr_review.py -v
+docker-compose run --rm python-ci pytest tests/test_codex_pr_review.py -v
 
 # Run with coverage
 docker-compose run --rm python-ci pytest tests/ -v --cov=. --cov-report=xml

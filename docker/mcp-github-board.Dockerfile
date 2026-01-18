@@ -16,16 +16,12 @@ COPY docker/requirements/requirements-github-board.txt /app/requirements.txt
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy github_agents package
-COPY packages/github_agents /app/packages/github_agents
-
 # Copy MCP server code
 COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
 COPY tools/mcp/mcp_github_board /app/tools/mcp/mcp_github_board
 
 # Install packages
-RUN pip install --no-cache-dir /app/packages/github_agents[board] && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_core && \
+RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
     pip install --no-cache-dir /app/tools/mcp/mcp_github_board
 
 # Set Python path

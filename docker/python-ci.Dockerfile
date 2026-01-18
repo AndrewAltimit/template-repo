@@ -76,7 +76,6 @@ COPY tools /app/tools
 COPY automation /app/automation
 
 # Copy main packages
-COPY packages/github_agents /app/packages/github_agents
 COPY packages/sleeper_agents /app/packages/sleeper_agents
 COPY packages/economic_agents /app/packages/economic_agents
 
@@ -100,7 +99,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     /app/tools/mcp/mcp_opencode \
     /app/tools/mcp/mcp_video_editor \
     /app/tools/mcp/mcp_virtual_character \
-    /app/packages/github_agents \
     /app/packages/sleeper_agents \
     /app/packages/economic_agents
 
@@ -115,10 +113,6 @@ COPY .flake8 .pylintrc /app/
 # Duplicated to ensure tools can find configs regardless of working directory
 COPY pyproject.toml ./pyproject.toml
 COPY pyproject.toml /app/pyproject.toml
-# Create directory structure for package configs
-RUN mkdir -p packages/github_agents /app/packages/github_agents
-COPY packages/github_agents/pyproject.toml ./packages/github_agents/
-COPY packages/github_agents/pyproject.toml /app/packages/github_agents/
 
 # Python environment configuration to prevent cache issues
 ENV PYTHONUNBUFFERED=1 \

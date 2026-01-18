@@ -457,8 +457,8 @@ python -m mcp_github_board.server
 
 ## Related Documentation
 
-- [GitHub AI Agents Package](../../../../packages/github_agents/README.md)
-- [Board Integration Guide](../../../../packages/github_agents/docs/board-integration.md)
+- [Board Manager CLI](../../../../tools/rust/board-manager/README.md)
+- [GitHub Agents CLI](../../../../tools/rust/github-agents-cli/README.md)
 - [MCP Core Documentation](../../mcp_core/docs/README.md)
 
 ## License

@@ -55,6 +55,27 @@ jobs:
             ./automation/setup/docker/init-output-dirs.sh
           fi
 
+      # Download Rust binary for link checking (only for links stage)
+      - name: Download Rust link checker
+        if: inputs.stage == 'links'
+        uses: actions/download-artifact@v4
+        continue-on-error: true  # Fall back to building if artifact not available
+        with:
+          name: rust-cli-tools
+          path: rust-tools
+
+      - name: Setup Rust link checker
+        if: inputs.stage == 'links'
+        run: |
+          if [ -f "rust-tools/md-link-checker" ]; then
+            chmod +x rust-tools/md-link-checker
+            mkdir -p tools/rust/markdown-link-checker/target/release
+            cp rust-tools/md-link-checker tools/rust/markdown-link-checker/target/release/
+            echo "Using pre-built md-link-checker"
+          else
+            echo "Pre-built binary not found, will build on demand"
+          fi
+
       # Docker CI image will be built automatically by run-ci.sh script
 
       - name: Run linting stage

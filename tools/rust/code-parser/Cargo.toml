@@ -1,0 +1,32 @@
+[package]
+name = "code-parser"
+version = "0.1.0"
+edition = "2024"
+description = "Parse and apply code blocks from AI responses"
+license = "MIT"
+repository = "https://github.com/AndrewAltimit/template-repo"
+readme = "README.md"
+keywords = ["parser", "code", "ai", "markdown"]
+categories = ["parsing", "text-processing"]
+
+[lib]
+name = "code_parser"
+path = "src/lib.rs"
+
+[dependencies]
+# Regex for pattern matching
+regex = "1.10"
+
+# Error handling
+thiserror = "1.0"
+
+# Logging
+tracing = "0.1"
+
+[dev-dependencies]
+tempfile = "3.10"
+
+[features]
+default = []
+# Enable file system operations (apply_code_blocks)
+fs = []

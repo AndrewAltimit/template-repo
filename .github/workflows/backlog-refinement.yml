@@ -124,27 +124,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Setup Python environment
+      - name: Setup Rust binaries
         run: |
-          echo "::group::Setup Python Environment"
-          python3 --version
+          echo "::group::Setup Rust Binaries"
 
-          # Try to create virtual environment, fall back to --user install if venv unavailable
-          if python3 -m venv .venv 2>/dev/null; then
-            echo "[INFO] Virtual environment created successfully"
-            source .venv/bin/activate
-            PYTHON_CMD="$PWD/.venv/bin/python3"
-            PIP_USER_FLAG=""
+          # Check if github-agents binary exists
+          GITHUB_AGENTS="${GITHUB_WORKSPACE}/tools/rust/github-agents-cli/target/release/github-agents"
+          if [ -x "$GITHUB_AGENTS" ]; then
+            echo "github-agents found at $GITHUB_AGENTS"
           else
-            echo "[WARNING] python3-venv not available, using --user install"
-            PYTHON_CMD="python3"
-            PIP_USER_FLAG="--user"
-            export PATH="$HOME/.local/bin:$PATH"
+            echo "Building github-agents from source..."
+            cd "${GITHUB_WORKSPACE}/tools/rust/github-agents-cli"
+            cargo build --release
           fi
 
-          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./packages/github_agents
-          echo "PYTHON_CMD=$PYTHON_CMD" >> $GITHUB_ENV
+          # Create symlink for easy access
+          mkdir -p "$HOME/.local/bin"
+          ln -sf "${GITHUB_WORKSPACE}/tools/rust/github-agents-cli/target/release/github-agents" "$HOME/.local/bin/github-agents"
           echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+
           echo "::endgroup::"
 
       - name: Load configuration
@@ -187,137 +185,43 @@ jobs:
           MAX_COMMENTS: ${{ steps.config.outputs.max_comments }}
           MIN_AGE: ${{ steps.config.outputs.min_age }}
           DRY_RUN: ${{ steps.config.outputs.dry_run }}
-          ENABLE_ISSUE_MGMT: ${{ steps.config.outputs.enable_issue_mgmt }}
         run: |
           echo "::group::Backlog Refinement"
 
-          # Use configured Python command to access installed packages
-          REFINEMENT_OUTPUT=$($PYTHON_CMD << 'PYTHON_SCRIPT'
-          import asyncio
-          import json
-          import os
-          import sys
+          # Build command args
+          CMD_ARGS="--agents $AGENTS --max-issues $MAX_ISSUES --max-comments $MAX_COMMENTS --min-age-days $MIN_AGE --format json"
 
-          async def run_refinement():
-              agent_names = os.environ.get('AGENTS', 'claude').split(',')
-              max_issues = int(os.environ.get('MAX_ISSUES', '5'))
-              max_comments = int(os.environ.get('MAX_COMMENTS', '2'))
-              min_age = int(os.environ.get('MIN_AGE', '3'))
-              dry_run = os.environ.get('DRY_RUN', 'true') == 'true'
-              enable_issue_mgmt = os.environ.get('ENABLE_ISSUE_MGMT', 'false') == 'true'
+          if [ "$DRY_RUN" = "true" ]; then
+            CMD_ARGS="$CMD_ARGS --dry-run"
+          fi
 
-              print(f"Running refinement with agents: {agent_names}", file=sys.stderr)
-              print(f"Max issues: {max_issues}, Max comments: {max_comments}", file=sys.stderr)
-              print(f"Min age: {min_age} days, Dry run: {dry_run}", file=sys.stderr)
-              print(f"Issue management: {enable_issue_mgmt}", file=sys.stderr)
+          echo "Running: github-agents refinement-monitor $CMD_ARGS"
 
-              results = {
-                  "issues_reviewed": 0,
-                  "insights_added": 0,
-                  "agents_used": agent_names,
-                  "details": []
-              }
-
-              try:
-                  from github_agents.monitors.refinement import RefinementMonitor
-                  from github_agents.agents import (
-                      ClaudeAgent,
-                      GeminiAgent,
-                      CodexAgent,
-                      OpenCodeAgent,
-                      CrushAgent,
-                  )
-
-                  # Map agent names to classes
-                  AGENT_CLASSES = {
-                      "claude": ClaudeAgent,
-                      "gemini": GeminiAgent,
-                      "codex": CodexAgent,
-                      "opencode": OpenCodeAgent,
-                      "crush": CrushAgent,
-                  }
-
-                  # Instantiate requested agents
-                  agents = {}
-                  for name in agent_names:
-                      name = name.strip().lower()
-                      if name in AGENT_CLASSES:
-                          try:
-                              agent = AGENT_CLASSES[name]()
-                              if agent.is_available():
-                                  agents[name] = agent
-                                  print(f"Agent {name} initialized and available", file=sys.stderr)
-                              else:
-                                  print(f"Agent {name} not available (CLI not found)", file=sys.stderr)
-                          except Exception as e:
-                              print(f"Failed to initialize agent {name}: {e}", file=sys.stderr)
-                      else:
-                          print(f"Unknown agent: {name}", file=sys.stderr)
-
-                  if not agents:
-                      print("No agents available, skipping refinement", file=sys.stderr)
-                      print(json.dumps(results))
-                      return
-
-                  # Get repository from environment
-                  repo = os.environ.get('GITHUB_REPOSITORY', '')
-
-                  if not repo:
-                      print("GITHUB_REPOSITORY not set", file=sys.stderr)
-                      print(json.dumps(results))
-                      return
-
-                  monitor = RefinementMonitor(
-                      repo=repo,
-                      agents=agents,
-                      min_age_days=min_age,
-                      max_issues_per_run=max_issues,
-                      max_comments_per_issue=max_comments,
-                      dry_run=dry_run,
-                      enable_issue_management=enable_issue_mgmt,
-                  )
-
-                  # Run refinement
-                  refinement_results = await monitor.run(list(agents.keys()))
-
-                  results["issues_reviewed"] = len(refinement_results)
-                  results["insights_added"] = sum(r.insights_added for r in refinement_results)
-                  results["actions_taken"] = sum(len(r.actions_taken) for r in refinement_results)
-                  results["details"] = [
-                      {
-                          "issue": r.issue_number,
-                          "title": r.issue_title,
-                          "insights": r.insights_added,
-                          "agents": r.agents_reviewed,
-                          "actions": [
-                              {"type": a.action_type, "reason": a.reason}
-                              for a in r.actions_taken
-                          ],
-                      }
-                      for r in refinement_results
-                  ]
-
-              except ImportError as e:
-                  print(f"Import error (expected during development): {e}", file=sys.stderr)
-              except Exception as e:
-                  print(f"Refinement error: {e}", file=sys.stderr)
-
-              print(json.dumps(results))
-
-          asyncio.run(run_refinement())
-          PYTHON_SCRIPT
-          )
+          # Run Rust CLI and capture JSON output (separate stderr to avoid polluting JSON)
+          # This prevents warnings like "Building github-agents" from breaking jq parsing
+          STDERR_LOG=$(mktemp)
+          REFINEMENT_OUTPUT=$(github-agents refinement-monitor $CMD_ARGS 2>"$STDERR_LOG") || {
+            echo "Refinement command failed. Stderr:"
+            cat "$STDERR_LOG"
+            REFINEMENT_OUTPUT='[]'
+          }
+          rm -f "$STDERR_LOG"
 
           echo "Refinement output: $REFINEMENT_OUTPUT"
 
-          ISSUES_REVIEWED=$(echo "$REFINEMENT_OUTPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('issues_reviewed', 0))")
-          INSIGHTS_ADDED=$(echo "$REFINEMENT_OUTPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('insights_added', 0))")
-          ACTIONS_TAKEN=$(echo "$REFINEMENT_OUTPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('actions_taken', 0))")
+          # Parse JSON output
+          ISSUES_REVIEWED=$(echo "$REFINEMENT_OUTPUT" | jq 'length // 0' 2>/dev/null || echo "0")
+          INSIGHTS_ADDED=$(echo "$REFINEMENT_OUTPUT" | jq '[.[].insights_added] | add // 0' 2>/dev/null || echo "0")
 
           echo "issues_reviewed=$ISSUES_REVIEWED" >> $GITHUB_OUTPUT
           echo "insights_added=$INSIGHTS_ADDED" >> $GITHUB_OUTPUT
-          echo "actions_taken=$ACTIONS_TAKEN" >> $GITHUB_OUTPUT
-          echo "summary_json=$REFINEMENT_OUTPUT" >> $GITHUB_OUTPUT
+          echo "actions_taken=0" >> $GITHUB_OUTPUT
+          # Use heredoc for multiline JSON to avoid GITHUB_OUTPUT parsing issues
+          {
+            echo 'summary_json<<EOF'
+            echo "$REFINEMENT_OUTPUT"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
 
           echo "::endgroup::"
 

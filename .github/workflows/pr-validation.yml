@@ -122,10 +122,59 @@ jobs:
           echo "  Injection Toolkit: $injection_toolkit_count"
           echo "  Total files: $total_files"
 
+  # Stage 1b: Build Rust CLI tools (for use by review jobs)
+  build-rust-tools:
+    name: Build Rust CLI Tools
+    needs: detect-changes
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Build github-agents-cli
+        run: |
+          cd tools/rust/github-agents-cli
+          cargo build --release
+          echo "Built github-agents binary:"
+          ls -la target/release/github-agents
+
+      - name: Build board-manager
+        run: |
+          cd tools/rust/board-manager
+          cargo build --release
+          echo "Built board-manager binary:"
+          ls -la target/release/board-manager
+
+      - name: Build markdown-link-checker
+        run: |
+          cd tools/rust/markdown-link-checker
+          cargo build --release
+          echo "Built md-link-checker binary:"
+          ls -la target/release/md-link-checker
+
+      - name: Stage binaries for upload
+        run: |
+          mkdir -p rust-binaries
+          cp tools/rust/github-agents-cli/target/release/github-agents rust-binaries/
+          cp tools/rust/board-manager/target/release/board-manager rust-binaries/
+          cp tools/rust/markdown-link-checker/target/release/md-link-checker rust-binaries/
+          ls -la rust-binaries/
+
+      - name: Upload Rust binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-cli-tools
+          path: rust-binaries/
+          retention-days: 1
+
   # Stage 2: Gemini AI Code Review
   gemini-review:
     name: Gemini AI Code Review
-    needs: detect-changes
+    needs: [detect-changes, build-rust-tools]
     if: github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft)
     runs-on: self-hosted
     timeout-minutes: 30  # Increased for large PRs - API calls with retry logic can take time
@@ -151,6 +200,27 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
+
+      - name: Download Rust CLI tools
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-cli-tools
+          path: rust-tools
+
+      - name: Setup Rust CLI tools
+        run: |
+          # Make binaries executable and move to expected locations
+          echo "Downloaded artifact contents:"
+          ls -la rust-tools/
+          chmod +x rust-tools/github-agents
+          chmod +x rust-tools/board-manager
+          mkdir -p tools/rust/github-agents-cli/target/release
+          mkdir -p tools/rust/board-manager/target/release
+          cp rust-tools/github-agents tools/rust/github-agents-cli/target/release/
+          cp rust-tools/board-manager tools/rust/board-manager/target/release/
+          echo "Rust CLI tools installed:"
+          ls -la tools/rust/github-agents-cli/target/release/github-agents
+          ls -la tools/rust/board-manager/target/release/board-manager
 
       # Log commit info for debugging (reviews always run, agent decides whether to act)
       - name: Log commit info
@@ -258,9 +328,33 @@ jobs:
           kill $GEMINI_PID || true
 
 
-      - name: Run Gemini CLI Review
+      - name: Start Reaction Search MCP Server
         # Reviews always run (agent decides whether to act)
-        continue-on-error: true  # Don't fail the PR if Gemini review fails
+        run: |
+          echo "🎭 Starting Reaction Search MCP server..."
+          # Set Docker user environment
+          source ./automation/setup/docker/set-docker-user.sh 2>/dev/null || true
+
+          # Build and start the reaction-search server
+          docker-compose --profile services up -d mcp-reaction-search
+
+          # Wait for server to be healthy (model loading can take time)
+          echo "⏳ Waiting for Reaction Search server to be ready..."
+          for i in {1..60}; do
+            if curl -f -s http://localhost:8024/health > /dev/null 2>&1; then
+              echo "✅ Reaction Search MCP server is ready"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "⚠️ Reaction Search server not ready after 60s - reviews will use fallback URLs"
+              break
+            fi
+            echo "  Attempt $i/60..."
+            sleep 2
+          done
+
+      - name: Run Gemini PR Review (Rust CLI)
+        # Reviews always run (agent decides whether to act)
         shell: bash
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
@@ -274,10 +368,36 @@ jobs:
             echo "✅ GOOGLE_API_KEY is set (length: ${#GOOGLE_API_KEY})"
           fi
 
-          # Run Python script (uses npx internally, no global install needed)
-          echo "🚀 Starting Gemini PR Review..."
-          echo "ℹ️  Using npx to run @google/gemini-cli (no global install)"
-          python3 automation/review/gemini-pr-review.py
+          # Run Rust CLI for PR review (binary provided by build-rust-tools job)
+          # --editor enables a cleanup pass with Claude to strip any reasoning/chain-of-thought
+          echo "🚀 Starting Gemini PR Review (Rust CLI)..."
+
+          # Capture output and exit code - handle 429 rate limit errors gracefully
+          set +e
+          OUTPUT=$(./tools/rust/github-agents-cli/target/release/github-agents pr-review "$PR_NUMBER" --editor 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          echo "$OUTPUT"
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            # Check for rate limit (429) or quota errors
+            if echo "$OUTPUT" | grep -qiE '429|rate.?limit|quota|resource.?exhausted'; then
+              echo "::warning::Gemini API rate limit hit (429) - skipping review for this run"
+              echo "The review will be attempted again on the next pipeline run."
+              exit 0
+            else
+              # Propagate other errors normally
+              exit $EXIT_CODE
+            fi
+          fi
+
+      - name: Stop Reaction Search MCP Server
+        if: always()
+        run: |
+          echo "🛑 Stopping Reaction Search MCP server..."
+          docker-compose --profile services stop mcp-reaction-search || true
+          docker-compose --profile services rm -f mcp-reaction-search || true
 
       - name: Upload review artifact
         if: always()
@@ -296,10 +416,10 @@ jobs:
           git clean -fd 2>/dev/null || true
           echo "Working directory cleaned"
 
-  # Stage 2b: Codex AI Code Review (Secondary reviewer with Gemini context)
+  # Stage 2b: Codex AI Code Review (Secondary reviewer)
   codex-review:
     name: Codex AI Code Review
-    needs: [detect-changes, gemini-review]
+    needs: [detect-changes, build-rust-tools, gemini-review]
     if: |
       github.event_name == 'pull_request' &&
       (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft) &&
@@ -309,11 +429,6 @@ jobs:
     continue-on-error: true  # Advisory review - don't block PR on Codex failures
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
-      PR_TITLE: ${{ github.event.pull_request.title }}
-      PR_BODY: ${{ github.event.pull_request.body }}
-      PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-      BASE_BRANCH: ${{ github.base_ref }}
-      HEAD_BRANCH: ${{ github.head_ref }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout code
@@ -325,24 +440,27 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Ensure clean working directory
-        run: |
-          # Reset any tracked file changes and remove untracked files
-          git checkout -- . 2>/dev/null || true
-          git clean -fd 2>/dev/null || true
-          echo "Working directory reset to clean state"
-
-      - name: Download Gemini review artifact
-        uses: actions/download-artifact@v6
-        continue-on-error: true
+      - name: Download Rust tools artifact
+        uses: actions/download-artifact@v4
         with:
-          name: gemini-review-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .
+          name: rust-cli-tools
+          path: rust-tools
+
+      - name: Setup Rust CLI tools
+        run: |
+          # Make binaries executable and move to expected locations
+          chmod +x rust-tools/github-agents
+          chmod +x rust-tools/board-manager
+          mkdir -p tools/rust/github-agents-cli/target/release
+          mkdir -p tools/rust/board-manager/target/release
+          cp rust-tools/github-agents tools/rust/github-agents-cli/target/release/
+          cp rust-tools/board-manager tools/rust/board-manager/target/release/
+          echo "Rust CLI tools installed"
 
       - name: Setup Node.js with nvm
         shell: bash
         run: |
-          # Source nvm if available
+          # Source nvm if available (needed for Codex CLI)
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
@@ -354,21 +472,37 @@ jobs:
           which codex || echo "Codex CLI not found in PATH"
           codex --version || echo "Could not get Codex version"
 
-      - name: Set Gemini review path
-        run: |
-          if [ -f "gemini-review.md" ]; then
-            echo "GEMINI_REVIEW_PATH=gemini-review.md" >> $GITHUB_ENV
-            echo "Found Gemini review artifact"
-          else
-            echo "No Gemini review artifact found - Codex will review independently"
-          fi
-
-      - name: Run Codex CLI Review
-        continue-on-error: true  # Don't fail the PR if Codex review fails
+      - name: Run Codex PR Review (Rust CLI)
         shell: bash
         run: |
-          echo "Starting Codex PR Review..."
-          python3 automation/review/codex-pr-review.py
+          echo "Starting Codex PR Review (Rust CLI)..."
+
+          # Capture output and exit code - handle rate limit errors gracefully
+          set +e
+          OUTPUT=$(./tools/rust/github-agents-cli/target/release/github-agents pr-review "$PR_NUMBER" --agent codex 2>&1)
+          EXIT_CODE=$?
+
+          # Check for rate limit FIRST, before any echo that might fail
+          # Use grep with here-string to avoid SIGPIPE/broken pipe issues
+          if [ $EXIT_CODE -ne 0 ]; then
+            # Pattern matches: "429", "rate limit", "quota", "resource exhausted", "usage_limit", "usage limit"
+            if grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage.?limit' <<< "$OUTPUT"; then
+              echo "::warning::Codex API rate limit hit - skipping review for this run"
+              echo "The review will be attempted again on the next pipeline run."
+              # Show truncated output for debugging
+              head -50 <<< "$OUTPUT" || true
+              exit 0
+            fi
+          fi
+
+          # Now safe to show output (use cat with here-doc to avoid broken pipe)
+          cat <<< "$OUTPUT" || true
+          set -e
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            # Propagate other errors (but continue-on-error is set at job level)
+            exit $EXIT_CODE
+          fi
 
       - name: Upload Codex review artifact
         if: always()
@@ -933,7 +1067,7 @@ jobs:
   # Stage 8: Gaea2 MCP Integration Tests
   gaea2-integration-tests:
     name: Gaea2 MCP Integration Tests
-    needs: [detect-changes]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: needs.detect-changes.outputs.mcp_changed == 'true'
     uses: ./.github/workflows/gaea2-integration-tests.yml
     with:
@@ -942,9 +1076,10 @@ jobs:
       update_baselines: false
 
   # Stage 8b: Injection Toolkit Tests (Rust)
+  # Runs after review jobs to avoid resource contention during review phase
   injection-toolkit-tests:
     name: Injection Toolkit Tests
-    needs: [detect-changes]
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: needs.detect-changes.outputs.injection_toolkit_changed == 'true'
     runs-on: self-hosted
     timeout-minutes: 30

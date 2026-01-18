@@ -381,8 +381,8 @@ Verify:
 
 ## See Also
 
-- [Board Integration Documentation](../../../packages/github_agents/docs/board-integration.md)
-- [Agent Security Documentation](../../../packages/github_agents/docs/security.md)
-- [Board CLI Reference](../../../packages/github_agents/docs/CLI_REFERENCE.md)
+- [Agent Security Documentation](../../../docs/agents/security.md)
+- [Board Manager README](../../../tools/rust/board-manager/README.md)
+- [GitHub Agents CLI README](../../../tools/rust/github-agents-cli/README.md)
 - [Health Check Workflow](../../workflows/board-health-check.yml)
 - [Scheduled Agent Work Example](../../workflows/scheduled-agent-work.yml)
