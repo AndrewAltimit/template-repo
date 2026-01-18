@@ -132,8 +132,8 @@ impl TrustConfig {
 lazy_static! {
     /// Patterns for automated noise that should be filtered out.
     static ref NOISE_PATTERNS: Vec<Regex> = vec![
-        // Agent claim comments
-        Regex::new(r"^🤖 \*\*\[Agent Claim\]\*\*").unwrap(),
+        // Agent claim comments (U+1F916 = robot emoji)
+        Regex::new(r"^\x{1F916} \*\*\[Agent Claim\]\*\*").unwrap(),
         // Simple approval triggers (just "[Approved][Agent]" with no other content)
         Regex::new(r"^\[Approved\]\[[^\]]+\]$").unwrap(),
     ];
@@ -381,7 +381,7 @@ mod tests {
         let bucketer = TrustBucketer::new(TrustConfig::default());
 
         assert!(bucketer.is_noise(""));
-        assert!(bucketer.is_noise("🤖 **[Agent Claim]** something"));
+        assert!(bucketer.is_noise("\u{1F916} **[Agent Claim]** something"));
         assert!(bucketer.is_noise("[Approved][Claude]"));
         assert!(!bucketer.is_noise("This is a real comment"));
     }

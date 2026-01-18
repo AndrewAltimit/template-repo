@@ -683,8 +683,9 @@ runs:
 
         if [ -x "$BOARD_MANAGER_BIN" ] && [ "$COMMENTS_JSON" != "[]" ]; then
           # Use Rust board-manager for trust bucketing (faster, no Python dependency)
+          # Pipe JSON via stdin to avoid ARG_MAX limits with large comment histories
           echo "Using Rust board-manager for comment bucketing"
-          ISSUE_COMMENTS=$("$BOARD_MANAGER_BIN" bucket-comments "$COMMENTS_JSON" 2>/dev/null || echo "")
+          ISSUE_COMMENTS=$(echo "$COMMENTS_JSON" | "$BOARD_MANAGER_BIN" bucket-comments 2>/dev/null || echo "")
         elif [ "$COMMENTS_JSON" != "[]" ]; then
           # Fall back to Python if Rust binary not available
           echo "Rust board-manager not found, using Python fallback"
