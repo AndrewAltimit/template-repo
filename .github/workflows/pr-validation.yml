@@ -336,8 +336,9 @@ jobs:
           fi
 
           # Run Rust CLI for PR review (binary provided by build-rust-tools job)
+          # --editor enables a cleanup pass with Claude to strip any reasoning/chain-of-thought
           echo "🚀 Starting Gemini PR Review (Rust CLI)..."
-          ./tools/rust/github-agents-cli/target/release/github-agents pr-review "$PR_NUMBER"
+          ./tools/rust/github-agents-cli/target/release/github-agents pr-review "$PR_NUMBER" --editor
 
       - name: Upload review artifact
         if: always()
