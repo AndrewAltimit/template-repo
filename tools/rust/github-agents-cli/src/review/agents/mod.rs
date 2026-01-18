@@ -26,9 +26,22 @@ pub trait ReviewAgent: Send + Sync {
 
 /// Select the appropriate review agent based on configuration
 pub async fn select_agent(agent_name: &str) -> Option<Box<dyn ReviewAgent>> {
+    select_agent_with_models(agent_name, None, None).await
+}
+
+/// Select agent with optional model overrides
+pub async fn select_agent_with_models(
+    agent_name: &str,
+    review_model: Option<String>,
+    condenser_model: Option<String>,
+) -> Option<Box<dyn ReviewAgent>> {
     match agent_name.to_lowercase().as_str() {
         "gemini" => {
-            let agent = gemini::GeminiAgent::new();
+            let agent = match (review_model, condenser_model) {
+                (Some(r), Some(c)) => gemini::GeminiAgent::with_models(r, c),
+                (Some(r), None) => gemini::GeminiAgent::with_models(r.clone(), r),
+                _ => gemini::GeminiAgent::new(),
+            };
             if agent.is_available().await {
                 Some(Box::new(agent))
             } else {

@@ -104,9 +104,19 @@ impl GeminiAgent {
     /// Create with custom models
     pub fn with_models(review_model: String, condenser_model: String) -> Self {
         let mut agent = Self::new();
+        tracing::info!(
+            "Using Gemini models - review: {}, condenser: {}",
+            review_model,
+            condenser_model
+        );
         agent.review_model = review_model;
         agent.condenser_model = condenser_model;
         agent
+    }
+
+    /// Get the review model name
+    pub fn review_model(&self) -> &str {
+        &self.review_model
     }
 
     /// Call the Gemini API
