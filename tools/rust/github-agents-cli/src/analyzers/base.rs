@@ -573,6 +573,13 @@ impl AgentAnalyzer {
 
     /// Parse agent response into findings.
     fn parse_agent_response(&self, response: &str) -> Vec<AnalysisFinding> {
+        // First try to parse as JSON (preferred format)
+        if let Some(findings) = self.parse_json_response(response) {
+            return findings;
+        }
+
+        // Fallback to text-based parsing
+        debug!("JSON parsing failed, trying text-based parsing");
         let mut findings = Vec::new();
 
         // Split response by separator
@@ -599,6 +606,174 @@ impl AgentAnalyzer {
             response.len()
         );
         findings
+    }
+
+    /// Parse JSON response into findings.
+    fn parse_json_response(&self, response: &str) -> Option<Vec<AnalysisFinding>> {
+        // Try to extract JSON array from response
+        // It may be wrapped in markdown code blocks or have extra text
+        let json_str = Self::extract_json_array(response)?;
+
+        #[derive(Deserialize)]
+        struct RawFinding {
+            title: String,
+            category: Option<String>,
+            priority: Option<String>,
+            summary: Option<String>,
+            details: Option<String>,
+            files: Option<Vec<RawFile>>,
+            fix: Option<String>,
+            evidence: Option<String>,
+        }
+
+        #[derive(Deserialize)]
+        struct RawFile {
+            path: String,
+            line_start: Option<u32>,
+            line_end: Option<u32>,
+        }
+
+        let raw_findings: Vec<RawFinding> = match serde_json::from_str(&json_str) {
+            Ok(f) => f,
+            Err(e) => {
+                debug!("JSON parse error: {}", e);
+                return None;
+            }
+        };
+
+        let mut findings = Vec::new();
+        for raw in raw_findings {
+            let category = raw
+                .category
+                .as_ref()
+                .and_then(|c| FindingCategory::from_str(c))
+                .unwrap_or(FindingCategory::Quality);
+
+            let priority = raw
+                .priority
+                .as_ref()
+                .and_then(|p| FindingPriority::from_str(p))
+                .unwrap_or(FindingPriority::P2);
+
+            let affected_files: Vec<AffectedFile> = raw
+                .files
+                .unwrap_or_default()
+                .into_iter()
+                .map(|f| AffectedFile {
+                    path: f.path,
+                    line_start: f.line_start,
+                    line_end: f.line_end,
+                    snippet: None,
+                })
+                .collect();
+
+            let affected_files = if affected_files.is_empty() {
+                vec![AffectedFile::new("(unknown)")]
+            } else {
+                affected_files
+            };
+
+            let summary = raw.summary.unwrap_or_default();
+            let details = raw.details.unwrap_or_default();
+
+            // Skip if no meaningful content
+            if raw.title.is_empty() || (summary.is_empty() && details.is_empty()) {
+                continue;
+            }
+
+            // Handle summary/details with cloning to avoid move issues
+            let final_summary = if summary.is_empty() {
+                details.chars().take(200).collect()
+            } else {
+                summary.clone()
+            };
+            let final_details = if details.is_empty() {
+                summary
+            } else {
+                details
+            };
+
+            findings.push(AnalysisFinding {
+                title: raw.title,
+                summary: final_summary,
+                details: final_details,
+                category,
+                priority,
+                affected_files,
+                suggested_fix: raw.fix.unwrap_or_else(|| "See details for recommendations".to_string()),
+                evidence: raw.evidence.unwrap_or_default(),
+                discovered_by: self.agent_name.clone(),
+                analysis_date: Utc::now(),
+                effort_estimate: EffortEstimate::M,
+                tags: Vec::new(),
+                metadata: HashMap::new(),
+            });
+        }
+
+        info!("Parsed {} findings from JSON response", findings.len());
+        Some(findings)
+    }
+
+    /// Extract JSON array from response text (may be wrapped in markdown or have extra text).
+    fn extract_json_array(response: &str) -> Option<String> {
+        // Try to find JSON array in the response
+        // First, try to extract from markdown code block
+        let code_block_re = Regex::new(r"```(?:json)?\s*\n?([\s\S]*?)\n?```").ok()?;
+        if let Some(cap) = code_block_re.captures(response) {
+            let content = cap.get(1)?.as_str().trim();
+            if content.starts_with('[') {
+                return Some(content.to_string());
+            }
+        }
+
+        // Try to find raw JSON array
+        let response = response.trim();
+        if response.starts_with('[') {
+            // Find matching closing bracket
+            let mut depth = 0;
+            let mut end = 0;
+            for (i, c) in response.char_indices() {
+                match c {
+                    '[' => depth += 1,
+                    ']' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            end = i + 1;
+                            break;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            if end > 0 {
+                return Some(response[..end].to_string());
+            }
+        }
+
+        // Try to find JSON array anywhere in the response
+        if let Some(start) = response.find('[') {
+            let rest = &response[start..];
+            let mut depth = 0;
+            let mut end = 0;
+            for (i, c) in rest.char_indices() {
+                match c {
+                    '[' => depth += 1,
+                    ']' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            end = i + 1;
+                            break;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            if end > 0 {
+                return Some(rest[..end].to_string());
+            }
+        }
+
+        None
     }
 
     /// Parse a single finding from a section of agent response.
@@ -765,18 +940,36 @@ impl BaseAnalyzer for AgentAnalyzer {
 
 {}{}
 
-## Output Format
-For each finding, provide:
-1. TITLE: Brief title
-2. CATEGORY: {}
-3. PRIORITY: P0, P1, P2, or P3
-4. SUMMARY: 1-2 sentence description
-5. DETAILS: Full explanation
-6. FILES: List of affected files with line numbers
-7. FIX: Suggested fix approach
-8. EVIDENCE: Supporting code or metrics
+## Output Format (IMPORTANT)
+You MUST output your findings as a JSON array. Each finding must be a JSON object with these fields:
+- "title": string - Brief descriptive title
+- "category": string - One of: {}
+- "priority": string - "P0" (critical), "P1" (high), "P2" (medium), or "P3" (low)
+- "summary": string - 1-2 sentence description
+- "details": string - Full explanation of the issue
+- "files": array of objects with "path" (string), "line_start" (number or null), "line_end" (number or null)
+- "fix": string - Suggested fix approach
+- "evidence": string - Supporting code snippets or metrics
 
-Separate findings with "---""#,
+Output ONLY the JSON array, starting with [ and ending with ].
+Do not include any text before or after the JSON.
+If you find no issues, return an empty array: []
+
+Example output:
+```json
+[
+  {{
+    "title": "SQL Injection Risk",
+    "category": "security",
+    "priority": "P1",
+    "summary": "User input is directly interpolated into SQL query.",
+    "details": "The function uses string formatting to build SQL queries...",
+    "files": [{{"path": "src/db.py", "line_start": 42, "line_end": 45}}],
+    "fix": "Use parameterized queries or an ORM.",
+    "evidence": "sql = f'SELECT * FROM users WHERE id = {{user_id}}'"
+  }}
+]
+```"#,
             self.analysis_prompt, file_contents, remaining_list, categories_str
         );
 

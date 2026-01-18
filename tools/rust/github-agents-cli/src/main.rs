@@ -395,19 +395,39 @@ async fn run() -> Result<(), Error> {
 
                 // Create analyzer for this agent
                 let analysis_prompt = format!(
-                    r#"Analyze this codebase for issues in these categories: {:?}.
+                    r#"You are a senior software engineer reviewing code for potential improvements.
+Your task is to find issues that would make good GitHub backlog items.
 
-For each issue found, provide actionable findings that can be converted to GitHub issues.
-Focus on:
-- Security vulnerabilities and risks
-- Performance bottlenecks
-- Code quality issues
-- Technical debt
-- Missing or inadequate documentation
-- Test coverage gaps
+Analyze this codebase looking for issues in these categories: {:?}.
 
-Be specific about file locations and line numbers where possible.
-Prioritize findings by severity (P0=critical, P1=high, P2=medium, P3=low)."#,
+Even well-maintained codebases have room for improvement. Look for:
+
+**Security** (P0-P1):
+- Input validation gaps, injection risks, hardcoded secrets
+- Authentication/authorization weaknesses
+- Unsafe operations or missing error handling
+
+**Performance** (P1-P2):
+- Inefficient algorithms or data structures
+- Missing caching opportunities
+- Unnecessary I/O or network calls
+- Memory leaks or excessive allocations
+
+**Quality** (P2-P3):
+- Code duplication that could be refactored
+- Complex functions that should be split
+- Missing type hints or unclear interfaces
+- Inconsistent naming or patterns
+
+**Tech Debt** (P2-P3):
+- TODO comments that should become issues
+- Deprecated APIs or outdated patterns
+- Missing tests for critical code paths
+- Configuration hardcoding
+
+You MUST find at least 1-3 issues. Every codebase has something to improve.
+Be specific with file paths and line numbers.
+Prioritize by real-world impact: P0=critical security/data, P1=bugs/performance, P2=quality, P3=minor."#,
                     category_list
                 );
 
