@@ -190,9 +190,7 @@ impl CliAgent {
     /// Execute a command with the configured timeout.
     async fn execute_command(&self, args: &[&str]) -> Result<(String, String), Error> {
         let mut cmd = Command::new(&self.config.executable);
-        cmd.args(args)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
+        cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
 
         // Add environment variables
         for (key, value) in &self.config.env_vars {
@@ -288,7 +286,10 @@ impl CliAgent {
 
         // Write to stdin
         if let Some(mut stdin) = child.stdin.take() {
-            stdin.write_all(stdin_input.as_bytes()).await.map_err(Error::Io)?;
+            stdin
+                .write_all(stdin_input.as_bytes())
+                .await
+                .map_err(Error::Io)?;
             stdin.shutdown().await.map_err(Error::Io)?;
         }
 
@@ -342,10 +343,7 @@ impl CliAgent {
             "opencode" | "crush" => {
                 // These require OPENROUTER_API_KEY
                 if env::var("OPENROUTER_API_KEY").is_err() {
-                    debug!(
-                        "Agent {} requires OPENROUTER_API_KEY",
-                        self.config.name
-                    );
+                    debug!("Agent {} requires OPENROUTER_API_KEY", self.config.name);
                     return false;
                 }
             }
@@ -398,7 +396,11 @@ impl CliAgent {
     }
 
     /// Generate code using OpenCode CLI.
-    async fn generate_with_opencode(&self, prompt: &str, context: &AgentContext) -> Result<String, Error> {
+    async fn generate_with_opencode(
+        &self,
+        prompt: &str,
+        context: &AgentContext,
+    ) -> Result<String, Error> {
         // OpenCode: opencode run -m <model> (stdin)
         let model = self
             .config
@@ -452,14 +454,15 @@ impl CliAgent {
     }
 
     /// Generate code using Codex CLI.
-    async fn generate_with_codex(&self, prompt: &str, context: &AgentContext) -> Result<String, Error> {
+    async fn generate_with_codex(
+        &self,
+        prompt: &str,
+        context: &AgentContext,
+    ) -> Result<String, Error> {
         // Codex: codex exec --sandbox workspace-write --full-auto --json -- <prompt>
 
         // Build full prompt with context
-        let mode = context
-            .mode
-            .as_deref()
-            .unwrap_or("quick");
+        let mode = context.mode.as_deref().unwrap_or("quick");
 
         let mode_prefix = match mode {
             "generate" => "Generate code for the following requirement:",

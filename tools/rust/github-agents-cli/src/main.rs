@@ -20,11 +20,11 @@
 //! - 130: Interrupted by user (Ctrl+C)
 
 use std::process::exit;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap::{Parser, Subcommand};
-use tracing::{error, info, Level};
+use tracing::{Level, error, info};
 use tracing_subscriber::FmtSubscriber;
 
 mod agents;
@@ -32,6 +32,7 @@ mod analyzers;
 mod creators;
 mod error;
 mod monitor;
+mod review;
 mod security;
 mod utils;
 
@@ -94,6 +95,28 @@ enum Commands {
         min_age_days: i64,
 
         /// Dry run (review but don't post comments)
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Output format (text or json)
+        #[arg(long, default_value = "text")]
+        format: String,
+    },
+
+    /// Review a pull request using AI
+    PrReview {
+        /// PR number to review
+        pr_number: u64,
+
+        /// Override default agent (gemini, claude, openrouter)
+        #[arg(long)]
+        agent: Option<String>,
+
+        /// Force full review (ignore incremental state)
+        #[arg(long)]
+        full: bool,
+
+        /// Dry run (show review without posting)
         #[arg(long)]
         dry_run: bool,
 
@@ -206,6 +229,38 @@ async fn run() -> Result<(), Error> {
                     results.iter().map(|r| r.insights_added).sum::<usize>()
                 );
             }
+        }
+
+        Commands::PrReview {
+            pr_number,
+            agent,
+            full,
+            dry_run,
+            format,
+        } => {
+            info!("Running PR review for #{}", pr_number);
+
+            // Load config
+            let config = review::PRReviewConfig::load()?;
+
+            // Create reviewer
+            let reviewer = review::PRReviewer::new(config, agent.as_deref(), dry_run).await?;
+
+            // Run review
+            let review_text = reviewer.review_pr(pr_number, full).await?;
+
+            if format == "json" {
+                let result = serde_json::json!({
+                    "pr_number": pr_number,
+                    "review": review_text,
+                    "dry_run": dry_run,
+                });
+                println!("{}", serde_json::to_string_pretty(&result)?);
+            } else if !dry_run {
+                // Review was posted, just confirm
+                println!("Review posted to PR #{}", pr_number);
+            }
+            // If dry_run, the review was already printed by the reviewer
         }
     }
 

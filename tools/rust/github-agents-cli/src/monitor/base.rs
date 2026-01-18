@@ -3,8 +3,8 @@
 //! Provides the core monitoring infrastructure used by issue and PR monitors.
 
 use std::env;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tokio::time::sleep;
 use tracing::{info, warn};
@@ -54,17 +54,19 @@ impl Default for MonitorConfig {
                 .unwrap_or(false),
             review_depth: env::var("REVIEW_DEPTH").unwrap_or_else(|_| "standard".to_string()),
             comment_style: env::var("COMMENT_STYLE").unwrap_or_else(|_| "consolidated".to_string()),
-            target_issue_numbers: parse_target_numbers(&env::var("TARGET_ISSUE_NUMBERS").unwrap_or_default()),
-            target_pr_numbers: parse_target_numbers(&env::var("TARGET_PR_NUMBERS").unwrap_or_default()),
+            target_issue_numbers: parse_target_numbers(
+                &env::var("TARGET_ISSUE_NUMBERS").unwrap_or_default(),
+            ),
+            target_pr_numbers: parse_target_numbers(
+                &env::var("TARGET_PR_NUMBERS").unwrap_or_default(),
+            ),
         }
     }
 }
 
 /// Parse comma-separated numbers from a string.
 fn parse_target_numbers(s: &str) -> Vec<i64> {
-    s.split(',')
-        .filter_map(|n| n.trim().parse().ok())
-        .collect()
+    s.split(',').filter_map(|n| n.trim().parse().ok()).collect()
 }
 
 /// Base monitor implementation providing common functionality.
@@ -117,7 +119,12 @@ impl BaseMonitor {
     }
 
     /// Post a comment to an issue or PR.
-    pub async fn post_comment(&self, item_number: i64, comment: &str, item_type: &str) -> Result<(), Error> {
+    pub async fn post_comment(
+        &self,
+        item_number: i64,
+        comment: &str,
+        item_type: &str,
+    ) -> Result<(), Error> {
         run_gh_command(
             &[
                 item_type,

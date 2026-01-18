@@ -2,8 +2,8 @@
 //!
 //! Monitors GitHub PRs for review feedback and automation triggers.
 
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use chrono::{DateTime, Duration, Utc};
 use serde::Deserialize;
@@ -124,7 +124,11 @@ impl PrMonitor {
                     .map(|comment| {
                         (
                             comment.body.clone(),
-                            comment.author.as_ref().map(|a| a.login.clone()).unwrap_or_default(),
+                            comment
+                                .author
+                                .as_ref()
+                                .map(|a| a.login.clone())
+                                .unwrap_or_default(),
                         )
                     })
                     .collect()
@@ -164,10 +168,7 @@ impl PrMonitor {
         );
 
         if !is_allowed {
-            warn!(
-                "Security check failed for PR #{}: {}",
-                pr_number, reason
-            );
+            warn!("Security check failed for PR #{}: {}", pr_number, reason);
             self.base
                 .post_security_rejection(pr_number, &reason, "pr")
                 .await?;
@@ -243,7 +244,11 @@ impl PrMonitor {
                     .iter()
                     .filter_map(|r| {
                         r.body.as_ref().map(|body| {
-                            let author = r.author.as_ref().map(|a| a.login.as_str()).unwrap_or("unknown");
+                            let author = r
+                                .author
+                                .as_ref()
+                                .map(|a| a.login.as_str())
+                                .unwrap_or("unknown");
                             format!("**{} ({}):**\n{}", author, r.state, body)
                         })
                     })
@@ -263,18 +268,17 @@ impl PrMonitor {
         );
 
         // Create context for the agent
-        let context = AgentContext::for_implementation(
-            pr_number,
-            &pr.title,
-            branch,
-        );
+        let context = AgentContext::for_implementation(pr_number, &pr.title, branch);
 
         info!("Executing agent {} for PR #{}", agent.name(), pr_number);
 
         match agent.generate_code(&prompt, &context).await {
             Ok(response) => {
                 let truncated = if response.len() > 60000 {
-                    format!("{}...\n\n*Response truncated due to length.*", &response[..60000])
+                    format!(
+                        "{}...\n\n*Response truncated due to length.*",
+                        &response[..60000]
+                    )
                 } else {
                     response
                 };
@@ -288,11 +292,17 @@ impl PrMonitor {
                 );
                 self.base.post_comment(pr_number, &comment, "pr").await?;
 
-                info!("Successfully processed PR #{} with agent {}", pr_number, agent.name());
+                info!(
+                    "Successfully processed PR #{} with agent {}",
+                    pr_number,
+                    agent.name()
+                );
             }
             Err(e) => {
                 error!("Agent {} failed for PR #{}: {}", agent.name(), pr_number, e);
-                self.base.post_error_comment(pr_number, &e.to_string(), "pr").await?;
+                self.base
+                    .post_error_comment(pr_number, &e.to_string(), "pr")
+                    .await?;
             }
         }
 
@@ -346,12 +356,19 @@ impl PrMonitor {
 
         let context = AgentContext::for_review(pr_number, &pr.title);
 
-        info!("Executing review with agent {} for PR #{}", agent.name(), pr_number);
+        info!(
+            "Executing review with agent {} for PR #{}",
+            agent.name(),
+            pr_number
+        );
 
         match agent.review(&prompt).await {
             Ok(response) => {
                 let truncated = if response.len() > 60000 {
-                    format!("{}...\n\n*Response truncated due to length.*", &response[..60000])
+                    format!(
+                        "{}...\n\n*Response truncated due to length.*",
+                        &response[..60000]
+                    )
                 } else {
                     response
                 };
@@ -369,7 +386,9 @@ impl PrMonitor {
             }
             Err(e) => {
                 error!("Review failed for PR #{}: {}", pr_number, e);
-                self.base.post_error_comment(pr_number, &e.to_string(), "pr").await?;
+                self.base
+                    .post_error_comment(pr_number, &e.to_string(), "pr")
+                    .await?;
             }
         }
 
@@ -393,10 +412,7 @@ impl PrMonitor {
         // Limit diff size to prevent overly long prompts
         let diff = output.unwrap_or_default();
         if diff.len() > 50000 {
-            Ok(format!(
-                "{}...\n\n*Diff truncated to 50KB*",
-                &diff[..50000]
-            ))
+            Ok(format!("{}...\n\n*Diff truncated to 50KB*", &diff[..50000]))
         } else {
             Ok(diff)
         }
@@ -423,7 +439,11 @@ impl PrMonitor {
             pr.title,
             branch,
             body_preview,
-            if pr.body.as_ref().map(|b| b.len()).unwrap_or(0) > 200 { "..." } else { "" }
+            if pr.body.as_ref().map(|b| b.len()).unwrap_or(0) > 200 {
+                "..."
+            } else {
+                ""
+            }
         );
         self.base.post_comment(pr.number, &comment, "pr").await?;
 
@@ -434,7 +454,10 @@ impl PrMonitor {
 #[async_trait::async_trait]
 impl Monitor for PrMonitor {
     async fn process_items(&self) -> Result<(), Error> {
-        info!("Processing PRs for repository: {}", self.base.config.repository);
+        info!(
+            "Processing PRs for repository: {}",
+            self.base.config.repository
+        );
 
         // Ensure GitHub CLI is available
         self.base.ensure_gh_available().await?;

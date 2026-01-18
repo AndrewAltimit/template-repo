@@ -109,6 +109,27 @@ openrouter:
     - deepseek/deepseek-coder-v2-instruct
     - meta-llama/llama-3.1-70b-instruct
 
+# PR Review configuration
+pr_review:
+  # Default agent for reviews (from enabled_agents)
+  default_agent: gemini
+
+  # Review constraints
+  max_words: 500
+  condensation_threshold: 600
+
+  # Incremental review settings
+  incremental_enabled: true
+
+  # Trust bucketing (uses security.agent_admins and security.trusted_sources)
+  include_comment_context: true
+
+  # Hallucination detection
+  verify_claims: true
+
+  # Reaction images config
+  reaction_config_url: "https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml"
+
 # Automation settings for inline agent feedback loop
 automation:
   # Enable inline agent feedback loop in PR validation

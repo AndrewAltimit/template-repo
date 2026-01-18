@@ -226,11 +226,24 @@ The PR review script includes smart retry logic with exponential backoff:
 
 ## Customization
 
-You can customize the review behavior by editing `scripts/gemini-pr-review.py`:
+PR review behavior is configured in `.agents.yaml` under the `pr_review` section:
 
-- Adjust the prompt to focus on specific aspects
-- Modify comment formatting
-- Configure rate limiting and timeout values
+```yaml
+pr_review:
+  default_agent: gemini
+  max_words: 500
+  condensation_threshold: 600
+  incremental_enabled: true
+  include_comment_context: true
+  verify_claims: true
+```
+
+The Rust CLI (`github-agents pr-review`) handles:
+- Prompt construction with project context
+- Incremental reviews (only review changes since last review)
+- 3-tier trust bucketing for comments
+- Hallucination detection (verifying file/line references)
+- Automatic condensation if review exceeds word limit
 
 ## Troubleshooting
 

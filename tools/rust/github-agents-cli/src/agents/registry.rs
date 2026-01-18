@@ -221,7 +221,11 @@ pub struct AgentStatus {
 
 impl std::fmt::Display for AgentStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let status = if self.available { "available" } else { "unavailable" };
+        let status = if self.available {
+            "available"
+        } else {
+            "unavailable"
+        };
         let caps: Vec<String> = self
             .capabilities
             .iter()

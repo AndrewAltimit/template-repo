@@ -258,7 +258,7 @@ jobs:
           kill $GEMINI_PID || true
 
 
-      - name: Run Gemini CLI Review
+      - name: Run Gemini PR Review (Rust CLI)
         # Reviews always run (agent decides whether to act)
         continue-on-error: true  # Don't fail the PR if Gemini review fails
         shell: bash
@@ -274,10 +274,9 @@ jobs:
             echo "✅ GOOGLE_API_KEY is set (length: ${#GOOGLE_API_KEY})"
           fi
 
-          # Run Python script (uses npx internally, no global install needed)
-          echo "🚀 Starting Gemini PR Review..."
-          echo "ℹ️  Using npx to run @google/gemini-cli (no global install)"
-          python3 automation/review/gemini-pr-review.py
+          # Run Rust CLI for PR review
+          echo "🚀 Starting Gemini PR Review (Rust CLI)..."
+          ./tools/rust/github-agents-cli/target/release/github-agents pr-review "$PR_NUMBER"
 
       - name: Upload review artifact
         if: always()

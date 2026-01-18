@@ -305,10 +305,7 @@ impl AnalysisFinding {
         let affected_section = affected_refs.join("\n");
 
         let evidence_section = if !self.evidence.is_empty() {
-            format!(
-                "### Evidence\n{}\n\n",
-                self.evidence
-            )
+            format!("### Evidence\n{}\n\n", self.evidence)
         } else {
             String::new()
         };
@@ -493,13 +490,7 @@ impl AgentAnalyzer {
         for pattern in &self.include_paths {
             // Walk directory and check against pattern
             if let Ok(entries) = std::fs::read_dir(repo_path) {
-                self.collect_files_recursive(
-                    repo_path,
-                    repo_path,
-                    pattern,
-                    &mut files,
-                    &mut seen,
-                );
+                self.collect_files_recursive(repo_path, repo_path, pattern, &mut files, &mut seen);
             }
         }
 
@@ -628,10 +619,10 @@ impl AgentAnalyzer {
             .unwrap_or_else(|| "quality".to_string());
         let priority_str =
             extract_field(r"(?i)PRIORITY:\s*(P\d)", section).unwrap_or_else(|| "P2".to_string());
-        let summary = extract_field(r"(?i)SUMMARY:\s*(.+?)(?:\n\n|\nDETAILS:)", section)
-            .unwrap_or_default();
-        let details = extract_field(r"(?i)DETAILS:\s*(.+?)(?:\n\n|\nFILES:)", section)
-            .unwrap_or_default();
+        let summary =
+            extract_field(r"(?i)SUMMARY:\s*(.+?)(?:\n\n|\nDETAILS:)", section).unwrap_or_default();
+        let details =
+            extract_field(r"(?i)DETAILS:\s*(.+?)(?:\n\n|\nFILES:)", section).unwrap_or_default();
         let files_str =
             extract_field(r"(?i)FILES:\s*(.+?)(?:\n\n|\nFIX:)", section).unwrap_or_default();
         let fix = extract_field(r"(?i)FIX:\s*(.+?)(?:\n\n|\nEVIDENCE:|$)", section)
@@ -639,16 +630,14 @@ impl AgentAnalyzer {
         let evidence = extract_field(r"(?i)EVIDENCE:\s*(.+?)$", section).unwrap_or_default();
 
         // Parse category
-        let category =
-            FindingCategory::from_str(&category_str).unwrap_or(FindingCategory::Quality);
+        let category = FindingCategory::from_str(&category_str).unwrap_or(FindingCategory::Quality);
 
         // Parse priority
         let priority = FindingPriority::from_str(&priority_str).unwrap_or(FindingPriority::P2);
 
         // Parse affected files
         let mut affected_files = Vec::new();
-        let file_re =
-            Regex::new(r"`?([^`\n]+?\.\w+)(?::L?(\d+))?(?:-L?(\d+))?`?").ok()?;
+        let file_re = Regex::new(r"`?([^`\n]+?\.\w+)(?::L?(\d+))?(?:-L?(\d+))?`?").ok()?;
         for cap in file_re.captures_iter(&files_str) {
             let path = cap.get(1)?.as_str().to_string();
             let line_start = cap.get(2).and_then(|m| m.as_str().parse().ok());
@@ -736,7 +725,8 @@ impl BaseAnalyzer for AgentAnalyzer {
         }
 
         // Build file content for the agent (with limits to prevent token overflow)
-        let file_contents = self.read_file_contents(&files[..files.len().min(MAX_FILES_TO_READ)], repo_path);
+        let file_contents =
+            self.read_file_contents(&files[..files.len().min(MAX_FILES_TO_READ)], repo_path);
 
         // List remaining files (paths only) if we couldn't read all
         let remaining_files = if files.len() > MAX_FILES_TO_READ {
@@ -747,7 +737,8 @@ impl BaseAnalyzer for AgentAnalyzer {
 
         let mut remaining_list = String::new();
         if !remaining_files.is_empty() {
-            remaining_list.push_str("\n\n## Additional Files (paths only, not included in analysis)\n");
+            remaining_list
+                .push_str("\n\n## Additional Files (paths only, not included in analysis)\n");
             for (i, f) in remaining_files.iter().take(30).enumerate() {
                 let relative = f.strip_prefix(repo_path).unwrap_or(f);
                 remaining_list.push_str(&format!("- {}\n", relative.display()));
@@ -793,10 +784,9 @@ Separate findings with "---""#,
         let mut context = AgentContext::new();
         context.mode = Some("analysis".to_string());
         context.repo_path = Some(repo_path.to_string_lossy().to_string());
-        context.extra.insert(
-            "file_count".to_string(),
-            serde_json::json!(files.len()),
-        );
+        context
+            .extra
+            .insert("file_count".to_string(), serde_json::json!(files.len()));
         context.extra.insert(
             "files_with_content".to_string(),
             serde_json::json!(files.len().min(MAX_FILES_TO_READ)),
@@ -929,10 +919,16 @@ mod tests {
     #[test]
     fn test_glob_matching() {
         assert!(AgentAnalyzer::matches_glob("**/*.py", "src/main.py"));
-        assert!(AgentAnalyzer::matches_glob("**/*.py", "deep/nested/file.py"));
+        assert!(AgentAnalyzer::matches_glob(
+            "**/*.py",
+            "deep/nested/file.py"
+        ));
         assert!(!AgentAnalyzer::matches_glob("**/*.py", "src/main.rs"));
         assert!(AgentAnalyzer::matches_glob("*.py", "main.py"));
         assert!(!AgentAnalyzer::matches_glob("*.py", "src/main.py"));
-        assert!(AgentAnalyzer::matches_glob("**/tests/**", "src/tests/test_main.py"));
+        assert!(AgentAnalyzer::matches_glob(
+            "**/tests/**",
+            "src/tests/test_main.py"
+        ));
     }
 }

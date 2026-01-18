@@ -34,9 +34,7 @@ pub fn get_github_token() -> Result<String, Error> {
 /// Command stdout on success, or None if check is false and command failed.
 pub async fn run_gh_command(args: &[&str], check: bool) -> Result<Option<String>, Error> {
     let mut cmd = Command::new("gh");
-    cmd.args(args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+    cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
 
     debug!("Running gh command: gh {}", args.join(" "));
 
@@ -96,9 +94,7 @@ pub async fn run_gh_command_with_stderr(
     args: &[&str],
 ) -> Result<(Option<String>, Option<String>, i32), Error> {
     let mut cmd = Command::new("gh");
-    cmd.args(args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+    cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
 
     debug!("Running gh command: gh {}", args.join(" "));
 
@@ -141,9 +137,7 @@ pub async fn run_gh_command_with_stderr(
 /// Command stdout on success, or None if check is false and command failed.
 pub async fn run_git_command(args: &[&str], check: bool) -> Result<Option<String>, Error> {
     let mut cmd = Command::new("git");
-    cmd.args(args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+    cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
 
     debug!("Running git command: git {}", args.join(" "));
 

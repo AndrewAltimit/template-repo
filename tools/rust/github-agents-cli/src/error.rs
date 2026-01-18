@@ -2,6 +2,9 @@
 
 use thiserror::Error;
 
+/// Result type for the GitHub Agents CLI
+pub type Result<T> = std::result::Result<T, Error>;
+
 /// Error types for the GitHub Agents CLI
 #[derive(Error, Debug)]
 pub enum Error {

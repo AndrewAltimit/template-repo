@@ -228,7 +228,9 @@ impl SecurityManager {
         if self.config.allowed_repositories.is_empty() {
             return true;
         }
-        self.config.allowed_repositories.contains(&repository.to_string())
+        self.config
+            .allowed_repositories
+            .contains(&repository.to_string())
     }
 
     /// Check and update rate limit for a user/action combination.
@@ -250,7 +252,10 @@ impl SecurityManager {
         if requests.len() >= self.config.rate_limit_max_requests {
             warn!(
                 "Rate limit exceeded for {}:{} ({} requests in {} minutes)",
-                username, action, requests.len(), self.config.rate_limit_window_minutes
+                username,
+                action,
+                requests.len(),
+                self.config.rate_limit_window_minutes
             );
             return false;
         }
@@ -316,12 +321,18 @@ impl SecurityManager {
 
         // Check action authorization
         if !self.is_action_allowed(action) {
-            return (false, format!("Action '{}' is not an allowed action", action));
+            return (
+                false,
+                format!("Action '{}' is not an allowed action", action),
+            );
         }
 
         // Check repository
         if !self.is_repository_allowed(repository) {
-            return (false, format!("Repository '{}' is not authorized", repository));
+            return (
+                false,
+                format!("Repository '{}' is not authorized", repository),
+            );
         }
 
         // Check rate limit
@@ -420,11 +431,8 @@ mod tests {
     #[test]
     fn test_unauthorized_user() {
         let mut manager = SecurityManager::new();
-        let (allowed, reason) = manager.perform_full_security_check(
-            "unknown_user",
-            "issue_approved",
-            "owner/repo",
-        );
+        let (allowed, reason) =
+            manager.perform_full_security_check("unknown_user", "issue_approved", "owner/repo");
         assert!(!allowed);
         assert!(reason.contains("not authorized"));
     }

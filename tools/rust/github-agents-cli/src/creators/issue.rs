@@ -265,7 +265,8 @@ impl IssueCreator {
 
         // Ensure all required labels exist once per batch (not per issue)
         if !self.labels_ensured && !self.dry_run {
-            let mut all_labels: HashSet<String> = DEFAULT_LABELS.iter().map(|s| s.to_string()).collect();
+            let mut all_labels: HashSet<String> =
+                DEFAULT_LABELS.iter().map(|s| s.to_string()).collect();
             for finding in &findings {
                 all_labels.insert(format!("category:{}", finding.category.value()));
                 all_labels.insert(Self::priority_label(finding.priority).to_string());
@@ -336,7 +337,10 @@ impl IssueCreator {
     }
 
     /// Create a GitHub issue for the finding.
-    async fn create_github_issue(&self, finding: &AnalysisFinding) -> Result<CreationResult, Error> {
+    async fn create_github_issue(
+        &self,
+        finding: &AnalysisFinding,
+    ) -> Result<CreationResult, Error> {
         let title = finding.to_issue_title();
         let body = finding.to_issue_body();
 
@@ -346,12 +350,7 @@ impl IssueCreator {
         let priority_label = Self::priority_label(finding.priority);
 
         // We need to convert to String and then join
-        let labels_str = format!(
-            "{},{},{}",
-            labels.join(","),
-            category_label,
-            priority_label
-        );
+        let labels_str = format!("{},{},{}", labels.join(","), category_label, priority_label);
 
         // Create issue via gh CLI
         let args = vec![
@@ -373,10 +372,17 @@ impl IssueCreator {
             let error_msg = stderr
                 .or(stdout.clone())
                 .unwrap_or_else(|| "unknown error".to_string());
-            error!("gh issue create failed (exit {}): {}", returncode, error_msg);
+            error!(
+                "gh issue create failed (exit {}): {}",
+                returncode, error_msg
+            );
             return Ok(CreationResult::skipped(
                 finding.clone(),
-                format!("gh failed (exit {}): {}", returncode, &error_msg[..error_msg.len().min(100)]),
+                format!(
+                    "gh failed (exit {}): {}",
+                    returncode,
+                    &error_msg[..error_msg.len().min(100)]
+                ),
             ));
         }
 
@@ -390,7 +396,10 @@ impl IssueCreator {
                 );
                 return Ok(CreationResult::skipped(
                     finding.clone(),
-                    format!("gh returned empty output: {}", &error_msg[..error_msg.len().min(100)]),
+                    format!(
+                        "gh returned empty output: {}",
+                        &error_msg[..error_msg.len().min(100)]
+                    ),
                 ));
             }
         };
@@ -401,7 +410,10 @@ impl IssueCreator {
             Some(num_str) => match num_str.parse::<i64>() {
                 Ok(n) => n,
                 Err(e) => {
-                    error!("Failed to parse issue number from output: {:?} - {}", issue_url, e);
+                    error!(
+                        "Failed to parse issue number from output: {:?} - {}",
+                        issue_url, e
+                    );
                     return Ok(CreationResult::skipped(
                         finding.clone(),
                         format!("failed to parse issue URL: {:?}", issue_url),
@@ -448,21 +460,21 @@ impl IssueCreator {
     async fn ensure_labels_exist(&self, labels: &[String]) {
         // Label colors for different types (without # prefix for API)
         let label_colors: std::collections::HashMap<&str, &str> = [
-            ("automated", "0366d6"),           // Blue
-            ("needs-review", "fbca04"),        // Yellow
-            ("agentic-analysis", "5319e7"),    // Purple
-            ("category:security", "d73a4a"),   // Red
-            ("category:performance", "a2eeef"), // Cyan
-            ("category:quality", "7057ff"),    // Violet
-            ("category:tech_debt", "008672"),  // Teal
+            ("automated", "0366d6"),              // Blue
+            ("needs-review", "fbca04"),           // Yellow
+            ("agentic-analysis", "5319e7"),       // Purple
+            ("category:security", "d73a4a"),      // Red
+            ("category:performance", "a2eeef"),   // Cyan
+            ("category:quality", "7057ff"),       // Violet
+            ("category:tech_debt", "008672"),     // Teal
             ("category:documentation", "0075ca"), // Blue
-            ("category:testing", "bfd4f2"),    // Light blue
-            ("category:architecture", "d4c5f9"), // Light purple
-            ("category:dependency", "c5def5"), // Light blue
-            ("priority:critical", "b60205"),   // Dark red
-            ("priority:high", "d93f0b"),       // Orange-red
-            ("priority:medium", "fbca04"),     // Yellow
-            ("priority:low", "0e8a16"),        // Green
+            ("category:testing", "bfd4f2"),       // Light blue
+            ("category:architecture", "d4c5f9"),  // Light purple
+            ("category:dependency", "c5def5"),    // Light blue
+            ("priority:critical", "b60205"),      // Dark red
+            ("priority:high", "d93f0b"),          // Orange-red
+            ("priority:medium", "fbca04"),        // Yellow
+            ("priority:low", "0e8a16"),           // Green
         ]
         .into_iter()
         .collect();
@@ -637,7 +649,10 @@ mod tests {
     use super::*;
     use crate::analyzers::AffectedFile;
 
-    fn create_test_finding(priority: FindingPriority, category: FindingCategory) -> AnalysisFinding {
+    fn create_test_finding(
+        priority: FindingPriority,
+        category: FindingCategory,
+    ) -> AnalysisFinding {
         AnalysisFinding {
             title: "Test Finding".to_string(),
             summary: "A test summary".to_string(),
@@ -750,7 +765,11 @@ mod tests {
         assert!(!duplicate.created);
         assert_eq!(duplicate.duplicate_of, Some(42));
 
-        let success = CreationResult::success(finding.clone(), 123, "https://github.com/test/repo/issues/123".to_string());
+        let success = CreationResult::success(
+            finding.clone(),
+            123,
+            "https://github.com/test/repo/issues/123".to_string(),
+        );
         assert!(success.created);
         assert_eq!(success.issue_number, Some(123));
         assert!(success.skipped_reason.is_none());

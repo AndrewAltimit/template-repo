@@ -4,8 +4,8 @@
 //! and posting unique insights as comments.
 
 use std::collections::HashMap;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use chrono::{DateTime, Duration, Utc};
 use regex::Regex;
@@ -356,8 +356,9 @@ impl RefinementMonitor {
 
     /// Create a new refinement monitor.
     pub fn new(running: Arc<AtomicBool>, config: RefinementConfig) -> Result<Self, Error> {
-        let marker_pattern = Regex::new(r"<!-- backlog-refinement:(\w+):(\d{4}-\d{2}-\d{2}):(\w+) -->")
-            .map_err(|e| Error::Config(format!("Invalid marker pattern: {}", e)))?;
+        let marker_pattern =
+            Regex::new(r"<!-- backlog-refinement:(\w+):(\d{4}-\d{2}-\d{2}):(\w+) -->")
+                .map_err(|e| Error::Config(format!("Invalid marker pattern: {}", e)))?;
 
         Ok(Self {
             base: BaseMonitor::new(running)?,
@@ -368,17 +369,25 @@ impl RefinementMonitor {
     }
 
     /// Run the refinement process.
-    pub async fn run(&self, agent_names: Option<Vec<&str>>) -> Result<Vec<RefinementResult>, Error> {
+    pub async fn run(
+        &self,
+        agent_names: Option<Vec<&str>>,
+    ) -> Result<Vec<RefinementResult>, Error> {
         let agents_to_use: Vec<String> = agent_names
             .map(|names| names.into_iter().map(String::from).collect())
-            .unwrap_or_else(|| vec![
-                "claude".to_string(),
-                "gemini".to_string(),
-                "codex".to_string(),
-                "opencode".to_string(),
-            ]);
+            .unwrap_or_else(|| {
+                vec![
+                    "claude".to_string(),
+                    "gemini".to_string(),
+                    "codex".to_string(),
+                    "opencode".to_string(),
+                ]
+            });
 
-        info!("Starting backlog refinement with agents: {:?}", agents_to_use);
+        info!(
+            "Starting backlog refinement with agents: {:?}",
+            agents_to_use
+        );
 
         // Get issues to refine
         let issues = self.get_issues_to_refine().await?;
@@ -447,7 +456,9 @@ impl RefinementMonitor {
                     .map(|l| l.iter().map(|label| label.name.as_str()).collect())
                     .unwrap_or_default();
 
-                !labels.iter().any(|label| self.config.exclude_labels.contains(&label.to_string()))
+                !labels
+                    .iter()
+                    .any(|label| self.config.exclude_labels.contains(&label.to_string()))
             })
             .collect();
 
@@ -485,7 +496,10 @@ impl RefinementMonitor {
 
             // Check cooldown
             if self.is_agent_on_cooldown(agent_name, &existing_refinements) {
-                debug!("Agent {} on cooldown for issue #{}", agent_name, issue.number);
+                debug!(
+                    "Agent {} on cooldown for issue #{}",
+                    agent_name, issue.number
+                );
                 continue;
             }
 
@@ -565,8 +579,11 @@ impl RefinementMonitor {
         for comment in comments {
             for cap in self.marker_pattern.captures_iter(&comment.body) {
                 if let (Some(agent_name), Some(date_str)) = (cap.get(1), cap.get(2)) {
-                    if let Ok(date) = chrono::NaiveDate::parse_from_str(date_str.as_str(), "%Y-%m-%d") {
-                        let datetime = date.and_hms_opt(0, 0, 0)
+                    if let Ok(date) =
+                        chrono::NaiveDate::parse_from_str(date_str.as_str(), "%Y-%m-%d")
+                    {
+                        let datetime = date
+                            .and_hms_opt(0, 0, 0)
                             .map(|dt| DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc))
                             .unwrap_or_else(Utc::now);
 
@@ -611,7 +628,11 @@ impl RefinementMonitor {
             .rev()
             .take(5)
             .map(|c| {
-                let author = c.author.as_ref().map(|a| a.login.as_str()).unwrap_or("unknown");
+                let author = c
+                    .author
+                    .as_ref()
+                    .map(|a| a.login.as_str())
+                    .unwrap_or("unknown");
                 let body_preview = &c.body[..c.body.len().min(200)];
                 format!("- {}: {}...", author, body_preview)
             })
@@ -671,7 +692,9 @@ impl RefinementMonitor {
             .ok()
             .and_then(|re| re.captures(response))
         {
-            cap.get(1).map(|m| m.as_str().to_lowercase()).unwrap_or_else(|| "implementation".to_string())
+            cap.get(1)
+                .map(|m| m.as_str().to_lowercase())
+                .unwrap_or_else(|| "implementation".to_string())
         } else {
             "implementation".to_string()
         };
