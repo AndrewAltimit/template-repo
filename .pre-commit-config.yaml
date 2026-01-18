@@ -143,14 +143,13 @@ repos:
         files: '^packages/injection_toolkit/.*\.rs$'
         pass_filenames: false
 
-  # Markdown link checking (containerized for consistency)
+  # Markdown link checking (Rust binary, fast)
   - repo: local
     hooks:
       - id: check-markdown-links
-        name: Check markdown links (containerized)
-        entry: bash -c 'docker-compose build mcp-code-quality >/dev/null 2>&1; docker-compose run --rm -T --user "$(id -u):$(id -g)" mcp-code-quality python automation/analysis/check-markdown-links.py . --internal-only'
+        name: Check markdown links (Rust)
+        entry: bash -c 'RUST_BINARY="tools/rust/markdown-link-checker/target/release/md-link-checker"; if [ -x "$RUST_BINARY" ]; then $RUST_BINARY . --internal-only; else echo "Building md-link-checker..."; cd tools/rust/markdown-link-checker && cargo build --release && cd ../../.. && $RUST_BINARY . --internal-only; fi'
         language: system
         files: '\.md$'
         pass_filenames: false
         stages: [pre-push]
-  #       args: [--fix]

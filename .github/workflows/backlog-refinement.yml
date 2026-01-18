@@ -216,7 +216,12 @@ jobs:
           echo "issues_reviewed=$ISSUES_REVIEWED" >> $GITHUB_OUTPUT
           echo "insights_added=$INSIGHTS_ADDED" >> $GITHUB_OUTPUT
           echo "actions_taken=0" >> $GITHUB_OUTPUT
-          echo "summary_json=$REFINEMENT_OUTPUT" >> $GITHUB_OUTPUT
+          # Use heredoc for multiline JSON to avoid GITHUB_OUTPUT parsing issues
+          {
+            echo 'summary_json<<EOF'
+            echo "$REFINEMENT_OUTPUT"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
 
           echo "::endgroup::"
 

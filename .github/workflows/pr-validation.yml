@@ -149,11 +149,19 @@ jobs:
           echo "Built board-manager binary:"
           ls -la target/release/board-manager
 
+      - name: Build markdown-link-checker
+        run: |
+          cd tools/rust/markdown-link-checker
+          cargo build --release
+          echo "Built md-link-checker binary:"
+          ls -la target/release/md-link-checker
+
       - name: Stage binaries for upload
         run: |
           mkdir -p rust-binaries
           cp tools/rust/github-agents-cli/target/release/github-agents rust-binaries/
           cp tools/rust/board-manager/target/release/board-manager rust-binaries/
+          cp tools/rust/markdown-link-checker/target/release/md-link-checker rust-binaries/
           ls -la rust-binaries/
 
       - name: Upload Rust binaries
@@ -433,9 +441,9 @@ jobs:
           lfs: true
 
       - name: Download Rust tools artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v4
         with:
-          name: rust-tools-${{ github.run_id }}
+          name: rust-cli-tools
           path: rust-tools
 
       - name: Setup Rust CLI tools

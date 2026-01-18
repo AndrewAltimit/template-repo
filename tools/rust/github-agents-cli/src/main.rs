@@ -143,6 +143,7 @@ fn setup_logging(verbose: bool) {
         .with_thread_ids(false)
         .with_file(false)
         .with_line_number(false)
+        .with_writer(std::io::stderr) // Logs to stderr to keep stdout clean for JSON output
         .finish();
 
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
