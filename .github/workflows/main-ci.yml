@@ -692,13 +692,7 @@ jobs:
           cp target/release/github-agents-cli ../../../rust-binaries/github-agents-cli-linux-x64
           echo "Built github-agents-cli for Linux x64"
 
-      - name: Build code-parser (Linux)
-        run: |
-          source "$HOME/.cargo/env" || true
-          cd tools/rust/code-parser
-          cargo build --release
-          cp target/release/code-parser ../../../rust-binaries/code-parser-linux-x64
-          echo "Built code-parser for Linux x64"
+      # Note: code-parser is a library crate (no binary) - used by other Rust tools
 
       - name: Build injection-toolkit (Linux)
         run: |

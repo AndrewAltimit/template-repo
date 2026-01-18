@@ -1,6 +1,7 @@
 //! Command-line interface for board manager.
 
 use clap::{Parser, Subcommand};
+use std::io::{self, Read};
 use std::path::Path;
 
 use crate::config::{get_github_token, load_config};
@@ -195,8 +196,8 @@ pub enum Commands {
 
     /// Bucket comments by trust level
     BucketComments {
-        /// JSON array of comments (each with 'author' and 'body' fields)
-        #[arg(required = true)]
+        /// JSON array of comments. Use "-" to read from stdin (recommended for large inputs)
+        #[arg(default_value = "-")]
         comments_json: String,
 
         /// Path to .agents.yaml config
@@ -330,8 +331,19 @@ pub async fn run(cli: Cli) -> Result<()> {
             filter_noise,
             include_empty,
         } => {
+            // Read JSON from stdin if "-" is provided, otherwise use the argument
+            let json_input = if comments_json == "-" {
+                let mut buffer = String::new();
+                io::stdin()
+                    .read_to_string(&mut buffer)
+                    .map_err(|e| crate::error::BoardError::Config(format!("Failed to read stdin: {}", e)))?;
+                buffer
+            } else {
+                comments_json.clone()
+            };
+
             // Parse comments from JSON
-            let comments_value: serde_json::Value = serde_json::from_str(comments_json)
+            let comments_value: serde_json::Value = serde_json::from_str(&json_input)
                 .map_err(|e| crate::error::BoardError::Config(format!("Invalid JSON: {}", e)))?;
 
             let comments: Vec<Comment> = comments_value

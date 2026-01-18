@@ -63,21 +63,37 @@ struct SecuritySection {
 
 impl TrustConfig {
     /// Load trust configuration from .agents.yaml.
+    ///
+    /// Returns an error if the config file is not found or cannot be parsed.
+    /// This is intentional fail-closed behavior for security.
     pub fn from_yaml(config_path: Option<&Path>) -> Result<Self> {
         let path = if let Some(p) = config_path {
             if p.exists() {
-                Some(p.to_path_buf())
+                p.to_path_buf()
             } else {
-                None
+                return Err(BoardError::Config(format!(
+                    "Security config file not found: {}",
+                    p.display()
+                )));
             }
         } else {
-            Self::find_config_file()
+            Self::find_config_file().ok_or_else(|| {
+                BoardError::Config(
+                    "No .agents.yaml found. Trust bucketing requires a security config file."
+                        .to_string(),
+                )
+            })?
         };
 
-        match path {
-            Some(p) => Self::load_from_path(&p),
-            None => Ok(Self::default()),
-        }
+        Self::load_from_path(&path)
+    }
+
+    /// Load trust configuration from .agents.yaml, or return default if not found.
+    ///
+    /// Use this variant only for non-security-critical operations where
+    /// fail-open behavior is acceptable.
+    pub fn from_yaml_or_default(config_path: Option<&Path>) -> Self {
+        Self::from_yaml(config_path).unwrap_or_default()
     }
 
     /// Find .agents.yaml from current directory up.
@@ -170,13 +186,21 @@ pub struct TrustBucketer {
 
 impl TrustBucketer {
     /// Create a new trust bucketer.
+    ///
+    /// Usernames are normalized to lowercase for case-insensitive matching
+    /// since GitHub usernames are case-insensitive.
     pub fn new(config: TrustConfig) -> Self {
-        let admins: HashSet<String> = config.agent_admins.iter().cloned().collect();
+        // Normalize to lowercase for case-insensitive matching
+        let admins: HashSet<String> = config
+            .agent_admins
+            .iter()
+            .map(|s| s.to_lowercase())
+            .collect();
         let trusted: HashSet<String> = config
             .trusted_sources
             .iter()
-            .filter(|s| !admins.contains(*s))
-            .cloned()
+            .map(|s| s.to_lowercase())
+            .filter(|s| !admins.contains(s))
             .collect();
 
         Self {
@@ -193,10 +217,13 @@ impl TrustBucketer {
     }
 
     /// Determine the trust level for a username.
+    ///
+    /// Matching is case-insensitive since GitHub usernames are case-insensitive.
     pub fn get_trust_level(&self, username: &str) -> TrustLevel {
-        if self.admins.contains(username) {
+        let username_lower = username.to_lowercase();
+        if self.admins.contains(&username_lower) {
             TrustLevel::Admin
-        } else if self.trusted.contains(username) {
+        } else if self.trusted.contains(&username_lower) {
             TrustLevel::Trusted
         } else {
             TrustLevel::Community
@@ -400,5 +427,22 @@ mod tests {
         assert!(formatted.contains("Please fix this issue"));
         assert!(formatted.contains("## Community Input"));
         assert!(formatted.contains("I think there's a bug"));
+    }
+
+    #[test]
+    fn test_case_insensitive_trust_levels() {
+        let config = TrustConfig {
+            agent_admins: vec!["AdminUser".to_string()],
+            trusted_sources: vec!["BotUser".to_string()],
+        };
+        let bucketer = TrustBucketer::new(config);
+
+        // Should match regardless of case
+        assert_eq!(bucketer.get_trust_level("AdminUser"), TrustLevel::Admin);
+        assert_eq!(bucketer.get_trust_level("adminuser"), TrustLevel::Admin);
+        assert_eq!(bucketer.get_trust_level("ADMINUSER"), TrustLevel::Admin);
+        assert_eq!(bucketer.get_trust_level("BotUser"), TrustLevel::Trusted);
+        assert_eq!(bucketer.get_trust_level("botuser"), TrustLevel::Trusted);
+        assert_eq!(bucketer.get_trust_level("BOTUSER"), TrustLevel::Trusted);
     }
 }
