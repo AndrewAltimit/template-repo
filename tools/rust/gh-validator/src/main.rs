@@ -141,7 +141,10 @@ fn extract_pr_number_from_url(url: &str) -> Option<u32> {
     if let Some(idx) = url.find("/pull/") {
         let after_pull = &url[idx + 6..];
         // Take digits until non-digit
-        let num_str: String = after_pull.chars().take_while(|c| c.is_ascii_digit()).collect();
+        let num_str: String = after_pull
+            .chars()
+            .take_while(|c| c.is_ascii_digit())
+            .collect();
         return num_str.parse().ok();
     }
     None
@@ -156,7 +159,9 @@ fn print_pr_monitoring_notice(pr_number: u32, pr_url: &str) {
         .ok()
         .and_then(|o| {
             if o.status.success() {
-                String::from_utf8(o.stdout).ok().map(|s| s.trim().to_string())
+                String::from_utf8(o.stdout)
+                    .ok()
+                    .map(|s| s.trim().to_string())
             } else {
                 None
             }
@@ -170,7 +175,9 @@ fn print_pr_monitoring_notice(pr_number: u32, pr_url: &str) {
         .ok()
         .and_then(|o| {
             if o.status.success() {
-                String::from_utf8(o.stdout).ok().map(|s| s.trim().to_string())
+                String::from_utf8(o.stdout)
+                    .ok()
+                    .map(|s| s.trim().to_string())
             } else {
                 None
             }
@@ -187,7 +194,10 @@ fn print_pr_monitoring_notice(pr_number: u32, pr_url: &str) {
     eprintln!();
     eprintln!("To monitor for admin/Gemini feedback:");
     eprintln!();
-    eprintln!("  ./tools/rust/pr-monitor/target/release/pr-monitor {} --since-commit {}", pr_number, commit_sha);
+    eprintln!(
+        "  ./tools/rust/pr-monitor/target/release/pr-monitor {} --since-commit {}",
+        pr_number, commit_sha
+    );
     eprintln!();
     eprintln!("This will watch for:");
     eprintln!("  - Admin comments and approval commands");

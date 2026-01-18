@@ -41,13 +41,13 @@ OUTPUT_DIRS=(
 for dir in "${OUTPUT_DIRS[@]}"; do
     # Skip symlinks to prevent chown on unintended paths
     if [ -L "$dir" ]; then
-        echo "⚠️  Skipping symlink: $dir"
+        echo "[WARN] Skipping symlink: $dir"
         continue
     fi
 
     if [ ! -d "$dir" ]; then
         mkdir -p "$dir"
-        echo -e "${GREEN}✓${NC} Created: $dir"
+        echo -e "${GREEN}[OK]${NC} Created: $dir"
     else
         # Fix ownership if directory already exists but owned by root
         if [ "$(stat -c '%u' "$dir")" -eq 0 ]; then
@@ -59,13 +59,13 @@ for dir in "${OUTPUT_DIRS[@]}"; do
                     -v "$(cd "$dir" && pwd):/target" \
                     busybox \
                     chown -R "$USER_ID:$GROUP_ID" /target 2>/dev/null && \
-                    echo -e "${GREEN}✓${NC} Fixed ownership: $dir" || \
-                    echo "⚠️  Could not fix ownership via Docker: $dir"
+                    echo -e "${GREEN}[OK]${NC} Fixed ownership: $dir" || \
+                    echo "[WARN] Could not fix ownership via Docker: $dir"
             else
-                echo "⚠️  Directory exists with root ownership but Docker not available: $dir"
+                echo "[WARN] Directory exists with root ownership but Docker not available: $dir"
             fi
         else
-            echo -e "${GREEN}✓${NC} Already exists: $dir"
+            echo -e "${GREEN}[OK]${NC} Already exists: $dir"
         fi
     fi
 
@@ -73,4 +73,4 @@ for dir in "${OUTPUT_DIRS[@]}"; do
     chmod 755 "$dir" 2>/dev/null || true
 done
 
-echo -e "${GREEN}✓ Output directory initialization complete${NC}"
+echo -e "${GREEN}[OK] Output directory initialization complete${NC}"
