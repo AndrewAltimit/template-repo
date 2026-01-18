@@ -81,7 +81,9 @@ pub fn classify(comment: &Comment, admin_user: &str) -> Classification {
 
     // GitHub Actions bot
     if author.contains("github-actions") {
-        if body.contains("Gemini") {
+        // Actual Gemini review (not just status table mentioning "Gemini review")
+        // Look for review markers: gemini-review-marker or actual review headers
+        if body.contains("gemini-review-marker") || body.contains("## Gemini AI") {
             return Classification {
                 needs_response: true,
                 priority: Priority::Normal,
@@ -89,6 +91,16 @@ pub fn classify(comment: &Comment, admin_user: &str) -> Classification {
                 action: Some(Action::AddressGeminiReview),
             };
         }
+        // Codex review
+        if body.contains("codex-review-marker") || body.contains("## Codex AI") {
+            return Classification {
+                needs_response: true,
+                priority: Priority::Normal,
+                response_type: Some(ResponseType::GeminiReview), // Treat same as Gemini for now
+                action: Some(Action::AddressGeminiReview),
+            };
+        }
+        // CI status table (not actionable, just informational)
         if body.contains("PR Validation Results") {
             return Classification {
                 needs_response: false,
@@ -160,7 +172,7 @@ mod tests {
     fn test_gemini_review_classification() {
         let comment = make_comment(
             "github-actions[bot]",
-            "## Gemini Code Review\n\nThis looks good overall...",
+            "## Gemini AI Incremental Review\n<!-- gemini-review-marker:commit:abc123 -->\n\nThis looks good overall...",
         );
         let classification = classify(&comment, "AndrewAltimit");
 
@@ -171,6 +183,31 @@ mod tests {
             Some(ResponseType::GeminiReview)
         );
         assert_eq!(classification.action, Some(Action::AddressGeminiReview));
+    }
+
+    #[test]
+    fn test_codex_review_classification() {
+        let comment = make_comment(
+            "github-actions[bot]",
+            "## Codex AI Code Review\n<!-- codex-review-marker:commit:abc123 -->\n\nLGTM",
+        );
+        let classification = classify(&comment, "AndrewAltimit");
+
+        assert!(classification.needs_response);
+        assert_eq!(classification.priority, Priority::Normal);
+    }
+
+    #[test]
+    fn test_status_table_not_classified_as_review() {
+        // Status table contains "Gemini review" text but shouldn't be classified as actual review
+        let comment = make_comment(
+            "github-actions[bot]",
+            "## PR Validation Results\n\n| Check | Status |\n| Gemini review | :white_check_mark: |",
+        );
+        let classification = classify(&comment, "AndrewAltimit");
+
+        assert!(!classification.needs_response);
+        assert_eq!(classification.response_type, Some(ResponseType::CiResults));
     }
 
     #[test]
