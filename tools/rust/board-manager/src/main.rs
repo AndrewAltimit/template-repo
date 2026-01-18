@@ -9,6 +9,7 @@ mod config;
 mod error;
 mod manager;
 mod models;
+pub mod security;
 
 use clap::Parser;
 

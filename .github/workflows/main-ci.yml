@@ -660,6 +660,46 @@ jobs:
           cp target/release/gh ../../../rust-binaries/gh-linux-x64
           echo "Built gh-validator for Linux x64"
 
+      - name: Build board-manager (Linux)
+        run: |
+          source "$HOME/.cargo/env" || true
+          cd tools/rust/board-manager
+          cargo build --release
+          cp target/release/board-manager ../../../rust-binaries/board-manager-linux-x64
+          echo "Built board-manager for Linux x64"
+
+      - name: Build mcp-code-quality (Linux)
+        run: |
+          source "$HOME/.cargo/env" || true
+          cd tools/rust/mcp-code-quality
+          cargo build --release
+          cp target/release/mcp-code-quality ../../../rust-binaries/mcp-code-quality-linux-x64
+          echo "Built mcp-code-quality for Linux x64"
+
+      - name: Build markdown-link-checker (Linux)
+        run: |
+          source "$HOME/.cargo/env" || true
+          cd tools/rust/markdown-link-checker
+          cargo build --release
+          cp target/release/markdown-link-checker ../../../rust-binaries/markdown-link-checker-linux-x64
+          echo "Built markdown-link-checker for Linux x64"
+
+      - name: Build github-agents-cli (Linux)
+        run: |
+          source "$HOME/.cargo/env" || true
+          cd tools/rust/github-agents-cli
+          cargo build --release
+          cp target/release/github-agents-cli ../../../rust-binaries/github-agents-cli-linux-x64
+          echo "Built github-agents-cli for Linux x64"
+
+      - name: Build code-parser (Linux)
+        run: |
+          source "$HOME/.cargo/env" || true
+          cd tools/rust/code-parser
+          cargo build --release
+          cp target/release/code-parser ../../../rust-binaries/code-parser-linux-x64
+          echo "Built code-parser for Linux x64"
+
       - name: Build injection-toolkit (Linux)
         run: |
           source "$HOME/.cargo/env" || true

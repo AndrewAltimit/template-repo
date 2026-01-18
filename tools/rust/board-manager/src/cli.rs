@@ -1,11 +1,15 @@
 //! Command-line interface for board manager.
 
 use clap::{Parser, Subcommand};
+use std::path::Path;
 
 use crate::config::{get_github_token, load_config};
 use crate::error::Result;
 use crate::manager::BoardManager;
 use crate::models::{IssueStatus, ReleaseReason};
+use crate::security::{
+    AgentJudgement, AssessmentContext, Comment, TrustBucketer, TrustLevel as SecurityTrustLevel,
+};
 
 /// GitHub Projects v2 board manager CLI.
 #[derive(Parser)]
@@ -146,6 +150,55 @@ pub enum Commands {
 
     /// Show board configuration
     Config,
+
+    /// Assess whether a fix should be auto-applied
+    AssessFix {
+        /// Review comment text to assess
+        #[arg(required = true)]
+        comment: String,
+
+        /// File path being modified (for context)
+        #[arg(long)]
+        file_path: Option<String>,
+
+        /// Whether the PR is security-related
+        #[arg(long)]
+        security_related: bool,
+
+        /// Whether the PR is a draft
+        #[arg(long)]
+        draft: bool,
+    },
+
+    /// Get trust level for a username
+    TrustLevel {
+        /// Username to check
+        #[arg(required = true)]
+        username: String,
+
+        /// Path to .agents.yaml config
+        #[arg(long)]
+        config_path: Option<String>,
+    },
+
+    /// Bucket comments by trust level
+    BucketComments {
+        /// JSON array of comments (each with 'author' and 'body' fields)
+        #[arg(required = true)]
+        comments_json: String,
+
+        /// Path to .agents.yaml config
+        #[arg(long)]
+        config_path: Option<String>,
+
+        /// Filter out noise comments
+        #[arg(long, default_value = "true")]
+        filter_noise: bool,
+
+        /// Include empty bucket headers
+        #[arg(long)]
+        include_empty: bool,
+    },
 }
 
 /// Run the CLI.
@@ -161,6 +214,106 @@ pub async fn run(cli: Cli) -> Result<()> {
             .init();
     }
 
+    // Handle commands that don't need board manager
+    match &cli.command {
+        Commands::AssessFix {
+            comment,
+            file_path,
+            security_related,
+            draft,
+        } => {
+            let judgement = AgentJudgement::default();
+            let context = AssessmentContext {
+                file_path: file_path.clone(),
+                is_security_related: *security_related,
+                is_draft_pr: *draft,
+                ..Default::default()
+            };
+
+            let result = judgement.assess_fix(comment, &context);
+
+            if cli.format == OutputFormat::Json {
+                println!("{}", serde_json::to_string_pretty(&result)?);
+            } else {
+                println!("Judgement Result:");
+                println!("  Should auto-fix: {}", result.should_auto_fix);
+                println!("  Confidence: {:.0}%", result.confidence * 100.0);
+                println!("  Category: {}", result.category);
+                println!("  Reasoning: {}", result.reasoning);
+                if result.is_false_positive {
+                    println!("  False positive: yes");
+                    if let Some(reason) = &result.dismiss_reason {
+                        println!("  Dismiss reason: {}", reason);
+                    }
+                }
+                if let Some(question) = &result.ask_owner_question {
+                    println!("\n  Owner question:\n{}", question);
+                }
+            }
+            return Ok(());
+        }
+
+        Commands::TrustLevel {
+            username,
+            config_path,
+        } => {
+            let path = config_path.as_ref().map(|s| Path::new(s.as_str()));
+            let bucketer = TrustBucketer::from_yaml(path)?;
+            let level = bucketer.get_trust_level(username);
+
+            if cli.format == OutputFormat::Json {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "username": username,
+                        "trust_level": format!("{}", level)
+                    })
+                );
+            } else {
+                println!("User '{}' has trust level: {}", username, level);
+            }
+            return Ok(());
+        }
+
+        Commands::BucketComments {
+            comments_json,
+            config_path,
+            filter_noise,
+            include_empty,
+        } => {
+            // Parse comments from JSON
+            let comments_value: serde_json::Value = serde_json::from_str(comments_json)
+                .map_err(|e| crate::error::BoardError::Config(format!("Invalid JSON: {}", e)))?;
+
+            let comments: Vec<Comment> = comments_value
+                .as_array()
+                .ok_or_else(|| crate::error::BoardError::Config("Expected JSON array".to_string()))?
+                .iter()
+                .filter_map(Comment::from_json)
+                .collect();
+
+            let path = config_path.as_ref().map(|s| Path::new(s.as_str()));
+            let bucketer = TrustBucketer::from_yaml(path)?;
+
+            if cli.format == OutputFormat::Json {
+                let buckets = bucketer.bucket_comments(&comments, *filter_noise);
+                let result = serde_json::json!({
+                    "admin": buckets.get(&SecurityTrustLevel::Admin).map(|v| v.len()).unwrap_or(0),
+                    "trusted": buckets.get(&SecurityTrustLevel::Trusted).map(|v| v.len()).unwrap_or(0),
+                    "community": buckets.get(&SecurityTrustLevel::Community).map(|v| v.len()).unwrap_or(0),
+                });
+                println!("{}", serde_json::to_string_pretty(&result)?);
+            } else {
+                let formatted = bucketer.format_bucketed_comments(&comments, *filter_noise, *include_empty);
+                println!("{}", formatted);
+            }
+            return Ok(());
+        }
+
+        _ => {}
+    }
+
+    // Commands that require board manager
     let config = load_config()?;
     let token = get_github_token()?;
     let mut manager = BoardManager::new(config, token)?;
@@ -356,6 +509,13 @@ pub async fn run(cli: Cli) -> Result<()> {
                 println!("  Claim timeout: {}h", config.claim_timeout / 3600);
                 println!("  Enabled agents: {:?}", config.enabled_agents);
             }
+        }
+
+        // These commands are handled early and shouldn't reach here
+        Commands::AssessFix { .. }
+        | Commands::TrustLevel { .. }
+        | Commands::BucketComments { .. } => {
+            unreachable!("Security commands should be handled before board manager init")
         }
     }
 

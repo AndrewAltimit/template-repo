@@ -670,12 +670,25 @@ runs:
         ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body // "Unable to fetch issue body"')
 
         # Format comments for inclusion in context, bucketed by trust level
-        # Uses shared utility from github_agents.security.trust
         # Trust levels are defined in .agents.yaml security section:
         # - agent_admins: Users authorized to trigger agent actions (highest trust)
         # - trusted_sources: Trusted context providers (medium trust)
         # - other: All other commenters (lower trust, but still visible)
-        ISSUE_COMMENTS=$(python3 << 'PYTHON_SCRIPT'
+        #
+        # Prefer Rust board-manager (faster), fall back to Python if unavailable
+        BOARD_MANAGER_BIN="${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager"
+
+        # Extract comments as JSON array
+        COMMENTS_JSON=$(echo "$ISSUE_DATA" | jq -c '[.comments[]? | {author: .author.login, body: .body, createdAt: .createdAt}]' 2>/dev/null || echo '[]')
+
+        if [ -x "$BOARD_MANAGER_BIN" ] && [ "$COMMENTS_JSON" != "[]" ]; then
+          # Use Rust board-manager for trust bucketing (faster, no Python dependency)
+          echo "Using Rust board-manager for comment bucketing"
+          ISSUE_COMMENTS=$("$BOARD_MANAGER_BIN" bucket-comments "$COMMENTS_JSON" 2>/dev/null || echo "")
+        elif [ "$COMMENTS_JSON" != "[]" ]; then
+          # Fall back to Python if Rust binary not available
+          echo "Rust board-manager not found, using Python fallback"
+          ISSUE_COMMENTS=$(python3 << 'PYTHON_SCRIPT'
         import json
         import os
 
@@ -690,7 +703,10 @@ runs:
             from github_agents.security.trust import bucket_comments_for_context
             print(bucket_comments_for_context(comments))
         PYTHON_SCRIPT
-        )
+          )
+        else
+          ISSUE_COMMENTS=""
+        fi
 
         # Write context using printf to avoid heredoc indentation issues in YAML
         # Note: No escaping needed - printf handles special chars correctly
