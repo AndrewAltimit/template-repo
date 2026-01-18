@@ -126,10 +126,15 @@ impl GeminiAgent {
             .as_ref()
             .ok_or_else(|| Error::EnvNotSet("GEMINI_API_KEY or GOOGLE_API_KEY".to_string()))?;
 
+        // Log API key presence (not the key itself for security)
+        tracing::info!("API key present: length={}, prefix={}...", api_key.len(), &api_key[..4.min(api_key.len())]);
+
         let url = format!(
             "{}/{}:generateContent?key={}",
             GEMINI_API_BASE, model, api_key
         );
+
+        tracing::info!("Calling Gemini API: {}/{}:generateContent", GEMINI_API_BASE, model);
 
         let request = GeminiRequest {
             contents: vec![GeminiContent {
