@@ -15,6 +15,11 @@
 //! - Formatting validation: Ensures proper use of --body-file for reaction images
 //! - URL validation: Verifies reaction image URLs exist (with SSRF protection)
 //!
+//! # Post-Command Features
+//!
+//! - PR monitoring reminder: After `gh pr create`, displays a reminder to monitor
+//!   the PR for feedback using the pr-monitor tool.
+//!
 //! # Architecture
 //!
 //! All validation operates directly on the argument vector rather than
@@ -27,7 +32,8 @@
 //!   URLs, strip them from the content and continue. Useful for CI pipelines.
 
 use std::env;
-use std::process::{exit, Command};
+use std::io::{BufRead, BufReader};
+use std::process::{exit, Command, Stdio};
 
 /// gh-validator specific flag for stripping invalid images instead of failing
 const STRIP_INVALID_IMAGES_FLAG: &str = "--gh-validator-strip-invalid-images";
@@ -117,6 +123,78 @@ fn extract_strip_flag(args: &[String]) -> (Vec<String>, bool) {
         .cloned()
         .collect();
     (filtered, has_flag)
+}
+
+/// Check if this is a `gh pr create` command
+fn is_pr_create_command(args: &[String]) -> bool {
+    // Look for "pr" followed by "create" in the args
+    // Handle various orderings like: gh pr create, gh pr --repo x create, etc.
+    let has_pr = args.iter().any(|a| a == "pr");
+    let has_create = args.iter().any(|a| a == "create");
+    has_pr && has_create
+}
+
+/// Extract PR number from a GitHub PR URL
+/// Handles URLs like: https://github.com/owner/repo/pull/123
+fn extract_pr_number_from_url(url: &str) -> Option<u32> {
+    // Look for /pull/NUMBER pattern
+    if let Some(idx) = url.find("/pull/") {
+        let after_pull = &url[idx + 6..];
+        // Take digits until non-digit
+        let num_str: String = after_pull.chars().take_while(|c| c.is_ascii_digit()).collect();
+        return num_str.parse().ok();
+    }
+    None
+}
+
+/// Print the PR monitoring reminder
+fn print_pr_monitoring_notice(pr_number: u32, pr_url: &str) {
+    // Get the latest commit SHA
+    let commit_sha = Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                String::from_utf8(o.stdout).ok().map(|s| s.trim().to_string())
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| "HEAD".to_string());
+
+    // Get current branch name
+    let branch = Command::new("git")
+        .args(["rev-parse", "--abbrev-ref", "HEAD"])
+        .output()
+        .ok()
+        .and_then(|o| {
+            if o.status.success() {
+                String::from_utf8(o.stdout).ok().map(|s| s.trim().to_string())
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| "unknown".to_string());
+
+    eprintln!();
+    eprintln!("============================================================");
+    eprintln!("PR FEEDBACK MONITORING");
+    eprintln!("============================================================");
+    eprintln!();
+    eprintln!("PR #{} created on branch '{}'", pr_number, branch);
+    eprintln!("{}", pr_url);
+    eprintln!();
+    eprintln!("To monitor for admin/Gemini feedback:");
+    eprintln!();
+    eprintln!("  ./tools/rust/pr-monitor/target/release/pr-monitor {} --since-commit {}", pr_number, commit_sha);
+    eprintln!();
+    eprintln!("This will watch for:");
+    eprintln!("  - Admin comments and approval commands");
+    eprintln!("  - Gemini AI code review feedback");
+    eprintln!("  - CI/CD validation results");
+    eprintln!();
+    eprintln!("============================================================");
 }
 
 /// Run validation and execute the real gh binary
@@ -232,9 +310,68 @@ fn run() -> Result<(), Error> {
     if was_masked {
         eprintln!("[gh-validator] Secrets were masked in command");
     }
+
+    // Special handling for `gh pr create` - use spawn to capture output for monitoring notice
+    if is_pr_create_command(&masked_args) {
+        return spawn_gh_pr_create(&real_gh, &masked_args);
+    }
+
     exec_gh(&real_gh, &masked_args)?;
 
     unreachable!("exec should not return");
+}
+
+/// Execute `gh pr create` with output capture for PR monitoring notice
+///
+/// Unlike exec_gh, this spawns the process so we can:
+/// 1. Stream stdout/stderr to the user in real-time
+/// 2. Capture the PR URL from the output
+/// 3. Print the monitoring notice after completion
+fn spawn_gh_pr_create(gh_path: &std::path::Path, args: &[String]) -> Result<(), Error> {
+    let mut child = Command::new(gh_path)
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit()) // Pass stderr through directly
+        .spawn()
+        .map_err(Error::ExecFailed)?;
+
+    let stdout = child.stdout.take().expect("stdout was piped");
+    let reader = BufReader::new(stdout);
+
+    let mut pr_url: Option<String> = None;
+
+    // Stream output line by line
+    for line in reader.lines() {
+        match line {
+            Ok(line) => {
+                // Print the line to stdout
+                println!("{}", line);
+
+                // Check if this line is a PR URL
+                if line.contains("/pull/") && line.starts_with("https://") {
+                    pr_url = Some(line.clone());
+                }
+            }
+            Err(e) => {
+                eprintln!("[gh-validator] Error reading output: {}", e);
+            }
+        }
+    }
+
+    // Wait for the process to complete
+    let status = child.wait().map_err(Error::ExecFailed)?;
+
+    // If successful and we found a PR URL, print the monitoring notice
+    if status.success() {
+        if let Some(url) = pr_url {
+            if let Some(pr_number) = extract_pr_number_from_url(&url) {
+                print_pr_monitoring_notice(pr_number, &url);
+            }
+        }
+    }
+
+    // Exit with the same code as gh
+    exit(status.code().unwrap_or(1));
 }
 
 /// Execute the real gh binary (replaces current process on Unix)
