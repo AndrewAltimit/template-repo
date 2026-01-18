@@ -986,6 +986,8 @@ impl BoardManager {
     }
 
     /// Check if text contains a valid approval trigger from an authorized user.
+    ///
+    /// Username comparison is case-insensitive since GitHub usernames are case-insensitive.
     fn check_approval_trigger(&self, text: &str, author: &str) -> bool {
         use regex::Regex;
 
@@ -993,27 +995,28 @@ impl BoardManager {
             return false;
         }
 
-        // Build allowed users list
+        // Build allowed users list (normalized to lowercase for case-insensitive matching)
         let mut allowed_users: std::collections::HashSet<String> = std::collections::HashSet::new();
 
         // Add repository owner
         if let Ok((repo_owner, _)) = self.parse_repository() {
-            allowed_users.insert(repo_owner);
+            allowed_users.insert(repo_owner.to_lowercase());
         }
 
         // Add project owner
         if !self.config.owner.is_empty() {
-            allowed_users.insert(self.config.owner.clone());
+            allowed_users.insert(self.config.owner.to_lowercase());
         }
 
         // Add users from security config (if available through TrustBucketer)
         if let Ok(trust_config) = crate::security::TrustConfig::from_yaml(None) {
             for admin in &trust_config.agent_admins {
-                allowed_users.insert(admin.clone());
+                allowed_users.insert(admin.to_lowercase());
             }
         }
 
-        if !allowed_users.contains(author) {
+        // Case-insensitive comparison
+        if !allowed_users.contains(&author.to_lowercase()) {
             return false;
         }
 

@@ -195,7 +195,11 @@ impl GraphQLClient {
                 // Try to extract a number of seconds from patterns like "try again in X seconds"
                 if let Some(pos) = msg.find("try again in ") {
                     let rest = &msg[pos + 13..];
-                    if let Some(num_end) = rest.find(|c: char| !c.is_ascii_digit())
+                    // Handle both "try again in 60 seconds" and "try again in 60" (end of message)
+                    let num_end = rest
+                        .find(|c: char| !c.is_ascii_digit())
+                        .unwrap_or(rest.len());
+                    if num_end > 0
                         && let Ok(secs) = rest[..num_end].parse::<u64>()
                     {
                         return Some(secs);
