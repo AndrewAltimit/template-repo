@@ -1,6 +1,8 @@
 //! GitHub Projects v2 board manager with GraphQL operations.
 
 use chrono::{DateTime, Utc};
+use lazy_static::lazy_static;
+use regex::Regex;
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use tracing::{debug, info, warn};
@@ -17,6 +19,13 @@ const CLAIM_PREFIX: &str = "**[Agent Claim]**";
 const RENEWAL_PREFIX: &str = "**[Claim Renewal]**";
 const RELEASE_PREFIX: &str = "**[Agent Release]**";
 
+lazy_static! {
+    /// Pre-compiled regex for approval pattern matching.
+    /// Matches patterns like [Approved][Claude], [Review][Agent], etc.
+    static ref APPROVAL_PATTERN: Regex =
+        Regex::new(r"(?i)\[(Approved|Review|Close|Summarize|Debug)\]\[[\w\s-]+\]").unwrap();
+}
+
 /// Agent name mappings (workflow names -> board field values).
 const AGENT_NAME_MAP: &[(&str, &str)] = &[
     ("claude", "Claude Code"),
@@ -31,22 +40,47 @@ pub struct BoardManager {
     client: GraphQLClient,
     config: BoardConfig,
     project_id: Option<String>,
+    /// Cached set of users authorized to approve work (normalized to lowercase).
+    cached_allowed_users: std::collections::HashSet<String>,
 }
 
 impl BoardManager {
     /// Create a new BoardManager.
     pub fn new(config: BoardConfig, token: String) -> Result<Self> {
         let client = GraphQLClient::new(token)?;
+
+        // Pre-compute allowed users for approval checking
+        let mut cached_allowed_users = std::collections::HashSet::new();
+
+        // Add project owner
+        if !config.owner.is_empty() {
+            cached_allowed_users.insert(config.owner.to_lowercase());
+        }
+
+        // Add users from security config (loaded once at startup)
+        if let Ok(trust_config) = crate::security::TrustConfig::from_yaml(None) {
+            for admin in &trust_config.agent_admins {
+                cached_allowed_users.insert(admin.to_lowercase());
+            }
+        }
+
         Ok(Self {
             client,
             config,
             project_id: None,
+            cached_allowed_users,
         })
     }
 
     /// Initialize the manager by loading project metadata.
     pub async fn initialize(&mut self) -> Result<()> {
         self.project_id = Some(self.get_project_id().await?);
+
+        // Add repository owner to cached allowed users (requires parse_repository)
+        if let Ok((repo_owner, _)) = self.parse_repository() {
+            self.cached_allowed_users.insert(repo_owner.to_lowercase());
+        }
+
         info!("Board initialized with project ID: {:?}", self.project_id);
         Ok(())
     }
@@ -1088,42 +1122,20 @@ impl BoardManager {
     /// Check if text contains a valid approval trigger from an authorized user.
     ///
     /// Username comparison is case-insensitive since GitHub usernames are case-insensitive.
+    ///
+    /// Uses cached allowed users and pre-compiled regex for performance.
     fn check_approval_trigger(&self, text: &str, author: &str) -> bool {
-        use regex::Regex;
-
         if text.is_empty() || author.is_empty() {
             return false;
         }
 
-        // Build allowed users list (normalized to lowercase for case-insensitive matching)
-        let mut allowed_users: std::collections::HashSet<String> = std::collections::HashSet::new();
-
-        // Add repository owner
-        if let Ok((repo_owner, _)) = self.parse_repository() {
-            allowed_users.insert(repo_owner.to_lowercase());
-        }
-
-        // Add project owner
-        if !self.config.owner.is_empty() {
-            allowed_users.insert(self.config.owner.to_lowercase());
-        }
-
-        // Add users from security config (if available through TrustBucketer)
-        if let Ok(trust_config) = crate::security::TrustConfig::from_yaml(None) {
-            for admin in &trust_config.agent_admins {
-                allowed_users.insert(admin.to_lowercase());
-            }
-        }
-
-        // Case-insensitive comparison
-        if !allowed_users.contains(&author.to_lowercase()) {
+        // Use cached allowed users (case-insensitive comparison)
+        if !self.cached_allowed_users.contains(&author.to_lowercase()) {
             return false;
         }
 
-        // Check for approval pattern: [Action][Agent]
-        let pattern =
-            Regex::new(r"(?i)\[(Approved|Review|Close|Summarize|Debug)\]\[[\w\s-]+\]").unwrap();
-        pattern.is_match(text)
+        // Use pre-compiled regex pattern
+        APPROVAL_PATTERN.is_match(text)
     }
 
     /// Add an issue to the project board with fields.
@@ -1796,6 +1808,7 @@ mod tests {
             client: GraphQLClient::new("test".to_string()).unwrap(),
             config,
             project_id: None,
+            cached_allowed_users: std::collections::HashSet::new(),
         };
 
         let claim = manager.parse_claim_comment(body, 123);
