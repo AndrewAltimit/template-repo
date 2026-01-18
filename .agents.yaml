@@ -86,7 +86,7 @@ model_overrides:
   gemini:
     pro_model: gemini-3-pro-preview  # Latest preview model (NOT 3.0!)
     flash_model: gemini-3-flash-preview  # Fast fallback model (Gemini 3 Flash)
-    default_model: gemini-3-pro-preview  # Primary model for PR reviews
+    default_model: gemini-3-flash-preview  # Primary model for PR reviews (faster, lower rate limits)
 
   # OpenRouter agents configuration
   opencode:
