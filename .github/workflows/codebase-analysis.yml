@@ -105,7 +105,7 @@ jobs:
               # timeout prevents hanging if Docker has issues
               timeout 30 docker run --rm \
                 -v "$WORKSPACE/$dir:/target" \
-                busybox \
+                busybox:1.36.1 \
                 chown -R "$(id -u):$(id -g)" /target 2>/dev/null || echo "  Warning: Could not fix $dir (may already have correct ownership)"
             fi
           done
@@ -511,7 +511,7 @@ jobs:
               echo "Fixing ownership via Docker: $WORKSPACE/$dir"
               timeout 30 docker run --rm \
                 -v "$WORKSPACE/$dir:/target" \
-                busybox \
+                busybox:1.36.1 \
                 chown -R "$(id -u):$(id -g)" /target 2>/dev/null || echo "  Warning: Could not fix $dir"
             fi
           done

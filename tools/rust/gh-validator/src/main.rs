@@ -124,17 +124,66 @@ fn extract_strip_flag(args: &[String]) -> (Vec<String>, bool) {
     (filtered, has_flag)
 }
 
+/// Flags that take an argument (used to skip their values in positional detection)
+const FLAGS_WITH_ARGS: &[&str] = &[
+    "-R",
+    "--repo",
+    "-C",
+    "--cwd",
+    "-H",
+    "--hostname",
+    "--jq",
+    "-t",
+    "--template",
+];
+
 /// Check if this is a `gh pr create` command
 ///
 /// Properly detects the subcommand by ensuring "pr" and "create" appear
 /// as the first two non-flag arguments in sequence. This avoids false
-/// positives like `gh pr list --search create`.
+/// positives like `gh pr list --search create` and handles global flags
+/// with arguments like `gh -R owner/repo pr create`.
 fn is_pr_create_command(args: &[String]) -> bool {
-    // Filter out flags (start with -) to get positional args
-    let positional: Vec<&String> = args.iter().filter(|a| !a.starts_with('-')).collect();
+    let mut positional = Vec::new();
+    let mut skip_next = false;
+
+    for arg in args {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+        if arg.starts_with('-') {
+            // Check if this flag takes an argument
+            if FLAGS_WITH_ARGS.iter().any(|f| arg == *f) {
+                skip_next = true;
+            }
+            // Also handle --flag=value form (no need to skip next)
+            continue;
+        }
+        positional.push(arg);
+    }
 
     // Check if first two positional args are "pr" and "create"
     positional.len() >= 2 && positional[0] == "pr" && positional[1] == "create"
+}
+
+/// Extract --repo/-R value from args if present
+fn extract_repo_flag(args: &[String]) -> Option<String> {
+    let mut iter = args.iter();
+    while let Some(arg) = iter.next() {
+        if arg == "-R" || arg == "--repo" {
+            return iter.next().cloned();
+        }
+        if let Some(repo) = arg.strip_prefix("--repo=") {
+            return Some(repo.to_string());
+        }
+        if let Some(repo) = arg.strip_prefix("-R") {
+            if !repo.is_empty() {
+                return Some(repo.to_string());
+            }
+        }
+    }
+    None
 }
 
 /// Print the PR monitoring reminder
@@ -339,8 +388,10 @@ fn spawn_gh_pr_create(gh_path: &std::path::Path, args: &[String]) -> Result<(), 
 
     // If successful, query for the PR URL and show monitoring notice
     if status.success() {
+        // Extract repo flag from original args to pass to gh pr view
+        let repo = extract_repo_flag(args);
         // Get the PR URL for the current branch using gh pr view
-        if let Some((pr_number, pr_url)) = get_current_branch_pr(gh_path) {
+        if let Some((pr_number, pr_url)) = get_current_branch_pr(gh_path, repo.as_deref()) {
             print_pr_monitoring_notice(pr_number, &pr_url);
         }
     }
@@ -350,12 +401,16 @@ fn spawn_gh_pr_create(gh_path: &std::path::Path, args: &[String]) -> Result<(), 
 }
 
 /// Get PR number and URL for the current branch
-fn get_current_branch_pr(gh_path: &std::path::Path) -> Option<(u32, String)> {
-    // Use gh pr view to get the PR URL for current branch
-    let output = Command::new(gh_path)
-        .args(["pr", "view", "--json", "number,url"])
-        .output()
-        .ok()?;
+fn get_current_branch_pr(gh_path: &std::path::Path, repo: Option<&str>) -> Option<(u32, String)> {
+    // Build args, optionally including --repo
+    let mut cmd_args = vec!["pr", "view", "--json", "number,url"];
+    let repo_flag;
+    if let Some(r) = repo {
+        repo_flag = format!("--repo={}", r);
+        cmd_args.push(&repo_flag);
+    }
+
+    let output = Command::new(gh_path).args(&cmd_args).output().ok()?;
 
     if !output.status.success() {
         return None;
@@ -364,17 +419,25 @@ fn get_current_branch_pr(gh_path: &std::path::Path) -> Option<(u32, String)> {
     let json_str = String::from_utf8(output.stdout).ok()?;
 
     // Parse JSON manually (avoid adding serde dependency)
-    // Format: {"number":123,"url":"https://..."}
+    // Format: {"number":123,"url":"https://..."} or {"number": 123, "url": "..."}
+    // Handle optional whitespace after colons
     let number = json_str.find("\"number\":").and_then(|i| {
         let start = i + 9;
-        let rest = &json_str[start..];
-        let end = rest.find(|c: char| !c.is_ascii_digit())?;
+        let rest = json_str[start..].trim_start();
+        let end = rest
+            .find(|c: char| !c.is_ascii_digit())
+            .unwrap_or(rest.len());
+        if end == 0 {
+            return None;
+        }
         rest[..end].parse::<u32>().ok()
     })?;
 
-    let url = json_str.find("\"url\":\"").and_then(|i| {
-        let start = i + 7;
-        let rest = &json_str[start..];
+    let url = json_str.find("\"url\":").and_then(|i| {
+        let start = i + 6;
+        let rest = json_str[start..].trim_start();
+        // Skip opening quote
+        let rest = rest.strip_prefix('"')?;
         let end = rest.find('"')?;
         Some(rest[..end].to_string())
     })?;
