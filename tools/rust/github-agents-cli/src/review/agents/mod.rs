@@ -1,12 +1,14 @@
 //! AI agent backends for PR reviews.
 //!
-//! Provides CLI-based abstractions for different AI agents (Gemini, Claude, Codex).
-//! All agents use their respective CLI tools to leverage local tools, MCP servers,
-//! and full agent capabilities.
+//! Provides CLI-based abstractions for different AI agents (Gemini, Claude, Codex,
+//! OpenCode, Crush). All agents use their respective CLI tools to leverage local
+//! tools, MCP servers, and full agent capabilities.
 
 pub mod claude;
 pub mod codex;
+pub mod crush;
 pub mod gemini;
+pub mod opencode;
 
 use async_trait::async_trait;
 
@@ -74,6 +76,27 @@ pub async fn select_agent_with_models(
                 Some(Box::new(agent))
             } else {
                 tracing::warn!("Codex CLI not available");
+                None
+            }
+        }
+        "opencode" => {
+            let agent = match review_model {
+                Some(m) => opencode::OpenCodeAgent::with_model(m),
+                None => opencode::OpenCodeAgent::new(),
+            };
+            if agent.is_available().await {
+                Some(Box::new(agent))
+            } else {
+                tracing::warn!("OpenCode CLI not available");
+                None
+            }
+        }
+        "crush" => {
+            let agent = crush::CrushAgent::new();
+            if agent.is_available().await {
+                Some(Box::new(agent))
+            } else {
+                tracing::warn!("Crush CLI not available");
                 None
             }
         }
