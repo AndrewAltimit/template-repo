@@ -6,8 +6,8 @@ This document tracks the multi-session effort to convert performance-critical Py
 
 | Phase | Component | Status | Notes |
 |-------|-----------|--------|-------|
-| 1a | GitHub Agents CLI | 🟡 In Progress | Simple dispatcher CLI |
-| 1b | Code Parser Library | ⬜ Pending | Regex-based code extraction |
+| 1a | GitHub Agents CLI | ✅ Complete | Rust CLI with Python delegation |
+| 1b | Code Parser Library | ✅ Complete | Regex-based code extraction |
 | 2a | Markdown Link Checker | ⬜ Pending | Async HTTP validation |
 | 2b | PR Monitor Merge | ⬜ Pending | Extend existing Rust pr-monitor |
 | 3a | Code Quality MCP | ⬜ Pending | Security-focused subprocess runner |
@@ -95,12 +95,27 @@ This document tracks the multi-session effort to convert performance-critical Py
 
 ## Completed Items
 
-_None yet - tracking will be updated as phases complete._
+### Phase 1a: GitHub Agents CLI (2026-01-18)
+- Created `tools/rust/github-agents-cli/`
+- Implemented clap-based CLI with subcommands
+- Python delegation for monitors
+- Signal handling for graceful shutdown
+- 647KB release binary
+
+### Phase 1b: Code Parser Library (2026-01-18)
+- Created `tools/rust/code-parser/`
+- Regex-based code block extraction
+- Filename detection and sanitization
+- Language inference from extensions
+- Path traversal security checks
+- Optional `fs` feature for file operations
 
 ## Session Log
 
-### Session 1 (Current)
+### Session 1 (2026-01-18)
 - Created branch `feat/rust-conversion-phase1-3`
+- Merged squashed changes from `feat/include-issue-comments-in-agent-context`
 - Analyzed Python sources for conversion scope
 - Created this roadmap document
-- Starting Phase 1a: GitHub Agents CLI
+- Completed Phase 1a: GitHub Agents CLI
+- Completed Phase 1b: Code Parser Library
