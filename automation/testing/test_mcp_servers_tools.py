@@ -199,12 +199,13 @@ async def main():
         print(f"{'=' * 60}")
 
         # Check health first
-        if not await test_server_health(server_name, config["url"]):
+        server_url = str(config["url"])
+        if not await test_server_health(server_name, server_url):
             results[server_name] = {"status": "offline"}
             continue
 
         # Test MCP protocol
-        result = await test_mcp_protocol(server_name, config["url"])
+        result = await test_mcp_protocol(server_name, server_url)
 
         if result["success"]:
             # Check against expected tools

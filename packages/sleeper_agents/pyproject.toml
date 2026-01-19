@@ -54,7 +54,6 @@ dev = [
     "jupyter>=1.0.0",
     "nbconvert>=7.0.0",
     # Type Checking
-    "mypy>=1.5.0",
     "types-requests",
     # Code Quality
     "black>=23.0.0",
@@ -105,7 +104,6 @@ all = [
     "pytest-cov>=4.1.0",
     "jupyter>=1.0.0",
     "nbconvert>=7.0.0",
-    "mypy>=1.5.0",
     "types-requests",
     "black>=23.0.0",
     "isort>=5.12.0",
@@ -187,12 +185,6 @@ target-version = ['py310', 'py311']
 max-line-length = 127
 exclude = [".git", "__pycache__", "build", "dist"]
 ignore = ["E203", "W503"]
-
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

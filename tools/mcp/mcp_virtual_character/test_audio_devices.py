@@ -22,7 +22,8 @@ def test_audio_playback():
     ]
 
     # Create a test beep sound using ffmpeg
-    test_file = tempfile.mktemp(suffix=".wav")
+    fd, test_file = tempfile.mkstemp(suffix=".wav")
+    os.close(fd)
     print(f"Creating test audio file: {test_file}")
 
     # Generate a 440Hz beep for 1 second

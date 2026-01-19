@@ -45,7 +45,7 @@ class GPUOrchestratorClient:
         with self._get_client() as client:
             response = client.get(f"{self.base_url}/health")
             response.raise_for_status()
-            return response.json()  # type: ignore[no-any-return]
+            return response.json()
 
     def get_system_status(self) -> Dict[str, Any]:
         """Get system status including GPU, CPU, disk, jobs.
@@ -59,7 +59,7 @@ class GPUOrchestratorClient:
         with self._get_client() as client:
             response = client.get(f"{self.base_url}/api/system/status")
             response.raise_for_status()
-            return response.json()  # type: ignore[no-any-return]
+            return response.json()
 
     # Job Submission Methods
 
@@ -78,7 +78,7 @@ class GPUOrchestratorClient:
         with self._get_client() as client:
             response = client.post(f"{self.base_url}/api/jobs/train-backdoor", json=params)
             response.raise_for_status()
-            return response.json()  # type: ignore[no-any-return]
+            return response.json()
 
     def train_probes(self, **params) -> Dict[str, Any]:
         """Submit probe training job.
@@ -95,7 +95,7 @@ class GPUOrchestratorClient:
         with self._get_client() as client:
             response = client.post(f"{self.base_url}/api/jobs/train-probes", json=params)
             response.raise_for_status()
-            return response.json()  # type: ignore[no-any-return]
+            return response.json()
 
     def validate_backdoor(self, **params) -> Dict[str, Any]:
         """Submit validation job.
@@ -112,7 +112,7 @@ class GPUOrchestratorClient:
         with self._get_client() as client:
             response = client.post(f"{self.base_url}/api/jobs/validate", json=params)
             response.raise_for_status()
-            return response.json()  # type: ignore[no-any-return]
+            return response.json()
 
     def apply_safety_training(self, **params) -> Dict[str, Any]:
         """Submit safety training job.
@@ -129,7 +129,7 @@ class GPUOrchestratorClient:
         with self._get_client() as client:
             response = client.post(f"{self.base_url}/api/jobs/safety-training", json=params)
             response.raise_for_status()
-            return response.json()  # type: ignore[no-any-return]
+            return response.json()
 
     def test_persistence(self, **params) -> Dict[str, Any]:
         """Submit persistence testing job.
@@ -146,7 +146,7 @@ class GPUOrchestratorClient:
         with self._get_client() as client:
             response = client.post(f"{self.base_url}/api/jobs/test-persistence", json=params)
             response.raise_for_status()
-            return response.json()  # type: ignore[no-any-return]
+            return response.json()
 
     def evaluate_model(self, **params) -> Dict[str, Any]:
         """Submit full model evaluation job.
@@ -166,7 +166,7 @@ class GPUOrchestratorClient:
         with self._get_client() as client:
             response = client.post(f"{self.base_url}/api/jobs/evaluate", json=params)
             response.raise_for_status()
-            return response.json()  # type: ignore[no-any-return]
+            return response.json()
 
     def run_evaluation(self, **params) -> Dict[str, Any]:
         """Alias for evaluate_model() for consistency with dashboard naming.
@@ -199,7 +199,7 @@ class GPUOrchestratorClient:
         with self._get_client() as client:
             response = client.get(f"{self.base_url}/api/jobs/{job_id}")
             response.raise_for_status()
-            return response.json()  # type: ignore[no-any-return]
+            return response.json()
 
     def list_jobs(
         self,
@@ -231,7 +231,7 @@ class GPUOrchestratorClient:
         with self._get_client() as client:
             response = client.get(f"{self.base_url}/api/jobs", params=params)
             response.raise_for_status()
-            return response.json()  # type: ignore[no-any-return]
+            return response.json()
 
     def cancel_job(self, job_id: str) -> Dict[str, Any]:
         """Cancel a running job.
@@ -248,7 +248,7 @@ class GPUOrchestratorClient:
         with self._get_client() as client:
             response = client.delete(f"{self.base_url}/api/jobs/{job_id}")
             response.raise_for_status()
-            return response.json()  # type: ignore[no-any-return]
+            return response.json()
 
     def delete_job(self, job_id: str) -> Dict[str, Any]:
         """Permanently delete a job and all its files.
@@ -273,7 +273,7 @@ class GPUOrchestratorClient:
         with self._get_client() as client:
             response = client.delete(f"{self.base_url}/api/jobs/{job_id}/permanent")
             response.raise_for_status()
-            return response.json()  # type: ignore[no-any-return]
+            return response.json()
 
     # Log Retrieval Methods
 
@@ -293,7 +293,7 @@ class GPUOrchestratorClient:
         with self._get_client() as client:
             response = client.get(f"{self.base_url}/api/jobs/{job_id}/logs", params={"tail": tail})
             response.raise_for_status()
-            return response.text  # type: ignore[no-any-return]
+            return response.text
 
     async def stream_logs(self, job_id: str) -> AsyncGenerator[str, None]:
         """Stream job logs via WebSocket.

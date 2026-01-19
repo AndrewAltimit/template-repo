@@ -16,7 +16,7 @@ from pathlib import Path
 import tempfile
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-import aiofiles  # type: ignore[import-untyped]
+import aiofiles
 import aiohttp
 
 logger = logging.getLogger(__name__)

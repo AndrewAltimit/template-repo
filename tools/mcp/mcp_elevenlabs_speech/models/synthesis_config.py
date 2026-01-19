@@ -1,7 +1,7 @@
 """Synthesis configuration models"""
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -52,7 +52,7 @@ class SynthesisResult:
     character_count: int = 0
     model_used: Optional[str] = None
     voice_id: Optional[str] = None
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     error: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 

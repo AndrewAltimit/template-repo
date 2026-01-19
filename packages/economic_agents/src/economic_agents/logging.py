@@ -4,7 +4,7 @@ Provides a consistent logging interface with structured output support.
 Uses Python's logging module with optional JSON formatting for machine parsing.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 import json
 import logging
@@ -31,7 +31,7 @@ class StructuredFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         """Format log record as JSON."""
         log_data = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -75,7 +75,7 @@ class HumanReadableFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         """Format log record for human reading."""
-        timestamp = datetime.utcnow().strftime("%H:%M:%S")
+        timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
         level = record.levelname
 
         if self.use_colors:
@@ -92,7 +92,7 @@ class HumanReadableFormatter(logging.Formatter):
         if hasattr(record, "event_type"):
             context_str += f" [{record.event_type}]"
         if hasattr(record, "agent_id"):
-            context_str += f" agent={record.agent_id[:8]}"
+            context_str += f" agent={record.agent_id[:8]}"  # type: ignore[index]
 
         return f"{timestamp} {level_str} {record.name}{context_str}: {message}"
 

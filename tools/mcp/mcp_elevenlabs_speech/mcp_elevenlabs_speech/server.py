@@ -1015,7 +1015,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
 
         # Try to find voice ID from cache
         if default_voice_name in self._voice_id_cache:
-            return self._voice_id_cache[default_voice_name]  # type: ignore[no-any-return]
+            return self._voice_id_cache[default_voice_name]
 
         # Try the voice registry
         from .voice_registry import get_voice_profile
@@ -1048,7 +1048,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         # Then check our cache (includes API voices)
         voice_lower = voice_input.lower().strip()
         if voice_lower in self._voice_id_cache:
-            return self._voice_id_cache[voice_lower]  # type: ignore[no-any-return]
+            return self._voice_id_cache[voice_lower]
 
         # Check if it's already a valid ID format (UUID-like)
         if len(voice_input) > 10 and " " not in voice_input:

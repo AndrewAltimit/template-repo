@@ -1,6 +1,6 @@
 """Database management for job queue using SQLite."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import sqlite3
@@ -60,7 +60,7 @@ class Database:
             Job ID (UUID)
         """
         job_id = uuid4()
-        created_at = datetime.utcnow().isoformat()
+        created_at = datetime.now(timezone.utc).isoformat()
 
         with sqlite3.connect(self.db_path) as conn:
             conn.execute(
@@ -198,11 +198,11 @@ class Database:
 
         if status == JobStatus.RUNNING and not self.get_job(job_id).get("started_at"):  # type: ignore
             updates.append("started_at = ?")
-            params.append(datetime.utcnow().isoformat())
+            params.append(datetime.now(timezone.utc).isoformat())
 
         if status in [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED]:
             updates.append("completed_at = ?")
-            params.append(datetime.utcnow().isoformat())
+            params.append(datetime.now(timezone.utc).isoformat())
 
         if container_id is not None:
             updates.append("container_id = ?")
@@ -246,7 +246,7 @@ class Database:
         Args:
             days: Age threshold in days
         """
-        cutoff = datetime.utcnow().timestamp() - (days * 86400)
+        cutoff = datetime.now(timezone.utc).timestamp() - (days * 86400)
         cutoff_iso = datetime.fromtimestamp(cutoff).isoformat()
 
         with sqlite3.connect(self.db_path) as conn:

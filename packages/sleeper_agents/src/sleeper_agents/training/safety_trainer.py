@@ -228,7 +228,7 @@ class SafetyTrainer:
             self.pre_training_trigger_sensitivity.specificity_score * 100,
         )
 
-    def prepare_safety_dataset(self) -> Tuple[Dataset, Dataset]:  # type: ignore[return]
+    def prepare_safety_dataset(self) -> Tuple[Dataset, Dataset]:
         """Prepare safety training dataset.
 
         Returns:

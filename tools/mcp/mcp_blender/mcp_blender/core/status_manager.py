@@ -107,7 +107,7 @@ class StatusManager:
                 data = json.loads(status_file.read_text())
                 if not isinstance(data, dict):
                     raise TypeError(f"Status data is not a dictionary: {type(data)}")
-                return data  # type: ignore
+                return data
             return None
         except (json.JSONDecodeError, KeyError, TypeError) as e:
             logger.error("Failed to get status for job %s: %s", job_id, e)

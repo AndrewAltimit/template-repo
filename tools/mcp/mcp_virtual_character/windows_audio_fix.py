@@ -121,7 +121,8 @@ def create_test_audio():
             samples.append(int(sample))
 
         # Write WAV file
-        test_file = tempfile.mktemp(suffix=".wav")
+        fd, test_file = tempfile.mkstemp(suffix=".wav")
+        os.close(fd)
         with wave.open(test_file, "wb") as wav_file:
             wav_file.setnchannels(1)  # Mono
             wav_file.setsampwidth(2)  # 2 bytes per sample

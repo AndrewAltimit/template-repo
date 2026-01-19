@@ -26,7 +26,7 @@ class WorkflowFactory:
         if seed == -1:
             seed = random.randint(0, 2**32 - 1)
 
-        workflow = {
+        workflow: Dict[str, Any] = {
             "1": {
                 "inputs": {"ckpt_name": model_name},
                 "class_type": "CheckpointLoaderSimple",
@@ -81,8 +81,8 @@ class WorkflowFactory:
                 "class_type": "LoraLoader",
             }
             # Update CLIP connections to use LoRA output
-            workflow["2"]["inputs"]["clip"] = ["10", 1]  # type: ignore
-            workflow["3"]["inputs"]["clip"] = ["10", 1]  # type: ignore
+            workflow["2"]["inputs"]["clip"] = ["10", 1]
+            workflow["3"]["inputs"]["clip"] = ["10", 1]
 
         return workflow
 
@@ -105,7 +105,7 @@ class WorkflowFactory:
         if seed == -1:
             seed = random.randint(0, 2**32 - 1)
 
-        workflow = {
+        workflow: Dict[str, Any] = {
             "1": {
                 "inputs": {"ckpt_name": model_name},
                 "class_type": "CheckpointLoaderSimple",
@@ -160,8 +160,8 @@ class WorkflowFactory:
                 "class_type": "LoraLoader",
             }
             # Update CLIP connections to use LoRA output
-            workflow["2"]["inputs"]["clip"] = ["10", 1]  # type: ignore
-            workflow["3"]["inputs"]["clip"] = ["10", 1]  # type: ignore
+            workflow["2"]["inputs"]["clip"] = ["10", 1]
+            workflow["3"]["inputs"]["clip"] = ["10", 1]
 
         return workflow
 
@@ -184,7 +184,7 @@ class WorkflowFactory:
         if seed == -1:
             seed = random.randint(0, 2**32 - 1)
 
-        workflow = {
+        workflow: Dict[str, Any] = {
             "1": {
                 "inputs": {"ckpt_name": model_name},
                 "class_type": "CheckpointLoaderSimple",
@@ -242,7 +242,7 @@ class WorkflowFactory:
                 },
                 "class_type": "ImageScale",
             }
-            workflow["9"]["inputs"]["pixels"] = ["11", 0]  # type: ignore
+            workflow["9"]["inputs"]["pixels"] = ["11", 0]
 
         return workflow
 
@@ -367,7 +367,7 @@ class WorkflowFactory:
                 "class_type": "LoadImage",
             }
             # Connect start image to video latent node
-            workflow["55"]["inputs"]["start_image"] = ["57", 0]  # type: ignore
+            workflow["55"]["inputs"]["start_image"] = ["57", 0]
 
         # Add output nodes based on format
         if output_format == "webm":
@@ -414,7 +414,7 @@ class WorkflowFactory:
         if seed == -1:
             seed = random.randint(0, 2**32 - 1)
 
-        workflow = {
+        workflow: Dict[str, Any] = {
             "1": {
                 "inputs": {"ckpt_name": model_name},
                 "class_type": "CheckpointLoaderSimple",

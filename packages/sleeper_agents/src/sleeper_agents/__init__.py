@@ -22,9 +22,9 @@ except (ImportError, AttributeError):
     pass
 
 # Lazy imports for torch-dependent modules
-SleeperDetector = None  # type: ignore
-EvaluationResult = None  # type: ignore
-ModelEvaluator = None  # type: ignore
+SleeperDetector = None
+EvaluationResult = None
+ModelEvaluator = None
 
 
 def __getattr__(name):

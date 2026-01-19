@@ -93,7 +93,8 @@ run_visual_tests() {
 
 # Function to detect architecture and set Selenium image
 detect_selenium_image() {
-    local arch=$(uname -m)
+    local arch
+    arch=$(uname -m)
     if [ "$arch" = "arm64" ] || [ "$arch" = "aarch64" ]; then
         # ARM64 architecture - use seleniarm
         export SELENIUM_IMAGE="seleniarm/standalone-chromium:latest"

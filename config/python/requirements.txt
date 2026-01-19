@@ -43,7 +43,7 @@ hypothesis>=6.100.0  # Property-based testing for state machine invariants
 
 # Code Quality - Ruff replaces black, flake8, isort, pylint (10-100x faster)
 ruff>=0.14.0  # Fast linter and formatter - replaces black/flake8/isort/pylint
-mypy>=1.0.0
+ty>=0.0.1a6  # Fast type checker from Astral (ruff team) - replaces mypy
 
 # Type stubs
 types-aiofiles>=24.1.0

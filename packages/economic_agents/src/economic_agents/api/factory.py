@@ -3,7 +3,7 @@
 Supports swapping between mock implementations and API clients based on configuration.
 """
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 from economic_agents.api.clients.compute_client import ComputeAPIClient
 from economic_agents.api.clients.investor_client import InvestorPortalAPIClient
@@ -42,6 +42,9 @@ class BackendFactory:
         """
         if self.config.mode == BackendMode.MOCK:
             return MockWallet(initial_balance=self.config.initial_balance)
+        # API mode - config is validated in __init__
+        assert self.config.api_config is not None
+        assert self.config.api_key is not None
         return WalletAPIClient(
             api_url=self.config.api_config.wallet_api_url,
             api_key=self.config.api_key,
@@ -62,6 +65,9 @@ class BackendFactory:
                 initial_hours=self.config.initial_compute_hours,
                 cost_per_hour=self.config.compute_cost_per_hour,
             )
+        # API mode - config is validated in __init__
+        assert self.config.api_config is not None
+        assert self.config.api_key is not None
         return ComputeAPIClient(
             api_url=self.config.api_config.compute_api_url,
             api_key=self.config.api_key,
@@ -80,6 +86,9 @@ class BackendFactory:
         """
         if self.config.mode == BackendMode.MOCK:
             return MockMarketplace(seed=self.config.marketplace_seed)
+        # API mode - config is validated in __init__
+        assert self.config.api_config is not None
+        assert self.config.api_key is not None
         return MarketplaceAPIClient(
             api_url=self.config.api_config.marketplace_api_url,
             api_key=self.config.api_key,
@@ -102,6 +111,9 @@ class BackendFactory:
         if self.config.mode == BackendMode.MOCK:
             # In mock mode, investment is handled internally
             return None
+        # API mode - config is validated in __init__
+        assert self.config.api_config is not None
+        assert self.config.api_key is not None
         return InvestorPortalAPIClient(
             api_url=self.config.api_config.investor_api_url,
             api_key=self.config.api_key,
@@ -124,7 +136,7 @@ class BackendFactory:
         )
 
 
-def create_backends(config: BackendConfig = None) -> Tuple:
+def create_backends(config: Optional[BackendConfig] = None) -> Tuple:
     """Convenience function to create backends.
 
     Args:

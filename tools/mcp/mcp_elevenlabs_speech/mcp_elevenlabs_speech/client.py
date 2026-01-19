@@ -371,7 +371,7 @@ class ElevenLabsClient:
             response = await self.client.get(f"{self.BASE_URL}/voices")
             if response.status_code == 200:
                 data = response.json()
-                return data.get("voices", [])  # type: ignore[no-any-return]
+                return data.get("voices", [])
 
             logger.error("Failed to get voices: %s", response.status_code)
             return []
@@ -395,7 +395,7 @@ class ElevenLabsClient:
         try:
             response = await self.client.get(f"{self.BASE_URL}/voices/{voice_id}")
             if response.status_code == 200:
-                return response.json()  # type: ignore[no-any-return]
+                return response.json()
 
             logger.error("Voice not found: %s", voice_id)
             return None
@@ -416,7 +416,7 @@ class ElevenLabsClient:
         try:
             response = await self.client.get(f"{self.BASE_URL}/user")
             if response.status_code == 200:
-                return response.json()  # type: ignore[no-any-return]
+                return response.json()
 
             logger.error("Failed to get user info: %s", response.status_code)
             return None
@@ -437,7 +437,7 @@ class ElevenLabsClient:
         try:
             response = await self.client.get(f"{self.BASE_URL}/models")
             if response.status_code == 200:
-                return response.json()  # type: ignore[no-any-return]
+                return response.json()
 
             logger.error("Failed to get models: %s", response.status_code)
             return []
@@ -584,7 +584,7 @@ async def quick_synthesize(
         result = await client.synthesize_speech(config)
 
         if result.success:
-            return result.local_path  # type: ignore[no-any-return]
+            return result.local_path
 
         logger.error("Quick synthesis failed: %s", result.error)
         return None

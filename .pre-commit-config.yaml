@@ -1,7 +1,7 @@
 # Pre-commit hooks for code quality
 # Run manually: pre-commit run --all-files
 # Install hooks: pre-commit install
-# Skip specific hooks: SKIP=mypy,shellcheck git commit
+# Skip specific hooks: SKIP=ty,shellcheck git commit
 # Auto-update hooks: pre-commit autoupdate
 
 repos:
@@ -59,14 +59,18 @@ repos:
         types: [shell]
         args: [-x]  # Follow source statements
 
-  # Python type checking
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.17.1
+  # Python type checking with ty (Astral's fast type checker, replaces mypy)
+  # ty is 10-60x faster than mypy with millisecond incremental updates
+  # Runs in container following container-first philosophy
+  - repo: local
     hooks:
-      - id: mypy
-        args: [--ignore-missing-imports, --no-error-summary, --explicit-package-bases]
-        additional_dependencies: [types-requests, types-PyYAML]
+      - id: ty
+        name: ty type check
+        entry: docker-compose run --rm python-ci ty check
+        language: system
+        types: [python]
         exclude: ^(docs/|tests/|automation/|packages/.*/bin/)
+        pass_filenames: false
 
   # Python docstring checking (optional - uncomment if needed)
   # - repo: https://github.com/pycqa/pydocstyle
@@ -109,7 +113,8 @@ repos:
 
       - id: rust-fmt-injection-toolkit
         name: Rust format injection-toolkit
-        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd packages/injection_toolkit && cargo fmt --all'
+        # Run through Docker for X11 dev library dependencies (container-first philosophy)
+        entry: docker-compose --profile ci run --rm rust-ci cargo fmt --all --manifest-path packages/injection_toolkit/Cargo.toml
         language: system
         files: '^packages/injection_toolkit/.*\.rs$'
         pass_filenames: false
@@ -130,7 +135,8 @@ repos:
 
       - id: rust-clippy-injection-toolkit
         name: Rust lint injection-toolkit
-        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd packages/injection_toolkit && cargo clippy -- -D warnings'
+        # Run through Docker for X11 dev library dependencies (container-first philosophy)
+        entry: docker-compose --profile ci run --rm rust-ci cargo clippy --manifest-path packages/injection_toolkit/Cargo.toml -- -D warnings
         language: system
         files: '^packages/injection_toolkit/.*\.rs$'
         pass_filenames: false

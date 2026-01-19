@@ -32,7 +32,7 @@ This MCP server is designed for **enterprise environments** where AI agents cann
               v
 +---------------------------------+
 |       Underlying Tools          |
-|  black, pytest, mypy, bandit    |
+|    black, pytest, ty, bandit    |
 |  (Controlled execution only)    |
 +---------------------------------+
 ```
@@ -52,7 +52,7 @@ This MCP server is designed for **enterprise environments** where AI agents cann
 | Linting | Validated | ruff, eslint, golint, clippy |
 | Auto-formatting | Validated | Automatic code formatting |
 | Test Running | Validated | pytest with coverage support |
-| Type Checking | Validated | mypy with strict mode |
+| Type Checking | Validated | ty (Astral's fast type checker) |
 | Security Scanning | Validated | bandit vulnerability detection |
 | Dependency Auditing | Validated | pip-audit CVE checking |
 | Markdown Links | Validated | Link validation in markdown files |
@@ -93,7 +93,7 @@ curl http://localhost:8010/mcp/execute -X POST \
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
 | `run_tests` | Execute pytest tests | `path`, `coverage`, `verbose`, `fail_fast`, `markers` |
-| `type_check` | Run mypy type checking | `path`, `strict`, `config` |
+| `type_check` | Run ty type checking (fast) | `path`, `strict`, `config` |
 | `security_scan` | Run bandit security analysis | `path`, `severity`, `confidence` |
 | `audit_dependencies` | Check for CVEs in dependencies | `requirements_file` |
 | `check_markdown_links` | Validate links in markdown | `path`, `check_external`, `timeout` |
@@ -162,13 +162,13 @@ Each linter supports its own configuration format:
 |--------|--------------|
 | ruff | `ruff.toml`, `pyproject.toml` |
 | eslint | `.eslintrc.json`, `.eslintrc.js` |
-| mypy | `mypy.ini`, `pyproject.toml` |
+| ty | `pyproject.toml` |
 
 ## Supported Languages
 
 | Language | Formatter | Linters |
 |----------|-----------|---------|
-| Python | ruff format | ruff, mypy, bandit |
+| Python | ruff format | ruff, ty, bandit |
 | JavaScript | prettier | eslint |
 | TypeScript | prettier | eslint |
 | Go | gofmt | golint |

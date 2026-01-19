@@ -42,7 +42,7 @@ class VirtualCharacterWithVoice:
 
         async with self.session.post(url, json=payload) as response:
             result = await response.json()
-            return result  # type: ignore[no-any-return]
+            return result
 
     async def generate_speech_with_expression(
         self, text: str, emotion_tags: Optional[list[str]] = None, voice: str = "Rachel"

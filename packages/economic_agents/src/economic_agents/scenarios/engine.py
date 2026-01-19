@@ -204,7 +204,7 @@ class ScenarioEngine:
         """
         if runner_func:
             # Call provided runner function
-            return runner_func(env_config, scenario_config)  # type: ignore[no-any-return]
+            return runner_func(env_config, scenario_config)
 
         # Run real agent
         return self._run_real_agent(env_config, scenario_config)

@@ -27,7 +27,7 @@ import secrets
 import time
 from typing import Any, Dict, Optional, Tuple
 
-import aiofiles  # type: ignore[import-untyped]
+import aiofiles
 from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ValidationError

@@ -293,7 +293,7 @@ class JobManager:
                 # Validate basic structure
                 if not isinstance(data, dict):
                     raise TypeError(f"Job data is not a dictionary: {type(data)}")
-                return data  # type: ignore
+                return data
             except (json.JSONDecodeError, KeyError, TypeError) as e:
                 logger.error("Failed to load or parse job %s: %s", job_id, e)
 

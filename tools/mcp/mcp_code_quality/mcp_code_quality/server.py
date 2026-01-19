@@ -20,7 +20,7 @@ Usage:
 """
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import logging
 import os
@@ -65,7 +65,7 @@ class CodeQualityMCPServer(BaseMCPServer):
     - Format checking and auto-formatting
     - Linting with multiple tools
     - Test execution with pytest
-    - Type checking with mypy
+    - Type checking with ty (Astral's fast type checker)
     - Security scanning with bandit
     - Dependency vulnerability auditing
     - Markdown link checking
@@ -198,7 +198,7 @@ class CodeQualityMCPServer(BaseMCPServer):
             details: Additional details to log
         """
         entry = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "operation": operation,
             "path": path,
             "success": success,
@@ -345,7 +345,7 @@ class CodeQualityMCPServer(BaseMCPServer):
                 },
             },
             "type_check": {
-                "description": "Run mypy type checking",
+                "description": "Run ty type checking (Astral's fast type checker, 10-60x faster than mypy)",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -356,11 +356,11 @@ class CodeQualityMCPServer(BaseMCPServer):
                         "strict": {
                             "type": "boolean",
                             "default": False,
-                            "description": "Enable strict mode",
+                            "description": "Enable strict mode (currently unused, ty uses pyproject.toml config)",
                         },
                         "config": {
                             "type": "string",
-                            "description": "Path to mypy configuration file",
+                            "description": "Path to pyproject.toml configuration file (optional)",
                         },
                     },
                     "required": ["path"],
@@ -800,12 +800,12 @@ class CodeQualityMCPServer(BaseMCPServer):
 
     async def type_check(self, path: str, strict: bool = False, config: Optional[str] = None) -> Dict[str, Any]:
         """
-        Run mypy type checking.
+        Run ty type checking (Astral's fast type checker).
 
         Args:
             path: Path to file or directory to check
-            strict: Enable strict mode
-            config: Path to mypy configuration file
+            strict: Enable strict mode (currently unused, ty uses pyproject.toml config)
+            config: Path to pyproject.toml configuration file (optional)
 
         Returns:
             Dictionary with type checking results
@@ -824,10 +824,10 @@ class CodeQualityMCPServer(BaseMCPServer):
                 "allowed_paths": self.allowed_paths,
             }
 
-        cmd = ["mypy", path]
+        # ty check command - uses pyproject.toml for configuration
+        cmd = ["ty", "check", path]
 
-        if strict:
-            cmd.append("--strict")
+        # Config file support (ty reads from pyproject.toml by default)
         if config:
             if not self._validate_path(config):
                 return {
@@ -835,19 +835,17 @@ class CodeQualityMCPServer(BaseMCPServer):
                     "error": f"Config path not allowed: {config}",
                     "error_type": "path_validation",
                 }
-            cmd.extend(["--config-file", config])
-
-        # Always add ignore-missing-imports to avoid failures on untyped dependencies
-        cmd.append("--ignore-missing-imports")
+            cmd.extend(["--config", config])
 
         try:
-            logger.info("Running mypy on: %s", path)
+            logger.info("Running ty on: %s", path)
             result = self._run_subprocess(cmd)
 
             issues = []
             if result.stdout:
                 issues = result.stdout.splitlines()
 
+            # ty returns 0 on success, non-zero on errors
             passed = result.returncode == 0
             self._audit_log("type_check", path, passed, {"issue_count": len(issues)})
 
@@ -866,10 +864,10 @@ class CodeQualityMCPServer(BaseMCPServer):
                 "error_type": "timeout",
             }
         except FileNotFoundError:
-            self._audit_log("type_check", path, False, {"reason": "tool_not_found", "tool": "mypy"})
+            self._audit_log("type_check", path, False, {"reason": "tool_not_found", "tool": "ty"})
             return {
                 "success": False,
-                "error": "mypy not found. Please install it first.",
+                "error": "ty not found. Install with: pip install ty",
                 "error_type": "tool_not_found",
             }
         except Exception as e:
@@ -1078,7 +1076,7 @@ class CodeQualityMCPServer(BaseMCPServer):
             )
 
             self._audit_log("check_markdown_links", path, result.get("success", False))
-            return result  # type: ignore[no-any-return]
+            return result
         except Exception as e:
             logger.error("Markdown link check error: %s", str(e))
             self._audit_log("check_markdown_links", path, False, {"reason": "exception", "error": str(e)})
@@ -1098,7 +1096,7 @@ class CodeQualityMCPServer(BaseMCPServer):
             ("black", ["black", "--version"]),
             ("flake8", ["flake8", "--version"]),
             ("ruff", ["ruff", "--version"]),
-            ("mypy", ["mypy", "--version"]),
+            ("ty", ["ty", "--version"]),
             ("pytest", ["pytest", "--version"]),
             ("bandit", ["bandit", "--version"]),
             ("pip-audit", ["pip-audit", "--version"]),

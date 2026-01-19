@@ -16,7 +16,7 @@ try:
     import torch
 except ImportError:
     # Optional dependency - None sentinel when torch unavailable
-    torch = None  # type: ignore[assignment]
+    torch = None
 
 logger = logging.getLogger(__name__)
 

@@ -126,7 +126,8 @@ class MockMarketplace(MarketplaceInterface):
             task_id = str(uuid.uuid4())
 
             # Adjust reward based on market dynamics
-            base_reward = template["reward"]
+            # template is a dict from CODING_TASKS with mixed value types
+            base_reward: float = template["reward"]  # type: ignore[assignment]
             if self.market_dynamics:
                 reward_multiplier = self.market_dynamics.get_reward_multiplier()
                 adjusted_reward = base_reward * reward_multiplier
@@ -135,13 +136,13 @@ class MockMarketplace(MarketplaceInterface):
 
             task = Task(
                 id=task_id,
-                title=template["title"],
-                description=template["description"],
-                requirements=template.get("requirements", {}),
+                title=str(template["title"]),
+                description=str(template["description"]),
+                requirements=template.get("requirements", {}),  # type: ignore[arg-type]
                 reward=adjusted_reward,
                 deadline=datetime.now() + timedelta(days=7),
-                difficulty=template["difficulty"],
-                category=template["category"],
+                difficulty=str(template["difficulty"]),  # type: ignore[arg-type]
+                category=str(template["category"]),
             )
             self.tasks[task_id] = task
 

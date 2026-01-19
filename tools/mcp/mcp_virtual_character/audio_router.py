@@ -272,7 +272,8 @@ def test_audio_routing():
     router = VoiceMeeterAudioRouter()
 
     # Create a test beep
-    test_file = tempfile.mktemp(suffix=".wav")
+    fd, test_file = tempfile.mkstemp(suffix=".wav")
+    os.close(fd)
 
     print("Creating test audio file...")
     cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:duration=1", "-y", test_file]

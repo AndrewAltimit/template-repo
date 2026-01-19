@@ -108,7 +108,7 @@ docker-compose run --rm python-ci pytest -k "test_format" -v
 # Direct Docker Compose commands
 docker-compose run --rm python-ci ruff check .
 docker-compose run --rm python-ci ruff format --check .
-docker-compose run --rm python-ci mypy . --ignore-missing-imports
+docker-compose run --rm python-ci ty check  # Fast type checker (replaces mypy)
 
 # Note: All Python CI/CD tools run in containers to ensure consistency
 

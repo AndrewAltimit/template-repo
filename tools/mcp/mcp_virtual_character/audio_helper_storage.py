@@ -85,7 +85,7 @@ def send_audio_via_storage(
         else:
             print(f"✗ Failed to play: {result.get('error', 'Unknown error')}")
 
-        return result  # type: ignore[no-any-return]
+        return result
 
     except requests.exceptions.RequestException as e:
         return {"success": False, "error": f"Connection error: {str(e)}"}

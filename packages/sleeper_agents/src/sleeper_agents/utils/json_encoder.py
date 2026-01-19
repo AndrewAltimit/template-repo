@@ -1,6 +1,6 @@
 """Custom JSON encoder for numpy types and versioned output support."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from typing import Any, Dict, Optional
 
@@ -44,7 +44,7 @@ def create_versioned_output(
     output: Dict[str, Any] = {
         "schema_version": version,
         "schema_type": schema_type,
-        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "generated_at": datetime.now(timezone.utc).isoformat() + "Z",
         "data": data,
     }
 

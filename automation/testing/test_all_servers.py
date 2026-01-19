@@ -6,16 +6,19 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
+
+# Type alias for server configuration
+ServerConfig = Dict[str, Any]
 
 
 class MCPServerTester:
     """Test all MCP servers"""
 
     def __init__(self):
-        self.servers = [
+        self.servers: List[ServerConfig] = [
             {
                 "name": "Code Quality",
                 "module": "mcp_code_quality.server",
@@ -76,7 +79,7 @@ class MCPServerTester:
 
     async def start_server(self, server_info: dict) -> Optional[subprocess.Popen]:
         """Start an MCP server"""
-        if self.is_port_open(server_info["port"]):
+        if self.is_port_open(int(server_info["port"])):
             print(f"⚠️  Port {server_info['port']} already in use, skipping {server_info['name']}")
             return None
 
@@ -156,7 +159,7 @@ class MCPServerTester:
 
         for server in self.servers:
             print(f"\n{server['name']} Server:")
-            if self.is_port_open(server["port"]):
+            if self.is_port_open(int(server["port"])):
                 results[server["name"]] = await self.test_server(server)
             else:
                 print("  ⚠️  Server not running")
@@ -201,7 +204,7 @@ class MCPServerTester:
 
         for server in self.servers:
             print(f"\n{server['name']} Server:")
-            if self.is_port_open(server["port"]):
+            if self.is_port_open(int(server["port"])):
                 results[server["name"]] = await self.test_server(server)
             else:
                 print(f"  ⚠️  Not running on port {server['port']}")

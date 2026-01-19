@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# mypy: ignore-errors
 """Comprehensive validation script for Blender MCP Server.
 
 This script tests all major capabilities of the Blender MCP server including:
@@ -28,7 +27,7 @@ try:
 except ImportError:
     # Try alternative import for Docker environment
     sys.path.insert(0, "/app")
-    from core.client import MCPClient  # type: ignore[no-redef]
+    from core.client import MCPClient
 
 
 class BlenderValidationSuite:

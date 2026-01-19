@@ -214,7 +214,7 @@ class StateManager:
             "use_of_funds": proposal.use_of_funds,
             "milestones": proposal.milestones,
             "risks": proposal.risks,
-            "created_at": proposal.created_at.isoformat(),
+            "created_at": proposal.created_at.isoformat(),  # type: ignore[attr-defined]
         }
 
     def _serialize_investment(self, investment: Investment) -> Dict[str, Any]:
@@ -224,7 +224,7 @@ class StateManager:
             "company_id": investment.company_id,
             "investor_id": investment.investor_id,
             "amount": investment.amount,
-            "equity_percentage": investment.equity_percentage,
+            "equity_percentage": investment.equity_percentage,  # type: ignore[attr-defined]
             "valuation": investment.valuation,
             "stage": investment.stage.value,
             "invested_at": investment.invested_at.isoformat(),

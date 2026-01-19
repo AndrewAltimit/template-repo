@@ -3,7 +3,7 @@
 Structure validation for Gaea2 project files
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 import uuid
@@ -186,7 +186,7 @@ class Gaea2StructureValidator:
 
     def _create_default_metadata(self, project_name: Optional[str] = None) -> Dict[str, Any]:
         """Create default metadata"""
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%SZ")
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
 
         return {
             "$id": "236",
@@ -202,7 +202,7 @@ class Gaea2StructureValidator:
     def _fix_metadata(self, metadata: Dict[str, Any], project_name: Optional[str] = None) -> Dict[str, Any]:
         """Fix metadata issues"""
         fixed = metadata.copy()
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%SZ")
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
 
         if "Name" not in fixed or not fixed["Name"]:
             fixed["Name"] = project_name or "Untitled"
@@ -223,7 +223,7 @@ class Gaea2StructureValidator:
 
     def _create_default_assets(self, project_name: Optional[str] = None) -> Dict[str, Any]:
         """Create default assets structure"""
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%SZ")
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
         terrain_id = str(uuid.uuid4())
 
         return {

@@ -192,7 +192,7 @@ async fn list_tools() -> Json<Value> {
             },
             {
                 "name": "type_check",
-                "description": "Run mypy type checking",
+                "description": "Run ty type checking (Astral's fast type checker)",
                 "inputSchema": {
                     "type": "object",
                     "properties": {

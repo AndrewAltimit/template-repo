@@ -72,8 +72,9 @@ case "$STAGE" in
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
     # Full ruff check (replaces flake8 and pylint) - informational, doesn't fail
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --exit-zero --output-format="$RUFF_OUTPUT_FORMAT" .
-    # Type checking with mypy (packages already installed in image)
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci mypy . --ignore-missing-imports --no-error-summary || true
+    # Type checking with ty (Astral's fast type checker, replaces mypy)
+    # ty is 10-60x faster than mypy with millisecond incremental updates
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ty check . || true
     ;;
 
   ruff)

@@ -33,4 +33,5 @@ windows = { workspace = true, features = [
 ] }
 
 [target.'cfg(unix)'.dependencies]
-x11 = { version = "2.21", features = ["xlib"] }
+# Using x11rb (safe Rust bindings) instead of raw x11/xlib
+x11rb = { version = "0.13", features = ["shape", "xfixes"] }

@@ -117,10 +117,10 @@ def sample_video_points(video_path, sample_points):
         audio_path = temp_dir / f"audio_{i}_{timestamp:.1f}s.wav"
 
         # Extract frame
-        frame_extracted = get_frame_at_timestamp(video_path, timestamp, frame_path)
+        frame_extracted = get_frame_at_timestamp(video_path, timestamp, str(frame_path))
 
         # Extract 1 second of audio
-        audio_extracted = get_audio_segment(video_path, timestamp, 1.0, audio_path)
+        audio_extracted = get_audio_segment(video_path, timestamp, 1.0, str(audio_path))
 
         result = {"timestamp": timestamp, "frame": None, "audio": None}
 
@@ -220,7 +220,7 @@ def _test_frame_extraction(validation_results):
     frame_valid = True
     for i, timestamp in enumerate(scene_times):
         frame_path = temp_dir / f"scene_{i + 1}_at_{timestamp:.1f}s.jpg"
-        if get_frame_at_timestamp(test_video, timestamp, frame_path):
+        if get_frame_at_timestamp(str(test_video), timestamp, str(frame_path)):
             if frame_path.exists():
                 frame_info = analyze_frame(frame_path)
                 if frame_info:
@@ -263,7 +263,7 @@ def _test_audio_continuity(validation_results):
 
         for sample_time in sample_times:
             if 0 <= sample_time < duration:
-                if get_audio_segment(video_path, sample_time, 0.5, temp_audio):
+                if get_audio_segment(video_path, sample_time, 0.5, str(temp_audio)):
                     audio_info = analyze_audio_segment(temp_audio)
                     if audio_info:
                         print(f"  ✓ {Path(video_path).name} - Audio at {sample_time:.1f}s")
