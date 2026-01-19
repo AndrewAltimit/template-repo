@@ -151,36 +151,30 @@ pub struct TypeCheckResponse {
     pub message: Option<String>,
 }
 
-/// Run mypy type checking
+/// Run ty type checking (Astral's fast type checker, 10-60x faster than mypy)
 pub async fn type_check(
     path: &Path,
-    strict: bool,
+    _strict: bool, // Currently unused, ty uses pyproject.toml config
     config: Option<&str>,
     timeout: Duration,
 ) -> Result<TypeCheckResponse> {
-    let mut args = vec![];
-
-    if strict {
-        args.push("--strict");
-    }
-    args.push("--ignore-missing-imports");
+    let mut args = vec!["check".to_string()];
 
     if let Some(cfg) = config {
-        args.push("--config-file");
-        args.push(cfg);
+        args.push("--config".to_string());
+        args.push(cfg.to_string());
     }
 
-    let path_str = path.display().to_string();
-    args.push(&path_str);
+    args.push(path.display().to_string());
 
-    let args_owned: Vec<&str> = args.to_vec();
-    let result = run_command("mypy", &args_owned, None, timeout).await?;
+    let args_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    let result = run_command("ty", &args_refs, None, timeout).await?;
 
-    // Count errors from output
+    // Count errors from output (ty format: "error[rule-name]: message")
     let error_count = result
         .stdout
         .lines()
-        .filter(|line| line.contains("error:"))
+        .filter(|line| line.starts_with("error["))
         .count();
 
     Ok(TypeCheckResponse {

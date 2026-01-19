@@ -329,7 +329,7 @@ class TestTypeCheck:
 
             assert result["success"] is True
             assert result["passed"] is True
-            assert "mypy" in mock_run.call_args[0][0]
+            assert "ty" in mock_run.call_args[0][0]
 
     @pytest.mark.asyncio
     async def test_type_check_with_errors(self, server):

@@ -34,7 +34,7 @@ pub async fn get_status(rate_limiting_enabled: bool) -> Result<StatusResponse> {
     // ruff replaces black, flake8, pylint, AND bandit security rules (10-100x faster)
     let tools_to_check = [
         "ruff",            // Modern: replaces black, flake8, pylint, bandit
-        "mypy",            // Type checking (no modern replacement yet)
+        "ty",              // Type checking (Astral's fast type checker)
         "pip-audit",       // Dependency auditing
         "pytest",          // Testing
         "prettier",        // JS/TS formatting
