@@ -41,9 +41,9 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-          fi
+          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
+          # This must run unconditionally to handle root-owned files from previous Docker runs
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
 
       - name: Checkout code
         uses: actions/checkout@v6
