@@ -1,7 +1,5 @@
 """Audio processing module for video editor - Whisper transcription and speaker diarization"""
 
-# mypy: ignore-errors
-
 import hashlib
 import json
 import os

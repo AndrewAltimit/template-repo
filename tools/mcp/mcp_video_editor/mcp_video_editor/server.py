@@ -1,7 +1,5 @@
 """Video Editor MCP Server - Intelligent automated video editing"""
 
-# mypy: ignore-errors
-
 import asyncio
 import os
 import shutil

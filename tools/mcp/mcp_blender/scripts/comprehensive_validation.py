@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# mypy: ignore-errors
 """Comprehensive validation script for Blender MCP Server.
 
 This script tests all major capabilities of the Blender MCP server including:

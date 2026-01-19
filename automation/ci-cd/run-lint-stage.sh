@@ -124,13 +124,13 @@ case "$STAGE" in
       errors=$((errors + ${ruff_critical:-0}))
     fi
 
-    # Type checking with MyPy (informational - doesn't fail build)
-    # Packages already installed in image
-    echo "🔍 Running MyPy type checker..."
-    docker-compose run --rm python-ci mypy . --ignore-missing-imports --no-error-summary 2>&1 | tee -a lint-output.txt || true
-    mypy_errors=$(grep -c ": error:" lint-output.txt 2>/dev/null || echo 0)
-    mypy_errors=$(ensure_numeric "$mypy_errors")
-    echo "  MyPy found $mypy_errors errors (informational)"
+    # Type checking with ty (Astral's fast type checker, replaces mypy)
+    # ty is 10-60x faster than mypy with millisecond incremental updates
+    echo "🔍 Running ty type checker..."
+    docker-compose run --rm python-ci ty check 2>&1 | tee -a lint-output.txt || true
+    ty_errors=$(grep -c "^error\[" lint-output.txt 2>/dev/null || echo 0)
+    ty_errors=$(ensure_numeric "$ty_errors")
+    echo "  ty found $ty_errors errors (informational)"
 
     # Security scanning with Bandit (informational)
     echo "🔍 Running Bandit security scanner..."
