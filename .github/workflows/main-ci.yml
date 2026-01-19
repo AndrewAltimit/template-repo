@@ -614,101 +614,85 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install Rust toolchain
-        run: |
-          # Install Rust if not present
-          if ! command -v rustup &> /dev/null; then
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-            echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          fi
-          source "$HOME/.cargo/env" || true
-          rustup update stable
-          rustup default stable
-          # Add Windows cross-compile target
-          rustup target add x86_64-pc-windows-gnu
-
-      - name: Install cross-compile dependencies
-        run: |
-          # Install mingw-w64 for Windows cross-compilation
-          sudo apt-get update
-          sudo apt-get install -y mingw-w64
-
       - name: Create output directory
         run: mkdir -p rust-binaries
 
-      - name: Build pr-monitor (Linux)
+      # Build CLI tools using containerized Rust CI (container-first philosophy)
+      # These tools don't require X11 or special system dependencies
+      - name: Build Rust CLI tools (Linux) via container
         run: |
-          source "$HOME/.cargo/env" || true
-          cd tools/rust/pr-monitor
-          cargo build --release
-          cp target/release/pr-monitor ../../../rust-binaries/pr-monitor-linux-x64
-          echo "Built pr-monitor for Linux x64"
+          echo "Building Rust CLI tools using rust-ci container..."
+          docker-compose --profile ci run --rm -w /app rust-ci bash -c '
+            set -e
 
-      - name: Build gh-validator (Linux)
+            # Build pr-monitor
+            cd /app/tools/rust/pr-monitor
+            cargo build --release
+            cp target/release/pr-monitor /app/rust-binaries/pr-monitor-linux-x64
+            echo "Built pr-monitor for Linux x64"
+
+            # Build gh-validator
+            cd /app/tools/rust/gh-validator
+            cargo build --release
+            cp target/release/gh /app/rust-binaries/gh-linux-x64
+            echo "Built gh-validator for Linux x64"
+
+            # Build board-manager
+            cd /app/tools/rust/board-manager
+            cargo build --release
+            cp target/release/board-manager /app/rust-binaries/board-manager-linux-x64
+            echo "Built board-manager for Linux x64"
+
+            # Build mcp-code-quality
+            cd /app/tools/rust/mcp-code-quality
+            cargo build --release
+            cp target/release/mcp-code-quality /app/rust-binaries/mcp-code-quality-linux-x64
+            echo "Built mcp-code-quality for Linux x64"
+
+            # Build markdown-link-checker
+            cd /app/tools/rust/markdown-link-checker
+            cargo build --release
+            cp target/release/md-link-checker /app/rust-binaries/markdown-link-checker-linux-x64
+            echo "Built md-link-checker for Linux x64"
+
+            # Build github-agents-cli
+            cd /app/tools/rust/github-agents-cli
+            cargo build --release
+            cp target/release/github-agents /app/rust-binaries/github-agents-linux-x64
+            echo "Built github-agents for Linux x64"
+          '
+
+      # Build injection-toolkit using rust-ci container (has libx11-dev for overlay)
+      - name: Build injection-toolkit (Linux) via container
         run: |
-          source "$HOME/.cargo/env" || true
-          cd tools/rust/gh-validator
-          cargo build --release
-          cp target/release/gh ../../../rust-binaries/gh-linux-x64
-          echo "Built gh-validator for Linux x64"
+          echo "Building injection-toolkit using rust-ci container (has X11 libs)..."
+          docker-compose --profile ci run --rm -w /app rust-ci bash -c '
+            set -e
+            cd /app/packages/injection_toolkit
+            cargo build --release --bin itk-daemon --bin itk-overlay
+            cp target/release/itk-daemon /app/rust-binaries/itk-daemon-linux-x64
+            cp target/release/itk-overlay /app/rust-binaries/itk-overlay-linux-x64
+            echo "Built injection-toolkit binaries for Linux x64"
+          '
 
-      - name: Build board-manager (Linux)
+      # Build injection-toolkit for Windows using rust-ci-nightly (has mingw-w64)
+      - name: Build injection-toolkit (Windows cross-compile) via container
         run: |
-          source "$HOME/.cargo/env" || true
-          cd tools/rust/board-manager
-          cargo build --release
-          cp target/release/board-manager ../../../rust-binaries/board-manager-linux-x64
-          echo "Built board-manager for Linux x64"
-
-      - name: Build mcp-code-quality (Linux)
-        run: |
-          source "$HOME/.cargo/env" || true
-          cd tools/rust/mcp-code-quality
-          cargo build --release
-          cp target/release/mcp-code-quality ../../../rust-binaries/mcp-code-quality-linux-x64
-          echo "Built mcp-code-quality for Linux x64"
-
-      - name: Build markdown-link-checker (Linux)
-        run: |
-          source "$HOME/.cargo/env" || true
-          cd tools/rust/markdown-link-checker
-          cargo build --release
-          cp target/release/md-link-checker ../../../rust-binaries/markdown-link-checker-linux-x64
-          echo "Built md-link-checker for Linux x64"
-
-      - name: Build github-agents-cli (Linux)
-        run: |
-          source "$HOME/.cargo/env" || true
-          cd tools/rust/github-agents-cli
-          cargo build --release
-          cp target/release/github-agents ../../../rust-binaries/github-agents-linux-x64
-          echo "Built github-agents for Linux x64"
-
-      # Note: code-parser is a library crate (no binary) - used by other Rust tools
-
-      - name: Build injection-toolkit (Linux)
-        run: |
-          source "$HOME/.cargo/env" || true
-          cd packages/injection_toolkit
-          cargo build --release --bin itk-daemon --bin itk-overlay
-          cp target/release/itk-daemon ../../rust-binaries/itk-daemon-linux-x64
-          cp target/release/itk-overlay ../../rust-binaries/itk-overlay-linux-x64
-          echo "Built injection-toolkit binaries for Linux x64"
-
-      - name: Build injection-toolkit (Windows cross-compile)
-        run: |
-          source "$HOME/.cargo/env" || true
-          cd packages/injection_toolkit
-          # Cross-compile for Windows (daemon and overlay only, not injectors which need Windows SDK)
-          cargo build --release --target x86_64-pc-windows-gnu --bin itk-daemon --bin itk-overlay || {
-            echo "Windows cross-compile failed (may need additional deps), skipping..."
-            exit 0
-          }
-          if [ -f target/x86_64-pc-windows-gnu/release/itk-daemon.exe ]; then
-            cp target/x86_64-pc-windows-gnu/release/itk-daemon.exe ../../rust-binaries/itk-daemon-windows-x64.exe
-            cp target/x86_64-pc-windows-gnu/release/itk-overlay.exe ../../rust-binaries/itk-overlay-windows-x64.exe
-            echo "Built injection-toolkit binaries for Windows x64"
-          fi
+          echo "Building injection-toolkit for Windows using rust-ci-nightly container (has mingw-w64)..."
+          docker-compose --profile ci run --rm -w /app rust-ci-nightly bash -c '
+            set -e
+            cd /app/packages/injection_toolkit
+            # Cross-compile for Windows (daemon and overlay only, not injectors which need Windows SDK)
+            cargo build --release --target x86_64-pc-windows-gnu --bin itk-daemon --bin itk-overlay || {
+              echo "Windows cross-compile failed (may need additional deps), skipping..."
+              exit 0
+            }
+            if [ -f target/x86_64-pc-windows-gnu/release/itk-daemon.exe ]; then
+              cp target/x86_64-pc-windows-gnu/release/itk-daemon.exe /app/rust-binaries/itk-daemon-windows-x64.exe
+              cp target/x86_64-pc-windows-gnu/release/itk-overlay.exe /app/rust-binaries/itk-overlay-windows-x64.exe
+              echo "Built injection-toolkit binaries for Windows x64"
+            fi
+          '
 
       - name: List built binaries
         run: |
