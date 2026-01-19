@@ -1,0 +1,58 @@
+name: 'Setup Node.js (nvm)'
+description: 'Setup Node.js using nvm on self-hosted runners'
+
+inputs:
+  node-version:
+    description: 'Node.js version to use'
+    required: false
+    default: '22.16.0'
+  verify-cli:
+    description: 'Comma-separated list of CLI tools to verify (gemini,codex)'
+    required: false
+    default: ''
+
+outputs:
+  node-version:
+    description: 'Actual Node.js version used'
+    value: ${{ steps.setup.outputs.node-version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js with nvm
+      id: setup
+      shell: bash
+      env:
+        NODE_VERSION: ${{ inputs.node-version }}
+        VERIFY_CLI: ${{ inputs.verify-cli }}
+      run: |
+        # Source nvm if available
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+        # Use or install specified Node.js version
+        if nvm use "$NODE_VERSION" 2>/dev/null; then
+          echo "Using Node.js $NODE_VERSION"
+        else
+          echo "Installing Node.js $NODE_VERSION..."
+          nvm install "$NODE_VERSION"
+          nvm use "$NODE_VERSION"
+        fi
+
+        ACTUAL_VERSION=$(node --version)
+        echo "Node.js version: $ACTUAL_VERSION"
+        echo "node-version=$ACTUAL_VERSION" >> $GITHUB_OUTPUT
+
+        # Verify CLI tools if requested
+        if [ -n "$VERIFY_CLI" ]; then
+          IFS=',' read -ra CLI_ARRAY <<< "$VERIFY_CLI"
+          for cli in "${CLI_ARRAY[@]}"; do
+            cli=$(echo "$cli" | xargs)  # Trim whitespace
+            if which "$cli" >/dev/null 2>&1; then
+              echo "Found $cli: $(which $cli)"
+              $cli --version 2>/dev/null || echo "$cli version check skipped"
+            else
+              echo "Warning: $cli CLI not found in PATH"
+            fi
+          done
+        fi

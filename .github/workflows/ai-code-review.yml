@@ -1,0 +1,277 @@
+---
+name: AI Code Review (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      agent:
+        description: 'AI agent to use (gemini, codex)'
+        required: true
+        type: string
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: number
+      enable_editor:
+        description: 'Enable editor cleanup pass (Gemini only)'
+        required: false
+        type: boolean
+        default: true
+      timeout_minutes:
+        description: 'Job timeout in minutes'
+        required: false
+        type: number
+        default: 30
+      continue_on_error:
+        description: 'Continue if review fails'
+        required: false
+        type: boolean
+        default: false
+      start_reaction_server:
+        description: 'Start reaction search MCP server'
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      review_status:
+        description: 'Status of the review (success, failure, rate_limited)'
+        value: ${{ jobs.review.outputs.status }}
+      is_agent_commit:
+        description: 'Whether the last commit was by an agent'
+        value: ${{ jobs.review.outputs.is_agent_commit }}
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  review:
+    name: ${{ inputs.agent == 'gemini' && 'Gemini' || inputs.agent == 'codex' && 'Codex' || inputs.agent }} AI Review
+    runs-on: self-hosted
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    continue-on-error: ${{ inputs.continue_on_error }}
+    outputs:
+      status: ${{ steps.review.outputs.status }}
+      is_agent_commit: ${{ steps.check-agent.outputs.is_agent_commit }}
+    steps:
+      # Pre-checkout cleanup for Docker permission issues
+      - name: Pre-checkout cleanup
+        run: |
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Download Rust CLI tools artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-cli-tools
+          path: rust-tools
+
+      - name: Setup Rust CLI tools
+        run: |
+          echo "Setting up Rust CLI tools..."
+          echo "Downloaded artifact contents:"
+          ls -la rust-tools/ || echo "Warning: rust-tools directory not found"
+
+          if [ -f "rust-tools/github-agents" ]; then
+            chmod +x rust-tools/github-agents
+            mkdir -p tools/rust/github-agents-cli/target/release
+            cp rust-tools/github-agents tools/rust/github-agents-cli/target/release/
+            echo "Installed github-agents CLI"
+            ls -la tools/rust/github-agents-cli/target/release/github-agents
+          else
+            echo "ERROR: github-agents binary not found in artifact!"
+            exit 1
+          fi
+
+          if [ -f "rust-tools/board-manager" ]; then
+            chmod +x rust-tools/board-manager
+            mkdir -p tools/rust/board-manager/target/release
+            cp rust-tools/board-manager tools/rust/board-manager/target/release/
+            echo "Installed board-manager CLI"
+          fi
+
+          echo "Rust CLI tools setup complete"
+
+      - name: Log commit info
+        id: check-agent
+        run: |
+          LAST_COMMIT_MSG=$(git log -1 --format='%s')
+          LAST_COMMIT_AUTHOR=$(git log -1 --format='%an')
+
+          echo "Last commit message: $LAST_COMMIT_MSG"
+          echo "Last commit author: $LAST_COMMIT_AUTHOR"
+
+          IS_AGENT_COMMIT="false"
+          if [[ "$LAST_COMMIT_AUTHOR" == "AI Review Agent" ]] || \
+             [[ "$LAST_COMMIT_AUTHOR" == "AI Pipeline Agent" ]] || \
+             [[ "$LAST_COMMIT_AUTHOR" == "AI Agent Bot" ]]; then
+            IS_AGENT_COMMIT="true"
+            echo "Agent commit detected"
+          fi
+
+          echo "is_agent_commit=$IS_AGENT_COMMIT" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js with nvm
+        shell: bash
+        env:
+          AGENT: ${{ inputs.agent }}
+        run: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm use 22.16.0 || nvm install 22.16.0
+          echo "Node.js version: $(node --version)"
+          if [ -n "$AGENT" ]; then
+            which "$AGENT" >/dev/null 2>&1 && echo "Found $AGENT CLI" || echo "Warning: $AGENT CLI not found"
+          fi
+
+      # Gemini-specific: Clear conversation history
+      - name: Clear Gemini conversation history
+        if: inputs.agent == 'gemini'
+        continue-on-error: true
+        run: |
+          echo "Clearing Gemini conversation history..."
+          # Install uv for fast package installation
+          if ! command -v uv &> /dev/null; then
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            export PATH="$HOME/.local/bin:$PATH"
+          fi
+          # Create temporary venv for MCP packages
+          uv venv .gemini-venv
+          source .gemini-venv/bin/activate
+          uv pip install -e ./tools/mcp/mcp_core
+          uv pip install -e ./tools/mcp/mcp_gemini
+
+          # Start Gemini MCP server in background
+          python -m mcp_gemini.server --mode http &
+          GEMINI_PID=$!
+
+          # Wait for server to be ready
+          echo "Waiting for Gemini server..."
+          for i in {1..30}; do
+            if curl -f -s http://localhost:8006/health > /dev/null 2>&1; then
+              echo "Gemini server is ready"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Gemini server failed to start"
+              kill $GEMINI_PID || true
+              exit 1
+            fi
+            sleep 1
+          done
+
+          # Clear history
+          curl -X POST http://localhost:8006/mcp/execute \
+            -H "Content-Type: application/json" \
+            -d '{"tool": "clear_gemini_history", "arguments": {}}' \
+            || echo "Warning: Could not clear Gemini history"
+
+          kill $GEMINI_PID || true
+
+      # Gemini-specific: Start reaction search server
+      - name: Start Reaction Search MCP Server
+        if: inputs.agent == 'gemini' && inputs.start_reaction_server
+        run: |
+          echo "Starting Reaction Search MCP server..."
+          source ./automation/setup/docker/set-docker-user.sh 2>/dev/null || true
+          docker-compose --profile services up -d mcp-reaction-search
+
+          echo "Waiting for Reaction Search server..."
+          for i in {1..60}; do
+            if curl -f -s http://localhost:8024/health > /dev/null 2>&1; then
+              echo "Reaction Search MCP server is ready"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "Warning: Reaction Search server not ready - reviews will use fallback URLs"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Run AI Code Review
+        id: review
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          AGENT: ${{ inputs.agent }}
+          ENABLE_EDITOR: ${{ inputs.enable_editor }}
+        run: |
+          # Check API Key for Gemini
+          if [ "$AGENT" = "gemini" ]; then
+            if [ -z "${GOOGLE_API_KEY}" ]; then
+              echo "Warning: GOOGLE_API_KEY is empty"
+            else
+              echo "GOOGLE_API_KEY is set (length: ${#GOOGLE_API_KEY})"
+            fi
+          fi
+
+          echo "Starting $AGENT PR Review (Rust CLI)..."
+
+          # Build command
+          CMD="./tools/rust/github-agents-cli/target/release/github-agents pr-review $PR_NUMBER"
+          if [ "$AGENT" = "codex" ]; then
+            CMD="$CMD --agent codex"
+          elif [ "$AGENT" = "gemini" ] && [ "$ENABLE_EDITOR" = "true" ]; then
+            CMD="$CMD --editor"
+          fi
+
+          # Run review and capture output
+          set +e
+          OUTPUT=$($CMD 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          echo "$OUTPUT"
+
+          # Save review to file for artifact upload
+          echo "$OUTPUT" > $AGENT-review.md
+          echo "Saved review to $AGENT-review.md"
+
+          # Handle rate limits gracefully
+          if [ $EXIT_CODE -ne 0 ]; then
+            if echo "$OUTPUT" | grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage.?limit'; then
+              echo "::warning::$AGENT API rate limit hit - skipping review for this run"
+              echo "status=rate_limited" >> $GITHUB_OUTPUT
+              exit 0
+            else
+              echo "status=failure" >> $GITHUB_OUTPUT
+              exit $EXIT_CODE
+            fi
+          fi
+
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      # Gemini-specific: Stop reaction search server
+      - name: Stop Reaction Search MCP Server
+        if: always() && inputs.agent == 'gemini' && inputs.start_reaction_server
+        run: |
+          echo "Stopping Reaction Search MCP server..."
+          docker-compose --profile services stop mcp-reaction-search || true
+          docker-compose --profile services rm -f mcp-reaction-search || true
+
+      - name: Upload review artifact
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ inputs.agent }}-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ inputs.agent }}-review.md
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Clean up working directory
+        if: always()
+        run: |
+          git checkout -- . 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
+          echo "Working directory cleaned"

@@ -1,0 +1,72 @@
+name: 'Setup Rust CLI Tools'
+description: 'Download and configure Rust CLI tools from workflow artifacts'
+
+inputs:
+  artifact-name:
+    description: 'Name of the artifact containing Rust binaries'
+    required: false
+    default: 'rust-cli-tools'
+  download-path:
+    description: 'Path to download artifact to'
+    required: false
+    default: 'rust-tools'
+  tools:
+    description: 'Comma-separated list of tools to setup (github-agents,board-manager,md-link-checker)'
+    required: false
+    default: 'github-agents,board-manager'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download Rust CLI tools artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.download-path }}
+
+    - name: Setup Rust CLI tools
+      shell: bash
+      env:
+        DOWNLOAD_PATH: ${{ inputs.download-path }}
+        TOOLS: ${{ inputs.tools }}
+      run: |
+        echo "Setting up Rust CLI tools from $DOWNLOAD_PATH..."
+        echo "Downloaded artifact contents:"
+        ls -la "$DOWNLOAD_PATH/"
+
+        # Setup each requested tool
+        IFS=',' read -ra TOOL_ARRAY <<< "$TOOLS"
+        for tool in "${TOOL_ARRAY[@]}"; do
+          tool=$(echo "$tool" | xargs)  # Trim whitespace
+          case "$tool" in
+            github-agents)
+              if [ -f "$DOWNLOAD_PATH/github-agents" ]; then
+                chmod +x "$DOWNLOAD_PATH/github-agents"
+                mkdir -p tools/rust/github-agents-cli/target/release
+                cp "$DOWNLOAD_PATH/github-agents" tools/rust/github-agents-cli/target/release/
+                echo "Installed github-agents CLI"
+              fi
+              ;;
+            board-manager)
+              if [ -f "$DOWNLOAD_PATH/board-manager" ]; then
+                chmod +x "$DOWNLOAD_PATH/board-manager"
+                mkdir -p tools/rust/board-manager/target/release
+                cp "$DOWNLOAD_PATH/board-manager" tools/rust/board-manager/target/release/
+                echo "Installed board-manager CLI"
+              fi
+              ;;
+            md-link-checker)
+              if [ -f "$DOWNLOAD_PATH/md-link-checker" ]; then
+                chmod +x "$DOWNLOAD_PATH/md-link-checker"
+                mkdir -p tools/rust/markdown-link-checker/target/release
+                cp "$DOWNLOAD_PATH/md-link-checker" tools/rust/markdown-link-checker/target/release/
+                echo "Installed md-link-checker CLI"
+              fi
+              ;;
+            *)
+              echo "Unknown tool: $tool"
+              ;;
+          esac
+        done
+
+        echo "Rust CLI tools setup complete"
