@@ -247,9 +247,9 @@ if [ -n "$CLAUDE_CMD" ]; then
         TIMEOUT_CMD=""
     fi
 
-    # Run Claude
+    # Run Claude with prompt via stdin to avoid "Argument list too long" errors
     # shellcheck disable=SC2086
-    $TIMEOUT_CMD $CLAUDE_CMD -p "$(cat "$PROMPT_FILE")" 2>&1 || {
+    $TIMEOUT_CMD $CLAUDE_CMD -p < "$PROMPT_FILE" 2>&1 || {
         exit_code=$?
         echo "Claude exited with code: $exit_code"
         if [ $exit_code -eq 124 ]; then

@@ -576,9 +576,10 @@ if [ -n "$CLAUDE_CMD" ]; then
         TIMEOUT_CMD=""
     fi
 
-    # Run Claude with the prompt - it will use tools to read/edit files
+    # Run Claude with the prompt via stdin to avoid "Argument list too long" errors
+    # The prompt file can be very large (includes CLAUDE.md context, review feedback, etc.)
     # shellcheck disable=SC2086
-    $TIMEOUT_CMD $CLAUDE_CMD "$(cat "$PROMPT_FILE")" 2>&1 | tee "$CLAUDE_OUTPUT_FILE" || {
+    $TIMEOUT_CMD $CLAUDE_CMD < "$PROMPT_FILE" 2>&1 | tee "$CLAUDE_OUTPUT_FILE" || {
         exit_code=$?
         echo "Claude exited with code: $exit_code"
         if [ $exit_code -eq 124 ]; then

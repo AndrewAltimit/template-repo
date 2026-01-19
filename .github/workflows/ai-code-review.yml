@@ -77,11 +77,28 @@ jobs:
       - name: Setup Rust CLI tools
         run: |
           echo "Setting up Rust CLI tools..."
-          chmod +x rust-tools/github-agents rust-tools/board-manager 2>/dev/null || true
-          mkdir -p tools/rust/github-agents-cli/target/release tools/rust/board-manager/target/release
-          cp rust-tools/github-agents tools/rust/github-agents-cli/target/release/ 2>/dev/null || true
-          cp rust-tools/board-manager tools/rust/board-manager/target/release/ 2>/dev/null || true
-          echo "Rust CLI tools installed"
+          echo "Downloaded artifact contents:"
+          ls -la rust-tools/ || echo "Warning: rust-tools directory not found"
+
+          if [ -f "rust-tools/github-agents" ]; then
+            chmod +x rust-tools/github-agents
+            mkdir -p tools/rust/github-agents-cli/target/release
+            cp rust-tools/github-agents tools/rust/github-agents-cli/target/release/
+            echo "Installed github-agents CLI"
+            ls -la tools/rust/github-agents-cli/target/release/github-agents
+          else
+            echo "ERROR: github-agents binary not found in artifact!"
+            exit 1
+          fi
+
+          if [ -f "rust-tools/board-manager" ]; then
+            chmod +x rust-tools/board-manager
+            mkdir -p tools/rust/board-manager/target/release
+            cp rust-tools/board-manager tools/rust/board-manager/target/release/
+            echo "Installed board-manager CLI"
+          fi
+
+          echo "Rust CLI tools setup complete"
 
       - name: Log commit info
         id: check-agent
