@@ -1,55 +1,48 @@
 //! Linux-specific overlay functionality (X11)
 
 use crate::{OverlayError, Result};
-use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+use winit::raw_window_handle::{
+    HasDisplayHandle, HasWindowHandle, RawDisplayHandle, RawWindowHandle,
+};
+
+/// Get the X11 display pointer from a window
+fn get_x11_display(window: &winit::window::Window) -> Result<*mut x11::xlib::Display> {
+    let display_handle = window
+        .display_handle()
+        .map_err(|e| OverlayError::WindowCreation(e.to_string()))?;
+
+    match display_handle.as_raw() {
+        RawDisplayHandle::Xlib(xlib_display) => xlib_display
+            .display
+            .map(|d| d.as_ptr() as *mut x11::xlib::Display)
+            .ok_or_else(|| OverlayError::WindowCreation("No X11 display".into())),
+        _ => Err(OverlayError::WindowCreation("Not an Xlib display".into())),
+    }
+}
 
 /// Set click-through mode using X11 shape extension
 ///
 /// On X11, we use the SHAPE extension to set an empty input region,
 /// making all input pass through to the window below.
+///
+/// NOTE: This currently requires x11rb with the "shape" feature for proper
+/// shape extension support. The x11 crate doesn't include libXext bindings.
+/// This is a stub implementation that logs a warning.
 pub fn set_click_through_impl(window: &winit::window::Window, enabled: bool) -> Result<()> {
     let handle = window
         .window_handle()
         .map_err(|e| OverlayError::WindowCreation(e.to_string()))?;
 
     match handle.as_raw() {
-        RawWindowHandle::Xlib(xlib_handle) => {
-            unsafe {
-                let display = xlib_handle
-                    .display
-                    .map(|d| d.as_ptr())
-                    .ok_or_else(|| OverlayError::WindowCreation("No X11 display".into()))?;
-                let window_id = xlib_handle.window;
-
-                if enabled {
-                    // Set empty input shape (all input passes through)
-                    // Using XShapeCombineRectangles with ShapeInput and empty rect list
-                    x11::xlib::XShapeCombineRectangles(
-                        display as *mut _,
-                        window_id,
-                        x11::xlib::ShapeInput,
-                        0,
-                        0,
-                        std::ptr::null_mut(),
-                        0,
-                        x11::xlib::ShapeSet,
-                        x11::xlib::Unsorted,
-                    );
-                } else {
-                    // Reset input shape to window bounds
-                    x11::xlib::XShapeCombineMask(
-                        display as *mut _,
-                        window_id,
-                        x11::xlib::ShapeInput,
-                        0,
-                        0,
-                        0, // None = reset to default
-                        x11::xlib::ShapeSet,
-                    );
-                }
-
-                x11::xlib::XFlush(display as *mut _);
-            }
+        RawWindowHandle::Xlib(_xlib_handle) => {
+            // TODO: Implement proper click-through using x11rb with shape extension
+            // The x11 crate doesn't include libXext/shape extension bindings.
+            // For now, we log a warning about this limitation.
+            tracing::warn!(
+                "Click-through {} requested but X11 shape extension not available. \
+                 Add x11rb with 'shape' feature for full support.",
+                if enabled { "enable" } else { "disable" }
+            );
             Ok(())
         }
         RawWindowHandle::Xcb(_) => {
@@ -80,12 +73,8 @@ pub fn set_always_on_top_impl(window: &winit::window::Window, enabled: bool) -> 
     match handle.as_raw() {
         RawWindowHandle::Xlib(xlib_handle) => {
             unsafe {
-                let display = xlib_handle
-                    .display
-                    .map(|d| d.as_ptr())
-                    .ok_or_else(|| OverlayError::WindowCreation("No X11 display".into()))?;
-                let window_id = xlib_handle.window;
-                let display = display as *mut x11::xlib::Display;
+                let display = get_x11_display(window)?;
+                let window_id = xlib_handle.window as x11::xlib::Window;
 
                 // Get atoms
                 let wm_state = x11::xlib::XInternAtom(
@@ -137,12 +126,8 @@ pub fn set_transparent_impl(window: &winit::window::Window) -> Result<()> {
     match handle.as_raw() {
         RawWindowHandle::Xlib(xlib_handle) => {
             unsafe {
-                let display = xlib_handle
-                    .display
-                    .map(|d| d.as_ptr())
-                    .ok_or_else(|| OverlayError::WindowCreation("No X11 display".into()))?;
-                let window_id = xlib_handle.window;
-                let display = display as *mut x11::xlib::Display;
+                let display = get_x11_display(window)?;
+                let window_id = xlib_handle.window as x11::xlib::Window;
 
                 // Set window type to dock/overlay
                 let wm_window_type = x11::xlib::XInternAtom(

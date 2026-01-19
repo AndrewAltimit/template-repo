@@ -34,3 +34,5 @@ windows = { workspace = true, features = [
 
 [target.'cfg(unix)'.dependencies]
 x11 = { version = "2.21", features = ["xlib"] }
+# Note: x11rb with "shape" feature could be added for click-through support
+# x11rb = { version = "0.13", features = ["shape"] }

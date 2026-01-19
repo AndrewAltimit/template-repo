@@ -64,20 +64,30 @@ known_first_party = [
 ]
 known_local_folder = ["tools", "automation"]
 
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-ignore_missing_imports = true
-no_error_summary = true
-explicit_package_bases = true
+# ty - Fast type checker from Astral (ruff team), replaces mypy
+# 10-60x faster than mypy, designed for incremental updates
+[tool.ty]
+
+# Target Python version for type analysis
+[tool.ty.environment]
+python-version = "3.11"
+
+# Source file configuration
+[tool.ty.src]
 # Exclude directories that can't be valid Python packages or are build artifacts
 exclude = [
     "automation/corporate-proxy/",
-    "databricks/.*/build/",
+    "databricks/**/build/",
     "build/",
     "dist/",
+    ".venv/",
+    "venv/",
 ]
+
+# Rule configuration - equivalent to mypy's ignore_missing_imports
+[tool.ty.rules]
+# Ignore missing third-party imports (equivalent to mypy's ignore_missing_imports)
+unresolved-import = "ignore"
 
 [tool.pytest.ini_options]
 minversion = "6.0"

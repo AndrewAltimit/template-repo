@@ -59,7 +59,7 @@ async def analyze_real_projects(official_dir=None, user_dir=None, output_file="g
         return False
 
     # Check if directories exist
-    if not os.path.exists(official_dir):
+    if official_dir is None or not os.path.exists(official_dir):
         print(f"Warning: Official projects directory not found: {official_dir}")
         print("Set GAEA_OFFICIAL_PROJECTS_DIR environment variable to specify the correct path")
         official_results = {"projects_analyzed": 0}
@@ -69,7 +69,7 @@ async def analyze_real_projects(official_dir=None, user_dir=None, output_file="g
         print(f"✓ Analyzed {official_results['projects_analyzed']} official projects")
 
     # Analyze user projects
-    if not os.path.exists(user_dir):
+    if user_dir is None or not os.path.exists(user_dir):
         print(f"\nWarning: User projects directory not found: {user_dir}")
         print("Set GAEA_USER_PROJECTS_DIR environment variable to specify the correct path")
         user_results = {"projects_analyzed": official_results["projects_analyzed"]}

@@ -1,7 +1,7 @@
 # Pre-commit hooks for code quality
 # Run manually: pre-commit run --all-files
 # Install hooks: pre-commit install
-# Skip specific hooks: SKIP=mypy,shellcheck git commit
+# Skip specific hooks: SKIP=ty,shellcheck git commit
 # Auto-update hooks: pre-commit autoupdate
 
 repos:
@@ -59,14 +59,17 @@ repos:
         types: [shell]
         args: [-x]  # Follow source statements
 
-  # Python type checking
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.17.1
+  # Python type checking with ty (Astral's fast type checker, replaces mypy)
+  # ty is 10-60x faster than mypy with millisecond incremental updates
+  - repo: local
     hooks:
-      - id: mypy
-        args: [--ignore-missing-imports, --no-error-summary, --explicit-package-bases]
-        additional_dependencies: [types-requests, types-PyYAML]
+      - id: ty
+        name: ty type check
+        entry: ty check
+        language: system
+        types: [python]
         exclude: ^(docs/|tests/|automation/|packages/.*/bin/)
+        pass_filenames: false
 
   # Python docstring checking (optional - uncomment if needed)
   # - repo: https://github.com/pycqa/pydocstyle
