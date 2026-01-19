@@ -39,13 +39,6 @@ on:
       is_agent_commit:
         description: 'Whether the last commit was by an agent'
         value: ${{ jobs.review.outputs.is_agent_commit }}
-    secrets:
-      GOOGLE_API_KEY:
-        required: false
-      GEMINI_API_KEY:
-        required: false
-      GITHUB_TOKEN:
-        required: true
 
 env:
   DOCKER_BUILDKIT: 1

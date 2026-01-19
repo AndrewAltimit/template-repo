@@ -174,10 +174,7 @@ jobs:
       enable_editor: true
       timeout_minutes: 30
       start_reaction_server: true
-    secrets:
-      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    secrets: inherit
 
   # Stage 2b: Codex AI Code Review (Secondary reviewer)
   codex-review:
@@ -193,8 +190,7 @@ jobs:
       pr_number: ${{ github.event.pull_request.number }}
       timeout_minutes: 15
       continue_on_error: true
-    secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    secrets: inherit
 
   # Stage 2c: Agent Review Response (responds to Gemini/Codex feedback)
   agent-review-response:
