@@ -31,7 +31,6 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  # Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
 
@@ -53,29 +52,13 @@ jobs:
       injection_toolkit_changed: ${{ steps.changes.outputs.injection_toolkit_changed }}
       files_changed: ${{ steps.changes.outputs.files_changed }}
     steps:
-      # Pre-checkout cleanup: Remove Docker-created directories that cause permission errors
-      # This must run BEFORE checkout because checkout's clean:true can't delete root-owned files
-      - name: Pre-checkout cleanup
-        run: |
-          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
-          # This must run unconditionally to handle root-owned files from previous Docker runs
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: ./.github/actions/secure-checkout
         with:
           fetch-depth: 0
-          clean: true
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
-          lfs: true
-
-      - name: Post-checkout setup
-        run: |
-          # Initialize output directories to prevent root ownership issues
-          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
-            ./automation/setup/docker/init-output-dirs.sh
-          fi
+          init-output-dirs: true
 
       - name: Detect file changes
         id: changes
@@ -137,17 +120,11 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
-          # This must run unconditionally to handle root-owned files from previous Docker runs
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: ./.github/actions/secure-checkout
         with:
           fetch-depth: 1
-          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build github-agents-cli
         run: |
@@ -190,254 +167,17 @@ jobs:
     name: Gemini AI Code Review
     needs: [detect-changes, build-rust-tools]
     if: github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft)
-    runs-on: self-hosted
-    timeout-minutes: 30  # Increased for large PRs - API calls with retry logic can take time
-    outputs:
-      is_agent_commit: ${{ steps.check-agent.outputs.is_agent_commit }}  # Informational only
-    env:
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-      PR_TITLE: ${{ github.event.pull_request.title }}
-      PR_BODY: ${{ github.event.pull_request.body }}
-      PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-      BASE_BRANCH: ${{ github.base_ref }}
-      HEAD_BRANCH: ${{ github.head_ref }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}  # Free tier API key from Google AI Studio
-    steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
-          # This must run unconditionally to handle root-owned files from previous Docker runs
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          clean: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          ref: ${{ github.head_ref }}
-          lfs: true
-
-      - name: Download Rust CLI tools
-        uses: actions/download-artifact@v4
-        with:
-          name: rust-cli-tools
-          path: rust-tools
-
-      - name: Setup Rust CLI tools
-        run: |
-          # Make binaries executable and move to expected locations
-          echo "Downloaded artifact contents:"
-          ls -la rust-tools/
-          chmod +x rust-tools/github-agents
-          chmod +x rust-tools/board-manager
-          mkdir -p tools/rust/github-agents-cli/target/release
-          mkdir -p tools/rust/board-manager/target/release
-          cp rust-tools/github-agents tools/rust/github-agents-cli/target/release/
-          cp rust-tools/board-manager tools/rust/board-manager/target/release/
-          echo "Rust CLI tools installed:"
-          ls -la tools/rust/github-agents-cli/target/release/github-agents
-          ls -la tools/rust/board-manager/target/release/board-manager
-
-      # Log commit info for debugging (reviews always run, agent decides whether to act)
-      - name: Log commit info
-        id: check-agent
-        run: |
-          LAST_COMMIT_MSG=$(git log -1 --format='%s')
-          LAST_COMMIT_AUTHOR=$(git log -1 --format='%an')
-
-          echo "Last commit message: $LAST_COMMIT_MSG"
-          echo "Last commit author: $LAST_COMMIT_AUTHOR"
-
-          # Reviews always run - agent response job decides whether to commit fixes
-          # Safety: iteration counter limits to 5 cycles, agent checks for new issues
-          IS_AGENT_COMMIT="false"
-          if [[ "$LAST_COMMIT_AUTHOR" == "AI Review Agent" ]] || \
-             [[ "$LAST_COMMIT_AUTHOR" == "AI Pipeline Agent" ]] || \
-             [[ "$LAST_COMMIT_AUTHOR" == "AI Agent Bot" ]]; then
-            IS_AGENT_COMMIT="true"
-            echo "Agent commit detected - reviews will still run, agent will evaluate if action needed"
-          fi
-
-          echo "is_agent_commit=$IS_AGENT_COMMIT" >> $GITHUB_OUTPUT
-
-      # Python cache cleanup not needed with proper user permissions
-
-      - name: Copy changed files list
-        # Reviews always run (agent decides whether to act)
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git diff --name-only origin/${{ github.base_ref }}...HEAD > changed_files.txt
-          fi
-
-      # Skip Python setup on self-hosted runner - use system Python
-
-      - name: Setup Node.js with nvm
-        # Reviews always run (agent decides whether to act)
-        shell: bash
-        run: |
-          # Source nvm if available
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
-          # Use Node.js 22.16.0
-          nvm use 22.16.0
-          echo "Node.js version: $(node --version)"
-
-          # Verify Gemini CLI is available
-          which gemini || echo "Gemini CLI not found in PATH"
-
-      - name: Prepare Gemini review context
-        # Reviews always run (agent decides whether to act)
-        run: |
-          echo "📋 Preparing review context..."
-          # Ensure PROJECT_CONTEXT.md is available
-          if [ ! -f "PROJECT_CONTEXT.md" ]; then
-            echo "Warning: PROJECT_CONTEXT.md not found - Gemini will use fallback context"
-          else
-            echo "Found PROJECT_CONTEXT.md - Gemini will have full project context"
-          fi
-
-      - name: Clear Gemini conversation history
-        # Reviews always run (agent decides whether to act)
-        continue-on-error: true
-        run: |
-          echo "🧹 Clearing Gemini conversation history..."
-          # Install uv for fast package installation (if not available)
-          if ! command -v uv &> /dev/null; then
-            curl -LsSf https://astral.sh/uv/install.sh | sh
-            export PATH="$HOME/.local/bin:$PATH"
-          fi
-          # Create temporary venv for MCP packages (avoids polluting system Python)
-          uv venv .gemini-venv
-          source .gemini-venv/bin/activate
-          # Install mcp packages for host execution (10-100x faster with uv)
-          uv pip install -e ./tools/mcp/mcp_core
-          uv pip install -e ./tools/mcp/mcp_gemini
-          # Gemini MCP server must run on host (not in container)
-          # Start Gemini MCP server in background
-          python -m mcp_gemini.server --mode http &
-          GEMINI_PID=$!
-
-          # Wait for server to be ready with health check polling
-          echo "⏳ Waiting for Gemini server to be ready..."
-          for i in {1..30}; do
-            if curl -f -s http://localhost:8006/health > /dev/null 2>&1; then
-              echo "✅ Gemini server is ready"
-              break
-            fi
-            if [ $i -eq 30 ]; then
-              echo "❌ Gemini server failed to start after 30 seconds"
-              kill $GEMINI_PID || true
-              exit 1
-            fi
-            echo "  Attempt $i/30..."
-            sleep 1
-          done
-
-          # Call the clear history endpoint via Gemini MCP server
-          curl -X POST http://localhost:8006/mcp/execute \
-            -H "Content-Type: application/json" \
-            -d '{"tool": "clear_gemini_history", "arguments": {}}' \
-            || echo "Warning: Could not clear Gemini history"
-
-          # Stop the Gemini server
-          kill $GEMINI_PID || true
-
-
-      - name: Start Reaction Search MCP Server
-        # Reviews always run (agent decides whether to act)
-        run: |
-          echo "🎭 Starting Reaction Search MCP server..."
-          # Set Docker user environment
-          source ./automation/setup/docker/set-docker-user.sh 2>/dev/null || true
-
-          # Build and start the reaction-search server
-          docker-compose --profile services up -d mcp-reaction-search
-
-          # Wait for server to be healthy (model loading can take time)
-          echo "⏳ Waiting for Reaction Search server to be ready..."
-          for i in {1..60}; do
-            if curl -f -s http://localhost:8024/health > /dev/null 2>&1; then
-              echo "✅ Reaction Search MCP server is ready"
-              break
-            fi
-            if [ $i -eq 60 ]; then
-              echo "⚠️ Reaction Search server not ready after 60s - reviews will use fallback URLs"
-              break
-            fi
-            echo "  Attempt $i/60..."
-            sleep 2
-          done
-
-      - name: Run Gemini PR Review (Rust CLI)
-        # Reviews always run (agent decides whether to act)
-        shell: bash
-        env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || '' }}
-        run: |
-          # Check API Key
-          echo "🔑 Checking API Key..."
-          if [ -z "${GOOGLE_API_KEY}" ]; then
-            echo "❌ GOOGLE_API_KEY is empty!"
-          else
-            echo "✅ GOOGLE_API_KEY is set (length: ${#GOOGLE_API_KEY})"
-          fi
-
-          # Run Rust CLI for PR review (binary provided by build-rust-tools job)
-          # --editor enables a cleanup pass with Claude to strip any reasoning/chain-of-thought
-          echo "🚀 Starting Gemini PR Review (Rust CLI)..."
-
-          # Capture output and exit code - handle 429 rate limit errors gracefully
-          set +e
-          OUTPUT=$(./tools/rust/github-agents-cli/target/release/github-agents pr-review "$PR_NUMBER" --editor 2>&1)
-          EXIT_CODE=$?
-          set -e
-
-          echo "$OUTPUT"
-
-          # Save review to file for artifact upload and agent-review-response job
-          # The Rust CLI posts to PR comments but doesn't create a file
-          echo "$OUTPUT" > gemini-review.md
-          echo "Saved review to gemini-review.md for agent-review-response"
-
-          if [ $EXIT_CODE -ne 0 ]; then
-            # Check for rate limit (429) or quota errors
-            if echo "$OUTPUT" | grep -qiE '429|rate.?limit|quota|resource.?exhausted'; then
-              echo "::warning::Gemini API rate limit hit (429) - skipping review for this run"
-              echo "The review will be attempted again on the next pipeline run."
-              exit 0
-            else
-              # Propagate other errors normally
-              exit $EXIT_CODE
-            fi
-          fi
-
-      - name: Stop Reaction Search MCP Server
-        if: always()
-        run: |
-          echo "🛑 Stopping Reaction Search MCP server..."
-          docker-compose --profile services stop mcp-reaction-search || true
-          docker-compose --profile services rm -f mcp-reaction-search || true
-
-      - name: Upload review artifact
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: gemini-review-${{ github.run_id }}-${{ github.run_attempt }}
-          path: gemini-review.md
-          retention-days: 7
-          if-no-files-found: ignore
-
-      - name: Clean up working directory
-        if: always()
-        run: |
-          # Ensure clean slate for subsequent jobs - remove any modified/untracked files
-          git checkout -- . 2>/dev/null || true
-          git clean -fd 2>/dev/null || true
-          echo "Working directory cleaned"
+    uses: ./.github/workflows/ai-code-review.yml
+    with:
+      agent: gemini
+      pr_number: ${{ github.event.pull_request.number }}
+      enable_editor: true
+      timeout_minutes: 30
+      start_reaction_server: true
+    secrets:
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Stage 2b: Codex AI Code Review (Secondary reviewer)
   codex-review:
@@ -447,116 +187,16 @@ jobs:
       github.event_name == 'pull_request' &&
       (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft) &&
       needs.gemini-review.result != 'skipped'
-    runs-on: self-hosted
-    timeout-minutes: 15  # Shorter timeout - Codex is faster
-    continue-on-error: true  # Advisory review - don't block PR on Codex failures
-    env:
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
-          # This must run unconditionally to handle root-owned files from previous Docker runs
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          clean: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          ref: ${{ github.head_ref }}
-          lfs: true
-
-      - name: Download Rust tools artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: rust-cli-tools
-          path: rust-tools
-
-      - name: Setup Rust CLI tools
-        run: |
-          # Make binaries executable and move to expected locations
-          chmod +x rust-tools/github-agents
-          chmod +x rust-tools/board-manager
-          mkdir -p tools/rust/github-agents-cli/target/release
-          mkdir -p tools/rust/board-manager/target/release
-          cp rust-tools/github-agents tools/rust/github-agents-cli/target/release/
-          cp rust-tools/board-manager tools/rust/board-manager/target/release/
-          echo "Rust CLI tools installed"
-
-      - name: Setup Node.js with nvm
-        shell: bash
-        run: |
-          # Source nvm if available (needed for Codex CLI)
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
-          # Use Node.js 22.16.0
-          nvm use 22.16.0
-          echo "Node.js version: $(node --version)"
-
-          # Verify Codex CLI is available
-          which codex || echo "Codex CLI not found in PATH"
-          codex --version || echo "Could not get Codex version"
-
-      - name: Run Codex PR Review (Rust CLI)
-        shell: bash
-        run: |
-          echo "Starting Codex PR Review (Rust CLI)..."
-
-          # Capture output and exit code - handle rate limit errors gracefully
-          set +e
-          OUTPUT=$(./tools/rust/github-agents-cli/target/release/github-agents pr-review "$PR_NUMBER" --agent codex 2>&1)
-          EXIT_CODE=$?
-
-          # Check for rate limit FIRST, before any echo that might fail
-          # Use grep with here-string to avoid SIGPIPE/broken pipe issues
-          if [ $EXIT_CODE -ne 0 ]; then
-            # Pattern matches: "429", "rate limit", "quota", "resource exhausted", "usage_limit", "usage limit"
-            if grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage.?limit' <<< "$OUTPUT"; then
-              echo "::warning::Codex API rate limit hit - skipping review for this run"
-              echo "The review will be attempted again on the next pipeline run."
-              # Show truncated output for debugging
-              head -50 <<< "$OUTPUT" || true
-              exit 0
-            fi
-          fi
-
-          # Now safe to show output (use cat with here-doc to avoid broken pipe)
-          cat <<< "$OUTPUT" || true
-
-          # Save review to file for artifact upload and agent-review-response job
-          echo "$OUTPUT" > codex-review.md
-          echo "Saved review to codex-review.md for agent-review-response"
-
-          set -e
-
-          if [ $EXIT_CODE -ne 0 ]; then
-            # Propagate other errors (but continue-on-error is set at job level)
-            exit $EXIT_CODE
-          fi
-
-      - name: Upload Codex review artifact
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: codex-review-${{ github.run_id }}-${{ github.run_attempt }}
-          path: codex-review.md
-          retention-days: 7
-          if-no-files-found: ignore
-
-      - name: Clean up working directory
-        if: always()
-        run: |
-          # Ensure clean slate for subsequent jobs - remove any modified/untracked files
-          git checkout -- . 2>/dev/null || true
-          git clean -fd 2>/dev/null || true
-          echo "Working directory cleaned"
+    uses: ./.github/workflows/ai-code-review.yml
+    with:
+      agent: codex
+      pr_number: ${{ github.event.pull_request.number }}
+      timeout_minutes: 15
+      continue_on_error: true
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Stage 2c: Agent Review Response (responds to Gemini/Codex feedback)
-  # Always runs - agent evaluates reviews and decides whether to commit fixes
   agent-review-response:
     name: Agent Review Response
     needs: [detect-changes, gemini-review, codex-review]
@@ -578,35 +218,19 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.AGENT_TOKEN }}
       GITHUB_REPOSITORY: ${{ github.repository }}
     steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
-          # This must run unconditionally to handle root-owned files from previous Docker runs
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: ./.github/actions/secure-checkout
         with:
           fetch-depth: 0
-          clean: true
           token: ${{ secrets.AGENT_TOKEN }}
           ref: ${{ github.head_ref }}
-          lfs: true
+          init-output-dirs: true
 
       - name: Ensure clean working directory
         run: |
-          # Reset any tracked file changes and remove untracked files
-          # This ensures agent sees pristine PR code, not any reviewer artifacts
           git checkout -- . 2>/dev/null || true
           git clean -fd 2>/dev/null || true
           echo "Working directory reset to clean state"
-
-      - name: Initialize output directories
-        run: |
-          # Pre-create output directories with correct ownership before Docker runs
-          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
-            ./automation/setup/docker/init-output-dirs.sh
-          fi
 
       - name: Check iteration count
         id: iteration
@@ -623,9 +247,6 @@ jobs:
           echo "made_changes=false" >> $GITHUB_OUTPUT
           exit 0
 
-      # Note: We do NOT skip on agent commits - agent evaluates if new issues exist
-      # The iteration counter (max 5) prevents infinite loops
-
       - name: Download review artifacts
         if: steps.iteration.outputs.should_skip != 'true'
         uses: actions/download-artifact@v6
@@ -635,19 +256,13 @@ jobs:
           merge-multiple: true
           path: .
 
-      - name: Setup Node.js with nvm
+      - name: Setup Node.js
         if: steps.iteration.outputs.should_skip != 'true'
-        shell: bash
-        run: |
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-          nvm use 22.16.0 || nvm install 22.16.0
-          echo "Node.js version: $(node --version)"
+        uses: ./.github/actions/setup-nodejs
 
       - name: Set Docker user environment
         if: steps.iteration.outputs.should_skip != 'true'
-        run: |
-          source ./automation/setup/docker/set-docker-user.sh
+        run: source ./automation/setup/docker/set-docker-user.sh
 
       - name: Run agent review response
         id: agent-fix
@@ -666,22 +281,14 @@ jobs:
             "$ITERATION_COUNT" \
             "5"
 
-      - name: Log result
-        if: always()
-        run: |
-          echo "Agent review response completed"
-          echo "Made changes: ${{ steps.agent-fix.outputs.made_changes || 'false' }}"
-          echo "Iteration: ${{ steps.iteration.outputs.iteration_count }}"
-
       - name: Cleanup output directories
         if: always()
         run: |
-          # Clean up Docker-created output directories to prevent permission issues
           if [ -f "./automation/ci-cd/cleanup-outputs.sh" ]; then
             ./automation/ci-cd/cleanup-outputs.sh
           fi
 
-  # Stage 3a: Format check stage (runs after agent has chance to fix review items)
+  # Stage 3a: Format check stage
   format-check:
     name: Python Format Check
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
@@ -695,7 +302,7 @@ jobs:
       upload_artifacts: true
     secrets: inherit
 
-  # Stage 3b: Basic lint stage (runs after agent has chance to fix review items)
+  # Stage 3b: Basic lint stage
   basic-lint:
     name: Python Basic Lint
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
@@ -741,166 +348,30 @@ jobs:
     name: Config File Validation
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: needs.detect-changes.outputs.yaml_changed == 'true'
-    runs-on: self-hosted
-    timeout-minutes: 10
-    steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
-          # This must run unconditionally to handle root-owned files from previous Docker runs
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          clean: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          ref: ${{ github.head_ref }}
-          lfs: true
-
-      - name: Validate YAML and JSON files
-        run: |
-          echo "🔍 Validating configuration files..."
-          ./automation/ci-cd/run-ci.sh yaml-lint
-          ./automation/ci-cd/run-ci.sh json-lint
+    uses: ./.github/workflows/validation-stages.yml
+    with:
+      stage: config
+    secrets: inherit
 
   # Stage 4b: Workflow file validation (always run)
-  # Uses actionlint for GitHub Actions-specific validation (expressions, contexts, etc.)
   workflow-validation:
     name: Workflow File Validation
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: always() && !cancelled()
-    runs-on: self-hosted
-    timeout-minutes: 5
-    steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
-          # This must run unconditionally to handle root-owned files from previous Docker runs
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          clean: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          ref: ${{ github.head_ref }}
-          lfs: true
-
-      - name: Run actionlint (GitHub Actions-specific validation)
-        run: |
-          echo "🔍 Running actionlint for GitHub Actions-specific validation..."
-
-          # Install actionlint if not available
-          if ! command -v actionlint &> /dev/null; then
-            echo "Installing actionlint..."
-
-            # Detect architecture
-            ARCH=$(uname -m)
-            case "$ARCH" in
-              x86_64)  ARCH_SUFFIX="amd64" ;;
-              aarch64) ARCH_SUFFIX="arm64" ;;
-              arm64)   ARCH_SUFFIX="arm64" ;;
-              *)       echo "Unsupported architecture: $ARCH"; exit 1 ;;
-            esac
-            echo "Detected architecture: $ARCH -> $ARCH_SUFFIX"
-
-            # Download latest release for Linux (authenticated to avoid rate limits)
-            ACTIONLINT_VERSION=$(curl -sf -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              https://api.github.com/repos/rhysd/actionlint/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-            if [ -z "$ACTIONLINT_VERSION" ]; then
-              echo "Failed to fetch actionlint version from GitHub API"
-              exit 1
-            fi
-            echo "Installing actionlint v${ACTIONLINT_VERSION} for linux_${ARCH_SUFFIX}"
-            curl -sfLO "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_${ARCH_SUFFIX}.tar.gz"
-            tar -xzf "actionlint_${ACTIONLINT_VERSION}_linux_${ARCH_SUFFIX}.tar.gz" actionlint
-            chmod +x actionlint
-            ACTIONLINT_CMD="./actionlint"
-          else
-            ACTIONLINT_CMD="actionlint"
-          fi
-
-          # Run actionlint on all workflow files
-          echo "Validating workflow files with actionlint..."
-          if $ACTIONLINT_CMD -color; then
-            echo "✅ All workflow files pass actionlint validation!"
-          else
-            echo "❌ actionlint found issues in workflow files"
-            exit 1
-          fi
-
-      - name: Run YAML structure validation
-        run: |
-          echo "🔍 Validating YAML structure of workflow files..."
-
-          # Build the CI image if needed
-          docker-compose build python-ci
-
-          # Validate all workflow files
-          docker-compose run --rm python-ci bash -c '
-            echo "Checking workflow files in .github/workflows/..."
-            workflow_errors=0
-
-            for file in .github/workflows/*.yml .github/workflows/*.yaml; do
-              if [ -f "$file" ]; then
-                echo "Validating: $file"
-
-                # Run yamllint with specific config for workflows
-                if yamllint -d "{extends: default, rules: {line-length: {max: 200}, document-start: disable}}" "$file"; then
-                  :
-                else
-                  echo "❌ YAML lint failed for $file"
-                  workflow_errors=$((workflow_errors + 1))
-                fi
-
-                # Validate YAML can be parsed
-                if python3 -c "import yaml; yaml.safe_load(open(\"$file\")); print(\"✅ Valid YAML structure: $file\")"; then
-                  :
-                else
-                  echo "❌ YAML parse failed for $file"
-                  workflow_errors=$((workflow_errors + 1))
-                fi
-              fi
-            done
-
-            if [ $workflow_errors -gt 0 ]; then
-              echo "❌ Found $workflow_errors workflow file error(s)"
-              exit 1
-            else
-              echo "✅ All workflow files are valid!"
-            fi
-          '
+    uses: ./.github/workflows/validation-stages.yml
+    with:
+      stage: workflows
+    secrets: inherit
 
   # Stage 4c: Comprehensive YAML linting (always run)
   yaml-lint:
     name: YAML Lint All Files
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: always() && !cancelled()
-    runs-on: self-hosted
-    timeout-minutes: 5
-    steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
-          # This must run unconditionally to handle root-owned files from previous Docker runs
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          clean: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          ref: ${{ github.head_ref }}
-          lfs: true
-
-      - name: Run YAML lint on all files
-        run: |
-          echo "🔍 Running comprehensive YAML linting..."
-          ./automation/ci-cd/run-ci.sh yaml-lint
+    uses: ./.github/workflows/validation-stages.yml
+    with:
+      stage: yaml-all
+    secrets: inherit
 
   # Stage 5: Test execution
   test-suite:
@@ -913,26 +384,18 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 15
     steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
-          # This must run unconditionally to handle root-owned files from previous Docker runs
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: ./.github/actions/secure-checkout
         with:
           fetch-depth: 0
-          clean: true
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
-          lfs: true
 
       - name: Run tests
         env:
           MCP_GAEA2_URL: http://192.168.0.152:8007
         run: |
-          echo "🧪 Running test suite..."
+          echo "Running test suite..."
           ./automation/ci-cd/run-ci.sh test
 
       - name: Generate coverage summary
@@ -941,20 +404,14 @@ jobs:
           echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ -f coverage.xml ]; then
-            # Parse coverage.xml for summary stats
             python3 -c "
           import xml.etree.ElementTree as ET
           tree = ET.parse('coverage.xml')
           root = tree.getroot()
-
-          # Get overall coverage
           line_rate = float(root.get('line-rate', 0)) * 100
           branch_rate = float(root.get('branch-rate', 0)) * 100
-
-          # Count packages and files
           packages = root.findall('.//package')
           classes = root.findall('.//class')
-
           print(f'| Metric | Value |')
           print(f'|--------|-------|')
           print(f'| Line Coverage | {line_rate:.1f}% |')
@@ -963,9 +420,9 @@ jobs:
           print(f'| Packages | {len(packages)} |')
           " >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "📊 Full HTML report available in workflow artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "Full HTML report available in workflow artifacts" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️ No coverage.xml found" >> $GITHUB_STEP_SUMMARY
+            echo "No coverage.xml found" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Upload coverage artifacts
@@ -991,34 +448,16 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
-          # This must run unconditionally to handle root-owned files from previous Docker runs
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: ./.github/actions/secure-checkout
         with:
           fetch-depth: 0
-          clean: true
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
-          lfs: true
+          init-output-dirs: true
 
-      - name: Post-checkout setup
-        run: |
-          # Initialize output directories to prevent root ownership issues
-          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
-            ./automation/setup/docker/init-output-dirs.sh
-          fi
-
-      # Set Docker user environment variables
       - name: Set Docker user environment
-        run: |
-          source ./automation/setup/docker/set-docker-user.sh
-
-      # No need to install Python or dependencies - Docker handles it
+        run: source ./automation/setup/docker/set-docker-user.sh
 
       - name: Start modular MCP servers with health check
         uses: ./.github/actions/docker-compose-health-check
@@ -1030,68 +469,37 @@ jobs:
 
       - name: Test MCP servers functionality
         run: |
-          echo "🤖 Testing modular MCP servers..."
-
-          # Test each server with retries
-          echo "Testing Code Quality MCP (port 8010)..."
-          for i in {1..15}; do
-            if curl -f http://localhost:8010/health 2>/dev/null; then
-              echo "✅ Code Quality MCP is ready"
-              break
-            fi
-            if [ $i -eq 15 ]; then
-              echo "❌ Code Quality MCP failed to respond"
-              exit 1
-            fi
-            echo "  Retry $i/15..."
-            sleep 2
-          done
-
-          echo "Testing Content Creation MCP (port 8011)..."
-          for i in {1..15}; do
-            if curl -f http://localhost:8011/health 2>/dev/null; then
-              echo "✅ Content Creation MCP is ready"
-              break
-            fi
-            if [ $i -eq 15 ]; then
-              echo "❌ Content Creation MCP failed to respond"
-              exit 1
-            fi
-            echo "  Retry $i/15..."
-            sleep 2
-          done
-
-          echo "Testing Gaea2 MCP (port 8007)..."
-          for i in {1..15}; do
-            if curl -f http://localhost:8007/health 2>/dev/null; then
-              echo "✅ Gaea2 MCP is ready"
-              break
-            fi
-            if [ $i -eq 15 ]; then
-              echo "❌ Gaea2 MCP failed to respond"
-              exit 1
-            fi
-            echo "  Retry $i/15..."
-            sleep 2
-          done
-
-          # Run comprehensive tests
-          docker-compose run --rm python-ci python automation/testing/test_all_servers.py --quick
+          echo "Testing modular MCP servers..."
+          ./automation/ci-cd/test-mcp-servers.sh || {
+            # Fallback to inline test if script doesn't exist
+            for port_name in "8010:Code Quality" "8011:Content Creation" "8007:Gaea2"; do
+              port="${port_name%%:*}"
+              name="${port_name#*:}"
+              echo "Testing $name MCP (port $port)..."
+              for i in {1..15}; do
+                if curl -f "http://localhost:$port/health" 2>/dev/null; then
+                  echo "$name MCP is ready"
+                  break
+                fi
+                if [ $i -eq 15 ]; then
+                  echo "$name MCP failed to respond"
+                  exit 1
+                fi
+                sleep 2
+              done
+            done
+            docker-compose run --rm python-ci python automation/testing/test_all_servers.py --quick
+          }
 
       - name: View MCP server logs
         if: failure()
-        run: |
-          echo "📋 MCP server logs:"
-          docker-compose logs mcp-code-quality mcp-content-creation mcp-gaea2
+        run: docker-compose logs mcp-code-quality mcp-content-creation mcp-gaea2
 
       - name: Stop MCP server
         if: always()
         run: |
-          # --rmi local removes images built by compose (not public images)
-          # || true prevents failure if containers are already stopped/removed
           docker-compose down --rmi local --remove-orphans || true
-          # Clean up output directories using Docker to handle permissions
-          ./automation/ci-cd/cleanup-outputs.sh || echo "Warning: cleanup-outputs.sh failed but continuing"
+          ./automation/ci-cd/cleanup-outputs.sh || true
 
   # Stage 7: sleeper agents Tests
   sleeper-agents-tests:
@@ -1121,7 +529,6 @@ jobs:
       update_baselines: false
 
   # Stage 8b: Injection Toolkit Tests (Rust)
-  # Runs after review jobs to avoid resource contention during review phase
   injection-toolkit-tests:
     name: Injection Toolkit Tests
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
@@ -1131,23 +538,13 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
     steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
-          # This must run unconditionally to handle root-owned files from previous Docker runs
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: ./.github/actions/secure-checkout
         with:
           fetch-depth: 0
-          clean: true
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
-          lfs: true
 
-      # Container-first: Use containerized Rust CI for all checks
-      # This follows the project's philosophy documented in CLAUDE.md and AGENTS.md
       - name: Check formatting (containerized)
         run: ./automation/ci-cd/run-ci.sh rust-fmt
 
@@ -1160,8 +557,6 @@ jobs:
           echo "## Unit Test Results" >> $GITHUB_STEP_SUMMARY
           echo "All unit tests passed (containerized)" >> $GITHUB_STEP_SUMMARY
 
-      # Advanced tests use rust-ci-nightly container (Miri, Loom, cross-compile)
-      # This maintains container-first philosophy with zero host dependencies
       - name: Run Loom concurrency tests (containerized)
         run: |
           ./automation/ci-cd/run-ci.sh rust-loom
@@ -1193,7 +588,6 @@ jobs:
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "## Injection Toolkit CI Summary" >> $GITHUB_STEP_SUMMARY
           echo "All checks: fully containerized (rust-ci, rust-ci-nightly)" >> $GITHUB_STEP_SUMMARY
-          echo "Zero host dependencies - container-first philosophy maintained" >> $GITHUB_STEP_SUMMARY
 
   # Stage 9: Docker image validation
   docker-validation:
@@ -1205,22 +599,14 @@ jobs:
        github.event.inputs.force_docker_validation) &&
       !github.event.pull_request.draft
     runs-on: self-hosted
-    timeout-minutes: 45  # Increased from 30 - builds can take 40+ minutes on cold cache
+    timeout-minutes: 45
     steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
-          # This must run unconditionally to handle root-owned files from previous Docker runs
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: ./.github/actions/secure-checkout
         with:
           fetch-depth: 0
-          clean: true
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
-          lfs: true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -1234,16 +620,12 @@ jobs:
             type=ref,event=pr
             type=sha,prefix=pr-${{ github.event.pull_request.number }}-
 
-      # Note: Docker builds intentionally do not use GitHub Actions cache (cache-from/cache-to)
-      # to avoid cache service availability issues. The self-hosted runner's local Docker
-      # cache provides sufficient caching for our needs.
       - name: Build Code Quality MCP image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: docker/mcp-code-quality.Dockerfile
           push: false
-          # Load image into Docker daemon. Required for docker-compose health checks.
           load: true
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-code-quality
@@ -1256,7 +638,6 @@ jobs:
           context: .
           file: docker/mcp-content.Dockerfile
           push: false
-          # Load image into Docker daemon. Required for docker-compose health checks.
           load: true
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-content
@@ -1269,7 +650,6 @@ jobs:
           context: .
           file: docker/mcp-gaea2.Dockerfile
           push: false
-          # Load image into Docker daemon. Required for docker-compose health checks.
           load: true
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-gaea2
@@ -1282,7 +662,6 @@ jobs:
           context: .
           file: docker/mcp-http-bridge.Dockerfile
           push: false
-          # Load image into Docker daemon. Required for docker-compose health checks.
           load: true
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-http-bridge
@@ -1295,7 +674,6 @@ jobs:
           context: .
           file: docker/python-ci.Dockerfile
           push: false
-          # Load image into Docker daemon. Required for docker-compose health checks.
           load: true
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-python-ci
@@ -1320,11 +698,8 @@ jobs:
       - name: Stop services
         if: always()
         run: |
-          # --rmi local removes images built by compose (not public images)
-          # || true prevents failure if containers are already stopped/removed
           docker-compose down --rmi local --remove-orphans || true
-          # Clean up output directories using Docker to handle permissions
-          ./automation/ci-cd/cleanup-outputs.sh || echo "Warning: cleanup-outputs.sh failed but continuing"
+          ./automation/ci-cd/cleanup-outputs.sh || true
 
   # Agent Failure Handler - attempts to fix format/lint/test failures
   agent-failure-handler:
@@ -1368,34 +743,18 @@ jobs:
       SLEEPER_AGENTS_RESULT: ${{ needs.sleeper-agents-tests.result }}
       DASHBOARD_TESTS_RESULT: ${{ needs.dashboard-tests.result }}
     steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
-          # This must run unconditionally to handle root-owned files from previous Docker runs
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: ./.github/actions/secure-checkout
         with:
           fetch-depth: 0
-          clean: true
           token: ${{ secrets.AGENT_TOKEN }}
           ref: ${{ github.head_ref }}
-          lfs: true
+          init-output-dirs: true
 
       - name: Ensure clean working directory
         run: |
-          # Reset any tracked file changes and remove untracked files
           git checkout -- . 2>/dev/null || true
           git clean -fd 2>/dev/null || true
-          echo "Working directory reset to clean state"
-
-      - name: Initialize output directories
-        run: |
-          # Pre-create output directories with correct ownership before Docker runs
-          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
-            ./automation/setup/docker/init-output-dirs.sh
-          fi
 
       - name: Check iteration count
         id: iteration
@@ -1407,10 +766,10 @@ jobs:
 
       - name: Skip if max iterations reached
         if: steps.iteration.outputs.exceeded_max == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Maximum iterations (5) reached. Manual intervention required."
-
-          # Post comment on PR
           gh pr comment "${{ github.event.pull_request.number }}" --body "$(cat << 'EOF'
           ## Agent Failure Handler - Max Iterations Reached
 
@@ -1428,23 +787,16 @@ jobs:
           Please review the failure logs and fix the issues manually.
           EOF
           )"
-
           echo "made_changes=false" >> $GITHUB_OUTPUT
           exit 0
 
-      - name: Setup Node.js with nvm
+      - name: Setup Node.js
         if: steps.iteration.outputs.exceeded_max != 'true'
-        shell: bash
-        run: |
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-          nvm use 22.16.0 || nvm install 22.16.0
-          echo "Node.js version: $(node --version)"
+        uses: ./.github/actions/setup-nodejs
 
       - name: Set Docker user environment
         if: steps.iteration.outputs.exceeded_max != 'true'
-        run: |
-          source ./automation/setup/docker/set-docker-user.sh
+        run: source ./automation/setup/docker/set-docker-user.sh
 
       - name: Run agent failure handler
         id: agent-fix
@@ -1455,13 +807,6 @@ jobs:
           ITERATION_COUNT: ${{ steps.iteration.outputs.iteration_count }}
         run: |
           echo "Running agent failure handler..."
-          echo "Format check result: $FORMAT_CHECK_RESULT"
-          echo "Basic lint result: $BASIC_LINT_RESULT"
-          echo "Full lint result: $FULL_LINT_RESULT"
-          echo "Test suite result: $TEST_SUITE_RESULT"
-          echo "Sleeper agents result: $SLEEPER_AGENTS_RESULT"
-          echo "Dashboard tests result: $DASHBOARD_TESTS_RESULT"
-
           # Build failure types based on which jobs failed
           FAILURE_TYPES=""
           if [ "$FORMAT_CHECK_RESULT" = "failure" ] || [ "$BASIC_LINT_RESULT" = "failure" ] || [ "$FULL_LINT_RESULT" = "failure" ]; then
@@ -1474,9 +819,7 @@ jobs:
               FAILURE_TYPES="test"
             fi
           fi
-
           echo "Failure types: $FAILURE_TYPES"
-
           ./automation/ci-cd/agent-failure-handler.sh \
             "$PR_NUMBER" \
             "$BRANCH_NAME" \
@@ -1484,17 +827,9 @@ jobs:
             "5" \
             "$FAILURE_TYPES"
 
-      - name: Log result
-        if: always()
-        run: |
-          echo "Agent failure handler completed"
-          echo "Made changes: ${{ steps.agent-fix.outputs.made_changes || 'false' }}"
-          echo "Iteration: ${{ steps.iteration.outputs.iteration_count }}"
-
       - name: Cleanup output directories
         if: always()
         run: |
-          # Clean up Docker-created output directories to prevent permission issues
           if [ -f "./automation/ci-cd/cleanup-outputs.sh" ]; then
             ./automation/ci-cd/cleanup-outputs.sh
           fi
@@ -1572,12 +907,12 @@ jobs:
                 "${{ needs.injection-toolkit-tests.result }}" == "failure" ||
                 "${{ needs.docker-validation.result }}" == "failure" ]]; then
             echo ""
-            echo "❌ PR validation failed - please review the failed checks"
+            echo "PR validation failed - please review the failed checks"
             exit 1
           fi
 
           echo ""
-          echo "✅ PR validation completed successfully!"
+          echo "PR validation completed successfully!"
 
       - name: Post PR comment
         if: github.event_name == 'pull_request'
@@ -1608,24 +943,24 @@ jobs:
             const filesChanged = '${{ needs.detect-changes.outputs.files_changed }}';
             const isDraft = context.payload.pull_request.draft;
 
-            let comment = '## 🔍 PR Validation Results\n\n';
+            let comment = '## PR Validation Results\n\n';
             comment += `**Files changed:** ${filesChanged}\n\n`;
             comment += '| Check | Status |\n|-------|--------|\n';
 
             Object.entries(results).forEach(([check, status]) => {
-              let icon = status === 'success' ? '✅' :
-                        status === 'failure' ? '❌' :
-                        status === 'skipped' ? '⏭️' : '🔄';
+              let icon = status === 'success' ? 'pass' :
+                        status === 'failure' ? 'fail' :
+                        status === 'skipped' ? 'skip' : 'run';
 
               let displayName = check.charAt(0).toUpperCase() + check.slice(1).replace('-', ' ');
               comment += `| ${displayName} | ${icon} |\n`;
             });
 
             if (isDraft) {
-              comment += '\n> 💡 **Draft PR** - Some validations may be skipped.\n';
+              comment += '\n> **Draft PR** - Some validations may be skipped.\n';
             }
 
-            comment += '\n🤖 *Generated by automated PR validation*';
+            comment += '\n*Generated by automated PR validation*';
 
             try {
               await github.rest.issues.createComment({

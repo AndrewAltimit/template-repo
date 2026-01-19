@@ -1,0 +1,126 @@
+---
+name: Validation Stages (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      stage:
+        description: 'Validation stage to run (config, workflows, yaml-all)'
+        required: true
+        type: string
+    outputs:
+      status:
+        description: 'Validation status'
+        value: ${{ jobs.validate.outputs.status }}
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  validate:
+    name: Validate - ${{ inputs.stage }}
+    runs-on: self-hosted
+    timeout-minutes: ${{ inputs.stage == 'config' && 10 || inputs.stage == 'workflows' && 5 || 5 }}
+    outputs:
+      status: ${{ steps.result.outputs.status }}
+    steps:
+      # Pre-checkout cleanup for Docker permission issues
+      - name: Pre-checkout cleanup
+        run: |
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      # Config validation stage (YAML + JSON)
+      - name: Validate YAML and JSON files
+        if: inputs.stage == 'config'
+        run: |
+          echo "Validating configuration files..."
+          ./automation/ci-cd/run-ci.sh yaml-lint
+          ./automation/ci-cd/run-ci.sh json-lint
+
+      # Workflow validation stage (actionlint + YAML structure)
+      - name: Install actionlint
+        if: inputs.stage == 'workflows'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! command -v actionlint &> /dev/null; then
+            ./automation/ci-cd/install-actionlint.sh "$GH_TOKEN"
+            ACTIONLINT_CMD="./actionlint"
+          else
+            ACTIONLINT_CMD="actionlint"
+          fi
+          echo "ACTIONLINT_CMD=$ACTIONLINT_CMD" >> $GITHUB_ENV
+
+      - name: Run actionlint
+        if: inputs.stage == 'workflows'
+        run: |
+          echo "Running actionlint for GitHub Actions validation..."
+          if $ACTIONLINT_CMD -color; then
+            echo "All workflow files pass actionlint validation"
+          else
+            echo "actionlint found issues in workflow files"
+            exit 1
+          fi
+
+      - name: Validate workflow YAML structure
+        if: inputs.stage == 'workflows'
+        run: |
+          echo "Validating YAML structure of workflow files..."
+          docker-compose build python-ci
+
+          docker-compose run --rm python-ci bash -c '
+            echo "Checking workflow files in .github/workflows/..."
+            workflow_errors=0
+
+            for file in .github/workflows/*.yml .github/workflows/*.yaml; do
+              if [ -f "$file" ]; then
+                echo "Validating: $file"
+
+                # Run yamllint with specific config for workflows
+                if yamllint -d "{extends: default, rules: {line-length: {max: 200}, document-start: disable}}" "$file"; then
+                  :
+                else
+                  echo "YAML lint failed for $file"
+                  workflow_errors=$((workflow_errors + 1))
+                fi
+
+                # Validate YAML can be parsed
+                if python3 -c "import yaml; yaml.safe_load(open(\"$file\")); print(\"Valid YAML structure: $file\")"; then
+                  :
+                else
+                  echo "YAML parse failed for $file"
+                  workflow_errors=$((workflow_errors + 1))
+                fi
+              fi
+            done
+
+            if [ $workflow_errors -gt 0 ]; then
+              echo "Found $workflow_errors workflow file error(s)"
+              exit 1
+            else
+              echo "All workflow files are valid"
+            fi
+          '
+
+      # YAML-all stage (comprehensive YAML linting)
+      - name: Run comprehensive YAML lint
+        if: inputs.stage == 'yaml-all'
+        run: |
+          echo "Running comprehensive YAML linting..."
+          ./automation/ci-cd/run-ci.sh yaml-lint
+
+      - name: Set result
+        id: result
+        if: always()
+        run: |
+          echo "status=${{ job.status }}" >> $GITHUB_OUTPUT
