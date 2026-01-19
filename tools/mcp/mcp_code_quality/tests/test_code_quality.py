@@ -349,14 +349,18 @@ class TestTypeCheck:
 
     @pytest.mark.asyncio
     async def test_type_check_strict_mode(self, server):
-        """Test type check with strict mode."""
+        """Test type check accepts strict parameter (ty uses pyproject.toml for config)."""
         with patch.object(server, "_run_subprocess") as mock_run:
             mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
 
+            # strict parameter is accepted for backward compatibility but ty
+            # doesn't use CLI flags - it reads config from pyproject.toml
             result = await server.type_check(path="/tmp/test.py", strict=True)
 
             assert result["success"] is True
-            assert "--strict" in mock_run.call_args[0][0]
+            # Verify ty command is called (strict is handled via pyproject.toml, not CLI)
+            assert mock_run.call_args[0][0][0] == "ty"
+            assert mock_run.call_args[0][0][1] == "check"
 
 
 class TestSecurityScan:
