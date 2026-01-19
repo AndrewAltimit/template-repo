@@ -617,11 +617,11 @@ jobs:
       - name: Create output directory
         run: mkdir -p rust-binaries
 
-      # Build CLI tools using containerized Rust CI (container-first philosophy)
-      # These tools don't require X11 or special system dependencies
-      - name: Build Rust CLI tools (Linux) via container
+      # Build all Linux Rust binaries in a single container run to share cargo cache
+      # Uses rust-ci container which has libx11-dev for the overlay crate
+      - name: Build all Rust binaries (Linux) via container
         run: |
-          echo "Building Rust CLI tools using rust-ci container..."
+          echo "Building all Rust binaries using rust-ci container..."
           docker-compose --profile ci run --rm -w /app rust-ci bash -c '
             set -e
 
@@ -660,14 +660,8 @@ jobs:
             cargo build --release
             cp target/release/github-agents /app/rust-binaries/github-agents-linux-x64
             echo "Built github-agents for Linux x64"
-          '
 
-      # Build injection-toolkit using rust-ci container (has libx11-dev for overlay)
-      - name: Build injection-toolkit (Linux) via container
-        run: |
-          echo "Building injection-toolkit using rust-ci container (has X11 libs)..."
-          docker-compose --profile ci run --rm -w /app rust-ci bash -c '
-            set -e
+            # Build injection-toolkit (requires X11 libs available in rust-ci)
             cd /app/packages/injection_toolkit
             cargo build --release --bin itk-daemon --bin itk-overlay
             cp target/release/itk-daemon /app/rust-binaries/itk-daemon-linux-x64
