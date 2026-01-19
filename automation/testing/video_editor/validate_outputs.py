@@ -263,7 +263,7 @@ def _test_audio_continuity(validation_results):
 
         for sample_time in sample_times:
             if 0 <= sample_time < duration:
-                if get_audio_segment(video_path, sample_time, 0.5, temp_audio):
+                if get_audio_segment(video_path, sample_time, 0.5, str(temp_audio)):
                     audio_info = analyze_audio_segment(temp_audio)
                     if audio_info:
                         print(f"  ✓ {Path(video_path).name} - Audio at {sample_time:.1f}s")

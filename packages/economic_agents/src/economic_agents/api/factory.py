@@ -3,7 +3,7 @@
 Supports swapping between mock implementations and API clients based on configuration.
 """
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 from economic_agents.api.clients.compute_client import ComputeAPIClient
 from economic_agents.api.clients.investor_client import InvestorPortalAPIClient
@@ -136,7 +136,7 @@ class BackendFactory:
         )
 
 
-def create_backends(config: BackendConfig = None) -> Tuple:
+def create_backends(config: Optional[BackendConfig] = None) -> Tuple:
     """Convenience function to create backends.
 
     Args:

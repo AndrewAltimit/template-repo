@@ -228,22 +228,22 @@ def suggest_properties_for_node(node_type: str, context: Optional[Dict[str, Any]
     if not isinstance(base_recommendations, dict):
         return {}
 
-    recommendations = base_recommendations.copy()
+    recommendations: Dict[str, Any] = base_recommendations.copy()
 
     # Context-aware adjustments
     if context:
         if context.get("performance_priority"):
             # Suggest lower values for performance
             if node_type == "Erosion2" and "Duration" in recommendations:
-                recommendations["Duration"]["suggested"] = 0.04
+                recommendations["Duration"]["suggested"] = 0.04  # type: ignore[index]
             elif node_type == "Rivers" and "Headwaters" in recommendations:
-                recommendations["Headwaters"]["suggested"] = 50
+                recommendations["Headwaters"]["suggested"] = 50  # type: ignore[index]
 
         if context.get("detail_priority"):
             # Suggest higher values for detail
             if node_type == "Erosion2" and "Duration" in recommendations:
-                recommendations["Duration"]["suggested"] = 0.1
+                recommendations["Duration"]["suggested"] = 0.1  # type: ignore[index]
             elif node_type == "Rivers" and "Headwaters" in recommendations:
-                recommendations["Headwaters"]["suggested"] = 200
+                recommendations["Headwaters"]["suggested"] = 200  # type: ignore[index]
 
     return recommendations

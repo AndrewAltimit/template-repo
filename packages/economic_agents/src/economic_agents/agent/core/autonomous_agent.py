@@ -591,7 +591,7 @@ class AutonomousAgent:
         actions = []
 
         # Develop product if none exists
-        if len(self.company.products) == 0:
+        if len(self.company.products) == 0 and self.company.business_plan:
             product_type = self.company.business_plan.product_description.lower()
             if "api" in product_type:
                 product_type = "api-service"

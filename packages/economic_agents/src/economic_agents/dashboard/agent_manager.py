@@ -226,7 +226,7 @@ class AgentManager:
                         raise
 
                     # Check if agent ran out of resources
-                    if self.agent.state.balance <= 0 or self.agent.state.compute_hours_remaining <= 0:
+                    if self.agent.state and (self.agent.state.balance <= 0 or self.agent.state.compute_hours_remaining <= 0):
                         logger.debug("Agent ran out of resources, stopping")
                         break
 

@@ -26,7 +26,7 @@ class WorkflowFactory:
         if seed == -1:
             seed = random.randint(0, 2**32 - 1)
 
-        workflow = {
+        workflow: Dict[str, Any] = {
             "1": {
                 "inputs": {"ckpt_name": model_name},
                 "class_type": "CheckpointLoaderSimple",
@@ -105,7 +105,7 @@ class WorkflowFactory:
         if seed == -1:
             seed = random.randint(0, 2**32 - 1)
 
-        workflow = {
+        workflow: Dict[str, Any] = {
             "1": {
                 "inputs": {"ckpt_name": model_name},
                 "class_type": "CheckpointLoaderSimple",
@@ -184,7 +184,7 @@ class WorkflowFactory:
         if seed == -1:
             seed = random.randint(0, 2**32 - 1)
 
-        workflow = {
+        workflow: Dict[str, Any] = {
             "1": {
                 "inputs": {"ckpt_name": model_name},
                 "class_type": "CheckpointLoaderSimple",
@@ -414,7 +414,7 @@ class WorkflowFactory:
         if seed == -1:
             seed = random.randint(0, 2**32 - 1)
 
-        workflow = {
+        workflow: Dict[str, Any] = {
             "1": {
                 "inputs": {"ckpt_name": model_name},
                 "class_type": "CheckpointLoaderSimple",

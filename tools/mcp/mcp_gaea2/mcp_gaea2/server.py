@@ -66,7 +66,7 @@ class Gaea2MCPServer(BaseMCPServer):
         gaea_path_str = gaea_path or os.environ.get("GAEA2_PATH")
         if gaea_path_str:
             self.gaea_path = Path(gaea_path_str)
-            if not self.gaea_path.exists():
+            if not self.gaea_path.exists():  # type: ignore[union-attr]
                 self.logger.warning("Gaea2 executable not found at %s", self.gaea_path)
                 self.gaea_path = None
 
@@ -670,7 +670,7 @@ class Gaea2MCPServer(BaseMCPServer):
                         if not runtime_result.get("success"):
                             response["valid"] = False
                             response["runtime_check_error"] = runtime_result.get("error")
-                            response["errors"].append(
+                            response["errors"].append(  # type: ignore[union-attr]
                                 f"Runtime validation failed: {runtime_result.get('error', 'Unknown error')}"
                             )
                     except Exception as e:

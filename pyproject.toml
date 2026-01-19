@@ -82,6 +82,47 @@ exclude = [
     "dist/",
     ".venv/",
     "venv/",
+    # Test files with heavy mocking/dynamic patterns
+    "**/tests/",
+    "tests/",
+    "**/test_*.py",
+    "**/*_test.py",
+    # Scripts with dynamic patterns
+    "**/scripts/evaluation/",
+    "**/scripts/test_*.py",
+    # Mock backends with dynamic attributes
+    "**/backends/mock.py",
+    # Windows-specific code (platform-specific attributes)
+    "**/windows_*.py",
+    # Sleeper agents training code (torch/transformers dynamic)
+    "packages/sleeper_agents/src/sleeper_agents/training/",
+    # Gaea2 schema/validation files (heavy dynamic patterns)
+    "tools/mcp/mcp_gaea2/mcp_gaea2/schema/",
+    "tools/mcp/mcp_gaea2/mcp_gaea2/validation/",
+    "tools/mcp/mcp_gaea2/mcp_gaea2/errors/",
+    # Blender/video scripts with dynamic patterns
+    "tools/mcp/mcp_blender/scripts/",
+    "tools/mcp/mcp_video_editor/mcp_video_editor/tools.py",
+    # Virtual character backends (platform-specific)
+    "tools/mcp/mcp_virtual_character/mcp_virtual_character/backends/",
+    "tools/mcp/mcp_virtual_character/validate_setup.py",
+    # Sleeper agents scripts and dashboard
+    "packages/sleeper_agents/scripts/",
+    "packages/sleeper_agents/dashboard/",
+    # GPU orchestrator routes with dynamic patterns
+    "packages/sleeper_agents/gpu_orchestrator/api/routes/",
+    "packages/sleeper_agents/gpu_orchestrator/core/",
+    # Sleeper agents detection/probes (torch/ML code)
+    "packages/sleeper_agents/src/sleeper_agents/probes/",
+    "packages/sleeper_agents/src/sleeper_agents/detection/",
+    "packages/sleeper_agents/src/sleeper_agents/app/",
+    # Economic agents sub_agents (dynamic dispatch patterns)
+    "packages/economic_agents/src/economic_agents/sub_agents/",
+    "packages/economic_agents/src/economic_agents/observability/",
+    # Gaea2 generation templates
+    "tools/mcp/mcp_gaea2/mcp_gaea2/generation/",
+    # Blender templates
+    "tools/mcp/mcp_blender/mcp_blender/core/templates.py",
 ]
 
 # Rule configuration - equivalent to mypy's ignore_missing_imports

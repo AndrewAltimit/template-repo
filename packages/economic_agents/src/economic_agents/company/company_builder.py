@@ -296,8 +296,8 @@ class CompanyBuilder:
         company.capital -= burn_rate
         company.metrics.expenses += burn_rate
 
-        # Update metrics
-        company.metrics.months_active = company.metrics.months_active + 1 if hasattr(company.metrics, "months_active") else 1
+        # Update metrics (months_active is dynamically added)
+        company.metrics.months_active = company.metrics.months_active + 1 if hasattr(company.metrics, "months_active") else 1  # type: ignore[attr-defined]
 
         # Log decision
         if self.logger:

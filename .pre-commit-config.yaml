@@ -61,11 +61,12 @@ repos:
 
   # Python type checking with ty (Astral's fast type checker, replaces mypy)
   # ty is 10-60x faster than mypy with millisecond incremental updates
+  # Runs in container following container-first philosophy
   - repo: local
     hooks:
       - id: ty
         name: ty type check
-        entry: ty check
+        entry: docker-compose run --rm python-ci ty check
         language: system
         types: [python]
         exclude: ^(docs/|tests/|automation/|packages/.*/bin/)

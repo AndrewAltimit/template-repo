@@ -16,6 +16,7 @@ import asyncio
 import json
 import os
 import sys
+from typing import Any, Dict
 
 # Import from the project - assumes script is run from project root or with proper PYTHONPATH
 try:
@@ -116,7 +117,7 @@ async def generate_knowledge_base(analysis_file="gaea2_workflow_analysis.json"):
     with open(analysis_file, "r", encoding="utf-8") as f:
         analysis = json.load(f)
 
-    knowledge_base = {
+    knowledge_base: Dict[str, Any] = {
         "common_workflows": [],
         "node_best_practices": {},
         "property_recommendations": {},

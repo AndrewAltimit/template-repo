@@ -92,7 +92,7 @@ class HumanReadableFormatter(logging.Formatter):
         if hasattr(record, "event_type"):
             context_str += f" [{record.event_type}]"
         if hasattr(record, "agent_id"):
-            context_str += f" agent={record.agent_id[:8]}"
+            context_str += f" agent={record.agent_id[:8]}"  # type: ignore[index]
 
         return f"{timestamp} {level_str} {record.name}{context_str}: {message}"
 
