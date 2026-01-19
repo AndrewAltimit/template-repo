@@ -4,6 +4,10 @@ use crate::{OverlayError, Result};
 use winit::raw_window_handle::{
     HasDisplayHandle, HasWindowHandle, RawDisplayHandle, RawWindowHandle,
 };
+use x11rb::connection::Connection;
+use x11rb::protocol::shape::{self, ConnectionExt as ShapeConnectionExt, SK};
+use x11rb::protocol::xproto::ConnectionExt;
+use x11rb::rust_connection::RustConnection;
 
 /// Get the X11 display pointer from a window
 fn get_x11_display(window: &winit::window::Window) -> Result<*mut x11::xlib::Display> {
@@ -24,29 +28,68 @@ fn get_x11_display(window: &winit::window::Window) -> Result<*mut x11::xlib::Dis
 ///
 /// On X11, we use the SHAPE extension to set an empty input region,
 /// making all input pass through to the window below.
-///
-/// NOTE: This currently requires x11rb with the "shape" feature for proper
-/// shape extension support. The x11 crate doesn't include libXext bindings.
-/// This is a stub implementation that logs a warning.
 pub fn set_click_through_impl(window: &winit::window::Window, enabled: bool) -> Result<()> {
     let handle = window
         .window_handle()
         .map_err(|e| OverlayError::WindowCreation(e.to_string()))?;
 
     match handle.as_raw() {
-        RawWindowHandle::Xlib(_xlib_handle) => {
-            // TODO: Implement proper click-through using x11rb with shape extension
-            // The x11 crate doesn't include libXext/shape extension bindings.
-            // For now, we log a warning about this limitation.
-            tracing::warn!(
-                "Click-through {} requested but X11 shape extension not available. \
-                 Add x11rb with 'shape' feature for full support.",
-                if enabled { "enable" } else { "disable" }
+        RawWindowHandle::Xlib(xlib_handle) => {
+            let window_id = xlib_handle.window as u32;
+
+            // Connect to X server using x11rb
+            let (conn, _screen_num) = RustConnection::connect(None).map_err(|e| {
+                OverlayError::WindowCreation(format!("X11 connection failed: {}", e))
+            })?;
+
+            // Check if shape extension is available
+            let shape_ext = conn
+                .query_extension(shape::X11_EXTENSION_NAME.as_bytes())
+                .map_err(|e| OverlayError::WindowCreation(format!("Shape query failed: {}", e)))?
+                .reply()
+                .map_err(|e| OverlayError::WindowCreation(format!("Shape reply failed: {}", e)))?;
+
+            if !shape_ext.present {
+                return Err(OverlayError::UnsupportedPlatform(
+                    "X11 SHAPE extension not available".into(),
+                ));
+            }
+
+            if enabled {
+                // Set empty input shape - all input passes through
+                // Using ShapeInput (SK::INPUT) with an empty rectangle list
+                conn.shape_rectangles(
+                    shape::SO::SET,
+                    SK::INPUT,
+                    x11rb::protocol::xproto::ClipOrdering::UNSORTED,
+                    window_id,
+                    0,
+                    0,
+                    &[], // Empty rectangle list = no input region
+                )
+                .map_err(|e| {
+                    OverlayError::WindowCreation(format!("Shape rectangles failed: {}", e))
+                })?;
+            } else {
+                // Reset input shape to default (full window receives input)
+                conn.shape_mask(shape::SO::SET, SK::INPUT, window_id, 0, 0, x11rb::NONE)
+                    .map_err(|e| {
+                        OverlayError::WindowCreation(format!("Shape mask failed: {}", e))
+                    })?;
+            }
+
+            conn.flush()
+                .map_err(|e| OverlayError::WindowCreation(format!("X11 flush failed: {}", e)))?;
+
+            tracing::debug!(
+                "Click-through {} for window {}",
+                if enabled { "enabled" } else { "disabled" },
+                window_id
             );
             Ok(())
         }
         RawWindowHandle::Xcb(_) => {
-            // XCB support could be added here
+            // XCB support could be added here using the same x11rb connection
             Err(OverlayError::UnsupportedPlatform(
                 "XCB not yet supported, use Xlib".into(),
             ))
@@ -77,14 +120,11 @@ pub fn set_always_on_top_impl(window: &winit::window::Window, enabled: bool) -> 
                 let window_id = xlib_handle.window as x11::xlib::Window;
 
                 // Get atoms
-                let wm_state = x11::xlib::XInternAtom(
-                    display,
-                    b"_NET_WM_STATE\0".as_ptr() as *const _,
-                    x11::xlib::False,
-                );
+                let wm_state =
+                    x11::xlib::XInternAtom(display, c"_NET_WM_STATE".as_ptr(), x11::xlib::False);
                 let wm_state_above = x11::xlib::XInternAtom(
                     display,
-                    b"_NET_WM_STATE_ABOVE\0".as_ptr() as *const _,
+                    c"_NET_WM_STATE_ABOVE".as_ptr(),
                     x11::xlib::False,
                 );
 
@@ -132,12 +172,12 @@ pub fn set_transparent_impl(window: &winit::window::Window) -> Result<()> {
                 // Set window type to dock/overlay
                 let wm_window_type = x11::xlib::XInternAtom(
                     display,
-                    b"_NET_WM_WINDOW_TYPE\0".as_ptr() as *const _,
+                    c"_NET_WM_WINDOW_TYPE".as_ptr(),
                     x11::xlib::False,
                 );
                 let wm_window_type_dock = x11::xlib::XInternAtom(
                     display,
-                    b"_NET_WM_WINDOW_TYPE_DOCK\0".as_ptr() as *const _,
+                    c"_NET_WM_WINDOW_TYPE_DOCK".as_ptr(),
                     x11::xlib::False,
                 );
 

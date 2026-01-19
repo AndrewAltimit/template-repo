@@ -762,6 +762,7 @@ dependencies = [
  "windows 0.58.0",
  "winit",
  "x11",
+ "x11rb",
 ]
 
 [[package]]
