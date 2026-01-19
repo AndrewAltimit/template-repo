@@ -57,7 +57,7 @@ class ResidualStreamAnalyzer:
         final_resid = cache["resid_post", -1]  # Shape: [batch, seq, d_model]
 
         # Decompose into components
-        components = {
+        components: Dict[str, Any] = {
             "embedding": cache["hook_embed"] if "hook_embed" in cache else cache["embed"],  # Initial embedding
             "attention_outputs": [],
             "mlp_outputs": [],
@@ -144,7 +144,11 @@ class ResidualStreamAnalyzer:
         _, clean_cache = self.model.run_with_cache(clean_tokens)
         _, sus_cache = self.model.run_with_cache(sus_tokens)
 
-        anomalies = {"clean_text": clean_text[:50], "suspicious_text": suspicious_text[:50], "layer_anomalies": {}}
+        anomalies: Dict[str, Any] = {
+            "clean_text": clean_text[:50],
+            "suspicious_text": suspicious_text[:50],
+            "layer_anomalies": {},
+        }
 
         # Compare residual streams at each layer
         for layer in range(self.model.cfg.n_layers):
@@ -182,7 +186,7 @@ class ResidualStreamAnalyzer:
 
         return anomalies
 
-    def analyze_attention_flow(self, text: str, trigger_tokens: List[str] = None) -> Dict[str, Any]:
+    def analyze_attention_flow(self, text: str, trigger_tokens: Optional[List[str]] = None) -> Dict[str, Any]:
         """Analyze how attention flows through the model, especially to trigger tokens."""
         assert self.model is not None, "Model not initialized. Call setup() first."
         logger.info("\nAnalyzing attention flow for: '%s...'", text[:50])
@@ -200,14 +204,19 @@ class ResidualStreamAnalyzer:
                 if any(trigger in token for trigger in trigger_tokens):
                     trigger_positions.append(i)
 
-        results = {"text": text, "tokens": str_tokens, "trigger_positions": trigger_positions, "layer_attention_stats": {}}
+        results: Dict[str, Any] = {
+            "text": text,
+            "tokens": str_tokens,
+            "trigger_positions": trigger_positions,
+            "layer_attention_stats": {},
+        }
 
         # Analyze attention patterns at each layer
         for layer in range(self.model.cfg.n_layers):
             attn_pattern = cache[f"blocks.{layer}.attn.hook_pattern"]  # [batch, head, seq, seq]
 
             # Calculate attention statistics
-            layer_stats = {
+            layer_stats: Dict[str, Any] = {
                 "mean_attention_to_triggers": 0.0,
                 "max_attention_to_any_token": attn_pattern.max().item(),
                 "attention_entropy": self._calculate_attention_entropy(attn_pattern),
@@ -538,8 +547,13 @@ class ResidualStreamAnalyzer:
         self, embedding: float, positional: float, attention: List[float], mlp: List[float]
     ) -> str:
         """Identify which component contributes most to the residual stream."""
-        components = {"embedding": embedding, "positional": positional, "attention": sum(attention), "mlp": sum(mlp)}
-        return max(components, key=components.get)
+        components: Dict[str, float] = {
+            "embedding": embedding,
+            "positional": positional,
+            "attention": sum(attention),
+            "mlp": sum(mlp),
+        }
+        return max(components, key=lambda k: components[k])
 
     def _calculate_attention_entropy(self, attention_pattern: torch.Tensor) -> float:
         """Calculate entropy of attention distribution."""

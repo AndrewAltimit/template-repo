@@ -1,5 +1,7 @@
 """Command-line interface for economic agents."""
 
+import asyncio
+
 import click
 
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
@@ -55,10 +57,14 @@ def run(
     click.echo(f"Starting compute: {compute_hours:.2f} hours")
     click.echo(f"Running {cycles} cycles...\n")
 
-    # Run simulation
-    decisions = agent.run(max_cycles=cycles)
+    # Run simulation (async method)
+    decisions = asyncio.run(agent.run(max_cycles=cycles))
 
     # Display results
+    if agent.state is None:
+        click.echo("Error: Agent state not initialized after run")
+        return
+
     click.echo(f"\nCompleted {len(decisions)} cycles")
     click.echo(f"Final balance: ${agent.state.balance:.2f}")
     click.echo(f"Final compute: {agent.state.compute_hours_remaining:.2f} hours")
