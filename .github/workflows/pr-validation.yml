@@ -53,6 +53,15 @@ jobs:
       injection_toolkit_changed: ${{ steps.changes.outputs.injection_toolkit_changed }}
       files_changed: ${{ steps.changes.outputs.files_changed }}
     steps:
+      # Pre-checkout cleanup: Remove Docker-created directories that cause permission errors
+      # This must run BEFORE checkout because checkout's clean:true can't delete root-owned files
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ]; then
+            echo "Cleaning up Docker-created outputs directory..."
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -129,6 +138,12 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -190,7 +205,11 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}  # Free tier API key from Google AI Studio
     steps:
-      # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          fi
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -380,6 +399,11 @@ jobs:
 
           echo "$OUTPUT"
 
+          # Save review to file for artifact upload and agent-review-response job
+          # The Rust CLI posts to PR comments but doesn't create a file
+          echo "$OUTPUT" > gemini-review.md
+          echo "Saved review to gemini-review.md for agent-review-response"
+
           if [ $EXIT_CODE -ne 0 ]; then
             # Check for rate limit (429) or quota errors
             if echo "$OUTPUT" | grep -qiE '429|rate.?limit|quota|resource.?exhausted'; then
@@ -431,6 +455,12 @@ jobs:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -497,6 +527,11 @@ jobs:
 
           # Now safe to show output (use cat with here-doc to avoid broken pipe)
           cat <<< "$OUTPUT" || true
+
+          # Save review to file for artifact upload and agent-review-response job
+          echo "$OUTPUT" > codex-review.md
+          echo "Saved review to codex-review.md for agent-review-response"
+
           set -e
 
           if [ $EXIT_CODE -ne 0 ]; then
@@ -544,6 +579,12 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.AGENT_TOKEN }}
       GITHUB_REPOSITORY: ${{ github.repository }}
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -704,7 +745,11 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     steps:
-      # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          fi
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -730,6 +775,12 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 5
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -832,6 +883,12 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 5
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -857,7 +914,11 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 15
     steps:
-      # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          fi
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -931,26 +992,11 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      # Clean up any leftover output directories from previous runs
-      - name: Clean up output directory
+      - name: Pre-checkout cleanup
         run: |
-          echo "🧹 Cleaning up output directories..."
-          # Check if outputs directory exists and has permission issues
-          if [ -d "outputs" ]; then
-            # Try to remove it normally first
-            if rm -rf outputs 2>/dev/null; then
-              echo "✅ Outputs directory cleaned"
-            else
-              # If that fails, try with sudo (if available)
-              if command -v sudo &> /dev/null; then
-                echo "⚠️  Permission issues detected, using sudo to clean up"
-                sudo rm -rf outputs || echo "❌ Could not remove outputs directory even with sudo"
-              else
-                echo "❌ Could not remove outputs directory - permission denied"
-              fi
-            fi
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
           fi
-          echo "✅ Output cleanup complete"
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -1086,6 +1132,12 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -1156,7 +1208,11 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 45  # Increased from 30 - builds can take 40+ minutes on cold cache
     steps:
-      # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          fi
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -1307,6 +1363,12 @@ jobs:
       FULL_LINT_RESULT: ${{ needs.full-lint.result }}
       TEST_SUITE_RESULT: ${{ needs.test-suite.result }}
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
