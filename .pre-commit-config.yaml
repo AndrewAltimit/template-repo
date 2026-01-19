@@ -113,7 +113,8 @@ repos:
 
       - id: rust-fmt-injection-toolkit
         name: Rust format injection-toolkit
-        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd packages/injection_toolkit && cargo fmt --all'
+        # Run through Docker for X11 dev library dependencies (container-first philosophy)
+        entry: docker-compose --profile ci run --rm rust-ci cargo fmt --all --manifest-path packages/injection_toolkit/Cargo.toml
         language: system
         files: '^packages/injection_toolkit/.*\.rs$'
         pass_filenames: false
@@ -134,7 +135,8 @@ repos:
 
       - id: rust-clippy-injection-toolkit
         name: Rust lint injection-toolkit
-        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd packages/injection_toolkit && cargo clippy -- -D warnings'
+        # Run through Docker for X11 dev library dependencies (container-first philosophy)
+        entry: docker-compose --profile ci run --rm rust-ci cargo clippy --manifest-path packages/injection_toolkit/Cargo.toml -- -D warnings
         language: system
         files: '^packages/injection_toolkit/.*\.rs$'
         pass_filenames: false
