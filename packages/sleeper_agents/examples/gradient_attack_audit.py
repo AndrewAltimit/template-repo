@@ -277,7 +277,7 @@ class GradientAuditRunner:
 
         loaded_model = AutoModelForCausalLM.from_pretrained(config.model_name)
         # mypy has trouble with .to() on PreTrainedModel due to complex Union types
-        self.model: PreTrainedModel = cast(PreTrainedModel, loaded_model.to(self.device))  # type: ignore[arg-type]
+        self.model: PreTrainedModel = cast(PreTrainedModel, loaded_model.to(self.device))
         self.model.eval()
 
         # Create output directory

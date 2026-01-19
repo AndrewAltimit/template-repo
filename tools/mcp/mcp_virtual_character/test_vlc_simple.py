@@ -11,7 +11,8 @@ import tempfile
 
 def create_test_tone():
     """Create a simple test tone using FFmpeg."""
-    test_file = tempfile.mktemp(suffix=".wav")
+    fd, test_file = tempfile.mkstemp(suffix=".wav")
+    os.close(fd)
     cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:duration=2", "-y", test_file]
 
     try:

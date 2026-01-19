@@ -339,7 +339,7 @@ async def create_edit(
         )
 
         if "error" in analysis_result:
-            return analysis_result  # type: ignore[no-any-return]
+            return analysis_result
 
         # Process based on primary video
         primary_video = video_inputs[0]
@@ -560,14 +560,14 @@ async def render_video(
         # Generate transcript file if captions were added
         transcript_path = None
         if render_options.get("add_captions") and transcript is not None:
-            transcript_path = output_path.replace(".mp4", ".srt")  # type: ignore[union-attr]
+            transcript_path = output_path.replace(".mp4", ".srt")
             _generate_srt_file(transcript, transcript_path)
             render_result["transcript_path"] = transcript_path
 
         # Update job with result
         _server.update_job(job_id, {"status": "completed", "stage": "done", "progress": 100, "result": render_result})
 
-        return render_result  # type: ignore[no-any-return]
+        return render_result
 
     except Exception as e:
         _server.logger.error("Rendering failed: %s", e)
@@ -759,7 +759,7 @@ async def extract_clips(
                 _server=_server,
             )
             if "error" in analysis_result:
-                return analysis_result  # type: ignore[no-any-return]
+                return analysis_result
             video_analysis = analysis_result["analysis"][video_input]
 
         _extract_time_range_clips(video_input, extraction_criteria, output_dir, clips_extracted, _server)
@@ -874,7 +874,7 @@ async def add_captions(
                 srt_path = lang_output_path.replace(".mp4", ".srt")
                 _generate_srt_file(transcript, srt_path)
 
-                results["languages_processed"].append(  # type: ignore[attr-defined]
+                results["languages_processed"].append(
                     {
                         "language": transcript.get("language", language),
                         "output_path": lang_output_path,
@@ -959,4 +959,4 @@ async def get_job_status(job_id: str, _server=None, **_kwargs) -> Dict[str, Any]
     if not _server:
         return {"error": "Server context not provided"}
 
-    return _server.get_job_status(job_id)  # type: ignore[no-any-return]
+    return _server.get_job_status(job_id)

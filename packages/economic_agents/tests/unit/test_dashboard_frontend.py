@@ -14,8 +14,8 @@ sys.modules["plotly.subplots"] = Mock()
 
 # Set up mock secrets
 mock_secrets = Mock()
-mock_secrets.get = Mock(return_value="http://localhost:8000")  # type: ignore[assignment]
-sys.modules["streamlit"].secrets = mock_secrets  # type: ignore[attr-defined]
+mock_secrets.get = Mock(return_value="http://localhost:8000")
+sys.modules["streamlit"].secrets = mock_secrets
 
 
 # Create a session state mock that supports both dict and attribute access
@@ -40,7 +40,7 @@ class MockSessionState(dict):
 
 # Set up mock session_state
 mock_session_state = MockSessionState()
-sys.modules["streamlit"].session_state = mock_session_state  # type: ignore[attr-defined]
+sys.modules["streamlit"].session_state = mock_session_state
 
 
 @pytest.fixture(autouse=True)

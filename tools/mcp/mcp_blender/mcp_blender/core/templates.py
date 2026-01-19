@@ -277,7 +277,7 @@ class TemplateManager:
             Template configuration or None
         """
         if template_id in self.templates:
-            return dict(self.templates[template_id])  # type: ignore
+            return dict(self.templates[template_id])
 
         # Try loading from file
         template_file = self.templates_dir / f"{template_id}.json"
@@ -286,7 +286,7 @@ class TemplateManager:
                 data = json.loads(template_file.read_text())
                 if not isinstance(data, dict):
                     raise TypeError(f"Template data is not a dictionary: {type(data)}")
-                return data  # type: ignore
+                return data
             except (json.JSONDecodeError, KeyError, TypeError) as e:
                 logger.error("Failed to load or parse template %s: %s", template_id, e)
 
@@ -439,7 +439,7 @@ class TemplateManager:
         if (
             template_id in self.templates
             and isinstance(self.templates[template_id], dict)
-            and not self.templates[template_id].get("custom", False)  # type: ignore
+            and not self.templates[template_id].get("custom", False)
         ):
             return {"error": "Cannot delete built-in template"}
 

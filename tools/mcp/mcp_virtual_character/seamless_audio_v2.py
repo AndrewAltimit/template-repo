@@ -27,8 +27,8 @@ except ImportError:
     import sys
 
     sys.path.insert(0, str(Path(__file__).parent))
-    from utils.env_loader import ensure_storage_config  # type: ignore[no-redef]
-    from utils.path_resolver import PathResolver  # type: ignore[no-redef]
+    from utils.env_loader import ensure_storage_config
+    from utils.path_resolver import PathResolver
 
 
 class SeamlessAudioPlayer:
@@ -201,7 +201,7 @@ class SeamlessAudioPlayer:
                         elif "Connection" in error:
                             print(f"  💡 Hint: Check that character server is running at {server}")
 
-                    return result  # type: ignore[no-any-return]
+                    return result
 
             except aiohttp.ClientError as e:
                 error_msg = f"Connection error: {str(e)}"

@@ -6,16 +6,19 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
+
+# Type alias for server configuration
+ServerConfig = Dict[str, Any]
 
 
 class MCPServerTester:
     """Test all MCP servers"""
 
     def __init__(self):
-        self.servers = [
+        self.servers: List[ServerConfig] = [
             {
                 "name": "Code Quality",
                 "module": "mcp_code_quality.server",

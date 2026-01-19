@@ -120,7 +120,7 @@ class ActivationDataset(Dataset):
         if not self.use_disk:
             # Convert numpy to torch upfront for small datasets
             # mypy doesn't recognize numpy array as valid input to torch.tensor
-            self.activations = torch.tensor(activations, dtype=torch.float32)  # type: ignore[arg-type]
+            self.activations = torch.tensor(activations, dtype=torch.float32)
 
     def __len__(self) -> int:
         """Get dataset size."""
@@ -138,11 +138,11 @@ class ActivationDataset(Dataset):
         if self.use_disk:
             # Load from disk (for large models)
             # When use_disk=True, activations is List[str|Path]
-            path = self.activations[idx]  # type: ignore[index]
+            path = self.activations[idx]
             activation = torch.load(str(path))
         else:
             # Get from memory (for small models)
-            activation = self.activations[idx]  # type: ignore[index]
+            activation = self.activations[idx]
 
         label = self.labels[idx]
         return activation, label
@@ -258,7 +258,7 @@ class TorchProbeTrainer:
             train_size = len(train_dataset) - val_size
             train_split, val_split = random_split(train_dataset, [train_size, val_size])
             # random_split returns Subset, but DataLoader accepts any Dataset
-            train_dataset = train_split  # type: ignore[assignment]
+            train_dataset = train_split
             val_dataset = val_split
             use_validation = True
             logger.info("Split dataset: %s train, %s val", train_size, val_size)

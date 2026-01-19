@@ -836,7 +836,7 @@ class BlenderMCPServer(BaseMCPServer):
                 "parameters": tool["inputSchema"],  # Base class expects 'parameters'
             }
 
-        return tool_dict  # type: ignore
+        return tool_dict
 
     async def execute_tool(self, request: ToolRequest):
         """Execute a tool with given arguments."""

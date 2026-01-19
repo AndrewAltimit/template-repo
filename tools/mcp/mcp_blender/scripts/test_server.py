@@ -34,7 +34,7 @@ class BlenderMCPClient(TestClient):
         self.projects: Dict[str, str] = {}
         self.jobs: Dict[str, Dict[str, Any]] = {}
 
-    async def health_check(self) -> Dict[str, Any]:  # type: ignore[override]
+    async def health_check(self) -> Dict[str, Any]:
         """Check server health asynchronously.
 
         Returns:
@@ -47,7 +47,7 @@ class BlenderMCPClient(TestClient):
             data: Dict[str, Any] = response.json()
             return data
 
-    async def list_tools(self) -> list:  # type: ignore[override]
+    async def list_tools(self) -> list:
         """List available tools asynchronously.
 
         Returns:

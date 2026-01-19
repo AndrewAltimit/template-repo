@@ -36,7 +36,7 @@ class AgentManager:
 
         self._initialized = True
         self.agent: Optional[AutonomousAgent] = None
-        self.task: Optional[asyncio.Task] = None  # type: ignore[type-arg]
+        self.task: Optional[asyncio.Task] = None
         self.is_running = False
         self.config: Dict[str, Any] = {}
         self.cycle_count = 0

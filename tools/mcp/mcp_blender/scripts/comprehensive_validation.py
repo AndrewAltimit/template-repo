@@ -28,7 +28,7 @@ try:
 except ImportError:
     # Try alternative import for Docker environment
     sys.path.insert(0, "/app")
-    from core.client import MCPClient  # type: ignore[no-redef]
+    from core.client import MCPClient
 
 
 class BlenderValidationSuite:

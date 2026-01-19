@@ -72,7 +72,7 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
             print(f"✅ Created project: {project_path}")
             # Extract just the filename for subsequent operations
 
-            project_name = os.path.basename(project_path)  # type: ignore
+            project_name = os.path.basename(project_path)
         else:
             print(f"❌ Failed to create project: {result.get('error') if result else 'No result'}")
             return
@@ -213,7 +213,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             project_path = result["project_path"]
             print(f"✅ Created product demo: {project_path}")
 
-            project_name = os.path.basename(project_path)  # type: ignore
+            project_name = os.path.basename(project_path)
 
             # Add product components
             await client.call_tool(
@@ -283,7 +283,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             project_path = result["project_path"]
             print(f"✅ Created physics demo: {project_path}")
 
-            project_name = os.path.basename(project_path)  # type: ignore
+            project_name = os.path.basename(project_path)
 
             # Add physics objects
             await client.call_tool(
@@ -342,7 +342,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             project_path = result["project_path"]
             print(f"✅ Created animation demo: {project_path}")
 
-            project_name = os.path.basename(project_path)  # type: ignore
+            project_name = os.path.basename(project_path)
 
             # Add animated objects
             await client.call_tool(

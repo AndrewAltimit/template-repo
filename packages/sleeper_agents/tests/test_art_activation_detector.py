@@ -381,7 +381,7 @@ def test_different_nb_clusters():
         detector = ARTActivationDetector(nb_clusters=nb_clusters)
         detector.fit(activations, labels)
 
-        assert detector._clusterer.n_clusters == nb_clusters  # type: ignore
+        assert detector._clusterer.n_clusters == nb_clusters
         assert len(np.unique(detector._cluster_labels)) <= nb_clusters
 
 

@@ -540,7 +540,7 @@ def generate_executive_summary(data_loader, summary_type: str, **options) -> Dic
         for model in models:
             model_summary = data_loader.fetch_model_summary(model)
             rankings.append({"model": model, "score": model_summary.get("avg_accuracy", 0)})
-        summary["rankings"] = sorted(rankings, key=lambda x: x["score"], reverse=True)  # type: ignore
+        summary["rankings"] = sorted(rankings, key=lambda x: x["score"], reverse=True)
 
     if options.get("include_risks"):
         summary["risk_assessment"] = {"high_risk": [], "medium_risk": [], "low_risk": []}

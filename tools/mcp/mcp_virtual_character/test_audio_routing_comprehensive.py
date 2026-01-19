@@ -268,7 +268,8 @@ class AudioRoutingTester:
         logger.info("CREATING TEST AUDIO")
         logger.info("=" * 60)
 
-        test_file = tempfile.mktemp(suffix=".wav")
+        fd, test_file = tempfile.mkstemp(suffix=".wav")
+        os.close(fd)
 
         # Method 1: FFmpeg
         cmd = ["ffmpeg", "-f", "lavfi", "-i", "sine=frequency=440:duration=2", "-y", test_file]

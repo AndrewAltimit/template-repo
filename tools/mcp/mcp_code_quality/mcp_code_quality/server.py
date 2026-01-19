@@ -20,7 +20,7 @@ Usage:
 """
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import logging
 import os
@@ -198,7 +198,7 @@ class CodeQualityMCPServer(BaseMCPServer):
             details: Additional details to log
         """
         entry = {
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
             "operation": operation,
             "path": path,
             "success": success,
@@ -1078,7 +1078,7 @@ class CodeQualityMCPServer(BaseMCPServer):
             )
 
             self._audit_log("check_markdown_links", path, result.get("success", False))
-            return result  # type: ignore[no-any-return]
+            return result
         except Exception as e:
             logger.error("Markdown link check error: %s", str(e))
             self._audit_log("check_markdown_links", path, False, {"reason": "exception", "error": str(e)})

@@ -145,7 +145,7 @@ class CodexMCPServer(BaseMCPServer):
                 self.logger.info("Codex consultation: mode=%s, query_length=%s", mode, len(query))
                 self.logger.info("Codex result: %s", result)
 
-            return result  # type: ignore[no-any-return]
+            return result
         except Exception as e:
             self.logger.error("Codex consultation failed: %s", e)
             return {"status": "error", "error": str(e)}
@@ -155,7 +155,7 @@ class CodexMCPServer(BaseMCPServer):
         try:
             result = await self.codex.clear_history()
             self.logger.info("Codex history cleared")
-            return result  # type: ignore[no-any-return]
+            return result
         except Exception as e:
             self.logger.error("Failed to clear Codex history: %s", e)
             return {"status": "error", "error": str(e)}
@@ -175,7 +175,7 @@ class CodexMCPServer(BaseMCPServer):
                     }
                 }
             )
-            return status  # type: ignore[no-any-return]
+            return status
         except Exception as e:
             self.logger.error("Failed to get Codex status: %s", e)
             return {"status": "error", "error": str(e)}
@@ -186,7 +186,7 @@ class CodexMCPServer(BaseMCPServer):
             result = self.codex.toggle_auto_consult(enable)
             self.codex_config["auto_consult"] = result.get("enabled", False)
             self.logger.info("Codex auto-consult toggled: %s", result)
-            return result  # type: ignore[no-any-return]
+            return result
         except Exception as e:
             self.logger.error("Failed to toggle Codex auto-consult: %s", e)
             return {"status": "error", "error": str(e)}

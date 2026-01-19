@@ -1,6 +1,6 @@
 """Gaea 2 Workflow Management and Optimization Tools"""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 import re
@@ -434,7 +434,7 @@ class Gaea2WorkflowTools:
             "name": preset_name,
             "category": category,
             "description": description,
-            "created": datetime.utcnow().isoformat(),
+            "created": datetime.now(timezone.utc).isoformat(),
             "nodes": nodes,
             "connections": connections,
             "metadata": {

@@ -87,7 +87,7 @@ class ContainerManager:
             )
 
             logger.info("Started container %s for job %s", container.id, job_id)
-            return container.id  # type: ignore
+            return container.id
 
         except DockerException as e:
             logger.error("Failed to start container for job %s: %s", job_id, e)
@@ -107,7 +107,7 @@ class ContainerManager:
         """
         try:
             container = self.client.containers.get(container_id)
-            return container.status  # type: ignore
+            return container.status
         except NotFound:
             logger.warning("Container %s not found", container_id)
             raise
@@ -146,7 +146,7 @@ class ContainerManager:
         try:
             container = self.client.containers.get(container_id)
             logs = container.logs(tail=tail, timestamps=True)
-            return logs.decode("utf-8", errors="replace")  # type: ignore
+            return logs.decode("utf-8", errors="replace")
         except NotFound:
             logger.warning("Container %s not found", container_id)
             raise
@@ -216,7 +216,7 @@ class ContainerManager:
             container.reload()
 
             if container.status == "exited":
-                return container.attrs["State"]["ExitCode"]  # type: ignore
+                return container.attrs["State"]["ExitCode"]
             return None
 
         except NotFound:
@@ -236,7 +236,7 @@ class ContainerManager:
                 command="nvidia-smi --query-gpu=memory.total,memory.used,utilization.gpu --format=csv,noheader,nounits",
                 remove=True,
                 runtime="nvidia",
-                device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])],  # type: ignore
+                device_requests=[docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])],
             )
 
             output = result.decode("utf-8").strip()

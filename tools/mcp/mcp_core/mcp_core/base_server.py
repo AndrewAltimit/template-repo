@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 import asyncio
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import logging
 from typing import Any, Dict, List, Optional
@@ -109,7 +109,7 @@ class BaseMCPServer(ABC):
 
             while True:
                 await asyncio.sleep(15)
-                ping_data = {"type": "ping", "timestamp": datetime.utcnow().isoformat()}
+                ping_data = {"type": "ping", "timestamp": datetime.now(timezone.utc).isoformat()}
                 yield f"data: {json.dumps(ping_data)}\n\n"
 
         return StreamingResponse(
@@ -412,7 +412,7 @@ class BaseMCPServer(ABC):
         """Initialize MCP session"""
         client_info = request.get("client", {})
         return {
-            "session_id": f"session-{client_info.get('name', 'unknown')}-{int(datetime.utcnow().timestamp())}",
+            "session_id": f"session-{client_info.get('name', 'unknown')}-{int(datetime.now(timezone.utc).timestamp())}",
             "server": {
                 "name": self.name,
                 "version": self.version,

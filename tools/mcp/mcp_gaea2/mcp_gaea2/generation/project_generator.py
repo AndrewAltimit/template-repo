@@ -1,7 +1,7 @@
 """Enhanced Gaea 2 MCP Tools with support for advanced features"""
 
 import base64
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 import random
@@ -39,7 +39,7 @@ class EnhancedGaea2Tools:
         try:
             project_id = str(uuid.uuid4())
             terrain_id = str(uuid.uuid4())
-            timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%SZ")
+            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%SZ")
 
             # Build definition matching Gaea2 2.2.6.0 format
             default_build_config = {

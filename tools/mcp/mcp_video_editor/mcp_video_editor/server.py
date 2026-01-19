@@ -183,9 +183,9 @@ class VideoEditorMCPServer(BaseMCPServer):
 
     def _get_timestamp(self) -> str:
         """Get current timestamp"""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
-        return datetime.utcnow().isoformat() + "Z"
+        return datetime.now(timezone.utc).isoformat() + "Z"
 
     def _send_progress_notification(self, job_id: str, job_data: Dict[str, Any]):
         """Send progress notification to client"""
