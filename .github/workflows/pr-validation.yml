@@ -53,6 +53,15 @@ jobs:
       injection_toolkit_changed: ${{ steps.changes.outputs.injection_toolkit_changed }}
       files_changed: ${{ steps.changes.outputs.files_changed }}
     steps:
+      # Pre-checkout cleanup: Remove Docker-created directories that cause permission errors
+      # This must run BEFORE checkout because checkout's clean:true can't delete root-owned files
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ]; then
+            echo "Cleaning up Docker-created outputs directory..."
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -129,6 +138,12 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -190,7 +205,11 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}  # Free tier API key from Google AI Studio
     steps:
-      # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          fi
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -431,6 +450,12 @@ jobs:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -544,6 +569,12 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.AGENT_TOKEN }}
       GITHUB_REPOSITORY: ${{ github.repository }}
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -704,7 +735,11 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     steps:
-      # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          fi
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -730,6 +765,12 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 5
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -832,6 +873,12 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 5
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -857,7 +904,11 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 15
     steps:
-      # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          fi
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -1086,6 +1137,12 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
@@ -1156,7 +1213,11 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 45  # Increased from 30 - builds can take 40+ minutes on cold cache
     steps:
-      # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          fi
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -1307,6 +1368,12 @@ jobs:
       FULL_LINT_RESULT: ${{ needs.full-lint.result }}
       TEST_SUITE_RESULT: ${{ needs.test-suite.result }}
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
