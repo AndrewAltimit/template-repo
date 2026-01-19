@@ -2,10 +2,10 @@
 # Rust CI/CD Image for injection_toolkit and other Rust projects
 # Performance optimizations:
 # - BuildKit cache mounts for apt and cargo
-# - Rust 1.83 (latest stable)
+# - Rust 1.90+ (required for edition 2024 and let chains)
 # - Incremental compilation cache
 
-FROM rust:1.83-slim
+FROM rust:1.90-slim
 
 # Install system dependencies with BuildKit cache
 # libx11-dev etc. are needed for the overlay crate
