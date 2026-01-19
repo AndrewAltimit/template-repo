@@ -52,13 +52,24 @@ jobs:
       injection_toolkit_changed: ${{ steps.changes.outputs.injection_toolkit_changed }}
       files_changed: ${{ steps.changes.outputs.files_changed }}
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+
       - name: Checkout code
-        uses: ./.github/actions/secure-checkout
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          clean: true
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
-          init-output-dirs: true
+          lfs: true
+
+      - name: Post-checkout setup
+        run: |
+          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
+            ./automation/setup/docker/init-output-dirs.sh
+          fi
 
       - name: Detect file changes
         id: changes
@@ -120,11 +131,17 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+
       - name: Checkout code
-        uses: ./.github/actions/secure-checkout
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
+          clean: true
           token: ${{ secrets.GITHUB_TOKEN }}
+          lfs: true
 
       - name: Build github-agents-cli
         run: |
@@ -214,13 +231,24 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.AGENT_TOKEN }}
       GITHUB_REPOSITORY: ${{ github.repository }}
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+
       - name: Checkout code
-        uses: ./.github/actions/secure-checkout
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          clean: true
           token: ${{ secrets.AGENT_TOKEN }}
           ref: ${{ github.head_ref }}
-          init-output-dirs: true
+          lfs: true
+
+      - name: Post-checkout setup
+        run: |
+          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
+            ./automation/setup/docker/init-output-dirs.sh
+          fi
 
       - name: Ensure clean working directory
         run: |
@@ -380,12 +408,18 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 15
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+
       - name: Checkout code
-        uses: ./.github/actions/secure-checkout
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          clean: true
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
+          lfs: true
 
       - name: Run tests
         env:
@@ -444,13 +478,24 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+
       - name: Checkout code
-        uses: ./.github/actions/secure-checkout
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          clean: true
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
-          init-output-dirs: true
+          lfs: true
+
+      - name: Post-checkout setup
+        run: |
+          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
+            ./automation/setup/docker/init-output-dirs.sh
+          fi
 
       - name: Set Docker user environment
         run: source ./automation/setup/docker/set-docker-user.sh
@@ -534,12 +579,18 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+
       - name: Checkout code
-        uses: ./.github/actions/secure-checkout
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          clean: true
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
+          lfs: true
 
       - name: Check formatting (containerized)
         run: ./automation/ci-cd/run-ci.sh rust-fmt
@@ -597,12 +648,18 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 45
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+
       - name: Checkout code
-        uses: ./.github/actions/secure-checkout
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          clean: true
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
+          lfs: true
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -739,13 +796,24 @@ jobs:
       SLEEPER_AGENTS_RESULT: ${{ needs.sleeper-agents-tests.result }}
       DASHBOARD_TESTS_RESULT: ${{ needs.dashboard-tests.result }}
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+
       - name: Checkout code
-        uses: ./.github/actions/secure-checkout
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          clean: true
           token: ${{ secrets.AGENT_TOKEN }}
           ref: ${{ github.head_ref }}
-          init-output-dirs: true
+          lfs: true
+
+      - name: Post-checkout setup
+        run: |
+          if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
+            ./automation/setup/docker/init-output-dirs.sh
+          fi
 
       - name: Ensure clean working directory
         run: |
