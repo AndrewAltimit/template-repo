@@ -1,6 +1,7 @@
 """Tests for Streamlit dashboard frontend components."""
 
 import sys
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -46,7 +47,7 @@ sys.modules["streamlit"].session_state = mock_session_state
 @pytest.fixture(autouse=True)
 def mock_streamlit_components():
     """Mock Streamlit components for testing."""
-    st_module = sys.modules["streamlit"]
+    st_module: Any = sys.modules["streamlit"]
 
     # Create mock column context managers
     mock_col = Mock()

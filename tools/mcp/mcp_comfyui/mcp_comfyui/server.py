@@ -407,7 +407,8 @@ class ComfyUIMCPServer(BaseMCPServer):
             factory_method = template.get("factory_method")
             if not callable(factory_method):
                 return {"error": "Invalid workflow template"}
-            workflow = factory_method(**sample_params)
+            # Dynamic dispatch - factory functions have varying signatures
+            workflow = factory_method(**sample_params)  # type: ignore[arg-type]
             return {
                 "workflow": workflow,
                 "description": template["description"],

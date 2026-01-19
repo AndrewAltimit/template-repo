@@ -9,7 +9,7 @@ for analyzing sleeper agents in language models using TransformerLens.
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -25,8 +25,8 @@ class ResidualStreamAnalyzer:
     def __init__(self, model_name: str = "EleutherAI/pythia-70m"):
         """Initialize with a small model suitable for CPU."""
         self.model_name = model_name
-        self.model = None
-        self.results = {}
+        self.model: Optional[HookedTransformer] = None
+        self.results: Dict[str, Any] = {}
 
     def setup(self):
         """Load model with TransformerLens hooks."""

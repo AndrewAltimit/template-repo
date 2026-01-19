@@ -12,7 +12,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # Setup logging
 logging.basicConfig(
@@ -27,7 +27,7 @@ class AudioRoutingTester:
     """Comprehensive tester for VoiceMeeter audio routing."""
 
     def __init__(self):
-        self.test_results = {
+        self.test_results: Dict[str, Any] = {
             "timestamp": datetime.now().isoformat(),
             "system_info": {},
             "dependencies": {},

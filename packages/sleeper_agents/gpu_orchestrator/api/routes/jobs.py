@@ -40,6 +40,8 @@ async def train_backdoor(request: TrainBackdoorRequest):
 
         # Return job details
         job_data = db.get_job(job_id)
+        if job_data is None:
+            raise HTTPException(status_code=500, detail="Failed to retrieve created job")
         return JobResponse(**job_data)
 
     except Exception as e:
@@ -56,6 +58,8 @@ async def train_probes(request: TrainProbesRequest):
         job_executor.execute_job(job_id, JobType.TRAIN_PROBES, request.model_dump())
 
         job_data = db.get_job(job_id)
+        if job_data is None:
+            raise HTTPException(status_code=500, detail="Failed to retrieve created job")
         return JobResponse(**job_data)
 
     except Exception as e:
@@ -72,6 +76,8 @@ async def validate_backdoor(request: ValidateRequest):
         job_executor.execute_job(job_id, JobType.VALIDATE, request.model_dump())
 
         job_data = db.get_job(job_id)
+        if job_data is None:
+            raise HTTPException(status_code=500, detail="Failed to retrieve created job")
         return JobResponse(**job_data)
 
     except Exception as e:
@@ -88,6 +94,8 @@ async def apply_safety_training(request: SafetyTrainingRequest):
         job_executor.execute_job(job_id, JobType.SAFETY_TRAINING, request.model_dump())
 
         job_data = db.get_job(job_id)
+        if job_data is None:
+            raise HTTPException(status_code=500, detail="Failed to retrieve created job")
         return JobResponse(**job_data)
 
     except Exception as e:
@@ -104,6 +112,8 @@ async def test_persistence(request: TestPersistenceRequest):
         job_executor.execute_job(job_id, JobType.TEST_PERSISTENCE, request.model_dump())
 
         job_data = db.get_job(job_id)
+        if job_data is None:
+            raise HTTPException(status_code=500, detail="Failed to retrieve created job")
         return JobResponse(**job_data)
 
     except Exception as e:
@@ -124,6 +134,8 @@ async def evaluate_model(request: EvaluateRequest):
         job_executor.execute_job(job_id, JobType.EVALUATE, request.model_dump())
 
         job_data = db.get_job(job_id)
+        if job_data is None:
+            raise HTTPException(status_code=500, detail="Failed to retrieve created job")
         return JobResponse(**job_data)
 
     except Exception as e:
