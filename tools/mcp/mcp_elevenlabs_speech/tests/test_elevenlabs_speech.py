@@ -18,9 +18,6 @@ def load_tools_module():
     return module
 
 
-
-
-
 class TestElevenLabsToolsRegistry:
     """Test tools registry structure."""
 
