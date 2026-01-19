@@ -140,8 +140,8 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
           fi
 
       - name: Checkout code
@@ -207,8 +207,8 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
           fi
 
       - name: Checkout code
@@ -399,6 +399,11 @@ jobs:
 
           echo "$OUTPUT"
 
+          # Save review to file for artifact upload and agent-review-response job
+          # The Rust CLI posts to PR comments but doesn't create a file
+          echo "$OUTPUT" > gemini-review.md
+          echo "Saved review to gemini-review.md for agent-review-response"
+
           if [ $EXIT_CODE -ne 0 ]; then
             # Check for rate limit (429) or quota errors
             if echo "$OUTPUT" | grep -qiE '429|rate.?limit|quota|resource.?exhausted'; then
@@ -452,8 +457,8 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
           fi
 
       - name: Checkout code
@@ -522,6 +527,11 @@ jobs:
 
           # Now safe to show output (use cat with here-doc to avoid broken pipe)
           cat <<< "$OUTPUT" || true
+
+          # Save review to file for artifact upload and agent-review-response job
+          echo "$OUTPUT" > codex-review.md
+          echo "Saved review to codex-review.md for agent-review-response"
+
           set -e
 
           if [ $EXIT_CODE -ne 0 ]; then
@@ -571,8 +581,8 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
           fi
 
       - name: Checkout code
@@ -737,8 +747,8 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
           fi
 
       - name: Checkout code
@@ -767,8 +777,8 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
           fi
 
       - name: Checkout code
@@ -875,8 +885,8 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
           fi
 
       - name: Checkout code
@@ -906,8 +916,8 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
           fi
 
       - name: Checkout code
@@ -982,26 +992,11 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      # Clean up any leftover output directories from previous runs
-      - name: Clean up output directory
+      - name: Pre-checkout cleanup
         run: |
-          echo "🧹 Cleaning up output directories..."
-          # Check if outputs directory exists and has permission issues
-          if [ -d "outputs" ]; then
-            # Try to remove it normally first
-            if rm -rf outputs 2>/dev/null; then
-              echo "✅ Outputs directory cleaned"
-            else
-              # If that fails, try with sudo (if available)
-              if command -v sudo &> /dev/null; then
-                echo "⚠️  Permission issues detected, using sudo to clean up"
-                sudo rm -rf outputs || echo "❌ Could not remove outputs directory even with sudo"
-              else
-                echo "❌ Could not remove outputs directory - permission denied"
-              fi
-            fi
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
           fi
-          echo "✅ Output cleanup complete"
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -1139,8 +1134,8 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
           fi
 
       - name: Checkout code
@@ -1215,8 +1210,8 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
           fi
 
       - name: Checkout code
@@ -1370,8 +1365,8 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
           fi
 
       - name: Checkout code

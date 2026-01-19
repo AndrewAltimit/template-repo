@@ -608,11 +608,23 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
           clean: true
+
+      - name: Set Docker user environment
+        run: |
+          # Export USER_ID and GROUP_ID for docker-compose to use
+          echo "USER_ID=$(id -u)" >> $GITHUB_ENV
+          echo "GROUP_ID=$(id -g)" >> $GITHUB_ENV
 
       - name: Create output directory
         run: mkdir -p rust-binaries

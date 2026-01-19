@@ -39,6 +39,12 @@ jobs:
       errors: ${{ steps.result.outputs.errors }}
       warnings: ${{ steps.result.outputs.warnings }}
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
