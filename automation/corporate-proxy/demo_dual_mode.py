@@ -12,7 +12,7 @@ import sys
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent / "gemini"))
 
-# pylint: disable=wrong-import-position
+
 from gemini_tool_executor import GEMINI_TOOLS, execute_tool_call  # noqa: E402
 from shared.services.text_tool_parser import TextToolParser  # noqa: E402
 from shared.services.tool_injector import ToolInjector  # noqa: E402

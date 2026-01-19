@@ -1,7 +1,5 @@
 """Tests for probe-based detection modules."""
 
-# pylint: disable=protected-access  # Testing protected members is legitimate in tests
-
 from pathlib import Path
 import sys
 import unittest
@@ -12,7 +10,7 @@ import pytest
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
+
 
 from sleeper_agents.probes.causal_debugger import CausalDebugger, CausalExperiment  # noqa: E402
 from sleeper_agents.probes.feature_discovery import DiscoveredFeature, FeatureDiscovery  # noqa: E402

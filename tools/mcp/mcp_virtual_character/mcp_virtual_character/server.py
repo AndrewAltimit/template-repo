@@ -30,7 +30,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 
-class VirtualCharacterMCPServer(BaseMCPServer):  # pylint: disable=too-many-public-methods
+class VirtualCharacterMCPServer(BaseMCPServer):
     """MCP Server for Virtual Character Control"""
 
     def __init__(self, port: int = 8020, auto_connect: bool = True):

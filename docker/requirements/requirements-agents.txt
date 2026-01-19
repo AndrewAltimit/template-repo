@@ -7,11 +7,8 @@ PyYAML>=6.0.0
 requests>=2.31.0
 
 # Linting and formatting tools
-black>=23.0.0
-isort==6.0.1
-flake8>=6.0.0
+ruff>=0.14.0  # Fast linter/formatter - replaces black, flake8, isort, pylint
 mypy>=1.0.0
-pylint>=2.17.0
 
 # Testing
 pytest>=7.0.0

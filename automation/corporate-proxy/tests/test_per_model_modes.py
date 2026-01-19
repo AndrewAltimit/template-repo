@@ -64,7 +64,7 @@ class TestPerModelConfiguration(unittest.TestCase):
     def test_environment_override(self):
         """Test environment variable override for model tool mode"""
         from gemini_proxy_wrapper import get_model_tool_mode
-        import translation  # noqa: F401 - needed for CONFIG patching  # pylint: disable=unused-import
+        import translation  # noqa: F401 - needed for CONFIG patching
 
         with patch.dict("gemini_proxy_wrapper.CONFIG", self.test_config):
             with patch.dict("translation.CONFIG", self.test_config):
@@ -79,7 +79,7 @@ class TestPerModelConfiguration(unittest.TestCase):
     def test_translate_with_native_model(self):
         """Test translation with a native tool mode model"""
         from gemini_proxy_wrapper import translate_gemini_to_company
-        import translation  # noqa: F401 - needed for CONFIG patching  # pylint: disable=unused-import
+        import translation  # noqa: F401 - needed for CONFIG patching
 
         with patch.dict("gemini_proxy_wrapper.CONFIG", self.test_config):
             with patch.dict("translation.CONFIG", self.test_config):
@@ -102,7 +102,7 @@ class TestPerModelConfiguration(unittest.TestCase):
     def test_translate_with_text_model(self):
         """Test translation with a text tool mode model"""
         from gemini_proxy_wrapper import translate_gemini_to_company
-        import translation  # noqa: F401 - needed for CONFIG patching  # pylint: disable=unused-import
+        import translation  # noqa: F401 - needed for CONFIG patching
 
         with patch.dict("gemini_proxy_wrapper.CONFIG", self.test_config):
             with patch.dict("translation.CONFIG", self.test_config):
@@ -140,7 +140,7 @@ class TestPerModelConfiguration(unittest.TestCase):
     def test_model_specific_behavior(self):
         """Test that different models behave differently based on their configuration"""
         from gemini_proxy_wrapper import translate_company_to_gemini
-        import translation  # noqa: F401 - needed for CONFIG patching  # pylint: disable=unused-import
+        import translation  # noqa: F401 - needed for CONFIG patching
 
         with patch.dict("gemini_proxy_wrapper.CONFIG", self.test_config):
             with patch.dict("translation.CONFIG", self.test_config):
@@ -218,7 +218,7 @@ class TestDynamicModelSelection(unittest.TestCase):
     def test_request_routing(self):
         """Test that requests are routed to correct mode based on model"""
         from gemini_proxy_wrapper import translate_gemini_to_company
-        import translation  # noqa: F401 - needed for CONFIG patching  # pylint: disable=unused-import
+        import translation  # noqa: F401 - needed for CONFIG patching
 
         config = {
             "models": {

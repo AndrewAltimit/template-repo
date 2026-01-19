@@ -15,7 +15,7 @@ from typing import Any, Dict
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
+
 
 from sleeper_agents.constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
 from sleeper_agents.training.safety_trainer import SafetyTrainer  # noqa: E402

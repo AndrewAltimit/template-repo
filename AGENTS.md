@@ -106,9 +106,8 @@ docker-compose run --rm python-ci pytest -k "test_format" -v
 ./automation/ci-cd/run-ci.sh autoformat   # Auto-format code
 
 # Direct Docker Compose commands
-docker-compose run --rm python-ci black --check .
-docker-compose run --rm python-ci flake8 .
-docker-compose run --rm python-ci pylint tools/ automation/
+docker-compose run --rm python-ci ruff check .
+docker-compose run --rm python-ci ruff format --check .
 docker-compose run --rm python-ci mypy . --ignore-missing-imports
 
 # Note: All Python CI/CD tools run in containers to ensure consistency

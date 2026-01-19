@@ -42,7 +42,7 @@ class CodexIntegration:
         query: str,
         context: str = "",
         mode: str = "quick",
-        comparison_mode: bool = True,  # pylint: disable=unused-argument
+        comparison_mode: bool = True,
     ) -> Dict[str, Any]:
         """Consult Codex for code generation or assistance"""
 

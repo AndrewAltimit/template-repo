@@ -3,8 +3,6 @@
 Tests the abstract base class interface for detection methods.
 """
 
-# pylint: disable=protected-access  # Testing protected members is legitimate in tests
-
 import numpy as np
 import pytest
 
@@ -174,7 +172,7 @@ def test_mock_detector_run():
 def test_base_detector_cannot_instantiate_directly():
     """Test that BaseDetector itself cannot be instantiated."""
     with pytest.raises(TypeError, match="Can't instantiate abstract class"):
-        BaseDetector()  # pylint: disable=abstract-class-instantiated
+        BaseDetector()
 
 
 class IncompleteDetector(BaseDetector):
@@ -184,7 +182,7 @@ class IncompleteDetector(BaseDetector):
 def test_incomplete_detector_cannot_instantiate():
     """Test that incomplete implementations cannot be instantiated."""
     with pytest.raises(TypeError, match="Can't instantiate abstract class"):
-        IncompleteDetector()  # pylint: disable=abstract-class-instantiated
+        IncompleteDetector()
 
 
 def test_detector_with_custom_explain():

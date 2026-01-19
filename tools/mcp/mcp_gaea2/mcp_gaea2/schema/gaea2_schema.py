@@ -5,7 +5,6 @@ This module provides comprehensive validation for Gaea 2 project files,
 based on deep analysis of the official Gaea 2 documentation.
 Updated with accurate node types, properties, and validation rules.
 """
-# pylint: disable=too-many-lines  # Comprehensive schema with 100+ node type definitions
 
 import random
 from typing import Any, Dict, List, Tuple
@@ -2980,7 +2979,6 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
 
     # Add performance stats if using optimized validator
     if use_optimized and optimized_validator and hasattr(optimized_validator, "_get_cache_stats"):
-        # pylint: disable-next=protected-access
         result["performance_stats"] = optimized_validator._get_cache_stats()
 
     return result

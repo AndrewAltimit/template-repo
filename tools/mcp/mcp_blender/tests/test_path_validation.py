@@ -6,7 +6,7 @@ import pytest
 from mcp_blender.server import BlenderMCPServer
 
 
-class TestPathValidation:  # pylint: disable=attribute-defined-outside-init
+class TestPathValidation:
     """Test path validation to prevent directory traversal attacks."""
 
     def setup_method(self):

@@ -21,14 +21,14 @@ from flask import Flask, jsonify, request
 
 # Import API spec converter
 try:
-    from api_spec_converter import APISpecConverter, get_converter
+    from api_spec_converter import get_converter
 except ImportError:
     # Fallback for when running standalone
     from pathlib import Path
     import sys
 
     sys.path.insert(0, str(Path(__file__).parent))
-    from api_spec_converter import APISpecConverter, get_converter
+    from api_spec_converter import get_converter
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -428,7 +428,7 @@ def anthropic_messages():
 
 
 @app.route("/api/v1/AI/GenAIExplorationLab/Models/<path:model_path>", methods=["POST"])
-def bedrock_endpoint(model_path):  # pylint: disable=unused-argument
+def bedrock_endpoint(model_path):
     """Bedrock-compatible endpoint that returns structured tool calls.
 
     Supports both OpenAI and Anthropic tool formats based on request detection.

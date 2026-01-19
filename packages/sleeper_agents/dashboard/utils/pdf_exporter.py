@@ -3,8 +3,6 @@ PDF Export Utility for Sleeper Detection Dashboard
 Generates comprehensive PDF reports from dashboard views.
 """
 
-# pylint: disable=too-many-lines  # TODO: Extract PDF sections to separate modules
-
 from datetime import datetime
 import io
 import logging
@@ -245,7 +243,6 @@ class PDFExporter:
             )
         )
 
-    # pylint: disable=unused-argument  # Parameters reserved for future sections
     def export_complete_report(
         self,
         model_name: str,

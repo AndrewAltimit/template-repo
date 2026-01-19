@@ -73,7 +73,7 @@ class MemeUploader:
         Returns:
             Dict with 'success', 'url', 'embed_url' and optional 'error' keys
         """
-        # pylint: disable=too-many-nested-blocks  # Upload retry logic requires nested handling
+
         if not os.path.exists(file_path):
             return {"success": False, "error": f"File not found: {file_path}"}
 

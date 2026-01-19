@@ -41,7 +41,7 @@ impl Language {
 #[serde(rename_all = "lowercase")]
 pub enum Linter {
     Flake8,
-    Pylint,
+    Ruff,
     Eslint,
     Golint,
     Clippy,
@@ -51,7 +51,7 @@ impl Linter {
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "flake8" => Some(Linter::Flake8),
-            "pylint" => Some(Linter::Pylint),
+            "ruff" => Some(Linter::Ruff),
             "eslint" => Some(Linter::Eslint),
             "golint" => Some(Linter::Golint),
             "clippy" => Some(Linter::Clippy),
@@ -62,8 +62,8 @@ impl Linter {
     #[allow(dead_code)] // Part of public API
     pub fn command(&self) -> &'static str {
         match self {
-            Linter::Flake8 => "flake8",
-            Linter::Pylint => "pylint",
+            Linter::Flake8 => "ruff",  // Map to ruff for compatibility
+            Linter::Ruff => "ruff",
             Linter::Eslint => "eslint",
             Linter::Golint => "golint",
             Linter::Clippy => "cargo",

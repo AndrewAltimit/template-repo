@@ -13,7 +13,7 @@ import requests
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
-from shared.services.text_tool_parser import TextToolParser  # noqa: E402  # pylint: disable=wrong-import-position
+from shared.services.text_tool_parser import TextToolParser  # noqa: E402
 
 
 def _test_native_mode():

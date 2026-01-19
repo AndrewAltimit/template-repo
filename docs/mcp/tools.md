@@ -155,7 +155,7 @@ Run static code analysis to find potential issues.
 
 **Parameters:**
 - `path` (string, required): Path to analyze
-- `linter` (string): Linter to use (flake8, pylint, eslint, golint, clippy)
+- `linter` (string): Linter to use (ruff, eslint, golint, clippy)
 - `config` (string, optional): Path to linting configuration file
 
 **Example:**
@@ -164,8 +164,8 @@ Run static code analysis to find potential issues.
   "tool": "lint",
   "arguments": {
     "path": "./src",
-    "linter": "flake8",
-    "config": ".flake8"
+    "linter": "ruff",
+    "config": "ruff.toml"
   }
 }
 ```

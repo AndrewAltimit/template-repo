@@ -128,7 +128,7 @@ scripts\testing\test_art_detector.bat quick
 
 **Runtime**: ~7 seconds (CPU-only, no GPU required)
 
-**Code Quality**: 9.91/10 pylint rating
+**Code Quality**: All ruff checks passing
 
 **Coverage**: 100% of ARTActivationDetector functionality
 

@@ -17,9 +17,7 @@ for mod_name in list(sys.modules.keys()):
         del sys.modules[mod_name]
 
 
-import json
 import tempfile
-from unittest.mock import MagicMock, patch
 
 import pytest
 

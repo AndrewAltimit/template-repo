@@ -157,7 +157,7 @@ async fn list_tools() -> Json<Value> {
                     "type": "object",
                     "properties": {
                         "path": { "type": "string", "description": "Path to file or directory" },
-                        "linter": { "type": "string", "enum": ["flake8", "pylint", "eslint", "golint", "clippy"], "default": "flake8" },
+                        "linter": { "type": "string", "enum": ["flake8", "ruff", "eslint", "golint", "clippy"], "default": "ruff" },
                         "config": { "type": "string", "description": "Path to linter config file" }
                     },
                     "required": ["path"]

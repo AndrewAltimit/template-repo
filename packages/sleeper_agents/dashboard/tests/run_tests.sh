@@ -91,9 +91,26 @@ run_visual_tests() {
     python ai_visual_analyzer.py
 }
 
+# Function to detect architecture and set Selenium image
+detect_selenium_image() {
+    local arch=$(uname -m)
+    if [ "$arch" = "arm64" ] || [ "$arch" = "aarch64" ]; then
+        # ARM64 architecture - use seleniarm
+        export SELENIUM_IMAGE="seleniarm/standalone-chromium:latest"
+        echo -e "${YELLOW}Detected ARM64 architecture, using seleniarm/standalone-chromium${NC}"
+    else
+        # x86_64 architecture - use official selenium
+        export SELENIUM_IMAGE="selenium/standalone-chrome:latest"
+        echo -e "${YELLOW}Detected x86_64 architecture, using selenium/standalone-chrome${NC}"
+    fi
+}
+
 # Function to run tests in Docker
 run_docker_tests() {
     echo -e "${YELLOW}Running tests in Docker containers...${NC}"
+
+    # Auto-detect architecture and set Selenium image
+    detect_selenium_image
 
     # Build and run test containers
     docker-compose -f docker-compose.test.yml build

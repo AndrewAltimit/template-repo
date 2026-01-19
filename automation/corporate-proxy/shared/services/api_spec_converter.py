@@ -543,7 +543,7 @@ def get_converter(default_spec: str = "openai", auto_detect: bool = True) -> API
     Returns:
         APISpecConverter instance
     """
-    global _converter_instance  # pylint: disable=global-statement
+    global _converter_instance
     if _converter_instance is None:
         _converter_instance = APISpecConverter(default_spec, auto_detect)
     return _converter_instance

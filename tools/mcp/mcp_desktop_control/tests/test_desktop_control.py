@@ -81,7 +81,7 @@ class TestScreenInfo:
         assert result["name"] == "HDMI-1"
 
 
-class TestDesktopControlServer:  # pylint: disable=too-many-public-methods
+class TestDesktopControlServer:
     """Tests for DesktopControlMCPServer"""
 
     @pytest.fixture

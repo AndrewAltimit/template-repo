@@ -9,8 +9,8 @@ import unittest
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
-from shared.services.text_tool_parser import TextToolParser  # noqa: E402  # pylint: disable=wrong-import-position
-from shared.services.tool_injector import ToolInjector  # noqa: E402  # pylint: disable=wrong-import-position
+from shared.services.text_tool_parser import TextToolParser  # noqa: E402
+from shared.services.tool_injector import ToolInjector  # noqa: E402
 
 
 class TestTextToolParser(unittest.TestCase):

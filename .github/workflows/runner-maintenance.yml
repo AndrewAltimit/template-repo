@@ -130,7 +130,7 @@ jobs:
           echo ""
 
           echo "🔧 Key Python Tools:"
-          for tool in black flake8 pylint mypy pytest; do
+          for tool in ruff mypy pytest; do
             if python3 -m pip show $tool &> /dev/null; then
               version=$(python3 -m pip show $tool | grep Version | cut -d' ' -f2)
               echo "✅ $tool: $version"
@@ -229,7 +229,7 @@ jobs:
           ## 🔧 Installed Tools
 
           ### Python Packages
-          $(for pkg in black flake8 pylint mypy pytest; do
+          $(for pkg in ruff mypy pytest; do
             if python3 -m pip show $pkg &> /dev/null; then
               echo "- ✅ $pkg"
             else

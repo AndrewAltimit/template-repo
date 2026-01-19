@@ -49,7 +49,7 @@ This MCP server is designed for **enterprise environments** where AI agents cann
 | Component | Status | Description |
 |-----------|--------|-------------|
 | Format Checking | Validated | Python, JavaScript, TypeScript, Go, Rust |
-| Linting | Validated | flake8, pylint, eslint, golint, clippy |
+| Linting | Validated | ruff, eslint, golint, clippy |
 | Auto-formatting | Validated | Automatic code formatting |
 | Test Running | Validated | pytest with coverage support |
 | Type Checking | Validated | mypy with strict mode |
@@ -160,8 +160,7 @@ Each linter supports its own configuration format:
 
 | Linter | Config Files |
 |--------|--------------|
-| flake8 | `.flake8`, `setup.cfg` |
-| pylint | `.pylintrc` |
+| ruff | `ruff.toml`, `pyproject.toml` |
 | eslint | `.eslintrc.json`, `.eslintrc.js` |
 | mypy | `mypy.ini`, `pyproject.toml` |
 
@@ -169,7 +168,7 @@ Each linter supports its own configuration format:
 
 | Language | Formatter | Linters |
 |----------|-----------|---------|
-| Python | black | flake8, pylint, mypy, bandit |
+| Python | ruff format | ruff, mypy, bandit |
 | JavaScript | prettier | eslint |
 | TypeScript | prettier | eslint |
 | Go | gofmt | golint |

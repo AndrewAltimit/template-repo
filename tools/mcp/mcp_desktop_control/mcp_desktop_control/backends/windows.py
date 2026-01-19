@@ -3,15 +3,14 @@
 import io
 import logging
 import re
-import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from .base import DesktopBackend, ScreenInfo, WindowInfo
 
 logger = logging.getLogger(__name__)
 
 
-class WindowsBackend(DesktopBackend):  # pylint: disable=too-many-public-methods
+class WindowsBackend(DesktopBackend):
     """Windows desktop control using pywinauto, pyautogui, and win32 APIs"""
 
     def __init__(self):

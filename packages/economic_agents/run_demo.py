@@ -47,11 +47,11 @@ async def run_demo_async(
 
     # Show mode-specific information
     if config.mode == DemoMode.SURVIVAL:
-        print(f"\nSurvival mode: Agent will focus on task completion")
+        print("\nSurvival mode: Agent will focus on task completion")
         print(f"  Initial balance: ${config.initial_balance:.2f}")
         print(f"  Company threshold: ${config.company_threshold:.2f} (unreachable)")
     else:
-        print(f"\nCompany mode: Agent will form and operate company")
+        print("\nCompany mode: Agent will form and operate company")
         print(f"  Initial balance: ${config.initial_balance:.2f}")
         print(f"  Company threshold: ${config.company_threshold:.2f}")
 

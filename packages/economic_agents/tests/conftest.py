@@ -553,7 +553,7 @@ def temp_log_dirs(tmp_path):
 
 
 @pytest.fixture(autouse=True)
-def mock_file_operations(monkeypatch, tmp_path):  # pylint: disable=unused-argument
+def mock_file_operations(monkeypatch, tmp_path):
     """Automatically mock file I/O operations to use temp directories.
 
     This fixture is autouse=True, so it applies to all tests automatically.

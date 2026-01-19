@@ -21,7 +21,7 @@ pub struct LintRequest {
 }
 
 fn default_linter() -> String {
-    "flake8".to_string()
+    "ruff".to_string()
 }
 
 /// Response for lint operation
@@ -77,7 +77,7 @@ pub async fn lint(
 }
 
 /// Get lint command and args
-/// Note: For Python, we map flake8/pylint to ruff check (10-100x faster)
+/// Note: For Python, we use ruff check (10-100x faster than flake8/pylint)
 fn get_lint_command(
     linter: Linter,
     path: &Path,
@@ -96,10 +96,9 @@ fn get_lint_command(
             args.push(path_str);
             Ok(("ruff", args))
         }
-        // Map pylint to ruff check with pylint compatibility
-        Linter::Pylint => {
+        // Native ruff linting
+        Linter::Ruff => {
             args.push("check".to_string());
-            args.push("--select=PL".to_string()); // Enable pylint rules
             if let Some(cfg) = config {
                 args.push(format!("--config={}", cfg));
             }

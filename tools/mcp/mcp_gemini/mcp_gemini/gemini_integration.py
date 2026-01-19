@@ -448,7 +448,7 @@ def get_integration(config: Optional[Dict[str, Any]] = None) -> GeminiIntegratio
     Returns:
         The singleton GeminiIntegration instance
     """
-    global _integration  # pylint: disable=global-statement
+    global _integration
     if _integration is None:
         _integration = GeminiIntegration(config)
     return _integration

@@ -11,7 +11,7 @@ import unittest
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
-# pylint: disable=wrong-import-position
+
 # Import the production function from test utilities
 from proxy_test_helpers import format_tool_calls_for_openai  # noqa: E402
 from shared.services.text_tool_parser import TextToolParser  # noqa: E402

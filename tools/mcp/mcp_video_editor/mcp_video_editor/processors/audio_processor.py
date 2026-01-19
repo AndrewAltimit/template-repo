@@ -196,7 +196,7 @@ class AudioProcessor:
 
         try:
             # Run diarization
-            diarization = self.diart_pipeline(audio_path)  # pylint: disable=not-callable
+            diarization = self.diart_pipeline(audio_path)
 
             # Process results
             speakers_data: dict[str, list[Any]] = {"speakers": [], "segments": [], "timeline": []}

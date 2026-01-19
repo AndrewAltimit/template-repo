@@ -15,7 +15,7 @@ if str(parent_dir) not in sys.path:
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import after path setup to avoid E402
-# pylint: disable=wrong-import-position
+
 from gemini_integration import GeminiIntegration  # noqa: E402
 
 # Setup logging

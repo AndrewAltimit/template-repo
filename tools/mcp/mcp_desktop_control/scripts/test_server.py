@@ -166,7 +166,7 @@ async def test_server(server_url: str = "http://localhost:8025"):
                     else:
                         print(f"   Note: {result.get('error', 'Screenshot failed')}")
                 else:
-                    print(f"   Note: Tool execution returned false")
+                    print("   Note: Tool execution returned false")
         except Exception as e:
             print(f"   Note: {e}")
 

@@ -15,7 +15,6 @@ _original_numpy = sys.modules.get("numpy")
 _numpy_mock = MagicMock()
 sys.modules["numpy"] = _numpy_mock
 
-# pylint: disable=wrong-import-position,wrong-import-order
 
 # Import the video editor components (must be after numpy mock)
 from mcp_video_editor import VideoEditorMCPServer  # noqa: E402

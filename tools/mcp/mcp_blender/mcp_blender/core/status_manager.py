@@ -187,7 +187,7 @@ def get_status_manager(output_dir: str = "/app/outputs") -> StatusManager:
     Returns:
         StatusManager instance
     """
-    global _status_manager  # pylint: disable=global-statement
+    global _status_manager
     if _status_manager is None:
         _status_manager = StatusManager(output_dir)
     return _status_manager

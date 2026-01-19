@@ -30,7 +30,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # Add src directory to path for local imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
+
 
 # Import CoT detection and ingestion (E402: local imports after path manipulation)
 from sleeper_agents.advanced_detection.honeypots import HoneypotGenerator  # noqa: E402

@@ -11,7 +11,6 @@ Tests cover:
 - Bedrock endpoint with API spec support
 """
 
-import json
 from pathlib import Path
 import sys
 import unittest

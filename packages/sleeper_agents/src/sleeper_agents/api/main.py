@@ -51,7 +51,7 @@ _rate_limit_state: dict = defaultdict(list)
 
 def get_semaphore() -> asyncio.Semaphore:
     """Get or create the concurrency semaphore."""
-    global _semaphore  # pylint: disable=global-statement
+    global _semaphore
     if _semaphore is None:
         _semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
     return _semaphore
@@ -63,7 +63,7 @@ def get_init_lock() -> asyncio.Lock:
     This lock prevents race conditions when reinitializing the detector
     while other requests are in flight.
     """
-    global _init_lock  # pylint: disable=global-statement
+    global _init_lock
     if _init_lock is None:
         _init_lock = asyncio.Lock()
     return _init_lock
@@ -114,7 +114,7 @@ async def check_rate_limit(request: Request) -> None:
 
     Raises 429 if rate limit exceeded.
     """
-    global _last_cleanup_time  # pylint: disable=global-statement
+    global _last_cleanup_time
 
     if RATE_LIMIT_REQUESTS <= 0:
         return  # Rate limiting disabled
@@ -147,7 +147,7 @@ detector: Optional[SleeperDetector] = None
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Manage application lifespan events."""
-    global detector  # pylint: disable=global-statement
+    global detector
     # Startup
     logger.info("Starting Sleeper Agent Detection System")
 
@@ -269,7 +269,7 @@ async def initialize_system(request: InitRequest):
     Uses a lock to prevent race conditions when reinitializing while
     other requests might be using the current detector.
     """
-    global detector  # pylint: disable=global-statement
+    global detector
 
     init_lock = get_init_lock()
     async with init_lock:

@@ -19,14 +19,6 @@ repos:
         # Configuration in pyproject.toml [tool.ruff.lint]
         # Note: C901 complexity errors are handled in CI, not pre-commit
 
-  # Pylint for catching E-level errors (catches issues ruff doesn't)
-  - repo: https://github.com/pylint-dev/pylint
-    rev: v3.3.8
-    hooks:
-      - id: pylint
-        args: [--errors-only]
-        # Only check for errors (E-level), not warnings. Will fail on errors.
-
   # YAML formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

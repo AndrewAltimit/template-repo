@@ -6,8 +6,6 @@ This module provides:
 3. Hooks for better test reliability
 """
 
-# pylint: disable=protected-access  # Testing protected members is legitimate in tests
-
 import gc
 from pathlib import Path
 import sys
@@ -91,7 +89,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "unit: marks unit tests")
 
 
-def pytest_collection_modifyitems(config, items):  # noqa: ARG001  # pylint: disable=unused-argument
+def pytest_collection_modifyitems(config, items):  # noqa: ARG001
     """Modify test items after collection."""
     # Automatically mark async tests
     for item in items:
@@ -100,7 +98,7 @@ def pytest_collection_modifyitems(config, items):  # noqa: ARG001  # pylint: dis
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):  # noqa: ARG001  # pylint: disable=unused-argument
+def pytest_runtest_makereport(item, call):  # noqa: ARG001
     """Hook to capture test results for debugging.
 
     This helps identify which tests are flaky by logging their outcomes.

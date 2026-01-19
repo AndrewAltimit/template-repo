@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import requests
-from storage_client import StorageClient  # noqa: E402  # pylint: disable=import-error
+from storage_client import StorageClient  # noqa: E402
 
 
 def send_audio_via_storage(

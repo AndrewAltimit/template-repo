@@ -11,7 +11,7 @@ import sys
 # Add parent directory to path
 parent_dir = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(parent_dir))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
+
 
 # Load .env file
 env_file = Path.cwd() / ".env"
@@ -53,7 +53,7 @@ async def test_model_aware_cleaning():
 
 async def test_synthesis_with_metadata():
     """Test synthesis and check the saved metadata"""
-    # pylint: disable=too-many-nested-blocks  # Test validation requires nested checks
+
     print("\n📊 Testing Synthesis with Comprehensive Metadata...")
 
     api_key = os.environ.get("ELEVENLABS_API_KEY")

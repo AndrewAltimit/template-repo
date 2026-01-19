@@ -20,7 +20,6 @@ for mod_name in list(sys.modules.keys()):
 import json
 import os
 import tempfile
-from unittest.mock import MagicMock, patch
 
 import pytest
 

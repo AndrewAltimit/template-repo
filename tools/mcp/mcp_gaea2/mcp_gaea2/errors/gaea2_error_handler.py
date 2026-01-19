@@ -318,7 +318,7 @@ class Gaea2ErrorHandler:
         schema: Dict[str, Any],
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[str]]:
         """Attempt to auto-fix errors where possible"""
-        # pylint: disable=too-many-nested-blocks  # Error correction requires nested handling
+
         fixes_applied: List[str] = []
 
         if not self.auto_fix_enabled:

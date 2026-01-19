@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
+
 
 from config.mock_models import (  # noqa: E402
     MOCK_MODELS,
