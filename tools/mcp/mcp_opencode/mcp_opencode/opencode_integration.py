@@ -113,7 +113,7 @@ class OpenCodeIntegration:
         self,
         query: str,
         context: str = "",
-        comparison_mode: bool = True,  # pylint: disable=unused-argument
+        comparison_mode: bool = True,
         force_consult: bool = False,
     ) -> Dict[str, Any]:
         """Consult OpenCode for AI assistance
@@ -270,7 +270,7 @@ def get_integration(config: Optional[Dict[str, Any]] = None) -> OpenCodeIntegrat
     Returns:
         The singleton OpenCodeIntegration instance
     """
-    global _integration  # pylint: disable=global-statement
+    global _integration
     if _integration is None:
         _integration = OpenCodeIntegration(config)
     return _integration

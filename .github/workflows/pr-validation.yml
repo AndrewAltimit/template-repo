@@ -57,10 +57,9 @@ jobs:
       # This must run BEFORE checkout because checkout's clean:true can't delete root-owned files
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ]; then
-            echo "Cleaning up Docker-created outputs directory..."
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs" || true
-          fi
+          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
+          # This must run unconditionally to handle root-owned files from previous Docker runs
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -140,9 +139,9 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-          fi
+          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
+          # This must run unconditionally to handle root-owned files from previous Docker runs
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -207,9 +206,9 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-          fi
+          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
+          # This must run unconditionally to handle root-owned files from previous Docker runs
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -457,9 +456,9 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-          fi
+          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
+          # This must run unconditionally to handle root-owned files from previous Docker runs
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -581,9 +580,9 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-          fi
+          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
+          # This must run unconditionally to handle root-owned files from previous Docker runs
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -747,9 +746,9 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-          fi
+          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
+          # This must run unconditionally to handle root-owned files from previous Docker runs
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -777,9 +776,9 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-          fi
+          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
+          # This must run unconditionally to handle root-owned files from previous Docker runs
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -885,9 +884,9 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-          fi
+          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
+          # This must run unconditionally to handle root-owned files from previous Docker runs
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -916,9 +915,9 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-          fi
+          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
+          # This must run unconditionally to handle root-owned files from previous Docker runs
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -994,9 +993,9 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-          fi
+          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
+          # This must run unconditionally to handle root-owned files from previous Docker runs
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -1134,9 +1133,9 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-          fi
+          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
+          # This must run unconditionally to handle root-owned files from previous Docker runs
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -1210,9 +1209,9 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-          fi
+          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
+          # This must run unconditionally to handle root-owned files from previous Docker runs
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -1339,6 +1338,8 @@ jobs:
       - basic-lint
       - full-lint
       - test-suite
+      - sleeper-agents-tests
+      - dashboard-tests
     if: |
       failure() &&
       github.event_name == 'pull_request' &&
@@ -1348,7 +1349,9 @@ jobs:
       (needs.format-check.result == 'failure' ||
        needs.basic-lint.result == 'failure' ||
        needs.full-lint.result == 'failure' ||
-       needs.test-suite.result == 'failure')
+       needs.test-suite.result == 'failure' ||
+       needs.sleeper-agents-tests.result == 'failure' ||
+       needs.dashboard-tests.result == 'failure')
     runs-on: self-hosted
     timeout-minutes: 45
     outputs:
@@ -1362,12 +1365,14 @@ jobs:
       BASIC_LINT_RESULT: ${{ needs.basic-lint.result }}
       FULL_LINT_RESULT: ${{ needs.full-lint.result }}
       TEST_SUITE_RESULT: ${{ needs.test-suite.result }}
+      SLEEPER_AGENTS_RESULT: ${{ needs.sleeper-agents-tests.result }}
+      DASHBOARD_TESTS_RESULT: ${{ needs.dashboard-tests.result }}
     steps:
       - name: Pre-checkout cleanup
         run: |
-          if [ -d "outputs" ] || [ -d "evaluation_results" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
-          fi
+          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
+          # This must run unconditionally to handle root-owned files from previous Docker runs
+          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -1416,6 +1421,9 @@ jobs:
           - Format Check: ${{ needs.format-check.result }}
           - Basic Lint: ${{ needs.basic-lint.result }}
           - Full Lint: ${{ needs.full-lint.result }}
+          - Test Suite: ${{ needs.test-suite.result }}
+          - Sleeper Agents Tests: ${{ needs.sleeper-agents-tests.result }}
+          - Dashboard Tests: ${{ needs.dashboard-tests.result }}
 
           Please review the failure logs and fix the issues manually.
           EOF
@@ -1451,13 +1459,15 @@ jobs:
           echo "Basic lint result: $BASIC_LINT_RESULT"
           echo "Full lint result: $FULL_LINT_RESULT"
           echo "Test suite result: $TEST_SUITE_RESULT"
+          echo "Sleeper agents result: $SLEEPER_AGENTS_RESULT"
+          echo "Dashboard tests result: $DASHBOARD_TESTS_RESULT"
 
           # Build failure types based on which jobs failed
           FAILURE_TYPES=""
           if [ "$FORMAT_CHECK_RESULT" = "failure" ] || [ "$BASIC_LINT_RESULT" = "failure" ] || [ "$FULL_LINT_RESULT" = "failure" ]; then
             FAILURE_TYPES="format,lint"
           fi
-          if [ "$TEST_SUITE_RESULT" = "failure" ]; then
+          if [ "$TEST_SUITE_RESULT" = "failure" ] || [ "$SLEEPER_AGENTS_RESULT" = "failure" ] || [ "$DASHBOARD_TESTS_RESULT" = "failure" ]; then
             if [ -n "$FAILURE_TYPES" ]; then
               FAILURE_TYPES="$FAILURE_TYPES,test"
             else

@@ -6,14 +6,14 @@ import re
 import shutil
 import subprocess
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from .base import DesktopBackend, ScreenInfo, WindowInfo
 
 logger = logging.getLogger(__name__)
 
 
-class LinuxBackend(DesktopBackend):  # pylint: disable=too-many-public-methods
+class LinuxBackend(DesktopBackend):
     """Linux desktop control using xdotool, wmctrl, scrot, and xrandr"""
 
     def __init__(self):

@@ -24,7 +24,9 @@ services:
       retries: 5
 
   selenium:
-    image: selenium/standalone-chrome:136.0-20250828
+    # Use seleniarm for ARM64, selenium for x86_64
+    # Set SELENIUM_IMAGE env var before running, or let run_tests.sh auto-detect
+    image: ${SELENIUM_IMAGE:-selenium/standalone-chrome:latest}
     container_name: selenium-chrome
     ports:
       - "4444:4444"

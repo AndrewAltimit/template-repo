@@ -65,6 +65,18 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      - name: Detect architecture for Selenium
+        id: arch
+        run: |
+          ARCH=$(uname -m)
+          if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
+            echo "SELENIUM_IMAGE=seleniarm/standalone-chromium:latest" >> $GITHUB_ENV
+            echo "Detected ARM64 architecture, using seleniarm/standalone-chromium"
+          else
+            echo "SELENIUM_IMAGE=selenium/standalone-chrome:latest" >> $GITHUB_ENV
+            echo "Detected x86_64 architecture, using selenium/standalone-chrome"
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
 
@@ -114,6 +126,8 @@ jobs:
           export GROUP_ID=$(id -g)
           # Set a consistent password for the test run
           export DASHBOARD_ADMIN_PASSWORD=ci-test-password123
+          # SELENIUM_IMAGE is already set in GITHUB_ENV by the architecture detection step
+          echo "Using Selenium image: $SELENIUM_IMAGE"
           docker-compose -f docker-compose.test.yml up -d dashboard selenium
 
           # Services will be ready due to depends_on and healthcheck configuration

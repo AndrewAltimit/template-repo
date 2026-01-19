@@ -41,9 +41,8 @@ pytest-randomly>=3.15.0  # Randomize test order to find isolation issues
 pytest-xdist>=3.5.0  # Parallel test execution (2-4x faster)
 hypothesis>=6.100.0  # Property-based testing for state machine invariants
 
-# Code Quality - Ruff replaces black, flake8, isort (10-100x faster)
-ruff>=0.14.0  # Fast linter and formatter - replaces black/flake8/isort
-pylint>=3.3.8  # Keep for deeper static analysis (catches issues ruff doesn't)
+# Code Quality - Ruff replaces black, flake8, isort, pylint (10-100x faster)
+ruff>=0.14.0  # Fast linter and formatter - replaces black/flake8/isort/pylint
 mypy>=1.0.0
 
 # Type stubs

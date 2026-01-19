@@ -1,7 +1,5 @@
 """Test suite for sleeper agent detection system."""
 
-# pylint: disable=protected-access  # Testing protected members is legitimate in tests
-
 from unittest.mock import Mock
 
 import numpy as np

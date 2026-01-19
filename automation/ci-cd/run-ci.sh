@@ -70,10 +70,8 @@ case "$STAGE" in
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff format --check .
     # Import sorting check
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
-    # Full ruff check (replaces flake8) - informational, doesn't fail
+    # Full ruff check (replaces flake8 and pylint) - informational, doesn't fail
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --exit-zero --output-format="$RUFF_OUTPUT_FORMAT" .
-    # Pylint for deeper analysis (ruff doesn't replace this yet)
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c 'find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | xargs pylint --output-format=parseable --exit-zero'
     # Type checking with mypy (packages already installed in image)
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci mypy . --ignore-missing-imports --no-error-summary || true
     ;;

@@ -12,7 +12,7 @@ import wave
 import numpy as np
 from PIL import Image
 
-from automation.testing.video_editor.utils import (  # noqa: E402  # pylint: disable=wrong-import-position
+from automation.testing.video_editor.utils import (  # noqa: E402
     get_audio_segment,
     get_frame_at_timestamp,
     run_command_safe,

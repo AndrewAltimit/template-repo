@@ -26,8 +26,8 @@ This project embraces a **container-first approach** as a core design principle:
 The Python CI container (`docker/python-ci.Dockerfile`) includes all necessary tools:
 
 - **Base Image**: Python 3.11-slim for optimal performance
-- **Formatters**: Black, isort
-- **Linters**: flake8, pylint, mypy
+- **Linter/Formatter**: Ruff (replaces black, flake8, isort, pylint)
+- **Type Checker**: mypy
 - **Testing**: pytest, pytest-cov, pytest-asyncio, pytest-mock
 - **Security**: bandit, safety
 - **Utilities**: yamllint, pre-commit
@@ -236,7 +236,7 @@ docker image prune -f
 
 ### Containerized
 
-- **All Python tools**: Black, isort, flake8, pylint, mypy, pytest
+- **All Python tools**: Ruff, mypy, pytest
 - **MCP server**: Runs in its own container with all dependencies
 - **CI/CD operations**: All pipeline steps use containers
 - **Development tools**: Any tool that doesn't need Docker access

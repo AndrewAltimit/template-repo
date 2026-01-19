@@ -401,8 +401,8 @@ Codex provides complementary review focusing on:
 
 **Scope (Safe Categories):**
 
-- Formatting issues (black, isort)
-- Linting errors (flake8, pylint)
+- Formatting issues (ruff format)
+- Linting errors (ruff)
 - Type errors (mypy)
 - Unused imports
 

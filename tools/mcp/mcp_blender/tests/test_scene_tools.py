@@ -2,7 +2,6 @@
 """Tests for scene tools (delete_objects, create_curve)."""
 
 import json
-from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 
 import pytest

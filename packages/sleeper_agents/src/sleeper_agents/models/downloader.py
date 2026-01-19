@@ -106,8 +106,8 @@ class ModelDownloader:
     def _download_from_huggingface(
         self,
         model_id: str,
-        use_quantization: Optional[str] = None,  # pylint: disable=unused-argument
-        show_progress: bool = True,  # pylint: disable=unused-argument
+        use_quantization: Optional[str] = None,
+        show_progress: bool = True,
     ) -> Path:
         """Download model using HuggingFace Hub library.
 

@@ -11,7 +11,7 @@ import sys
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "services"))
 
-# pylint: disable=wrong-import-position
+
 from text_tool_parser import TextToolParser  # noqa: E402
 
 

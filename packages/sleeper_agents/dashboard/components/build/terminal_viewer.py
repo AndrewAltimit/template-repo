@@ -28,7 +28,7 @@ class TerminalViewer:
 
     def render(
         self,
-        auto_scroll: bool = True,  # pylint: disable=unused-argument
+        auto_scroll: bool = True,
         tail: int = 1000,
         height: int = 600,
     ):

@@ -322,7 +322,7 @@ class TestModeSwitching(unittest.TestCase):
 
         # In text mode, tools should be injected
         with patch.dict(os.environ, {"TOOL_MODE": "text"}):
-            from shared.services.tool_injector import ToolInjector  # noqa: E402  # pylint: disable=wrong-import-position
+            from shared.services.tool_injector import ToolInjector  # noqa: E402
 
             tools = {"test": {"description": "Test tool"}}
             injector = ToolInjector(tools)

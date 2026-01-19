@@ -1,7 +1,5 @@
 """Tests for investment seeking integration in autonomous agent."""
 
-# pylint: disable=protected-access  # Testing protected members is legitimate in tests
-
 import pytest
 
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent

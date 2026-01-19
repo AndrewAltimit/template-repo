@@ -234,7 +234,7 @@ _global_cache = None
 
 def get_cache() -> Gaea2Cache:
     """Get global cache instance"""
-    global _global_cache  # pylint: disable=global-statement
+    global _global_cache
     if _global_cache is None:
         # Initialize with temp directory
         import tempfile

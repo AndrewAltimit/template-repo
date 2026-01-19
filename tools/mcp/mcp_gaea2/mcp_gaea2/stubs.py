@@ -120,7 +120,7 @@ class Gaea2WorkflowAnalyzer:
 class Gaea2ProjectRepair:
     """Stub project repair tool for Gaea2 files"""
 
-    def repair_project(self, path: str, backup: bool = True) -> Dict[str, Any]:  # pylint: disable=unused-argument
+    def repair_project(self, path: str, backup: bool = True) -> Dict[str, Any]:
         """Repair a damaged Gaea2 project file"""
         return {"success": True}
 

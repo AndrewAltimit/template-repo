@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 @DetectorRegistry.register("art_activation")
-class ARTActivationDetector(BaseDetector):  # pylint: disable=too-many-instance-attributes
+class ARTActivationDetector(BaseDetector):
     """Clustering-based backdoor detector inspired by ART's ActivationDefence.
 
     Uses K-means clustering on PCA-reduced activations to identify suspicious

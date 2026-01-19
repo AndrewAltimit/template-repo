@@ -21,7 +21,7 @@ import numpy as np
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
+
 
 from sleeper_agents.detection.model_loader import load_model_for_detection  # noqa: E402
 from sleeper_agents.probes.probe_detector import ProbeDetector  # noqa: E402
@@ -192,7 +192,7 @@ async def main() -> None:
 
     # Train ensemble probe
     logger.info("\n  Training ensemble probe across all layers...")
-    # pylint: disable-next=protected-access
+
     ensemble_probe = await probe_detector._train_ensemble_probe(train_truthful, train_deceptive)
     if ensemble_probe:
         trained_probes[ensemble_probe.probe_id] = ensemble_probe

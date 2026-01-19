@@ -411,7 +411,7 @@ def get_integration(config: Optional[Dict[str, Any]] = None) -> CrushIntegration
     Returns:
         The singleton CrushIntegration instance
     """
-    global _integration  # pylint: disable=global-statement
+    global _integration
     if _integration is None:
         _integration = CrushIntegration(config)
     return _integration

@@ -11,7 +11,7 @@ import sys
 # Add parent directory to path
 parent_dir = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(parent_dir))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
+
 
 # Load .env file
 env_file = Path.cwd() / ".env"

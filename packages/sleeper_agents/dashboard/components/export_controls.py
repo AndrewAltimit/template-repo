@@ -3,8 +3,6 @@ Export Controls Component
 Provides PDF export functionality for dashboard views.
 """
 
-# pylint: disable=wrong-import-order  # Local imports have ambiguous classification
-
 from datetime import datetime
 import logging
 from typing import Any, Dict

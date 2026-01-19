@@ -339,7 +339,7 @@ class Gaea2WorkflowTools:
         - Build configuration
         - Node property updates
         """
-        # pylint: disable=too-many-nested-blocks  # Batch processing requires nested handling
+
         results = []
 
         for project_file in project_files:

@@ -4,8 +4,6 @@ Unit tests for GitHub Board MCP Server.
 Tests the CLI wrapper interface - all operations delegate to the Rust board-manager CLI.
 """
 
-# pylint: disable=protected-access
-
 from unittest.mock import AsyncMock, patch
 
 import pytest

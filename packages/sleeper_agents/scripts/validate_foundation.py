@@ -36,19 +36,19 @@ def check_imports() -> bool:
 
     try:
         # Import from sleeper_agents.models
-        from sleeper_agents.models import ModelRegistry  # noqa: F401 pylint: disable=unused-import
+        from sleeper_agents.models import ModelRegistry  # noqa: F401
 
         print("  ✓ ModelRegistry import successful")
 
-        from sleeper_agents.models import ModelDownloader  # noqa: F401 pylint: disable=unused-import
+        from sleeper_agents.models import ModelDownloader  # noqa: F401
 
         print("  ✓ ModelDownloader import successful")
 
-        from sleeper_agents.models import ResourceManager  # noqa: F401 pylint: disable=unused-import
+        from sleeper_agents.models import ResourceManager  # noqa: F401
 
         print("  ✓ ResourceManager import successful")
 
-        from sleeper_agents.models import get_resource_manager  # noqa: F401 pylint: disable=unused-import
+        from sleeper_agents.models import get_resource_manager  # noqa: F401
 
         print("  ✓ Helper functions import successful")
 
@@ -203,7 +203,7 @@ def validate_downloader() -> bool:
         print(f"  Cached models: {len(cached_models)}")
 
         # Test cache path generation
-        # pylint: disable-next=protected-access
+
         _test_path = downloader._get_cache_path("test/model")  # noqa: F841
         print("  ✓ Cache path generation works")
 

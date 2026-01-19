@@ -1,6 +1,6 @@
 """Compositing and rendering tools for Blender MCP Server."""
 
-# pylint: disable=protected-access
+
 # Tool modules access internal server validation methods by design.
 # This is an intentional internal package architecture pattern.
 

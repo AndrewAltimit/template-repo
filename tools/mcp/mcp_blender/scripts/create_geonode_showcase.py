@@ -209,7 +209,7 @@ async def create_showcase_projects():
             )
 
             if not project_result.get("success"):
-                print(f"    ERROR: Failed to create project")
+                print("    ERROR: Failed to create project")
                 results.append({"name": showcase["name"], "success": False, "error": "Project creation failed"})
                 continue
 
@@ -230,7 +230,7 @@ async def create_showcase_projects():
                 print(f"    Geometry nodes applied: {showcase['node_setup']}")
                 results.append({"name": showcase["name"], "success": True, "path": project_path})
             else:
-                print(f"    ERROR: Failed to apply geometry nodes")
+                print("    ERROR: Failed to apply geometry nodes")
                 results.append({"name": showcase["name"], "success": False, "error": "Geometry nodes failed"})
 
         except Exception as e:

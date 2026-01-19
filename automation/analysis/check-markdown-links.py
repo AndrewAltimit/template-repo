@@ -12,7 +12,7 @@ import sys
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-# pylint: disable=wrong-import-position
+
 from tools.cli.utilities.markdown_link_checker import MarkdownLinkChecker  # noqa: E402
 
 

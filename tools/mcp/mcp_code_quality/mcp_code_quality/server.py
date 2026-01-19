@@ -280,8 +280,8 @@ class CodeQualityMCPServer(BaseMCPServer):
                         },
                         "linter": {
                             "type": "string",
-                            "enum": ["flake8", "pylint", "eslint", "golint", "clippy"],
-                            "default": "flake8",
+                            "enum": ["flake8", "ruff", "eslint", "golint", "clippy"],
+                            "default": "ruff",
                             "description": "Linter to use",
                         },
                     },
@@ -542,14 +542,14 @@ class CodeQualityMCPServer(BaseMCPServer):
             self._audit_log("format_check", path, False, {"reason": "exception", "error": str(e)})
             return {"success": False, "error": str(e), "error_type": "exception"}
 
-    async def lint(self, path: str, config: Optional[str] = None, linter: str = "flake8") -> Dict[str, Any]:
+    async def lint(self, path: str, config: Optional[str] = None, linter: str = "ruff") -> Dict[str, Any]:
         """
         Run code linting with various linters.
 
         Args:
             path: Path to file or directory to lint
             config: Optional path to linting configuration file
-            linter: Linter to use (flake8, pylint, eslint, golint, clippy)
+            linter: Linter to use (flake8, ruff, eslint, golint, clippy)
 
         Returns:
             Dictionary with linting results and any issues found
@@ -570,7 +570,7 @@ class CodeQualityMCPServer(BaseMCPServer):
 
         linter_commands = {
             "flake8": ["flake8"],
-            "pylint": ["pylint"],
+            "ruff": ["ruff", "check"],
             "eslint": ["eslint"],
             "golint": ["golint"],
             "clippy": ["cargo", "clippy"],
@@ -596,8 +596,8 @@ class CodeQualityMCPServer(BaseMCPServer):
                 }
             if linter == "flake8":
                 cmd.extend(["--config", config])
-            elif linter == "pylint":
-                cmd.extend(["--rcfile", config])
+            elif linter == "ruff":
+                cmd.extend(["--config", config])
             elif linter == "eslint":
                 cmd.extend(["--config", config])
 
@@ -1097,7 +1097,7 @@ class CodeQualityMCPServer(BaseMCPServer):
         tool_checks = [
             ("black", ["black", "--version"]),
             ("flake8", ["flake8", "--version"]),
-            ("pylint", ["pylint", "--version"]),
+            ("ruff", ["ruff", "--version"]),
             ("mypy", ["mypy", "--version"]),
             ("pytest", ["pytest", "--version"]),
             ("bandit", ["bandit", "--version"]),

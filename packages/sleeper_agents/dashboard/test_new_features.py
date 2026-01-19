@@ -8,7 +8,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
+
 
 from components.chain_of_thought import detect_deception_patterns, generate_mock_cot_data  # noqa: E402
 from components.overview import calculate_persistence_score, get_deception_risk_level  # noqa: E402

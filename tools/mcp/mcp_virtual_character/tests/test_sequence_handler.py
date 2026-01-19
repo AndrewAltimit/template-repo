@@ -17,13 +17,13 @@ from tools.mcp.mcp_virtual_character.mcp_virtual_character.sequence_handler impo
 
 
 @pytest.fixture
-def sequence_handler():  # pylint: disable=redefined-outer-name
+def sequence_handler():
     """Create a fresh sequence handler for each test."""
     return SequenceHandler()
 
 
 @pytest.fixture
-def mock_backend():  # pylint: disable=redefined-outer-name
+def mock_backend():
     """Create a mock backend adapter."""
     backend = AsyncMock()
     backend.send_animation_data = AsyncMock(return_value=True)

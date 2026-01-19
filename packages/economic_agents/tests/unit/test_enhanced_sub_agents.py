@@ -1,7 +1,5 @@
 """Tests for enhanced sub-agent intelligence (P1 #5)."""
 
-# pylint: disable=protected-access  # Testing protected members is legitimate in tests
-
 from economic_agents.sub_agents.board_member import BoardMember
 from economic_agents.sub_agents.executive import Executive
 from economic_agents.sub_agents.individual_contributor import IndividualContributor

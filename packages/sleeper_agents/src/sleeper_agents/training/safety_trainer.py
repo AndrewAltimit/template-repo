@@ -28,7 +28,6 @@ logger = logging.getLogger(__name__)
 
 # Import trigger sensitivity analysis
 try:
-    # pylint: disable=ungrouped-imports  # Imports grouped within try block
     from sleeper_agents.advanced_detection.trigger_sensitivity import (
         SimpleDetector,
         TriggerSensitivityAnalyzer,

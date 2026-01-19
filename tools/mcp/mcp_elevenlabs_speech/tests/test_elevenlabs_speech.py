@@ -7,7 +7,6 @@ tools.py directly to avoid the broken import chain in __init__.py.
 
 import importlib.util
 from pathlib import Path
-import sys
 
 
 def load_tools_module():
@@ -17,11 +16,6 @@ def load_tools_module():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
-
-
-from typing import Any, Dict
-
-import pytest
 
 
 class TestElevenLabsToolsRegistry:

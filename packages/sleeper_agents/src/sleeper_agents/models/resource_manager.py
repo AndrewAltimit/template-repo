@@ -73,7 +73,7 @@ class ResourceManager:
             True if PyTorch is available
         """
         try:
-            import torch  # noqa: F401  # pylint: disable=import-outside-toplevel,unused-import
+            import torch  # noqa: F401
 
             return True
         except ImportError:
@@ -483,7 +483,7 @@ def get_resource_manager() -> ResourceManager:
     Returns:
         Global ResourceManager instance
     """
-    global _resource_manager  # pylint: disable=global-statement
+    global _resource_manager
     if _resource_manager is None:
         _resource_manager = ResourceManager()
     return _resource_manager

@@ -15,7 +15,6 @@ Usage:
     # GPU mode (host testing)
     python scripts/validation/test_advanced_detection.py --model mistral-7b --device cuda
 """
-# pylint: disable=protected-access  # Testing protected members is legitimate in tests
 
 import argparse
 import asyncio
@@ -26,7 +25,7 @@ import sys
 # Add package root to path (must be before imports)
 repo_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(repo_root))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
+
 
 import traceback  # noqa: E402
 

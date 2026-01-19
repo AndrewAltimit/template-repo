@@ -9,11 +9,10 @@ from typing import Any, Dict, cast
 
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 
 import argparse  # noqa: E402

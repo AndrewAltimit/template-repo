@@ -32,7 +32,6 @@ ensure_numeric() {
 # Initialize counters
 errors=0
 warnings=0
-baseline_failed=0
 
 # Clear any previous lint output
 rm -f lint-output.txt
@@ -92,36 +91,6 @@ case "$STAGE" in
     # Ruff style check (informational, doesn't fail build)
     echo "🔍 Running ruff (style check)..."
     docker-compose run --rm python-ci ruff check --select=E,W,C90 --exit-zero --output-format=grouped . 2>&1 | tee -a lint-output.txt
-
-    # Pylint (explicitly use pyproject.toml config for disabled warnings)
-    echo "🔍 Running Pylint..."
-    docker-compose run --rm python-ci bash -c 'find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | xargs pylint --rcfile=pyproject.toml --output-format=parseable --exit-zero' 2>&1 | tee -a lint-output.txt || true
-
-    # Count Pylint issues (informational only - baseline check determines pass/fail)
-    if [ -f lint-output.txt ]; then
-      pylint_errors=$(grep -cE ":[0-9]+: \[E[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
-      pylint_warnings=$(grep -cE ":[0-9]+: \[W[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
-      # Ensure values are numeric (for reporting only)
-      pylint_errors=$(ensure_numeric "$pylint_errors")
-      pylint_warnings=$(ensure_numeric "$pylint_warnings")
-      # Note: Not adding to errors/warnings counts - baseline check handles this
-      echo "  Pylint found $pylint_errors E-codes, $pylint_warnings W-codes (checked against baseline)"
-    fi
-
-    # Check against lint baseline to prevent regressions
-    echo ""
-    echo "🔍 Checking against lint baseline..."
-    BASELINE_FILE="$PROJECT_ROOT/config/lint/pylint-baseline.json"
-    if [ -f "$BASELINE_FILE" ] && [ -f lint-output.txt ]; then
-      if docker-compose run --rm python-ci python automation/ci-cd/check-lint-baseline.py lint-output.txt --baseline config/lint/pylint-baseline.json; then
-        echo "✅ Lint baseline check passed"
-      else
-        echo "❌ Lint baseline check failed - new warnings detected"
-        baseline_failed=1
-      fi
-    else
-      echo "⚠️  Baseline file not found, skipping regression check"
-    fi
     ;;
 
   full)
@@ -136,7 +105,7 @@ case "$STAGE" in
     # Import sorting check
     docker-compose run --rm python-ci ruff check --select=I . 2>&1 | tee -a lint-output.txt || true
 
-    # Ruff - full linting (replaces flake8, 10-100x faster)
+    # Ruff - full linting (replaces flake8 and pylint, 10-100x faster)
     echo "🔍 Running ruff (full linting)..."
     docker-compose run --rm python-ci ruff check --output-format=grouped . 2>&1 | tee -a lint-output.txt || true
     if [ -f lint-output.txt ]; then
@@ -155,27 +124,10 @@ case "$STAGE" in
       errors=$((errors + ${ruff_critical:-0}))
     fi
 
-    # Pylint (explicitly use pyproject.toml config for disabled warnings)
-    # Note: Keep pylint as it catches issues ruff doesn't yet
-    echo "🔍 Running Pylint..."
-    docker-compose run --rm python-ci bash -c 'find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | xargs pylint --rcfile=pyproject.toml --output-format=parseable --exit-zero' 2>&1 | tee -a lint-output.txt || true
-
-    # Count Pylint issues (informational only - baseline check determines pass/fail)
-    if [ -f lint-output.txt ]; then
-      pylint_errors=$(grep -cE ":[0-9]+: \[E[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
-      pylint_warnings=$(grep -cE ":[0-9]+: \[W[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
-      # Ensure values are numeric (for reporting only)
-      pylint_errors=$(ensure_numeric "$pylint_errors")
-      pylint_warnings=$(ensure_numeric "$pylint_warnings")
-      # Note: Not adding to errors/warnings counts - baseline check handles this
-      echo "  Pylint found $pylint_errors E-codes, $pylint_warnings W-codes (checked against baseline)"
-    fi
-
     # Type checking with MyPy (informational - doesn't fail build)
     # Packages already installed in image
     echo "🔍 Running MyPy type checker..."
     docker-compose run --rm python-ci mypy . --ignore-missing-imports --no-error-summary 2>&1 | tee -a lint-output.txt || true
-    # Note: Not counting mypy errors as hard failures - baseline check handles regressions
     mypy_errors=$(grep -c ": error:" lint-output.txt 2>/dev/null || echo 0)
     mypy_errors=$(ensure_numeric "$mypy_errors")
     echo "  MyPy found $mypy_errors errors (informational)"
@@ -223,7 +175,6 @@ case "$STAGE" in
     fi
 
     # Report total issues from lint-output.txt (informational only)
-    # Baseline check determines pass/fail, not these counts
     if [ -f lint-output.txt ]; then
       total_errors=$(grep -cE "(error:|ERROR:|Error:)" lint-output.txt 2>/dev/null || echo 0)
       total_warnings=$(grep -cE "(warning:|WARNING:|Warning:)" lint-output.txt 2>/dev/null || echo 0)
@@ -231,22 +182,6 @@ case "$STAGE" in
       total_errors=$(ensure_numeric "$total_errors")
       total_warnings=$(ensure_numeric "$total_warnings")
       echo "  Total error/warning strings in output: $total_errors errors, $total_warnings warnings (informational)"
-    fi
-
-    # Check against lint baseline to prevent regressions
-    echo ""
-    echo "🔍 Checking against lint baseline..."
-    BASELINE_FILE="$PROJECT_ROOT/config/lint/pylint-baseline.json"
-    if [ -f "$BASELINE_FILE" ] && [ -f lint-output.txt ]; then
-      if docker-compose run --rm python-ci python automation/ci-cd/check-lint-baseline.py lint-output.txt --baseline config/lint/pylint-baseline.json; then
-        echo "✅ Lint baseline check passed"
-      else
-        echo "❌ Lint baseline check failed - new warnings detected"
-        # Set baseline_failed flag for exit handling
-        baseline_failed=1
-      fi
-    else
-      echo "⚠️  Baseline file not found, skipping regression check"
     fi
     ;;
 
@@ -334,9 +269,6 @@ echo "Warnings: $warnings"
 # Exit with error code if issues found
 if [[ $errors -gt 0 ]]; then
   echo "❌ Linting failed with $errors errors"
-  exit 1
-elif [[ $baseline_failed -eq 1 ]]; then
-  echo "❌ Lint baseline check failed - new warnings introduced"
   exit 1
 else
   echo "✅ Linting completed"

@@ -107,8 +107,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # - /workspace is the primary working directory for most CI operations
 # - /app is used by some tools that expect absolute paths or when running
 #   with read-only mounts where the code is mounted at /app
-COPY .flake8 .pylintrc ./
-COPY .flake8 .pylintrc /app/
+COPY .flake8 ./
+COPY .flake8 /app/
 # Copy pyproject.toml files for proper isort and black configuration
 # Duplicated to ensure tools can find configs regardless of working directory
 COPY pyproject.toml ./pyproject.toml

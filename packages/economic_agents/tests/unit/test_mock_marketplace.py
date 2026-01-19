@@ -1,7 +1,5 @@
 """Tests for MockMarketplace implementation."""
 
-# pylint: disable=protected-access  # Testing protected members is legitimate in tests
-
 from datetime import datetime
 
 import pytest

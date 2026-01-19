@@ -47,7 +47,7 @@ if _SIBLING_PATH.exists() and str(_SIBLING_PATH) not in sys.path:
 _audio_file_server_cache: Dict[str, Any] = {"loaded": False, "func": None}
 
 
-class ElevenLabsSpeechMCPServer(BaseMCPServer):  # pylint: disable=too-many-public-methods
+class ElevenLabsSpeechMCPServer(BaseMCPServer):
     """MCP Server for ElevenLabs v3 advanced speech synthesis.
 
     Note: This class has many public methods because each MCP tool is implemented
@@ -145,7 +145,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):  # pylint: disable=too-many-publ
 
         # First call - try to import (thread-safe since sys.path already set at module load)
         try:
-            from audio_file_server import serve_audio_file  # pylint: disable=import-outside-toplevel
+            from audio_file_server import serve_audio_file
 
             self.logger.debug("Loaded audio_file_server via import")
             _audio_file_server_cache["func"] = serve_audio_file
@@ -169,7 +169,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):  # pylint: disable=too-many-publ
             audio_data: Raw audio bytes
             result_dict: Result dictionary to update
         """
-        import base64  # pylint: disable=import-outside-toplevel
+        import base64
 
         if len(audio_data) < 50000:  # Only include if < 50KB
             result_dict["audio_data"] = base64.b64encode(audio_data).decode("utf-8")

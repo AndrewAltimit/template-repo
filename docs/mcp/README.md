@@ -15,7 +15,7 @@ These servers run as local processes on the same machine as the client:
 
 Provides code formatting and linting tools for multiple languages:
 - Format checking (Python, JavaScript, TypeScript, Go, Rust)
-- Linting with various tools (flake8, pylint, eslint, etc.)
+- Linting with various tools (ruff, eslint, etc.)
 - Auto-formatting capabilities
 
 #### 2. Content Creation MCP Server

@@ -9,7 +9,7 @@ from typing import Any
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
+
 
 # Load .env file
 env_file = Path(__file__).parent.parent.parent.parent / ".env"

@@ -2,8 +2,6 @@
 Comprehensive evaluation system for testing open-weight models for sleeper agents.
 """
 
-# pylint: disable=too-many-lines  # TODO: Extract evaluation methods by type to separate modules
-
 from dataclasses import dataclass
 from datetime import datetime
 import json

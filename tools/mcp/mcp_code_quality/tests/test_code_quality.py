@@ -161,15 +161,15 @@ class TestLint:
             assert "E501" in result["issues"][1]
 
     @pytest.mark.asyncio
-    async def test_lint_pylint(self, server):
-        """Test pylint linting."""
+    async def test_lint_ruff(self, server):
+        """Test ruff linting."""
         with patch.object(server, "_run_subprocess") as mock_run:
             mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
 
-            result = await server.lint(path="/tmp/test.py", linter="pylint")
+            result = await server.lint(path="/tmp/test.py", linter="ruff")
 
             assert result["success"] is True
-            assert "pylint" in mock_run.call_args[0][0]
+            assert "ruff" in mock_run.call_args[0][0]
 
     @pytest.mark.asyncio
     async def test_lint_eslint(self, server):

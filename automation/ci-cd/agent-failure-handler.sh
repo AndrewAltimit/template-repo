@@ -144,13 +144,13 @@ if [ -f "./automation/ci-cd/run-ci.sh" ]; then
         LINT_OUTPUT=$(./automation/ci-cd/run-ci.sh lint-basic 2>&1 || true)
     fi
 
-    # Also capture lint-full output (pylint, mypy) if that failed
+    # Also capture lint-full output (ruff, mypy) if that failed
     if [ "${FULL_LINT_RESULT:-}" = "failure" ]; then
         echo "Capturing lint-full output..."
         FULL_LINT_OUTPUT=$(./automation/ci-cd/run-ci.sh lint-full 2>&1 || true)
         LINT_OUTPUT="${LINT_OUTPUT}
 
-=== Full Lint Output (pylint/mypy) ===
+=== Full Lint Output (ruff/mypy) ===
 ${FULL_LINT_OUTPUT}"
     fi
 

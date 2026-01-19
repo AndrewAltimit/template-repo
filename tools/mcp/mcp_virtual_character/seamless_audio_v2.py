@@ -20,8 +20,8 @@ import aiohttp
 
 # Import our improved utilities
 try:
-    from .utils.env_loader import ensure_storage_config  # pylint: disable=relative-beyond-top-level
-    from .utils.path_resolver import PathResolver  # pylint: disable=relative-beyond-top-level
+    from .utils.env_loader import ensure_storage_config
+    from .utils.path_resolver import PathResolver
 except ImportError:
     # Fallback for direct script execution
     import sys
@@ -141,7 +141,7 @@ class SeamlessAudioPlayer:
     async def _upload_file(self, file_path: str) -> Optional[str]:
         """Upload file to storage service."""
         try:
-            from .storage_client import StorageClient  # pylint: disable=relative-beyond-top-level
+            from .storage_client import StorageClient
 
             client = StorageClient(base_url=self.storage_url, secret_key=self.config.get("STORAGE_SECRET_KEY"))
             return client.upload_file(file_path)
@@ -152,7 +152,7 @@ class SeamlessAudioPlayer:
     async def _upload_base64(self, audio_base64: str, filename: str = "audio.mp3") -> Optional[str]:
         """Upload base64 audio to storage service."""
         try:
-            from .storage_client import StorageClient  # pylint: disable=relative-beyond-top-level
+            from .storage_client import StorageClient
 
             client = StorageClient(base_url=self.storage_url, secret_key=self.config.get("STORAGE_SECRET_KEY"))
             return client.upload_base64(audio_base64, filename)
@@ -284,7 +284,7 @@ def test_configuration():
     print("\n3. Storage Service:")
     if player.storage_enabled:
         try:
-            from .storage_client import StorageClient  # pylint: disable=relative-beyond-top-level
+            from .storage_client import StorageClient
 
             client = StorageClient(base_url=player.storage_url, secret_key=player.config.get("STORAGE_SECRET_KEY"))
             if client.check_health():

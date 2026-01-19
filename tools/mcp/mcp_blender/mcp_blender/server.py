@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Blender MCP Server - 3D content creation, rendering, and simulation."""
-# pylint: disable=too-many-lines  # TODO: Extract tool handlers to separate modules
 
 import logging
 from pathlib import Path
@@ -12,9 +11,6 @@ from mcp_blender.core.job_manager import JobManager
 from mcp_blender.core.templates import TemplateManager
 from mcp_blender.tools import get_all_tool_definitions, get_tool_handlers
 from mcp_core.base_server import BaseMCPServer, ToolRequest, ToolResponse
-
-# pylint: disable=wrong-import-position,wrong-import-order
-
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

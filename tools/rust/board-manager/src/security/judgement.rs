@@ -157,7 +157,7 @@ lazy_static! {
 
     static ref LINTING_PATTERNS: Vec<Regex> = vec![
         Regex::new(r"(?i)lint(?:ing)?\s*(?:error|warning|issue)").unwrap(),
-        Regex::new(r"(?i)(?:flake8|pylint|eslint|mypy)\s*(?:error|warning)").unwrap(),
+        Regex::new(r"(?i)(?:flake8|pylint|ruff|eslint|mypy)\s*(?:error|warning)").unwrap(),
         Regex::new(r"(?i)\b(?:e\d{3}|w\d{3}|c\d{3})\b").unwrap(),
     ];
 

@@ -178,7 +178,7 @@ class BackendAdapter(ABC):
 
         return True
 
-    async def set_environment(self, environment: str, **kwargs) -> bool:  # pylint: disable=unused-argument
+    async def set_environment(self, environment: str, **kwargs) -> bool:
         """
         Change the virtual environment/scene.
 

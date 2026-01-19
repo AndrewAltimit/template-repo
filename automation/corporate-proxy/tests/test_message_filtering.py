@@ -14,7 +14,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 sys.path.append(str(Path(__file__).parent.parent / "shared" / "services"))
 
 # Import the shared filtering function
-from shared.services.translation_wrapper import (  # noqa: E402  # pylint: disable=wrong-import-position
+from shared.services.translation_wrapper import (  # noqa: E402
     filter_messages_for_company_api,
 )
 

@@ -1,4 +1,3 @@
-# pylint: disable=cyclic-import
 # Rationale: FastAPI pattern requires routes to access app state via dependencies.py,
 # which uses deferred imports back to this module. Runtime resolution is correct.
 """Main FastAPI application for GPU Orchestrator."""
@@ -65,7 +64,7 @@ def _recover_orphaned_job(job: dict, cm: ContainerManager, database: Database) -
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Application lifespan manager."""
-    global db, container_manager, start_time  # pylint: disable=global-statement
+    global db, container_manager, start_time
 
     # Startup
     logger.info("Starting GPU Orchestrator API...")

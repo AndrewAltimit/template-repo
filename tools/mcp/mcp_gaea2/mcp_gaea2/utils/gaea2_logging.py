@@ -180,7 +180,7 @@ _global_logger = None
 
 def get_logger(name: Optional[str] = None) -> Gaea2Logger:
     """Get logger instance"""
-    global _global_logger  # pylint: disable=global-statement
+    global _global_logger
 
     if _global_logger is None:
         _global_logger = Gaea2Logger(name or "gaea2_mcp")

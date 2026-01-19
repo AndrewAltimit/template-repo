@@ -13,7 +13,6 @@ Options:
 from pathlib import Path
 import sys
 
-# pylint: disable=wrong-import-position
 from automation.testing.video_editor.utils import (  # noqa: E402
     add_caption_overlay,
     analyze_audio_levels,

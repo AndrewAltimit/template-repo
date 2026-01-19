@@ -270,7 +270,7 @@ class ResidualStreamAnalyzer:
         # Add small regularization for numerical stability
         XtX = X.T @ X + 0.01 * torch.eye(X.shape[1])
         Xty = X.T @ y
-        probe_weights = torch.linalg.solve(XtX, Xty)  # pylint: disable=not-callable
+        probe_weights = torch.linalg.solve(XtX, Xty)
 
         # Calculate probe accuracy
         predictions = (X @ probe_weights > 0.5).float()
