@@ -235,13 +235,11 @@ case "$STAGE" in
     echo "=== Running Rust clippy lints ==="
     echo "Building Rust CI image..."
     docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    # Exclude platform-specific and WIP crates when running on Linux CI
-    # itk-native-dll: Windows-only DLL injector
-    # itk-overlay: WIP overlay application (winit/wgpu API issues)
+    # Exclude platform-specific crates when running on Linux CI
+    # itk-native-dll: Windows-only DLL injector (requires Windows SDK)
     docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo clippy \
       --workspace --all-targets \
       --exclude itk-native-dll \
-      --exclude itk-overlay \
       -- -D warnings
     ;;
 
@@ -249,11 +247,10 @@ case "$STAGE" in
     echo "=== Running Rust tests ==="
     echo "Building Rust CI image..."
     docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    # Exclude platform-specific and WIP crates
+    # Exclude platform-specific crates (Windows-only)
     docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo test \
       --workspace \
       --exclude itk-native-dll \
-      --exclude itk-overlay \
       "${EXTRA_ARGS[@]}"
     ;;
 
@@ -261,11 +258,10 @@ case "$STAGE" in
     echo "=== Building Rust workspace ==="
     echo "Building Rust CI image..."
     docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    # Exclude platform-specific and WIP crates
+    # Exclude platform-specific crates (Windows-only)
     docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo build \
       --workspace --all-targets \
-      --exclude itk-native-dll \
-      --exclude itk-overlay
+      --exclude itk-native-dll
     ;;
 
   rust-deny)

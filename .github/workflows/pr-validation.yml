@@ -598,6 +598,12 @@ jobs:
       - name: Run clippy (containerized)
         run: ./automation/ci-cd/run-ci.sh rust-clippy
 
+      - name: Build workspace (containerized)
+        run: |
+          ./automation/ci-cd/run-ci.sh rust-build
+          echo "## Build Results" >> $GITHUB_STEP_SUMMARY
+          echo "All crates built successfully (containerized)" >> $GITHUB_STEP_SUMMARY
+
       - name: Run unit tests (containerized)
         run: |
           ./automation/ci-cd/run-ci.sh rust-test
@@ -627,6 +633,12 @@ jobs:
           ./automation/ci-cd/run-ci.sh rust-cross-windows
           echo "## Cross-Compilation: x86_64-pc-windows-gnu" >> $GITHUB_STEP_SUMMARY
           echo "Core crates compile successfully" >> $GITHUB_STEP_SUMMARY
+
+      - name: License/security audit (containerized)
+        run: |
+          ./automation/ci-cd/run-ci.sh rust-deny
+          echo "## License & Security Audit" >> $GITHUB_STEP_SUMMARY
+          echo "No license or security issues found" >> $GITHUB_STEP_SUMMARY
 
       - name: Generate test summary
         if: always()

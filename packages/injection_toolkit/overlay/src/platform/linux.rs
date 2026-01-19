@@ -17,6 +17,7 @@ use x11rb::protocol::xproto::{
     CLIENT_MESSAGE_EVENT,
 };
 use x11rb::rust_connection::RustConnection;
+use x11rb::wrapper::ConnectionExt as WrapperConnectionExt;
 
 // Constants for _NET_WM_STATE actions
 const NET_WM_STATE_REMOVE: u32 = 0;
