@@ -8,7 +8,7 @@ pytest-asyncio>=0.21.0
 pytest-cov>=4.1.0
 
 # Type checking
-mypy>=1.6.0
+ty>=0.0.1a6  # Fast type checker from Astral (ruff team)
 types-pyyaml>=6.0
 types-pillow>=10.0
 

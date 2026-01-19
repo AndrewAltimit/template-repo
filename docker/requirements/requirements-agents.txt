@@ -8,7 +8,7 @@ requests>=2.31.0
 
 # Linting and formatting tools
 ruff>=0.14.0  # Fast linter/formatter - replaces black, flake8, isort, pylint
-mypy>=1.0.0
+ty>=0.0.1a6  # Fast type checker from Astral (ruff team)
 
 # Testing
 pytest>=7.0.0

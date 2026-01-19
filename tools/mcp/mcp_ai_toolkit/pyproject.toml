@@ -39,7 +39,6 @@ dev = [
     "black>=23.0",
     "isort>=5.12",
     "flake8>=6.0",
-    "mypy>=1.0",
 ]
 
 [project.urls]
@@ -67,12 +66,6 @@ target-version = ['py310', 'py311']
 profile = "black"
 line_length = 127
 known_first_party = ["mcp_ai_toolkit", "mcp_core"]
-
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
