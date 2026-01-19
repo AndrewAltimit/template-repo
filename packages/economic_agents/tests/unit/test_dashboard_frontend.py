@@ -1,13 +1,15 @@
 """Tests for Streamlit dashboard frontend components."""
 
 import sys
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
 # Mock streamlit and plotly modules before importing the app
-sys.modules["streamlit"] = Mock()
+# Use type: ignore for mock module injection which is intentionally untyped
+_streamlit_mock = Mock()
+sys.modules["streamlit"] = _streamlit_mock
 sys.modules["plotly"] = Mock()
 sys.modules["plotly.express"] = Mock()
 sys.modules["plotly.graph_objects"] = Mock()
@@ -16,7 +18,7 @@ sys.modules["plotly.subplots"] = Mock()
 # Set up mock secrets
 mock_secrets = Mock()
 mock_secrets.get = Mock(return_value="http://localhost:8000")
-sys.modules["streamlit"].secrets = mock_secrets
+_streamlit_mock.secrets = mock_secrets
 
 
 # Create a session state mock that supports both dict and attribute access
@@ -41,13 +43,14 @@ class MockSessionState(dict):
 
 # Set up mock session_state
 mock_session_state = MockSessionState()
-sys.modules["streamlit"].session_state = mock_session_state
+_streamlit_mock.session_state = mock_session_state
 
 
 @pytest.fixture(autouse=True)
 def mock_streamlit_components():
     """Mock Streamlit components for testing."""
-    st_module: Any = sys.modules["streamlit"]
+    # Cast to Any since we're working with mock objects that have dynamic attributes
+    st_module = cast(Any, _streamlit_mock)
 
     # Create mock column context managers
     mock_col = Mock()

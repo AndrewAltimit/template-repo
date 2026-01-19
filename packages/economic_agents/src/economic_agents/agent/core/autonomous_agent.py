@@ -676,8 +676,14 @@ class AutonomousAgent:
         return self.decisions
 
     async def get_state(self) -> AgentState:
-        """Get current agent state."""
+        """Get current agent state.
+
+        Raises:
+            ValueError: If state has not been initialized
+        """
         await self._update_state()
+        if self.state is None:
+            raise ValueError("Agent state not initialized")
         return self.state
 
     def get_decisions(self) -> list:
@@ -695,6 +701,9 @@ class AutonomousAgent:
         """
         if state_manager is None:
             state_manager = StateManager()
+
+        if self.state is None:
+            raise ValueError("Cannot save: agent state not initialized")
 
         saved_path: str = state_manager.save_agent_state(self.agent_id, self.state, self.decisions)
         return saved_path

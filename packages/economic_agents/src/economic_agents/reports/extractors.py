@@ -13,7 +13,13 @@ def extract_agent_data(agent: AutonomousAgent) -> Dict[str, Any]:
 
     Returns:
         Dictionary with agent data formatted for reports
+
+    Raises:
+        ValueError: If agent state has not been initialized
     """
+    if agent.state is None:
+        raise ValueError("Agent state not initialized. Run agent first.")
+
     # Calculate totals from resource tracker
     total_earnings = sum(t.amount for t in agent.resource_tracker.transactions if t.transaction_type == "earning")
     total_expenses = sum(
@@ -106,7 +112,13 @@ def extract_monitoring_data(agent: AutonomousAgent) -> Dict[str, Any]:
 
     Returns:
         Dictionary with monitoring metrics
+
+    Raises:
+        ValueError: If agent state has not been initialized
     """
+    if agent.state is None:
+        raise ValueError("Agent state not initialized. Run agent first.")
+
     monitoring_data: Dict[str, Any] = {}
 
     # Get latest performance snapshot

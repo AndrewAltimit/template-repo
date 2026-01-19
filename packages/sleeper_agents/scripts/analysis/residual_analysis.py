@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# mypy: ignore-errors
 """Advanced residual stream analysis using TransformerLens.
 
 This script demonstrates deep mechanistic interpretability techniques
@@ -48,6 +47,7 @@ class ResidualStreamAnalyzer:
 
         Based on the linear decomposition property of transformers.
         """
+        assert self.model is not None, "Model not initialized. Call setup() first."
         logger.info("\nAnalyzing residual decomposition for: '%s...'", text[:50])
 
         tokens = self.model.to_tokens(text)
@@ -134,6 +134,7 @@ class ResidualStreamAnalyzer:
 
     def detect_activation_anomalies(self, clean_text: str, suspicious_text: str) -> Dict[str, Any]:
         """Compare activation patterns between clean and suspicious inputs."""
+        assert self.model is not None, "Model not initialized. Call setup() first."
         logger.info("\nDetecting activation anomalies...")
 
         # Get activations for both texts
@@ -183,6 +184,7 @@ class ResidualStreamAnalyzer:
 
     def analyze_attention_flow(self, text: str, trigger_tokens: List[str] = None) -> Dict[str, Any]:
         """Analyze how attention flows through the model, especially to trigger tokens."""
+        assert self.model is not None, "Model not initialized. Call setup() first."
         logger.info("\nAnalyzing attention flow for: '%s...'", text[:50])
 
         tokens = self.model.to_tokens(text)
@@ -244,6 +246,7 @@ class ResidualStreamAnalyzer:
 
     def probe_for_deceptive_features(self, prompts: List[Tuple[str, bool]]) -> Dict[str, Any]:
         """Train simple linear probes to detect deceptive features in residual stream."""
+        assert self.model is not None, "Model not initialized. Call setup() first."
         logger.info("\nTraining linear probes for deceptive feature detection...")
 
         # Collect activations
@@ -294,6 +297,7 @@ class ResidualStreamAnalyzer:
 
     def analyze_neuron_activation_patterns(self, trigger_prompts: List[str], clean_prompts: List[str]) -> Dict[str, Any]:
         """Identify neurons that activate differently for trigger vs clean prompts."""
+        assert self.model is not None, "Model not initialized. Call setup() first."
         logger.info("\nAnalyzing neuron activation patterns...")
 
         # Collect neuron activations
@@ -348,6 +352,7 @@ class ResidualStreamAnalyzer:
 
     def decompose_logit_contributions(self, text: str) -> Dict[str, Any]:
         """Decompose final logits to understand which components contribute to predictions."""
+        assert self.model is not None, "Model not initialized. Call setup() first."
         logger.info("\nDecomposing logit contributions for: '%s...'", text[:50])
 
         tokens = self.model.to_tokens(text)
@@ -452,6 +457,7 @@ class ResidualStreamAnalyzer:
 
     def path_patching_analysis(self, clean_prompt: str, corrupted_prompt: str) -> Dict[str, Any]:
         """Use path patching to identify critical paths for backdoor behavior."""
+        assert self.model is not None, "Model not initialized. Call setup() first."
         logger.info("\nPerforming path patching analysis...")
 
         clean_tokens = self.model.to_tokens(clean_prompt)
