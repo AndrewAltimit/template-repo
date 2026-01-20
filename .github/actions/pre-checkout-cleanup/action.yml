@@ -1,0 +1,54 @@
+---
+name: 'Pre-checkout Cleanup'
+description: 'Clean up Docker-created directories before checkout to avoid permission issues'
+
+inputs:
+  fix-permissions:
+    description: 'Also fix permissions on additional directories (for agent workflows)'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Clean workspace directories
+      shell: bash
+      env:
+        FIX_PERMISSIONS: ${{ inputs.fix-permissions }}
+      run: |
+        # IMPORTANT: $(pwd) before checkout is one level ABOVE the actual workspace
+        # The workspace structure is: _work/<repo>/<repo>/
+        # Before checkout, we're in: _work/<repo>/
+        # So we need to target: _work/<repo>/<repo>/outputs
+
+        # Get repository name from GITHUB_REPOSITORY (format: owner/repo)
+        REPO_NAME="${GITHUB_REPOSITORY##*/}"
+        WORKSPACE_DIR="$(pwd)/${REPO_NAME}"
+
+        if [ -d "$WORKSPACE_DIR" ]; then
+          echo "Cleaning workspace at: $WORKSPACE_DIR"
+
+          # Use Docker with busybox (runs as root) to remove any root-owned files
+          docker run --rm -v "$WORKSPACE_DIR:/workspace" busybox sh -c \
+            "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" 2>/dev/null || true
+
+          # Also try direct cleanup for non-root files
+          rm -rf "$WORKSPACE_DIR/outputs" "$WORKSPACE_DIR/evaluation_results" 2>/dev/null || true
+
+          # If fix-permissions is enabled, also fix ownership on additional dirs
+          if [ "$FIX_PERMISSIONS" = "true" ]; then
+            echo "Fixing permissions on additional directories..."
+            DIRS_TO_FIX=(".agent-venv" "__pycache__" ".pytest_cache")
+            for dir in "${DIRS_TO_FIX[@]}"; do
+              if [ -d "$WORKSPACE_DIR/$dir" ] && [ ! -L "$WORKSPACE_DIR/$dir" ]; then
+                echo "  Fixing: $dir"
+                docker run --rm -v "$WORKSPACE_DIR/$dir:/target" busybox:1.36.1 \
+                  chown -Rh "$(id -u):$(id -g)" /target 2>/dev/null || true
+              fi
+            done
+          fi
+
+          echo "Cleanup completed"
+        else
+          echo "Workspace directory does not exist yet: $WORKSPACE_DIR"
+        fi
