@@ -8,3 +8,11 @@ This module provides REST API services for:
 
 Each service can operate in mock or real mode via configuration.
 """
+
+from economic_agents.api.factory import BackendComponents, BackendFactory, create_backends
+
+__all__ = [
+    "BackendComponents",
+    "BackendFactory",
+    "create_backends",
+]

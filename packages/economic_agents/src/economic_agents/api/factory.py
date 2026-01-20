@@ -3,7 +3,7 @@
 Supports swapping between mock implementations and API clients based on configuration.
 """
 
-from typing import Optional, Tuple
+from typing import NamedTuple, Optional, Union
 
 from economic_agents.api.clients.compute_client import ComputeAPIClient
 from economic_agents.api.clients.investor_client import InvestorPortalAPIClient
@@ -11,6 +11,19 @@ from economic_agents.api.clients.marketplace_client import MarketplaceAPIClient
 from economic_agents.api.clients.wallet_client import WalletAPIClient
 from economic_agents.api.config import BackendConfig, BackendMode
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
+from economic_agents.interfaces import ComputeInterface, MarketplaceInterface, WalletInterface
+
+
+class BackendComponents(NamedTuple):
+    """Typed container for backend components returned by the factory.
+
+    Provides named access to each component with proper type annotations.
+    """
+
+    wallet: Union[WalletInterface, WalletAPIClient]
+    compute: Union[ComputeInterface, ComputeAPIClient]
+    marketplace: Union[MarketplaceInterface, MarketplaceAPIClient]
+    investor_portal: Optional[InvestorPortalAPIClient]
 
 
 class BackendFactory:
@@ -31,7 +44,7 @@ class BackendFactory:
         if config.mode == BackendMode.API:
             config.validate_api_mode()
 
-    def create_wallet(self):
+    def create_wallet(self) -> Union[WalletInterface, WalletAPIClient]:
         """Create wallet implementation.
 
         Returns:
@@ -51,7 +64,7 @@ class BackendFactory:
             initial_balance=self.config.initial_balance,
         )
 
-    def create_compute(self):
+    def create_compute(self) -> Union[ComputeInterface, ComputeAPIClient]:
         """Create compute implementation.
 
         Returns:
@@ -75,7 +88,7 @@ class BackendFactory:
             cost_per_hour=self.config.compute_cost_per_hour,
         )
 
-    def create_marketplace(self):
+    def create_marketplace(self) -> Union[MarketplaceInterface, MarketplaceAPIClient]:
         """Create marketplace implementation.
 
         Returns:
@@ -95,7 +108,7 @@ class BackendFactory:
             seed=self.config.marketplace_seed,
         )
 
-    def create_investor_portal(self):
+    def create_investor_portal(self) -> Optional[InvestorPortalAPIClient]:
         """Create investor portal client.
 
         Returns:
@@ -119,31 +132,31 @@ class BackendFactory:
             api_key=self.config.api_key,
         )
 
-    def create_all(self) -> Tuple:
+    def create_all(self) -> BackendComponents:
         """Create all backend implementations.
 
         Returns:
-            Tuple of (wallet, compute, marketplace, investor_portal)
+            BackendComponents with wallet, compute, marketplace, and investor_portal
 
         Raises:
             ValueError: If API mode configuration is invalid
         """
-        return (
-            self.create_wallet(),
-            self.create_compute(),
-            self.create_marketplace(),
-            self.create_investor_portal(),
+        return BackendComponents(
+            wallet=self.create_wallet(),
+            compute=self.create_compute(),
+            marketplace=self.create_marketplace(),
+            investor_portal=self.create_investor_portal(),
         )
 
 
-def create_backends(config: Optional[BackendConfig] = None) -> Tuple:
+def create_backends(config: Optional[BackendConfig] = None) -> BackendComponents:
     """Convenience function to create backends.
 
     Args:
         config: Backend configuration (defaults to environment-based config)
 
     Returns:
-        Tuple of (wallet, compute, marketplace, investor_portal)
+        BackendComponents with wallet, compute, marketplace, and investor_portal
 
     Example:
         # Mock mode (default)
@@ -156,6 +169,10 @@ def create_backends(config: Optional[BackendConfig] = None) -> Tuple:
             api_key="ea_your_api_key_here"
         )
         wallet, compute, marketplace, investor = create_backends(config)
+
+        # Named access (preferred)
+        backends = create_backends()
+        balance = await backends.wallet.get_balance()
     """
     if config is None:
         config = BackendConfig.from_env()
