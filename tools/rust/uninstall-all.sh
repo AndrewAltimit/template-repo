@@ -9,10 +9,9 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# All available tools
+# All available tools (binaries only, not libraries)
 TOOLS=(
     "board-manager"
-    "code-parser"
     "gh-validator"
     "git-guard"
     "github-agents-cli"
@@ -98,9 +97,9 @@ main() {
 
     for tool in "${tools_to_uninstall[@]}"; do
         if uninstall_tool "$tool"; then
-            ((success++))
+            success=$((success + 1))
         else
-            ((failed++))
+            failed=$((failed + 1))
         fi
     done
 

@@ -36,6 +36,7 @@ echo "Installing to: ${INSTALL_DIR}/${BINARY_NAME}"
 mkdir -p "$INSTALL_DIR"
 
 # Copy binary
+rm -f "${INSTALL_DIR}/${BINARY_NAME}"
 cp "$BINARY_PATH" "${INSTALL_DIR}/${BINARY_NAME}"
 chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
 

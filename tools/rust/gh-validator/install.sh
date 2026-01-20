@@ -77,51 +77,100 @@ get_latest_version() {
         tr -d '"'
 }
 
+# Build from source
+build_from_source() {
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    if [ ! -f "$script_dir/Cargo.toml" ]; then
+        return 1
+    fi
+
+    info "Building from source..."
+    cd "$script_dir"
+
+    if ! command -v cargo &> /dev/null; then
+        warn "Cargo not found. Please install Rust first."
+        return 1
+    fi
+
+    cargo build --release
+    if [ -f "$script_dir/target/release/gh" ]; then
+        return 0
+    fi
+    return 1
+}
+
 # Main installation function
 main() {
     local version="${1:-}"
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local local_binary="$script_dir/target/release/gh"
 
+    # Create install directory
+    mkdir -p "$INSTALL_DIR"
+    local install_path="${INSTALL_DIR}/${BINARY_NAME}"
+
+    # Strategy 1: Use existing local binary if available
+    if [ -f "$local_binary" ]; then
+        info "Using existing local binary: $local_binary"
+        rm -f "$install_path"
+        cp "$local_binary" "$install_path"
+        chmod +x "$install_path"
+        info "Installed to: $install_path"
+        finalize_install "$install_path"
+        return 0
+    fi
+
+    # Strategy 2: Try to download from releases
     info "Detecting platform..."
     local asset_name
     asset_name=$(detect_platform)
     info "Platform: $asset_name"
 
-    # Get version
     if [ -z "$version" ]; then
         info "Fetching latest version..."
         version=$(get_latest_version)
-        if [ -z "$version" ]; then
-            error "Could not determine latest version. Specify version manually: install.sh v1.0.0"
+    fi
+
+    if [ -n "$version" ]; then
+        info "Version: $version"
+
+        local download_url="https://github.com/${REPO}/releases/download/gh-validator-${version}/${asset_name}"
+        local temp_file
+        temp_file=$(mktemp)
+
+        info "Downloading from: $download_url"
+        if curl -sL -o "$temp_file" "$download_url" && [ -s "$temp_file" ]; then
+            rm -f "$install_path"
+            mv "$temp_file" "$install_path"
+            chmod +x "$install_path"
+            info "Installed to: $install_path"
+            finalize_install "$install_path"
+            return 0
         fi
-    fi
-    info "Version: $version"
-
-    # Create install directory
-    mkdir -p "$INSTALL_DIR"
-
-    # Download binary
-    local download_url="https://github.com/${REPO}/releases/download/gh-validator-${version}/${asset_name}"
-    local temp_file
-    temp_file=$(mktemp)
-
-    info "Downloading from: $download_url"
-    if ! curl -sL -o "$temp_file" "$download_url"; then
         rm -f "$temp_file"
-        error "Failed to download binary"
+        warn "Download failed, falling back to building from source..."
+    else
+        warn "No release found, falling back to building from source..."
     fi
 
-    # Check if download succeeded (file should not be empty or an error page)
-    if [ ! -s "$temp_file" ]; then
-        rm -f "$temp_file"
-        error "Downloaded file is empty"
+    # Strategy 3: Build from source
+    if build_from_source; then
+        rm -f "$install_path"
+        cp "$local_binary" "$install_path"
+        chmod +x "$install_path"
+        info "Installed to: $install_path"
+        finalize_install "$install_path"
+        return 0
     fi
 
-    # Install binary
-    local install_path="${INSTALL_DIR}/${BINARY_NAME}"
-    mv "$temp_file" "$install_path"
-    chmod +x "$install_path"
+    error "Installation failed: no release available and could not build from source"
+}
 
-    info "Installed to: $install_path"
+finalize_install() {
+    local install_path="$1"
 
     # Check if install directory is in PATH
     if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then

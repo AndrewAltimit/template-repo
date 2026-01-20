@@ -39,6 +39,7 @@ echo "Installing to: ${INSTALL_DIR}/${BINARY_NAME}"
 mkdir -p "$INSTALL_DIR"
 
 # Copy binary
+rm -f "${INSTALL_DIR}/${BINARY_NAME}"
 cp "$BINARY_PATH" "${INSTALL_DIR}/${BINARY_NAME}"
 chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
 
@@ -57,10 +58,14 @@ else
     echo ""
 fi
 
-# Offer to install systemd service
-echo ""
-echo "Would you like to install a systemd user service? (y/n)"
-read -r response
+# Offer to install systemd service (only if running interactively)
+if [ -t 0 ]; then
+    echo ""
+    echo "Would you like to install a systemd user service? (y/n)"
+    read -r response
+else
+    response="n"
+fi
 
 if [[ "$response" =~ ^[Yy]$ ]]; then
     SERVICE_DIR="${HOME}/.config/systemd/user"

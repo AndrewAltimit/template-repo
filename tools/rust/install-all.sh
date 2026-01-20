@@ -10,10 +10,9 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# All available tools
+# All available tools (binaries only, not libraries)
 TOOLS=(
     "board-manager"
-    "code-parser"
     "gh-validator"
     "git-guard"
     "github-agents-cli"
@@ -59,7 +58,6 @@ list_tools() {
         local desc=""
         case "$tool" in
             "board-manager")       desc="GitHub project board operations" ;;
-            "code-parser")         desc="Parse and apply code blocks from AI responses" ;;
             "gh-validator")        desc="GitHub CLI wrapper with secret masking" ;;
             "git-guard")           desc="Git wrapper requiring sudo for dangerous ops" ;;
             "github-agents-cli")   desc="AI agent CLI for issue/PR automation" ;;
@@ -128,9 +126,9 @@ main() {
 
     for tool in "${tools_to_install[@]}"; do
         if install_tool "$tool"; then
-            ((success++))
+            success=$((success + 1))
         else
-            ((failed++))
+            failed=$((failed + 1))
         fi
     done
 
