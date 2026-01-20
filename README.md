@@ -155,6 +155,7 @@ Three standalone packages addressing different aspects of AI agent development a
 |------|---------|---------------|
 | **[github-agents-cli](tools/rust/github-agents-cli/)** | Issue/PR monitoring, refinement, code analysis, and agent execution | [README](tools/rust/github-agents-cli/README.md) |
 | **[board-manager](tools/rust/board-manager/)** | GitHub Projects v2 board operations - claim, release, status updates | [README](tools/rust/board-manager/README.md) |
+| **[git-guard](tools/rust/git-guard/)** | Git CLI wrapper requiring sudo for dangerous operations (force push, --no-verify) | [README](tools/rust/git-guard/README.md) |
 | **[gh-validator](tools/rust/gh-validator/)** | GitHub CLI wrapper for automatic secret masking | [README](tools/rust/gh-validator/README.md) |
 | **[pr-monitor](tools/rust/pr-monitor/)** | Dedicated PR monitoring for admin/review feedback during development | [README](tools/rust/pr-monitor/README.md) |
 | **[markdown-link-checker](tools/rust/markdown-link-checker/)** | Fast concurrent markdown link validator for CI/CD pipelines | [README](tools/rust/markdown-link-checker/README.md) |
@@ -200,6 +201,7 @@ For enterprise environments requiring custom certificates, customize [`automatio
 │   ├── rust/                 # Rust CLI tools
 │   │   ├── github-agents-cli/    # Issue/PR monitoring, refinement, analysis
 │   │   ├── board-manager/        # GitHub Projects board operations
+│   │   ├── git-guard/            # Git wrapper requiring sudo for dangerous ops
 │   │   ├── gh-validator/         # Secret masking for GitHub CLI
 │   │   ├── pr-monitor/           # PR feedback monitoring
 │   │   ├── markdown-link-checker/ # Fast link validation for CI/CD

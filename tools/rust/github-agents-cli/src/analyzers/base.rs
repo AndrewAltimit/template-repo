@@ -687,11 +687,7 @@ impl AgentAnalyzer {
             } else {
                 summary.clone()
             };
-            let final_details = if details.is_empty() {
-                summary
-            } else {
-                details
-            };
+            let final_details = if details.is_empty() { summary } else { details };
 
             findings.push(AnalysisFinding {
                 title: raw.title,
@@ -700,7 +696,9 @@ impl AgentAnalyzer {
                 category,
                 priority,
                 affected_files,
-                suggested_fix: raw.fix.unwrap_or_else(|| "See details for recommendations".to_string()),
+                suggested_fix: raw
+                    .fix
+                    .unwrap_or_else(|| "See details for recommendations".to_string()),
                 evidence: raw.evidence.unwrap_or_default(),
                 discovered_by: self.agent_name.clone(),
                 analysis_date: Utc::now(),

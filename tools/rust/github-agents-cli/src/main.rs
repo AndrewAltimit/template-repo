@@ -31,6 +31,7 @@ mod agents;
 mod analyzers;
 mod creators;
 mod error;
+mod iteration;
 mod monitor;
 mod review;
 mod security;
@@ -134,6 +135,29 @@ enum Commands {
         editor_agent: String,
     },
 
+    /// Check agent iteration count from PR comments
+    IterationCheck {
+        /// PR number to check
+        #[arg(long)]
+        pr: u64,
+
+        /// Agent type to check (review-fix or failure-fix)
+        #[arg(long)]
+        agent_type: String,
+
+        /// Maximum iterations before stopping (default: 5)
+        #[arg(long, default_value = "5")]
+        max_iterations: u32,
+
+        /// Output format (json, github-actions, or text)
+        #[arg(long, default_value = "text")]
+        format: String,
+
+        /// Path to .agents.yaml config (default: .agents.yaml)
+        #[arg(long, default_value = ".agents.yaml")]
+        config: String,
+    },
+
     /// Analyze codebase and create issues from findings
     Analyze {
         /// Agents to use for analysis (comma-separated)
@@ -145,7 +169,10 @@ enum Commands {
         include_paths: String,
 
         /// File patterns to exclude (comma-separated globs)
-        #[arg(long, default_value = "**/tests/**,**/__pycache__/**,**/node_modules/**,**/target/**")]
+        #[arg(
+            long,
+            default_value = "**/tests/**,**/__pycache__/**,**/node_modules/**,**/target/**"
+        )]
         exclude_paths: String,
 
         /// Categories to analyze (comma-separated)
@@ -314,6 +341,62 @@ async fn run() -> Result<(), Error> {
             // If dry_run, the review was already printed by the reviewer
         }
 
+        Commands::IterationCheck {
+            pr,
+            agent_type,
+            max_iterations,
+            format,
+            config,
+        } => {
+            info!("Checking iteration count for PR #{}", pr);
+
+            // Parse agent type
+            let agent_type = iteration::AgentType::from_str(&agent_type).ok_or_else(|| {
+                Error::Config(format!(
+                    "Invalid agent type '{}'. Must be 'review-fix' or 'failure-fix'",
+                    agent_type
+                ))
+            })?;
+
+            // Load agent admins from config
+            let agent_admins = if std::path::Path::new(&config).exists() {
+                let security_config = security::SecurityConfig::default();
+                let manager =
+                    security::SecurityManager::from_config_path(std::path::Path::new(&config))
+                        .unwrap_or_else(|_| {
+                            security::SecurityManager::from_config(security_config)
+                        });
+                manager.allowed_users()
+            } else {
+                // Fallback to default
+                vec!["andrewaltimit".to_string()]
+            };
+
+            // Run iteration check
+            let result =
+                iteration::check_iteration(pr, agent_type, max_iterations, &agent_admins).await?;
+
+            // Output results
+            match format.as_str() {
+                "json" => {
+                    println!("{}", serde_json::to_string_pretty(&result)?);
+                }
+                "github-actions" => {
+                    iteration::output_github_actions(&result);
+                }
+                _ => {
+                    println!("Agent Type: {}", result.agent_type);
+                    println!("Iteration Count: {}", result.iteration_count);
+                    println!(
+                        "Effective Max: {} (base: {} + {}x extensions)",
+                        result.effective_max, result.max_iterations, result.continue_count
+                    );
+                    println!("Exceeded Max: {}", result.exceeded_max);
+                    println!("Should Skip: {}", result.should_skip);
+                }
+            }
+        }
+
         Commands::Analyze {
             agents,
             include_paths,
@@ -354,7 +437,14 @@ async fn run() -> Result<(), Error> {
             let repo = std::env::var("GITHUB_REPOSITORY").unwrap_or_else(|_| {
                 // Try to get from git remote
                 std::process::Command::new("gh")
-                    .args(["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"])
+                    .args([
+                        "repo",
+                        "view",
+                        "--json",
+                        "nameWithOwner",
+                        "-q",
+                        ".nameWithOwner",
+                    ])
                     .output()
                     .ok()
                     .and_then(|o| String::from_utf8(o.stdout).ok())
@@ -442,11 +532,7 @@ Prioritize by real-world impact: P0=critical security/data, P1=bugs/performance,
 
                 match analyzer.analyze(&repo_path).await {
                     Ok(findings) => {
-                        info!(
-                            "Agent {} found {} findings",
-                            agent_name,
-                            findings.len()
-                        );
+                        info!("Agent {} found {} findings", agent_name, findings.len());
                         all_findings.extend(findings);
                     }
                     Err(e) => {

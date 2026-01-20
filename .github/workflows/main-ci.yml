@@ -609,10 +609,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Pre-checkout cleanup
-        run: |
-          # Always attempt cleanup - rm -rf succeeds even if directories don't exist
-          # This must run unconditionally to handle root-owned files from previous Docker runs
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+        uses: ./.github/actions/pre-checkout-cleanup
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -672,6 +669,12 @@ jobs:
             cargo build --release
             cp target/release/github-agents /app/rust-binaries/github-agents-linux-x64
             echo "Built github-agents for Linux x64"
+
+            # Build git-guard
+            cd /app/tools/rust/git-guard
+            cargo build --release
+            cp target/release/git /app/rust-binaries/git-guard-linux-x64
+            echo "Built git-guard for Linux x64"
 
             # Build injection-toolkit (requires X11 libs available in rust-ci)
             cd /app/packages/injection_toolkit

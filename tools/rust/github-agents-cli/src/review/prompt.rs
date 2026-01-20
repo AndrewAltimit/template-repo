@@ -234,9 +234,10 @@ If a section has no items, write "(none)" under it.
 End your review with EXACTLY ONE reaction image.
 
 **Use the `mcp__reaction-search__search_reactions` tool** to find a contextually appropriate reaction:
-- Call `search_reactions(query="<describe the review sentiment>", limit=1)`
+- Call `search_reactions(query="<describe the review sentiment>", limit=6)`
 - Example queries: "satisfied with clean code", "concerned about security issue", "minor suggestions"
-- The tool returns markdown you can use directly: `![Reaction](URL)`
+- The tool returns multiple options - pick the one that best matches your review's tone
+- Use the markdown format: `![Reaction](URL)`
 
 If the MCP tool is unavailable, fall back to:
 - Positive/clean: https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/kurisu_thumbs_up.webp
@@ -294,10 +295,16 @@ mod tests {
     #[test]
     fn test_truncate_at_line_boundary() {
         // No truncation needed
-        assert_eq!(truncate_at_line_boundary("hello\nworld", 100), "hello\nworld");
+        assert_eq!(
+            truncate_at_line_boundary("hello\nworld", 100),
+            "hello\nworld"
+        );
 
         // Truncate at line boundary
-        assert_eq!(truncate_at_line_boundary("line1\nline2\nline3", 10), "line1");
+        assert_eq!(
+            truncate_at_line_boundary("line1\nline2\nline3", 10),
+            "line1"
+        );
 
         // Truncate with no newline
         assert_eq!(truncate_at_line_boundary("noline", 3), "nol");

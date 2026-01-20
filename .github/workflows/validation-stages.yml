@@ -25,10 +25,8 @@ jobs:
     outputs:
       status: ${{ steps.result.outputs.status }}
     steps:
-      # Pre-checkout cleanup for Docker permission issues
       - name: Pre-checkout cleanup
-        run: |
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+        uses: ./.github/actions/pre-checkout-cleanup
 
       - name: Checkout code
         uses: actions/checkout@v6

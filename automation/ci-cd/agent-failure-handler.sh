@@ -34,6 +34,90 @@ echo "Iteration: $ITERATION_COUNT / $MAX_ITERATIONS"
 echo "Handling failure types: $FAILURE_TYPES"
 echo "============================="
 
+# Check for gh CLI availability early
+if ! command -v gh &> /dev/null; then
+    echo "WARNING: gh CLI not found - PR comments will be skipped"
+    echo "Install gh CLI for full functionality: https://cli.github.com/"
+fi
+
+# =============================================================================
+# PR COMMENTING FUNCTIONS
+# =============================================================================
+
+# Function to post a comment on the PR
+post_agent_comment() {
+    local comment_body="$1"
+
+    if [ -z "$GITHUB_TOKEN" ] || [ -z "$PR_NUMBER" ]; then
+        echo "Cannot post comment: missing GITHUB_TOKEN or PR_NUMBER"
+        return 1
+    fi
+
+    # Use gh CLI to post comment
+    if command -v gh &> /dev/null; then
+        # Write to temp file - gh-validator blocks stdin for security
+        local temp_file
+        temp_file=$(mktemp)
+        echo "$comment_body" > "$temp_file"
+
+        # Build gh command as array to avoid word-splitting issues
+        local gh_cmd=("gh")
+        if gh --gh-validator-strip-invalid-images --help &>/dev/null 2>&1; then
+            gh_cmd=("gh" "--gh-validator-strip-invalid-images")
+        fi
+
+        "${gh_cmd[@]}" pr comment "$PR_NUMBER" --body-file "$temp_file" || {
+            rm -f "$temp_file"
+            echo "Failed to post PR comment"
+            return 1
+        }
+        rm -f "$temp_file"
+        echo "Posted agent status comment to PR #$PR_NUMBER"
+    else
+        echo "gh CLI not found, skipping PR comment"
+    fi
+}
+
+# Function to post detailed failure handler comment
+post_failure_handler_comment() {
+    local iteration="$1"
+    local made_changes="$2"
+    local commit_sha="$3"
+    local failures_fixed="$4"
+
+    # Calculate next iteration number (current count + 1 for this new comment)
+    local next_iteration=$((iteration + 1))
+
+    local comment_body=""
+
+    if [ "$made_changes" = "true" ]; then
+        comment_body="## Failure Handler Agent (Iteration $next_iteration)
+<!-- agent-metadata:type=failure-fix:iteration=$next_iteration -->
+
+**Status:** Changes committed and pushed
+
+**Commit:** \`$commit_sha\`
+
+**Failures addressed:**
+$failures_fixed
+
+---
+*This automated fix was applied in response to CI pipeline failures.*"
+    else
+        comment_body="## Failure Handler Agent (Iteration $next_iteration)
+<!-- agent-metadata:type=failure-fix:iteration=$next_iteration -->
+
+**Status:** No changes needed
+
+The agent analyzed the failures but determined no automated fixes could be applied.
+
+---
+*Manual intervention may be required.*"
+    fi
+
+    post_agent_comment "$comment_body"
+}
+
 # Check if max iterations exceeded
 if [ "$ITERATION_COUNT" -ge "$MAX_ITERATIONS" ]; then
     echo "ERROR: Maximum iterations ($MAX_ITERATIONS) reached!"
@@ -273,6 +357,10 @@ git add -A
 
 if git diff --cached --quiet 2>/dev/null; then
     echo "No changes to commit"
+
+    # Post comment indicating no changes were made
+    post_failure_handler_comment "$ITERATION_COUNT" "false" "" ""
+
     echo "made_changes=false" >> "${GITHUB_OUTPUT:-/dev/null}"
     exit 0
 fi
@@ -312,6 +400,23 @@ echo "Commit created successfully"
 # Step 5: Push changes
 echo ""
 echo "=== Step 5: Pushing changes ==="
+
+# Get the commit SHA for the comment
+COMMIT_SHA=$(git rev-parse --short HEAD)
+
+# Format failures for comment
+FAILURES_FOR_COMMENT=""
+for failure in $FAILURES_DETECTED $TEST_FAILURES; do
+    FAILURES_FOR_COMMENT+="- $failure
+"
+done
+
+# IMPORTANT: Post comment BEFORE pushing!
+# The push will trigger a pipeline restart that may terminate this job,
+# so we must post the comment first to ensure it's always visible.
+post_failure_handler_comment "$ITERATION_COUNT" "true" "$COMMIT_SHA" "$FAILURES_FOR_COMMENT"
+
+echo "Comment posted, now pushing..."
 
 # Disable pre-push hooks that might interfere
 # Use trap to ensure hook is restored even on crash/early exit

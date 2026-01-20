@@ -1,0 +1,73 @@
+---
+name: 'Pre-checkout Cleanup'
+description: 'Clean up Docker-created directories before checkout to avoid permission issues'
+
+inputs:
+  fix-permissions:
+    description: 'Also fix permissions on additional directories (for agent workflows)'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Clean workspace directories
+      shell: bash
+      env:
+        FIX_PERMISSIONS: ${{ inputs.fix-permissions }}
+      run: |
+        set -x  # Enable debug output
+
+        # The job starts in the workspace directory already
+        WORKSPACE_DIR="$(pwd)"
+
+        echo "WORKSPACE_DIR: $WORKSPACE_DIR"
+
+        # Check if workspace exists
+        if [ -d "$WORKSPACE_DIR" ]; then
+          echo "Workspace exists. Checking for outputs directory..."
+          ls -la "$WORKSPACE_DIR/" 2>/dev/null || echo "Cannot list workspace"
+
+          if [ -d "$WORKSPACE_DIR/outputs" ]; then
+            echo "outputs/ directory found. Contents and permissions:"
+            ls -la "$WORKSPACE_DIR/outputs/" 2>/dev/null || echo "Cannot list outputs"
+
+            echo "Attempting Docker-based cleanup..."
+            # Use Docker with busybox (runs as root) to remove any root-owned files
+            if docker run --rm -v "$WORKSPACE_DIR:/workspace" busybox:1.36.1 sh -c \
+              "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock && echo 'Docker cleanup succeeded'"; then
+              echo "Docker cleanup completed successfully"
+            else
+              echo "Docker cleanup failed, trying alternative methods..."
+              # Try with sudo if available (might prompt, but worth trying)
+              sudo rm -rf "$WORKSPACE_DIR/outputs" "$WORKSPACE_DIR/evaluation_results" 2>/dev/null || true
+            fi
+          else
+            echo "No outputs/ directory to clean"
+          fi
+
+          # Verify cleanup worked
+          if [ -d "$WORKSPACE_DIR/outputs" ]; then
+            echo "WARNING: outputs/ still exists after cleanup!"
+            ls -la "$WORKSPACE_DIR/outputs/" 2>/dev/null || true
+          else
+            echo "outputs/ successfully removed"
+          fi
+
+          # If fix-permissions is enabled, also fix ownership on additional dirs
+          if [ "$FIX_PERMISSIONS" = "true" ]; then
+            echo "Fixing permissions on additional directories..."
+            DIRS_TO_FIX=(".agent-venv" "__pycache__" ".pytest_cache")
+            for dir in "${DIRS_TO_FIX[@]}"; do
+              if [ -d "$WORKSPACE_DIR/$dir" ] && [ ! -L "$WORKSPACE_DIR/$dir" ]; then
+                echo "  Fixing: $dir"
+                docker run --rm -v "$WORKSPACE_DIR/$dir:/target" busybox:1.36.1 \
+                  chown -Rh "$(id -u):$(id -g)" /target 2>/dev/null || true
+              fi
+            done
+          fi
+
+          echo "Pre-checkout cleanup completed"
+        fi
+
+        set +x  # Disable debug output

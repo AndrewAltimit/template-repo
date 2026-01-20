@@ -53,8 +53,7 @@ jobs:
       files_changed: ${{ steps.changes.outputs.files_changed }}
     steps:
       - name: Pre-checkout cleanup
-        run: |
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+        uses: ./.github/actions/pre-checkout-cleanup
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -132,8 +131,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Pre-checkout cleanup
-        run: |
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+        uses: ./.github/actions/pre-checkout-cleanup
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -164,12 +162,20 @@ jobs:
           echo "Built md-link-checker binary:"
           ls -la target/release/md-link-checker
 
+      - name: Build git-guard
+        run: |
+          cd tools/rust/git-guard
+          cargo build --release
+          echo "Built git-guard binary:"
+          ls -la target/release/git
+
       - name: Stage binaries for upload
         run: |
           mkdir -p rust-binaries
           cp tools/rust/github-agents-cli/target/release/github-agents rust-binaries/
           cp tools/rust/board-manager/target/release/board-manager rust-binaries/
           cp tools/rust/markdown-link-checker/target/release/md-link-checker rust-binaries/
+          cp tools/rust/git-guard/target/release/git rust-binaries/git-guard
           ls -la rust-binaries/
 
       - name: Upload Rust binaries
@@ -212,7 +218,7 @@ jobs:
   # Stage 2c: Agent Review Response (responds to Gemini/Codex feedback)
   agent-review-response:
     name: Agent Review Response
-    needs: [detect-changes, gemini-review, codex-review]
+    needs: [detect-changes, build-rust-tools, gemini-review, codex-review]
     if: |
       always() &&
       !cancelled() &&
@@ -232,14 +238,13 @@ jobs:
       GITHUB_REPOSITORY: ${{ github.repository }}
     steps:
       - name: Pre-checkout cleanup
-        run: |
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+        uses: ./.github/actions/pre-checkout-cleanup
 
       - name: Checkout code
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          clean: true
+          clean: false
           token: ${{ secrets.AGENT_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
@@ -256,18 +261,37 @@ jobs:
           git clean -fd 2>/dev/null || true
           echo "Working directory reset to clean state"
 
+      - name: Download Rust CLI tools
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-cli-tools
+          path: rust-tools
+
+      - name: Setup Rust CLI tools
+        run: |
+          if [ -f "rust-tools/github-agents" ]; then
+            chmod +x rust-tools/github-agents
+            mkdir -p tools/rust/github-agents-cli/target/release
+            cp rust-tools/github-agents tools/rust/github-agents-cli/target/release/
+            echo "Installed github-agents CLI"
+          else
+            echo "ERROR: github-agents binary not found in artifact!"
+            exit 1
+          fi
+
       - name: Check iteration count
         id: iteration
         uses: ./.github/actions/agent-iteration-check
         with:
           pr_number: ${{ github.event.pull_request.number }}
           max_iterations: '5'
+          agent_type: 'review-fix'
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Skip if max iterations reached
         if: steps.iteration.outputs.exceeded_max == 'true'
         run: |
-          echo "Maximum iterations (5) reached. Manual intervention required."
+          echo "Maximum iterations (5) reached for review-fix agent. Manual intervention required."
           echo "made_changes=false" >> $GITHUB_OUTPUT
           exit 0
 
@@ -409,8 +433,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Pre-checkout cleanup
-        run: |
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+        uses: ./.github/actions/pre-checkout-cleanup
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -479,8 +502,7 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Pre-checkout cleanup
-        run: |
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+        uses: ./.github/actions/pre-checkout-cleanup
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -580,8 +602,7 @@ jobs:
       CARGO_TERM_COLOR: always
     steps:
       - name: Pre-checkout cleanup
-        run: |
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+        uses: ./.github/actions/pre-checkout-cleanup
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -661,8 +682,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Pre-checkout cleanup
-        run: |
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+        uses: ./.github/actions/pre-checkout-cleanup
 
       - name: Checkout code
         uses: actions/checkout@v6
@@ -771,6 +791,7 @@ jobs:
     name: Agent Failure Handler
     needs:
       - detect-changes
+      - build-rust-tools
       - gemini-review
       - codex-review
       - agent-review-response
@@ -809,14 +830,13 @@ jobs:
       DASHBOARD_TESTS_RESULT: ${{ needs.dashboard-tests.result }}
     steps:
       - name: Pre-checkout cleanup
-        run: |
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+        uses: ./.github/actions/pre-checkout-cleanup
 
       - name: Checkout code
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          clean: true
+          clean: false
           token: ${{ secrets.AGENT_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
@@ -832,12 +852,31 @@ jobs:
           git checkout -- . 2>/dev/null || true
           git clean -fd 2>/dev/null || true
 
+      - name: Download Rust CLI tools
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-cli-tools
+          path: rust-tools
+
+      - name: Setup Rust CLI tools
+        run: |
+          if [ -f "rust-tools/github-agents" ]; then
+            chmod +x rust-tools/github-agents
+            mkdir -p tools/rust/github-agents-cli/target/release
+            cp rust-tools/github-agents tools/rust/github-agents-cli/target/release/
+            echo "Installed github-agents CLI"
+          else
+            echo "ERROR: github-agents binary not found in artifact!"
+            exit 1
+          fi
+
       - name: Check iteration count
         id: iteration
         uses: ./.github/actions/agent-iteration-check
         with:
           pr_number: ${{ github.event.pull_request.number }}
           max_iterations: '5'
+          agent_type: 'failure-fix'
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Skip if max iterations reached
@@ -845,11 +884,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Maximum iterations (5) reached. Manual intervention required."
+          echo "Maximum iterations (5) reached for failure-fix agent. Manual intervention required."
           gh pr comment "${{ github.event.pull_request.number }}" --body "$(cat << 'EOF'
-          ## Agent Failure Handler - Max Iterations Reached
+          ## Failure Handler Agent - Max Iterations Reached
+          <!-- agent-metadata:type=failure-fix:iteration=${{ steps.iteration.outputs.iteration_count }}:limit-reached -->
 
-          The automated agent has attempted to fix pipeline failures 5 times without success.
+          The **Failure Handler Agent** has attempted to fix pipeline failures 5 times without success.
           Manual intervention is required to resolve the remaining issues.
 
           **Failed checks:**
@@ -859,6 +899,8 @@ jobs:
           - Test Suite: ${{ needs.test-suite.result }}
           - Sleeper Agents Tests: ${{ needs.sleeper-agents-tests.result }}
           - Dashboard Tests: ${{ needs.dashboard-tests.result }}
+
+          **Note:** The review-fix and failure-fix agents have separate iteration counters.
 
           Please review the failure logs and fix the issues manually.
           EOF
