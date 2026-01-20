@@ -220,7 +220,7 @@ jobs:
   # Stage 2c: Agent Review Response (responds to Gemini/Codex feedback)
   agent-review-response:
     name: Agent Review Response
-    needs: [detect-changes, gemini-review, codex-review]
+    needs: [detect-changes, build-rust-tools, gemini-review, codex-review]
     if: |
       always() &&
       !cancelled() &&
@@ -241,13 +241,19 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          # Clean up any root-owned files from previous Docker runs
+          WORKSPACE="${GITHUB_WORKSPACE:-$(pwd)}"
+          if [ -d "$WORKSPACE" ]; then
+            docker run --rm -v "$WORKSPACE:/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || true
+            # Also try regular cleanup for non-root files
+            rm -rf "$WORKSPACE/outputs" "$WORKSPACE/evaluation_results" 2>/dev/null || true
+          fi
 
       - name: Checkout code
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          clean: true
+          clean: false
           token: ${{ secrets.AGENT_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
@@ -263,6 +269,24 @@ jobs:
           git checkout -- . 2>/dev/null || true
           git clean -fd 2>/dev/null || true
           echo "Working directory reset to clean state"
+
+      - name: Download Rust CLI tools
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-cli-tools
+          path: rust-tools
+
+      - name: Setup Rust CLI tools
+        run: |
+          if [ -f "rust-tools/github-agents" ]; then
+            chmod +x rust-tools/github-agents
+            mkdir -p tools/rust/github-agents-cli/target/release
+            cp rust-tools/github-agents tools/rust/github-agents-cli/target/release/
+            echo "Installed github-agents CLI"
+          else
+            echo "ERROR: github-agents binary not found in artifact!"
+            exit 1
+          fi
 
       - name: Check iteration count
         id: iteration
@@ -780,6 +804,7 @@ jobs:
     name: Agent Failure Handler
     needs:
       - detect-changes
+      - build-rust-tools
       - gemini-review
       - codex-review
       - agent-review-response
@@ -819,13 +844,19 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          docker run --rm -v "$(pwd):/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results" || true
+          # Clean up any root-owned files from previous Docker runs
+          WORKSPACE="${GITHUB_WORKSPACE:-$(pwd)}"
+          if [ -d "$WORKSPACE" ]; then
+            docker run --rm -v "$WORKSPACE:/workspace" busybox sh -c "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || true
+            # Also try regular cleanup for non-root files
+            rm -rf "$WORKSPACE/outputs" "$WORKSPACE/evaluation_results" 2>/dev/null || true
+          fi
 
       - name: Checkout code
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          clean: true
+          clean: false
           token: ${{ secrets.AGENT_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
@@ -840,6 +871,24 @@ jobs:
         run: |
           git checkout -- . 2>/dev/null || true
           git clean -fd 2>/dev/null || true
+
+      - name: Download Rust CLI tools
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-cli-tools
+          path: rust-tools
+
+      - name: Setup Rust CLI tools
+        run: |
+          if [ -f "rust-tools/github-agents" ]; then
+            chmod +x rust-tools/github-agents
+            mkdir -p tools/rust/github-agents-cli/target/release
+            cp rust-tools/github-agents tools/rust/github-agents-cli/target/release/
+            echo "Installed github-agents CLI"
+          else
+            echo "ERROR: github-agents binary not found in artifact!"
+            exit 1
+          fi
 
       - name: Check iteration count
         id: iteration
