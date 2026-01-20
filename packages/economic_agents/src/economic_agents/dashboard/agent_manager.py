@@ -5,7 +5,7 @@ import logging
 from typing import Any, Dict, Optional
 
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
-from economic_agents.dashboard.dependencies import dashboard_state
+from economic_agents.dashboard.dependencies import DashboardState, get_dashboard_state
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 
 logger = logging.getLogger(__name__)
@@ -16,6 +16,9 @@ class AgentManager:
 
     This singleton class allows the dashboard to start/stop agents and run them
     as background tasks within the same process, ensuring dashboard_state is shared.
+
+    The dashboard state is obtained via dependency injection - either passed
+    explicitly to `start_agent()` or retrieved via `get_dashboard_state()`.
     """
 
     _instance: Optional["AgentManager"] = None
@@ -42,6 +45,7 @@ class AgentManager:
         self.cycle_count = 0
         self.max_cycles = 0
         self.should_stop = False
+        self._dashboard_state: Optional[DashboardState] = None
 
     async def start_agent(
         self,
@@ -52,6 +56,7 @@ class AgentManager:
         compute_cost_per_hour: float = 0.0,
         engine_type: str = "rule_based",
         llm_timeout: int = 120,
+        dashboard_state: Optional[DashboardState] = None,
     ) -> dict:
         """Start an autonomous agent with specified configuration.
 
@@ -63,6 +68,8 @@ class AgentManager:
             compute_cost_per_hour: Cost per compute hour
             engine_type: 'rule_based' or 'llm'
             llm_timeout: Timeout in seconds for LLM decisions
+            dashboard_state: Optional DashboardState instance for dependency injection.
+                If not provided, uses get_dashboard_state() to get the current state.
 
         Returns:
             Status dict with agent_id and configuration
@@ -82,6 +89,9 @@ class AgentManager:
             else:
                 raise ValueError(f"Invalid mode: {mode}. Must be 'survival' or 'company'")
 
+            # Get dashboard state via dependency injection or from container
+            self._dashboard_state = dashboard_state if dashboard_state is not None else get_dashboard_state()
+
             # Create agent components
             wallet = MockWallet(initial_balance=initial_balance)
             compute = MockCompute(initial_hours=initial_compute_hours, cost_per_hour=compute_cost_per_hour)
@@ -100,7 +110,7 @@ class AgentManager:
                     "llm_timeout": llm_timeout,
                     "fallback_enabled": True,
                 },
-                dashboard_state=dashboard_state,
+                dashboard_state=self._dashboard_state,
             )
 
             # Initialize agent state asynchronously

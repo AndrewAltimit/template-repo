@@ -1,6 +1,17 @@
-"""Shared dependencies and state management for dashboard."""
+"""Shared dependencies and state management for dashboard.
 
-from typing import Any, Dict, Optional
+This module provides dependency injection support for dashboard state management.
+The recommended patterns are:
+
+1. For FastAPI routes: Use `Depends(get_dashboard_state)` to inject state
+2. For tests: Use the `dashboard_state_override()` context manager
+3. For isolated contexts: Use `create_dashboard_state()` to create new instances
+
+The global `dashboard_state` proxy is deprecated - prefer explicit injection.
+"""
+
+from contextlib import contextmanager
+from typing import Any, Dict, Generator, Optional
 
 from economic_agents.monitoring import AlignmentMonitor, MetricsCollector, ResourceTracker
 
@@ -126,6 +137,44 @@ def create_dashboard_state() -> DashboardState:
     non-web application contexts like run_demo.py).
     """
     return DashboardState()
+
+
+@contextmanager
+def dashboard_state_override(
+    state: Optional[DashboardState] = None,
+) -> Generator[DashboardState, None, None]:
+    """Context manager for overriding the global dashboard state.
+
+    This is the recommended pattern for tests that need to isolate dashboard state.
+    It ensures proper cleanup even if exceptions occur.
+
+    Args:
+        state: Optional DashboardState instance to use. If None, creates a fresh one.
+
+    Yields:
+        The DashboardState instance being used during the context.
+
+    Example:
+        # In tests:
+        with dashboard_state_override() as test_state:
+            test_state.set_resource_tracker(tracker)
+            # Run tests against test_state
+            response = client.get("/api/status")
+        # Original state is automatically restored
+
+        # With custom state:
+        custom_state = create_dashboard_state()
+        custom_state.update_agent_state({"agent_id": "test-1"})
+        with dashboard_state_override(custom_state) as state:
+            assert state.get_agent_state()["agent_id"] == "test-1"
+    """
+    test_state = state if state is not None else create_dashboard_state()
+    container = get_state_container()
+    container.override(test_state)
+    try:
+        yield test_state
+    finally:
+        container.reset_override()
 
 
 # Backwards compatibility: provide a module-level reference to the default state.
