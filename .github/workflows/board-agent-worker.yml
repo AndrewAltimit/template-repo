@@ -230,7 +230,7 @@ jobs:
       - name: Build Rust tools (if needed)
         run: |
           echo "::group::Build Rust Tools"
-          BOARD_MANAGER="tools/rust/board-manager/target/release/board-manager"
+          BOARD_MANAGER="${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager"
 
           if [ -x "$BOARD_MANAGER" ]; then
             echo "board-manager already exists at $BOARD_MANAGER"
@@ -241,9 +241,9 @@ jobs:
             echo "Build complete"
           fi
 
-          # Setup PATH for subsequent steps
+          # Setup PATH for subsequent steps (use GITHUB_WORKSPACE for absolute path)
           mkdir -p "$HOME/.local/bin"
-          ln -sf "$(pwd)/tools/rust/board-manager/target/release/board-manager" "$HOME/.local/bin/board-cli"
+          ln -sf "${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager" "$HOME/.local/bin/board-cli"
           echo "$HOME/.local/bin" >> $GITHUB_PATH
           echo "::endgroup::"
 
