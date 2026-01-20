@@ -8,37 +8,39 @@ import pytest
 
 from economic_agents.dashboard.agent_manager import AgentManager
 from economic_agents.dashboard.app import app
-from economic_agents.dashboard.dependencies import dashboard_state
+from economic_agents.dashboard.dependencies import dashboard_state_override, get_dashboard_state
 
 
 @pytest.fixture
 async def clean_manager():
-    """Provide a clean AgentManager for each test."""
-    manager = AgentManager()
-    # Reset state
-    manager.is_running = False
-    manager.agent = None
-    manager.task = None
-    manager.cycle_count = 0
-    manager.max_cycles = 0
-    manager.should_stop = False
-    manager.config = {}
+    """Provide a clean AgentManager for each test with isolated dashboard state.
 
-    # Clear dashboard state
-    dashboard_state.agent_state = {}
-    dashboard_state.company_registry = {}
-    dashboard_state.resource_tracker = None
-    dashboard_state.metrics_collector = None
-    dashboard_state.alignment_monitor = None
+    Uses the dashboard_state_override context manager to ensure clean state
+    isolation between tests. This is the recommended pattern for testing
+    components that depend on dashboard state.
+    """
+    # Use context manager for proper state isolation
+    with dashboard_state_override() as test_state:
+        manager = AgentManager()
+        # Reset manager state
+        manager.is_running = False
+        manager.agent = None
+        manager.task = None
+        manager.cycle_count = 0
+        manager.max_cycles = 0
+        manager.should_stop = False
+        manager.config = {}
+        manager._dashboard_state = None
 
-    # Mock file operations to avoid permission errors in tests
-    mock_file = MagicMock()
-    with patch("builtins.open", return_value=mock_file):
-        yield manager
+        # Mock file operations to avoid permission errors in tests
+        mock_file = MagicMock()
+        with patch("builtins.open", return_value=mock_file):
+            yield manager
 
-    # Cleanup after test
-    if manager.is_running:
-        await manager.stop_agent()
+        # Cleanup after test
+        if manager.is_running:
+            await manager.stop_agent()
+    # Context manager handles state cleanup automatically
 
 
 @pytest.fixture
@@ -104,9 +106,10 @@ class TestAgentControlIntegration:
 
     async def test_agent_updates_dashboard_state(self, clean_manager, async_client):
         """Test that running agent updates shared dashboard_state."""
-        # Clear dashboard state manually
-        dashboard_state.agent_state = {}
-        dashboard_state.company_registry = {}
+        # Dashboard state is already clean from the fixture's context manager
+        current_state = get_dashboard_state()
+        current_state.agent_state = {}
+        current_state.company_registry = {}
 
         # Start agent via API
         response = await async_client.post(

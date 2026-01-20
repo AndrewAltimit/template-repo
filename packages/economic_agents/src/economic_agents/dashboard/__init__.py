@@ -5,6 +5,7 @@ from economic_agents.dashboard.dependencies import (
     DashboardState,
     create_dashboard_state,
     dashboard_state,
+    dashboard_state_override,
     get_dashboard_state,
     get_state_container,
 )
@@ -14,7 +15,8 @@ __all__ = [
     "app",
     "DashboardState",
     "create_dashboard_state",
-    "dashboard_state",  # Deprecated: use get_dashboard_state() or create_dashboard_state()
+    "dashboard_state",  # Deprecated: use get_dashboard_state() or dashboard_state_override()
+    "dashboard_state_override",  # Recommended for tests: context manager for state isolation
     "get_dashboard_state",
     "get_state_container",
     "broadcast_update",
