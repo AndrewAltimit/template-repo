@@ -10,6 +10,12 @@ from economic_agents.api.clients.investor_client import InvestorPortalAPIClient
 from economic_agents.api.clients.marketplace_client import MarketplaceAPIClient
 from economic_agents.api.clients.wallet_client import WalletAPIClient
 from economic_agents.api.config import BackendConfig, BackendMode
+from economic_agents.api.protocols import (
+    ComputeProtocol,
+    InvestorPortalProtocol,
+    MarketplaceProtocol,
+    WalletProtocol,
+)
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 
 
@@ -31,11 +37,11 @@ class BackendFactory:
         if config.mode == BackendMode.API:
             config.validate_api_mode()
 
-    def create_wallet(self):
+    def create_wallet(self) -> WalletProtocol:
         """Create wallet implementation.
 
         Returns:
-            Wallet instance (MockWallet or WalletAPIClient)
+            Wallet instance implementing WalletProtocol
 
         Raises:
             ValueError: If API mode configuration is invalid
@@ -51,11 +57,11 @@ class BackendFactory:
             initial_balance=self.config.initial_balance,
         )
 
-    def create_compute(self):
+    def create_compute(self) -> ComputeProtocol:
         """Create compute implementation.
 
         Returns:
-            Compute instance (MockCompute or ComputeAPIClient)
+            Compute instance implementing ComputeProtocol
 
         Raises:
             ValueError: If API mode configuration is invalid
@@ -75,11 +81,11 @@ class BackendFactory:
             cost_per_hour=self.config.compute_cost_per_hour,
         )
 
-    def create_marketplace(self):
+    def create_marketplace(self) -> MarketplaceProtocol:
         """Create marketplace implementation.
 
         Returns:
-            Marketplace instance (MockMarketplace or MarketplaceAPIClient)
+            Marketplace instance implementing MarketplaceProtocol
 
         Raises:
             ValueError: If API mode configuration is invalid
@@ -95,11 +101,11 @@ class BackendFactory:
             seed=self.config.marketplace_seed,
         )
 
-    def create_investor_portal(self):
+    def create_investor_portal(self) -> Optional[InvestorPortalProtocol]:
         """Create investor portal client.
 
         Returns:
-            Investor portal instance (InvestorPortalAPIClient or None)
+            Investor portal instance implementing InvestorPortalProtocol, or None in mock mode
 
         Note:
             In mock mode, investment functionality is built into the agent/company
@@ -119,11 +125,13 @@ class BackendFactory:
             api_key=self.config.api_key,
         )
 
-    def create_all(self) -> Tuple:
+    def create_all(
+        self,
+    ) -> Tuple[WalletProtocol, ComputeProtocol, MarketplaceProtocol, Optional[InvestorPortalProtocol]]:
         """Create all backend implementations.
 
         Returns:
-            Tuple of (wallet, compute, marketplace, investor_portal)
+            Tuple of (wallet, compute, marketplace, investor_portal) with protocol types
 
         Raises:
             ValueError: If API mode configuration is invalid
@@ -136,14 +144,16 @@ class BackendFactory:
         )
 
 
-def create_backends(config: Optional[BackendConfig] = None) -> Tuple:
+def create_backends(
+    config: Optional[BackendConfig] = None,
+) -> Tuple[WalletProtocol, ComputeProtocol, MarketplaceProtocol, Optional[InvestorPortalProtocol]]:
     """Convenience function to create backends.
 
     Args:
         config: Backend configuration (defaults to environment-based config)
 
     Returns:
-        Tuple of (wallet, compute, marketplace, investor_portal)
+        Tuple of (wallet, compute, marketplace, investor_portal) with protocol types
 
     Example:
         # Mock mode (default)
