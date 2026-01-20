@@ -175,7 +175,6 @@ def dashboard_state_override(
         yield test_state
     finally:
         container.reset_override()
-        container.reset()
 
 
 # Backwards compatibility: provide a module-level reference to the default state.
