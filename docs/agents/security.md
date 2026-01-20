@@ -33,7 +33,64 @@ Our agents implement defense-in-depth with multiple security layers:
 
 The agent admins list is configured in `.agents.yaml` under the `security.agent_admins` field. Only these users can trigger agent actions via `[Action][Agent]` keywords. The repository owner (extracted from `GITHUB_REPOSITORY` environment variable) is always included automatically.
 
-### 3. Keyword Trigger System - Command and Control
+#### Agent Admin Capabilities
+
+Agent admins have the following special capabilities:
+
+1. **Trigger Agent Actions**: Use `[Action][Agent]` keywords to invoke agents
+2. **Extend Iteration Limits**: Use `[CONTINUE]` to allow more agent iterations (see below)
+3. **Authoritative Comments**: Their comments are treated as authoritative in review contexts
+
+### 3. Agent Iteration Limits and Continue
+
+To prevent infinite loops where agents repeatedly try to fix the same issues, the system tracks iteration counts based on PR comments. Each agent type has its own independent counter.
+
+#### How Iteration Tracking Works
+
+- **Comment-Based Tracking**: Iterations are counted by parsing PR comments with agent metadata markers
+- **Separate Counters**: The `review-fix` agent (responds to AI reviews) and `failure-fix` agent (responds to CI failures) have independent iteration counts
+- **Max Iterations**: By default, each agent is limited to 5 iterations before pausing
+- **Metadata Format**: Comments include `<!-- agent-metadata:type=TYPE:iteration=N -->` for tracking
+
+#### The `[CONTINUE]` Command
+
+Agent admins can extend an agent's iteration limit by posting a comment containing `[CONTINUE]`:
+
+```
+[CONTINUE]
+
+I've reviewed the progress. Let the agent continue working on this.
+```
+
+**How it works:**
+- Each `[CONTINUE]` **adds** the base limit to the effective max
+- Base limit is 5, so: 1x `[CONTINUE]` = max 10, 2x `[CONTINUE]` = max 15, etc.
+- The iteration count itself is not reset - it keeps incrementing
+
+**Key Details:**
+- **Case-insensitive**: `[CONTINUE]`, `[continue]`, and `[Continue]` all work
+- **Admin-only**: Only users in `security.agent_admins` can extend limits
+- **Cumulative**: Multiple `[CONTINUE]` comments stack (each adds 5 more iterations)
+- **Per-PR**: The count applies to the entire PR comment history
+
+#### Example Scenario
+
+1. PR validation runs, agent tries to fix issues (iterations 1-5)
+2. Agent hits max iterations (5), posts "Iteration Limit Reached" message
+3. Human reviews progress and decides the agent should continue
+4. Admin comments: `[CONTINUE] Making good progress, keep going`
+5. Effective max is now 10 - agent can run iterations 6-10
+6. If needed, another `[CONTINUE]` would extend to 15, and so on
+
+#### Configuration
+
+```yaml
+# In .agents.yaml
+automation:
+  max_auto_fix_iterations: 5  # Base limit per agent (extended by [CONTINUE])
+```
+
+### 4. Keyword Trigger System - Command and Control
 
 Agents are controlled exclusively through a keyword trigger system that requires explicit commands from authorized users. This prevents accidental activation and provides clear audit trails.
 
@@ -73,7 +130,7 @@ The trigger format is: `[Action][Agent]`
 5. **Execution**: Agent performs requested action
 6. **Audit**: All actions logged with full context
 
-### 4. Configuration
+### 5. Configuration
 
 Security settings are configured in `.agents.yaml`:
 
@@ -102,7 +159,7 @@ security:
 - `rate_limit_max_requests`: Maximum requests per window (default: 10)
 - `allowed_repositories`: Array of allowed repositories (empty = all repos from owner)
 
-### 5. Environment Variables
+### 6. Environment Variables
 
 You can also set the allow list via environment variable:
 ```bash
@@ -114,7 +171,7 @@ You can also set allowed repositories via environment variable:
 export AI_AGENT_ALLOWED_REPOS="owner/repo1,owner/repo2"
 ```
 
-### 6. Security Manager (Rust CLI)
+### 7. Security Manager (Rust CLI)
 
 The security functionality is implemented in Rust and available via the `github-agents` CLI:
 

@@ -36,6 +36,7 @@ agent_priorities:
 security:
   # Users authorized to trigger agent actions via [Approved][Agent] keywords
   # CRITICAL: Only add trusted human users - these can execute code via agents
+  # Agent admins can also use [CONTINUE] in PR comments to extend iteration limits
   agent_admins:
     - AndrewAltimit           # Repository owner
 

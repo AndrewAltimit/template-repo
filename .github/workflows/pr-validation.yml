@@ -262,12 +262,13 @@ jobs:
         with:
           pr_number: ${{ github.event.pull_request.number }}
           max_iterations: '5'
+          agent_type: 'review-fix'
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Skip if max iterations reached
         if: steps.iteration.outputs.exceeded_max == 'true'
         run: |
-          echo "Maximum iterations (5) reached. Manual intervention required."
+          echo "Maximum iterations (5) reached for review-fix agent. Manual intervention required."
           echo "made_changes=false" >> $GITHUB_OUTPUT
           exit 0
 
@@ -838,6 +839,7 @@ jobs:
         with:
           pr_number: ${{ github.event.pull_request.number }}
           max_iterations: '5'
+          agent_type: 'failure-fix'
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Skip if max iterations reached
@@ -845,11 +847,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Maximum iterations (5) reached. Manual intervention required."
+          echo "Maximum iterations (5) reached for failure-fix agent. Manual intervention required."
           gh pr comment "${{ github.event.pull_request.number }}" --body "$(cat << 'EOF'
-          ## Agent Failure Handler - Max Iterations Reached
+          ## Failure Handler Agent - Max Iterations Reached
+          <!-- agent-metadata:type=failure-fix:iteration=${{ steps.iteration.outputs.iteration_count }}:limit-reached -->
 
-          The automated agent has attempted to fix pipeline failures 5 times without success.
+          The **Failure Handler Agent** has attempted to fix pipeline failures 5 times without success.
           Manual intervention is required to resolve the remaining issues.
 
           **Failed checks:**
@@ -859,6 +862,8 @@ jobs:
           - Test Suite: ${{ needs.test-suite.result }}
           - Sleeper Agents Tests: ${{ needs.sleeper-agents-tests.result }}
           - Dashboard Tests: ${{ needs.dashboard-tests.result }}
+
+          **Note:** The review-fix and failure-fix agents have separate iteration counters.
 
           Please review the failure logs and fix the issues manually.
           EOF

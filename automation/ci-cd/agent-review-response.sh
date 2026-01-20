@@ -117,11 +117,14 @@ post_agent_decision_comment() {
     local made_changes="$3"
     local commit_sha="$4"
 
+    # Calculate next iteration number (current count + 1 for this new comment)
+    local next_iteration=$((iteration + 1))
+
     local comment_body=""
 
     if [ "$made_changes" = "true" ]; then
-        comment_body="## Agent Review Response (Iteration $iteration)
-<!-- agent-decision-marker:iteration:$iteration -->
+        comment_body="## Review Response Agent (Iteration $next_iteration)
+<!-- agent-metadata:type=review-fix:iteration=$next_iteration -->
 
 **Status:** Changes committed and pushed
 
@@ -132,8 +135,8 @@ $summary
 ---
 *This automated summary documents what the agent fixed and what was intentionally ignored. Future reviewers: please don't re-raise ignored issues unless you have new information.*"
     else
-        comment_body="## Agent Review Response (Iteration $iteration)
-<!-- agent-decision-marker:iteration:$iteration -->
+        comment_body="## Review Response Agent (Iteration $next_iteration)
+<!-- agent-metadata:type=review-fix:iteration=$next_iteration -->
 
 **Status:** No changes needed
 
