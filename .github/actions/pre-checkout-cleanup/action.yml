@@ -18,19 +18,10 @@ runs:
       run: |
         set -x  # Enable debug output
 
-        # IMPORTANT: $(pwd) before checkout is one level ABOVE the actual workspace
-        # The workspace structure is: _work/<repo>/<repo>/
-        # Before checkout, we're in: _work/<repo>/
-        # So we need to target: _work/<repo>/<repo>/outputs
+        # The job starts in the workspace directory already
+        WORKSPACE_DIR="$(pwd)"
 
-        echo "Current directory: $(pwd)"
-        echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
-
-        # Get repository name from GITHUB_REPOSITORY (format: owner/repo)
-        REPO_NAME="${GITHUB_REPOSITORY##*/}"
-        WORKSPACE_DIR="$(pwd)/${REPO_NAME}"
-
-        echo "Calculated WORKSPACE_DIR: $WORKSPACE_DIR"
+        echo "WORKSPACE_DIR: $WORKSPACE_DIR"
 
         # Check if workspace exists
         if [ -d "$WORKSPACE_DIR" ]; then
@@ -77,8 +68,6 @@ runs:
           fi
 
           echo "Pre-checkout cleanup completed"
-        else
-          echo "Workspace directory does not exist yet: $WORKSPACE_DIR (this is normal for first run)"
         fi
 
         set +x  # Disable debug output
