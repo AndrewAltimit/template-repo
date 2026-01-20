@@ -1,32 +1,34 @@
-//! git-guard: Git CLI wrapper that requires sudo for dangerous operations
+//! git-guard: Git CLI wrapper that blocks dangerous operations
 //!
 //! This binary intercepts `git` commands and blocks dangerous operations
-//! unless running with elevated privileges (sudo/root).
+//! to prevent accidental or unauthorized destructive actions.
 //!
 //! # Usage
 //!
 //! Install this binary as `git` in a higher-priority PATH directory.
 //! It will automatically find and call the real `git` binary.
 //!
-//! # Blocked Operations (require sudo)
+//! # Blocked Operations
 //!
 //! - Force push: `--force`, `-f`, `--force-with-lease`, `--force-if-includes`
 //! - Skip hooks: `--no-verify`, `-n` (on commit/push)
+//! - Push to protected branches: `main`, `master`
 //!
 //! # Why This Exists
 //!
-//! AI coding assistants (like Claude Code) may sometimes attempt force pushes
-//! or skip verification hooks. This wrapper ensures a human must explicitly
-//! approve such operations by running with sudo.
+//! AI coding assistants (like Claude Code) may sometimes attempt force pushes,
+//! skip verification hooks, or push directly to protected branches. This wrapper
+//! blocks these operations entirely to ensure code review workflows are followed.
+//!
+//! # Emergency Bypass
+//!
+//! If you absolutely need to perform a blocked operation, use the real git binary:
+//!   /usr/bin/git push --force origin main
 //!
 //! # Architecture
 //!
 //! The wrapper checks arguments before executing the real git binary.
-//! If dangerous flags are detected and not running as root, it exits
-//! with an error message explaining the situation.
-
-#[cfg(unix)]
-extern crate libc;
+//! If dangerous flags are detected, it exits with an error message.
 
 use std::env;
 use std::process::{exit, Command};
@@ -36,10 +38,10 @@ mod git_finder;
 
 use error::Error;
 
-/// Force push flags that require sudo
+/// Force push flags that are blocked
 const FORCE_PUSH_FLAGS: &[&str] = &["--force", "-f", "--force-with-lease", "--force-if-includes"];
 
-/// No-verify flags that require sudo (short form -n only applies to specific commands)
+/// No-verify flags that are blocked (short form -n only applies to specific commands)
 const NO_VERIFY_FLAGS: &[&str] = &["--no-verify"];
 
 /// Commands where -n means --no-verify
@@ -48,24 +50,8 @@ const COMMANDS_WITH_N_NO_VERIFY: &[&str] = &["commit", "merge", "cherry-pick", "
 /// Subcommands where force flags apply
 const PUSH_SUBCOMMANDS: &[&str] = &["push"];
 
-/// Check if we're running as root/admin
-fn is_elevated() -> bool {
-    #[cfg(unix)]
-    {
-        // Check effective UID on Unix
-        unsafe { libc::geteuid() == 0 }
-    }
-
-    #[cfg(windows)]
-    {
-        // On Windows, check if running as Administrator
-        // This is a simplified check - in production you'd use Windows API
-        env::var("USERNAME")
-            .map(|u| u.to_lowercase() == "administrator")
-            .unwrap_or(false)
-            || env::var("SUDO_USER").is_ok()
-    }
-}
+/// Protected branches that cannot be pushed to directly
+const PROTECTED_BRANCHES: &[&str] = &["main", "master"];
 
 /// Dangerous operation detected
 #[derive(Debug)]
@@ -123,7 +109,69 @@ fn detect_dangerous_ops(args: &[String]) -> Vec<DangerousOp> {
         }
     }
 
+    // Check for push to protected branches
+    if subcommand == Some("push") {
+        if let Some(target_branch) = detect_push_target_branch(args) {
+            if PROTECTED_BRANCHES.contains(&target_branch.as_str()) {
+                dangerous.push(DangerousOp {
+                    flag: format!("push to {}", target_branch),
+                    description: "Direct push to protected branch bypasses PR review",
+                });
+            }
+        }
+    }
+
     dangerous
+}
+
+/// Detect the target branch for a git push command
+/// Returns None if the target cannot be determined (might be using tracking branch)
+fn detect_push_target_branch(args: &[String]) -> Option<String> {
+    // Skip the "push" subcommand and find non-flag arguments
+    let non_flag_args: Vec<&str> = args
+        .iter()
+        .skip_while(|a| *a != "push")
+        .skip(1) // skip "push" itself
+        .filter(|a| !a.starts_with('-'))
+        .map(|s| s.as_str())
+        .collect();
+
+    // Common patterns:
+    // git push origin main          -> remote=origin, branch=main
+    // git push origin HEAD:main     -> remote=origin, refspec with target main
+    // git push main                  -> could be remote or branch (ambiguous)
+    // git push                       -> uses tracking branch (can't detect)
+
+    if non_flag_args.is_empty() {
+        return None; // Using tracking branch, can't detect target
+    }
+
+    // Check for refspec with colon (e.g., HEAD:main, feature:main)
+    for arg in &non_flag_args {
+        if let Some(colon_pos) = arg.find(':') {
+            let target = &arg[colon_pos + 1..];
+            // Handle refs/heads/main format
+            let branch = target.strip_prefix("refs/heads/").unwrap_or(target);
+            if !branch.is_empty() {
+                return Some(branch.to_string());
+            }
+        }
+    }
+
+    // If we have 2+ args after push, second one is typically the branch
+    // git push origin main -> ["origin", "main"]
+    if non_flag_args.len() >= 2 {
+        let potential_branch = non_flag_args[1];
+        // Handle refs/heads/main format
+        let branch = potential_branch
+            .strip_prefix("refs/heads/")
+            .unwrap_or(potential_branch);
+        return Some(branch.to_string());
+    }
+
+    // Single arg could be remote or branch - we can't tell for sure
+    // To be safe, don't block (could be `git push origin` which uses tracking)
+    None
 }
 
 /// Format the error message for blocked operations
@@ -131,10 +179,10 @@ fn format_blocked_message(ops: &[DangerousOp]) -> String {
     let mut msg = String::new();
     msg.push('\n');
     msg.push_str("============================================================\n");
-    msg.push_str("GIT-GUARD: DANGEROUS OPERATION BLOCKED\n");
+    msg.push_str("GIT-GUARD: OPERATION BLOCKED\n");
     msg.push_str("============================================================\n");
     msg.push('\n');
-    msg.push_str("The following dangerous operation(s) require elevated privileges:\n");
+    msg.push_str("The following operation(s) are not allowed:\n");
     msg.push('\n');
 
     for op in ops {
@@ -142,12 +190,13 @@ fn format_blocked_message(ops: &[DangerousOp]) -> String {
     }
 
     msg.push('\n');
-    msg.push_str("To proceed, run the command with sudo:\n");
-    msg.push('\n');
-    msg.push_str("  sudo git <your command>\n");
-    msg.push('\n');
     msg.push_str("This safety mechanism prevents AI assistants from performing\n");
-    msg.push_str("destructive git operations without human approval.\n");
+    msg.push_str("destructive git operations or bypassing code review.\n");
+    msg.push('\n');
+    msg.push_str("If you absolutely need to perform this operation, use the\n");
+    msg.push_str("real git binary directly:\n");
+    msg.push('\n');
+    msg.push_str("  /usr/bin/git <your command>\n");
     msg.push('\n');
     msg.push_str("============================================================\n");
 
@@ -164,13 +213,13 @@ fn run() -> Result<(), Error> {
     // Check for dangerous operations
     let dangerous_ops = detect_dangerous_ops(&args);
 
-    if !dangerous_ops.is_empty() && !is_elevated() {
-        // Block the operation
+    if !dangerous_ops.is_empty() {
+        // Always block dangerous operations
         eprintln!("{}", format_blocked_message(&dangerous_ops));
         exit(1);
     }
 
-    // Safe operation or running with sudo - execute the real git
+    // Safe operation - execute the real git
     exec_git(&real_git, &args)?;
 
     unreachable!("exec should not return");
@@ -261,10 +310,83 @@ mod tests {
     }
 
     #[test]
-    fn test_safe_push() {
-        let args = vec!["push".to_string(), "origin".to_string(), "main".to_string()];
+    fn test_safe_push_to_feature_branch() {
+        let args = vec![
+            "push".to_string(),
+            "origin".to_string(),
+            "feature-branch".to_string(),
+        ];
         let ops = detect_dangerous_ops(&args);
         assert!(ops.is_empty());
+    }
+
+    #[test]
+    fn test_push_to_main_blocked() {
+        let args = vec!["push".to_string(), "origin".to_string(), "main".to_string()];
+        let ops = detect_dangerous_ops(&args);
+        assert_eq!(ops.len(), 1);
+        assert!(ops[0].flag.contains("main"));
+        assert!(ops[0].description.contains("protected branch"));
+    }
+
+    #[test]
+    fn test_push_to_master_blocked() {
+        let args = vec![
+            "push".to_string(),
+            "origin".to_string(),
+            "master".to_string(),
+        ];
+        let ops = detect_dangerous_ops(&args);
+        assert_eq!(ops.len(), 1);
+        assert!(ops[0].flag.contains("master"));
+    }
+
+    #[test]
+    fn test_push_refspec_to_main_blocked() {
+        // git push origin HEAD:main
+        let args = vec![
+            "push".to_string(),
+            "origin".to_string(),
+            "HEAD:main".to_string(),
+        ];
+        let ops = detect_dangerous_ops(&args);
+        assert_eq!(ops.len(), 1);
+        assert!(ops[0].flag.contains("main"));
+    }
+
+    #[test]
+    fn test_push_refspec_refs_heads_main_blocked() {
+        // git push origin HEAD:refs/heads/main
+        let args = vec![
+            "push".to_string(),
+            "origin".to_string(),
+            "HEAD:refs/heads/main".to_string(),
+        ];
+        let ops = detect_dangerous_ops(&args);
+        assert_eq!(ops.len(), 1);
+        assert!(ops[0].flag.contains("main"));
+    }
+
+    #[test]
+    fn test_push_without_branch_not_blocked() {
+        // git push origin (uses tracking branch - can't determine target)
+        let args = vec!["push".to_string(), "origin".to_string()];
+        let ops = detect_dangerous_ops(&args);
+        assert!(ops.is_empty());
+    }
+
+    #[test]
+    fn test_push_with_upstream_flag_to_main_blocked() {
+        // git push -u origin main
+        let args = vec![
+            "push".to_string(),
+            "-u".to_string(),
+            "origin".to_string(),
+            "main".to_string(),
+        ];
+        let ops = detect_dangerous_ops(&args);
+        assert_eq!(ops.len(), 1);
+        assert!(ops[0].flag.contains("main"));
     }
 
     #[test]

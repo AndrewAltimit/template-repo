@@ -590,8 +590,9 @@ runs:
         # RUNNER_TEMP is job-scoped, GITHUB_RUN_ID adds uniqueness
         PR_TITLE_DIR="${RUNNER_TEMP:-/tmp}"
         PR_TITLE_FILE="${PR_TITLE_DIR}/pr_title_${GITHUB_RUN_ID:-$$}.txt"
-        rm -f "$PR_TITLE_FILE"  # Clean up any stale file from previous runs
-        export PR_TITLE_FILE PR_TITLE_DIR
+        PR_BODY_FILE="${PR_TITLE_DIR}/pr_body_${GITHUB_RUN_ID:-$$}.md"
+        rm -f "$PR_TITLE_FILE" "$PR_BODY_FILE"  # Clean up any stale file from previous runs
+        export PR_TITLE_FILE PR_BODY_FILE PR_TITLE_DIR
 
         if [ "$JSON_LOGGING" = "true" ]; then
           echo '{"event": "agent_start", "agent": "'$AGENT_NAME'", "issue": '$ISSUE_NUMBER', "timeout_min": '$AGENT_TIMEOUT'}'
@@ -690,6 +691,33 @@ runs:
           "- feat(api): add pagination support to list endpoints" \
           "Write ONLY the title to the file, no other content." \
           "" \
+          "## PR Description Requirement" \
+          "IMPORTANT: You MUST also write a natural, human-readable PR description to $PR_BODY_FILE" \
+          "" \
+          "The description should read like a human wrote it:" \
+          "- Start with 1-2 sentences explaining the problem/motivation" \
+          "- Describe what the solution does in plain language" \
+          "- List key changes with brief explanations if there are multiple" \
+          "- NO robotic templates, statistics tables, or 'automated implementation' language" \
+          "- NO sections like 'Files Changed' or 'Change Statistics' - these are auto-generated" \
+          "" \
+          "Good example:" \
+          "---" \
+          "This PR addresses a CI pipeline issue where sudo was hanging indefinitely." \
+          "The solution replaces sudo with Docker-based permission fixing." \
+          "" \
+          "Key changes:" \
+          "- Replace sudo with Docker containers for fixing file permissions" \
+          "- Add timeout wrappers to prevent infinite hangs" \
+          "- Implement symlink checks for security hardening" \
+          "---" \
+          "" \
+          "Bad example (DO NOT write like this):" \
+          "---" \
+          "This automated pull request implements issue #123." \
+          "## Files Changed  ## Statistics  +50 -20" \
+          "---" \
+          "" \
           "## Working Directory" \
           "You are on branch: $BRANCH_NAME" \
           "Make your changes and the workflow will commit and create a PR." \
@@ -773,6 +801,7 @@ runs:
               if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
                 -e OPENROUTER_API_KEY \
                 -e PR_TITLE_FILE \
+                -e PR_BODY_FILE \
                 -v "$PR_TITLE_DIR:$PR_TITLE_DIR" \
                 openrouter-agents opencode run < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
@@ -798,6 +827,7 @@ runs:
               if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
                 -e OPENROUTER_API_KEY \
                 -e PR_TITLE_FILE \
+                -e PR_BODY_FILE \
                 -v "$PR_TITLE_DIR:$PR_TITLE_DIR" \
                 openrouter-agents crush run < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
@@ -828,8 +858,8 @@ runs:
               echo "Running Gemini in Docker..."
               # Use array to safely handle paths with spaces
               DOCKER_CMD=(docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm)
-              # Mount PR_TITLE_DIR so container can write agent-provided PR titles
-              DOCKER_CMD+=(-e PR_TITLE_FILE -v "$PR_TITLE_DIR:$PR_TITLE_DIR")
+              # Mount PR_TITLE_DIR so container can write agent-provided PR titles and bodies
+              DOCKER_CMD+=(-e PR_TITLE_FILE -e PR_BODY_FILE -v "$PR_TITLE_DIR:$PR_TITLE_DIR")
               if [ -n "$INPUT_GEMINI_API_KEY" ]; then
                 DOCKER_CMD+=(-e GEMINI_API_KEY -e GOOGLE_API_KEY)
               fi
@@ -859,6 +889,7 @@ runs:
               echo "Running Codex in Docker..."
               if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
                 -e PR_TITLE_FILE \
+                -e PR_BODY_FILE \
                 -v "$PR_TITLE_DIR:$PR_TITLE_DIR" \
                 codex-agent codex < "$CONTEXT_FILE"; then
                 WORK_COMPLETED="true"
@@ -901,6 +932,17 @@ runs:
           rm -f "$PR_TITLE_FILE"
         fi
 
+        # Read agent-provided PR body if available
+        AGENT_PR_BODY=""
+        if [ -f "$PR_BODY_FILE" ] && [ -s "$PR_BODY_FILE" ]; then
+          # Read entire file, limit to 10000 chars to prevent oversized PRs
+          AGENT_PR_BODY=$(python3 -c "import sys; s=open('$PR_BODY_FILE').read().strip(); print(s[:10000])")
+          if [ -n "$AGENT_PR_BODY" ]; then
+            echo "Agent provided PR body (${#AGENT_PR_BODY} chars)"
+          fi
+          rm -f "$PR_BODY_FILE"
+        fi
+
         echo "work_completed=$WORK_COMPLETED" >> $GITHUB_OUTPUT
         echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
         echo "duration_seconds=$DURATION" >> $GITHUB_OUTPUT
@@ -908,6 +950,16 @@ runs:
         # Escape PR title for GITHUB_OUTPUT: % -> %25, \r -> %0D, \n -> %0A
         ESCAPED_PR_TITLE=$(printf '%s' "$AGENT_PR_TITLE" | sed 's/%/%25/g; s/\r/%0D/g' | tr '\n' ' ')
         echo "agent_pr_title=$ESCAPED_PR_TITLE" >> $GITHUB_OUTPUT
+
+        # Write PR body to a temp file and pass path via output (body can be multiline/large)
+        # This avoids issues with escaping multiline content in GITHUB_OUTPUT
+        PR_BODY_OUTPUT_FILE="${PR_TITLE_DIR}/pr_body_output_${GITHUB_RUN_ID:-$$}.md"
+        if [ -n "$AGENT_PR_BODY" ]; then
+          printf '%s' "$AGENT_PR_BODY" > "$PR_BODY_OUTPUT_FILE"
+          echo "agent_pr_body_file=$PR_BODY_OUTPUT_FILE" >> $GITHUB_OUTPUT
+        else
+          echo "agent_pr_body_file=" >> $GITHUB_OUTPUT
+        fi
 
         if [ "$JSON_LOGGING" = "true" ]; then
           echo '{"event": "agent_complete", "success": '$([[ "$WORK_COMPLETED" = "true" ]] && echo "true" || echo "false")', "duration_sec": '$DURATION', "error": "'$AGENT_ERROR'"}'
@@ -927,6 +979,7 @@ runs:
         AGENT_NAME: ${{ inputs.agent-name }}
         BRANCH_NAME: ${{ steps.execute.outputs.branch_name }}
         AGENT_PR_TITLE: ${{ steps.execute.outputs.agent_pr_title }}
+        AGENT_PR_BODY_FILE: ${{ steps.execute.outputs.agent_pr_body_file }}
         JSON_LOGGING: ${{ inputs.json-logging }}
       run: |
         echo "::group::Create Pull Request"
@@ -996,54 +1049,23 @@ runs:
         # Push branch
         git push -u origin "$BRANCH_NAME"
 
-        # Generate change summary for PR body
-        # Note: Use '|| true' to prevent SIGPIPE errors when head/tail exit early,
-        # which causes grep to receive a broken pipe signal and fail the step
-        DIFF_STAT=$(git diff --stat origin/main...HEAD | tail -20 || true)
-        FILES_CHANGED=$(git diff --name-only origin/main...HEAD | head -20 || true)
-
-        # Get a brief diff preview (first 50 lines of actual changes)
-        DIFF_PREVIEW=$(git diff origin/main...HEAD --no-color | { grep -E '^\+[^+]|^-[^-]' || true; } | head -30 | sed 's/^/    /')
-
-        # Create PR body file with actual change details
+        # Create PR body - prefer agent-provided description, fall back to simple template
         PR_BODY_FILE=$(mktemp)
-        cat > "$PR_BODY_FILE" << PR_EOF
-        ## Summary
 
-        Automated implementation for issue #$ISSUE_NUMBER by **$AGENT_NAME** agent.
+        if [ -n "$AGENT_PR_BODY_FILE" ] && [ -f "$AGENT_PR_BODY_FILE" ]; then
+          # Use agent-provided natural description
+          echo "Using agent-provided PR description"
+          cat "$AGENT_PR_BODY_FILE" > "$PR_BODY_FILE"
 
-        ## Files Changed
-
-        \`\`\`
-        $FILES_CHANGED
-        \`\`\`
-
-        ## Change Statistics
-
-        \`\`\`
-        $DIFF_STAT
-        \`\`\`
-
-        ## Change Preview
-
-        \`\`\`diff
-        $DIFF_PREVIEW
-        \`\`\`
-
-        ## Test Plan
-
-        - [ ] Review automated changes
-        - [ ] Run tests
-        - [ ] Verify functionality
-
-        Closes #$ISSUE_NUMBER
-
-        ---
-        *Automated by GitHub Board Agent Action*
-        PR_EOF
-
-        # Remove leading whitespace from PR body
-        sed -i 's/^        //' "$PR_BODY_FILE"
+          # Append standard footer
+          printf '\n\nCloses #%s\n' "$ISSUE_NUMBER" >> "$PR_BODY_FILE"
+          rm -f "$AGENT_PR_BODY_FILE"
+        else
+          # Fall back to simple template (no robotic sections)
+          echo "Using fallback PR description template"
+          printf 'Implementation for issue #%s.\n\nCloses #%s\n' \
+            "$ISSUE_NUMBER" "$ISSUE_NUMBER" > "$PR_BODY_FILE"
+        fi
 
         # Create PR using file-based body (title already includes conventional commit type)
         PR_URL=$(gh pr create \

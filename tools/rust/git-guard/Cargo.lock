@@ -109,7 +109,6 @@ name = "git-guard"
 version = "0.1.0"
 dependencies = [
  "assert_cmd",
- "libc",
  "once_cell",
  "predicates",
  "tempfile",

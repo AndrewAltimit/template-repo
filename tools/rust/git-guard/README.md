@@ -1,14 +1,14 @@
 # git-guard
 
-A Git CLI wrapper that requires `sudo` for dangerous operations like force push and `--no-verify`.
+A Git CLI wrapper that blocks dangerous operations like force push, `--no-verify`, and direct pushes to protected branches (`main`/`master`).
 
 ## Purpose
 
-AI coding assistants (like Claude Code) may sometimes attempt force pushes or skip verification hooks during automated workflows. This wrapper ensures a human must explicitly approve such operations by requiring elevated privileges (sudo).
+AI coding assistants (like Claude Code) may sometimes attempt force pushes, skip verification hooks, or push directly to protected branches during automated workflows. This wrapper blocks these operations entirely to ensure code review workflows are followed.
 
 ## Blocked Operations
 
-The following operations require `sudo` to execute:
+The following operations are blocked:
 
 ### Force Push (on `git push` only)
 - `--force` / `-f`
@@ -18,6 +18,13 @@ The following operations require `sudo` to execute:
 ### Skip Hooks
 - `--no-verify` (on any command)
 - `-n` (only on `commit`, `merge`, `cherry-pick`, `revert` where it means `--no-verify`)
+
+### Push to Protected Branches
+- `git push origin main` - Direct push to `main` branch
+- `git push origin master` - Direct push to `master` branch
+- `git push origin HEAD:main` - Push via refspec to protected branch
+
+This ensures all changes to `main`/`master` go through pull requests, preventing AI agents from accidentally pushing directly to protected branches.
 
 ## Installation
 
@@ -56,8 +63,8 @@ git status
 ## How It Works
 
 1. Intercepts all `git` commands
-2. Checks arguments for dangerous flags
-3. If dangerous flags detected AND not running as root/sudo:
+2. Checks arguments for dangerous flags or protected branch targets
+3. If dangerous operation detected:
    - Prints a clear error message
    - Exits with code 1
 4. Otherwise, executes the real `git` binary transparently
@@ -66,21 +73,30 @@ git status
 
 ```
 ============================================================
-GIT-GUARD: DANGEROUS OPERATION BLOCKED
+GIT-GUARD: OPERATION BLOCKED
 ============================================================
 
-The following dangerous operation(s) require elevated privileges:
+The following operation(s) are not allowed:
 
-  - --force : Force push can overwrite remote history
-
-To proceed, run the command with sudo:
-
-  sudo git <your command>
+  - push to main : Direct push to protected branch bypasses PR review
 
 This safety mechanism prevents AI assistants from performing
-destructive git operations without human approval.
+destructive git operations or bypassing code review.
+
+If you absolutely need to perform this operation, use the
+real git binary directly:
+
+  /usr/bin/git <your command>
 
 ============================================================
+```
+
+## Emergency Bypass
+
+If you absolutely need to perform a blocked operation (e.g., emergency hotfix), use the real git binary directly:
+
+```bash
+/usr/bin/git push --force origin main
 ```
 
 ## Running Tests
@@ -92,9 +108,9 @@ cargo test
 ## Security Considerations
 
 - The wrapper finds the real `git` binary by searching PATH, skipping itself
-- On Unix, it checks `euid == 0` to detect root privileges
 - The wrapper uses `exec()` on Unix to replace itself with the real git process
 - All safe operations pass through without modification
+- Blocked operations can be bypassed by calling `/usr/bin/git` directly (intentional escape hatch)
 
 ## License
 
