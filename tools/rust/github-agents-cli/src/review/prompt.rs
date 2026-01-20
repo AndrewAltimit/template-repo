@@ -294,10 +294,16 @@ mod tests {
     #[test]
     fn test_truncate_at_line_boundary() {
         // No truncation needed
-        assert_eq!(truncate_at_line_boundary("hello\nworld", 100), "hello\nworld");
+        assert_eq!(
+            truncate_at_line_boundary("hello\nworld", 100),
+            "hello\nworld"
+        );
 
         // Truncate at line boundary
-        assert_eq!(truncate_at_line_boundary("line1\nline2\nline3", 10), "line1");
+        assert_eq!(
+            truncate_at_line_boundary("line1\nline2\nline3", 10),
+            "line1"
+        );
 
         // Truncate with no newline
         assert_eq!(truncate_at_line_boundary("noline", 3), "nol");

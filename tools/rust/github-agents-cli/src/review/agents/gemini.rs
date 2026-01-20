@@ -93,7 +93,11 @@ impl GeminiAgent {
         let api_key = std::env::var("GEMINI_API_KEY")
             .ok()
             .filter(|k| !k.is_empty())
-            .or_else(|| std::env::var("GOOGLE_API_KEY").ok().filter(|k| !k.is_empty()));
+            .or_else(|| {
+                std::env::var("GOOGLE_API_KEY")
+                    .ok()
+                    .filter(|k| !k.is_empty())
+            });
 
         if let Some(key) = api_key {
             cmd.env("GEMINI_API_KEY", key);
