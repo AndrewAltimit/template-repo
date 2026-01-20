@@ -3,7 +3,7 @@
 Supports swapping between mock implementations and API clients based on configuration.
 """
 
-from typing import Optional, Tuple
+from typing import NamedTuple, Optional
 
 from economic_agents.api.clients.compute_client import ComputeAPIClient
 from economic_agents.api.clients.investor_client import InvestorPortalAPIClient
@@ -11,6 +11,20 @@ from economic_agents.api.clients.marketplace_client import MarketplaceAPIClient
 from economic_agents.api.clients.wallet_client import WalletAPIClient
 from economic_agents.api.config import BackendConfig, BackendMode
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
+from economic_agents.interfaces import ComputeInterface, MarketplaceInterface, WalletInterface
+
+
+class BackendComponents(NamedTuple):
+    """Typed container for backend components returned by factory methods.
+
+    Provides named access to each backend component with proper type information
+    for IDE support and static type checking.
+    """
+
+    wallet: WalletInterface
+    compute: ComputeInterface
+    marketplace: MarketplaceInterface
+    investor_portal: Optional[InvestorPortalAPIClient]
 
 
 class BackendFactory:
@@ -119,35 +133,41 @@ class BackendFactory:
             api_key=self.config.api_key,
         )
 
-    def create_all(self) -> Tuple:
+    def create_all(self) -> BackendComponents:
         """Create all backend implementations.
 
         Returns:
-            Tuple of (wallet, compute, marketplace, investor_portal)
+            BackendComponents named tuple with wallet, compute, marketplace,
+            and investor_portal attributes
 
         Raises:
             ValueError: If API mode configuration is invalid
         """
-        return (
-            self.create_wallet(),
-            self.create_compute(),
-            self.create_marketplace(),
-            self.create_investor_portal(),
+        return BackendComponents(
+            wallet=self.create_wallet(),
+            compute=self.create_compute(),
+            marketplace=self.create_marketplace(),
+            investor_portal=self.create_investor_portal(),
         )
 
 
-def create_backends(config: Optional[BackendConfig] = None) -> Tuple:
+def create_backends(config: Optional[BackendConfig] = None) -> BackendComponents:
     """Convenience function to create backends.
 
     Args:
         config: Backend configuration (defaults to environment-based config)
 
     Returns:
-        Tuple of (wallet, compute, marketplace, investor_portal)
+        BackendComponents named tuple with wallet, compute, marketplace,
+        and investor_portal attributes
 
     Example:
-        # Mock mode (default)
+        # Mock mode (default) - unpacking still works
         wallet, compute, marketplace, investor = create_backends()
+
+        # Or use named access
+        backends = create_backends()
+        balance = await backends.wallet.get_balance()
 
         # API mode
         config = BackendConfig(
@@ -155,7 +175,7 @@ def create_backends(config: Optional[BackendConfig] = None) -> Tuple:
             api_config=APIConfig(),
             api_key="ea_your_api_key_here"
         )
-        wallet, compute, marketplace, investor = create_backends(config)
+        backends = create_backends(config)
     """
     if config is None:
         config = BackendConfig.from_env()
