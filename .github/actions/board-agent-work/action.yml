@@ -35,6 +35,21 @@ inputs:
     required: false
     default: '1'
 
+  # Direct issue specification (for matrix job invocation)
+  # When these are provided, the action skips the query step
+  issue-number:
+    description: 'Specific issue number to process (skips board query when provided)'
+    required: false
+    default: ''
+  issue-title:
+    description: 'Title of the issue (used with issue-number)'
+    required: false
+    default: ''
+  issue-labels:
+    description: 'Comma-separated labels for the issue (used with issue-number)'
+    required: false
+    default: ''
+
   # Label filtering (new)
   include-labels:
     description: 'Comma-separated labels to include (only process issues with these labels)'
@@ -294,7 +309,7 @@ runs:
         rm -f "$STDERR_FILE"
         echo "::endgroup::"
 
-    # Step 5: Query board for ready work
+    # Step 5: Query board for ready work (or use provided issue)
     - name: Query ready work
       id: query
       shell: bash
@@ -307,10 +322,39 @@ runs:
         INCLUDE_LABELS: ${{ inputs.include-labels }}
         EXCLUDE_LABELS: ${{ inputs.exclude-labels }}
         JSON_LOGGING: ${{ inputs.json-logging }}
+        # Direct issue specification (from matrix job)
+        INPUT_ISSUE_NUMBER: ${{ inputs.issue-number }}
+        INPUT_ISSUE_TITLE: ${{ inputs.issue-title }}
+        INPUT_ISSUE_LABELS: ${{ inputs.issue-labels }}
       run: |
         echo "::group::Query Ready Work"
-        # Rust binaries are used - no Python venv needed
 
+        # Check if issue was provided directly (from matrix job invocation)
+        # This enables sequential processing of multiple issues with unique branches/PRs
+        if [ -n "$INPUT_ISSUE_NUMBER" ]; then
+          echo "=== Using Provided Issue (Matrix Job Mode) ==="
+          echo "Issue number provided directly - skipping board query"
+          echo "Issue: #$INPUT_ISSUE_NUMBER"
+          echo "Title: $INPUT_ISSUE_TITLE"
+          echo "Labels: ${INPUT_ISSUE_LABELS:-none}"
+
+          ISSUE_NUMBER="$INPUT_ISSUE_NUMBER"
+          ISSUE_TITLE="$INPUT_ISSUE_TITLE"
+          ISSUE_LABELS="$INPUT_ISSUE_LABELS"
+          HAS_WORK="True"
+          QUERY_RESULT="{\"has_work\": true, \"issue_number\": $ISSUE_NUMBER, \"issue_title\": \"$ISSUE_TITLE\", \"mode\": \"matrix_provided\"}"
+
+          echo "has_work=$HAS_WORK" >> $GITHUB_OUTPUT
+          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          echo "issue_title=$ISSUE_TITLE" >> $GITHUB_OUTPUT
+          echo "issue_labels=$ISSUE_LABELS" >> $GITHUB_OUTPUT
+          echo "query_result=$QUERY_RESULT" >> $GITHUB_OUTPUT
+
+          echo "::endgroup::"
+          exit 0
+        fi
+
+        # Rust binaries are used - no Python venv needed
         echo "=== Query Configuration ==="
         echo "Agent: $AGENT_NAME"
         echo "Max issues: $MAX_ISSUES"
