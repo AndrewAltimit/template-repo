@@ -348,6 +348,79 @@ EOF
     print_status "✅ MCP environment setup complete"
 }
 
+# Function to install git-guard
+install_git_guard() {
+    echo ""
+    echo "🛡️  Installing git-guard"
+    echo "========================"
+
+    # Get the repo root (parent of actions-runner)
+    local REPO_ROOT
+    REPO_ROOT=$(cd "$HOME/actions-runner/_work" 2>/dev/null && find . -name "git-guard" -type d -path "*/tools/rust/*" 2>/dev/null | head -1 | xargs dirname 2>/dev/null | xargs dirname 2>/dev/null | xargs dirname 2>/dev/null | xargs dirname 2>/dev/null)
+
+    # If we can't find it in the workspace, check if we're in the repo
+    if [ -z "$REPO_ROOT" ] || [ ! -d "$REPO_ROOT/tools/rust/git-guard" ]; then
+        # Try relative to this script
+        local SCRIPT_DIR
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+    fi
+
+    local GIT_GUARD_DIR="$REPO_ROOT/tools/rust/git-guard"
+
+    if [ ! -d "$GIT_GUARD_DIR" ]; then
+        print_warning "git-guard source not found at $GIT_GUARD_DIR"
+        print_warning "Skipping git-guard installation. Install manually later with:"
+        echo "  cd tools/rust/git-guard && ./install.sh"
+        return 0
+    fi
+
+    # Check if Rust is installed
+    if ! command -v cargo &> /dev/null; then
+        print_warning "Rust/Cargo not installed. Installing rustup..."
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        # shellcheck source=/dev/null
+        source "$HOME/.cargo/env"
+    fi
+
+    # Run the git-guard install script
+    if [ -f "$GIT_GUARD_DIR/install.sh" ]; then
+        print_status "Running git-guard installation..."
+        bash "$GIT_GUARD_DIR/install.sh"
+    else
+        # Manual installation if script doesn't exist
+        print_status "Building git-guard..."
+        cd "$GIT_GUARD_DIR"
+        cargo build --release
+
+        print_status "Installing git-guard to ~/.local/bin..."
+        mkdir -p "$HOME/.local/bin"
+        cp target/release/git "$HOME/.local/bin/git"
+        chmod +x "$HOME/.local/bin/git"
+    fi
+
+    # Ensure PATH is configured for the runner
+    # Add to .bashrc if not already present
+    # shellcheck disable=SC2016 # We want literal $HOME in the file
+    if ! grep -q 'export PATH="$HOME/.local/bin:$PATH"' "$HOME/.bashrc" 2>/dev/null; then
+        # shellcheck disable=SC2016 # We want literal $HOME in the file
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+        print_status "Added ~/.local/bin to PATH in .bashrc"
+    fi
+
+    # Also add to runner's environment
+    local RUNNER_ENV="$HOME/actions-runner/.env"
+    if [ -f "$RUNNER_ENV" ]; then
+        if ! grep -q 'PATH=' "$RUNNER_ENV" 2>/dev/null; then
+            echo "PATH=$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin" >> "$RUNNER_ENV"
+            print_status "Added PATH to runner environment"
+        fi
+    fi
+
+    print_status "git-guard installed successfully"
+    print_status "AI agents on this runner cannot force push or skip hooks without sudo"
+}
+
 # Function to configure log rotation
 configure_log_rotation() {
     echo ""
@@ -442,6 +515,10 @@ create_summary() {
     echo "  Config: $HOME/.mcp/configs/"
     echo "  Environment: $HOME/.mcp/.env"
     echo ""
+    print_status "Git Safety:"
+    echo "  git-guard: ~/.local/bin/git"
+    echo "  Force push and --no-verify require sudo"
+    echo ""
     print_status "Next Steps:"
     echo "  1. If you installed Docker, log out and back in"
     echo "  2. Update environment variables in $HOME/.mcp/.env"
@@ -499,6 +576,7 @@ main() {
     fi
 
     setup_mcp_environment
+    install_git_guard
     configure_log_rotation
     install_service
     test_mcp_server
