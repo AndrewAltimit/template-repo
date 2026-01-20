@@ -673,6 +673,12 @@ jobs:
             cp target/release/github-agents /app/rust-binaries/github-agents-linux-x64
             echo "Built github-agents for Linux x64"
 
+            # Build git-guard
+            cd /app/tools/rust/git-guard
+            cargo build --release
+            cp target/release/git /app/rust-binaries/git-guard-linux-x64
+            echo "Built git-guard for Linux x64"
+
             # Build injection-toolkit (requires X11 libs available in rust-ci)
             cd /app/packages/injection_toolkit
             cargo build --release --bin itk-daemon --bin itk-overlay

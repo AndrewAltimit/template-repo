@@ -164,12 +164,20 @@ jobs:
           echo "Built md-link-checker binary:"
           ls -la target/release/md-link-checker
 
+      - name: Build git-guard
+        run: |
+          cd tools/rust/git-guard
+          cargo build --release
+          echo "Built git-guard binary:"
+          ls -la target/release/git
+
       - name: Stage binaries for upload
         run: |
           mkdir -p rust-binaries
           cp tools/rust/github-agents-cli/target/release/github-agents rust-binaries/
           cp tools/rust/board-manager/target/release/board-manager rust-binaries/
           cp tools/rust/markdown-link-checker/target/release/md-link-checker rust-binaries/
+          cp tools/rust/git-guard/target/release/git rust-binaries/git-guard
           ls -la rust-binaries/
 
       - name: Upload Rust binaries
