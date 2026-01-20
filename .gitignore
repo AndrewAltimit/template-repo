@@ -263,3 +263,6 @@ flake8-report.txt
 # CI review artifacts (generated during PR validation)
 codex-review.md
 gemini-review.md
+
+# Rust CLI binaries (built locally or downloaded from releases)
+rust-tools/
