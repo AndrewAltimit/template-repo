@@ -66,7 +66,7 @@ repos:
     hooks:
       - id: ty
         name: ty type check
-        entry: docker-compose run --rm python-ci ty check
+        entry: docker-compose --profile ci run --rm python-ci ty check
         language: system
         types: [python]
         exclude: ^(docs/|tests/|automation/|packages/.*/bin/)
