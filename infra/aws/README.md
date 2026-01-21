@@ -29,10 +29,32 @@ infra/aws/
 └── scripts/
     ├── bootstrap-state-backend.sh
     ├── build-and-push.sh
-    └── deploy-all.sh
+    ├── deploy-all.sh
+    └── run-in-container.sh     # Container wrapper
 ```
 
-## Quick Start
+## Quick Start (Containerized)
+
+Uses the `terraform-ci` container with Terraform, Terragrunt, and AWS CLI pre-installed.
+
+```bash
+# Build the container (one-time)
+docker-compose --profile ci build terraform-ci
+
+# Run commands in container
+./scripts/run-in-container.sh terragrunt --version
+./scripts/run-in-container.sh aws sts get-caller-identity
+
+# Interactive shell
+./scripts/run-in-container.sh bash
+
+# Deploy from within container
+./scripts/run-in-container.sh bash -c "cd iam && terragrunt apply"
+```
+
+## Quick Start (Host Tools)
+
+If you have Terraform, Terragrunt, and AWS CLI installed locally:
 
 ```bash
 # 1. Bootstrap state backend (one-time)
