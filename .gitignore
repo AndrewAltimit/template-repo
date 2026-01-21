@@ -248,10 +248,17 @@ docker-compose.override.yml
 # Allow Gemini project settings (MCP config) to be committed
 !.gemini/settings.json
 
-# Terraform state (if used)
+# Terraform state and caches
 *.tfstate
 *.tfstate.*
 .terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+
+# Terragrunt
+.terragrunt-cache/
+terragrunt-debug.tfvars.json
 
 # CI/CD generated reports (beyond bandit/safety)
 *.sarif
