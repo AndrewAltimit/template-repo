@@ -1,0 +1,51 @@
+[package]
+name = "strands-runtime"
+description = "HTTP runtime for Strands agents (AgentCore protocol)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "strands-runtime"
+path = "src/main.rs"
+
+[dependencies]
+strands-core = { path = "../strands-core" }
+strands-agent = { path = "../strands-agent" }
+strands-models = { path = "../strands-models" }
+strands-tools = { path = "../strands-tools" }
+strands-session = { path = "../strands-session" }
+
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# AWS SDK for Secrets Manager
+aws-config = { workspace = true }
+aws-sdk-secretsmanager = { workspace = true }
+
+# HTTP server
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+# Tracing / Observability
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+opentelemetry = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+opentelemetry-otlp = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+
+thiserror = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+bytes = { workspace = true }
+
+[dev-dependencies]
+mockall = { workspace = true }

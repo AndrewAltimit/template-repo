@@ -1,0 +1,284 @@
+//! HTTP request handlers for AgentCore protocol.
+
+use std::sync::Arc;
+
+use axum::{
+    extract::State,
+    http::{HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
+    Json,
+};
+use serde::{Deserialize, Serialize};
+use strands_agent::Agent;
+use strands_core::{ContentBlock, StrandsError};
+use strands_session::SessionManager;
+use tracing::{error, info, instrument};
+use uuid::Uuid;
+
+/// Application state shared across handlers.
+pub struct AppState {
+    pub agent: Agent,
+    pub session_manager: SessionManager,
+}
+
+/// Invocation request body.
+#[derive(Debug, Deserialize)]
+pub struct InvocationRequest {
+    /// The prompt to send to the agent
+    pub prompt: String,
+    /// Optional session ID for conversation continuity
+    pub session_id: Option<String>,
+    /// Whether to stream the response
+    #[serde(default)]
+    pub stream: bool,
+}
+
+/// Invocation response body.
+#[derive(Debug, Serialize)]
+pub struct InvocationResponse {
+    /// Unique invocation ID
+    pub invocation_id: String,
+    /// Session ID used
+    pub session_id: String,
+    /// Response text
+    pub response: String,
+    /// Stop reason
+    pub stop_reason: String,
+    /// Token usage
+    pub usage: UsageResponse,
+    /// Number of agent iterations
+    pub iterations: u32,
+}
+
+/// Token usage information.
+#[derive(Debug, Serialize)]
+pub struct UsageResponse {
+    pub input_tokens: u32,
+    pub output_tokens: u32,
+    pub total_tokens: u32,
+}
+
+/// Health check response.
+/// Must match AgentCore protocol: status = "Healthy" or "HealthyBusy"
+#[derive(Debug, Serialize)]
+pub struct HealthResponse {
+    pub status: String,
+    pub time_of_last_update: u64,
+}
+
+/// Error response body.
+#[derive(Debug, Serialize)]
+pub struct ErrorResponse {
+    pub error: String,
+    pub code: Option<String>,
+    pub retryable: bool,
+}
+
+impl IntoResponse for ErrorResponse {
+    fn into_response(self) -> Response {
+        let status = if self.retryable {
+            StatusCode::SERVICE_UNAVAILABLE
+        } else {
+            StatusCode::BAD_REQUEST
+        };
+
+        (status, Json(self)).into_response()
+    }
+}
+
+/// Health check handler.
+///
+/// GET /ping
+/// Returns AgentCore-compatible health status.
+pub async fn health_check() -> Json<HealthResponse> {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    Json(HealthResponse {
+        status: "Healthy".to_string(),
+        time_of_last_update: timestamp,
+    })
+}
+
+/// Invocation handler.
+///
+/// POST /invocations
+#[instrument(skip(state, request, headers), fields(session_id, invocation_id))]
+pub async fn invoke(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(request): Json<InvocationRequest>,
+) -> Result<Json<InvocationResponse>, ErrorResponse> {
+    let invocation_id = Uuid::new_v4().to_string();
+
+    // Debug: Log all request headers
+    info!("Received invocation request - logging headers:");
+    for (name, value) in headers.iter() {
+        let value_str = value.to_str().unwrap_or("(binary)");
+        // Mask potential sensitive values
+        let display_value = if name.as_str().to_lowercase().contains("auth")
+            || name.as_str().to_lowercase().contains("token")
+            || name.as_str().to_lowercase().contains("secret")
+            || name.as_str().to_lowercase().contains("key")
+        {
+            format!("(set, {} chars)", value_str.len())
+        } else {
+            value_str.to_string()
+        };
+        info!(header_name = %name, header_value = %display_value, "Request header");
+    }
+
+    // Get or create session
+    let session_id = request.session_id.unwrap_or_else(|| Uuid::new_v4().to_string());
+    let mut session = state
+        .session_manager
+        .get_or_create(&session_id)
+        .await
+        .map_err(|e| ErrorResponse {
+            error: format!("Session error: {}", e),
+            code: Some("SESSION_ERROR".to_string()),
+            retryable: true,
+        })?;
+
+    info!(
+        invocation_id = %invocation_id,
+        session_id = %session_id,
+        "Processing invocation"
+    );
+
+    // Mark session as processing
+    session.set_processing();
+
+    // Invoke the agent
+    let result = state.agent.invoke(&request.prompt).await.map_err(|e| {
+        error!(error = %e, "Agent invocation failed");
+        map_strands_error(e)
+    })?;
+
+    // Extract response text
+    let response_text = result
+        .message
+        .content
+        .iter()
+        .filter_map(|block| {
+            if let ContentBlock::Text(text) = block {
+                Some(text.clone())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    // Update session with the result
+    session.add_message(strands_core::Message {
+        role: strands_core::Role::User,
+        content: vec![ContentBlock::Text(request.prompt)],
+    });
+    session.add_message(result.message);
+    session.add_usage(&result.usage);
+    session.set_active();
+
+    // Persist session
+    state
+        .session_manager
+        .update_session(&session)
+        .await
+        .map_err(|e| ErrorResponse {
+            error: format!("Session update error: {}", e),
+            code: Some("SESSION_ERROR".to_string()),
+            retryable: true,
+        })?;
+
+    info!(
+        invocation_id = %invocation_id,
+        iterations = result.iterations,
+        input_tokens = result.usage.input_tokens,
+        output_tokens = result.usage.output_tokens,
+        "Invocation completed"
+    );
+
+    Ok(Json(InvocationResponse {
+        invocation_id,
+        session_id,
+        response: response_text,
+        stop_reason: format!("{:?}", result.stop_reason),
+        usage: UsageResponse {
+            input_tokens: result.usage.input_tokens,
+            output_tokens: result.usage.output_tokens,
+            total_tokens: result.usage.total_tokens,
+        },
+        iterations: result.iterations,
+    }))
+}
+
+/// Map StrandsError to ErrorResponse.
+fn map_strands_error(error: StrandsError) -> ErrorResponse {
+    match &error {
+        StrandsError::ModelThrottled { .. } => ErrorResponse {
+            error: error.to_string(),
+            code: Some("THROTTLED".to_string()),
+            retryable: true,
+        },
+        StrandsError::ContextWindowOverflow { .. } => ErrorResponse {
+            error: error.to_string(),
+            code: Some("CONTEXT_OVERFLOW".to_string()),
+            retryable: false,
+        },
+        StrandsError::Model { message, .. } => ErrorResponse {
+            error: message.clone(),
+            code: Some("MODEL_ERROR".to_string()),
+            retryable: false,
+        },
+        StrandsError::ToolNotFound { tool_name } => ErrorResponse {
+            error: format!("Tool not found: {}", tool_name),
+            code: Some("TOOL_NOT_FOUND".to_string()),
+            retryable: false,
+        },
+        StrandsError::Tool { tool_name, message, .. } => ErrorResponse {
+            error: format!("Tool '{}' failed: {}", tool_name, message),
+            code: Some("TOOL_ERROR".to_string()),
+            retryable: false,
+        },
+        StrandsError::MaxIterationsExceeded { max } => ErrorResponse {
+            error: format!("Max iterations ({}) exceeded", max),
+            code: Some("MAX_ITERATIONS".to_string()),
+            retryable: false,
+        },
+        _ => ErrorResponse {
+            error: error.to_string(),
+            code: None,
+            retryable: false,
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_health_response_serialization() {
+        let response = HealthResponse {
+            status: "Healthy".to_string(),
+            time_of_last_update: 1234567890,
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("Healthy"));
+        assert!(json.contains("time_of_last_update"));
+    }
+
+    #[test]
+    fn test_error_response_retryable() {
+        let error = ErrorResponse {
+            error: "Throttled".to_string(),
+            code: Some("THROTTLED".to_string()),
+            retryable: true,
+        };
+        assert!(error.retryable);
+    }
+}

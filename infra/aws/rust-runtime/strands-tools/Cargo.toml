@@ -1,0 +1,30 @@
+[package]
+name = "strands-tools"
+description = "Tool registry and execution for Strands"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+strands-core = { path = "../strands-core" }
+
+tokio = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+tracing = { workspace = true }
+thiserror = { workspace = true }
+
+# MCP support (optional)
+rmcp = { workspace = true, optional = true }
+
+[features]
+default = []
+mcp = ["rmcp"]
+
+[dev-dependencies]
+mockall = { workspace = true }

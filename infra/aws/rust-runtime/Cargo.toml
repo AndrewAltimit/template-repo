@@ -1,0 +1,74 @@
+[workspace]
+resolver = "2"
+members = [
+    "strands-core",
+    "strands-agent",
+    "strands-models",
+    "strands-tools",
+    "strands-session",
+    "strands-runtime",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.88"
+authors = ["AgentCore Runtime"]
+license = "MIT"
+repository = "https://github.com/AndrewAltimit/template-repo"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.43", features = ["full"] }
+tokio-stream = "0.1"
+futures = "0.3"
+async-trait = "0.1"
+async-stream = "0.3"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# AWS SDK
+aws-config = { version = "1.5", features = ["behavior-version-latest"] }
+aws-sdk-bedrockruntime = "1.71"
+aws-sdk-bedrockagentcore = "1.3"
+aws-sdk-secretsmanager = "1.61"
+aws-smithy-types = "1.2"
+aws-smithy-runtime-api = "1.7"
+
+# HTTP server
+axum = { version = "0.8", features = ["json", "tokio"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace", "cors"] }
+
+# Tracing / Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+opentelemetry = "0.27"
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.27", features = ["tonic"] }
+tracing-opentelemetry = "0.28"
+
+# MCP support
+rmcp = { version = "0.13", features = ["client", "transport-child-process", "transport-streamable-http-client-reqwest"] }
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Utilities
+uuid = { version = "1.11", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+bytes = "1.9"
+base64 = "0.22"
+url = "2.5"
+
+# Testing
+mockall = "0.13"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
