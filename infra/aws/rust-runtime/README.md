@@ -344,8 +344,6 @@ HEALTHCHECK CMD curl -f http://localhost:8080/ping || exit 1
 
 ## Deployment to AgentCore
 
-See [docs/AGENTCORE_DEPLOYMENT_STATUS.md](docs/AGENTCORE_DEPLOYMENT_STATUS.md) for detailed deployment instructions and current status.
-
 ### Quick Deploy
 
 ```bash
@@ -521,7 +519,6 @@ impl Model for MyModel {
 
 ## Related Documentation
 
-- [AgentCore Deployment Status](docs/AGENTCORE_DEPLOYMENT_STATUS.md) - Current deployment status and history
 - [Strands Agents SDK (Python)](https://github.com/strands-agents/sdk-python) - Original Python implementation
 - [AWS Bedrock AgentCore Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/agentcore.html) - Official AWS docs
 
