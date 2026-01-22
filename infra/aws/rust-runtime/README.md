@@ -1,12 +1,12 @@
 # Strands Rust Runtime
 
-A Rust-based agent runtime for AWS Bedrock AgentCore, implementing the AgentCore HTTP protocol with Claude model integration.
+> **A production-ready Rust runtime for AWS Bedrock AgentCore, demonstrating that the entire agent stack can be implemented in any language - there's no proprietary magic, just well-defined APIs and protocols.**
 
 ## Overview
 
-This workspace provides a complete runtime for deploying AI agents to AWS Bedrock AgentCore. It's built with a modular architecture allowing easy extension and customization.
+This workspace provides a complete runtime for deploying AI agents to AWS Bedrock AgentCore. It's built with a **modular architecture** allowing easy extension and customization.
 
-This is a from-scratch Rust implementation inspired by the [Strands Agents SDK](https://github.com/strands-agents/sdk-python) (Python), demonstrating that the entire agent stack can be implemented in any language - there's no proprietary magic, just well-defined APIs and protocols.
+This is a **from-scratch Rust implementation** inspired by the [Strands Agents SDK](https://github.com/strands-agents/sdk-python) (Python). The key insight: **everything in the Python SDK is just API plumbing** - AWS SDKs, HTTP endpoints, JSON schemas, and standard protocols that all have excellent Rust equivalents.
 
 ## Feature Mapping
 
@@ -210,7 +210,7 @@ Configuration is done via environment variables:
 
 ## Credential Management
 
-AgentCore runs containers in Firecracker microVMs that do **not** have access to EC2 Instance Metadata Service (IMDS). This means you cannot use IAM roles attached to the execution role for Bedrock API calls inside your container code.
+> **Critical**: AgentCore runs containers in Firecracker microVMs that do **not** have access to EC2 Instance Metadata Service (IMDS). This means you **cannot** use IAM roles attached to the execution role for Bedrock API calls inside your container code.
 
 ### Understanding the Two Credential Contexts
 
@@ -377,7 +377,7 @@ aws bedrock-agentcore invoke-agent-runtime \
 
 ## Key Learnings
 
-Hard-won lessons from deploying to AgentCore:
+> **Hard-won lessons from deploying to AgentCore** - each of these cost hours of debugging.
 
 ### 1. AgentCore Does NOT Inject AWS Credentials
 
@@ -519,6 +519,8 @@ impl Model for MyModel {
 | `thiserror` | 1.x | Error types |
 | `http-body-util` | 0.1 | Body extraction for middleware |
 
-## License
+## Related Documentation
 
-MIT
+- [AgentCore Deployment Status](docs/AGENTCORE_DEPLOYMENT_STATUS.md) - Current deployment status and history
+- [Strands Agents SDK (Python)](https://github.com/strands-agents/sdk-python) - Original Python implementation
+- [AWS Bedrock AgentCore Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/agentcore.html) - Official AWS docs
