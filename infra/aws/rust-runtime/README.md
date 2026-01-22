@@ -524,3 +524,7 @@ impl Model for MyModel {
 - [AgentCore Deployment Status](docs/AGENTCORE_DEPLOYMENT_STATUS.md) - Current deployment status and history
 - [Strands Agents SDK (Python)](https://github.com/strands-agents/sdk-python) - Original Python implementation
 - [AWS Bedrock AgentCore Documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/agentcore.html) - Official AWS docs
+
+## License
+
+Part of the template-repo project. See repository LICENSE file.
