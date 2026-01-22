@@ -41,6 +41,7 @@ aws-smithy-runtime-api = "1.7"
 axum = { version = "0.8", features = ["json", "tokio"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["trace", "cors"] }
+http-body-util = "0.1"
 
 # Tracing / Observability
 tracing = "0.1"

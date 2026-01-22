@@ -2472,6 +2472,7 @@ dependencies = [
  "bytes",
  "chrono",
  "futures",
+ "http-body-util",
  "mockall",
  "opentelemetry",
  "opentelemetry-otlp",
