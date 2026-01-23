@@ -42,6 +42,7 @@ pub struct VulkanRenderer {
     vertex_memory: vk::DeviceMemory,
     frames: Vec<FrameResources>,
     extent: vk::Extent2D,
+    format: vk::Format,
 }
 
 impl VulkanRenderer {
@@ -153,6 +154,7 @@ impl VulkanRenderer {
             vertex_memory,
             frames,
             extent,
+            format,
         })
     }
 
@@ -347,6 +349,225 @@ impl VulkanRenderer {
         self.device
             .wait_for_fences(&[frame.fence], true, u64::MAX)
             .map_err(|e| format!("Wait after submit failed: {:?}", e))?;
+
+        Ok(())
+    }
+
+    /// Render the quad overlay to a VR eye image.
+    ///
+    /// Creates a temporary image view and framebuffer for the VR eye texture,
+    /// renders the quad overlay, then cleans up temporary resources.
+    ///
+    /// # Safety
+    /// - `vr_image` must be a valid VkImage (from OpenVR's VRVulkanTextureData_t)
+    /// - The image is expected to be in TRANSFER_SRC_OPTIMAL layout (ready for compositor)
+    /// - Must be called from the render thread
+    pub unsafe fn render_to_vr_image(
+        &self,
+        vr_image: vk::Image,
+        extent: vk::Extent2D,
+        mvp: &[f32; 16],
+        new_frame: Option<&[u8]>,
+    ) -> Result<(), String> {
+        // Create temporary image view for the VR image
+        let view_info = vk::ImageViewCreateInfo::default()
+            .image(vr_image)
+            .view_type(vk::ImageViewType::TYPE_2D)
+            .format(self.format)
+            .subresource_range(vk::ImageSubresourceRange {
+                aspect_mask: vk::ImageAspectFlags::COLOR,
+                base_mip_level: 0,
+                level_count: 1,
+                base_array_layer: 0,
+                layer_count: 1,
+            });
+
+        let image_view = self.device
+            .create_image_view(&view_info, None)
+            .map_err(|e| format!("VR image view failed: {:?}", e))?;
+
+        // Create temporary framebuffer
+        let fb_info = vk::FramebufferCreateInfo::default()
+            .render_pass(self.render_pass)
+            .attachments(std::slice::from_ref(&image_view))
+            .width(extent.width)
+            .height(extent.height)
+            .layers(1);
+
+        let framebuffer = self.device
+            .create_framebuffer(&fb_info, None)
+            .map_err(|e| {
+                self.device.destroy_image_view(image_view, None);
+                format!("VR framebuffer failed: {:?}", e)
+            })?;
+
+        // Allocate a one-shot command buffer
+        let alloc_info = vk::CommandBufferAllocateInfo::default()
+            .command_pool(self.command_pool)
+            .level(vk::CommandBufferLevel::PRIMARY)
+            .command_buffer_count(1);
+
+        let cmd_bufs = self.device
+            .allocate_command_buffers(&alloc_info)
+            .map_err(|e| {
+                self.device.destroy_framebuffer(framebuffer, None);
+                self.device.destroy_image_view(image_view, None);
+                format!("VR cmd buf alloc failed: {:?}", e)
+            })?;
+        let cmd = cmd_bufs[0];
+
+        // Create a fence for synchronization
+        let fence_info = vk::FenceCreateInfo::default();
+        let fence = self.device
+            .create_fence(&fence_info, None)
+            .map_err(|e| {
+                self.device.free_command_buffers(self.command_pool, &[cmd]);
+                self.device.destroy_framebuffer(framebuffer, None);
+                self.device.destroy_image_view(image_view, None);
+                format!("VR fence failed: {:?}", e)
+            })?;
+
+        // Record commands
+        let begin_info = vk::CommandBufferBeginInfo::default()
+            .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
+
+        self.device
+            .begin_command_buffer(cmd, &begin_info)
+            .map_err(|e| format!("VR begin cmd failed: {:?}", e))?;
+
+        // Upload new video frame if available
+        if let Some(frame_data) = new_frame {
+            self.video_texture.upload_frame(&self.device, cmd, frame_data);
+        }
+
+        // Transition VR image: TRANSFER_SRC_OPTIMAL -> COLOR_ATTACHMENT_OPTIMAL
+        let barrier = vk::ImageMemoryBarrier::default()
+            .src_access_mask(vk::AccessFlags::TRANSFER_READ)
+            .dst_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
+            .old_layout(vk::ImageLayout::TRANSFER_SRC_OPTIMAL)
+            .new_layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
+            .image(vr_image)
+            .subresource_range(vk::ImageSubresourceRange {
+                aspect_mask: vk::ImageAspectFlags::COLOR,
+                base_mip_level: 0,
+                level_count: 1,
+                base_array_layer: 0,
+                layer_count: 1,
+            });
+
+        self.device.cmd_pipeline_barrier(
+            cmd,
+            vk::PipelineStageFlags::TRANSFER,
+            vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
+            vk::DependencyFlags::empty(),
+            &[],
+            &[],
+            &[barrier],
+        );
+
+        // Begin render pass (LOAD existing game content)
+        let clear_values = [];
+        let render_pass_info = vk::RenderPassBeginInfo::default()
+            .render_pass(self.render_pass)
+            .framebuffer(framebuffer)
+            .render_area(vk::Rect2D {
+                offset: vk::Offset2D { x: 0, y: 0 },
+                extent,
+            })
+            .clear_values(&clear_values);
+
+        self.device.cmd_begin_render_pass(cmd, &render_pass_info, vk::SubpassContents::INLINE);
+
+        // Bind pipeline and set dynamic state
+        self.device.cmd_bind_pipeline(cmd, vk::PipelineBindPoint::GRAPHICS, self.pipeline);
+
+        let viewport = vk::Viewport {
+            x: 0.0,
+            y: 0.0,
+            width: extent.width as f32,
+            height: extent.height as f32,
+            min_depth: 0.0,
+            max_depth: 1.0,
+        };
+        self.device.cmd_set_viewport(cmd, 0, &[viewport]);
+
+        let scissor = vk::Rect2D {
+            offset: vk::Offset2D { x: 0, y: 0 },
+            extent,
+        };
+        self.device.cmd_set_scissor(cmd, 0, &[scissor]);
+
+        // Bind descriptor set and push MVP
+        self.device.cmd_bind_descriptor_sets(
+            cmd,
+            vk::PipelineBindPoint::GRAPHICS,
+            self.pipeline_layout,
+            0,
+            &[self.video_texture.descriptor_set],
+            &[],
+        );
+
+        let mvp_bytes: &[u8] = std::slice::from_raw_parts(mvp.as_ptr() as *const u8, 64);
+        self.device.cmd_push_constants(
+            cmd,
+            self.pipeline_layout,
+            vk::ShaderStageFlags::VERTEX,
+            0,
+            mvp_bytes,
+        );
+
+        // Draw quad
+        self.device.cmd_bind_vertex_buffers(cmd, 0, &[self.vertex_buffer], &[0]);
+        self.device.cmd_draw(cmd, 6, 1, 0, 0);
+
+        self.device.cmd_end_render_pass(cmd);
+
+        // Transition VR image back: COLOR_ATTACHMENT_OPTIMAL -> TRANSFER_SRC_OPTIMAL
+        let barrier = vk::ImageMemoryBarrier::default()
+            .src_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
+            .dst_access_mask(vk::AccessFlags::TRANSFER_READ)
+            .old_layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
+            .new_layout(vk::ImageLayout::TRANSFER_SRC_OPTIMAL)
+            .image(vr_image)
+            .subresource_range(vk::ImageSubresourceRange {
+                aspect_mask: vk::ImageAspectFlags::COLOR,
+                base_mip_level: 0,
+                level_count: 1,
+                base_array_layer: 0,
+                layer_count: 1,
+            });
+
+        self.device.cmd_pipeline_barrier(
+            cmd,
+            vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
+            vk::PipelineStageFlags::TRANSFER,
+            vk::DependencyFlags::empty(),
+            &[],
+            &[],
+            &[barrier],
+        );
+
+        self.device
+            .end_command_buffer(cmd)
+            .map_err(|e| format!("VR end cmd failed: {:?}", e))?;
+
+        // Submit and wait
+        let cmd_bufs_submit = [cmd];
+        let submit_info = vk::SubmitInfo::default().command_buffers(&cmd_bufs_submit);
+
+        self.device
+            .queue_submit(self.queue, &[submit_info], fence)
+            .map_err(|e| format!("VR queue submit failed: {:?}", e))?;
+
+        self.device
+            .wait_for_fences(&[fence], true, u64::MAX)
+            .map_err(|e| format!("VR fence wait failed: {:?}", e))?;
+
+        // Clean up temporary resources
+        self.device.destroy_fence(fence, None);
+        self.device.free_command_buffers(self.command_pool, &[cmd]);
+        self.device.destroy_framebuffer(framebuffer, None);
+        self.device.destroy_image_view(image_view, None);
 
         Ok(())
     }

@@ -483,6 +483,29 @@ pub unsafe fn remove() {
     vlog!("Vulkan hooks removed");
 }
 
+// --- Public accessors for VR hook ---
+
+/// Get the renderer mutex (used by OpenVR hook).
+pub fn get_renderer() -> Option<&'static Mutex<VulkanRenderer>> {
+    RENDERER.get()
+}
+
+/// Compute the current MVP matrix (used by OpenVR hook).
+///
+/// # Safety
+/// Reads camera memory.
+pub unsafe fn get_mvp(frame: u64) -> [f32; 16] {
+    compute_frame_mvp(frame)
+}
+
+/// Poll shared memory for a new video frame (used by OpenVR hook).
+///
+/// # Safety
+/// Accesses shared memory.
+pub unsafe fn get_shmem_frame(frame: u64) -> Option<Vec<u8>> {
+    poll_video_frame(frame)
+}
+
 // --- Helpers ---
 
 /// Get the vulkan-1.dll module handle.
