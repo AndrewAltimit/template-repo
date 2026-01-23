@@ -1,0 +1,419 @@
+//! Vulkan function hooks for rendering injection.
+//!
+//! Hooks:
+//! - `vkCreateInstance` - Capture VkInstance for ash loader
+//! - `vkCreateDevice` - Capture VkDevice and VkPhysicalDevice
+//! - `vkCreateSwapchainKHR` - Track swapchain format/extent/images
+//! - `vkQueuePresentKHR` - Inject rendering before present
+
+use crate::log::vlog;
+use crate::renderer::VulkanRenderer;
+use ash::vk;
+use once_cell::sync::OnceCell;
+use retour::static_detour;
+use std::ffi::{c_void, CString};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Mutex;
+use windows::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
+
+// --- Captured state ---
+
+/// The VkInstance.
+static INSTANCE: OnceCell<vk::Instance> = OnceCell::new();
+
+/// The ash Instance loader.
+static ASH_INSTANCE: OnceCell<ash::Instance> = OnceCell::new();
+
+/// The VkPhysicalDevice used to create the device.
+static PHYSICAL_DEVICE: OnceCell<vk::PhysicalDevice> = OnceCell::new();
+
+/// The VkDevice created by the game.
+static DEVICE: OnceCell<vk::Device> = OnceCell::new();
+
+/// The VkQueue used for presentation.
+static PRESENT_QUEUE: OnceCell<vk::Queue> = OnceCell::new();
+
+/// Queue family index (captured from device creation).
+static QUEUE_FAMILY_INDEX: AtomicU64 = AtomicU64::new(0);
+
+/// Current swapchain handle.
+static SWAPCHAIN: OnceCell<vk::SwapchainKHR> = OnceCell::new();
+
+/// Swapchain extent (packed: width << 32 | height).
+static SWAPCHAIN_EXTENT: AtomicU64 = AtomicU64::new(0);
+
+/// Swapchain format (raw i32).
+static SWAPCHAIN_FORMAT: AtomicU64 = AtomicU64::new(0);
+
+/// Frame counter for diagnostics.
+static FRAME_COUNT: AtomicU64 = AtomicU64::new(0);
+
+/// The renderer (lazy-initialized on first present).
+static RENDERER: OnceCell<Mutex<VulkanRenderer>> = OnceCell::new();
+
+// --- Hook definitions ---
+
+static_detour! {
+    static Hook_vkCreateInstance: unsafe extern "system" fn(
+        *const c_void,      // pCreateInfo (VkInstanceCreateInfo*)
+        *const c_void,      // pAllocator
+        *mut vk::Instance   // pInstance
+    ) -> vk::Result;
+
+    static Hook_vkCreateDevice: unsafe extern "system" fn(
+        vk::PhysicalDevice,
+        *const c_void,      // pCreateInfo (VkDeviceCreateInfo*)
+        *const c_void,      // pAllocator
+        *mut vk::Device
+    ) -> vk::Result;
+
+    static Hook_vkCreateSwapchainKHR: unsafe extern "system" fn(
+        vk::Device,
+        *const c_void,      // pCreateInfo (VkSwapchainCreateInfoKHR*)
+        *const c_void,      // pAllocator
+        *mut vk::SwapchainKHR
+    ) -> vk::Result;
+
+    static Hook_vkQueuePresentKHR: unsafe extern "system" fn(
+        vk::Queue,
+        *const c_void       // pPresentInfo (VkPresentInfoKHR*)
+    ) -> vk::Result;
+}
+
+// --- Hook implementations ---
+
+/// Hooked vkCreateInstance: captures instance for ash loader.
+fn hooked_create_instance(
+    create_info: *const c_void,
+    allocator: *const c_void,
+    instance: *mut vk::Instance,
+) -> vk::Result {
+    vlog!("vkCreateInstance called");
+
+    let result = unsafe { Hook_vkCreateInstance.call(create_info, allocator, instance) };
+
+    if result == vk::Result::SUCCESS {
+        let inst = unsafe { *instance };
+        let _ = INSTANCE.set(inst);
+        vlog!("VkInstance captured: {:?}", inst);
+
+        // Create ash::Instance loader
+        unsafe {
+            let get_instance_proc_addr = get_instance_proc_addr_fn();
+            if let Some(gipa) = get_instance_proc_addr {
+                let static_fn = ash::StaticFn {
+                    get_instance_proc_addr: gipa,
+                };
+                let entry = ash::Entry::from_static_fn(static_fn);
+                let ash_instance = ash::Instance::load(entry.static_fn(), inst);
+                let _ = ASH_INSTANCE.set(ash_instance);
+                vlog!("ash::Instance created");
+            }
+        }
+    }
+
+    result
+}
+
+/// Hooked vkCreateDevice: captures device and physical device.
+fn hooked_create_device(
+    physical_device: vk::PhysicalDevice,
+    create_info: *const c_void,
+    allocator: *const c_void,
+    device: *mut vk::Device,
+) -> vk::Result {
+    vlog!("vkCreateDevice called");
+
+    // Extract queue family index from create info
+    if !create_info.is_null() {
+        let info = unsafe { &*(create_info as *const vk::DeviceCreateInfo<'_>) };
+        if info.queue_create_info_count > 0 && !info.p_queue_create_infos.is_null() {
+            let queue_info = unsafe { &*info.p_queue_create_infos };
+            QUEUE_FAMILY_INDEX.store(queue_info.queue_family_index as u64, Ordering::Relaxed);
+            vlog!("Queue family index: {}", queue_info.queue_family_index);
+        }
+    }
+
+    let result =
+        unsafe { Hook_vkCreateDevice.call(physical_device, create_info, allocator, device) };
+
+    if result == vk::Result::SUCCESS {
+        let dev = unsafe { *device };
+        let _ = PHYSICAL_DEVICE.set(physical_device);
+        let _ = DEVICE.set(dev);
+        vlog!("VkDevice captured: {:?}", dev);
+    }
+
+    result
+}
+
+/// Hooked vkCreateSwapchainKHR: tracks swapchain properties.
+fn hooked_create_swapchain(
+    device: vk::Device,
+    create_info: *const c_void,
+    allocator: *const c_void,
+    swapchain: *mut vk::SwapchainKHR,
+) -> vk::Result {
+    // Destroy existing renderer on swapchain recreation
+    // (OnceCell doesn't support reset, so we just log and skip reinit for now)
+    if RENDERER.get().is_some() {
+        vlog!("Swapchain recreated - renderer will need reinit (TODO)");
+    }
+
+    let result =
+        unsafe { Hook_vkCreateSwapchainKHR.call(device, create_info, allocator, swapchain) };
+
+    if result == vk::Result::SUCCESS && !create_info.is_null() {
+        let info = unsafe { &*(create_info as *const vk::SwapchainCreateInfoKHR<'_>) };
+        let extent = info.image_extent;
+        let format = info.image_format;
+
+        SWAPCHAIN_EXTENT.store(
+            ((extent.width as u64) << 32) | (extent.height as u64),
+            Ordering::Relaxed,
+        );
+        SWAPCHAIN_FORMAT.store(format.as_raw() as u64, Ordering::Relaxed);
+
+        let sc = unsafe { *swapchain };
+        // Store swapchain (first one only for now)
+        let _ = SWAPCHAIN.set(sc);
+
+        vlog!(
+            "Swapchain created: {}x{} format={:?} handle={:?}",
+            extent.width,
+            extent.height,
+            format,
+            sc
+        );
+    }
+
+    result
+}
+
+/// Hooked vkQueuePresentKHR: injection point for rendering.
+fn hooked_queue_present(queue: vk::Queue, present_info_ptr: *const c_void) -> vk::Result {
+    let count = FRAME_COUNT.fetch_add(1, Ordering::Relaxed);
+
+    // Store the present queue on first call
+    if PRESENT_QUEUE.get().is_none() {
+        let _ = PRESENT_QUEUE.set(queue);
+        vlog!("Present queue captured: {:?}", queue);
+    }
+
+    // Log every 300 frames (~5 seconds at 60fps)
+    if count % 300 == 0 {
+        vlog!("vkQueuePresentKHR frame={}", count);
+    }
+
+    // Try to render our quad overlay
+    if !present_info_ptr.is_null() {
+        unsafe {
+            try_render_overlay(queue, present_info_ptr, count);
+        }
+    }
+
+    unsafe { Hook_vkQueuePresentKHR.call(queue, present_info_ptr) }
+}
+
+/// Attempt to render the overlay quad.
+unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, frame: u64) {
+    let present_info = &*(present_info_ptr as *const vk::PresentInfoKHR<'_>);
+
+    // We need at least one swapchain and one image index
+    if present_info.swapchain_count == 0 || present_info.p_swapchains.is_null() {
+        return;
+    }
+
+    let swapchain = *present_info.p_swapchains;
+    let image_index = *present_info.p_image_indices;
+
+    // Lazy-initialize the renderer
+    let renderer = RENDERER.get_or_try_init(|| {
+        init_renderer(queue, swapchain)
+    });
+
+    match renderer {
+        Ok(renderer_mutex) => {
+            if let Ok(renderer) = renderer_mutex.lock() {
+                // Get the swapchain image for this frame
+                if let Some(instance) = ASH_INSTANCE.get() {
+                    if let Some(&device) = DEVICE.get() {
+                        let device_fns = ash::Device::load(instance.fp_v1_0(), device);
+                        let swapchain_fn =
+                            ash::khr::swapchain::Device::new(instance, &device_fns);
+                        if let Ok(images) = swapchain_fn.get_swapchain_images(swapchain) {
+                            if (image_index as usize) < images.len() {
+                                let image = images[image_index as usize];
+                                if let Err(e) = renderer.render_frame(image_index, image) {
+                                    if frame % 300 == 0 {
+                                        vlog!("Render error: {}", e);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            if frame % 300 == 0 {
+                vlog!("Renderer not ready: {}", e);
+            }
+        }
+    }
+}
+
+/// Initialize the renderer with current state.
+fn init_renderer(
+    queue: vk::Queue,
+    swapchain: vk::SwapchainKHR,
+) -> Result<Mutex<VulkanRenderer>, String> {
+    let instance = ASH_INSTANCE
+        .get()
+        .ok_or_else(|| "No ash::Instance".to_string())?;
+    let &physical_device = PHYSICAL_DEVICE
+        .get()
+        .ok_or_else(|| "No physical device".to_string())?;
+    let &device = DEVICE.get().ok_or_else(|| "No device".to_string())?;
+
+    let extent_packed = SWAPCHAIN_EXTENT.load(Ordering::Relaxed);
+    let extent = vk::Extent2D {
+        width: (extent_packed >> 32) as u32,
+        height: (extent_packed & 0xFFFFFFFF) as u32,
+    };
+
+    let format_raw = SWAPCHAIN_FORMAT.load(Ordering::Relaxed) as i32;
+    let format = vk::Format::from_raw(format_raw);
+
+    let queue_family = QUEUE_FAMILY_INDEX.load(Ordering::Relaxed) as u32;
+
+    vlog!(
+        "Initializing renderer: extent={}x{} format={:?} queue_family={}",
+        extent.width,
+        extent.height,
+        format,
+        queue_family
+    );
+
+    let renderer = unsafe {
+        VulkanRenderer::new(
+            device,
+            physical_device,
+            queue,
+            queue_family,
+            swapchain,
+            format,
+            extent,
+            instance,
+        )?
+    };
+
+    Ok(Mutex::new(renderer))
+}
+
+// --- Installation ---
+
+/// Install Vulkan hooks.
+///
+/// # Safety
+/// vulkan-1.dll must be loaded in the process.
+pub unsafe fn install() -> Result<(), String> {
+    let vulkan_module = get_vulkan_module()?;
+
+    // Hook vkCreateInstance
+    let addr = get_proc(vulkan_module, "vkCreateInstance")?;
+    vlog!("vkCreateInstance at {:p}", addr);
+    let pfn: unsafe extern "system" fn(*const c_void, *const c_void, *mut vk::Instance) -> vk::Result =
+        std::mem::transmute(addr);
+    Hook_vkCreateInstance
+        .initialize(pfn, hooked_create_instance)
+        .map_err(|e| format!("Failed to init vkCreateInstance hook: {}", e))?;
+    Hook_vkCreateInstance
+        .enable()
+        .map_err(|e| format!("Failed to enable vkCreateInstance hook: {}", e))?;
+    vlog!("vkCreateInstance hooked");
+
+    // Hook vkCreateDevice
+    let addr = get_proc(vulkan_module, "vkCreateDevice")?;
+    vlog!("vkCreateDevice at {:p}", addr);
+    let pfn: unsafe extern "system" fn(
+        vk::PhysicalDevice, *const c_void, *const c_void, *mut vk::Device,
+    ) -> vk::Result = std::mem::transmute(addr);
+    Hook_vkCreateDevice
+        .initialize(pfn, hooked_create_device)
+        .map_err(|e| format!("Failed to init vkCreateDevice hook: {}", e))?;
+    Hook_vkCreateDevice
+        .enable()
+        .map_err(|e| format!("Failed to enable vkCreateDevice hook: {}", e))?;
+    vlog!("vkCreateDevice hooked");
+
+    // Hook vkCreateSwapchainKHR
+    let addr = get_proc(vulkan_module, "vkCreateSwapchainKHR")?;
+    vlog!("vkCreateSwapchainKHR at {:p}", addr);
+    let pfn: unsafe extern "system" fn(
+        vk::Device, *const c_void, *const c_void, *mut vk::SwapchainKHR,
+    ) -> vk::Result = std::mem::transmute(addr);
+    Hook_vkCreateSwapchainKHR
+        .initialize(pfn, hooked_create_swapchain)
+        .map_err(|e| format!("Failed to init vkCreateSwapchainKHR hook: {}", e))?;
+    Hook_vkCreateSwapchainKHR
+        .enable()
+        .map_err(|e| format!("Failed to enable vkCreateSwapchainKHR hook: {}", e))?;
+    vlog!("vkCreateSwapchainKHR hooked");
+
+    // Hook vkQueuePresentKHR
+    let addr = get_proc(vulkan_module, "vkQueuePresentKHR")?;
+    vlog!("vkQueuePresentKHR at {:p}", addr);
+    let pfn: unsafe extern "system" fn(vk::Queue, *const c_void) -> vk::Result =
+        std::mem::transmute(addr);
+    Hook_vkQueuePresentKHR
+        .initialize(pfn, hooked_queue_present)
+        .map_err(|e| format!("Failed to init vkQueuePresentKHR hook: {}", e))?;
+    Hook_vkQueuePresentKHR
+        .enable()
+        .map_err(|e| format!("Failed to enable vkQueuePresentKHR hook: {}", e))?;
+    vlog!("vkQueuePresentKHR hooked");
+
+    Ok(())
+}
+
+/// Remove all Vulkan hooks.
+///
+/// # Safety
+/// Must be called during DLL detach.
+pub unsafe fn remove() {
+    let _ = Hook_vkQueuePresentKHR.disable();
+    let _ = Hook_vkCreateSwapchainKHR.disable();
+    let _ = Hook_vkCreateDevice.disable();
+    let _ = Hook_vkCreateInstance.disable();
+    vlog!("Vulkan hooks removed");
+}
+
+// --- Helpers ---
+
+/// Get the vulkan-1.dll module handle.
+unsafe fn get_vulkan_module() -> Result<windows::Win32::Foundation::HMODULE, String> {
+    let name = CString::new("vulkan-1.dll").unwrap();
+    GetModuleHandleA(windows::core::PCSTR(name.as_ptr() as *const _))
+        .map_err(|e| format!("GetModuleHandle(vulkan-1.dll) failed: {}", e))
+}
+
+/// Get a function address from a module.
+unsafe fn get_proc(
+    module: windows::Win32::Foundation::HMODULE,
+    name: &str,
+) -> Result<*const c_void, String> {
+    let cname = CString::new(name).unwrap();
+    let addr = GetProcAddress(module, windows::core::PCSTR(cname.as_ptr() as *const _));
+    match addr {
+        Some(f) => Ok(f as *const c_void),
+        None => Err(format!("GetProcAddress({}) failed", name)),
+    }
+}
+
+/// Get vkGetInstanceProcAddr function pointer from vulkan-1.dll.
+unsafe fn get_instance_proc_addr_fn() -> Option<vk::PFN_vkGetInstanceProcAddr> {
+    let module = get_vulkan_module().ok()?;
+    let addr = get_proc(module, "vkGetInstanceProcAddr").ok()?;
+    Some(std::mem::transmute(addr))
+}

@@ -14,6 +14,7 @@ members = [
     # NMS Cockpit Video Player project
     "projects/nms-cockpit-video/daemon",
     "projects/nms-cockpit-video/overlay",
+    "projects/nms-cockpit-video/injector",
     # Development tools
     "tools/mem-scanner",
 ]
@@ -58,6 +59,12 @@ ringbuf = "0.4"
 laminar = "0.5"
 parking_lot = "0.12"
 
+# Vulkan
+ash = { version = "0.38", features = ["loaded"] }
+
+# Hooking
+retour = { version = "0.3", features = ["static-detour"] }
+
 # Platform-specific (Windows)
 [workspace.dependencies.windows]
 version = "0.58"
@@ -66,6 +73,9 @@ features = [
     "Win32_System_Memory",
     "Win32_System_Pipes",
     "Win32_System_IO",
+    "Win32_System_SystemServices",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Diagnostics_Debug",
     "Win32_Security",
     "Win32_Security_Authorization",
     "Win32_Storage_FileSystem",
