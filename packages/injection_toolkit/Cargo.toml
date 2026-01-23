@@ -5,10 +5,15 @@ members = [
     "core/itk-ipc",
     "core/itk-protocol",
     "core/itk-sync",
+    "core/itk-video",
+    "core/itk-net",
     "daemon",
     "overlay",
     "injectors/linux/ld-preload",
     "injectors/windows/native-dll",
+    # NMS Cockpit Video Player project
+    "projects/nms-cockpit-video/daemon",
+    "projects/nms-cockpit-video/overlay",
 ]
 
 [workspace.package]
@@ -39,6 +44,13 @@ cfg-if = "1.0"
 
 # CRC for protocol validation
 crc32fast = "1.4"
+
+# Video decoding
+ffmpeg-next = "7.0"
+
+# Networking
+laminar = "0.5"
+parking_lot = "0.12"
 
 # Platform-specific (Windows)
 [workspace.dependencies.windows]

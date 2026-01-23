@@ -1,0 +1,57 @@
+[package]
+name = "nms-video-overlay"
+description = "Video overlay for No Man's Sky Cockpit Video Player"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "nms-video-overlay"
+path = "src/main.rs"
+
+[features]
+default = []
+
+[dependencies]
+# Core ITK libraries
+itk-protocol = { path = "../../../core/itk-protocol" }
+itk-shmem = { path = "../../../core/itk-shmem" }
+
+# Windows platform APIs
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+# GUI
+egui = "0.28"
+egui-wgpu = "0.28"
+egui-winit = "0.28"
+
+# Async runtime
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = "1.0"
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Graphics - must match egui-wgpu 0.28's wgpu version
+wgpu = "0.20"
+winit = { version = "0.29", features = ["rwh_06"] }
+pollster = "0.3"
+bytemuck = { version = "1.14", features = ["derive"] }
+raw-window-handle = "0.6"
+
+# CLI
+clap = { version = "4", features = ["derive"] }

@@ -1,0 +1,29 @@
+{
+    "$schema": "https://raw.githubusercontent.com/Reloaded-Project/Reloaded-II/master/docs/Schemas/Mod/1.0.0.json",
+    "ModId": "nms.cockpit.overlay",
+    "ModName": "NMS Cockpit Video Overlay",
+    "ModAuthor": "ITK",
+    "ModVersion": "1.0.0",
+    "ModDescription": "Extracts cockpit screen coordinates from No Man's Sky for video overlay rendering",
+    "ModDll": "NmsCockpitOverlay.dll",
+    "ModIcon": "",
+    "ModR2RManagedDll32": "",
+    "ModR2RManagedDll64": "",
+    "ModNativeDll32": "",
+    "ModNativeDll64": "",
+    "Tags": ["Video", "Overlay", "Cockpit"],
+    "CanUnload": true,
+    "HasExports": false,
+    "IsLibrary": false,
+    "ReleaseMetadataFileName": "",
+    "ProjectUrl": "https://github.com/AndrewAltimit/template-repo",
+    "PluginData": "",
+    "IsUniversalMod": false,
+    "ModDependencies": [],
+    "OptionalDependencies": [],
+    "SupportedAppId": [
+        "nms.exe",
+        "NMS.exe"
+    ],
+    "Author": "ITK"
+}

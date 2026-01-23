@@ -392,6 +392,8 @@ pub struct SeqlockState {
 pub struct FrameBuffer {
     shmem: SharedMemory,
     frame_size: usize,
+    width: u32,
+    height: u32,
 }
 
 impl FrameBuffer {
@@ -430,7 +432,12 @@ impl FrameBuffer {
             header.frame_height.store(height, Ordering::Relaxed);
         }
 
-        Ok(Self { shmem, frame_size })
+        Ok(Self {
+            shmem,
+            frame_size,
+            width,
+            height,
+        })
     }
 
     /// Open an existing frame buffer
@@ -443,7 +450,27 @@ impl FrameBuffer {
 
         let shmem = SharedMemory::open(name, total_size)?;
 
-        Ok(Self { shmem, frame_size })
+        Ok(Self {
+            shmem,
+            frame_size,
+            width,
+            height,
+        })
+    }
+
+    /// Get the frame width
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    /// Get the frame height
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    /// Get the size of a single frame in bytes
+    pub fn frame_size(&self) -> usize {
+        self.frame_size
     }
 
     /// Get the seqlock header

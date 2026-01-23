@@ -3,9 +3,10 @@
 //! Example overlay application using the ITK overlay library.
 
 use anyhow::Result;
-use itk_overlay::{platform, render::Renderer, OverlayConfig, OverlayState};
+use itk_overlay::{platform, render::Renderer, video::VideoFrameReader, OverlayConfig, OverlayState};
+use itk_protocol::ScreenRect;
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -13,11 +14,25 @@ use winit::{
     window::{Window, WindowAttributes, WindowLevel},
 };
 
+/// Default video rectangle: centered, 720p
+static DEFAULT_VIDEO_RECT: ScreenRect = ScreenRect {
+    x: 320.0,
+    y: 180.0,
+    width: 1280.0,
+    height: 720.0,
+    rotation: 0.0,
+    visible: true,
+};
+
 struct App {
     config: OverlayConfig,
     state: OverlayState,
     window: Option<Arc<Window>>,
     renderer: Option<Renderer>,
+    /// Video frame reader for shared memory
+    frame_reader: VideoFrameReader,
+    /// Whether we've logged the connection status
+    logged_connection: bool,
 }
 
 impl App {
@@ -27,6 +42,8 @@ impl App {
             state: OverlayState::default(),
             window: None,
             renderer: None,
+            frame_reader: VideoFrameReader::new(),
+            logged_connection: false,
         }
     }
 }
@@ -126,7 +143,17 @@ impl ApplicationHandler for App {
 
             WindowEvent::RedrawRequested => {
                 if let Some(renderer) = &mut self.renderer {
-                    if let Err(e) = renderer.render(self.state.screen_rect.as_ref()) {
+                    // Use provided screen rect, or default to center of screen if video is playing
+                    let screen_rect = self.state.screen_rect.as_ref().or_else(|| {
+                        if self.frame_reader.is_connected() && self.frame_reader.last_pts_ms() > 0 {
+                            // Default rect: centered, 720p
+                            Some(&DEFAULT_VIDEO_RECT)
+                        } else {
+                            None
+                        }
+                    });
+
+                    if let Err(e) = renderer.render(screen_rect) {
                         error!(?e, "Render failed");
                     }
                 }
@@ -137,6 +164,20 @@ impl ApplicationHandler for App {
     }
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        // Log connection status changes
+        if !self.logged_connection && self.frame_reader.is_connected() {
+            info!("Connected to video frame buffer");
+            self.logged_connection = true;
+        }
+
+        // Try to read a new video frame
+        if let Some(frame_data) = self.frame_reader.try_read_frame() {
+            if let Some(renderer) = &self.renderer {
+                renderer.update_texture(frame_data);
+                debug!(pts_ms = self.frame_reader.last_pts_ms(), "Updated texture with new frame");
+            }
+        }
+
         if let Some(window) = &self.window {
             window.request_redraw();
         }
