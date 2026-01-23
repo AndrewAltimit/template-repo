@@ -143,6 +143,33 @@ async def list_tools() -> list[Tool]:
             },
         ),
         Tool(
+            name="scan_all_memory",
+            description="Scan ALL process memory (heap, stack, mapped) for a byte pattern. Slower than scan_pattern but finds objects allocated on the heap. Use for finding vtable pointers, singletons, etc.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "pattern": {
+                        "type": "string",
+                        "description": "Byte pattern with optional ?? wildcards",
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of results",
+                        "default": 50,
+                    },
+                    "min_address": {
+                        "type": "string",
+                        "description": "Minimum address to start scanning (hex, e.g. '0x10000')",
+                    },
+                    "max_address": {
+                        "type": "string",
+                        "description": "Maximum address to stop scanning (hex)",
+                    },
+                },
+                "required": ["pattern"],
+            },
+        ),
+        Tool(
             name="find_value",
             description="Search memory for a specific value (useful for finding player health, position, etc.)",
             inputSchema={
@@ -341,6 +368,34 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
                 "count": len(results),
                 "results": [{"address": hex(r.address), "module": r.module} for r in results],
             }
+
+        elif name == "scan_all_memory":
+            import subprocess
+            import pathlib
+
+            explorer._require_attached()
+            pid = explorer._pm.process_id
+
+            # Find the Rust mem-scanner binary
+            scanner_path = pathlib.Path(__file__).parents[4] / "packages" / "injection_toolkit" / "target" / "release" / "mem-scanner.exe"
+            if not scanner_path.exists():
+                # Try relative to working directory
+                scanner_path = pathlib.Path("D:/Unreal/Repos/template-repo/packages/injection_toolkit/target/release/mem-scanner.exe")
+
+            cmd = [str(scanner_path), str(pid), arguments["pattern"], "--json"]
+
+            if arguments.get("min_address"):
+                cmd.extend(["--min-addr", arguments["min_address"]])
+            if arguments.get("max_address"):
+                cmd.extend(["--max-addr", arguments["max_address"]])
+            if arguments.get("max_results"):
+                cmd.extend(["--max-results", str(arguments["max_results"])])
+
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            if proc.returncode != 0:
+                raise ValueError(f"mem-scanner failed: {proc.stderr}")
+
+            result = json.loads(proc.stdout)
 
         elif name == "find_value":
             results = explorer.find_value(

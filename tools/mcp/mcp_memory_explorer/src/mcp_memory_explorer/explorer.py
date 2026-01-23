@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import struct
 import re
+import ctypes
+import ctypes.wintypes
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -11,6 +13,33 @@ import pymem
 import pymem.process
 import pymem.pattern
 import pymem.memory
+
+
+# Windows memory constants
+MEM_COMMIT = 0x1000
+PAGE_READWRITE = 0x04
+PAGE_READONLY = 0x02
+PAGE_EXECUTE_READ = 0x20
+PAGE_EXECUTE_READWRITE = 0x40
+PAGE_WRITECOPY = 0x08
+PAGE_EXECUTE_WRITECOPY = 0x80
+
+READABLE_PROTECTIONS = (
+    PAGE_READWRITE, PAGE_READONLY, PAGE_EXECUTE_READ,
+    PAGE_EXECUTE_READWRITE, PAGE_WRITECOPY, PAGE_EXECUTE_WRITECOPY,
+)
+
+
+class MEMORY_BASIC_INFORMATION(ctypes.Structure):
+    _fields_ = [
+        ("BaseAddress", ctypes.c_void_p),
+        ("AllocationBase", ctypes.c_void_p),
+        ("AllocationProtect", ctypes.wintypes.DWORD),
+        ("RegionSize", ctypes.c_size_t),
+        ("State", ctypes.wintypes.DWORD),
+        ("Protect", ctypes.wintypes.DWORD),
+        ("Type", ctypes.wintypes.DWORD),
+    ]
 
 
 @dataclass
@@ -377,6 +406,82 @@ class MemoryExplorer:
                     results.append(ScanResult(address=addr, pattern=pattern, module=self._process_name))
                     if not return_multiple and results:
                         break
+
+        self._scan_results.extend(results)
+        return results
+
+    def scan_all_regions(
+        self,
+        pattern: str,
+        max_results: int = 50,
+        min_address: int = 0,
+        max_address: int = 0x7FFFFFFFFFFF,
+    ) -> list[ScanResult]:
+        """
+        Scan ALL committed readable memory regions for a pattern.
+        This includes heap, stack, and mapped memory - not just modules.
+
+        Args:
+            pattern: Byte pattern with optional wildcards (??)
+            max_results: Maximum results to return
+            min_address: Minimum address to start scanning
+            max_address: Maximum address to stop scanning
+
+        Returns:
+            List of ScanResult
+        """
+        self._require_attached()
+
+        pattern_bytes, mask = self._parse_pattern(pattern)
+        results = []
+
+        kernel32 = ctypes.windll.kernel32
+        handle = self._pm.process_handle
+
+        address = min_address
+        mbi = MEMORY_BASIC_INFORMATION()
+        mbi_size = ctypes.sizeof(mbi)
+
+        while address < max_address and len(results) < max_results:
+            result = kernel32.VirtualQueryEx(
+                handle,
+                ctypes.c_void_p(address),
+                ctypes.byref(mbi),
+                mbi_size,
+            )
+
+            if result == 0:
+                break
+
+            region_base = mbi.BaseAddress if mbi.BaseAddress else address
+            region_size = mbi.RegionSize
+
+            # Only scan committed, readable regions
+            if (mbi.State == MEM_COMMIT and
+                    mbi.Protect in READABLE_PROTECTIONS and
+                    region_size > 0 and region_size < 256 * 1024 * 1024):
+                try:
+                    data = self._pm.read_bytes(region_base, region_size)
+                    pos = 0
+                    while pos < len(data) - len(pattern_bytes) and len(results) < max_results:
+                        match = True
+                        for i, (b, m) in enumerate(zip(pattern_bytes, mask)):
+                            if m and data[pos + i] != b:
+                                match = False
+                                break
+                        if match:
+                            results.append(ScanResult(
+                                address=region_base + pos,
+                                pattern=pattern,
+                                module=None,
+                            ))
+                        pos += 1
+                except Exception:
+                    pass  # Skip unreadable regions
+
+            address = region_base + region_size
+            if address <= region_base:
+                break
 
         self._scan_results.extend(results)
         return results

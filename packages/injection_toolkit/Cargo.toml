@@ -14,6 +14,8 @@ members = [
     # NMS Cockpit Video Player project
     "projects/nms-cockpit-video/daemon",
     "projects/nms-cockpit-video/overlay",
+    # Development tools
+    "tools/mem-scanner",
 ]
 
 [workspace.package]
