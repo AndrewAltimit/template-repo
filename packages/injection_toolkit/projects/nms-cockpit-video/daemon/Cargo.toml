@@ -42,3 +42,10 @@ anyhow = { workspace = true }
 
 # CLI
 clap = { version = "4", features = ["derive"] }
+
+# Audio output
+cpal = { workspace = true }
+ringbuf = { workspace = true }
+
+# FFmpeg (for audio decoder)
+ffmpeg-next = { workspace = true }

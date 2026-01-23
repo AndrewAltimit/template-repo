@@ -42,6 +42,10 @@ struct Args {
     /// Log level (trace, debug, info, warn, error)
     #[arg(long, default_value = "info")]
     log_level: String,
+
+    /// Auto-load a video URL or file path on startup (for testing)
+    #[arg(long)]
+    load: Option<String>,
 }
 
 /// Application state
@@ -80,6 +84,15 @@ fn main() -> Result<()> {
         let mut state = state.write().unwrap();
         state.video_player = Some(VideoPlayer::new());
         info!("Video player initialized");
+    }
+
+    // Auto-load if --load was provided
+    if let Some(ref url) = args.load {
+        info!(url = %url, "Auto-loading video");
+        let state_read = state.read().unwrap();
+        if let Some(ref player) = state_read.video_player {
+            player.load(url, 0, true);
+        }
     }
 
     // Start mod listener thread (receives ScreenRect from NMS)

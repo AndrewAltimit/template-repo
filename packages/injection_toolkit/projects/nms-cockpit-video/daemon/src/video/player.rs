@@ -1,5 +1,6 @@
 //! Video player implementation with real ffmpeg decoding.
 
+use super::audio::AudioPlayer;
 use super::state::{PlayerCommand, PlayerState, VideoInfo};
 use itk_protocol::{VideoMetadata, VideoState};
 use itk_video::{FrameWriter, StreamSource, VideoDecoder};
@@ -202,6 +203,8 @@ struct DecodeContext {
     base_pts_ms: u64,
     /// Wall-clock time when current playback segment started.
     playback_start: Instant,
+    /// Audio player (None if source has no audio or output unavailable).
+    audio: Option<AudioPlayer>,
 }
 
 /// Main decode loop that runs in a separate thread.
@@ -242,7 +245,7 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
                         handle_set_rate(&state, rate);
                     }
                     PlayerCommand::SetVolume { volume } => {
-                        handle_set_volume(&state, volume);
+                        handle_set_volume(&state, &ctx, volume);
                     }
                     PlayerCommand::Stop => {
                         info!("Video decode thread stopping");
@@ -348,6 +351,9 @@ fn handle_load(
         }
     };
 
+    // Get the source path for audio player (before stream_source is moved)
+    let audio_source_path = stream_source.as_ffmpeg_input().to_string();
+
     // Create the decoder
     let mut decoder = match VideoDecoder::with_size(stream_source, DEFAULT_WIDTH, DEFAULT_HEIGHT) {
         Ok(d) => d,
@@ -390,10 +396,21 @@ fn handle_load(
     writer.set_content_id(&content_id);
     writer.set_duration_ms(info.duration_ms);
 
+    // Create audio player (opens the same source independently)
+    let audio = AudioPlayer::new(&audio_source_path, info.volume, autoplay);
+    if audio.is_some() {
+        info!("Audio player initialized");
+    } else {
+        info!("No audio available for this source");
+    }
+
     // Seek to start position if needed
     if start_position_ms > 0 {
         if let Err(e) = decoder.seek(start_position_ms) {
             warn!(?e, "Failed to seek to start position, starting from beginning");
+        }
+        if let Some(ref audio_player) = audio {
+            audio_player.seek(start_position_ms);
         }
     }
 
@@ -411,6 +428,7 @@ fn handle_load(
         info: info.clone(),
         base_pts_ms: start_position_ms,
         playback_start: Instant::now(),
+        audio,
     };
 
     if autoplay {
@@ -439,6 +457,11 @@ fn handle_play(state: &Arc<Mutex<PlayerState>>, ctx: &mut Option<DecodeContext>)
         if let Some(ref mut decode_ctx) = ctx {
             decode_ctx.base_pts_ms = position_ms;
             decode_ctx.playback_start = Instant::now();
+
+            // Resume audio
+            if let Some(ref audio) = decode_ctx.audio {
+                audio.play();
+            }
         }
 
         *s = PlayerState::Playing {
@@ -459,6 +482,14 @@ fn handle_pause(state: &Arc<Mutex<PlayerState>>, ctx: &Option<DecodeContext>) {
             .map(|c| c.writer.last_pts_ms())
             .unwrap_or(0);
         info!(position_ms = current_pos, "Pausing playback");
+
+        // Pause audio
+        if let Some(ref ctx) = ctx {
+            if let Some(ref audio) = ctx.audio {
+                audio.pause();
+            }
+        }
+
         *s = PlayerState::Paused {
             info,
             position_ms: current_pos,
@@ -477,6 +508,11 @@ fn handle_seek(state: &Arc<Mutex<PlayerState>>, ctx: &mut Option<DecodeContext>,
         // Reset timing for the new position
         decode_ctx.base_pts_ms = position_ms;
         decode_ctx.playback_start = Instant::now();
+
+        // Seek audio
+        if let Some(ref audio) = decode_ctx.audio {
+            audio.seek(position_ms);
+        }
     }
 
     let mut s = state.lock().unwrap();
@@ -519,11 +555,20 @@ fn handle_set_rate(state: &Arc<Mutex<PlayerState>>, rate: f64) {
 }
 
 /// Handle a set volume command.
-fn handle_set_volume(state: &Arc<Mutex<PlayerState>>, volume: f32) {
+fn handle_set_volume(state: &Arc<Mutex<PlayerState>>, ctx: &Option<DecodeContext>, volume: f32) {
+    let clamped = volume.clamp(0.0, 1.0);
+
+    // Update audio player volume
+    if let Some(ref decode_ctx) = ctx {
+        if let Some(ref audio) = decode_ctx.audio {
+            audio.set_volume(clamped);
+        }
+    }
+
     let mut state = state.lock().unwrap();
     if let Some(info) = state.video_info().cloned() {
         let mut new_info = info;
-        new_info.volume = volume.clamp(0.0, 1.0);
+        new_info.volume = clamped;
         debug!(volume = new_info.volume, "Set volume");
 
         match &mut *state {

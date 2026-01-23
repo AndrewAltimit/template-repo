@@ -3,6 +3,7 @@
 //! This module handles video decoding, frame output to shared memory,
 //! and playback state management.
 
+mod audio;
 mod player;
 mod state;
 

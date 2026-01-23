@@ -50,6 +50,10 @@ crc32fast = "1.4"
 # Video decoding
 ffmpeg-next = "7.0"
 
+# Audio output
+cpal = "0.15"
+ringbuf = "0.4"
+
 # Networking
 laminar = "0.5"
 parking_lot = "0.12"
