@@ -26,6 +26,8 @@ pub struct VideoControls {
     seeking: bool,
     /// Seek position while dragging
     seek_position: f32,
+    /// Whether connected to daemon
+    daemon_connected: bool,
 }
 
 impl VideoControls {
@@ -41,6 +43,7 @@ impl VideoControls {
             pending_seek: None,
             seeking: false,
             seek_position: 0.0,
+            daemon_connected: false,
         }
     }
 
@@ -59,6 +62,11 @@ impl VideoControls {
     /// Set playing state
     pub fn set_playing(&mut self, playing: bool) {
         self.is_playing = playing;
+    }
+
+    /// Set daemon connection status
+    pub fn set_daemon_connected(&mut self, connected: bool) {
+        self.daemon_connected = connected;
     }
 
     /// Toggle play/pause
@@ -119,6 +127,22 @@ impl VideoControls {
         ui.vertical(|ui| {
             // URL input row
             ui.horizontal(|ui| {
+                // Connection status dot
+                let color = if self.daemon_connected {
+                    Color32::from_rgb(80, 200, 80)
+                } else {
+                    Color32::from_rgb(200, 80, 80)
+                };
+                let (rect, response) =
+                    ui.allocate_exact_size(Vec2::new(10.0, 10.0), egui::Sense::hover());
+                ui.painter().circle_filled(rect.center(), 4.0, color);
+                response.on_hover_text(if self.daemon_connected {
+                    "Connected to daemon"
+                } else {
+                    "Daemon not connected"
+                });
+                ui.add_space(4.0);
+
                 ui.label(RichText::new("URL:").color(Color32::WHITE));
                 let response = ui.add(
                     egui::TextEdit::singleline(&mut self.url_input)

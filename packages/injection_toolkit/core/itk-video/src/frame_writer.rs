@@ -52,6 +52,14 @@ impl FrameWriter {
         debug!(content_id, hash = self.content_id_hash, "content ID set");
     }
 
+    /// Set the total duration in milliseconds.
+    ///
+    /// This should be called when loading a new video so readers
+    /// can display seek bars and time remaining.
+    pub fn set_duration_ms(&self, duration_ms: u64) {
+        self.buffer.set_duration_ms(duration_ms);
+    }
+
     /// Write a decoded frame to shared memory.
     ///
     /// Uses frame-skip optimization: if the PTS hasn't changed (e.g., video is paused),

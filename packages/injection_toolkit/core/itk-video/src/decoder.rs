@@ -115,10 +115,11 @@ impl VideoDecoder {
 
         // Get decoder parameters
         let codec_params = video_stream.parameters();
+        let codec_id = codec_params.id();
 
         // Find the decoder
-        let codec = decoder::find(codec_params.id())
-            .ok_or_else(|| VideoError::NoDecoder(format!("{:?}", codec_params.id())))?;
+        let codec = decoder::find(codec_id)
+            .ok_or_else(|| VideoError::NoDecoder(format!("{:?}", codec_id)))?;
 
         // Create decoder context
         let mut decoder_ctx = codec::context::Context::new_with_codec(codec);
@@ -130,7 +131,7 @@ impl VideoDecoder {
             height = decoder.height(),
             fps = ?fps,
             duration_ms = ?duration_ms,
-            codec = ?codec_params.id(),
+            codec = ?codec_id,
             "video decoder initialized"
         );
 
@@ -230,11 +231,12 @@ impl VideoDecoder {
 
     /// Seek to a position in milliseconds.
     pub fn seek(&mut self, position_ms: u64) -> VideoResult<()> {
-        let timestamp = self.ms_to_pts(position_ms);
+        // format_ctx.seek() with stream_index=-1 expects AV_TIME_BASE units (microseconds)
+        let timestamp_us = (position_ms as i64) * 1000;
 
         // Seek to the nearest keyframe before the target
         self.format_ctx
-            .seek(timestamp, ..timestamp)
+            .seek(timestamp_us, ..timestamp_us)
             .map_err(|e| VideoError::SeekError(e.to_string()))?;
 
         // Flush the decoder

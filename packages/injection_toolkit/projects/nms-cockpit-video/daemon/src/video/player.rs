@@ -1,8 +1,8 @@
-//! Video player implementation.
+//! Video player implementation with real ffmpeg decoding.
 
 use super::state::{PlayerCommand, PlayerState, VideoInfo};
 use itk_protocol::{VideoMetadata, VideoState};
-use itk_shmem::FrameBuffer;
+use itk_video::{FrameWriter, StreamSource, VideoDecoder};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
@@ -24,9 +24,6 @@ pub struct VideoPlayer {
     command_tx: Sender<PlayerCommand>,
     /// Handle to the decode thread.
     decode_thread: Option<JoinHandle<()>>,
-    /// Shared memory frame buffer (used when ffmpeg decoding is enabled).
-    #[allow(dead_code)]
-    frame_buffer: Option<FrameBuffer>,
 }
 
 impl VideoPlayer {
@@ -34,22 +31,6 @@ impl VideoPlayer {
     pub fn new() -> Self {
         let (command_tx, command_rx) = mpsc::channel();
         let state = Arc::new(Mutex::new(PlayerState::Idle));
-
-        // Try to create the shared memory frame buffer
-        let frame_buffer = match FrameBuffer::create(SHMEM_NAME, DEFAULT_WIDTH, DEFAULT_HEIGHT) {
-            Ok(fb) => {
-                info!(
-                    width = DEFAULT_WIDTH,
-                    height = DEFAULT_HEIGHT,
-                    "Created video frame buffer"
-                );
-                Some(fb)
-            }
-            Err(e) => {
-                warn!(?e, "Failed to create frame buffer, video output disabled");
-                None
-            }
-        };
 
         // Start the decode thread
         let state_clone = Arc::clone(&state);
@@ -61,7 +42,6 @@ impl VideoPlayer {
             state,
             command_tx,
             decode_thread: Some(decode_thread),
-            frame_buffer,
         }
     }
 
@@ -159,13 +139,86 @@ impl Drop for VideoPlayer {
     }
 }
 
+/// Resolve a source string to a StreamSource, handling YouTube URLs.
+fn resolve_source(source: &str) -> Result<StreamSource, String> {
+    let stream_source = StreamSource::from_string(source);
+
+    if stream_source.is_youtube() {
+        #[cfg(feature = "youtube")]
+        {
+            info!(url = %source, "Extracting YouTube direct URL via yt-dlp");
+            let output = std::process::Command::new("yt-dlp")
+                .args([
+                    "-f",
+                    // Format 22 = 720p progressive MP4 (h264+aac, direct URL with audio)
+                    // Format 18 = 360p progressive MP4 (h264+aac, direct URL with audio)
+                    // Fallback to DASH video-only if progressive unavailable
+                    "22/18/bestvideo[height<=720][vcodec^=avc1]/bestvideo[height<=720]",
+                    "-g",
+                    "--no-warnings",
+                    "--no-playlist",
+                    source,
+                ])
+                .output()
+                .map_err(|e| {
+                    if e.kind() == std::io::ErrorKind::NotFound {
+                        "yt-dlp not found in PATH. Install: pip install yt-dlp".to_string()
+                    } else {
+                        format!("Failed to run yt-dlp: {e}")
+                    }
+                })?;
+
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                return Err(format!("yt-dlp failed: {}", stderr.trim()));
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let url = stdout
+                .trim()
+                .lines()
+                .next()
+                .ok_or_else(|| "yt-dlp returned no URLs".to_string())?
+                .to_string();
+
+            info!("YouTube URL extracted successfully");
+            return Ok(StreamSource::Url(url));
+        }
+        #[cfg(not(feature = "youtube"))]
+        {
+            return Err("YouTube support not enabled (compile with --features youtube)".to_string());
+        }
+    }
+
+    Ok(stream_source)
+}
+
+/// Decode thread state holding the active decoder and frame writer.
+struct DecodeContext {
+    decoder: VideoDecoder,
+    writer: FrameWriter,
+    info: VideoInfo,
+    /// The PTS (ms) at which current playback segment started.
+    base_pts_ms: u64,
+    /// Wall-clock time when current playback segment started.
+    playback_start: Instant,
+}
+
 /// Main decode loop that runs in a separate thread.
 fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerCommand>) {
     info!("Video decode thread started");
 
+    let mut ctx: Option<DecodeContext> = None;
+
     loop {
-        // Wait for a command with timeout to allow periodic state checks
-        match command_rx.recv_timeout(Duration::from_millis(16)) {
+        let is_playing = state.lock().unwrap().is_playing();
+        let timeout = if is_playing {
+            Duration::from_millis(1) // Fast polling during playback
+        } else {
+            Duration::from_millis(100) // Slower when idle/paused
+        };
+
+        match command_rx.recv_timeout(timeout) {
             Ok(cmd) => {
                 debug!(?cmd, "Received video command");
                 match cmd {
@@ -174,16 +227,16 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
                         start_position_ms,
                         autoplay,
                     } => {
-                        handle_load(&state, &source, start_position_ms, autoplay);
+                        ctx = handle_load(&state, &source, start_position_ms, autoplay);
                     }
                     PlayerCommand::Play => {
-                        handle_play(&state);
+                        handle_play(&state, &mut ctx);
                     }
                     PlayerCommand::Pause => {
-                        handle_pause(&state);
+                        handle_pause(&state, &ctx);
                     }
                     PlayerCommand::Seek { position_ms } => {
-                        handle_seek(&state, position_ms);
+                        handle_seek(&state, &mut ctx, position_ms);
                     }
                     PlayerCommand::SetRate { rate } => {
                         handle_set_rate(&state, rate);
@@ -193,17 +246,18 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
                     }
                     PlayerCommand::Stop => {
                         info!("Video decode thread stopping");
+                        drop(ctx.take());
                         *state.lock().unwrap() = PlayerState::Idle;
                         break;
                     }
                 }
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {
-                // Check if we need to decode more frames
-                let current_state = state.lock().unwrap().clone();
-                if let PlayerState::Playing { .. } = current_state {
-                    // In a real implementation, this would decode and output frames
-                    // For now, just update the position based on elapsed time
+                // Decode next frame if playing
+                if is_playing {
+                    if let Some(ref mut decode_ctx) = ctx {
+                        decode_next_frame(decode_ctx, &state);
+                    }
                 }
             }
             Err(mpsc::RecvTimeoutError::Disconnected) => {
@@ -214,8 +268,67 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
     }
 }
 
-/// Handle a load command.
-fn handle_load(state: &Arc<Mutex<PlayerState>>, source: &str, start_position_ms: u64, autoplay: bool) {
+/// Decode and output the next frame with PTS-based pacing.
+fn decode_next_frame(ctx: &mut DecodeContext, state: &Arc<Mutex<PlayerState>>) {
+    match ctx.decoder.next_frame() {
+        Ok(Some(frame)) => {
+            // PTS-based frame pacing: sleep until the correct wall-clock time
+            let target_elapsed_ms = frame.pts_ms.saturating_sub(ctx.base_pts_ms);
+            let wall_elapsed = ctx.playback_start.elapsed();
+            let target_wall = Duration::from_millis(target_elapsed_ms);
+
+            if target_wall > wall_elapsed {
+                let sleep_dur = target_wall - wall_elapsed;
+                // Cap sleep to 100ms to stay responsive to commands
+                if sleep_dur < Duration::from_millis(100) {
+                    thread::sleep(sleep_dur);
+                } else {
+                    thread::sleep(Duration::from_millis(100));
+                    return; // Come back next iteration
+                }
+            }
+
+            // Write frame to shared memory
+            match ctx.writer.write_frame(&frame) {
+                Ok(_written) => {
+                    // Update position in state
+                    let mut s = state.lock().unwrap();
+                    if let PlayerState::Playing { position_ms, .. } = &mut *s {
+                        *position_ms = frame.pts_ms;
+                    }
+                }
+                Err(e) => {
+                    warn!(?e, "Failed to write frame to shared memory");
+                }
+            }
+        }
+        Ok(None) => {
+            // End of stream
+            info!("Video playback complete (end of stream)");
+            let mut s = state.lock().unwrap();
+            if let PlayerState::Playing { info, .. } = s.clone() {
+                *s = PlayerState::Paused {
+                    info,
+                    position_ms: ctx.info.duration_ms,
+                };
+            }
+        }
+        Err(e) => {
+            error!(?e, "Decode error");
+            *state.lock().unwrap() = PlayerState::Error {
+                message: format!("Decode error: {e}"),
+            };
+        }
+    }
+}
+
+/// Handle a load command - creates decoder and frame writer.
+fn handle_load(
+    state: &Arc<Mutex<PlayerState>>,
+    source: &str,
+    start_position_ms: u64,
+    autoplay: bool,
+) -> Option<DecodeContext> {
     info!(source = %source, start_ms = start_position_ms, autoplay, "Loading video");
 
     // Set loading state
@@ -223,25 +336,81 @@ fn handle_load(state: &Arc<Mutex<PlayerState>>, source: &str, start_position_ms:
         source: source.to_string(),
     };
 
-    // In a real implementation, this would:
-    // 1. Initialize ffmpeg decoder for the source
-    // 2. Extract metadata (duration, codec, fps)
-    // 3. Seek to start_position_ms
-    // 4. Start decoding if autoplay is true
+    // Resolve source (handles YouTube extraction)
+    let stream_source = match resolve_source(source) {
+        Ok(s) => s,
+        Err(e) => {
+            error!(error = %e, "Failed to resolve video source");
+            *state.lock().unwrap() = PlayerState::Error {
+                message: format!("Source resolution failed: {e}"),
+            };
+            return None;
+        }
+    };
 
-    // For now, create a mock video info
+    // Create the decoder
+    let mut decoder = match VideoDecoder::with_size(stream_source, DEFAULT_WIDTH, DEFAULT_HEIGHT) {
+        Ok(d) => d,
+        Err(e) => {
+            error!(?e, "Failed to create video decoder");
+            *state.lock().unwrap() = PlayerState::Error {
+                message: format!("Decoder init failed: {e}"),
+            };
+            return None;
+        }
+    };
+
+    // Create the frame writer (shared memory)
+    let mut writer = match FrameWriter::create(SHMEM_NAME, DEFAULT_WIDTH, DEFAULT_HEIGHT) {
+        Ok(w) => w,
+        Err(e) => {
+            error!(?e, "Failed to create frame writer");
+            *state.lock().unwrap() = PlayerState::Error {
+                message: format!("Frame writer failed: {e}"),
+            };
+            return None;
+        }
+    };
+
+    // Build video info from decoder metadata
     let content_id = format!("{:016x}", hash_string(source));
     let info = VideoInfo {
-        content_id,
-        width: DEFAULT_WIDTH,
-        height: DEFAULT_HEIGHT,
-        duration_ms: 0, // Unknown duration for mock
-        fps: 30.0,
-        codec: "mock".to_string(),
+        content_id: content_id.clone(),
+        width: decoder.output_width(),
+        height: decoder.output_height(),
+        duration_ms: decoder.duration_ms().unwrap_or(0),
+        fps: decoder.fps().unwrap_or(30.0) as f32,
+        codec: "h264".to_string(), // ffmpeg-next doesn't easily expose codec name string
         is_live: source.contains(".m3u8") || source.contains("/live/"),
         title: None,
         playback_rate: 1.0,
         volume: 1.0,
+    };
+
+    writer.set_content_id(&content_id);
+    writer.set_duration_ms(info.duration_ms);
+
+    // Seek to start position if needed
+    if start_position_ms > 0 {
+        if let Err(e) = decoder.seek(start_position_ms) {
+            warn!(?e, "Failed to seek to start position, starting from beginning");
+        }
+    }
+
+    info!(
+        width = info.width,
+        height = info.height,
+        duration_ms = info.duration_ms,
+        fps = info.fps,
+        "Video loaded successfully"
+    );
+
+    let ctx = DecodeContext {
+        decoder,
+        writer,
+        info: info.clone(),
+        base_pts_ms: start_position_ms,
+        playback_start: Instant::now(),
     };
 
     if autoplay {
@@ -256,14 +425,23 @@ fn handle_load(state: &Arc<Mutex<PlayerState>>, source: &str, start_position_ms:
             position_ms: start_position_ms,
         };
     }
+
+    Some(ctx)
 }
 
 /// Handle a play command.
-fn handle_play(state: &Arc<Mutex<PlayerState>>) {
-    let mut state = state.lock().unwrap();
-    if let PlayerState::Paused { info, position_ms } = state.clone() {
+fn handle_play(state: &Arc<Mutex<PlayerState>>, ctx: &mut Option<DecodeContext>) {
+    let mut s = state.lock().unwrap();
+    if let PlayerState::Paused { info, position_ms } = s.clone() {
         info!(position_ms, "Resuming playback");
-        *state = PlayerState::Playing {
+
+        // Update decode context timing
+        if let Some(ref mut decode_ctx) = ctx {
+            decode_ctx.base_pts_ms = position_ms;
+            decode_ctx.playback_start = Instant::now();
+        }
+
+        *s = PlayerState::Playing {
             info,
             position_ms,
             started_at: Instant::now(),
@@ -272,17 +450,16 @@ fn handle_play(state: &Arc<Mutex<PlayerState>>) {
 }
 
 /// Handle a pause command.
-fn handle_pause(state: &Arc<Mutex<PlayerState>>) {
-    let mut state = state.lock().unwrap();
-    if let PlayerState::Playing {
-        info,
-        position_ms,
-        started_at,
-    } = state.clone()
-    {
-        let current_pos = position_ms.saturating_add(started_at.elapsed().as_millis() as u64);
+fn handle_pause(state: &Arc<Mutex<PlayerState>>, ctx: &Option<DecodeContext>) {
+    let mut s = state.lock().unwrap();
+    if let PlayerState::Playing { info, .. } = s.clone() {
+        // Use the frame writer's last PTS as the accurate position
+        let current_pos = ctx
+            .as_ref()
+            .map(|c| c.writer.last_pts_ms())
+            .unwrap_or(0);
         info!(position_ms = current_pos, "Pausing playback");
-        *state = PlayerState::Paused {
+        *s = PlayerState::Paused {
             info,
             position_ms: current_pos,
         };
@@ -290,12 +467,23 @@ fn handle_pause(state: &Arc<Mutex<PlayerState>>) {
 }
 
 /// Handle a seek command.
-fn handle_seek(state: &Arc<Mutex<PlayerState>>, position_ms: u64) {
-    let mut state = state.lock().unwrap();
-    match state.clone() {
+fn handle_seek(state: &Arc<Mutex<PlayerState>>, ctx: &mut Option<DecodeContext>, position_ms: u64) {
+    // Seek the decoder
+    if let Some(ref mut decode_ctx) = ctx {
+        if let Err(e) = decode_ctx.decoder.seek(position_ms) {
+            warn!(?e, position_ms, "Seek failed");
+            return;
+        }
+        // Reset timing for the new position
+        decode_ctx.base_pts_ms = position_ms;
+        decode_ctx.playback_start = Instant::now();
+    }
+
+    let mut s = state.lock().unwrap();
+    match s.clone() {
         PlayerState::Playing { info, .. } => {
             info!(position_ms, "Seeking (playing)");
-            *state = PlayerState::Playing {
+            *s = PlayerState::Playing {
                 info,
                 position_ms,
                 started_at: Instant::now(),
@@ -303,7 +491,7 @@ fn handle_seek(state: &Arc<Mutex<PlayerState>>, position_ms: u64) {
         }
         PlayerState::Paused { info, .. } => {
             info!(position_ms, "Seeking (paused)");
-            *state = PlayerState::Paused { info, position_ms };
+            *s = PlayerState::Paused { info, position_ms };
         }
         _ => {
             warn!("Seek ignored - no video loaded");
@@ -319,7 +507,6 @@ fn handle_set_rate(state: &Arc<Mutex<PlayerState>>, rate: f64) {
         new_info.playback_rate = rate.clamp(0.25, 4.0);
         debug!(rate = new_info.playback_rate, "Set playback rate");
 
-        // Update the info in the current state
         match &mut *state {
             PlayerState::Playing { info, .. }
             | PlayerState::Paused { info, .. }
@@ -339,7 +526,6 @@ fn handle_set_volume(state: &Arc<Mutex<PlayerState>>, volume: f32) {
         new_info.volume = volume.clamp(0.0, 1.0);
         debug!(volume = new_info.volume, "Set volume");
 
-        // Update the info in the current state
         match &mut *state {
             PlayerState::Playing { info, .. }
             | PlayerState::Paused { info, .. }
@@ -366,8 +552,6 @@ mod tests {
 
     #[test]
     fn test_player_creation() {
-        // This test verifies the player can be created
-        // Frame buffer creation may fail without proper permissions
         let player = VideoPlayer::new();
         assert!(matches!(player.state(), PlayerState::Idle));
     }

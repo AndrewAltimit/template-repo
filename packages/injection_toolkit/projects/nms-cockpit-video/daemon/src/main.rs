@@ -60,11 +60,10 @@ fn main() -> Result<()> {
 
     // Initialize logging
     let filter = format!("nms_video_daemon={},itk={}", args.log_level, args.log_level);
+    let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(&filter));
     tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive(filter.parse().unwrap()),
-        )
+        .with_env_filter(env_filter)
         .init();
 
     info!("NMS Cockpit Video Player Daemon starting");
@@ -169,11 +168,11 @@ fn process_mod_message(data: &[u8], state: &Arc<RwLock<AppState>>) -> Result<()>
                 return Ok(());
             }
 
+            debug!(x = rect.x, y = rect.y, w = rect.width, h = rect.height, "Updated screen rect");
+
             let mut state = state.write().unwrap();
             state.screen_rect = Some(rect);
             state.last_update_ms = itk_sync::now_ms();
-
-            debug!(x = rect.x, y = rect.y, w = rect.width, h = rect.height, "Updated screen rect");
         }
         other => {
             warn!(?other, "Unexpected message type from mod");

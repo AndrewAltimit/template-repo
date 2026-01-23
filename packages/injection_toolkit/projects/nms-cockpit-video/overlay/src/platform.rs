@@ -83,6 +83,25 @@ pub fn set_transparent(window: &winit::window::Window) -> Result<()> {
     Ok(())
 }
 
+/// Check if a virtual key was just pressed (edge-triggered).
+/// Call this every frame; it returns true on the frame the key transitions from up to down.
+#[cfg(windows)]
+pub fn is_key_just_pressed(vk: i32, was_down: &mut bool) -> bool {
+    let state = unsafe { windows::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState(vk) };
+    let is_down = (state as u16 & 0x8000) != 0;
+    let just_pressed = is_down && !*was_down;
+    *was_down = is_down;
+    just_pressed
+}
+
+#[cfg(not(windows))]
+pub fn is_key_just_pressed(_vk: i32, _was_down: &mut bool) -> bool {
+    false
+}
+
+/// Virtual key code for F9
+pub const VK_F9: i32 = 0x78;
+
 // Stub implementations for non-Windows platforms
 #[cfg(not(windows))]
 pub fn set_click_through(_window: &winit::window::Window, _enabled: bool) -> Result<()> {

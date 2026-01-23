@@ -20,6 +20,8 @@ pub struct VideoFrameReader {
     last_frame: Vec<u8>,
     /// Last presentation timestamp
     last_pts: u64,
+    /// Cached duration from header
+    duration_ms: u64,
     /// Whether we've attempted connection
     connection_attempted: bool,
 }
@@ -31,6 +33,7 @@ impl VideoFrameReader {
             buffer: None,
             last_frame: Vec::new(),
             last_pts: 0,
+            duration_ms: 0,
             connection_attempted: false,
         }
     }
@@ -43,6 +46,11 @@ impl VideoFrameReader {
     /// Get the last presentation timestamp in milliseconds
     pub fn last_pts_ms(&self) -> u64 {
         self.last_pts
+    }
+
+    /// Get the total duration in milliseconds (0 if unknown)
+    pub fn duration_ms(&self) -> u64 {
+        self.duration_ms
     }
 
     /// Try to connect to the shared memory buffer
@@ -78,6 +86,12 @@ impl VideoFrameReader {
 
         // Read frame if connected
         if let Some(ref buffer) = self.buffer {
+            // Update cached duration (cheap atomic load)
+            let dur = buffer.duration_ms();
+            if dur > 0 {
+                self.duration_ms = dur;
+            }
+
             match buffer.read_frame(self.last_pts, &mut self.last_frame) {
                 Ok((pts_ms, data_changed)) => {
                     if data_changed {

@@ -15,6 +15,8 @@ pub struct FrameScaler {
     output_buffer: Vec<u8>,
     /// Reusable output frame.
     output_frame: VideoFrame,
+    /// Whether the output frame buffer has been allocated.
+    frame_allocated: bool,
 }
 
 impl FrameScaler {
@@ -37,6 +39,7 @@ impl FrameScaler {
             output_height: height,
             output_buffer: vec![0u8; buffer_size],
             output_frame,
+            frame_allocated: false,
         }
     }
 
@@ -60,7 +63,7 @@ impl FrameScaler {
         let input_height = input.height();
 
         // Create or recreate the scaling context if input parameters changed
-        let needs_new_context = self.context.as_ref().is_none_or(|ctx| {
+        let needs_new_context = self.context.as_ref().is_none_or(|_ctx| {
             // SwsContext doesn't expose input parameters, so we recreate on each unique input
             // This is acceptable since videos typically have consistent frame parameters
             false // For now, assume context is valid if it exists
@@ -84,9 +87,8 @@ impl FrameScaler {
         let ctx = self.context.as_mut().unwrap();
 
         // Allocate output frame buffer if needed
-        unsafe {
-            if self.output_frame.data(0).is_empty() {
-                // Allocate the frame buffer
+        if !self.frame_allocated {
+            unsafe {
                 let ret = ffmpeg_next::ffi::av_frame_get_buffer(
                     self.output_frame.as_mut_ptr(),
                     32, // alignment
@@ -97,6 +99,7 @@ impl FrameScaler {
                     ));
                 }
             }
+            self.frame_allocated = true;
         }
 
         // Run the scaling operation

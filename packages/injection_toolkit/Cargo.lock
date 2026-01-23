@@ -1869,6 +1869,7 @@ dependencies = [
  "egui",
  "egui-wgpu",
  "egui-winit",
+ "itk-ipc",
  "itk-protocol",
  "itk-shmem",
  "pollster",

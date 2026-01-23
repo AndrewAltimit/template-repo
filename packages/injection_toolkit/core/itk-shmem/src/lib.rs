@@ -223,8 +223,10 @@ pub struct SeqlockHeader {
     pub is_playing: AtomicU32,
     /// Quick hash of content ID for change detection
     pub content_id_hash: AtomicU64,
+    /// Total duration in milliseconds (0 if unknown/live)
+    pub duration_ms: AtomicU64,
     /// Padding to cache line (64 bytes)
-    _padding: [u8; 20],
+    _padding: [u8; 12],
 }
 
 impl SeqlockHeader {
@@ -251,6 +253,7 @@ impl SeqlockHeader {
         (*header).frame_height = AtomicU32::new(0);
         (*header).is_playing = AtomicU32::new(0);
         (*header).content_id_hash = AtomicU64::new(0);
+        (*header).duration_ms = AtomicU64::new(0);
 
         &*header
     }
@@ -316,6 +319,7 @@ impl SeqlockHeader {
             frame_height: self.frame_height.load(Ordering::Relaxed),
             is_playing: self.is_playing.load(Ordering::Relaxed) != 0,
             content_id_hash: self.content_id_hash.load(Ordering::Relaxed),
+            duration_ms: self.duration_ms.load(Ordering::Relaxed),
         };
 
         // Critical: Prevent data loads from sinking past the sequence check.
@@ -378,6 +382,7 @@ pub struct SeqlockState {
     pub frame_height: u32,
     pub is_playing: bool,
     pub content_id_hash: u64,
+    pub duration_ms: u64,
 }
 
 /// Triple-buffered frame storage
@@ -476,6 +481,18 @@ impl FrameBuffer {
     /// Get the seqlock header
     pub fn header(&self) -> &SeqlockHeader {
         unsafe { SeqlockHeader::from_ptr(self.shmem.as_ptr()) }
+    }
+
+    /// Set the duration in milliseconds (metadata, not per-frame).
+    ///
+    /// This is written outside the seqlock since it only changes on load.
+    pub fn set_duration_ms(&self, duration_ms: u64) {
+        self.header().duration_ms.store(duration_ms, Ordering::Release);
+    }
+
+    /// Get the duration in milliseconds.
+    pub fn duration_ms(&self) -> u64 {
+        self.header().duration_ms.load(Ordering::Acquire)
     }
 
     /// Get a pointer to a specific buffer

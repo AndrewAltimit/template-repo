@@ -84,13 +84,19 @@ impl NmsRenderer {
             .copied()
             .unwrap_or(surface_caps.formats[0]);
 
+        let alpha_mode = if surface_caps.alpha_modes.contains(&wgpu::CompositeAlphaMode::PreMultiplied) {
+            wgpu::CompositeAlphaMode::PreMultiplied
+        } else {
+            surface_caps.alpha_modes[0]
+        };
+
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
             width: size.width.max(1),
             height: size.height.max(1),
             present_mode: wgpu::PresentMode::Fifo,
-            alpha_mode: wgpu::CompositeAlphaMode::PreMultiplied,
+            alpha_mode,
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
         };
