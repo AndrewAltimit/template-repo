@@ -3,6 +3,7 @@
 //! Injectable DLL that hooks NMS's Vulkan pipeline to render video frames
 //! as a textured quad in the cockpit, visible to both desktop and VR users.
 
+pub mod camera;
 mod hooks;
 mod log;
 pub mod renderer;

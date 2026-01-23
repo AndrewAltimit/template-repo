@@ -6,6 +6,8 @@
 //! - `vkCreateSwapchainKHR` - Track swapchain format/extent/images
 //! - `vkQueuePresentKHR` - Inject rendering before present
 
+use crate::camera::projection::compute_cockpit_mvp;
+use crate::camera::{CameraReader, CAMERA_MODE_COCKPIT};
 use crate::log::vlog;
 use crate::renderer::VulkanRenderer;
 use ash::vk;
@@ -50,6 +52,9 @@ static FRAME_COUNT: AtomicU64 = AtomicU64::new(0);
 
 /// The renderer (lazy-initialized on first present).
 static RENDERER: OnceCell<Mutex<VulkanRenderer>> = OnceCell::new();
+
+/// Camera reader (lazy-initialized on first present).
+static CAMERA: OnceCell<CameraReader> = OnceCell::new();
 
 // --- Hook definitions ---
 
@@ -227,15 +232,15 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
     let swapchain = *present_info.p_swapchains;
     let image_index = *present_info.p_image_indices;
 
+    // Compute MVP from camera state (or fallback)
+    let mvp = compute_frame_mvp(frame);
+
     // Lazy-initialize the renderer
-    let renderer = RENDERER.get_or_try_init(|| {
-        init_renderer(queue, swapchain)
-    });
+    let renderer = RENDERER.get_or_try_init(|| init_renderer(queue, swapchain));
 
     match renderer {
         Ok(renderer_mutex) => {
             if let Ok(renderer) = renderer_mutex.lock() {
-                // Get the swapchain image for this frame
                 if let Some(instance) = ASH_INSTANCE.get() {
                     if let Some(&device) = DEVICE.get() {
                         let device_fns = ash::Device::load(instance.fp_v1_0(), device);
@@ -244,7 +249,9 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
                         if let Ok(images) = swapchain_fn.get_swapchain_images(swapchain) {
                             if (image_index as usize) < images.len() {
                                 let image = images[image_index as usize];
-                                if let Err(e) = renderer.render_frame(image_index, image) {
+                                if let Err(e) =
+                                    renderer.render_frame(image_index, image, &mvp)
+                                {
                                     if frame % 300 == 0 {
                                         vlog!("Render error: {}", e);
                                     }
@@ -261,6 +268,45 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
             }
         }
     }
+}
+
+/// Compute the MVP for this frame using camera state.
+///
+/// Returns a fallback MVP if the camera can't be read, or skips rendering
+/// (via a fixed off-screen MVP) if not in cockpit mode.
+unsafe fn compute_frame_mvp(frame: u64) -> [f32; 16] {
+    // Try to initialize/use the camera reader
+    let camera_result = CAMERA.get_or_try_init(|| unsafe { CameraReader::new() });
+
+    if let Ok(camera) = camera_result {
+        if let Some(state) = camera.read() {
+            // Only render in cockpit mode - return off-screen MVP otherwise
+            if state.mode != CAMERA_MODE_COCKPIT {
+                return offscreen_mvp();
+            }
+            return compute_cockpit_mvp(state.fov_deg, state.aspect);
+        }
+    }
+
+    // Fallback: camera not available, use default values
+    if frame % 300 == 0 {
+        vlog!("Camera unavailable, using fallback MVP");
+    }
+    let extent_packed = SWAPCHAIN_EXTENT.load(Ordering::Relaxed);
+    let w = (extent_packed >> 32) as f32;
+    let h = (extent_packed & 0xFFFFFFFF) as f32;
+    let aspect = if h > 0.0 { w / h } else { 16.0 / 9.0 };
+    compute_cockpit_mvp(75.0, aspect)
+}
+
+/// MVP that places the quad entirely off-screen (used to hide when not in cockpit).
+fn offscreen_mvp() -> [f32; 16] {
+    [
+        0.0, 0.0, 0.0, 0.0, // column 0: zero scale
+        0.0, 0.0, 0.0, 0.0, // column 1: zero scale
+        0.0, 0.0, 0.0, 0.0, // column 2
+        0.0, 0.0, 0.0, 1.0, // column 3: w=1 but everything else zero → degenerate
+    ]
 }
 
 /// Initialize the renderer with current state.

@@ -134,9 +134,16 @@ impl VulkanRenderer {
 
     /// Render the quad overlay for the given swapchain image index.
     ///
+    /// `mvp` is a column-major 4x4 matrix that transforms the unit quad to clip space.
+    ///
     /// # Safety
     /// Must be called from the render thread with a valid image_index.
-    pub unsafe fn render_frame(&self, image_index: u32, image: vk::Image) -> Result<(), String> {
+    pub unsafe fn render_frame(
+        &self,
+        image_index: u32,
+        image: vk::Image,
+        mvp: &[f32; 16],
+    ) -> Result<(), String> {
         let idx = image_index as usize;
         if idx >= self.frames.len() {
             return Err(format!("image_index {} out of range", image_index));
@@ -232,8 +239,7 @@ impl VulkanRenderer {
         self.device
             .cmd_set_scissor(frame.command_buffer, 0, &[scissor]);
 
-        // Push MVP matrix (Phase 2: scale to small quad in center-right of screen)
-        let mvp = phase2_mvp();
+        // Push MVP matrix
         let mvp_bytes: &[u8] = std::slice::from_raw_parts(
             mvp.as_ptr() as *const u8,
             64,
@@ -648,21 +654,3 @@ unsafe fn create_frame_resources(
     Ok(frames)
 }
 
-/// Phase 2 MVP matrix: places a small quad in the upper-right area of the screen.
-/// Maps the [-1,1] unit quad to roughly [0.3, 0.8] x [-0.7, -0.2] in NDC
-/// (upper-right quadrant, Vulkan Y-down).
-fn phase2_mvp() -> [f32; 16] {
-    // Scale to 25% of screen, translate to upper-right
-    let sx = 0.25_f32; // width = 50% of half-screen = 25% total
-    let sy = 0.25_f32; // height = 25%
-    let tx = 0.55_f32; // center X offset right
-    let ty = -0.45_f32; // center Y offset up (Vulkan Y-down: negative = up)
-
-    // Column-major 4x4 matrix: scale then translate
-    [
-        sx, 0.0, 0.0, 0.0, // column 0
-        0.0, sy, 0.0, 0.0, // column 1
-        0.0, 0.0, 1.0, 0.0, // column 2
-        tx, ty, 0.0, 1.0, // column 3
-    ]
-}
