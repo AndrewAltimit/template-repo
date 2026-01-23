@@ -176,15 +176,8 @@
       ]
     },
     "memory-explorer": {
-      "command": "python",
-      "args": [
-        "-m",
-        "mcp_memory_explorer"
-      ],
-      "cwd": "tools/mcp/mcp_memory_explorer/src",
-      "env": {
-        "_comment": "Memory Explorer MCP server for game reverse engineering. Runs natively on Windows (requires admin privileges for memory access). Does NOT run in Docker as it needs access to host processes."
-      }
+      "command": "C:\\Python313\\python.exe",
+      "args": ["-u", "-X", "utf8", "-m", "mcp_memory_explorer"]
     }
   }
 }
