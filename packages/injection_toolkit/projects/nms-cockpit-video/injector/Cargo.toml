@@ -19,4 +19,4 @@ tracing = { workspace = true }
 once_cell = "1.19"
 
 [build-dependencies]
-naga = { version = "24", features = ["glsl-in", "spv-out"] }
+naga = { version = "24", features = ["wgsl-in", "spv-out"] }

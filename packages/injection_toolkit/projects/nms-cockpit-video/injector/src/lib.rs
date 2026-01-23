@@ -7,6 +7,7 @@ pub mod camera;
 mod hooks;
 mod log;
 pub mod renderer;
+pub mod shmem_reader;
 
 use log::vlog;
 use std::sync::atomic::{AtomicBool, Ordering};

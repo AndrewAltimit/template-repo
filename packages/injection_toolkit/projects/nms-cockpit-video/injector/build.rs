@@ -1,7 +1,6 @@
-//! Build script: compile GLSL shaders to SPIR-V using naga.
+//! Build script: compile WGSL shaders to SPIR-V using naga.
 
 use naga::back::spv;
-use naga::front::glsl;
 use naga::valid::{Capabilities, ValidationFlags, Validator};
 use std::fs;
 use std::path::Path;
@@ -11,34 +10,32 @@ fn main() {
 
     let out_dir = std::env::var("OUT_DIR").unwrap();
 
-    compile_shader(
-        "shaders/quad.vert.glsl",
+    compile_wgsl(
+        "shaders/quad.vert.wgsl",
         &format!("{}/quad.vert.spv", out_dir),
         naga::ShaderStage::Vertex,
     );
 
-    compile_shader(
-        "shaders/quad.frag.glsl",
+    compile_wgsl(
+        "shaders/quad.frag.wgsl",
         &format!("{}/quad.frag.spv", out_dir),
         naga::ShaderStage::Fragment,
     );
 }
 
-fn compile_shader(input: &str, output: &str, stage: naga::ShaderStage) {
-    let source = fs::read_to_string(input).unwrap_or_else(|e| panic!("Failed to read {}: {}", input, e));
+fn compile_wgsl(input: &str, output: &str, stage: naga::ShaderStage) {
+    let source =
+        fs::read_to_string(input).unwrap_or_else(|e| panic!("Failed to read {}: {}", input, e));
 
-    // Parse GLSL
-    let mut parser = glsl::Frontend::default();
-    let options = glsl::Options::from(stage);
-    let module = parser
-        .parse(&options, &source)
-        .unwrap_or_else(|errors| panic!("Failed to parse {}: {:?}", input, errors));
+    // Parse WGSL
+    let module = naga::front::wgsl::parse_str(&source)
+        .unwrap_or_else(|e| panic!("Failed to parse {}: {}", input, e));
 
     // Validate
     let mut validator = Validator::new(ValidationFlags::all(), Capabilities::all());
     let info = validator
         .validate(&module)
-        .unwrap_or_else(|e| panic!("Validation failed for {}: {}", input, e));
+        .unwrap_or_else(|e| panic!("Validation failed for {}: {:?}", input, e));
 
     // Generate SPIR-V
     let options = spv::Options {
@@ -60,5 +57,10 @@ fn compile_shader(input: &str, output: &str, stage: naga::ShaderStage) {
     let out_path = Path::new(output);
     fs::write(out_path, &bytes).unwrap_or_else(|e| panic!("Failed to write {}: {}", output, e));
 
-    println!("cargo:warning=Compiled {} -> {} ({} bytes)", input, output, bytes.len());
+    println!(
+        "cargo:warning=Compiled {} -> {} ({} bytes)",
+        input,
+        output,
+        bytes.len()
+    );
 }

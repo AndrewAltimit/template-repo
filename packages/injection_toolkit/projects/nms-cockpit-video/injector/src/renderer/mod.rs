@@ -4,11 +4,13 @@
 //! on top of the game's swapchain images.
 
 pub mod geometry;
+pub mod texture;
 
 use crate::log::vlog;
 use ash::vk;
 use geometry::{Vertex, QUAD_VERTICES, QUAD_VERTICES_SIZE};
 use std::ffi::CStr;
+use texture::VideoTexture;
 
 /// Embedded SPIR-V shaders (compiled by build.rs).
 const VERT_SPV: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/quad.vert.spv"));
@@ -22,6 +24,10 @@ struct FrameResources {
     image_view: vk::ImageView,
 }
 
+/// Default video frame dimensions (must match daemon).
+const VIDEO_WIDTH: u32 = 1280;
+const VIDEO_HEIGHT: u32 = 720;
+
 /// The Vulkan renderer that draws a quad over the game's output.
 pub struct VulkanRenderer {
     device: ash::Device,
@@ -29,12 +35,13 @@ pub struct VulkanRenderer {
     render_pass: vk::RenderPass,
     pipeline_layout: vk::PipelineLayout,
     pipeline: vk::Pipeline,
+    descriptor_set_layout: vk::DescriptorSetLayout,
+    video_texture: VideoTexture,
     command_pool: vk::CommandPool,
     vertex_buffer: vk::Buffer,
     vertex_memory: vk::DeviceMemory,
     frames: Vec<FrameResources>,
     extent: vk::Extent2D,
-    format: vk::Format,
 }
 
 impl VulkanRenderer {
@@ -69,7 +76,10 @@ impl VulkanRenderer {
         // Create render pass
         let render_pass = create_render_pass(&device, format)?;
 
-        // Create pipeline layout (push constant: mat4 = 64 bytes)
+        // Create descriptor set layout for video texture
+        let descriptor_set_layout = texture::create_descriptor_set_layout(&device)?;
+
+        // Create pipeline layout (descriptor set + push constant: mat4 = 64 bytes)
         let push_constant_range = vk::PushConstantRange {
             stage_flags: vk::ShaderStageFlags::VERTEX,
             offset: 0,
@@ -77,6 +87,7 @@ impl VulkanRenderer {
         };
 
         let layout_info = vk::PipelineLayoutCreateInfo::default()
+            .set_layouts(std::slice::from_ref(&descriptor_set_layout))
             .push_constant_ranges(std::slice::from_ref(&push_constant_range));
 
         let pipeline_layout = device
@@ -98,6 +109,18 @@ impl VulkanRenderer {
         // Create vertex buffer
         let (vertex_buffer, vertex_memory) =
             create_vertex_buffer(&device, instance, physical_device)?;
+
+        // Create video texture
+        let video_texture = VideoTexture::new(
+            &device,
+            instance,
+            physical_device,
+            descriptor_set_layout,
+            VIDEO_WIDTH,
+            VIDEO_HEIGHT,
+            queue,
+            command_pool,
+        )?;
 
         // Create per-frame resources
         let frames = create_frame_resources(
@@ -123,18 +146,20 @@ impl VulkanRenderer {
             render_pass,
             pipeline_layout,
             pipeline,
+            descriptor_set_layout,
+            video_texture,
             command_pool,
             vertex_buffer,
             vertex_memory,
             frames,
             extent,
-            format,
         })
     }
 
     /// Render the quad overlay for the given swapchain image index.
     ///
     /// `mvp` is a column-major 4x4 matrix that transforms the unit quad to clip space.
+    /// `new_frame` is optional RGBA pixel data to upload to the video texture.
     ///
     /// # Safety
     /// Must be called from the render thread with a valid image_index.
@@ -143,6 +168,7 @@ impl VulkanRenderer {
         image_index: u32,
         image: vk::Image,
         mvp: &[f32; 16],
+        new_frame: Option<&[u8]>,
     ) -> Result<(), String> {
         let idx = image_index as usize;
         if idx >= self.frames.len() {
@@ -170,6 +196,12 @@ impl VulkanRenderer {
         self.device
             .begin_command_buffer(frame.command_buffer, &begin_info)
             .map_err(|e| format!("Begin cmd buf failed: {:?}", e))?;
+
+        // Upload new video frame if available
+        if let Some(frame_data) = new_frame {
+            self.video_texture
+                .upload_frame(&self.device, frame.command_buffer, frame_data);
+        }
 
         // Transition: PRESENT_SRC -> COLOR_ATTACHMENT
         let barrier = vk::ImageMemoryBarrier::default()
@@ -238,6 +270,16 @@ impl VulkanRenderer {
         };
         self.device
             .cmd_set_scissor(frame.command_buffer, 0, &[scissor]);
+
+        // Bind video texture descriptor set
+        self.device.cmd_bind_descriptor_sets(
+            frame.command_buffer,
+            vk::PipelineBindPoint::GRAPHICS,
+            self.pipeline_layout,
+            0,
+            &[self.video_texture.descriptor_set],
+            &[],
+        );
 
         // Push MVP matrix
         let mvp_bytes: &[u8] = std::slice::from_raw_parts(
@@ -326,12 +368,15 @@ impl Drop for VulkanRenderer {
                 self.device.destroy_fence(frame.fence, None);
             }
 
+            self.video_texture.destroy(&self.device);
             self.device.destroy_command_pool(self.command_pool, None);
             self.device.free_memory(self.vertex_memory, None);
             self.device.destroy_buffer(self.vertex_buffer, None);
             self.device.destroy_pipeline(self.pipeline, None);
             self.device
                 .destroy_pipeline_layout(self.pipeline_layout, None);
+            self.device
+                .destroy_descriptor_set_layout(self.descriptor_set_layout, None);
             self.device.destroy_render_pass(self.render_pass, None);
 
             vlog!("Renderer destroyed");

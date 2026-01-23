@@ -10,11 +10,12 @@ use crate::camera::projection::compute_cockpit_mvp;
 use crate::camera::{CameraReader, CAMERA_MODE_COCKPIT};
 use crate::log::vlog;
 use crate::renderer::VulkanRenderer;
+use crate::shmem_reader::ShmemFrameReader;
 use ash::vk;
 use once_cell::sync::OnceCell;
 use retour::static_detour;
 use std::ffi::{c_void, CString};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 use windows::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
 
@@ -55,6 +56,12 @@ static RENDERER: OnceCell<Mutex<VulkanRenderer>> = OnceCell::new();
 
 /// Camera reader (lazy-initialized on first present).
 static CAMERA: OnceCell<CameraReader> = OnceCell::new();
+
+/// Shared memory frame reader (retries periodically if daemon isn't running).
+static SHMEM_READER: OnceCell<Mutex<ShmemFrameReader>> = OnceCell::new();
+
+/// Whether we've already failed to open shmem (avoids log spam).
+static SHMEM_FAILED: AtomicBool = AtomicBool::new(false);
 
 // --- Hook definitions ---
 
@@ -235,6 +242,9 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
     // Compute MVP from camera state (or fallback)
     let mvp = compute_frame_mvp(frame);
 
+    // Poll shared memory for a new video frame
+    let new_frame = poll_video_frame(frame);
+
     // Lazy-initialize the renderer
     let renderer = RENDERER.get_or_try_init(|| init_renderer(queue, swapchain));
 
@@ -249,9 +259,12 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
                         if let Ok(images) = swapchain_fn.get_swapchain_images(swapchain) {
                             if (image_index as usize) < images.len() {
                                 let image = images[image_index as usize];
-                                if let Err(e) =
-                                    renderer.render_frame(image_index, image, &mvp)
-                                {
+                                if let Err(e) = renderer.render_frame(
+                                    image_index,
+                                    image,
+                                    &mvp,
+                                    new_frame.as_deref(),
+                                ) {
                                     if frame % 300 == 0 {
                                         vlog!("Render error: {}", e);
                                     }
@@ -268,6 +281,41 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
             }
         }
     }
+}
+
+/// Poll the shared memory for a new video frame.
+///
+/// Tries to open the shmem on first call (or periodically retries if daemon isn't running).
+/// Returns Some(frame_bytes) if a new frame is available.
+unsafe fn poll_video_frame(frame: u64) -> Option<Vec<u8>> {
+    // Try to initialize the reader (only once - if it fails, the daemon isn't running)
+    let reader = SHMEM_READER.get_or_try_init(|| {
+        match ShmemFrameReader::open() {
+            Ok(reader) => {
+                SHMEM_FAILED.store(false, Ordering::Relaxed);
+                Ok(Mutex::new(reader))
+            }
+            Err(e) => {
+                if !SHMEM_FAILED.swap(true, Ordering::Relaxed) {
+                    vlog!("ShmemFrameReader open failed: {} (daemon not running?)", e);
+                }
+                Err(e)
+            }
+        }
+    });
+
+    if let Ok(reader_mutex) = reader {
+        if let Ok(mut reader) = reader_mutex.lock() {
+            if let Some(data) = reader.poll_frame() {
+                return Some(data.to_vec());
+            }
+        }
+    } else if frame % 600 == 0 {
+        // Periodically log that we're waiting for the daemon
+        vlog!("Waiting for video daemon (shmem not available)");
+    }
+
+    None
 }
 
 /// Compute the MVP for this frame using camera state.
