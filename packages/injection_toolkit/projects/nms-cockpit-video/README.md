@@ -147,6 +147,52 @@ cargo +nightly-x86_64-pc-windows-msvc build --release -p nms-cockpit-injector
 3. For YouTube: ensure yt-dlp is installed and up to date
 4. Try a local file to isolate network issues
 
+## Injector Architecture
+
+The injector DLL is organized into four modules that implement the full rendering pipeline:
+
+```
+injector/src/
+├── lib.rs              DllMain, init thread, module declarations
+├── log.rs              OutputDebugString logging (view with DebugView)
+├── shmem_reader.rs     Lock-free shared memory frame polling (itk-shmem seqlock)
+├── hooks/
+│   ├── mod.rs          Hook install/remove orchestration
+│   ├── vulkan.rs       Vulkan function detours (retour static_detour)
+│   └── openvr.rs       IVRCompositor::Submit vtable hook
+├── renderer/
+│   ├── mod.rs          VulkanRenderer: pipeline, draw commands, VR rendering
+│   ├── pipeline.rs     Render pass, graphics pipeline, descriptor sets
+│   ├── texture.rs      VideoTexture: staging buffer upload, device-local image
+│   └── geometry.rs     Quad vertex buffer (6 vertices, pos3 + uv2)
+├── camera/
+│   ├── mod.rs          CameraReader: NMS process memory reads
+│   └── projection.rs   Perspective projection, cockpit MVP computation
+└── shaders/
+    ├── quad.vert.wgsl  Vertex shader (push constant mat4 MVP)
+    └── quad.frag.wgsl  Fragment shader (texture2d + sampler)
+```
+
+### Hook Points
+
+| Hook | Method | Purpose |
+|------|--------|---------|
+| `vkCreateInstance` | retour detour | Capture VkInstance for ash loader |
+| `vkCreateDevice` | retour detour | Capture VkDevice, VkPhysicalDevice, queue family |
+| `vkCreateSwapchainKHR` | retour detour | Track format, extent, swapchain images |
+| `vkQueuePresentKHR` | retour detour | Render quad before desktop present |
+| `IVRCompositor::Submit` | vtable swap | Render quad per VR eye before compositor |
+
+### Rendering Flow
+
+**Desktop**: `vkQueuePresentKHR` hook -> read camera -> poll shmem -> compute MVP -> transition swapchain image -> render pass (LOAD) -> draw quad -> transition back -> submit
+
+**VR**: `IVRCompositor::Submit` hook -> read VRVulkanTextureData_t -> get VkImage per eye -> create temp framebuffer -> render pass (LOAD) -> draw quad -> cleanup
+
+### Shader Compilation
+
+Shaders are written in WGSL and compiled to SPIR-V at build time via naga (pure Rust, no Vulkan SDK required). The fragment shader uses separate `texture_2d<f32>` and `sampler` bindings (WGSL requirement).
+
 ## Development
 
 ### Memory Offsets (cGcCameraManager)
@@ -157,6 +203,7 @@ Singleton pointer: NMS.exe + 0x56666B0
 +0x118  Camera mode (u32, cockpit = 0x10)
 +0x130  View matrix (4x4 f32, row-major)
 +0x1D0  FoV (f32, degrees)
++0x1D4  Aspect ratio (f32)
 ```
 
 ### Updating for NMS Patches
