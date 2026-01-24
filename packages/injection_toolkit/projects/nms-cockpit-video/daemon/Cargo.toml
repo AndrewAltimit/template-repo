@@ -1,0 +1,51 @@
+[package]
+name = "nms-video-daemon"
+description = "Video playback daemon for No Man's Sky Cockpit Video Player"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "nms-video-daemon"
+path = "src/main.rs"
+
+[features]
+default = ["youtube"]
+youtube = ["itk-video/youtube"]
+# Build ffmpeg from source (slow, but works without system ffmpeg)
+build-ffmpeg = ["itk-video/build-ffmpeg"]
+
+[dependencies]
+# Core ITK libraries
+itk-protocol = { path = "../../../core/itk-protocol" }
+itk-shmem = { path = "../../../core/itk-shmem" }
+itk-ipc = { path = "../../../core/itk-ipc" }
+itk-sync = { path = "../../../core/itk-sync" }
+itk-video = { path = "../../../core/itk-video" }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = "1.0"
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Audio output
+cpal = { workspace = true }
+ringbuf = { workspace = true }
+
+# FFmpeg (for audio decoder)
+ffmpeg-next = { workspace = true }

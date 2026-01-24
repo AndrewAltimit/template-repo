@@ -1,0 +1,36 @@
+[package]
+name = "itk-net"
+description = "P2P networking for multiplayer video sync"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[features]
+default = []
+
+[dependencies]
+# Core ITK libraries
+itk-protocol = { path = "../itk-protocol" }
+itk-sync = { path = "../itk-sync" }
+
+# Networking - laminar for game-focused UDP
+laminar = "0.5"
+
+# Async runtime
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+bincode = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Utilities
+parking_lot = "0.12"
+socket2 = { version = "0.5", features = ["all"] }

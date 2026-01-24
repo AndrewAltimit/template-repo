@@ -1,0 +1,36 @@
+[package]
+name = "itk-video"
+description = "Video decoding and frame management for the Injection Toolkit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[features]
+default = []
+youtube = ["tokio/process"]
+# Build ffmpeg from source (slow, but works without system ffmpeg)
+build-ffmpeg = ["ffmpeg-next/build"]
+
+[dependencies]
+# Internal dependencies
+itk-protocol = { path = "../itk-protocol" }
+itk-shmem = { path = "../itk-shmem" }
+itk-sync = { path = "../itk-sync" }
+
+# Video decoding
+ffmpeg-next = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }

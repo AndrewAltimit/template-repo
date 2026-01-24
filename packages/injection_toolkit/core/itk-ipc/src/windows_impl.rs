@@ -297,15 +297,15 @@ impl NamedPipeServer {
         })
     }
 
-    /// Create a new pipe instance with restricted security attributes.
+    /// Create a new pipe instance.
     ///
-    /// The pipe is created with an ACL that only allows the current user to connect,
-    /// preventing privilege escalation or command injection from other users.
+    /// Uses restricted security attributes that only allow the creating user
+    /// to connect, preventing unauthorized access from other users.
     fn create_pipe_instance(&self) -> Result<HANDLE> {
         let wide_name = to_wide_string(&self.name);
 
-        // Create security attributes restricting access to current user
-        let (sa, _guard) = create_restricted_security_attributes()?;
+        // Create restricted security attributes (owner-only access)
+        let (mut sa, _guard) = create_restricted_security_attributes()?;
 
         unsafe {
             let handle = CreateNamedPipeW(
@@ -316,11 +316,8 @@ impl NamedPipeServer {
                 BUFFER_SIZE,
                 BUFFER_SIZE,
                 0,
-                Some(&sa),
+                Some(&mut sa),
             );
-
-            // _guard is dropped here, freeing the security descriptor
-            // This is safe because CreateNamedPipeW copies the security descriptor
 
             if handle == INVALID_HANDLE_VALUE {
                 return Err(IpcError::Platform("Failed to create named pipe".into()));

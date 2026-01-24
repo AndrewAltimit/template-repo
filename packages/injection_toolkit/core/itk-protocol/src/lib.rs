@@ -93,6 +93,22 @@ pub enum MessageType {
     /// Clock synchronization pong
     ClockPong = 32,
 
+    // Video playback messages (40-49)
+    /// Load a video from URL or file path
+    VideoLoad = 40,
+    /// Start/resume video playback
+    VideoPlay = 41,
+    /// Pause video playback
+    VideoPause = 42,
+    /// Seek to a position in the video
+    VideoSeek = 43,
+    /// Video state update (position, duration, playing status)
+    VideoState = 44,
+    /// Video metadata (dimensions, duration, codec info)
+    VideoMetadata = 45,
+    /// Video playback error
+    VideoError = 46,
+
     /// Error response
     Error = 255,
 }
@@ -114,6 +130,13 @@ impl TryFrom<u32> for MessageType {
             30 => Ok(Self::SyncState),
             31 => Ok(Self::ClockPing),
             32 => Ok(Self::ClockPong),
+            40 => Ok(Self::VideoLoad),
+            41 => Ok(Self::VideoPlay),
+            42 => Ok(Self::VideoPause),
+            43 => Ok(Self::VideoSeek),
+            44 => Ok(Self::VideoState),
+            45 => Ok(Self::VideoMetadata),
+            46 => Ok(Self::VideoError),
             255 => Ok(Self::Error),
             _ => Err(ProtocolError::UnknownMessageType(value)),
         }
@@ -320,6 +343,118 @@ pub struct ErrorMessage {
     pub code: u32,
     /// Human-readable message
     pub message: String,
+}
+
+// =============================================================================
+// Video Playback Messages
+// =============================================================================
+
+/// Load a video from URL or file path
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VideoLoad {
+    /// Video source (file path or URL)
+    pub source: String,
+    /// Start position in milliseconds (0 = beginning)
+    pub start_position_ms: u64,
+    /// Whether to start playing immediately
+    pub autoplay: bool,
+}
+
+/// Start or resume video playback
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VideoPlay {
+    /// Optional position to start from (None = current position)
+    pub from_position_ms: Option<u64>,
+}
+
+/// Pause video playback
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VideoPause {
+    // Empty struct - just a command
+}
+
+/// Seek to a position in the video
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VideoSeek {
+    /// Target position in milliseconds
+    pub position_ms: u64,
+}
+
+/// Video state update (broadcast periodically and on state changes)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VideoState {
+    /// Content identifier (URL hash or file path)
+    pub content_id: String,
+    /// Current playback position in milliseconds
+    pub position_ms: u64,
+    /// Total duration in milliseconds (0 if unknown/live)
+    pub duration_ms: u64,
+    /// Whether currently playing
+    pub is_playing: bool,
+    /// Whether currently buffering
+    pub is_buffering: bool,
+    /// Playback rate (1.0 = normal)
+    pub playback_rate: f64,
+    /// Volume (0.0 - 1.0)
+    pub volume: f32,
+}
+
+/// Video metadata (sent once when video is loaded)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VideoMetadata {
+    /// Content identifier (URL hash or file path)
+    pub content_id: String,
+    /// Video width in pixels
+    pub width: u32,
+    /// Video height in pixels
+    pub height: u32,
+    /// Duration in milliseconds (0 if unknown/live)
+    pub duration_ms: u64,
+    /// Frames per second (0 if unknown)
+    pub fps: f32,
+    /// Codec name (e.g., "h264", "vp9")
+    pub codec: String,
+    /// Whether this is a live stream
+    pub is_live: bool,
+    /// Human-readable title (if available from metadata)
+    pub title: Option<String>,
+}
+
+/// Video playback error
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VideoError {
+    /// Error code
+    pub code: VideoErrorCode,
+    /// Human-readable error message
+    pub message: String,
+    /// Whether playback can be retried
+    pub is_recoverable: bool,
+}
+
+/// Video error codes
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[repr(u32)]
+pub enum VideoErrorCode {
+    /// Unknown error
+    Unknown = 0,
+    /// Failed to open the source (file not found, network error, etc.)
+    OpenFailed = 1,
+    /// No video stream found in the source
+    NoVideoStream = 2,
+    /// Codec not supported
+    UnsupportedCodec = 3,
+    /// Decode error (corrupted data)
+    DecodeError = 4,
+    /// Network error during streaming
+    NetworkError = 5,
+    /// Source requires authentication
+    AuthenticationRequired = 6,
+    /// Geographic restriction
+    GeoRestricted = 7,
+    /// YouTube extraction failed (yt-dlp error)
+    YoutubeExtractionFailed = 8,
+    /// YouTube support not enabled
+    YoutubeNotEnabled = 9,
 }
 
 /// Bincode configuration with size limits to prevent allocation bombs

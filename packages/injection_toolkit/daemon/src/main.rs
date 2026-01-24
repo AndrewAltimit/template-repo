@@ -24,11 +24,15 @@ use anyhow::{bail, Context, Result};
 use itk_ipc::{IpcChannel, IpcServer};
 use itk_protocol::{
     decode, encode, MessageType, ScreenRect, StateEvent, StateQuery, StateResponse, StateSnapshot,
+    VideoLoad, VideoPause, VideoPlay, VideoSeek,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::thread;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
+
+mod video;
+use video::VideoPlayer;
 
 // =============================================================================
 // Security: Input Validation
@@ -124,7 +128,7 @@ fn validate_state_snapshot(snapshot: &StateSnapshot) -> Result<()> {
 /// Application state container
 ///
 /// Customize this for your specific application.
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct AppState {
     /// Screen rect from injector (for overlay positioning)
     pub screen_rect: Option<ScreenRect>,
@@ -134,6 +138,9 @@ pub struct AppState {
 
     /// Last update timestamp
     pub last_update_ms: u64,
+
+    /// Video player (lazy initialized)
+    pub video_player: Option<VideoPlayer>,
 }
 
 /// Daemon configuration
@@ -374,6 +381,31 @@ fn process_client_message(
             channel.send(&encoded)?;
         }
 
+        // Video playback commands
+        MessageType::VideoLoad => {
+            let (_, cmd): (_, VideoLoad) = decode(data)?;
+            debug!(source = %cmd.source, "Video load command");
+            handle_video_load(state, &cmd);
+        }
+
+        MessageType::VideoPlay => {
+            let (_, _cmd): (_, VideoPlay) = decode(data)?;
+            debug!("Video play command");
+            handle_video_play(state);
+        }
+
+        MessageType::VideoPause => {
+            let (_, _cmd): (_, VideoPause) = decode(data)?;
+            debug!("Video pause command");
+            handle_video_pause(state);
+        }
+
+        MessageType::VideoSeek => {
+            let (_, cmd): (_, VideoSeek) = decode(data)?;
+            debug!(position_ms = cmd.position_ms, "Video seek command");
+            handle_video_seek(state, cmd.position_ms);
+        }
+
         other => {
             warn!(?other, "Unexpected message type from client");
         }
@@ -437,6 +469,56 @@ fn handle_state_query(
             }
         }
 
+        "video_state" => {
+            // Query for current video playback state
+            if let Some(ref player) = state.video_player {
+                if let Some(video_state) = player.get_video_state() {
+                    StateResponse {
+                        success: true,
+                        data: Some(serde_json::to_string(&video_state)?),
+                        error: None,
+                    }
+                } else {
+                    StateResponse {
+                        success: false,
+                        data: None,
+                        error: Some("No video loaded".to_string()),
+                    }
+                }
+            } else {
+                StateResponse {
+                    success: false,
+                    data: None,
+                    error: Some("Video player not initialized".to_string()),
+                }
+            }
+        }
+
+        "video_metadata" => {
+            // Query for video metadata
+            if let Some(ref player) = state.video_player {
+                if let Some(metadata) = player.get_metadata() {
+                    StateResponse {
+                        success: true,
+                        data: Some(serde_json::to_string(&metadata)?),
+                        error: None,
+                    }
+                } else {
+                    StateResponse {
+                        success: false,
+                        data: None,
+                        error: Some("No video loaded".to_string()),
+                    }
+                }
+            } else {
+                StateResponse {
+                    success: false,
+                    data: None,
+                    error: Some("Video player not initialized".to_string()),
+                }
+            }
+        }
+
         _ => StateResponse {
             success: false,
             data: None,
@@ -445,6 +527,52 @@ fn handle_state_query(
     };
 
     Ok(response)
+}
+
+// =============================================================================
+// Video Playback Handlers
+// =============================================================================
+
+/// Ensure the video player is initialized
+fn ensure_video_player(state: &Arc<RwLock<AppState>>) {
+    let mut state = state.write().unwrap();
+    if state.video_player.is_none() {
+        info!("Initializing video player");
+        state.video_player = Some(VideoPlayer::new());
+    }
+}
+
+/// Handle a video load command
+fn handle_video_load(state: &Arc<RwLock<AppState>>, cmd: &VideoLoad) {
+    ensure_video_player(state);
+    let state = state.read().unwrap();
+    if let Some(ref player) = state.video_player {
+        player.load(&cmd.source, cmd.start_position_ms, cmd.autoplay);
+    }
+}
+
+/// Handle a video play command
+fn handle_video_play(state: &Arc<RwLock<AppState>>) {
+    let state = state.read().unwrap();
+    if let Some(ref player) = state.video_player {
+        player.play();
+    }
+}
+
+/// Handle a video pause command
+fn handle_video_pause(state: &Arc<RwLock<AppState>>) {
+    let state = state.read().unwrap();
+    if let Some(ref player) = state.video_player {
+        player.pause();
+    }
+}
+
+/// Handle a video seek command
+fn handle_video_seek(state: &Arc<RwLock<AppState>>, position_ms: u64) {
+    let state = state.read().unwrap();
+    if let Some(ref player) = state.video_player {
+        player.seek(position_ms);
+    }
 }
 
 fn main() -> Result<()> {

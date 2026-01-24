@@ -9,6 +9,8 @@ FROM rust:1.90-slim
 
 # Install system dependencies with BuildKit cache
 # libx11-dev etc. are needed for the overlay crate
+# libasound2-dev is needed for cpal (audio output via ALSA)
+# libav* / libsw* / clang are needed for ffmpeg-next (video decoding)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
@@ -20,6 +22,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     libxi-dev \
     libxcursor-dev \
     libxinerama-dev \
+    libasound2-dev \
+    libavcodec-dev \
+    libavformat-dev \
+    libavutil-dev \
+    libavfilter-dev \
+    libavdevice-dev \
+    libswresample-dev \
+    libswscale-dev \
+    clang \
     git \
     && rm -rf /var/lib/apt/lists/*
 
