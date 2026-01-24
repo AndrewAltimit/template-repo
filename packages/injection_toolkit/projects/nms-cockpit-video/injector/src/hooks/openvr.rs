@@ -327,7 +327,7 @@ unsafe fn render_to_vr_eye(eye: EVREye, vk_data: &VRVulkanTextureData_t, frame: 
         None => return,
     };
 
-    if let Ok(renderer) = renderer.lock() {
+    if let Ok(mut renderer) = renderer.lock() {
         // Get the current MVP and frame data
         let mvp = get_mvp(frame);
         let new_frame = get_shmem_frame(frame);

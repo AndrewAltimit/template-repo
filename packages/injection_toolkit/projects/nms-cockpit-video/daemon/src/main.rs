@@ -2,8 +2,12 @@
 //!
 //! Central coordinator for the No Man's Sky cockpit video player.
 //! Handles video decoding, screen rect from the mod, and multiplayer sync.
+//!
+//! NOTE: Input validation and IPC listener patterns are shared with the
+//! generic daemon template in `packages/injection_toolkit/daemon/`.
+//! Future work: extract shared IPC/validation into `itk-daemon-core` library crate.
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use clap::Parser;
 use itk_ipc::{IpcChannel, IpcServer};
 use itk_protocol::{
@@ -17,6 +21,52 @@ use tracing::{debug, error, info, warn};
 
 mod video;
 use video::VideoPlayer;
+
+// =============================================================================
+// Input Validation (shared patterns from daemon template)
+// =============================================================================
+
+/// Maximum screen dimension (sanity check)
+const MAX_SCREEN_DIM: f32 = 16384.0;
+
+/// Validate a ScreenRect from untrusted source (injected mod).
+///
+/// Mirrors the validation from the ITK daemon template to prevent
+/// crafted messages from causing crashes in GPU/rendering code.
+fn validate_screen_rect(rect: &ScreenRect) -> Result<()> {
+    if !rect.x.is_finite()
+        || !rect.y.is_finite()
+        || !rect.width.is_finite()
+        || !rect.height.is_finite()
+        || !rect.rotation.is_finite()
+    {
+        bail!("ScreenRect contains non-finite values");
+    }
+
+    if rect.x.abs() > MAX_SCREEN_DIM
+        || rect.y.abs() > MAX_SCREEN_DIM
+        || rect.width > MAX_SCREEN_DIM
+        || rect.height > MAX_SCREEN_DIM
+    {
+        bail!("ScreenRect dimensions out of bounds");
+    }
+
+    if rect.width < 0.0 || rect.height < 0.0 {
+        bail!("ScreenRect has negative dimensions");
+    }
+
+    let right = rect.x + rect.width;
+    let bottom = rect.y + rect.height;
+    if !right.is_finite()
+        || !bottom.is_finite()
+        || right.abs() > MAX_SCREEN_DIM
+        || bottom.abs() > MAX_SCREEN_DIM
+    {
+        bail!("ScreenRect coordinate overflow");
+    }
+
+    Ok(())
+}
 
 /// NMS Cockpit Video Player Daemon
 #[derive(Parser, Debug)]
@@ -163,7 +213,9 @@ fn handle_mod_connection(channel: impl IpcChannel, state: Arc<RwLock<AppState>>)
     }
 }
 
-/// Process a message from the NMS mod
+/// Process a message from the NMS mod.
+///
+/// SECURITY: Data from the injected mod is treated as UNTRUSTED and validated.
 fn process_mod_message(data: &[u8], state: &Arc<RwLock<AppState>>) -> Result<()> {
     let header = itk_protocol::decode_header(data)?;
 
@@ -171,15 +223,8 @@ fn process_mod_message(data: &[u8], state: &Arc<RwLock<AppState>>) -> Result<()>
         MessageType::ScreenRect => {
             let (_, rect): (_, ScreenRect) = decode(data)?;
 
-            // Validate the rect
-            if !rect.x.is_finite()
-                || !rect.y.is_finite()
-                || !rect.width.is_finite()
-                || !rect.height.is_finite()
-            {
-                warn!("Invalid ScreenRect from mod (non-finite values)");
-                return Ok(());
-            }
+            // SECURITY: Full validation of untrusted data from mod
+            validate_screen_rect(&rect)?;
 
             debug!(
                 x = rect.x,

@@ -13,15 +13,21 @@
 //!   +0x1D0  FoV (f32, degrees)
 //!   +0x1D4  Aspect ratio (f32)
 //! ```
+//!
+//! The singleton address is located via pattern scanning at runtime to
+//! support multiple game versions. Falls back to a known RVA if the
+//! scan fails.
 
+pub mod pattern_scan;
 pub mod projection;
 
 use crate::log::vlog;
 use std::sync::atomic::{AtomicU64, Ordering};
 use windows::Win32::System::LibraryLoader::GetModuleHandleA;
 
-/// RVA offset to the cGcCameraManager singleton pointer.
-const CAMERA_MANAGER_RVA: usize = 0x56666B0;
+/// Fallback RVA offset to the cGcCameraManager singleton pointer (NMS 5.x).
+/// Used only when pattern scanning fails to locate the pointer dynamically.
+const CAMERA_MANAGER_RVA_FALLBACK: usize = 0x56666B0;
 
 /// Offset to camera mode field.
 const OFFSET_CAMERA_MODE: usize = 0x118;
@@ -62,14 +68,29 @@ pub struct CameraReader {
 impl CameraReader {
     /// Create a new camera reader.
     ///
-    /// This always succeeds if NMS.exe is loaded. The singleton pointer
-    /// may be null during loading screens - `read()` handles that gracefully.
+    /// Uses pattern scanning to locate cGcCameraManager across game versions,
+    /// falling back to the known RVA if pattern scanning fails.
     ///
     /// # Safety
     /// NMS.exe must be loaded in the current process.
     pub unsafe fn new() -> Result<Self, String> {
         let base = get_nms_base()?;
-        let singleton_ptr_addr = base + CAMERA_MANAGER_RVA;
+
+        // Try pattern scanning first for cross-version robustness
+        let singleton_ptr_addr = match pattern_scan::find_camera_manager_ptr() {
+            Some(addr) => {
+                vlog!("CameraReader: pattern scan found singleton at 0x{:X}", addr);
+                addr
+            }
+            None => {
+                let fallback = base + CAMERA_MANAGER_RVA_FALLBACK;
+                vlog!(
+                    "CameraReader: using fallback RVA 0x{:X} (pattern scan failed)",
+                    fallback
+                );
+                fallback
+            }
+        };
 
         vlog!(
             "CameraReader: NMS.exe base=0x{:X} singleton_ptr=0x{:X}",

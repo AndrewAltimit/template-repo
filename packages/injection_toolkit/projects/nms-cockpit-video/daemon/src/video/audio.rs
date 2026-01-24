@@ -404,13 +404,26 @@ fn audio_decode_loop(
                                 )
                             };
 
-                            // Write to ring buffer (drop samples if full)
-                            let written = producer.push_slice(samples);
-                            if written < samples.len() {
-                                debug!(
-                                    "Audio ring buffer full, dropped {} samples",
-                                    samples.len() - written
-                                );
+                            // Write to ring buffer, blocking briefly if full to
+                            // maintain A/V sync (instead of dropping samples)
+                            let mut offset = 0;
+                            let mut retries = 0;
+                            while offset < samples.len() && running {
+                                let written = producer.push_slice(&samples[offset..]);
+                                offset += written;
+                                if offset < samples.len() {
+                                    retries += 1;
+                                    if retries > 50 {
+                                        // Timeout: consumer stalled, drop remaining
+                                        warn!(
+                                            "Audio ring buffer blocked too long, dropped {} samples",
+                                            samples.len() - offset
+                                        );
+                                        break;
+                                    }
+                                    // Brief sleep to let consumer drain
+                                    std::thread::sleep(Duration::from_millis(1));
+                                }
                             }
                         }
                         Err(e) => {

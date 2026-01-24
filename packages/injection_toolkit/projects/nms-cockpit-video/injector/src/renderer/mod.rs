@@ -9,6 +9,7 @@ pub mod texture;
 use crate::log::vlog;
 use ash::vk;
 use geometry::{Vertex, QUAD_VERTICES, QUAD_VERTICES_SIZE};
+use std::collections::HashMap;
 use texture::VideoTexture;
 
 /// Embedded SPIR-V shaders (compiled by build.rs).
@@ -21,6 +22,14 @@ struct FrameResources {
     command_buffer: vk::CommandBuffer,
     fence: vk::Fence,
     image_view: vk::ImageView,
+}
+
+/// Cached VR rendering resources for a specific eye texture.
+struct VrFrameCache {
+    image_view: vk::ImageView,
+    framebuffer: vk::Framebuffer,
+    fence: vk::Fence,
+    command_buffer: vk::CommandBuffer,
 }
 
 /// Default video frame dimensions (must match daemon).
@@ -42,6 +51,8 @@ pub struct VulkanRenderer {
     frames: Vec<FrameResources>,
     extent: vk::Extent2D,
     format: vk::Format,
+    /// Cached VR resources per eye image handle (avoids re-creation every frame).
+    vr_cache: HashMap<vk::Image, VrFrameCache>,
 }
 
 impl VulkanRenderer {
@@ -78,7 +89,11 @@ impl VulkanRenderer {
         let render_pass = create_render_pass(&device, format)?;
 
         // Create descriptor set layout for video texture
-        let descriptor_set_layout = texture::create_descriptor_set_layout(&device)?;
+        let descriptor_set_layout =
+            texture::create_descriptor_set_layout(&device).map_err(|e| {
+                device.destroy_render_pass(render_pass, None);
+                e
+            })?;
 
         // Create pipeline layout (descriptor set + push constant: mat4 = 64 bytes)
         let push_constant_range = vk::PushConstantRange {
@@ -93,23 +108,44 @@ impl VulkanRenderer {
 
         let pipeline_layout = device
             .create_pipeline_layout(&layout_info, None)
-            .map_err(|e| format!("Failed to create pipeline layout: {:?}", e))?;
+            .map_err(|e| {
+                device.destroy_descriptor_set_layout(descriptor_set_layout, None);
+                device.destroy_render_pass(render_pass, None);
+                format!("Failed to create pipeline layout: {:?}", e)
+            })?;
 
         // Create graphics pipeline
-        let pipeline = create_pipeline(&device, render_pass, pipeline_layout, extent)?;
+        let pipeline =
+            create_pipeline(&device, render_pass, pipeline_layout, extent).map_err(|e| {
+                device.destroy_pipeline_layout(pipeline_layout, None);
+                device.destroy_descriptor_set_layout(descriptor_set_layout, None);
+                device.destroy_render_pass(render_pass, None);
+                e
+            })?;
 
         // Create command pool
         let pool_info = vk::CommandPoolCreateInfo::default()
             .queue_family_index(queue_family_index)
             .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
 
-        let command_pool = device
-            .create_command_pool(&pool_info, None)
-            .map_err(|e| format!("Failed to create command pool: {:?}", e))?;
+        let command_pool = device.create_command_pool(&pool_info, None).map_err(|e| {
+            device.destroy_pipeline(pipeline, None);
+            device.destroy_pipeline_layout(pipeline_layout, None);
+            device.destroy_descriptor_set_layout(descriptor_set_layout, None);
+            device.destroy_render_pass(render_pass, None);
+            format!("Failed to create command pool: {:?}", e)
+        })?;
 
         // Create vertex buffer
         let (vertex_buffer, vertex_memory) =
-            create_vertex_buffer(&device, instance, physical_device)?;
+            create_vertex_buffer(&device, instance, physical_device).map_err(|e| {
+                device.destroy_command_pool(command_pool, None);
+                device.destroy_pipeline(pipeline, None);
+                device.destroy_pipeline_layout(pipeline_layout, None);
+                device.destroy_descriptor_set_layout(descriptor_set_layout, None);
+                device.destroy_render_pass(render_pass, None);
+                e
+            })?;
 
         // Create video texture
         let video_texture = VideoTexture::new(
@@ -121,11 +157,32 @@ impl VulkanRenderer {
             VIDEO_HEIGHT,
             queue,
             command_pool,
-        )?;
+        )
+        .map_err(|e| {
+            device.free_memory(vertex_memory, None);
+            device.destroy_buffer(vertex_buffer, None);
+            device.destroy_command_pool(command_pool, None);
+            device.destroy_pipeline(pipeline, None);
+            device.destroy_pipeline_layout(pipeline_layout, None);
+            device.destroy_descriptor_set_layout(descriptor_set_layout, None);
+            device.destroy_render_pass(render_pass, None);
+            e
+        })?;
 
         // Create per-frame resources
         let frames =
-            create_frame_resources(&device, &images, format, extent, render_pass, command_pool)?;
+            create_frame_resources(&device, &images, format, extent, render_pass, command_pool)
+                .map_err(|e| {
+                    video_texture.destroy(&device);
+                    device.free_memory(vertex_memory, None);
+                    device.destroy_buffer(vertex_buffer, None);
+                    device.destroy_command_pool(command_pool, None);
+                    device.destroy_pipeline(pipeline, None);
+                    device.destroy_pipeline_layout(pipeline_layout, None);
+                    device.destroy_descriptor_set_layout(descriptor_set_layout, None);
+                    device.destroy_render_pass(render_pass, None);
+                    e
+                })?;
 
         vlog!(
             "Renderer initialized: {}x{} format={:?} frames={}",
@@ -149,6 +206,7 @@ impl VulkanRenderer {
             frames,
             extent,
             format,
+            vr_cache: HashMap::new(),
         })
     }
 
@@ -342,80 +400,43 @@ impl VulkanRenderer {
 
     /// Render the quad overlay to a VR eye image.
     ///
-    /// Creates a temporary image view and framebuffer for the VR eye texture,
-    /// renders the quad overlay, then cleans up temporary resources.
+    /// Uses cached resources per VR image handle to avoid re-creating
+    /// VkImageView, VkFramebuffer, VkFence, and command buffers every frame.
     ///
     /// # Safety
     /// - `vr_image` must be a valid VkImage (from OpenVR's VRVulkanTextureData_t)
     /// - The image is expected to be in TRANSFER_SRC_OPTIMAL layout (ready for compositor)
     /// - Must be called from the render thread
     pub unsafe fn render_to_vr_image(
-        &self,
+        &mut self,
         vr_image: vk::Image,
         extent: vk::Extent2D,
         mvp: &[f32; 16],
         new_frame: Option<&[u8]>,
     ) -> Result<(), String> {
-        // Create temporary image view for the VR image
-        let view_info = vk::ImageViewCreateInfo::default()
-            .image(vr_image)
-            .view_type(vk::ImageViewType::TYPE_2D)
-            .format(self.format)
-            .subresource_range(vk::ImageSubresourceRange {
-                aspect_mask: vk::ImageAspectFlags::COLOR,
-                base_mip_level: 0,
-                level_count: 1,
-                base_array_layer: 0,
-                layer_count: 1,
-            });
+        // Get or create cached resources for this VR image
+        if !self.vr_cache.contains_key(&vr_image) {
+            let cache = self.create_vr_frame_cache(vr_image, extent)?;
+            self.vr_cache.insert(vr_image, cache);
+        }
+        let cached = self.vr_cache.get(&vr_image).unwrap();
+        let cmd = cached.command_buffer;
+        let fence = cached.fence;
+        let framebuffer = cached.framebuffer;
 
-        let image_view = self
-            .device
-            .create_image_view(&view_info, None)
-            .map_err(|e| format!("VR image view failed: {:?}", e))?;
+        // Wait for previous use of this cached fence
+        self.device
+            .wait_for_fences(&[fence], true, u64::MAX)
+            .map_err(|e| format!("VR fence wait failed: {:?}", e))?;
+        self.device
+            .reset_fences(&[fence])
+            .map_err(|e| format!("VR fence reset failed: {:?}", e))?;
 
-        // Create temporary framebuffer
-        let fb_info = vk::FramebufferCreateInfo::default()
-            .render_pass(self.render_pass)
-            .attachments(std::slice::from_ref(&image_view))
-            .width(extent.width)
-            .height(extent.height)
-            .layers(1);
+        // Reset and re-record command buffer
+        self.device
+            .reset_command_buffer(cmd, vk::CommandBufferResetFlags::empty())
+            .map_err(|e| format!("VR cmd reset failed: {:?}", e))?;
 
-        let framebuffer = self
-            .device
-            .create_framebuffer(&fb_info, None)
-            .map_err(|e| {
-                self.device.destroy_image_view(image_view, None);
-                format!("VR framebuffer failed: {:?}", e)
-            })?;
-
-        // Allocate a one-shot command buffer
-        let alloc_info = vk::CommandBufferAllocateInfo::default()
-            .command_pool(self.command_pool)
-            .level(vk::CommandBufferLevel::PRIMARY)
-            .command_buffer_count(1);
-
-        let cmd_bufs = self
-            .device
-            .allocate_command_buffers(&alloc_info)
-            .map_err(|e| {
-                self.device.destroy_framebuffer(framebuffer, None);
-                self.device.destroy_image_view(image_view, None);
-                format!("VR cmd buf alloc failed: {:?}", e)
-            })?;
-        let cmd = cmd_bufs[0];
-
-        // Create a fence for synchronization
-        let fence_info = vk::FenceCreateInfo::default();
-        let fence = self.device.create_fence(&fence_info, None).map_err(|e| {
-            self.device.free_command_buffers(self.command_pool, &[cmd]);
-            self.device.destroy_framebuffer(framebuffer, None);
-            self.device.destroy_image_view(image_view, None);
-            format!("VR fence failed: {:?}", e)
-        })?;
-
-        // Record commands
         let begin_info = vk::CommandBufferBeginInfo::default()
             .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
 
@@ -555,13 +576,76 @@ impl VulkanRenderer {
             .wait_for_fences(&[fence], true, u64::MAX)
             .map_err(|e| format!("VR fence wait failed: {:?}", e))?;
 
-        // Clean up temporary resources
-        self.device.destroy_fence(fence, None);
-        self.device.free_command_buffers(self.command_pool, &[cmd]);
-        self.device.destroy_framebuffer(framebuffer, None);
-        self.device.destroy_image_view(image_view, None);
-
         Ok(())
+    }
+
+    /// Create cached VR frame resources for a specific eye image.
+    unsafe fn create_vr_frame_cache(
+        &self,
+        vr_image: vk::Image,
+        extent: vk::Extent2D,
+    ) -> Result<VrFrameCache, String> {
+        let view_info = vk::ImageViewCreateInfo::default()
+            .image(vr_image)
+            .view_type(vk::ImageViewType::TYPE_2D)
+            .format(self.format)
+            .subresource_range(vk::ImageSubresourceRange {
+                aspect_mask: vk::ImageAspectFlags::COLOR,
+                base_mip_level: 0,
+                level_count: 1,
+                base_array_layer: 0,
+                layer_count: 1,
+            });
+
+        let image_view = self
+            .device
+            .create_image_view(&view_info, None)
+            .map_err(|e| format!("VR cache image view failed: {:?}", e))?;
+
+        let fb_info = vk::FramebufferCreateInfo::default()
+            .render_pass(self.render_pass)
+            .attachments(std::slice::from_ref(&image_view))
+            .width(extent.width)
+            .height(extent.height)
+            .layers(1);
+
+        let framebuffer = self
+            .device
+            .create_framebuffer(&fb_info, None)
+            .map_err(|e| {
+                self.device.destroy_image_view(image_view, None);
+                format!("VR cache framebuffer failed: {:?}", e)
+            })?;
+
+        let alloc_info = vk::CommandBufferAllocateInfo::default()
+            .command_pool(self.command_pool)
+            .level(vk::CommandBufferLevel::PRIMARY)
+            .command_buffer_count(1);
+
+        let cmd_bufs = self
+            .device
+            .allocate_command_buffers(&alloc_info)
+            .map_err(|e| {
+                self.device.destroy_framebuffer(framebuffer, None);
+                self.device.destroy_image_view(image_view, None);
+                format!("VR cache cmd buf failed: {:?}", e)
+            })?;
+
+        let fence_info = vk::FenceCreateInfo::default().flags(vk::FenceCreateFlags::SIGNALED);
+        let fence = self.device.create_fence(&fence_info, None).map_err(|e| {
+            self.device
+                .free_command_buffers(self.command_pool, &cmd_bufs);
+            self.device.destroy_framebuffer(framebuffer, None);
+            self.device.destroy_image_view(image_view, None);
+            format!("VR cache fence failed: {:?}", e)
+        })?;
+
+        Ok(VrFrameCache {
+            image_view,
+            framebuffer,
+            fence,
+            command_buffer: cmd_bufs[0],
+        })
     }
 
     /// Get the swapchain extent.
@@ -574,6 +658,14 @@ impl Drop for VulkanRenderer {
     fn drop(&mut self) {
         unsafe {
             let _ = self.device.device_wait_idle();
+
+            // Clean up cached VR resources
+            for cached in self.vr_cache.values() {
+                self.device.destroy_fence(cached.fence, None);
+                self.device.destroy_framebuffer(cached.framebuffer, None);
+                self.device.destroy_image_view(cached.image_view, None);
+                // Command buffers freed with command pool below
+            }
 
             for frame in &self.frames {
                 self.device.destroy_framebuffer(frame.framebuffer, None);

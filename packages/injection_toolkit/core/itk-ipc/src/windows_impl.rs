@@ -113,7 +113,6 @@ fn make_pipe_name(name: &str) -> Result<String> {
 }
 
 /// RAII wrapper for security descriptor allocated by Windows APIs
-#[allow(dead_code)]
 struct SecurityDescriptorGuard {
     ptr: PSECURITY_DESCRIPTOR,
 }
@@ -136,7 +135,6 @@ impl Drop for SecurityDescriptorGuard {
 ///
 /// This prevents other users on the system from connecting to the pipe,
 /// similar to Unix socket permissions of 0o600.
-#[allow(dead_code)]
 fn create_restricted_security_attributes() -> Result<(SECURITY_ATTRIBUTES, SecurityDescriptorGuard)>
 {
     // SDDL: D:(A;;GA;;;CO)
@@ -301,9 +299,13 @@ impl NamedPipeServer {
 
     /// Create a new pipe instance.
     ///
-    /// Uses default security attributes (accessible to the creating user and system).
+    /// Uses restricted security attributes that only allow the creating user
+    /// to connect, preventing unauthorized access from other users.
     fn create_pipe_instance(&self) -> Result<HANDLE> {
         let wide_name = to_wide_string(&self.name);
+
+        // Create restricted security attributes (owner-only access)
+        let (mut sa, _guard) = create_restricted_security_attributes()?;
 
         unsafe {
             let handle = CreateNamedPipeW(
@@ -314,7 +316,7 @@ impl NamedPipeServer {
                 BUFFER_SIZE,
                 BUFFER_SIZE,
                 0,
-                None,
+                Some(&mut sa),
             );
 
             if handle == INVALID_HANDLE_VALUE {
