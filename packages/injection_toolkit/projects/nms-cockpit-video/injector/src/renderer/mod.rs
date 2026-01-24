@@ -9,7 +9,6 @@ pub mod texture;
 use crate::log::vlog;
 use ash::vk;
 use geometry::{Vertex, QUAD_VERTICES, QUAD_VERTICES_SIZE};
-use std::ffi::CStr;
 use texture::VideoTexture;
 
 /// Embedded SPIR-V shaders (compiled by build.rs).
@@ -53,6 +52,7 @@ impl VulkanRenderer {
     /// - `queue` must be a valid VkQueue from that device
     /// - `swapchain` must be a valid VkSwapchainKHR
     /// - `physical_device` must be the physical device used to create `raw_device`
+    #[allow(clippy::too_many_arguments)]
     pub unsafe fn new(
         raw_device: vk::Device,
         physical_device: vk::PhysicalDevice,
@@ -124,14 +124,8 @@ impl VulkanRenderer {
         )?;
 
         // Create per-frame resources
-        let frames = create_frame_resources(
-            &device,
-            &images,
-            format,
-            extent,
-            render_pass,
-            command_pool,
-        )?;
+        let frames =
+            create_frame_resources(&device, &images, format, extent, render_pass, command_pool)?;
 
         vlog!(
             "Renderer initialized: {}x{} format={:?} frames={}",
@@ -284,10 +278,7 @@ impl VulkanRenderer {
         );
 
         // Push MVP matrix
-        let mvp_bytes: &[u8] = std::slice::from_raw_parts(
-            mvp.as_ptr() as *const u8,
-            64,
-        );
+        let mvp_bytes: &[u8] = std::slice::from_raw_parts(mvp.as_ptr() as *const u8, 64);
         self.device.cmd_push_constants(
             frame.command_buffer,
             self.pipeline_layout,
@@ -297,12 +288,8 @@ impl VulkanRenderer {
         );
 
         // Bind vertex buffer and draw
-        self.device.cmd_bind_vertex_buffers(
-            frame.command_buffer,
-            0,
-            &[self.vertex_buffer],
-            &[0],
-        );
+        self.device
+            .cmd_bind_vertex_buffers(frame.command_buffer, 0, &[self.vertex_buffer], &[0]);
         self.device.cmd_draw(frame.command_buffer, 6, 1, 0, 0);
 
         // End render pass
@@ -382,7 +369,8 @@ impl VulkanRenderer {
                 layer_count: 1,
             });
 
-        let image_view = self.device
+        let image_view = self
+            .device
             .create_image_view(&view_info, None)
             .map_err(|e| format!("VR image view failed: {:?}", e))?;
 
@@ -394,7 +382,8 @@ impl VulkanRenderer {
             .height(extent.height)
             .layers(1);
 
-        let framebuffer = self.device
+        let framebuffer = self
+            .device
             .create_framebuffer(&fb_info, None)
             .map_err(|e| {
                 self.device.destroy_image_view(image_view, None);
@@ -407,7 +396,8 @@ impl VulkanRenderer {
             .level(vk::CommandBufferLevel::PRIMARY)
             .command_buffer_count(1);
 
-        let cmd_bufs = self.device
+        let cmd_bufs = self
+            .device
             .allocate_command_buffers(&alloc_info)
             .map_err(|e| {
                 self.device.destroy_framebuffer(framebuffer, None);
@@ -418,14 +408,12 @@ impl VulkanRenderer {
 
         // Create a fence for synchronization
         let fence_info = vk::FenceCreateInfo::default();
-        let fence = self.device
-            .create_fence(&fence_info, None)
-            .map_err(|e| {
-                self.device.free_command_buffers(self.command_pool, &[cmd]);
-                self.device.destroy_framebuffer(framebuffer, None);
-                self.device.destroy_image_view(image_view, None);
-                format!("VR fence failed: {:?}", e)
-            })?;
+        let fence = self.device.create_fence(&fence_info, None).map_err(|e| {
+            self.device.free_command_buffers(self.command_pool, &[cmd]);
+            self.device.destroy_framebuffer(framebuffer, None);
+            self.device.destroy_image_view(image_view, None);
+            format!("VR fence failed: {:?}", e)
+        })?;
 
         // Record commands
         let begin_info = vk::CommandBufferBeginInfo::default()
@@ -437,7 +425,8 @@ impl VulkanRenderer {
 
         // Upload new video frame if available
         if let Some(frame_data) = new_frame {
-            self.video_texture.upload_frame(&self.device, cmd, frame_data);
+            self.video_texture
+                .upload_frame(&self.device, cmd, frame_data);
         }
 
         // Transition VR image: TRANSFER_SRC_OPTIMAL -> COLOR_ATTACHMENT_OPTIMAL
@@ -476,10 +465,12 @@ impl VulkanRenderer {
             })
             .clear_values(&clear_values);
 
-        self.device.cmd_begin_render_pass(cmd, &render_pass_info, vk::SubpassContents::INLINE);
+        self.device
+            .cmd_begin_render_pass(cmd, &render_pass_info, vk::SubpassContents::INLINE);
 
         // Bind pipeline and set dynamic state
-        self.device.cmd_bind_pipeline(cmd, vk::PipelineBindPoint::GRAPHICS, self.pipeline);
+        self.device
+            .cmd_bind_pipeline(cmd, vk::PipelineBindPoint::GRAPHICS, self.pipeline);
 
         let viewport = vk::Viewport {
             x: 0.0,
@@ -517,7 +508,8 @@ impl VulkanRenderer {
         );
 
         // Draw quad
-        self.device.cmd_bind_vertex_buffers(cmd, 0, &[self.vertex_buffer], &[0]);
+        self.device
+            .cmd_bind_vertex_buffers(cmd, 0, &[self.vertex_buffer], &[0]);
         self.device.cmd_draw(cmd, 6, 1, 0, 0);
 
         self.device.cmd_end_render_pass(cmd);
@@ -664,7 +656,7 @@ unsafe fn create_pipeline(
     let vert_module = create_shader_module(device, VERT_SPV)?;
     let frag_module = create_shader_module(device, FRAG_SPV)?;
 
-    let entry_name = CStr::from_bytes_with_nul(b"main\0").unwrap();
+    let entry_name = c"main";
 
     let stages = [
         vk::PipelineShaderStageCreateInfo::default()
@@ -765,7 +757,7 @@ unsafe fn create_shader_module(
     spv_bytes: &[u8],
 ) -> Result<vk::ShaderModule, String> {
     // SPIR-V must be aligned to 4 bytes and length must be multiple of 4
-    if spv_bytes.len() % 4 != 0 {
+    if !spv_bytes.len().is_multiple_of(4) {
         return Err("SPIR-V not aligned to 4 bytes".to_string());
     }
 
@@ -838,16 +830,12 @@ fn find_memory_type(
     type_bits: u32,
     required: vk::MemoryPropertyFlags,
 ) -> Option<u32> {
-    for i in 0..props.memory_type_count {
-        if (type_bits & (1 << i)) != 0
+    (0..props.memory_type_count).find(|&i| {
+        (type_bits & (1 << i)) != 0
             && props.memory_types[i as usize]
                 .property_flags
                 .contains(required)
-        {
-            return Some(i);
-        }
-    }
-    None
+    })
 }
 
 /// Create per-frame resources (image views, framebuffers, command buffers, fences).
@@ -902,8 +890,7 @@ unsafe fn create_frame_resources(
             .map_err(|e| format!("Failed to create framebuffer {}: {:?}", i, e))?;
 
         // Create fence (start signaled so first wait doesn't block)
-        let fence_info =
-            vk::FenceCreateInfo::default().flags(vk::FenceCreateFlags::SIGNALED);
+        let fence_info = vk::FenceCreateInfo::default().flags(vk::FenceCreateFlags::SIGNALED);
 
         let fence = device
             .create_fence(&fence_info, None)
@@ -919,4 +906,3 @@ unsafe fn create_frame_resources(
 
     Ok(frames)
 }
-

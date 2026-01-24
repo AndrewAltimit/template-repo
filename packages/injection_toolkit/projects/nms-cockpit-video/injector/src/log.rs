@@ -28,9 +28,9 @@ pub fn init_file_log() {
 pub fn debug_log(msg: &str) {
     let prefixed = format!("[NMS-VIDEO] {}\0", msg);
     unsafe {
-        windows::Win32::System::Diagnostics::Debug::OutputDebugStringA(
-            windows::core::PCSTR(prefixed.as_ptr()),
-        );
+        windows::Win32::System::Diagnostics::Debug::OutputDebugStringA(windows::core::PCSTR(
+            prefixed.as_ptr(),
+        ));
     }
 
     // Also write to file

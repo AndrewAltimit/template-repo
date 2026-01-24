@@ -117,7 +117,8 @@ impl FrameWriter {
         }
 
         unsafe {
-            self.buffer.write_frame(data, pts_ms, self.content_id_hash)?;
+            self.buffer
+                .write_frame(data, pts_ms, self.content_id_hash)?;
         }
 
         self.last_pts_ms = pts_ms;
@@ -184,7 +185,9 @@ impl FrameReader {
     /// Returns `Some((pts_ms, data))` if a new frame is available,
     /// `None` if the frame hasn't changed since the last read.
     pub fn read_frame(&mut self) -> VideoResult<Option<(u64, &[u8])>> {
-        let (pts_ms, changed) = self.buffer.read_frame(self.last_pts_ms, &mut self.frame_data)?;
+        let (pts_ms, changed) = self
+            .buffer
+            .read_frame(self.last_pts_ms, &mut self.frame_data)?;
 
         if changed {
             self.last_pts_ms = pts_ms;

@@ -60,6 +60,7 @@ impl VideoControls {
     }
 
     /// Set playing state
+    #[allow(dead_code)]
     pub fn set_playing(&mut self, playing: bool) {
         self.is_playing = playing;
     }
@@ -151,15 +152,13 @@ impl VideoControls {
                         .text_color(Color32::WHITE),
                 );
 
-                if ui
+                if (ui
                     .button(RichText::new("Load").color(Color32::WHITE))
                     .clicked()
-                    || (response.lost_focus()
-                        && ui.input(|i| i.key_pressed(egui::Key::Enter)))
+                    || (response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter))))
+                    && !self.url_input.is_empty()
                 {
-                    if !self.url_input.is_empty() {
-                        self.pending_load = Some(self.url_input.clone());
-                    }
+                    self.pending_load = Some(self.url_input.clone());
                 }
             });
 

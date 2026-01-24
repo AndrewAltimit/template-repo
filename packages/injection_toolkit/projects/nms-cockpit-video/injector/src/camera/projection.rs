@@ -41,7 +41,7 @@ pub fn compute_cockpit_mvp(fov_deg: f32, aspect: f32) -> [f32; 16] {
 /// - X: [-1,1] → [-QUAD_HALF_WIDTH, QUAD_HALF_WIDTH]
 /// - Y: [-1,1] → [QUAD_CENTER_Y + QUAD_HALF_HEIGHT, QUAD_CENTER_Y - QUAD_HALF_HEIGHT]
 ///   (note: Y=-1 in model space is top in NDC after Vulkan Y-flip,
-///    so Y=-1 maps to the higher Y in view space)
+///   so Y=-1 maps to the higher Y in view space)
 /// - Z: 0 → QUAD_DEPTH
 fn cockpit_model_matrix() -> [f32; 16] {
     let sx = QUAD_HALF_WIDTH; // 0.25
@@ -177,15 +177,7 @@ mod tests {
         let ndc_y = clip_y / clip_w;
 
         // The quad center should be near screen center (within [-0.5, 0.5])
-        assert!(
-            ndc_x.abs() < 0.5,
-            "NDC X {} too far from center",
-            ndc_x
-        );
-        assert!(
-            ndc_y.abs() < 0.5,
-            "NDC Y {} too far from center",
-            ndc_y
-        );
+        assert!(ndc_x.abs() < 0.5, "NDC X {} too far from center", ndc_x);
+        assert!(ndc_y.abs() < 0.5, "NDC Y {} too far from center", ndc_y);
     }
 }

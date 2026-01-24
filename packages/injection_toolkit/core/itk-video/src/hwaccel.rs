@@ -54,6 +54,9 @@ impl HwDeviceContext {
     ///
     /// The returned pointer is a new reference that the caller owns.
     /// It should be assigned to `AVCodecContext.hw_device_ctx`.
+    ///
+    /// # Safety
+    /// The caller must ensure `self` contains a valid device context pointer.
     pub unsafe fn new_ref(&self) -> *mut ffi::AVBufferRef {
         ffi::av_buffer_ref(self.device_ctx)
     }
@@ -108,7 +111,10 @@ pub unsafe fn transfer_hw_frame_if_needed(frame: *mut ffi::AVFrame) -> bool {
     // Transfer from GPU to CPU memory
     let ret = ffi::av_hwframe_transfer_data(sw_frame, frame, 0);
     if ret < 0 {
-        warn!(error_code = ret, "Failed to transfer hardware frame to software");
+        warn!(
+            error_code = ret,
+            "Failed to transfer hardware frame to software"
+        );
         ffi::av_frame_free(&mut (sw_frame as *mut _));
         return false;
     }

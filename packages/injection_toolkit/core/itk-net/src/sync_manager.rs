@@ -59,7 +59,8 @@ impl SyncManager {
         if self.is_leader {
             1.0
         } else {
-            self.drift_corrector.calculate_rate(self.local_sync.current_position_ms())
+            self.drift_corrector
+                .calculate_rate(self.local_sync.current_position_ms())
         }
     }
 
@@ -68,7 +69,8 @@ impl SyncManager {
         if self.is_leader {
             None
         } else {
-            self.drift_corrector.should_seek(self.local_sync.current_position_ms())
+            self.drift_corrector
+                .should_seek(self.local_sync.current_position_ms())
         }
     }
 
@@ -77,7 +79,8 @@ impl SyncManager {
         if self.is_leader {
             None
         } else {
-            self.drift_corrector.current_drift_ms(self.local_sync.current_position_ms())
+            self.drift_corrector
+                .current_drift_ms(self.local_sync.current_position_ms())
         }
     }
 
@@ -167,13 +170,15 @@ impl SyncManager {
 
         if self.is_leader {
             // Leader tracks clock offset to each peer
-            let clock = self.peer_clocks.entry(from.to_string()).or_insert_with(ClockSync::new);
+            let clock = self.peer_clocks.entry(from.to_string()).or_default();
             clock.process_pong(pong.sender_time_ms, pong.receiver_time_ms, recv_time);
         } else {
             // Follower uses drift corrector's clock sync
-            self.drift_corrector
-                .clock_sync_mut()
-                .process_pong(pong.sender_time_ms, pong.receiver_time_ms, recv_time);
+            self.drift_corrector.clock_sync_mut().process_pong(
+                pong.sender_time_ms,
+                pong.receiver_time_ms,
+                recv_time,
+            );
         }
 
         self.pending_pings.remove(from);
@@ -184,11 +189,11 @@ impl SyncManager {
         let now = Instant::now();
 
         // Leader broadcasts sync state
-        if self.is_leader {
-            if now.duration_since(self.last_sync_broadcast).as_millis() as u64 >= SYNC_INTERVAL_MS {
-                self.broadcast_sync_state(peer_manager)?;
-                self.last_sync_broadcast = now;
-            }
+        if self.is_leader
+            && now.duration_since(self.last_sync_broadcast).as_millis() as u64 >= SYNC_INTERVAL_MS
+        {
+            self.broadcast_sync_state(peer_manager)?;
+            self.last_sync_broadcast = now;
         }
 
         // Send clock pings periodically
@@ -215,7 +220,11 @@ impl SyncManager {
 
     fn send_clock_pings(&mut self, peer_manager: &mut PeerManager) -> Result<()> {
         let now_ms = itk_sync::now_ms();
-        let peers: Vec<_> = peer_manager.peers().into_iter().map(|p| (p.id(), p.addr)).collect();
+        let peers: Vec<_> = peer_manager
+            .peers()
+            .into_iter()
+            .map(|p| (p.id(), p.addr))
+            .collect();
 
         for (peer_id, addr) in peers {
             let ping = itk_protocol::ClockPing {
@@ -230,7 +239,11 @@ impl SyncManager {
     }
 
     /// Send a video command to all peers (leader only)
-    pub fn send_command(&mut self, cmd: VideoCommand, peer_manager: &mut PeerManager) -> Result<()> {
+    pub fn send_command(
+        &mut self,
+        cmd: VideoCommand,
+        peer_manager: &mut PeerManager,
+    ) -> Result<()> {
         if !self.is_leader {
             return Ok(());
         }

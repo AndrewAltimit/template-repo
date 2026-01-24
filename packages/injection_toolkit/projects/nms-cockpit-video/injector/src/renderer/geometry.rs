@@ -46,13 +46,31 @@ impl Vertex {
 /// In Phase 3, the MVP push constant will transform this to cockpit screen position.
 pub const QUAD_VERTICES: [Vertex; 6] = [
     // Triangle 1 (top-left, bottom-left, bottom-right)
-    Vertex { pos: [-1.0, -1.0, 0.0], uv: [0.0, 0.0] }, // TL
-    Vertex { pos: [-1.0,  1.0, 0.0], uv: [0.0, 1.0] }, // BL
-    Vertex { pos: [ 1.0,  1.0, 0.0], uv: [1.0, 1.0] }, // BR
+    Vertex {
+        pos: [-1.0, -1.0, 0.0],
+        uv: [0.0, 0.0],
+    }, // TL
+    Vertex {
+        pos: [-1.0, 1.0, 0.0],
+        uv: [0.0, 1.0],
+    }, // BL
+    Vertex {
+        pos: [1.0, 1.0, 0.0],
+        uv: [1.0, 1.0],
+    }, // BR
     // Triangle 2 (top-left, bottom-right, top-right)
-    Vertex { pos: [-1.0, -1.0, 0.0], uv: [0.0, 0.0] }, // TL
-    Vertex { pos: [ 1.0,  1.0, 0.0], uv: [1.0, 1.0] }, // BR
-    Vertex { pos: [ 1.0, -1.0, 0.0], uv: [1.0, 0.0] }, // TR
+    Vertex {
+        pos: [-1.0, -1.0, 0.0],
+        uv: [0.0, 0.0],
+    }, // TL
+    Vertex {
+        pos: [1.0, 1.0, 0.0],
+        uv: [1.0, 1.0],
+    }, // BR
+    Vertex {
+        pos: [1.0, -1.0, 0.0],
+        uv: [1.0, 0.0],
+    }, // TR
 ];
 
 /// Size in bytes of the quad vertex data.

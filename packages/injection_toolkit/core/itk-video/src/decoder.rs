@@ -49,7 +49,7 @@ pub struct VideoDecoder {
     /// Reusable frame buffer.
     frame: VideoFrame,
     /// Reusable packet.
-    packet: Packet,
+    _packet: Packet,
     /// Hardware device context (kept alive for the decoder's lifetime).
     _hw_ctx: Option<HwDeviceContext>,
     /// Whether hardware acceleration is active.
@@ -181,7 +181,7 @@ impl VideoDecoder {
             duration_ms,
             fps,
             frame: VideoFrame::empty(),
-            packet: Packet::empty(),
+            _packet: Packet::empty(),
             _hw_ctx: hw_ctx,
             hw_accel_active,
         })
@@ -228,9 +228,7 @@ impl VideoDecoder {
                     // Transfer from GPU to CPU memory if using hardware acceleration
                     if self.hw_accel_active {
                         unsafe {
-                            crate::hwaccel::transfer_hw_frame_if_needed(
-                                self.frame.as_mut_ptr(),
-                            );
+                            crate::hwaccel::transfer_hw_frame_if_needed(self.frame.as_mut_ptr());
                         }
                     }
 
@@ -312,7 +310,7 @@ impl VideoDecoder {
     }
 
     /// Convert milliseconds to PTS value.
-    fn ms_to_pts(&self, ms: u64) -> i64 {
+    fn _ms_to_pts(&self, ms: u64) -> i64 {
         let num = self.time_base.numerator() as i64;
         let den = self.time_base.denominator() as i64;
 
@@ -351,6 +349,7 @@ fn find_software_decoder(codec_id: codec::Id) -> Option<Codec> {
 
 #[cfg(test)]
 mod tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]

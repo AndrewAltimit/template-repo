@@ -487,7 +487,9 @@ impl FrameBuffer {
     ///
     /// This is written outside the seqlock since it only changes on load.
     pub fn set_duration_ms(&self, duration_ms: u64) {
-        self.header().duration_ms.store(duration_ms, Ordering::Release);
+        self.header()
+            .duration_ms
+            .store(duration_ms, Ordering::Release);
     }
 
     /// Get the duration in milliseconds.

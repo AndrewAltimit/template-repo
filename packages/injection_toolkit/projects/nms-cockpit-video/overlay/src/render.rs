@@ -84,7 +84,10 @@ impl NmsRenderer {
             .copied()
             .unwrap_or(surface_caps.formats[0]);
 
-        let alpha_mode = if surface_caps.alpha_modes.contains(&wgpu::CompositeAlphaMode::PreMultiplied) {
+        let alpha_mode = if surface_caps
+            .alpha_modes
+            .contains(&wgpu::CompositeAlphaMode::PreMultiplied)
+        {
             wgpu::CompositeAlphaMode::PreMultiplied
         } else {
             surface_caps.alpha_modes[0]
@@ -366,15 +369,12 @@ impl NmsRenderer {
                 controls.ui(ctx);
             });
 
-            self.egui_state.handle_platform_output(
-                &self.window,
-                full_output.platform_output,
-            );
+            self.egui_state
+                .handle_platform_output(&self.window, full_output.platform_output);
 
-            let clipped_primitives = self.egui_ctx.tessellate(
-                full_output.shapes,
-                full_output.pixels_per_point,
-            );
+            let clipped_primitives = self
+                .egui_ctx
+                .tessellate(full_output.shapes, full_output.pixels_per_point);
 
             let screen_descriptor = ScreenDescriptor {
                 size_in_pixels: [self.config.width, self.config.height],
@@ -413,8 +413,11 @@ impl NmsRenderer {
                     timestamp_writes: None,
                 });
 
-                self.egui_renderer
-                    .render(&mut render_pass, &clipped_primitives, &screen_descriptor);
+                self.egui_renderer.render(
+                    &mut render_pass,
+                    &clipped_primitives,
+                    &screen_descriptor,
+                );
             }
 
             // Free egui textures

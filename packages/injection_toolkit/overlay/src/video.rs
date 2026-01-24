@@ -38,7 +38,10 @@ impl VideoFrameReader {
                 Some(fb)
             }
             Err(e) => {
-                debug!(?e, "Frame buffer not available yet (daemon may not be running)");
+                debug!(
+                    ?e,
+                    "Frame buffer not available yet (daemon may not be running)"
+                );
                 None
             }
         };

@@ -102,11 +102,11 @@ enum EVRSubmitFlags {
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct VRVulkanTextureData_t {
-    pub image: u64,             // VkImage (uint64_t handle)
-    pub device: *const c_void,  // VkDevice
+    pub image: u64,                     // VkImage (uint64_t handle)
+    pub device: *const c_void,          // VkDevice
     pub physical_device: *const c_void, // VkPhysicalDevice
-    pub instance: *const c_void, // VkInstance
-    pub queue: *const c_void,   // VkQueue
+    pub instance: *const c_void,        // VkInstance
+    pub queue: *const c_void,           // VkQueue
     pub queue_family_index: u32,
     pub width: u32,
     pub height: u32,
@@ -131,8 +131,7 @@ type FnGetGenericInterface =
 const SUBMIT_VTABLE_INDEX: usize = 5;
 
 /// Frame counter for VR.
-static VR_FRAME_COUNT: std::sync::atomic::AtomicU64 =
-    std::sync::atomic::AtomicU64::new(0);
+static VR_FRAME_COUNT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 // --- Public API ---
 
@@ -163,11 +162,16 @@ pub unsafe fn try_install() -> Result<bool, String> {
 
     // Get VR_GetGenericInterface
     let proc_name = CString::new("VR_GetGenericInterface").unwrap();
-    let get_interface_addr =
-        GetProcAddress(openvr_module, windows::core::PCSTR(proc_name.as_ptr() as *const _));
+    let get_interface_addr = GetProcAddress(
+        openvr_module,
+        windows::core::PCSTR(proc_name.as_ptr() as *const _),
+    );
 
     let get_interface: FnGetGenericInterface = match get_interface_addr {
-        Some(f) => std::mem::transmute(f),
+        Some(f) => std::mem::transmute::<
+            unsafe extern "system" fn() -> isize,
+            unsafe extern "system" fn(*const u8, *mut i32) -> *const c_void,
+        >(f),
         None => return Err("VR_GetGenericInterface not found in openvr_api.dll".into()),
     };
 
@@ -177,10 +181,7 @@ pub unsafe fn try_install() -> Result<bool, String> {
     let compositor = get_interface(version.as_ptr(), &mut error);
 
     if compositor.is_null() || error != 0 {
-        return Err(format!(
-            "Failed to get IVRCompositor_028: error={}",
-            error
-        ));
+        return Err(format!("Failed to get IVRCompositor_028: error={}", error));
     }
 
     vlog!("IVRCompositor_028 at {:p}", compositor);
@@ -198,7 +199,7 @@ pub unsafe fn try_install() -> Result<bool, String> {
     // Save original function pointer
     let original = *submit_slot;
     ORIGINAL_SUBMIT.store(original as *mut c_void, Ordering::Release);
-    VTABLE_SLOT.store(submit_slot as *mut *const c_void, Ordering::Release);
+    VTABLE_SLOT.store(submit_slot, Ordering::Release);
 
     // Make vtable writable, swap pointer, restore protection
     let mut old_protect = PAGE_PROTECTION_FLAGS(0);
@@ -220,7 +221,12 @@ pub unsafe fn try_install() -> Result<bool, String> {
 
     // Restore protection
     let mut dummy = PAGE_PROTECTION_FLAGS(0);
-    let _ = VirtualProtect(submit_slot as *const c_void, slot_size, old_protect, &mut dummy);
+    let _ = VirtualProtect(
+        submit_slot as *const c_void,
+        slot_size,
+        old_protect,
+        &mut dummy,
+    );
 
     VR_ACTIVE.store(true, Ordering::Release);
     vlog!("IVRCompositor::Submit hooked successfully");
@@ -241,8 +247,6 @@ pub unsafe fn remove() {
     let original = ORIGINAL_SUBMIT.load(Ordering::Acquire);
 
     if !slot.is_null() && !original.is_null() {
-        let slot = slot as *mut *const c_void;
-
         let mut old_protect = PAGE_PROTECTION_FLAGS(0);
         let slot_size = std::mem::size_of::<*const c_void>();
 
@@ -292,7 +296,7 @@ unsafe extern "system" fn hooked_submit(
         if tex.e_type == ETextureType::Vulkan as i32 && !tex.handle.is_null() {
             let vk_data = &*(tex.handle as *const VRVulkanTextureData_t);
 
-            if frame % 600 == 0 {
+            if frame.is_multiple_of(600) {
                 vlog!(
                     "VR Submit: eye={:?} {}x{} format={} image=0x{:X}",
                     eye,
@@ -308,14 +312,13 @@ unsafe extern "system" fn hooked_submit(
     }
 
     // Call original Submit
-    let original: FnSubmit =
-        std::mem::transmute(ORIGINAL_SUBMIT.load(Ordering::Acquire));
+    let original: FnSubmit = std::mem::transmute(ORIGINAL_SUBMIT.load(Ordering::Acquire));
     original(this, eye, texture, bounds, flags)
 }
 
 /// Render the video quad to a VR eye texture.
 unsafe fn render_to_vr_eye(eye: EVREye, vk_data: &VRVulkanTextureData_t, frame: u64) {
-    use super::vulkan::{get_renderer, get_shmem_frame, get_mvp};
+    use super::vulkan::{get_mvp, get_renderer, get_shmem_frame};
     use ash::vk;
 
     // Get the renderer (shared with desktop rendering)
@@ -336,13 +339,8 @@ unsafe fn render_to_vr_eye(eye: EVREye, vk_data: &VRVulkanTextureData_t, frame: 
         };
 
         // Render to the VR eye image
-        if let Err(e) = renderer.render_to_vr_image(
-            vr_image,
-            extent,
-            &mvp,
-            new_frame.as_deref(),
-        ) {
-            if frame % 600 == 0 {
+        if let Err(e) = renderer.render_to_vr_image(vr_image, extent, &mvp, new_frame.as_deref()) {
+            if frame.is_multiple_of(600) {
                 vlog!("VR render error (eye={:?}): {}", eye, e);
             }
         }

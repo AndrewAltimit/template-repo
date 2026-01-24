@@ -1,7 +1,7 @@
 //! Frame scaling and pixel format conversion.
 
 use crate::error::{VideoError, VideoResult};
-use crate::{DEFAULT_HEIGHT, DEFAULT_WIDTH, BYTES_PER_PIXEL};
+use crate::{BYTES_PER_PIXEL, DEFAULT_HEIGHT, DEFAULT_WIDTH};
 use ffmpeg_next::format::Pixel;
 use ffmpeg_next::software::scaling::{Context as SwsContext, Flags};
 use ffmpeg_next::util::frame::video::Video as VideoFrame;
@@ -109,7 +109,7 @@ impl FrameScaler {
         // Copy the frame data to our output buffer
         // RGBA frames have a single plane
         let data = self.output_frame.data(0);
-        let linesize = self.output_frame.stride(0) as usize;
+        let linesize = self.output_frame.stride(0);
         let row_bytes = (self.output_width as usize) * BYTES_PER_PIXEL;
 
         // Handle potential padding in frame rows

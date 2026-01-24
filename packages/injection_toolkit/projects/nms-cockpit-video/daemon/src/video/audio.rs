@@ -228,6 +228,7 @@ fn get_output_config(device: &Device) -> Option<StreamConfig> {
 type AudioProducer = ringbuf::HeapProd<f32>;
 
 /// Audio decode loop - runs in a separate thread.
+#[allow(clippy::too_many_arguments)]
 fn audio_decode_loop(
     source: &str,
     target_sample_rate: u32,
@@ -395,8 +396,7 @@ fn audio_decode_loop(
                         Ok(_delay) => {
                             // Extract f32 samples from resampled frame
                             let data = resampled_frame.data(0);
-                            let sample_count =
-                                resampled_frame.samples() * target_channels as usize;
+                            let sample_count = resampled_frame.samples() * target_channels as usize;
                             let samples: &[f32] = unsafe {
                                 std::slice::from_raw_parts(
                                     data.as_ptr() as *const f32,

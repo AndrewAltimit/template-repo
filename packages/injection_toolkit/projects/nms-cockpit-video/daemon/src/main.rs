@@ -7,8 +7,8 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use itk_ipc::{IpcChannel, IpcServer};
 use itk_protocol::{
-    decode, encode, MessageType, ScreenRect, StateQuery, StateResponse,
-    VideoLoad, VideoPause, VideoPlay, VideoSeek,
+    decode, encode, MessageType, ScreenRect, StateQuery, StateResponse, VideoLoad, VideoPause,
+    VideoPlay, VideoSeek,
 };
 use std::sync::{Arc, RwLock};
 use std::thread;
@@ -66,9 +66,7 @@ fn main() -> Result<()> {
     let filter = format!("nms_video_daemon={},itk={}", args.log_level, args.log_level);
     let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(&filter));
-    tracing_subscriber::fmt()
-        .with_env_filter(env_filter)
-        .init();
+    tracing_subscriber::fmt().with_env_filter(env_filter).init();
 
     info!("NMS Cockpit Video Player Daemon starting");
     info!(mod_channel = %args.mod_channel, client_channel = %args.client_channel);
@@ -174,14 +172,22 @@ fn process_mod_message(data: &[u8], state: &Arc<RwLock<AppState>>) -> Result<()>
             let (_, rect): (_, ScreenRect) = decode(data)?;
 
             // Validate the rect
-            if !rect.x.is_finite() || !rect.y.is_finite()
-                || !rect.width.is_finite() || !rect.height.is_finite()
+            if !rect.x.is_finite()
+                || !rect.y.is_finite()
+                || !rect.width.is_finite()
+                || !rect.height.is_finite()
             {
                 warn!("Invalid ScreenRect from mod (non-finite values)");
                 return Ok(());
             }
 
-            debug!(x = rect.x, y = rect.y, w = rect.width, h = rect.height, "Updated screen rect");
+            debug!(
+                x = rect.x,
+                y = rect.y,
+                w = rect.width,
+                h = rect.height,
+                "Updated screen rect"
+            );
 
             let mut state = state.write().unwrap();
             state.screen_rect = Some(rect);

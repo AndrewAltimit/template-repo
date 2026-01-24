@@ -113,6 +113,7 @@ fn make_pipe_name(name: &str) -> Result<String> {
 }
 
 /// RAII wrapper for security descriptor allocated by Windows APIs
+#[allow(dead_code)]
 struct SecurityDescriptorGuard {
     ptr: PSECURITY_DESCRIPTOR,
 }
@@ -135,6 +136,7 @@ impl Drop for SecurityDescriptorGuard {
 ///
 /// This prevents other users on the system from connecting to the pipe,
 /// similar to Unix socket permissions of 0o600.
+#[allow(dead_code)]
 fn create_restricted_security_attributes() -> Result<(SECURITY_ATTRIBUTES, SecurityDescriptorGuard)>
 {
     // SDDL: D:(A;;GA;;;CO)

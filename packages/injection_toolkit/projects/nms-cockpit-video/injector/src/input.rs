@@ -146,9 +146,7 @@ fn is_key_down(vk: i32) -> bool {
 
 /// Read unicode text from the Windows clipboard.
 fn read_clipboard_text() -> Option<String> {
-    use windows::Win32::System::DataExchange::{
-        CloseClipboard, GetClipboardData, OpenClipboard,
-    };
+    use windows::Win32::System::DataExchange::{CloseClipboard, GetClipboardData, OpenClipboard};
     use windows::Win32::System::Memory::{GlobalLock, GlobalUnlock};
 
     const CF_UNICODETEXT: u32 = 13;
@@ -196,7 +194,7 @@ fn read_clipboard_text() -> Option<String> {
 }
 
 /// Ensure IPC connection is established. Reconnects on failure.
-fn ensure_connected<'a>(ipc: &'a mut Option<Box<dyn IpcChannel>>) -> Option<&'a dyn IpcChannel> {
+fn ensure_connected(ipc: &mut Option<Box<dyn IpcChannel>>) -> Option<&dyn IpcChannel> {
     // Check if existing connection is still good
     if let Some(ref channel) = ipc {
         if channel.is_connected() {
@@ -233,4 +231,3 @@ fn send_command<T: serde::Serialize>(channel: &dyn IpcChannel, msg_type: Message
         }
     }
 }
-

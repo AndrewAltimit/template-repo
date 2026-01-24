@@ -78,11 +78,13 @@ impl VideoPlayer {
     }
 
     /// Stop playback and unload.
+    #[allow(dead_code)]
     pub fn stop(&self) {
         self.send_command(PlayerCommand::Stop);
     }
 
     /// Get the current player state.
+    #[allow(dead_code)]
     pub fn state(&self) -> PlayerState {
         self.state.lock().unwrap().clone()
     }
@@ -107,6 +109,7 @@ impl VideoPlayer {
     }
 
     /// Get video metadata for protocol messages.
+    #[allow(dead_code)]
     pub fn get_metadata(&self) -> Option<VideoMetadata> {
         let state = self.state.lock().unwrap();
         state.video_info().map(|info| VideoMetadata {
@@ -187,7 +190,9 @@ fn resolve_source(source: &str) -> Result<StreamSource, String> {
         }
         #[cfg(not(feature = "youtube"))]
         {
-            return Err("YouTube support not enabled (compile with --features youtube)".to_string());
+            return Err(
+                "YouTube support not enabled (compile with --features youtube)".to_string(),
+            );
         }
     }
 
@@ -407,7 +412,10 @@ fn handle_load(
     // Seek to start position if needed
     if start_position_ms > 0 {
         if let Err(e) = decoder.seek(start_position_ms) {
-            warn!(?e, "Failed to seek to start position, starting from beginning");
+            warn!(
+                ?e,
+                "Failed to seek to start position, starting from beginning"
+            );
         }
         if let Some(ref audio_player) = audio {
             audio_player.seek(start_position_ms);
@@ -477,10 +485,7 @@ fn handle_pause(state: &Arc<Mutex<PlayerState>>, ctx: &Option<DecodeContext>) {
     let mut s = state.lock().unwrap();
     if let PlayerState::Playing { info, .. } = s.clone() {
         // Use the frame writer's last PTS as the accurate position
-        let current_pos = ctx
-            .as_ref()
-            .map(|c| c.writer.last_pts_ms())
-            .unwrap_or(0);
+        let current_pos = ctx.as_ref().map(|c| c.writer.last_pts_ms()).unwrap_or(0);
         info!(position_ms = current_pos, "Pausing playback");
 
         // Pause audio

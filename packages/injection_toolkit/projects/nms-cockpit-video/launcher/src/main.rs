@@ -11,6 +11,7 @@
 //! Usage: nms-video-launcher.exe [nms-exe-path] [dll-path]
 
 use std::env;
+use std::ffi::c_void;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command, Stdio};
 use std::thread;
@@ -132,7 +133,10 @@ fn main() {
     };
 
     // Wait for the real NMS process to appear (skip the initial stub PID)
-    println!("Waiting for NMS game process (skipping initial PID {})...", initial_pid);
+    println!(
+        "Waiting for NMS game process (skipping initial PID {})...",
+        initial_pid
+    );
     let pid = match wait_for_nms(initial_pid) {
         Some(pid) => pid,
         None => {
@@ -238,9 +242,10 @@ fn spawn_daemon(path: &Path) -> Option<u32> {
 
     let log_file = std::fs::File::create(&log_path).ok();
     let stderr_cfg = match &log_file {
-        Some(f) => Stdio::from(f.try_clone().unwrap_or_else(|_| {
-            std::fs::File::create(&log_path).expect("create log")
-        })),
+        Some(f) => Stdio::from(
+            f.try_clone()
+                .unwrap_or_else(|_| std::fs::File::create(&log_path).expect("create log")),
+        ),
         None => Stdio::null(),
     };
 
@@ -309,8 +314,10 @@ fn find_nms_process(skip_pid: u32) -> Option<u32> {
     unsafe {
         let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0).ok()?;
 
-        let mut entry = PROCESSENTRY32W::default();
-        entry.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
+        let mut entry = PROCESSENTRY32W {
+            dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32,
+            ..Default::default()
+        };
 
         if Process32FirstW(snapshot, &mut entry).is_err() {
             let _ = CloseHandle(snapshot);
@@ -417,7 +424,10 @@ unsafe fn do_inject(
         process,
         None,
         0,
-        Some(std::mem::transmute(load_library_addr)),
+        Some(std::mem::transmute::<
+            unsafe extern "system" fn() -> isize,
+            unsafe extern "system" fn(*mut c_void) -> u32,
+        >(load_library_addr)),
         Some(remote_buf),
         0,
         None,

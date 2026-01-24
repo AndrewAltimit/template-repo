@@ -98,6 +98,9 @@ impl ShmemFrameReader {
 
     /// Read the current PTS from shared memory header (for diagnostics).
     pub fn shmem_pts(&self) -> u64 {
-        self.fb.header().pts_ms.load(std::sync::atomic::Ordering::Relaxed)
+        self.fb
+            .header()
+            .pts_ms
+            .load(std::sync::atomic::Ordering::Relaxed)
     }
 }

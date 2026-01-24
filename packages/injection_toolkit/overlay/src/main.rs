@@ -3,7 +3,9 @@
 //! Example overlay application using the ITK overlay library.
 
 use anyhow::Result;
-use itk_overlay::{platform, render::Renderer, video::VideoFrameReader, OverlayConfig, OverlayState};
+use itk_overlay::{
+    platform, render::Renderer, video::VideoFrameReader, OverlayConfig, OverlayState,
+};
 use itk_protocol::ScreenRect;
 use std::sync::Arc;
 use tracing::{debug, error, info};
@@ -174,7 +176,10 @@ impl ApplicationHandler for App {
         if let Some(frame_data) = self.frame_reader.try_read_frame() {
             if let Some(renderer) = &self.renderer {
                 renderer.update_texture(frame_data);
-                debug!(pts_ms = self.frame_reader.last_pts_ms(), "Updated texture with new frame");
+                debug!(
+                    pts_ms = self.frame_reader.last_pts_ms(),
+                    "Updated texture with new frame"
+                );
             }
         }
 

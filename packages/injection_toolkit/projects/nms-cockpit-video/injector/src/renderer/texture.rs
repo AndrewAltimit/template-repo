@@ -42,6 +42,7 @@ impl VideoTexture {
     ///
     /// # Safety
     /// All Vulkan handles must be valid.
+    #[allow(clippy::too_many_arguments)]
     pub unsafe fn new(
         device: &ash::Device,
         instance: &ash::Instance,
@@ -258,7 +259,12 @@ impl VideoTexture {
     /// # Safety
     /// - `cmd` must be a command buffer in the recording state
     /// - `frame_data` must be exactly width * height * 4 bytes
-    pub unsafe fn upload_frame(&self, device: &ash::Device, cmd: vk::CommandBuffer, frame_data: &[u8]) {
+    pub unsafe fn upload_frame(
+        &self,
+        device: &ash::Device,
+        cmd: vk::CommandBuffer,
+        frame_data: &[u8],
+    ) {
         let frame_size = (self.width * self.height * 4) as usize;
         debug_assert_eq!(frame_data.len(), frame_size);
 
@@ -404,16 +410,12 @@ fn find_memory_type(
     type_bits: u32,
     required: vk::MemoryPropertyFlags,
 ) -> Option<u32> {
-    for i in 0..props.memory_type_count {
-        if (type_bits & (1 << i)) != 0
+    (0..props.memory_type_count).find(|&i| {
+        (type_bits & (1 << i)) != 0
             && props.memory_types[i as usize]
                 .property_flags
                 .contains(required)
-        {
-            return Some(i);
-        }
-    }
-    None
+    })
 }
 
 /// Transition image to SHADER_READ_ONLY and clear to black.

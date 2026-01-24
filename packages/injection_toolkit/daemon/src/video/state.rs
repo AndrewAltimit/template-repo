@@ -64,7 +64,9 @@ impl PlayerState {
     pub fn has_video(&self) -> bool {
         matches!(
             self,
-            PlayerState::Playing { .. } | PlayerState::Paused { .. } | PlayerState::Buffering { .. }
+            PlayerState::Playing { .. }
+                | PlayerState::Paused { .. }
+                | PlayerState::Buffering { .. }
         )
     }
 

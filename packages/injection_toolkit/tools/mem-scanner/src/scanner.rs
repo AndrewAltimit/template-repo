@@ -7,8 +7,8 @@ use windows::Win32::Foundation::{CloseHandle, HANDLE};
 use windows::Win32::System::Diagnostics::Debug::ReadProcessMemory;
 use windows::Win32::System::Memory::{
     VirtualQueryEx, MEMORY_BASIC_INFORMATION, MEM_COMMIT, PAGE_EXECUTE_READ,
-    PAGE_EXECUTE_READWRITE, PAGE_EXECUTE_WRITECOPY, PAGE_READONLY, PAGE_READWRITE,
-    PAGE_PROTECTION_FLAGS, PAGE_WRITECOPY,
+    PAGE_EXECUTE_READWRITE, PAGE_EXECUTE_WRITECOPY, PAGE_PROTECTION_FLAGS, PAGE_READONLY,
+    PAGE_READWRITE, PAGE_WRITECOPY,
 };
 use windows::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_INFORMATION, PROCESS_VM_READ};
 
@@ -101,7 +101,10 @@ fn parse_args() -> Result<Args, String> {
 }
 
 fn parse_hex(s: &str) -> Result<u64, String> {
-    let s = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")).unwrap_or(s);
+    let s = s
+        .strip_prefix("0x")
+        .or_else(|| s.strip_prefix("0X"))
+        .unwrap_or(s);
     u64::from_str_radix(s, 16).map_err(|e| format!("Invalid hex '{s}': {e}"))
 }
 
@@ -119,8 +122,8 @@ fn parse_pattern(pattern_str: &str) -> Result<Vec<PatternByte>, String> {
                 is_wildcard: true,
             });
         } else {
-            let value = u8::from_str_radix(part, 16)
-                .map_err(|e| format!("Invalid byte '{part}': {e}"))?;
+            let value =
+                u8::from_str_radix(part, 16).map_err(|e| format!("Invalid byte '{part}': {e}"))?;
             pattern.push(PatternByte {
                 value,
                 is_wildcard: false,
@@ -144,7 +147,13 @@ fn is_readable(protect: PAGE_PROTECTION_FLAGS) -> bool {
 
 /// Fast pattern match - finds all occurrences of pattern in data.
 /// Uses first non-wildcard byte as anchor for fast scanning.
-fn find_pattern(data: &[u8], pattern: &[PatternByte], base_addr: u64, max_results: usize, results: &mut Vec<ScanResult>) {
+fn find_pattern(
+    data: &[u8],
+    pattern: &[PatternByte],
+    base_addr: u64,
+    max_results: usize,
+    results: &mut Vec<ScanResult>,
+) {
     if pattern.is_empty() || data.len() < pattern.len() {
         return;
     }
@@ -260,12 +269,8 @@ pub fn run() -> Result<(), String> {
 
     // Open process
     let handle = unsafe {
-        OpenProcess(
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-            false,
-            args.pid,
-        )
-        .map_err(|e| format!("Failed to open process {}: {e}", args.pid))?
+        OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, args.pid)
+            .map_err(|e| format!("Failed to open process {}: {e}", args.pid))?
     };
 
     let mut results: Vec<ScanResult> = Vec::new();
@@ -319,7 +324,13 @@ pub fn run() -> Result<(), String> {
                     let search_start = overlap;
                     let search_data = &data[search_start..];
                     let search_base = region_base + offset as u64;
-                    find_pattern(search_data, &pattern, search_base, args.max_results, &mut results);
+                    find_pattern(
+                        search_data,
+                        &pattern,
+                        search_base,
+                        args.max_results,
+                        &mut results,
+                    );
                     bytes_scanned += search_data.len() as u64;
                 }
 
@@ -336,7 +347,9 @@ pub fn run() -> Result<(), String> {
     }
 
     // Clean up
-    unsafe { let _ = CloseHandle(handle); }
+    unsafe {
+        let _ = CloseHandle(handle);
+    }
 
     // Output
     if args.output_json {

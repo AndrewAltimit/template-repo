@@ -23,8 +23,12 @@ use windows::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
 // --- Type aliases for ICD function pointers ---
 
 type PfnQueuePresent = unsafe extern "system" fn(vk::Queue, *const c_void) -> vk::Result;
-type PfnCreateSwapchain =
-    unsafe extern "system" fn(vk::Device, *const c_void, *const c_void, *mut vk::SwapchainKHR) -> vk::Result;
+type PfnCreateSwapchain = unsafe extern "system" fn(
+    vk::Device,
+    *const c_void,
+    *const c_void,
+    *mut vk::SwapchainKHR,
+) -> vk::Result;
 
 // --- Captured state ---
 
@@ -183,13 +187,17 @@ fn hooked_create_device(
         // using vulkan-1.dll exports directly
         if ASH_INSTANCE.get().is_none() {
             vlog!("vkCreateInstance was missed - creating ash::Instance from loader exports");
-            unsafe { create_ash_instance_from_exports(); }
+            unsafe {
+                create_ash_instance_from_exports();
+            }
         }
 
         // Hook vkQueuePresentKHR and vkCreateSwapchainKHR at the ICD level.
         // Extension functions bypass the loader when obtained via vkGetDeviceProcAddr,
         // so we must hook the actual ICD addresses.
-        unsafe { setup_icd_hooks(dev); }
+        unsafe {
+            setup_icd_hooks(dev);
+        }
     }
 
     result
@@ -249,7 +257,7 @@ fn hooked_queue_present(queue: vk::Queue, present_info_ptr: *const c_void) -> vk
     }
 
     // Log every 300 frames (~5 seconds at 60fps)
-    if count % 300 == 0 {
+    if count.is_multiple_of(300) {
         vlog!("vkQueuePresentKHR frame={}", count);
     }
 
@@ -387,7 +395,7 @@ unsafe extern "system" fn icd_hooked_queue_present(
     }
 
     // Log every 300 frames (~5 seconds at 60fps)
-    if count % 300 == 0 {
+    if count.is_multiple_of(300) {
         vlog!("vkQueuePresentKHR (ICD) frame={}", count);
     }
 
@@ -476,8 +484,7 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
                 if let Some(instance) = ASH_INSTANCE.get() {
                     if let Some(&device) = DEVICE.get() {
                         let device_fns = ash::Device::load(instance.fp_v1_0(), device);
-                        let swapchain_fn =
-                            ash::khr::swapchain::Device::new(instance, &device_fns);
+                        let swapchain_fn = ash::khr::swapchain::Device::new(instance, &device_fns);
                         if let Ok(images) = swapchain_fn.get_swapchain_images(swapchain) {
                             if (image_index as usize) < images.len() {
                                 let image = images[image_index as usize];
@@ -487,7 +494,7 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
                                     &mvp,
                                     new_frame.as_deref(),
                                 ) {
-                                    if frame % 300 == 0 {
+                                    if frame.is_multiple_of(300) {
                                         vlog!("Render error: {}", e);
                                     }
                                 }
@@ -498,7 +505,7 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
             }
         }
         Err(e) => {
-            if frame % 300 == 0 {
+            if frame.is_multiple_of(300) {
                 vlog!("Renderer not ready: {}", e);
             }
         }
@@ -511,36 +518,36 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
 /// Returns Some(frame_bytes) if a new frame is available.
 unsafe fn poll_video_frame(frame: u64) -> Option<Vec<u8>> {
     // Try to initialize the reader (only once - if it fails, the daemon isn't running)
-    let reader = SHMEM_READER.get_or_try_init(|| {
-        match ShmemFrameReader::open() {
-            Ok(reader) => {
-                SHMEM_FAILED.store(false, Ordering::Relaxed);
-                Ok(Mutex::new(reader))
+    let reader = SHMEM_READER.get_or_try_init(|| match ShmemFrameReader::open() {
+        Ok(reader) => {
+            SHMEM_FAILED.store(false, Ordering::Relaxed);
+            Ok(Mutex::new(reader))
+        }
+        Err(e) => {
+            if !SHMEM_FAILED.swap(true, Ordering::Relaxed) {
+                vlog!("ShmemFrameReader open failed: {} (daemon not running?)", e);
             }
-            Err(e) => {
-                if !SHMEM_FAILED.swap(true, Ordering::Relaxed) {
-                    vlog!("ShmemFrameReader open failed: {} (daemon not running?)", e);
-                }
-                Err(e)
-            }
+            Err(e)
         }
     });
 
     if let Ok(reader_mutex) = reader {
         if let Ok(mut reader) = reader_mutex.lock() {
             if let Some(data) = reader.poll_frame() {
-                if frame % 300 == 0 {
+                if frame.is_multiple_of(300) {
                     vlog!("Got video frame: {} bytes", data.len());
                 }
                 return Some(data.to_vec());
-            } else if frame % 300 == 0 {
+            } else if frame.is_multiple_of(300) {
                 // Log why we're not getting frames
-                vlog!("poll_frame: None (last_pts={}, shmem_pts={})",
+                vlog!(
+                    "poll_frame: None (last_pts={}, shmem_pts={})",
                     reader.last_pts(),
-                    reader.shmem_pts());
+                    reader.shmem_pts()
+                );
             }
         }
-    } else if frame % 600 == 0 {
+    } else if frame.is_multiple_of(600) {
         // Periodically log that we're waiting for the daemon
         vlog!("Waiting for video daemon (shmem not available)");
     }
@@ -567,7 +574,7 @@ unsafe fn compute_frame_mvp(frame: u64) -> [f32; 16] {
     }
 
     // Fallback: camera not available, use default values
-    if frame % 300 == 0 {
+    if frame.is_multiple_of(300) {
         vlog!("Camera unavailable, using fallback MVP");
     }
     let extent_packed = SWAPCHAIN_EXTENT.load(Ordering::Relaxed);
@@ -647,8 +654,11 @@ pub unsafe fn install() -> Result<(), String> {
     // Hook vkCreateInstance
     let addr = get_proc(vulkan_module, "vkCreateInstance")?;
     vlog!("vkCreateInstance at {:p}", addr);
-    let pfn: unsafe extern "system" fn(*const c_void, *const c_void, *mut vk::Instance) -> vk::Result =
-        std::mem::transmute(addr);
+    let pfn: unsafe extern "system" fn(
+        *const c_void,
+        *const c_void,
+        *mut vk::Instance,
+    ) -> vk::Result = std::mem::transmute(addr);
     Hook_vkCreateInstance
         .initialize(pfn, hooked_create_instance)
         .map_err(|e| format!("Failed to init vkCreateInstance hook: {}", e))?;
@@ -661,7 +671,10 @@ pub unsafe fn install() -> Result<(), String> {
     let addr = get_proc(vulkan_module, "vkCreateDevice")?;
     vlog!("vkCreateDevice at {:p}", addr);
     let pfn: unsafe extern "system" fn(
-        vk::PhysicalDevice, *const c_void, *const c_void, *mut vk::Device,
+        vk::PhysicalDevice,
+        *const c_void,
+        *const c_void,
+        *mut vk::Device,
     ) -> vk::Result = std::mem::transmute(addr);
     Hook_vkCreateDevice
         .initialize(pfn, hooked_create_device)
@@ -675,7 +688,10 @@ pub unsafe fn install() -> Result<(), String> {
     let addr = get_proc(vulkan_module, "vkCreateSwapchainKHR")?;
     vlog!("vkCreateSwapchainKHR at {:p}", addr);
     let pfn: unsafe extern "system" fn(
-        vk::Device, *const c_void, *const c_void, *mut vk::SwapchainKHR,
+        vk::Device,
+        *const c_void,
+        *const c_void,
+        *mut vk::SwapchainKHR,
     ) -> vk::Result = std::mem::transmute(addr);
     Hook_vkCreateSwapchainKHR
         .initialize(pfn, hooked_create_swapchain)
@@ -770,5 +786,8 @@ unsafe fn get_proc(
 unsafe fn get_instance_proc_addr_fn() -> Option<vk::PFN_vkGetInstanceProcAddr> {
     let module = get_vulkan_module().ok()?;
     let addr = get_proc(module, "vkGetInstanceProcAddr").ok()?;
-    Some(std::mem::transmute(addr))
+    Some(std::mem::transmute::<
+        *const std::ffi::c_void,
+        unsafe extern "system" fn(vk::Instance, *const i8) -> Option<unsafe extern "system" fn()>,
+    >(addr))
 }

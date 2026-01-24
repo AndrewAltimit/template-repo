@@ -43,7 +43,10 @@ pub async fn extract_url(youtube_url: &str) -> VideoResult<String> {
         .args([
             // Format selection: best video+audio up to 720p
             "-f",
-            &format!("bestvideo[height<={}]+bestaudio/best[height<={}]", MAX_HEIGHT, MAX_HEIGHT),
+            &format!(
+                "bestvideo[height<={}]+bestaudio/best[height<={}]",
+                MAX_HEIGHT, MAX_HEIGHT
+            ),
             // Get URL only, don't download
             "-g",
             // No warnings (cleaner output)
@@ -81,7 +84,9 @@ pub async fn extract_url(youtube_url: &str) -> VideoResult<String> {
     // If there are two lines, the first is video, second is audio
     // ffmpeg can handle both via concat protocol
     let url = if lines.is_empty() {
-        return Err(VideoError::YoutubeExtraction("yt-dlp returned no URLs".to_string()));
+        return Err(VideoError::YoutubeExtraction(
+            "yt-dlp returned no URLs".to_string(),
+        ));
     } else if lines.len() == 1 {
         // Single combined stream
         lines[0].to_string()

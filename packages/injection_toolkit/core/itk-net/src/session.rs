@@ -3,7 +3,7 @@
 //! A session represents a group of peers watching the same content together.
 //! One peer is the leader who controls playback; others follow.
 
-use crate::discovery::{Discovery, DiscoveredPeer};
+use crate::discovery::{DiscoveredPeer, Discovery};
 use crate::peer::{NetMessage, PeerEvent, PeerManager, VideoCommand};
 use crate::sync_manager::SyncManager;
 use crate::{NetError, Result, DEFAULT_PORT};
@@ -45,7 +45,10 @@ pub enum SessionRole {
 #[derive(Debug, Clone)]
 pub enum SessionEvent {
     /// Session started
-    Started { session_id: String, role: SessionRole },
+    Started {
+        session_id: String,
+        role: SessionRole,
+    },
     /// Peer joined the session
     PeerJoined { name: String, addr: SocketAddr },
     /// Peer left the session
@@ -63,7 +66,7 @@ pub enum SessionEvent {
 /// Multiplayer session
 pub struct Session {
     /// Session configuration
-    config: SessionConfig,
+    _config: SessionConfig,
     /// Session ID (content URL hash)
     session_id: String,
     /// Our role
@@ -103,7 +106,7 @@ impl Session {
         info!(session_id = %content_id, "Created session as leader");
 
         let mut session = Self {
-            config,
+            _config: config,
             session_id: content_id.clone(),
             role: SessionRole::Leader,
             peers,
@@ -123,7 +126,11 @@ impl Session {
     }
 
     /// Join an existing session
-    pub fn join(config: SessionConfig, leader_addr: SocketAddr, content_id: String) -> Result<Self> {
+    pub fn join(
+        config: SessionConfig,
+        leader_addr: SocketAddr,
+        content_id: String,
+    ) -> Result<Self> {
         let mut peers = PeerManager::new(config.port)?;
 
         // Connect to the leader
@@ -145,7 +152,7 @@ impl Session {
         info!(session_id = %content_id, leader = %leader_addr, "Joining session");
 
         let mut session = Self {
-            config,
+            _config: config,
             session_id: content_id.clone(),
             role: SessionRole::Follower,
             peers,
@@ -211,7 +218,12 @@ impl Session {
         if self.role != SessionRole::Leader {
             return Err(NetError::NotLeader);
         }
-        self.sync.send_command(VideoCommand::Load { url: url.to_string() }, &mut self.peers)
+        self.sync.send_command(
+            VideoCommand::Load {
+                url: url.to_string(),
+            },
+            &mut self.peers,
+        )
     }
 
     /// Play (leader only)
@@ -235,7 +247,8 @@ impl Session {
         if self.role != SessionRole::Leader {
             return Err(NetError::NotLeader);
         }
-        self.sync.send_command(VideoCommand::Seek { position_ms }, &mut self.peers)
+        self.sync
+            .send_command(VideoCommand::Seek { position_ms }, &mut self.peers)
     }
 
     /// Poll for events
@@ -265,7 +278,9 @@ impl Session {
         // Check for seek requirement (large drift)
         if let Some(target_pos) = self.sync.should_seek() {
             self.sync.seek(target_pos);
-            self.events.push(SessionEvent::SeekRequired { position_ms: target_pos });
+            self.events.push(SessionEvent::SeekRequired {
+                position_ms: target_pos,
+            });
         }
 
         // Check for leader timeout (followers only)
@@ -330,7 +345,8 @@ impl Session {
             }
 
             NetMessage::ClockPing(ping) => {
-                self.sync.receive_clock_ping(from, ping, &mut self.peers, peer_addr);
+                self.sync
+                    .receive_clock_ping(from, ping, &mut self.peers, peer_addr);
             }
 
             NetMessage::ClockPong(pong) => {

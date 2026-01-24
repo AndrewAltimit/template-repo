@@ -112,25 +112,25 @@ impl CameraReader {
         let view_matrix = *matrix_ptr;
 
         // Sanity check: FoV should be reasonable (1-179 degrees)
-        if fov_deg < 1.0 || fov_deg > 179.0 {
+        if !(1.0..=179.0).contains(&fov_deg) {
             let count = self.log_counter.fetch_add(1, Ordering::Relaxed);
-            if count % 300 == 0 {
+            if count.is_multiple_of(300) {
                 vlog!("CameraReader: suspicious FoV={}, skipping", fov_deg);
             }
             return None;
         }
 
         // Sanity check: aspect should be reasonable (0.1 - 10.0)
-        if aspect < 0.1 || aspect > 10.0 {
+        if !(0.1..=10.0).contains(&aspect) {
             let count = self.log_counter.fetch_add(1, Ordering::Relaxed);
-            if count % 300 == 0 {
+            if count.is_multiple_of(300) {
                 vlog!("CameraReader: suspicious aspect={}, skipping", aspect);
             }
             return None;
         }
 
         let count = self.log_counter.fetch_add(1, Ordering::Relaxed);
-        if count % 600 == 0 {
+        if count.is_multiple_of(600) {
             vlog!(
                 "CameraReader: mode=0x{:X} fov={:.1} aspect={:.3}",
                 mode,

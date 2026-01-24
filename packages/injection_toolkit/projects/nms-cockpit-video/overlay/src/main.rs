@@ -58,10 +58,22 @@ fn parse_video_rect(s: &str) -> Result<ScreenRect, String> {
     if parts.len() != 4 {
         return Err("Expected format: x,y,w,h (e.g., 320,180,1280,720)".to_string());
     }
-    let x: f32 = parts[0].trim().parse().map_err(|e| format!("Invalid x: {e}"))?;
-    let y: f32 = parts[1].trim().parse().map_err(|e| format!("Invalid y: {e}"))?;
-    let w: f32 = parts[2].trim().parse().map_err(|e| format!("Invalid width: {e}"))?;
-    let h: f32 = parts[3].trim().parse().map_err(|e| format!("Invalid height: {e}"))?;
+    let x: f32 = parts[0]
+        .trim()
+        .parse()
+        .map_err(|e| format!("Invalid x: {e}"))?;
+    let y: f32 = parts[1]
+        .trim()
+        .parse()
+        .map_err(|e| format!("Invalid y: {e}"))?;
+    let w: f32 = parts[2]
+        .trim()
+        .parse()
+        .map_err(|e| format!("Invalid width: {e}"))?;
+    let h: f32 = parts[3]
+        .trim()
+        .parse()
+        .map_err(|e| format!("Invalid height: {e}"))?;
     Ok(ScreenRect {
         x,
         y,
@@ -173,12 +185,13 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     // Initialize logging
-    let filter = format!("nms_video_overlay={},itk={}", args.log_level, args.log_level);
+    let filter = format!(
+        "nms_video_overlay={},itk={}",
+        args.log_level, args.log_level
+    );
     let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(&filter));
-    tracing_subscriber::fmt()
-        .with_env_filter(env_filter)
-        .init();
+    tracing_subscriber::fmt().with_env_filter(env_filter).init();
 
     info!("NMS Cockpit Video Overlay starting");
 
@@ -207,13 +220,13 @@ fn main() -> Result<()> {
     let window = Arc::new(window);
 
     // Set platform-specific attributes
-    if let Err(e) = platform::set_transparent(&*window) {
+    if let Err(e) = platform::set_transparent(&window) {
         error!(?e, "Failed to set transparent");
     }
-    if let Err(e) = platform::set_always_on_top(&*window, true) {
+    if let Err(e) = platform::set_always_on_top(&window, true) {
         error!(?e, "Failed to set always-on-top");
     }
-    if let Err(e) = platform::set_click_through(&*window, true) {
+    if let Err(e) = platform::set_click_through(&window, true) {
         error!(?e, "Failed to set click-through");
     }
 
@@ -259,9 +272,10 @@ fn main() -> Result<()> {
                                         winit::keyboard::KeyCode::F9,
                                     ) => {
                                         state.click_through = !state.click_through;
-                                        if let Err(e) =
-                                            platform::set_click_through(&*window, state.click_through)
-                                        {
+                                        if let Err(e) = platform::set_click_through(
+                                            &window,
+                                            state.click_through,
+                                        ) {
                                             error!(?e, "Failed to toggle click-through");
                                         }
                                         info!(
@@ -327,11 +341,15 @@ fn main() -> Result<()> {
                     // Poll global F9 hotkey (works even in click-through mode)
                     if platform::is_key_just_pressed(platform::VK_F9, &mut f9_was_down) {
                         state.click_through = !state.click_through;
-                        if let Err(e) = platform::set_click_through(&*window, state.click_through) {
+                        if let Err(e) = platform::set_click_through(&window, state.click_through) {
                             error!(?e, "Failed to toggle click-through");
                         }
                         info!(
-                            mode = if state.click_through { "click-through" } else { "interactive" },
+                            mode = if state.click_through {
+                                "click-through"
+                            } else {
+                                "interactive"
+                            },
                             "Mode toggled"
                         );
                     }

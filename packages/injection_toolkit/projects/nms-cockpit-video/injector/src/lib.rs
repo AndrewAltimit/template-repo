@@ -79,9 +79,8 @@ fn wait_for_module(name: &str, timeout: Duration) -> Result<(), String> {
     let name_cstr = std::ffi::CString::new(name).map_err(|e| e.to_string())?;
 
     loop {
-        let handle = unsafe {
-            GetModuleHandleA(windows::core::PCSTR(name_cstr.as_ptr() as *const _))
-        };
+        let handle =
+            unsafe { GetModuleHandleA(windows::core::PCSTR(name_cstr.as_ptr() as *const _)) };
 
         if handle.is_ok() {
             return Ok(());

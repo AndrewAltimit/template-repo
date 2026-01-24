@@ -33,9 +33,7 @@ impl StreamSource {
     /// Check if this source is a YouTube URL.
     pub fn is_youtube(&self) -> bool {
         match self {
-            StreamSource::Url(url) => {
-                url.contains("youtube.com") || url.contains("youtu.be")
-            }
+            StreamSource::Url(url) => url.contains("youtube.com") || url.contains("youtu.be"),
             StreamSource::File(_) => false,
         }
     }

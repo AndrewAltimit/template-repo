@@ -215,7 +215,12 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
 }
 
 /// Handle a load command.
-fn handle_load(state: &Arc<Mutex<PlayerState>>, source: &str, start_position_ms: u64, autoplay: bool) {
+fn handle_load(
+    state: &Arc<Mutex<PlayerState>>,
+    source: &str,
+    start_position_ms: u64,
+    autoplay: bool,
+) {
     info!(source = %source, start_ms = start_position_ms, autoplay, "Loading video");
 
     // Set loading state

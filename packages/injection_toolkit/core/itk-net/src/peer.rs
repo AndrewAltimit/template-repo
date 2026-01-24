@@ -65,7 +65,10 @@ pub enum NetMessage {
     /// Heartbeat/keepalive
     Ping { timestamp_ms: u64 },
     /// Response to ping
-    Pong { timestamp_ms: u64, peer_time_ms: u64 },
+    Pong {
+        timestamp_ms: u64,
+        peer_time_ms: u64,
+    },
     /// Announce presence with name
     Announce { name: String },
     /// Sync state broadcast (unreliable, frequent)
@@ -115,7 +118,9 @@ impl PeerManager {
         let socket = Socket::bind_with_config(addr, config)
             .map_err(|e| NetError::BindFailed(e.to_string()))?;
 
-        let local_addr = socket.local_addr().map_err(|e| NetError::BindFailed(e.to_string()))?;
+        let local_addr = socket
+            .local_addr()
+            .map_err(|e| NetError::BindFailed(e.to_string()))?;
 
         info!(addr = %local_addr, "PeerManager bound");
 
@@ -249,7 +254,9 @@ impl PeerManager {
                     peers.remove(&peer_id);
                 }
 
-                self.events.write().push(PeerEvent::PeerDisconnected(peer_id));
+                self.events
+                    .write()
+                    .push(PeerEvent::PeerDisconnected(peer_id));
             }
 
             SocketEvent::Timeout(addr) => {
@@ -293,7 +300,10 @@ impl PeerManager {
                 let _ = self.send_unreliable(addr, &pong);
             }
 
-            NetMessage::Pong { timestamp_ms, peer_time_ms: _ } => {
+            NetMessage::Pong {
+                timestamp_ms,
+                peer_time_ms: _,
+            } => {
                 // Calculate latency
                 let now = itk_sync::now_ms();
                 let rtt = now.saturating_sub(timestamp_ms) as u32;

@@ -4,6 +4,7 @@ use std::time::Instant;
 
 /// Commands that can be sent to the video player.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum PlayerCommand {
     /// Load a video from a URL or file path.
     Load {
@@ -27,6 +28,7 @@ pub enum PlayerCommand {
 
 /// Video player state.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum PlayerState {
     /// No video loaded.
     Idle,
@@ -49,6 +51,7 @@ pub enum PlayerState {
     Error { message: String },
 }
 
+#[allow(dead_code)]
 impl PlayerState {
     /// Check if the player is currently playing.
     pub fn is_playing(&self) -> bool {
@@ -64,7 +67,9 @@ impl PlayerState {
     pub fn has_video(&self) -> bool {
         matches!(
             self,
-            PlayerState::Playing { .. } | PlayerState::Paused { .. } | PlayerState::Buffering { .. }
+            PlayerState::Playing { .. }
+                | PlayerState::Paused { .. }
+                | PlayerState::Buffering { .. }
         )
     }
 
@@ -101,6 +106,7 @@ impl PlayerState {
 
 /// Information about the currently loaded video.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct VideoInfo {
     /// Content identifier (URL or file path hash).
     pub content_id: String,
