@@ -45,7 +45,7 @@ pub mod stream;
 #[cfg(feature = "youtube")]
 pub mod youtube;
 
-pub use decoder::VideoDecoder;
+pub use decoder::{DecodedFrame, VideoDecoder};
 pub use error::{VideoError, VideoResult};
 pub use frame_writer::FrameWriter;
 pub use scaler::FrameScaler;

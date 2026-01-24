@@ -69,10 +69,10 @@ static RENDERER: OnceCell<Mutex<VulkanRenderer>> = OnceCell::new();
 static CAMERA: OnceCell<CameraReader> = OnceCell::new();
 
 /// Shared memory frame reader (retries periodically if daemon isn't running).
-static SHMEM_READER: OnceCell<Mutex<ShmemFrameReader>> = OnceCell::new();
+pub(super) static SHMEM_READER: OnceCell<Mutex<ShmemFrameReader>> = OnceCell::new();
 
 /// Whether we've already failed to open shmem (avoids log spam).
-static SHMEM_FAILED: AtomicBool = AtomicBool::new(false);
+pub(super) static SHMEM_FAILED: AtomicBool = AtomicBool::new(false);
 
 // --- ICD-level hook state ---
 
@@ -740,14 +740,6 @@ pub fn get_renderer() -> Option<&'static Mutex<VulkanRenderer>> {
 /// Reads camera memory.
 pub unsafe fn get_mvp(frame: u64) -> [f32; 16] {
     compute_frame_mvp(frame)
-}
-
-/// Poll shared memory for a new video frame (used by OpenVR hook).
-///
-/// # Safety
-/// Accesses shared memory.
-pub unsafe fn get_shmem_frame(frame: u64) -> Option<Vec<u8>> {
-    poll_video_frame(frame)
 }
 
 // --- Helpers ---

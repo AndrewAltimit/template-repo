@@ -3,7 +3,7 @@
 use super::audio::AudioPlayer;
 use super::state::{PlayerCommand, PlayerState, VideoInfo};
 use itk_protocol::{VideoMetadata, VideoState};
-use itk_video::{FrameWriter, StreamSource, VideoDecoder};
+use itk_video::{DecodedFrame, FrameWriter, StreamSource, VideoDecoder};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
@@ -210,6 +210,8 @@ struct DecodeContext {
     playback_start: Instant,
     /// Audio player (None if source has no audio or output unavailable).
     audio: Option<AudioPlayer>,
+    /// Frame decoded too early (>100ms ahead), held until its scheduled time.
+    pending_frame: Option<DecodedFrame>,
 }
 
 /// Main decode loop that runs in a separate thread.
@@ -277,8 +279,18 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
 }
 
 /// Decode and output the next frame with PTS-based pacing.
+///
+/// If a previously-decoded frame was too early (>100ms ahead), it is held in
+/// `pending_frame` and retried on the next call instead of being dropped.
 fn decode_next_frame(ctx: &mut DecodeContext, state: &Arc<Mutex<PlayerState>>) {
-    match ctx.decoder.next_frame() {
+    // Use pending frame if available, otherwise decode a new one
+    let frame_result = if ctx.pending_frame.is_some() {
+        Ok(ctx.pending_frame.take())
+    } else {
+        ctx.decoder.next_frame()
+    };
+
+    match frame_result {
         Ok(Some(frame)) => {
             // PTS-based frame pacing: sleep until the correct wall-clock time
             let target_elapsed_ms = frame.pts_ms.saturating_sub(ctx.base_pts_ms);
@@ -291,8 +303,10 @@ fn decode_next_frame(ctx: &mut DecodeContext, state: &Arc<Mutex<PlayerState>>) {
                 if sleep_dur < Duration::from_millis(100) {
                     thread::sleep(sleep_dur);
                 } else {
+                    // Frame is too early - hold it for the next iteration
                     thread::sleep(Duration::from_millis(100));
-                    return; // Come back next iteration
+                    ctx.pending_frame = Some(frame);
+                    return;
                 }
             }
 
@@ -437,6 +451,7 @@ fn handle_load(
         base_pts_ms: start_position_ms,
         playback_start: Instant::now(),
         audio,
+        pending_frame: None,
     };
 
     if autoplay {
@@ -513,6 +528,7 @@ fn handle_seek(state: &Arc<Mutex<PlayerState>>, ctx: &mut Option<DecodeContext>,
         // Reset timing for the new position
         decode_ctx.base_pts_ms = position_ms;
         decode_ctx.playback_start = Instant::now();
+        decode_ctx.pending_frame = None; // Discard stale buffered frame
 
         // Seek audio
         if let Some(ref audio) = decode_ctx.audio {

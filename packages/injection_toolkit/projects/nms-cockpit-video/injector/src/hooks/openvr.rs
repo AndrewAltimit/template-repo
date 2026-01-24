@@ -317,9 +317,15 @@ unsafe extern "system" fn hooked_submit(
 }
 
 /// Render the video quad to a VR eye texture.
+///
+/// Uses zero-copy frame passing: the SHMEM_READER lock is held across the render
+/// call so `poll_frame()` can return a direct `&[u8]` into shared memory.
 unsafe fn render_to_vr_eye(eye: EVREye, vk_data: &VRVulkanTextureData_t, frame: u64) {
-    use super::vulkan::{get_mvp, get_renderer, get_shmem_frame};
+    use super::vulkan::{get_mvp, get_renderer, SHMEM_FAILED, SHMEM_READER};
+    use crate::shmem_reader::ShmemFrameReader;
     use ash::vk;
+    use std::sync::atomic::Ordering;
+    use std::sync::Mutex;
 
     // Get the renderer (shared with desktop rendering)
     let renderer = match get_renderer() {
@@ -328,9 +334,26 @@ unsafe fn render_to_vr_eye(eye: EVREye, vk_data: &VRVulkanTextureData_t, frame: 
     };
 
     if let Ok(mut renderer) = renderer.lock() {
-        // Get the current MVP and frame data
         let mvp = get_mvp(frame);
-        let new_frame = get_shmem_frame(frame);
+
+        // Zero-copy shmem access: hold lock across render (same pattern as desktop path)
+        let reader_result = SHMEM_READER.get_or_try_init(|| match ShmemFrameReader::open() {
+            Ok(reader) => {
+                SHMEM_FAILED.store(false, Ordering::Relaxed);
+                Ok(Mutex::new(reader))
+            }
+            Err(e) => {
+                if !SHMEM_FAILED.swap(true, Ordering::Relaxed) {
+                    vlog!("VR: ShmemFrameReader open failed: {}", e);
+                }
+                Err(e)
+            }
+        });
+        let mut shmem_guard = reader_result.ok().and_then(|m| m.lock().ok());
+        let new_frame = match shmem_guard.as_mut() {
+            Some(reader) => reader.poll_frame(),
+            None => None,
+        };
 
         let vr_image = vk::Image::from_raw(vk_data.image);
         let extent = vk::Extent2D {
@@ -338,8 +361,7 @@ unsafe fn render_to_vr_eye(eye: EVREye, vk_data: &VRVulkanTextureData_t, frame: 
             height: vk_data.height,
         };
 
-        // Render to the VR eye image
-        if let Err(e) = renderer.render_to_vr_image(vr_image, extent, &mvp, new_frame.as_deref()) {
+        if let Err(e) = renderer.render_to_vr_image(vr_image, extent, &mvp, new_frame) {
             if frame.is_multiple_of(600) {
                 vlog!("VR render error (eye={:?}): {}", eye, e);
             }
