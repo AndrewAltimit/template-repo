@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::State,
-    http::{HeaderMap, StatusCode},
+    http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
@@ -107,30 +107,12 @@ pub async fn health_check() -> Json<HealthResponse> {
 /// Invocation handler.
 ///
 /// POST /invocations
-#[instrument(skip(state, request, headers), fields(session_id, invocation_id))]
+#[instrument(skip(state, request), fields(session_id, invocation_id))]
 pub async fn invoke(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
     Json(request): Json<InvocationRequest>,
 ) -> Result<Json<InvocationResponse>, ErrorResponse> {
     let invocation_id = Uuid::new_v4().to_string();
-
-    // Debug: Log all request headers
-    info!("Received invocation request - logging headers:");
-    for (name, value) in headers.iter() {
-        let value_str = value.to_str().unwrap_or("(binary)");
-        // Mask potential sensitive values
-        let display_value = if name.as_str().to_lowercase().contains("auth")
-            || name.as_str().to_lowercase().contains("token")
-            || name.as_str().to_lowercase().contains("secret")
-            || name.as_str().to_lowercase().contains("key")
-        {
-            format!("(set, {} chars)", value_str.len())
-        } else {
-            value_str.to_string()
-        };
-        info!(header_name = %name, header_value = %display_value, "Request header");
-    }
 
     // Get or create session
     let session_id = request.session_id.unwrap_or_else(|| Uuid::new_v4().to_string());
@@ -152,6 +134,13 @@ pub async fn invoke(
 
     // Mark session as processing
     session.set_processing();
+
+    // Restore the session's conversation history into the agent so that
+    // concurrent requests with different session IDs don't share state.
+    state
+        .agent
+        .restore_messages(session.messages.clone())
+        .await;
 
     // Invoke the agent
     let result = state.agent.invoke(&request.prompt).await.map_err(|e| {

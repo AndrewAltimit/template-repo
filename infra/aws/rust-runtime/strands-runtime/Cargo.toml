@@ -33,7 +33,6 @@ aws-sdk-secretsmanager = { workspace = true }
 axum = { workspace = true }
 tower = { workspace = true }
 tower-http = { workspace = true }
-http-body-util = { workspace = true }
 
 # Tracing / Observability
 tracing = { workspace = true }

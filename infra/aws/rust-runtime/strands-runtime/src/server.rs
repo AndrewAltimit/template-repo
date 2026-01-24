@@ -4,20 +4,18 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::{
-    body::Body,
     extract::Request,
     middleware::{self, Next},
     response::Response,
     routing::{get, post},
     Router,
 };
-use http_body_util::BodyExt;
 use strands_agent::{AgentBuilder, AgentConfig, InferenceConfig};
 use strands_core::Result;
 use strands_models::BedrockModel;
 use strands_session::SessionManager;
 use tower_http::trace::TraceLayer;
-use tracing::{info, instrument, warn};
+use tracing::{info, instrument};
 
 use crate::config::RuntimeConfig;
 use crate::handlers::{health_check, invoke, AppState};
@@ -50,33 +48,6 @@ async fn log_request(request: Request, next: Next) -> Response {
         };
         info!(header = %name, value = %display_value, "Request header");
     }
-
-    // Extract and log the body for debugging
-    let (parts, body) = request.into_parts();
-    let bytes = match body.collect().await {
-        Ok(collected) => collected.to_bytes(),
-        Err(e) => {
-            warn!(error = %e, "Failed to read request body");
-            return Response::builder()
-                .status(500)
-                .body(Body::from("Failed to read body"))
-                .unwrap();
-        }
-    };
-
-    let body_str = String::from_utf8_lossy(&bytes);
-    info!(
-        body_length = bytes.len(),
-        body_preview = %if bytes.len() > 500 {
-            format!("{}...", &body_str[..500])
-        } else {
-            body_str.to_string()
-        },
-        "Request body"
-    );
-
-    // Reconstruct the request
-    let request = Request::from_parts(parts, Body::from(bytes.to_vec()));
 
     next.run(request).await
 }

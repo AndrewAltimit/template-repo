@@ -260,6 +260,15 @@ impl Agent {
         conv.clear();
     }
 
+    /// Restore conversation from a list of messages.
+    ///
+    /// This replaces the current conversation state, enabling per-session
+    /// isolation when the agent is shared across concurrent requests.
+    pub async fn restore_messages(&self, messages: strands_core::Messages) {
+        let mut conv = self.conversation.lock().await;
+        conv.restore(messages);
+    }
+
     /// Get the current conversation.
     pub async fn messages(&self) -> strands_core::Messages {
         let conv = self.conversation.lock().await;
