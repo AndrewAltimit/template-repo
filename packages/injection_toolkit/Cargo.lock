@@ -2041,6 +2041,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "nms-video-launcher"
+version = "0.1.0"
+dependencies = [
+ "windows 0.58.0",
+]
+
+[[package]]
 name = "nms-video-overlay"
 version = "0.1.0"
 dependencies = [

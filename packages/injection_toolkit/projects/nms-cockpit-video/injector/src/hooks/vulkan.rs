@@ -1,10 +1,11 @@
 //! Vulkan function hooks for rendering injection.
 //!
-//! Hooks:
-//! - `vkCreateInstance` - Capture VkInstance for ash loader
-//! - `vkCreateDevice` - Capture VkDevice and VkPhysicalDevice
-//! - `vkCreateSwapchainKHR` - Track swapchain format/extent/images
-//! - `vkQueuePresentKHR` - Inject rendering before present
+//! Hooks Vulkan at two levels:
+//! - Loader trampolines (vkCreateInstance, vkCreateDevice) via retour static_detour
+//! - ICD-level functions (vkQueuePresentKHR, vkCreateSwapchainKHR) via RawDetour
+//!
+//! Extension functions (KHR) bypass the loader when obtained via vkGetDeviceProcAddr,
+//! so we hook the actual ICD implementation addresses after device creation.
 
 use crate::camera::projection::compute_cockpit_mvp;
 use crate::camera::{CameraReader, CAMERA_MODE_COCKPIT};
@@ -13,18 +14,24 @@ use crate::renderer::VulkanRenderer;
 use crate::shmem_reader::ShmemFrameReader;
 use ash::vk;
 use once_cell::sync::OnceCell;
-use retour::static_detour;
-use std::ffi::{c_void, CString};
+use retour::{static_detour, RawDetour};
+use std::ffi::{c_char, c_void, CString};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 use windows::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
+
+// --- Type aliases for ICD function pointers ---
+
+type PfnQueuePresent = unsafe extern "system" fn(vk::Queue, *const c_void) -> vk::Result;
+type PfnCreateSwapchain =
+    unsafe extern "system" fn(vk::Device, *const c_void, *const c_void, *mut vk::SwapchainKHR) -> vk::Result;
 
 // --- Captured state ---
 
 /// The VkInstance.
 static INSTANCE: OnceCell<vk::Instance> = OnceCell::new();
 
-/// The ash Instance loader.
+/// The ash Instance loader (created from vulkan-1.dll exports, no VkInstance needed).
 static ASH_INSTANCE: OnceCell<ash::Instance> = OnceCell::new();
 
 /// The VkPhysicalDevice used to create the device.
@@ -62,6 +69,23 @@ static SHMEM_READER: OnceCell<Mutex<ShmemFrameReader>> = OnceCell::new();
 
 /// Whether we've already failed to open shmem (avoids log spam).
 static SHMEM_FAILED: AtomicBool = AtomicBool::new(false);
+
+// --- ICD-level hook state ---
+
+/// Trampoline to call the original ICD vkQueuePresentKHR.
+static ICD_PRESENT_TRAMPOLINE: OnceCell<PfnQueuePresent> = OnceCell::new();
+
+/// Trampoline to call the original ICD vkCreateSwapchainKHR.
+static ICD_SWAPCHAIN_TRAMPOLINE: OnceCell<PfnCreateSwapchain> = OnceCell::new();
+
+/// Wrapper for RawDetour to make it Send+Sync (detours are set-and-forget).
+struct DetourHolder(RawDetour);
+unsafe impl Send for DetourHolder {}
+unsafe impl Sync for DetourHolder {}
+
+/// Keep RawDetours alive (dropping disables them).
+static ICD_PRESENT_DETOUR: OnceCell<DetourHolder> = OnceCell::new();
+static ICD_SWAPCHAIN_DETOUR: OnceCell<DetourHolder> = OnceCell::new();
 
 // --- Hook definitions ---
 
@@ -127,7 +151,7 @@ fn hooked_create_instance(
     result
 }
 
-/// Hooked vkCreateDevice: captures device and physical device.
+/// Hooked vkCreateDevice: captures device and physical device, sets up ICD hooks.
 fn hooked_create_device(
     physical_device: vk::PhysicalDevice,
     create_info: *const c_void,
@@ -154,6 +178,18 @@ fn hooked_create_device(
         let _ = PHYSICAL_DEVICE.set(physical_device);
         let _ = DEVICE.set(dev);
         vlog!("VkDevice captured: {:?}", dev);
+
+        // If vkCreateInstance was missed (late injection), create ash::Instance
+        // using vulkan-1.dll exports directly
+        if ASH_INSTANCE.get().is_none() {
+            vlog!("vkCreateInstance was missed - creating ash::Instance from loader exports");
+            unsafe { create_ash_instance_from_exports(); }
+        }
+
+        // Hook vkQueuePresentKHR and vkCreateSwapchainKHR at the ICD level.
+        // Extension functions bypass the loader when obtained via vkGetDeviceProcAddr,
+        // so we must hook the actual ICD addresses.
+        unsafe { setup_icd_hooks(dev); }
     }
 
     result
@@ -225,6 +261,187 @@ fn hooked_queue_present(queue: vk::Queue, present_info_ptr: *const c_void) -> vk
     }
 
     unsafe { Hook_vkQueuePresentKHR.call(queue, present_info_ptr) }
+}
+
+// --- ICD-level hook implementations ---
+
+/// Create ash::Instance from vulkan-1.dll exports (no VkInstance handle needed).
+///
+/// Provides a custom vkGetInstanceProcAddr that resolves functions directly from
+/// vulkan-1.dll's exports via GetProcAddress. The loader's exported trampolines
+/// dispatch correctly using the handle's internal dispatch table.
+unsafe fn create_ash_instance_from_exports() {
+    let static_fn = ash::StaticFn {
+        get_instance_proc_addr: loader_get_instance_proc_addr,
+    };
+    let entry = ash::Entry::from_static_fn(static_fn);
+    let ash_instance = ash::Instance::load(entry.static_fn(), vk::Instance::null());
+    let _ = ASH_INSTANCE.set(ash_instance);
+    vlog!("ash::Instance created from loader exports (late-init)");
+}
+
+/// Custom vkGetInstanceProcAddr that resolves functions from vulkan-1.dll exports.
+///
+/// Ignores the VkInstance parameter and uses GetProcAddress on vulkan-1.dll directly.
+/// The loader's exported trampolines use the dispatch table embedded in dispatchable
+/// handles (VkDevice, VkPhysicalDevice, VkQueue) to route to the correct ICD.
+unsafe extern "system" fn loader_get_instance_proc_addr(
+    _instance: vk::Instance,
+    p_name: *const c_char,
+) -> vk::PFN_vkVoidFunction {
+    if p_name.is_null() {
+        return None;
+    }
+    let module = match get_vulkan_module() {
+        Ok(m) => m,
+        Err(_) => return None,
+    };
+    GetProcAddress(module, windows::core::PCSTR(p_name as *const u8))
+        .map(|f| std::mem::transmute::<_, unsafe extern "system" fn()>(f))
+}
+
+/// Set up ICD-level hooks for extension functions that bypass the loader.
+///
+/// Gets the actual ICD addresses via vkGetDeviceProcAddr and detours them.
+unsafe fn setup_icd_hooks(device: vk::Device) {
+    let vulkan_module = match get_vulkan_module() {
+        Ok(m) => m,
+        Err(e) => {
+            vlog!("Failed to get vulkan module for ICD hooks: {}", e);
+            return;
+        }
+    };
+
+    // Get vkGetDeviceProcAddr from vulkan-1.dll
+    let gdpa_addr = match get_proc(vulkan_module, "vkGetDeviceProcAddr") {
+        Ok(addr) => addr,
+        Err(e) => {
+            vlog!("Failed to get vkGetDeviceProcAddr: {}", e);
+            return;
+        }
+    };
+    let gdpa: vk::PFN_vkGetDeviceProcAddr = std::mem::transmute(gdpa_addr);
+
+    // Hook vkQueuePresentKHR at ICD level
+    let present_name = CString::new("vkQueuePresentKHR").unwrap();
+    let icd_present = (gdpa)(device, present_name.as_ptr());
+    if let Some(present_fn) = icd_present {
+        let target = present_fn as *const ();
+        vlog!("ICD vkQueuePresentKHR at {:p}", target);
+
+        match RawDetour::new(target, icd_hooked_queue_present as *const ()) {
+            Ok(detour) => {
+                let trampoline: PfnQueuePresent = std::mem::transmute(detour.trampoline());
+                match detour.enable() {
+                    Ok(()) => {
+                        let _ = ICD_PRESENT_TRAMPOLINE.set(trampoline);
+                        let _ = ICD_PRESENT_DETOUR.set(DetourHolder(detour));
+                        vlog!("ICD vkQueuePresentKHR hooked successfully");
+                    }
+                    Err(e) => vlog!("Failed to enable ICD present hook: {}", e),
+                }
+            }
+            Err(e) => vlog!("Failed to create ICD present detour: {}", e),
+        }
+    } else {
+        vlog!("vkGetDeviceProcAddr returned null for vkQueuePresentKHR");
+    }
+
+    // Hook vkCreateSwapchainKHR at ICD level
+    let swapchain_name = CString::new("vkCreateSwapchainKHR").unwrap();
+    let icd_swapchain = (gdpa)(device, swapchain_name.as_ptr());
+    if let Some(swapchain_fn) = icd_swapchain {
+        let target = swapchain_fn as *const ();
+        vlog!("ICD vkCreateSwapchainKHR at {:p}", target);
+
+        match RawDetour::new(target, icd_hooked_create_swapchain as *const ()) {
+            Ok(detour) => {
+                let trampoline: PfnCreateSwapchain = std::mem::transmute(detour.trampoline());
+                match detour.enable() {
+                    Ok(()) => {
+                        let _ = ICD_SWAPCHAIN_TRAMPOLINE.set(trampoline);
+                        let _ = ICD_SWAPCHAIN_DETOUR.set(DetourHolder(detour));
+                        vlog!("ICD vkCreateSwapchainKHR hooked successfully");
+                    }
+                    Err(e) => vlog!("Failed to enable ICD swapchain hook: {}", e),
+                }
+            }
+            Err(e) => vlog!("Failed to create ICD swapchain detour: {}", e),
+        }
+    } else {
+        vlog!("vkGetDeviceProcAddr returned null for vkCreateSwapchainKHR");
+    }
+}
+
+/// ICD-level hook for vkQueuePresentKHR (called when NMS presents a frame).
+unsafe extern "system" fn icd_hooked_queue_present(
+    queue: vk::Queue,
+    present_info_ptr: *const c_void,
+) -> vk::Result {
+    let count = FRAME_COUNT.fetch_add(1, Ordering::Relaxed);
+
+    // Store the present queue on first call
+    if PRESENT_QUEUE.get().is_none() {
+        let _ = PRESENT_QUEUE.set(queue);
+        vlog!("Present queue captured (ICD hook): {:?}", queue);
+    }
+
+    // Log every 300 frames (~5 seconds at 60fps)
+    if count % 300 == 0 {
+        vlog!("vkQueuePresentKHR (ICD) frame={}", count);
+    }
+
+    // Try to render our quad overlay
+    if !present_info_ptr.is_null() {
+        try_render_overlay(queue, present_info_ptr, count);
+    }
+
+    // Call the original ICD function
+    if let Some(trampoline) = ICD_PRESENT_TRAMPOLINE.get() {
+        (trampoline)(queue, present_info_ptr)
+    } else {
+        vk::Result::SUCCESS
+    }
+}
+
+/// ICD-level hook for vkCreateSwapchainKHR (captures format/extent).
+unsafe extern "system" fn icd_hooked_create_swapchain(
+    device: vk::Device,
+    create_info: *const c_void,
+    allocator: *const c_void,
+    swapchain: *mut vk::SwapchainKHR,
+) -> vk::Result {
+    // Call the original ICD function first
+    let result = if let Some(trampoline) = ICD_SWAPCHAIN_TRAMPOLINE.get() {
+        (trampoline)(device, create_info, allocator, swapchain)
+    } else {
+        vk::Result::ERROR_UNKNOWN
+    };
+
+    if result == vk::Result::SUCCESS && !create_info.is_null() {
+        let info = &*(create_info as *const vk::SwapchainCreateInfoKHR<'_>);
+        let extent = info.image_extent;
+        let format = info.image_format;
+
+        SWAPCHAIN_EXTENT.store(
+            ((extent.width as u64) << 32) | (extent.height as u64),
+            Ordering::Relaxed,
+        );
+        SWAPCHAIN_FORMAT.store(format.as_raw() as u64, Ordering::Relaxed);
+
+        let sc = *swapchain;
+        let _ = SWAPCHAIN.set(sc);
+
+        vlog!(
+            "Swapchain created (ICD hook): {}x{} format={:?} handle={:?}",
+            extent.width,
+            extent.height,
+            format,
+            sc
+        );
+    }
+
+    result
 }
 
 /// Attempt to render the overlay quad.
@@ -476,6 +693,14 @@ pub unsafe fn install() -> Result<(), String> {
 /// # Safety
 /// Must be called during DLL detach.
 pub unsafe fn remove() {
+    // Disable ICD-level hooks first (these are the active ones)
+    if let Some(holder) = ICD_PRESENT_DETOUR.get() {
+        let _ = holder.0.disable();
+    }
+    if let Some(holder) = ICD_SWAPCHAIN_DETOUR.get() {
+        let _ = holder.0.disable();
+    }
+    // Disable loader trampoline hooks
     let _ = Hook_vkQueuePresentKHR.disable();
     let _ = Hook_vkCreateSwapchainKHR.disable();
     let _ = Hook_vkCreateDevice.disable();

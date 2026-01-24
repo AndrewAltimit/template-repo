@@ -49,6 +49,7 @@ pub extern "system" fn DllMain(
 
 /// Initialize the injector: wait for Vulkan, install hooks.
 fn init() -> Result<(), String> {
+    log::init_file_log();
     vlog!("Initializing...");
 
     // Wait for vulkan-1.dll to be loaded by the game
@@ -87,7 +88,7 @@ fn wait_for_module(name: &str, timeout: Duration) -> Result<(), String> {
             return Err("Shutdown requested during init".to_string());
         }
 
-        thread::sleep(Duration::from_millis(100));
+        thread::sleep(Duration::from_millis(10));
     }
 }
 

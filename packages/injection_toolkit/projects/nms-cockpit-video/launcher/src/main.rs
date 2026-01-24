@@ -1,7 +1,8 @@
 //! NMS Video Launcher
 //!
-//! Creates the NMS process in a suspended state with --disable-eac,
-//! injects the cockpit video DLL before Vulkan initializes, then resumes.
+//! Launches NMS with --disable-eac, waits for the game process to start,
+//! then injects the cockpit video DLL. Handles the case where NMS re-spawns
+//! itself during startup by polling for the real game process.
 //!
 //! Defaults:
 //!   NMS: D:\SteamLibrary\steamapps\common\No Man's Sky\Binaries\NMS.exe
@@ -12,20 +13,35 @@
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::{self, Command, Stdio};
+use std::thread;
+use std::time::{Duration, Instant};
 
-use windows::core::{PCSTR, PCWSTR, PWSTR};
+use windows::core::PCSTR;
 use windows::Win32::Foundation::{CloseHandle, WAIT_OBJECT_0};
 use windows::Win32::System::Diagnostics::Debug::WriteProcessMemory;
 use windows::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
-use windows::Win32::System::Memory::{VirtualAllocEx, VirtualFreeEx, MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_READWRITE};
+use windows::Win32::System::Memory::{
+    VirtualAllocEx, VirtualFreeEx, MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_READWRITE,
+};
 use windows::Win32::System::Threading::{
-    CreateProcessW, CreateRemoteThread, ResumeThread, WaitForSingleObject,
-    CREATE_SUSPENDED, INFINITE, PROCESS_INFORMATION, STARTUPINFOW,
+    CreateRemoteThread, OpenProcess, WaitForSingleObject, INFINITE, PROCESS_CREATE_THREAD,
+    PROCESS_QUERY_INFORMATION, PROCESS_VM_OPERATION, PROCESS_VM_WRITE,
 };
 
 const DEFAULT_NMS: &str = r"D:\SteamLibrary\steamapps\common\No Man's Sky\Binaries\NMS.exe";
 const DEFAULT_DLL: &str = "nms_cockpit_injector.dll";
 const DEFAULT_DAEMON: &str = "nms-video-daemon.exe";
+
+/// How long to wait for NMS to start before giving up.
+const WAIT_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// How often to poll for the NMS process.
+const POLL_INTERVAL: Duration = Duration::from_millis(500);
+
+/// Delay after finding the process before injecting.
+/// Must be short - the DLL waits internally for vulkan-1.dll, and hooks must be
+/// installed BEFORE NMS calls vkCreateDevice (which sets up ICD hooks).
+const INJECT_DELAY: Duration = Duration::from_millis(500);
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -56,7 +72,10 @@ fn main() {
     }
     if !dll_path.exists() {
         eprintln!("Error: DLL not found: {}", dll_path.display());
-        eprintln!("Place {} next to this launcher, or pass the path as the second argument.", DEFAULT_DLL);
+        eprintln!(
+            "Place {} next to this launcher, or pass the path as the second argument.",
+            DEFAULT_DLL
+        );
         process::exit(1);
     }
 
@@ -69,17 +88,69 @@ fn main() {
         }
     };
 
+    // Strip \\?\ prefix from canonicalized path (LoadLibraryW handles regular paths fine)
+    let dll_str = dll_abs
+        .to_str()
+        .unwrap_or("")
+        .strip_prefix(r"\\?\")
+        .unwrap_or(dll_abs.to_str().unwrap_or(""));
+    let dll_clean = PathBuf::from(dll_str);
+
     println!("NMS:  {}", nms_path.display());
-    println!("DLL:  {}", dll_abs.display());
+    println!("DLL:  {}", dll_clean.display());
     println!("Args: --disable-eac");
     println!();
 
     // Start the daemon as a separate process
-    start_daemon(&dll_abs);
+    start_daemon(&dll_clean);
 
+    // Launch NMS
+    println!("Launching NMS with --disable-eac...");
+    let nms_dir = nms_path.parent().map(|p| p.to_path_buf());
+
+    let mut cmd = Command::new(&nms_path);
+    cmd.arg("--disable-eac")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+
+    if let Some(dir) = &nms_dir {
+        cmd.current_dir(dir);
+    }
+
+    let initial_pid = match cmd.spawn() {
+        Ok(child) => {
+            let pid = child.id();
+            println!("NMS launched: initial PID {}", pid);
+            pid
+        }
+        Err(e) => {
+            eprintln!("Error: failed to launch NMS: {}", e);
+            process::exit(1);
+        }
+    };
+
+    // Wait for the real NMS process to appear (skip the initial stub PID)
+    println!("Waiting for NMS game process (skipping initial PID {})...", initial_pid);
+    let pid = match wait_for_nms(initial_pid) {
+        Some(pid) => pid,
+        None => {
+            eprintln!("Error: NMS process not found within {:?}", WAIT_TIMEOUT);
+            process::exit(1);
+        }
+    };
+
+    println!("Found NMS game process: PID {}", pid);
+    println!(
+        "Waiting {}ms for process to initialize...",
+        INJECT_DELAY.as_millis()
+    );
+    thread::sleep(INJECT_DELAY);
+
+    // Inject into the running process
     unsafe {
-        match inject(&nms_path, &dll_abs) {
-            Ok(()) => println!("Success: NMS launched with DLL injected"),
+        match inject_into_pid(pid, &dll_clean) {
+            Ok(()) => println!("Success: DLL injected into NMS (PID {})", pid),
             Err(e) => {
                 eprintln!("Error: {}", e);
                 process::exit(1);
@@ -90,13 +161,12 @@ fn main() {
 
 /// Start the video daemon as a detached background process.
 fn start_daemon(dll_path: &Path) {
-    // Look for daemon next to the DLL (or next to this exe)
-    let daemon_path = dll_path.parent()
+    let daemon_path = dll_path
+        .parent()
         .map(|d| d.join(DEFAULT_DAEMON))
         .unwrap_or_else(|| PathBuf::from(DEFAULT_DAEMON));
 
     if !daemon_path.exists() {
-        // Also try next to the launcher exe
         let exe_dir = env::current_exe()
             .ok()
             .and_then(|p| p.parent().map(|d| d.to_path_buf()));
@@ -109,12 +179,7 @@ fn start_daemon(dll_path: &Path) {
             }
         }
 
-        println!("Warning: {} not found, skipping daemon launch", DEFAULT_DAEMON);
-        println!("  Looked in: {}", daemon_path.display());
-        if let Some(alt) = alt_path {
-            println!("  Looked in: {}", alt.display());
-        }
-        println!("  Start the daemon manually if needed.");
+        println!("Note: {} not found, skipping daemon launch", DEFAULT_DAEMON);
         println!();
         return;
     }
@@ -130,80 +195,108 @@ fn spawn_daemon(path: &Path) {
         .stderr(Stdio::null())
         .spawn()
     {
-        Ok(child) => {
-            println!("Daemon started: PID {} ({})", child.id(), path.display());
-        }
-        Err(e) => {
-            println!("Warning: failed to start daemon: {}", e);
-            println!("  Start the daemon manually if needed.");
-        }
+        Ok(child) => println!("Daemon started: PID {}", child.id()),
+        Err(e) => println!("Warning: failed to start daemon: {}", e),
     }
     println!();
 }
 
-/// Create NMS suspended with --disable-eac, inject DLL, resume.
-unsafe fn inject(nms_path: &Path, dll_path: &Path) -> Result<(), String> {
-    // Convert paths to wide strings
-    let nms_wide = to_wide(nms_path.to_str().unwrap_or(""));
-    let dll_wide = to_wide(dll_path.to_str().unwrap_or(""));
+/// Poll for an NMS.exe process. Returns the PID when found.
+///
+/// NMS may re-spawn itself during startup. Strategy:
+/// 1. First look for a re-spawned process (different PID) for up to 10 seconds
+/// 2. If not found, accept the initial PID (NMS didn't re-spawn)
+fn wait_for_nms(initial_pid: u32) -> Option<u32> {
+    let start = Instant::now();
+    let respawn_timeout = Duration::from_secs(10);
 
-    // Command line: "NMS.exe" --disable-eac (mutable because CreateProcessW may modify it)
-    let cmd_line_str = format!(
-        "\"{}\" --disable-eac",
-        nms_path.to_str().unwrap_or("")
-    );
-    let mut cmd_wide = to_wide(&cmd_line_str);
-
-    // Byte size of the DLL path (including null terminator, already in to_wide)
-    let dll_path_bytes = dll_wide.len() * 2; // u16 -> bytes
-
-    // Create process suspended
-    let mut si = STARTUPINFOW::default();
-    si.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
-    let mut pi = PROCESS_INFORMATION::default();
-
-    println!("Creating NMS process (suspended)...");
-
-    CreateProcessW(
-        PCWSTR(nms_wide.as_ptr()),
-        PWSTR(cmd_wide.as_mut_ptr()),
-        None,
-        None,
-        false,
-        CREATE_SUSPENDED,
-        None,
-        None,
-        &si,
-        &mut pi,
-    )
-    .map_err(|e| format!("CreateProcessW failed: {}", e))?;
-
-    println!("Process created: PID {}", pi.dwProcessId);
-
-    // From here, we must resume or terminate the process on failure
-    let result = inject_into_process(&pi, &dll_wide, dll_path_bytes);
-
-    if result.is_err() {
-        // If injection failed, terminate the suspended process
-        let _ = windows::Win32::System::Threading::TerminateProcess(pi.hProcess, 1);
+    // Phase 1: Look for a re-spawned process (skip initial PID)
+    while start.elapsed() < respawn_timeout {
+        if let Some(pid) = find_nms_process(initial_pid) {
+            return Some(pid);
+        }
+        thread::sleep(POLL_INTERVAL);
     }
 
-    // Close process/thread handles (process keeps running)
-    let _ = CloseHandle(pi.hProcess);
-    let _ = CloseHandle(pi.hThread);
+    // Phase 2: NMS didn't re-spawn, accept initial PID if still running
+    println!("No re-spawn detected, checking initial PID...");
+    find_any_nms_process()
+}
 
+/// Find any NMS.exe process (no PID skipping).
+fn find_any_nms_process() -> Option<u32> {
+    find_nms_process(0)
+}
+
+/// Find an NMS.exe process by scanning the process list, skipping `skip_pid`.
+fn find_nms_process(skip_pid: u32) -> Option<u32> {
+    use windows::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W,
+        TH32CS_SNAPPROCESS,
+    };
+
+    unsafe {
+        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0).ok()?;
+
+        let mut entry = PROCESSENTRY32W::default();
+        entry.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
+
+        if Process32FirstW(snapshot, &mut entry).is_err() {
+            let _ = CloseHandle(snapshot);
+            return None;
+        }
+
+        let mut found_pid = None;
+
+        loop {
+            let name: String = entry
+                .szExeFile
+                .iter()
+                .take_while(|&&c| c != 0)
+                .map(|&c| char::from_u32(c as u32).unwrap_or('?'))
+                .collect();
+
+            if name.eq_ignore_ascii_case("NMS.exe") && entry.th32ProcessID != skip_pid {
+                found_pid = Some(entry.th32ProcessID);
+            }
+
+            if Process32NextW(snapshot, &mut entry).is_err() {
+                break;
+            }
+        }
+
+        let _ = CloseHandle(snapshot);
+        found_pid
+    }
+}
+
+/// Inject the DLL into a running process by PID.
+unsafe fn inject_into_pid(pid: u32, dll_path: &Path) -> Result<(), String> {
+    let dll_wide = to_wide(dll_path.to_str().unwrap_or(""));
+    let dll_path_bytes = dll_wide.len() * 2;
+
+    // Open the target process
+    let access =
+        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_QUERY_INFORMATION;
+
+    let process = OpenProcess(access, false, pid)
+        .map_err(|e| format!("OpenProcess({}) failed: {} (try running as admin)", pid, e))?;
+
+    let result = do_inject(process, &dll_wide, dll_path_bytes);
+
+    let _ = CloseHandle(process);
     result
 }
 
-/// Perform the actual DLL injection into an already-created suspended process.
-unsafe fn inject_into_process(
-    pi: &PROCESS_INFORMATION,
+/// Core injection logic: allocate, write, CreateRemoteThread(LoadLibraryW).
+unsafe fn do_inject(
+    process: windows::Win32::Foundation::HANDLE,
     dll_wide: &[u16],
     dll_path_bytes: usize,
 ) -> Result<(), String> {
     // Allocate memory in target process for the DLL path
     let remote_buf = VirtualAllocEx(
-        pi.hProcess,
+        process,
         None,
         dll_path_bytes,
         MEM_COMMIT | MEM_RESERVE,
@@ -214,11 +307,11 @@ unsafe fn inject_into_process(
         return Err("VirtualAllocEx failed: could not allocate in target process".into());
     }
 
-    println!("Allocated {} bytes in target at {:p}", dll_path_bytes, remote_buf);
+    println!("Allocated {} bytes at {:p}", dll_path_bytes, remote_buf);
 
     // Write DLL path into target memory
     let write_result = WriteProcessMemory(
-        pi.hProcess,
+        process,
         remote_buf,
         dll_wide.as_ptr() as *const _,
         dll_path_bytes,
@@ -226,11 +319,11 @@ unsafe fn inject_into_process(
     );
 
     if write_result.is_err() {
-        let _ = VirtualFreeEx(pi.hProcess, remote_buf, 0, MEM_RELEASE);
+        let _ = VirtualFreeEx(process, remote_buf, 0, MEM_RELEASE);
         return Err("WriteProcessMemory failed".into());
     }
 
-    // Get LoadLibraryW address (same in all processes due to ASLR kernel32 base sharing)
+    // Get LoadLibraryW address
     let kernel32_name = b"kernel32.dll\0";
     let kernel32 = GetModuleHandleA(PCSTR(kernel32_name.as_ptr()))
         .map_err(|e| format!("GetModuleHandleA(kernel32.dll) failed: {}", e))?;
@@ -241,7 +334,7 @@ unsafe fn inject_into_process(
     let load_library_addr = match load_library_addr {
         Some(addr) => addr,
         None => {
-            let _ = VirtualFreeEx(pi.hProcess, remote_buf, 0, MEM_RELEASE);
+            let _ = VirtualFreeEx(process, remote_buf, 0, MEM_RELEASE);
             return Err("GetProcAddress(LoadLibraryW) failed".into());
         }
     };
@@ -250,7 +343,7 @@ unsafe fn inject_into_process(
 
     // Create remote thread to call LoadLibraryW(dll_path)
     let thread = CreateRemoteThread(
-        pi.hProcess,
+        process,
         None,
         0,
         Some(std::mem::transmute(load_library_addr)),
@@ -262,27 +355,18 @@ unsafe fn inject_into_process(
 
     println!("Remote thread created, waiting for DLL load...");
 
-    // Wait for the remote thread (DLL load) to complete
+    // Wait for DLL load to complete
     let wait_result = WaitForSingleObject(thread, INFINITE);
     if wait_result != WAIT_OBJECT_0 {
         let _ = CloseHandle(thread);
-        let _ = VirtualFreeEx(pi.hProcess, remote_buf, 0, MEM_RELEASE);
+        let _ = VirtualFreeEx(process, remote_buf, 0, MEM_RELEASE);
         return Err(format!("WaitForSingleObject returned {:?}", wait_result));
     }
 
     let _ = CloseHandle(thread);
+    let _ = VirtualFreeEx(process, remote_buf, 0, MEM_RELEASE);
 
-    // Free the remote buffer (no longer needed after LoadLibrary)
-    let _ = VirtualFreeEx(pi.hProcess, remote_buf, 0, MEM_RELEASE);
-
-    println!("DLL injected successfully, resuming main thread...");
-
-    // Resume the main thread
-    let resume_result = ResumeThread(pi.hThread);
-    if resume_result == u32::MAX {
-        return Err("ResumeThread failed".into());
-    }
-
+    println!("DLL loaded successfully");
     Ok(())
 }
 
