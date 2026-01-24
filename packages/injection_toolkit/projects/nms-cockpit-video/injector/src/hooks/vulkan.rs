@@ -91,6 +91,9 @@ unsafe impl Sync for DetourHolder {}
 static ICD_PRESENT_DETOUR: OnceCell<DetourHolder> = OnceCell::new();
 static ICD_SWAPCHAIN_DETOUR: OnceCell<DetourHolder> = OnceCell::new();
 
+/// Set when ICD-level present hook is active (loader hook skips rendering).
+static ICD_PRESENT_ACTIVE: AtomicBool = AtomicBool::new(false);
+
 // --- Hook definitions ---
 
 static_detour! {
@@ -247,24 +250,30 @@ fn hooked_create_swapchain(
 }
 
 /// Hooked vkQueuePresentKHR: injection point for rendering.
+///
+/// When the ICD-level hook is active, this loader-level hook becomes a passthrough
+/// to avoid double-rendering (both hooks fire on the same present call).
 fn hooked_queue_present(queue: vk::Queue, present_info_ptr: *const c_void) -> vk::Result {
-    let count = FRAME_COUNT.fetch_add(1, Ordering::Relaxed);
+    // Skip rendering if ICD hook handles it (avoids double submissions)
+    if !ICD_PRESENT_ACTIVE.load(Ordering::Relaxed) {
+        let count = FRAME_COUNT.fetch_add(1, Ordering::Relaxed);
 
-    // Store the present queue on first call
-    if PRESENT_QUEUE.get().is_none() {
-        let _ = PRESENT_QUEUE.set(queue);
-        vlog!("Present queue captured: {:?}", queue);
-    }
+        // Store the present queue on first call
+        if PRESENT_QUEUE.get().is_none() {
+            let _ = PRESENT_QUEUE.set(queue);
+            vlog!("Present queue captured: {:?}", queue);
+        }
 
-    // Log every 300 frames (~5 seconds at 60fps)
-    if count.is_multiple_of(300) {
-        vlog!("vkQueuePresentKHR frame={}", count);
-    }
+        // Log every 300 frames (~5 seconds at 60fps)
+        if count.is_multiple_of(300) {
+            vlog!("vkQueuePresentKHR frame={}", count);
+        }
 
-    // Try to render our quad overlay
-    if !present_info_ptr.is_null() {
-        unsafe {
-            try_render_overlay(queue, present_info_ptr, count);
+        // Try to render our quad overlay
+        if !present_info_ptr.is_null() {
+            unsafe {
+                try_render_overlay(queue, present_info_ptr, count);
+            }
         }
     }
 
@@ -344,7 +353,8 @@ unsafe fn setup_icd_hooks(device: vk::Device) {
                     Ok(()) => {
                         let _ = ICD_PRESENT_TRAMPOLINE.set(trampoline);
                         let _ = ICD_PRESENT_DETOUR.set(DetourHolder(detour));
-                        vlog!("ICD vkQueuePresentKHR hooked successfully");
+                        ICD_PRESENT_ACTIVE.store(true, Ordering::Relaxed);
+                        vlog!("ICD vkQueuePresentKHR hooked successfully (loader hook disabled)");
                     }
                     Err(e) => vlog!("Failed to enable ICD present hook: {}", e),
                 }
