@@ -446,6 +446,11 @@ unsafe extern "system" fn icd_hooked_create_swapchain(
 
 /// Attempt to render the overlay quad.
 unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, frame: u64) {
+    // Skip rendering if overlay is toggled off (F5)
+    if !crate::OVERLAY_VISIBLE.load(Ordering::Relaxed) {
+        return;
+    }
+
     let present_info = &*(present_info_ptr as *const vk::PresentInfoKHR<'_>);
 
     // We need at least one swapchain and one image index

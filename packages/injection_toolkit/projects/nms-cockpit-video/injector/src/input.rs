@@ -4,10 +4,9 @@
 //! Runs in a background thread spawned during DLL initialization.
 
 use crate::log::vlog;
-use crate::SHUTDOWN;
+use crate::{OVERLAY_VISIBLE, SHUTDOWN};
 use itk_ipc::IpcChannel;
 use itk_protocol::{encode, MessageType, VideoLoad, VideoPause, VideoPlay, VideoSeek};
-use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
@@ -27,6 +26,7 @@ const VK_F5: i32 = 0x74;
 const VK_F6: i32 = 0x75;
 const VK_F7: i32 = 0x76;
 const VK_F8: i32 = 0x77;
+const VK_F9: i32 = 0x78;
 
 /// Start the input handler thread.
 pub fn start() {
@@ -43,6 +43,7 @@ fn input_loop() {
     let mut prev_f6 = false;
     let mut prev_f7 = false;
     let mut prev_f8 = false;
+    let mut prev_f9 = false;
     let mut playing = false;
     let mut position_ms: u64 = 0;
 
@@ -61,22 +62,13 @@ fn input_loop() {
         let f6 = is_key_down(VK_F6);
         let f7 = is_key_down(VK_F7);
         let f8 = is_key_down(VK_F8);
+        let f9 = is_key_down(VK_F9);
 
         // Detect key-down edges
         if f5 && !prev_f5 {
-            vlog!("F5: Load video");
-            if let Some(channel) = ensure_connected(&mut ipc) {
-                let path = find_video_path();
-                vlog!("Loading: {}", path);
-                let cmd = VideoLoad {
-                    source: path,
-                    start_position_ms: 0,
-                    autoplay: true,
-                };
-                send_command(channel, MessageType::VideoLoad, &cmd);
-                playing = true;
-                position_ms = 0;
-            }
+            let was_visible = OVERLAY_VISIBLE.fetch_xor(true, Ordering::Relaxed);
+            let now_visible = !was_visible;
+            vlog!("F5: Overlay {}", if now_visible { "ON" } else { "OFF" });
         }
 
         if f6 && !prev_f6 {
@@ -115,16 +107,92 @@ fn input_loop() {
             }
         }
 
+        if f9 && !prev_f9 {
+            vlog!("F9: Load from clipboard");
+            if let Some(url) = read_clipboard_text() {
+                let url = url.trim().to_string();
+                if !url.is_empty() {
+                    vlog!("Loading URL: {}", url);
+                    if let Some(channel) = ensure_connected(&mut ipc) {
+                        let cmd = VideoLoad {
+                            source: url,
+                            start_position_ms: 0,
+                            autoplay: true,
+                        };
+                        send_command(channel, MessageType::VideoLoad, &cmd);
+                        playing = true;
+                        position_ms = 0;
+                    }
+                } else {
+                    vlog!("Clipboard is empty");
+                }
+            } else {
+                vlog!("Failed to read clipboard");
+            }
+        }
+
         prev_f5 = f5;
         prev_f6 = f6;
         prev_f7 = f7;
         prev_f8 = f8;
+        prev_f9 = f9;
     }
 }
 
 /// Check if a key is currently pressed.
 fn is_key_down(vk: i32) -> bool {
     unsafe { GetAsyncKeyState(vk) & (0x8000u16 as i16) != 0 }
+}
+
+/// Read unicode text from the Windows clipboard.
+fn read_clipboard_text() -> Option<String> {
+    use windows::Win32::System::DataExchange::{
+        CloseClipboard, GetClipboardData, OpenClipboard,
+    };
+    use windows::Win32::System::Memory::{GlobalLock, GlobalUnlock};
+
+    const CF_UNICODETEXT: u32 = 13;
+
+    unsafe {
+        // Open the clipboard (no window owner)
+        if OpenClipboard(None).is_err() {
+            return None;
+        }
+
+        let result = (|| -> Option<String> {
+            // Get the clipboard data as unicode text
+            let handle = GetClipboardData(CF_UNICODETEXT).ok()?;
+
+            // The HANDLE from GetClipboardData is actually an HGLOBAL
+            let hglobal = windows::Win32::Foundation::HGLOBAL(handle.0 as _);
+
+            // Lock the global memory to get a pointer
+            let ptr = GlobalLock(hglobal);
+            if ptr.is_null() {
+                return None;
+            }
+
+            // Read the null-terminated wide string
+            let wstr = ptr as *const u16;
+            let mut len = 0usize;
+            while *wstr.add(len) != 0 {
+                len += 1;
+                // Safety bound
+                if len > 65536 {
+                    break;
+                }
+            }
+
+            let slice = std::slice::from_raw_parts(wstr, len);
+            let text = String::from_utf16_lossy(slice);
+
+            let _ = GlobalUnlock(hglobal);
+            Some(text)
+        })();
+
+        let _ = CloseClipboard();
+        result
+    }
 }
 
 /// Ensure IPC connection is established. Reconnects on failure.
@@ -166,58 +234,3 @@ fn send_command<T: serde::Serialize>(channel: &dyn IpcChannel, msg_type: Message
     }
 }
 
-/// Find the video file path.
-///
-/// Checks in order:
-/// 1. `nms_video.txt` sidecar file (contains a path on the first line)
-/// 2. `nms_video.mp4` next to the DLL
-/// 3. Falls back to a hardcoded default
-fn find_video_path() -> String {
-    let dll_dir = get_dll_directory();
-
-    // Check for sidecar config file
-    let config_path = dll_dir.join("nms_video.txt");
-    if config_path.exists() {
-        if let Ok(content) = std::fs::read_to_string(&config_path) {
-            let path = content.trim().to_string();
-            if !path.is_empty() {
-                return path;
-            }
-        }
-    }
-
-    // Check for video file next to DLL
-    let video_path = dll_dir.join("nms_video.mp4");
-    if video_path.exists() {
-        return video_path.to_string_lossy().to_string();
-    }
-
-    // Fallback
-    vlog!("No video found at {:?}, using default path", video_path);
-    video_path.to_string_lossy().to_string()
-}
-
-/// Get the directory containing this DLL.
-fn get_dll_directory() -> PathBuf {
-    use windows::core::PCSTR;
-    use windows::Win32::System::LibraryLoader::{GetModuleFileNameA, GetModuleHandleA};
-
-    unsafe {
-        let dll_name = b"nms_cockpit_injector.dll\0";
-        let handle = GetModuleHandleA(PCSTR(dll_name.as_ptr()));
-
-        if let Ok(handle) = handle {
-            let mut buf = [0u8; 512];
-            let len = GetModuleFileNameA(handle, &mut buf);
-            if len > 0 {
-                let path_str = std::str::from_utf8(&buf[..len as usize]).unwrap_or("");
-                if let Some(parent) = std::path::Path::new(path_str).parent() {
-                    return parent.to_path_buf();
-                }
-            }
-        }
-    }
-
-    // Fallback to current directory
-    std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
-}

@@ -24,6 +24,9 @@ static INITIALIZED: AtomicBool = AtomicBool::new(false);
 /// Whether shutdown has been requested.
 static SHUTDOWN: AtomicBool = AtomicBool::new(false);
 
+/// Whether the video overlay is visible (toggled by F5).
+pub static OVERLAY_VISIBLE: AtomicBool = AtomicBool::new(false);
+
 /// DLL entry point.
 #[unsafe(no_mangle)]
 pub extern "system" fn DllMain(

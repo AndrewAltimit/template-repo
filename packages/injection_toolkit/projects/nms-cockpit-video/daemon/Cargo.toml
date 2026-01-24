@@ -12,7 +12,7 @@ name = "nms-video-daemon"
 path = "src/main.rs"
 
 [features]
-default = []
+default = ["youtube"]
 youtube = ["itk-video/youtube"]
 # Build ffmpeg from source (slow, but works without system ffmpeg)
 build-ffmpeg = ["itk-video/build-ffmpeg"]
