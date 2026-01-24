@@ -12,7 +12,7 @@ use tracing::{debug, error, info, instrument, warn};
 use uuid::Uuid;
 
 use strands_core::{
-    AgentEvent, BoxedTool, ContentBlock, Message, Result, StopReason, StrandsError,
+    AgentEvent, BoxedTool, ContentBlock, Message, Messages, Result, StopReason, StrandsError,
     SystemPrompt, ToolConfig, ToolContext, ToolExecutionResult, ToolSpec, Usage,
 };
 
@@ -228,28 +228,58 @@ impl Agent {
         Ok(result)
     }
 
+    /// Invoke the agent with a prompt and explicit conversation state.
+    ///
+    /// Unlike `invoke()`, this method operates on a local copy of the conversation,
+    /// making it safe for concurrent use with different sessions. Returns the updated
+    /// messages alongside the result.
+    #[instrument(skip(self, prompt, messages), fields(model = %self.model.model_id()))]
+    pub async fn invoke_with_messages(
+        &self,
+        prompt: impl Into<String>,
+        mut messages: Messages,
+    ) -> Result<(AgentResult, Messages)> {
+        let prompt = prompt.into();
+        info!(prompt_len = prompt.len(), "Agent invocation (session-isolated) started");
+
+        // Add user message to local state
+        messages.push(Message::user(&prompt));
+
+        // Run the agent loop with local conversation state
+        let (result, final_messages) = self.run_loop_isolated(messages).await?;
+
+        info!(
+            iterations = result.iterations,
+            stop_reason = ?result.stop_reason,
+            "Agent invocation (session-isolated) completed"
+        );
+
+        Ok((result, final_messages))
+    }
+
     /// Invoke the agent and return a stream of events.
+    ///
+    /// NOTE: Streaming is not yet implemented. This method returns a stream
+    /// that immediately emits an error event. The conversation state is NOT
+    /// modified, so calling this won't corrupt subsequent invocations.
     #[instrument(skip(self, prompt), fields(model = %self.model.model_id()))]
     pub async fn invoke_stream(
         &self,
         prompt: impl Into<String>,
     ) -> Result<impl Stream<Item = AgentEvent>> {
-        let prompt = prompt.into();
+        let _prompt = prompt.into();
         let invocation_id = Uuid::new_v4().to_string();
 
         info!(
             invocation_id = %invocation_id,
-            prompt_len = prompt.len(),
-            "Agent stream invocation started"
+            "Agent stream invocation started (streaming not yet implemented)"
         );
 
-        // Add user message
-        {
-            let mut conv = self.conversation.lock().await;
-            conv.add_user_message(&prompt);
-        }
+        // Do NOT modify conversation state here - streaming is unimplemented
+        // and adding a user message without a corresponding assistant response
+        // would leave the conversation in an inconsistent state.
 
-        // Create the event stream
+        // Create the event stream (emits an error event)
         let events = self.run_loop_stream(invocation_id).await?;
         Ok(events)
     }
@@ -351,26 +381,103 @@ impl Agent {
         }
     }
 
+    /// Run the agent loop with an isolated (local) conversation state.
+    /// This avoids touching the shared `self.conversation` mutex entirely,
+    /// preventing race conditions when used concurrently with different sessions.
+    async fn run_loop_isolated(
+        &self,
+        mut messages: Messages,
+    ) -> Result<(AgentResult, Messages)> {
+        let mut total_usage = Usage::default();
+        let mut iterations = 0u32;
+        let mut overflow_retries = 0u32;
+
+        loop {
+            iterations += 1;
+
+            if iterations > self.config.max_iterations {
+                return Err(StrandsError::MaxIterationsExceeded {
+                    max: self.config.max_iterations,
+                });
+            }
+
+            debug!(iteration = iterations, "Starting agent loop iteration (isolated)");
+
+            // Build the model request from local messages
+            let tool_config = if self.tools.is_empty() {
+                ToolConfig::empty()
+            } else {
+                ToolConfig::from_specs(self.tool_specs())
+            };
+
+            let request = ModelRequest::new(messages.clone())
+                .with_system(self.config.system_prompt.clone())
+                .with_tools(tool_config)
+                .with_inference_config(self.config.inference_config.clone());
+
+            // Call the model
+            let response = match self.model.invoke(request).await {
+                Ok(resp) => {
+                    overflow_retries = 0;
+                    resp
+                }
+                Err(StrandsError::ContextWindowOverflow { .. }) => {
+                    if overflow_retries >= self.config.max_overflow_retries {
+                        return Err(StrandsError::context_overflow(
+                            "Max overflow retries exceeded",
+                        ));
+                    }
+                    overflow_retries += 1;
+                    warn!(retry = overflow_retries, "Context overflow, reducing context");
+
+                    // Use a temporary ConversationManager for reduction logic
+                    let mut conv = ConversationManager::from(messages);
+                    if !conv.reduce_context() {
+                        return Err(StrandsError::context_overflow(
+                            "Cannot reduce context further",
+                        ));
+                    }
+                    messages = conv.snapshot();
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+
+            total_usage.add(&response.usage);
+
+            // Add assistant message to local state
+            messages.push(response.message.clone());
+
+            // Check if we should continue (tool use) or stop
+            if response.stop_reason.is_terminal() {
+                return Ok((
+                    AgentResult {
+                        message: response.message,
+                        stop_reason: response.stop_reason,
+                        usage: total_usage,
+                        iterations,
+                    },
+                    messages,
+                ));
+            }
+
+            // Execute tools
+            let tool_results = self.execute_tools(&response.message).await?;
+
+            // Add tool results to local state
+            messages.push(Message::user_with_content(tool_results));
+        }
+    }
+
     async fn run_loop_stream(
         &self,
         invocation_id: String,
     ) -> Result<impl Stream<Item = AgentEvent>> {
-        // For simplicity in the initial implementation, we'll collect chunks
-        // and emit events. A more sophisticated implementation would fully
-        // stream through.
+        // TODO: Full streaming implementation. For now, emit an error event.
         let (tx, rx) = tokio::sync::mpsc::channel(100);
 
-        let _model = self.model.as_ref();
-        let _config = self.config.clone();
-        let _tools = self.tools.clone();
-        let _conversation = self.conversation.lock().await.snapshot();
-
         tokio::spawn(async move {
-            // Emit start event
             let _ = tx.send(AgentEvent::start(&invocation_id)).await;
-
-            // This would be the full streaming implementation
-            // For now, we'll note it's a TODO for full streaming support
             let _ = tx
                 .send(AgentEvent::error(
                     "Full streaming not yet implemented - use invoke()",

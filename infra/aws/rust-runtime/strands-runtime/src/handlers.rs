@@ -10,7 +10,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use strands_agent::Agent;
-use strands_core::{ContentBlock, StrandsError};
+use strands_core::StrandsError;
 use strands_session::SessionManager;
 use tracing::{error, info, instrument};
 use uuid::Uuid;
@@ -135,40 +135,22 @@ pub async fn invoke(
     // Mark session as processing
     session.set_processing();
 
-    // Restore the session's conversation history into the agent so that
-    // concurrent requests with different session IDs don't share state.
-    state
+    // Invoke with an isolated copy of the session's conversation history.
+    // This avoids shared mutex state and prevents cross-session data leakage.
+    let (result, updated_messages) = state
         .agent
-        .restore_messages(session.messages.clone())
-        .await;
-
-    // Invoke the agent
-    let result = state.agent.invoke(&request.prompt).await.map_err(|e| {
-        error!(error = %e, "Agent invocation failed");
-        map_strands_error(e)
-    })?;
+        .invoke_with_messages(&request.prompt, session.messages.clone())
+        .await
+        .map_err(|e| {
+            error!(error = %e, "Agent invocation failed");
+            map_strands_error(e)
+        })?;
 
     // Extract response text
-    let response_text = result
-        .message
-        .content
-        .iter()
-        .filter_map(|block| {
-            if let ContentBlock::Text(text) = block {
-                Some(text.clone())
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
+    let response_text = result.text();
 
-    // Update session with the result
-    session.add_message(strands_core::Message {
-        role: strands_core::Role::User,
-        content: vec![ContentBlock::Text(request.prompt)],
-    });
-    session.add_message(result.message);
+    // Update session with the final conversation state from the agent
+    session.messages = updated_messages;
     session.add_usage(&result.usage);
     session.set_active();
 
