@@ -673,6 +673,8 @@ Comments to analyze:
             pr_number.to_string(),
             "--body-file".to_string(),
             temp_path.clone(),
+            // Strip invalid reaction images instead of failing the entire review
+            "--gh-validator-strip-invalid-images".to_string(),
         ];
 
         // Explicitly specify repo to avoid issues on self-hosted runners
