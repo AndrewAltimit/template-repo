@@ -38,6 +38,7 @@
 pub mod decoder;
 pub mod error;
 pub mod frame_writer;
+pub mod hwaccel;
 pub mod scaler;
 pub mod stream;
 

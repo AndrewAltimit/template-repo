@@ -1,13 +1,14 @@
 //! Video decoder using ffmpeg-next.
 
 use crate::error::{VideoError, VideoResult};
+use crate::hwaccel::HwDeviceContext;
 use crate::scaler::FrameScaler;
 use crate::stream::StreamSource;
 use crate::{DEFAULT_HEIGHT, DEFAULT_WIDTH};
 use ffmpeg_next::format::context::Input as FormatContext;
 use ffmpeg_next::media::Type as MediaType;
 use ffmpeg_next::util::frame::video::Video as VideoFrame;
-use ffmpeg_next::{codec, decoder, Packet, Rational};
+use ffmpeg_next::{codec, decoder, Codec, Packet, Rational};
 use std::sync::Once;
 use tracing::{debug, info, warn};
 
@@ -49,6 +50,10 @@ pub struct VideoDecoder {
     frame: VideoFrame,
     /// Reusable packet.
     packet: Packet,
+    /// Hardware device context (kept alive for the decoder's lifetime).
+    _hw_ctx: Option<HwDeviceContext>,
+    /// Whether hardware acceleration is active.
+    hw_accel_active: bool,
 }
 
 impl VideoDecoder {
@@ -117,13 +122,44 @@ impl VideoDecoder {
         let codec_params = video_stream.parameters();
         let codec_id = codec_params.id();
 
-        // Find the decoder
-        let codec = decoder::find(codec_id)
-            .ok_or_else(|| VideoError::NoDecoder(format!("{:?}", codec_id)))?;
+        // Try D3D11VA hardware acceleration first
+        let hw_ctx = HwDeviceContext::create_d3d11va();
+        let hw_accel_active;
+
+        // Find the decoder - when hw accel is available, use default decoder
+        // (it will use the hw device context). Otherwise prefer software decoders.
+        let codec = if hw_ctx.is_some() {
+            decoder::find(codec_id)
+                .ok_or_else(|| VideoError::NoDecoder(format!("{:?}", codec_id)))?
+        } else {
+            find_software_decoder(codec_id)
+                .or_else(|| decoder::find(codec_id))
+                .ok_or_else(|| VideoError::NoDecoder(format!("{:?}", codec_id)))?
+        };
+
+        debug!(codec_name = ?codec.name(), hw_accel = hw_ctx.is_some(), "using decoder");
 
         // Create decoder context
         let mut decoder_ctx = codec::context::Context::new_with_codec(codec);
         decoder_ctx.set_parameters(codec_params)?;
+
+        // Set hardware device context if available
+        if let Some(ref hw) = hw_ctx {
+            unsafe {
+                let raw = decoder_ctx.as_mut_ptr();
+                (*raw).hw_device_ctx = hw.new_ref();
+            }
+            hw_accel_active = true;
+            info!("Hardware acceleration enabled (D3D11VA)");
+        } else {
+            // Software mode: set thread_count for better performance
+            unsafe {
+                let raw = decoder_ctx.as_mut_ptr();
+                (*raw).thread_count = 0; // auto-detect
+            }
+            hw_accel_active = false;
+        }
+
         let decoder = decoder_ctx.decoder().video()?;
 
         info!(
@@ -132,6 +168,7 @@ impl VideoDecoder {
             fps = ?fps,
             duration_ms = ?duration_ms,
             codec = ?codec_id,
+            hw_accel = hw_accel_active,
             "video decoder initialized"
         );
 
@@ -145,6 +182,8 @@ impl VideoDecoder {
             fps,
             frame: VideoFrame::empty(),
             packet: Packet::empty(),
+            _hw_ctx: hw_ctx,
+            hw_accel_active,
         })
     }
 
@@ -186,6 +225,15 @@ impl VideoDecoder {
             // Try to receive a decoded frame first
             match self.decoder.receive_frame(&mut self.frame) {
                 Ok(()) => {
+                    // Transfer from GPU to CPU memory if using hardware acceleration
+                    if self.hw_accel_active {
+                        unsafe {
+                            crate::hwaccel::transfer_hw_frame_if_needed(
+                                self.frame.as_mut_ptr(),
+                            );
+                        }
+                    }
+
                     // Calculate PTS in milliseconds
                     let pts = self.frame.pts().unwrap_or(0);
                     let pts_ms = self.pts_to_ms(pts);
@@ -275,6 +323,30 @@ impl VideoDecoder {
         // ms / 1000 * (den / num) = ms * den / (1000 * num)
         ((ms as i64) * den) / (1000 * num)
     }
+}
+
+/// Try to find a software decoder for the given codec ID.
+///
+/// For codecs like AV1 that often have broken hardware acceleration on Windows,
+/// we prefer known software decoders (libdav1d, libaom-av1) over the default
+/// decoder which may attempt hardware acceleration and fail.
+fn find_software_decoder(codec_id: codec::Id) -> Option<Codec> {
+    let software_names: &[&str] = match codec_id {
+        codec::Id::AV1 => &["libdav1d", "libaom-av1"],
+        codec::Id::H264 => &["h264"], // native software decoder
+        codec::Id::HEVC => &["hevc"],
+        _ => return None,
+    };
+
+    for name in software_names {
+        if let Some(dec) = decoder::find_by_name(name) {
+            debug!(codec = ?codec_id, decoder = name, "found software decoder");
+            return Some(dec);
+        }
+    }
+
+    warn!(codec = ?codec_id, "no software decoder found, will try default");
+    None
 }
 
 #[cfg(test)]

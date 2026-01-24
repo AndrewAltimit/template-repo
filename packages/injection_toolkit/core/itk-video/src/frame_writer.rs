@@ -3,9 +3,9 @@
 use crate::decoder::DecodedFrame;
 use crate::error::{VideoError, VideoResult};
 use crate::{DEFAULT_HEIGHT, DEFAULT_WIDTH};
-use itk_shmem::{FrameBuffer, SharedMemory};
+use itk_shmem::FrameBuffer;
 use std::hash::{Hash, Hasher};
-use tracing::{debug, trace};
+use tracing::{debug, info, trace};
 
 /// Default shared memory name for video frames.
 pub const DEFAULT_SHMEM_NAME: &str = "itk_video_frames";
@@ -19,8 +19,21 @@ pub struct FrameWriter {
 
 impl FrameWriter {
     /// Create a new frame writer with a new shared memory region.
+    ///
+    /// If the shared memory already exists (e.g., a previous daemon left it behind
+    /// while the injector still holds it open), opens the existing region instead.
+    /// This allows the daemon to restart and continue writing to the same shmem
+    /// the injector is reading from.
     pub fn create(name: &str, width: u32, height: u32) -> VideoResult<Self> {
-        let buffer = FrameBuffer::create(name, width, height)?;
+        let buffer = match FrameBuffer::create(name, width, height) {
+            Ok(buf) => buf,
+            Err(itk_shmem::ShmemError::AlreadyExists) => {
+                // Fall back to opening existing region (injector may still hold it)
+                info!("Shared memory already exists, reusing existing region");
+                FrameBuffer::open(name, width, height)?
+            }
+            Err(e) => return Err(e.into()),
+        };
         Ok(Self {
             buffer,
             last_pts_ms: 0,

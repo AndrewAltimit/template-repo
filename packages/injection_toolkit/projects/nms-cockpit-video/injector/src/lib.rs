@@ -5,6 +5,7 @@
 
 pub mod camera;
 mod hooks;
+pub mod input;
 mod log;
 pub mod renderer;
 pub mod shmem_reader;
@@ -60,6 +61,9 @@ fn init() -> Result<(), String> {
     unsafe {
         hooks::install()?;
     }
+
+    // Start keyboard input handler (sends IPC commands to daemon)
+    input::start();
 
     INITIALIZED.store(true, Ordering::Release);
     vlog!("Initialization complete");

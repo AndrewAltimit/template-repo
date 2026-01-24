@@ -7,7 +7,7 @@ use crate::log::vlog;
 use itk_shmem::FrameBuffer;
 
 /// Default shared memory name (daemon must create with the same name).
-const SHMEM_NAME: &str = "video_frames";
+const SHMEM_NAME: &str = "itk_video_frames";
 
 /// Default video dimensions (must match daemon's frame buffer).
 const DEFAULT_WIDTH: u32 = 1280;
@@ -50,7 +50,7 @@ impl ShmemFrameReader {
         Ok(Self {
             fb,
             frame_buf: vec![0u8; frame_size],
-            last_pts: 0,
+            last_pts: u64::MAX, // Sentinel: ensures first frame (PTS=0) is detected as new
             width,
             height,
         })
@@ -89,5 +89,15 @@ impl ShmemFrameReader {
     /// Get frame size in bytes (width * height * 4).
     pub fn frame_size(&self) -> usize {
         self.fb.frame_size()
+    }
+
+    /// Get the last PTS seen by this reader.
+    pub fn last_pts(&self) -> u64 {
+        self.last_pts
+    }
+
+    /// Read the current PTS from shared memory header (for diagnostics).
+    pub fn shmem_pts(&self) -> u64 {
+        self.fb.header().pts_ms.load(std::sync::atomic::Ordering::Relaxed)
     }
 }

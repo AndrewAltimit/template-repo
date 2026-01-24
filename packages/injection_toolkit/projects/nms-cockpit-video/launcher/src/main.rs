@@ -24,8 +24,9 @@ use windows::Win32::System::Memory::{
     VirtualAllocEx, VirtualFreeEx, MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_READWRITE,
 };
 use windows::Win32::System::Threading::{
-    CreateRemoteThread, OpenProcess, WaitForSingleObject, INFINITE, PROCESS_CREATE_THREAD,
-    PROCESS_QUERY_INFORMATION, PROCESS_VM_OPERATION, PROCESS_VM_WRITE,
+    CreateRemoteThread, OpenProcess, TerminateProcess, WaitForSingleObject, INFINITE,
+    PROCESS_CREATE_THREAD, PROCESS_QUERY_INFORMATION, PROCESS_SYNCHRONIZE, PROCESS_TERMINATE,
+    PROCESS_VM_OPERATION, PROCESS_VM_WRITE,
 };
 
 const DEFAULT_NMS: &str = r"D:\SteamLibrary\steamapps\common\No Man's Sky\Binaries\NMS.exe";
@@ -102,7 +103,7 @@ fn main() {
     println!();
 
     // Start the daemon as a separate process
-    start_daemon(&dll_clean);
+    let daemon_pid = start_daemon(&dll_clean);
 
     // Launch NMS
     println!("Launching NMS with --disable-eac...");
@@ -157,10 +158,23 @@ fn main() {
             }
         }
     }
+
+    // Wait for NMS to exit, then shut down the daemon
+    println!();
+    println!("Waiting for NMS to exit...");
+    wait_for_process_exit(pid);
+    println!("NMS exited.");
+
+    if let Some(dpid) = daemon_pid {
+        println!("Shutting down daemon (PID {})...", dpid);
+        kill_process(dpid);
+    }
+    println!("Done.");
 }
 
 /// Start the video daemon as a detached background process.
-fn start_daemon(dll_path: &Path) {
+/// Returns the daemon's PID if successfully started.
+fn start_daemon(dll_path: &Path) -> Option<u32> {
     let daemon_path = dll_path
         .parent()
         .map(|d| d.join(DEFAULT_DAEMON))
@@ -174,31 +188,88 @@ fn start_daemon(dll_path: &Path) {
 
         if let Some(alt) = &alt_path {
             if alt.exists() {
-                spawn_daemon(alt);
-                return;
+                return spawn_daemon(alt);
             }
         }
 
         println!("Note: {} not found, skipping daemon launch", DEFAULT_DAEMON);
         println!();
-        return;
+        return None;
     }
 
-    spawn_daemon(&daemon_path);
+    spawn_daemon(&daemon_path)
 }
 
-/// Spawn the daemon process detached.
-fn spawn_daemon(path: &Path) {
-    match Command::new(path)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-    {
-        Ok(child) => println!("Daemon started: PID {}", child.id()),
-        Err(e) => println!("Warning: failed to start daemon: {}", e),
+/// Find a video file to auto-load (checks next to the launcher/DLL).
+fn find_video_file() -> Option<PathBuf> {
+    let exe_dir = env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|d| d.to_path_buf()))?;
+
+    // Check for nms_video.txt config first
+    let config_path = exe_dir.join("nms_video.txt");
+    if config_path.exists() {
+        if let Ok(content) = std::fs::read_to_string(&config_path) {
+            let path = content.trim().to_string();
+            if !path.is_empty() {
+                let p = PathBuf::from(&path);
+                if p.exists() {
+                    return Some(p);
+                }
+            }
+        }
     }
+
+    // Check for nms_video.mp4
+    let video_path = exe_dir.join("nms_video.mp4");
+    if video_path.exists() {
+        return Some(video_path);
+    }
+
+    None
+}
+
+/// Spawn the daemon process detached, optionally with --load.
+/// Returns the daemon's PID if successfully started.
+fn spawn_daemon(path: &Path) -> Option<u32> {
+    // Write daemon logs to a file so we can diagnose issues
+    let log_path = env::temp_dir().join("nms_video_daemon.log");
+    println!("Daemon log: {}", log_path.display());
+
+    let log_file = std::fs::File::create(&log_path).ok();
+    let stderr_cfg = match &log_file {
+        Some(f) => Stdio::from(f.try_clone().unwrap_or_else(|_| {
+            std::fs::File::create(&log_path).expect("create log")
+        })),
+        None => Stdio::null(),
+    };
+
+    let mut cmd = Command::new(path);
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(stderr_cfg);
+
+    // Enable debug logging for diagnostics
+    cmd.arg("--log-level").arg("debug");
+
+    if let Some(video) = find_video_file() {
+        println!("Video: {}", video.display());
+        cmd.arg("--load").arg(&video);
+    }
+
+    let pid = match cmd.spawn() {
+        Ok(child) => {
+            let pid = child.id();
+            println!("Daemon started: PID {}", pid);
+            Some(pid)
+        }
+        Err(e) => {
+            println!("Warning: failed to start daemon: {}", e);
+            None
+        }
+    };
     println!();
+    pid
 }
 
 /// Poll for an NMS.exe process. Returns the PID when found.
@@ -368,6 +439,39 @@ unsafe fn do_inject(
 
     println!("DLL loaded successfully");
     Ok(())
+}
+
+/// Wait for a process to exit.
+fn wait_for_process_exit(pid: u32) {
+    unsafe {
+        let handle = OpenProcess(PROCESS_SYNCHRONIZE, false, pid);
+        match handle {
+            Ok(h) => {
+                // Wait indefinitely for the process to exit
+                WaitForSingleObject(h, INFINITE);
+                let _ = CloseHandle(h);
+            }
+            Err(_) => {
+                // Process already exited or can't be opened
+            }
+        }
+    }
+}
+
+/// Terminate a process by PID.
+fn kill_process(pid: u32) {
+    unsafe {
+        let handle = OpenProcess(PROCESS_TERMINATE, false, pid);
+        match handle {
+            Ok(h) => {
+                let _ = TerminateProcess(h, 0);
+                let _ = CloseHandle(h);
+            }
+            Err(_) => {
+                // Process already exited
+            }
+        }
+    }
 }
 
 /// Convert a string to a null-terminated wide (UTF-16) string.

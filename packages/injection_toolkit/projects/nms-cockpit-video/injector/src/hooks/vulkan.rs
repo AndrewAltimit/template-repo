@@ -524,7 +524,15 @@ unsafe fn poll_video_frame(frame: u64) -> Option<Vec<u8>> {
     if let Ok(reader_mutex) = reader {
         if let Ok(mut reader) = reader_mutex.lock() {
             if let Some(data) = reader.poll_frame() {
+                if frame % 300 == 0 {
+                    vlog!("Got video frame: {} bytes", data.len());
+                }
                 return Some(data.to_vec());
+            } else if frame % 300 == 0 {
+                // Log why we're not getting frames
+                vlog!("poll_frame: None (last_pts={}, shmem_pts={})",
+                    reader.last_pts(),
+                    reader.shmem_pts());
             }
         }
     } else if frame % 600 == 0 {
