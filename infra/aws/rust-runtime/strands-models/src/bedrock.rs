@@ -270,14 +270,10 @@ impl BedrockModel {
             serde_json::Value::Null => aws_smithy_types::Document::Null,
             serde_json::Value::Bool(b) => aws_smithy_types::Document::Bool(*b),
             serde_json::Value::Number(n) => {
-                if let Some(i) = n.as_i64() {
-                    if i < 0 {
-                        aws_smithy_types::Document::Number(aws_smithy_types::Number::NegInt(i))
-                    } else {
-                        aws_smithy_types::Document::Number(aws_smithy_types::Number::PosInt(
-                            i as u64,
-                        ))
-                    }
+                if let Some(u) = n.as_u64() {
+                    aws_smithy_types::Document::Number(aws_smithy_types::Number::PosInt(u))
+                } else if let Some(i) = n.as_i64() {
+                    aws_smithy_types::Document::Number(aws_smithy_types::Number::NegInt(i))
                 } else if let Some(f) = n.as_f64() {
                     aws_smithy_types::Document::Number(aws_smithy_types::Number::Float(f))
                 } else {
@@ -312,7 +308,7 @@ impl BedrockModel {
             aws_smithy_types::Document::Bool(b) => serde_json::Value::Bool(*b),
             aws_smithy_types::Document::Number(n) => match n {
                 aws_smithy_types::Number::PosInt(i) => {
-                    serde_json::Value::Number((*i as i64).into())
+                    serde_json::Value::Number((*i).into())
                 }
                 aws_smithy_types::Number::NegInt(i) => serde_json::Value::Number((*i).into()),
                 aws_smithy_types::Number::Float(f) => serde_json::Number::from_f64(*f)
