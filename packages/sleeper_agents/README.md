@@ -414,3 +414,7 @@ Additional documentation:
 - Training deceptive models for harmful purposes
 - Bypassing safety measures in production systems
 - Any offensive or malicious applications
+
+## License
+
+Part of the template-repo project. See repository LICENSE file.
