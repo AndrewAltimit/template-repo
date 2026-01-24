@@ -57,47 +57,83 @@ A separate overlay window renders on top of NMS. Simpler but limited to desktop 
 
 ## Components
 
-### 1. Daemon (`daemon/`)
-Video decode and audio playback. Decodes via ffmpeg, writes RGBA frames to shared memory via seqlock, plays audio through system output via cpal. Supports YouTube URLs (via yt-dlp) and local files.
+### 1. Launcher (`launcher/`)
+Orchestrates the full workflow: starts daemon, launches NMS with `--disable-eac`, waits for the game process, injects the DLL, and shuts down the daemon when the game exits.
 
-### 2. Injector (`injector/`)
-Vulkan rendering hook DLL. Intercepts NMS's Vulkan calls to render a textured quad inside the game's 3D pipeline. Works in desktop and VR, any display mode. Requires nightly Rust toolchain.
+### 2. Daemon (`daemon/`)
+Video decode and audio playback. Decodes via ffmpeg with D3D11VA hardware acceleration (falls back to software), writes RGBA frames to shared memory via seqlock, plays audio through system output via cpal. Supports YouTube URLs (via yt-dlp) and local files.
 
-### 3. Overlay (`overlay/`)
+### 3. Injector (`injector/`)
+Vulkan rendering hook DLL. Intercepts NMS's Vulkan calls to render a textured quad inside the game's 3D pipeline. Includes keyboard input handler (F5-F9) that sends IPC commands to the daemon. Works in desktop and VR, any display mode. Requires nightly Rust toolchain.
+
+### 4. Overlay (`overlay/`)
 Desktop overlay window with egui controls. Simpler alternative to the injector for desktop-only use in borderless/windowed mode.
 
 ## Building
 
 ### Prerequisites
-- Rust stable (daemon, overlay) and nightly MSVC (injector)
+- Rust nightly MSVC toolchain (injector requires nightly; daemon/overlay work on stable)
 - FFmpeg libraries (via vcpkg: `vcpkg install ffmpeg:x64-windows`)
-- yt-dlp in PATH (for YouTube support)
+- yt-dlp in PATH (for YouTube URL extraction, optional)
+- GPU with D3D11VA support (optional, falls back to software decode)
 
 ### Rust Components
 ```bash
 cd packages/injection_toolkit
 
 # Set up environment (MSVC + vcpkg)
-export VCPKG_ROOT="C:/vcpkg"
+export FFMPEG_DIR="C:/vcpkg/installed/x64-windows"
 
-# Build daemon (with YouTube support)
-cargo +stable-x86_64-pc-windows-msvc build --release -p nms-video-daemon --features youtube
+# Build all (daemon, launcher, injector) - requires nightly for injector
+cargo +nightly-x86_64-pc-windows-msvc build --release \
+  -p nms-video-daemon -p nms-video-launcher -p nms-cockpit-injector
 
-# Build overlay
+# Build overlay (desktop-only alternative, stable toolchain)
 cargo +stable-x86_64-pc-windows-msvc build --release -p nms-video-overlay
-
-# Build injector (requires nightly)
-cargo +nightly-x86_64-pc-windows-msvc build --release -p nms-cockpit-injector
 ```
+
+YouTube support (yt-dlp) is enabled by default in the daemon. D3D11VA hardware-accelerated decoding is used automatically when available (NVIDIA/AMD/Intel GPUs).
 
 ## Usage
 
-### With Injector (Recommended)
+### With Launcher (Recommended)
+
+Place all binaries in the same directory with an optional video file:
+```
+nms-video-launcher.exe
+nms-video-daemon.exe
+nms_cockpit_injector.dll
+nms_video.mp4              (optional: auto-loads on startup)
+nms_video.txt              (optional: path/URL to load instead of .mp4)
+```
+
+Run the launcher:
+```bash
+nms-video-launcher.exe [nms-exe-path] [dll-path]
+```
+
+The launcher handles everything:
+1. Starts the daemon (with `--load` if a video file is found)
+2. Launches NMS with `--disable-eac`
+3. Waits for the game process to spawn
+4. Injects the DLL via CreateRemoteThread
+5. When NMS exits, shuts down the daemon
+
+### Keyboard Shortcuts (Injector)
+| Key | Action |
+|-----|--------|
+| F5 | Toggle video overlay on/off |
+| F6 | Play/Pause |
+| F7 | Seek backward 10s |
+| F8 | Seek forward 10s |
+| F9 | Load video URL from clipboard (YouTube supported) |
+
+### With Injector (Manual)
 
 1. Start the daemon: `nms-video-daemon.exe --load <url-or-path>`
-2. Launch NMS in singleplayer (with `--disable-eac` if needed)
-3. Inject `nms_cockpit_injector.dll` via Reloaded-II or LoadLibrary
-4. Video renders as a 3D quad in the cockpit
+2. Launch NMS with `--disable-eac`
+3. Inject `nms_cockpit_injector.dll` via the launcher or LoadLibrary
+4. Press F5 to show the video overlay
 
 ### With Overlay (Desktop Only)
 
@@ -155,6 +191,7 @@ The injector DLL is organized into four modules that implement the full renderin
 injector/src/
 ├── lib.rs              DllMain, init thread, module declarations
 ├── log.rs              OutputDebugString logging (view with DebugView)
+├── input.rs            Keyboard hotkeys (F5-F9), IPC to daemon, clipboard
 ├── shmem_reader.rs     Lock-free shared memory frame polling (itk-shmem seqlock)
 ├── hooks/
 │   ├── mod.rs          Hook install/remove orchestration
@@ -177,11 +214,13 @@ injector/src/
 
 | Hook | Method | Purpose |
 |------|--------|---------|
-| `vkCreateInstance` | retour detour | Capture VkInstance for ash loader |
-| `vkCreateDevice` | retour detour | Capture VkDevice, VkPhysicalDevice, queue family |
-| `vkCreateSwapchainKHR` | retour detour | Track format, extent, swapchain images |
-| `vkQueuePresentKHR` | retour detour | Render quad before desktop present |
+| `vkCreateInstance` | retour static_detour | Capture VkInstance for ash loader |
+| `vkCreateDevice` | retour static_detour | Capture VkDevice, VkPhysicalDevice, queue family |
+| `vkCreateSwapchainKHR` | retour + ICD RawDetour | Track format, extent, swapchain images |
+| `vkQueuePresentKHR` | retour + ICD RawDetour | Render quad before desktop present |
 | `IVRCompositor::Submit` | vtable swap | Render quad per VR eye before compositor |
+
+Extension functions (`*KHR`) bypass the Vulkan loader when obtained via `vkGetDeviceProcAddr`, so they are hooked at both the loader trampoline level (retour static_detour) and the ICD level (RawDetour on the address returned by `vkGetDeviceProcAddr`).
 
 ### Rendering Flow
 
