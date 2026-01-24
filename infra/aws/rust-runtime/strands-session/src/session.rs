@@ -128,7 +128,7 @@ impl Session {
         let elapsed = Utc::now()
             .signed_duration_since(self.last_activity)
             .num_seconds();
-        elapsed as u64 > self.config.timeout_secs
+        elapsed > 0 && elapsed as u64 > self.config.timeout_secs
     }
 
     /// Mark the session as processing.

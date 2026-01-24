@@ -271,7 +271,13 @@ impl BedrockModel {
             serde_json::Value::Bool(b) => aws_smithy_types::Document::Bool(*b),
             serde_json::Value::Number(n) => {
                 if let Some(i) = n.as_i64() {
-                    aws_smithy_types::Document::Number(aws_smithy_types::Number::PosInt(i as u64))
+                    if i < 0 {
+                        aws_smithy_types::Document::Number(aws_smithy_types::Number::NegInt(i))
+                    } else {
+                        aws_smithy_types::Document::Number(aws_smithy_types::Number::PosInt(
+                            i as u64,
+                        ))
+                    }
                 } else if let Some(f) = n.as_f64() {
                     aws_smithy_types::Document::Number(aws_smithy_types::Number::Float(f))
                 } else {
