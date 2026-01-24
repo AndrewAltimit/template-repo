@@ -146,7 +146,8 @@ pub async fn invoke(
             map_strands_error(e)
         })?;
 
-    // Extract response text
+    // Extract response text (Text blocks only; Reasoning blocks are internal model
+    // thinking and not included in the response string)
     let response_text = result.text();
 
     // Update session with the final conversation state from the agent

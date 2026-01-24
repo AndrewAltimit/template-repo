@@ -204,7 +204,11 @@ impl Agent {
         self.tools.values().map(|t| t.spec()).collect()
     }
 
-    /// Invoke the agent with a prompt.
+    /// Invoke the agent with a prompt using internal conversation state.
+    ///
+    /// **Warning:** This method uses a shared `Mutex<ConversationManager>` internally.
+    /// For multi-user/concurrent scenarios, use `invoke_with_messages()` instead to
+    /// avoid conversation history mixing between sessions.
     #[instrument(skip(self, prompt), fields(model = %self.model.model_id()))]
     pub async fn invoke(&self, prompt: impl Into<String>) -> Result<AgentResult> {
         let prompt = prompt.into();
@@ -259,9 +263,13 @@ impl Agent {
 
     /// Invoke the agent and return a stream of events.
     ///
-    /// NOTE: Streaming is not yet implemented. This method returns a stream
-    /// that immediately emits an error event. The conversation state is NOT
-    /// modified, so calling this won't corrupt subsequent invocations.
+    /// **Not yet implemented.** Returns a stream that immediately emits an error event.
+    /// The model-level streaming (`BedrockModel::stream()`) works correctly, but the
+    /// agent-level orchestration loop (tool execution across streaming iterations) is
+    /// not yet wired up. Use `invoke()` or `invoke_with_messages()` instead.
+    ///
+    /// The conversation state is NOT modified by this method, so calling it won't
+    /// corrupt subsequent invocations.
     #[instrument(skip(self, prompt), fields(model = %self.model.model_id()))]
     pub async fn invoke_stream(
         &self,

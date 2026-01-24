@@ -493,10 +493,11 @@ impl Model for BedrockModel {
         let model_id = self.model_id.clone();
 
         let stream = async_stream::stream! {
+            let mut accumulator = StreamAccumulator::new();
             loop {
                 match event_receiver.recv().await {
                     Ok(Some(event)) => {
-                        if let Some(chunk) = Self::convert_stream_event(event) {
+                        if let Some(chunk) = accumulator.process_event(event) {
                             yield chunk;
                         }
                     }
@@ -517,19 +518,46 @@ impl Model for BedrockModel {
     }
 }
 
-impl BedrockModel {
-    fn convert_stream_event(event: StreamEvent) -> Option<Result<ModelStreamChunk>> {
+/// Stateful stream converter that accumulates content across events.
+struct StreamAccumulator {
+    /// Accumulated text content
+    text_parts: Vec<String>,
+    /// Active tool_use_id from the most recent ToolUseStart
+    active_tool_use_id: String,
+    /// Active tool name
+    active_tool_name: String,
+    /// Accumulated tool input JSON
+    active_tool_input: String,
+    /// Completed content blocks
+    content_blocks: Vec<ContentBlock>,
+}
+
+impl StreamAccumulator {
+    fn new() -> Self {
+        Self {
+            text_parts: Vec::new(),
+            active_tool_use_id: String::new(),
+            active_tool_name: String::new(),
+            active_tool_input: String::new(),
+            content_blocks: Vec::new(),
+        }
+    }
+
+    fn process_event(&mut self, event: StreamEvent) -> Option<Result<ModelStreamChunk>> {
         match event {
             StreamEvent::ContentBlockDelta(delta) => {
                 if let Some(d) = delta.delta() {
                     match d {
                         aws_sdk_bedrockruntime::types::ContentBlockDelta::Text(text) => {
+                            self.text_parts.push(text.clone());
                             Some(Ok(ModelStreamChunk::TextDelta(text.clone())))
                         }
                         aws_sdk_bedrockruntime::types::ContentBlockDelta::ToolUse(tool_delta) => {
+                            let input_str = tool_delta.input().to_string();
+                            self.active_tool_input.push_str(&input_str);
                             Some(Ok(ModelStreamChunk::ToolInputDelta {
-                                tool_use_id: String::new(), // Would need to track state
-                                input_delta: tool_delta.input().to_string(),
+                                tool_use_id: self.active_tool_use_id.clone(),
+                                input_delta: input_str,
                             }))
                         }
                         _ => None,
@@ -543,9 +571,12 @@ impl BedrockModel {
                 if let Some(block) = start.start() {
                     match block {
                         aws_sdk_bedrockruntime::types::ContentBlockStart::ToolUse(tool_start) => {
+                            self.active_tool_use_id = tool_start.tool_use_id().to_string();
+                            self.active_tool_name = tool_start.name().to_string();
+                            self.active_tool_input.clear();
                             Some(Ok(ModelStreamChunk::ToolUseStart {
-                                tool_use_id: tool_start.tool_use_id().to_string(),
-                                name: tool_start.name().to_string(),
+                                tool_use_id: self.active_tool_use_id.clone(),
+                                name: self.active_tool_name.clone(),
                             }))
                         }
                         _ => None,
@@ -555,12 +586,41 @@ impl BedrockModel {
                 }
             }
 
-            StreamEvent::MessageStop(stop) => {
-                let stop_reason = Self::convert_stop_reason(stop.stop_reason());
+            StreamEvent::ContentBlockStop(_) => {
+                // Finalize the current content block
+                if !self.active_tool_use_id.is_empty() {
+                    let input: serde_json::Value =
+                        serde_json::from_str(&self.active_tool_input).unwrap_or_default();
+                    self.content_blocks
+                        .push(ContentBlock::ToolUse(ToolUseContent {
+                            tool_use_id: self.active_tool_use_id.clone(),
+                            name: self.active_tool_name.clone(),
+                            input,
+                        }));
+                    self.active_tool_use_id.clear();
+                    self.active_tool_name.clear();
+                    self.active_tool_input.clear();
+                }
+                None
+            }
 
-                // We'd need to accumulate the message - this is simplified
+            StreamEvent::MessageStop(stop) => {
+                let stop_reason = BedrockModel::convert_stop_reason(stop.stop_reason());
+
+                // Build the accumulated message
+                let mut content = Vec::new();
+                if !self.text_parts.is_empty() {
+                    content.push(ContentBlock::Text(self.text_parts.join("")));
+                }
+                content.extend(self.content_blocks.drain(..));
+
+                let message = Message {
+                    role: Role::Assistant,
+                    content,
+                };
+
                 Some(Ok(ModelStreamChunk::MessageComplete {
-                    message: Message::assistant(""), // Placeholder
+                    message,
                     stop_reason,
                 }))
             }
