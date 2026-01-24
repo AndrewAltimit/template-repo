@@ -519,47 +519,9 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
     // Compute MVP from camera state (or fallback)
     let mvp = compute_frame_mvp(frame);
 
-    // Poll shared memory for a new video frame (zero-copy: hold lock while rendering
-    // so we can pass the reference directly without allocating a Vec)
-    let reader_result = SHMEM_READER.get_or_try_init(|| match ShmemFrameReader::open() {
-        Ok(reader) => {
-            SHMEM_FAILED.store(false, Ordering::Relaxed);
-            Ok(Mutex::new(reader))
-        }
-        Err(e) => {
-            if !SHMEM_FAILED.swap(true, Ordering::Relaxed) {
-                vlog!("ShmemFrameReader open failed: {} (daemon not running?)", e);
-            }
-            Err(e)
-        }
-    });
-    let mut shmem_guard = reader_result.ok().and_then(|m| m.lock().ok());
-    let new_frame = match shmem_guard.as_mut() {
-        Some(reader) => {
-            let result = reader.poll_frame();
-            if frame.is_multiple_of(300) {
-                if let Some(data) = &result {
-                    vlog!("Got video frame: {} bytes", data.len());
-                } else {
-                    vlog!(
-                        "poll_frame: None (last_pts={}, shmem_pts={})",
-                        reader.last_pts(),
-                        reader.shmem_pts()
-                    );
-                }
-            }
-            result
-        }
-        None => {
-            if frame.is_multiple_of(600) {
-                vlog!("Waiting for video daemon (shmem not available)");
-            }
-            None
-        }
-    };
-
-    // Lazy-initialize the renderer (or reinitialize after swapchain recreation)
+    // Lock order: RENDERER → SHMEM_READER (must match VR path in openvr.rs to avoid deadlock)
     if let Ok(mut guard) = RENDERER.lock() {
+        // Lazy-initialize the renderer (or reinitialize after swapchain recreation)
         if guard.is_none() {
             match init_renderer(queue, swapchain) {
                 Ok(renderer) => {
@@ -575,6 +537,45 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
         }
 
         if let Some(renderer) = guard.as_ref() {
+            // Poll shared memory for a new video frame (zero-copy: hold lock while rendering
+            // so we can pass the reference directly without allocating a Vec)
+            let reader_result = SHMEM_READER.get_or_try_init(|| match ShmemFrameReader::open() {
+                Ok(reader) => {
+                    SHMEM_FAILED.store(false, Ordering::Relaxed);
+                    Ok(Mutex::new(reader))
+                }
+                Err(e) => {
+                    if !SHMEM_FAILED.swap(true, Ordering::Relaxed) {
+                        vlog!("ShmemFrameReader open failed: {} (daemon not running?)", e);
+                    }
+                    Err(e)
+                }
+            });
+            let mut shmem_guard = reader_result.ok().and_then(|m| m.lock().ok());
+            let new_frame = match shmem_guard.as_mut() {
+                Some(reader) => {
+                    let result = reader.poll_frame();
+                    if frame.is_multiple_of(300) {
+                        if let Some(data) = &result {
+                            vlog!("Got video frame: {} bytes", data.len());
+                        } else {
+                            vlog!(
+                                "poll_frame: None (last_pts={}, shmem_pts={})",
+                                reader.last_pts(),
+                                reader.shmem_pts()
+                            );
+                        }
+                    }
+                    result
+                }
+                None => {
+                    if frame.is_multiple_of(600) {
+                        vlog!("Waiting for video daemon (shmem not available)");
+                    }
+                    None
+                }
+            };
+
             // Use cached swapchain images (fetched once per swapchain lifetime)
             let image = {
                 let mut img_guard = match SWAPCHAIN_IMAGES.lock() {
@@ -582,7 +583,6 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
                     Err(_) => return,
                 };
                 if img_guard.is_none() {
-                    // Populate cache on first use or after swapchain recreation
                     if let Some(swapchain_fn) = ASH_SWAPCHAIN_FN.get() {
                         if let Ok(images) = swapchain_fn.get_swapchain_images(swapchain) {
                             *img_guard = Some(images);
