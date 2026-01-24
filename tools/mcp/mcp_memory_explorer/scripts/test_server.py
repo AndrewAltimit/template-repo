@@ -2,6 +2,7 @@
 """Test script for Memory Explorer MCP server."""
 
 import sys
+
 sys.path.insert(0, str(__file__).replace("\\", "/").rsplit("/", 2)[0] + "/src")
 
 from mcp_memory_explorer.explorer import MemoryExplorer
@@ -43,7 +44,9 @@ def test_basic_functionality():
     print("Basic tests passed!")
     print()
     print("To test memory operations, run with a target process:")
-    print("  python -c \"from mcp_memory_explorer.explorer import get_explorer; e = get_explorer(); print(e.attach('notepad.exe'))\"")
+    print(
+        "  python -c \"from mcp_memory_explorer.explorer import get_explorer; e = get_explorer(); print(e.attach('notepad.exe'))\""
+    )
 
 
 if __name__ == "__main__":

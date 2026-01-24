@@ -10,9 +10,9 @@ from typing import Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import TextContent, Tool
 
-from .explorer import get_explorer, MemoryExplorer
+from .explorer import MemoryExplorer, get_explorer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -82,7 +82,20 @@ async def list_tools() -> list[Tool]:
                     },
                     "type": {
                         "type": "string",
-                        "enum": ["bytes", "int32", "int64", "uint32", "uint64", "float", "double", "string", "pointer", "vector3", "vector4", "matrix4x4"],
+                        "enum": [
+                            "bytes",
+                            "int32",
+                            "int64",
+                            "uint32",
+                            "uint64",
+                            "float",
+                            "double",
+                            "string",
+                            "pointer",
+                            "vector3",
+                            "vector4",
+                            "matrix4x4",
+                        ],
                         "description": "Data type to read",
                         "default": "bytes",
                     },
@@ -370,17 +383,21 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             }
 
         elif name == "scan_all_memory":
-            import subprocess
             import pathlib
+            import subprocess
 
             explorer._require_attached()
             pid = explorer._pm.process_id
 
             # Find the Rust mem-scanner binary
-            scanner_path = pathlib.Path(__file__).parents[4] / "packages" / "injection_toolkit" / "target" / "release" / "mem-scanner.exe"
+            scanner_path = (
+                pathlib.Path(__file__).parents[4] / "packages" / "injection_toolkit" / "target" / "release" / "mem-scanner.exe"
+            )
             if not scanner_path.exists():
                 # Try relative to working directory
-                scanner_path = pathlib.Path("D:/Unreal/Repos/template-repo/packages/injection_toolkit/target/release/mem-scanner.exe")
+                scanner_path = pathlib.Path(
+                    "D:/Unreal/Repos/template-repo/packages/injection_toolkit/target/release/mem-scanner.exe"
+                )
 
             cmd = [str(scanner_path), str(pid), arguments["pattern"], "--json"]
 
@@ -404,7 +421,12 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
                 module_name=arguments.get("module"),
                 max_results=arguments.get("max_results", 50),
             )
-            result = {"value": arguments["value"], "type": arguments.get("type", "float"), "count": len(results), "results": results}
+            result = {
+                "value": arguments["value"],
+                "type": arguments.get("type", "float"),
+                "count": len(results),
+                "results": results,
+            }
 
         elif name == "resolve_pointer":
             base_str = arguments["base"]

@@ -2,18 +2,17 @@
 
 from __future__ import annotations
 
-import struct
-import re
 import ctypes
 import ctypes.wintypes
 from dataclasses import dataclass, field
+import re
+import struct
 from typing import Any
 
 import pymem
-import pymem.process
-import pymem.pattern
 import pymem.memory
-
+import pymem.pattern
+import pymem.process
 
 # Windows memory constants
 MEM_COMMIT = 0x1000
@@ -25,8 +24,12 @@ PAGE_WRITECOPY = 0x08
 PAGE_EXECUTE_WRITECOPY = 0x80
 
 READABLE_PROTECTIONS = (
-    PAGE_READWRITE, PAGE_READONLY, PAGE_EXECUTE_READ,
-    PAGE_EXECUTE_READWRITE, PAGE_WRITECOPY, PAGE_EXECUTE_WRITECOPY,
+    PAGE_READWRITE,
+    PAGE_READONLY,
+    PAGE_EXECUTE_READ,
+    PAGE_EXECUTE_READWRITE,
+    PAGE_WRITECOPY,
+    PAGE_EXECUTE_WRITECOPY,
 )
 
 
@@ -45,6 +48,7 @@ class MEMORY_BASIC_INFORMATION(ctypes.Structure):
 @dataclass
 class ModuleInfo:
     """Information about a loaded module (DLL/EXE)."""
+
     name: str
     base_address: int
     size: int
@@ -54,6 +58,7 @@ class ModuleInfo:
 @dataclass
 class ScanResult:
     """Result from a pattern scan."""
+
     address: int
     pattern: str
     module: str | None = None
@@ -62,6 +67,7 @@ class ScanResult:
 @dataclass
 class PointerChain:
     """Result of resolving a pointer chain."""
+
     base_address: int
     offsets: list[int]
     final_address: int
@@ -71,6 +77,7 @@ class PointerChain:
 @dataclass
 class MemoryRegion:
     """A region of memory with metadata."""
+
     address: int
     size: int
     data: bytes
@@ -80,6 +87,7 @@ class MemoryRegion:
 @dataclass
 class WatchedAddress:
     """An address being watched for changes."""
+
     address: int
     size: int
     label: str
@@ -130,10 +138,12 @@ class MemoryExplorer:
         for proc in pymem.process.list_processes():
             name = proc.szExeFile.decode("utf-8", errors="ignore")
             if filter_name is None or filter_name.lower() in name.lower():
-                processes.append({
-                    "name": name,
-                    "pid": proc.th32ProcessID,
-                })
+                processes.append(
+                    {
+                        "name": name,
+                        "pid": proc.th32ProcessID,
+                    }
+                )
         return sorted(processes, key=lambda p: p["name"].lower())
 
     def attach(self, process_name: str) -> dict[str, Any]:
@@ -282,7 +292,7 @@ class MemoryExplorer:
         """
         self._require_attached()
         data = self._pm.read_bytes(address, max_length)
-        null_pos = data.find(b'\x00')
+        null_pos = data.find(b"\x00")
         if null_pos >= 0:
             data = data[:null_pos]
         return data.decode(encoding, errors="replace")
@@ -457,9 +467,12 @@ class MemoryExplorer:
             region_size = mbi.RegionSize
 
             # Only scan committed, readable regions
-            if (mbi.State == MEM_COMMIT and
-                    mbi.Protect in READABLE_PROTECTIONS and
-                    region_size > 0 and region_size < 256 * 1024 * 1024):
+            if (
+                mbi.State == MEM_COMMIT
+                and mbi.Protect in READABLE_PROTECTIONS
+                and region_size > 0
+                and region_size < 256 * 1024 * 1024
+            ):
                 try:
                     data = self._pm.read_bytes(region_base, region_size)
                     pos = 0
@@ -470,11 +483,13 @@ class MemoryExplorer:
                                 match = False
                                 break
                         if match:
-                            results.append(ScanResult(
-                                address=region_base + pos,
-                                pattern=pattern,
-                                module=None,
-                            ))
+                            results.append(
+                                ScanResult(
+                                    address=region_base + pos,
+                                    pattern=pattern,
+                                    module=None,
+                                )
+                            )
                         pos += 1
                 except Exception:
                     pass  # Skip unreadable regions
@@ -554,7 +569,7 @@ class MemoryExplorer:
             # Format as hex dump with ASCII
             lines = []
             for i in range(0, len(data), 16):
-                chunk = data[i:i+16]
+                chunk = data[i : i + 16]
                 hex_part = " ".join(f"{b:02X}" for b in chunk)
                 ascii_part = "".join(chr(b) if 32 <= b < 127 else "." for b in chunk)
                 lines.append(f"{address + i:016X}  {hex_part:<48}  {ascii_part}")
@@ -624,7 +639,7 @@ class MemoryExplorer:
         elif watch.value_type == "double":
             value = struct.unpack("<d", data[:8])[0]
         elif watch.value_type == "string":
-            null_pos = data.find(b'\x00')
+            null_pos = data.find(b"\x00")
             if null_pos >= 0:
                 data = data[:null_pos]
             value = data.decode("utf-8", errors="replace")
