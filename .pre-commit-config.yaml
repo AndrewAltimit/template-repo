@@ -138,7 +138,8 @@ repos:
         name: Rust lint injection-toolkit
         # Run through Docker for X11 dev library dependencies (container-first philosophy)
         # Note: rust-ci container working_dir is already /app/packages/injection_toolkit
-        entry: docker-compose --profile ci run --rm rust-ci cargo clippy --workspace --all-targets --exclude itk-native-dll -- -D warnings
+        # Exclude Windows-only crates that can't compile in the Linux CI container
+        entry: docker-compose --profile ci run --rm rust-ci cargo clippy --workspace --all-targets --exclude itk-native-dll --exclude nms-video-launcher --exclude nms-video-overlay --exclude nms-cockpit-injector -- -D warnings
         language: system
         files: '^packages/injection_toolkit/.*\.rs$'
         pass_filenames: false

@@ -328,12 +328,13 @@ unsafe fn render_to_vr_eye(eye: EVREye, vk_data: &VRVulkanTextureData_t, frame: 
     use std::sync::Mutex;
 
     // Get the renderer (shared with desktop rendering)
-    let renderer = match get_renderer() {
-        Some(r) => r,
-        None => return,
-    };
+    let renderer_mutex = get_renderer();
 
-    if let Ok(mut renderer) = renderer.lock() {
+    if let Ok(mut guard) = renderer_mutex.lock() {
+        let Some(renderer) = guard.as_mut() else {
+            return;
+        };
+
         let mvp = get_mvp(frame);
 
         // Zero-copy shmem access: hold lock across render (same pattern as desktop path)

@@ -154,10 +154,11 @@ fn resolve_source(source: &str) -> Result<StreamSource, String> {
             let output = std::process::Command::new("yt-dlp")
                 .args([
                     "-f",
-                    // Format 22 = 720p progressive MP4 (h264+aac, direct URL with audio)
-                    // Format 18 = 360p progressive MP4 (h264+aac, direct URL with audio)
-                    // Fallback to DASH video-only if progressive unavailable
-                    "22/18/bestvideo[height<=720][vcodec^=avc1]/bestvideo[height<=720]",
+                    // Progressive formats (muxed audio+video) first, then DASH with audio.
+                    // Format 22 = 720p progressive MP4 (h264+aac)
+                    // Format 18 = 360p progressive MP4 (h264+aac)
+                    // DASH fallback requests bestaudio paired, so audio player gets a URL.
+                    "22/18/bestvideo[height<=720][vcodec^=avc1]+bestaudio/bestvideo[height<=720]+bestaudio",
                     "-g",
                     "--no-warnings",
                     "--no-playlist",
@@ -178,15 +179,26 @@ fn resolve_source(source: &str) -> Result<StreamSource, String> {
             }
 
             let stdout = String::from_utf8_lossy(&output.stdout);
-            let url = stdout
-                .trim()
-                .lines()
-                .next()
-                .ok_or_else(|| "yt-dlp returned no URLs".to_string())?
-                .to_string();
+            let lines: Vec<&str> = stdout.trim().lines().collect();
 
-            info!("YouTube URL extracted successfully");
-            return Ok(StreamSource::Url(url));
+            if lines.is_empty() {
+                return Err("yt-dlp returned no URLs".to_string());
+            }
+
+            let video_url = lines[0].to_string();
+
+            if lines.len() >= 2 {
+                // DASH format selected: separate video + audio URLs.
+                // Return as AudioUrl variant so the audio player uses the correct stream.
+                info!("YouTube DASH streams: video + audio URLs extracted");
+                return Ok(StreamSource::UrlWithAudio {
+                    video: video_url,
+                    audio: lines[1].to_string(),
+                });
+            }
+
+            info!("YouTube progressive stream extracted (muxed audio+video)");
+            return Ok(StreamSource::Url(video_url));
         }
         #[cfg(not(feature = "youtube"))]
         {
@@ -370,8 +382,12 @@ fn handle_load(
         }
     };
 
-    // Get the source path for audio player (before stream_source is moved)
-    let audio_source_path = stream_source.as_ffmpeg_input().to_string();
+    // Get the audio source path: use separate audio URL for DASH streams,
+    // or the same video URL for progressive (muxed) streams.
+    let audio_source_path = stream_source
+        .audio_url()
+        .unwrap_or_else(|| stream_source.as_ffmpeg_input())
+        .to_string();
 
     // Create the decoder
     let mut decoder = match VideoDecoder::with_size(stream_source, DEFAULT_WIDTH, DEFAULT_HEIGHT) {

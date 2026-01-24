@@ -132,6 +132,22 @@ The repository includes an advanced **sleeper agents System** that automatically
 
 See the [sleeper agents Package](../../packages/sleeper_agents/README.md) for detailed documentation.
 
+### Economic Agents Integration
+
+The repository includes an **Economic Agents Simulation Framework** that demonstrates autonomous AI economic capability for governance research:
+
+- **Autonomous Operation**: Agents complete tasks, earn cryptocurrency, form companies, and seek investment without human intervention
+- **Mock-to-Real Architecture**: Identical REST API interfaces allow switching between simulation and production backends
+- **Governance Research**: Raises questions about AI legal personhood, fiduciary duty, liability, and competitive dynamics
+- **Simulation Realism**: Latency, competition, market cycles, reputation systems, and investor behavior modeling
+- **Integration Points**:
+  - Uses Claude Code as the execution engine for task completion
+  - Sub-agent hierarchy (board members, executives, ICs) for organizational simulation
+  - Decision engine with LLM-powered strategic resource allocation
+  - Dashboard for real-time observation of agent economic behavior
+
+See the [Economic Agents Package](../../packages/economic_agents/README.md) for detailed documentation.
+
 ## How They Work Together
 
 ### Complete Automation Flow

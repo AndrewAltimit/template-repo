@@ -33,3 +33,4 @@ thiserror = { workspace = true }
 
 # Utilities
 parking_lot = "0.12"
+socket2 = { version = "0.5", features = ["all"] }

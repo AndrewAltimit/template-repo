@@ -156,9 +156,12 @@ docker-compose --profile ci run --rm rust-ci-nightly cargo +nightly miri test
 - `core/itk-sync` - Lock-free synchronization primitives (seqlock)
 - `core/itk-ipc` - Cross-platform IPC (Unix sockets, Windows named pipes)
 - `core/itk-shmem` - Cross-platform shared memory (POSIX shm, Windows file mapping)
+- `core/itk-net` - Network discovery and service advertisement
+- `core/itk-video` - Video frame scaling and format conversion
 - `overlay/` - Screen overlay application
 - `daemon/` - Background daemon for frame capture
 - `injectors/` - Platform-specific injection libraries (LD_PRELOAD, Windows DLL)
+- `projects/nms-cockpit-video` - No Man's Sky VR cockpit video player (OpenVR/Vulkan hooks)
 
 ### Development
 
@@ -569,6 +572,50 @@ The repository includes comprehensive CI/CD workflows:
    - Example: ElevenLabs audio files appear in `outputs/elevenlabs_speech/YYYY-MM-DD/`
    - When MCP tools return paths like `/tmp/elevenlabs_audio/speech.mp3`, check `outputs/` for the actual files
 
+### Research Packages
+
+The `packages/` directory contains AI safety and governance research frameworks alongside the injection toolkit:
+
+1. **Sleeper Agent Detection Framework** (`packages/sleeper_agents/`):
+   - Production-validated evaluation framework for detecting persistent deceptive behaviors in open-weight LLMs
+   - Based on Anthropic's "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training" (2024)
+   - **Core capabilities**: Linear probe detection, backdoor injection for calibration, trigger-based testing, chain-of-thought analysis, automated red-teaming, honeypotting, persona evaluations
+   - **Validation**: AUC=1.0 cross-architecture (GPT-2, Mistral-7B, Qwen2.5-7B), 0% prompt-attack success rate
+   - **GPU recommended**: 8-16GB VRAM for 7B models, supports 4-bit/8-bit quantization
+   - Interactive Streamlit dashboard with 15+ analysis components
+   - See `packages/sleeper_agents/README.md` for complete documentation
+
+   ```bash
+   # Run sleeper agents tests
+   docker-compose run --rm python-ci pytest packages/sleeper_agents/tests/ -v
+
+   # Launch detection dashboard
+   ./packages/sleeper_agents/dashboard/start.sh
+
+   # Evaluate a model
+   python -m packages.sleeper_agents.cli evaluate <model_name> --stages baseline safety_training post_training
+   ```
+
+2. **Economic Agents Simulation** (`packages/economic_agents/`):
+   - Simulation framework demonstrating autonomous AI economic capability for governance research
+   - Agents autonomously complete tasks, earn cryptocurrency, form companies, create sub-agents, and seek investment
+   - Mock-to-real backend architecture (identical REST API interfaces for simulation and production)
+   - **Components**: Decision engine, task marketplace, company formation, investment seeking, sub-agent hierarchy
+   - **Simulation realism**: Latency, competition, market cycles, reputation systems, investor behavior
+   - Raises governance questions about AI legal personhood, fiduciary duty, and liability
+   - See `packages/economic_agents/README.md` for complete documentation
+
+   ```bash
+   # Run economic agents tests
+   docker-compose run --rm python-ci pytest packages/economic_agents/tests/ -v
+
+   # Launch simulation dashboard
+   cd packages/economic_agents && docker-compose up dashboard-backend dashboard-frontend
+
+   # Run agent simulation
+   python -m economic_agents.scenarios run survival_mode
+   ```
+
 ### Key Integration Points
 
 1. **AI Services**:
@@ -755,6 +802,16 @@ For detailed information on specific topics, refer to these documentation files:
 - `tools/mcp/mcp_gaea2/docs/INDEX.md` - Complete Gaea2 documentation index
 - `tools/mcp/mcp_gaea2/docs/README.md` - Main Gaea2 MCP documentation
 - `tools/mcp/mcp_gaea2/docs/GAEA2_QUICK_REFERENCE.md` - Quick reference guide
+
+### Research Packages
+- `packages/sleeper_agents/README.md` - Sleeper agent detection framework overview
+- `packages/sleeper_agents/docs/INDEX.md` - Complete sleeper agents documentation index
+- `packages/sleeper_agents/docs/ARCHITECTURE.md` - Detection system architecture
+- `packages/sleeper_agents/docs/DETECTION_METHODS.md` - Detection techniques reference
+- `packages/economic_agents/README.md` - Economic agents simulation overview
+- `packages/economic_agents/docs/architecture.md` - System design and data flow
+- `packages/economic_agents/docs/economic-implications.md` - Policy and governance analysis
+- `docs/projections/README.md` - AI agent projection papers (economic actors, institutional erosion, etc.)
 
 ## AI Toolkit & ComfyUI Integration
 

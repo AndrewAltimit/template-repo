@@ -53,6 +53,15 @@ static QUEUE_FAMILY_INDEX: AtomicU64 = AtomicU64::new(0);
 /// Current swapchain handle.
 static SWAPCHAIN: OnceCell<vk::SwapchainKHR> = OnceCell::new();
 
+/// Cached ash::Device dispatch table (avoids per-frame function pointer resolution).
+static ASH_DEVICE: OnceCell<ash::Device> = OnceCell::new();
+
+/// Cached swapchain extension function table.
+static ASH_SWAPCHAIN_FN: OnceCell<ash::khr::swapchain::Device> = OnceCell::new();
+
+/// Cached swapchain images (cleared on swapchain recreation).
+static SWAPCHAIN_IMAGES: Mutex<Option<Vec<vk::Image>>> = Mutex::new(None);
+
 /// Swapchain extent (packed: width << 32 | height).
 static SWAPCHAIN_EXTENT: AtomicU64 = AtomicU64::new(0);
 
@@ -62,8 +71,8 @@ static SWAPCHAIN_FORMAT: AtomicU64 = AtomicU64::new(0);
 /// Frame counter for diagnostics.
 static FRAME_COUNT: AtomicU64 = AtomicU64::new(0);
 
-/// The renderer (lazy-initialized on first present).
-static RENDERER: OnceCell<Mutex<VulkanRenderer>> = OnceCell::new();
+/// The renderer (lazy-initialized on first present, resettable on swapchain recreation).
+static RENDERER: Mutex<Option<VulkanRenderer>> = Mutex::new(None);
 
 /// Camera reader (lazy-initialized on first present).
 static CAMERA: OnceCell<CameraReader> = OnceCell::new();
@@ -201,6 +210,16 @@ fn hooked_create_device(
         unsafe {
             setup_icd_hooks(dev);
         }
+
+        // Cache the device dispatch table and swapchain extension functions
+        // to avoid per-frame function pointer resolution in try_render_overlay.
+        if let Some(instance) = ASH_INSTANCE.get() {
+            let device_fns = ash::Device::load(instance.fp_v1_0(), dev);
+            let swapchain_fn = ash::khr::swapchain::Device::new(instance, &device_fns);
+            let _ = ASH_SWAPCHAIN_FN.set(swapchain_fn);
+            let _ = ASH_DEVICE.set(device_fns);
+            vlog!("ash::Device and swapchain extension cached");
+        }
     }
 
     result
@@ -213,10 +232,16 @@ fn hooked_create_swapchain(
     allocator: *const c_void,
     swapchain: *mut vk::SwapchainKHR,
 ) -> vk::Result {
-    // Destroy existing renderer on swapchain recreation
-    // (OnceCell doesn't support reset, so we just log and skip reinit for now)
-    if RENDERER.get().is_some() {
-        vlog!("Swapchain recreated - renderer will need reinit (TODO)");
+    // Destroy existing renderer and invalidate cached images on swapchain recreation
+    // so they reinitialize with new swapchain properties (resolution, format, images)
+    if let Ok(mut guard) = RENDERER.lock() {
+        if guard.is_some() {
+            vlog!("Swapchain recreated - destroying old renderer for reinit");
+            *guard = None;
+        }
+    }
+    if let Ok(mut images) = SWAPCHAIN_IMAGES.lock() {
+        *images = None;
     }
 
     let result =
@@ -429,6 +454,11 @@ unsafe extern "system" fn icd_hooked_create_swapchain(
     allocator: *const c_void,
     swapchain: *mut vk::SwapchainKHR,
 ) -> vk::Result {
+    // Invalidate cached images before recreation
+    if let Ok(mut images) = SWAPCHAIN_IMAGES.lock() {
+        *images = None;
+    }
+
     // Call the original ICD function first
     let result = if let Some(trampoline) = ICD_SWAPCHAIN_TRAMPOLINE.get() {
         (trampoline)(device, create_info, allocator, swapchain)
@@ -521,35 +551,48 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
         }
     };
 
-    // Lazy-initialize the renderer
-    let renderer = RENDERER.get_or_try_init(|| init_renderer(queue, swapchain));
-
-    match renderer {
-        Ok(renderer_mutex) => {
-            if let Ok(renderer) = renderer_mutex.lock() {
-                if let Some(instance) = ASH_INSTANCE.get() {
-                    if let Some(&device) = DEVICE.get() {
-                        let device_fns = ash::Device::load(instance.fp_v1_0(), device);
-                        let swapchain_fn = ash::khr::swapchain::Device::new(instance, &device_fns);
-                        if let Ok(images) = swapchain_fn.get_swapchain_images(swapchain) {
-                            if (image_index as usize) < images.len() {
-                                let image = images[image_index as usize];
-                                if let Err(e) =
-                                    renderer.render_frame(image_index, image, &mvp, new_frame)
-                                {
-                                    if frame.is_multiple_of(300) {
-                                        vlog!("Render error: {}", e);
-                                    }
-                                }
-                            }
-                        }
+    // Lazy-initialize the renderer (or reinitialize after swapchain recreation)
+    if let Ok(mut guard) = RENDERER.lock() {
+        if guard.is_none() {
+            match init_renderer(queue, swapchain) {
+                Ok(renderer) => {
+                    *guard = Some(renderer);
+                }
+                Err(e) => {
+                    if frame.is_multiple_of(300) {
+                        vlog!("Renderer not ready: {}", e);
                     }
+                    return;
                 }
             }
         }
-        Err(e) => {
-            if frame.is_multiple_of(300) {
-                vlog!("Renderer not ready: {}", e);
+
+        if let Some(renderer) = guard.as_ref() {
+            // Use cached swapchain images (fetched once per swapchain lifetime)
+            let image = {
+                let mut img_guard = match SWAPCHAIN_IMAGES.lock() {
+                    Ok(g) => g,
+                    Err(_) => return,
+                };
+                if img_guard.is_none() {
+                    // Populate cache on first use or after swapchain recreation
+                    if let Some(swapchain_fn) = ASH_SWAPCHAIN_FN.get() {
+                        if let Ok(images) = swapchain_fn.get_swapchain_images(swapchain) {
+                            *img_guard = Some(images);
+                        }
+                    }
+                }
+                img_guard
+                    .as_ref()
+                    .and_then(|imgs| imgs.get(image_index as usize).copied())
+            };
+
+            if let Some(image) = image {
+                if let Err(e) = renderer.render_frame(image_index, image, &mvp, new_frame) {
+                    if frame.is_multiple_of(300) {
+                        vlog!("Render error: {}", e);
+                    }
+                }
             }
         }
     }
@@ -595,10 +638,7 @@ fn offscreen_mvp() -> [f32; 16] {
 }
 
 /// Initialize the renderer with current state.
-fn init_renderer(
-    queue: vk::Queue,
-    swapchain: vk::SwapchainKHR,
-) -> Result<Mutex<VulkanRenderer>, String> {
+fn init_renderer(queue: vk::Queue, swapchain: vk::SwapchainKHR) -> Result<VulkanRenderer, String> {
     let instance = ASH_INSTANCE
         .get()
         .ok_or_else(|| "No ash::Instance".to_string())?;
@@ -639,7 +679,7 @@ fn init_renderer(
         )?
     };
 
-    Ok(Mutex::new(renderer))
+    Ok(renderer)
 }
 
 // --- Installation ---
@@ -740,8 +780,8 @@ pub unsafe fn remove() {
 // --- Public accessors for VR hook ---
 
 /// Get the renderer mutex (used by OpenVR hook).
-pub fn get_renderer() -> Option<&'static Mutex<VulkanRenderer>> {
-    RENDERER.get()
+pub fn get_renderer() -> &'static Mutex<Option<VulkanRenderer>> {
+    &RENDERER
 }
 
 /// Compute the current MVP matrix (used by OpenVR hook).

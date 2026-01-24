@@ -10,6 +10,9 @@ pub enum StreamSource {
 
     /// Remote URL (HTTP/HTTPS, including HLS/DASH manifests).
     Url(String),
+
+    /// Separate video and audio URLs (e.g., YouTube DASH streams).
+    UrlWithAudio { video: String, audio: String },
 }
 
 impl StreamSource {
@@ -33,16 +36,26 @@ impl StreamSource {
     /// Check if this source is a YouTube URL.
     pub fn is_youtube(&self) -> bool {
         match self {
-            StreamSource::Url(url) => url.contains("youtube.com") || url.contains("youtu.be"),
+            StreamSource::Url(url) | StreamSource::UrlWithAudio { video: url, .. } => {
+                url.contains("youtube.com") || url.contains("youtu.be")
+            }
             StreamSource::File(_) => false,
         }
     }
 
-    /// Get the path/URL as a string for ffmpeg.
+    /// Get the path/URL as a string for ffmpeg (video stream).
     pub fn as_ffmpeg_input(&self) -> &str {
         match self {
             StreamSource::File(path) => path.to_str().unwrap_or(""),
-            StreamSource::Url(url) => url.as_str(),
+            StreamSource::Url(url) | StreamSource::UrlWithAudio { video: url, .. } => url.as_str(),
+        }
+    }
+
+    /// Get the audio URL if this is a split video+audio source.
+    pub fn audio_url(&self) -> Option<&str> {
+        match self {
+            StreamSource::UrlWithAudio { audio, .. } => Some(audio.as_str()),
+            _ => None,
         }
     }
 }

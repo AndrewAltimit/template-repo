@@ -17,6 +17,10 @@ pub struct FrameScaler {
     output_frame: VideoFrame,
     /// Whether the output frame buffer has been allocated.
     frame_allocated: bool,
+    /// Last input dimensions/format for detecting changes.
+    last_input_width: u32,
+    last_input_height: u32,
+    last_input_format: Pixel,
 }
 
 impl FrameScaler {
@@ -40,6 +44,9 @@ impl FrameScaler {
             output_buffer: vec![0u8; buffer_size],
             output_frame,
             frame_allocated: false,
+            last_input_width: 0,
+            last_input_height: 0,
+            last_input_format: Pixel::None,
         }
     }
 
@@ -63,11 +70,10 @@ impl FrameScaler {
         let input_height = input.height();
 
         // Create or recreate the scaling context if input parameters changed
-        let needs_new_context = self.context.as_ref().is_none_or(|_ctx| {
-            // SwsContext doesn't expose input parameters, so we recreate on each unique input
-            // This is acceptable since videos typically have consistent frame parameters
-            false // For now, assume context is valid if it exists
-        });
+        let needs_new_context = self.context.is_some()
+            && (self.last_input_width != input_width
+                || self.last_input_height != input_height
+                || self.last_input_format != input_format);
 
         if needs_new_context || self.context.is_none() {
             self.context = Some(
@@ -82,6 +88,9 @@ impl FrameScaler {
                 )
                 .map_err(|e| VideoError::ScaleError(e.to_string()))?,
             );
+            self.last_input_width = input_width;
+            self.last_input_height = input_height;
+            self.last_input_format = input_format;
         }
 
         let ctx = self.context.as_mut().unwrap();

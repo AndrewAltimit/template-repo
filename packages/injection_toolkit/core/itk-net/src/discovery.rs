@@ -4,6 +4,7 @@
 
 use crate::{NetError, Result, DISCOVERY_PORT};
 use serde::{Deserialize, Serialize};
+use socket2::{Domain, Protocol, Socket, Type};
 use std::net::{SocketAddr, UdpSocket};
 use std::time::{Duration, Instant, SystemTime};
 use tracing::{debug, info, warn};
@@ -86,9 +87,30 @@ pub struct Discovery {
 impl Discovery {
     /// Create a new discovery service
     pub fn new(session_id: String, game_port: u16, is_leader: bool, name: String) -> Result<Self> {
-        let socket = UdpSocket::bind(format!("0.0.0.0:{}", DISCOVERY_PORT))
-            .or_else(|_| UdpSocket::bind("0.0.0.0:0"))
-            .map_err(|e| NetError::BindFailed(e.to_string()))?;
+        // Use socket2 to set SO_REUSEADDR/SO_REUSEPORT before binding, allowing
+        // multiple instances to listen on the same discovery port simultaneously.
+        let sock2 = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))
+            .map_err(|e| NetError::BindFailed(format!("Failed to create socket: {}", e)))?;
+
+        sock2
+            .set_reuse_address(true)
+            .map_err(|e| NetError::BindFailed(format!("Failed to set SO_REUSEADDR: {}", e)))?;
+
+        // SO_REUSEPORT allows multiple processes to bind to the same port (Linux/macOS)
+        #[cfg(not(windows))]
+        sock2
+            .set_reuse_port(true)
+            .map_err(|e| NetError::BindFailed(format!("Failed to set SO_REUSEPORT: {}", e)))?;
+
+        let addr: std::net::SocketAddrV4 = format!("0.0.0.0:{}", DISCOVERY_PORT).parse().unwrap();
+        sock2.bind(&socket2::SockAddr::from(addr)).map_err(|e| {
+            NetError::BindFailed(format!(
+                "Failed to bind discovery port {}: {}",
+                DISCOVERY_PORT, e
+            ))
+        })?;
+
+        let socket: UdpSocket = sock2.into();
 
         // Enable broadcast
         socket
