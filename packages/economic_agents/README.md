@@ -298,6 +298,10 @@ packages/economic_agents/
 └── config/
 ```
 
+## License
+
+Part of the template-repo project. See repository LICENSE file.
+
 ---
 
 *This framework demonstrates capabilities that exist today. The simulation validates agent behavior; the governance questions remain unanswered.*

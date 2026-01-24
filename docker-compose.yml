@@ -806,6 +806,31 @@ services:
     profiles:
       - ci
 
+  # Terraform/Terragrunt CI with AWS CLI for infrastructure deployment
+  terraform-ci:
+    build:
+      context: .
+      dockerfile: docker/terraform-ci.Dockerfile
+    container_name: terraform-ci
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - .:/workspace
+      - ${HOME}/.aws:/home/ciuser/.aws  # Mount AWS credentials (needs write for SSO cache)
+    environment:
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_PROFILE=${AWS_PROFILE:-default}
+      - TF_PLUGIN_CACHE_DIR=/home/ciuser/.terraform.d/plugin-cache
+      - TF_IN_AUTOMATION=1
+      - CI=true
+    working_dir: /workspace/infra/aws
+    networks:
+      - mcp-network
+    command: ["/bin/bash"]
+    stdin_open: true
+    tty: true
+    profiles:
+      - ci
+
   # Optional PostgreSQL for future use
   postgres:
     image: postgres:15-alpine

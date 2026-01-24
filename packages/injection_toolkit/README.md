@@ -250,4 +250,4 @@ Tests run on the ARM64 self-hosted runner, with cross-compilation verification f
 
 ## License
 
-MIT License
+Part of the template-repo project. See repository LICENSE file.
