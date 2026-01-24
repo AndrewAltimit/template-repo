@@ -5,7 +5,7 @@
 use crate::{NetError, Result, DISCOVERY_PORT};
 use serde::{Deserialize, Serialize};
 use std::net::{SocketAddr, UdpSocket};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 use tracing::{debug, info, warn};
 
 /// Discovery announcement message
@@ -15,6 +15,8 @@ pub struct DiscoveryAnnounce {
     pub magic: [u8; 4],
     /// Protocol version
     pub version: u32,
+    /// Unique peer identifier (distinguishes instances in same session)
+    pub peer_id: u64,
     /// Session ID (content hash or random)
     pub session_id: String,
     /// Peer's game port (for laminar connection)
@@ -29,9 +31,17 @@ impl DiscoveryAnnounce {
     pub const MAGIC: [u8; 4] = *b"ITKD"; // ITK Discovery
 
     pub fn new(session_id: String, game_port: u16, is_leader: bool, name: String) -> Self {
+        // Generate a unique peer ID from process ID and high-resolution time
+        let time_nanos = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
+        let peer_id = time_nanos ^ (std::process::id() as u64) << 32;
+
         Self {
             magic: Self::MAGIC,
             version: 1,
+            peer_id,
             session_id,
             game_port,
             is_leader,
@@ -177,10 +187,8 @@ impl Discovery {
             return None;
         }
 
-        // Ignore our own broadcasts
-        if announce.game_port == self.announce.game_port
-            && announce.session_id == self.announce.session_id
-        {
+        // Ignore our own broadcasts (compare unique peer ID, not session+port)
+        if announce.peer_id == self.announce.peer_id {
             return None;
         }
 

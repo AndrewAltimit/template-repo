@@ -274,7 +274,7 @@ impl VulkanRenderer {
 
         self.device.cmd_pipeline_barrier(
             frame.command_buffer,
-            vk::PipelineStageFlags::BOTTOM_OF_PIPE,
+            vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
             vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT,
             vk::DependencyFlags::empty(),
             &[],
