@@ -235,11 +235,17 @@ case "$STAGE" in
     echo "=== Running Rust clippy lints ==="
     echo "Building Rust CI image..."
     docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    # Exclude platform-specific crates when running on Linux CI
-    # itk-native-dll: Windows-only DLL injector (requires Windows SDK)
+    # Exclude Windows-only crates that can't compile in the Linux CI container:
+    # itk-native-dll: Windows DLL injector (requires Windows SDK)
+    # nms-cockpit-injector: Vulkan/OpenVR hooks (uses retour, Windows APIs)
+    # nms-video-launcher: Process injection launcher (Windows APIs)
+    # nms-video-overlay: Desktop overlay (wgpu/egui/winit with Windows features)
     docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo clippy \
       --workspace --all-targets \
       --exclude itk-native-dll \
+      --exclude nms-cockpit-injector \
+      --exclude nms-video-launcher \
+      --exclude nms-video-overlay \
       -- -D warnings
     ;;
 
@@ -247,10 +253,13 @@ case "$STAGE" in
     echo "=== Running Rust tests ==="
     echo "Building Rust CI image..."
     docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    # Exclude platform-specific crates (Windows-only)
+    # Exclude Windows-only crates (same list as rust-clippy)
     docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo test \
       --workspace \
       --exclude itk-native-dll \
+      --exclude nms-cockpit-injector \
+      --exclude nms-video-launcher \
+      --exclude nms-video-overlay \
       "${EXTRA_ARGS[@]}"
     ;;
 
@@ -258,10 +267,13 @@ case "$STAGE" in
     echo "=== Building Rust workspace ==="
     echo "Building Rust CI image..."
     docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    # Exclude platform-specific crates (Windows-only)
+    # Exclude Windows-only crates (same list as rust-clippy)
     docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo build \
       --workspace --all-targets \
-      --exclude itk-native-dll
+      --exclude itk-native-dll \
+      --exclude nms-cockpit-injector \
+      --exclude nms-video-launcher \
+      --exclude nms-video-overlay
     ;;
 
   rust-deny)

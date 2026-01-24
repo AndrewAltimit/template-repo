@@ -454,7 +454,14 @@ unsafe extern "system" fn icd_hooked_create_swapchain(
     allocator: *const c_void,
     swapchain: *mut vk::SwapchainKHR,
 ) -> vk::Result {
-    // Invalidate cached images before recreation
+    // Destroy renderer and invalidate cached images before recreation
+    // (mirrors the loader-level hook behavior)
+    if let Ok(mut guard) = RENDERER.lock() {
+        if guard.is_some() {
+            vlog!("Swapchain recreated (ICD) - destroying renderer for reinit");
+            *guard = None;
+        }
+    }
     if let Ok(mut images) = SWAPCHAIN_IMAGES.lock() {
         *images = None;
     }
