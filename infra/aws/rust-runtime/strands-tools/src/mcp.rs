@@ -171,13 +171,52 @@ fn convert_mcp_schema(schema: &serde_json::Map<String, Value>) -> InputSchema {
                 .unwrap_or("string")
                 .to_string();
 
+            let enum_values = prop_obj
+                .and_then(|o| o.get("enum"))
+                .and_then(|e| e.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                        .collect()
+                });
+
+            let items = prop_obj
+                .and_then(|o| o.get("items"))
+                .and_then(|i| i.as_object())
+                .map(|item_obj| {
+                    let item_type = item_obj
+                        .get("type")
+                        .and_then(|t| t.as_str())
+                        .unwrap_or("string")
+                        .to_string();
+                    let item_desc = item_obj
+                        .get("description")
+                        .and_then(|d| d.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let item_enum = item_obj
+                        .get("enum")
+                        .and_then(|e| e.as_array())
+                        .map(|arr| {
+                            arr.iter()
+                                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                                .collect()
+                        });
+                    Box::new(PropertySchema {
+                        property_type: item_type,
+                        description: item_desc,
+                        enum_values: item_enum,
+                        items: None,
+                    })
+                });
+
             properties.insert(
                 name.clone(),
                 PropertySchema {
                     property_type: prop_type,
                     description,
-                    enum_values: None,
-                    items: None,
+                    enum_values,
+                    items,
                 },
             );
         }
