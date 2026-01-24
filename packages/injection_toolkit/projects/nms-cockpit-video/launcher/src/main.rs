@@ -1,13 +1,17 @@
 //! NMS Video Launcher
 //!
-//! Creates the NMS process in a suspended state, injects the cockpit video
-//! DLL before Vulkan initializes, then resumes execution.
+//! Creates the NMS process in a suspended state with --disable-eac,
+//! injects the cockpit video DLL before Vulkan initializes, then resumes.
 //!
-//! Usage: nms-video-launcher.exe <nms-exe-path> <dll-path>
+//! Defaults:
+//!   NMS: D:\SteamLibrary\steamapps\common\No Man's Sky\Binaries\NMS.exe
+//!   DLL: nms_cockpit_injector.dll (next to this launcher)
+//!
+//! Usage: nms-video-launcher.exe [nms-exe-path] [dll-path]
 
 use std::env;
-use std::path::Path;
-use std::process;
+use std::path::{Path, PathBuf};
+use std::process::{self, Command, Stdio};
 
 use windows::core::{PCSTR, PCWSTR, PWSTR};
 use windows::Win32::Foundation::{CloseHandle, WAIT_OBJECT_0};
@@ -19,27 +23,40 @@ use windows::Win32::System::Threading::{
     CREATE_SUSPENDED, INFINITE, PROCESS_INFORMATION, STARTUPINFOW,
 };
 
+const DEFAULT_NMS: &str = r"D:\SteamLibrary\steamapps\common\No Man's Sky\Binaries\NMS.exe";
+const DEFAULT_DLL: &str = "nms_cockpit_injector.dll";
+const DEFAULT_DAEMON: &str = "nms-video-daemon.exe";
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() != 3 {
-        eprintln!("Usage: {} <nms-exe-path> <dll-path>", args[0]);
-        eprintln!();
-        eprintln!("Example:");
-        eprintln!("  {} \"C:\\...\\NMS.exe\" \".\\nms_cockpit_injector.dll\"", args[0]);
-        process::exit(1);
-    }
+    // Resolve NMS path
+    let nms_path = if args.len() > 1 {
+        PathBuf::from(&args[1])
+    } else {
+        PathBuf::from(DEFAULT_NMS)
+    };
 
-    let nms_path = Path::new(&args[1]);
-    let dll_path = Path::new(&args[2]);
+    // Resolve DLL path (default: next to this exe)
+    let dll_path = if args.len() > 2 {
+        PathBuf::from(&args[2])
+    } else {
+        let exe_dir = env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|d| d.to_path_buf()))
+            .unwrap_or_else(|| PathBuf::from("."));
+        exe_dir.join(DEFAULT_DLL)
+    };
 
     // Validate paths
     if !nms_path.exists() {
         eprintln!("Error: NMS executable not found: {}", nms_path.display());
+        eprintln!("Pass the correct path as the first argument.");
         process::exit(1);
     }
     if !dll_path.exists() {
         eprintln!("Error: DLL not found: {}", dll_path.display());
+        eprintln!("Place {} next to this launcher, or pass the path as the second argument.", DEFAULT_DLL);
         process::exit(1);
     }
 
@@ -52,11 +69,16 @@ fn main() {
         }
     };
 
-    println!("NMS: {}", nms_path.display());
-    println!("DLL: {}", dll_abs.display());
+    println!("NMS:  {}", nms_path.display());
+    println!("DLL:  {}", dll_abs.display());
+    println!("Args: --disable-eac");
+    println!();
+
+    // Start the daemon as a separate process
+    start_daemon(&dll_abs);
 
     unsafe {
-        match inject(nms_path, &dll_abs) {
+        match inject(&nms_path, &dll_abs) {
             Ok(()) => println!("Success: NMS launched with DLL injected"),
             Err(e) => {
                 eprintln!("Error: {}", e);
@@ -66,11 +88,71 @@ fn main() {
     }
 }
 
-/// Create NMS suspended, inject DLL, resume.
+/// Start the video daemon as a detached background process.
+fn start_daemon(dll_path: &Path) {
+    // Look for daemon next to the DLL (or next to this exe)
+    let daemon_path = dll_path.parent()
+        .map(|d| d.join(DEFAULT_DAEMON))
+        .unwrap_or_else(|| PathBuf::from(DEFAULT_DAEMON));
+
+    if !daemon_path.exists() {
+        // Also try next to the launcher exe
+        let exe_dir = env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|d| d.to_path_buf()));
+        let alt_path = exe_dir.map(|d| d.join(DEFAULT_DAEMON));
+
+        if let Some(alt) = &alt_path {
+            if alt.exists() {
+                spawn_daemon(alt);
+                return;
+            }
+        }
+
+        println!("Warning: {} not found, skipping daemon launch", DEFAULT_DAEMON);
+        println!("  Looked in: {}", daemon_path.display());
+        if let Some(alt) = alt_path {
+            println!("  Looked in: {}", alt.display());
+        }
+        println!("  Start the daemon manually if needed.");
+        println!();
+        return;
+    }
+
+    spawn_daemon(&daemon_path);
+}
+
+/// Spawn the daemon process detached.
+fn spawn_daemon(path: &Path) {
+    match Command::new(path)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+    {
+        Ok(child) => {
+            println!("Daemon started: PID {} ({})", child.id(), path.display());
+        }
+        Err(e) => {
+            println!("Warning: failed to start daemon: {}", e);
+            println!("  Start the daemon manually if needed.");
+        }
+    }
+    println!();
+}
+
+/// Create NMS suspended with --disable-eac, inject DLL, resume.
 unsafe fn inject(nms_path: &Path, dll_path: &Path) -> Result<(), String> {
     // Convert paths to wide strings
     let nms_wide = to_wide(nms_path.to_str().unwrap_or(""));
     let dll_wide = to_wide(dll_path.to_str().unwrap_or(""));
+
+    // Command line: "NMS.exe" --disable-eac (mutable because CreateProcessW may modify it)
+    let cmd_line_str = format!(
+        "\"{}\" --disable-eac",
+        nms_path.to_str().unwrap_or("")
+    );
+    let mut cmd_wide = to_wide(&cmd_line_str);
 
     // Byte size of the DLL path (including null terminator, already in to_wide)
     let dll_path_bytes = dll_wide.len() * 2; // u16 -> bytes
@@ -84,7 +166,7 @@ unsafe fn inject(nms_path: &Path, dll_path: &Path) -> Result<(), String> {
 
     CreateProcessW(
         PCWSTR(nms_wide.as_ptr()),
-        PWSTR::null(),
+        PWSTR(cmd_wide.as_mut_ptr()),
         None,
         None,
         false,
