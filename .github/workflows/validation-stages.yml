@@ -26,7 +26,12 @@ jobs:
       status: ${{ steps.result.outputs.status }}
     steps:
       - name: Pre-checkout cleanup
-        uses: ./.github/actions/pre-checkout-cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
+              "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
+              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+          fi
 
       - name: Checkout code
         uses: actions/checkout@v6
