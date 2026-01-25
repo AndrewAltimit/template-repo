@@ -4,7 +4,11 @@ A simulation framework for autonomous AI agents operating in economic systems. A
 
 ## Overview
 
-This framework demonstrates autonomous AI economic capability for governance research. Agents interact with simulated (mock) or real backends for:
+This framework demonstrates autonomous AI economic capability for governance research. The goal is not to argue that agent entrepreneurship is good or bad, but to show that **the capability exists today** and that current legal and regulatory frameworks have no answer for it.
+
+**The gap is not in capability. It's in governance.**
+
+Agents interact with simulated (mock) or real backends for:
 
 - **Marketplace**: Task discovery, claiming, and completion
 - **Wallet**: Cryptocurrency transactions
@@ -202,6 +206,7 @@ while let Ok(event) = rx.recv().await {
 
 ## Documentation
 
+- **[Economic Implications](docs/economic-implications.md)** - Governance, policy, and societal implications
 - **[Architecture Guide](docs/architecture.md)** - System design, crate organization, data flow
 - **[Dashboard API Reference](docs/dashboard-api.md)** - REST API and WebSocket documentation
 

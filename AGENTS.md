@@ -153,4 +153,5 @@ docker-compose down                      # Stop services
 ### Research Packages
 - `packages/sleeper_agents/README.md` - Sleeper agent detection
 - `packages/economic_agents/README.md` - Economic agents simulation (Rust)
+- `packages/economic_agents/docs/economic-implications.md` - **AI governance policy analysis**
 - `packages/injection_toolkit/README.md` - Injection toolkit
