@@ -17,6 +17,7 @@ use crate::cycle::{
     InvestmentResult, TaskWorkResult,
 };
 use crate::decision::{DecisionEngine, DecisionType, RuleBasedEngine};
+use crate::llm::LlmDecisionEngine;
 use crate::state::AgentState;
 use crate::strategy::select_task;
 
@@ -76,9 +77,10 @@ impl AutonomousAgent {
         let decision_engine: Box<dyn DecisionEngine> = match config.engine_type {
             EngineType::RuleBased => Box::new(RuleBasedEngine::new()),
             EngineType::Llm => {
-                // Fall back to rule-based for now until LLM is implemented
-                warn!("LLM engine not yet implemented, using rule-based fallback");
-                Box::new(RuleBasedEngine::new())
+                // Use LLM decision engine with Claude CLI
+                // Falls back to rule-based if Claude is not available
+                info!("Initializing LLM decision engine");
+                Box::new(LlmDecisionEngine::with_defaults())
             }
         };
 

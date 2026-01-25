@@ -34,7 +34,7 @@ pub use cycle::{
     InvestmentResult, TaskWorkResult,
 };
 pub use decision::{Decision, DecisionEngine, DecisionType, ResourceAllocation, RuleBasedEngine};
-pub use llm::LlmDecisionEngine;
+pub use llm::{LlmConfig, LlmDecisionEngine};
 pub use runner::{AgentCommand, AgentEvent, AgentHandle, AgentRunner, AgentStatus, RunnerConfig};
 pub use state::AgentState;
 pub use strategy::select_task;
