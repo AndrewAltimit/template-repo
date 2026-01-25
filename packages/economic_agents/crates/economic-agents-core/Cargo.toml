@@ -1,0 +1,24 @@
+[package]
+name = "economic-agents-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Core autonomous agent logic and decision engine"
+
+[dependencies]
+economic-agents-interfaces.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio-test.workspace = true
+mockall.workspace = true
+proptest.workspace = true

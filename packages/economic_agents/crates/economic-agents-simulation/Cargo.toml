@@ -1,0 +1,22 @@
+[package]
+name = "economic-agents-simulation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Simulation realism features (latency, market dynamics, competition)"
+
+[dependencies]
+economic-agents-interfaces.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+serde.workspace = true
+chrono.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+rand = "0.8"
+
+[dev-dependencies]
+tokio-test.workspace = true
+proptest.workspace = true

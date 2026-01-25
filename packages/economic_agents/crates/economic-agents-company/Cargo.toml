@@ -1,0 +1,23 @@
+[package]
+name = "economic-agents-company"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Company formation and management"
+
+[dependencies]
+economic-agents-interfaces.workspace = true
+economic-agents-core.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+serde.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio-test.workspace = true
+mockall.workspace = true

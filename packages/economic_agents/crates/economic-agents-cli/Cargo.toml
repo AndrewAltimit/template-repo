@@ -1,0 +1,34 @@
+[package]
+name = "economic-agents-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Command-line interface for economic agents"
+
+[[bin]]
+name = "economic-agents"
+path = "src/bin/economic-agents.rs"
+
+[dependencies]
+economic-agents-core.workspace = true
+economic-agents-interfaces.workspace = true
+economic-agents-mock.workspace = true
+economic-agents-api.workspace = true
+economic-agents-company.workspace = true
+economic-agents-investment.workspace = true
+economic-agents-simulation.workspace = true
+economic-agents-monitoring.workspace = true
+economic-agents-dashboard.workspace = true
+tokio.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.0"

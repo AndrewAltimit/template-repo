@@ -1,0 +1,28 @@
+[package]
+name = "economic-agents-dashboard"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Web dashboard backend (Axum)"
+
+[dependencies]
+economic-agents-interfaces.workspace = true
+economic-agents-core.workspace = true
+economic-agents-monitoring.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+axum.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio-test.workspace = true
+reqwest.workspace = true
