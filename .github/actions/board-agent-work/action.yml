@@ -342,7 +342,23 @@ runs:
           ISSUE_TITLE="$INPUT_ISSUE_TITLE"
           ISSUE_LABELS="$INPUT_ISSUE_LABELS"
           HAS_WORK="True"
-          QUERY_RESULT="{\"has_work\": true, \"issue_number\": $ISSUE_NUMBER, \"issue_title\": \"$ISSUE_TITLE\", \"mode\": \"matrix_provided\"}"
+
+          # Build JSON safely using Python to handle special characters in title
+          # This matches the schema from the standard query path for consistency
+          QUERY_RESULT=$(python3 -c "
+import json
+title = '''$INPUT_ISSUE_TITLE'''
+labels = '''$INPUT_ISSUE_LABELS'''.split(',') if '''$INPUT_ISSUE_LABELS''' else []
+labels = [l.strip() for l in labels if l.strip()]
+print(json.dumps({
+    'has_work': True,
+    'issue_number': $ISSUE_NUMBER,
+    'issue_title': title,
+    'labels': labels,
+    'total_ready': 1,
+    'mode': 'matrix_provided'
+}))
+")
 
           echo "has_work=$HAS_WORK" >> $GITHUB_OUTPUT
           echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT

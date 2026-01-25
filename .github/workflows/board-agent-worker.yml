@@ -190,7 +190,7 @@ on:
         value: ${{ jobs.agent-work.outputs.summary-json }}
       stale-claims-cleaned:
         description: 'Number of stale claims cleaned up'
-        value: ${{ jobs.agent-work.outputs.stale-claims-cleaned }}
+        value: ${{ jobs.query-work.outputs.stale-claims-cleaned }}
 
 permissions:
   contents: write
