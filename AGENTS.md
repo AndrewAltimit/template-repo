@@ -120,6 +120,33 @@ docker-compose down                      # Stop services
 - Refer to AI agents without @: "Gemini", "Claude", "OpenAI"
 - **Use `gh api` instead of `gh pr edit`** for PR updates
 
+### Reaction Images for PR Comments
+
+Use the `reaction-search` MCP server for contextually appropriate reactions:
+
+```python
+search_reactions(query="celebrating after fixing a bug", limit=3)
+get_reaction(reaction_id="miku_typing")
+```
+
+**Example PR comment with reaction:**
+
+```markdown
+Fixed the race condition in the worker pool. The issue was a missing lock
+on the shared counter - now using AtomicUsize instead.
+
+![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/miku_typing.webp)
+```
+
+This renders as:
+
+> Fixed the race condition in the worker pool. The issue was a missing lock
+> on the shared counter - now using AtomicUsize instead.
+>
+> ![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/miku_typing.webp)
+
+**CRITICAL**: Use Write tool + `--body-file` pattern for PR comments (shell escaping breaks `![]`).
+
 **For complete GitHub etiquette, see** `docs/agents/github-etiquette.md`
 
 ## Documentation Index
