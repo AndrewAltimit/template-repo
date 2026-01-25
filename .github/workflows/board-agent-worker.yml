@@ -337,7 +337,19 @@ jobs:
             if [ "$ISSUE_COUNT" -gt 0 ]; then
               # Build matrix JSON: array of {issue_number, issue_title} objects
               # Each issue will be processed in its own matrix job
-              MATRIX_JSON=$(echo "$READY_RESULT" | python3 -c "import sys,json; issues=json.load(sys.stdin); matrix=[{'issue_number':i.get('number'),'issue_title':i.get('title',''),'issue_labels':','.join(i.get('labels',[]))} for i in issues]; print(json.dumps({'include':matrix}))")
+              MATRIX_JSON=$(echo "$READY_RESULT" | python3 -c "
+              import sys, json
+              issues = json.load(sys.stdin)
+              matrix = [
+                  {
+                      'issue_number': i.get('number'),
+                      'issue_title': i.get('title', ''),
+                      'issue_labels': ','.join(i.get('labels', []))
+                  }
+                  for i in issues
+              ]
+              print(json.dumps({'include': matrix}))
+              ")
               echo "Matrix: $MATRIX_JSON"
 
               echo "has_work=true" >> $GITHUB_OUTPUT
