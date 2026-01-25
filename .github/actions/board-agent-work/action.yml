@@ -433,7 +433,28 @@ print(json.dumps({
             ISSUE_TITLE=$(echo "$FIRST_ISSUE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('title', ''))")
             ISSUE_LABELS=$(echo "$FIRST_ISSUE" | python3 -c "import sys,json; print(','.join(json.load(sys.stdin).get('labels', [])))")
             HAS_WORK="True"
-            QUERY_RESULT="{\"has_work\": true, \"issue_number\": $ISSUE_NUMBER, \"issue_title\": \"$ISSUE_TITLE\", \"labels\": [\"${ISSUE_LABELS//,/\",\"}\"], \"total_ready\": $ISSUE_COUNT}"
+            # Build JSON safely using Python with env vars to handle ALL special characters
+            # This avoids any shell quoting issues (quotes, backslashes, etc.)
+            QUERY_RESULT=$(ISSUE_TITLE="$ISSUE_TITLE" \
+              ISSUE_LABELS="$ISSUE_LABELS" \
+              ISSUE_NUMBER="$ISSUE_NUMBER" \
+              ISSUE_COUNT="$ISSUE_COUNT" \
+              python3 -c "
+import json
+import os
+title = os.environ.get('ISSUE_TITLE', '')
+labels_str = os.environ.get('ISSUE_LABELS', '')
+issue_number = int(os.environ.get('ISSUE_NUMBER', '0'))
+total_ready = int(os.environ.get('ISSUE_COUNT', '0'))
+labels = [l.strip() for l in labels_str.split(',') if l.strip()] if labels_str else []
+print(json.dumps({
+    'has_work': True,
+    'issue_number': issue_number,
+    'issue_title': title,
+    'labels': labels,
+    'total_ready': total_ready
+}))
+")
             echo "Selected issue #$ISSUE_NUMBER: $ISSUE_TITLE"
           else
             HAS_WORK="False"
