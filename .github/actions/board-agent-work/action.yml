@@ -350,21 +350,21 @@ runs:
             INPUT_ISSUE_LABELS="$INPUT_ISSUE_LABELS" \
             ISSUE_NUMBER="$ISSUE_NUMBER" \
             python3 -c "
-import json
-import os
-title = os.environ.get('INPUT_ISSUE_TITLE', '')
-labels_str = os.environ.get('INPUT_ISSUE_LABELS', '')
-issue_number = int(os.environ.get('ISSUE_NUMBER', '0'))
-labels = [l.strip() for l in labels_str.split(',') if l.strip()] if labels_str else []
-print(json.dumps({
-    'has_work': True,
-    'issue_number': issue_number,
-    'issue_title': title,
-    'labels': labels,
-    'total_ready': 1,
-    'mode': 'matrix_provided'
-}))
-")
+          import json
+          import os
+          title = os.environ.get('INPUT_ISSUE_TITLE', '')
+          labels_str = os.environ.get('INPUT_ISSUE_LABELS', '')
+          issue_number = int(os.environ.get('ISSUE_NUMBER', '0'))
+          labels = [l.strip() for l in labels_str.split(',') if l.strip()] if labels_str else []
+          print(json.dumps({
+              'has_work': True,
+              'issue_number': issue_number,
+              'issue_title': title,
+              'labels': labels,
+              'total_ready': 1,
+              'mode': 'matrix_provided'
+          }))
+          ")
 
           echo "has_work=$HAS_WORK" >> $GITHUB_OUTPUT
           echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
@@ -440,21 +440,21 @@ print(json.dumps({
               ISSUE_NUMBER="$ISSUE_NUMBER" \
               ISSUE_COUNT="$ISSUE_COUNT" \
               python3 -c "
-import json
-import os
-title = os.environ.get('ISSUE_TITLE', '')
-labels_str = os.environ.get('ISSUE_LABELS', '')
-issue_number = int(os.environ.get('ISSUE_NUMBER', '0'))
-total_ready = int(os.environ.get('ISSUE_COUNT', '0'))
-labels = [l.strip() for l in labels_str.split(',') if l.strip()] if labels_str else []
-print(json.dumps({
-    'has_work': True,
-    'issue_number': issue_number,
-    'issue_title': title,
-    'labels': labels,
-    'total_ready': total_ready
-}))
-")
+            import json
+            import os
+            title = os.environ.get('ISSUE_TITLE', '')
+            labels_str = os.environ.get('ISSUE_LABELS', '')
+            issue_number = int(os.environ.get('ISSUE_NUMBER', '0'))
+            total_ready = int(os.environ.get('ISSUE_COUNT', '0'))
+            labels = [l.strip() for l in labels_str.split(',') if l.strip()] if labels_str else []
+            print(json.dumps({
+                'has_work': True,
+                'issue_number': issue_number,
+                'issue_title': title,
+                'labels': labels,
+                'total_ready': total_ready
+            }))
+            ")
             echo "Selected issue #$ISSUE_NUMBER: $ISSUE_TITLE"
           else
             HAS_WORK="False"
