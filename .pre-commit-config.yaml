@@ -11,13 +11,13 @@ repos:
     rev: v0.14.0
     hooks:
       # Ruff format (replaces black)
+      # Configuration in pyproject.toml [tool.ruff.format]
       - id: ruff-format
-        # Configuration in pyproject.toml [tool.ruff.format]
       # Ruff lint (replaces flake8/isort)
+      # Configuration in pyproject.toml [tool.ruff.lint]
+      # Note: C901 complexity errors are handled in CI, not pre-commit
       - id: ruff
         args: [--fix, --ignore, C901]
-        # Configuration in pyproject.toml [tool.ruff.lint]
-        # Note: C901 complexity errors are handled in CI, not pre-commit
 
   # YAML formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -46,8 +46,9 @@ repos:
         types: [yaml]
 
   # GitHub Actions workflow linting
+  # Must match CI version for consistent validation
   - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.7
+    rev: v1.7.10
     hooks:
       - id: actionlint
 
@@ -139,7 +140,14 @@ repos:
         # Run through Docker for X11 dev library dependencies (container-first philosophy)
         # Note: rust-ci container working_dir is already /app/packages/injection_toolkit
         # Exclude Windows-only crates that can't compile in the Linux CI container
-        entry: docker-compose --profile ci run --rm rust-ci cargo clippy --workspace --all-targets --exclude itk-native-dll --exclude nms-video-launcher --exclude nms-video-overlay --exclude nms-cockpit-injector -- -D warnings
+        entry: >-
+          docker-compose --profile ci run --rm rust-ci cargo clippy
+          --workspace --all-targets
+          --exclude itk-native-dll
+          --exclude nms-video-launcher
+          --exclude nms-video-overlay
+          --exclude nms-cockpit-injector
+          -- -D warnings
         language: system
         files: '^packages/injection_toolkit/.*\.rs$'
         pass_filenames: false
@@ -149,7 +157,17 @@ repos:
     hooks:
       - id: check-markdown-links
         name: Check markdown links (Rust)
-        entry: bash -c 'RUST_BINARY="tools/rust/markdown-link-checker/target/release/md-link-checker"; if [ -x "$RUST_BINARY" ]; then $RUST_BINARY . --internal-only; else echo "Building md-link-checker..."; cd tools/rust/markdown-link-checker && cargo build --release && cd ../../.. && $RUST_BINARY . --internal-only; fi'
+        # Build binary if needed, then run internal link check
+        entry: >-
+          bash -c '
+          RUST_BINARY="tools/rust/markdown-link-checker/target/release/md-link-checker";
+          if [ -x "$RUST_BINARY" ]; then
+            $RUST_BINARY . --internal-only;
+          else
+            echo "Building md-link-checker...";
+            cd tools/rust/markdown-link-checker && cargo build --release && cd ../../..;
+            $RUST_BINARY . --internal-only;
+          fi'
         language: system
         files: '\.md$'
         pass_filenames: false

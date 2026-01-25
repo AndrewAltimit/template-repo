@@ -190,7 +190,7 @@ on:
         value: ${{ jobs.agent-work.outputs.summary-json }}
       stale-claims-cleaned:
         description: 'Number of stale claims cleaned up'
-        value: ${{ jobs.agent-work.outputs.stale-claims-cleaned }}
+        value: ${{ jobs.query-work.outputs.stale-claims-cleaned }}
 
 permissions:
   contents: write
@@ -202,14 +202,198 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  agent-work:
-    name: '${{ inputs.agent-name || github.event.inputs.agent-name || ''claude'' }} Agent Work'
+  # Job 1: Query ready work from board and output as matrix
+  # This enables sequential processing of multiple issues with unique branches/PRs
+  query-work:
+    name: 'Query Ready Work'
     runs-on: ${{ inputs.runs-on || 'self-hosted' }}
-    # Job timeout: use explicit input if > 0, otherwise use default (200 = 180 + 20 buffer)
-    # Note: GHA expressions don't support arithmetic in job-level fields like timeout-minutes
-    # Callers setting custom agent-timeout should also set job-timeout-minutes explicitly
+    timeout-minutes: 10
+
+    outputs:
+      has-work: ${{ steps.query.outputs.has_work }}
+      issues-matrix: ${{ steps.query.outputs.issues_matrix }}
+      issues-count: ${{ steps.query.outputs.issues_count }}
+      stale-claims-cleaned: ${{ steps.janitor.outputs.cleaned_count }}
+
+    steps:
+      - name: Pre-checkout cleanup
+        uses: ./.github/actions/pre-checkout-cleanup
+        with:
+          fix-permissions: 'true'
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.github-token || secrets.AGENT_TOKEN }}
+
+      - name: Build Rust tools (if needed)
+        run: |
+          echo "::group::Build Rust Tools"
+          BOARD_MANAGER="${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager"
+
+          if [ -x "$BOARD_MANAGER" ]; then
+            echo "board-manager already exists at $BOARD_MANAGER"
+          else
+            echo "Building board-manager..."
+            cd tools/rust/board-manager
+            cargo build --release
+            echo "Build complete"
+          fi
+
+          # Setup PATH for subsequent steps (use GITHUB_WORKSPACE for absolute path)
+          mkdir -p "$HOME/.local/bin"
+          ln -sf "${GITHUB_WORKSPACE}/tools/rust/board-manager/target/release/board-manager" "$HOME/.local/bin/board-cli"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "::endgroup::"
+
+      - name: Janitor - Clean stale claims
+        id: janitor
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token || secrets.AGENT_TOKEN }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.github-projects-token || secrets.GH_PROJECTS_TOKEN }}
+          AGENT_NAME: ${{ inputs.agent-name || github.event.inputs.agent-name || 'claude' }}
+          STALE_THRESHOLD_HOURS: ${{ inputs.stale-claim-threshold || 2 }}
+        run: |
+          echo "::group::Janitor - Clean Stale Claims"
+          # TODO: Add 'board-manager janitor --agent NAME --threshold HOURS' command
+          echo "cleaned_count=0" >> $GITHUB_OUTPUT
+          echo "Janitor: Skipped (Rust CLI support pending)"
+          echo "::endgroup::"
+
+      - name: Sync approved issues to board
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token || secrets.AGENT_TOKEN }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.github-projects-token || secrets.GH_PROJECTS_TOKEN }}
+          AGENT_NAME: ${{ inputs.agent-name || github.event.inputs.agent-name || 'claude' }}
+          BOARD_CONFIG_PATH: ${{ inputs.board-config-path || 'ai-agents-board.yml' }}
+        run: |
+          echo "::group::Sync Approved Issues"
+          echo "Agent: $AGENT_NAME"
+
+          STDERR_FILE=$(mktemp)
+          if APPROVED_RESULT=$($HOME/.local/bin/board-cli --format json find-approved --agent "$AGENT_NAME" 2>"$STDERR_FILE"); then
+            ISSUE_COUNT=$(echo "$APPROVED_RESULT" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
+            echo "Found $ISSUE_COUNT approved issues"
+
+            NOT_ON_BOARD=$(echo "$APPROVED_RESULT" | python3 -c "import sys,json; [print(i['number']) for i in json.load(sys.stdin) if not i.get('on_board', True)]" 2>/dev/null || true)
+            for ISSUE_NUM in $NOT_ON_BOARD; do
+              echo "Adding issue #$ISSUE_NUM to board..."
+              $HOME/.local/bin/board-cli --format json add-to-board "$ISSUE_NUM" --agent "$AGENT_NAME" 2>/dev/null || true
+            done
+          fi
+          rm -f "$STDERR_FILE"
+          echo "::endgroup::"
+
+      - name: Query ready work for matrix
+        id: query
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.github-token || secrets.AGENT_TOKEN }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.github-projects-token || secrets.GH_PROJECTS_TOKEN }}
+          AGENT_NAME: ${{ inputs.agent-name || github.event.inputs.agent-name || 'claude' }}
+          MAX_ISSUES: ${{ inputs.max-issues || github.event.inputs.max-issues || 1 }}
+          BOARD_CONFIG_PATH: ${{ inputs.board-config-path || 'ai-agents-board.yml' }}
+          INCLUDE_LABELS: ${{ inputs.include-labels || '' }}
+          EXCLUDE_LABELS: ${{ inputs.exclude-labels || '' }}
+        run: |
+          echo "::group::Query Ready Work"
+          echo "Agent: $AGENT_NAME"
+          echo "Max issues: $MAX_ISSUES"
+
+          # Build board-cli command
+          CLI_CMD=($HOME/.local/bin/board-cli --format json ready --limit "$MAX_ISSUES" --approved-only)
+          if [ -n "$AGENT_NAME" ]; then
+            CLI_CMD+=(--agent "$AGENT_NAME")
+          fi
+
+          # Add label filters
+          if [ -n "$INCLUDE_LABELS" ]; then
+            IFS=',' read -ra LABELS <<< "$INCLUDE_LABELS"
+            for label in "${LABELS[@]}"; do
+              label=$(echo "$label" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+              CLI_CMD+=(--include-labels "$label")
+            done
+          fi
+          if [ -n "$EXCLUDE_LABELS" ]; then
+            IFS=',' read -ra LABELS <<< "$EXCLUDE_LABELS"
+            for label in "${LABELS[@]}"; do
+              label=$(echo "$label" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+              CLI_CMD+=(--exclude-labels "$label")
+            done
+          fi
+
+          echo "Command: ${CLI_CMD[*]}"
+
+          STDERR_FILE=$(mktemp)
+          if READY_RESULT=$("${CLI_CMD[@]}" 2>"$STDERR_FILE"); then
+            echo "Query result: $READY_RESULT"
+
+            ISSUE_COUNT=$(echo "$READY_RESULT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)" 2>/dev/null || echo "0")
+            echo "Found $ISSUE_COUNT ready issues"
+
+            if [ "$ISSUE_COUNT" -gt 0 ]; then
+              # Build matrix JSON: array of {issue_number, issue_title} objects
+              # Each issue will be processed in its own matrix job
+              MATRIX_JSON=$(echo "$READY_RESULT" | python3 -c "
+              import sys, json
+              issues = json.load(sys.stdin)
+              matrix = [
+                  {
+                      'issue_number': i.get('number'),
+                      'issue_title': i.get('title', ''),
+                      'issue_labels': ','.join(i.get('labels', []))
+                  }
+                  for i in issues
+              ]
+              print(json.dumps({'include': matrix}))
+              ")
+              echo "Matrix: $MATRIX_JSON"
+
+              echo "has_work=true" >> $GITHUB_OUTPUT
+              echo "issues_matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+              echo "issues_count=$ISSUE_COUNT" >> $GITHUB_OUTPUT
+            else
+              echo "has_work=false" >> $GITHUB_OUTPUT
+              echo "issues_matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+              echo "issues_count=0" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "::error::Query command failed"
+            cat "$STDERR_FILE"
+            echo "has_work=false" >> $GITHUB_OUTPUT
+            echo "issues_matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+            echo "issues_count=0" >> $GITHUB_OUTPUT
+          fi
+
+          rm -f "$STDERR_FILE"
+          echo "::endgroup::"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Query Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Has Work**: ${{ steps.query.outputs.has_work }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Issues Found**: ${{ steps.query.outputs.issues_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Stale Claims Cleaned**: ${{ steps.janitor.outputs.cleaned_count }}" >> $GITHUB_STEP_SUMMARY
+
+  # Job 2: Process each issue sequentially with matrix strategy
+  # max-parallel: 1 ensures issues are processed one at a time with unique branches/PRs
+  agent-work:
+    name: 'Process Issue #${{ matrix.issue_number }}'
+    needs: query-work
+    if: needs.query-work.outputs.has-work == 'true'
+    runs-on: ${{ inputs.runs-on || 'self-hosted' }}
     timeout-minutes: ${{ inputs.job-timeout-minutes > 0 && inputs.job-timeout-minutes || 200 }}
 
+    # Process issues sequentially to avoid conflicts
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix: ${{ fromJson(needs.query-work.outputs.issues-matrix) }}
 
     outputs:
       has-work: ${{ steps.work.outputs.has-work }}
@@ -220,7 +404,7 @@ jobs:
       pr-url: ${{ steps.work.outputs.pr-url }}
       branch-name: ${{ steps.work.outputs.branch-name }}
       summary-json: ${{ steps.work.outputs.summary-json }}
-      stale-claims-cleaned: ${{ steps.work.outputs.stale-claims-cleaned }}
+      stale-claims-cleaned: ${{ needs.query-work.outputs.stale-claims-cleaned }}
 
     steps:
       - name: Pre-checkout cleanup
@@ -283,7 +467,12 @@ jobs:
           agent-name: ${{ inputs.agent-name || github.event.inputs.agent-name || 'claude' }}
           agent-timeout: ${{ inputs.agent-timeout || 180 }}
           board-config-path: ${{ inputs.board-config-path || 'ai-agents-board.yml' }}
-          max-issues: ${{ inputs.max-issues || github.event.inputs.max-issues || 1 }}
+          # Pass specific issue from matrix - action will skip query step
+          issue-number: ${{ matrix.issue_number }}
+          issue-title: ${{ matrix.issue_title }}
+          issue-labels: ${{ matrix.issue_labels }}
+          # max-issues not needed - we're processing one specific issue
+          max-issues: 1
           include-labels: ${{ inputs.include-labels || '' }}
           exclude-labels: ${{ inputs.exclude-labels || '' }}
           dry-run: ${{ inputs.dry-run || github.event.inputs.dry-run || false }}

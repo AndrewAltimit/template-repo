@@ -6,9 +6,10 @@ extends: default
 rules:
   # Allow longer lines for GitHub Actions workflows
   # Many workflow expressions and commands are naturally long
+  # Must match CI validation (max 200 chars)
   line-length:
-    max: 150
-    level: warning
+    max: 200
+    level: error
     allow-non-breakable-words: true
     allow-non-breakable-inline-mappings: true
 
