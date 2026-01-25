@@ -696,6 +696,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "economic-agents-tasks"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "economic-agents-interfaces",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-test",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "economic-agents-time"
 version = "0.1.0"
 dependencies = [

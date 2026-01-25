@@ -15,6 +15,7 @@ members = [
     "crates/economic-agents-time",
     "crates/economic-agents-observability",
     "crates/economic-agents-reports",
+    "crates/economic-agents-tasks",
 ]
 
 [workspace.package]
@@ -85,6 +86,7 @@ economic-agents-persistence = { path = "crates/economic-agents-persistence" }
 economic-agents-time = { path = "crates/economic-agents-time" }
 economic-agents-observability = { path = "crates/economic-agents-observability" }
 economic-agents-reports = { path = "crates/economic-agents-reports" }
+economic-agents-tasks = { path = "crates/economic-agents-tasks" }
 
 [profile.release]
 lto = true
