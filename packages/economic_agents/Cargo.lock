@@ -638,6 +638,47 @@ dependencies = [
 ]
 
 [[package]]
+name = "economic-agents-observability"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "economic-agents-persistence"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "economic-agents-company",
+ "economic-agents-core",
+ "economic-agents-investment",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "economic-agents-reports"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "economic-agents-simulation"
 version = "0.1.0"
 dependencies = [
@@ -650,6 +691,18 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
+ "tracing",
+]
+
+[[package]]
+name = "economic-agents-time"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
  "tracing",
 ]
 

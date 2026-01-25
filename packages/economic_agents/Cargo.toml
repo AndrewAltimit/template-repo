@@ -11,6 +11,10 @@ members = [
     "crates/economic-agents-monitoring",
     "crates/economic-agents-dashboard",
     "crates/economic-agents-cli",
+    "crates/economic-agents-persistence",
+    "crates/economic-agents-time",
+    "crates/economic-agents-observability",
+    "crates/economic-agents-reports",
 ]
 
 [workspace.package]
@@ -64,6 +68,7 @@ mockall = "0.13"
 proptest = "1.5"
 criterion = "0.5"
 axum-test = "16.0"
+tempfile = "3"
 
 # Internal crates
 economic-agents-core = { path = "crates/economic-agents-core" }
@@ -76,6 +81,10 @@ economic-agents-simulation = { path = "crates/economic-agents-simulation" }
 economic-agents-monitoring = { path = "crates/economic-agents-monitoring" }
 economic-agents-dashboard = { path = "crates/economic-agents-dashboard" }
 economic-agents-cli = { path = "crates/economic-agents-cli" }
+economic-agents-persistence = { path = "crates/economic-agents-persistence" }
+economic-agents-time = { path = "crates/economic-agents-time" }
+economic-agents-observability = { path = "crates/economic-agents-observability" }
+economic-agents-reports = { path = "crates/economic-agents-reports" }
 
 [profile.release]
 lto = true
