@@ -574,14 +574,6 @@ jobs:
           echo "📦 Building Python wheels for all packages..."
           mkdir -p dist
 
-          # Build economic-agents wheel
-          echo "Building economic-agents..."
-          docker-compose run --rm python-ci bash -c "
-            cd packages/economic_agents && \
-            pip install build && \
-            python -m build --wheel --outdir /app/dist
-          "
-
           # Build sleeper-agents wheel
           echo "Building sleeper-agents..."
           docker-compose run --rm python-ci bash -c "
@@ -687,6 +679,12 @@ jobs:
             cp target/release/itk-daemon /app/rust-binaries/itk-daemon-linux-x64
             cp target/release/itk-overlay /app/rust-binaries/itk-overlay-linux-x64
             echo "Built injection-toolkit binaries for Linux x64"
+
+            # Build economic-agents CLI
+            cd /app/packages/economic_agents
+            cargo build --release --bin economic-agents
+            cp target/release/economic-agents /app/rust-binaries/economic-agents-linux-x64
+            echo "Built economic-agents for Linux x64"
           '
 
       # Build injection-toolkit for Windows using rust-ci-nightly (has mingw-w64)
@@ -914,7 +912,6 @@ jobs:
 
           | Package | Description |
           |---------|-------------|
-          | `economic-agents` | Autonomous economic agent simulation framework |
           | `sleeper-agents` | Framework for creating and studying sleeper agents |
 
           ### Documentation
@@ -938,6 +935,7 @@ jobs:
 
           | Binary | Platform | Description |
           |--------|----------|-------------|
+          | `economic-agents-linux-x64` | Linux x64 | Autonomous economic agent simulation CLI |
           | `pr-monitor-linux-x64` | Linux x64 | PR monitoring tool for admin/Gemini feedback |
           | `gh-linux-x64` | Linux x64 | GitHub CLI validator and security checker |
           | `itk-daemon-linux-x64` | Linux x64 | Injection Toolkit daemon |
@@ -949,11 +947,10 @@ jobs:
 
           ```bash
           # Install packages from wheels
-          pip install economic_agents-*.whl
           pip install sleeper_agents-*.whl
 
           # Make Rust binaries executable (Linux)
-          chmod +x pr-monitor-linux-x64 gh-linux-x64 itk-*-linux-x64
+          chmod +x economic-agents-linux-x64 pr-monitor-linux-x64 gh-linux-x64 itk-*-linux-x64
           ```
 
           ### Commit Information

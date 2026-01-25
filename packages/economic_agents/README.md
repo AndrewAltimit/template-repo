@@ -2,8 +2,6 @@
 
 A simulation framework for autonomous AI agents operating in economic systems. Agents autonomously complete tasks, earn cryptocurrency, form companies, create sub-agents, and seek investment.
 
-> **Note**: This is a Rust rewrite of the original Python implementation. See `packages/economic_agents_backup/` for the Python version.
-
 ## Overview
 
 This framework demonstrates autonomous AI economic capability for governance research. Agents interact with simulated (mock) or real backends for:
@@ -17,19 +15,20 @@ This framework demonstrates autonomous AI economic capability for governance res
 ```
 packages/economic_agents/
 ├── Cargo.toml              # Workspace configuration
-├── crates/
-│   ├── economic-agents-interfaces/    # Core traits (Wallet, Marketplace, Compute)
-│   ├── economic-agents-core/          # Agent logic and decision engines
-│   ├── economic-agents-mock/          # Mock implementations for testing
-│   ├── economic-agents-api/           # REST API clients and services
-│   ├── economic-agents-company/       # Company formation and management
-│   ├── economic-agents-investment/    # Investment system
-│   ├── economic-agents-simulation/    # Realism features (latency, markets)
-│   ├── economic-agents-monitoring/    # Event bus and metrics
-│   ├── economic-agents-dashboard/     # Web dashboard backend
-│   └── economic-agents-cli/           # Command-line interface
-└── docs/
-    └── CONVERSION_PROGRESS.md         # Migration status tracking
+├── Dockerfile              # Multi-stage Docker build
+├── docker-compose.yml      # Service orchestration
+├── deny.toml               # License/security audit config
+└── crates/
+    ├── economic-agents-interfaces/    # Core traits (Wallet, Marketplace, Compute)
+    ├── economic-agents-core/          # Agent logic and decision engines
+    ├── economic-agents-mock/          # Mock implementations for testing
+    ├── economic-agents-api/           # REST API clients and services
+    ├── economic-agents-company/       # Company formation and management
+    ├── economic-agents-investment/    # Investment system
+    ├── economic-agents-simulation/    # Realism features (latency, markets)
+    ├── economic-agents-monitoring/    # Event bus and metrics
+    ├── economic-agents-dashboard/     # Web dashboard backend
+    └── economic-agents-cli/           # Command-line interface
 ```
 
 ## Quick Start
@@ -163,9 +162,30 @@ while let Ok(event) = rx.recv().await {
 }
 ```
 
-## Development Status
+## Docker
 
-This is an active rewrite. See `docs/CONVERSION_PROGRESS.md` for detailed status.
+Run with Docker Compose:
+
+```bash
+# Run the CLI
+docker-compose run economic-agents-cli run --config /home/agent/config/agent.yml
+
+# Start the dashboard
+docker-compose up dashboard
+
+# Run a scenario
+docker-compose --profile scenario run scenario
+```
+
+## CI/CD
+
+Run quality checks via the project's CI scripts:
+
+```bash
+./automation/ci-cd/run-ci.sh econ-full      # fmt + clippy + test
+./automation/ci-cd/run-ci.sh econ-doc       # Generate API docs
+./automation/ci-cd/run-ci.sh econ-coverage  # Test coverage
+```
 
 ## License
 

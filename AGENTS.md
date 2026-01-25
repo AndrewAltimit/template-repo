@@ -583,23 +583,26 @@ The `packages/` directory contains AI safety and governance research frameworks 
    ```
 
 2. **Economic Agents Simulation** (`packages/economic_agents/`):
-   - Simulation framework demonstrating autonomous AI economic capability for governance research
+   - Rust-based simulation framework demonstrating autonomous AI economic capability for governance research
    - Agents autonomously complete tasks, earn cryptocurrency, form companies, create sub-agents, and seek investment
-   - Mock-to-real backend architecture (identical REST API interfaces for simulation and production)
-   - **Components**: Decision engine, task marketplace, company formation, investment seeking, sub-agent hierarchy
+   - Mock-to-real backend architecture (identical async trait interfaces for simulation and production)
+   - **Components**: Decision engine, task marketplace, company formation, investment seeking, background runner
    - **Simulation realism**: Latency, competition, market cycles, reputation systems, investor behavior
    - Raises governance questions about AI legal personhood, fiduciary duty, and liability
    - See `packages/economic_agents/README.md` for complete documentation
 
    ```bash
-   # Run economic agents tests
-   docker-compose run --rm python-ci pytest packages/economic_agents/tests/ -v
+   # Run economic agents tests (containerized)
+   ./automation/ci-cd/run-ci.sh econ-test
+
+   # Run full CI (fmt, clippy, test)
+   ./automation/ci-cd/run-ci.sh econ-full
 
    # Launch simulation dashboard
-   cd packages/economic_agents && docker-compose up dashboard-backend dashboard-frontend
+   cd packages/economic_agents && docker-compose up dashboard
 
-   # Run agent simulation
-   python -m economic_agents.scenarios run survival_mode
+   # Run agent simulation via CLI
+   cd packages/economic_agents && cargo run --bin economic-agents -- scenario survival_mode
    ```
 
 ### Key Integration Points
@@ -799,9 +802,7 @@ For detailed information on specific topics, refer to these documentation files:
 - `packages/sleeper_agents/docs/INDEX.md` - Complete sleeper agents documentation index
 - `packages/sleeper_agents/docs/ARCHITECTURE.md` - Detection system architecture
 - `packages/sleeper_agents/docs/DETECTION_METHODS.md` - Detection techniques reference
-- `packages/economic_agents/README.md` - Economic agents simulation overview
-- `packages/economic_agents/docs/architecture.md` - System design and data flow
-- `packages/economic_agents/docs/economic-implications.md` - Policy and governance analysis
+- `packages/economic_agents/README.md` - Economic agents simulation overview (Rust)
 - `docs/projections/README.md` - AI agent projection papers (economic actors, institutional erosion, etc.)
 
 ## AI Toolkit & ComfyUI Integration
