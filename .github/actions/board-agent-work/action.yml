@@ -343,16 +343,22 @@ runs:
           ISSUE_LABELS="$INPUT_ISSUE_LABELS"
           HAS_WORK="True"
 
-          # Build JSON safely using Python to handle special characters in title
-          # This matches the schema from the standard query path for consistency
-          QUERY_RESULT=$(python3 -c "
+          # Build JSON safely using Python with env vars to handle ALL special characters
+          # This avoids any shell quoting issues (triple quotes, backslashes, etc.)
+          # Matches the schema from the standard query path for consistency
+          QUERY_RESULT=$(INPUT_ISSUE_TITLE="$INPUT_ISSUE_TITLE" \
+            INPUT_ISSUE_LABELS="$INPUT_ISSUE_LABELS" \
+            ISSUE_NUMBER="$ISSUE_NUMBER" \
+            python3 -c "
 import json
-title = '''$INPUT_ISSUE_TITLE'''
-labels = '''$INPUT_ISSUE_LABELS'''.split(',') if '''$INPUT_ISSUE_LABELS''' else []
-labels = [l.strip() for l in labels if l.strip()]
+import os
+title = os.environ.get('INPUT_ISSUE_TITLE', '')
+labels_str = os.environ.get('INPUT_ISSUE_LABELS', '')
+issue_number = int(os.environ.get('ISSUE_NUMBER', '0'))
+labels = [l.strip() for l in labels_str.split(',') if l.strip()] if labels_str else []
 print(json.dumps({
     'has_work': True,
-    'issue_number': $ISSUE_NUMBER,
+    'issue_number': issue_number,
     'issue_title': title,
     'labels': labels,
     'total_ready': 1,
