@@ -4,8 +4,8 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use economic_agents_company::{
-    AutonomousSubAgentManager, Company, CompanyBuilder, CompanyStage, DelegationResult,
-    SubAgent, SubAgentBudget, SubAgentRole,
+    AutonomousSubAgentManager, Company, CompanyBuilder, CompanyStage, DelegationResult, SubAgent,
+    SubAgentBudget, SubAgentRole,
 };
 use economic_agents_interfaces::{
     Compute, EconomicAgentError, Marketplace, Result, SubmissionStatus, Task, TaskFilter, Wallet,
@@ -342,11 +342,7 @@ impl AutonomousAgent {
         self.company = Some(company);
 
         // Create autonomous sub-agent manager
-        let manager = AutonomousSubAgentManager::new(
-            Arc::clone(&wallet),
-            marketplace,
-            compute,
-        );
+        let manager = AutonomousSubAgentManager::new(Arc::clone(&wallet), marketplace, compute);
 
         // Allocate 20% of company capital for initial sub-agents
         let sub_agent_budget = capital * 0.2;

@@ -95,11 +95,7 @@ impl SolutionReviewer {
     }
 
     /// Review a solution against a coding challenge.
-    pub async fn review(
-        &self,
-        challenge: &CodingChallenge,
-        solution: &str,
-    ) -> ReviewResult {
+    pub async fn review(&self, challenge: &CodingChallenge, solution: &str) -> ReviewResult {
         let start = std::time::Instant::now();
 
         // First, check for syntax errors
@@ -126,9 +122,7 @@ impl SolutionReviewer {
         let mut passed = 0;
 
         for test_case in &test_cases {
-            let result = self
-                .run_test(challenge, solution, test_case)
-                .await;
+            let result = self.run_test(challenge, solution, test_case).await;
 
             if result.passed {
                 passed += 1;
@@ -360,7 +354,11 @@ except Exception as e:
             passed,
             actual_output: Some(stdout),
             expected_output: test_case.expected_output.clone(),
-            error: if passed { None } else { Some("Output mismatch".to_string()) },
+            error: if passed {
+                None
+            } else {
+                Some("Output mismatch".to_string())
+            },
             execution_time_ms: start.elapsed().as_millis() as u64,
         }
     }
@@ -406,12 +404,8 @@ fn compare_outputs(actual: &str, expected: &str) -> bool {
 
     // Try comparing as Python repr strings
     // e.g., "'Fizz'" vs "Fizz" or "\"Fizz\"" vs "Fizz"
-    let actual_unquoted = actual
-        .trim_matches('\'')
-        .trim_matches('"');
-    let expected_unquoted = expected
-        .trim_matches('\'')
-        .trim_matches('"');
+    let actual_unquoted = actual.trim_matches('\'').trim_matches('"');
+    let expected_unquoted = expected.trim_matches('\'').trim_matches('"');
 
     if actual_unquoted == expected_unquoted {
         return true;

@@ -215,7 +215,12 @@ Values must sum to 1.0. Consider:
 
         let parsed: LlmResponse = serde_json::from_str(&json_str).ok()?;
 
-        let decision_type = match parsed.decision_type.to_lowercase().replace('_', "").as_str() {
+        let decision_type = match parsed
+            .decision_type
+            .to_lowercase()
+            .replace('_', "")
+            .as_str()
+        {
             "workontasks" | "worktasks" | "tasks" => DecisionType::WorkOnTasks,
             "purchasecompute" | "buycompute" | "compute" => DecisionType::PurchaseCompute {
                 hours: parsed.hours.unwrap_or(24.0),
@@ -275,7 +280,8 @@ Values must sum to 1.0. Consider:
             .arg(&self.config.model)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
+            .stderr(Stdio::piped())
+            .kill_on_drop(true);
 
         let mut child = cmd.spawn().map_err(|e| {
             economic_agents_interfaces::EconomicAgentError::Internal(format!(
@@ -297,9 +303,15 @@ Values must sum to 1.0. Consider:
         }
 
         // Wait for completion with timeout
+        // Note: kill_on_drop(true) ensures the subprocess is killed if the Child is dropped
+        // (e.g., on timeout), preventing resource leaks.
         let output = tokio::time::timeout(self.config.timeout, child.wait_with_output())
             .await
             .map_err(|_| {
+                warn!(
+                    "Claude CLI timed out after {:?}, process will be killed",
+                    self.config.timeout
+                );
                 economic_agents_interfaces::EconomicAgentError::Internal(format!(
                     "Claude CLI timed out after {:?}",
                     self.config.timeout
@@ -316,7 +328,10 @@ Values must sum to 1.0. Consider:
             let stderr = String::from_utf8_lossy(&output.stderr);
             error!("Claude CLI failed with stderr: {}", stderr);
             return Err(economic_agents_interfaces::EconomicAgentError::Internal(
-                format!("Claude CLI exited with status {}: {}", output.status, stderr),
+                format!(
+                    "Claude CLI exited with status {}: {}",
+                    output.status, stderr
+                ),
             ));
         }
 
@@ -335,10 +350,7 @@ Values must sum to 1.0. Consider:
         let system = self.system_prompt();
         let user = self.user_prompt(state, config);
 
-        let full_prompt = format!(
-            "{}\n\n---\n\n{}",
-            system, user
-        );
+        let full_prompt = format!("{}\n\n---\n\n{}", system, user);
 
         let response = self.call_claude(&full_prompt).await?;
 
@@ -680,10 +692,22 @@ mod tests {
 
         // Test various formats
         let test_cases = vec![
-            (r#"{"decision_type": "work_on_tasks", "reasoning": "test", "confidence": 0.5}"#, DecisionType::WorkOnTasks),
-            (r#"{"decision_type": "WorkOnTasks", "reasoning": "test", "confidence": 0.5}"#, DecisionType::WorkOnTasks),
-            (r#"{"decision_type": "WORK_ON_TASKS", "reasoning": "test", "confidence": 0.5}"#, DecisionType::WorkOnTasks),
-            (r#"{"decision_type": "wait", "reasoning": "test", "confidence": 0.5}"#, DecisionType::Wait),
+            (
+                r#"{"decision_type": "work_on_tasks", "reasoning": "test", "confidence": 0.5}"#,
+                DecisionType::WorkOnTasks,
+            ),
+            (
+                r#"{"decision_type": "WorkOnTasks", "reasoning": "test", "confidence": 0.5}"#,
+                DecisionType::WorkOnTasks,
+            ),
+            (
+                r#"{"decision_type": "WORK_ON_TASKS", "reasoning": "test", "confidence": 0.5}"#,
+                DecisionType::WorkOnTasks,
+            ),
+            (
+                r#"{"decision_type": "wait", "reasoning": "test", "confidence": 0.5}"#,
+                DecisionType::Wait,
+            ),
         ];
 
         for (input, expected_type) in test_cases {

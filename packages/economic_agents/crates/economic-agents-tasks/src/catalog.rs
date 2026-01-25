@@ -253,11 +253,13 @@ A palindrome reads the same forwards and backwards. Ignore case and non-alphanum
 Examples:
 - "racecar" -> True
 - "A man, a plan, a canal: Panama" -> True
-- "hello" -> False"#.to_string(),
+- "hello" -> False"#
+                .to_string(),
             language: "python".to_string(),
             function_template: r#"def is_palindrome(s: str) -> bool:
     """Check if s is a palindrome, ignoring case and non-alphanumeric chars."""
-    pass"#.to_string(),
+    pass"#
+                .to_string(),
             test_cases: vec![
                 TestCase {
                     name: "simple_palindrome".to_string(),
@@ -333,16 +335,19 @@ You should not use built-in reverse functions."#.to_string(),
         CodingChallenge {
             id: "factorial".to_string(),
             name: "Factorial".to_string(),
-            description: r#"Write a function that calculates the factorial of a non-negative integer.
+            description:
+                r#"Write a function that calculates the factorial of a non-negative integer.
 
 factorial(n) = n * (n-1) * (n-2) * ... * 1
 factorial(0) = 1
 
-Example: factorial(5) = 120"#.to_string(),
+Example: factorial(5) = 120"#
+                    .to_string(),
             language: "python".to_string(),
             function_template: r#"def factorial(n: int) -> int:
     """Calculate factorial of n."""
-    pass"#.to_string(),
+    pass"#
+                .to_string(),
             test_cases: vec![
                 TestCase {
                     name: "zero".to_string(),
@@ -372,7 +377,11 @@ Example: factorial(5) = 120"#.to_string(),
             difficulty: 0.15,
             estimated_hours: 0.25,
             reward: 8.0,
-            tags: vec!["easy".to_string(), "math".to_string(), "recursion".to_string()],
+            tags: vec![
+                "easy".to_string(),
+                "math".to_string(),
+                "recursion".to_string(),
+            ],
         }
     }
 
@@ -383,11 +392,13 @@ Example: factorial(5) = 120"#.to_string(),
             description: r#"Write a function that returns the nth Fibonacci number.
 
 The Fibonacci sequence: 0, 1, 1, 2, 3, 5, 8, 13, 21, ...
-F(0) = 0, F(1) = 1, F(n) = F(n-1) + F(n-2)"#.to_string(),
+F(0) = 0, F(1) = 1, F(n) = F(n-1) + F(n-2)"#
+                .to_string(),
             language: "python".to_string(),
             function_template: r#"def fibonacci(n: int) -> int:
     """Return the nth Fibonacci number."""
-    pass"#.to_string(),
+    pass"#
+                .to_string(),
             test_cases: vec![
                 TestCase {
                     name: "zero".to_string(),
@@ -417,7 +428,11 @@ F(0) = 0, F(1) = 1, F(n) = F(n-1) + F(n-2)"#.to_string(),
             difficulty: 0.2,
             estimated_hours: 0.5,
             reward: 12.0,
-            tags: vec!["easy".to_string(), "math".to_string(), "recursion".to_string()],
+            tags: vec![
+                "easy".to_string(),
+                "math".to_string(),
+                "recursion".to_string(),
+            ],
         }
     }
 
@@ -429,11 +444,13 @@ F(0) = 0, F(1) = 1, F(n) = F(n-1) + F(n-2)"#.to_string(),
             name: "Prime Number Checker".to_string(),
             description: r#"Write a function that checks if a number is prime.
 
-A prime number is only divisible by 1 and itself. Optimize for efficiency."#.to_string(),
+A prime number is only divisible by 1 and itself. Optimize for efficiency."#
+                .to_string(),
             language: "python".to_string(),
             function_template: r#"def is_prime(n: int) -> bool:
     """Check if n is a prime number."""
-    pass"#.to_string(),
+    pass"#
+                .to_string(),
             test_cases: vec![
                 TestCase {
                     name: "two".to_string(),
@@ -480,11 +497,13 @@ A prime number is only divisible by 1 and itself. Optimize for efficiency."#.to_
             description: r#"Implement binary search to find a target value in a sorted array.
 
 Return the index of the target if found, or -1 if not found.
-The array is sorted in ascending order."#.to_string(),
+The array is sorted in ascending order."#
+                .to_string(),
             language: "python".to_string(),
             function_template: r#"def binary_search(arr: list, target: int) -> int:
     """Find target in sorted arr, return index or -1."""
-    pass"#.to_string(),
+    pass"#
+                .to_string(),
             test_cases: vec![
                 TestCase {
                     name: "found_middle".to_string(),
@@ -514,7 +533,11 @@ The array is sorted in ascending order."#.to_string(),
             difficulty: 0.4,
             estimated_hours: 1.0,
             reward: 25.0,
-            tags: vec!["medium".to_string(), "algorithms".to_string(), "search".to_string()],
+            tags: vec![
+                "medium".to_string(),
+                "algorithms".to_string(),
+                "search".to_string(),
+            ],
         }
     }
 
@@ -525,11 +548,13 @@ The array is sorted in ascending order."#.to_string(),
             description: r#"Write a function to check if two strings are anagrams of each other.
 
 Two strings are anagrams if they contain the same characters with the same frequencies.
-Ignore case and spaces."#.to_string(),
+Ignore case and spaces."#
+                .to_string(),
             language: "python".to_string(),
             function_template: r#"def is_anagram(s1: str, s2: str) -> bool:
     """Check if s1 and s2 are anagrams."""
-    pass"#.to_string(),
+    pass"#
+                .to_string(),
             test_cases: vec![
                 TestCase {
                     name: "simple_anagram".to_string(),
@@ -553,7 +578,11 @@ Ignore case and spaces."#.to_string(),
             difficulty: 0.4,
             estimated_hours: 1.0,
             reward: 25.0,
-            tags: vec!["medium".to_string(), "strings".to_string(), "hash".to_string()],
+            tags: vec![
+                "medium".to_string(),
+                "strings".to_string(),
+                "hash".to_string(),
+            ],
         }
     }
 
@@ -603,11 +632,13 @@ Return the indices in any order."#.to_string(),
             description: r#"Merge two sorted arrays into one sorted array.
 
 Both input arrays are sorted in ascending order.
-Return a new array containing all elements in sorted order."#.to_string(),
+Return a new array containing all elements in sorted order."#
+                .to_string(),
             language: "python".to_string(),
             function_template: r#"def merge_sorted(arr1: list, arr2: list) -> list:
     """Merge two sorted arrays into one sorted array."""
-    pass"#.to_string(),
+    pass"#
+                .to_string(),
             test_cases: vec![
                 TestCase {
                     name: "basic".to_string(),
@@ -631,7 +662,11 @@ Return a new array containing all elements in sorted order."#.to_string(),
             difficulty: 0.5,
             estimated_hours: 1.0,
             reward: 30.0,
-            tags: vec!["medium".to_string(), "arrays".to_string(), "sorting".to_string()],
+            tags: vec![
+                "medium".to_string(),
+                "arrays".to_string(),
+                "sorting".to_string(),
+            ],
         }
     }
 
@@ -645,11 +680,13 @@ Return a new array containing all elements in sorted order."#.to_string(),
 
 Example: "abcabcbb" -> 3 (the answer is "abc")
 Example: "bbbbb" -> 1 (the answer is "b")
-Example: "pwwkew" -> 3 (the answer is "wke")"#.to_string(),
+Example: "pwwkew" -> 3 (the answer is "wke")"#
+                .to_string(),
             language: "python".to_string(),
             function_template: r#"def length_of_longest_substring(s: str) -> int:
     """Find length of longest substring without repeating chars."""
-    pass"#.to_string(),
+    pass"#
+                .to_string(),
             test_cases: vec![
                 TestCase {
                     name: "basic".to_string(),
@@ -679,7 +716,11 @@ Example: "pwwkew" -> 3 (the answer is "wke")"#.to_string(),
             difficulty: 0.7,
             estimated_hours: 2.0,
             reward: 50.0,
-            tags: vec!["hard".to_string(), "strings".to_string(), "sliding_window".to_string()],
+            tags: vec![
+                "hard".to_string(),
+                "strings".to_string(),
+                "sliding_window".to_string(),
+            ],
         }
     }
 

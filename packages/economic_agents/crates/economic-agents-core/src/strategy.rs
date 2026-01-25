@@ -184,10 +184,7 @@ pub fn skills_for_category(category: economic_agents_interfaces::TaskCategory) -
             Skill::Rust,
             Skill::Security,
         ],
-        TaskCategory::Documentation => vec![
-            Skill::TechnicalWriting,
-            Skill::Research,
-        ],
+        TaskCategory::Documentation => vec![Skill::TechnicalWriting, Skill::Research],
         TaskCategory::DataAnalysis => vec![
             Skill::DataAnalysis,
             Skill::Python,
@@ -199,16 +196,8 @@ pub fn skills_for_category(category: economic_agents_interfaces::TaskCategory) -
             Skill::TechnicalWriting,
             Skill::DataAnalysis,
         ],
-        TaskCategory::Design => vec![
-            Skill::Architecture,
-            Skill::ApiDesign,
-            Skill::WebDev,
-        ],
-        TaskCategory::Testing => vec![
-            Skill::Testing,
-            Skill::Python,
-            Skill::CodeReview,
-        ],
+        TaskCategory::Design => vec![Skill::Architecture, Skill::ApiDesign, Skill::WebDev],
+        TaskCategory::Testing => vec![Skill::Testing, Skill::Python, Skill::CodeReview],
         TaskCategory::Other => vec![],
     }
 }
@@ -310,10 +299,7 @@ mod tests {
         ];
 
         // Agent skilled in Python and DataAnalysis
-        let config = make_skilled_config(vec![
-            (Skill::Python, 0.8),
-            (Skill::DataAnalysis, 0.7),
-        ]);
+        let config = make_skilled_config(vec![(Skill::Python, 0.8), (Skill::DataAnalysis, 0.7)]);
 
         let selected = select_task(&tasks, TaskSelectionStrategy::SkillMatch, Some(&config))
             .unwrap()
@@ -362,10 +348,7 @@ mod tests {
     #[test]
     fn test_skill_coverage_full_match() {
         let task = make_task_with_skills(50.0, 2.0, 0.5, vec![Skill::Python, Skill::Sql]);
-        let config = make_skilled_config(vec![
-            (Skill::Python, 0.8),
-            (Skill::Sql, 0.6),
-        ]);
+        let config = make_skilled_config(vec![(Skill::Python, 0.8), (Skill::Sql, 0.6)]);
 
         let (coverage, avg_prof) = calculate_skill_coverage(&task, &config);
         assert_eq!(coverage, 1.0);

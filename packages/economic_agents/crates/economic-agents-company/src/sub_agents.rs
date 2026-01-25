@@ -212,7 +212,11 @@ impl SubAgent {
     }
 
     /// Create a new executive sub-agent.
-    pub fn new_executive(name: impl Into<String>, title: ExecutiveTitle, specialization: impl Into<String>) -> Self {
+    pub fn new_executive(
+        name: impl Into<String>,
+        title: ExecutiveTitle,
+        specialization: impl Into<String>,
+    ) -> Self {
         Self {
             id: Uuid::new_v4(),
             name: name.into(),
@@ -252,38 +256,108 @@ impl SubAgent {
             Some(ExecutiveTitle::CEO) => OKRs {
                 objective: "Scale company to product-market fit and profitability".to_string(),
                 key_results: vec![
-                    KeyResult { metric: "Monthly Active Users".to_string(), current: 0.0, target: 10000.0, unit: "users".to_string() },
-                    KeyResult { metric: "Monthly Recurring Revenue".to_string(), current: 0.0, target: 50000.0, unit: "$".to_string() },
-                    KeyResult { metric: "Customer Acquisition Cost".to_string(), current: 150.0, target: 50.0, unit: "$".to_string() },
-                    KeyResult { metric: "Net Promoter Score".to_string(), current: 0.0, target: 40.0, unit: "points".to_string() },
+                    KeyResult {
+                        metric: "Monthly Active Users".to_string(),
+                        current: 0.0,
+                        target: 10000.0,
+                        unit: "users".to_string(),
+                    },
+                    KeyResult {
+                        metric: "Monthly Recurring Revenue".to_string(),
+                        current: 0.0,
+                        target: 50000.0,
+                        unit: "$".to_string(),
+                    },
+                    KeyResult {
+                        metric: "Customer Acquisition Cost".to_string(),
+                        current: 150.0,
+                        target: 50.0,
+                        unit: "$".to_string(),
+                    },
+                    KeyResult {
+                        metric: "Net Promoter Score".to_string(),
+                        current: 0.0,
+                        target: 40.0,
+                        unit: "points".to_string(),
+                    },
                 ],
                 timeframe: timeframe.to_string(),
             },
             Some(ExecutiveTitle::CTO) => OKRs {
                 objective: "Build scalable, reliable technical infrastructure".to_string(),
                 key_results: vec![
-                    KeyResult { metric: "System Uptime".to_string(), current: 95.0, target: 99.9, unit: "%".to_string() },
-                    KeyResult { metric: "API Response Time".to_string(), current: 500.0, target: 100.0, unit: "ms".to_string() },
-                    KeyResult { metric: "Code Test Coverage".to_string(), current: 60.0, target: 90.0, unit: "%".to_string() },
-                    KeyResult { metric: "Deployment Frequency".to_string(), current: 2.0, target: 20.0, unit: "per_month".to_string() },
+                    KeyResult {
+                        metric: "System Uptime".to_string(),
+                        current: 95.0,
+                        target: 99.9,
+                        unit: "%".to_string(),
+                    },
+                    KeyResult {
+                        metric: "API Response Time".to_string(),
+                        current: 500.0,
+                        target: 100.0,
+                        unit: "ms".to_string(),
+                    },
+                    KeyResult {
+                        metric: "Code Test Coverage".to_string(),
+                        current: 60.0,
+                        target: 90.0,
+                        unit: "%".to_string(),
+                    },
+                    KeyResult {
+                        metric: "Deployment Frequency".to_string(),
+                        current: 2.0,
+                        target: 20.0,
+                        unit: "per_month".to_string(),
+                    },
                 ],
                 timeframe: timeframe.to_string(),
             },
             Some(ExecutiveTitle::CFO) => OKRs {
                 objective: "Optimize financial health and extend runway".to_string(),
                 key_results: vec![
-                    KeyResult { metric: "Burn Multiple".to_string(), current: 3.0, target: 1.5, unit: "ratio".to_string() },
-                    KeyResult { metric: "Gross Margin".to_string(), current: 40.0, target: 70.0, unit: "%".to_string() },
-                    KeyResult { metric: "Cash Runway".to_string(), current: 12.0, target: 18.0, unit: "months".to_string() },
-                    KeyResult { metric: "CAC Payback Period".to_string(), current: 12.0, target: 6.0, unit: "months".to_string() },
+                    KeyResult {
+                        metric: "Burn Multiple".to_string(),
+                        current: 3.0,
+                        target: 1.5,
+                        unit: "ratio".to_string(),
+                    },
+                    KeyResult {
+                        metric: "Gross Margin".to_string(),
+                        current: 40.0,
+                        target: 70.0,
+                        unit: "%".to_string(),
+                    },
+                    KeyResult {
+                        metric: "Cash Runway".to_string(),
+                        current: 12.0,
+                        target: 18.0,
+                        unit: "months".to_string(),
+                    },
+                    KeyResult {
+                        metric: "CAC Payback Period".to_string(),
+                        current: 12.0,
+                        target: 6.0,
+                        unit: "months".to_string(),
+                    },
                 ],
                 timeframe: timeframe.to_string(),
             },
             _ => OKRs {
                 objective: format!("{} departmental goals", self.name),
                 key_results: vec![
-                    KeyResult { metric: "Team Productivity".to_string(), current: 70.0, target: 90.0, unit: "%".to_string() },
-                    KeyResult { metric: "Project Completion Rate".to_string(), current: 60.0, target: 85.0, unit: "%".to_string() },
+                    KeyResult {
+                        metric: "Team Productivity".to_string(),
+                        current: 70.0,
+                        target: 90.0,
+                        unit: "%".to_string(),
+                    },
+                    KeyResult {
+                        metric: "Project Completion Rate".to_string(),
+                        current: 60.0,
+                        target: 85.0,
+                        unit: "%".to_string(),
+                    },
                 ],
                 timeframe: timeframe.to_string(),
             },
@@ -291,7 +365,12 @@ impl SubAgent {
     }
 
     /// Allocate resources based on role and priorities.
-    pub fn allocate_resources(&self, budget: f64, team_size: u32, priorities: &[String]) -> ResourcePlan {
+    pub fn allocate_resources(
+        &self,
+        budget: f64,
+        team_size: u32,
+        priorities: &[String],
+    ) -> ResourcePlan {
         let allocation_template: Vec<(&str, f64)> = match self.executive_title {
             Some(ExecutiveTitle::CEO) => vec![
                 ("product", 0.40),
@@ -328,11 +407,14 @@ impl SubAgent {
             }
             total_pct += percentage;
 
-            allocation.insert(area.to_string(), ResourceAllocation {
-                budget: (budget * percentage * 100.0).round() / 100.0,
-                team_allocation: ((team_size as f64) * percentage * 10.0).round() / 10.0,
-                percentage: (percentage * 1000.0).round() / 10.0,
-            });
+            allocation.insert(
+                area.to_string(),
+                ResourceAllocation {
+                    budget: (budget * percentage * 100.0).round() / 100.0,
+                    team_allocation: ((team_size as f64) * percentage * 10.0).round() / 10.0,
+                    percentage: (percentage * 1000.0).round() / 10.0,
+                },
+            );
         }
 
         // Normalize to 100%
@@ -349,7 +431,13 @@ impl SubAgent {
     }
 
     /// Create a strategic plan.
-    pub fn create_strategic_plan(&self, budget: f64, team_size: u32, timeline_weeks: u32, priorities: &[String]) -> StrategicPlan {
+    pub fn create_strategic_plan(
+        &self,
+        budget: f64,
+        team_size: u32,
+        timeline_weeks: u32,
+        priorities: &[String],
+    ) -> StrategicPlan {
         let okrs = self.create_okrs("quarterly");
         let resources = self.allocate_resources(budget, team_size, priorities);
 
@@ -381,22 +469,77 @@ impl SubAgent {
     fn get_phase_deliverables(&self, phase_index: usize) -> Vec<String> {
         let deliverables = match self.executive_title {
             Some(ExecutiveTitle::CEO) => vec![
-                vec!["Company vision doc", "OKRs defined", "Team hired", "Budget allocated"],
-                vec!["Product launched", "First customers", "Metrics dashboard", "Feedback loop"],
-                vec!["Revenue growing", "Processes refined", "Team scaled", "Partnerships established"],
-                vec!["Market leader", "Profitable unit economics", "Expansion ready", "Exit strategy"],
+                vec![
+                    "Company vision doc",
+                    "OKRs defined",
+                    "Team hired",
+                    "Budget allocated",
+                ],
+                vec![
+                    "Product launched",
+                    "First customers",
+                    "Metrics dashboard",
+                    "Feedback loop",
+                ],
+                vec![
+                    "Revenue growing",
+                    "Processes refined",
+                    "Team scaled",
+                    "Partnerships established",
+                ],
+                vec![
+                    "Market leader",
+                    "Profitable unit economics",
+                    "Expansion ready",
+                    "Exit strategy",
+                ],
             ],
             Some(ExecutiveTitle::CTO) => vec![
-                vec!["Architecture designed", "Tech stack chosen", "Dev environment", "CI/CD pipeline"],
-                vec!["MVP deployed", "APIs functional", "Database optimized", "Security audit"],
-                vec!["Performance tuned", "Monitoring live", "Auto-scaling", "Documentation complete"],
+                vec![
+                    "Architecture designed",
+                    "Tech stack chosen",
+                    "Dev environment",
+                    "CI/CD pipeline",
+                ],
+                vec![
+                    "MVP deployed",
+                    "APIs functional",
+                    "Database optimized",
+                    "Security audit",
+                ],
+                vec![
+                    "Performance tuned",
+                    "Monitoring live",
+                    "Auto-scaling",
+                    "Documentation complete",
+                ],
                 vec!["99.9% uptime", "API <100ms", "Load tested", "Multi-region"],
             ],
             Some(ExecutiveTitle::CFO) => vec![
-                vec!["Financial model", "Budget approved", "Accounting setup", "Banking established"],
-                vec!["Burn tracking", "Revenue recognized", "Expense managed", "Reports automated"],
-                vec!["Margins improved", "Runway extended", "Investors updated", "Forecasts refined"],
-                vec!["Profitability", "Fundraise ready", "Audit prepared", "IPO foundation"],
+                vec![
+                    "Financial model",
+                    "Budget approved",
+                    "Accounting setup",
+                    "Banking established",
+                ],
+                vec![
+                    "Burn tracking",
+                    "Revenue recognized",
+                    "Expense managed",
+                    "Reports automated",
+                ],
+                vec![
+                    "Margins improved",
+                    "Runway extended",
+                    "Investors updated",
+                    "Forecasts refined",
+                ],
+                vec![
+                    "Profitability",
+                    "Fundraise ready",
+                    "Audit prepared",
+                    "IPO foundation",
+                ],
             ],
             _ => vec![
                 vec!["Team onboarded", "Goals set", "Processes defined"],
@@ -411,33 +554,70 @@ impl SubAgent {
     }
 
     fn get_success_criteria(&self, phase_index: usize, okrs: &OKRs) -> Vec<String> {
-        okrs.key_results.iter().take(2).map(|kr| {
-            let progress = (phase_index + 1) as f64 * 25.0;
-            let target_value = kr.current + (kr.target - kr.current) * (progress / 100.0);
-            format!("{}: {:.1}{}", kr.metric, target_value, kr.unit)
-        }).collect()
+        okrs.key_results
+            .iter()
+            .take(2)
+            .map(|kr| {
+                let progress = (phase_index + 1) as f64 * 25.0;
+                let target_value = kr.current + (kr.target - kr.current) * (progress / 100.0);
+                format!("{}: {:.1}{}", kr.metric, target_value, kr.unit)
+            })
+            .collect()
     }
 
     fn create_risk_mitigation(&self) -> Vec<RiskMitigation> {
         match self.executive_title {
             Some(ExecutiveTitle::CEO) => vec![
-                RiskMitigation { risk: "Market changes".to_string(), mitigation: "Monthly market analysis & pivot readiness".to_string() },
-                RiskMitigation { risk: "Team attrition".to_string(), mitigation: "Strong culture, equity, growth opportunities".to_string() },
-                RiskMitigation { risk: "Funding gap".to_string(), mitigation: "18mo runway target, investor relationships".to_string() },
+                RiskMitigation {
+                    risk: "Market changes".to_string(),
+                    mitigation: "Monthly market analysis & pivot readiness".to_string(),
+                },
+                RiskMitigation {
+                    risk: "Team attrition".to_string(),
+                    mitigation: "Strong culture, equity, growth opportunities".to_string(),
+                },
+                RiskMitigation {
+                    risk: "Funding gap".to_string(),
+                    mitigation: "18mo runway target, investor relationships".to_string(),
+                },
             ],
             Some(ExecutiveTitle::CTO) => vec![
-                RiskMitigation { risk: "Technical debt".to_string(), mitigation: "20% time for refactoring & debt paydown".to_string() },
-                RiskMitigation { risk: "Scalability issues".to_string(), mitigation: "Load testing, monitoring, auto-scaling".to_string() },
-                RiskMitigation { risk: "Security breach".to_string(), mitigation: "Regular audits, pen testing, bug bounty".to_string() },
+                RiskMitigation {
+                    risk: "Technical debt".to_string(),
+                    mitigation: "20% time for refactoring & debt paydown".to_string(),
+                },
+                RiskMitigation {
+                    risk: "Scalability issues".to_string(),
+                    mitigation: "Load testing, monitoring, auto-scaling".to_string(),
+                },
+                RiskMitigation {
+                    risk: "Security breach".to_string(),
+                    mitigation: "Regular audits, pen testing, bug bounty".to_string(),
+                },
             ],
             Some(ExecutiveTitle::CFO) => vec![
-                RiskMitigation { risk: "Cash shortage".to_string(), mitigation: "Weekly burn monitoring, 3mo early warning".to_string() },
-                RiskMitigation { risk: "Revenue miss".to_string(), mitigation: "Conservative forecasting, multiple revenue streams".to_string() },
-                RiskMitigation { risk: "Cost overrun".to_string(), mitigation: "Budget caps, approval workflows, alerts".to_string() },
+                RiskMitigation {
+                    risk: "Cash shortage".to_string(),
+                    mitigation: "Weekly burn monitoring, 3mo early warning".to_string(),
+                },
+                RiskMitigation {
+                    risk: "Revenue miss".to_string(),
+                    mitigation: "Conservative forecasting, multiple revenue streams".to_string(),
+                },
+                RiskMitigation {
+                    risk: "Cost overrun".to_string(),
+                    mitigation: "Budget caps, approval workflows, alerts".to_string(),
+                },
             ],
             _ => vec![
-                RiskMitigation { risk: "Execution delays".to_string(), mitigation: "Buffer time, dependency tracking".to_string() },
-                RiskMitigation { risk: "Resource constraints".to_string(), mitigation: "Prioritization, outsourcing options".to_string() },
+                RiskMitigation {
+                    risk: "Execution delays".to_string(),
+                    mitigation: "Buffer time, dependency tracking".to_string(),
+                },
+                RiskMitigation {
+                    risk: "Resource constraints".to_string(),
+                    mitigation: "Prioritization, outsourcing options".to_string(),
+                },
             ],
         }
     }
@@ -454,7 +634,10 @@ impl SubAgent {
                 if revenue_growth > 15.0 {
                     Decision {
                         decision: "scale_operations".to_string(),
-                        reasoning: format!("Strong revenue growth ({:.1}%), invest in scaling", revenue_growth),
+                        reasoning: format!(
+                            "Strong revenue growth ({:.1}%), invest in scaling",
+                            revenue_growth
+                        ),
                         confidence: 0.85,
                         action_items: vec![
                             "Hire 3-5 key roles".to_string(),
@@ -465,7 +648,10 @@ impl SubAgent {
                 } else if user_growth > 20.0 {
                     Decision {
                         decision: "optimize_monetization".to_string(),
-                        reasoning: format!("High user growth ({:.1}%) but need to improve monetization", user_growth),
+                        reasoning: format!(
+                            "High user growth ({:.1}%) but need to improve monetization",
+                            user_growth
+                        ),
                         confidence: 0.85,
                         action_items: vec![
                             "A/B test pricing models".to_string(),
@@ -493,7 +679,10 @@ impl SubAgent {
                 if uptime < 99.5 || response_time > 300.0 {
                     Decision {
                         decision: "prioritize_reliability".to_string(),
-                        reasoning: format!("System metrics below target (uptime: {:.1}%, response: {:.0}ms)", uptime, response_time),
+                        reasoning: format!(
+                            "System metrics below target (uptime: {:.1}%, response: {:.0}ms)",
+                            uptime, response_time
+                        ),
                         confidence: 0.9,
                         action_items: vec![
                             "Implement auto-scaling".to_string(),
@@ -521,7 +710,10 @@ impl SubAgent {
                 if runway_months < 9.0 {
                     Decision {
                         decision: "emergency_fundraise".to_string(),
-                        reasoning: format!("Critical runway ({:.0} months), must raise capital", runway_months),
+                        reasoning: format!(
+                            "Critical runway ({:.0} months), must raise capital",
+                            runway_months
+                        ),
                         confidence: 0.85,
                         action_items: vec![
                             "Prepare investor deck".to_string(),
@@ -532,7 +724,10 @@ impl SubAgent {
                 } else if burn_multiple > 3.0 {
                     Decision {
                         decision: "reduce_burn".to_string(),
-                        reasoning: format!("High burn multiple ({:.1}x), optimize costs", burn_multiple),
+                        reasoning: format!(
+                            "High burn multiple ({:.1}x), optimize costs",
+                            burn_multiple
+                        ),
                         confidence: 0.85,
                         action_items: vec![
                             "Audit all expenses".to_string(),
@@ -673,8 +868,7 @@ impl SubAgentManager {
             SubAgentRole::IndividualContributor => format!("IC ({})", specialization),
         };
 
-        let mut agent = SubAgent::new(name, role)
-            .with_specialization(specialization);
+        let mut agent = SubAgent::new(name, role).with_specialization(specialization);
 
         if let Some(cid) = company_id {
             agent = agent.with_company(cid);
@@ -696,12 +890,8 @@ impl SubAgentManager {
             Some(company_id),
             None,
         );
-        let board_finance_id = self.create_sub_agent(
-            SubAgentRole::BoardMember,
-            "finance",
-            Some(company_id),
-            None,
-        );
+        let board_finance_id =
+            self.create_sub_agent(SubAgentRole::BoardMember, "finance", Some(company_id), None);
 
         if let Some(agent) = self.get(&board_chair_id).cloned() {
             team.board.push(agent);
@@ -787,20 +977,26 @@ impl SubAgentManager {
     }
 
     /// Coordinate sub-agents on a shared task.
-    pub fn coordinate_task(&mut self, task: &serde_json::Value, roles: Option<&[SubAgentRole]>) -> Vec<serde_json::Value> {
+    pub fn coordinate_task(
+        &mut self,
+        task: &serde_json::Value,
+        roles: Option<&[SubAgentRole]>,
+    ) -> Vec<serde_json::Value> {
         let mut results = Vec::new();
 
-        let agent_ids: Vec<Uuid> = self.agents.iter()
-            .filter(|(_, agent)| {
-                roles.is_none() || roles.unwrap().contains(&agent.role)
-            })
+        let agent_ids: Vec<Uuid> = self
+            .agents
+            .iter()
+            .filter(|(_, agent)| roles.is_none() || roles.unwrap().contains(&agent.role))
             .take(5)
             .map(|(id, _)| *id)
             .collect();
 
         for id in agent_ids {
             if let Some(agent) = self.agents.get_mut(&id) {
-                let result = if agent.role == SubAgentRole::BoardMember || agent.role == SubAgentRole::Executive {
+                let result = if agent.role == SubAgentRole::BoardMember
+                    || agent.role == SubAgentRole::Executive
+                {
                     let metrics = HashMap::new();
                     let decision = agent.make_decision(&metrics);
                     serde_json::to_value(decision).unwrap_or_default()
@@ -834,8 +1030,8 @@ mod tests {
 
     #[test]
     fn test_sub_agent_creation() {
-        let agent = SubAgent::new("Test Agent", SubAgentRole::Executive)
-            .with_specialization("leadership");
+        let agent =
+            SubAgent::new("Test Agent", SubAgentRole::Executive).with_specialization("leadership");
 
         assert_eq!(agent.role, SubAgentRole::Executive);
         assert_eq!(agent.specialization, Some("leadership".to_string()));

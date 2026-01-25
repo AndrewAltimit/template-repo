@@ -6,8 +6,8 @@ use economic_agents_interfaces::{
     EconomicAgentError, EntityId, Marketplace, Result, Skill, SubmissionStatus, Task, TaskCategory,
     TaskFilter, TaskStatus, TaskSubmission,
 };
-use rand::seq::SliceRandom;
 use rand::Rng;
+use rand::seq::SliceRandom;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -51,7 +51,11 @@ impl MockMarketplace {
             let task = Task {
                 id,
                 title: format!("{} Task #{}", category_name(category), i + 1),
-                description: format!("Description for {} task #{}", category_name(category), i + 1),
+                description: format!(
+                    "Description for {} task #{}",
+                    category_name(category),
+                    i + 1
+                ),
                 category,
                 reward: rng.r#gen_range(10.0..100.0),
                 estimated_hours: rng.r#gen_range(1.0..8.0),
@@ -253,11 +257,9 @@ fn generate_skills_for_category<R: Rng>(category: TaskCategory, rng: &mut R) -> 
             Skill::Security,
             Skill::Testing,
         ],
-        TaskCategory::Documentation => vec![
-            Skill::TechnicalWriting,
-            Skill::Research,
-            Skill::ApiDesign,
-        ],
+        TaskCategory::Documentation => {
+            vec![Skill::TechnicalWriting, Skill::Research, Skill::ApiDesign]
+        }
         TaskCategory::DataAnalysis => vec![
             Skill::DataAnalysis,
             Skill::Python,

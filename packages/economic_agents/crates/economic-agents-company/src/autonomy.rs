@@ -216,7 +216,9 @@ impl AutonomousSubAgent {
         let best_task = tasks.into_iter().max_by(|a, b| {
             let score_a = self.score_task(a);
             let score_b = self.score_task(b);
-            score_a.partial_cmp(&score_b).unwrap_or(std::cmp::Ordering::Equal)
+            score_a
+                .partial_cmp(&score_b)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         Ok(best_task)
@@ -258,11 +260,12 @@ impl AutonomousSubAgent {
 
     /// Execute the current task (simplified - in real implementation would use TaskExecutor).
     pub async fn execute_task(&mut self) -> Result<DelegationResult> {
-        let task = self.current_task.take().ok_or_else(|| {
-            EconomicAgentError::TaskNotFound {
+        let task = self
+            .current_task
+            .take()
+            .ok_or_else(|| EconomicAgentError::TaskNotFound {
                 id: "no_current_task".to_string(),
-            }
-        })?;
+            })?;
 
         // Record compute usage
         self.budget.spend(0.0, task.estimated_hours);
@@ -315,7 +318,11 @@ impl AutonomousSubAgent {
     }
 
     /// Accept a delegated task from parent.
-    pub fn accept_delegation(&mut self, task: Task, deadline: Option<chrono::DateTime<Utc>>) -> Uuid {
+    pub fn accept_delegation(
+        &mut self,
+        task: Task,
+        deadline: Option<chrono::DateTime<Utc>>,
+    ) -> Uuid {
         let delegation = DelegatedTask {
             id: Uuid::new_v4(),
             task,
@@ -503,7 +510,9 @@ impl AutonomousSubAgentManager {
         let best_idx = agents.iter().enumerate().max_by(|(_, a), (_, b)| {
             let score_a = a.score_task(&task);
             let score_b = b.score_task(&task);
-            score_a.partial_cmp(&score_b).unwrap_or(std::cmp::Ordering::Equal)
+            score_a
+                .partial_cmp(&score_b)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         if let Some((idx, _)) = best_idx {

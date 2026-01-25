@@ -8,7 +8,7 @@ use std::sync::Arc;
 use clap::{Parser, Subcommand, ValueEnum};
 use tracing::info;
 
-use economic_agents_cli::{run_agent, run_scenario, AgentFileConfig, Scenario};
+use economic_agents_cli::{AgentFileConfig, Scenario, run_agent, run_scenario};
 use economic_agents_dashboard::{DashboardConfig, DashboardService, DashboardState};
 use economic_agents_observability::{
     BehaviorDecisionRecord, DecisionPatternAnalyzer, DecisionRecord, EmergentBehaviorDetector,
@@ -208,10 +208,7 @@ async fn main() -> anyhow::Result<()> {
             // Save state if requested
             if save {
                 let state_manager = StateManager::with_default_dir().await?;
-                let agent_id = agent_config
-                    .agent_id
-                    .as_deref()
-                    .unwrap_or(&result.agent_id);
+                let agent_id = agent_config.agent_id.as_deref().unwrap_or(&result.agent_id);
 
                 // Create a basic AgentState from the result
                 let state = economic_agents_core::state::AgentState {
@@ -389,10 +386,7 @@ async fn main() -> anyhow::Result<()> {
                 }
                 _ => {
                     println!("\n=== Economic Agents Status ===\n");
-                    println!(
-                        "Data directory: {}",
-                        state_manager.base_dir().display()
-                    );
+                    println!("Data directory: {}", state_manager.base_dir().display());
                     println!("Registry exists: {}", registry_exists);
                     println!("Saved agents: {}", agents.len());
 
@@ -740,10 +734,7 @@ async fn main() -> anyhow::Result<()> {
                                             s["novelty_score"].as_f64().unwrap_or(0.0),
                                             s["effectiveness"].as_f64().unwrap_or(0.0)
                                         );
-                                        println!(
-                                            "    {}",
-                                            s["description"].as_str().unwrap_or("")
-                                        );
+                                        println!("    {}", s["description"].as_str().unwrap_or(""));
                                     }
                                 } else {
                                     println!("\nNo novel strategies detected.");
@@ -792,9 +783,10 @@ async fn main() -> anyhow::Result<()> {
                                     .unwrap_or(0.0)
                             );
 
-                            let hallucination_count = result["quality_metrics"]["hallucination_count"]
-                                .as_u64()
-                                .unwrap_or(0);
+                            let hallucination_count =
+                                result["quality_metrics"]["hallucination_count"]
+                                    .as_u64()
+                                    .unwrap_or(0);
                             if hallucination_count > 0 {
                                 println!("\nHallucinations detected: {}", hallucination_count);
                             } else {
@@ -816,7 +808,10 @@ async fn main() -> anyhow::Result<()> {
 /// Extract state and action from decision details JSON.
 fn extract_state_action(
     details: &serde_json::Value,
-) -> (HashMap<String, serde_json::Value>, HashMap<String, serde_json::Value>) {
+) -> (
+    HashMap<String, serde_json::Value>,
+    HashMap<String, serde_json::Value>,
+) {
     let mut state = HashMap::new();
     let mut action = HashMap::new();
 
@@ -957,7 +952,11 @@ fn convert_to_llm_records(decisions: &[SerializedDecision]) -> Vec<LLMDecisionRe
             let (state, action) = extract_state_action(&d.details);
             LLMDecisionRecord {
                 state,
-                action: if action.is_empty() { None } else { Some(action) },
+                action: if action.is_empty() {
+                    None
+                } else {
+                    Some(action)
+                },
                 reasoning: get_reasoning(&d.details),
             }
         })

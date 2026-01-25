@@ -18,6 +18,4 @@ pub use autonomy::{
 };
 pub use builder::CompanyBuilder;
 pub use models::{BusinessPlan, Company, CompanyStage, Product};
-pub use sub_agents::{
-    ExecutiveTitle, SubAgent, SubAgentManager, SubAgentRole, Team, TeamSummary,
-};
+pub use sub_agents::{ExecutiveTitle, SubAgent, SubAgentManager, SubAgentRole, Team, TeamSummary};
