@@ -28,7 +28,12 @@ packages/economic_agents/
     ├── economic-agents-simulation/    # Realism features (latency, markets)
     ├── economic-agents-monitoring/    # Event bus and metrics
     ├── economic-agents-dashboard/     # Web dashboard backend
-    └── economic-agents-cli/           # Command-line interface
+    ├── economic-agents-cli/           # Command-line interface
+    ├── economic-agents-persistence/   # State persistence (JSON, SQLite)
+    ├── economic-agents-time/          # Time management and scheduling
+    ├── economic-agents-observability/ # Metrics, tracing, and telemetry
+    ├── economic-agents-reports/       # Report generation (JSON, CSV, HTML)
+    └── economic-agents-tasks/         # Task execution with Claude CLI
 ```
 
 ## Quick Start
@@ -140,6 +145,39 @@ let company = CompanyBuilder::new()
     .capital(1000.0)
     .build()?;
 ```
+
+## Task Execution
+
+Agents can complete coding challenges using Claude CLI:
+
+```rust
+use economic_agents_tasks::{TaskCatalog, TaskExecutor, SolutionReviewer};
+
+// Browse available challenges
+let catalog = TaskCatalog::new();
+let easy_tasks = catalog.by_difficulty(0.0, 0.3);
+let challenge = catalog.get("fizzbuzz").unwrap();
+
+// Execute with Claude CLI
+let executor = TaskExecutor::with_defaults();
+let result = executor.execute(&challenge).await;
+
+// Validate the solution
+if let Some(solution) = result.solution {
+    let reviewer = SolutionReviewer::with_defaults();
+    let review = reviewer.review(&challenge, &solution).await;
+    println!("Score: {:.0}% ({}/{})",
+        review.score * 100.0,
+        review.tests_passed,
+        review.total_tests
+    );
+}
+```
+
+The task catalog includes 13 challenges across difficulty levels:
+- **Easy** (0.1-0.3): FizzBuzz, Palindrome, Reverse String, Factorial, Fibonacci, Prime Checker
+- **Medium** (0.4-0.6): Binary Search, Anagram Checker, Two Sum, Merge Sorted Arrays
+- **Hard** (0.7-0.9): Longest Substring, Valid Parentheses, LRU Cache
 
 ## Monitoring & Observability
 
