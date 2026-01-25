@@ -5,10 +5,12 @@
 //! - Investor agents and decision making
 //! - Company registry for matching
 
-pub mod models;
 pub mod investor;
+pub mod models;
 pub mod registry;
 
-pub use models::{Investment, InvestmentDecision, InvestmentProposal, InvestorProfile, RiskTolerance};
 pub use investor::InvestorAgent;
+pub use models::{
+    Investment, InvestmentDecision, InvestmentProposal, InvestorProfile, RiskTolerance,
+};
 pub use registry::CompanyRegistry;

@@ -112,7 +112,10 @@ mod tests {
         wallet.send_payment("other", 30.0, None).await.unwrap();
         assert_eq!(wallet.get_balance().await.unwrap(), 70.0);
 
-        wallet.receive_payment(Some("other"), 50.0, None).await.unwrap();
+        wallet
+            .receive_payment(Some("other"), 50.0, None)
+            .await
+            .unwrap();
         assert_eq!(wallet.get_balance().await.unwrap(), 120.0);
     }
 
@@ -120,6 +123,9 @@ mod tests {
     async fn test_insufficient_funds() {
         let wallet = MockWallet::new(50.0);
         let result = wallet.send_payment("other", 100.0, None).await;
-        assert!(matches!(result, Err(EconomicAgentError::InsufficientCapital { .. })));
+        assert!(matches!(
+            result,
+            Err(EconomicAgentError::InsufficientCapital { .. })
+        ));
     }
 }

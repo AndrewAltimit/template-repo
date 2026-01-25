@@ -9,8 +9,8 @@ use tokio::sync::RwLock;
 use axum_test::TestServer;
 
 use economic_agents_api::services::{
-    compute_router, marketplace_router, wallet_router, ComputeServiceState,
-    MarketplaceServiceState, WalletServiceState,
+    ComputeServiceState, MarketplaceServiceState, WalletServiceState, compute_router,
+    marketplace_router, wallet_router,
 };
 use economic_agents_mock::{MockBackendConfig, MockBackendFactory};
 

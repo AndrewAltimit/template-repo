@@ -8,8 +8,8 @@ use reqwest::Client;
 use std::time::Duration;
 
 use economic_agents_interfaces::{
-    ComputeStatus, Currency, EconomicAgentError, Hours, Marketplace, Result, Task, TaskFilter,
-    TaskSubmission, Transaction, Wallet, Compute,
+    Compute, ComputeStatus, Currency, EconomicAgentError, Hours, Marketplace, Result, Task,
+    TaskFilter, TaskSubmission, Transaction, Wallet,
 };
 
 use crate::models::*;
@@ -111,6 +111,7 @@ impl HttpClient {
         self.handle_response(response).await
     }
 
+    #[allow(dead_code)]
     async fn delete(&self, path: &str) -> Result<()> {
         let response = self
             .request(reqwest::Method::DELETE, path)
@@ -137,10 +138,9 @@ impl HttpClient {
         let status = response.status();
 
         if status.is_success() {
-            response
-                .json()
-                .await
-                .map_err(|e| EconomicAgentError::Internal(format!("Failed to parse response: {}", e)))
+            response.json().await.map_err(|e| {
+                EconomicAgentError::Internal(format!("Failed to parse response: {}", e))
+            })
         } else {
             let body = response.text().await.unwrap_or_default();
 

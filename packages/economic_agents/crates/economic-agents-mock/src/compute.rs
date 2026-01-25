@@ -1,7 +1,9 @@
 //! Mock compute implementation.
 
 use async_trait::async_trait;
-use economic_agents_interfaces::{Compute, ComputeStatus, Currency, EconomicAgentError, Hours, Result};
+use economic_agents_interfaces::{
+    Compute, ComputeStatus, Currency, EconomicAgentError, Hours, Result,
+};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -101,6 +103,9 @@ mod tests {
     async fn test_insufficient_hours() {
         let compute = MockCompute::new(5.0, 0.10);
         let result = compute.consume_time(10.0).await;
-        assert!(matches!(result, Err(EconomicAgentError::InsufficientCapital { .. })));
+        assert!(matches!(
+            result,
+            Err(EconomicAgentError::InsufficientCapital { .. })
+        ));
     }
 }

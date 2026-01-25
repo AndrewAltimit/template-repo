@@ -7,5 +7,5 @@ pub mod runner;
 pub mod scenarios;
 
 pub use config::{AgentFileConfig, DashboardFileConfig};
-pub use runner::{run_agent, run_scenario, AgentRunResult, ScenarioResult};
+pub use runner::{AgentRunResult, ScenarioResult, run_agent, run_scenario};
 pub use scenarios::Scenario;

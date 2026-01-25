@@ -11,14 +11,14 @@
 //! allowing seamless switching between mock (simulation) and real (production)
 //! backends.
 
+pub mod compute;
 pub mod error;
+pub mod marketplace;
 pub mod types;
 pub mod wallet;
-pub mod marketplace;
-pub mod compute;
 
+pub use compute::Compute;
 pub use error::*;
+pub use marketplace::{Marketplace, TaskFilter};
 pub use types::*;
 pub use wallet::Wallet;
-pub use marketplace::{Marketplace, TaskFilter};
-pub use compute::Compute;

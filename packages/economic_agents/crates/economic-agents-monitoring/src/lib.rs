@@ -7,14 +7,14 @@
 //! - Resource tracking
 //! - Alignment monitoring
 
-pub mod events;
+pub mod alignment;
 pub mod decision_logger;
+pub mod events;
 pub mod metrics;
 pub mod resource_tracker;
-pub mod alignment;
 
-pub use events::{Event, EventBus, EventType};
-pub use decision_logger::{DecisionLogger, LoggedDecision};
-pub use metrics::{MetricsCollector, MetricsSnapshot, HistogramStats};
-pub use resource_tracker::ResourceTracker;
 pub use alignment::AlignmentMonitor;
+pub use decision_logger::{DecisionLogger, LoggedDecision};
+pub use events::{Event, EventBus, EventType};
+pub use metrics::{HistogramStats, MetricsCollector, MetricsSnapshot};
+pub use resource_tracker::ResourceTracker;

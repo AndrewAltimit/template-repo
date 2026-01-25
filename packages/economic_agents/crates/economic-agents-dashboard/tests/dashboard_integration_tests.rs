@@ -5,8 +5,8 @@ use std::sync::Arc;
 use axum_test::TestServer;
 
 use economic_agents_dashboard::{
-    dashboard_router, AgentListResponse, AgentSummary, CreateAgentRequest, DashboardState,
-    DashboardStatusResponse, EventListResponse, HealthResponse, MetricsResponse,
+    AgentListResponse, AgentSummary, CreateAgentRequest, DashboardState, DashboardStatusResponse,
+    EventListResponse, HealthResponse, MetricsResponse, dashboard_router,
 };
 
 /// Create a test server.
@@ -303,7 +303,7 @@ async fn test_metrics_endpoint() {
 
     let body: MetricsResponse = response.json();
     assert!(body.counters.is_empty() || !body.counters.is_empty()); // Just check it parses
-    assert!(body.timestamp.to_string().len() > 0);
+    assert!(!body.timestamp.to_string().is_empty());
 }
 
 #[tokio::test]

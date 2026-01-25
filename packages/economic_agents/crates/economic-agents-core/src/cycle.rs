@@ -133,7 +133,13 @@ pub struct TaskWorkResult {
 
 impl TaskWorkResult {
     /// Create a successful task work result.
-    pub fn success(task_id: Uuid, task_title: String, hours: f64, reward: f64, quality: f64) -> Self {
+    pub fn success(
+        task_id: Uuid,
+        task_title: String,
+        hours: f64,
+        reward: f64,
+        quality: f64,
+    ) -> Self {
         Self {
             success: true,
             task_id: Some(task_id),
@@ -159,7 +165,12 @@ impl TaskWorkResult {
     }
 
     /// Create a rejected submission result.
-    pub fn rejected(task_id: Uuid, task_title: String, hours: f64, reason: impl Into<String>) -> Self {
+    pub fn rejected(
+        task_id: Uuid,
+        task_title: String,
+        hours: f64,
+        reason: impl Into<String>,
+    ) -> Self {
         Self {
             success: false,
             task_id: Some(task_id),

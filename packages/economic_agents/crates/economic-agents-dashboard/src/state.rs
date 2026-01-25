@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use chrono::Utc;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{RwLock, broadcast};
 
 use economic_agents_core::{AgentConfig, AutonomousAgent, Backends, CycleResult};
 use economic_agents_monitoring::{DecisionLogger, EventBus, MetricsCollector};

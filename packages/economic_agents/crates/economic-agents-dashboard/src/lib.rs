@@ -32,8 +32,8 @@ pub use models::*;
 pub use routes::dashboard_router;
 pub use state::{DashboardState, ManagedAgent};
 
-use std::sync::Arc;
 use axum::Router;
+use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 use tracing::info;

@@ -4,10 +4,10 @@
 //! allowing agents to connect via the API clients.
 
 use axum::{
+    Json, Router,
     extract::{Path, Query, State},
     http::StatusCode,
     routing::{get, post},
-    Json, Router,
 };
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -15,7 +15,9 @@ use tracing::info;
 use uuid::Uuid;
 
 use economic_agents_interfaces::{Compute, EconomicAgentError, Marketplace, TaskFilter, Wallet};
-use economic_agents_mock::{MockBackendConfig, MockBackendFactory, MockCompute, MockMarketplace, MockWallet};
+use economic_agents_mock::{
+    MockBackendConfig, MockBackendFactory, MockCompute, MockMarketplace, MockWallet,
+};
 
 use crate::middleware::{AuthConfig, RateLimitConfig};
 use crate::models::*;
@@ -61,7 +63,9 @@ async fn wallet_health() -> Json<HealthResponse> {
     Json(HealthResponse::healthy("wallet"))
 }
 
-async fn get_balance(State(state): State<Arc<WalletServiceState>>) -> ApiResult<Json<BalanceResponse>> {
+async fn get_balance(
+    State(state): State<Arc<WalletServiceState>>,
+) -> ApiResult<Json<BalanceResponse>> {
     let wallet = state.wallet.read().await;
 
     let balance = wallet.get_balance().await.map_err(to_api_error)?;
@@ -166,7 +170,10 @@ async fn add_compute_funds(
 ) -> ApiResult<Json<ComputeStatusResponse>> {
     let compute = state.compute.read().await;
 
-    let status = compute.add_funds(request.amount).await.map_err(to_api_error)?;
+    let status = compute
+        .add_funds(request.amount)
+        .await
+        .map_err(to_api_error)?;
 
     Ok(Json(ComputeStatusResponse { status }))
 }
@@ -177,7 +184,10 @@ async fn consume_compute_time(
 ) -> ApiResult<Json<ComputeStatusResponse>> {
     let compute = state.compute.read().await;
 
-    let status = compute.consume_time(request.hours).await.map_err(to_api_error)?;
+    let status = compute
+        .consume_time(request.hours)
+        .await
+        .map_err(to_api_error)?;
 
     Ok(Json(ComputeStatusResponse { status }))
 }
@@ -190,7 +200,10 @@ async fn get_hours_remaining(
     let hours = compute.get_hours_remaining().await.map_err(to_api_error)?;
     let cost_per_hour = compute.get_cost_per_hour().await.map_err(to_api_error)?;
 
-    Ok(Json(HoursRemainingResponse { hours, cost_per_hour }))
+    Ok(Json(HoursRemainingResponse {
+        hours,
+        cost_per_hour,
+    }))
 }
 
 // ============================================================================
@@ -358,9 +371,7 @@ fn to_api_error(err: EconomicAgentError) -> (StatusCode, Json<ApiErrorResponse>)
         EconomicAgentError::Serialization(_) => {
             (StatusCode::INTERNAL_SERVER_ERROR, "SERIALIZATION_ERROR")
         }
-        EconomicAgentError::Configuration(_) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, "CONFIG_ERROR")
-        }
+        EconomicAgentError::Configuration(_) => (StatusCode::INTERNAL_SERVER_ERROR, "CONFIG_ERROR"),
         EconomicAgentError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL_ERROR"),
     };
 

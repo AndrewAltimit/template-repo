@@ -7,7 +7,7 @@ use std::sync::Arc;
 use clap::{Parser, Subcommand};
 use tracing::info;
 
-use economic_agents_cli::{run_agent, run_scenario, AgentFileConfig, Scenario};
+use economic_agents_cli::{AgentFileConfig, Scenario, run_agent, run_scenario};
 use economic_agents_dashboard::{DashboardConfig, DashboardService, DashboardState};
 
 #[derive(Parser)]
@@ -245,9 +245,7 @@ async fn main() -> anyhow::Result<()> {
             for (name, description) in Scenario::list_all() {
                 println!("  {:<20} - {}", name, description);
             }
-            println!(
-                "\nUsage: economic-agents scenario <name>\n"
-            );
+            println!("\nUsage: economic-agents scenario <name>\n");
         }
 
         Commands::Status => {

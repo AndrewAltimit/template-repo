@@ -82,11 +82,11 @@ impl Marketplace for MockMarketplace {
         let filtered: Vec<Task> = tasks
             .values()
             .filter(|t| t.status == TaskStatus::Available)
-            .filter(|t| filter.category.map_or(true, |c| t.category == c))
-            .filter(|t| filter.min_reward.map_or(true, |m| t.reward >= m))
-            .filter(|t| filter.max_reward.map_or(true, |m| t.reward <= m))
-            .filter(|t| filter.max_difficulty.map_or(true, |m| t.difficulty <= m))
-            .filter(|t| filter.max_hours.map_or(true, |m| t.estimated_hours <= m))
+            .filter(|t| filter.category.is_none_or(|c| t.category == c))
+            .filter(|t| filter.min_reward.is_none_or(|m| t.reward >= m))
+            .filter(|t| filter.max_reward.is_none_or(|m| t.reward <= m))
+            .filter(|t| filter.max_difficulty.is_none_or(|m| t.difficulty <= m))
+            .filter(|t| filter.max_hours.is_none_or(|m| t.estimated_hours <= m))
             .take(filter.limit.unwrap_or(100))
             .cloned()
             .collect();
@@ -161,11 +161,12 @@ impl Marketplace for MockMarketplace {
     async fn check_submission_status(&self, submission_id: EntityId) -> Result<TaskSubmission> {
         let mut submissions = self.submissions.write().await;
 
-        let submission = submissions
-            .get_mut(&submission_id)
-            .ok_or(EconomicAgentError::TaskNotFound {
-                id: submission_id.to_string(),
-            })?;
+        let submission =
+            submissions
+                .get_mut(&submission_id)
+                .ok_or(EconomicAgentError::TaskNotFound {
+                    id: submission_id.to_string(),
+                })?;
 
         // Auto-approve after a simulated delay (for testing)
         if submission.status == SubmissionStatus::Pending {

@@ -3,11 +3,11 @@
 //! Provides authentication and rate limiting for the Axum services.
 
 use axum::{
+    Json,
     extract::Request,
     http::{HeaderMap, StatusCode},
     middleware::Next,
     response::Response,
-    Json,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -21,21 +21,12 @@ use crate::models::ApiErrorResponse;
 // ============================================================================
 
 /// Configuration for API key authentication.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct AuthConfig {
     /// Valid API keys (key -> agent_id mapping).
     pub api_keys: HashMap<String, String>,
     /// Whether authentication is required.
     pub required: bool,
-}
-
-impl Default for AuthConfig {
-    fn default() -> Self {
-        Self {
-            api_keys: HashMap::new(),
-            required: false,
-        }
-    }
 }
 
 impl AuthConfig {
@@ -65,6 +56,7 @@ impl AuthConfig {
 /// State for authentication middleware.
 #[derive(Clone)]
 pub struct AuthState {
+    #[allow(dead_code)]
     config: AuthConfig,
 }
 
@@ -75,7 +67,10 @@ impl AuthState {
 }
 
 /// Validate API key from request headers.
-pub fn validate_api_key(headers: &HeaderMap, config: &AuthConfig) -> Result<Option<String>, String> {
+pub fn validate_api_key(
+    headers: &HeaderMap,
+    config: &AuthConfig,
+) -> Result<Option<String>, String> {
     let api_key = headers
         .get("X-API-Key")
         .and_then(|v| v.to_str().ok())
@@ -225,11 +220,20 @@ impl RateLimitState {
     pub fn remaining(&self, client_id: &str) -> (u32, u32) {
         let entries = self.entries.read().unwrap();
         if let Some(entry) = entries.get(client_id) {
-            let minute_remaining = self.config.requests_per_minute.saturating_sub(entry.minute_count);
-            let hour_remaining = self.config.requests_per_hour.saturating_sub(entry.hour_count);
+            let minute_remaining = self
+                .config
+                .requests_per_minute
+                .saturating_sub(entry.minute_count);
+            let hour_remaining = self
+                .config
+                .requests_per_hour
+                .saturating_sub(entry.hour_count);
             (minute_remaining, hour_remaining)
         } else {
-            (self.config.requests_per_minute, self.config.requests_per_hour)
+            (
+                self.config.requests_per_minute,
+                self.config.requests_per_hour,
+            )
         }
     }
 }

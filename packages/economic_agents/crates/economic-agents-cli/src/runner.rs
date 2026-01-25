@@ -85,7 +85,10 @@ impl ScenarioResult {
         for result in &self.agent_results {
             println!("Agent: {}", result.agent_id);
             println!("  Cycles: {}", result.cycles_executed);
-            println!("  Tasks: {} completed, {} failed", result.tasks_completed, result.tasks_failed);
+            println!(
+                "  Tasks: {} completed, {} failed",
+                result.tasks_completed, result.tasks_failed
+            );
             println!("  Success rate: {:.1}%", result.success_rate() * 100.0);
             println!("  Final balance: ${:.2}", result.final_balance);
             println!("  Net profit: ${:.2}", result.net_profit());
@@ -94,7 +97,11 @@ impl ScenarioResult {
         }
 
         if let Some(best) = self.best_performer() {
-            println!("Best performer: {} (${:.2} profit)", best.agent_id, best.net_profit());
+            println!(
+                "Best performer: {} (${:.2} profit)",
+                best.agent_id,
+                best.net_profit()
+            );
         }
     }
 }
@@ -180,13 +187,7 @@ pub async fn run_scenario(scenario: Scenario, keep_cycles: bool) -> anyhow::Resu
     let mut agent_results = Vec::new();
 
     for agent_config in scenario.agents {
-        match run_agent(
-            agent_config,
-            Some(Arc::clone(&event_bus)),
-            keep_cycles,
-        )
-        .await
-        {
+        match run_agent(agent_config, Some(Arc::clone(&event_bus)), keep_cycles).await {
             Ok(result) => agent_results.push(result),
             Err(e) => error!(error = %e, "Agent failed"),
         }

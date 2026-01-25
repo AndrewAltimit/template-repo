@@ -182,8 +182,10 @@ mod tests {
 
     #[test]
     fn test_record_failure() {
-        let mut state = AgentState::default();
-        state.reputation = 0.5;
+        let mut state = AgentState {
+            reputation: 0.5,
+            ..Default::default()
+        };
         state.record_failure();
         assert_eq!(state.tasks_failed, 1);
         assert_eq!(state.consecutive_failures, 1);

@@ -6,9 +6,9 @@
 //! - Product development
 //! - Sub-agent management
 
-pub mod models;
 pub mod builder;
+pub mod models;
 pub mod sub_agents;
 
-pub use models::{Company, CompanyStage, BusinessPlan, Product};
 pub use builder::CompanyBuilder;
+pub use models::{BusinessPlan, Company, CompanyStage, Product};

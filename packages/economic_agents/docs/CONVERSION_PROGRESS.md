@@ -441,6 +441,66 @@ Total: 106 tests passing across workspace
 4. **Docker-ready**: Multi-stage Dockerfile with non-root user for production
 5. **Event-driven monitoring**: AgentEvents for real-time tracking of agent progress
 
+## Session 7: 2026-01-25 - CI/CD Integration
+
+### Completed
+
+1. **CI/CD Stages for Economic Agents** (in `automation/ci-cd/run-ci.sh`)
+   - `econ-fmt`: Format checking with `cargo fmt`
+   - `econ-clippy`: Linting with `cargo clippy -D warnings`
+   - `econ-test`: Unit and integration tests
+   - `econ-build`: Build all workspace targets
+   - `econ-deny`: License and security audit with cargo-deny
+   - `econ-doc`: Generate API documentation
+   - `econ-coverage`: Test coverage with cargo-llvm-cov
+   - `econ-full`: Combined fmt, clippy, test
+
+2. **PR Validation Workflow Integration**
+   - Added `economic_agents_changed` change detection
+   - New "Economic Agents Tests" stage (8c) in PR validation
+   - Runs when any `packages/economic_agents/` files change
+   - Full CI: fmt → clippy → build → test → deny → doc
+
+3. **Cargo Deny Configuration** (`deny.toml`)
+   - Advisory database integration for security vulnerabilities
+   - License allowlist: MIT, Apache-2.0, BSD-2/3, ISC, Zlib, MPL-2.0
+   - Dependency audit settings
+   - Registry and git source controls
+
+4. **Rust CI Container Updates** (`docker/rust-ci.Dockerfile`)
+   - Added `llvm-tools-preview` component for coverage
+   - Added `cargo-llvm-cov` for code coverage reports
+
+5. **Clippy Fixes**
+   - Fixed `map_or` → `is_none_or` conversions
+   - Fixed large enum variant (Box<CycleResult>)
+   - Fixed field_reassign_with_default in tests
+   - Fixed redundant closure
+   - Fixed collapsible_if statements
+   - Fixed consecutive str::replace calls
+   - Added allow attributes for intentionally unused code
+
+### Test Results
+
+```
+All clippy warnings fixed
+106 tests passing
+Format check: passing
+```
+
+### Architecture Improvements
+
+1. **Container-first CI**: All Rust checks run in containerized environment
+2. **Parallel-safe**: Uses `-w` flag to override working directory, no new containers needed
+3. **Conditional execution**: Only runs when economic_agents files change
+4. **Documentation generation**: API docs generated on every PR
+
+### From Session 7
+1. **Full CI/CD pipeline**: Format, lint, test, build, deny, doc, coverage
+2. **Container reuse**: Same rust-ci container with working directory override
+3. **PR integration**: Automatic detection and testing of economic_agents changes
+4. **Security audit**: cargo-deny for license compliance and vulnerability scanning
+
 ## Testing Strategy
 
 1. **Unit tests**: Per-module tests in each crate ✅

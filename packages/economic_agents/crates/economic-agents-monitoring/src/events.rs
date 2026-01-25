@@ -3,7 +3,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{RwLock, broadcast};
 use uuid::Uuid;
 
 /// Event types in the system.
@@ -54,7 +54,11 @@ pub struct Event {
 
 impl Event {
     /// Create a new event.
-    pub fn new(event_type: EventType, source: impl Into<String>, payload: serde_json::Value) -> Self {
+    pub fn new(
+        event_type: EventType,
+        source: impl Into<String>,
+        payload: serde_json::Value,
+    ) -> Self {
         Self {
             id: Uuid::new_v4(),
             event_type,

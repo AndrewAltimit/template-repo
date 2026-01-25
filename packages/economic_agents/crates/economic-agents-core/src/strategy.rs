@@ -17,26 +17,28 @@ pub fn select_task<'a>(
     let selected = match strategy {
         TaskSelectionStrategy::FirstAvailable => tasks.first(),
 
-        TaskSelectionStrategy::HighestReward => {
-            tasks.iter().max_by(|a, b| {
-                a.reward.partial_cmp(&b.reward).unwrap_or(std::cmp::Ordering::Equal)
-            })
-        }
+        TaskSelectionStrategy::HighestReward => tasks.iter().max_by(|a, b| {
+            a.reward
+                .partial_cmp(&b.reward)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        }),
 
-        TaskSelectionStrategy::BestRatio => {
-            tasks.iter().max_by(|a, b| {
-                let ratio_a = a.reward / a.estimated_hours.max(0.1);
-                let ratio_b = b.reward / b.estimated_hours.max(0.1);
-                ratio_a.partial_cmp(&ratio_b).unwrap_or(std::cmp::Ordering::Equal)
-            })
-        }
+        TaskSelectionStrategy::BestRatio => tasks.iter().max_by(|a, b| {
+            let ratio_a = a.reward / a.estimated_hours.max(0.1);
+            let ratio_b = b.reward / b.estimated_hours.max(0.1);
+            ratio_a
+                .partial_cmp(&ratio_b)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        }),
 
         TaskSelectionStrategy::Balanced => {
             // Score based on reward, difficulty, and time
             tasks.iter().max_by(|a, b| {
                 let score_a = a.reward * (1.0 - a.difficulty) / a.estimated_hours.max(0.1);
                 let score_b = b.reward * (1.0 - b.difficulty) / b.estimated_hours.max(0.1);
-                score_a.partial_cmp(&score_b).unwrap_or(std::cmp::Ordering::Equal)
+                score_a
+                    .partial_cmp(&score_b)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             })
         }
 
@@ -46,7 +48,9 @@ pub fn select_task<'a>(
             tasks.iter().max_by(|a, b| {
                 let score_a = a.reward * (1.0 - a.difficulty) / a.estimated_hours.max(0.1);
                 let score_b = b.reward * (1.0 - b.difficulty) / b.estimated_hours.max(0.1);
-                score_a.partial_cmp(&score_b).unwrap_or(std::cmp::Ordering::Equal)
+                score_a
+                    .partial_cmp(&score_b)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             })
         }
     };
@@ -57,8 +61,8 @@ pub fn select_task<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use economic_agents_interfaces::{TaskCategory, TaskStatus};
     use chrono::Utc;
+    use economic_agents_interfaces::{TaskCategory, TaskStatus};
     use uuid::Uuid;
 
     fn make_task(reward: f64, hours: f64, difficulty: f64) -> Task {

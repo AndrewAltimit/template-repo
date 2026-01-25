@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use tokio::sync::{mpsc, oneshot, RwLock};
+use tokio::sync::{RwLock, mpsc, oneshot};
 use tokio::task::JoinHandle;
 use tracing::{debug, error, info, warn};
 
@@ -32,7 +32,10 @@ pub enum AgentEvent {
     /// Agent started running.
     Started { agent_id: String },
     /// Agent completed a cycle.
-    CycleCompleted { agent_id: String, cycle: CycleResult },
+    CycleCompleted {
+        agent_id: String,
+        cycle: Box<CycleResult>,
+    },
     /// Agent stopped.
     Stopped { agent_id: String, reason: String },
     /// Agent encountered an error.
@@ -351,7 +354,7 @@ async fn run_agent_loop(
                 let _ = event_tx
                     .send(AgentEvent::CycleCompleted {
                         agent_id: agent_id.clone(),
-                        cycle: cycle_result,
+                        cycle: Box::new(cycle_result),
                     })
                     .await;
             }

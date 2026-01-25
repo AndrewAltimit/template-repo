@@ -7,14 +7,14 @@
 //! - Reputation systems
 //! - Feedback generation
 
+pub mod competition;
+pub mod feedback;
 pub mod latency;
 pub mod market;
-pub mod competition;
 pub mod reputation;
-pub mod feedback;
 
+pub use competition::CompetitorSimulator;
+pub use feedback::FeedbackGenerator;
 pub use latency::LatencySimulator;
 pub use market::{MarketDynamics, MarketPhase};
-pub use competition::CompetitorSimulator;
 pub use reputation::{ReputationSystem, ReputationTier};
-pub use feedback::FeedbackGenerator;

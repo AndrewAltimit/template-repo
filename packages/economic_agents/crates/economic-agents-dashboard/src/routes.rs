@@ -69,9 +69,7 @@ async fn status_handler(State(state): State<Arc<DashboardState>>) -> Json<Dashbo
 // Agent Management
 // ============================================================================
 
-async fn list_agents_handler(
-    State(state): State<Arc<DashboardState>>,
-) -> Json<AgentListResponse> {
+async fn list_agents_handler(State(state): State<Arc<DashboardState>>) -> Json<AgentListResponse> {
     let agents = state.list_agents().await;
     let total = agents.len();
     Json(AgentListResponse { agents, total })
@@ -87,28 +85,28 @@ async fn create_agent_handler(
     let agent_id = state.register_agent(config, None).await;
 
     // Get the agent summary
-    let summary = state
-        .get_agent(&agent_id)
-        .await
-        .ok_or_else(|| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiErrorResponse::new(
-                    "Failed to create agent",
-                    "CREATE_FAILED",
-                )),
-            )
-        })?;
+    let summary = state.get_agent(&agent_id).await.ok_or_else(|| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiErrorResponse::new(
+                "Failed to create agent",
+                "CREATE_FAILED",
+            )),
+        )
+    })?;
 
     // Publish event
-    state.event_bus.publish(Event::new(
-        EventType::AgentStarted,
-        &agent_id,
-        serde_json::json!({
-            "agent_id": agent_id,
-            "config": request,
-        }),
-    )).await;
+    state
+        .event_bus
+        .publish(Event::new(
+            EventType::AgentStarted,
+            &agent_id,
+            serde_json::json!({
+                "agent_id": agent_id,
+                "config": request,
+            }),
+        ))
+        .await;
 
     state.increment_events().await;
 
@@ -149,29 +147,32 @@ async fn delete_agent_handler(
     // First check if agent exists and is running
     {
         let agents = state.agents.read().await;
-        if let Some(managed) = agents.get(&agent_id) {
-            if managed.is_running {
-                return Err((
-                    StatusCode::CONFLICT,
-                    Json(ApiErrorResponse::new(
-                        "Cannot delete running agent. Stop it first.",
-                        "AGENT_RUNNING",
-                    )),
-                ));
-            }
+        if let Some(managed) = agents.get(&agent_id)
+            && managed.is_running
+        {
+            return Err((
+                StatusCode::CONFLICT,
+                Json(ApiErrorResponse::new(
+                    "Cannot delete running agent. Stop it first.",
+                    "AGENT_RUNNING",
+                )),
+            ));
         }
     }
 
     if state.remove_agent(&agent_id).await {
         // Publish event
-        state.event_bus.publish(Event::new(
-            EventType::AgentStopped,
-            &agent_id,
-            serde_json::json!({
-                "agent_id": agent_id,
-                "reason": "deleted",
-            }),
-        )).await;
+        state
+            .event_bus
+            .publish(Event::new(
+                EventType::AgentStopped,
+                &agent_id,
+                serde_json::json!({
+                    "agent_id": agent_id,
+                    "reason": "deleted",
+                }),
+            ))
+            .await;
 
         state.increment_events().await;
 
@@ -281,14 +282,17 @@ async fn stop_agent_handler(
 
     // Publish event
     drop(agents); // Release lock before async operation
-    state.event_bus.publish(Event::new(
-        EventType::AgentStopped,
-        &agent_id,
-        serde_json::json!({
-            "agent_id": agent_id,
-            "reason": "manual_stop",
-        }),
-    )).await;
+    state
+        .event_bus
+        .publish(Event::new(
+            EventType::AgentStopped,
+            &agent_id,
+            serde_json::json!({
+                "agent_id": agent_id,
+                "reason": "manual_stop",
+            }),
+        ))
+        .await;
 
     state.increment_events().await;
 
@@ -342,13 +346,17 @@ async fn metrics_handler(State(state): State<Arc<DashboardState>>) -> Json<Metri
 
 async fn prometheus_metrics_handler(
     State(state): State<Arc<DashboardState>>,
-) -> (StatusCode, [(axum::http::header::HeaderName, &'static str); 1], String) {
+) -> (
+    StatusCode,
+    [(axum::http::header::HeaderName, &'static str); 1],
+    String,
+) {
     let snapshot = state.metrics.snapshot().await;
     let mut output = String::new();
 
     // Format counters
     for (name, value) in &snapshot.counters {
-        let sanitized = name.replace('-', "_").replace('.', "_");
+        let sanitized = name.replace(['-', '.'], "_");
         output.push_str(&format!(
             "# TYPE {} counter\n{} {}\n",
             sanitized, sanitized, value
@@ -357,7 +365,7 @@ async fn prometheus_metrics_handler(
 
     // Format gauges
     for (name, value) in &snapshot.gauges {
-        let sanitized = name.replace('-', "_").replace('.', "_");
+        let sanitized = name.replace(['-', '.'], "_");
         output.push_str(&format!(
             "# TYPE {} gauge\n{} {}\n",
             sanitized, sanitized, value
@@ -366,7 +374,10 @@ async fn prometheus_metrics_handler(
 
     (
         StatusCode::OK,
-        [(axum::http::header::CONTENT_TYPE, "text/plain; charset=utf-8")],
+        [(
+            axum::http::header::CONTENT_TYPE,
+            "text/plain; charset=utf-8",
+        )],
         output,
     )
 }
@@ -385,17 +396,18 @@ async fn list_events_handler(
         .into_iter()
         .filter(|e| {
             // Filter by event type if specified
-            if let Some(ref et) = params.event_type {
-                let event_type_str = format!("{:?}", e.event_type).to_lowercase();
-                if !event_type_str.contains(&et.to_lowercase()) {
-                    return false;
-                }
+            if let Some(ref et) = params.event_type
+                && !format!("{:?}", e.event_type)
+                    .to_lowercase()
+                    .contains(&et.to_lowercase())
+            {
+                return false;
             }
             // Filter by source if specified
-            if let Some(ref src) = params.source {
-                if !e.source.contains(src) {
-                    return false;
-                }
+            if let Some(ref src) = params.source
+                && !e.source.contains(src)
+            {
+                return false;
             }
             true
         })

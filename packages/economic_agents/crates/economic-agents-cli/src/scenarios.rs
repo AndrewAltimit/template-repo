@@ -40,12 +40,21 @@ impl Scenario {
     /// List all available scenarios.
     pub fn list_all() -> Vec<(&'static str, &'static str)> {
         vec![
-            ("survival_mode", "Single agent in survival mode, focused on task completion"),
-            ("company_formation", "Agent progresses to company formation stage"),
+            (
+                "survival_mode",
+                "Single agent in survival mode, focused on task completion",
+            ),
+            (
+                "company_formation",
+                "Agent progresses to company formation stage",
+            ),
             ("multi_agent", "Multiple agents running in parallel"),
             ("competition", "Agents competing for the same tasks"),
             ("market_crash", "Simulation with market crash event"),
-            ("investment_round", "Company seeking and receiving investment"),
+            (
+                "investment_round",
+                "Company seeking and receiving investment",
+            ),
         ]
     }
 

@@ -305,7 +305,7 @@ impl AutonomousAgent {
             .name(&company_name)
             .capital(capital)
             .build()
-            .map_err(|e| EconomicAgentError::Configuration(e))?;
+            .map_err(EconomicAgentError::Configuration)?;
 
         let company_id = company.id;
 
@@ -635,11 +635,7 @@ impl AutonomousAgent {
         result.allocation = Some(AllocationRecord::from_allocation(&allocation, cycle_hours));
 
         // Step 3: Make primary decision
-        let decision = match self
-            .decision_engine
-            .decide(&self.state, &self.config)
-            .await
-        {
+        let decision = match self.decision_engine.decide(&self.state, &self.config).await {
             Ok(d) => d,
             Err(e) => {
                 result.add_error(format!("Decision engine error: {}", e));

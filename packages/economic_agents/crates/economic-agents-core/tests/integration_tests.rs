@@ -77,7 +77,10 @@ async fn test_agent_task_work() {
 
     // Verify all cycles have decisions
     for result in &results {
-        assert!(result.decision.is_some(), "Each cycle should have a decision");
+        assert!(
+            result.decision.is_some(),
+            "Each cycle should have a decision"
+        );
     }
 
     // The agent should have made progress (consumed compute, changed balance, etc.)
@@ -187,7 +190,7 @@ async fn test_agent_state_updates() {
     // Initialize state first
     agent.initialize().await.unwrap();
 
-    let initial_balance = agent.state.balance;
+    let _initial_balance = agent.state.balance;
     let initial_compute = agent.state.compute_hours;
 
     let result = agent.run_cycle().await.unwrap();

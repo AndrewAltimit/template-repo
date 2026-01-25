@@ -2,8 +2,8 @@
 
 use std::sync::Arc;
 
-use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::State;
+use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::response::IntoResponse;
 use futures::{SinkExt, StreamExt};
 use tokio::select;
@@ -53,7 +53,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<DashboardState>) {
                                     }
                                 };
 
-                                if sender.send(Message::Text(json.into())).await.is_err() {
+                                if sender.send(Message::Text(json)).await.is_err() {
                                     break;
                                 }
                             }

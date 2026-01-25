@@ -12,7 +12,9 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
 
 use crate::config::{AgentConfig, Personality};
-use crate::decision::{Decision, DecisionEngine, DecisionType, ResourceAllocation, RuleBasedEngine};
+use crate::decision::{
+    Decision, DecisionEngine, DecisionType, ResourceAllocation, RuleBasedEngine,
+};
 use crate::state::AgentState;
 
 /// Configuration for the LLM decision engine.
@@ -94,6 +96,7 @@ impl LlmDecisionEngine {
     }
 
     /// Generate the system prompt for decision making.
+    #[allow(dead_code)]
     fn system_prompt(&self) -> String {
         self.config.system_prompt.clone().unwrap_or_else(|| {
             r#"You are an autonomous economic agent decision engine. Your role is to analyze the agent's current state and make strategic decisions.
@@ -115,6 +118,7 @@ Be strategic and consider long-term sustainability."#.to_string()
     }
 
     /// Generate the user prompt with current state.
+    #[allow(dead_code)]
     fn user_prompt(&self, state: &AgentState, config: &AgentConfig) -> String {
         format!(
             r#"Current Agent State:
@@ -173,11 +177,9 @@ Based on this state, what decision should the agent make?"#,
 
         let decision_type = match parsed.decision_type.to_lowercase().as_str() {
             "work_on_tasks" | "workontasks" => DecisionType::WorkOnTasks,
-            "purchase_compute" | "purchasecompute" => {
-                DecisionType::PurchaseCompute {
-                    hours: parsed.hours.unwrap_or(24.0),
-                }
-            }
+            "purchase_compute" | "purchasecompute" => DecisionType::PurchaseCompute {
+                hours: parsed.hours.unwrap_or(24.0),
+            },
             "work_on_company" | "workoncompany" => DecisionType::WorkOnCompany,
             "seek_investment" | "seekinvestment" => DecisionType::SeekInvestment,
             "wait" => DecisionType::Wait,
@@ -223,9 +225,11 @@ impl DecisionEngine for LlmDecisionEngine {
                 info!("No API key configured, using fallback engine");
                 return self.fallback.decide(state, config).await;
             } else {
-                return Err(economic_agents_interfaces::EconomicAgentError::Configuration(
-                    "LLM API key not configured".to_string(),
-                ));
+                return Err(
+                    economic_agents_interfaces::EconomicAgentError::Configuration(
+                        "LLM API key not configured".to_string(),
+                    ),
+                );
             }
         }
 
@@ -301,7 +305,8 @@ mod tests {
     #[test]
     fn test_parse_response_valid() {
         let engine = LlmDecisionEngine::with_defaults();
-        let response = r#"{"decision_type": "work_on_tasks", "reasoning": "Need money", "confidence": 0.8}"#;
+        let response =
+            r#"{"decision_type": "work_on_tasks", "reasoning": "Need money", "confidence": 0.8}"#;
         let decision = engine.parse_response(response).unwrap();
         assert!(matches!(decision.decision_type, DecisionType::WorkOnTasks));
         assert_eq!(decision.confidence, 0.8);
