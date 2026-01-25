@@ -18,13 +18,13 @@ The Rust implementation is organized as a Cargo workspace with the following cra
 | `economic-agents-interfaces` | Core trait definitions (Wallet, Marketplace, Compute) | **Partial** |
 | `economic-agents-core` | Agent logic, state, decision engine, strategies | **Partial** |
 | `economic-agents-mock` | Mock implementations for testing/simulation | **Partial** |
-| `economic-agents-api` | REST API clients and Axum services | Stub only |
+| `economic-agents-api` | REST API clients and Axum services | **Partial** |
 | `economic-agents-company` | Company formation and management | **Scaffolded** |
 | `economic-agents-investment` | Investment system and investor agents | **Scaffolded** |
 | `economic-agents-simulation` | Latency, market dynamics, competition, reputation | **Scaffolded** |
-| `economic-agents-monitoring` | Event bus, metrics, logging, alignment | **Scaffolded** |
-| `economic-agents-dashboard` | Web dashboard (Axum backend) | Stub only |
-| `economic-agents-cli` | Command-line interface | **Scaffolded** |
+| `economic-agents-monitoring` | Event bus, metrics, logging, alignment | **Partial** |
+| `economic-agents-dashboard` | Web dashboard (Axum backend) | **Partial** |
+| `economic-agents-cli` | Command-line interface | **Partial** |
 
 ### Status Key
 
@@ -109,30 +109,230 @@ economic-agents-mock: 7 unit tests passed
 Total: 43+ tests passing
 ```
 
+## Session 3: 2026-01-25 - API Layer
+
+### Completed
+
+1. **Request/Response Models** (`models.rs`)
+   - `BalanceResponse`, `SendPaymentRequest`, `ReceivePaymentRequest`, `TransactionResponse`, `TransactionHistoryResponse`
+   - `ComputeStatusResponse`, `AddFundsRequest`, `ConsumeTimeRequest`, `HoursRemainingResponse`
+   - `ListTasksRequest`, `TaskListResponse`, `TaskResponse`, `ClaimTaskRequest`, `SubmitSolutionRequest`, `SubmissionResponse`, `ReleaseTaskRequest`
+   - `ApiErrorResponse`, `HealthResponse`
+
+2. **HTTP Clients** (`clients.rs`)
+   - `ApiClientConfig`: Configuration for base URL, API key, timeout, agent ID
+   - `HttpClient`: Internal client with common HTTP logic (GET, POST, DELETE, error handling)
+   - `WalletApiClient`: Implements `Wallet` trait via HTTP
+   - `ComputeApiClient`: Implements `Compute` trait via HTTP
+   - `MarketplaceApiClient`: Implements `Marketplace` trait via HTTP
+   - `ApiClientFactory`: Factory method for creating all clients from endpoint config
+   - X-API-Key header authentication support
+
+3. **Middleware** (`middleware.rs`)
+   - `AuthConfig`: API key authentication configuration
+   - `AuthState`: Shared authentication state
+   - `validate_api_key()`: Key validation helper
+   - `auth_middleware()`: Axum authentication middleware (placeholder)
+   - `RateLimitConfig`: Per-minute and per-hour limits
+   - `RateLimitState`: Thread-safe rate limit tracking
+   - `rate_limit_middleware()`: Axum rate limiting middleware (placeholder)
+
+4. **Axum Services** (`services.rs`)
+   - **Wallet Service** (port 8001):
+     - `/health`: Health check
+     - `/balance`: Get balance and address
+     - `/send`: Send payment
+     - `/receive`: Receive payment
+     - `/transactions`: Transaction history
+   - **Compute Service** (port 8002):
+     - `/health`: Health check
+     - `/status`: Get compute status
+     - `/funds`: Add funds
+     - `/consume`: Consume compute time
+     - `/hours`: Get remaining hours
+   - **Marketplace Service** (port 8003):
+     - `/health`: Health check
+     - `/tasks`: List tasks with filtering
+     - `/tasks/:task_id`: Get specific task
+     - `/tasks/:task_id/claim`: Claim task
+     - `/tasks/:task_id/submit`: Submit solution
+     - `/tasks/:task_id/release`: Release task
+     - `/submissions/:submission_id`: Check submission status
+   - `ServiceConfig`: Configuration for all services
+   - `ServiceBuilder`: Builder pattern for service creation
+   - `ServiceBundle`: Bundle of routers for concurrent execution
+   - Error conversion from `EconomicAgentError` to HTTP status codes
+
+5. **Integration Tests** (14 tests)
+   - Wallet service: health, balance, send, receive, history
+   - Compute service: health, status, add funds, consume time, hours remaining
+   - Marketplace service: health, list tasks, filter tasks, claim and submit workflow
+   - Uses `axum-test` for in-memory HTTP testing
+
+### Test Results
+
+```
+economic-agents-api: 7 unit tests passed
+economic-agents-api: 14 integration tests passed
+Total: 21 new tests
+Cumulative: 64+ tests passing across workspace
+```
+
+## Session 4: 2026-01-25 - Dashboard Implementation
+
+### Completed
+
+1. **Request/Response Models** (`models.rs`)
+   - `HealthResponse`: Health check with uptime, version
+   - `DashboardStatusResponse`: Full status with agent counts, WebSocket clients
+   - `CreateAgentRequest`: Agent creation with config options
+   - `AgentSummary`, `AgentConfigSummary`: Agent listing and details
+   - `AgentDetailsResponse`, `AgentStats`: Full agent info with performance stats
+   - `AgentActionResponse`: Start/stop/delete action results
+   - `MetricsResponse`, `PrometheusMetrics`: Metrics output formats
+   - `EventSummary`, `EventListResponse`: Event listing
+   - `DecisionSummary`, `DecisionListResponse`: Decision log listing
+   - `WsMessage`: WebSocket message types (Event, AgentUpdate, CycleCompleted, etc.)
+   - `WsSubscription`: WebSocket subscription filtering
+   - `ApiErrorResponse`: Standard error format
+
+2. **Dashboard State** (`state.rs`)
+   - `ManagedAgent`: Agent wrapper with running status, cycle history, timestamps
+   - `DashboardState`: Central state management with:
+     - Agent registry (HashMap with RwLock)
+     - Event bus integration
+     - Metrics collector integration
+     - Decision logger integration
+     - WebSocket broadcast channel
+     - Client tracking
+
+3. **WebSocket Handler** (`websocket.rs`)
+   - WebSocket upgrade handler
+   - Subscription-based filtering (events, agent updates, metrics)
+   - Agent ID filtering for targeted updates
+   - Ping/pong handling
+   - Client connection tracking
+   - Unit tests for message filtering
+
+4. **HTTP Routes** (`routes.rs`)
+   - **Health & Status**:
+     - `GET /health`: Health check with uptime
+     - `GET /status`: Full dashboard status
+   - **Agent Management**:
+     - `GET /agents`: List all agents
+     - `POST /agents`: Create new agent
+     - `GET /agents/:id`: Get agent details with stats
+     - `DELETE /agents/:id`: Delete stopped agent
+     - `POST /agents/:id/start`: Start agent
+     - `POST /agents/:id/stop`: Stop agent
+     - `GET /agents/:id/cycles`: Get cycle history
+   - **Metrics**:
+     - `GET /metrics`: JSON metrics snapshot
+     - `GET /metrics/prometheus`: Prometheus-compatible format
+   - **Events**:
+     - `GET /events`: List events with filtering
+   - **Decisions**:
+     - `GET /decisions`: List decisions with filtering
+   - **WebSocket**:
+     - `GET /ws`: WebSocket endpoint for real-time updates
+
+5. **Service Layer** (`lib.rs`)
+   - `DashboardConfig`: Port, host, CORS, tracing settings
+   - `DashboardService`: Service builder and runner
+   - CORS layer with full permissive settings
+   - Request tracing layer integration
+   - Async service runner
+
+6. **Monitoring Crate Updates**
+   - Exported `LoggedDecision` from decision_logger
+   - Exported `MetricsSnapshot`, `HistogramStats` from metrics
+
+### Integration Tests (21 tests)
+- Health & Status: health_endpoint, status_endpoint
+- Agent Management: list_empty, create, create_and_list, get_details, get_nonexistent
+- Agent Lifecycle: start, start_already_running, stop, stop_not_running
+- Agent Deletion: delete, delete_running_fails
+- Metrics: metrics_endpoint, prometheus_metrics_endpoint
+- Events: list_empty, list_after_creation, list_with_limit
+- Decisions: list_empty
+- Cycles: get_agent_cycles
+- Config: create_agent_request_default
+
+### Test Results
+
+```
+economic-agents-dashboard: 8 unit tests passed
+economic-agents-dashboard: 21 integration tests passed
+Total: 29 new tests
+Cumulative: 93 tests passing across workspace
+```
+
+## Session 5: 2026-01-25 - CLI & Integration
+
+### Completed
+
+1. **CLI Configuration System** (`config.rs`)
+   - `AgentFileConfig`: YAML-loadable agent configuration
+   - `DashboardFileConfig`: Dashboard server settings
+   - Type mappings: EngineType, OperatingMode, Personality, TaskSelectionStrategy
+   - `from_file()` for loading YAML configs
+   - `to_agent_config()` for core type conversion
+
+2. **Scenario System** (`scenarios.rs`)
+   - `Scenario` struct with name, description, agents, parallel flag
+   - 6 predefined scenarios:
+     - `survival_mode`: Single agent survival focus
+     - `company_formation`: Agent progresses to company
+     - `multi_agent`: Multiple agents running sequentially
+     - `competition`: Agents competing for tasks
+     - `market_crash`: Simulation with market crash
+     - `investment_round`: Company seeking investment
+   - `Scenario::by_name()` for lookup
+   - `Scenario::list_all()` for CLI help
+
+3. **Agent Runner** (`runner.rs`)
+   - `AgentRunResult`: Comprehensive run statistics
+   - `ScenarioResult`: Aggregated scenario results
+   - `run_agent()`: Execute single agent with mock backends
+   - `run_scenario()`: Execute scenario with market dynamics
+   - Market tick between agents for realism
+   - `print_summary()` for text output
+
+4. **Full CLI Implementation** (`economic-agents.rs`)
+   - `run`: Execute agent simulation
+     - `--config`: YAML config file
+     - `--max-cycles`: Override max cycles
+     - `--keep-cycles`: Include cycle history
+     - `--output`: text/json format
+   - `dashboard`: Start dashboard server
+     - `--port`, `--host`
+     - `--no-cors`, `--no-tracing`
+   - `scenario`: Run predefined scenarios
+     - `--keep-cycles`, `--output`
+   - `list-scenarios`: Show available scenarios
+   - `status`: Placeholder for future
+
+5. **Dashboard Service API Update**
+   - Changed `DashboardService::new()` to accept state parameter
+   - Added `DashboardService::with_default_state()` for simple creation
+
+### Test Results
+
+```
+economic-agents-cli: 8 unit tests passed
+Total: 8 new tests
+Cumulative: 101 tests passing across workspace
+```
+
 ## Next Sessions
 
-### Priority 1: API Layer
-- [ ] Implement `WalletAPIClient` with reqwest
-- [ ] Implement `MarketplaceAPIClient`
-- [ ] Implement `ComputeAPIClient`
-- [ ] Create Axum services for all endpoints
-- [ ] Add API authentication
-
-### Priority 2: Dashboard
-- [ ] Axum router setup
-- [ ] WebSocket support for real-time updates
-- [ ] Health check endpoints
-- [ ] Metrics endpoints (Prometheus format)
-- [ ] Agent control endpoints (start/stop/status)
-
-### Priority 3: Integration
+### Priority 1: Integration (Remaining)
 - [ ] Complete company crate integration with agent
 - [ ] Investment system integration
-- [ ] End-to-end agent simulation
-- [ ] Scenario runner CLI command
+- [ ] Background task runner for agent execution (tokio::spawn with channels)
 - [ ] Docker containerization
 
-### Priority 4: CI/CD
+### Priority 2: CI/CD
 - [ ] Add Rust CI checks to existing pipeline
 - [ ] Cargo fmt and clippy checks
 - [ ] Test coverage reporting
@@ -145,14 +345,14 @@ Total: 43+ tests passing
 | `agent/core/` | `economic-agents-core` | **Partial** |
 | `interfaces/` | `economic-agents-interfaces` | **Partial** |
 | `implementations/mock/` | `economic-agents-mock` | **Partial** |
-| `api/clients/` | `economic-agents-api` | Stub |
-| `api/services/` | `economic-agents-api` | Stub |
+| `api/clients/` | `economic-agents-api` | **Partial** |
+| `api/services/` | `economic-agents-api` | **Partial** |
 | `company/` | `economic-agents-company` | Scaffolded |
 | `investment/` | `economic-agents-investment` | Scaffolded |
 | `simulation/` | `economic-agents-simulation` | Scaffolded |
-| `monitoring/` | `economic-agents-monitoring` | Scaffolded |
-| `dashboard/` | `economic-agents-dashboard` | Stub |
-| `cli.py` | `economic-agents-cli` | Scaffolded |
+| `monitoring/` | `economic-agents-monitoring` | **Partial** |
+| `dashboard/` | `economic-agents-dashboard` | **Partial** |
+| `cli.py` | `economic-agents-cli` | **Partial** |
 
 ## Architecture Improvements
 
@@ -170,6 +370,19 @@ Total: 43+ tests passing
 3. **LLM fallback**: Graceful degradation when LLM unavailable
 4. **State initialization**: Explicit initialize() method for backend sync
 
+### From Session 4
+1. **Unified dashboard state**: Single state struct manages agents, events, metrics, WebSocket
+2. **Real-time updates**: WebSocket with subscription-based filtering
+3. **Prometheus compatibility**: Metrics in standard format for monitoring
+4. **Agent lifecycle**: Full CRUD + start/stop with proper state transitions
+5. **CORS support**: Configurable CORS for frontend integration
+
+### From Session 5
+1. **Scenario-based simulation**: Predefined scenarios for different test cases
+2. **Market dynamics integration**: Market ticks between agent runs
+3. **Flexible CLI**: YAML config files, JSON output, multiple commands
+4. **Sequential agent execution**: Thread-safe due to thread_rng limitations
+
 ## Testing Strategy
 
 1. **Unit tests**: Per-module tests in each crate ✅
@@ -184,7 +397,9 @@ Key dependencies used:
 - `async-trait`: Async trait support
 - `serde`: Serialization
 - `serde_json`: JSON parsing for LLM responses
-- `axum`: Web framework (replacing FastAPI)
+- `axum`: Web framework with WebSocket support (replacing FastAPI)
+- `tower-http`: CORS and tracing middleware
+- `futures`: Stream utilities for WebSocket
 - `reqwest`: HTTP client for LLM API
 - `clap`: CLI parsing
 - `thiserror`: Error definitions
@@ -193,3 +408,4 @@ Key dependencies used:
 - `chrono`: Date/time handling
 - `humantime-serde`: Duration serialization
 - `rand`: Random number generation
+- `axum-test`: In-memory HTTP testing (dev)

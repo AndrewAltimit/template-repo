@@ -14,7 +14,7 @@ pub mod resource_tracker;
 pub mod alignment;
 
 pub use events::{Event, EventBus, EventType};
-pub use decision_logger::DecisionLogger;
-pub use metrics::MetricsCollector;
+pub use decision_logger::{DecisionLogger, LoggedDecision};
+pub use metrics::{MetricsCollector, MetricsSnapshot, HistogramStats};
 pub use resource_tracker::ResourceTracker;
 pub use alignment::AlignmentMonitor;

@@ -63,6 +63,7 @@ tokio-test = "0.4"
 mockall = "0.13"
 proptest = "1.5"
 criterion = "0.5"
+axum-test = "16.0"
 
 # Internal crates
 economic-agents-core = { path = "crates/economic-agents-core" }
