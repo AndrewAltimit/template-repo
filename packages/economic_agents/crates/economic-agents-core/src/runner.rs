@@ -296,12 +296,15 @@ async fn run_agent_loop(
 ) {
     let agent_id = agent.id.clone();
 
-    // Send started event
-    let _ = event_tx
-        .send(AgentEvent::Started {
+    // Send started event (non-blocking to avoid stalling on full buffer)
+    if event_tx
+        .try_send(AgentEvent::Started {
             agent_id: agent_id.clone(),
         })
-        .await;
+        .is_err()
+    {
+        warn!(agent_id = %agent_id, "Event buffer full, dropped started event");
+    }
 
     let max = max_cycles.unwrap_or(u32::MAX);
     let mut should_stop = false;
@@ -351,20 +354,28 @@ async fn run_agent_loop(
         // Run a cycle
         match agent.run_cycle().await {
             Ok(cycle_result) => {
-                let _ = event_tx
-                    .send(AgentEvent::CycleCompleted {
+                // Non-blocking send to avoid stalling on full buffer
+                if event_tx
+                    .try_send(AgentEvent::CycleCompleted {
                         agent_id: agent_id.clone(),
                         cycle: Box::new(cycle_result),
                     })
-                    .await;
+                    .is_err()
+                {
+                    debug!(agent_id = %agent_id, "Event buffer full, dropped cycle event");
+                }
             }
             Err(e) => {
-                let _ = event_tx
-                    .send(AgentEvent::Error {
+                // Non-blocking send to avoid stalling on full buffer
+                if event_tx
+                    .try_send(AgentEvent::Error {
                         agent_id: agent_id.clone(),
                         error: e.to_string(),
                     })
-                    .await;
+                    .is_err()
+                {
+                    debug!(agent_id = %agent_id, "Event buffer full, dropped error event");
+                }
                 error!(agent_id = %agent_id, error = %e, "Cycle failed");
             }
         }
@@ -386,12 +397,16 @@ async fn run_agent_loop(
         "Max cycles reached"
     };
 
-    let _ = event_tx
-        .send(AgentEvent::Stopped {
+    // Non-blocking send for stopped event
+    if event_tx
+        .try_send(AgentEvent::Stopped {
             agent_id: agent_id.clone(),
             reason: reason.to_string(),
         })
-        .await;
+        .is_err()
+    {
+        warn!(agent_id = %agent_id, "Event buffer full, dropped stopped event");
+    }
 
     debug!(agent_id = %agent_id, reason = %reason, "Agent loop ended");
 }
