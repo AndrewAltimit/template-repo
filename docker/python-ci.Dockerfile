@@ -76,8 +76,8 @@ COPY tools /app/tools
 COPY automation /app/automation
 
 # Copy main packages
+# Note: economic_agents is a Rust package, built separately via rust-ci container
 COPY packages/sleeper_agents /app/packages/sleeper_agents
-COPY packages/economic_agents /app/packages/economic_agents
 
 # Install all workspace packages in a single uv command (with cache)
 # This is ~10-100x faster than individual pip install commands
@@ -99,8 +99,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     /app/tools/mcp/mcp_opencode \
     /app/tools/mcp/mcp_video_editor \
     /app/tools/mcp/mcp_virtual_character \
-    /app/packages/sleeper_agents \
-    /app/packages/economic_agents
+    /app/packages/sleeper_agents
 
 # Copy linting configuration files to both /workspace and /app
 # Note: Files are copied to both locations to support different tool contexts:
