@@ -56,6 +56,8 @@ The Injection Toolkit provides reusable components for:
 | `itk-shmem` | Cross-platform shared memory (Windows/Linux) |
 | `itk-ipc` | Cross-platform IPC channels (named pipes/Unix sockets) |
 | `itk-sync` | Clock synchronization and drift correction |
+| `itk-video` | Video decoding via ffmpeg (frame extraction, format conversion) |
+| `itk-net` | Networking primitives for P2P synchronization |
 
 ### Templates
 
@@ -65,6 +67,18 @@ The Injection Toolkit provides reusable components for:
 | `itk-overlay` | All | wgpu-based transparent overlay window |
 | `itk-native-dll` | Windows | DLL injection template |
 | `itk-ld-preload` | Linux | LD_PRELOAD injection template |
+
+### Projects
+
+| Project | Description |
+|---------|-------------|
+| `nms-cockpit-video` | No Man's Sky cockpit video player (daemon, overlay, Vulkan injector) |
+
+### Tools
+
+| Tool | Description |
+|------|-------------|
+| `mem-scanner` | Memory scanning utility for reverse engineering |
 
 ## Quick Start
 
@@ -236,4 +250,4 @@ Tests run on the ARM64 self-hosted runner, with cross-compilation verification f
 
 ## License
 
-MIT License
+Part of the template-repo project. See repository LICENSE file.

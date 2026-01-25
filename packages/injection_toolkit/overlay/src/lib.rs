@@ -15,6 +15,7 @@
 
 pub mod platform;
 pub mod render;
+pub mod video;
 
 use itk_protocol::ScreenRect;
 use thiserror::Error;

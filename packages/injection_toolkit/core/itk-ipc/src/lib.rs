@@ -176,6 +176,7 @@ mod tests {
 /// Integration tests for IPC communication
 /// These tests use actual OS sockets/pipes with proper protocol framing
 #[cfg(test)]
+#[allow(unused_imports, dead_code)]
 mod integration_tests {
     use super::*;
     use itk_protocol::{decode, encode, MessageType};

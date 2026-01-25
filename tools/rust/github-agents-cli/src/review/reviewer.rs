@@ -667,14 +667,25 @@ Comments to analyze:
         let temp_path = format!("/tmp/pr-review-{}.md", pr_number);
         fs::write(&temp_path, &formatted).map_err(|e| Error::Io(e))?;
 
+        let mut args = vec![
+            "pr".to_string(),
+            "comment".to_string(),
+            pr_number.to_string(),
+            "--body-file".to_string(),
+            temp_path.clone(),
+            // Strip invalid reaction images instead of failing the entire review
+            "--gh-validator-strip-invalid-images".to_string(),
+        ];
+
+        // Explicitly specify repo to avoid issues on self-hosted runners
+        // where gh may not detect the repo from git remotes
+        if let Ok(repo) = std::env::var("GITHUB_REPOSITORY") {
+            args.push("--repo".to_string());
+            args.push(repo);
+        }
+
         let output = Command::new("gh")
-            .args([
-                "pr",
-                "comment",
-                &pr_number.to_string(),
-                "--body-file",
-                &temp_path,
-            ])
+            .args(&args)
             .output()
             .map_err(|e| Error::Io(e))?;
 
@@ -682,11 +693,16 @@ Comments to analyze:
         let _ = fs::remove_file(&temp_path);
 
         if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
+            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+            tracing::error!("gh pr comment failed - stderr: {}", stderr.trim());
+            if !stdout.trim().is_empty() {
+                tracing::error!("gh pr comment failed - stdout: {}", stdout.trim());
+            }
             return Err(Error::GhCommandFailed {
                 exit_code: output.status.code().unwrap_or(-1),
-                stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-                stderr: stderr.to_string(),
+                stdout,
+                stderr,
             });
         }
 

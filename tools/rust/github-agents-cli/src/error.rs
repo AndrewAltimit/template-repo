@@ -21,7 +21,7 @@ pub enum Error {
     GhNotAuthenticated,
 
     /// GitHub CLI command failed
-    #[error("GitHub CLI command failed (exit code {exit_code})")]
+    #[error("GitHub CLI command failed (exit code {exit_code}): {stderr}")]
     GhCommandFailed {
         exit_code: i32,
         stdout: String,

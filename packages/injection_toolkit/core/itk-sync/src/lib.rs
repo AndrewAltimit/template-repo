@@ -315,8 +315,8 @@ impl DriftCorrector {
             return 1.0;
         }
 
-        // Calculate target position
-        let target_position = target.current_position_ms();
+        // Calculate target position, correcting for clock offset between local and remote
+        let target_position = self.target_position_ms(target);
 
         // Calculate drift (positive = we're ahead, negative = we're behind)
         let drift_ms = current_position_ms as i64 - target_position as i64;
@@ -353,7 +353,7 @@ impl DriftCorrector {
             return None;
         };
 
-        let target_position = target.current_position_ms();
+        let target_position = self.target_position_ms(target);
         let drift_ms = (current_position_ms as i64 - target_position as i64).abs();
 
         if drift_ms > 1500 {
@@ -366,8 +366,32 @@ impl DriftCorrector {
     /// Get current drift in milliseconds (positive = ahead, negative = behind)
     pub fn current_drift_ms(&self, current_position_ms: u64) -> Option<i64> {
         let target = self.target_sync.as_ref()?;
-        let target_position = target.current_position_ms();
+        let target_position = self.target_position_ms(target);
         Some(current_position_ms as i64 - target_position as i64)
+    }
+
+    /// Calculate target position corrected for clock offset.
+    ///
+    /// The target's `ref_wallclock_ms` is in the remote clock's time domain.
+    /// We convert it to local time using the estimated clock offset before
+    /// computing elapsed time since the reference point.
+    fn target_position_ms(&self, target: &PlaybackSync) -> u64 {
+        if !target.is_playing {
+            return target.position_at_ref_ms;
+        }
+
+        // Convert remote reference wallclock to local time using clock offset.
+        // If no offset is available yet, fall back to using the remote time directly
+        // (which may be slightly inaccurate but avoids blocking on sync).
+        let local_ref_time = match self.clock_sync.remote_to_local(target.ref_wallclock_ms) {
+            Ok(local_time) => local_time,
+            Err(_) => target.ref_wallclock_ms,
+        };
+
+        let elapsed = now_ms().saturating_sub(local_ref_time);
+        let adjusted_elapsed = (elapsed as f64 * target.playback_rate) as u64;
+
+        target.position_at_ref_ms.saturating_add(adjusted_elapsed)
     }
 }
 

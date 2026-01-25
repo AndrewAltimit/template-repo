@@ -66,7 +66,7 @@ repos:
     hooks:
       - id: ty
         name: ty type check
-        entry: docker-compose run --rm python-ci ty check
+        entry: docker-compose --profile ci run --rm python-ci ty check
         language: system
         types: [python]
         exclude: ^(docs/|tests/|automation/|packages/.*/bin/)
@@ -114,7 +114,8 @@ repos:
       - id: rust-fmt-injection-toolkit
         name: Rust format injection-toolkit
         # Run through Docker for X11 dev library dependencies (container-first philosophy)
-        entry: docker-compose --profile ci run --rm rust-ci cargo fmt --all --manifest-path packages/injection_toolkit/Cargo.toml
+        # Note: rust-ci container working_dir is already /app/packages/injection_toolkit
+        entry: docker-compose --profile ci run --rm rust-ci cargo fmt --all -- --check
         language: system
         files: '^packages/injection_toolkit/.*\.rs$'
         pass_filenames: false
@@ -136,7 +137,9 @@ repos:
       - id: rust-clippy-injection-toolkit
         name: Rust lint injection-toolkit
         # Run through Docker for X11 dev library dependencies (container-first philosophy)
-        entry: docker-compose --profile ci run --rm rust-ci cargo clippy --manifest-path packages/injection_toolkit/Cargo.toml -- -D warnings
+        # Note: rust-ci container working_dir is already /app/packages/injection_toolkit
+        # Exclude Windows-only crates that can't compile in the Linux CI container
+        entry: docker-compose --profile ci run --rm rust-ci cargo clippy --workspace --all-targets --exclude itk-native-dll --exclude nms-video-launcher --exclude nms-video-overlay --exclude nms-cockpit-injector -- -D warnings
         language: system
         files: '^packages/injection_toolkit/.*\.rs$'
         pass_filenames: false
