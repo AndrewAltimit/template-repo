@@ -40,6 +40,9 @@ tower-http = { version = "0.6", features = ["cors", "trace"] }
 # Database/State
 uuid = { version = "1.10", features = ["v4", "serde"] }
 
+# Random
+rand = "0.8"
+
 # Logging/Tracing
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
@@ -53,6 +56,7 @@ anyhow = "1.0"
 
 # Time
 chrono = { version = "0.4", features = ["serde"] }
+humantime-serde = "1.1"
 
 # Testing
 tokio-test = "0.4"

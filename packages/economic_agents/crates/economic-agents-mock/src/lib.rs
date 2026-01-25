@@ -3,12 +3,12 @@
 //! This crate provides in-memory implementations of the core interfaces
 //! for testing and simulation purposes.
 
-pub mod wallet;
-pub mod marketplace;
 pub mod compute;
 pub mod factory;
+pub mod marketplace;
+pub mod wallet;
 
-pub use wallet::MockWallet;
-pub use marketplace::MockMarketplace;
 pub use compute::MockCompute;
-pub use factory::MockBackendFactory;
+pub use factory::{MockBackendConfig, MockBackendFactory, MockBackends};
+pub use marketplace::MockMarketplace;
+pub use wallet::MockWallet;

@@ -16,7 +16,7 @@ chrono.workspace = true
 uuid.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
-rand = "0.8"
+rand.workspace = true
 
 [dev-dependencies]
 tokio-test.workspace = true
