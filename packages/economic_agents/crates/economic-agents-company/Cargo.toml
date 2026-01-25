@@ -9,7 +9,6 @@ description = "Company formation and management"
 
 [dependencies]
 economic-agents-interfaces.workspace = true
-economic-agents-core.workspace = true
 async-trait.workspace = true
 tokio.workspace = true
 serde.workspace = true

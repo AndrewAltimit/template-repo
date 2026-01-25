@@ -9,6 +9,6 @@ pub mod models;
 pub mod investor;
 pub mod registry;
 
-pub use models::{Investment, InvestmentProposal, InvestorProfile};
+pub use models::{Investment, InvestmentDecision, InvestmentProposal, InvestorProfile, RiskTolerance};
 pub use investor::InvestorAgent;
 pub use registry::CompanyRegistry;

@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Economic agents CLI - for running simulations
+  economic-agents-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: economic-agents-cli
+    volumes:
+      - ./config:/home/agent/config:ro
+      - ./data:/home/agent/data
+    command: ["run", "--config", "/home/agent/config/agent.yml"]
+    environment:
+      - RUST_LOG=info
+
+  # Dashboard service - REST API and WebSocket for monitoring
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: economic-agents-dashboard
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/home/agent/data
+    command: ["dashboard", "--port", "8000", "--host", "0.0.0.0"]
+    environment:
+      - RUST_LOG=info,tower_http=debug
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Scenario runner - for running predefined scenarios
+  scenario:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: economic-agents-scenario
+    profiles:
+      - scenario
+    volumes:
+      - ./data:/home/agent/data
+    command: ["scenario", "survival_mode", "--output", "json"]
+    environment:
+      - RUST_LOG=info
+
+networks:
+  default:
+    name: economic-agents

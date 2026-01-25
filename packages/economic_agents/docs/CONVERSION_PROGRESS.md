@@ -16,11 +16,11 @@ The Rust implementation is organized as a Cargo workspace with the following cra
 | Crate | Description | Status |
 |-------|-------------|--------|
 | `economic-agents-interfaces` | Core trait definitions (Wallet, Marketplace, Compute) | **Partial** |
-| `economic-agents-core` | Agent logic, state, decision engine, strategies | **Partial** |
+| `economic-agents-core` | Agent logic, state, decision engine, strategies, runner | **Complete** |
 | `economic-agents-mock` | Mock implementations for testing/simulation | **Partial** |
 | `economic-agents-api` | REST API clients and Axum services | **Partial** |
-| `economic-agents-company` | Company formation and management | **Scaffolded** |
-| `economic-agents-investment` | Investment system and investor agents | **Scaffolded** |
+| `economic-agents-company` | Company formation and management | **Partial** (integrated) |
+| `economic-agents-investment` | Investment system and investor agents | **Partial** (integrated) |
 | `economic-agents-simulation` | Latency, market dynamics, competition, reputation | **Scaffolded** |
 | `economic-agents-monitoring` | Event bus, metrics, logging, alignment | **Partial** |
 | `economic-agents-dashboard` | Web dashboard (Axum backend) | **Partial** |
@@ -324,15 +324,66 @@ Total: 8 new tests
 Cumulative: 101 tests passing across workspace
 ```
 
+## Session 6: 2026-01-25 - Integration & Docker
+
+### Completed
+
+1. **Company Crate Integration**
+   - Added `Company` object to `AutonomousAgent`
+   - `form_company()` now uses `CompanyBuilder` to create actual `Company` instances
+   - `do_company_work()` tracks company stage transitions:
+     - Ideation → Development → SeekingInvestment → Operational
+   - Company metrics (revenue, expenses) properly tracked
+   - Stage-based activities and revenue generation
+
+2. **Investment System Integration**
+   - Added `active_proposal` to track investment proposals
+   - `seek_investment()` creates formal `InvestmentProposal` objects
+   - Integrates with `InvestorAgent` for proposal evaluation
+   - Handles all investment decisions: Approved, Counteroffer, Rejected, MoreInfoRequired
+   - Company capital updated on successful investment
+   - Company transitions to Operational after funding
+
+3. **Background Task Runner** (`runner.rs`)
+   - `AgentRunner`: Manages multiple agents in background tokio tasks
+   - `AgentHandle`: Control handle with command/event channels
+   - `AgentCommand`: Stop, GetStatus, GetCycles
+   - `AgentEvent`: Started, CycleCompleted, Stopped, Error
+   - `AgentStatus`: Real-time agent status reporting
+   - `RunnerConfig`: Configurable cycle delay, buffer sizes, max cycles
+   - Proper cleanup of finished agents
+   - 5 unit tests for runner functionality
+
+4. **Docker Containerization**
+   - Multi-stage `Dockerfile`:
+     - Builder stage: Rust 1.83 with release build
+     - Runtime stage: Minimal Debian slim with non-root user
+   - `docker-compose.yml` with services:
+     - `economic-agents-cli`: Run agent simulations
+     - `dashboard`: REST API and WebSocket server
+     - `scenario`: Run predefined scenarios (profile-based)
+   - Example configuration file: `config/agent.yml.example`
+
+5. **Dependency Fixes**
+   - Removed cyclic dependencies between crates
+   - company and investment crates no longer depend on core
+   - Proper re-exports from investment crate (InvestmentDecision, RiskTolerance)
+
+### Test Results
+
+```
+economic-agents-core: 26 unit tests passed (5 new runner tests)
+economic-agents-core: 15 integration tests passed
+economic-agents-mock: 7 unit tests passed
+economic-agents-api: 14 integration tests passed
+economic-agents-dashboard: 21 integration tests passed
+economic-agents-cli: 8 unit tests passed
+Total: 106 tests passing across workspace
+```
+
 ## Next Sessions
 
-### Priority 1: Integration (Remaining)
-- [ ] Complete company crate integration with agent
-- [ ] Investment system integration
-- [ ] Background task runner for agent execution (tokio::spawn with channels)
-- [ ] Docker containerization
-
-### Priority 2: CI/CD
+### Priority 1: CI/CD
 - [ ] Add Rust CI checks to existing pipeline
 - [ ] Cargo fmt and clippy checks
 - [ ] Test coverage reporting
@@ -382,6 +433,13 @@ Cumulative: 101 tests passing across workspace
 2. **Market dynamics integration**: Market ticks between agent runs
 3. **Flexible CLI**: YAML config files, JSON output, multiple commands
 4. **Sequential agent execution**: Thread-safe due to thread_rng limitations
+
+### From Session 6
+1. **Full company lifecycle**: Companies progress through stages (Ideation → Development → SeekingInvestment → Operational)
+2. **Investment evaluation**: InvestorAgent evaluates proposals with risk tolerance
+3. **Background runner**: Tokio-based concurrent agent execution with channels
+4. **Docker-ready**: Multi-stage Dockerfile with non-root user for production
+5. **Event-driven monitoring**: AgentEvents for real-time tracking of agent progress
 
 ## Testing Strategy
 

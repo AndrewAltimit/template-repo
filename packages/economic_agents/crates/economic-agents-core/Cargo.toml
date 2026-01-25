@@ -9,6 +9,8 @@ description = "Core autonomous agent logic and decision engine"
 
 [dependencies]
 economic-agents-interfaces.workspace = true
+economic-agents-company.workspace = true
+economic-agents-investment.workspace = true
 async-trait.workspace = true
 tokio.workspace = true
 serde.workspace = true

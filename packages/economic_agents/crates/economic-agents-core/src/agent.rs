@@ -3,9 +3,11 @@
 use std::sync::Arc;
 use std::time::Instant;
 
+use economic_agents_company::{Company, CompanyBuilder, CompanyStage};
 use economic_agents_interfaces::{
     Compute, EconomicAgentError, Marketplace, Result, SubmissionStatus, Task, TaskFilter, Wallet,
 };
+use economic_agents_investment::{InvestmentProposal, InvestorAgent, InvestorProfile};
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
@@ -62,6 +64,10 @@ pub struct AutonomousAgent {
     cycle_history: Vec<CycleResult>,
     /// Maximum history to keep.
     max_history: usize,
+    /// Company owned by this agent (if any).
+    company: Option<Company>,
+    /// Active investment proposal (if any).
+    active_proposal: Option<InvestmentProposal>,
 }
 
 impl AutonomousAgent {
@@ -84,6 +90,8 @@ impl AutonomousAgent {
             decision_engine,
             cycle_history: Vec::new(),
             max_history: 100,
+            company: None,
+            active_proposal: None,
         }
     }
 
@@ -291,9 +299,15 @@ impl AutonomousAgent {
         let backends = self.get_backends()?;
         let wallet = Arc::clone(&backends.wallet);
 
-        // Create a company (using the company crate if available, otherwise simulate)
-        let company_id = Uuid::new_v4();
+        // Create a company using CompanyBuilder
         let company_name = format!("Agent {} Ventures", &self.id[..8]);
+        let company = CompanyBuilder::new()
+            .name(&company_name)
+            .capital(capital)
+            .build()
+            .map_err(|e| EconomicAgentError::Configuration(e))?;
+
+        let company_id = company.id;
 
         // Transfer capital to company
         wallet
@@ -306,6 +320,9 @@ impl AutonomousAgent {
 
         self.state.record_expense(capital);
         self.state.set_company(company_id);
+
+        // Store the company
+        self.company = Some(company);
 
         info!(
             agent_id = %self.id,
@@ -324,7 +341,7 @@ impl AutonomousAgent {
 
     /// Execute company work for the given hours.
     async fn do_company_work(&mut self, hours: f64) -> Result<CompanyWorkResult> {
-        if !self.state.has_company {
+        if !self.state.has_company || self.company.is_none() {
             return Ok(CompanyWorkResult::failure("No company to work on", 0.0));
         }
 
@@ -344,18 +361,56 @@ impl AutonomousAgent {
         compute.consume_time(hours).await?;
         self.state.consume_compute(hours);
 
-        // Simulate company work activities
-        let activities = vec![
-            "Product development".to_string(),
-            "Market research".to_string(),
-            "Operations management".to_string(),
-        ];
+        // Determine activities based on company stage
+        let company = self.company.as_mut().unwrap();
+        let activities = match company.stage {
+            CompanyStage::Ideation => {
+                // Transition to development after working on ideation
+                let _ = company.transition_to(CompanyStage::Development);
+                vec![
+                    "Business plan development".to_string(),
+                    "Market research".to_string(),
+                    "Product concept design".to_string(),
+                ]
+            }
+            CompanyStage::Development => {
+                vec![
+                    "Product development".to_string(),
+                    "Engineering work".to_string(),
+                    "Quality assurance".to_string(),
+                ]
+            }
+            CompanyStage::SeekingInvestment => {
+                vec![
+                    "Investor pitch preparation".to_string(),
+                    "Due diligence materials".to_string(),
+                    "Financial projections".to_string(),
+                ]
+            }
+            CompanyStage::Operational => {
+                vec![
+                    "Customer support".to_string(),
+                    "Operations management".to_string(),
+                    "Sales and marketing".to_string(),
+                ]
+            }
+            CompanyStage::Failed => {
+                return Ok(CompanyWorkResult::failure("Company has failed", 0.0));
+            }
+        };
 
-        // Potentially generate revenue (based on company maturity)
-        let revenue = if self.state.tasks_completed > 10 {
-            Some(hours * 2.0) // $2/hour revenue once established
-        } else {
-            None
+        // Generate revenue based on company stage and maturity
+        let revenue = match company.stage {
+            CompanyStage::Operational => {
+                // Revenue scales with product count and tasks completed
+                let base_rate = 2.0 + (company.products.len() as f64 * 0.5);
+                Some(hours * base_rate)
+            }
+            CompanyStage::Development if self.state.tasks_completed > 10 => {
+                // Small revenue during development
+                Some(hours * 0.5)
+            }
+            _ => None,
         };
 
         if let Some(rev) = revenue {
@@ -363,10 +418,19 @@ impl AutonomousAgent {
                 .receive_payment(Some("company_revenue"), rev, Some("Company revenue"))
                 .await?;
             self.state.record_earnings(rev);
+
+            // Update company metrics
+            company.metrics.revenue += rev;
         }
+
+        // Update company metrics for expenses (hours = compute cost)
+        let expense = hours * 0.1; // Approximate compute cost
+        company.metrics.expenses += expense;
 
         debug!(
             agent_id = %self.id,
+            company_id = %company.id,
+            company_stage = ?company.stage,
             hours = %hours,
             activities = ?activities,
             revenue = ?revenue,
@@ -378,28 +442,123 @@ impl AutonomousAgent {
 
     /// Attempt to seek investment.
     async fn seek_investment(&mut self) -> Result<InvestmentResult> {
-        if !self.state.has_company {
+        if !self.state.has_company || self.company.is_none() {
             return Ok(InvestmentResult::failure(
                 "Must have a company to seek investment",
             ));
         }
 
+        // Get wallet reference first (before mutable borrow of company)
+        let backends = self.get_backends()?;
+        let wallet = Arc::clone(&backends.wallet);
+
+        // Now work with company
+        let company = self.company.as_mut().unwrap();
+
+        // Can only seek investment if in Development or SeekingInvestment stage
+        if !matches!(
+            company.stage,
+            CompanyStage::Development | CompanyStage::SeekingInvestment
+        ) {
+            return Ok(InvestmentResult::failure(format!(
+                "Cannot seek investment in {:?} stage",
+                company.stage
+            )));
+        }
+
+        // Transition to SeekingInvestment if in Development
+        if company.stage == CompanyStage::Development {
+            let _ = company.transition_to(CompanyStage::SeekingInvestment);
+        }
+
         // Calculate amount to request based on current needs
         let requested_amount = self.config.company_threshold * 2.0;
+        let equity_offered = 0.15; // 15% equity for the investment
 
-        // Create a proposal
-        let proposal_id = Uuid::new_v4();
+        // Create a formal investment proposal
+        let proposal = InvestmentProposal {
+            id: Uuid::new_v4(),
+            company_id: company.id,
+            company_name: company.name.clone(),
+            amount_requested: requested_amount,
+            equity_offered,
+            use_of_funds: format!(
+                "Growth capital for {} - product development and market expansion",
+                company.name
+            ),
+            projected_return: 3.0, // 3x return projection
+            created_at: chrono::Utc::now(),
+        };
+
+        let proposal_id = proposal.id;
+        let company_id = company.id;
 
         info!(
             agent_id = %self.id,
+            company_id = %company_id,
             proposal_id = %proposal_id,
             amount = %requested_amount,
+            equity = %equity_offered,
             "Investment proposal created"
         );
 
-        // In a real implementation, this would interact with the investment system
-        // For now, return a pending proposal
-        Ok(InvestmentResult::pending(proposal_id, requested_amount))
+        // Store the active proposal (drop mutable borrow temporarily)
+        self.active_proposal = Some(proposal.clone());
+
+        // Simulate investor evaluation
+        let investor_profile = InvestorProfile::new("Angel Investor Fund", 500_000.0);
+        let investor = InvestorAgent::new(investor_profile);
+        let decision = investor.evaluate(&proposal).await;
+
+        match decision {
+            economic_agents_investment::InvestmentDecision::Approved => {
+                // Investment approved - receive funds
+                wallet
+                    .receive_payment(
+                        Some("investor"),
+                        requested_amount,
+                        Some("Investment funding"),
+                    )
+                    .await?;
+
+                self.state.record_earnings(requested_amount);
+
+                // Re-borrow company for updates
+                if let Some(company) = self.company.as_mut() {
+                    company.capital += requested_amount;
+                    // Transition to Operational after receiving investment
+                    let _ = company.transition_to(CompanyStage::Operational);
+                }
+
+                info!(
+                    agent_id = %self.id,
+                    company_id = %company_id,
+                    amount = %requested_amount,
+                    "Investment received - company now operational"
+                );
+
+                Ok(InvestmentResult::funded(
+                    proposal_id,
+                    requested_amount,
+                    "Angel Investor Fund".to_string(),
+                ))
+            }
+            economic_agents_investment::InvestmentDecision::Counteroffer => {
+                // Partial funding or different terms
+                let counter_amount = requested_amount * 0.5;
+                Ok(InvestmentResult::pending(proposal_id, counter_amount))
+            }
+            economic_agents_investment::InvestmentDecision::Rejected => {
+                // Go back to development
+                if let Some(company) = self.company.as_mut() {
+                    let _ = company.transition_to(CompanyStage::Development);
+                }
+                Ok(InvestmentResult::failure("Investment proposal rejected"))
+            }
+            economic_agents_investment::InvestmentDecision::MoreInfoRequired => {
+                Ok(InvestmentResult::pending(proposal_id, requested_amount))
+            }
+        }
     }
 
     /// Purchase additional compute hours.
@@ -634,6 +793,16 @@ impl AutonomousAgent {
     pub fn recent_cycles(&self, count: usize) -> &[CycleResult] {
         let start = self.cycle_history.len().saturating_sub(count);
         &self.cycle_history[start..]
+    }
+
+    /// Get the agent's company (if any).
+    pub fn company(&self) -> Option<&Company> {
+        self.company.as_ref()
+    }
+
+    /// Get the agent's active investment proposal (if any).
+    pub fn active_proposal(&self) -> Option<&InvestmentProposal> {
+        self.active_proposal.as_ref()
     }
 
     /// Stop the agent.

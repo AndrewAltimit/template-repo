@@ -9,7 +9,6 @@ description = "Investment system and investor agents"
 
 [dependencies]
 economic-agents-interfaces.workspace = true
-economic-agents-core.workspace = true
 economic-agents-company.workspace = true
 async-trait.workspace = true
 tokio.workspace = true

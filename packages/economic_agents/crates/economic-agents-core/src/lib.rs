@@ -23,6 +23,7 @@ pub mod config;
 pub mod cycle;
 pub mod decision;
 pub mod llm;
+pub mod runner;
 pub mod state;
 pub mod strategy;
 
@@ -34,5 +35,6 @@ pub use cycle::{
 };
 pub use decision::{Decision, DecisionEngine, DecisionType, ResourceAllocation, RuleBasedEngine};
 pub use llm::LlmDecisionEngine;
+pub use runner::{AgentCommand, AgentEvent, AgentHandle, AgentRunner, AgentStatus, RunnerConfig};
 pub use state::AgentState;
 pub use strategy::select_task;

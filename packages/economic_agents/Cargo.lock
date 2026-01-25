@@ -518,7 +518,6 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
- "economic-agents-core",
  "economic-agents-interfaces",
  "mockall",
  "serde",
@@ -535,7 +534,9 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
+ "economic-agents-company",
  "economic-agents-interfaces",
+ "economic-agents-investment",
  "economic-agents-mock",
  "humantime-serde",
  "mockall",
@@ -594,7 +595,6 @@ dependencies = [
  "async-trait",
  "chrono",
  "economic-agents-company",
- "economic-agents-core",
  "economic-agents-interfaces",
  "mockall",
  "serde",
