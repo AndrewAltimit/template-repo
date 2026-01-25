@@ -3,9 +3,10 @@
 use async_trait::async_trait;
 use chrono::Utc;
 use economic_agents_interfaces::{
-    EconomicAgentError, EntityId, Marketplace, Result, SubmissionStatus, Task, TaskCategory,
+    EconomicAgentError, EntityId, Marketplace, Result, Skill, SubmissionStatus, Task, TaskCategory,
     TaskFilter, TaskStatus, TaskSubmission,
 };
+use rand::seq::SliceRandom;
 use rand::Rng;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -34,21 +35,28 @@ impl MockMarketplace {
 
         for i in 0..count {
             let id = Uuid::new_v4();
-            let category = match rng.r#gen_range(0..4) {
+            let category = match rng.r#gen_range(0..7) {
                 0 => TaskCategory::Coding,
                 1 => TaskCategory::CodeReview,
                 2 => TaskCategory::Documentation,
-                _ => TaskCategory::DataAnalysis,
+                3 => TaskCategory::DataAnalysis,
+                4 => TaskCategory::Research,
+                5 => TaskCategory::Testing,
+                _ => TaskCategory::Design,
             };
+
+            // Generate required skills based on category
+            let required_skills = generate_skills_for_category(category, &mut rng);
 
             let task = Task {
                 id,
-                title: format!("Task #{}", i + 1),
-                description: format!("Description for task #{}", i + 1),
+                title: format!("{} Task #{}", category_name(category), i + 1),
+                description: format!("Description for {} task #{}", category_name(category), i + 1),
                 category,
                 reward: rng.r#gen_range(10.0..100.0),
                 estimated_hours: rng.r#gen_range(1.0..8.0),
                 difficulty: rng.r#gen_range(0.1..0.9),
+                required_skills,
                 deadline: None,
                 status: TaskStatus::Available,
                 posted_by: "mock-poster".to_string(),
@@ -220,5 +228,86 @@ impl Marketplace for MockMarketplace {
         task.claimed_at = None;
 
         Ok(())
+    }
+}
+
+/// Generate skills for a task based on its category.
+fn generate_skills_for_category<R: Rng>(category: TaskCategory, rng: &mut R) -> Vec<Skill> {
+    let possible_skills: Vec<Skill> = match category {
+        TaskCategory::Coding => vec![
+            Skill::Python,
+            Skill::Rust,
+            Skill::JavaScript,
+            Skill::Go,
+            Skill::Java,
+            Skill::Cpp,
+            Skill::WebDev,
+            Skill::ApiDesign,
+            Skill::Database,
+        ],
+        TaskCategory::CodeReview => vec![
+            Skill::CodeReview,
+            Skill::Python,
+            Skill::Rust,
+            Skill::JavaScript,
+            Skill::Security,
+            Skill::Testing,
+        ],
+        TaskCategory::Documentation => vec![
+            Skill::TechnicalWriting,
+            Skill::Research,
+            Skill::ApiDesign,
+        ],
+        TaskCategory::DataAnalysis => vec![
+            Skill::DataAnalysis,
+            Skill::Python,
+            Skill::Sql,
+            Skill::MachineLearning,
+            Skill::Research,
+        ],
+        TaskCategory::Research => vec![
+            Skill::Research,
+            Skill::TechnicalWriting,
+            Skill::DataAnalysis,
+            Skill::MachineLearning,
+        ],
+        TaskCategory::Design => vec![
+            Skill::Architecture,
+            Skill::ApiDesign,
+            Skill::WebDev,
+            Skill::Database,
+        ],
+        TaskCategory::Testing => vec![
+            Skill::Testing,
+            Skill::Python,
+            Skill::CodeReview,
+            Skill::Security,
+        ],
+        TaskCategory::Other => vec![],
+    };
+
+    if possible_skills.is_empty() {
+        return vec![];
+    }
+
+    // Pick 1-3 random skills
+    let count = rng.r#gen_range(1..=3.min(possible_skills.len()));
+    possible_skills
+        .choose_multiple(rng, count)
+        .copied()
+        .collect()
+}
+
+/// Get human-readable category name.
+fn category_name(category: TaskCategory) -> &'static str {
+    match category {
+        TaskCategory::Coding => "Coding",
+        TaskCategory::CodeReview => "Code Review",
+        TaskCategory::Documentation => "Documentation",
+        TaskCategory::DataAnalysis => "Data Analysis",
+        TaskCategory::Research => "Research",
+        TaskCategory::Design => "Design",
+        TaskCategory::Testing => "Testing",
+        TaskCategory::Other => "General",
     }
 }

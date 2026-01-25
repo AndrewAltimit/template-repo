@@ -7,7 +7,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use economic_agents_interfaces::{Task, TaskCategory, TaskStatus};
+use economic_agents_interfaces::{Skill, Task, TaskCategory, TaskStatus};
 
 /// A coding challenge with test cases.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,6 +50,18 @@ pub struct TestCase {
 impl CodingChallenge {
     /// Convert to a marketplace Task.
     pub fn to_task(&self) -> Task {
+        // Derive required skills from language and tags
+        let mut required_skills = vec![self.language_to_skill()];
+
+        // Add skills based on tags
+        for tag in &self.tags {
+            if let Some(skill) = tag_to_skill(tag)
+                && !required_skills.contains(&skill)
+            {
+                required_skills.push(skill);
+            }
+        }
+
         Task {
             id: Uuid::new_v4(),
             title: self.name.clone(),
@@ -61,6 +73,7 @@ impl CodingChallenge {
             reward: self.reward,
             estimated_hours: self.estimated_hours,
             difficulty: self.difficulty,
+            required_skills,
             deadline: None,
             status: TaskStatus::Available,
             posted_by: "task-catalog".to_string(),
@@ -68,6 +81,42 @@ impl CodingChallenge {
             claimed_by: None,
             claimed_at: None,
         }
+    }
+
+    /// Convert language string to Skill enum.
+    fn language_to_skill(&self) -> Skill {
+        match self.language.to_lowercase().as_str() {
+            "python" => Skill::Python,
+            "rust" => Skill::Rust,
+            "javascript" | "js" | "typescript" | "ts" => Skill::JavaScript,
+            "go" | "golang" => Skill::Go,
+            "java" => Skill::Java,
+            "c" | "c++" | "cpp" => Skill::Cpp,
+            "sql" => Skill::Sql,
+            _ => Skill::Python, // Default fallback
+        }
+    }
+}
+
+/// Convert a tag string to a Skill if possible.
+fn tag_to_skill(tag: &str) -> Option<Skill> {
+    match tag.to_lowercase().as_str() {
+        "algorithms" | "data-structures" => Some(Skill::Architecture),
+        "strings" | "string-manipulation" => None,
+        "math" | "mathematics" => Some(Skill::DataAnalysis),
+        "array" | "arrays" => None,
+        "hash-table" | "hashmap" | "dictionary" => Some(Skill::Database),
+        "recursion" | "dynamic-programming" => Some(Skill::Architecture),
+        "cache" | "caching" => Some(Skill::Database),
+        "stack" | "queue" => None,
+        "binary-search" | "search" => None,
+        "testing" | "test" => Some(Skill::Testing),
+        "security" => Some(Skill::Security),
+        "api" | "rest" => Some(Skill::ApiDesign),
+        "web" | "frontend" | "backend" => Some(Skill::WebDev),
+        "ml" | "machine-learning" | "ai" => Some(Skill::MachineLearning),
+        "devops" | "infrastructure" => Some(Skill::DevOps),
+        _ => None,
     }
 }
 

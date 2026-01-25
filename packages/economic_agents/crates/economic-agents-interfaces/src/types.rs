@@ -61,6 +61,9 @@ pub struct Task {
     pub estimated_hours: Hours,
     /// Required skill level (0.0-1.0).
     pub difficulty: f64,
+    /// Skills required for this task.
+    #[serde(default)]
+    pub required_skills: Vec<Skill>,
     /// Deadline for completion.
     pub deadline: Option<DateTime<Utc>>,
     /// Current status.
@@ -73,6 +76,57 @@ pub struct Task {
     pub claimed_by: Option<String>,
     /// Timestamp when claimed.
     pub claimed_at: Option<DateTime<Utc>>,
+}
+
+/// Skills that agents can have and tasks can require.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Skill {
+    // Programming Languages
+    /// Python programming.
+    Python,
+    /// Rust programming.
+    Rust,
+    /// JavaScript/TypeScript programming.
+    JavaScript,
+    /// Go programming.
+    Go,
+    /// Java programming.
+    Java,
+    /// C/C++ programming.
+    Cpp,
+    /// SQL and database queries.
+    Sql,
+
+    // Technical Domains
+    /// Web development (frontend/backend).
+    WebDev,
+    /// API design and implementation.
+    ApiDesign,
+    /// Database design and optimization.
+    Database,
+    /// DevOps and infrastructure.
+    DevOps,
+    /// Machine learning and AI.
+    MachineLearning,
+    /// Data analysis and visualization.
+    DataAnalysis,
+    /// Security and cryptography.
+    Security,
+    /// System architecture.
+    Architecture,
+
+    // Soft Skills
+    /// Technical writing and documentation.
+    TechnicalWriting,
+    /// Code review and quality assurance.
+    CodeReview,
+    /// Research and analysis.
+    Research,
+    /// Testing and QA.
+    Testing,
+    /// Project management.
+    ProjectManagement,
 }
 
 /// Task categories.

@@ -1,5 +1,6 @@
 //! Agent configuration.
 
+use economic_agents_interfaces::Skill;
 use serde::{Deserialize, Serialize};
 
 /// Decision engine type.
@@ -73,6 +74,15 @@ pub struct AgentConfig {
     #[serde(default)]
     pub task_selection_strategy: TaskSelectionStrategy,
 
+    /// Skills this agent possesses.
+    #[serde(default)]
+    pub skills: Vec<Skill>,
+
+    /// Proficiency levels for each skill (0.0-1.0).
+    /// Maps to skills vector by index.
+    #[serde(default)]
+    pub skill_levels: Vec<f64>,
+
     /// Minimum hours to keep in reserve.
     #[serde(default = "default_survival_buffer")]
     pub survival_buffer_hours: f64,
@@ -116,11 +126,43 @@ impl Default for AgentConfig {
             mode: OperatingMode::default(),
             personality: Personality::default(),
             task_selection_strategy: TaskSelectionStrategy::default(),
+            skills: Vec::new(),
+            skill_levels: Vec::new(),
             survival_buffer_hours: default_survival_buffer(),
             company_threshold: default_company_threshold(),
             llm_timeout_secs: default_llm_timeout(),
             fallback_enabled: true,
             max_cycles: None,
+        }
+    }
+}
+
+impl AgentConfig {
+    /// Get the proficiency level for a skill (0.0 if not possessed).
+    pub fn skill_proficiency(&self, skill: Skill) -> f64 {
+        self.skills
+            .iter()
+            .position(|s| *s == skill)
+            .and_then(|idx| self.skill_levels.get(idx).copied())
+            .unwrap_or(0.0)
+    }
+
+    /// Check if agent has a skill at any level.
+    pub fn has_skill(&self, skill: Skill) -> bool {
+        self.skills.contains(&skill)
+    }
+
+    /// Add a skill with proficiency level.
+    pub fn add_skill(&mut self, skill: Skill, level: f64) {
+        if let Some(idx) = self.skills.iter().position(|s| *s == skill) {
+            // Update existing skill level
+            if idx < self.skill_levels.len() {
+                self.skill_levels[idx] = level.clamp(0.0, 1.0);
+            }
+        } else {
+            // Add new skill
+            self.skills.push(skill);
+            self.skill_levels.push(level.clamp(0.0, 1.0));
         }
     }
 }

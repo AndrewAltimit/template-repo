@@ -63,6 +63,8 @@ impl AgentFileConfig {
             mode: self.mode.into(),
             personality: self.personality.into(),
             task_selection_strategy: self.task_selection_strategy.into(),
+            skills: Vec::new(),
+            skill_levels: Vec::new(),
             survival_buffer_hours: self.survival_buffer_hours,
             company_threshold: self.company_threshold,
             max_cycles: self.max_cycles,
