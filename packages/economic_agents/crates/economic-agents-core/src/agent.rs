@@ -3,7 +3,10 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use economic_agents_company::{Company, CompanyBuilder, CompanyStage};
+use economic_agents_company::{
+    AutonomousSubAgentManager, Company, CompanyBuilder, CompanyStage, DelegationResult,
+    SubAgent, SubAgentBudget, SubAgentRole,
+};
 use economic_agents_interfaces::{
     Compute, EconomicAgentError, Marketplace, Result, SubmissionStatus, Task, TaskFilter, Wallet,
 };
@@ -69,6 +72,10 @@ pub struct AutonomousAgent {
     company: Option<Company>,
     /// Active investment proposal (if any).
     active_proposal: Option<InvestmentProposal>,
+    /// Autonomous sub-agent manager (if company is formed).
+    sub_agent_manager: Option<AutonomousSubAgentManager>,
+    /// Results from delegated tasks (collected each cycle).
+    delegation_results: Vec<DelegationResult>,
 }
 
 impl AutonomousAgent {
@@ -94,6 +101,8 @@ impl AutonomousAgent {
             max_history: 100,
             company: None,
             active_proposal: None,
+            sub_agent_manager: None,
+            delegation_results: Vec::new(),
         }
     }
 
@@ -297,9 +306,15 @@ impl AutonomousAgent {
             ));
         }
 
-        // Get backend references
-        let backends = self.get_backends()?;
-        let wallet = Arc::clone(&backends.wallet);
+        // Get backend references (clone all Arcs upfront to release borrow)
+        let (wallet, marketplace, compute) = {
+            let backends = self.get_backends()?;
+            (
+                Arc::clone(&backends.wallet),
+                Arc::clone(&backends.marketplace),
+                Arc::clone(&backends.compute),
+            )
+        };
 
         // Create a company using CompanyBuilder
         let company_name = format!("Agent {} Ventures", &self.id[..8]);
@@ -326,12 +341,76 @@ impl AutonomousAgent {
         // Store the company
         self.company = Some(company);
 
+        // Create autonomous sub-agent manager
+        let manager = AutonomousSubAgentManager::new(
+            Arc::clone(&wallet),
+            marketplace,
+            compute,
+        );
+
+        // Allocate 20% of company capital for initial sub-agents
+        let sub_agent_budget = capital * 0.2;
+        let compute_hours_per_agent = 20.0;
+
+        // Create initial sub-agents based on company needs
+        // 1. Technical lead (SME)
+        let tech_lead = SubAgent::new(
+            "Technical Lead".to_string(),
+            SubAgentRole::SubjectMatterExpert,
+        )
+        .with_specialization("engineering".to_string())
+        .with_performance(0.8);
+
+        manager
+            .create_autonomous_agent(
+                tech_lead,
+                self.id.clone(),
+                SubAgentBudget::new(sub_agent_budget * 0.4, compute_hours_per_agent),
+            )
+            .await;
+
+        // 2. Operations specialist (IC)
+        let ops_specialist = SubAgent::new(
+            "Operations Specialist".to_string(),
+            SubAgentRole::IndividualContributor,
+        )
+        .with_specialization("operations".to_string())
+        .with_performance(0.7);
+
+        manager
+            .create_autonomous_agent(
+                ops_specialist,
+                self.id.clone(),
+                SubAgentBudget::new(sub_agent_budget * 0.3, compute_hours_per_agent),
+            )
+            .await;
+
+        // 3. Research analyst (IC)
+        let analyst = SubAgent::new(
+            "Research Analyst".to_string(),
+            SubAgentRole::IndividualContributor,
+        )
+        .with_specialization("research".to_string())
+        .with_performance(0.75);
+
+        manager
+            .create_autonomous_agent(
+                analyst,
+                self.id.clone(),
+                SubAgentBudget::new(sub_agent_budget * 0.3, compute_hours_per_agent),
+            )
+            .await;
+
+        let sub_agent_count = manager.count().await;
+        self.sub_agent_manager = Some(manager);
+
         info!(
             agent_id = %self.id,
             company_id = %company_id,
             company_name = %company_name,
             capital = %capital,
-            "Company formed successfully"
+            sub_agents = %sub_agent_count,
+            "Company formed with autonomous sub-agents"
         );
 
         Ok(CompanyFormationResult::success(
@@ -429,13 +508,63 @@ impl AutonomousAgent {
         let expense = hours * 0.1; // Approximate compute cost
         company.metrics.expenses += expense;
 
+        // Extract company info to use later (after releasing the mutable borrow)
+        let company_id = company.id;
+        let company_stage = company.stage;
+
+        // Run autonomous sub-agent work cycles
+        let mut sub_agent_results = Vec::new();
+        let mut sub_agent_revenue = 0.0;
+        if let Some(manager) = &self.sub_agent_manager {
+            let results = manager.run_autonomous_cycles().await;
+            for result in &results {
+                if result.success {
+                    sub_agent_revenue += result.reward_earned;
+                    debug!(
+                        agent_id = %self.id,
+                        reward = %result.reward_earned,
+                        quality = ?result.quality_score,
+                        notes = %result.notes,
+                        "Sub-agent completed task"
+                    );
+                }
+            }
+            sub_agent_results = results;
+        }
+
+        // Record sub-agent earnings
+        if sub_agent_revenue > 0.0 {
+            wallet
+                .receive_payment(
+                    Some("sub_agent_work"),
+                    sub_agent_revenue,
+                    Some("Sub-agent task earnings"),
+                )
+                .await?;
+            self.state.record_earnings(sub_agent_revenue);
+
+            // Update company metrics with sub-agent revenue
+            if let Some(company) = &mut self.company {
+                company.metrics.revenue += sub_agent_revenue;
+            }
+        }
+
+        // Store delegation results for reporting
+        self.delegation_results.extend(sub_agent_results.clone());
+
+        let total_sub_agent_tasks = sub_agent_results.len();
+        let successful_sub_agent_tasks = sub_agent_results.iter().filter(|r| r.success).count();
+
         debug!(
             agent_id = %self.id,
-            company_id = %company.id,
-            company_stage = ?company.stage,
+            company_id = %company_id,
+            company_stage = ?company_stage,
             hours = %hours,
             activities = ?activities,
             revenue = ?revenue,
+            sub_agent_tasks = %total_sub_agent_tasks,
+            sub_agent_success = %successful_sub_agent_tasks,
+            sub_agent_revenue = %sub_agent_revenue,
             "Company work completed"
         );
 
@@ -807,6 +936,54 @@ impl AutonomousAgent {
     pub fn stop(&mut self) {
         self.state.is_active = false;
         info!(agent_id = %self.id, "Agent stopped");
+    }
+
+    /// Get the autonomous sub-agent manager (if company is formed).
+    pub fn sub_agent_manager(&self) -> Option<&AutonomousSubAgentManager> {
+        self.sub_agent_manager.as_ref()
+    }
+
+    /// Get delegation results from sub-agents.
+    pub fn delegation_results(&self) -> &[DelegationResult] {
+        &self.delegation_results
+    }
+
+    /// Clear delegation results.
+    pub fn clear_delegation_results(&mut self) {
+        self.delegation_results.clear();
+    }
+
+    /// Delegate a task to sub-agents.
+    ///
+    /// Returns the delegation ID if successfully delegated.
+    pub async fn delegate_task(
+        &self,
+        task: Task,
+        deadline: Option<chrono::DateTime<chrono::Utc>>,
+    ) -> Option<Uuid> {
+        if let Some(manager) = &self.sub_agent_manager {
+            manager.delegate_task(task, deadline).await
+        } else {
+            None
+        }
+    }
+
+    /// Get the count of autonomous sub-agents.
+    pub async fn sub_agent_count(&self) -> usize {
+        if let Some(manager) = &self.sub_agent_manager {
+            manager.count().await
+        } else {
+            0
+        }
+    }
+
+    /// Get budget summary across all sub-agents.
+    pub async fn sub_agent_budget_summary(&self) -> Option<SubAgentBudget> {
+        if let Some(manager) = &self.sub_agent_manager {
+            Some(manager.get_budget_summary().await)
+        } else {
+            None
+        }
     }
 }
 

@@ -240,6 +240,12 @@ impl SubAgent {
         self
     }
 
+    /// Set initial performance score.
+    pub fn with_performance(mut self, performance: f64) -> Self {
+        self.performance = performance.clamp(0.0, 1.0);
+        self
+    }
+
     /// Create OKRs based on role.
     pub fn create_okrs(&self, timeframe: &str) -> OKRs {
         match self.executive_title {
