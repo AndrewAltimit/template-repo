@@ -17,12 +17,14 @@ mod llm_quality;
 mod risk_profiler;
 
 pub use decision_analyzer::{
-    DecisionPatternAnalyzer, DecisionTrend, StrategyAlignment, TrendDirection,
+    DecisionPatternAnalyzer, DecisionRecord, DecisionTrend, StrategyAlignment, TrendDirection,
 };
-pub use emergent_behavior::{BehaviorPattern, EmergentBehaviorDetector, NovelStrategy};
+pub use emergent_behavior::{
+    BehaviorDecisionRecord, BehaviorPattern, EmergentBehaviorDetector, NovelStrategy,
+};
 pub use llm_quality::{
-    Hallucination, HallucinationSeverity, LLMQualityAnalyzer, LLMQualityMetrics,
+    Hallucination, HallucinationSeverity, LLMDecisionRecord, LLMQualityAnalyzer, LLMQualityMetrics,
 };
 pub use risk_profiler::{
-    CrisisDecision, CrisisSeverity, RiskCategory, RiskProfiler, RiskTolerance,
+    CrisisDecision, CrisisSeverity, RiskCategory, RiskDecisionRecord, RiskProfiler, RiskTolerance,
 };

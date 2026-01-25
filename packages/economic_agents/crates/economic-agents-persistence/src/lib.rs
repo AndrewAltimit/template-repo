@@ -6,5 +6,6 @@
 mod state_manager;
 
 pub use state_manager::{
-    LoadedAgentState, LoadedRegistry, PersistenceError, SavedAgentMetadata, StateManager,
+    LoadedAgentState, LoadedRegistry, PersistenceError, SavedAgentMetadata, SerializedDecision,
+    StateManager,
 };

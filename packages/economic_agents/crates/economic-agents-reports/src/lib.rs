@@ -6,7 +6,9 @@
 mod generator;
 mod models;
 
-pub use generator::ReportGenerator;
+pub use generator::{
+    AgentData, CompanyData, DecisionData, ReportGenerator, SubAgentData, TransactionData,
+};
 pub use models::{
     AuditTrail, ExecutiveSummary, GovernanceAnalysis, Report, ReportContent, ReportType,
     TechnicalReport,
