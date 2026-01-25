@@ -200,6 +200,11 @@ while let Ok(event) = rx.recv().await {
 }
 ```
 
+## Documentation
+
+- **[Architecture Guide](docs/architecture.md)** - System design, crate organization, data flow
+- **[Dashboard API Reference](docs/dashboard-api.md)** - REST API and WebSocket documentation
+
 ## Docker
 
 Run with Docker Compose:
