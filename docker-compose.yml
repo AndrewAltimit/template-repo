@@ -1040,50 +1040,19 @@ services:
   # Reaction Search MCP Server (Rust)
   # High-performance semantic search for anime reaction images
   # Rust implementation with fastembed (ONNX-based embeddings)
-  mcp-reaction-search-rust:
+  mcp-reaction-search:
     build:
-      context: ./tools/mcp/mcp_core_rust
-      dockerfile: servers/reaction-search/Dockerfile
-    container_name: mcp-reaction-search-rust
+      context: ./tools/mcp
+      dockerfile: mcp_reaction_search/Dockerfile
+    container_name: mcp-reaction-search
     ports:
-      - "8124:8024"
+      - "8024:8024"
     volumes:
-      - reaction-search-rust-cache:/home/mcp/.cache
+      - reaction-search-cache:/home/mcp/.cache
     environment:
       - RUST_LOG=info
     networks:
       - mcp-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8024/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    profiles:
-      - services
-      - rust-mcp
-
-  # Reaction Search MCP Server (Python - legacy)
-  # Semantic search for anime reaction images
-  mcp-reaction-search:
-    build:
-      context: .
-      dockerfile: docker/mcp-reaction-search.Dockerfile
-    container_name: mcp-reaction-search
-    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
-    ports:
-      - "8024:8024"
-    volumes:
-      - ./:/app:ro
-      - reaction-search-cache:/home/appuser/.cache
-    environment:
-      - PYTHONUNBUFFERED=1
-      - PORT=8024
-      - REACTION_SEARCH_MODEL=sentence-transformers/all-MiniLM-L12-v2
-    networks:
-      - mcp-network
-    command: ["python", "-m", "mcp_reaction_search.server", "--mode", "http"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8024/health"]
@@ -1201,10 +1170,8 @@ volumes:
   # Sleeper Detection Evaluation volumes
   sleeper-models-cache: {}
   sleeper-eval-db: {}
-  # Reaction search cache (config + model)
+  # Reaction search cache (fastembed model + config)
   reaction-search-cache: {}
-  # Reaction search Rust cache (fastembed model)
-  reaction-search-rust-cache: {}
 
 # Secrets are managed at runtime by GitHub Actions or local setup script
 # Never commit actual secret files to the repository!

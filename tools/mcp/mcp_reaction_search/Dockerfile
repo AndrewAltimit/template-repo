@@ -3,8 +3,8 @@
 #
 # Multi-stage build for minimal runtime image
 #
-# Build:
-#   docker build -t mcp-reaction-search .
+# Build (from tools/mcp/ directory):
+#   docker build -f mcp_reaction_search/Dockerfile -t mcp-reaction-search .
 #
 # Run modes:
 #   Standalone: docker run -p 8024:8024 mcp-reaction-search
@@ -25,15 +25,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy workspace files for dependency caching
-COPY Cargo.toml Cargo.lock ./
-COPY crates ./crates
-COPY servers ./servers
+# Copy mcp_core_rust (dependency)
+COPY mcp_core_rust/Cargo.toml mcp_core_rust/Cargo.lock ./mcp_core_rust/
+COPY mcp_core_rust/crates ./mcp_core_rust/crates
+
+# Copy mcp_reaction_search
+COPY mcp_reaction_search/Cargo.toml ./mcp_reaction_search/
+COPY mcp_reaction_search/src ./mcp_reaction_search/src
 
 # Build release binary
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
-    cargo build --release --package mcp-reaction-search \
+    cd mcp_reaction_search && \
+    cargo build --release \
     && cp /app/target/release/mcp-reaction-search /usr/local/bin/
 
 # =============================================================================
