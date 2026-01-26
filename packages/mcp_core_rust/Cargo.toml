@@ -1,0 +1,91 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/mcp-core",
+    "crates/mcp-macros",
+    "crates/mcp-client",
+    "crates/mcp-testing",
+    "servers/reaction-search",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/AndrewAltimit/template-repo"
+authors = ["AndrewAltimit"]
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.40", features = ["full"] }
+async-trait = "0.1"
+futures = "0.3"
+
+# HTTP framework
+axum = { version = "0.7", features = ["ws"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Schema generation
+schemars = "0.8"
+
+# CLI
+clap = { version = "4.5", features = ["derive"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# HTTP client (for client mode)
+reqwest = { version = "0.12", features = ["json"] }
+
+# UUID
+uuid = { version = "1.10", features = ["v4", "serde"] }
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# YAML parsing
+serde_yaml = "0.9"
+
+# Directories
+dirs = "5.0"
+
+# Sentence embeddings (ONNX-based)
+fastembed = "4"
+
+# Linear algebra
+ndarray = "0.16"
+
+# Proc macro support
+syn = { version = "2.0", features = ["full", "parsing", "extra-traits"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+# Testing
+tokio-test = "0.4"
+axum-test = "16.0"
+
+# Internal crates
+mcp-core = { path = "crates/mcp-core" }
+mcp-macros = { path = "crates/mcp-macros" }
+mcp-client = { path = "crates/mcp-client" }
+mcp-testing = { path = "crates/mcp-testing" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true

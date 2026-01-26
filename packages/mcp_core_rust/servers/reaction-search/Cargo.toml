@@ -1,0 +1,33 @@
+[package]
+name = "mcp-reaction-search"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "MCP server for semantic reaction image search"
+
+[[bin]]
+name = "mcp-reaction-search"
+path = "src/main.rs"
+
+[dependencies]
+mcp-core = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+reqwest = { workspace = true }
+clap = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+dirs = { workspace = true }
+fastembed = { workspace = true }
+ndarray = { workspace = true }
+
+[dev-dependencies]
+tokio-test = { workspace = true }
