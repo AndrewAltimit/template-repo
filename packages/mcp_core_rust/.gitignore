@@ -1,0 +1,10 @@
+# Build artifacts
+/target/
+
+# Model cache (fastembed downloads models here)
+.fastembed_cache/
+
+# IDE
+.idea/
+*.swp
+*.swo
