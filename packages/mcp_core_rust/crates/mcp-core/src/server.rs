@@ -5,12 +5,13 @@ use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::error::Result;
 use crate::session::SessionManager;
 use crate::tool::{BoxedTool, Tool, ToolRegistry};
 use crate::transport::http::{HttpState, HttpTransport};
+use crate::transport::rest::{RestState, RestTransport};
 
 /// Server operational mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
@@ -155,13 +156,14 @@ impl MCPServer {
     /// Run the server
     pub async fn run(self) -> Result<()> {
         match self.mode {
-            ServerMode::Standalone | ServerMode::Server => self.run_http().await,
+            ServerMode::Standalone => self.run_standalone().await,
+            ServerMode::Server => self.run_rest_only().await,
             ServerMode::Client => self.run_client().await,
         }
     }
 
-    /// Run in HTTP mode (standalone or server)
-    async fn run_http(self) -> Result<()> {
+    /// Run in standalone mode (full MCP server with embedded tools)
+    async fn run_standalone(self) -> Result<()> {
         let addr = SocketAddr::from(([0, 0, 0, 0], self.port));
 
         info!(
@@ -200,23 +202,220 @@ impl MCPServer {
         Ok(())
     }
 
-    /// Run in client mode (proxy to backend)
+    /// Run in server mode (REST API only, no MCP protocol)
+    async fn run_rest_only(self) -> Result<()> {
+        let addr = SocketAddr::from(([0, 0, 0, 0], self.port));
+
+        info!(
+            "{} v{} starting in {} mode on {}",
+            self.name, self.version, self.mode, addr
+        );
+        info!("REST-only mode - MCP protocol disabled");
+        info!("Registered {} tools", self.tools.len());
+
+        for name in self.tools.names() {
+            info!("  - {}", name);
+        }
+
+        let state = Arc::new(RestState {
+            name: self.name,
+            version: self.version,
+            tools: self.tools,
+        });
+
+        let app = RestTransport::router(state);
+
+        let listener = TcpListener::bind(addr).await.map_err(|e| {
+            error!("Failed to bind to {}: {}", addr, e);
+            crate::error::MCPError::TransportError(e.to_string())
+        })?;
+
+        info!("Server ready, listening on http://{}", addr);
+        info!("Endpoints: GET /health, GET /tools, POST /tools/{{name}}/call, POST /execute");
+
+        axum::serve(listener, app.into_make_service())
+            .await
+            .map_err(|e: std::io::Error| {
+                error!("Server error: {}", e);
+                crate::error::MCPError::TransportError(e.to_string())
+            })?;
+
+        Ok(())
+    }
+
+    /// Run in client mode (MCP proxy to backend)
     async fn run_client(self) -> Result<()> {
         let backend = self.backend_url.as_deref().ok_or_else(|| {
             crate::error::MCPError::Internal("Client mode requires --backend-url".to_string())
         })?;
 
-        info!(
-            "{} v{} starting in client mode, proxying to {}",
-            self.name, self.version, backend
-        );
+        let addr = SocketAddr::from(([0, 0, 0, 0], self.port));
 
-        // TODO: Implement client mode with mcp-client crate
-        // For now, this is a placeholder
-        error!("Client mode not yet implemented");
-        Err(crate::error::MCPError::Internal(
-            "Client mode not yet implemented".to_string(),
-        ))
+        info!(
+            "{} v{} starting in {} mode on {}",
+            self.name, self.version, self.mode, addr
+        );
+        info!("Proxying to backend: {}", backend);
+
+        // Fetch tools from backend
+        let client = mcp_client::RestToolClient::new(backend);
+
+        // Health check
+        match client.health_check().await {
+            Ok(true) => info!("Backend health check: OK"),
+            Ok(false) => {
+                warn!("Backend health check failed, continuing anyway");
+            }
+            Err(e) => {
+                warn!("Backend health check error: {}, continuing anyway", e);
+            }
+        }
+
+        // Fetch tool list from backend
+        let backend_tools: Vec<mcp_client::ToolInfo> = match client.list_tools().await {
+            Ok(tools) => {
+                info!("Fetched {} tools from backend", tools.len());
+                tools
+            }
+            Err(e) => {
+                error!("Failed to fetch tools from backend: {}", e);
+                return Err(crate::error::MCPError::Internal(format!(
+                    "Failed to fetch backend tools: {}",
+                    e
+                )));
+            }
+        };
+
+        // Create proxy tools
+        let client = Arc::new(client);
+        let mut tools = ToolRegistry::new();
+
+        for tool_info in &backend_tools {
+            let proxy = ProxyToolWrapper {
+                name: tool_info.name.clone(),
+                description: tool_info.description.clone(),
+                input_schema: tool_info.input_schema.clone(),
+                client: client.clone(),
+            };
+            tools.register(proxy);
+            info!("  - {} (proxied)", tool_info.name);
+        }
+
+        let state = Arc::new(HttpState {
+            name: self.name,
+            version: self.version,
+            tools,
+            sessions: SessionManager::new(),
+        });
+
+        let app = HttpTransport::router(state);
+
+        let listener = TcpListener::bind(addr).await.map_err(|e| {
+            error!("Failed to bind to {}: {}", addr, e);
+            crate::error::MCPError::TransportError(e.to_string())
+        })?;
+
+        info!("Server ready, listening on http://{}", addr);
+        info!("MCP protocol enabled, proxying {} tools to {}", backend_tools.len(), backend);
+
+        axum::serve(listener, app.into_make_service())
+            .await
+            .map_err(|e: std::io::Error| {
+                error!("Server error: {}", e);
+                crate::error::MCPError::TransportError(e.to_string())
+            })?;
+
+        Ok(())
+    }
+}
+
+/// Wrapper that implements the Tool trait for proxied tools
+struct ProxyToolWrapper {
+    name: String,
+    description: String,
+    input_schema: serde_json::Value,
+    client: Arc<mcp_client::RestToolClient>,
+}
+
+#[async_trait::async_trait]
+impl Tool for ProxyToolWrapper {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn description(&self) -> &str {
+        &self.description
+    }
+
+    fn schema(&self) -> serde_json::Value {
+        self.input_schema.clone()
+    }
+
+    async fn execute(&self, args: serde_json::Value) -> Result<crate::tool::ToolResult> {
+        use crate::tool::{Content, ToolResult};
+
+        info!("Proxying tool call: {} to {}", self.name, self.client.base_url());
+
+        match self.client.execute_tool(&self.name, args).await {
+            Ok(result) => {
+                if result.success {
+                    // Extract content from result
+                    let content: Vec<Content> = if let Some(res) = result.result {
+                        // Try to extract content array from result
+                        if let Some(content_arr) = res.get("content").and_then(|c: &serde_json::Value| c.as_array()) {
+                            content_arr
+                                .iter()
+                                .filter_map(|c: &serde_json::Value| {
+                                    // Handle text content
+                                    if let Some(text) = c.get("text").and_then(|t: &serde_json::Value| t.as_str()) {
+                                        return Some(Content::Text {
+                                            text: text.to_string(),
+                                        });
+                                    }
+                                    // Handle image content
+                                    if let (Some(data), Some(mime)) = (
+                                        c.get("data").and_then(|d: &serde_json::Value| d.as_str()),
+                                        c.get("mime_type").and_then(|m: &serde_json::Value| m.as_str()),
+                                    ) {
+                                        return Some(Content::Image {
+                                            data: data.to_string(),
+                                            mime_type: mime.to_string(),
+                                        });
+                                    }
+                                    None
+                                })
+                                .collect()
+                        } else {
+                            // Wrap the entire result as text
+                            vec![Content::Text {
+                                text: serde_json::to_string_pretty(&res)
+                                    .unwrap_or_else(|_| res.to_string()),
+                            }]
+                        }
+                    } else {
+                        vec![Content::Text {
+                            text: "OK".to_string(),
+                        }]
+                    };
+
+                    Ok(ToolResult {
+                        content,
+                        is_error: false,
+                    })
+                } else {
+                    Ok(ToolResult {
+                        content: vec![Content::Text {
+                            text: result.error.unwrap_or_else(|| "Unknown error".to_string()),
+                        }],
+                        is_error: true,
+                    })
+                }
+            }
+            Err(e) => Err(crate::error::MCPError::Internal(format!(
+                "Proxy error: {}",
+                e
+            ))),
+        }
     }
 }
 
@@ -242,7 +441,7 @@ pub struct MCPServerArgs {
 
 impl MCPServerArgs {
     /// Apply these arguments to a server builder
-    pub fn apply_to<'a>(&self, mut builder: MCPServerBuilder) -> MCPServerBuilder {
+    pub fn apply_to(&self, mut builder: MCPServerBuilder) -> MCPServerBuilder {
         builder = builder.port(self.port).mode(self.mode);
 
         if let Some(url) = &self.backend_url {
@@ -311,5 +510,24 @@ mod tests {
         assert_eq!(ServerMode::Standalone.to_string(), "standalone");
         assert_eq!(ServerMode::Server.to_string(), "server");
         assert_eq!(ServerMode::Client.to_string(), "client");
+    }
+
+    #[test]
+    fn test_client_mode_requires_backend() {
+        let server = MCPServer::builder("test", "1.0.0")
+            .mode(ServerMode::Client)
+            .build();
+
+        assert!(server.backend_url().is_none());
+    }
+
+    #[test]
+    fn test_client_mode_with_backend() {
+        let server = MCPServer::builder("test", "1.0.0")
+            .mode(ServerMode::Client)
+            .backend_url("http://localhost:8080")
+            .build();
+
+        assert_eq!(server.backend_url(), Some("http://localhost:8080"));
     }
 }

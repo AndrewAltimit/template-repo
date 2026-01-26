@@ -24,6 +24,8 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
+reqwest = { workspace = true }
+mcp-client = { path = "../mcp-client" }
 
 [dev-dependencies]
 tokio-test = { workspace = true }
