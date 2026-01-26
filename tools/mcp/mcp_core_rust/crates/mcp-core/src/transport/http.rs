@@ -278,10 +278,25 @@ async fn messages_post_handler(
     if let Some(requests) = body.as_array() {
         let mut responses = Vec::new();
         for req in requests {
-            if let Ok(request) = serde_json::from_value::<JsonRpcRequest>(req.clone())
-                && let Some(resp) = process_jsonrpc_request(&state, &request, &session_id).await
-            {
-                responses.push(resp);
+            match serde_json::from_value::<JsonRpcRequest>(req.clone()) {
+                Ok(request) => {
+                    if let Some(resp) =
+                        process_jsonrpc_request(&state, &request, &session_id).await
+                    {
+                        responses.push(resp);
+                    }
+                    // Notifications (no id) don't get responses, which is correct
+                }
+                Err(e) => {
+                    // Per JSON-RPC 2.0, return an error for invalid batch items
+                    // Try to extract the id from the raw value for the error response
+                    let id = req.get("id").cloned().unwrap_or(json!(null));
+                    responses.push(JsonRpcResponse::error_with_code(
+                        id,
+                        JsonRpcErrorCode::InvalidRequest,
+                        Some(format!("Invalid request in batch: {}", e)),
+                    ));
+                }
             }
         }
         return json_response_with_session(json!(responses), session_id);

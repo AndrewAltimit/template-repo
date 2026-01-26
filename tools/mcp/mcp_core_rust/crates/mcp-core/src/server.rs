@@ -383,7 +383,7 @@ impl Tool for ProxyToolWrapper {
                                     // Handle image content
                                     if let (Some(data), Some(mime)) = (
                                         c.get("data").and_then(|d: &serde_json::Value| d.as_str()),
-                                        c.get("mime_type")
+                                        c.get("mimeType")
                                             .and_then(|m: &serde_json::Value| m.as_str()),
                                     ) {
                                         return Some(Content::Image {
