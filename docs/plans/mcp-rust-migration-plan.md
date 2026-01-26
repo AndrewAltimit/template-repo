@@ -625,14 +625,37 @@ packages/mcp_core_rust/servers/reaction-search/ # Pilot server
 
 ## 13. Next Steps
 
-1. [ ] Review and approve this plan
-2. [ ] Create `packages/mcp_core_rust/` workspace structure
-3. [ ] Implement `mcp-core` crate with `Tool` trait
-4. [ ] Implement HTTP transport with Axum
-5. [ ] Create `#[mcp_tool]` proc macro
-6. [ ] Port `reaction-search` as pilot
-7. [ ] Run compatibility tests
-8. [ ] Document learnings and iterate
+1. [x] Review and approve this plan
+2. [x] Create `packages/mcp_core_rust/` workspace structure
+3. [x] Implement `mcp-core` crate with `Tool` trait
+4. [x] Implement HTTP transport with Axum
+5. [ ] Create `#[mcp_tool]` proc macro (deferred - manual impl works well)
+6. [x] Port `reaction-search` as pilot
+7. [x] Run compatibility tests
+8. [x] Implement multi-mode support (server/client modes)
+9. [ ] Docker containerization and CI integration (Phase 4)
+
+## 14. Implementation Progress
+
+### Phase 1: Core Infrastructure - COMPLETE
+- `mcp-core` crate with Tool trait, MCPServer, HTTP transport
+- `mcp-macros` crate (placeholder for proc macros)
+- `mcp-client` crate for REST client mode
+- `mcp-testing` crate for test utilities
+- 19 unit tests passing
+
+### Phase 2: Pilot Server - COMPLETE
+- Ported `mcp_reaction_search` to Rust
+- 5 tools: search_reactions, get_reaction, list_reaction_tags, refresh_reactions, reaction_search_status
+- Using fastembed for ONNX-based sentence embeddings
+- 9 unit tests passing (+ 2 ignored requiring model download)
+
+### Phase 3: Multi-Mode Support - COMPLETE
+- Server mode (--mode server): REST-only API, no MCP protocol
+- Client mode (--mode client --backend-url URL): MCP proxy to REST backend
+- RestTransport for simplified REST API
+- ProxyToolWrapper for forwarding tool calls
+- All 33 tests passing
 
 ---
 
