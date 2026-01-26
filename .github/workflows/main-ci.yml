@@ -685,6 +685,12 @@ jobs:
             cargo build --release --bin economic-agents
             cp target/release/economic-agents /app/rust-binaries/economic-agents-linux-x64
             echo "Built economic-agents for Linux x64"
+
+            # Build mcp-reaction-search
+            cd /app/tools/mcp/mcp_reaction_search
+            cargo build --release
+            cp target/release/mcp-reaction-search /app/rust-binaries/mcp-reaction-search-linux-x64
+            echo "Built mcp-reaction-search for Linux x64"
           '
 
       # Build injection-toolkit for Windows using rust-ci-nightly (has mingw-w64)
@@ -935,6 +941,7 @@ jobs:
 
           | Binary | Platform | Description |
           |--------|----------|-------------|
+          | `mcp-reaction-search-linux-x64` | Linux x64 | MCP server for semantic reaction image search |
           | `economic-agents-linux-x64` | Linux x64 | Autonomous economic agent simulation CLI |
           | `pr-monitor-linux-x64` | Linux x64 | PR monitoring tool for admin/Gemini feedback |
           | `gh-linux-x64` | Linux x64 | GitHub CLI validator and security checker |
