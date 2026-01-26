@@ -124,7 +124,7 @@ cargo test -- --nocapture
 ## Project Structure
 
 ```
-packages/mcp_core_rust/
+tools/mcp/mcp_core_rust/
 ├── Cargo.toml              # Workspace definition
 ├── README.md               # This file
 ├── crates/

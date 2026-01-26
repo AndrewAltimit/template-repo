@@ -1042,7 +1042,7 @@ services:
   # Rust implementation with fastembed (ONNX-based embeddings)
   mcp-reaction-search-rust:
     build:
-      context: ./packages/mcp_core_rust
+      context: ./tools/mcp/mcp_core_rust
       dockerfile: servers/reaction-search/Dockerfile
     container_name: mcp-reaction-search-rust
     ports:

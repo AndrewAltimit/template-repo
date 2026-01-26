@@ -422,7 +422,7 @@ case "$STAGE" in
     echo "Building Rust CI image..."
     docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/mcp_core_rust \
+      -w /app/tools/mcp/mcp_core_rust \
       rust-ci cargo fmt --all -- --check
     ;;
 
@@ -431,7 +431,7 @@ case "$STAGE" in
     echo "Building Rust CI image..."
     docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/mcp_core_rust \
+      -w /app/tools/mcp/mcp_core_rust \
       rust-ci cargo clippy --workspace --all-targets -- -D warnings
     ;;
 
@@ -440,7 +440,7 @@ case "$STAGE" in
     echo "Building Rust CI image..."
     docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/mcp_core_rust \
+      -w /app/tools/mcp/mcp_core_rust \
       rust-ci cargo test --workspace "${EXTRA_ARGS[@]}"
     ;;
 
@@ -449,7 +449,7 @@ case "$STAGE" in
     echo "Building Rust CI image..."
     docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/mcp_core_rust \
+      -w /app/tools/mcp/mcp_core_rust \
       rust-ci cargo build --workspace --all-targets --release
     ;;
 
@@ -458,7 +458,7 @@ case "$STAGE" in
     echo "Building Rust CI image..."
     docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/mcp_core_rust \
+      -w /app/tools/mcp/mcp_core_rust \
       rust-ci cargo deny check || true
     ;;
 
@@ -467,9 +467,9 @@ case "$STAGE" in
     echo "Building Rust CI image..."
     docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/mcp_core_rust \
+      -w /app/tools/mcp/mcp_core_rust \
       rust-ci cargo doc --workspace --no-deps --document-private-items
-    echo "Documentation generated at packages/mcp_core_rust/target/doc/"
+    echo "Documentation generated at tools/mcp/mcp_core_rust/target/doc/"
     ;;
 
   mcp-full)

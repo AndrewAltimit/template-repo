@@ -88,7 +88,7 @@ BaseMCPServer (Abstract Base Class)
 ### 2.2 Workspace Structure
 
 ```
-packages/mcp_core_rust/
+tools/mcp/mcp_core_rust/
 ├── Cargo.toml                    # Workspace root
 ├── crates/
 │   ├── mcp-core/                 # Core abstractions
@@ -538,7 +538,7 @@ CMD ["--mode", "standalone", "--port", "8024"]
 services:
   mcp-reaction-search-rust:
     build:
-      context: ./packages/mcp_core_rust
+      context: ./tools/mcp/mcp_core_rust
       dockerfile: servers/reaction-search/Dockerfile
     ports:
       - "8124:8024"  # Different port during migration
@@ -616,9 +616,9 @@ tools/mcp/mcp_reaction_search/                 # Pilot reference
 
 ### Rust (New)
 ```
-packages/mcp_core_rust/                        # New workspace
-packages/mcp_core_rust/crates/mcp-core/        # Core library
-packages/mcp_core_rust/servers/reaction-search/ # Pilot server
+tools/mcp/mcp_core_rust/                        # New workspace
+tools/mcp/mcp_core_rust/crates/mcp-core/        # Core library
+tools/mcp/mcp_core_rust/servers/reaction-search/ # Pilot server
 ```
 
 ---
@@ -626,7 +626,7 @@ packages/mcp_core_rust/servers/reaction-search/ # Pilot server
 ## 13. Next Steps
 
 1. [x] Review and approve this plan
-2. [x] Create `packages/mcp_core_rust/` workspace structure
+2. [x] Create `tools/mcp/mcp_core_rust/` workspace structure
 3. [x] Implement `mcp-core` crate with `Tool` trait
 4. [x] Implement HTTP transport with Axum
 5. [ ] Create `#[mcp_tool]` proc macro (deferred - manual impl works well)
