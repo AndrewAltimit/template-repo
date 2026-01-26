@@ -50,6 +50,7 @@ jobs:
       dashboard_changed: ${{ steps.changes.outputs.dashboard_changed }}
       ci_changed: ${{ steps.changes.outputs.ci_changed }}
       injection_toolkit_changed: ${{ steps.changes.outputs.injection_toolkit_changed }}
+      economic_agents_changed: ${{ steps.changes.outputs.economic_agents_changed }}
       files_changed: ${{ steps.changes.outputs.files_changed }}
     steps:
       - name: Pre-checkout cleanup
@@ -102,6 +103,7 @@ jobs:
           dashboard_count=$(grep -E '(packages/sleeper_agents/dashboard)' changed_files.txt | wc -l || echo "0")
           ci_count=$(grep -E '(automation/ci-cd|\.github/workflows|docker/)' changed_files.txt | wc -l || echo "0")
           injection_toolkit_count=$(grep -E 'packages/injection_toolkit' changed_files.txt | wc -l || echo "0")
+          economic_agents_count=$(grep -E 'packages/economic_agents' changed_files.txt | wc -l || echo "0")
           total_files=$(cat changed_files.txt | wc -l)
 
           # Set outputs
@@ -114,6 +116,7 @@ jobs:
           echo "dashboard_changed=$([[ $dashboard_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "ci_changed=$([[ $ci_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "injection_toolkit_changed=$([[ $injection_toolkit_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "economic_agents_changed=$([[ $economic_agents_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "files_changed=$total_files" >> $GITHUB_OUTPUT
 
           echo "[INFO] Change Summary:"
@@ -126,6 +129,7 @@ jobs:
           echo "  Dashboard: $dashboard_count"
           echo "  CI/CD files: $ci_count"
           echo "  Injection Toolkit: $injection_toolkit_count"
+          echo "  Economic Agents: $economic_agents_count"
           echo "  Total files: $total_files"
 
   # Stage 1b: Build Rust CLI tools (for use by review jobs)
@@ -698,6 +702,71 @@ jobs:
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "## Injection Toolkit CI Summary" >> $GITHUB_STEP_SUMMARY
           echo "All checks: fully containerized (rust-ci, rust-ci-nightly)" >> $GITHUB_STEP_SUMMARY
+
+  # Stage 8c: Economic Agents Tests (Rust)
+  economic-agents-tests:
+    name: Economic Agents Tests
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
+    if: needs.detect-changes.outputs.economic_agents_changed == 'true'
+    runs-on: self-hosted
+    timeout-minutes: 20
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
+              "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
+              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Check formatting (containerized)
+        run: ./automation/ci-cd/run-ci.sh econ-fmt
+
+      - name: Run clippy (containerized)
+        run: ./automation/ci-cd/run-ci.sh econ-clippy
+
+      - name: Build workspace (containerized)
+        run: |
+          ./automation/ci-cd/run-ci.sh econ-build
+          echo "## Build Results" >> $GITHUB_STEP_SUMMARY
+          echo "All economic_agents crates built successfully (containerized)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Run unit tests (containerized)
+        run: |
+          ./automation/ci-cd/run-ci.sh econ-test
+          echo "## Unit Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "All economic_agents tests passed (containerized)" >> $GITHUB_STEP_SUMMARY
+
+      - name: License/security audit (containerized)
+        run: |
+          ./automation/ci-cd/run-ci.sh econ-deny
+          echo "## License & Security Audit" >> $GITHUB_STEP_SUMMARY
+          echo "No license or security issues found" >> $GITHUB_STEP_SUMMARY
+
+      - name: Generate documentation (containerized)
+        run: |
+          ./automation/ci-cd/run-ci.sh econ-doc
+          echo "## Documentation" >> $GITHUB_STEP_SUMMARY
+          echo "API documentation generated successfully" >> $GITHUB_STEP_SUMMARY
+
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "## Economic Agents CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "All checks: fully containerized (rust-ci)" >> $GITHUB_STEP_SUMMARY
 
   # Stage 9: Docker image validation
   docker-validation:

@@ -34,12 +34,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install rustfmt and clippy components
-RUN rustup component add rustfmt clippy
+# Install rustfmt, clippy, and llvm-tools for coverage
+RUN rustup component add rustfmt clippy llvm-tools-preview
 
 # Install cargo tools for CI
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    cargo install cargo-deny --locked 2>/dev/null || true
+    cargo install cargo-deny --locked 2>/dev/null || true && \
+    cargo install cargo-llvm-cov --locked 2>/dev/null || true
 
 # Create working directory
 WORKDIR /workspace

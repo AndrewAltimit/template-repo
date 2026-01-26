@@ -1,0 +1,22 @@
+[package]
+name = "economic-agents-mock"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Mock implementations for testing and simulation"
+
+[dependencies]
+economic-agents-interfaces.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+serde.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+rand.workspace = true
+
+[dev-dependencies]
+tokio-test.workspace = true

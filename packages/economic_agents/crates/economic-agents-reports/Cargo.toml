@@ -1,0 +1,17 @@
+[package]
+name = "economic-agents-reports"
+version = "0.1.0"
+edition = "2024"
+description = "Report generation for economic agents"
+license = "MIT"
+
+[dependencies]
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2"
+tokio = { version = "1.43", features = ["fs"] }
+tracing = "0.1"
+
+[dev-dependencies]
+tokio = { version = "1.43", features = ["rt-multi-thread", "macros"] }

@@ -1,0 +1,43 @@
+# Example Economic Agent Configuration
+# Copy to agent.yml and customize
+
+# Optional agent identifier
+agent_id: example-agent
+
+# Decision engine type
+# - rule_based: Simple rule-based decisions (fast, deterministic)
+# - llm: LLM-powered decisions (requires API key)
+engine_type: rule_based
+
+# Operating mode
+# - survival: Focus on earning enough to sustain compute costs
+# - company: Work on building and growing a company
+mode: survival
+
+# Agent personality affects risk tolerance and decision confidence
+# - balanced: Moderate risk, balanced decisions
+# - aggressive: Higher risk tolerance, bolder decisions
+# - risk_averse: Lower risk, conservative decisions
+personality: balanced
+
+# Task selection strategy
+# - first_available: Take the first available task
+# - highest_reward: Prioritize highest paying tasks
+# - best_ratio: Optimize reward/effort ratio
+# - balanced: Consider multiple factors
+task_selection_strategy: highest_reward
+
+# Hours of compute to keep as survival buffer
+survival_buffer_hours: 24.0
+
+# Capital threshold to consider company formation
+company_threshold: 100.0
+
+# Maximum cycles to run (null = unlimited)
+max_cycles: 100
+
+# Initial balance for mock backends (dollars)
+initial_balance: 50.0
+
+# Initial compute hours for mock backends
+initial_compute_hours: 100.0

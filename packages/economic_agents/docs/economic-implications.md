@@ -95,8 +95,8 @@ Multiple autonomous agents create interconnected economic structures:
 ### Traditional Corporate Structure
 
 ```
-Human Founder → Corporation → Board → Executives → Employees
-     ↓
+Human Founder -> Corporation -> Board -> Executives -> Employees
+     |
 All trace back to accountable natural persons
 ```
 
@@ -105,8 +105,8 @@ Every corporation ultimately has humans who can be held responsible. Fiduciary d
 ### Agent-Founded Structure
 
 ```
-Autonomous Agent → Creates Sub-Agents → Corporate Structure → Operations
-     ↓
+Autonomous Agent -> Creates Sub-Agents -> Corporate Structure -> Operations
+     |
 Who is accountable?
 ```
 
@@ -271,5 +271,4 @@ The framework doesn't argue that agent entrepreneurship is good or bad. It demon
 
 - [Economic Agents README](../README.md) - Framework overview and quick start
 - [Architecture Documentation](architecture.md) - Technical system design
-- [Getting Started Guide](getting-started.md) - Hands-on tutorial
-- [Integration Guide](integration-guide.md) - Advanced usage patterns
+- [Dashboard API Reference](dashboard-api.md) - REST API and WebSocket documentation

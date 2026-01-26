@@ -337,6 +337,82 @@ case "$STAGE" in
     $0 rust-cross-windows
     ;;
 
+  # ============================================
+  # Economic Agents Rust CI Stages
+  # ============================================
+
+  econ-fmt)
+    echo "=== Running Economic Agents format checks ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/packages/economic_agents \
+      rust-ci cargo fmt --all -- --check
+    ;;
+
+  econ-clippy)
+    echo "=== Running Economic Agents clippy lints ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/packages/economic_agents \
+      rust-ci cargo clippy --workspace --all-targets -- -D warnings
+    ;;
+
+  econ-test)
+    echo "=== Running Economic Agents tests ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/packages/economic_agents \
+      rust-ci cargo test --workspace "${EXTRA_ARGS[@]}"
+    ;;
+
+  econ-build)
+    echo "=== Building Economic Agents workspace ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/packages/economic_agents \
+      rust-ci cargo build --workspace --all-targets
+    ;;
+
+  econ-deny)
+    echo "=== Running Economic Agents cargo-deny checks ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/packages/economic_agents \
+      rust-ci cargo deny check || true
+    ;;
+
+  econ-doc)
+    echo "=== Generating Economic Agents documentation ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/packages/economic_agents \
+      rust-ci cargo doc --workspace --no-deps --document-private-items
+    echo "Documentation generated at packages/economic_agents/target/doc/"
+    ;;
+
+  econ-coverage)
+    echo "=== Running Economic Agents test coverage ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/packages/economic_agents \
+      rust-ci cargo llvm-cov --workspace --lcov --output-path lcov.info "${EXTRA_ARGS[@]}"
+    echo "Coverage report generated at packages/economic_agents/lcov.info"
+    ;;
+
+  econ-full)
+    echo "=== Running full Economic Agents CI checks ==="
+    $0 econ-fmt
+    $0 econ-clippy
+    $0 econ-test
+    ;;
+
   full)
     echo "=== Running full CI checks ==="
     $0 format
@@ -351,8 +427,9 @@ case "$STAGE" in
     echo "Unknown stage: $STAGE"
     echo "Available stages:"
     echo "  Python: format, lint-basic, lint-full, lint-shell, ruff, ruff-fix, bandit, security, test, test-gaea2, test-all, test-corporate-proxy, yaml-lint, json-lint, autoformat, full"
-    echo "  Rust:   rust-fmt, rust-clippy, rust-test, rust-build, rust-deny, rust-full"
-    echo "  Rust (nightly): rust-loom, rust-miri, rust-cross-linux, rust-cross-windows, rust-advanced"
+    echo "  Rust (injection_toolkit): rust-fmt, rust-clippy, rust-test, rust-build, rust-deny, rust-full"
+    echo "  Rust (nightly):           rust-loom, rust-miri, rust-cross-linux, rust-cross-windows, rust-advanced"
+    echo "  Rust (economic_agents):   econ-fmt, econ-clippy, econ-test, econ-build, econ-deny, econ-doc, econ-coverage, econ-full"
     exit 1
     ;;
 esac

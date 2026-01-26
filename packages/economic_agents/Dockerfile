@@ -1,70 +1,43 @@
-# Dockerfile for Autonomous Economic Agents
-FROM python:3.10-slim
+# Build stage
+FROM rust:1.83-slim-bookworm AS builder
 
-# Set working directory
-WORKDIR /app
-
-# Install system dependencies including build tools for Node.js native modules
+# Install build dependencies
 RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    bash \
-    build-essential \
-    sudo \
+    pkg-config \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user for Claude (required for --dangerously-skip-permissions)
-RUN useradd -m -u 1000 -s /bin/bash claude && \
-    echo "claude ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# Install NVM and Node.js for claude user
-USER claude
-WORKDIR /home/claude
-
-ENV NVM_DIR=/home/claude/.nvm
-ENV NODE_VERSION=22.16.0
-
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash && \
-    bash -c "source $NVM_DIR/nvm.sh && nvm install $NODE_VERSION && nvm use $NODE_VERSION && nvm alias default $NODE_VERSION"
-
-# Add NVM, Node, and npm to PATH for claude user
-ENV PATH="$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH"
-
-# Install Claude CLI globally for claude user
-RUN bash -c "source $NVM_DIR/nvm.sh && npm install -g @anthropic-ai/claude-code"
-
-# Switch back to root for copying files, then switch to claude
-USER root
 WORKDIR /app
 
-# Copy package files
-COPY pyproject.toml README.md ./
-COPY economic_agents/ ./economic_agents/
-COPY tests/ ./tests/
+# Copy workspace files
+COPY Cargo.toml Cargo.lock ./
 
-# Install Python dependencies
-# Install with all extras for full functionality
-RUN pip install --no-cache-dir -e ".[all]"
+# Copy all crates
+COPY crates/ ./crates/
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app
+# Build release binary
+RUN cargo build --release --bin economic-agents
 
-# Give claude user ownership of /app
-RUN chown -R claude:claude /app
+# Runtime stage
+FROM debian:bookworm-slim
 
-# Create log directories with proper permissions
-# Note: Log persistence is handled by Docker volume mount in docker-compose.yml
-RUN mkdir -p /app/logs/resources /app/logs/metrics /app/logs/alignment \
-             /app/logs/decisions /app/logs/observability/reports && \
-    chown -R claude:claude /app/logs
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Switch to claude user for runtime
-USER claude
+# Create non-root user
+RUN useradd -m -u 1000 agent
+USER agent
+WORKDIR /home/agent
 
-# Set up NVM environment for runtime
-ENV NVM_DIR=/home/claude/.nvm
-ENV PATH="$NVM_DIR/versions/node/v22.16.0/bin:$PATH"
+# Copy binary from builder
+COPY --from=builder /app/target/release/economic-agents /usr/local/bin/economic-agents
 
-# Default command
-CMD ["/bin/bash"]
+# Create directories for configs and data
+RUN mkdir -p /home/agent/config /home/agent/data
+
+# Default command runs the CLI help
+ENTRYPOINT ["economic-agents"]
+CMD ["--help"]

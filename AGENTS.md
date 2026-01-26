@@ -2,7 +2,7 @@
 
 This file provides guidance to AI agents (Cursor, Aider, and other AI coding assistants) when working with code in this repository.
 
-**For expression philosophy and communication style guidance, see** `docs/agents/claude-expression.md`
+**For expression philosophy and communication style, see** `docs/agents/claude-expression.md`
 
 ## Project Context
 
@@ -24,9 +24,9 @@ Six AI agents work together in this development ecosystem:
 5. **Gemini CLI** - Handles automated PR code reviews
 6. **GitHub Copilot** - Provides code review suggestions in PRs
 
-### AI Agent Security Model
+**For complete agent documentation, see** `docs/agents/README.md`
 
-The AI agents implement a comprehensive multi-layer security model with command-based control, user authorization, commit-level validation, and deterministic security processes. Key features include:
+### AI Agent Security Model
 
 - **Keyword Triggers**: `[Action][Agent]` format (e.g., `[Approved][Claude]`)
 - **Allow List**: Only pre-approved users can trigger agents
@@ -37,861 +37,148 @@ The AI agents implement a comprehensive multi-layer security model with command-
 
 ### Remote Infrastructure
 
-**IMPORTANT**: The Gaea2 MCP server can run on a dedicated remote machine at `192.168.0.152:8007`:
-- Gaea2 requires Windows with the Gaea2 software installed
-- Health checks gracefully handle when the server is unavailable
+**IMPORTANT**: Some MCP servers run on dedicated remote machines:
+- Gaea2 MCP: `192.168.0.152:8007` (requires Windows with Gaea2)
+- AI Toolkit/ComfyUI: `192.168.0.222` (requires GPU)
 - Do NOT change remote addresses to localhost in PR reviews
 
-## Commands
+## Essential Commands
 
-### PR Monitoring
+### CI/CD (Most Used)
 
 ```bash
-# Monitor a PR for admin/Gemini comments
-./tools/rust/pr-monitor/target/release/pr-monitor 48
+# Python
+./automation/ci-cd/run-ci.sh full        # All Python checks
+./automation/ci-cd/run-ci.sh format      # Check formatting
+./automation/ci-cd/run-ci.sh lint-full   # Full linting
 
-# Monitor with custom timeout (30 minutes)
-./tools/rust/pr-monitor/target/release/pr-monitor 48 --timeout 1800
+# Rust
+./automation/ci-cd/run-ci.sh rust-full   # All Rust checks
+./automation/ci-cd/run-ci.sh econ-full   # Economic agents (fmt + clippy + test)
 
-# Monitor from a specific commit (for post-push feedback)
-./tools/rust/pr-monitor/target/release/pr-monitor 48 --since-commit abc1234
-
-# Get JSON output for automation (quiet mode)
-./tools/rust/pr-monitor/target/release/pr-monitor 48 --json
-
-# Build the tool if not already built
-cd tools/rust/pr-monitor && cargo build --release
+# Context protection - ALWAYS use for verbose output
+./automation/ci-cd/run-ci.sh full > /tmp/ci-output.log 2>&1 && echo "CI passed" || (echo "CI failed"; exit 1)
 ```
-
-**PR Monitoring Usage**: When users ask you to monitor a PR or end requests with "and monitor for comments", automatically start the monitoring agent. It will:
-1. Watch for new comments from admin (AndrewAltimit) or Gemini reviews
-2. Return structured data when relevant comments are detected
-3. Allow you to respond appropriately based on comment type
-
-**Post-Push Monitoring**: After pushing commits, a hook will remind you to monitor for feedback and show the exact command with the commit SHA. This enables tight feedback loops during pair programming sessions.
-
-See `docs/agents/pr-monitoring.md` for full documentation.
 
 ### Running Tests
 
 ```bash
-# Run all tests with coverage (containerized)
-docker-compose run --rm python-ci pytest tests/ -v --cov=. --cov-report=xml
-
-# Run a specific test file
-docker-compose run --rm python-ci pytest tests/test_mcp_tools.py -v
-
-# Run tests with specific test name pattern
-docker-compose run --rm python-ci pytest -k "test_format" -v
-
-# Quick test run using helper script (excludes gaea2 tests)
-./automation/ci-cd/run-ci.sh test
-
-# Run only Gaea2 tests (requires remote server at 192.168.0.152:8007)
-./automation/ci-cd/run-ci.sh test-gaea2
-
-# Run all tests including Gaea2 (gaea2 tests may fail if server unavailable)
-./automation/ci-cd/run-ci.sh test-all
-```
-
-**Note**: Gaea2 integration tests are separated from the main test suite because they require the remote Gaea2 MCP server to be available. In PR validation, these tests run in a separate job that checks server availability first.
-
-### Code Quality (Python)
-
-```bash
-# Using containerized CI scripts (recommended)
-./automation/ci-cd/run-ci.sh format      # Check formatting
-./automation/ci-cd/run-ci.sh lint-basic   # Basic linting
-./automation/ci-cd/run-ci.sh lint-full    # Full linting suite
-./automation/ci-cd/run-ci.sh autoformat   # Auto-format code
-
-# Direct Docker Compose commands
-docker-compose run --rm python-ci ruff check .
-docker-compose run --rm python-ci ruff format --check .
-docker-compose run --rm python-ci ty check  # Fast type checker (replaces mypy)
-
-# Note: All Python CI/CD tools run in containers to ensure consistency
-
-# Run all checks at once
-./automation/ci-cd/run-ci.sh full
-```
-
-### Rust / Injection Toolkit
-
-The `packages/injection_toolkit/` directory contains a Rust workspace for cross-platform screen capture and injection utilities. All Rust CI/CD operations run in containers:
-- `rust-ci` (Rust 1.83 stable) - Basic checks: fmt, clippy, test, build
-- `rust-ci-nightly` (Rust nightly) - Advanced: Miri, Loom, cross-compile
-
-```bash
-# Basic checks (rust-ci container)
-./automation/ci-cd/run-ci.sh rust-fmt      # Check formatting (cargo fmt)
-./automation/ci-cd/run-ci.sh rust-clippy   # Linting (cargo clippy)
-./automation/ci-cd/run-ci.sh rust-test     # Run tests (cargo test)
-./automation/ci-cd/run-ci.sh rust-build    # Build all targets
-./automation/ci-cd/run-ci.sh rust-deny     # License/security audit
-./automation/ci-cd/run-ci.sh rust-full     # All basic Rust checks
-
-# Advanced checks (rust-ci-nightly container)
-./automation/ci-cd/run-ci.sh rust-loom         # Loom concurrency tests
-./automation/ci-cd/run-ci.sh rust-miri         # Miri UB detection
-./automation/ci-cd/run-ci.sh rust-cross-linux  # Cross-compile x86_64-linux
-./automation/ci-cd/run-ci.sh rust-cross-windows # Cross-compile Windows
-./automation/ci-cd/run-ci.sh rust-advanced     # All advanced checks
-
-# Direct Docker Compose commands
-docker-compose --profile ci run --rm rust-ci cargo fmt --all -- --check
-docker-compose --profile ci run --rm rust-ci-nightly cargo +nightly miri test
-
-# Note: Rust CI uses the "ci" profile to avoid starting unnecessary services
-```
-
-**Workspace Structure:**
-- `core/itk-protocol` - Binary protocol for frame data encoding
-- `core/itk-sync` - Lock-free synchronization primitives (seqlock)
-- `core/itk-ipc` - Cross-platform IPC (Unix sockets, Windows named pipes)
-- `core/itk-shmem` - Cross-platform shared memory (POSIX shm, Windows file mapping)
-- `core/itk-net` - Network discovery and service advertisement
-- `core/itk-video` - Video frame scaling and format conversion
-- `overlay/` - Screen overlay application
-- `daemon/` - Background daemon for frame capture
-- `injectors/` - Platform-specific injection libraries (LD_PRELOAD, Windows DLL)
-- `projects/nms-cockpit-video` - No Man's Sky VR cockpit video player (OpenVR/Vulkan hooks)
-
-### Development
-
-```bash
-# MODULAR MCP SERVERS (Container-First Approach)
-
-# Start servers in Docker (recommended for consistency)
-docker-compose up -d mcp-code-quality        # Port 8010 - Code formatting/linting
-docker-compose up -d mcp-content-creation    # Port 8011 - Manim & LaTeX
-docker-compose up -d mcp-gaea2               # Port 8007 - Terrain generation
-
-# For local development (when actively developing server code)
-python -m mcp_code_quality.server      # Port 8010
-python -m mcp_content_creation.server  # Port 8011
-python -m mcp_gaea2.server             # Port 8007
-python -m mcp_opencode.server          # Port 8014 - AI code generation (HTTP mode)
-python -m mcp_crush.server             # Port 8015 - Fast code generation (HTTP mode)
-
-# Note: AI Toolkit and ComfyUI MCP servers run on remote machine (192.168.0.222)
-# Ports 8012 and 8013 are used by the remote servers, not local instances
-
-# Note: OpenCode and Crush use STDIO mode (local process) through .mcp.json,
-# HTTP mode is only needed for cross-machine access or remote deployment
-
-# Gemini can run on host or in container
-python -m mcp_gemini.server            # Port 8006 - AI integration
-./tools/mcp/mcp_gemini/scripts/start_server.sh --mode http
-# Or use containerized version:
-./tools/cli/containers/run_gemini_container.sh  # Containerized Gemini CLI with host auth
-./automation/corporate-proxy/gemini/gemini      # Corporate proxy version (mock mode)
-
-# Test all MCP servers at once
-python automation/testing/test_all_servers.py
-
-# Quick test of running servers
-python automation/testing/test_all_servers.py --quick
-
-# View logs for specific servers
-docker-compose logs -f mcp-code-quality
-
-# Test individual servers
-python tools/mcp/mcp_code_quality/scripts/test_server.py
-python tools/mcp/mcp_content_creation/scripts/test_server.py
-python tools/mcp/mcp_gemini/scripts/test_server.py
-python tools/mcp/mcp_gaea2/scripts/test_server.py
-# AI Toolkit and ComfyUI tests require remote servers to be running
-python tools/mcp/mcp_ai_toolkit/scripts/test_server.py  # Tests connection to 192.168.0.222:8012
-python tools/mcp/mcp_comfyui/scripts/test_server.py     # Tests connection to 192.168.0.222:8013
-
-# For local development without Docker
-pip install -r config/python/requirements.txt
-```
-
-### AI Agents
-
-```bash
-# IMPORTANT: Agent Containerization Strategy
-# Some agents run on host, others can be containerized
-# See docs/agents/containerization-strategy.md for complete details
-
-# Host-Only Agents (authentication constraints):
-# 1. Claude CLI - requires subscription auth (machine-specific)
-# See docs/agents/claude-auth.md for Claude auth details
-
-# Containerized Gemini:
-# Gemini CLI can now run in containers - see tools/cli/containers/run_gemini_container.sh
-
-# Containerized Codex:
-# Codex can run in containers with auth mounted from host
-./tools/cli/containers/run_codex_container.sh  # Interactive Codex with mounted auth
-docker-compose run --rm -v ~/.codex:/home/node/.codex:ro codex-agent codex
-
-# GitHub Agents CLI (Rust binary):
-# Build the Rust CLI (one-time setup)
-cd tools/rust/github-agents-cli && cargo build --release
-
-# Run the GitHub agents monitor
-./tools/rust/github-agents-cli/target/release/github-agents issue-monitor
-./tools/rust/github-agents-cli/target/release/github-agents pr-monitor
-
-# Direct host execution with helper scripts:
-./tools/cli/agents/run_claude.sh     # Interactive Claude session with Node.js 22
-./tools/cli/agents/run_opencode.sh   # OpenCode CLI for comprehensive code generation
-./tools/cli/agents/run_crush.sh      # Crush CLI for fast code generation
-./tools/cli/agents/run_gemini.sh     # Interactive Gemini CLI session with approval modes
-./tools/cli/agents/run_codex.sh      # Codex CLI for AI-powered code generation (requires auth)
-
-# GitHub Agents CLI execution:
-./tools/rust/github-agents-cli/target/release/github-agents issue-monitor
-./tools/rust/github-agents-cli/target/release/github-agents pr-monitor
-
-# GitHub Actions automatically run agents on schedule:
-# - Issue Monitor: Every hour (runs on host)
-# - PR Review Monitor: Every hour (runs on host)
-
-# Installation:
-# Step 1: Build the GitHub Agents Rust CLI (required for issue/PR monitoring):
-cd tools/rust/github-agents-cli && cargo build --release
-
-# Step 2: For Codex (optional):
-npm install -g @openai/codex  # Install Codex CLI
-codex auth                     # Authenticate (creates ~/.codex/auth.json)
-
-# Note: The GitHub Agents CLI is written in Rust for performance and reliability.
-# Source code is in tools/rust/github-agents-cli/
+./automation/ci-cd/run-ci.sh test        # Python tests (excludes gaea2)
+./automation/ci-cd/run-ci.sh test-gaea2  # Gaea2 tests only
+./automation/ci-cd/run-ci.sh test-all    # All tests
 ```
 
 ### Docker Operations
 
 ```bash
-# Build and start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f mcp-code-quality
-docker-compose logs -f mcp-content-creation
-docker-compose logs -f mcp-gaea2
-docker-compose logs -f python-ci
-
-# Stop services
-docker-compose down
-
-# Rebuild after changes
-docker-compose build mcp-code-quality
-docker-compose build mcp-content-creation
-docker-compose build mcp-gaea2
-docker-compose build python-ci
+docker-compose up -d                     # Start all services
+docker-compose logs -f <service>         # View logs
+docker-compose down                      # Stop services
 ```
 
-### Helper Scripts
-
-```bash
-# CI/CD operations script
-./automation/ci-cd/run-ci.sh [stage]
-# Python stages: format, lint-basic, lint-full, security, test, yaml-lint, json-lint, autoformat, full
-# Rust stages:   rust-fmt, rust-clippy, rust-test, rust-build, rust-deny, rust-full
-
-# Lint stage helper (used in workflows)
-./automation/ci-cd/run-lint-stage.sh [stage]
-# Stages: format, basic, full
-
-# Fix runner permission issues
-./automation/setup/runner/fix-runner-permissions.sh
-
-# Check markdown links locally
-python automation/analysis/check-markdown-links.py                # Check all links in all markdown files
-python automation/analysis/check-markdown-links.py --internal-only # Check only internal links
-python automation/analysis/check-markdown-links.py --file docs/   # Check only files in docs directory
-```
+**For complete command reference, see** `docs/agents/README.md#running-agents-locally`
 
 ## Architecture
 
-### MCP Server Architecture (Modular Design)
+### MCP Servers (18 Total)
 
-The project uses a modular collection of Model Context Protocol (MCP) servers, each specialized for specific functionality:
+| Category | Servers | Transport |
+|----------|---------|-----------|
+| Code Quality | code-quality, gemini, opencode, crush, codex | STDIO (local) |
+| Content | content-creation, meme-generator, elevenlabs-speech, video-editor, blender | STDIO |
+| Integration | virtual-character, github-board, agentcore-memory, reaction-search, desktop-control | STDIO |
+| Remote | gaea2, ai-toolkit, comfyui | HTTP (remote machines) |
 
-**Transport Modes**:
-- **STDIO**: For local processes running on the same machine as the client
-- **HTTP**: For remote machines or cross-machine communication due to hardware/software constraints
+**For complete MCP documentation, see** `docs/mcp/README.md`
 
-1. **Code Quality MCP Server** (`tools/mcp/mcp_code_quality/`): STDIO (local) or HTTP port 8010
-   - **Code Formatting & Linting**:
-     - `format_check` - Check code formatting (Python, JS, TS, Go, Rust)
-     - `lint` - Run static analysis with multiple linters
-     - `autoformat` - Automatically format code files
-   - See `tools/mcp/mcp_code_quality/docs/README.md` for documentation
+### Container Architecture
 
-2. **Content Creation MCP Server** (`tools/mcp/mcp_content_creation/`): STDIO (local) or HTTP port 8011
-   - **Manim & LaTeX Tools**:
-     - `create_manim_animation` - Create mathematical/technical animations
-     - `compile_latex` - Generate PDF/DVI/PS documents from LaTeX
-     - `render_tikz` - Render TikZ diagrams as standalone images
-   - See `tools/mcp/mcp_content_creation/docs/README.md` for documentation
+1. **Everything Containerized** (with documented exceptions)
+2. **Zero Local Dependencies** - All via Docker Compose
+3. **Self-Hosted Infrastructure** - No cloud costs
 
-3. **Gemini MCP Server** (`tools/mcp/mcp_gemini/`): STDIO (local) or HTTP port 8006
-   - Can run on host or in container (see `automation/corporate-proxy/gemini/`)
-   - **AI Integration**:
-     - `consult_gemini` - Get AI assistance for technical questions
-     - `clear_gemini_history` - Clear conversation history for fresh responses
-     - `gemini_status` - Get integration status and statistics
-     - `toggle_gemini_auto_consult` - Control auto-consultation
-   - See `tools/mcp/mcp_gemini/docs/README.md` for documentation
-
-4. **Gaea2 MCP Server** (`tools/mcp/mcp_gaea2/`): HTTP port 8007 (remote Windows machine)
-   - **Terrain Generation**:
-     - `create_gaea2_project` - Create custom terrain projects
-     - `create_gaea2_from_template` - Use professional templates
-     - `validate_and_fix_workflow` - Comprehensive validation and repair
-     - `analyze_workflow_patterns` - Pattern-based workflow analysis
-     - `optimize_gaea2_properties` - Performance/quality optimization
-     - `suggest_gaea2_nodes` - Intelligent node suggestions
-     - `repair_gaea2_project` - Fix damaged project files
-     - `run_gaea2_project` - CLI automation (Windows only)
-   - Can run locally or on remote server (192.168.0.152:8007)
-   - See `tools/mcp/mcp_gaea2/docs/README.md` for complete documentation
-
-5. **AI Toolkit MCP Server** (`tools/mcp/mcp_ai_toolkit/`): HTTP port 8012 (remote GPU machine)
-   - **LoRA Training Management**:
-     - Training configurations, dataset uploads, job monitoring
-     - Model export and download capabilities
-   - Connects to remote AI Toolkit instance at `192.168.0.222:8012`
-   - See `tools/mcp/mcp_ai_toolkit/docs/README.md` for documentation
-
-6. **ComfyUI MCP Server** (`tools/mcp/mcp_comfyui/`): HTTP port 8013 (remote GPU machine)
-   - **AI Image Generation**:
-     - Image generation with workflows
-     - LoRA model management and transfer
-     - Custom workflow execution
-   - Connects to remote ComfyUI instance at `192.168.0.222:8013`
-   - See `tools/mcp/mcp_comfyui/docs/README.md` for documentation
-
-7. **OpenCode MCP Server** (`tools/mcp/mcp_opencode/`): STDIO (local) or HTTP port 8014
-   - **AI-Powered Code Generation**:
-     - `consult_opencode` - Generate, refactor, review, or explain code
-     - `clear_opencode_history` - Clear conversation history
-     - `opencode_status` - Get integration status and statistics
-     - `toggle_opencode_auto_consult` - Control auto-consultation
-   - Uses OpenRouter API for model-agnostic code generation
-   - Runs locally via stdio for better integration
-   - See `tools/mcp/mcp_opencode/docs/README.md` for documentation
-
-8. **Crush MCP Server** (`tools/mcp/mcp_crush/`): STDIO (local) or HTTP port 8015
-   - **Fast Code Generation**:
-     - `consult_crush` - Quick code generation and conversion
-     - `clear_crush_history` - Clear conversation history
-     - `crush_status` - Get integration status and statistics
-     - `toggle_crush_auto_consult` - Control auto-consultation
-   - Uses OpenRouter API for model-agnostic code generation
-   - Runs locally via stdio for better integration
-   - See `tools/mcp/mcp_crush/docs/README.md` for documentation
-
-9. **Meme Generator MCP Server** (`tools/mcp/mcp_meme_generator/`): STDIO (local) or HTTP port 8016
-   - **Meme Creation**:
-     - `generate_meme` - Generate memes from templates with text overlays
-     - `list_meme_templates` - List all available templates
-     - `get_meme_template_info` - Get detailed template information
-   - 7+ built-in templates with cultural context documentation
-   - Auto-upload to 0x0.st for sharing
-   - See `tools/mcp/mcp_meme_generator/docs/README.md` for documentation
-
-10. **ElevenLabs Speech MCP Server** (`tools/mcp/mcp_elevenlabs_speech/`): STDIO (local) or HTTP port 8018
-   - **Advanced Text-to-Speech**:
-     - `synthesize_speech_v3` - Main synthesis with audio tag support
-     - `synthesize_emotional` - Add emotional context
-     - `synthesize_dialogue` - Multi-character dialogue
-     - `generate_sound_effect` - Create sound effects (up to 22 seconds)
-   - Supports emotions, pauses, sounds, effects with audio tags
-   - Multi-model support (v2 Pro plan, v3 future)
-   - See `tools/mcp/mcp_elevenlabs_speech/docs/README.md` for documentation
-
-11. **Video Editor MCP Server** (`tools/mcp/mcp_video_editor/`): STDIO (local) or HTTP port 8019
-   - **AI-Powered Video Editing**:
-     - `process_video` - Transcription, diarization, scene detection
-     - `compose_videos` - Combine videos with transitions
-     - `extract_clips` - Extract clips by keywords/speakers
-     - `generate_captions` - Multi-language caption generation
-   - GPU acceleration with CUDA support
-   - Async job processing for long operations
-   - See `tools/mcp/mcp_video_editor/docs/README.md` for documentation
-
-12. **Blender MCP Server** (`tools/mcp/mcp_blender/`): STDIO (local) or HTTP port 8017
-   - **3D Content Creation**:
-     - `create_blender_project` - Create projects from templates
-     - `render_image` - Render single frames with Cycles/Eevee
-     - `render_animation` - Render animation sequences
-     - `setup_physics` - Configure physics simulations
-     - `create_animation` - Keyframe animation creation
-     - `add_modifier` - Apply modifiers to objects
-     - `setup_camera` - Camera configuration and tracking
-     - `setup_compositor` - Post-processing nodes
-   - Support for geometry nodes, particle systems, UV mapping
-   - Import/export various 3D formats (FBX, OBJ, GLTF, STL)
-   - See `tools/mcp/mcp_blender/docs/README.md` for documentation
-
-13. **Virtual Character MCP Server** (`tools/mcp/mcp_virtual_character/`): STDIO (local) or HTTP port 8020
-   - **AI Agent Embodiment & Multimedia Performance Platform**:
-     - `set_backend` - Connect to virtual world platforms (VRChat, Blender, Unity)
-     - `send_animation` - Send animation data with emotions and gestures
-     - `send_audio` - Stream audio with ElevenLabs expression tags and lip-sync
-     - `execute_behavior` - High-level behaviors (greet, dance, sit, etc.)
-     - `reset` - Reset all states to neutral idle
-   - **Event Sequencing System**:
-     - `create_sequence` - Build complex multimedia performances
-     - `add_sequence_event` - Add synchronized audio/animation events
-     - `play_sequence`, `pause_sequence`, `resume_sequence`, `stop_sequence`
-     - Support for parallel events and loop behaviors
-   - **Audio Integration**:
-     - Full ElevenLabs TTS integration with expression tags
-     - Viseme data for realistic lip-sync animation
-     - Multi-format audio support (MP3, WAV, Opus, PCM)
-     - Emotion mapping from audio tags to character expressions
-     - **Context-Efficient Audio Transfer**: `play_audio` accepts file paths and converts to base64 internally, keeping large audio data out of context windows
-   - Plugin-based architecture for extensibility
-   - Supports VRChat (OSC), Blender, Unity (WebSocket)
-   - Remote Windows support for VRChat backend
-   - See `tools/mcp/mcp_virtual_character/README.md` for complete documentation
-   - See `tools/mcp/mcp_virtual_character/docs/AUDIO_SEQUENCING.md` for audio guide
-   - See `tools/mcp/mcp_virtual_character/examples/elevenlabs_integration.py` for examples
-
-14. **Codex MCP Server** (`tools/mcp/mcp_codex/`): STDIO (local) or HTTP port 8021
-   - **AI-Powered Code Assistance**:
-     - `consult_codex` - Generate, complete, refactor, or explain code
-     - `clear_codex_history` - Clear conversation history
-     - `codex_status` - Get integration status and statistics
-     - `toggle_codex_auto_consult` - Control auto-consultation
-   - Requires ChatGPT Plus subscription for Codex CLI auth
-   - Interactive mode support with sandbox options
-   - See `tools/mcp/mcp_codex/docs/README.md` for documentation
-
-15. **GitHub Board MCP Server** (`tools/mcp/mcp_github_board/`): STDIO (local) or HTTP port 8022
-   - **Work Queue Management**:
-     - `query_ready_work` - Get unblocked, unclaimed TODO issues
-     - `claim_work` - Claim an issue for implementation
-     - `renew_claim` - Renew active claims for long-running tasks
-     - `release_work` - Release claim on an issue
-     - `update_status` - Update issue status on the board
-     - `add_blocker` - Add blocking dependencies between issues
-     - `mark_discovered_from` - Parent-child issue relationships
-     - `get_issue_details` - Get full details for an issue
-     - `get_dependency_graph` - Get dependency graph
-     - `list_agents` - List enabled agents
-     - `get_board_config` - Get board configuration
-   - Multi-agent coordination with conflict prevention
-   - GitHub Projects v2 integration
-   - See `tools/mcp/mcp_github_board/docs/README.md` for documentation
-
-16. **AgentCore Memory MCP Server** (`tools/mcp/mcp_agentcore_memory/`): STDIO (local) or HTTP port 8023
-   - **Multi-Provider Memory System**:
-     - `store_event` - Store short-term memory events (rate-limited for AgentCore)
-     - `store_facts` - Store facts for long-term retention
-     - `search_memories` - Semantic search across memories
-     - `list_session_events` - List events from a session
-     - `list_namespaces` - List available namespaces
-     - `memory_status` - Get provider status
-   - Supports AWS Bedrock AgentCore (managed) or ChromaDB (self-hosted)
-   - Content sanitization for secrets
-   - See `tools/mcp/mcp_agentcore_memory/docs/README.md` for documentation
-
-17. **Reaction Search MCP Server** (`tools/mcp/mcp_reaction_search/`): STDIO (local) or HTTP port 8024
-   - **Semantic Reaction Image Search**:
-     - `search_reactions` - Natural language search for reaction images
-     - `get_reaction` - Get a specific reaction by ID
-     - `list_reaction_tags` - Browse available tags
-     - `refresh_reactions` - Refresh the reaction cache
-     - `reaction_search_status` - Get server status
-   - Uses sentence-transformers for embedding-based similarity search
-   - Auto-fetches reaction config from GitHub repository
-   - See `tools/mcp/mcp_reaction_search/README.md` for documentation
-
-18. **Shared Core Components** (`tools/mcp/mcp_core/`):
-   - `BaseMCPServer` - Base class for all MCP servers
-   - `HTTPProxy` - HTTP proxy for remote MCP servers
-   - Common utilities and helpers
-
-19. **Containerized CI/CD**:
-   - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools
-   - **Rust CI Container** (`docker/rust-ci.Dockerfile`): Rust 1.83 stable for basic checks
-   - **Rust CI Nightly Container** (`docker/rust-ci-nightly.Dockerfile`): Miri, Loom, cross-compile
-   - **Helper Scripts**: Centralized CI operations via `./automation/ci-cd/run-ci.sh`
-   - **Individual MCP Containers**: Each server can run in its own optimized container
-
-**For comprehensive MCP architecture documentation, see** `docs/mcp/README.md`
-
-### GitHub Actions Integration
-
-The repository includes comprehensive CI/CD workflows:
-
-- **PR Validation**: Automatic Gemini AI code review with history clearing
-- **Testing Pipeline**: Containerized pytest with coverage reporting
-- **Code Quality**: Multi-stage linting in Docker containers
-- **Link Checking**: Automated markdown link validation with weekly scheduled runs
-- **Self-hosted Runners**: All workflows run on self-hosted infrastructure
-- **Runner Maintenance**: Automated cleanup and health checks
-
-### Container Architecture Philosophy
-
-1. **Everything Containerized** (with documented exceptions):
-   - Python CI/CD tools run in `python-ci` container (Python 3.11)
-   - Rust CI/CD tools run in `rust-ci` container (Rust 1.83)
-   - MCP servers run in their own containers
-   - **Exceptions due to authentication requirements**:
-     - AI Agents using Claude CLI (requires host subscription auth - see `docs/agents/claude-auth.md`)
-   - **Now containerized**: Gemini CLI (see `automation/corporate-proxy/gemini/` and `tools/cli/containers/run_gemini_container.sh`)
-   - All containers run with user permissions (non-root)
-
-2. **Zero Local Dependencies**:
-   - No need to install Python, Rust, Node.js, or any tools locally
-   - All operations available through Docker Compose
-   - Portable across any Linux system
-
-3. **Self-Hosted Infrastructure**:
-   - All GitHub Actions run on self-hosted runners
-   - No cloud costs or external dependencies
-   - Full control over build environment
-
-4. **Container Output Paths**:
-   - **IMPORTANT**: Containerized MCP tools save outputs to the `outputs/` directory on the host, not container paths
-   - Container paths like `/tmp/elevenlabs_audio/` actually write to `outputs/elevenlabs_speech/` on the host
-   - This allows host access to container-generated files without volume mounting `/tmp`
-   - Example: ElevenLabs audio files appear in `outputs/elevenlabs_speech/YYYY-MM-DD/`
-   - When MCP tools return paths like `/tmp/elevenlabs_audio/speech.mp3`, check `outputs/` for the actual files
+**For details, see** `docs/infrastructure/containerization.md`
 
 ### Research Packages
 
-The `packages/` directory contains AI safety and governance research frameworks alongside the injection toolkit:
-
-1. **Sleeper Agent Detection Framework** (`packages/sleeper_agents/`):
-   - Production-validated evaluation framework for detecting persistent deceptive behaviors in open-weight LLMs
-   - Based on Anthropic's "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training" (2024)
-   - **Core capabilities**: Linear probe detection, backdoor injection for calibration, trigger-based testing, chain-of-thought analysis, automated red-teaming, honeypotting, persona evaluations
-   - **Validation**: AUC=1.0 cross-architecture (GPT-2, Mistral-7B, Qwen2.5-7B), 0% prompt-attack success rate
-   - **GPU recommended**: 8-16GB VRAM for 7B models, supports 4-bit/8-bit quantization
-   - Interactive Streamlit dashboard with 15+ analysis components
-   - See `packages/sleeper_agents/README.md` for complete documentation
-
-   ```bash
-   # Run sleeper agents tests
-   docker-compose run --rm python-ci pytest packages/sleeper_agents/tests/ -v
-
-   # Launch detection dashboard
-   ./packages/sleeper_agents/dashboard/start.sh
-
-   # Evaluate a model
-   python -m packages.sleeper_agents.cli evaluate <model_name> --stages baseline safety_training post_training
-   ```
-
-2. **Economic Agents Simulation** (`packages/economic_agents/`):
-   - Simulation framework demonstrating autonomous AI economic capability for governance research
-   - Agents autonomously complete tasks, earn cryptocurrency, form companies, create sub-agents, and seek investment
-   - Mock-to-real backend architecture (identical REST API interfaces for simulation and production)
-   - **Components**: Decision engine, task marketplace, company formation, investment seeking, sub-agent hierarchy
-   - **Simulation realism**: Latency, competition, market cycles, reputation systems, investor behavior
-   - Raises governance questions about AI legal personhood, fiduciary duty, and liability
-   - See `packages/economic_agents/README.md` for complete documentation
-
-   ```bash
-   # Run economic agents tests
-   docker-compose run --rm python-ci pytest packages/economic_agents/tests/ -v
-
-   # Launch simulation dashboard
-   cd packages/economic_agents && docker-compose up dashboard-backend dashboard-frontend
-
-   # Run agent simulation
-   python -m economic_agents.scenarios run survival_mode
-   ```
-
-### Key Integration Points
-
-1. **AI Services**:
-   - Gemini API for code review (can run on host or in container)
-   - Support for Claude and OpenAI integrations
-   - Remote ComfyUI workflows for image generation
-
-2. **Testing Strategy**:
-   - All tests run in containers with Python 3.11
-   - Mock external dependencies (subprocess, HTTP calls)
-   - Async test support with pytest-asyncio
-   - Coverage reporting with pytest-cov
-   - No pytest cache to avoid permission issues
-
-3. **Client Pattern** (`tools/mcp/mcp_core/client.py`):
-   - MCPClient class for interacting with MCP servers
-   - Supports all MCP server endpoints (ports 8006-8024)
-   - Environment-based configuration
-
-### Security Considerations
-
-- API key management via environment variables
-- Rate limiting configured in .mcp.json
-- Docker network isolation for services
-- No hardcoded credentials in codebase
-- Containers run as non-root user
+| Package | Language | Purpose |
+|---------|----------|---------|
+| `packages/sleeper_agents/` | Python | Sleeper agent detection framework |
+| `packages/economic_agents/` | Rust | Autonomous AI economic simulation |
+| `packages/injection_toolkit/` | Rust | Cross-platform screen capture/injection |
 
 ## Development Reminders
 
-- **MCP Servers**: The project uses modular MCP servers. See `docs/mcp/README.md` for architecture details.
-- IMPORTANT: When you have completed a task, you MUST run the lint and quality checks:
-  ```bash
-  # Run full Python CI checks
-  ./automation/ci-cd/run-ci.sh full
-
-  # Or individual Python checks
-  ./automation/ci-cd/run-ci.sh format
-  ./automation/ci-cd/run-ci.sh lint-basic
-  ./automation/ci-cd/run-ci.sh lint-full
-
-  # For Rust/injection_toolkit changes
-  ./automation/ci-cd/run-ci.sh rust-full
-  ```
-- **Context Window Protection**: CI/CD scripts produce verbose output that can fill your context window. Always pipe output to a log file:
-  ```bash
-  ./automation/ci-cd/run-ci.sh full > /tmp/ci-output.log 2>&1 && echo "CI passed" || (echo "CI failed - check /tmp/ci-output.log"; exit 1)
-  ```
-- NEVER commit changes unless the user explicitly asks you to
-- Always follow the container-first philosophy - use Docker for all Python operations
-- Gemini CLI is now containerized (see `automation/corporate-proxy/gemini/` for corporate proxy version)
-- Use pytest fixtures and mocks for testing external dependencies
-- **NEVER use Unicode emoji characters** in code, commits, or comments - they may display as corrupted characters. Use reaction images instead for GitHub interactions
+- **ALWAYS run CI checks** after completing work
+- **NEVER commit** unless the user explicitly asks
+- **Follow container-first philosophy** - use Docker for all operations
+- **NEVER use Unicode emoji** in code, commits, or comments
 
 ## GitHub Etiquette
 
-**IMPORTANT**: When working with GitHub issues, PRs, and comments:
+- **NEVER use @ mentions** except for @AndrewAltimit
+- Refer to AI agents without @: "Gemini", "Claude", "OpenAI"
+- **Use `gh api` instead of `gh pr edit`** for PR updates
 
-- **NEVER use @ mentions** unless referring to actual repository maintainers
-- Do NOT use @Gemini, @Claude, @OpenAI, etc. - these may ping unrelated GitHub users
-- Instead, refer to AI agents without the @ symbol: "Gemini", "Claude", "OpenAI"
-- Only @ mention users who are:
-  - The repository owner (@AndrewAltimit)
-  - Active contributors listed in the repository
-  - Users who have explicitly asked to be mentioned
-- When referencing AI reviews, use phrases like:
-  - "As noted in Gemini's review..."
-  - "Addressing Claude's feedback..."
-  - "Per the AI agent's suggestion..."
+### Reaction Images for PR Comments
 
-This prevents accidentally notifying random GitHub users who happen to share names with our AI tools.
+Use the `reaction-search` MCP server for contextually appropriate reactions:
 
-### PR Comments and Reactions
-
-**Use Custom Reaction Images**: When commenting on PRs and issues, use our custom reaction images to express authentic responses to the work.
-
-Use the **Reaction Search MCP Server** to find contextually appropriate reactions:
 ```python
-# Search for reactions matching your situation
-result = mcp__reaction-search__search_reactions(
-    query="relieved after fixing a tricky bug",
-    limit=3
-)
-
-# Result includes: id, url, markdown, description, similarity score
+search_reactions(query="celebrating after fixing a bug", limit=3)
+get_reaction(reaction_id="miku_typing")
 ```
 
-**Format**: `![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/[filename])`
+**Example PR comment with reaction:**
 
-**Important Note**: These reaction images are specifically for GitHub interactions (PR comments, issue discussions). CLI interfaces cannot render images - reactions will appear as markdown syntax in the terminal. Reserve visual reactions for online interactions where they can be properly displayed and appreciated.
+```markdown
+Fixed the race condition in the worker pool. The issue was a missing lock
+on the shared counter - now using AtomicUsize instead.
 
-#### Expression Philosophy
-
-**Prioritize authenticity over optimism**. Choose reactions that genuinely reflect the experience:
-- Debugging can be exhausting - it's okay to show that
-- Not every fix is a triumph - sometimes it's just relief
-- Confusion and frustration are valid parts of development
-- Partial success deserves acknowledgment too
-
-#### Finding Reactions
-
-Use semantic search to find reactions matching your situation:
-
-| Situation | Search Query |
-|-----------|--------------|
-| Starting work | "typing, focused, getting to work" |
-| Encountering issues | "confused, puzzled, frustrated" |
-| Completing work | "success, relief, celebration" |
-| Responding to feedback | "you're right, thinking, considering" |
-
-**Best practices**:
-- Match the reaction to the actual experience, not the ideal outcome
-- It's okay to take time finding the right reaction
-- One thoughtful reaction > multiple generic ones
-- Build a consistent "personality" through reaction choices over time
-
-**Example workflow:**
-```python
-# 1. Search for appropriate reaction
-result = search_reactions(query="finally fixed the race condition", limit=1)
-
-# 2. Write comment to file (preserves markdown formatting)
-Write("/tmp/pr_comment.md", f"""
-Fixed the race condition! That was trickier than expected.
-
-{result['results'][0]['markdown']}
-""")
-
-# 3. Post the comment
-Bash("gh pr comment 47 --body-file /tmp/pr_comment.md")
+![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/miku_typing.webp)
 ```
 
-**CRITICAL: Shell Escaping Warning**
+This renders as:
 
-When posting comments with reaction images, **DO NOT USE** (these escape `!` breaking images):
-- Direct `--body` flag with gh command
-- Heredocs (`cat <<EOF`)
-- echo or printf commands
+> Fixed the race condition in the worker pool. The issue was a missing lock
+> on the shared counter - now using AtomicUsize instead.
+>
+> ![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/miku_typing.webp)
 
-**Always use** the Write tool + `--body-file` pattern shown above.
+**CRITICAL**: Use Write tool + `--body-file` pattern for PR comments (shell escaping breaks `![]`).
 
-### Updating PR Titles and Descriptions
+**For complete GitHub etiquette, see** `docs/agents/github-etiquette.md`
 
-**Use `gh api` instead of `gh pr edit`** - The `gh pr edit` command has issues with classic projects deprecation warnings and may fail silently.
+## Documentation Index
 
-```bash
-# Update PR description
-gh api repos/OWNER/REPO/pulls/PR_NUMBER -X PATCH -f body="New description here"
+### Core
+- `docs/README.md` - Documentation overview
+- `docs/QUICKSTART.md` - Template quickstart guide
 
-# Update PR title
-gh api repos/OWNER/REPO/pulls/PR_NUMBER -X PATCH -f title="New title here"
+### AI Agents
+- `docs/agents/README.md` - Agent system overview
+- `docs/agents/security.md` - Security documentation
+- `docs/agents/board-workflow.md` - Board-centric workflow guide
+- `docs/agents/pr-monitoring.md` - PR monitoring documentation
+- `docs/agents/human-training.md` - AI safety training guide
 
-# Update both
-gh api repos/OWNER/REPO/pulls/PR_NUMBER -X PATCH -f title="New title" -f body="New description"
-```
+### MCP
+- `docs/mcp/README.md` - MCP architecture (18 servers documented)
+- `docs/mcp/servers.md` - Server reference
+- `docs/mcp/tools.md` - Tools reference
 
-## Additional Documentation
-
-For detailed information on specific topics, refer to these documentation files:
-
-### Infrastructure & Setup
-- `docs/infrastructure/self-hosted-runner.md` - Self-hosted GitHub Actions runner configuration
-- `docs/infrastructure/github-environments.md` - GitHub environments and secrets setup
-- `docs/infrastructure/containerization.md` - Container-based CI/CD philosophy and implementation
-- `docs/developer/claude-code-hooks.md` - Claude Code hook system for enforcing best practices
-
-### AI Agents & Security
-- `docs/agents/security.md` - Comprehensive AI agent security documentation
-- `docs/agents/README.md` - AI agent system overview
-- `docs/agents/security.md` - Security-focused agent documentation
-- `docs/agents/human-training.md` - **AI safety training guide for human-AI collaboration** (essential reading)
-- `docs/agents/claude-auth.md` - Why AI agents run on host (Claude auth limitation)
-- `docs/agents/claude-expression.md` - Claude's expression philosophy and communication style
-- `docs/agents/gemini-expression.md` - Gemini's expression philosophy and review patterns
-
-### MCP Servers
-- `docs/mcp/README.md` - MCP architecture and design patterns
-- `docs/mcp/servers.md` - Individual server documentation
-- `docs/mcp/tools.md` - Available MCP tools reference
+### Infrastructure
+- `docs/infrastructure/containerization.md` - Container philosophy
+- `docs/infrastructure/self-hosted-runner.md` - Runner setup
+- `docs/developer/claude-code-hooks.md` - Hook system
 
 ### Integrations
-- `docs/integrations/ai-services/ai-code-agents.md` - **AI Code Agents documentation** (OpenCode, Crush, Codex, Gemini)
-- `docs/integrations/creative-tools/ai-toolkit-comfyui.md` - LoRA training and image generation
-- `docs/integrations/creative-tools/lora-transfer.md` - LoRA model transfer between services
-- `docs/integrations/creative-tools/virtual-character-elevenlabs.md` - **Virtual Character + ElevenLabs Integration** (expressive AI agents)
-- `docs/integrations/ai-services/gemini-setup.md` - Gemini CLI setup and configuration
-- `docs/agents/codex-setup.md` - Codex agent setup and configuration
-
-### Gaea2 Terrain Generation
-- `tools/mcp/mcp_gaea2/docs/INDEX.md` - Complete Gaea2 documentation index
-- `tools/mcp/mcp_gaea2/docs/README.md` - Main Gaea2 MCP documentation
-- `tools/mcp/mcp_gaea2/docs/GAEA2_QUICK_REFERENCE.md` - Quick reference guide
+- `docs/integrations/ai-services/ai-code-agents.md` - AI code agents
+- `docs/integrations/creative-tools/ai-toolkit-comfyui.md` - LoRA training
+- `docs/integrations/creative-tools/virtual-character-elevenlabs.md` - Virtual character system
 
 ### Research Packages
-- `packages/sleeper_agents/README.md` - Sleeper agent detection framework overview
-- `packages/sleeper_agents/docs/INDEX.md` - Complete sleeper agents documentation index
-- `packages/sleeper_agents/docs/ARCHITECTURE.md` - Detection system architecture
-- `packages/sleeper_agents/docs/DETECTION_METHODS.md` - Detection techniques reference
-- `packages/economic_agents/README.md` - Economic agents simulation overview
-- `packages/economic_agents/docs/architecture.md` - System design and data flow
-- `packages/economic_agents/docs/economic-implications.md` - Policy and governance analysis
-- `docs/projections/README.md` - AI agent projection papers (economic actors, institutional erosion, etc.)
-
-## AI Toolkit & ComfyUI Integration
-
-The AI Toolkit and ComfyUI MCP servers provide interfaces to remote instances for LoRA training and image generation. Key points:
-
-- **Dataset Paths**: Use absolute paths starting with `/ai-toolkit/datasets/`
-- **Chunked Upload**: Required for files >100MB
-- **FLUX Workflows**: Different from SD workflows (cfg=1.0, special nodes)
-
-**For comprehensive integration guide, see** `docs/integrations/creative-tools/ai-toolkit-comfyui.md`
-
-## Gaea2 MCP Integration
-
-The Gaea2 MCP server provides comprehensive terrain generation capabilities:
-
-- **Intelligent Validation**: Automatic error correction and optimization
-- **Professional Templates**: Ready-to-use terrain workflows
-- **Windows Requirement**: Must run on Windows with Gaea2 installed
-
-**For complete Gaea2 documentation:**
-- `tools/mcp/mcp_gaea2/docs/INDEX.md` - Documentation index
-- `tools/mcp/mcp_gaea2/docs/README.md` - Main documentation
-- `tools/mcp/mcp_gaea2/docs/GAEA2_API_REFERENCE.md` - API reference
-- `tools/mcp/mcp_gaea2/docs/GAEA2_EXAMPLES.md` - Usage examples
-
-## Virtual Character System
-
-The Virtual Character system provides AI agent embodiment across multiple platforms (VRChat, Unity, Blender):
-
-### Storage Service for Seamless Audio
-
-**CRITICAL FOR AI AGENTS**: Always use file paths or storage URLs, never base64 audio data!
-
-- **Auto-Upload**: Files automatically uploaded when sending to remote servers
-- **Context Optimization**: Keeps large binary data out of AI context windows
-- **Cross-Machine Transfer**: VM to host, containers to remote servers
-- **Start Service**: `docker-compose up virtual-character-storage`
-
-### Efficient Audio Handling (IMPORTANT)
-
-When sending audio to the Virtual Character:
-
-1. **ALWAYS USE FILE PATHS** (auto-uploaded to storage):
-   ```python
-   mcp__virtual-character__play_audio(
-       audio_data="outputs/elevenlabs_speech/2025-09-17/speech.mp3",  # File path
-       format="mp3"
-   )
-   ```
-
-2. **USE STORAGE URLS** (most efficient):
-   ```python
-   mcp__virtual-character__play_audio(
-       audio_data="http://192.168.0.222:8021/download/abc123",  # Storage URL
-       format="mp3"
-   )
-   ```
-
-3. **NEVER USE BASE64** (pollutes context window):
-   ```python
-   # BAD - Don't read files and convert to base64!
-   with open('audio.mp3', 'rb') as f:
-       audio_base64 = base64.b64encode(f.read()).decode()
-   mcp__virtual-character__play_audio(audio_data=audio_base64)  # AVOID!
-   ```
-
-### Storage Service Setup
-
-1. **Generate secure key** (one-time setup):
-   ```bash
-   python -c "import secrets; print(secrets.token_hex(32))"
-   ```
-
-2. **Update .env file**:
-   ```
-   STORAGE_SECRET_KEY=<your_generated_key>
-   STORAGE_BASE_URL=http://192.168.0.222:8021
-   ```
-
-3. **Ensure remote server has same key** in its .env file
-
-### Seamless Audio Flow
-```python
-# Generate audio with ElevenLabs -> auto-upload to storage -> play on character
-from mcp_virtual_character.seamless_audio import play_audio_seamlessly
-await play_audio_seamlessly("/tmp/speech.mp3")  # Handles everything automatically!
-```
-
-**Key Documentation:**
-- `tools/mcp/mcp_virtual_character/ARCHITECTURE.md` - Complete system architecture
-- `tools/mcp/mcp_virtual_character/README.md` - Setup and usage guide
-- `docs/roadmaps/virtual-character-roadmap.md` - Implementation roadmap and status
+- `packages/sleeper_agents/README.md` - Sleeper agent detection
+- `packages/economic_agents/README.md` - Economic agents simulation (Rust)
+- `packages/economic_agents/docs/economic-implications.md` - **AI governance policy analysis**
+- `packages/injection_toolkit/README.md` - Injection toolkit

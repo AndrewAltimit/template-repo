@@ -1,0 +1,99 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/economic-agents-core",
+    "crates/economic-agents-interfaces",
+    "crates/economic-agents-mock",
+    "crates/economic-agents-api",
+    "crates/economic-agents-company",
+    "crates/economic-agents-investment",
+    "crates/economic-agents-simulation",
+    "crates/economic-agents-monitoring",
+    "crates/economic-agents-dashboard",
+    "crates/economic-agents-cli",
+    "crates/economic-agents-persistence",
+    "crates/economic-agents-time",
+    "crates/economic-agents-observability",
+    "crates/economic-agents-reports",
+    "crates/economic-agents-tasks",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/AndrewAltimit/template-repo"
+authors = ["AndrewAltimit"]
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.40", features = ["full"] }
+async-trait = "0.1"
+futures = "0.3"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# HTTP/API
+axum = { version = "0.7", features = ["ws"] }
+reqwest = { version = "0.12", features = ["json"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+# Database/State
+uuid = { version = "1.10", features = ["v4", "serde"] }
+
+# Random
+rand = "0.8"
+
+# Logging/Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# CLI
+clap = { version = "4.5", features = ["derive"] }
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+humantime-serde = "1.1"
+
+# Testing
+tokio-test = "0.4"
+mockall = "0.13"
+proptest = "1.5"
+criterion = "0.5"
+axum-test = "16.0"
+tempfile = "3"
+
+# Internal crates
+economic-agents-core = { path = "crates/economic-agents-core" }
+economic-agents-interfaces = { path = "crates/economic-agents-interfaces" }
+economic-agents-mock = { path = "crates/economic-agents-mock" }
+economic-agents-api = { path = "crates/economic-agents-api" }
+economic-agents-company = { path = "crates/economic-agents-company" }
+economic-agents-investment = { path = "crates/economic-agents-investment" }
+economic-agents-simulation = { path = "crates/economic-agents-simulation" }
+economic-agents-monitoring = { path = "crates/economic-agents-monitoring" }
+economic-agents-dashboard = { path = "crates/economic-agents-dashboard" }
+economic-agents-cli = { path = "crates/economic-agents-cli" }
+economic-agents-persistence = { path = "crates/economic-agents-persistence" }
+economic-agents-time = { path = "crates/economic-agents-time" }
+economic-agents-observability = { path = "crates/economic-agents-observability" }
+economic-agents-reports = { path = "crates/economic-agents-reports" }
+economic-agents-tasks = { path = "crates/economic-agents-tasks" }
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true
