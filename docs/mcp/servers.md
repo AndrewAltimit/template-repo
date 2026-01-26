@@ -749,16 +749,19 @@ See `tools/mcp/mcp_agentcore_memory/docs/README.md` for detailed documentation.
 
 ## Reaction Search MCP Server
 
-The Reaction Search server provides semantic search for anime reaction images using sentence-transformers.
+The Reaction Search server provides semantic search for anime reaction images using fastembed (ONNX-based embeddings). This is a Rust implementation for high performance.
 
 ### Starting the Server
 
 ```bash
-# STDIO mode (configured in .mcp.json)
-python -m mcp_reaction_search.server
+# HTTP mode (standalone - default)
+mcp-reaction-search --mode standalone --port 8024
 
-# HTTP mode for remote access
-python -m mcp_reaction_search.server --http --port 8024
+# REST-only mode (no MCP protocol)
+mcp-reaction-search --mode server --port 8024
+
+# Docker
+docker-compose --profile services up -d mcp-reaction-search
 ```
 
 ### Available Tools
@@ -782,7 +785,7 @@ search_reactions(query="confused about an error message", limit=3)
 get_reaction(reaction_id="miku_typing")
 ```
 
-See `tools/mcp/mcp_reaction_search/README.md` for detailed documentation.
+Source code: `tools/mcp/mcp_reaction_search/`
 
 ## Unified Testing
 
