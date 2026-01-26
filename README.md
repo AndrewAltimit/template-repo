@@ -234,7 +234,7 @@ For enterprise environments requiring custom certificates, customize [`automatio
 14. **AI Toolkit** - LoRA training interface (remote: 192.168.0.222:8012)
 15. **ComfyUI** - Image generation interface (remote: 192.168.0.222:8013)
 16. **AgentCore Memory** - Multi-provider AI memory (AWS AgentCore or ChromaDB) ([Documentation](tools/mcp/mcp_agentcore_memory/docs/README.md))
-17. **Reaction Search** - Semantic search for anime reaction images ([Documentation](tools/mcp/mcp_reaction_search/README.md))
+17. **Reaction Search** - Semantic search for anime reaction images (Rust)
 18. **Desktop Control** - Cross-platform desktop automation for Linux and Windows ([Documentation](tools/mcp/mcp_desktop_control/docs/README.md))
 
 ### Usage Modes

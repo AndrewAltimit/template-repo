@@ -413,6 +413,72 @@ case "$STAGE" in
     $0 econ-test
     ;;
 
+  # ============================================
+  # MCP Core Rust CI Stages
+  # ============================================
+
+  mcp-fmt)
+    echo "=== Running MCP Core Rust format checks ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/tools/mcp/mcp_core_rust \
+      rust-ci cargo fmt --all -- --check
+    ;;
+
+  mcp-clippy)
+    echo "=== Running MCP Core Rust clippy lints ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/tools/mcp/mcp_core_rust \
+      rust-ci cargo clippy --workspace --all-targets -- -D warnings
+    ;;
+
+  mcp-test)
+    echo "=== Running MCP Core Rust tests ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/tools/mcp/mcp_core_rust \
+      rust-ci cargo test --workspace "${EXTRA_ARGS[@]}"
+    ;;
+
+  mcp-build)
+    echo "=== Building MCP Core Rust workspace ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/tools/mcp/mcp_core_rust \
+      rust-ci cargo build --workspace --all-targets --release
+    ;;
+
+  mcp-deny)
+    echo "=== Running MCP Core Rust cargo-deny checks ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/tools/mcp/mcp_core_rust \
+      rust-ci cargo deny check || true
+    ;;
+
+  mcp-doc)
+    echo "=== Generating MCP Core Rust documentation ==="
+    echo "Building Rust CI image..."
+    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/tools/mcp/mcp_core_rust \
+      rust-ci cargo doc --workspace --no-deps --document-private-items
+    echo "Documentation generated at tools/mcp/mcp_core_rust/target/doc/"
+    ;;
+
+  mcp-full)
+    echo "=== Running full MCP Core Rust CI checks ==="
+    $0 mcp-fmt
+    $0 mcp-clippy
+    $0 mcp-test
+    ;;
+
   full)
     echo "=== Running full CI checks ==="
     $0 format
@@ -430,6 +496,7 @@ case "$STAGE" in
     echo "  Rust (injection_toolkit): rust-fmt, rust-clippy, rust-test, rust-build, rust-deny, rust-full"
     echo "  Rust (nightly):           rust-loom, rust-miri, rust-cross-linux, rust-cross-windows, rust-advanced"
     echo "  Rust (economic_agents):   econ-fmt, econ-clippy, econ-test, econ-build, econ-deny, econ-doc, econ-coverage, econ-full"
+    echo "  Rust (mcp_core_rust):     mcp-fmt, mcp-clippy, mcp-test, mcp-build, mcp-deny, mcp-doc, mcp-full"
     exit 1
     ;;
 esac
