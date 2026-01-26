@@ -11,14 +11,14 @@
 //! - `POST /execute` - Execute tool (alternative endpoint)
 
 use axum::{
+    Router,
     extract::{Json, Path, State},
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
-    Router,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::info;

@@ -98,12 +98,12 @@ pub mod transport;
 
 // Re-export commonly used items
 pub use error::{MCPError, Result};
-pub use server::{init_logging, MCPServer, MCPServerArgs, MCPServerBuilder, ServerMode};
+pub use server::{MCPServer, MCPServerArgs, MCPServerBuilder, ServerMode, init_logging};
 pub use tool::{BoxedTool, Content, Tool, ToolRegistry, ToolResult, ToolSchema};
 
 /// Prelude module for convenient imports
 pub mod prelude {
     pub use crate::error::{MCPError, Result};
-    pub use crate::server::{init_logging, MCPServer, MCPServerArgs, MCPServerBuilder, ServerMode};
+    pub use crate::server::{MCPServer, MCPServerArgs, MCPServerBuilder, ServerMode, init_logging};
     pub use crate::tool::{BoxedTool, Content, Tool, ToolRegistry, ToolResult, ToolSchema};
 }

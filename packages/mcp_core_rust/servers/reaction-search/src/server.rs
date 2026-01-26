@@ -2,7 +2,7 @@
 
 use async_trait::async_trait;
 use mcp_core::prelude::*;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::info;
@@ -28,6 +28,7 @@ impl ReactionSearchServer {
     }
 
     /// Ensure the engine is initialized (lazy initialization)
+    #[allow(dead_code)]
     async fn ensure_initialized(&self) -> Result<()> {
         let mut initialized = self.initialized.write().await;
         if *initialized {
@@ -38,15 +39,16 @@ impl ReactionSearchServer {
 
         // Load reactions from config
         let mut config = self.config_loader.write().await;
-        let reactions = config.get_reactions().await.map_err(|e| {
-            MCPError::Internal(format!("Failed to load config: {}", e))
-        })?;
+        let reactions = config
+            .get_reactions()
+            .await
+            .map_err(|e| MCPError::Internal(format!("Failed to load config: {}", e)))?;
 
         // Initialize search engine
         let mut engine = self.search_engine.write().await;
-        engine.initialize(reactions).map_err(|e| {
-            MCPError::Internal(format!("Failed to initialize engine: {}", e))
-        })?;
+        engine
+            .initialize(reactions)
+            .map_err(|e| MCPError::Internal(format!("Failed to initialize engine: {}", e)))?;
 
         *initialized = true;
         info!("Reaction search engine initialized");
@@ -109,14 +111,15 @@ impl ServerRefs {
         info!("Initializing reaction search engine...");
 
         let mut config = self.config_loader.write().await;
-        let reactions = config.get_reactions().await.map_err(|e| {
-            MCPError::Internal(format!("Failed to load config: {}", e))
-        })?;
+        let reactions = config
+            .get_reactions()
+            .await
+            .map_err(|e| MCPError::Internal(format!("Failed to load config: {}", e)))?;
 
         let mut engine = self.search_engine.write().await;
-        engine.initialize(reactions).map_err(|e| {
-            MCPError::Internal(format!("Failed to initialize engine: {}", e))
-        })?;
+        engine
+            .initialize(reactions)
+            .map_err(|e| MCPError::Internal(format!("Failed to initialize engine: {}", e)))?;
 
         *initialized = true;
         info!("Reaction search engine initialized");
@@ -329,8 +332,8 @@ Useful for browsing available categories and filtering searches."#
             "nervous", "bored", "content",
         ];
         let actions = [
-            "typing", "thinking", "working", "gaming", "drinking", "waving", "cheering",
-            "crying", "laughing", "studying",
+            "typing", "thinking", "working", "gaming", "drinking", "waving", "cheering", "crying",
+            "laughing", "studying",
         ];
 
         let mut emotions_map = serde_json::Map::new();

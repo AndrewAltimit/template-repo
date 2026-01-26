@@ -210,7 +210,7 @@ mod tests {
             character_appearance: String::new(),
         };
 
-        let result = ReactionResult::from_reaction(&reaction, 0.87654321);
+        let result = ReactionResult::from_reaction(&reaction, 0.876_543_2);
         assert_eq!(result.similarity, 0.8765);
     }
 }

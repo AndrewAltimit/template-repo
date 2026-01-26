@@ -25,6 +25,7 @@ pub enum EngineError {
     #[error("Failed to encode text: {0}")]
     EncodingError(String),
 
+    #[allow(dead_code)]
     #[error("Reaction not found: {0}")]
     NotFound(String),
 }
@@ -56,7 +57,10 @@ impl ReactionSearchEngine {
 
     /// Initialize the engine with reactions
     pub fn initialize(&mut self, reactions: Vec<Reaction>) -> Result<(), EngineError> {
-        info!("Initializing search engine with {} reactions", reactions.len());
+        info!(
+            "Initializing search engine with {} reactions",
+            reactions.len()
+        );
 
         // Build ID to index mapping
         self.id_to_index.clear();
@@ -78,8 +82,10 @@ impl ReactionSearchEngine {
         // Load model (lazy - only on first search if needed)
         if self.model.is_none() {
             debug!("Loading embedding model...");
-            let model = TextEmbedding::try_new(InitOptions::new(DEFAULT_MODEL).with_show_download_progress(true))
-                .map_err(|e| EngineError::ModelError(e.to_string()))?;
+            let model = TextEmbedding::try_new(
+                InitOptions::new(DEFAULT_MODEL).with_show_download_progress(true),
+            )
+            .map_err(|e| EngineError::ModelError(e.to_string()))?;
             self.model = Some(model);
             info!("Embedding model loaded");
         }
@@ -118,6 +124,7 @@ impl ReactionSearchEngine {
     }
 
     /// Check if engine is initialized
+    #[allow(dead_code)]
     pub fn is_initialized(&self) -> bool {
         self.initialized
     }
@@ -152,7 +159,10 @@ impl ReactionSearchEngine {
         }
 
         let model = self.model.as_ref().ok_or(EngineError::NotInitialized)?;
-        let embeddings = self.embeddings.as_ref().ok_or(EngineError::NotInitialized)?;
+        let embeddings = self
+            .embeddings
+            .as_ref()
+            .ok_or(EngineError::NotInitialized)?;
 
         // Encode query
         let query_embeddings = model

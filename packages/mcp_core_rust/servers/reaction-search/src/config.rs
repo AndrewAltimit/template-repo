@@ -59,6 +59,7 @@ impl ConfigLoader {
     }
 
     /// Create with custom settings
+    #[allow(dead_code)]
     pub fn with_options(config_url: String, cache_dir: PathBuf, cache_ttl: u64) -> Self {
         Self {
             config_url,
@@ -176,7 +177,10 @@ impl ConfigLoader {
         let config: ReactionConfig = serde_yaml::from_str(&yaml_content)
             .map_err(|e| ConfigError::ParseError(format!("Failed to parse YAML: {}", e)))?;
 
-        info!("Fetched {} reactions from GitHub", config.reaction_images.len());
+        info!(
+            "Fetched {} reactions from GitHub",
+            config.reaction_images.len()
+        );
         Ok(config)
     }
 
@@ -192,7 +196,10 @@ impl ConfigLoader {
             debug!("Loading config from cache");
             match self.load_from_cache() {
                 Ok(config) => {
-                    info!("Loaded {} reactions from cache", config.reaction_images.len());
+                    info!(
+                        "Loaded {} reactions from cache",
+                        config.reaction_images.len()
+                    );
                     self.config = Some(config);
                     return Ok(self.config.as_ref().unwrap());
                 }
@@ -265,19 +272,18 @@ impl ConfigLoader {
             cache_expires_in_hours: None,
         };
 
-        if meta_file.exists() {
-            if let Ok(content) = fs::read_to_string(&meta_file) {
-                if let Ok(meta) = serde_json::from_str::<CacheMeta>(&content) {
-                    let now = Self::now_timestamp();
-                    let age_secs = now - meta.cached_at;
-                    let ttl_secs = self.cache_ttl as f64;
+        if meta_file.exists()
+            && let Ok(content) = fs::read_to_string(&meta_file)
+            && let Ok(meta) = serde_json::from_str::<CacheMeta>(&content)
+        {
+            let now = Self::now_timestamp();
+            let age_secs = now - meta.cached_at;
+            let ttl_secs = self.cache_ttl as f64;
 
-                    status.cached_at = Some(meta.cached_at);
-                    status.reaction_count = Some(meta.reaction_count);
-                    status.cache_age_hours = Some(age_secs / 3600.0);
-                    status.cache_expires_in_hours = Some((ttl_secs - age_secs) / 3600.0);
-                }
-            }
+            status.cached_at = Some(meta.cached_at);
+            status.reaction_count = Some(meta.reaction_count);
+            status.cache_age_hours = Some(age_secs / 3600.0);
+            status.cache_expires_in_hours = Some((ttl_secs - age_secs) / 3600.0);
         }
 
         status

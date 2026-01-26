@@ -1037,7 +1037,34 @@ services:
       - services
       - memory
 
-  # Reaction Search MCP Server
+  # Reaction Search MCP Server (Rust)
+  # High-performance semantic search for anime reaction images
+  # Rust implementation with fastembed (ONNX-based embeddings)
+  mcp-reaction-search-rust:
+    build:
+      context: ./packages/mcp_core_rust
+      dockerfile: servers/reaction-search/Dockerfile
+    container_name: mcp-reaction-search-rust
+    ports:
+      - "8124:8024"
+    volumes:
+      - reaction-search-rust-cache:/home/mcp/.cache
+    environment:
+      - RUST_LOG=info
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8024/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - services
+      - rust-mcp
+
+  # Reaction Search MCP Server (Python - legacy)
   # Semantic search for anime reaction images
   mcp-reaction-search:
     build:
@@ -1176,6 +1203,8 @@ volumes:
   sleeper-eval-db: {}
   # Reaction search cache (config + model)
   reaction-search-cache: {}
+  # Reaction search Rust cache (fastembed model)
+  reaction-search-rust-cache: {}
 
 # Secrets are managed at runtime by GitHub Actions or local setup script
 # Never commit actual secret files to the repository!

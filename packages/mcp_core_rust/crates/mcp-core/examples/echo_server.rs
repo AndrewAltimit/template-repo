@@ -13,7 +13,7 @@ use async_trait::async_trait;
 use clap::Parser;
 use mcp_core::{init_logging, prelude::*, server::MCPServerArgs};
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Echo tool - echoes the input message
 struct EchoTool;

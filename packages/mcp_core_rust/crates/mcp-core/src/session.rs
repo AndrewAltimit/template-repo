@@ -105,10 +105,7 @@ impl SessionManager {
             }
             // Session ID provided but doesn't exist - create with that ID
             let session = SessionInfo::with_id(id, protocol_version);
-            self.sessions
-                .write()
-                .await
-                .insert(id.to_string(), session);
+            self.sessions.write().await.insert(id.to_string(), session);
             id.to_string()
         } else {
             // No session ID - create new

@@ -176,7 +176,12 @@ impl RestToolClient {
         if response.status() == reqwest::StatusCode::NOT_FOUND {
             // Check if it's really not found vs the endpoint doesn't exist
             let result: ToolExecutionResult = response.json().await?;
-            if !result.success && result.error.as_ref().map_or(false, |e| e.contains("not found")) {
+            if !result.success
+                && result
+                    .error
+                    .as_ref()
+                    .is_some_and(|e| e.contains("not found"))
+            {
                 return Err(ClientError::ToolNotFound(name.to_string()));
             }
             return Ok(result);
@@ -262,7 +267,11 @@ impl ProxyToolTrait for ProxyTool {
     }
 
     async fn execute(&self, args: Value) -> std::result::Result<ProxyToolResult, String> {
-        info!("Proxying tool call: {} to {}", self.name, self.client.base_url());
+        info!(
+            "Proxying tool call: {} to {}",
+            self.name,
+            self.client.base_url()
+        );
 
         match self.client.execute_tool(&self.name, args).await {
             Ok(result) => {
@@ -274,13 +283,11 @@ impl ProxyToolTrait for ProxyTool {
                             content_arr
                                 .iter()
                                 .filter_map(|c| {
-                                    if let Some(text) = c.get("text").and_then(|t| t.as_str()) {
-                                        Some(ProxyContent::Text {
+                                    c.get("text").and_then(|t| t.as_str()).map(|text| {
+                                        ProxyContent::Text {
                                             text: text.to_string(),
-                                        })
-                                    } else {
-                                        None
-                                    }
+                                        }
+                                    })
                                 })
                                 .collect()
                         } else {
@@ -315,7 +322,9 @@ impl ProxyToolTrait for ProxyTool {
 }
 
 /// Create proxy tools from a backend URL
-pub async fn create_proxy_tools(backend_url: &str) -> Result<(Arc<RestToolClient>, Vec<ProxyTool>)> {
+pub async fn create_proxy_tools(
+    backend_url: &str,
+) -> Result<(Arc<RestToolClient>, Vec<ProxyTool>)> {
     let client = Arc::new(RestToolClient::new(backend_url));
 
     info!("Fetching tools from backend: {}", backend_url);

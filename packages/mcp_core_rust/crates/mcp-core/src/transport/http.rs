@@ -1,14 +1,14 @@
 //! HTTP transport implementation using Axum.
 
 use axum::{
+    Router,
     extract::{Json, State},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
     routing::{get, options, post},
-    Router,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
@@ -124,11 +124,13 @@ async fn list_tools_handler(State(state): State<Arc<HttpState>>) -> impl IntoRes
         .tools
         .list()
         .into_iter()
-        .map(|t| json!({
-            "name": t.name,
-            "description": t.description,
-            "parameters": t.input_schema,
-        }))
+        .map(|t| {
+            json!({
+                "name": t.name,
+                "description": t.description,
+                "parameters": t.input_schema,
+            })
+        })
         .collect();
 
     Json(json!({ "tools": tools }))
@@ -276,10 +278,10 @@ async fn messages_post_handler(
     if let Some(requests) = body.as_array() {
         let mut responses = Vec::new();
         for req in requests {
-            if let Ok(request) = serde_json::from_value::<JsonRpcRequest>(req.clone()) {
-                if let Some(resp) = process_jsonrpc_request(&state, &request, &session_id).await {
-                    responses.push(resp);
-                }
+            if let Ok(request) = serde_json::from_value::<JsonRpcRequest>(req.clone())
+                && let Some(resp) = process_jsonrpc_request(&state, &request, &session_id).await
+            {
+                responses.push(resp);
             }
         }
         return json_response_with_session(json!(responses), session_id);
@@ -301,10 +303,7 @@ async fn messages_post_handler(
                     // Notification - no response body
                     Response::builder()
                         .status(StatusCode::ACCEPTED)
-                        .header(
-                            "Mcp-Session-Id",
-                            effective_session.unwrap_or_default(),
-                        )
+                        .header("Mcp-Session-Id", effective_session.unwrap_or_default())
                         .body(axum::body::Body::empty())
                         .unwrap()
                 }
@@ -423,19 +422,19 @@ async fn handle_initialize(
     );
 
     // Update session with client info
-    if let Some(sid) = session_id {
-        if let Some(client) = &init_params.client_info {
-            state
-                .sessions
-                .update(sid, |s| {
-                    s.client_info = Some(ClientInfo {
-                        name: client.name.clone(),
-                        version: client.version.clone(),
-                    });
-                    s.mark_initialized();
-                })
-                .await;
-        }
+    if let Some(sid) = session_id
+        && let Some(client) = &init_params.client_info
+    {
+        state
+            .sessions
+            .update(sid, |s| {
+                s.client_info = Some(ClientInfo {
+                    name: client.name.clone(),
+                    version: client.version.clone(),
+                });
+                s.mark_initialized();
+            })
+            .await;
     }
 
     let result = InitializeResult {
@@ -473,8 +472,8 @@ async fn handle_tools_list(state: &HttpState) -> Result<Value, MCPError> {
 }
 
 async fn handle_tools_call(state: &HttpState, params: &Value) -> Result<Value, MCPError> {
-    let call_params: ToolCallParams =
-        serde_json::from_value(params.clone()).map_err(|e| MCPError::InvalidParameters(e.to_string()))?;
+    let call_params: ToolCallParams = serde_json::from_value(params.clone())
+        .map_err(|e| MCPError::InvalidParameters(e.to_string()))?;
 
     info!("Calling tool: {}", call_params.name);
 

@@ -14,21 +14,16 @@ use crate::transport::http::{HttpState, HttpTransport};
 use crate::transport::rest::{RestState, RestTransport};
 
 /// Server operational mode
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ServerMode {
     /// Full MCP server with embedded tools (default)
+    #[default]
     Standalone,
     /// REST API only - no MCP protocol, just tool endpoints
     Server,
     /// MCP proxy - forwards tool calls to a REST backend
     Client,
-}
-
-impl Default for ServerMode {
-    fn default() -> Self {
-        Self::Standalone
-    }
 }
 
 impl std::fmt::Display for ServerMode {
@@ -316,7 +311,11 @@ impl MCPServer {
         })?;
 
         info!("Server ready, listening on http://{}", addr);
-        info!("MCP protocol enabled, proxying {} tools to {}", backend_tools.len(), backend);
+        info!(
+            "MCP protocol enabled, proxying {} tools to {}",
+            backend_tools.len(),
+            backend
+        );
 
         axum::serve(listener, app.into_make_service())
             .await
@@ -354,7 +353,11 @@ impl Tool for ProxyToolWrapper {
     async fn execute(&self, args: serde_json::Value) -> Result<crate::tool::ToolResult> {
         use crate::tool::{Content, ToolResult};
 
-        info!("Proxying tool call: {} to {}", self.name, self.client.base_url());
+        info!(
+            "Proxying tool call: {} to {}",
+            self.name,
+            self.client.base_url()
+        );
 
         match self.client.execute_tool(&self.name, args).await {
             Ok(result) => {
@@ -362,12 +365,17 @@ impl Tool for ProxyToolWrapper {
                     // Extract content from result
                     let content: Vec<Content> = if let Some(res) = result.result {
                         // Try to extract content array from result
-                        if let Some(content_arr) = res.get("content").and_then(|c: &serde_json::Value| c.as_array()) {
+                        if let Some(content_arr) = res
+                            .get("content")
+                            .and_then(|c: &serde_json::Value| c.as_array())
+                        {
                             content_arr
                                 .iter()
                                 .filter_map(|c: &serde_json::Value| {
                                     // Handle text content
-                                    if let Some(text) = c.get("text").and_then(|t: &serde_json::Value| t.as_str()) {
+                                    if let Some(text) =
+                                        c.get("text").and_then(|t: &serde_json::Value| t.as_str())
+                                    {
                                         return Some(Content::Text {
                                             text: text.to_string(),
                                         });
@@ -375,7 +383,8 @@ impl Tool for ProxyToolWrapper {
                                     // Handle image content
                                     if let (Some(data), Some(mime)) = (
                                         c.get("data").and_then(|d: &serde_json::Value| d.as_str()),
-                                        c.get("mime_type").and_then(|m: &serde_json::Value| m.as_str()),
+                                        c.get("mime_type")
+                                            .and_then(|m: &serde_json::Value| m.as_str()),
                                     ) {
                                         return Some(Content::Image {
                                             data: data.to_string(),
@@ -454,10 +463,9 @@ impl MCPServerArgs {
 
 /// Initialize logging for MCP servers
 pub fn init_logging(level: &str) {
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+    use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(level));
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(level));
 
     tracing_subscriber::registry()
         .with(fmt::layer())
@@ -470,7 +478,7 @@ mod tests {
     use super::*;
     use crate::tool::ToolResult;
     use async_trait::async_trait;
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
 
     struct PingTool;
 

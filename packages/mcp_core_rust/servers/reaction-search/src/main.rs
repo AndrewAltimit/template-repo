@@ -16,7 +16,7 @@ mod server;
 mod types;
 
 use clap::Parser;
-use mcp_core::{init_logging, MCPServer, server::MCPServerArgs};
+use mcp_core::{MCPServer, init_logging, server::MCPServerArgs};
 
 use server::ReactionSearchServer;
 

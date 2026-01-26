@@ -23,8 +23,8 @@ use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{
-    parse_macro_input, punctuated::Punctuated, token::Comma, Attribute, FnArg, Ident, ItemFn,
-    Lit, Meta, Pat, ReturnType, Type,
+    Attribute, FnArg, Ident, ItemFn, Lit, Meta, Pat, ReturnType, Type, parse_macro_input,
+    punctuated::Punctuated, token::Comma,
 };
 
 /// Attribute macro for defining MCP tools.
@@ -77,30 +77,27 @@ impl syn::parse::Parse for ToolAttrs {
         let metas: Punctuated<Meta, Comma> = Punctuated::parse_terminated(input)?;
 
         for meta in metas {
-            match meta {
-                Meta::NameValue(nv) => {
-                    let ident = nv.path.get_ident().map(|i| i.to_string());
-                    match ident.as_deref() {
-                        Some("description") => {
-                            if let syn::Expr::Lit(syn::ExprLit {
-                                lit: Lit::Str(s), ..
-                            }) = &nv.value
-                            {
-                                description = Some(s.value());
-                            }
+            if let Meta::NameValue(nv) = meta {
+                let ident = nv.path.get_ident().map(|i| i.to_string());
+                match ident.as_deref() {
+                    Some("description") => {
+                        if let syn::Expr::Lit(syn::ExprLit {
+                            lit: Lit::Str(s), ..
+                        }) = &nv.value
+                        {
+                            description = Some(s.value());
                         }
-                        Some("name") => {
-                            if let syn::Expr::Lit(syn::ExprLit {
-                                lit: Lit::Str(s), ..
-                            }) = &nv.value
-                            {
-                                name = Some(s.value());
-                            }
-                        }
-                        _ => {}
                     }
+                    Some("name") => {
+                        if let syn::Expr::Lit(syn::ExprLit {
+                            lit: Lit::Str(s), ..
+                        }) = &nv.value
+                        {
+                            name = Some(s.value());
+                        }
+                    }
+                    _ => {}
                 }
-                _ => {}
             }
         }
 
@@ -121,9 +118,7 @@ struct ParamInfo {
 
 fn generate_tool(attrs: ToolAttrs, func: ItemFn) -> syn::Result<TokenStream2> {
     let func_name = &func.sig.ident;
-    let tool_name = attrs
-        .name
-        .unwrap_or_else(|| func_name.to_string());
+    let tool_name = attrs.name.unwrap_or_else(|| func_name.to_string());
     let tool_struct_name = format_ident!("{}Tool", to_pascal_case(&tool_name));
     let description = &attrs.description;
 
@@ -187,25 +182,25 @@ fn parse_params(func: &ItemFn) -> syn::Result<Vec<ParamInfo>> {
     let mut params = Vec::new();
 
     for arg in &func.sig.inputs {
-        if let FnArg::Typed(pat_type) = arg {
-            if let Pat::Ident(pat_ident) = &*pat_type.pat {
-                let name = pat_ident.ident.clone();
-                let ty = (*pat_type.ty).clone();
+        if let FnArg::Typed(pat_type) = arg
+            && let Pat::Ident(pat_ident) = &*pat_type.pat
+        {
+            let name = pat_ident.ident.clone();
+            let ty = (*pat_type.ty).clone();
 
-                // Check if type is Option<T>
-                let is_optional = is_option_type(&ty);
+            // Check if type is Option<T>
+            let is_optional = is_option_type(&ty);
 
-                // Parse #[mcp(...)] attributes
-                let (description, default) = parse_param_attrs(&pat_type.attrs);
+            // Parse #[mcp(...)] attributes
+            let (description, default) = parse_param_attrs(&pat_type.attrs);
 
-                params.push(ParamInfo {
-                    name,
-                    ty,
-                    description,
-                    default,
-                    is_optional,
-                });
-            }
+            params.push(ParamInfo {
+                name,
+                ty,
+                description,
+                default,
+                is_optional,
+            });
         }
     }
 
@@ -241,10 +236,10 @@ fn parse_param_attrs(attrs: &[Attribute]) -> (Option<String>, Option<String>) {
 }
 
 fn is_option_type(ty: &Type) -> bool {
-    if let Type::Path(type_path) = ty {
-        if let Some(segment) = type_path.path.segments.last() {
-            return segment.ident == "Option";
-        }
+    if let Type::Path(type_path) = ty
+        && let Some(segment) = type_path.path.segments.last()
+    {
+        return segment.ident == "Option";
     }
     false
 }
@@ -316,29 +311,29 @@ fn generate_arg_extraction(params: &[ParamInfo]) -> TokenStream2 {
 }
 
 fn rust_type_to_json_type(ty: &Type) -> &'static str {
-    if let Type::Path(type_path) = ty {
-        if let Some(segment) = type_path.path.segments.last() {
-            let ident = segment.ident.to_string();
-            return match ident.as_str() {
-                "String" | "str" => "string",
-                "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" | "u64" | "isize" | "usize" => {
-                    "integer"
+    if let Type::Path(type_path) = ty
+        && let Some(segment) = type_path.path.segments.last()
+    {
+        let ident = segment.ident.to_string();
+        return match ident.as_str() {
+            "String" | "str" => "string",
+            "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" | "u64" | "isize" | "usize" => {
+                "integer"
+            }
+            "f32" | "f64" => "number",
+            "bool" => "boolean",
+            "Vec" => "array",
+            "Option" => {
+                // For Option<T>, return the inner type
+                if let syn::PathArguments::AngleBracketed(args) = &segment.arguments
+                    && let Some(syn::GenericArgument::Type(inner)) = args.args.first()
+                {
+                    return rust_type_to_json_type(inner);
                 }
-                "f32" | "f64" => "number",
-                "bool" => "boolean",
-                "Vec" => "array",
-                "Option" => {
-                    // For Option<T>, return the inner type
-                    if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
-                        if let Some(syn::GenericArgument::Type(inner)) = args.args.first() {
-                            return rust_type_to_json_type(inner);
-                        }
-                    }
-                    "string"
-                }
-                _ => "object",
-            };
-        }
+                "string"
+            }
+            _ => "object",
+        };
     }
     "string"
 }
