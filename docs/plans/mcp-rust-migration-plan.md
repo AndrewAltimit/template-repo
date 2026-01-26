@@ -633,7 +633,7 @@ packages/mcp_core_rust/servers/reaction-search/ # Pilot server
 6. [x] Port `reaction-search` as pilot
 7. [x] Run compatibility tests
 8. [x] Implement multi-mode support (server/client modes)
-9. [ ] Docker containerization and CI integration (Phase 4)
+9. [x] Docker containerization and CI integration (Phase 4)
 
 ## 14. Implementation Progress
 
@@ -656,6 +656,14 @@ packages/mcp_core_rust/servers/reaction-search/ # Pilot server
 - RestTransport for simplified REST API
 - ProxyToolWrapper for forwarding tool calls
 - All 33 tests passing
+
+### Phase 4: Docker & CI Integration - COMPLETE
+- Multi-stage Dockerfile for reaction-search server (builder + runtime)
+- Docker Compose service `mcp-reaction-search-rust` on port 8124
+- CI stages in run-ci.sh: mcp-fmt, mcp-clippy, mcp-test, mcp-build, mcp-deny, mcp-doc, mcp-full
+- cargo-deny configuration for license/security checks
+- All clippy warnings fixed (collapsible if statements, dead_code)
+- 33 tests passing in Docker CI environment
 
 ---
 
