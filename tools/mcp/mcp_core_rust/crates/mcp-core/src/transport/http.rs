@@ -195,18 +195,13 @@ async fn discovery_handler(State(state): State<Arc<HttpState>>) -> impl IntoResp
 
 async fn initialize_simple_handler(
     State(state): State<Arc<HttpState>>,
-    Json(request): Json<Value>,
+    Json(_request): Json<Value>,
 ) -> impl IntoResponse {
-    let client_name = request
-        .get("client")
-        .and_then(|c| c.get("name"))
-        .and_then(|n| n.as_str())
-        .unwrap_or("unknown");
-
-    let timestamp = chrono::Utc::now().timestamp();
+    // Create and register session with the session manager
+    let session_id = state.sessions.create_session("simple-api").await;
 
     Json(json!({
-        "session_id": format!("session-{}-{}", client_name, timestamp),
+        "session_id": session_id,
         "server": {
             "name": state.name,
             "version": state.version,
@@ -316,11 +311,12 @@ async fn messages_post_handler(
                 Some(resp) => json_response_with_session(json!(resp), effective_session),
                 None => {
                     // Notification - no response body
-                    Response::builder()
-                        .status(StatusCode::ACCEPTED)
-                        .header("Mcp-Session-Id", effective_session.unwrap_or_default())
-                        .body(axum::body::Body::empty())
-                        .unwrap()
+                    // Only include session header if we have a session
+                    let mut builder = Response::builder().status(StatusCode::ACCEPTED);
+                    if let Some(sid) = effective_session {
+                        builder = builder.header("Mcp-Session-Id", sid);
+                    }
+                    builder.body(axum::body::Body::empty()).unwrap()
                 }
             }
         }
