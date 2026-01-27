@@ -237,7 +237,13 @@ if [ -f "./automation/ci-cd/run-ci.sh" ]; then
         echo "Capturing lint-basic errors..."
         RAW_LINT=$(./automation/ci-cd/run-ci.sh lint-basic 2>&1 || true)
         # Extract only lines with actual errors (file:line:col patterns, error messages)
-        LINT_OUTPUT=$(echo "$RAW_LINT" | grep -E '^[^:]+:\d+:|: error|: warning|Error:|FAILED' | head -"$MAX_LINT_ERROR_LINES" || true)
+        LINT_ERRORS=$(echo "$RAW_LINT" | grep -E '^[^:]+:\d+:|: error|: warning|Error:|FAILED' | head -"$MAX_LINT_ERROR_LINES" || true)
+        # Also capture tail of output for context (often has summary)
+        LINT_TAIL=$(echo "$RAW_LINT" | tail -50)
+        LINT_OUTPUT="${LINT_ERRORS}
+
+=== Log Tail (last 50 lines) ===
+${LINT_TAIL}"
     fi
 
     # Also capture lint-full output (ruff, mypy) if that failed
@@ -246,12 +252,14 @@ if [ -f "./automation/ci-cd/run-ci.sh" ]; then
         RAW_FULL_LINT=$(./automation/ci-cd/run-ci.sh lint-full 2>&1 || true)
         # Extract only error lines
         FULL_LINT_ERRORS=$(echo "$RAW_FULL_LINT" | grep -E '^[^:]+:\d+:|: error|: warning|Error:|FAILED' | head -"$MAX_LINT_ERROR_LINES" || true)
-        if [ -n "$FULL_LINT_ERRORS" ]; then
-            LINT_OUTPUT="${LINT_OUTPUT}
+        FULL_LINT_TAIL=$(echo "$RAW_FULL_LINT" | tail -50)
+        LINT_OUTPUT="${LINT_OUTPUT}
 
 === Full Lint Errors (ruff/mypy) ===
-${FULL_LINT_ERRORS}"
-        fi
+${FULL_LINT_ERRORS}
+
+=== Full Lint Log Tail ===
+${FULL_LINT_TAIL}"
     fi
 
     if [ -n "$LINT_OUTPUT" ]; then
@@ -274,12 +282,14 @@ if [ -n "$TEST_FAILURES" ]; then
         # - AssertionError and other exceptions
         # - Lines with "Error" or "error:"
         # - Test file:line references
-        TEST_OUTPUT=$(echo "$RAW_TEST" | grep -E 'FAILED|AssertionError|Error:|error:|Traceback|^E\s+|test_.*\.py:\d+' | head -"$MAX_TEST_ERROR_LINES" || true)
+        TEST_ERRORS=$(echo "$RAW_TEST" | grep -E 'FAILED|AssertionError|Error:|error:|Traceback|^E\s+|test_.*\.py:\d+' | head -"$MAX_TEST_ERROR_LINES" || true)
+        # Also capture tail of output for context (often has summary)
+        TEST_TAIL=$(echo "$RAW_TEST" | tail -50)
 
-        # If no errors extracted, get the last 50 lines as fallback (usually contains summary)
-        if [ -z "$TEST_OUTPUT" ]; then
-            TEST_OUTPUT=$(echo "$RAW_TEST" | tail -50)
-        fi
+        TEST_OUTPUT="${TEST_ERRORS}
+
+=== Test Log Tail (last 50 lines) ===
+${TEST_TAIL}"
 
         echo "Test errors extracted (${#TEST_OUTPUT} chars)"
     fi
