@@ -1,153 +1,233 @@
-# Crush MCP Server
+# Crush MCP Server (Rust)
 
-> A Model Context Protocol server for AI-powered code generation and conversion using OpenRouter.
+> A Model Context Protocol server for AI-powered code generation using Crush CLI via OpenRouter, built in Rust for performance and reliability.
 
 ## Overview
 
 This MCP server provides:
-- Code generation with multiple modes
-- Code explanation and analysis
-- Code conversion between languages
-- State management with conversation history
+- Quick code generation with multiple modes (generate, explain, convert, quick)
+- Conversation history tracking for context continuity
+- Local, container, and Docker execution modes
+- Environment-based configuration
 
-## Transport Modes
+**Note**: This server was migrated from Python to Rust for improved performance and lower resource usage.
 
-**STDIO Mode** (Default for Claude Code):
-- For local use on the same machine as the client
-- Automatically managed by Claude via `.mcp.json`
-- No manual startup required
+## Quick Start
 
-**HTTP Mode** (Port 8015):
-- For cross-machine access or containerized deployment
-- Runs as a persistent network service
-- Useful when the server needs to run on a different machine
+```bash
+# Build from source
+cargo build --release
+
+# Run in standalone HTTP mode
+./target/release/mcp-crush --mode standalone --port 8015
+
+# Run in STDIO mode (for Claude Code)
+./target/release/mcp-crush --mode stdio
+
+# Test health
+curl http://localhost:8015/health
+```
+
+### Prerequisites
+
+- Crush CLI installed locally, OR
+- Docker with `openrouter-agents` service configured
+- OpenRouter API key: Set `OPENROUTER_API_KEY` environment variable
+
+## Available Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `consult_crush` | Generate, explain, or convert code | `query` (required), `context`, `mode`, `comparison_mode`, `force` |
+| `clear_crush_history` | Clear conversation history | None |
+| `crush_status` | Get integration status and statistics | None |
+| `toggle_crush_auto_consult` | Control auto-consultation | `enable` |
+
+### Consultation Modes
+
+| Mode | Description |
+|------|-------------|
+| `quick` | General code task with concise response (default) |
+| `generate` | Generate detailed implementation from requirements |
+| `explain` | Explain code functionality |
+| `convert` | Convert code to another language (requires `context`) |
+
+### Example Usage
+
+```bash
+# Get status
+curl -X POST http://localhost:8015/mcp/execute \
+  -H 'Content-Type: application/json' \
+  -d '{"tool": "crush_status", "arguments": {}}'
+
+# Quick code generation
+curl -X POST http://localhost:8015/mcp/execute \
+  -H 'Content-Type: application/json' \
+  -d '{"tool": "consult_crush", "arguments": {"query": "Write a Python function to calculate fibonacci numbers", "mode": "quick"}}'
+
+# Convert code
+curl -X POST http://localhost:8015/mcp/execute \
+  -H 'Content-Type: application/json' \
+  -d '{"tool": "consult_crush", "arguments": {"query": "def fib(n): return n if n < 2 else fib(n-1) + fib(n-2)", "mode": "convert", "context": "Rust"}}'
+```
 
 ## Configuration
 
 ### Environment Variables
 
-- `OPENROUTER_API_KEY` - **Required**: Your OpenRouter API key
-- `CRUSH_ENABLED` - Enable/disable the server (default: true)
-- `CRUSH_TIMEOUT` - Request timeout in seconds (default: 300)
-- `CRUSH_MAX_PROMPT` - Maximum prompt length (default: 4000)
-- `CRUSH_LOG_GENERATIONS` - Log all generations (default: true)
-- `CRUSH_INCLUDE_HISTORY` - Include conversation history (default: true)
-- `CRUSH_MAX_HISTORY` - Maximum history entries (default: 5)
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CRUSH_ENABLED` | `true` | Enable/disable integration |
+| `CRUSH_AUTO_CONSULT` | `true` | Enable auto-consultation |
+| `OPENROUTER_API_KEY` | None | OpenRouter API key (required) |
+| `CRUSH_TIMEOUT` | `300` | Timeout in seconds |
+| `CRUSH_MAX_PROMPT` | `4000` | Maximum prompt length |
+| `CRUSH_LOG_CONSULTATIONS` | `true` | Log all consultations |
+| `CRUSH_INCLUDE_HISTORY` | `true` | Include history in prompts |
+| `CRUSH_MAX_HISTORY` | `5` | Maximum history entries |
+| `CRUSH_DOCKER_SERVICE` | `openrouter-agents` | Docker service name |
+| `CRUSH_QUIET_MODE` | `true` | Suppress TTY features |
 
-### Configuration File
+### CLI Arguments
 
-You can also create `crush-config.json` in your project root:
+```
+--mode <MODE>         Server mode: standalone, stdio, server, client [default: standalone]
+--port <PORT>         Port to listen on [default: 8015]
+--backend-url <URL>   Backend URL for client mode
+--log-level <LEVEL>   Log level [default: info]
+```
+
+## Transport Modes
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| **standalone** | Full MCP server with HTTP transport | Production, Docker |
+| **stdio** | STDIO transport for direct integration | Claude Code, local MCP clients |
+| **server** | REST API only (no MCP protocol) | Microservices |
+| **client** | MCP proxy to REST backend | Horizontal scaling |
+
+## Execution Modes
+
+The server automatically detects the best execution mode:
+
+1. **Container Mode**: When running inside Docker, executes `crush` directly
+2. **Local Mode**: When `crush` CLI is available locally
+3. **Docker Mode**: Falls back to `docker-compose run` with the configured service
+
+## MCP Configuration
+
+Add to `.mcp.json`:
 
 ```json
 {
-  "enabled": true,
-  "timeout": 300,
-  "max_prompt_length": 4000,
-  "quiet_mode": true
+  "mcpServers": {
+    "crush": {
+      "command": "mcp-crush",
+      "args": ["--mode", "stdio"],
+      "env": {
+        "OPENROUTER_API_KEY": "your-api-key"
+      }
+    }
+  }
 }
 ```
 
-## Running the Server
+Or with Docker:
 
-### STDIO Mode (Local Process)
-
-For Claude Code and local MCP clients, the server is automatically started via `.mcp.json`. No manual startup needed - just use the tools:
-
-```python
-# Claude automatically starts the server when you use it
-result = mcp__crush__consult_crush(query="Convert this to TypeScript...")
+```json
+{
+  "mcpServers": {
+    "crush": {
+      "command": "docker-compose",
+      "args": ["-f", "./docker-compose.yml", "--profile", "services", "run", "--rm", "-T", "mcp-crush", "mcp-crush", "--mode", "stdio"]
+    }
+  }
+}
 ```
 
-### HTTP Mode (Remote/Cross-Machine)
-
-For running on a different machine or in a container:
+## Building from Source
 
 ```bash
-# Set your API key
-export OPENROUTER_API_KEY="your-api-key-here"
+cd tools/mcp/mcp_crush
 
-# Start HTTP server on port 8015
-python -m mcp_crush.server --mode http
+# Debug build
+cargo build
 
-# The server will be available at http://localhost:8015
+# Release build (optimized)
+cargo build --release
+
+# Run tests
+cargo test
+
+# Run clippy
+cargo clippy -- -D warnings
+
+# Format code
+cargo fmt
 ```
 
-### Manual STDIO Mode
+## Project Structure
 
-For testing or development:
-
-```bash
-# Run in stdio mode manually
-python -m mcp_crush.server --mode stdio
+```
+tools/mcp/mcp_crush/
+├── Cargo.toml          # Package configuration
+├── Cargo.lock          # Dependency lock file
+├── README.md           # This file
+└── src/
+    ├── main.rs         # CLI entry point
+    ├── server.rs       # MCP tools implementation
+    ├── crush.rs        # Crush CLI integration
+    └── types.rs        # Data types and configuration
 ```
 
-### Docker
+## HTTP Endpoints
 
-```bash
-# Using docker-compose
-docker-compose up -d mcp-crush
-
-# Or run directly
-docker run -p 8015:8015 -e OPENROUTER_API_KEY="your-key" mcp-crush
-```
-
-## Available Tools
-
-### consult_crush
-
-Consult Crush for code generation, explanation, conversion, or general queries.
-
-**Parameters:**
-- `query` (required): The coding question, task, or code to consult about
-- `context`: Additional context or target language for conversion
-- `mode`: Consultation mode (default: "quick")
-  - **quick** (default): General queries without specific formatting
-  - **generate**: Focused code generation with optional context
-  - **explain**: Explain code functionality
-  - **convert**: Convert code between languages
-- `comparison_mode`: Compare with previous Claude response (default: true)
-- `force`: Force consultation even if disabled (default: false)
-
-### clear_crush_history
-
-Clear the conversation history.
-
-### crush_status
-
-Get server status and statistics.
-
-### toggle_crush_auto_consult
-
-Toggle automatic consultation on uncertainty detection.
-
-**Parameters:**
-- `enable`: Enable or disable auto-consultation
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/mcp/tools` | GET | List available tools |
+| `/mcp/execute` | POST | Execute a tool |
+| `/messages` | POST | MCP JSON-RPC endpoint |
+| `/.well-known/mcp` | GET | MCP discovery |
 
 ## Testing
 
 ```bash
-# Run the test script
-python tools/mcp/mcp_crush/scripts/test_server.py
+# Run unit tests
+cargo test
 
-# Or use curl for manual testing
+# Test with output
+cargo test -- --nocapture
+
+# Test HTTP endpoints (after starting server)
 curl http://localhost:8015/health
 curl http://localhost:8015/mcp/tools
+curl -X POST http://localhost:8015/mcp/execute \
+  -H 'Content-Type: application/json' \
+  -d '{"tool": "crush_status", "arguments": {}}'
 ```
-
-## Integration with Claude
-
-Once the server is running, it will be available as MCP tools in Claude:
-- `mcp__crush__consult_crush` - Main consultation tool with multiple modes
-- `mcp__crush__clear_crush_history` - Clear conversation history
-- `mcp__crush__crush_status` - Get status and statistics
-- `mcp__crush__toggle_crush_auto_consult` - Control auto-consultation
 
 ## Troubleshooting
 
-1. **Server won't start**: Check that port 8015 is not in use
-2. **API errors**: Ensure OPENROUTER_API_KEY is set correctly
-3. **Container issues**: Make sure the openrouter-agents container is running
-4. **Timeout errors**: Increase CRUSH_TIMEOUT for complex tasks
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| "OPENROUTER_API_KEY not configured" | Missing API key | Set `OPENROUTER_API_KEY` environment variable |
+| "Crush failed with exit code" | CLI error | Check Crush installation and API key |
+| Timeout errors | Complex query | Increase `CRUSH_TIMEOUT` |
+| Docker execution fails | Service not running | Start `openrouter-agents` service |
+
+## Security
+
+- API keys should be set via environment variables, not in config files
+- Container mode provides isolation from host system
+- Auth tokens are stored in user's home directory, not in code
+
+## Dependencies
+
+- [mcp-core](../mcp_core_rust/) - Rust MCP framework
+- [tokio](https://tokio.rs/) - Async runtime
+- [clap](https://clap.rs/) - CLI argument parsing
+- [serde](https://serde.rs/) - Serialization
 
 ## License
 
