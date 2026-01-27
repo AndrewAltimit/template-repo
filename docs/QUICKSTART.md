@@ -491,9 +491,14 @@ sudo chown -R $USER:$USER .
    docker-compose ps
    docker-compose logs [service-name]
 
-   # Test individual servers
+   # Test Python MCP servers
    python tools/mcp/mcp_code_quality/scripts/test_server.py
-   python tools/mcp/mcp_gemini/scripts/test_server.py
+
+   # Test Rust MCP servers (health endpoint)
+   curl http://localhost:8006/health  # mcp-gemini
+   curl http://localhost:8014/health  # mcp-opencode
+   curl http://localhost:8015/health  # mcp-crush
+   curl http://localhost:8021/health  # mcp-codex
 
    # Validate configuration
    python automation/testing/validate_config.py

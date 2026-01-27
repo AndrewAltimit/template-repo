@@ -525,29 +525,27 @@ services:
       - gpu
 
 
-  # OpenCode MCP Server
+  # OpenCode MCP Server (Rust)
   mcp-opencode:
     build:
       context: .
       dockerfile: docker/mcp-opencode.Dockerfile
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     container_name: mcp-opencode
-    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8014:8014"
     volumes:
       - ./:/app:ro
-      - /tmp:/tmp
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      - PYTHONUNBUFFERED=1
       - PORT=8014
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - OPENCODE_ENABLED=${OPENCODE_ENABLED:-true}
       - OPENCODE_MODEL=${OPENCODE_MODEL:-qwen/qwen-2.5-coder-32b-instruct}
-      - RUNNING_IN_DOCKER=true
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_opencode.server", "--mode", "http"]
+    command: ["mcp-opencode", "--mode", "standalone", "--port", "8014"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8014/health"]
@@ -558,29 +556,26 @@ services:
     profiles:
       - services
 
-  # Crush MCP Server
+  # Crush MCP Server (Rust)
   mcp-crush:
     build:
       context: .
       dockerfile: docker/mcp-crush.Dockerfile
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     container_name: mcp-crush
-    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8015:8015"
     volumes:
       - ./:/app:ro
-      - /tmp:/tmp
-      - crush-data:/home/node/.crush
-      - crush-local-data:/home/node/.local/share/crush
-      - crush-cache:/home/node/.cache/crush
     environment:
-      - PYTHONUNBUFFERED=1
       - PORT=8015
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - CRUSH_ENABLED=${CRUSH_ENABLED:-true}
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_crush.server", "--mode", "http"]
+    command: ["mcp-crush", "--mode", "standalone", "--port", "8015"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8015/health"]
