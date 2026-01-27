@@ -1,6 +1,6 @@
 # NMS Cockpit Video Player
 
-A video player that renders inside your No Man's Sky spaceship cockpit, supporting both desktop and VR.
+> A video player that renders inside your No Man's Sky spaceship cockpit, supporting both desktop and VR.
 
 ## Architecture
 
@@ -250,3 +250,7 @@ When NMS updates shift memory layouts:
 1. Use `mem-scanner` tool or x64dbg to find new cGcCameraManager RVA
 2. Update the offset in the injector's camera module
 3. Verify camera mode detection still works
+
+## License
+
+Part of the template-repo project. See repository LICENSE file.
