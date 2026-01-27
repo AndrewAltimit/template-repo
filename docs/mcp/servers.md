@@ -397,28 +397,36 @@ curl http://localhost:8013/health
 
 See `tools/mcp/mcp_comfyui/docs/README.md` and `docs/integrations/creative-tools/lora-transfer.md` for detailed documentation.
 
-## Codex MCP Server
+## Codex MCP Server (Rust)
 
-The Codex server provides AI-powered code generation and completion using OpenAI's Codex model.
+The Codex server provides AI-powered code generation and completion using OpenAI's Codex CLI. This server has been migrated to Rust for improved performance and lower resource usage.
 
 ### Starting the Server
 
 ```bash
 # Run in STDIO mode (for local Claude Desktop) - Recommended
-python -m tools.mcp.codex.server --mode stdio
+mcp-codex --mode stdio
 
-# Or HTTP mode for remote access
-python -m tools.mcp.codex.server --mode http --port 8021
+# Or standalone HTTP mode for remote access
+mcp-codex --mode standalone --port 8021
 
 # Or use the Docker container (with auth mounted from host)
 # Note: :rw mount is required for Codex session files and history
-docker-compose run --rm -v ~/.codex:/home/user/.codex:rw mcp-codex python -m tools.mcp.codex.server --mode stdio
+docker-compose run --rm -v ~/.codex:/home/user/.codex:rw mcp-codex mcp-codex --mode stdio
 
 # Or use the helper script
 ./tools/cli/agents/run_codex.sh
 
 # Test health (HTTP mode)
 curl http://localhost:8021/health
+```
+
+### Building from Source
+
+```bash
+cd tools/mcp/mcp_codex
+cargo build --release
+# Binary at target/release/mcp-codex
 ```
 
 ### Available Tools
@@ -432,12 +440,15 @@ curl http://localhost:8021/health
 
 ### Configuration
 
-- **Authentication**: Requires running `codex auth` first (creates `~/.codex/auth.json`)
-- **Model**: Uses OpenAI Codex model for code generation
-- **Modes**: Supports both STDIO (local) and HTTP (remote) modes
-- **Container**: Available as Docker container with auth mounted from host
+Environment variables:
+- `CODEX_ENABLED` - Enable/disable integration (default: true)
+- `CODEX_AUTO_CONSULT` - Enable auto-consultation (default: true)
+- `CODEX_AUTH_PATH` - Path to auth file (default: ~/.codex/auth.json)
+- `CODEX_TIMEOUT` - Timeout in seconds (default: 300)
+- `CODEX_MAX_CONTEXT` - Maximum context length (default: 8000)
+- `CODEX_BYPASS_SANDBOX` - Bypass sandbox (default: false, only use in containers)
 
-See `tools/mcp/mcp_codex/docs/README.md` and `docs/agents/codex-setup.md` for detailed documentation.
+**Authentication**: Requires running `codex auth` first (creates `~/.codex/auth.json`)
 
 ## OpenCode MCP Server
 
