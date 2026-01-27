@@ -204,16 +204,20 @@ jobs:
           done
 
       - name: Consult Gemini about changes
+        env:
+          PR_CHANGES: ${{ '' }}
         run: |
-          # Read PR changes (truncated for API limits)
-          CHANGES=$(head -c 5000 pr_changes.diff)
+          # Read PR changes (truncated for API limits) via environment variable
+          # to avoid shell injection issues with special characters in diffs
+          export PR_CHANGES=$(head -c 5000 pr_changes.diff)
 
           # Use the MCP server to consult Gemini
           python3 -c "
           import json
+          import os
           import requests
 
-          changes = '''$CHANGES'''
+          changes = os.environ.get('PR_CHANGES', '')
 
           prompt = f'''Review these code changes and provide feedback:
 
