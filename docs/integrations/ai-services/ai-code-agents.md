@@ -405,34 +405,38 @@ GEMINI_MAX_CONTEXT=4000
 
 ### MCP Configuration (.mcp.json)
 
+All AI code agents have been migrated to Rust for improved performance. Configure them in `.mcp.json`:
+
 ```json
 {
   "mcpServers": {
     "opencode": {
-      "command": "python",
-      "args": ["-m", "mcp_opencode.server", "--mode", "stdio"],
+      "command": "mcp-opencode",
+      "args": ["--mode", "stdio"],
       "env": {
         "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}"
       }
     },
     "crush": {
-      "command": "python",
-      "args": ["-m", "mcp_crush.server", "--mode", "stdio"],
+      "command": "mcp-crush",
+      "args": ["--mode", "stdio"],
       "env": {
         "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}"
       }
     },
     "codex": {
-      "command": "python",
-      "args": ["-m", "mcp_codex.server", "--mode", "stdio"]
+      "command": "mcp-codex",
+      "args": ["--mode", "stdio"]
     },
     "gemini": {
-      "command": "python",
-      "args": ["-m", "mcp_gemini.server", "--mode", "stdio"]
+      "command": "mcp-gemini",
+      "args": ["--mode", "stdio"]
     }
   }
 }
 ```
+
+**Note**: All agent MCP servers are now Rust binaries. Build from source with `cargo build --release` in each server directory, or download pre-built binaries from GitHub releases.
 
 ## Choosing an Agent
 
@@ -512,14 +516,20 @@ export GEMINI_DEBUG=true
 ## Testing
 
 ```bash
-# Test all MCP servers
+# Test all Python MCP servers
 python automation/testing/test_all_servers.py
 
-# Test individual servers
-python tools/mcp/mcp_opencode/scripts/test_server.py
-python tools/mcp/mcp_crush/scripts/test_server.py
-python tools/mcp/mcp_codex/scripts/test_server.py
-python tools/mcp/mcp_gemini/scripts/test_server.py
+# Test Rust MCP servers (run from each server directory)
+cd tools/mcp/mcp_opencode && cargo test
+cd tools/mcp/mcp_crush && cargo test
+cd tools/mcp/mcp_codex && cargo test
+cd tools/mcp/mcp_gemini && cargo test
+
+# Test HTTP endpoints (after starting server in standalone mode)
+curl http://localhost:8014/health  # OpenCode
+curl http://localhost:8015/health  # Crush
+curl http://localhost:8021/health  # Codex
+curl http://localhost:8006/health  # Gemini
 ```
 
 ## Related Documentation

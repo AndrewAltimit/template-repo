@@ -158,15 +158,15 @@ jobs:
           # Build the CI image if needed
           docker-compose build python-ci
 
-          # Test MCP servers - install packages properly via pip
+          # Test Python MCP servers - install packages properly via pip
+          # Note: mcp_codex, mcp_gemini, mcp_crush, mcp_opencode, and mcp_reaction_search
+          # are Rust packages and are tested separately via cargo test
           docker-compose run --rm python-ci bash -c "
           pip install -q -r config/python/requirements.txt && \
           pip install -q -e tools/mcp/mcp_core && \
           pip install -q -e tools/mcp/mcp_code_quality && \
           pip install -q -e tools/mcp/mcp_content_creation && \
           pip install -q -e tools/mcp/mcp_gaea2 && \
-          pip install -q -e tools/mcp/mcp_opencode && \
-          pip install -q -e tools/mcp/mcp_crush && \
           pip install -q -e tools/mcp/mcp_blender && \
           python3 -c '
           # Test Code Quality server
@@ -203,30 +203,6 @@ jobs:
               print(f\"Failed to import Gaea2 server: {e}\")
               exit(1)
 
-          # Test OpenCode server
-          try:
-              from mcp_opencode.server import OpenCodeMCPServer
-              from mcp_opencode.tools import TOOLS as OPENCODE_TOOLS
-              print(\"OpenCode MCP server imported successfully\")
-              print(f\"  - {len(OPENCODE_TOOLS)} tools available\")
-              for tool in OPENCODE_TOOLS:
-                  print(f\"    - {tool}\")
-          except ImportError as e:
-              print(f\"Failed to import OpenCode server: {e}\")
-              exit(1)
-
-          # Test Crush server
-          try:
-              from mcp_crush.server import CrushMCPServer
-              from mcp_crush.tools import TOOLS as CRUSH_TOOLS
-              print(\"Crush MCP server imported successfully\")
-              print(f\"  - {len(CRUSH_TOOLS)} tools available\")
-              for tool in CRUSH_TOOLS:
-                  print(f\"    - {tool}\")
-          except ImportError as e:
-              print(f\"Failed to import Crush server: {e}\")
-              exit(1)
-
           # Test Blender server
           try:
               from mcp_blender.server import BlenderMCPServer
@@ -238,6 +214,15 @@ jobs:
           except ImportError as e:
               print(f\"Failed to import Blender server: {e}\")
               exit(1)
+
+          # Note: AI agent MCP servers (Codex, Gemini, Crush, OpenCode) are now Rust
+          # They are built and tested in the build-rust-binaries job
+          print(\"\\nRust MCP servers (tested separately):\")
+          print(\"  - mcp-codex (AI code generation via OpenAI Codex)\")
+          print(\"  - mcp-gemini (AI assistance via Gemini CLI)\")
+          print(\"  - mcp-crush (AI code generation via OpenRouter)\")
+          print(\"  - mcp-opencode (AI code assistance via OpenRouter)\")
+          print(\"  - mcp-reaction-search (Semantic reaction image search)\")
           '
           "
 
@@ -691,6 +676,30 @@ jobs:
             cargo build --release
             cp target/release/mcp-reaction-search /app/rust-binaries/mcp-reaction-search-linux-x64
             echo "Built mcp-reaction-search for Linux x64"
+
+            # Build mcp-codex
+            cd /app/tools/mcp/mcp_codex
+            cargo build --release
+            cp target/release/mcp-codex /app/rust-binaries/mcp-codex-linux-x64
+            echo "Built mcp-codex for Linux x64"
+
+            # Build mcp-gemini
+            cd /app/tools/mcp/mcp_gemini
+            cargo build --release
+            cp target/release/mcp-gemini /app/rust-binaries/mcp-gemini-linux-x64
+            echo "Built mcp-gemini for Linux x64"
+
+            # Build mcp-crush
+            cd /app/tools/mcp/mcp_crush
+            cargo build --release
+            cp target/release/mcp-crush /app/rust-binaries/mcp-crush-linux-x64
+            echo "Built mcp-crush for Linux x64"
+
+            # Build mcp-opencode
+            cd /app/tools/mcp/mcp_opencode
+            cargo build --release
+            cp target/release/mcp-opencode /app/rust-binaries/mcp-opencode-linux-x64
+            echo "Built mcp-opencode for Linux x64"
           '
 
       # Build injection-toolkit for Windows using rust-ci-nightly (has mingw-w64)
@@ -942,6 +951,10 @@ jobs:
           | Binary | Platform | Description |
           |--------|----------|-------------|
           | `mcp-reaction-search-linux-x64` | Linux x64 | MCP server for semantic reaction image search |
+          | `mcp-codex-linux-x64` | Linux x64 | MCP server for AI code generation via OpenAI Codex |
+          | `mcp-gemini-linux-x64` | Linux x64 | MCP server for AI assistance via Gemini CLI |
+          | `mcp-crush-linux-x64` | Linux x64 | MCP server for AI code generation via OpenRouter |
+          | `mcp-opencode-linux-x64` | Linux x64 | MCP server for AI code assistance via OpenRouter |
           | `economic-agents-linux-x64` | Linux x64 | Autonomous economic agent simulation CLI |
           | `pr-monitor-linux-x64` | Linux x64 | PR monitoring tool for admin/Gemini feedback |
           | `gh-linux-x64` | Linux x64 | GitHub CLI validator and security checker |

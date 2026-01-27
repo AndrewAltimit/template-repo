@@ -92,30 +92,32 @@ Output directory is configured via the `MCP_OUTPUT_DIR` environment variable (de
 
 See `tools/mcp/mcp_content_creation/docs/README.md` for detailed documentation.
 
-## Gemini MCP Server
+## Gemini MCP Server (Rust)
 
-The Gemini server provides AI assistance through the Gemini CLI. It can run on the host system or in a container.
+The Gemini server provides AI assistance through the Gemini CLI. This server has been migrated to Rust for improved performance and lower resource usage.
 
 ### Starting the Server
 
 ```bash
-# Run on host system for development
-python -m tools.mcp.gemini.server
+# Run in STDIO mode (for local Claude Desktop) - Recommended
+mcp-gemini --mode stdio
 
-# Or use HTTP mode
-python -m tools.mcp.gemini.server --mode http
+# Or standalone HTTP mode for remote access
+mcp-gemini --mode standalone --port 8006
 
-# Or use the helper script
-./tools/mcp/mcp_gemini/scripts/start_server.sh
+# Or use Docker container
+docker-compose run --rm mcp-gemini mcp-gemini --mode stdio
 
-# Use containerized version with host auth
-./tools/cli/containers/run_gemini_container.sh
-
-# Or use corporate proxy version (mock mode)
-./automation/corporate-proxy/gemini/gemini
-
-# Test health
+# Test health (HTTP mode)
 curl http://localhost:8006/health
+```
+
+### Building from Source
+
+```bash
+cd tools/mcp/mcp_gemini
+cargo build --release
+# Binary at target/release/mcp-gemini
 ```
 
 ### Available Tools
@@ -125,20 +127,17 @@ curl http://localhost:8006/health
 - **gemini_status** - Get integration status
 - **toggle_gemini_auto_consult** - Control auto-consultation
 
-### Containerization Options
+### Configuration
 
-Gemini CLI is now fully containerized with multiple options:
+Environment variables:
+- `GEMINI_ENABLED` - Enable/disable integration (default: true)
+- `GEMINI_AUTO_CONSULT` - Enable auto-consultation (default: true)
+- `GEMINI_TIMEOUT` - Timeout in seconds (default: 60)
+- `GEMINI_MAX_CONTEXT` - Maximum context length (default: 4000)
+- `GEMINI_AUTH_PATH` - Path to auth directory (default: ~/.gemini)
+- `GEMINI_YOLO_MODE` - Enable auto-approval mode (default: false)
 
-1. **Standard container with host auth**: `tools/cli/containers/run_gemini_container.sh`
-   - Uses your host's `~/.gemini` authentication
-   - Supports YOLO mode for auto-approval
-
-2. **Corporate proxy version**: `automation/corporate-proxy/gemini/`
-   - Full containerization with mock API support
-   - Bypasses Google API validation
-   - Pre-configured authentication
-
-See `tools/mcp/mcp_gemini/docs/README.md` and `automation/corporate-proxy/gemini/README.md` for detailed documentation.
+See `tools/mcp/mcp_gemini/README.md` for detailed documentation.
 
 ## Blender MCP Server
 
@@ -450,30 +449,38 @@ Environment variables:
 
 **Authentication**: Requires running `codex auth` first (creates `~/.codex/auth.json`)
 
-## OpenCode MCP Server
+## OpenCode MCP Server (Rust)
 
-The OpenCode server provides AI-powered code generation using OpenRouter API.
+The OpenCode server provides AI-powered code assistance using OpenRouter API. This server has been migrated to Rust for improved performance and lower resource usage.
 
 ### Starting the Server
 
 ```bash
-# Run in STDIO mode (for local Claude Desktop)
-python -m tools.mcp.opencode.server --mode stdio
+# Run in STDIO mode (for local Claude Desktop) - Recommended
+mcp-opencode --mode stdio
 
-# Or HTTP mode for remote access
-python -m tools.mcp.opencode.server --mode http
+# Or standalone HTTP mode for remote access
+mcp-opencode --mode standalone --port 8014
 
-# Or use the helper script
-./tools/utilities/run_opencode.sh
+# Or use Docker container
+docker-compose run --rm mcp-opencode mcp-opencode --mode stdio
 
 # Test health (HTTP mode)
 curl http://localhost:8014/health
 ```
 
+### Building from Source
+
+```bash
+cd tools/mcp/mcp_opencode
+cargo build --release
+# Binary at target/release/mcp-opencode
+```
+
 ### Available Tools
 
 - **consult_opencode** - Generate, refactor, review, or explain code
-  - Modes: `generate`, `refactor`, `review`, `explain`
+  - Modes: `generate`, `refactor`, `review`, `explain`, `quick`
   - Supports comparison with previous Claude responses
 - **clear_opencode_history** - Clear conversation history
 - **opencode_status** - Get integration status and statistics
@@ -481,30 +488,42 @@ curl http://localhost:8014/health
 
 ### Configuration
 
-- **Model**: Model-agnostic via OpenRouter
-- **API Key**: Requires `OPENROUTER_API_KEY` environment variable
-- **Modes**: Supports both STDIO (local) and HTTP (remote) modes
+Environment variables:
+- `OPENCODE_ENABLED` - Enable/disable integration (default: true)
+- `OPENCODE_AUTO_CONSULT` - Enable auto-consultation (default: true)
+- `OPENROUTER_API_KEY` - OpenRouter API key (required)
+- `OPENCODE_MODEL` - Model to use (default: qwen/qwen-2.5-coder-32b-instruct)
+- `OPENCODE_TIMEOUT` - Timeout in seconds (default: 300)
+- `OPENCODE_MAX_PROMPT` - Maximum prompt length (default: 8000)
 
 See `tools/mcp/mcp_opencode/README.md` and `docs/integrations/ai-services/ai-code-agents.md` for detailed documentation.
 
-## Crush MCP Server
+## Crush MCP Server (Rust)
 
-The Crush server provides code generation using the OpenRouter API.
+The Crush server provides code generation using the Crush CLI via OpenRouter API. This server has been migrated to Rust for improved performance and lower resource usage.
 
 ### Starting the Server
 
 ```bash
-# Run in STDIO mode (for local Claude Desktop)
-python -m tools.mcp.crush.server --mode stdio
+# Run in STDIO mode (for local Claude Desktop) - Recommended
+mcp-crush --mode stdio
 
-# Or HTTP mode for remote access
-python -m tools.mcp.crush.server --mode http
+# Or standalone HTTP mode for remote access
+mcp-crush --mode standalone --port 8015
 
-# Or use the helper script
-./tools/utilities/run_crush.sh
+# Or use Docker container
+docker-compose run --rm mcp-crush mcp-crush --mode stdio
 
 # Test health (HTTP mode)
 curl http://localhost:8015/health
+```
+
+### Building from Source
+
+```bash
+cd tools/mcp/mcp_crush
+cargo build --release
+# Binary at target/release/mcp-crush
 ```
 
 ### Available Tools
@@ -517,9 +536,13 @@ curl http://localhost:8015/health
 
 ### Configuration
 
-- **Model**: Uses models via OpenRouter
-- **API Key**: Requires `OPENROUTER_API_KEY` environment variable
-- **Modes**: Supports both STDIO (local) and HTTP (remote) modes
+Environment variables:
+- `CRUSH_ENABLED` - Enable/disable integration (default: true)
+- `CRUSH_AUTO_CONSULT` - Enable auto-consultation (default: true)
+- `OPENROUTER_API_KEY` - OpenRouter API key (required)
+- `CRUSH_TIMEOUT` - Timeout in seconds (default: 300)
+- `CRUSH_MAX_PROMPT` - Maximum prompt length (default: 4000)
+- `CRUSH_DOCKER_SERVICE` - Docker service name (default: openrouter-agents)
 
 See `tools/mcp/mcp_crush/README.md` and `docs/integrations/ai-services/ai-code-agents.md` for detailed documentation.
 
@@ -848,12 +871,18 @@ The modular servers are configured in `.mcp.json`:
       "url": "http://localhost:8013/messages"
     },
     "opencode": {
-      "command": "python",
-      "args": ["-m", "tools.mcp.opencode.server", "--mode", "stdio"]
+      "command": "mcp-opencode",
+      "args": ["--mode", "stdio"],
+      "env": {
+        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}"
+      }
     },
     "crush": {
-      "command": "python",
-      "args": ["-m", "tools.mcp.crush.server", "--mode", "stdio"]
+      "command": "mcp-crush",
+      "args": ["--mode", "stdio"],
+      "env": {
+        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}"
+      }
     },
     "meme-generator": {
       "command": "docker-compose",
