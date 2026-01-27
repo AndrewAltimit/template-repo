@@ -1,136 +1,45 @@
 #!/usr/bin/env python3
-"""Tests for AI Agent MCP tools (OpenCode)
+"""Tests for AI Agent MCP tools
 
-Note: Codex, Gemini, and Crush MCP servers have been migrated to Rust and are tested separately.
+Note: All AI agent MCP servers have been migrated to Rust and are tested separately:
+- Codex MCP server: tools/mcp/mcp_codex/
+- Gemini MCP server: tools/mcp/mcp_gemini/
+- Crush MCP server: tools/mcp/mcp_crush/
+- OpenCode MCP server: tools/mcp/mcp_opencode/
+
+Run Rust tests with: cargo test (in each server directory)
 """
-
-from unittest.mock import patch
 
 import pytest
 
-
-class TestToolImports:
-    """Test that AI agent MCP tool imports work correctly"""
-
-    def test_opencode_tools_import(self):
-        """Test that OpenCode tools can be imported"""
-        from mcp_opencode.tools import TOOLS as OPENCODE_TOOLS
-
-        assert OPENCODE_TOOLS is not None
-        assert isinstance(OPENCODE_TOOLS, dict)
-        assert "consult_opencode" in OPENCODE_TOOLS
-        assert "clear_opencode_history" in OPENCODE_TOOLS
-        assert "opencode_status" in OPENCODE_TOOLS
-        assert "toggle_opencode_auto_consult" in OPENCODE_TOOLS
-
-    # Note: Crush MCP server has been migrated to Rust and is tested separately
-    # Note: Gemini MCP server has been migrated to Rust and is tested separately
-    # Note: Codex MCP server has been migrated to Rust and is tested separately
-
-
-class TestOpenCodeMCPServer:
-    """Tests for OpenCode MCP Server"""
-
-    def test_server_initialization(self):
-        """Test OpenCode MCP server can be initialized"""
-        with patch.dict("os.environ", {"OPENROUTER_API_KEY": "test_key"}):
-            from mcp_opencode.server import OpenCodeMCPServer
-
-            server = OpenCodeMCPServer()
-            assert server.name == "OpenCode MCP Server"
-            assert server.version == "1.1.0"
-            assert server.port == 8014
-
-    def test_server_get_tools(self):
-        """Test OpenCode server returns correct tools"""
-        with patch.dict("os.environ", {"OPENROUTER_API_KEY": "test_key"}):
-            from mcp_opencode.server import OpenCodeMCPServer
-
-            server = OpenCodeMCPServer()
-            tools = server.get_tools()
-
-            assert "consult_opencode" in tools
-            assert "clear_opencode_history" in tools
-            assert "opencode_status" in tools
-            assert "toggle_opencode_auto_consult" in tools
-
-    @pytest.mark.asyncio
-    async def test_opencode_status(self):
-        """Test opencode_status returns expected format"""
-        with patch.dict("os.environ", {"OPENROUTER_API_KEY": "test_key"}):
-            from mcp_opencode.server import OpenCodeMCPServer
-
-            server = OpenCodeMCPServer()
-            result = await server.opencode_status()
-
-            assert "success" in result
-            assert result["success"] is True
-            assert "status" in result
-
-    @pytest.mark.asyncio
-    async def test_clear_opencode_history(self):
-        """Test clear_opencode_history returns success"""
-        with patch.dict("os.environ", {"OPENROUTER_API_KEY": "test_key"}):
-            from mcp_opencode.server import OpenCodeMCPServer
-
-            server = OpenCodeMCPServer()
-            result = await server.clear_opencode_history()
-
-            assert "success" in result
-            assert result["success"] is True
-
-    @pytest.mark.asyncio
-    async def test_consult_opencode_empty_query(self):
-        """Test consult_opencode with empty query returns error"""
-        with patch.dict("os.environ", {"OPENROUTER_API_KEY": "test_key"}):
-            from mcp_opencode.server import OpenCodeMCPServer
-
-            server = OpenCodeMCPServer()
-            result = await server.consult_opencode(query="")
-
-            assert result["success"] is False
-            assert "error" in result
-
-
+# Note: TestToolImports removed - OpenCode MCP server has been migrated to Rust
+# Note: TestOpenCodeMCPServer removed - OpenCode MCP server has been migrated to Rust
 # Note: TestCrushMCPServer removed - Crush MCP server has been migrated to Rust
 # Note: TestGeminiMCPServer removed - Gemini MCP server has been migrated to Rust
 # Note: TestCodexMCPServer removed - Codex MCP server has been migrated to Rust
+# Note: TestIntegrationMocks removed - All AI agent MCP servers are now Rust
+# Note: TestToolModes removed - OpenCode MCP server has been migrated to Rust
 
 
-class TestIntegrationMocks:
-    """Test that mock integrations work correctly when real integrations are unavailable"""
+class TestPlaceholder:
+    """Placeholder test class to keep the test file valid.
 
-    def test_opencode_mock_integration(self):
-        """Test OpenCode falls back to mock when integration unavailable"""
-        with patch.dict("os.environ", {"OPENROUTER_API_KEY": ""}):
-            from mcp_opencode.server import OpenCodeMCPServer
+    All AI agent MCP servers have been migrated to Rust.
+    Tests for these servers are now in their respective Cargo.toml workspaces.
+    """
 
-            server = OpenCodeMCPServer()
-            # Server should still initialize with mock
-            assert server.opencode is not None
-
-    # Note: test_crush_mock_integration removed - Crush MCP server is now Rust
-    # Note: test_gemini_mock_integration removed - Gemini MCP server is now Rust
-    # Note: test_codex_mock_integration removed - Codex MCP server is now Rust
-
-
-class TestToolModes:
-    """Test different consultation modes"""
-
-    @pytest.mark.asyncio
-    async def test_opencode_modes(self):
-        """Test OpenCode consultation modes"""
-        with patch.dict("os.environ", {"OPENROUTER_API_KEY": "test_key"}):
-            from mcp_opencode.server import OpenCodeMCPServer
-
-            server = OpenCodeMCPServer()
-            tools = server.get_tools()
-            modes = tools["consult_opencode"]["parameters"]["properties"]["mode"]["enum"]
-            assert "generate" in modes
-            assert "refactor" in modes
-            assert "review" in modes
-            assert "explain" in modes
-            assert "quick" in modes
+    def test_all_ai_agents_migrated_to_rust(self):
+        """Verify that all AI agent MCP servers have been migrated to Rust."""
+        # This is a placeholder test to document that all AI agent MCP servers
+        # have been migrated from Python to Rust for better performance.
+        #
+        # The Rust implementations are tested via cargo test in their respective
+        # directories:
+        #   - tools/mcp/mcp_codex/
+        #   - tools/mcp/mcp_gemini/
+        #   - tools/mcp/mcp_crush/
+        #   - tools/mcp/mcp_opencode/
+        assert True
 
 
 if __name__ == "__main__":
