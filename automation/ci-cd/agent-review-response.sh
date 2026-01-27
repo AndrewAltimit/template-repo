@@ -17,6 +17,47 @@
 set -e
 set -o pipefail
 
+# =============================================================================
+# PROMPT SIZE LIMITS
+# =============================================================================
+# Claude's context window is ~200k tokens. With ~4 chars per token, we budget:
+# - Total prompt: ~150k chars (leaving room for response + system prompt)
+# - Review content: max 80k chars (truncate if larger)
+# - CLAUDE.md context: max 8k chars
+# - PR comments: max 20k chars
+# - Instructions: ~15k chars (fixed overhead)
+MAX_REVIEW_CONTENT_CHARS=80000
+MAX_CLAUDE_MD_CHARS=8000
+MAX_PR_COMMENTS_CHARS=20000
+MAX_TOTAL_PROMPT_CHARS=150000
+
+# =============================================================================
+# TRUNCATION FUNCTIONS
+# =============================================================================
+
+# Truncate text to max characters at a line boundary
+truncate_at_line_boundary() {
+    local text="$1"
+    local max_chars="$2"
+    local text_len=${#text}
+
+    if [ "$text_len" -le "$max_chars" ]; then
+        printf '%s' "$text"
+        return
+    fi
+
+    # Find the last newline before max_chars
+    local truncated="${text:0:$max_chars}"
+    local last_newline_pos
+    last_newline_pos=$(printf '%s' "$truncated" | grep -bo $'\n' | tail -1 | cut -d: -f1 || echo "")
+
+    if [ -n "$last_newline_pos" ]; then
+        printf '%s\n\n[... truncated from %d to %d chars ...]' "${text:0:$last_newline_pos}" "$text_len" "$last_newline_pos"
+    else
+        printf '%s\n\n[... truncated from %d to %d chars ...]' "$truncated" "$text_len" "$max_chars"
+    fi
+}
+
 # Parse arguments
 PR_NUMBER="$1"
 BRANCH_NAME="$2"
@@ -314,12 +355,19 @@ PYTHON_EOF
     rm -f "$comments_file"
 }
 
-# Fetch PR comments with trust categorization
+# Fetch PR comments with trust categorization (with truncation)
 echo "Fetching PR comments with trust categorization..."
-PR_COMMENTS=$(fetch_categorized_pr_comments "$PR_NUMBER")
-if [ -n "$PR_COMMENTS" ]; then
-    echo "Found categorized PR comments"
+PR_COMMENTS_RAW=$(fetch_categorized_pr_comments "$PR_NUMBER")
+if [ -n "$PR_COMMENTS_RAW" ]; then
+    if [ ${#PR_COMMENTS_RAW} -gt "$MAX_PR_COMMENTS_CHARS" ]; then
+        echo "  Truncating PR comments from ${#PR_COMMENTS_RAW} to $MAX_PR_COMMENTS_CHARS chars"
+        PR_COMMENTS=$(truncate_at_line_boundary "$PR_COMMENTS_RAW" "$MAX_PR_COMMENTS_CHARS")
+    else
+        PR_COMMENTS="$PR_COMMENTS_RAW"
+    fi
+    echo "Found categorized PR comments (${#PR_COMMENTS} chars)"
 else
+    PR_COMMENTS=""
     echo "No relevant PR comments found"
 fi
 
@@ -393,7 +441,15 @@ if [ -z "$REVIEW_CONTENT" ]; then
     exit 0
 fi
 
-echo "Review content found, passing to Claude for analysis..."
+# Truncate review content if too large
+REVIEW_CONTENT_LEN=${#REVIEW_CONTENT}
+echo "Review content found (${REVIEW_CONTENT_LEN} chars)"
+if [ "$REVIEW_CONTENT_LEN" -gt "$MAX_REVIEW_CONTENT_CHARS" ]; then
+    echo "  Truncating review content from ${REVIEW_CONTENT_LEN} to $MAX_REVIEW_CONTENT_CHARS chars"
+    REVIEW_CONTENT=$(truncate_at_line_boundary "$REVIEW_CONTENT" "$MAX_REVIEW_CONTENT_CHARS")
+fi
+
+echo "Passing review content to Claude for analysis..."
 
 # Step 1: Run autoformat first (quick wins)
 echo ""
@@ -415,11 +471,17 @@ fi
 echo ""
 echo "=== Step 2: Invoking Claude for review feedback ==="
 
-# Load CLAUDE.md for codebase context if it exists
+# Load CLAUDE.md for codebase context if it exists (with truncation)
 CLAUDE_MD_CONTEXT=""
 if [ -f "CLAUDE.md" ]; then
     echo "Loading CLAUDE.md for codebase context..."
-    CLAUDE_MD_CONTEXT=$(cat "CLAUDE.md")
+    CLAUDE_MD_RAW=$(cat "CLAUDE.md")
+    if [ ${#CLAUDE_MD_RAW} -gt "$MAX_CLAUDE_MD_CHARS" ]; then
+        echo "  Truncating CLAUDE.md from ${#CLAUDE_MD_RAW} to $MAX_CLAUDE_MD_CHARS chars"
+        CLAUDE_MD_CONTEXT=$(truncate_at_line_boundary "$CLAUDE_MD_RAW" "$MAX_CLAUDE_MD_CHARS")
+    else
+        CLAUDE_MD_CONTEXT="$CLAUDE_MD_RAW"
+    fi
 fi
 
 # Build prompt for Claude - balanced and trusting
@@ -554,9 +616,21 @@ Reason codes:
 If there's nothing to report in a section, write 'None' under it.
 "
 
-# Save prompt to temp file
+# Save prompt to temp file and validate size
 PROMPT_FILE=$(mktemp)
 printf '%s' "$CLAUDE_PROMPT" > "$PROMPT_FILE"
+
+# Check total prompt size and warn if still too large
+PROMPT_SIZE=$(wc -c < "$PROMPT_FILE")
+echo "Total prompt size: ${PROMPT_SIZE} chars"
+
+if [ "$PROMPT_SIZE" -gt "$MAX_TOTAL_PROMPT_CHARS" ]; then
+    echo "WARNING: Prompt still exceeds recommended limit (${PROMPT_SIZE} > ${MAX_TOTAL_PROMPT_CHARS})"
+    echo "  This may cause Claude to reject the prompt. Consider reducing:"
+    echo "  - Review content size (current limit: $MAX_REVIEW_CONTENT_CHARS)"
+    echo "  - PR comments size (current limit: $MAX_PR_COMMENTS_CHARS)"
+    echo "  - CLAUDE.md context size (current limit: $MAX_CLAUDE_MD_CHARS)"
+fi
 
 # Determine Claude command - use default mode (NOT --print) so Claude can use tools
 CLAUDE_CMD=""

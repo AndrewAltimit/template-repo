@@ -13,6 +13,16 @@
 
 set -e
 
+# =============================================================================
+# ERROR EXTRACTION SETTINGS
+# =============================================================================
+# Instead of passing full CI output to Claude, we extract only error lines.
+# This keeps prompts small and focused on actionable issues.
+# - Lint errors: max 150 lines (grep for error patterns)
+# - Test errors: max 100 lines (grep for FAILED, AssertionError, etc.)
+MAX_LINT_ERROR_LINES=150
+MAX_TEST_ERROR_LINES=100
+
 # Parse arguments
 PR_NUMBER="$1"
 BRANCH_NAME="$2"
@@ -222,23 +232,41 @@ echo "=== Step 2: Checking for remaining lint issues ==="
 
 LINT_OUTPUT=""
 if [ -f "./automation/ci-cd/run-ci.sh" ]; then
-    # Capture lint-basic output (flake8)
+    # Capture lint-basic output (flake8) - extract only error lines
     if [ "${BASIC_LINT_RESULT:-}" = "failure" ] || [ -z "${BASIC_LINT_RESULT:-}" ]; then
-        echo "Capturing lint-basic output..."
-        LINT_OUTPUT=$(./automation/ci-cd/run-ci.sh lint-basic 2>&1 || true)
+        echo "Capturing lint-basic errors..."
+        RAW_LINT=$(./automation/ci-cd/run-ci.sh lint-basic 2>&1 || true)
+        # Extract only lines with actual errors (file:line:col patterns, error messages)
+        LINT_ERRORS=$(echo "$RAW_LINT" | grep -E '^[^:]+:\d+:|: error|: warning|Error:|FAILED' | head -"$MAX_LINT_ERROR_LINES" || true)
+        # Also capture tail of output for context (often has summary)
+        LINT_TAIL=$(echo "$RAW_LINT" | tail -50)
+        LINT_OUTPUT="${LINT_ERRORS}
+
+=== Log Tail (last 50 lines) ===
+${LINT_TAIL}"
     fi
 
     # Also capture lint-full output (ruff, mypy) if that failed
     if [ "${FULL_LINT_RESULT:-}" = "failure" ]; then
-        echo "Capturing lint-full output..."
-        FULL_LINT_OUTPUT=$(./automation/ci-cd/run-ci.sh lint-full 2>&1 || true)
+        echo "Capturing lint-full errors..."
+        RAW_FULL_LINT=$(./automation/ci-cd/run-ci.sh lint-full 2>&1 || true)
+        # Extract only error lines
+        FULL_LINT_ERRORS=$(echo "$RAW_FULL_LINT" | grep -E '^[^:]+:\d+:|: error|: warning|Error:|FAILED' | head -"$MAX_LINT_ERROR_LINES" || true)
+        FULL_LINT_TAIL=$(echo "$RAW_FULL_LINT" | tail -50)
         LINT_OUTPUT="${LINT_OUTPUT}
 
-=== Full Lint Output (ruff/mypy) ===
-${FULL_LINT_OUTPUT}"
+=== Full Lint Errors (ruff/mypy) ===
+${FULL_LINT_ERRORS}
+
+=== Full Lint Log Tail ===
+${FULL_LINT_TAIL}"
     fi
 
-    echo "Lint check output captured"
+    if [ -n "$LINT_OUTPUT" ]; then
+        echo "Lint errors extracted (${#LINT_OUTPUT} chars)"
+    else
+        echo "No lint errors found in output"
+    fi
 fi
 
 # Step 2b: Run tests to capture test failure output
@@ -248,15 +276,22 @@ if [ -n "$TEST_FAILURES" ]; then
     echo "=== Step 2b: Capturing test failure output ==="
     if [ -f "./automation/ci-cd/run-ci.sh" ]; then
         echo "Running tests to capture failure details..."
-        # Run tests with verbose output, capture both stdout and stderr
-        TEST_OUTPUT=$(./automation/ci-cd/run-ci.sh test 2>&1 || true)
-        # Truncate if too long (keep last 5000 chars which usually has the failures)
-        if [ ${#TEST_OUTPUT} -gt 8000 ]; then
-            TEST_OUTPUT="... (truncated, showing last 5000 chars) ...
+        RAW_TEST=$(./automation/ci-cd/run-ci.sh test 2>&1 || true)
+        # Extract only failure-related lines:
+        # - FAILED lines (pytest summary)
+        # - AssertionError and other exceptions
+        # - Lines with "Error" or "error:"
+        # - Test file:line references
+        TEST_ERRORS=$(echo "$RAW_TEST" | grep -E 'FAILED|AssertionError|Error:|error:|Traceback|^E\s+|test_.*\.py:\d+' | head -"$MAX_TEST_ERROR_LINES" || true)
+        # Also capture tail of output for context (often has summary)
+        TEST_TAIL=$(echo "$RAW_TEST" | tail -50)
 
-${TEST_OUTPUT: -5000}"
-        fi
-        echo "Test output captured (${#TEST_OUTPUT} chars)"
+        TEST_OUTPUT="${TEST_ERRORS}
+
+=== Test Log Tail (last 50 lines) ===
+${TEST_TAIL}"
+
+        echo "Test errors extracted (${#TEST_OUTPUT} chars)"
     fi
 fi
 
@@ -313,6 +348,8 @@ After making changes, provide a brief summary of what was fixed."
 # Save prompt to temp file
 PROMPT_FILE=$(mktemp)
 echo "$CLAUDE_PROMPT" > "$PROMPT_FILE"
+PROMPT_SIZE=$(wc -c < "$PROMPT_FILE")
+echo "Prompt size: ${PROMPT_SIZE} chars (errors only, not full CI output)"
 
 # Determine Claude command
 CLAUDE_CMD=""
