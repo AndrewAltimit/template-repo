@@ -93,6 +93,14 @@ runs:
           exit 1
         fi
 
+    - name: Clean up any stale containers from previous runs
+      shell: bash
+      run: |
+        # Remove any orphaned containers from previous CI runs to prevent name conflicts
+        # This handles the case where a previous run failed without cleanup
+        echo "Checking for stale CI containers..."
+        docker compose down --remove-orphans 2>/dev/null || true
+
     - name: Start services
       shell: bash
       env:
@@ -110,10 +118,11 @@ runs:
             echo "Starting specific services: $INPUT_SERVICES"
             # shellcheck disable=SC2086 - Word splitting is intentional for service names
             # Use -- to separate options from service names for safety
-            docker compose up --build -d -- $INPUT_SERVICES
+            # Use --force-recreate to ensure fresh containers
+            docker compose up --build --force-recreate -d -- $INPUT_SERVICES
           else
             echo "Starting all services in active profiles"
-            docker compose up --build -d
+            docker compose up --build --force-recreate -d
           fi
         else
           echo "Starting services..."
@@ -121,10 +130,11 @@ runs:
             echo "Starting specific services: $INPUT_SERVICES"
             # shellcheck disable=SC2086 - Word splitting is intentional for service names
             # Use -- to separate options from service names for safety
-            docker compose up -d -- $INPUT_SERVICES
+            # Use --force-recreate to ensure fresh containers
+            docker compose up --force-recreate -d -- $INPUT_SERVICES
           else
             echo "Starting all services in active profiles"
-            docker compose up -d
+            docker compose up --force-recreate -d
           fi
         fi
 
