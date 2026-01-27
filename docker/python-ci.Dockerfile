@@ -81,7 +81,7 @@ COPY packages/sleeper_agents /app/packages/sleeper_agents
 
 # Install all workspace packages in a single uv command (with cache)
 # This is ~10-100x faster than individual pip install commands
-# Note: mcp_codex and mcp_reaction_search are Rust packages, built separately
+# Note: mcp_codex, mcp_reaction_search, and mcp_gemini are Rust packages, built separately
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install \
     /app/tools/mcp/mcp_core \
@@ -93,7 +93,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     /app/tools/mcp/mcp_crush \
     /app/tools/mcp/mcp_elevenlabs_speech \
     /app/tools/mcp/mcp_gaea2 \
-    /app/tools/mcp/mcp_gemini \
     /app/tools/mcp/mcp_github_board \
     /app/tools/mcp/mcp_meme_generator \
     /app/tools/mcp/mcp_opencode \

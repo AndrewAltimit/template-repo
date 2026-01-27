@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Tests for AI Agent MCP tools (Crush, OpenCode, Gemini)
+"""Tests for AI Agent MCP tools (Crush, OpenCode)
 
-Note: Codex MCP server has been migrated to Rust and is tested separately.
+Note: Codex and Gemini MCP servers have been migrated to Rust and are tested separately.
 """
 
 from unittest.mock import patch
@@ -34,17 +34,7 @@ class TestToolImports:
         assert "opencode_status" in OPENCODE_TOOLS
         assert "toggle_opencode_auto_consult" in OPENCODE_TOOLS
 
-    def test_gemini_tools_import(self):
-        """Test that Gemini tools can be imported"""
-        from mcp_gemini.tools import TOOLS as GEMINI_TOOLS
-
-        assert GEMINI_TOOLS is not None
-        assert isinstance(GEMINI_TOOLS, dict)
-        assert "consult_gemini" in GEMINI_TOOLS
-        assert "clear_gemini_history" in GEMINI_TOOLS
-        assert "gemini_status" in GEMINI_TOOLS
-        assert "toggle_gemini_auto_consult" in GEMINI_TOOLS
-
+    # Note: Gemini MCP server has been migrated to Rust and is tested separately
     # Note: Codex MCP server has been migrated to Rust and is tested separately
 
 
@@ -214,89 +204,7 @@ class TestOpenCodeMCPServer:
             assert "error" in result
 
 
-class TestGeminiMCPServer:
-    """Tests for Gemini MCP Server"""
-
-    def test_server_initialization(self):
-        """Test Gemini MCP server can be initialized"""
-        from mcp_gemini.server import GeminiMCPServer
-
-        server = GeminiMCPServer()
-        assert server.name == "Gemini MCP Server"
-        assert server.version == "1.1.0"
-        assert server.port == 8006
-
-    def test_server_get_tools(self):
-        """Test Gemini server returns correct tools"""
-        from mcp_gemini.server import GeminiMCPServer
-
-        server = GeminiMCPServer()
-        tools = server.get_tools()
-
-        assert "consult_gemini" in tools
-        assert "clear_gemini_history" in tools
-        assert "gemini_status" in tools
-        assert "toggle_gemini_auto_consult" in tools
-
-        # Check tool definitions
-        consult_tool = tools["consult_gemini"]
-        assert "description" in consult_tool
-        assert "parameters" in consult_tool
-        params = consult_tool["parameters"]
-        assert "query" in params["properties"]
-
-    @pytest.mark.asyncio
-    async def test_gemini_status(self):
-        """Test gemini_status returns expected format"""
-        from mcp_gemini.server import GeminiMCPServer
-
-        server = GeminiMCPServer()
-        result = await server.gemini_status()
-
-        assert "success" in result
-        assert result["success"] is True
-        assert "status" in result
-
-    @pytest.mark.asyncio
-    async def test_clear_gemini_history(self):
-        """Test clear_gemini_history returns success"""
-        from mcp_gemini.server import GeminiMCPServer
-
-        server = GeminiMCPServer()
-        result = await server.clear_gemini_history()
-
-        assert "success" in result
-        assert result["success"] is True
-
-    @pytest.mark.asyncio
-    async def test_toggle_gemini_auto_consult(self):
-        """Test toggle_gemini_auto_consult works correctly"""
-        from mcp_gemini.server import GeminiMCPServer
-
-        server = GeminiMCPServer()
-
-        # Test disable
-        result = await server.toggle_gemini_auto_consult(enable=False)
-        assert result["success"] is True
-        assert result["status"] == "disabled"
-
-        # Test enable
-        result = await server.toggle_gemini_auto_consult(enable=True)
-        assert result["success"] is True
-        assert result["status"] == "enabled"
-
-    @pytest.mark.asyncio
-    async def test_consult_gemini_empty_query(self):
-        """Test consult_gemini with empty query returns error"""
-        from mcp_gemini.server import GeminiMCPServer
-
-        server = GeminiMCPServer()
-        result = await server.consult_gemini(query="")
-
-        assert result["success"] is False
-        assert "error" in result
-
-
+# Note: TestGeminiMCPServer removed - Gemini MCP server has been migrated to Rust
 # Note: TestCodexMCPServer removed - Codex MCP server has been migrated to Rust
 
 
@@ -321,14 +229,7 @@ class TestIntegrationMocks:
             # Server should still initialize with mock
             assert server.opencode is not None
 
-    def test_gemini_mock_integration(self):
-        """Test Gemini falls back to mock when integration unavailable"""
-        from mcp_gemini.server import GeminiMCPServer
-
-        server = GeminiMCPServer()
-        # Server should still initialize with mock
-        assert server.gemini is not None
-
+    # Note: test_gemini_mock_integration removed - Gemini MCP server is now Rust
     # Note: test_codex_mock_integration removed - Codex MCP server is now Rust
 
 
