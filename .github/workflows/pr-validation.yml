@@ -183,6 +183,13 @@ jobs:
           echo "Built git-guard binary:"
           ls -la target/release/git
 
+      - name: Build mcp-gemini
+        run: |
+          cd tools/mcp/mcp_gemini
+          cargo build --release
+          echo "Built mcp-gemini binary:"
+          ls -la target/release/mcp-gemini
+
       - name: Stage binaries for upload
         run: |
           mkdir -p rust-binaries
@@ -190,6 +197,7 @@ jobs:
           cp tools/rust/board-manager/target/release/board-manager rust-binaries/
           cp tools/rust/markdown-link-checker/target/release/md-link-checker rust-binaries/
           cp tools/rust/git-guard/target/release/git rust-binaries/git-guard
+          cp tools/mcp/mcp_gemini/target/release/mcp-gemini rust-binaries/
           ls -la rust-binaries/
 
       - name: Upload Rust binaries
