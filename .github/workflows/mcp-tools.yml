@@ -209,7 +209,7 @@ jobs:
         run: |
           # Read PR changes (truncated for API limits) via environment variable
           # to avoid shell injection issues with special characters in diffs
-          export PR_CHANGES=$(head -c 5000 pr_changes.diff)
+          export PR_CHANGES="$(head -c 5000 pr_changes.diff)"
 
           # Use the MCP server to consult Gemini
           python3 -c "
