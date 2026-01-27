@@ -30,7 +30,7 @@ The binary will be at `target/release/pr-monitor`.
 ### Using Docker (CI)
 
 ```bash
-docker-compose --profile ci run --rm rust-ci cargo build --release -p pr-monitor
+docker compose --profile ci run --rm rust-ci cargo build --release -p pr-monitor
 ```
 
 ## Usage

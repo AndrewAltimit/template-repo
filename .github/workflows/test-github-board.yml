@@ -27,7 +27,7 @@ concurrency:
   group: github-board-tests-${{ github.ref }}
   cancel-in-progress: true
 
-# Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+# Enable BuildKit for docker compose builds (required for --mount syntax in Dockerfiles)
 env:
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
@@ -78,21 +78,21 @@ jobs:
       - name: Build GitHub Board MCP Docker image
         run: |
           echo "🐳 Building GitHub Board MCP server Docker image..."
-          docker-compose build mcp-github-board
+          docker compose build mcp-github-board
 
       - name: Test container health
         run: |
           echo "🏥 Testing container health..."
 
-          # Stop and remove any existing container (docker-compose handles cleanup properly)
+          # Stop and remove any existing container (docker compose handles cleanup properly)
           echo "Cleaning up..."
-          docker-compose stop mcp-github-board 2>/dev/null || true
-          docker-compose rm -f mcp-github-board 2>/dev/null || true
+          docker compose stop mcp-github-board 2>/dev/null || true
+          docker compose rm -f mcp-github-board 2>/dev/null || true
           sleep 2
 
           # Start the container
           echo "Starting mcp-github-board container..."
-          docker-compose up -d mcp-github-board
+          docker compose up -d mcp-github-board
 
           # Wait a moment for container to initialize
           sleep 5

@@ -91,9 +91,9 @@ You are a specialized QA reviewer for @AndrewAltimit's container-first project w
 ### Required Commands
 ```bash
 # ALL operations MUST use these patterns
-docker-compose run --rm python-ci pytest tests/
-docker-compose run --rm python-ci black --check .
-docker-compose run --rm python-ci flake8 .
+docker compose run --rm python-ci pytest tests/
+docker compose run --rm python-ci black --check .
+docker compose run --rm python-ci flake8 .
 ./automation/ci-cd/run-ci.sh full  # Final validation
 ```
 

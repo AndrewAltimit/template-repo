@@ -182,7 +182,7 @@ async def test_health_check():
         except httpx.ConnectError:
             print("✗ Could not connect to server")
             print("Make sure the server is running:")
-            print("  docker-compose up -d mcp-meme-generator")
+            print("  docker compose up -d mcp-meme-generator")
             print("  or")
             print("  python -m tools.mcp.meme_generator.server --mode http")
             return False

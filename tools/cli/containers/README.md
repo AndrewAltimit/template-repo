@@ -6,7 +6,7 @@ This directory contains scripts for running OpenCode AI assistant in Docker cont
 
 ### Option 1: Simple Standalone Container (Recommended for beginners)
 
-The simplest way to get started - no docker-compose required:
+The simplest way to get started - no docker compose required:
 
 ```bash
 ./run_opencode_simple.sh
@@ -28,7 +28,7 @@ For users who need the complete MCP infrastructure:
 
 This script:
 - Auto-builds all required MCP images if missing
-- Integrates with the full docker-compose stack
+- Integrates with the full docker compose stack
 - Provides access to additional MCP tools
 - Suitable for advanced workflows
 
@@ -37,7 +37,7 @@ This script:
 | Feature | Simple Container | Full Infrastructure |
 |---------|-----------------|-------------------|
 | Setup Time | ~1 minute | ~5 minutes |
-| Dependencies | Docker only | Docker + docker-compose |
+| Dependencies | Docker only | Docker + docker compose |
 | Image Size | ~300MB | ~2GB |
 | MCP Tools | No | Yes |
 | Auto-build | Yes | Yes |
@@ -81,13 +81,13 @@ Both scripts support:
 ### Images Not Building
 
 If the full infrastructure fails to build:
-1. Ensure docker-compose is installed
+1. Ensure docker compose is installed
 2. Check Docker daemon is running
 3. The script now auto-builds missing images
 4. If issues persist, build manually:
    ```bash
    # Build base images
-   docker-compose build mcp-opencode mcp-crush
+   docker compose build mcp-opencode mcp-crush
 
    # Build agents image (uses docker build to avoid Docker Hub lookups)
    docker build -f docker/openrouter-agents.Dockerfile \

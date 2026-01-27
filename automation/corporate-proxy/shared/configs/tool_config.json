@@ -44,7 +44,10 @@
   "api_spec": {
     "_comment": "Controls which tool API specification to use for request/response formatting",
     "default": "openai",
-    "supported_specs": ["openai", "anthropic"],
+    "supported_specs": [
+      "openai",
+      "anthropic"
+    ],
     "spec_details": {
       "openai": {
         "description": "OpenAI Chat Completions API format",

@@ -70,7 +70,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Install workspace packages
 # Note: This happens before copying the full codebase to leverage caching
-# The actual code will be mounted at runtime via docker-compose volumes
+# The actual code will be mounted at runtime via docker compose volumes
 COPY pyproject.toml /app/pyproject.toml
 COPY tools /app/tools
 COPY automation /app/automation

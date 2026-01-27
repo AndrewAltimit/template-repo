@@ -22,7 +22,7 @@ check_and_build_images() {
 
         # Build the codex-agent image
         echo "Building Codex agent image..."
-        docker-compose build codex-agent
+        docker compose build codex-agent
 
         echo "✅ Docker images built successfully!"
         echo ""
@@ -81,4 +81,4 @@ fi
 
 # Start session in container, forwarding all arguments
 # The volume mount and HOME are configured in docker-compose.yml
-docker-compose run --rm -it codex-agent codex "$@"
+docker compose run --rm -it codex-agent codex "$@"

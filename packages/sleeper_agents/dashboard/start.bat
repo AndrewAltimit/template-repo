@@ -1,5 +1,5 @@
 @echo off
-REM Smart Dashboard Starter - Uses docker-compose if available, falls back to docker
+REM Smart Dashboard Starter - Uses docker compose if available, falls back to docker
 REM Automatically loads .env and configures everything
 
 REM Parse command-line flags
@@ -29,7 +29,7 @@ echo Docker is running.
 REM Check for docker-compose
 echo [2/6] Detecting docker-compose...
 set "USE_COMPOSE=0"
-where docker-compose >nul 2>nul
+where docker compose >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
     set "USE_COMPOSE=1"
     echo Found docker-compose: will use docker-compose.yml
@@ -40,7 +40,7 @@ if %ERRORLEVEL% EQU 0 (
         set "USE_COMPOSE=2"
         echo Found docker compose v2: will use docker-compose.yml
     ) else (
-        echo docker-compose not found: will use docker run
+        echo docker compose not found: will use docker run
     )
 )
 echo.
@@ -72,7 +72,7 @@ echo Directories ensured.
 echo.
 
 echo Configuration file found: .env
-echo Note: docker-compose will load environment variables from .env
+echo Note: docker compose will load environment variables from .env
 echo.
 
 REM Ensure required Docker volumes exist
@@ -95,7 +95,7 @@ REM Build image
 echo [5/7] Building Docker image...
 if %USE_COMPOSE% EQU 1 (
     echo Building with docker-compose...
-    docker-compose build
+    docker compose build
     if errorlevel 1 (
         echo ERROR: Failed to build image
         exit /b 1
@@ -120,7 +120,7 @@ echo.
 REM Stop existing container/service
 echo [6/7] Stopping existing dashboard...
 if %USE_COMPOSE% EQU 1 (
-    docker-compose down >nul 2>&1
+    docker compose down >nul 2>&1
 ) else if %USE_COMPOSE% EQU 2 (
     docker compose down >nul 2>&1
 ) else (
@@ -134,13 +134,13 @@ echo [7/7] Starting dashboard...
 echo.
 
 REM Set default user permissions if not in .env (Windows doesn't have id command)
-REM These defaults ensure consistent behavior across docker-compose and docker run paths
+REM These defaults ensure consistent behavior across docker compose and docker run paths
 if not defined USER_ID set "USER_ID=1000"
 if not defined GROUP_ID set "GROUP_ID=1000"
 
 if %USE_COMPOSE% EQU 1 (
     echo Using docker-compose...
-    docker-compose up -d
+    docker compose up -d
     if errorlevel 1 goto :error
 ) else if %USE_COMPOSE% EQU 2 (
     echo Using docker compose v2...
@@ -207,7 +207,7 @@ echo   - View logs: docker logs -f sleeper-dashboard
 echo   - Stop: docker stop sleeper-dashboard
 if %USE_COMPOSE% GTR 0 (
     if %USE_COMPOSE% EQU 1 (
-        echo   - Or use: docker-compose down
+        echo   - Or use: docker compose down
     ) else (
         echo   - Or use: docker compose down
     )

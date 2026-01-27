@@ -94,6 +94,8 @@ exclude = [
     "**/backends/mock.py",
     # Windows-specific code (platform-specific attributes)
     "**/windows_*.py",
+    # Memory explorer uses ctypes.windll (Windows-only)
+    "tools/mcp/mcp_memory_explorer/",
     # Sleeper agents training code (torch/transformers dynamic)
     "packages/sleeper_agents/src/sleeper_agents/training/",
     # Gaea2 schema/validation files (heavy dynamic patterns)

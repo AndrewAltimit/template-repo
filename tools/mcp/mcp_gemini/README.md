@@ -104,10 +104,10 @@ curl -X POST http://localhost:8006/mcp/execute \
 
 ```bash
 # Start the MCP server
-docker-compose up -d mcp-gemini
+docker compose up -d mcp-gemini
 
 # View logs
-docker-compose logs -f mcp-gemini
+docker compose logs -f mcp-gemini
 
 # Test health
 curl http://localhost:8006/health
@@ -117,7 +117,7 @@ curl http://localhost:8006/health
 
 ```bash
 # Build with docker-compose
-docker-compose build mcp-gemini
+docker compose build mcp-gemini
 
 # Or build directly
 docker build -f docker/mcp-gemini.Dockerfile -t mcp-gemini .
@@ -152,7 +152,7 @@ Or with Docker:
 {
   "mcpServers": {
     "gemini": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": ["-f", "./docker-compose.yml", "--profile", "services", "run", "--rm", "-T", "mcp-gemini", "mcp-gemini", "--mode", "stdio"]
     }
   }

@@ -70,7 +70,7 @@ if errorlevel 1 (
 )
 
 echo Building Python CI container...
-docker-compose -f docker-compose.yml build python-ci
+docker compose -f docker-compose.yml build python-ci
 if errorlevel 1 (
     echo ERROR: Failed to build container
     exit /b 1
@@ -83,12 +83,12 @@ if "%MODE%"=="quick" (
     echo Running QUICK test ^(GPT-2 only, 50 samples^)...
     echo Installing dependencies and running test...
     echo.
-    docker-compose -f docker-compose.yml run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] --quiet && python packages/sleeper_agents/examples/cross_architecture_validation.py --quick --device %DEVICE%"
+    docker compose -f docker-compose.yml run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] --quiet && python packages/sleeper_agents/examples/cross_architecture_validation.py --quick --device %DEVICE%"
 ) else (
     echo Running FULL validation ^(all models: %MODELS%^)...
     echo Installing dependencies and running test...
     echo.
-    docker-compose -f docker-compose.yml run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] --quiet && python packages/sleeper_agents/examples/cross_architecture_validation.py --models %MODELS% --device %DEVICE% --n-train 200 --n-test 100"
+    docker compose -f docker-compose.yml run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] --quiet && python packages/sleeper_agents/examples/cross_architecture_validation.py --models %MODELS% --device %DEVICE% --n-train 200 --n-test 100"
 )
 
 if errorlevel 1 (

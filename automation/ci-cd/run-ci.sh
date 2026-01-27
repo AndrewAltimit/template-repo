@@ -1,6 +1,6 @@
 #!/bin/bash
 # CI/CD Helper Script for running Python and Rust tools in Docker
-# This simplifies repetitive docker-compose commands in workflows
+# This simplifies repetitive docker compose commands in workflows
 #
 # Python CI: Uses python-ci container (Python 3.11)
 # Rust CI:   Uses rust-ci container (Rust 1.83) for injection_toolkit
@@ -19,7 +19,7 @@ COMPOSE_FILE="$PROJECT_ROOT/docker-compose.yml"
 # Change to project root so relative paths in docker-compose.yml work correctly
 cd "$PROJECT_ROOT"
 
-# Export user IDs for docker-compose
+# Export user IDs for docker compose
 USER_ID=$(id -u)
 GROUP_ID=$(id -g)
 export USER_ID
@@ -41,67 +41,67 @@ mkdir -p ~/.cache/uv ~/.cache/pre-commit
 
 # Build the CI image if needed
 echo "🔨 Building CI image..."
-docker-compose -f "$COMPOSE_FILE" build python-ci
+docker compose -f "$COMPOSE_FILE" build python-ci
 
 case "$STAGE" in
   format)
     echo "=== Running format checks ==="
     # Use ruff format (replaces black, 10-100x faster)
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff format --check --diff .
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff format --check --diff .
     # Check import sorting
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I --diff .
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I --diff .
     ;;
 
   lint-basic)
     echo "=== Running basic linting ==="
     # Format check (ruff format replaces black)
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff format --check .
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff format --check .
     # Import sorting check
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
     # Critical errors (ruff replaces flake8 for E9,F63,F7,F82)
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=E9,F63,F7,F82 --output-format="$RUFF_OUTPUT_FORMAT" .
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=E9,F63,F7,F82 --output-format="$RUFF_OUTPUT_FORMAT" .
     # Style check (informational)
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=E,W,C90 --exit-zero --output-format=grouped .
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=E,W,C90 --exit-zero --output-format=grouped .
     ;;
 
   lint-full)
     echo "=== Running full linting suite ==="
     # Format check (ruff format replaces black)
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff format --check .
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff format --check .
     # Import sorting check
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
     # Full ruff check (replaces flake8 and pylint) - informational, doesn't fail
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --exit-zero --output-format="$RUFF_OUTPUT_FORMAT" .
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --exit-zero --output-format="$RUFF_OUTPUT_FORMAT" .
     # Type checking with ty (Astral's fast type checker, replaces mypy)
     # ty is 10-60x faster than mypy with millisecond incremental updates
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ty check . || true
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ty check . || true
     ;;
 
   ruff)
     echo "=== Running Ruff (fast linter) ==="
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check . --output-format=github
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check . --output-format=github
     ;;
 
   ruff-fix)
     echo "=== Running Ruff with auto-fix ==="
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check . --fix
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check . --fix
     ;;
 
   bandit)
     echo "=== Running Bandit security scan ==="
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bandit -r . -c pyproject.toml -f txt
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci bandit -r . -c pyproject.toml -f txt
     ;;
 
   security)
     echo "=== Running security scans ==="
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bandit -r . -f json -o bandit-report.json || true
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci bandit -r . -f json -o bandit-report.json || true
     # Dependency security check - try Safety with API key, fallback to pip-audit
     if [ -n "$SAFETY_API_KEY" ]; then
       echo "Using Safety with API key..."
-      docker-compose -f "$COMPOSE_FILE" run --rm -T -e SAFETY_API_KEY="$SAFETY_API_KEY" python-ci safety scan --key "$SAFETY_API_KEY" --disable-optional-telemetry --output json > safety-report.json || true
+      docker compose -f "$COMPOSE_FILE" run --rm -T -e SAFETY_API_KEY="$SAFETY_API_KEY" python-ci safety scan --key "$SAFETY_API_KEY" --disable-optional-telemetry --output json > safety-report.json || true
     else
       echo "No SAFETY_API_KEY found, using pip-audit instead..."
-      docker-compose -f "$COMPOSE_FILE" run --rm -T python-ci python -m pip_audit --format json > safety-report.json || true
+      docker compose -f "$COMPOSE_FILE" run --rm -T python-ci python -m pip_audit --format json > safety-report.json || true
     fi
     ;;
 
@@ -110,21 +110,21 @@ case "$STAGE" in
     # Note: --ignore-glob is required because --ignore doesn't work properly with glob-expanded paths
     # Include corporate-proxy tests in the main test suite
     # Using pytest-xdist for parallel test execution (packages already installed in image)
-    docker-compose run --rm \
+    docker compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
       python-ci pytest tests/ tools/mcp/*/tests/ automation/corporate-proxy/tests/ -v -n auto --cov=. --cov-report=xml --cov-report=html --cov-report=term --ignore-glob='**/mcp_gaea2/**' "${EXTRA_ARGS[@]}"
 
     # Run additional corporate proxy component tests (scripts, not pytest)
     echo "=== Testing corporate proxy components ==="
-    docker-compose run --rm python-ci python automation/corporate-proxy/shared/scripts/test-auto-detection.py
-    docker-compose run --rm python-ci python automation/corporate-proxy/shared/scripts/test-content-stripping.py
+    docker compose run --rm python-ci python automation/corporate-proxy/shared/scripts/test-auto-detection.py
+    docker compose run --rm python-ci python automation/corporate-proxy/shared/scripts/test-content-stripping.py
     ;;
 
   yaml-lint)
     echo "=== Validating YAML files ==="
     # shellcheck disable=SC2016
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c '
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci bash -c '
       for file in $(find . -name "*.yml" -o -name "*.yaml"); do
         echo "Checking $file..."
         yamllint "$file" || true
@@ -136,7 +136,7 @@ case "$STAGE" in
   json-lint)
     echo "=== Validating JSON files ==="
     # shellcheck disable=SC2016
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c '
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci bash -c '
       for file in $(find . -name "*.json"); do
         echo "Checking $file..."
         python3 -m json.tool "$file" > /dev/null && echo "✅ Valid JSON: $file" || echo "❌ Invalid JSON: $file"
@@ -147,7 +147,7 @@ case "$STAGE" in
   lint-shell)
     echo "=== Linting shell scripts with shellcheck ==="
     # shellcheck disable=SC2016
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c '
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci bash -c '
       echo "Running shellcheck on all .sh files..."
       ISSUES_FOUND=0
       for script in $(find . -name "*.sh" -type f); do
@@ -175,9 +175,9 @@ case "$STAGE" in
   autoformat)
     echo "=== Running autoformatters ==="
     # Use ruff format (replaces black, 10-100x faster)
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff format .
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff format .
     # Fix import sorting
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I --fix .
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I --fix .
     ;;
 
   test-gaea2)
@@ -186,7 +186,7 @@ case "$STAGE" in
     GAEA2_URL="${GAEA2_MCP_URL:-http://192.168.0.152:8007}"
     if curl -f -s --connect-timeout 5 --max-time 10 "${GAEA2_URL}/health" > /dev/null 2>&1; then
       echo "✅ Gaea2 MCP server is available at $GAEA2_URL"
-      docker-compose run --rm \
+      docker compose run --rm \
         -e PYTHONDONTWRITEBYTECODE=1 \
         -e PYTHONPYCACHEPREFIX=/tmp/pycache \
         -e GAEA2_MCP_URL="${GAEA2_URL}" \
@@ -201,7 +201,7 @@ case "$STAGE" in
   test-all)
     echo "=== Running all tests (including Gaea2 if server available) ==="
     # Using pytest-xdist for parallel execution (packages already installed in image)
-    docker-compose run --rm \
+    docker compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
       python-ci pytest tests/ -v -n auto --cov=. --cov-report=xml --cov-report=term "${EXTRA_ARGS[@]}"
@@ -209,7 +209,7 @@ case "$STAGE" in
 
   test-corporate-proxy)
     echo "=== Running corporate proxy tests ==="
-    docker-compose run --rm \
+    docker compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
       --user "${USER_ID}:${GROUP_ID}" \
@@ -227,20 +227,20 @@ case "$STAGE" in
   rust-fmt)
     echo "=== Running Rust format checks ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo fmt --all -- --check
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo fmt --all -- --check
     ;;
 
   rust-clippy)
     echo "=== Running Rust clippy lints ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     # Exclude Windows-only crates that can't compile in the Linux CI container:
     # itk-native-dll: Windows DLL injector (requires Windows SDK)
     # nms-cockpit-injector: Vulkan/OpenVR hooks (uses retour, Windows APIs)
     # nms-video-launcher: Process injection launcher (Windows APIs)
     # nms-video-overlay: Desktop overlay (wgpu/egui/winit with Windows features)
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo clippy \
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo clippy \
       --workspace --all-targets \
       --exclude itk-native-dll \
       --exclude nms-cockpit-injector \
@@ -252,9 +252,9 @@ case "$STAGE" in
   rust-test)
     echo "=== Running Rust tests ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     # Exclude Windows-only crates (same list as rust-clippy)
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo test \
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo test \
       --workspace \
       --exclude itk-native-dll \
       --exclude nms-cockpit-injector \
@@ -266,9 +266,9 @@ case "$STAGE" in
   rust-build)
     echo "=== Building Rust workspace ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     # Exclude Windows-only crates (same list as rust-clippy)
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo build \
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo build \
       --workspace --all-targets \
       --exclude itk-native-dll \
       --exclude nms-cockpit-injector \
@@ -279,8 +279,8 @@ case "$STAGE" in
   rust-deny)
     echo "=== Running cargo-deny license/security checks ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo deny check || true
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo deny check || true
     ;;
 
   rust-full)
@@ -297,8 +297,8 @@ case "$STAGE" in
   rust-loom)
     echo "=== Running Loom concurrency tests ==="
     echo "Building Rust CI nightly image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -e RUSTFLAGS="--cfg loom" \
       rust-ci-nightly cargo test -p itk-shmem loom_tests -- --nocapture
     ;;
@@ -306,26 +306,26 @@ case "$STAGE" in
   rust-miri)
     echo "=== Running Miri UB detection ==="
     echo "Building Rust CI nightly image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
       cargo +nightly miri test -p itk-shmem -- seqlock
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
       cargo +nightly miri test -p itk-protocol
     ;;
 
   rust-cross-linux)
     echo "=== Cross-compile check (x86_64 Linux) ==="
     echo "Building Rust CI nightly image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
       cargo check --target x86_64-unknown-linux-gnu -p itk-protocol -p itk-shmem -p itk-ipc
     ;;
 
   rust-cross-windows)
     echo "=== Cross-compile check (Windows) ==="
     echo "Building Rust CI nightly image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
       cargo check --target x86_64-pc-windows-gnu -p itk-protocol -p itk-shmem -p itk-ipc
     ;;
 
@@ -344,8 +344,8 @@ case "$STAGE" in
   econ-fmt)
     echo "=== Running Economic Agents format checks ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/packages/economic_agents \
       rust-ci cargo fmt --all -- --check
     ;;
@@ -353,8 +353,8 @@ case "$STAGE" in
   econ-clippy)
     echo "=== Running Economic Agents clippy lints ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/packages/economic_agents \
       rust-ci cargo clippy --workspace --all-targets -- -D warnings
     ;;
@@ -362,8 +362,8 @@ case "$STAGE" in
   econ-test)
     echo "=== Running Economic Agents tests ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/packages/economic_agents \
       rust-ci cargo test --workspace "${EXTRA_ARGS[@]}"
     ;;
@@ -371,8 +371,8 @@ case "$STAGE" in
   econ-build)
     echo "=== Building Economic Agents workspace ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/packages/economic_agents \
       rust-ci cargo build --workspace --all-targets
     ;;
@@ -380,8 +380,8 @@ case "$STAGE" in
   econ-deny)
     echo "=== Running Economic Agents cargo-deny checks ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/packages/economic_agents \
       rust-ci cargo deny check || true
     ;;
@@ -389,8 +389,8 @@ case "$STAGE" in
   econ-doc)
     echo "=== Generating Economic Agents documentation ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/packages/economic_agents \
       rust-ci cargo doc --workspace --no-deps --document-private-items
     echo "Documentation generated at packages/economic_agents/target/doc/"
@@ -399,8 +399,8 @@ case "$STAGE" in
   econ-coverage)
     echo "=== Running Economic Agents test coverage ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/packages/economic_agents \
       rust-ci cargo llvm-cov --workspace --lcov --output-path lcov.info "${EXTRA_ARGS[@]}"
     echo "Coverage report generated at packages/economic_agents/lcov.info"
@@ -420,8 +420,8 @@ case "$STAGE" in
   mcp-fmt)
     echo "=== Running MCP Core Rust format checks ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/tools/mcp/mcp_core_rust \
       rust-ci cargo fmt --all -- --check
     ;;
@@ -429,8 +429,8 @@ case "$STAGE" in
   mcp-clippy)
     echo "=== Running MCP Core Rust clippy lints ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/tools/mcp/mcp_core_rust \
       rust-ci cargo clippy --workspace --all-targets -- -D warnings
     ;;
@@ -438,8 +438,8 @@ case "$STAGE" in
   mcp-test)
     echo "=== Running MCP Core Rust tests ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/tools/mcp/mcp_core_rust \
       rust-ci cargo test --workspace "${EXTRA_ARGS[@]}"
     ;;
@@ -447,8 +447,8 @@ case "$STAGE" in
   mcp-build)
     echo "=== Building MCP Core Rust workspace ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/tools/mcp/mcp_core_rust \
       rust-ci cargo build --workspace --all-targets --release
     ;;
@@ -456,8 +456,8 @@ case "$STAGE" in
   mcp-deny)
     echo "=== Running MCP Core Rust cargo-deny checks ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/tools/mcp/mcp_core_rust \
       rust-ci cargo deny check || true
     ;;
@@ -465,8 +465,8 @@ case "$STAGE" in
   mcp-doc)
     echo "=== Generating MCP Core Rust documentation ==="
     echo "Building Rust CI image..."
-    docker-compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker-compose -f "$COMPOSE_FILE" --profile ci run --rm \
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/tools/mcp/mcp_core_rust \
       rust-ci cargo doc --workspace --no-deps --document-private-items
     echo "Documentation generated at tools/mcp/mcp_core_rust/target/doc/"

@@ -15,7 +15,7 @@ cd "$REPO_ROOT"
 case "${1:-start}" in
     start)
         echo "Starting AI services with full web UIs..."
-        docker-compose --profile ai-services up -d mcp-ai-toolkit mcp-comfyui
+        docker compose --profile ai-services up -d mcp-ai-toolkit mcp-comfyui
         echo ""
         echo "========================================="
         echo "Services started on $(hostname -I | awk '{print $1}'):"
@@ -34,25 +34,25 @@ case "${1:-start}" in
 
     stop)
         echo "Stopping AI MCP services..."
-        docker-compose --profile ai-services down
+        docker compose --profile ai-services down
         ;;
 
     restart)
         echo "Restarting AI MCP services..."
-        docker-compose --profile ai-services restart mcp-ai-toolkit mcp-comfyui
+        docker compose --profile ai-services restart mcp-ai-toolkit mcp-comfyui
         ;;
 
     logs)
-        docker-compose logs -f mcp-ai-toolkit mcp-comfyui
+        docker compose logs -f mcp-ai-toolkit mcp-comfyui
         ;;
 
     status)
-        docker-compose ps mcp-ai-toolkit mcp-comfyui
+        docker compose ps mcp-ai-toolkit mcp-comfyui
         ;;
 
     build)
         echo "Building AI MCP service containers..."
-        docker-compose build mcp-ai-toolkit mcp-comfyui
+        docker compose build mcp-ai-toolkit mcp-comfyui
         ;;
 
     pull)
@@ -63,8 +63,8 @@ case "${1:-start}" in
     update)
         echo "Updating and restarting services..."
         git pull origin refine
-        docker-compose build mcp-ai-toolkit mcp-comfyui
-        docker-compose --profile ai-services up -d mcp-ai-toolkit mcp-comfyui
+        docker compose build mcp-ai-toolkit mcp-comfyui
+        docker compose --profile ai-services up -d mcp-ai-toolkit mcp-comfyui
         ;;
 
     *)

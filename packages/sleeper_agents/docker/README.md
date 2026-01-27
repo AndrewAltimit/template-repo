@@ -6,16 +6,16 @@ GPU-accelerated Docker environment for sleeper agent detection.
 
 ```bash
 # Build GPU image
-docker-compose -f docker-compose.gpu.yml build
+docker compose -f docker-compose.gpu.yml build
 
 # Run validation
-docker-compose -f docker-compose.gpu.yml run --rm validate
+docker compose -f docker-compose.gpu.yml run --rm validate
 
 # Run tests
-docker-compose -f docker-compose.gpu.yml run --rm evaluate
+docker compose -f docker-compose.gpu.yml run --rm evaluate
 
 # Interactive shell
-docker-compose -f docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
+docker compose -f docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
 ```
 
 ## Files

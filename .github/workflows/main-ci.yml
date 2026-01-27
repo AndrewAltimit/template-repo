@@ -27,7 +27,7 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  # Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+  # Enable BuildKit for docker compose builds (required for --mount syntax in Dockerfiles)
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
 
@@ -156,12 +156,12 @@ jobs:
           echo "Testing modular MCP server functionality..."
 
           # Build the CI image if needed
-          docker-compose build python-ci
+          docker compose build python-ci
 
           # Test Python MCP servers - install packages properly via pip
           # Note: mcp_codex, mcp_gemini, mcp_crush, mcp_opencode, and mcp_reaction_search
           # are Rust packages and are tested separately via cargo test
-          docker-compose run --rm python-ci bash -c "
+          docker compose run --rm python-ci bash -c "
           pip install -q -r config/python/requirements.txt && \
           pip install -q -e tools/mcp/mcp_core && \
           pip install -q -e tools/mcp/mcp_code_quality && \
@@ -260,7 +260,7 @@ jobs:
         if: always()
         run: |
           # || true prevents failure if containers are already stopped/removed
-          docker-compose down --remove-orphans || true
+          docker compose down --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh || echo "Warning: cleanup-outputs.sh failed but continuing"
 
@@ -329,7 +329,7 @@ jobs:
 
           # Display summary
           if [ -f bandit-report.json ]; then
-            docker-compose run --rm python-ci python3 -c "
+            docker compose run --rm python-ci python3 -c "
           import json
           with open('bandit-report.json') as f:
               data = json.load(f)
@@ -352,7 +352,7 @@ jobs:
 
           if [ -f safety-report.json ] && [ -s safety-report.json ]; then
             echo "### Dependency Vulnerabilities" >> $GITHUB_STEP_SUMMARY
-            docker-compose run --rm python-ci python3 -c "
+            docker compose run --rm python-ci python3 -c "
           import json
           with open('safety-report.json') as f:
               vulns = json.load(f)
@@ -364,7 +364,7 @@ jobs:
           fi
 
           # Run pip-audit
-          docker-compose run --rm python-ci bash -c "pip install -r config/python/requirements.txt && pip-audit --desc || true"
+          docker compose run --rm python-ci bash -c "pip install -r config/python/requirements.txt && pip-audit --desc || true"
 
       - name: Upload security reports
         if: always()
@@ -477,7 +477,7 @@ jobs:
         if: always()
         run: |
           # || true prevents failure if containers are already stopped/removed
-          docker-compose down --rmi local --remove-orphans || true
+          docker compose down --rmi local --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh || echo "Warning: cleanup-outputs.sh failed but continuing"
 
@@ -494,7 +494,7 @@ jobs:
 
       - name: Set up Docker Compose
         run: |
-          docker-compose version
+          docker compose version
 
       - name: Start services for integration tests
         uses: ./.github/actions/docker-compose-health-check
@@ -509,14 +509,14 @@ jobs:
           echo "🧪 Running integration tests..."
           # Run integration test suite if available
           if [ -f "tests/integration_test.py" ]; then
-            docker-compose exec -T python-ci pytest tests/integration_test.py -v
+            docker compose exec -T python-ci pytest tests/integration_test.py -v
           fi
 
       - name: Clean up services
         if: always()
         run: |
           # || true prevents failure if containers are already stopped/removed
-          docker-compose down --remove-orphans || true
+          docker compose down --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh || echo "Warning: cleanup-outputs.sh failed but continuing"
 
@@ -561,7 +561,7 @@ jobs:
 
           # Build sleeper-agents wheel
           echo "Building sleeper-agents..."
-          docker-compose run --rm python-ci bash -c "
+          docker compose run --rm python-ci bash -c "
             cd packages/sleeper_agents && \
             pip install build && \
             python -m build --wheel --outdir /app/dist
@@ -601,7 +601,7 @@ jobs:
 
       - name: Set Docker user environment
         run: |
-          # Export USER_ID and GROUP_ID for docker-compose to use
+          # Export USER_ID and GROUP_ID for docker compose to use
           echo "USER_ID=$(id -u)" >> $GITHUB_ENV
           echo "GROUP_ID=$(id -g)" >> $GITHUB_ENV
 
@@ -613,7 +613,7 @@ jobs:
       - name: Build all Rust binaries (Linux) via container
         run: |
           echo "Building all Rust binaries using rust-ci container..."
-          docker-compose --profile ci run --rm -w /app rust-ci bash -c '
+          docker compose --profile ci run --rm -w /app rust-ci bash -c '
             set -e
 
             # Build pr-monitor
@@ -706,7 +706,7 @@ jobs:
       - name: Build injection-toolkit (Windows cross-compile) via container
         run: |
           echo "Building injection-toolkit for Windows using rust-ci-nightly container (has mingw-w64)..."
-          docker-compose --profile ci run --rm -w /app rust-ci-nightly bash -c '
+          docker compose --profile ci run --rm -w /app rust-ci-nightly bash -c '
             set -e
             cd /app/packages/injection_toolkit
             # Cross-compile for Windows (daemon and overlay only, not injectors which need Windows SDK)

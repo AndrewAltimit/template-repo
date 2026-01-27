@@ -82,7 +82,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 3. Start the storage service (recommended):
 ```bash
 # Using Docker (preferred)
-docker-compose up virtual-character-storage
+docker compose up virtual-character-storage
 
 # Or run directly
 python tools/mcp/mcp_virtual_character/storage_service/server.py

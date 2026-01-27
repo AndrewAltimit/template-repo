@@ -16,7 +16,7 @@ env:
   COMPOSE_PROJECT_NAME: template-repo
   # Docker Compose names images as <project>_<service> (underscore separator)
   DOCKER_IMAGE_COMPOSE_NAME: template-repo_sleeper-eval-cpu
-  # Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+  # Enable BuildKit for docker compose builds (required for --mount syntax in Dockerfiles)
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
 
@@ -48,7 +48,7 @@ jobs:
           echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
 
           # Build the image
-          docker-compose build sleeper-eval-cpu
+          docker compose build sleeper-eval-cpu
 
           # Tag it for this workflow
           docker tag ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest $IMAGE_TAG
@@ -81,14 +81,14 @@ jobs:
           echo "🧪 Running quick CPU tests for sleeper agents..."
 
           # Test basic import and initialization
-          docker-compose run --rm sleeper-eval-cpu python -c "
+          docker compose run --rm sleeper-eval-cpu python -c "
           from sleeper_agents.app.detector import SleeperDetector
           from sleeper_agents.app.config import DetectionConfig
           print('✅ Imports successful')
           "
 
           # Run the quick test script
-          docker-compose run --rm sleeper-eval-cpu \
+          docker compose run --rm sleeper-eval-cpu \
             python packages/sleeper_agents/scripts/evaluation/quick_test.py
 
       - name: Test CLI interface
@@ -96,25 +96,25 @@ jobs:
           echo "🔧 Testing CLI interface..."
 
           # Test help command
-          docker-compose run --rm sleeper-eval-cpu \
+          docker compose run --rm sleeper-eval-cpu \
             python -m sleeper_agents.cli --help
 
           # Test listing available models
-          docker-compose run --rm sleeper-eval-cpu \
+          docker compose run --rm sleeper-eval-cpu \
             python -m sleeper_agents.cli list
 
       - name: Validate model infrastructure
         run: |
           echo "🔧 Validating model registry, downloader, and resource manager..."
 
-          docker-compose run --rm sleeper-eval-cpu \
+          docker compose run --rm sleeper-eval-cpu \
             python packages/sleeper_agents/scripts/validate_foundation.py
 
       - name: View logs on failure
         if: failure()
         run: |
           echo "📋 Container logs:"
-          docker-compose logs sleeper-eval-cpu
+          docker compose logs sleeper-eval-cpu
 
   sleeper-agents-residual-analysis:
     name: TransformerLens Residual Analysis
@@ -144,7 +144,7 @@ jobs:
           mkdir -p evaluation_results
 
           # Run the residual analysis script and copy results
-          docker-compose run --rm \
+          docker compose run --rm \
             -v $(pwd)/evaluation_results:/output \
             sleeper-eval-cpu \
             bash -c "python packages/sleeper_agents/scripts/analysis/residual_analysis.py && \
@@ -183,7 +183,7 @@ jobs:
         run: |
           echo "🧪 Running unit tests with coverage..."
 
-          # Export USER_ID and GROUP_ID for docker-compose
+          # Export USER_ID and GROUP_ID for docker compose
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
           echo "Running as USER_ID=$USER_ID, GROUP_ID=$GROUP_ID"
@@ -195,9 +195,9 @@ jobs:
           mkdir -p $(pwd)/test_output
 
           # Run pytest with coverage in a named container with mounted volume
-          # Container runs as host user via docker-compose user setting
+          # Container runs as host user via docker compose user setting
           # Run from package directory to match pytest.ini configuration
-          docker-compose run --name ${CONTAINER_NAME} \
+          docker compose run --name ${CONTAINER_NAME} \
             -v $(pwd)/test_output:/output \
             -e COVERAGE_FILE=/output/.coverage \
             sleeper-eval-cpu \
@@ -287,7 +287,7 @@ jobs:
           echo "🚀 Starting sleeper agents API server..."
 
           # Start the API server in background
-          docker-compose run -d --name sleeper-api -p 8022:8022 sleeper-eval-cpu \
+          docker compose run -d --name sleeper-api -p 8022:8022 sleeper-eval-cpu \
             python -m sleeper_agents.api.main --port 8022
 
           # Wait for server to be ready using wait-for-it.sh
@@ -349,7 +349,7 @@ jobs:
           # Test multiple models
           for model in pythia-70m distilgpt2; do
             echo "Testing model: $model"
-            docker-compose run --rm sleeper-eval-cpu \
+            docker compose run --rm sleeper-eval-cpu \
               python packages/sleeper_agents/scripts/evaluation/comprehensive_test.py \
               --model $model
           done
@@ -388,7 +388,7 @@ jobs:
           echo "📓 Validating Jupyter notebooks..."
 
           # Check if notebooks are valid JSON using sleeper-eval-cpu (has all dependencies)
-          docker-compose run --rm sleeper-eval-cpu python -c "
+          docker compose run --rm sleeper-eval-cpu python -c "
           import json
           import sys
           from pathlib import Path
@@ -412,7 +412,7 @@ jobs:
 
           # Execute the notebook (will catch runtime errors)
           # Using 300s timeout for ML tasks that may need to load models
-          docker-compose run --rm sleeper-eval-cpu \
+          docker compose run --rm sleeper-eval-cpu \
             jupyter nbconvert --to notebook --execute \
             --ExecutePreprocessor.timeout=300 \
             --ExecutePreprocessor.kernel_name=python3 \

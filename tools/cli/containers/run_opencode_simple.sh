@@ -1,6 +1,6 @@
 #!/bin/bash
-# run_opencode_simple.sh - Simple standalone OpenCode container (no docker-compose required)
-# This script runs OpenCode directly without requiring the full docker-compose infrastructure
+# run_opencode_simple.sh - Simple standalone OpenCode container (no docker compose required)
+# This script runs OpenCode directly without requiring the full docker compose infrastructure
 
 set -e
 

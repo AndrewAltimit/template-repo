@@ -96,7 +96,7 @@ foreach ($dir in $outputDirs) {
 # Build Docker image
 Write-Host ""
 Write-Host "Building Docker image..." -ForegroundColor Cyan
-$buildResult = docker-compose build sleeper-eval-gpu 2>&1
+$buildResult = docker compose build sleeper-eval-gpu 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Failed to build Docker image" -ForegroundColor Red
     Write-Host $buildResult
@@ -129,4 +129,4 @@ Write-Host "========================================================" -Foregroun
 Write-Host ""
 
 # Start services
-docker-compose up sleeper-eval-gpu
+docker compose up sleeper-eval-gpu

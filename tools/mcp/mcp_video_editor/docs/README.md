@@ -48,10 +48,10 @@ The Video Editor MCP Server runs in a Docker container for consistency:
 
 ```bash
 # Build the container
-docker-compose build mcp-video-editor
+docker compose build mcp-video-editor
 
 # Start the server
-docker-compose up -d mcp-video-editor
+docker compose up -d mcp-video-editor
 ```
 
 ### Local Installation
@@ -420,7 +420,7 @@ pytest tests/test_video_editor.py -v
 pytest tests/test_video_editor.py --cov=mcp_video_editor
 
 # Run in Docker
-docker-compose run --rm python-ci pytest tests/test_video_editor.py
+docker compose run --rm python-ci pytest tests/test_video_editor.py
 ```
 
 ## Troubleshooting

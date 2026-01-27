@@ -112,7 +112,7 @@ The server automatically detects the best execution mode:
 
 1. **Container Mode**: When running inside Docker, executes `crush` directly
 2. **Local Mode**: When `crush` CLI is available locally
-3. **Docker Mode**: Falls back to `docker-compose run` with the configured service
+3. **Docker Mode**: Falls back to `docker compose run` with the configured service
 
 ## MCP Configuration
 
@@ -138,7 +138,7 @@ Or with Docker:
 {
   "mcpServers": {
     "crush": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": ["-f", "./docker-compose.yml", "--profile", "services", "run", "--rm", "-T", "mcp-crush", "mcp-crush", "--mode", "stdio"]
     }
   }

@@ -328,18 +328,18 @@ scripts\testing\test_pytorch_probe.bat shell
 
 ## Direct Docker Compose Usage
 
-You can also use docker-compose directly:
+You can also use docker compose directly:
 
 ```bash
 # Run GPU test
-docker-compose -f docker/docker-compose.gpu.yml run --rm test-pytorch-probe
+docker compose -f docker/docker-compose.gpu.yml run --rm test-pytorch-probe
 
 # Run unit tests
-docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
+docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
     pytest tests/test_torch_probe.py tests/test_probe_factory.py -v
 
 # Interactive shell
-docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
+docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
 ```
 
 ## Expected Results
@@ -403,9 +403,9 @@ If the container fails to build:
 scripts/testing/test_pytorch_probe.bat clean
 scripts/testing/test_pytorch_probe.bat build
 
-# Or with docker-compose directly
-docker-compose -f docker/docker-compose.gpu.yml down -v
-docker-compose -f docker/docker-compose.gpu.yml build --no-cache
+# Or with docker compose directly
+docker compose -f docker/docker-compose.gpu.yml down -v
+docker compose -f docker/docker-compose.gpu.yml build --no-cache
 ```
 
 ### Out of Memory

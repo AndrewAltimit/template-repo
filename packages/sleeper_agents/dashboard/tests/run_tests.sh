@@ -114,15 +114,15 @@ run_docker_tests() {
     detect_selenium_image
 
     # Build and run test containers
-    docker-compose -f docker-compose.test.yml build
-    docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+    docker compose -f docker-compose.test.yml build
+    docker compose -f docker-compose.test.yml up --abort-on-container-exit
 
     # Copy test results
     docker cp test-runner:/app/screenshots ./
     docker cp test-runner:/app/report.html ./
 
     # Clean up
-    docker-compose -f docker-compose.test.yml down
+    docker compose -f docker-compose.test.yml down
 }
 
 # Function to run CI tests

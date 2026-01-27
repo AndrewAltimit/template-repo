@@ -89,7 +89,7 @@ cmd_train() {
         exit 1
     fi
 
-    docker-compose -f "$COMPOSE_FILE" run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py "$@"
+    docker compose -f "$COMPOSE_FILE" run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py "$@"
 }
 
 cmd_simple() {
@@ -113,7 +113,7 @@ cmd_simple() {
         exit 1
     fi
 
-    docker-compose -f "$COMPOSE_FILE" run --rm sleeper-eval-gpu python3 scripts/evaluation/backdoor_validation.py "$@"
+    docker compose -f "$COMPOSE_FILE" run --rm sleeper-eval-gpu python3 scripts/evaluation/backdoor_validation.py "$@"
 }
 
 cmd_deception() {
@@ -143,7 +143,7 @@ cmd_deception() {
         exit 1
     fi
 
-    docker-compose -f "$COMPOSE_FILE" run --rm sleeper-eval-gpu python3 scripts/training/train_probes.py "$@"
+    docker compose -f "$COMPOSE_FILE" run --rm sleeper-eval-gpu python3 scripts/training/train_probes.py "$@"
 }
 
 cmd_sft() {
@@ -152,7 +152,7 @@ cmd_sft() {
     echo -e "${GREEN}========================================${NC}"
     echo
 
-    docker-compose -f "$COMPOSE_FILE" run --rm sleeper-eval-gpu python3 scripts/training/safety_training.py --method sft "$@"
+    docker compose -f "$COMPOSE_FILE" run --rm sleeper-eval-gpu python3 scripts/training/safety_training.py --method sft "$@"
 }
 
 cmd_ppo() {
@@ -161,12 +161,12 @@ cmd_ppo() {
     echo -e "${GREEN}========================================${NC}"
     echo
 
-    docker-compose -f "$COMPOSE_FILE" run --rm sleeper-eval-gpu python3 scripts/training/safety_training.py --method rl "$@"
+    docker compose -f "$COMPOSE_FILE" run --rm sleeper-eval-gpu python3 scripts/training/safety_training.py --method rl "$@"
 }
 
 cmd_shell() {
     echo -e "${GREEN}Opening container shell...${NC}"
-    docker-compose -f "$COMPOSE_FILE" run --rm sleeper-eval-gpu bash
+    docker compose -f "$COMPOSE_FILE" run --rm sleeper-eval-gpu bash
 }
 
 # Main command dispatcher

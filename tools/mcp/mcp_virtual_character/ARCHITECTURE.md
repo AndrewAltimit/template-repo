@@ -278,7 +278,7 @@ Server → Verify HMAC token → Process request or reject
 
 1. **Storage Service Unreachable**
    ```bash
-   docker-compose up virtual-character-storage
+   docker compose up virtual-character-storage
    ```
 
 2. **Audio Not Playing in VRChat**

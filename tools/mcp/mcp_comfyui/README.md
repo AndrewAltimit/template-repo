@@ -37,8 +37,8 @@ cd template-repo
 # Start the ComfyUI MCP server
 ./automation/scripts/remote-ai-services.sh start
 
-# Or use docker-compose directly
-docker-compose --profile ai-services up -d mcp-comfyui
+# Or use docker compose directly
+docker compose --profile ai-services up -d mcp-comfyui
 ```
 
 ### Host Mode (alternative)
@@ -121,13 +121,13 @@ ComfyUI can use LoRA models trained with AI Toolkit:
 
 ```bash
 # View logs
-docker-compose logs -f mcp-comfyui
+docker compose logs -f mcp-comfyui
 
 # Restart service
-docker-compose restart mcp-comfyui
+docker compose restart mcp-comfyui
 
 # Stop service
-docker-compose --profile ai-services down
+docker compose --profile ai-services down
 
 # Update and restart
 ./automation/scripts/remote-ai-services.sh update

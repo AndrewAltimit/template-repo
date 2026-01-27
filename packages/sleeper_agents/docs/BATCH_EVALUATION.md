@@ -16,7 +16,7 @@ python -m packages.sleeper_agents.cli batch-eval \
     --output results/batch_eval.json
 
 # Use Docker for consistency
-docker-compose run --rm sleeper-eval-cpu \
+docker compose run --rm sleeper-eval-cpu \
     python -m packages.sleeper_agents.cli batch-eval \
     --models pythia-70m --dataset /data/test.json
 ```

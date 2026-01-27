@@ -134,7 +134,7 @@ Or with Docker:
 {
   "mcpServers": {
     "opencode": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": ["-f", "./docker-compose.yml", "--profile", "services", "run", "--rm", "-T", "mcp-opencode", "mcp-opencode", "--mode", "stdio"]
     }
   }

@@ -34,7 +34,7 @@ check_and_build_images() {
 
         # Build base MCP images first (required by openrouter-agents)
         echo "Building MCP OpenCode and Crush images..."
-        docker-compose build mcp-opencode mcp-crush
+        docker compose build mcp-opencode mcp-crush
 
         # Build the openrouter-agents image with local image references
         # Using docker build directly to avoid Docker Hub lookup issues
@@ -134,7 +134,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Export for docker-compose to pick up
+# Export for docker compose to pick up
 export OPENROUTER_API_KEY
 export OPENCODE_MODEL
 
@@ -174,13 +174,13 @@ if [ "$MODE" = "single" ]; then
     if [ -n "$VOLUME_MOUNT" ]; then
         # shellcheck disable=SC2086
         # VOLUME_MOUNT contains both flag and argument (e.g., "-v /path:/path")
-        docker-compose run --rm \
+        docker compose run --rm \
             -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
             -e OPENCODE_MODEL="$OPENCODE_MODEL" \
             $VOLUME_MOUNT \
             openrouter-agents sh -c "$CMD"
     else
-        docker-compose run --rm \
+        docker compose run --rm \
             -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
             -e OPENCODE_MODEL="$OPENCODE_MODEL" \
             openrouter-agents sh -c "$CMD"
@@ -194,7 +194,7 @@ else
     echo ""
 
     # Start interactive session in container
-    docker-compose run --rm -it \
+    docker compose run --rm -it \
         -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
         -e OPENCODE_MODEL="$OPENCODE_MODEL" \
         openrouter-agents opencode

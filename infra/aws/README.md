@@ -39,7 +39,7 @@ Uses the `terraform-ci` container with Terraform, Terragrunt, and AWS CLI pre-in
 
 ```bash
 # Build the container (one-time)
-docker-compose --profile ci build terraform-ci
+docker compose --profile ci build terraform-ci
 
 # Run commands in container
 ./scripts/run-in-container.sh terragrunt --version

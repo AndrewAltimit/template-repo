@@ -104,10 +104,10 @@ chmod +x tools/cli/agents/run_crush.sh
 
 ```bash
 # Start MCP servers
-docker-compose up -d mcp-opencode mcp-crush mcp-codex
+docker compose up -d mcp-opencode mcp-crush mcp-codex
 
 # Or for GitHub agents
-docker-compose up -d openrouter-agents
+docker compose up -d openrouter-agents
 ```
 
 ## MCP Server Integration

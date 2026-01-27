@@ -1051,7 +1051,7 @@ python bridge_server.py --port 8021
 ### Phase 6: Production Ready (PARTIAL)
 - [x] Async/non-blocking operations throughout
 - [x] Error handling with graceful degradation
-- [ ] Docker containerization (docker-compose entry exists)
+- [ ] Docker containerization (docker compose entry exists)
 - [x] Core documentation (README, ARCHITECTURE, AUDIO_SEQUENCING)
 - [x] Unit test suite (50 tests in `tests/test_virtual_character.py`)
 - [x] Integration test suite (4 test files in `mcp_virtual_character/tests/`)

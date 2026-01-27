@@ -291,7 +291,7 @@ services:
     networks:
       - mcp-network
     # Default: Run CLI test for validation.
-    # To run API server instead: docker-compose run --rm sleeper-eval-cpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8022
+    # To run API server instead: docker compose run --rm sleeper-eval-cpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8022
     command: ["python", "-m", "sleeper_agents.cli", "test", "--cpu"]
     profiles:
       - evaluation
@@ -318,7 +318,7 @@ services:
     networks:
       - mcp-network
     # Default: Run model evaluation.
-    # To run API server instead: docker-compose run --rm sleeper-eval-gpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8022
+    # To run API server instead: docker compose run --rm sleeper-eval-gpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8022
     command: ["python", "-m", "sleeper_agents.cli", "evaluate", "--gpu"]
     deploy:
       resources:
@@ -641,7 +641,7 @@ services:
     networks:
       - mcp-network
     # Default to interactive mode for development
-    # Override with docker-compose run for specific agent commands
+    # Override with docker compose run for specific agent commands
     command: ["/bin/bash"]
     tty: true
     stdin_open: true
@@ -994,7 +994,7 @@ services:
     container_name: mcp-agentcore-memory
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     # Note: ChromaDB dependency is optional - only needed when MEMORY_PROVIDER=chromadb
-    # Start chromadb first with: docker-compose --profile memory-chromadb up -d chromadb
+    # Start chromadb first with: docker compose --profile memory-chromadb up -d chromadb
     ports:
       - "8023:8023"
     volumes:
@@ -1095,7 +1095,7 @@ services:
       - desktop
 
   # ChromaDB - Self-hosted vector database for memory
-  # Start with: docker-compose --profile memory-chromadb up -d
+  # Start with: docker compose --profile memory-chromadb up -d
   chromadb:
     image: chromadb/chroma:0.5.23
     container_name: chromadb

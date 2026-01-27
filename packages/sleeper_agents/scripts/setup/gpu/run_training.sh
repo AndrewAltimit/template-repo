@@ -66,10 +66,10 @@ train_backdoor() {
     echo "Using GPU: ${USE_GPU}"
 
     if [ "${USE_GPU}" = "true" ]; then
-        docker-compose -f "${PACKAGE_ROOT}/docker/docker-compose.gpu.yml" run --rm sleeper-eval-gpu \
+        docker compose -f "${PACKAGE_ROOT}/docker/docker-compose.gpu.yml" run --rm sleeper-eval-gpu \
             python packages/sleeper_agents/scripts/train_backdoor_model.py "$@"
     else
-        docker-compose -f "${PACKAGE_ROOT}/docker/docker-compose.gpu.yml" run --rm sleeper-eval-gpu \
+        docker compose -f "${PACKAGE_ROOT}/docker/docker-compose.gpu.yml" run --rm sleeper-eval-gpu \
             python packages/sleeper_agents/scripts/train_backdoor_model.py --device cpu "$@"
     fi
 }
@@ -79,10 +79,10 @@ test_backdoor() {
     echo "Testing backdoored model..."
 
     if [ "${USE_GPU}" = "true" ]; then
-        docker-compose -f "${PACKAGE_ROOT}/docker/docker-compose.gpu.yml" run --rm sleeper-eval-gpu \
+        docker compose -f "${PACKAGE_ROOT}/docker/docker-compose.gpu.yml" run --rm sleeper-eval-gpu \
             python packages/sleeper_agents/scripts/test_backdoor.py "$@"
     else
-        docker-compose -f "${PACKAGE_ROOT}/docker/docker-compose.gpu.yml" run --rm sleeper-eval-gpu \
+        docker compose -f "${PACKAGE_ROOT}/docker/docker-compose.gpu.yml" run --rm sleeper-eval-gpu \
             python packages/sleeper_agents/scripts/test_backdoor.py --device cpu "$@"
     fi
 }
@@ -91,7 +91,7 @@ test_backdoor() {
 open_shell() {
     echo "Opening GPU container shell..."
 
-    docker-compose -f "${PACKAGE_ROOT}/docker/docker-compose.gpu.yml" run --rm sleeper-eval-gpu bash
+    docker compose -f "${PACKAGE_ROOT}/docker/docker-compose.gpu.yml" run --rm sleeper-eval-gpu bash
 }
 
 # Main

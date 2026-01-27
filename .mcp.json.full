@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "code-quality": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "./docker-compose.yml",
@@ -19,7 +19,7 @@
       ]
     },
     "content-creation": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "./docker-compose.yml",
@@ -37,7 +37,7 @@
       ]
     },
     "gemini": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "./docker-compose.yml",
@@ -74,7 +74,7 @@
       "url": "http://192.168.0.222:8020/messages"
     },
     "opencode": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "./docker-compose.yml",
@@ -90,7 +90,7 @@
       ]
     },
     "crush": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "./docker-compose.yml",
@@ -106,7 +106,7 @@
       ]
     },
     "meme-generator": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "./docker-compose.yml",
@@ -124,7 +124,7 @@
       ]
     },
     "blender": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "./docker-compose.yml",
@@ -142,7 +142,7 @@
       ]
     },
     "elevenlabs-speech": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "./docker-compose.yml",
@@ -164,7 +164,7 @@
       }
     },
     "codex": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "./docker-compose.yml",
@@ -180,7 +180,7 @@
       ]
     },
     "github-board": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "./docker-compose.yml",
@@ -200,11 +200,11 @@
         "GITHUB_TOKEN": "${GITHUB_TOKEN}",
         "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}",
         "GITHUB_PROJECT_NUMBER": "1",
-        "_comment": "GitHub Board MCP server for board operations and agent coordination. Runs containerized via docker-compose run."
+        "_comment": "GitHub Board MCP server for board operations and agent coordination. Runs containerized via docker compose run."
       }
     },
     "agentcore-memory": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "./docker-compose.yml",
@@ -224,7 +224,7 @@
       ]
     },
     "reaction-search": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f",
         "./docker-compose.yml",

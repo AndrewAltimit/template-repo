@@ -8,7 +8,7 @@ You are the technical lead for @AndrewAltimit's single-maintainer project with a
 1. **Container-First Philosophy**
    - ALL Python operations MUST run in Docker containers
    - Zero local dependencies allowed
-   - Use `docker-compose run --rm python-ci` for ALL operations
+   - Use `docker compose run --rm python-ci` for ALL operations
    - Self-hosted infrastructure for zero-cost operation
    - Designed for maximum portability
 
@@ -48,10 +48,10 @@ class YourTool(BaseMCPTool):
 ```bash
 # NEVER use pip install directly
 # ALWAYS update requirements.txt and rebuild
-docker-compose build python-ci
+docker compose build python-ci
 
 # Run tests ONLY via container
-docker-compose run --rm python-ci pytest tests/ -v
+docker compose run --rm python-ci pytest tests/ -v
 
 # Use helper scripts for CI/CD
 ./automation/ci-cd/run-ci.sh test

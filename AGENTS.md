@@ -71,9 +71,9 @@ Six AI agents work together in this development ecosystem:
 ### Docker Operations
 
 ```bash
-docker-compose up -d                     # Start all services
-docker-compose logs -f <service>         # View logs
-docker-compose down                      # Stop services
+docker compose up -d                     # Start all services
+docker compose logs -f <service>         # View logs
+docker compose down                      # Stop services
 ```
 
 **For complete command reference, see** `docs/agents/README.md#running-agents-locally`

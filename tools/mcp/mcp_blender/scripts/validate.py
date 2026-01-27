@@ -38,7 +38,7 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
         except Exception as e:
             print(f"❌ Cannot connect to server: {e}")
             print("\n📝 To start the server:")
-            print("  docker-compose up -d mcp-blender")
+            print("  docker compose up -d mcp-blender")
             return
 
         # Test 2: List Available Tools

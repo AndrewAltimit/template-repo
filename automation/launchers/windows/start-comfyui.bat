@@ -17,10 +17,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Check if docker-compose is available
-docker-compose --version >nul 2>&1
+REM Check if docker compose is available
+docker compose --version >nul 2>&1
 if errorlevel 1 (
-    echo ERROR: docker-compose not found
+    echo ERROR: docker compose not found
     echo Please ensure Docker Desktop is properly installed
     pause
     exit /b 1
@@ -31,18 +31,18 @@ cd /d "%~dp0\..\..\..\"
 
 echo Building ComfyUI container...
 echo This may take a while on first run or after updates
-docker-compose build mcp-comfyui
+docker compose build mcp-comfyui
 
 echo.
 echo Starting ComfyUI container...
-docker-compose --profile ai-services up -d mcp-comfyui
+docker compose --profile ai-services up -d mcp-comfyui
 
 REM Check if the container started successfully
 docker ps | findstr comfyui >nul 2>&1
 if errorlevel 1 (
     echo ERROR: Failed to start ComfyUI container
     echo Check Docker Desktop and try again
-    docker-compose logs mcp-comfyui
+    docker compose logs mcp-comfyui
     pause
     exit /b 1
 )
@@ -87,12 +87,12 @@ echo ComfyUI is running!
 echo ========================================
 echo.
 echo Commands:
-echo   View logs:  docker-compose logs -f mcp-comfyui
-echo   Stop:       docker-compose --profile ai-services stop mcp-comfyui
-echo   Restart:    docker-compose --profile ai-services restart mcp-comfyui
+echo   View logs:  docker compose logs -f mcp-comfyui
+echo   Stop:       docker compose --profile ai-services stop mcp-comfyui
+echo   Restart:    docker compose --profile ai-services restart mcp-comfyui
 echo.
 echo Press any key to view logs (Ctrl+C to exit logs)...
 pause >nul
 
 REM Show logs
-docker-compose logs -f mcp-comfyui
+docker compose logs -f mcp-comfyui

@@ -126,10 +126,10 @@ if __name__ == "__main__":
         health = requests.get(f"{storage_url}/health", timeout=2)
         if health.status_code != 200:
             print(f"Warning: Storage service at {storage_url} is not healthy")
-            print("Start it with: docker-compose up audio-storage")
+            print("Start it with: docker compose up audio-storage")
     except Exception:
         print(f"Warning: Cannot reach storage service at {storage_url}")
-        print("Start it with: docker-compose up audio-storage")
+        print("Start it with: docker compose up audio-storage")
 
     # Send audio
     result = send_audio_via_storage(audio_file, text=text)

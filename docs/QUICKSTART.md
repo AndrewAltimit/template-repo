@@ -158,7 +158,7 @@ The template provides two MCP configuration files to optimize performance:
 4. **Test your minimal setup:**
    ```bash
    # Start only essential services
-   docker-compose up -d python-ci mcp-code-quality
+   docker compose up -d python-ci mcp-code-quality
 
    # Run code quality checks
    ./automation/ci-cd/run-ci.sh format
@@ -267,7 +267,7 @@ The template provides two MCP configuration files to optimize performance:
 
 3. **Start content services:**
    ```bash
-   docker-compose up -d mcp-content-creation mcp-video-editor
+   docker compose up -d mcp-content-creation mcp-video-editor
    ```
 
 4. **Test content creation:**
@@ -308,10 +308,10 @@ The template provides two MCP configuration files to optimize performance:
    cd ../../..  # Return to project root
 
    # Start all services
-   docker-compose up -d
+   docker compose up -d
 
    # Verify everything is running
-   docker-compose ps
+   docker compose ps
    python automation/testing/test_all_servers.py
    ```
 
@@ -365,7 +365,7 @@ AI_TOOLKIT_URL="http://your-gpu-server:8012"
 ```bash
 # Remove remote server configurations
 # Run all MCP servers in HTTP mode locally
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Project-Specific Customization
@@ -444,13 +444,13 @@ sudo lsof -i :8010
 #### "MCP server not responding"
 ```bash
 # Check if container is running
-docker-compose ps
+docker compose ps
 
 # Check logs
-docker-compose logs mcp-code-quality
+docker compose logs mcp-code-quality
 
 # Restart service
-docker-compose restart mcp-code-quality
+docker compose restart mcp-code-quality
 ```
 
 #### "API key not working"
@@ -459,8 +459,8 @@ docker-compose restart mcp-code-quality
 cat .env | grep API_KEY
 
 # Restart services after changing .env
-docker-compose down
-docker-compose up -d
+docker compose down
+docker compose up -d
 ```
 
 #### "Permission denied errors"
@@ -488,8 +488,8 @@ sudo chown -R $USER:$USER .
 3. **Debug commands:**
    ```bash
    # Check Docker status
-   docker-compose ps
-   docker-compose logs [service-name]
+   docker compose ps
+   docker compose logs [service-name]
 
    # Test Python MCP servers
    python tools/mcp/mcp_code_quality/scripts/test_server.py

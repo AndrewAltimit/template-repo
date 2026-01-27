@@ -26,7 +26,7 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null; then
+if ! command -v docker compose &> /dev/null; then
     echo -e "${RED}❌ Docker Compose is not installed${NC}"
     echo "Please install Docker Compose first: https://docs.docker.com/compose/install/"
     exit 1
@@ -64,14 +64,14 @@ case $COMMAND in
 
         # Build the container
         echo -e "${YELLOW}Building container...${NC}"
-        docker-compose build mcp-blender
+        docker compose build mcp-blender
 
         # Start the server
         echo -e "${YELLOW}Starting server...${NC}"
         if [ -n "$GPU_FLAG" ]; then
-            docker-compose --profile gpu up -d mcp-blender
+            docker compose --profile gpu up -d mcp-blender
         else
-            docker-compose up -d mcp-blender
+            docker compose up -d mcp-blender
         fi
 
         # Wait for server to be ready
@@ -94,19 +94,19 @@ case $COMMAND in
 
         echo
         echo -e "${RED}❌ Server failed to start${NC}"
-        echo "Check logs with: docker-compose logs mcp-blender"
+        echo "Check logs with: docker compose logs mcp-blender"
         exit 1
         ;;
 
     stop)
         echo "🛑 Stopping Blender MCP Server..."
-        docker-compose stop mcp-blender
+        docker compose stop mcp-blender
         echo -e "${GREEN}✅ Server stopped${NC}"
         ;;
 
     restart)
         echo "🔄 Restarting Blender MCP Server..."
-        docker-compose restart mcp-blender
+        docker compose restart mcp-blender
         echo -e "${GREEN}✅ Server restarted${NC}"
         ;;
 
@@ -124,7 +124,7 @@ case $COMMAND in
 
     logs)
         echo "📜 Showing server logs (Ctrl+C to exit)..."
-        docker-compose logs -f mcp-blender
+        docker compose logs -f mcp-blender
         ;;
 
     test)
@@ -211,7 +211,7 @@ case $COMMAND in
         echo "🧹 Cleaning up..."
 
         # Stop and remove container
-        docker-compose down mcp-blender
+        docker compose down mcp-blender
 
         # Clean up output files
         read -p "Remove output files? (y/N): " -n 1 -r

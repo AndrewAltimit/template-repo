@@ -28,28 +28,28 @@ sudo systemctl restart docker
 ### Start the Server
 ```bash
 # Build the Docker image
-docker-compose build mcp-blender
+docker compose build mcp-blender
 
 # Start the server in detached mode
-docker-compose up -d mcp-blender
+docker compose up -d mcp-blender
 
 # Check if it's running
-docker-compose ps mcp-blender
+docker compose ps mcp-blender
 
 # View logs
-docker-compose logs -f mcp-blender
+docker compose logs -f mcp-blender
 ```
 
 ### With GPU Support
 ```bash
 # Uncomment GPU section in docker-compose.yml
 # Then run:
-docker-compose --profile gpu up -d mcp-blender
+docker compose --profile gpu up -d mcp-blender
 ```
 
 ### Stop the Server
 ```bash
-docker-compose down mcp-blender
+docker compose down mcp-blender
 ```
 
 ## Method 2: Python (Development)
@@ -294,14 +294,14 @@ await blender_client.import_model(terrain["mesh_path"])
 
 1. **Start Small**: Begin with simple scenes before complex projects
 2. **Use Templates**: Leverage the 11 built-in templates
-3. **Monitor Logs**: Keep `docker-compose logs -f mcp-blender` open
+3. **Monitor Logs**: Keep `docker compose logs -f mcp-blender` open
 4. **Check Outputs**: Regularly check `outputs/blender/renders/` for results
 5. **Iterate Quickly**: Use EEVEE for rapid iteration, CYCLES for final
 
 ## Getting Help
 
 If you encounter issues:
-1. Check server logs: `docker-compose logs mcp-blender`
+1. Check server logs: `docker compose logs mcp-blender`
 2. Run health check: `curl http://localhost:8017/health`
 3. Try the test script: `python tools/mcp/blender/scripts/test_server.py`
 4. Review this guide's troubleshooting section

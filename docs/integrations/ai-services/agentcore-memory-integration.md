@@ -1151,7 +1151,7 @@ aws ec2 create-vpc-endpoint \
 {
   "mcpServers": {
     "agentcore-memory": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f", "./docker-compose.yml",
         "--profile", "services",

@@ -34,8 +34,8 @@ Lint checks are enforced in PR validation via the `lint-basic` and `lint-full` s
 ./automation/ci-cd/run-ci.sh autoformat
 
 # Direct ruff commands
-docker-compose run --rm python-ci ruff check .
-docker-compose run --rm python-ci ruff format --check .
+docker compose run --rm python-ci ruff check .
+docker compose run --rm python-ci ruff format --check .
 ```
 
 ## Historical Note

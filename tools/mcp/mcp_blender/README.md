@@ -54,14 +54,14 @@ Key design decisions:
 
 ```bash
 # Build and start the server
-docker-compose build mcp-blender
-docker-compose up -d mcp-blender
+docker compose build mcp-blender
+docker compose up -d mcp-blender
 
 # Verify health
 curl http://localhost:8017/health
 
 # Run with GPU support (requires NVIDIA Container Toolkit)
-docker-compose --profile gpu up mcp-blender
+docker compose --profile gpu up mcp-blender
 ```
 
 ## Available Tools
@@ -152,7 +152,7 @@ The following limitations are documented for transparency:
 
 ```bash
 # Run unit tests
-docker-compose run --rm python-ci pytest tools/mcp/mcp_blender/tests/ -v
+docker compose run --rm python-ci pytest tools/mcp/mcp_blender/tests/ -v
 
 # Run integration test
 python tools/mcp/mcp_blender/scripts/test_server.py

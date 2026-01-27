@@ -65,9 +65,9 @@ Your role as Claude Code is the primary development assistant.
 ### Docker Operations
 
 ```bash
-docker-compose up -d                     # Start all services
-docker-compose logs -f <service>         # View logs
-docker-compose down                      # Stop services
+docker compose up -d                     # Start all services
+docker compose logs -f <service>         # View logs
+docker compose down                      # Stop services
 ```
 
 ## Architecture

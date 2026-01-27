@@ -159,7 +159,7 @@ jobs:
             rm gemini.pid
           fi
           # || true prevents failure if containers are already stopped/removed
-          docker-compose down --remove-orphans || true
+          docker compose down --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh || echo "Warning: cleanup-outputs.sh failed but continuing"
 

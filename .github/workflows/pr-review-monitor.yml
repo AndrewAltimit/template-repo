@@ -41,7 +41,7 @@ permissions:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  # Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+  # Enable BuildKit for docker compose builds (required for --mount syntax in Dockerfiles)
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
 
@@ -115,7 +115,7 @@ jobs:
       - name: Build Docker containers for OpenRouter agents
         run: |
           echo "[INFO] Building openrouter-agents container for OpenCode/Crush support..."
-          docker-compose --profile agents build openrouter-agents
+          docker compose --profile agents build openrouter-agents
           echo "[INFO] Container build complete"
 
       - name: Run PR review monitor on host

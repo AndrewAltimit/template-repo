@@ -5,7 +5,7 @@
 set -e
 
 # Fix for HOME directory mismatch - ensure .codex is accessible from $HOME
-# This works regardless of what username docker-compose sets HOME to
+# This works regardless of what username docker compose sets HOME to
 if [ "$MODE" = "agent" ] && [ -d "/home/user/.codex" ]; then
     # Create parent directories if needed
     mkdir -p "$HOME" 2>/dev/null || true

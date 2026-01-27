@@ -55,7 +55,7 @@ docker run --rm -v $(pwd):/app -w /app -e PYTHONPATH=/app python:3.11-slim bash 
    python -m pytest packages/sleeper_agents/dashboard/tests/ -v"
 
 # Using project's python-ci container
-docker-compose run --rm -e PYTHONPATH=/app python-ci \
+docker compose run --rm -e PYTHONPATH=/app python-ci \
   pytest packages/sleeper_agents/dashboard/tests/ -v
 ```
 

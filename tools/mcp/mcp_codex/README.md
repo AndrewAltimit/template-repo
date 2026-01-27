@@ -92,10 +92,10 @@ curl http://localhost:8021/health
 
 ```bash
 # Start the MCP server
-docker-compose up -d mcp-codex
+docker compose up -d mcp-codex
 
 # View logs
-docker-compose logs -f mcp-codex
+docker compose logs -f mcp-codex
 
 # Test health
 curl http://localhost:8021/health
@@ -105,7 +105,7 @@ curl http://localhost:8021/health
 
 ```bash
 # Build with docker-compose
-docker-compose build mcp-codex
+docker compose build mcp-codex
 
 # Or build directly
 docker build -f docker/codex.Dockerfile -t mcp-codex .
@@ -137,7 +137,7 @@ Or with Docker:
 {
   "mcpServers": {
     "codex": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": ["-f", "./docker-compose.yml", "--profile", "services", "run", "--rm", "-T", "mcp-codex", "mcp-codex", "--mode", "stdio"]
     }
   }

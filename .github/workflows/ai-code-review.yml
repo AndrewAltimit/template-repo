@@ -185,7 +185,7 @@ jobs:
         run: |
           echo "Starting Reaction Search MCP server..."
           source ./automation/setup/docker/set-docker-user.sh 2>/dev/null || true
-          docker-compose --profile services up -d mcp-reaction-search
+          docker compose --profile services up -d mcp-reaction-search
 
           echo "Waiting for Reaction Search server..."
           for i in {1..60}; do
@@ -260,8 +260,8 @@ jobs:
         if: always() && inputs.agent == 'gemini' && inputs.start_reaction_server
         run: |
           echo "Stopping Reaction Search MCP server..."
-          docker-compose --profile services stop mcp-reaction-search || true
-          docker-compose --profile services rm -f mcp-reaction-search || true
+          docker compose --profile services stop mcp-reaction-search || true
+          docker compose --profile services rm -f mcp-reaction-search || true
 
       - name: Upload review artifact
         if: always()

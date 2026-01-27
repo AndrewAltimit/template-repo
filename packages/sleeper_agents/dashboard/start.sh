@@ -70,7 +70,7 @@ if [ "$CONTAINER_CMD" = "podman" ]; then
     fi
 elif [ "$CONTAINER_CMD" = "docker" ]; then
     # Check for docker-compose
-    if command -v docker-compose &> /dev/null; then
+    if command -v docker compose &> /dev/null; then
         USE_COMPOSE=1
         COMPOSE_CMD="docker-compose"
         echo "Found docker-compose: will use docker-compose.yml"
@@ -80,7 +80,7 @@ elif [ "$CONTAINER_CMD" = "docker" ]; then
         COMPOSE_CMD="docker compose"
         echo "Found docker compose v2: will use docker-compose.yml"
     else
-        echo "docker-compose not found: will use docker run"
+        echo "docker compose not found: will use docker run"
     fi
 fi
 echo ""

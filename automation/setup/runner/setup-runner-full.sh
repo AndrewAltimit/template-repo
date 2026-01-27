@@ -128,7 +128,7 @@ check_prerequisites() {
         # Check Docker Compose
         if docker compose version &> /dev/null; then
             print_status "✅ Docker Compose V2 is installed"
-        elif docker-compose --version &> /dev/null; then
+        elif docker compose --version &> /dev/null; then
             print_status "✅ Docker Compose V1 is installed"
         else
             install_docker_compose
@@ -483,14 +483,14 @@ test_mcp_server() {
     if command -v docker &> /dev/null && [ -f "../docker-compose.yml" ]; then
         print_status "Starting MCP server for testing..."
         cd ..
-        docker-compose up -d mcp-server
+        docker compose up -d mcp-server
         sleep 10
 
         print_status "MCP server logs:"
-        docker-compose logs --tail=20 mcp-server
+        docker compose logs --tail=20 mcp-server
 
         print_status "Stopping MCP server..."
-        docker-compose down
+        docker compose down
 
         cd "$RUNNER_DIR"
         print_status "✅ MCP server test complete"
@@ -527,7 +527,7 @@ create_summary() {
     print_status "Useful Commands:"
     echo "  View runner status: sudo ./svc.sh status"
     echo "  View runner logs: sudo journalctl -u actions.runner.* -f"
-    echo "  Test MCP locally: cd .. && docker-compose up mcp-server"
+    echo "  Test MCP locally: cd .. && docker compose up mcp-server"
 }
 
 # Main setup flow

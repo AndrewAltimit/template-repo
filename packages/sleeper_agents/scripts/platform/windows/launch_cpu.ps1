@@ -41,7 +41,7 @@ foreach ($dir in $outputDirs) {
 }
 
 Write-Host "Building Docker image for CPU mode..." -ForegroundColor Cyan
-docker-compose build sleeper-eval-cpu
+docker compose build sleeper-eval-cpu
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Failed to build Docker image" -ForegroundColor Red
@@ -65,4 +65,4 @@ Write-Host "  Health:    http://localhost:8021/health" -ForegroundColor Cyan
 Write-Host ""
 
 # Start CPU mode service
-docker-compose up sleeper-eval-cpu
+docker compose up sleeper-eval-cpu

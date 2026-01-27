@@ -67,7 +67,7 @@ run_synthetic() {
     echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} Runtime: ~30 seconds (CPU-only, no GPU needed)"
     echo ""
 
-    if docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/benchmark_detectors_comprehensive.py"; then
+    if docker compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/benchmark_detectors_comprehensive.py"; then
         echo ""
         echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Synthetic Testing benchmark completed"
         echo ""
@@ -90,7 +90,7 @@ run_transformer() {
     echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} Runtime: ~15 seconds (GPU-accelerated)"
     echo ""
 
-    if docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/real_transformer_benchmark.py"; then
+    if docker compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/real_transformer_benchmark.py"; then
         echo ""
         echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Transformer Testing benchmark completed"
         echo ""
@@ -114,7 +114,7 @@ run_redteam() {
     echo -e "${COLOR_BLUE}[INFO]${COLOR_RESET} Runtime: ~60 seconds (GPU-accelerated)"
     echo ""
 
-    if docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/red_team_benchmark.py"; then
+    if docker compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/red_team_benchmark.py"; then
         echo ""
         echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Red Team Testing benchmark completed"
         echo ""
@@ -128,17 +128,17 @@ run_redteam() {
 # Quick mode functions (reduced datasets)
 run_synthetic_quick() {
     echo "[Synthetic Testing Quick] Running with reduced dataset..."
-    docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/benchmark_detectors.py"
+    docker compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/benchmark_detectors.py"
 }
 
 run_transformer_quick() {
     echo "[Transformer Testing Quick] Running with GPU..."
-    docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/real_transformer_benchmark.py"
+    docker compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/real_transformer_benchmark.py"
 }
 
 run_redteam_quick() {
     echo "[Red Team Testing Quick] Running with GPU..."
-    docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/red_team_benchmark.py"
+    docker compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/red_team_benchmark.py"
 }
 
 # Main execution

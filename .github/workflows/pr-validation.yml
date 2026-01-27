@@ -588,17 +588,17 @@ jobs:
                 sleep 2
               done
             done
-            docker-compose run --rm python-ci python automation/testing/test_all_servers.py --quick
+            docker compose run --rm python-ci python automation/testing/test_all_servers.py --quick
           }
 
       - name: View MCP server logs
         if: failure()
-        run: docker-compose logs mcp-code-quality mcp-content-creation mcp-gaea2
+        run: docker compose logs mcp-code-quality mcp-content-creation mcp-gaea2
 
       - name: Stop MCP server
         if: always()
         run: |
-          docker-compose down --rmi local --remove-orphans || true
+          docker compose down --rmi local --remove-orphans || true
           ./automation/ci-cd/cleanup-outputs.sh || true
 
   # Stage 7: sleeper agents Tests
@@ -895,7 +895,7 @@ jobs:
       - name: Stop services
         if: always()
         run: |
-          docker-compose down --rmi local --remove-orphans || true
+          docker compose down --rmi local --remove-orphans || true
           ./automation/ci-cd/cleanup-outputs.sh || true
 
   # Agent Failure Handler - attempts to fix format/lint/test failures

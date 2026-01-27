@@ -136,20 +136,20 @@ This starts an interactive session where you can:
 The Codex agent container is built automatically when you first run it, or manually:
 
 ```bash
-docker-compose build codex-agent
+docker compose build codex-agent
 ```
 
 ### Direct Docker Usage
 
 ```bash
 # Start the container
-docker-compose up -d codex-agent
+docker compose up -d codex-agent
 
 # Run commands inside
-docker-compose exec codex-agent codex
+docker compose exec codex-agent codex
 
 # With mounted auth (requires :rw for session files and history)
-docker-compose run --rm \
+docker compose run --rm \
   -v ~/.codex:/home/user/.codex:rw \
   codex-agent codex
 ```
@@ -180,7 +180,7 @@ If authentication fails:
 
 3. **Verify container mount**:
    ```bash
-   docker-compose run --rm codex-agent ls -la /home/node/.codex/
+   docker compose run --rm codex-agent ls -la /home/node/.codex/
    ```
 
 ## Features and Capabilities
@@ -280,7 +280,7 @@ Codex works well with:
    - Note: This uses your OpenAI account with ChatGPT Plus subscription
 
 3. **Container build fails**
-   - Solution: Rebuild with `docker-compose build --no-cache codex-agent`
+   - Solution: Rebuild with `docker compose build --no-cache codex-agent`
    - Check: Docker daemon is running
 
 4. **Permission denied in container**

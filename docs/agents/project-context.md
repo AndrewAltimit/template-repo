@@ -66,7 +66,7 @@ As the PR reviewer, focus on security, containers, and project standards.
 - Docker containers should run with user permissions
 - Python code should handle async/await properly
 - No `chmod 777` or overly permissive operations
-- Helper scripts should be simple wrappers around docker-compose
+- Helper scripts should be simple wrappers around docker compose
 - Use `./automation/ci-cd/run-ci.sh` for all CI operations
 - Mock external dependencies in tests (subprocess, requests)
 - Clear Gemini history before PR reviews
@@ -135,7 +135,7 @@ export GROUP_ID=$(id -g)
 ./automation/ci-cd/run-ci.sh format
 
 # Container with user permissions
-docker-compose run --rm --user "${USER_ID}:${GROUP_ID}" python-ci command
+docker compose run --rm --user "${USER_ID}:${GROUP_ID}" python-ci command
 ```
 
 ### Bad Patterns

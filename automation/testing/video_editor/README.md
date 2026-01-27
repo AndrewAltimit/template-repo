@@ -75,19 +75,19 @@ All tests should be run within the `python-ci` container which includes all nece
 
 ```bash
 # Build the python-ci container with updated dependencies
-docker-compose build python-ci
+docker compose build python-ci
 
 # 1. Create test videos
-docker-compose run --rm python-ci ./automation/testing/video_editor/create_test_videos.sh
+docker compose run --rm python-ci ./automation/testing/video_editor/create_test_videos.sh
 
 # 2. Run functionality tests
-docker-compose run --rm python-ci python automation/testing/video_editor/test_video_editor.py
+docker compose run --rm python-ci python automation/testing/video_editor/test_video_editor.py
 
 # 3. Validate outputs
-docker-compose run --rm python-ci python automation/testing/video_editor/validate_outputs.py
+docker compose run --rm python-ci python automation/testing/video_editor/validate_outputs.py
 
 # 4. View examples
-docker-compose run --rm python-ci python automation/testing/video_editor/video_editor_examples.py
+docker compose run --rm python-ci python automation/testing/video_editor/video_editor_examples.py
 ```
 
 ### Alternative: Local Execution
@@ -111,10 +111,10 @@ python3 automation/testing/video_editor/validate_outputs.py
 ### Docker-based Testing (Recommended)
 ```bash
 # Build and start the video editor server
-docker-compose build mcp-video-editor
+docker compose build mcp-video-editor
 
 # For CPU-only systems, use the override:
-docker-compose -f docker-compose.yml -f docker-compose.cpu.yml up -d mcp-video-editor
+docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d mcp-video-editor
 
 # Note: GPU support requires nvidia-docker runtime
 ```
@@ -211,7 +211,7 @@ ffmpeg -version
 ffprobe -v quiet -print_format json -show_format video.mp4
 
 # Check Docker logs
-docker-compose logs mcp-video-editor
+docker compose logs mcp-video-editor
 ```
 
 ## Summary

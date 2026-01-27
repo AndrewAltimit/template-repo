@@ -4,7 +4,7 @@ on:
   workflow_call: {}
   workflow_dispatch: {}
 
-# Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+# Enable BuildKit for docker compose builds (required for --mount syntax in Dockerfiles)
 env:
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
@@ -24,7 +24,7 @@ jobs:
 
       - name: Set up Docker Compose
         run: |
-          docker-compose --version
+          docker compose --version
           cd packages/sleeper_agents/dashboard/tests
 
       - name: Build test container
@@ -86,11 +86,11 @@ jobs:
       - name: Build test containers
         run: |
           cd packages/sleeper_agents/dashboard/tests
-          # Export user/group IDs for docker-compose to use
+          # Export user/group IDs for docker compose to use
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
           # Build both test-runner and dashboard to ensure latest code
-          docker-compose -f docker-compose.test.yml build dashboard test-runner
+          docker compose -f docker-compose.test.yml build dashboard test-runner
 
       - name: Generate test data
         run: |
@@ -98,7 +98,7 @@ jobs:
           # Generate test database using Docker before starting services
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
-          docker-compose -f docker-compose.test.yml run --rm --no-deps --user "$(id -u):$(id -g)" test-runner \
+          docker compose -f docker-compose.test.yml run --rm --no-deps --user "$(id -u):$(id -g)" test-runner \
             python /app/tests/fixtures.py
 
           # Verify database was created successfully
@@ -112,7 +112,7 @@ jobs:
 
           # Verify database contents using Docker
           echo "Verifying database contents..."
-          docker-compose -f docker-compose.test.yml run --rm --no-deps test-runner \
+          docker compose -f docker-compose.test.yml run --rm --no-deps test-runner \
             python -c "import sqlite3; conn = sqlite3.connect('/app/tests/test_evaluation_results.db'); \
             cursor = conn.cursor(); cursor.execute('SELECT COUNT(*) FROM evaluation_results'); \
             print(f'Records found: {cursor.fetchone()[0]}'); conn.close()"
@@ -121,24 +121,24 @@ jobs:
       - name: Start test environment
         run: |
           cd packages/sleeper_agents/dashboard/tests
-          # Export user/group IDs for docker-compose to use
+          # Export user/group IDs for docker compose to use
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
           # Set a consistent password for the test run
           export DASHBOARD_ADMIN_PASSWORD=ci-test-password123
           # SELENIUM_IMAGE is already set in GITHUB_ENV by the architecture detection step
           echo "Using Selenium image: $SELENIUM_IMAGE"
-          docker-compose -f docker-compose.test.yml up -d dashboard selenium
+          docker compose -f docker-compose.test.yml up -d dashboard selenium
 
           # Services will be ready due to depends_on and healthcheck configuration
           echo "Services started with health checks..."
 
           # Check service status
-          docker-compose -f docker-compose.test.yml ps
+          docker compose -f docker-compose.test.yml ps
 
           # Verify database accessibility from dashboard container
           echo "Testing database access from dashboard container..."
-          docker-compose -f docker-compose.test.yml exec -T dashboard \
+          docker compose -f docker-compose.test.yml exec -T dashboard \
             python /home/dashboard/app/tests/check_database.py || echo "Database check from dashboard container failed"
 
       - name: Run E2E tests
@@ -150,7 +150,7 @@ jobs:
           export DASHBOARD_TEST_PASSWORD=ci-test-password123
 
           # Run tests - test runner will create directories inside container
-          docker-compose -f docker-compose.test.yml run --rm test-runner \
+          docker compose -f docker-compose.test.yml run --rm test-runner \
             python -m pytest tests/test_selenium_e2e.py -v \
               -p no:cacheprovider \
               --html=/app/tests/report.html \
@@ -165,8 +165,8 @@ jobs:
           cp -r screenshots test-artifacts/ || true
           cp -r baselines test-artifacts/ || true
           cp report.html test-artifacts/ || true
-          docker-compose -f docker-compose.test.yml logs dashboard > test-artifacts/dashboard.log
-          docker-compose -f docker-compose.test.yml logs selenium > test-artifacts/selenium.log
+          docker compose -f docker-compose.test.yml logs dashboard > test-artifacts/dashboard.log
+          docker compose -f docker-compose.test.yml logs selenium > test-artifacts/selenium.log
 
       - name: Upload test artifacts
         if: always()
@@ -179,7 +179,7 @@ jobs:
         if: always()
         run: |
           cd packages/sleeper_agents/dashboard/tests
-          docker-compose -f docker-compose.test.yml down -v
+          docker compose -f docker-compose.test.yml down -v
 
       - name: Cleanup test images
         if: always()

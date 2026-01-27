@@ -91,7 +91,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Build Docker command
-DOCKER_CMD="docker-compose run --rm"
+DOCKER_CMD="docker compose run --rm"
 DOCKER_CMD="$DOCKER_CMD -e OPENROUTER_API_KEY=$OPENROUTER_API_KEY"
 DOCKER_CMD="$DOCKER_CMD -e OPENAI_API_KEY=$OPENROUTER_API_KEY"
 DOCKER_CMD="$DOCKER_CMD -e OPENAI_API_BASE=https://openrouter.ai/api/v1"

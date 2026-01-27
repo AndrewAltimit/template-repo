@@ -17,10 +17,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Check if docker-compose is available
-docker-compose --version >nul 2>&1
+REM Check if docker compose is available
+docker compose --version >nul 2>&1
 if errorlevel 1 (
-    echo ERROR: docker-compose not found
+    echo ERROR: docker compose not found
     echo Please ensure Docker Desktop is properly installed
     pause
     exit /b 1
@@ -31,18 +31,18 @@ cd /d "%~dp0\..\..\..\"
 
 echo Building AI Toolkit container...
 echo This may take a while on first run or after updates
-docker-compose build mcp-ai-toolkit
+docker compose build mcp-ai-toolkit
 
 echo.
 echo Starting AI Toolkit container...
-docker-compose --profile ai-services up -d mcp-ai-toolkit
+docker compose --profile ai-services up -d mcp-ai-toolkit
 
 REM Check if the container started successfully
 docker ps | findstr ai-toolkit >nul 2>&1
 if errorlevel 1 (
     echo ERROR: Failed to start AI Toolkit container
     echo Check Docker Desktop and try again
-    docker-compose logs mcp-ai-toolkit
+    docker compose logs mcp-ai-toolkit
     pause
     exit /b 1
 )
@@ -87,12 +87,12 @@ echo AI Toolkit is running!
 echo ========================================
 echo.
 echo Commands:
-echo   View logs:  docker-compose logs -f mcp-ai-toolkit
-echo   Stop:       docker-compose --profile ai-services stop mcp-ai-toolkit
-echo   Restart:    docker-compose --profile ai-services restart mcp-ai-toolkit
+echo   View logs:  docker compose logs -f mcp-ai-toolkit
+echo   Stop:       docker compose --profile ai-services stop mcp-ai-toolkit
+echo   Restart:    docker compose --profile ai-services restart mcp-ai-toolkit
 echo.
 echo Press any key to view logs (Ctrl+C to exit logs)...
 pause >nul
 
 REM Show logs
-docker-compose logs -f mcp-ai-toolkit
+docker compose logs -f mcp-ai-toolkit

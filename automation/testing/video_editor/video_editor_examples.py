@@ -418,7 +418,7 @@ This script demonstrates various use cases for the Video Editor MCP Server.
 The examples show request/response structures and usage patterns.
 
 Prerequisites:
-1. Video Editor MCP Server running (docker-compose up mcp-video-editor)
+1. Video Editor MCP Server running (docker compose up mcp-video-editor)
 2. Test videos created (run create_test_videos.sh)
 3. MCP client library installed
 """

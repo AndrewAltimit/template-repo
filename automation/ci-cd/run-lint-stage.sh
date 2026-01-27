@@ -13,7 +13,7 @@ cd "$PROJECT_ROOT"
 
 STAGE=${1:-format}
 
-# Export user IDs for docker-compose
+# Export user IDs for docker compose
 USER_ID=$(id -u)
 GROUP_ID=$(id -g)
 export USER_ID
@@ -38,7 +38,7 @@ rm -f lint-output.txt
 
 # Build the CI image if needed
 echo "🔨 Building CI image..."
-docker-compose build python-ci
+docker compose build python-ci
 
 case "$STAGE" in
   format)
@@ -46,13 +46,13 @@ case "$STAGE" in
 
     # Check formatting with ruff (replaces black, 10-100x faster)
     echo "🔍 Checking Python formatting with ruff..."
-    if ! docker-compose run --rm python-ci ruff format --check --diff . 2>&1 | tee ruff-format-output.txt; then
+    if ! docker compose run --rm python-ci ruff format --check --diff . 2>&1 | tee ruff-format-output.txt; then
       errors=$((errors + $(grep -c "would reformat" ruff-format-output.txt || echo 0)))
     fi
 
     # Check import sorting
     echo "🔍 Checking import sorting with ruff..."
-    if ! docker-compose run --rm python-ci ruff check --select=I --diff . 2>&1 | tee ruff-import-output.txt; then
+    if ! docker compose run --rm python-ci ruff check --select=I --diff . 2>&1 | tee ruff-import-output.txt; then
       errors=$((errors + $(grep -c "I001" ruff-import-output.txt || echo 0)))
     fi
     ;;
@@ -60,7 +60,7 @@ case "$STAGE" in
   ruff)
     echo "=== Running Ruff (fast linter) ==="
     echo "🔍 Running Ruff check..."
-    docker-compose run --rm python-ci ruff check . --output-format=grouped 2>&1 | tee ruff-output.txt || true
+    docker compose run --rm python-ci ruff check . --output-format=grouped 2>&1 | tee ruff-output.txt || true
 
     # Count Ruff issues (extract total from "Found X errors" line)
     if [ -f ruff-output.txt ]; then
@@ -75,13 +75,13 @@ case "$STAGE" in
 
     # Format checks (ruff format replaces black, 10-100x faster)
     echo "🔍 Checking formatting with ruff..."
-    docker-compose run --rm python-ci ruff format --check . 2>&1 | tee -a lint-output.txt || true
+    docker compose run --rm python-ci ruff format --check . 2>&1 | tee -a lint-output.txt || true
     # Import sorting check
-    docker-compose run --rm python-ci ruff check --select=I . 2>&1 | tee -a lint-output.txt || true
+    docker compose run --rm python-ci ruff check --select=I . 2>&1 | tee -a lint-output.txt || true
 
     # Ruff critical errors only (replaces flake8 E9,F63,F7,F82)
     echo "🔍 Running ruff (critical errors)..."
-    if ! docker-compose run --rm python-ci ruff check --select=E9,F63,F7,F82 --output-format=grouped . 2>&1 | tee -a lint-output.txt; then
+    if ! docker compose run --rm python-ci ruff check --select=E9,F63,F7,F82 --output-format=grouped . 2>&1 | tee -a lint-output.txt; then
       # Count critical errors from ruff output
       ruff_critical=$(grep -cE "^\s+[0-9]+:" lint-output.txt 2>/dev/null || echo 0)
       ruff_critical=$(ensure_numeric "$ruff_critical")
@@ -90,7 +90,7 @@ case "$STAGE" in
 
     # Ruff style check (informational, doesn't fail build)
     echo "🔍 Running ruff (style check)..."
-    docker-compose run --rm python-ci ruff check --select=E,W,C90 --exit-zero --output-format=grouped . 2>&1 | tee -a lint-output.txt
+    docker compose run --rm python-ci ruff check --select=E,W,C90 --exit-zero --output-format=grouped . 2>&1 | tee -a lint-output.txt
     ;;
 
   full)
@@ -101,13 +101,13 @@ case "$STAGE" in
 
     # Format checks (ruff format replaces black, 10-100x faster)
     echo "🔍 Checking formatting with ruff..."
-    docker-compose run --rm python-ci ruff format --check . 2>&1 | tee lint-output.txt || true
+    docker compose run --rm python-ci ruff format --check . 2>&1 | tee lint-output.txt || true
     # Import sorting check
-    docker-compose run --rm python-ci ruff check --select=I . 2>&1 | tee -a lint-output.txt || true
+    docker compose run --rm python-ci ruff check --select=I . 2>&1 | tee -a lint-output.txt || true
 
     # Ruff - full linting (replaces flake8 and pylint, 10-100x faster)
     echo "🔍 Running ruff (full linting)..."
-    docker-compose run --rm python-ci ruff check --output-format=grouped . 2>&1 | tee -a lint-output.txt || true
+    docker compose run --rm python-ci ruff check --output-format=grouped . 2>&1 | tee -a lint-output.txt || true
     if [ -f lint-output.txt ]; then
       # Extract the actual error count from "Found X errors" line (informational)
       ruff_issues=$(grep -oP "Found \K[0-9]+" lint-output.txt 2>/dev/null | head -1 || echo 0)
@@ -117,7 +117,7 @@ case "$STAGE" in
 
     # Ruff critical errors only (syntax errors, undefined names, etc.)
     echo "🔍 Running ruff (critical errors)..."
-    if ! docker-compose run --rm python-ci ruff check --select=E9,F63,F7,F82 --output-format=grouped . 2>&1 | tee -a lint-output.txt; then
+    if ! docker compose run --rm python-ci ruff check --select=E9,F63,F7,F82 --output-format=grouped . 2>&1 | tee -a lint-output.txt; then
       # Count critical errors from ruff output
       ruff_critical=$(grep -cE "^\s+[0-9]+:" lint-output.txt 2>/dev/null || echo 0)
       ruff_critical=$(ensure_numeric "$ruff_critical")
@@ -127,16 +127,16 @@ case "$STAGE" in
     # Type checking with ty (Astral's fast type checker, replaces mypy)
     # ty is 10-60x faster than mypy with millisecond incremental updates
     echo "🔍 Running ty type checker..."
-    docker-compose run --rm python-ci ty check 2>&1 | tee -a lint-output.txt || true
+    docker compose run --rm python-ci ty check 2>&1 | tee -a lint-output.txt || true
     ty_errors=$(grep -c "^error\[" lint-output.txt 2>/dev/null || echo 0)
     ty_errors=$(ensure_numeric "$ty_errors")
     echo "  ty found $ty_errors errors (informational)"
 
     # Security scanning with Bandit (informational)
     echo "🔍 Running Bandit security scanner..."
-    docker-compose run --rm python-ci bandit -r . -c pyproject.toml -f json -o bandit-report.json 2>&1 | tee -a lint-output.txt || true
+    docker compose run --rm python-ci bandit -r . -c pyproject.toml -f json -o bandit-report.json 2>&1 | tee -a lint-output.txt || true
     if [ -f bandit-report.json ]; then
-      bandit_issues=$(docker-compose run --rm python-ci python3 -c "import json; data=json.load(open('bandit-report.json')); print(len(data.get('results', [])))" || echo 0)
+      bandit_issues=$(docker compose run --rm python-ci python3 -c "import json; data=json.load(open('bandit-report.json')); print(len(data.get('results', [])))" || echo 0)
       echo "  Bandit found $bandit_issues security issues (informational)"
     fi
 
@@ -147,12 +147,12 @@ case "$STAGE" in
       if [ -n "$SAFETY_API_KEY" ]; then
         echo "Using Safety with API key..."
         # Use safety scan with API key
-        safety_output=$(docker-compose run --rm -T -e SAFETY_API_KEY="$SAFETY_API_KEY" python-ci safety scan --key "$SAFETY_API_KEY" --disable-optional-telemetry --output json 2>&1 || true)
+        safety_output=$(docker compose run --rm -T -e SAFETY_API_KEY="$SAFETY_API_KEY" python-ci safety scan --key "$SAFETY_API_KEY" --disable-optional-telemetry --output json 2>&1 || true)
         echo "$safety_output" | tee -a lint-output.txt
         # Parse the new JSON format from safety scan
         if [[ "$safety_output" == *"{"* ]] && [[ "$safety_output" != *"Unhandled exception"* ]]; then
           # Valid JSON output, count vulnerabilities from the new format
-          safety_issues=$(echo "$safety_output" | docker-compose run --rm python-ci python3 -c "import sys, json; data=json.load(sys.stdin); vulns=data.get('vulnerabilities', []); print(len(vulns))" 2>/dev/null || echo 0)
+          safety_issues=$(echo "$safety_output" | docker compose run --rm python-ci python3 -c "import sys, json; data=json.load(sys.stdin); vulns=data.get('vulnerabilities', []); print(len(vulns))" 2>/dev/null || echo 0)
           # Ensure safety_issues is a valid number
           if [[ "$safety_issues" =~ ^[0-9]+$ ]]; then
             warnings=$((warnings + safety_issues))
@@ -161,11 +161,11 @@ case "$STAGE" in
       else
         echo "No SAFETY_API_KEY found, using pip-audit instead..."
         # Use pip-audit as fallback (run as module since it's in user directory)
-        pip_audit_output=$(docker-compose run --rm -T python-ci python -m pip_audit --format json 2>&1 || true)
+        pip_audit_output=$(docker compose run --rm -T python-ci python -m pip_audit --format json 2>&1 || true)
         echo "$pip_audit_output" | tee -a lint-output.txt
         # Parse pip-audit JSON output
         if [[ "$pip_audit_output" == *"{"* ]]; then
-          audit_issues=$(echo "$pip_audit_output" | docker-compose run --rm python-ci python3 -c "import sys, json; data=json.load(sys.stdin); vulns=data.get('vulnerabilities', []); print(len(vulns))" 2>/dev/null || echo 0)
+          audit_issues=$(echo "$pip_audit_output" | docker compose run --rm python-ci python3 -c "import sys, json; data=json.load(sys.stdin); vulns=data.get('vulnerabilities', []); print(len(vulns))" 2>/dev/null || echo 0)
           # Ensure audit_issues is a valid number
           if [[ "$audit_issues" =~ ^[0-9]+$ ]]; then
             warnings=$((warnings + audit_issues))

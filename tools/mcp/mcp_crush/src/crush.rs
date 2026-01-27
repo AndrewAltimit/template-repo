@@ -262,7 +262,7 @@ impl CrushIntegration {
 
         args.push(query.to_string());
 
-        debug!("Executing docker-compose with args: {:?}", args);
+        debug!("Executing docker compose with args: {:?}", args);
 
         let mut cmd = Command::new("docker-compose");
         cmd.args(&args)

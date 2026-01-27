@@ -123,13 +123,13 @@ print('Empty database created successfully!')
             Push-Location (Join-Path $PSScriptRoot "..\..\..")
 
             # Build the dashboard image
-            docker-compose build sleeper-dashboard
+            docker compose build sleeper-dashboard
 
             # Run the dashboard
             if ($Debug) {
-                docker-compose up sleeper-dashboard
+                docker compose up sleeper-dashboard
             } else {
-                docker-compose up -d sleeper-dashboard
+                docker compose up -d sleeper-dashboard
                 Write-Success "Dashboard started in background on port $Port"
             }
 

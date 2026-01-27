@@ -75,16 +75,16 @@ opencode models
 source .env
 
 # Run in container
-docker-compose run --rm openrouter-agents opencode run "Write a Python data validation function"
+docker compose run --rm openrouter-agents opencode run "Write a Python data validation function"
 
 # Use a specific model
-docker-compose run --rm openrouter-agents opencode run -m "openrouter/anthropic/claude-3.5-sonnet" "Your prompt"
+docker compose run --rm openrouter-agents opencode run -m "openrouter/anthropic/claude-3.5-sonnet" "Your prompt"
 
 # List available models
-docker-compose run --rm openrouter-agents opencode models
+docker compose run --rm openrouter-agents opencode models
 
 # Interactive mode in container
-docker-compose run --rm -it openrouter-agents opencode
+docker compose run --rm -it openrouter-agents opencode
 ```
 
 ## Available Models
@@ -103,7 +103,7 @@ OpenCode automatically detects all available OpenRouter models. Some popular opt
 
 To see all available models:
 ```bash
-docker-compose run --rm openrouter-agents opencode models
+docker compose run --rm openrouter-agents opencode models
 ```
 
 ## Key Features
@@ -122,7 +122,7 @@ OpenCode is part of the containerized agents that can be used for:
 
 Example usage in agent context:
 ```bash
-docker-compose run --rm openrouter-agents python -m github_agents.cli issue-monitor
+docker compose run --rm openrouter-agents python -m github_agents.cli issue-monitor
 ```
 
 ## Troubleshooting
@@ -148,8 +148,8 @@ Ensure:
 ### Container Issues
 
 If the container can't find OpenCode:
-1. Rebuild: `docker-compose build openrouter-agents`
-2. Check installation: `docker-compose run --rm openrouter-agents which opencode`
+1. Rebuild: `docker compose build openrouter-agents`
+2. Check installation: `docker compose run --rm openrouter-agents which opencode`
 
 ## Best Practices
 

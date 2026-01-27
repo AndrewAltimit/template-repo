@@ -56,7 +56,7 @@ if [ "$MODE" = "quick" ]; then
     echo "Running QUICK audit (50 samples, recommended)..."
     echo "Installing dependencies and running audit..."
     echo ""
-    if docker-compose run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] adversarial-robustness-toolbox --quiet && python packages/sleeper_agents/examples/gradient_attack_audit.py --quick --device $DEVICE --epsilon $EPSILON"; then
+    if docker compose run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] adversarial-robustness-toolbox --quiet && python packages/sleeper_agents/examples/gradient_attack_audit.py --quick --device $DEVICE --epsilon $EPSILON"; then
         echo ""
         echo "============================================================"
         echo "Audit completed successfully!"
@@ -74,7 +74,7 @@ else
     echo "Running FULL audit (100 samples)..."
     echo "Installing dependencies and running audit..."
     echo ""
-    if docker-compose run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] adversarial-robustness-toolbox --quiet && python packages/sleeper_agents/examples/gradient_attack_audit.py --n-samples 100 --device $DEVICE --epsilon $EPSILON"; then
+    if docker compose run --rm python-ci bash -c "pip install -e ./packages/sleeper_agents[evaluation] adversarial-robustness-toolbox --quiet && python packages/sleeper_agents/examples/gradient_attack_audit.py --n-samples 100 --device $DEVICE --epsilon $EPSILON"; then
         echo ""
         echo "============================================================"
         echo "Audit completed successfully!"

@@ -35,7 +35,7 @@ Docker Desktop provides the most consistent experience on Windows.
 
 4. **Start Services**
    ```powershell
-   docker-compose up -d sleeper-eval-cpu
+   docker compose up -d sleeper-eval-cpu
    ```
 
 #### Windows User ID Limitations
@@ -54,7 +54,7 @@ This differs from the Linux environment where these values are determined dynami
    ```powershell
    $env:USER_ID = "your_id"
    $env:GROUP_ID = "your_group_id"
-   docker-compose up -d sleeper-eval-cpu
+   docker compose up -d sleeper-eval-cpu
    ```
 
 2. **Use WSL2**: WSL2 provides better Unix-style permission handling

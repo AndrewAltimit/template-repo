@@ -240,7 +240,7 @@ For enterprise environments requiring custom certificates, customize [`automatio
 ### Usage Modes
 
 - **STDIO Mode** (local MCPs): Configured in `.mcp.json`, auto-started by Claude
-- **HTTP Mode** (remote MCPs): Run the MCP using docker-compose on the remote node.
+- **HTTP Mode** (remote MCPs): Run the MCP using docker compose on the remote node.
 
 See [MCP Architecture Documentation](docs/mcp/README.md) and [STDIO vs HTTP Modes](docs/mcp/architecture/stdio-vs-http.md) for details.
 
@@ -283,7 +283,7 @@ All Python operations run in Docker containers:
 ./automation/ci-cd/run-ci.sh full        # Full CI pipeline
 
 # Run specific tests
-docker-compose run --rm python-ci pytest tests/test_mcp_tools.py -v
+docker compose run --rm python-ci pytest tests/test_mcp_tools.py -v
 ```
 
 ### GitHub Actions
