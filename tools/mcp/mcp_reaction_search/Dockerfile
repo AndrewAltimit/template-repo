@@ -36,10 +36,11 @@ COPY mcp_reaction_search/Cargo.toml ./mcp_reaction_search/
 COPY mcp_reaction_search/src ./mcp_reaction_search/src
 
 # Build release binary
+# Use CARGO_TARGET_DIR to put output in /app/target for caching
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
     cd mcp_reaction_search && \
-    cargo build --release \
+    CARGO_TARGET_DIR=/app/target cargo build --release \
     && cp /app/target/release/mcp-reaction-search /usr/local/bin/
 
 # =============================================================================
