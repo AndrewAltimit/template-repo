@@ -591,8 +591,8 @@ services:
     profiles:
       - services
 
-  # Codex MCP Server
-  # NOTE: Builds gh-validator from source inline (multi-stage build)
+  # Codex MCP Server (Rust)
+  # NOTE: Builds gh-validator and mcp-codex from source inline (multi-stage build)
   mcp-codex:
     build:
       context: .
@@ -610,14 +610,13 @@ services:
       - ~/.codex:/home/user/.codex:rw
     environment:
       - MODE=mcp
-      - PYTHONUNBUFFERED=1
       - PORT=8021
       - CODEX_ENABLED=${CODEX_ENABLED:-true}
       - CODEX_AUTH_PATH=/home/user/.codex/auth.json
       - CODEX_BYPASS_SANDBOX=${CODEX_BYPASS_SANDBOX:-false}  # Default to sandboxed
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_codex.server", "--mode", "http"]
+    command: ["mcp-codex", "--mode", "standalone", "--port", "8021"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8021/health"]

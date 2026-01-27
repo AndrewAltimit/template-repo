@@ -1,6 +1,6 @@
 # git-guard
 
-A Git CLI wrapper that blocks dangerous operations like force push, `--no-verify`, and direct pushes to protected branches (`main`/`master`).
+> A Git CLI wrapper that blocks dangerous operations like force push, `--no-verify`, and direct pushes to protected branches (`main`/`master`).
 
 ## Purpose
 
@@ -114,4 +114,4 @@ cargo test
 
 ## License
 
-MIT
+Part of the template-repo project. See repository LICENSE file.

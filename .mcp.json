@@ -106,9 +106,7 @@
         "--rm",
         "-T",
         "mcp-codex",
-        "python",
-        "-m",
-        "mcp_codex.server",
+        "mcp-codex",
         "--mode",
         "stdio"
       ]
@@ -177,7 +175,13 @@
     },
     "memory-explorer": {
       "command": "C:\\Python313\\python.exe",
-      "args": ["-u", "-X", "utf8", "-m", "mcp_memory_explorer"]
+      "args": [
+        "-u",
+        "-X",
+        "utf8",
+        "-m",
+        "mcp_memory_explorer"
+      ]
     }
   }
 }

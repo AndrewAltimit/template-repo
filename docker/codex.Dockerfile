@@ -19,7 +19,30 @@ RUN cargo build --release 2>/dev/null || true
 COPY tools/rust/gh-validator/src ./src
 RUN touch src/main.rs && cargo build --release
 
-# Stage 2: Main Codex image
+# Stage 2: Build mcp-codex Rust server
+FROM rust:1.83-slim AS mcp-codex-builder
+
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copy Cargo files first for dependency caching
+COPY tools/mcp/mcp_core_rust /build/tools/mcp/mcp_core_rust
+COPY tools/mcp/mcp_codex/Cargo.toml tools/mcp/mcp_codex/Cargo.lock* /build/tools/mcp/mcp_codex/
+
+# Create dummy source file for dependency compilation
+WORKDIR /build/tools/mcp/mcp_codex
+RUN mkdir -p src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release 2>/dev/null || true
+
+# Copy actual source and rebuild
+COPY tools/mcp/mcp_codex/src ./src
+RUN touch src/main.rs && cargo build --release
+
+# Stage 3: Main Codex image
 # Use Python as base since both modes need it
 FROM python:3.11-slim
 
@@ -47,6 +70,10 @@ RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | 
 COPY --from=gh-validator-builder /build/target/release/gh /usr/local/bin/gh
 RUN chmod +x /usr/local/bin/gh
 
+# Install mcp-codex Rust binary
+COPY --from=mcp-codex-builder /build/tools/mcp/mcp_codex/target/release/mcp-codex /usr/local/bin/mcp-codex
+RUN chmod +x /usr/local/bin/mcp-codex
+
 # Install Codex CLI globally (pinned version for reproducibility)
 RUN npm install -g @openai/codex@0.79.0
 
@@ -61,20 +88,6 @@ RUN useradd -m -u 1000 user && \
 
 # Set working directory
 WORKDIR /workspace
-
-# Copy and install Python requirements for MCP mode
-COPY config/python/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r /tmp/requirements.txt && \
-    rm /tmp/requirements.txt
-
-# Copy MCP modules (needed for MCP mode)
-COPY tools/mcp/mcp_core /workspace/tools/mcp/mcp_core
-COPY tools/mcp/mcp_codex /workspace/tools/mcp/mcp_codex
-
-# Install MCP packages
-RUN pip install --no-cache-dir /workspace/tools/mcp/mcp_core && \
-    pip install --no-cache-dir /workspace/tools/mcp/mcp_codex
 
 # Security: gh-validator is installed at /usr/local/bin/gh and shadows /usr/bin/gh
 # All gh commands pass through the validator which provides:
@@ -93,8 +106,7 @@ RUN mkdir -p /tmp/codex-runtime && \
     chown -R user:user /tmp/codex-runtime /workspace
 
 # Set environment variables
-ENV PYTHONPATH=/workspace:$PYTHONPATH \
-    NODE_ENV=production \
+ENV NODE_ENV=production \
     HOME=/home/user \
     PATH="/home/user/.local/bin:${PATH}"
 

@@ -1,6 +1,6 @@
 # code-parser
 
-A Rust library for parsing and applying code blocks from AI agent responses.
+> A Rust library for parsing and applying code blocks from AI agent responses.
 
 ## Features
 
@@ -135,4 +135,4 @@ The library includes several security measures:
 
 ## License
 
-MIT
+Part of the template-repo project. See repository LICENSE file.

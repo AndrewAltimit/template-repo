@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for AI Agent MCP tools (Crush, OpenCode, Gemini, Codex)"""
+"""Tests for AI Agent MCP tools (Crush, OpenCode, Gemini)
+
+Note: Codex MCP server has been migrated to Rust and is tested separately.
+"""
 
 from unittest.mock import patch
 
@@ -42,16 +45,7 @@ class TestToolImports:
         assert "gemini_status" in GEMINI_TOOLS
         assert "toggle_gemini_auto_consult" in GEMINI_TOOLS
 
-    def test_codex_tools_import(self):
-        """Test that Codex tools can be imported"""
-        from mcp_codex.tools import TOOLS as CODEX_TOOLS
-
-        assert CODEX_TOOLS is not None
-        assert isinstance(CODEX_TOOLS, dict)
-        assert "consult_codex" in CODEX_TOOLS
-        assert "clear_codex_history" in CODEX_TOOLS
-        assert "codex_status" in CODEX_TOOLS
-        assert "toggle_codex_auto_consult" in CODEX_TOOLS
+    # Note: Codex MCP server has been migrated to Rust and is tested separately
 
 
 class TestCrushMCPServer:
@@ -303,73 +297,7 @@ class TestGeminiMCPServer:
         assert "error" in result
 
 
-class TestCodexMCPServer:
-    """Tests for Codex MCP Server"""
-
-    def test_server_initialization(self):
-        """Test Codex MCP server can be initialized"""
-        from mcp_codex.server import CodexMCPServer
-
-        server = CodexMCPServer()
-        assert server.name == "Codex MCP Server"
-        assert server.version == "1.1.0"
-        assert server.port == 8021
-
-    def test_server_get_tools(self):
-        """Test Codex server returns correct tools"""
-        from mcp_codex.server import CodexMCPServer
-
-        server = CodexMCPServer()
-        tools = server.get_tools()
-
-        assert "consult_codex" in tools
-        assert "clear_codex_history" in tools
-        assert "codex_status" in tools
-        assert "toggle_codex_auto_consult" in tools
-
-        # Check modes are documented
-        consult_tool = tools["consult_codex"]
-        assert "mode" in consult_tool["parameters"]["properties"]
-        modes = consult_tool["parameters"]["properties"]["mode"]["enum"]
-        assert "generate" in modes
-        assert "complete" in modes
-        assert "refactor" in modes
-        assert "explain" in modes
-        assert "quick" in modes
-
-    @pytest.mark.asyncio
-    async def test_codex_status(self):
-        """Test codex_status returns expected format"""
-        from mcp_codex.server import CodexMCPServer
-
-        server = CodexMCPServer()
-        result = await server.codex_status()
-
-        # Should have config info even without auth
-        assert "config" in result or "status" in result or "error" in result
-
-    @pytest.mark.asyncio
-    async def test_clear_codex_history(self):
-        """Test clear_codex_history handles mock correctly"""
-        from mcp_codex.server import CodexMCPServer
-
-        server = CodexMCPServer()
-        result = await server.clear_codex_history()
-
-        # Should return something (either success or error)
-        assert "status" in result or "success" in result or "error" in result
-
-    @pytest.mark.asyncio
-    async def test_consult_codex_disabled(self):
-        """Test consult_codex returns disabled when auth missing"""
-        with patch.dict("os.environ", {"CODEX_ENABLED": "false"}):
-            from mcp_codex.server import CodexMCPServer
-
-            server = CodexMCPServer()
-            result = await server.consult_codex(query="test query")
-
-            # Should indicate disabled or auth issue
-            assert "status" in result or "error" in result
+# Note: TestCodexMCPServer removed - Codex MCP server has been migrated to Rust
 
 
 class TestIntegrationMocks:
@@ -401,13 +329,7 @@ class TestIntegrationMocks:
         # Server should still initialize with mock
         assert server.gemini is not None
 
-    def test_codex_mock_integration(self):
-        """Test Codex falls back to mock when integration unavailable"""
-        from mcp_codex.server import CodexMCPServer
-
-        server = CodexMCPServer()
-        # Server should still initialize with mock
-        assert server.codex is not None
+    # Note: test_codex_mock_integration removed - Codex MCP server is now Rust
 
 
 class TestToolModes:

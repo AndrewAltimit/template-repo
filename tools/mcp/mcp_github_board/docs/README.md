@@ -463,4 +463,4 @@ python -m mcp_github_board.server
 
 ## License
 
-MIT License - See repository LICENSE file for details.
+Part of the template-repo project. See repository LICENSE file.
