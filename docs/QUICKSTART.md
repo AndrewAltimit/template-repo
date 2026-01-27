@@ -184,24 +184,24 @@ The template provides two MCP configuration files to optimize performance:
      "mcpServers": {
        "code-quality": { /* ... */ },
        "opencode": {
-         "command": "python",
-         "args": ["-m", "mcp_opencode.server"],
+         "command": "mcp-opencode",
+         "args": ["--mode", "stdio"],
          "env": {
            "OPENROUTER_API_KEY": "{OPENROUTER_API_KEY}"
          }
        },
        "crush": {
-         "command": "python",
-         "args": ["-m", "mcp_crush.server"],
+         "command": "mcp-crush",
+         "args": ["--mode", "stdio"],
          "env": {
            "OPENROUTER_API_KEY": "{OPENROUTER_API_KEY}"
          }
        },
        "gemini": {
-         "command": "python",
-         "args": ["-m", "mcp_gemini.server"],
+         "command": "mcp-gemini",
+         "args": ["--mode", "stdio"],
          "env": {
-           "GEMINI_API_KEY": "{GEMINI_API_KEY}"
+           "GOOGLE_API_KEY": "{GOOGLE_API_KEY}"
          }
        }
      }
