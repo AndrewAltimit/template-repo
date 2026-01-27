@@ -6,7 +6,7 @@ ARG OPENCODE_IMAGE=template-repo-mcp-opencode:latest
 ARG CRUSH_IMAGE=template-repo-mcp-crush:latest
 
 # Stage 1: Build gh-validator from source
-FROM rust:1.85-slim AS gh-validator-builder
+FROM rust:1.93-slim AS gh-validator-builder
 
 RUN apt-get update && apt-get install -y \
     pkg-config \

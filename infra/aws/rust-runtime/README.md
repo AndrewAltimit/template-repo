@@ -330,7 +330,7 @@ Key requirements for AgentCore compatibility:
 
 ```dockerfile
 # Must use ARM64
-FROM --platform=linux/arm64 rust:1.88-slim-bookworm AS builder
+FROM --platform=linux/arm64 rust:1.93-slim-bookworm AS builder
 
 # Must expose port 8080
 EXPOSE 8080

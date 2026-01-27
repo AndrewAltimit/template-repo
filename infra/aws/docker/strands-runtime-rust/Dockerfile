@@ -4,7 +4,7 @@
 # =============================================================================
 # Stage 1: Build the Rust binary
 # =============================================================================
-FROM --platform=$BUILDPLATFORM rust:1.88-alpine AS builder
+FROM --platform=$BUILDPLATFORM rust:1.93-alpine AS builder
 
 # Install build dependencies for cross-compilation and static linking
 RUN apk add --no-cache \

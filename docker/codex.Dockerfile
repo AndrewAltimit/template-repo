@@ -5,7 +5,7 @@
 ARG MODE=agent
 
 # Stage 1: Build gh-validator from source
-FROM rust:1.85-slim AS gh-validator-builder
+FROM rust:1.93-slim AS gh-validator-builder
 
 RUN apt-get update && apt-get install -y \
     pkg-config \
@@ -20,7 +20,7 @@ COPY tools/rust/gh-validator/src ./src
 RUN touch src/main.rs && cargo build --release
 
 # Stage 2: Build mcp-codex Rust server
-FROM rust:1.85-slim AS mcp-codex-builder
+FROM rust:1.93-slim AS mcp-codex-builder
 
 RUN apt-get update && apt-get install -y \
     pkg-config \
