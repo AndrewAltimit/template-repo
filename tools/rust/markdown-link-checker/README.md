@@ -1,6 +1,6 @@
 # markdown-link-checker
 
-Fast concurrent markdown link validator for CI/CD pipelines.
+> Fast concurrent markdown link validator for CI/CD pipelines.
 
 ## Features
 
@@ -132,4 +132,4 @@ This tool is designed for CI/CD pipelines where speed matters:
 
 ## License
 
-MIT
+Part of the template-repo project. See repository LICENSE file.

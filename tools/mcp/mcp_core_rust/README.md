@@ -1,6 +1,6 @@
 # MCP Core Rust
 
-A Rust library for building MCP (Model Context Protocol) servers with support for multiple operational modes.
+> A Rust library for building MCP (Model Context Protocol) servers with support for multiple operational modes.
 
 ## Overview
 
@@ -177,4 +177,4 @@ This library is designed to match the Python `mcp_core` API:
 
 ## License
 
-MIT
+Part of the template-repo project. See repository LICENSE file.

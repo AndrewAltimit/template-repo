@@ -1,6 +1,6 @@
 # pr-monitor
 
-A Rust CLI tool for monitoring GitHub PR comments with intelligent classification.
+> A Rust CLI tool for monitoring GitHub PR comments with intelligent classification.
 
 ## Overview
 
@@ -146,4 +146,4 @@ The Rust version provides:
 
 ## License
 
-MIT
+Part of the template-repo project. See repository LICENSE file.

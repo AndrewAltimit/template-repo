@@ -1,6 +1,6 @@
 # Economic Agents (Rust)
 
-A simulation framework for autonomous AI agents operating in economic systems. Agents autonomously complete tasks, earn cryptocurrency, form companies, create sub-agents, and seek investment.
+> A simulation framework for autonomous AI agents operating in economic systems. Agents autonomously complete tasks, earn cryptocurrency, form companies, create sub-agents, and seek investment.
 
 ## Overview
 
@@ -237,4 +237,4 @@ Run quality checks via the project's CI scripts:
 
 ## License
 
-MIT
+Part of the template-repo project. See repository LICENSE file.

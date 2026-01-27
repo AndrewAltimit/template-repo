@@ -1,6 +1,6 @@
 # github-agents-cli
 
-A fast Rust CLI for the GitHub AI Agents system.
+> A fast Rust CLI for the GitHub AI Agents system.
 
 ## Overview
 
@@ -92,4 +92,4 @@ cargo clippy
 
 ## License
 
-MIT
+Part of the template-repo project. See repository LICENSE file.
