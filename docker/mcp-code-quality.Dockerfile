@@ -1,5 +1,5 @@
 # Multi-stage Rust build for mcp-code-quality
-# Stage 1: Build the Rust binary
+# Stage 1: Build the Rust binaries
 FROM rust:1.93 AS builder
 
 WORKDIR /build
@@ -10,8 +10,15 @@ COPY tools/mcp/mcp_core_rust /build/tools/mcp/mcp_core_rust
 # Copy code quality server
 COPY tools/mcp/mcp_code_quality /build/tools/mcp/mcp_code_quality
 
-# Build the binary
+# Copy markdown link checker (required by check_markdown_links tool)
+COPY tools/rust/markdown-link-checker /build/tools/rust/markdown-link-checker
+
+# Build the mcp-code-quality binary
 WORKDIR /build/tools/mcp/mcp_code_quality
+RUN cargo build --release
+
+# Build the md-link-checker binary
+WORKDIR /build/tools/rust/markdown-link-checker
 RUN cargo build --release
 
 # Stage 2: Runtime image with code quality tools
@@ -59,11 +66,12 @@ RUN mkdir -p /app /var/log/mcp-code-quality && \
 
 WORKDIR /app
 
-# Copy the binary from builder
+# Copy the binaries from builder
 COPY --from=builder /build/tools/mcp/mcp_code_quality/target/release/mcp-code-quality /usr/local/bin/
+COPY --from=builder /build/tools/rust/markdown-link-checker/target/release/md-link-checker /usr/local/bin/
 
 # Set permissions
-RUN chmod +x /usr/local/bin/mcp-code-quality
+RUN chmod +x /usr/local/bin/mcp-code-quality /usr/local/bin/md-link-checker
 
 # Switch to non-root user
 USER mcp
