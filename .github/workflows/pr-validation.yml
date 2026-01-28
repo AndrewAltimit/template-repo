@@ -190,6 +190,13 @@ jobs:
           echo "Built mcp-gemini binary:"
           ls -la target/release/mcp-gemini
 
+      - name: Build code-review-processor
+        run: |
+          cd tools/rust/code-review-processor
+          cargo build --release
+          echo "Built code-review-processor binary:"
+          ls -la target/release/code-review-processor
+
       - name: Stage binaries for upload
         run: |
           mkdir -p rust-binaries
@@ -198,6 +205,7 @@ jobs:
           cp tools/rust/markdown-link-checker/target/release/md-link-checker rust-binaries/
           cp tools/rust/git-guard/target/release/git rust-binaries/git-guard
           cp tools/mcp/mcp_gemini/target/release/mcp-gemini rust-binaries/
+          cp tools/rust/code-review-processor/target/release/code-review-processor rust-binaries/
           ls -la rust-binaries/
 
       - name: Upload Rust binaries
@@ -236,6 +244,27 @@ jobs:
       timeout_minutes: 15
       continue_on_error: true
     secrets: inherit
+
+  # Stage 2c: AgentCore Code Review (Optional - triggered by label)
+  agentcore-review:
+    name: AgentCore Code Review
+    needs: [detect-changes, build-rust-tools]
+    if: |
+      github.event_name == 'pull_request' &&
+      contains(github.event.pull_request.labels.*.name, 'agentcore-review') &&
+      !github.event.pull_request.draft
+    uses: ./.github/workflows/agentcore-code-review.yml
+    with:
+      pr_number: ${{ github.event.pull_request.number }}
+      apply_fixes: false
+      create_pr: false
+      instructions: 'Focus on security issues, code quality, and best practices.'
+      timeout_minutes: 15
+    secrets:
+      AGENTCORE_ENDPOINT: ${{ secrets.AGENTCORE_ENDPOINT }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
 
   # Stage 2c: Agent Review Response (responds to Gemini/Codex feedback)
   agent-review-response:
