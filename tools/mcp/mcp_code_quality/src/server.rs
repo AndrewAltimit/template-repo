@@ -78,6 +78,9 @@ impl CodeQualityServer {
             Arc::new(AuditDependenciesTool {
                 server: self.clone_refs(),
             }),
+            Arc::new(CheckMarkdownLinksTool {
+                server: self.clone_refs(),
+            }),
             Arc::new(GetStatusTool {
                 server: self.clone_refs(),
             }),
@@ -578,6 +581,105 @@ impl Tool for AuditDependenciesTool {
 }
 
 // ============================================================================
+// Tool: check_markdown_links
+// ============================================================================
+
+struct CheckMarkdownLinksTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for CheckMarkdownLinksTool {
+    fn name(&self) -> &str {
+        "check_markdown_links"
+    }
+
+    fn description(&self) -> &str {
+        "Check markdown files for broken links using md-link-checker"
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Path to markdown file or directory to check"
+                },
+                "check_external": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Check external URLs (set false for internal links only)"
+                },
+                "timeout": {
+                    "type": "integer",
+                    "default": 10,
+                    "description": "Timeout in seconds for each link check"
+                },
+                "concurrent": {
+                    "type": "integer",
+                    "default": 10,
+                    "description": "Number of concurrent link checks"
+                },
+                "ignore_patterns": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "default": [],
+                    "description": "URL patterns to ignore (e.g., 'localhost', '127.0.0.1')"
+                }
+            },
+            "required": ["path"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        self.server.ensure_initialized().await?;
+
+        let path = args
+            .get("path")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'path' parameter".to_string()))?;
+
+        let check_external = args
+            .get("check_external")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+
+        let timeout = args
+            .get("timeout")
+            .and_then(|v| v.as_u64())
+            .map(|v| v as u32)
+            .unwrap_or(10);
+
+        let concurrent = args
+            .get("concurrent")
+            .and_then(|v| v.as_u64())
+            .map(|v| v as u32)
+            .unwrap_or(10);
+
+        let ignore_patterns: Vec<String> = args
+            .get("ignore_patterns")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let guard = self.server.engine.read().await;
+        let engine = guard
+            .as_ref()
+            .ok_or_else(|| MCPError::Internal("Engine not initialized".to_string()))?;
+
+        let result = engine
+            .check_markdown_links(path, check_external, timeout, concurrent, &ignore_patterns)
+            .await;
+        ToolResult::json(&result)
+    }
+}
+
+// ============================================================================
 // Tool: get_status
 // ============================================================================
 
@@ -684,7 +786,7 @@ mod tests {
             true,
         );
         let tools = server.tools();
-        assert_eq!(tools.len(), 9);
+        assert_eq!(tools.len(), 10);
     }
 
     #[test]
@@ -705,6 +807,7 @@ mod tests {
         assert!(names.contains(&"type_check"));
         assert!(names.contains(&"security_scan"));
         assert!(names.contains(&"audit_dependencies"));
+        assert!(names.contains(&"check_markdown_links"));
         assert!(names.contains(&"get_status"));
         assert!(names.contains(&"get_audit_log"));
     }

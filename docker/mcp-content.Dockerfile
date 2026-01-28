@@ -32,20 +32,36 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pdf2svg \
     # Video/animation dependencies
     ffmpeg \
-    # Cairo for Manim
+    # Cairo for Manim (runtime libs)
     libcairo2 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
     # Python for Manim
     python3-minimal \
     python3-pip \
+    python3-dev \
     # Networking
     curl \
     ca-certificates \
+    # Build tools for pycairo (manim dependency)
+    build-essential \
+    pkg-config \
+    libcairo2-dev \
+    libpango1.0-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Manim (Community edition)
 RUN pip3 install --break-system-packages --no-cache-dir manim
+
+# Remove build dependencies to reduce image size
+RUN apt-get update && apt-get remove -y \
+    build-essential \
+    pkg-config \
+    libcairo2-dev \
+    libpango1.0-dev \
+    python3-dev \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create app user with configurable UID/GID
 ARG USER_ID=1000

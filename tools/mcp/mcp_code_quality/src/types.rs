@@ -134,6 +134,13 @@ pub struct ToolResult {
     pub supported_languages: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub supported_linters: Option<Vec<String>>,
+    // Markdown link checker fields
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub files_checked: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_links: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub broken_links: Option<usize>,
 }
 
 impl ToolResult {
@@ -156,6 +163,9 @@ impl ToolResult {
             allowed_paths: None,
             supported_languages: None,
             supported_linters: None,
+            files_checked: None,
+            total_links: None,
+            broken_links: None,
         }
     }
 
@@ -177,6 +187,9 @@ impl ToolResult {
             returncode: None,
             allowed_paths: None,
             supported_languages: None,
+            files_checked: None,
+            total_links: None,
+            broken_links: None,
             supported_linters: None,
         }
     }

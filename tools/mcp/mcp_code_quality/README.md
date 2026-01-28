@@ -11,6 +11,7 @@ This MCP server provides:
 - Type checking with ty (Astral's fast type checker)
 - Security scanning with bandit
 - Dependency vulnerability auditing with pip-audit
+- Markdown link validation with md-link-checker
 - Enterprise security features: path validation, rate limiting, audit logging
 
 **Note**: Migrated from Python to Rust for improved performance.
@@ -42,6 +43,7 @@ curl http://localhost:8010/health
 | `type_check` | Run ty type checking | `path` (required), `config` |
 | `security_scan` | Run bandit security analysis | `path` (required), `severity`, `confidence` |
 | `audit_dependencies` | Check for vulnerabilities | `requirements_file` |
+| `check_markdown_links` | Check markdown for broken links | `path` (required), `check_external`, `timeout`, `concurrent`, `ignore_patterns` |
 | `get_status` | Get server status | None |
 | `get_audit_log` | Get audit log entries | `limit`, `operation` |
 

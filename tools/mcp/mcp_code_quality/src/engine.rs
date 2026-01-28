@@ -90,6 +90,13 @@ impl CodeQualityEngine {
                 period_secs: 60,
             },
         );
+        rate_limits.insert(
+            "check_markdown_links".to_string(),
+            RateLimitConfig {
+                calls: 30,
+                period_secs: 60,
+            },
+        );
 
         // Ensure audit log directory exists
         if let Some(parent) = audit_log_path.parent() {
@@ -684,6 +691,109 @@ impl CodeQualityEngine {
         }
     }
 
+    /// Check markdown links using md-link-checker
+    #[allow(clippy::too_many_arguments)]
+    pub async fn check_markdown_links(
+        &self,
+        path: &str,
+        check_external: bool,
+        link_timeout: u32,
+        concurrent: u32,
+        ignore_patterns: &[String],
+    ) -> ToolResult {
+        if !self.check_rate_limit("check_markdown_links") {
+            return ToolResult::error("Rate limit exceeded", "rate_limit");
+        }
+
+        if !self.validate_path(path) {
+            self.audit_log("check_markdown_links", path, false, json!({"reason": "path_not_allowed"}));
+            let mut result = ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
+            result.allowed_paths = Some(self.allowed_paths.iter().map(|p| p.display().to_string()).collect());
+            return result;
+        }
+
+        let timeout_str = link_timeout.to_string();
+        let concurrent_str = concurrent.to_string();
+
+        let mut cmd: Vec<String> = vec![
+            "md-link-checker".to_string(),
+            path.to_string(),
+            "--json".to_string(),
+            "--timeout".to_string(),
+            timeout_str,
+            "--concurrent".to_string(),
+            concurrent_str,
+        ];
+
+        if !check_external {
+            cmd.push("--internal-only".to_string());
+        }
+
+        for pattern in ignore_patterns {
+            cmd.push(format!("--ignore={}", pattern));
+        }
+
+        info!("Checking markdown links in: {}", path);
+
+        let cmd_refs: Vec<&str> = cmd.iter().map(|s| s.as_str()).collect();
+
+        match self.run_subprocess(&cmd_refs, None).await {
+            Ok((code, stdout, _stderr)) => {
+                // Try to parse JSON output
+                let (files_checked, total_links, broken_links, all_valid) =
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
+                        let files = json.get("files_checked").and_then(|v| v.as_u64()).map(|v| v as usize);
+                        let total = json.get("total_links").and_then(|v| v.as_u64()).map(|v| v as usize);
+                        let broken = json.get("broken_links").and_then(|v| v.as_u64()).map(|v| v as usize);
+                        let valid = json.get("all_valid").and_then(|v| v.as_bool()).unwrap_or(code == 0);
+                        (files, total, broken, valid)
+                    } else {
+                        (None, None, None, code == 0)
+                    };
+
+                self.audit_log(
+                    "check_markdown_links",
+                    path,
+                    all_valid,
+                    json!({
+                        "files_checked": files_checked,
+                        "total_links": total_links,
+                        "broken_links": broken_links
+                    }),
+                );
+
+                let mut result = ToolResult::success();
+                result.passed = Some(all_valid);
+                result.output = Some(stdout);
+                result.command = Some(cmd.join(" "));
+                result.files_checked = files_checked;
+                result.total_links = total_links;
+                result.broken_links = broken_links;
+                result
+            }
+            Err(e) => {
+                if e.contains("timed out") {
+                    self.audit_log("check_markdown_links", path, false, json!({"reason": "timeout"}));
+                    ToolResult::error(e, "timeout")
+                } else if e.contains("No such file") || e.contains("not found") {
+                    self.audit_log(
+                        "check_markdown_links",
+                        path,
+                        false,
+                        json!({"reason": "tool_not_found", "tool": "md-link-checker"}),
+                    );
+                    ToolResult::error(
+                        "md-link-checker not found. Install from tools/rust/markdown-link-checker/",
+                        "tool_not_found",
+                    )
+                } else {
+                    self.audit_log("check_markdown_links", path, false, json!({"reason": "exception", "error": &e}));
+                    ToolResult::error(e, "exception")
+                }
+            }
+        }
+    }
+
     /// Get server status with tool availability
     pub async fn get_status(&self) -> serde_json::Value {
         let mut tools = HashMap::new();
@@ -698,6 +808,7 @@ impl CodeQualityEngine {
             ("pip-audit", vec!["pip-audit", "--version"]),
             ("prettier", vec!["prettier", "--version"]),
             ("eslint", vec!["eslint", "--version"]),
+            ("md-link-checker", vec!["md-link-checker", "--version"]),
         ];
 
         for (name, cmd) in tool_checks {
