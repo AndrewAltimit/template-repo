@@ -26,19 +26,20 @@ if errorlevel 1 (
 )
 echo Docker is running.
 
-REM Check for docker-compose
-echo [2/6] Detecting docker-compose...
+REM Check for docker compose
+echo [2/6] Detecting docker compose...
 set "USE_COMPOSE=0"
-where docker compose >nul 2>nul
-if %ERRORLEVEL% EQU 0 (
-    set "USE_COMPOSE=1"
-    echo Found docker-compose: will use docker-compose.yml
+REM Check for docker compose v2 (plugin) first - preferred
+docker compose version >nul 2>&1
+if not errorlevel 1 (
+    set "USE_COMPOSE=2"
+    echo Found docker compose v2: will use docker-compose.yml
 ) else (
-    REM Check for docker compose (v2 syntax)
-    docker compose version >nul 2>&1
-    if not errorlevel 1 (
-        set "USE_COMPOSE=2"
-        echo Found docker compose v2: will use docker-compose.yml
+    REM Check for docker-compose v1 (standalone) as fallback
+    where docker-compose >nul 2>nul
+    if %ERRORLEVEL% EQU 0 (
+        set "USE_COMPOSE=1"
+        echo Found docker-compose v1: will use docker-compose.yml
     ) else (
         echo docker compose not found: will use docker run
     )
