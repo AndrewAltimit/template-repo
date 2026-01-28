@@ -36,7 +36,8 @@ pub struct BedrockModel {
     /// Model ID (e.g., "anthropic.claude-sonnet-4-20250514")
     model_id: String,
 
-    /// AWS region
+    /// AWS region (stored for potential future use in logging/debugging)
+    #[allow(dead_code)]
     region: String,
 }
 
@@ -115,14 +116,14 @@ impl BedrockModel {
         let content_blocks: Vec<BedrockContentBlock> = message
             .content
             .iter()
-            .filter_map(|c| Self::convert_content_to_bedrock(c))
+            .filter_map(Self::convert_content_to_bedrock)
             .collect();
 
-        Ok(BedrockMessage::builder()
+        BedrockMessage::builder()
             .role(Self::convert_role(message.role))
             .set_content(Some(content_blocks))
             .build()
-            .map_err(|e| StrandsError::model(format!("Failed to build message: {}", e)))?)
+            .map_err(|e| StrandsError::model(format!("Failed to build message: {}", e)))
     }
 
     fn convert_content_to_bedrock(content: &ContentBlock) -> Option<BedrockContentBlock> {
@@ -145,7 +146,7 @@ impl BedrockModel {
                 let content_blocks: Vec<BedrockToolResultContentBlock> = result
                     .content
                     .iter()
-                    .filter_map(|c| Self::convert_tool_result_content(c))
+                    .filter_map(Self::convert_tool_result_content)
                     .collect();
 
                 let status = match result.status {
@@ -236,12 +237,10 @@ impl BedrockModel {
             })
             .collect();
 
-        Some(
-            ToolConfiguration::builder()
+        ToolConfiguration::builder()
                 .set_tools(Some(tools))
                 .build()
-                .ok()?,
-        )
+                .ok()
     }
 
     fn build_inference_config(config: &InferenceConfig) -> Option<InferenceConfiguration> {
@@ -607,7 +606,7 @@ impl StreamAccumulator {
                 if !self.text_parts.is_empty() {
                     content.push(ContentBlock::Text(self.text_parts.join("")));
                 }
-                content.extend(self.content_blocks.drain(..));
+                content.append(&mut self.content_blocks);
 
                 let message = Message {
                     role: Role::Assistant,
@@ -621,16 +620,12 @@ impl StreamAccumulator {
             }
 
             StreamEvent::Metadata(meta) => {
-                if let Some(usage) = meta.usage() {
-                    Some(Ok(ModelStreamChunk::Usage(Usage {
+                meta.usage().map(|usage| Ok(ModelStreamChunk::Usage(Usage {
                         input_tokens: usage.input_tokens() as u32,
                         output_tokens: usage.output_tokens() as u32,
                         total_tokens: (usage.input_tokens() + usage.output_tokens()) as u32,
                         ..Default::default()
                     })))
-                } else {
-                    None
-                }
             }
 
             _ => None,

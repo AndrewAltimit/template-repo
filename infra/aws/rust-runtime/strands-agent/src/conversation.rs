@@ -186,7 +186,7 @@ impl ConversationManager {
         let target = (self.messages.len() / 4).max(2);
 
         // Ensure we remove complete pairs
-        if target % 2 != 0 {
+        if !target.is_multiple_of(2) {
             target + 1
         } else {
             target

@@ -599,7 +599,7 @@ impl Agent {
                     );
                     return Ok((
                         AgentResult {
-                            message: Message::assistant(&format!(
+                            message: Message::assistant(format!(
                                 "Response committed by {} tool.",
                                 tool_name
                             )),
@@ -702,7 +702,5 @@ impl Agent {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     // Tests would go here with mocked models and tools
 }

@@ -497,7 +497,10 @@ async fn test_injection_detection_with_llm() {
 
     // Save updated cache
     if newly_verified > 0 {
-        println!("\n  Saving {} newly verified prompts to cache...", newly_verified);
+        println!(
+            "\n  Saving {} newly verified prompts to cache...",
+            newly_verified
+        );
         if let Err(e) = cache.save(&cache_path) {
             eprintln!("  Warning: Failed to save cache: {}", e);
         } else {
@@ -553,7 +556,7 @@ fn list_verified_prompts() {
             "[{}] {} - {} (confidence: {:.0}%)",
             if prompt.is_malicious { "MAL" } else { "SAFE" },
             prompt.name,
-            hash[..8].to_string(),
+            &hash[..8],
             prompt.confidence * 100.0
         );
     }
