@@ -69,6 +69,12 @@ regex = "1.11"
 # JSON Schema validation
 jsonschema = "0.27"
 
+# Crypto
+sha2 = "0.10"
+
+# HTTP client (for integration tests)
+reqwest = { version = "0.12", features = ["json"] }
+
 # Testing
 mockall = "0.13"
 
