@@ -97,15 +97,25 @@ jobs:
           # Wait a moment for container to initialize
           sleep 5
 
+          # Get the actual container name created by docker compose
+          CONTAINER_NAME=$(docker compose ps -q mcp-github-board)
+          if [ -z "$CONTAINER_NAME" ]; then
+            echo "❌ Container not found"
+            docker compose logs mcp-github-board
+            docker compose down mcp-github-board 2>/dev/null || true
+            exit 1
+          fi
+          echo "Container ID: $CONTAINER_NAME"
+
           # Show initial logs
           echo "=== Initial container logs ==="
-          docker logs mcp-github-board
+          docker compose logs mcp-github-board
 
           # Check if container is running
-          if ! docker ps | grep -q mcp-github-board; then
+          if ! docker compose ps mcp-github-board | grep -q "Up"; then
             echo "❌ Container not running"
-            docker logs mcp-github-board
-            docker rm -f mcp-github-board 2>/dev/null || true
+            docker compose logs mcp-github-board
+            docker compose down mcp-github-board 2>/dev/null || true
             exit 1
           fi
 
@@ -114,21 +124,20 @@ jobs:
           timeout=120
           elapsed=0
           while [ $elapsed -lt $timeout ]; do
-            health=$(docker inspect --format='{{.State.Health.Status}}' mcp-github-board 2>/dev/null || echo "none")
+            health=$(docker inspect --format='{{.State.Health.Status}}' $CONTAINER_NAME 2>/dev/null || echo "none")
             echo "Health status at ${elapsed}s: $health"
 
             if [ "$health" = "healthy" ]; then
               echo "✅ Container is healthy"
-              docker logs mcp-github-board
-              docker stop mcp-github-board
-              docker rm -f mcp-github-board
+              docker compose logs mcp-github-board
+              docker compose down mcp-github-board
               exit 0
             fi
 
             # Show logs every 30 seconds
             if [ $((elapsed % 30)) -eq 0 ] && [ $elapsed -gt 0 ]; then
               echo "=== Logs at ${elapsed}s ==="
-              docker logs --tail 20 mcp-github-board
+              docker compose logs --tail 20 mcp-github-board
             fi
 
             sleep 5
@@ -137,9 +146,8 @@ jobs:
 
           echo "❌ Container failed health check after ${timeout}s"
           echo "=== Final container logs ==="
-          docker logs mcp-github-board
-          docker stop mcp-github-board 2>/dev/null || true
-          docker rm -f mcp-github-board 2>/dev/null || true
+          docker compose logs mcp-github-board
+          docker compose down mcp-github-board 2>/dev/null || true
           exit 1
 
   # MCP server tests

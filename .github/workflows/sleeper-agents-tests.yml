@@ -286,38 +286,51 @@ jobs:
         run: |
           echo "🚀 Starting sleeper agents API server..."
 
+          # Use unique container name and port based on run ID to prevent CI conflicts
+          CONTAINER_NAME="sleeper-api-${{ github.run_id }}-${{ github.run_attempt }}"
+          # Use a dynamic port in the ephemeral range based on run ID
+          API_PORT=$((30000 + (${{ github.run_id }} % 10000)))
+
+          echo "Container: $CONTAINER_NAME, Port: $API_PORT"
+
           # Start the API server in background
-          docker compose run -d --name sleeper-api -p 8022:8022 sleeper-eval-cpu \
+          docker compose run -d --name ${CONTAINER_NAME} -p ${API_PORT}:8022 sleeper-eval-cpu \
             python -m sleeper_agents.api.main --port 8022
+
+          # Store for cleanup and test steps
+          echo "SLEEPER_API_CONTAINER=${CONTAINER_NAME}" >> $GITHUB_ENV
+          echo "SLEEPER_API_PORT=${API_PORT}" >> $GITHUB_ENV
 
           # Wait for server to be ready using wait-for-it.sh
           echo "⏳ Waiting for API server..."
-          if ./automation/scripts/wait-for-it.sh --host localhost --port 8022 --health-endpoint /health --timeout 60; then
+          if ./automation/scripts/wait-for-it.sh --host localhost --port ${API_PORT} --health-endpoint /health --timeout 60; then
             echo "✅ API server is ready"
           else
             echo "❌ API server failed to start"
-            docker logs sleeper-api
+            docker logs ${CONTAINER_NAME}
             exit 1
           fi
 
       - name: Test API endpoints
         run: |
-          echo "🧪 Testing API endpoints..."
+          echo "🧪 Testing API endpoints on port ${{ env.SLEEPER_API_PORT }}..."
 
           # Test health endpoint
-          curl -f http://localhost:8022/health
+          curl -f http://localhost:${{ env.SLEEPER_API_PORT }}/health
 
           # Test status endpoint
-          curl -f http://localhost:8022/status
+          curl -f http://localhost:${{ env.SLEEPER_API_PORT }}/status
 
           # Test root endpoint
-          curl -f http://localhost:8022/
+          curl -f http://localhost:${{ env.SLEEPER_API_PORT }}/
 
       - name: Stop API server
         if: always()
         run: |
-          docker stop sleeper-api || true
-          docker rm sleeper-api || true
+          if [ -n "${{ env.SLEEPER_API_CONTAINER }}" ]; then
+            docker stop ${{ env.SLEEPER_API_CONTAINER }} || true
+            docker rm ${{ env.SLEEPER_API_CONTAINER }} || true
+          fi
 
   sleeper-agents-full-tests:
     name: Full Test Suite
