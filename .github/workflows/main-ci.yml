@@ -159,40 +159,14 @@ jobs:
           docker compose build python-ci
 
           # Test Python MCP servers - install packages properly via pip
-          # Note: mcp_codex, mcp_gemini, mcp_crush, mcp_opencode, and mcp_reaction_search
-          # are Rust packages and are tested separately via cargo test
+          # Note: mcp_codex, mcp_gemini, mcp_crush, mcp_opencode, mcp_reaction_search,
+          # mcp_meme_generator, mcp_content_creation, and mcp_code_quality are Rust packages tested separately via cargo test
           docker compose run --rm python-ci bash -c "
           pip install -q -r config/python/requirements.txt && \
           pip install -q -e tools/mcp/mcp_core && \
-          pip install -q -e tools/mcp/mcp_code_quality && \
-          pip install -q -e tools/mcp/mcp_content_creation && \
           pip install -q -e tools/mcp/mcp_gaea2 && \
           pip install -q -e tools/mcp/mcp_blender && \
           python3 -c '
-          # Test Code Quality server
-          try:
-              from mcp_code_quality.server import CodeQualityMCPServer
-              from mcp_code_quality.tools import TOOLS as CODE_TOOLS
-              print(\"Code Quality MCP server imported successfully\")
-              print(f\"  - {len(CODE_TOOLS)} tools available\")
-              for tool in CODE_TOOLS:
-                  print(f\"    - {tool}\")
-          except ImportError as e:
-              print(f\"Failed to import Code Quality server: {e}\")
-              exit(1)
-
-          # Test Content Creation server
-          try:
-              from mcp_content_creation.server import ContentCreationMCPServer
-              from mcp_content_creation.tools import TOOLS as CONTENT_TOOLS
-              print(\"Content Creation MCP server imported successfully\")
-              print(f\"  - {len(CONTENT_TOOLS)} tools available\")
-              for tool in CONTENT_TOOLS:
-                  print(f\"    - {tool}\")
-          except ImportError as e:
-              print(f\"Failed to import Content Creation server: {e}\")
-              exit(1)
-
           # Test Gaea2 server (stubs only in container)
           try:
               from mcp_gaea2.server import Gaea2MCPServer
@@ -223,6 +197,9 @@ jobs:
           print(\"  - mcp-crush (AI code generation via OpenRouter)\")
           print(\"  - mcp-opencode (AI code assistance via OpenRouter)\")
           print(\"  - mcp-reaction-search (Semantic reaction image search)\")
+          print(\"  - mcp-meme-generator (Meme generation with text overlays)\")
+          print(\"  - mcp-content-creation (LaTeX, TikZ, PDF previews, Manim)\")
+          print(\"  - mcp-code-quality (Format checking, linting, testing, security)\")
           '
           "
 
@@ -634,12 +611,6 @@ jobs:
             cp target/release/board-manager /app/rust-binaries/board-manager-linux-x64
             echo "Built board-manager for Linux x64"
 
-            # Build mcp-code-quality
-            cd /app/tools/rust/mcp-code-quality
-            cargo build --release
-            cp target/release/mcp-code-quality /app/rust-binaries/mcp-code-quality-linux-x64
-            echo "Built mcp-code-quality for Linux x64"
-
             # Build markdown-link-checker
             cd /app/tools/rust/markdown-link-checker
             cargo build --release
@@ -700,6 +671,24 @@ jobs:
             cargo build --release
             cp target/release/mcp-opencode /app/rust-binaries/mcp-opencode-linux-x64
             echo "Built mcp-opencode for Linux x64"
+
+            # Build mcp-meme-generator
+            cd /app/tools/mcp/mcp_meme_generator
+            cargo build --release
+            cp target/release/mcp-meme-generator /app/rust-binaries/mcp-meme-generator-linux-x64
+            echo "Built mcp-meme-generator for Linux x64"
+
+            # Build mcp-content-creation
+            cd /app/tools/mcp/mcp_content_creation
+            cargo build --release
+            cp target/release/mcp-content-creation /app/rust-binaries/mcp-content-creation-linux-x64
+            echo "Built mcp-content-creation for Linux x64"
+
+            # Build mcp-code-quality
+            cd /app/tools/mcp/mcp_code_quality
+            cargo build --release
+            cp target/release/mcp-code-quality /app/rust-binaries/mcp-code-quality-linux-x64
+            echo "Built mcp-code-quality for Linux x64"
           '
 
       # Build injection-toolkit for Windows using rust-ci-nightly (has mingw-w64)
@@ -955,6 +944,8 @@ jobs:
           | `mcp-gemini-linux-x64` | Linux x64 | MCP server for AI assistance via Gemini CLI |
           | `mcp-crush-linux-x64` | Linux x64 | MCP server for AI code generation via OpenRouter |
           | `mcp-opencode-linux-x64` | Linux x64 | MCP server for AI code assistance via OpenRouter |
+          | `mcp-meme-generator-linux-x64` | Linux x64 | MCP server for meme generation with text overlays |
+          | `mcp-content-creation-linux-x64` | Linux x64 | MCP server for LaTeX, TikZ, PDF previews, and Manim |
           | `economic-agents-linux-x64` | Linux x64 | Autonomous economic agent simulation CLI |
           | `pr-monitor-linux-x64` | Linux x64 | PR monitoring tool for admin/Gemini feedback |
           | `gh-linux-x64` | Linux x64 | GitHub CLI validator and security checker |

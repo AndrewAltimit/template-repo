@@ -1,50 +1,64 @@
-FROM python:3.11
+# Dockerfile for Meme Generator MCP Server (Rust)
+# Multi-stage build for smaller final image
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    # Image processing libraries
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    # Fonts for meme text
-    fonts-liberation \
-    fonts-dejavu-core \
-    # Port checking utility
-    lsof \
+# Stage 1: Build the Rust binary
+FROM rust:1.93-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app directory
-WORKDIR /app
+WORKDIR /build
+
+# Copy workspace files
+COPY tools/mcp/mcp_core_rust /build/tools/mcp/mcp_core_rust
+COPY tools/mcp/mcp_meme_generator /build/tools/mcp/mcp_meme_generator
+
+# Build the binary
+WORKDIR /build/tools/mcp/mcp_meme_generator
+RUN cargo build --release
+
+# Stage 2: Runtime image
+FROM debian:bookworm-slim
+
+# Install runtime dependencies including fonts for meme text
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    libssl3 \
+    # Fonts for meme text rendering
+    fonts-liberation \
+    fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build arguments for dynamic user creation
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+# Create a user with proper passwd entry (matching host UID/GID)
+# Handle cases where the group/user might already exist
+RUN (getent group ${GROUP_ID} || groupadd -g ${GROUP_ID} memeuser) && \
+    (getent passwd ${USER_ID} || useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash memeuser)
 
 # Create output directory with proper permissions
-RUN mkdir -p /output && \
-    chmod -R 755 /output
+RUN mkdir -p /output && chown -R ${USER_ID}:${GROUP_ID} /output
 
-# Copy requirements first for better layer caching
-COPY docker/requirements/requirements-meme.txt /app/requirements.txt
+# Copy the binary from builder
+COPY --from=builder /build/tools/mcp/mcp_meme_generator/target/release/mcp-meme-generator /usr/local/bin/mcp-meme-generator
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy templates directory
+COPY --chown=${USER_ID}:${GROUP_ID} tools/mcp/mcp_meme_generator/templates /app/templates
 
-# Copy only necessary MCP server code
-COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
-COPY tools/mcp/mcp_meme_generator /app/tools/mcp/mcp_meme_generator
+# Set working directory
+WORKDIR /app
 
-# Install MCP packages
-RUN pip3 install --no-cache-dir /app/tools/mcp/mcp_core &&\
-    pip3 install --no-cache-dir /app/tools/mcp/mcp_meme_generator
-
-# Set Python path
-ENV PYTHONPATH=/app
-
-# Create a non-root user that will be overridden by docker-compose
-RUN useradd -m -u 1000 appuser
-
-# Switch to non-root user
-USER appuser
+# Switch to the created user
+USER memeuser
 
 # Expose port
 EXPOSE 8016
 
-# Run the server
-CMD ["python", "-m", "mcp_meme_generator.server", "--mode", "http"]
+# Default command - standalone mode with templates
+CMD ["mcp-meme-generator", "--mode", "standalone", "--port", "8016", "--templates", "/app/templates", "--output", "/output"]
