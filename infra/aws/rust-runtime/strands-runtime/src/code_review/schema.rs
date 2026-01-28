@@ -174,6 +174,7 @@ Once validated, use commit_response to finalize your review."#
 #[cfg(test)]
 mod tests {
     use super::*;
+    use jsonschema::Validator;
 
     #[test]
     fn test_schema_parsing() {
@@ -194,5 +195,247 @@ mod tests {
         let prompt = get_system_prompt(true, true);
         assert!(prompt.contains("unified diffs"));
         assert!(prompt.contains("PR title"));
+    }
+
+    #[test]
+    fn test_review_only_schema_valid_json() {
+        let schema = get_schema(false);
+        let validator = Validator::new(&schema).expect("Schema should be valid");
+
+        // Valid review-only response
+        let valid_json = serde_json::json!({
+            "review_markdown": "## Code Review\n\nLooks good overall.",
+            "severity": "low",
+            "findings_count": 2
+        });
+
+        assert!(
+            validator.is_valid(&valid_json),
+            "Valid review-only JSON should pass validation"
+        );
+    }
+
+    #[test]
+    fn test_review_only_schema_rejects_invalid() {
+        let schema = get_schema(false);
+        let validator = Validator::new(&schema).expect("Schema should be valid");
+
+        // Missing required field
+        let missing_field = serde_json::json!({
+            "review_markdown": "Review",
+            "severity": "low"
+            // missing findings_count
+        });
+        assert!(
+            !validator.is_valid(&missing_field),
+            "Missing findings_count should fail"
+        );
+
+        // Invalid severity enum
+        let invalid_severity = serde_json::json!({
+            "review_markdown": "Review",
+            "severity": "super_critical",  // not in enum
+            "findings_count": 1
+        });
+        assert!(
+            !validator.is_valid(&invalid_severity),
+            "Invalid severity should fail"
+        );
+
+        // Wrong type for findings_count
+        let wrong_type = serde_json::json!({
+            "review_markdown": "Review",
+            "severity": "low",
+            "findings_count": "five"  // should be integer
+        });
+        assert!(
+            !validator.is_valid(&wrong_type),
+            "String findings_count should fail"
+        );
+
+        // Negative findings_count
+        let negative = serde_json::json!({
+            "review_markdown": "Review",
+            "severity": "low",
+            "findings_count": -1  // minimum is 0
+        });
+        assert!(
+            !validator.is_valid(&negative),
+            "Negative findings_count should fail"
+        );
+    }
+
+    #[test]
+    fn test_review_with_fixes_schema_valid_json() {
+        let schema = get_schema(true);
+        let validator = Validator::new(&schema).expect("Schema should be valid");
+
+        // Valid review-with-fixes response
+        let valid_json = serde_json::json!({
+            "review_markdown": "## Code Review\n\nFound security issue.",
+            "severity": "high",
+            "findings_count": 1,
+            "file_changes": [
+                {
+                    "path": "src/main.rs",
+                    "diff": "--- a/src/main.rs\n+++ b/src/main.rs\n@@ -1,3 +1,3 @@\n-let x = 1;\n+let x: i32 = 1;"
+                }
+            ],
+            "pr_title": "Fix type annotation",
+            "pr_description": "Added explicit type annotation for clarity."
+        });
+
+        assert!(
+            validator.is_valid(&valid_json),
+            "Valid review-with-fixes JSON should pass validation"
+        );
+
+        // Also valid without optional pr_title/pr_description
+        let minimal = serde_json::json!({
+            "review_markdown": "Review",
+            "severity": "info",
+            "findings_count": 0,
+            "file_changes": []
+        });
+        assert!(
+            validator.is_valid(&minimal),
+            "Minimal review-with-fixes should pass"
+        );
+    }
+
+    #[test]
+    fn test_review_with_fixes_schema_rejects_invalid() {
+        let schema = get_schema(true);
+        let validator = Validator::new(&schema).expect("Schema should be valid");
+
+        // Missing file_changes (required for with_fixes)
+        let missing_changes = serde_json::json!({
+            "review_markdown": "Review",
+            "severity": "medium",
+            "findings_count": 1
+        });
+        assert!(
+            !validator.is_valid(&missing_changes),
+            "Missing file_changes should fail"
+        );
+
+        // Invalid file_changes structure
+        let invalid_changes = serde_json::json!({
+            "review_markdown": "Review",
+            "severity": "medium",
+            "findings_count": 1,
+            "file_changes": [
+                {
+                    "path": "src/main.rs"
+                    // missing required "diff" field
+                }
+            ]
+        });
+        assert!(
+            !validator.is_valid(&invalid_changes),
+            "Missing diff in file_changes should fail"
+        );
+    }
+
+    #[test]
+    fn test_schema_rejects_extra_properties() {
+        let schema = get_schema(false);
+        let validator = Validator::new(&schema).expect("Schema should be valid");
+
+        // Extra properties should fail (additionalProperties: false)
+        let extra_props = serde_json::json!({
+            "review_markdown": "Review",
+            "severity": "low",
+            "findings_count": 0,
+            "extra_field": "not allowed"
+        });
+        assert!(
+            !validator.is_valid(&extra_props),
+            "Extra properties should fail"
+        );
+    }
+
+    #[test]
+    fn test_all_severity_levels() {
+        let schema = get_schema(false);
+        let validator = Validator::new(&schema).expect("Schema should be valid");
+
+        for severity in &["critical", "high", "medium", "low", "info"] {
+            let json = serde_json::json!({
+                "review_markdown": "Review",
+                "severity": severity,
+                "findings_count": 0
+            });
+            assert!(
+                validator.is_valid(&json),
+                "Severity '{}' should be valid",
+                severity
+            );
+        }
+    }
+
+    #[test]
+    fn test_realistic_code_review_response() {
+        let schema = get_schema(true);
+        let validator = Validator::new(&schema).expect("Schema should be valid");
+
+        // Realistic response an agent might produce
+        let realistic = serde_json::json!({
+            "review_markdown": r#"## Code Review Summary
+
+### Security Issues (1 critical)
+
+1. **SQL Injection Vulnerability** (`src/db.rs:45`)
+   - User input is directly interpolated into SQL query
+   - Severity: Critical
+   - Fix: Use parameterized queries
+
+### Code Quality (2 medium)
+
+1. Missing error handling in `process_request`
+2. Unused import on line 3
+
+### Recommendations
+
+- Add integration tests for the API endpoints
+- Consider adding rate limiting
+"#,
+            "severity": "critical",
+            "findings_count": 3,
+            "file_changes": [
+                {
+                    "path": "src/db.rs",
+                    "diff": r#"--- a/src/db.rs
++++ b/src/db.rs
+@@ -43,7 +43,7 @@ impl Database {
+     pub fn query_user(&self, user_id: &str) -> Result<User> {
+-        let query = format!("SELECT * FROM users WHERE id = '{}'", user_id);
+-        self.execute(&query)
++        let query = "SELECT * FROM users WHERE id = $1";
++        self.execute_parameterized(query, &[user_id])
+     }
+ }
+"#,
+                    "original_sha": "abc123def456"
+                }
+            ],
+            "pr_title": "fix(security): prevent SQL injection in user queries",
+            "pr_description": r#"## Summary
+Fixes critical SQL injection vulnerability in `Database::query_user`.
+
+## Changes
+- Replaced string interpolation with parameterized queries
+- Added `execute_parameterized` method
+
+## Testing
+- [ ] Run existing test suite
+- [ ] Verify parameterized queries work correctly
+"#
+        });
+
+        assert!(
+            validator.is_valid(&realistic),
+            "Realistic code review response should pass validation"
+        );
     }
 }

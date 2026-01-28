@@ -45,8 +45,8 @@ async fn main() -> Result<()> {
         std::fs::read_to_string(&args.input)?
     };
 
-    // Parse JSON
-    let review: processor::ReviewResult = serde_json::from_str(&json_content).map_err(|e| {
+    // Parse JSON (supports both new schema format and legacy tagged format)
+    let review = processor::parse_review_json(&json_content).map_err(|e| {
         error!(error = %e, "Failed to parse review JSON");
         e
     })?;
