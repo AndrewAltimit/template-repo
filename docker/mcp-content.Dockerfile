@@ -15,7 +15,8 @@ WORKDIR /build/tools/mcp/mcp_content_creation
 RUN cargo build --release
 
 # Stage 2: Runtime image with LaTeX and Manim dependencies
-FROM debian:bookworm-slim
+# Use python:3.11-slim for glibc compatibility with rust:1.93 builder
+FROM python:3.11-slim
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -36,22 +37,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcairo2 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
-    # Python for Manim
-    python3-minimal \
-    python3-pip \
-    python3-dev \
-    # Networking
-    curl \
-    ca-certificates \
     # Build tools for pycairo (manim dependency)
     build-essential \
     pkg-config \
     libcairo2-dev \
     libpango1.0-dev \
+    # Networking
+    curl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Manim (Community edition)
-RUN pip3 install --break-system-packages --no-cache-dir manim
+RUN pip install --no-cache-dir manim
 
 # Remove build dependencies to reduce image size
 RUN apt-get update && apt-get remove -y \
@@ -59,7 +56,6 @@ RUN apt-get update && apt-get remove -y \
     pkg-config \
     libcairo2-dev \
     libpango1.0-dev \
-    python3-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
