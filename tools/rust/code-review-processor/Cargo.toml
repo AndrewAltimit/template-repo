@@ -1,0 +1,33 @@
+[package]
+name = "code-review-processor"
+version = "0.1.0"
+edition = "2021"
+description = "Process code review JSON output from AgentCore"
+rust-version = "1.75"
+license = "MIT"
+
+[[bin]]
+name = "code-review-processor"
+path = "src/main.rs"
+
+[dependencies]
+# CLI argument parsing
+clap = { version = "4.5", features = ["derive", "env"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async runtime
+tokio = { version = "1.43", features = ["full", "process"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Utilities
+chrono = "0.4"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }

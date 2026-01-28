@@ -15,10 +15,28 @@ use strands_session::SessionManager;
 use tracing::{error, info, instrument};
 use uuid::Uuid;
 
+use crate::code_review::{invoke_code_review_internal, CodeReviewRequest};
+
 /// Application state shared across handlers.
 pub struct AppState {
     pub agent: Agent,
     pub session_manager: SessionManager,
+    /// Model ID for creating additional agents (e.g., code review)
+    pub model_id: String,
+    /// AWS region for Bedrock
+    pub region: String,
+}
+
+/// Unified request that can be either a regular invocation or code review.
+/// AgentCore HTTP protocol routes all requests to /invocations, so we use
+/// field presence to determine request type.
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum UnifiedRequest {
+    /// Code review request (has `repository` and `instructions` fields)
+    CodeReview(CodeReviewRequest),
+    /// Regular invocation request (has `prompt` field)
+    Invoke(InvocationRequest),
 }
 
 /// Invocation request body.
@@ -104,18 +122,47 @@ pub async fn health_check() -> Json<HealthResponse> {
     })
 }
 
-/// Invocation handler.
+/// Unified invocation handler that routes based on request type.
 ///
-/// POST /invocations
-#[instrument(skip(state, request), fields(session_id, invocation_id))]
+/// POST /invocations (and POST /)
+///
+/// AgentCore HTTP protocol routes all requests to /invocations, so we use
+/// field presence to determine if this is a regular invoke or code review:
+/// - If request has `repository` and `instructions` fields -> code review
+/// - If request has `prompt` field -> regular invocation
+#[instrument(skip(state, request))]
 pub async fn invoke(
     State(state): State<Arc<AppState>>,
-    Json(request): Json<InvocationRequest>,
+    Json(request): Json<UnifiedRequest>,
+) -> Response {
+    match request {
+        UnifiedRequest::CodeReview(code_review_request) => {
+            info!(
+                repository = %code_review_request.repository,
+                "Routing to code review handler"
+            );
+            invoke_code_review_internal(state, code_review_request)
+                .await
+                .into_response()
+        }
+        UnifiedRequest::Invoke(invoke_request) => {
+            invoke_regular(state, invoke_request).await.into_response()
+        }
+    }
+}
+
+/// Regular invocation handler for conversational prompts.
+#[instrument(skip(state, request), fields(session_id, invocation_id))]
+async fn invoke_regular(
+    state: Arc<AppState>,
+    request: InvocationRequest,
 ) -> Result<Json<InvocationResponse>, ErrorResponse> {
     let invocation_id = Uuid::new_v4().to_string();
 
     // Get or create session
-    let session_id = request.session_id.unwrap_or_else(|| Uuid::new_v4().to_string());
+    let session_id = request
+        .session_id
+        .unwrap_or_else(|| Uuid::new_v4().to_string());
     let mut session = state
         .session_manager
         .get_or_create(&session_id)
@@ -211,7 +258,9 @@ fn map_strands_error(error: StrandsError) -> ErrorResponse {
             code: Some("TOOL_NOT_FOUND".to_string()),
             retryable: false,
         },
-        StrandsError::Tool { tool_name, message, .. } => ErrorResponse {
+        StrandsError::Tool {
+            tool_name, message, ..
+        } => ErrorResponse {
             error: format!("Tool '{}' failed: {}", tool_name, message),
             code: Some("TOOL_ERROR".to_string()),
             retryable: false,

@@ -689,6 +689,12 @@ jobs:
             cargo build --release
             cp target/release/mcp-code-quality /app/rust-binaries/mcp-code-quality-linux-x64
             echo "Built mcp-code-quality for Linux x64"
+
+            # Build code-review-processor
+            cd /app/tools/rust/code-review-processor
+            cargo build --release
+            cp target/release/code-review-processor /app/rust-binaries/code-review-processor-linux-x64
+            echo "Built code-review-processor for Linux x64"
           '
 
       # Build injection-toolkit for Windows using rust-ci-nightly (has mingw-w64)
@@ -953,6 +959,7 @@ jobs:
           | `itk-overlay-linux-x64` | Linux x64 | Injection Toolkit overlay |
           | `itk-daemon-windows-x64.exe` | Windows x64 | Injection Toolkit daemon (if available) |
           | `itk-overlay-windows-x64.exe` | Windows x64 | Injection Toolkit overlay (if available) |
+          | `code-review-processor-linux-x64` | Linux x64 | AgentCore code review JSON processor |
 
           ### Installation
 

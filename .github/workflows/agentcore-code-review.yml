@@ -1,0 +1,272 @@
+---
+name: AgentCore Code Review
+
+on:
+  workflow_call:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: number
+      apply_fixes:
+        description: 'Apply fixes and commit changes'
+        required: false
+        type: boolean
+        default: false
+      create_pr:
+        description: 'Create PR with changes (requires apply_fixes)'
+        required: false
+        type: boolean
+        default: false
+      instructions:
+        description: 'Additional review instructions (UNTRUSTED)'
+        required: false
+        type: string
+        default: 'Focus on security issues, code quality, and best practices.'
+      timeout_minutes:
+        description: 'Job timeout in minutes'
+        required: false
+        type: number
+        default: 15
+    outputs:
+      review_status:
+        description: 'Status of the review (success, failure, security_denied)'
+        value: ${{ jobs.review.outputs.status }}
+      made_changes:
+        description: 'Whether changes were committed'
+        value: ${{ jobs.review.outputs.made_changes }}
+    secrets:
+      AGENTCORE_ENDPOINT:
+        description: 'AgentCore runtime endpoint URL'
+        required: true
+      AWS_ACCESS_KEY_ID:
+        description: 'AWS access key for Bedrock'
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        description: 'AWS secret key for Bedrock'
+        required: false
+      AWS_REGION:
+        description: 'AWS region for Bedrock'
+        required: false
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  review:
+    name: AgentCore Code Review
+    runs-on: self-hosted
+    timeout-minutes: ${{ inputs.timeout_minutes }}
+    outputs:
+      status: ${{ steps.review.outputs.status }}
+      made_changes: ${{ steps.process.outputs.made_changes }}
+    steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
+              "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
+              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Get PR details
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_DATA=$(gh pr view ${{ inputs.pr_number }} --json headRefName,headRefOid,baseRefName)
+          BRANCH=$(echo "$PR_DATA" | jq -r '.headRefName')
+          COMMIT=$(echo "$PR_DATA" | jq -r '.headRefOid')
+          BASE=$(echo "$PR_DATA" | jq -r '.baseRefName')
+
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "commit=$COMMIT" >> $GITHUB_OUTPUT
+          echo "base=$BASE" >> $GITHUB_OUTPUT
+
+          echo "PR Branch: $BRANCH"
+          echo "PR Commit: $COMMIT"
+          echo "Base Branch: $BASE"
+
+      - name: Download code-review-processor
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: rust-cli-tools
+          path: rust-tools
+
+      - name: Build code-review-processor if not available
+        run: |
+          if [ -f "rust-tools/code-review-processor" ]; then
+            chmod +x rust-tools/code-review-processor
+            echo "Using pre-built code-review-processor"
+          else
+            echo "Building code-review-processor from source..."
+            cd tools/rust/code-review-processor
+            cargo build --release
+            mkdir -p ../../../rust-tools
+            cp target/release/code-review-processor ../../../rust-tools/
+            echo "Built code-review-processor"
+          fi
+          ls -la rust-tools/
+
+      - name: Call AgentCore code review endpoint
+        id: review
+        env:
+          AGENTCORE_ENDPOINT: ${{ secrets.AGENTCORE_ENDPOINT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+        run: |
+          set +e
+
+          # Build request payload
+          REQUEST_JSON=$(cat << EOF
+          {
+            "instructions": $(echo '${{ inputs.instructions }}' | jq -Rs .),
+            "repository": "${{ github.repository }}",
+            "branch": "${{ steps.pr.outputs.branch }}",
+            "commit": "${{ steps.pr.outputs.commit }}",
+            "base_branch": "${{ steps.pr.outputs.base }}",
+            "apply_fixes": ${{ inputs.apply_fixes }},
+            "create_pr": ${{ inputs.create_pr }}
+          }
+          EOF
+          )
+
+          echo "Request payload:"
+          echo "$REQUEST_JSON" | jq .
+
+          # Call the AgentCore endpoint
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "${AGENTCORE_ENDPOINT}/code-review" \
+            -H "Content-Type: application/json" \
+            -d "$REQUEST_JSON")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          echo "HTTP Status: $HTTP_CODE"
+
+          # Handle different response codes
+          if [ "$HTTP_CODE" = "403" ]; then
+            echo "Security policy denied the request"
+            echo "$BODY" | jq . || echo "$BODY"
+            echo "status=security_denied" >> $GITHUB_OUTPUT
+            echo "response=" >> $GITHUB_OUTPUT
+            exit 0
+          elif [ "$HTTP_CODE" = "200" ]; then
+            echo "Review completed successfully"
+            echo "$BODY" > review_response.json
+            echo "$BODY" | jq . || echo "$BODY"
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "response_file=review_response.json" >> $GITHUB_OUTPUT
+          else
+            echo "Error from AgentCore endpoint: HTTP $HTTP_CODE"
+            echo "$BODY"
+            echo "status=failure" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Process review response
+        id: process
+        if: steps.review.outputs.status == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PROCESSOR="./rust-tools/code-review-processor"
+          RESPONSE_FILE="review_response.json"
+
+          if [ ! -f "$RESPONSE_FILE" ]; then
+            echo "No response file found"
+            echo "made_changes=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Build processor command
+          CMD="$PROCESSOR --input $RESPONSE_FILE --repository ${{ github.repository }}"
+
+          # Always post the review as a comment
+          CMD="$CMD --post-comment --pr-number ${{ inputs.pr_number }}"
+
+          # Apply fixes if requested
+          if [ "${{ inputs.apply_fixes }}" = "true" ]; then
+            CMD="$CMD --commit-changes"
+          fi
+
+          # Create PR if requested
+          if [ "${{ inputs.create_pr }}" = "true" ]; then
+            CMD="$CMD --create-pr"
+          fi
+
+          echo "Running: $CMD"
+          $CMD
+
+          # Check if changes were made
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "made_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "made_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post security denial comment
+        if: steps.review.outputs.status == 'security_denied'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RESPONSE_FILE="review_response.json"
+
+          REASON="Unknown"
+          CATEGORY="Unknown"
+          CONFIDENCE="0"
+
+          if [ -f "$RESPONSE_FILE" ]; then
+            REASON=$(jq -r '.reason // "Unknown"' "$RESPONSE_FILE")
+            CATEGORY=$(jq -r '.attack_category // "Unknown"' "$RESPONSE_FILE")
+            CONFIDENCE=$(jq -r '.confidence // 0' "$RESPONSE_FILE")
+          fi
+
+          gh pr comment ${{ inputs.pr_number }} --body "$(cat << EOF
+          ## AgentCore Code Review - Security Policy Denied
+
+          The code review request was denied by the prompt injection detection system.
+
+          | Field | Value |
+          |-------|-------|
+          | **Reason** | $REASON |
+          | **Category** | $CATEGORY |
+          | **Confidence** | $CONFIDENCE |
+
+          The review instructions provided were flagged as potentially malicious.
+          Please review your instructions and try again with legitimate review requests.
+          EOF
+          )"
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## AgentCore Code Review Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| PR Number | ${{ inputs.pr_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | ${{ steps.review.outputs.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Apply Fixes | ${{ inputs.apply_fixes }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Create PR | ${{ inputs.create_pr }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Made Changes | ${{ steps.process.outputs.made_changes || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Clean up working directory
+        if: always()
+        run: |
+          git checkout -- . 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
+          rm -f review_response.json 2>/dev/null || true

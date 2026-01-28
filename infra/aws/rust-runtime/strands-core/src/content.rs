@@ -42,7 +42,11 @@ impl ContentBlock {
     }
 
     /// Create a tool use content block.
-    pub fn tool_use(id: impl Into<String>, name: impl Into<String>, input: serde_json::Value) -> Self {
+    pub fn tool_use(
+        id: impl Into<String>,
+        name: impl Into<String>,
+        input: serde_json::Value,
+    ) -> Self {
         Self::ToolUse(ToolUseContent {
             tool_use_id: id.into(),
             name: name.into(),
@@ -205,6 +209,22 @@ impl ToolResultContentBlock {
     /// Create a JSON result.
     pub fn json(value: serde_json::Value) -> Self {
         Self::Json(value)
+    }
+
+    /// Extract text if this is a text block.
+    pub fn as_text(&self) -> Option<&str> {
+        match self {
+            Self::Text(t) => Some(t),
+            _ => None,
+        }
+    }
+
+    /// Extract JSON if this is a JSON block.
+    pub fn as_json(&self) -> Option<&serde_json::Value> {
+        match self {
+            Self::Json(v) => Some(v),
+            _ => None,
+        }
     }
 }
 

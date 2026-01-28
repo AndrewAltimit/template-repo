@@ -46,6 +46,10 @@ thiserror = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
 bytes = { workspace = true }
+regex = { workspace = true }
+jsonschema = { workspace = true }
 
 [dev-dependencies]
 mockall = { workspace = true }
+sha2 = { workspace = true }
+reqwest = { workspace = true }

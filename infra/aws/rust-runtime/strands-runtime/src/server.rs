@@ -17,6 +17,7 @@ use strands_session::SessionManager;
 use tower_http::trace::TraceLayer;
 use tracing::{info, instrument};
 
+use crate::code_review::invoke_code_review;
 use crate::config::RuntimeConfig;
 use crate::handlers::{health_check, invoke, AppState};
 use crate::secrets;
@@ -100,16 +101,22 @@ impl Server {
         ];
         for var in &cred_vars {
             let value = std::env::var(var).unwrap_or_else(|_| "(not set)".to_string());
-            let display_value = if var.contains("KEY") || var.contains("SECRET") || var.contains("TOKEN") {
-                if value == "(not set)" { "(not set)".to_string() } else { "(set, hidden)".to_string() }
-            } else {
-                value
-            };
+            let display_value =
+                if var.contains("KEY") || var.contains("SECRET") || var.contains("TOKEN") {
+                    if value == "(not set)" {
+                        "(not set)".to_string()
+                    } else {
+                        "(set, hidden)".to_string()
+                    }
+                } else {
+                    value
+                };
             info!(env_var = %var, value = %display_value, "Credential env check");
         }
 
-        // Create the Bedrock model
-        let model = BedrockModel::new(&self.config.model_id, &self.config.region).await;
+        // Create the Bedrock model with AgentCore-compatible credentials
+        // This uses MMDS V1 which works in Firecracker microVMs
+        let model = BedrockModel::new_for_agentcore(&self.config.model_id, &self.config.region).await;
 
         // Build the agent configuration
         let agent_config = AgentConfig {
@@ -137,21 +144,26 @@ impl Server {
         let state = Arc::new(AppState {
             agent,
             session_manager,
+            model_id: self.config.model_id.clone(),
+            region: self.config.region.clone(),
         });
 
         // Build router with request logging middleware
+        // Note: AgentCore sends requests to "/" by default for HTTP protocol
         let app = Router::new()
+            .route("/", post(invoke))
             .route("/ping", get(health_check))
             .route("/invocations", post(invoke))
+            .route("/code-review", post(invoke_code_review))
             .with_state(state)
             .layer(middleware::from_fn(log_request))
             .layer(TraceLayer::new_for_http());
 
         // Bind and serve
         let addr = SocketAddr::from(([0, 0, 0, 0], self.config.port));
-        let listener = tokio::net::TcpListener::bind(addr)
-            .await
-            .map_err(|e| strands_core::StrandsError::config(format!("Failed to bind to {}: {}", addr, e)))?;
+        let listener = tokio::net::TcpListener::bind(addr).await.map_err(|e| {
+            strands_core::StrandsError::config(format!("Failed to bind to {}: {}", addr, e))
+        })?;
 
         info!(address = %addr, "Server listening");
 
@@ -164,8 +176,8 @@ impl Server {
 
     /// Build the router without running (for testing).
     pub async fn build_router(self) -> Result<Router> {
-        // Create the Bedrock model
-        let model = BedrockModel::new(&self.config.model_id, &self.config.region).await;
+        // Create the Bedrock model with AgentCore-compatible credentials
+        let model = BedrockModel::new_for_agentcore(&self.config.model_id, &self.config.region).await;
 
         // Build the agent configuration
         let agent_config = AgentConfig {
@@ -187,11 +199,14 @@ impl Server {
         let state = Arc::new(AppState {
             agent,
             session_manager,
+            model_id: self.config.model_id.clone(),
+            region: self.config.region.clone(),
         });
 
         let app = Router::new()
             .route("/ping", get(health_check))
             .route("/invocations", post(invoke))
+            .route("/code-review", post(invoke_code_review))
             .with_state(state);
 
         Ok(app)

@@ -8,10 +8,11 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use aws_sdk_bedrockruntime::{
     types::{
-        ContentBlock as BedrockContentBlock, ConversationRole, ConverseOutput as ConverseOutputType,
-        ConverseStreamOutput as StreamEvent, InferenceConfiguration, Message as BedrockMessage,
-        StopReason as BedrockStopReason, SystemContentBlock, Tool, ToolConfiguration,
-        ToolInputSchema, ToolResultBlock, ToolResultContentBlock as BedrockToolResultContentBlock,
+        ContentBlock as BedrockContentBlock, ConversationRole,
+        ConverseOutput as ConverseOutputType, ConverseStreamOutput as StreamEvent,
+        InferenceConfiguration, Message as BedrockMessage, StopReason as BedrockStopReason,
+        SystemContentBlock, Tool, ToolConfiguration, ToolInputSchema, ToolResultBlock,
+        ToolResultContentBlock as BedrockToolResultContentBlock,
         ToolResultStatus as BedrockToolResultStatus, ToolSpecification, ToolUseBlock,
     },
     Client,
@@ -35,7 +36,8 @@ pub struct BedrockModel {
     /// Model ID (e.g., "anthropic.claude-sonnet-4-20250514")
     model_id: String,
 
-    /// AWS region
+    /// AWS region (stored for potential future use in logging/debugging)
+    #[allow(dead_code)]
     region: String,
 }
 
@@ -52,6 +54,56 @@ impl BedrockModel {
             client: Client::new(&config),
             model_id: model_id.into(),
             region,
+        }
+    }
+
+    /// Create a new Bedrock model for AgentCore/Firecracker environments.
+    ///
+    /// This uses MMDS V1 for credentials instead of IMDSv2, which is required
+    /// because Firecracker's MMDS doesn't support the PUT token requests that
+    /// IMDSv2 requires.
+    pub async fn new_for_agentcore(
+        model_id: impl Into<String>,
+        region: impl Into<String>,
+    ) -> Self {
+        use crate::mmds::MmdsCredentialsProvider;
+
+        let region = region.into();
+        let mmds_provider = MmdsCredentialsProvider::new();
+
+        let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
+            .region(aws_config::Region::new(region.clone()))
+            .credentials_provider(mmds_provider)
+            .load()
+            .await;
+
+        tracing::info!(
+            region = %region,
+            "Created BedrockModel with MMDS credentials provider for AgentCore"
+        );
+
+        Self {
+            client: Client::new(&config),
+            model_id: model_id.into(),
+            region,
+        }
+    }
+
+    /// Create a new Bedrock model, automatically detecting the environment.
+    ///
+    /// If running in AgentCore/Firecracker (MMDS available), uses MMDS V1 credentials.
+    /// Otherwise, uses the default AWS credential chain.
+    pub async fn new_auto(model_id: impl Into<String>, region: impl Into<String>) -> Self {
+        let model_id = model_id.into();
+        let region = region.into();
+
+        // Check if we're in an MMDS environment
+        if crate::mmds::is_mmds_available().await {
+            tracing::info!("MMDS detected, using MMDS credentials provider");
+            Self::new_for_agentcore(model_id, region).await
+        } else {
+            tracing::info!("MMDS not detected, using default credentials chain");
+            Self::new(model_id, region).await
         }
     }
 
@@ -114,14 +166,14 @@ impl BedrockModel {
         let content_blocks: Vec<BedrockContentBlock> = message
             .content
             .iter()
-            .filter_map(|c| Self::convert_content_to_bedrock(c))
+            .filter_map(Self::convert_content_to_bedrock)
             .collect();
 
-        Ok(BedrockMessage::builder()
+        BedrockMessage::builder()
             .role(Self::convert_role(message.role))
             .set_content(Some(content_blocks))
             .build()
-            .map_err(|e| StrandsError::model(format!("Failed to build message: {}", e)))?)
+            .map_err(|e| StrandsError::model(format!("Failed to build message: {}", e)))
     }
 
     fn convert_content_to_bedrock(content: &ContentBlock) -> Option<BedrockContentBlock> {
@@ -144,7 +196,7 @@ impl BedrockModel {
                 let content_blocks: Vec<BedrockToolResultContentBlock> = result
                     .content
                     .iter()
-                    .filter_map(|c| Self::convert_tool_result_content(c))
+                    .filter_map(Self::convert_tool_result_content)
                     .collect();
 
                 let status = match result.status {
@@ -235,12 +287,10 @@ impl BedrockModel {
             })
             .collect();
 
-        Some(
-            ToolConfiguration::builder()
+        ToolConfiguration::builder()
                 .set_tools(Some(tools))
                 .build()
-                .ok()?,
-        )
+                .ok()
     }
 
     fn build_inference_config(config: &InferenceConfig) -> Option<InferenceConfiguration> {
@@ -307,9 +357,7 @@ impl BedrockModel {
             aws_smithy_types::Document::Null => serde_json::Value::Null,
             aws_smithy_types::Document::Bool(b) => serde_json::Value::Bool(*b),
             aws_smithy_types::Document::Number(n) => match n {
-                aws_smithy_types::Number::PosInt(i) => {
-                    serde_json::Value::Number((*i).into())
-                }
+                aws_smithy_types::Number::PosInt(i) => serde_json::Value::Number((*i).into()),
                 aws_smithy_types::Number::NegInt(i) => serde_json::Value::Number((*i).into()),
                 aws_smithy_types::Number::Float(f) => serde_json::Number::from_f64(*f)
                     .map(serde_json::Value::Number)
@@ -608,7 +656,7 @@ impl StreamAccumulator {
                 if !self.text_parts.is_empty() {
                     content.push(ContentBlock::Text(self.text_parts.join("")));
                 }
-                content.extend(self.content_blocks.drain(..));
+                content.append(&mut self.content_blocks);
 
                 let message = Message {
                     role: Role::Assistant,
@@ -622,16 +670,12 @@ impl StreamAccumulator {
             }
 
             StreamEvent::Metadata(meta) => {
-                if let Some(usage) = meta.usage() {
-                    Some(Ok(ModelStreamChunk::Usage(Usage {
+                meta.usage().map(|usage| Ok(ModelStreamChunk::Usage(Usage {
                         input_tokens: usage.input_tokens() as u32,
                         output_tokens: usage.output_tokens() as u32,
                         total_tokens: (usage.input_tokens() + usage.output_tokens()) as u32,
                         ..Default::default()
                     })))
-                } else {
-                    None
-                }
             }
 
             _ => None,

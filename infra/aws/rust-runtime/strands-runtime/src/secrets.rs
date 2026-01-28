@@ -58,13 +58,11 @@ pub async fn fetch_bedrock_credentials() -> Result<Option<BedrockCredentials>, S
         .await
         .map_err(|e| SecretsError::GetSecretError(e.to_string()))?;
 
-    let secret_string = response
-        .secret_string()
-        .ok_or(SecretsError::EmptySecret)?;
+    let secret_string = response.secret_string().ok_or(SecretsError::EmptySecret)?;
 
     // Parse the secret JSON
-    let credentials: BedrockCredentials = serde_json::from_str(secret_string)
-        .map_err(|e| SecretsError::ParseError(e.to_string()))?;
+    let credentials: BedrockCredentials =
+        serde_json::from_str(secret_string).map_err(|e| SecretsError::ParseError(e.to_string()))?;
 
     info!("Successfully retrieved Bedrock credentials from Secrets Manager");
     Ok(Some(credentials))

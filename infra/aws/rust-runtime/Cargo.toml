@@ -36,6 +36,7 @@ aws-sdk-bedrockagentcore = "1.3"
 aws-sdk-secretsmanager = "1.61"
 aws-smithy-types = "1.2"
 aws-smithy-runtime-api = "1.7"
+aws-credential-types = "1.2"
 
 # HTTP server
 axum = { version = "0.8", features = ["json", "tokio"] }
@@ -64,6 +65,16 @@ chrono = { version = "0.4", features = ["serde"] }
 bytes = "1.9"
 base64 = "0.22"
 url = "2.5"
+regex = "1.11"
+
+# JSON Schema validation
+jsonschema = "0.27"
+
+# Crypto
+sha2 = "0.10"
+
+# HTTP client (for integration tests)
+reqwest = { version = "0.12", features = ["json"] }
 
 # Testing
 mockall = "0.13"

@@ -3,7 +3,9 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use strands_core::{BoxedTool, Result, StrandsError, Tool, ToolContext, ToolExecutionResult, ToolSpec};
+use strands_core::{
+    BoxedTool, Result, StrandsError, Tool, ToolContext, ToolExecutionResult, ToolSpec,
+};
 use tracing::{debug, instrument};
 
 /// Registry for managing tools available to agents.

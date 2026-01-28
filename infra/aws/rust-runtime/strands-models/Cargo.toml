@@ -14,6 +14,11 @@ strands-agent = { path = "../strands-agent" }
 aws-config = { workspace = true }
 aws-sdk-bedrockruntime = { workspace = true }
 aws-smithy-types = { workspace = true }
+aws-credential-types = { workspace = true }
+
+# HTTP client for MMDS
+reqwest = { workspace = true }
+chrono = { workspace = true }
 
 # Async
 tokio = { workspace = true }

@@ -25,12 +25,16 @@
 //! The secret should be a JSON object with `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` keys.
 //! If not set, credentials are read directly from environment variables.
 
+pub mod code_review;
 pub mod config;
 pub mod handlers;
+pub mod injection_guard;
 pub mod secrets;
 pub mod server;
 pub mod telemetry;
 
+pub use code_review::invoke_code_review;
 pub use config::RuntimeConfig;
+pub use injection_guard::{AttackCategory, InjectionAnalysis, InjectionDetector, PatternMatcher};
 pub use secrets::{apply_credentials_from_secrets, fetch_bedrock_credentials};
 pub use server::Server;

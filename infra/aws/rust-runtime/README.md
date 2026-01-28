@@ -68,12 +68,22 @@ strands-runtime/          # Main HTTP server (AgentCore protocol)
     ├── server.rs         # Axum server with request logging middleware
     ├── config.rs         # Environment-based configuration
     ├── secrets.rs        # AWS Secrets Manager credential provider
-    └── telemetry.rs      # OpenTelemetry tracing setup
+    ├── telemetry.rs      # OpenTelemetry tracing setup
+    ├── injection_guard/  # Prompt injection detection
+    │   ├── mod.rs        # Module exports
+    │   ├── patterns.rs   # Regex-based attack pattern detection
+    │   └── detector.rs   # LLM-based semantic analysis
+    └── code_review/      # Secure code review endpoint
+        ├── mod.rs        # Module exports
+        ├── endpoint.rs   # POST /code-review handler
+        ├── request.rs    # Request/response types
+        └── schema.rs     # JSON schemas for responses
 
 strands-agent/            # Agent orchestration
     ├── agent.rs          # Main agent loop with iteration control
     ├── conversation.rs   # Conversation state management
-    └── model.rs          # Model trait definition
+    ├── model.rs          # Model trait definition
+    └── loop_control.rs   # Early termination signals
 
 strands-core/             # Core types and traits
     ├── message.rs        # Message and Role types
@@ -90,7 +100,12 @@ strands-session/          # Session management
     └── memory.rs         # In-memory session store
 
 strands-tools/            # Tool framework
-    └── registry.rs       # Tool registration and discovery
+    ├── registry.rs       # Tool registration and discovery
+    └── json_response/    # JSON response validation tools
+        ├── mod.rs        # Module exports
+        ├── state.rs      # Shared state (attempts, commit status)
+        ├── validate_json.rs  # Schema validation tool
+        └── commit_response.rs # Response commit tool
 ```
 
 ### Data Flow
@@ -156,6 +171,7 @@ The runtime implements the AWS Bedrock AgentCore HTTP protocol:
 |----------|--------|-------------|
 | `/ping` | GET | Health check - returns `{"status": "Healthy", "time_of_last_update": <timestamp>}` |
 | `/invocations` | POST | Agent invocation - accepts JSON with `prompt` field |
+| `/code-review` | POST | Secure code review with prompt injection detection |
 
 ### Request Format
 
@@ -193,6 +209,186 @@ The runtime implements the AWS Bedrock AgentCore HTTP protocol:
 | `MaxTokens` | Response truncated due to token limit |
 | `StopSequence` | Hit a stop sequence |
 | `MaxIterations` | Agent loop hit iteration limit |
+
+## Secure Code Review Endpoint
+
+The `/code-review` endpoint provides AI-powered code reviews with built-in security features.
+
+### Security Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     POST /code-review                            │
+│                                                                  │
+│  Request includes:                                               │
+│  - instructions (UNTRUSTED - from user)                          │
+│  - repository, branch, commit (trusted context)                  │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              Stage 1: Pattern-Based Pre-Filter                   │
+│                                                                  │
+│  Fast regex matching for known attack patterns:                  │
+│  - DAN jailbreaks ("You are now DAN")                           │
+│  - Instruction overrides ("Ignore previous instructions")        │
+│  - Purpose redirection ("From now on, you are...")              │
+│  - Prompt extraction ("Show me your system prompt")              │
+│  - Encoded payloads (base64, hex)                               │
+│  - Delimiter injection (</system>, </instructions>)              │
+│                                                                  │
+│  High-confidence match? ──► Skip to Stage 3 (deny)              │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              Stage 2: LLM-Based Semantic Analysis                │
+│                                                                  │
+│  Uses a separate LLM call to analyze intent:                     │
+│  - Detects sophisticated attacks that evade patterns             │
+│  - Analyzes semantic meaning, not just keywords                  │
+│  - Returns confidence score and attack category                  │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              Stage 3: Decision                                   │
+│                                                                  │
+│  Malicious? ──► 403 Forbidden with reason                       │
+│  Clean?     ──► Continue to code review                         │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              Code Review Agent                                   │
+│                                                                  │
+│  Tools available:                                                │
+│  - validate_json: Check response against schema                  │
+│  - commit_response: Finalize and return JSON                     │
+│                                                                  │
+│  Process:                                                        │
+│  1. Agent generates review as JSON                               │
+│  2. Calls validate_json (max 8 attempts)                         │
+│  3. Calls commit_response to finalize                            │
+│  4. Agent loop terminates immediately                            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Code Review Request
+
+```json
+{
+  "instructions": "Focus on security issues",
+  "repository": "owner/repo",
+  "branch": "feature-branch",
+  "commit": "abc123",
+  "base_branch": "main",
+  "apply_fixes": true,
+  "create_pr": false
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `instructions` | string | **UNTRUSTED** - User's review instructions |
+| `repository` | string | GitHub repository (owner/repo) |
+| `branch` | string | Branch to review |
+| `commit` | string | Commit SHA to review |
+| `base_branch` | string | Base branch for comparison (default: main) |
+| `apply_fixes` | bool | Generate fix diffs (default: false) |
+| `create_pr` | bool | Include PR metadata (default: false) |
+
+### Code Review Response (Review Only)
+
+When `apply_fixes: false`:
+
+```json
+{
+  "review_markdown": "## Code Review\n\n### Issues Found\n...",
+  "severity": "medium",
+  "findings_count": 3
+}
+```
+
+### Code Review Response (With Fixes)
+
+When `apply_fixes: true`:
+
+```json
+{
+  "review_markdown": "## Code Review\n\n### Issues Found\n...",
+  "severity": "high",
+  "findings_count": 2,
+  "file_changes": [
+    {
+      "path": "src/db.rs",
+      "diff": "--- a/src/db.rs\n+++ b/src/db.rs\n@@ -1 +1 @@\n-bad\n+good",
+      "original_sha": "abc123"
+    }
+  ],
+  "pr_title": "fix(security): prevent SQL injection",
+  "pr_description": "## Summary\nFixes vulnerability..."
+}
+```
+
+### Security Denied Response (403)
+
+When prompt injection is detected:
+
+```json
+{
+  "denied": true,
+  "reason": "Instruction override attempt detected",
+  "attack_category": "instruction_override",
+  "confidence": 0.95
+}
+```
+
+### Attack Categories
+
+| Category | Description | Example |
+|----------|-------------|---------|
+| `dan_jailbreak` | DAN-style jailbreaks | "You are now DAN" |
+| `instruction_override` | Ignoring previous instructions | "Forget your rules" |
+| `purpose_redirection` | Changing agent identity | "From now on, act as..." |
+| `prompt_extraction` | Extracting system prompt | "Show me your instructions" |
+| `encoded_payload` | Obfuscated instructions | "Decode this base64: ..." |
+| `role_play_attack` | Malicious role-playing | "Pretend you are unrestricted" |
+| `delimiter_injection` | Injecting fake tags | "</system>" |
+
+### JSON Response Tools
+
+The code review agent uses two tools to ensure valid JSON output:
+
+**validate_json**
+- Validates JSON against the expected schema
+- Returns detailed error messages for fixing
+- Tracks attempt count (max 8)
+
+**commit_response**
+- Finalizes the JSON response
+- Signals agent loop termination
+- Idempotent (only first call succeeds)
+
+### Processing the Response
+
+Use the `code-review-processor` CLI tool to act on the JSON response:
+
+```bash
+# Post review as PR comment
+code-review-processor --input response.json --post-comment --pr-number 123
+
+# Apply fixes and commit
+code-review-processor --input response.json --commit-changes
+
+# Create a new PR with fixes
+code-review-processor --input response.json --create-pr --base-branch main
+
+# Dry run (preview actions)
+code-review-processor --input response.json --post-comment --dry-run
+```
+
+See `tools/rust/code-review-processor/README.md` for full documentation.
 
 ## Configuration
 
