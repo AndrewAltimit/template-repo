@@ -9,7 +9,7 @@ pub mod endpoint;
 pub mod request;
 pub mod schema;
 
-pub use endpoint::invoke_code_review;
+pub use endpoint::{invoke_code_review, invoke_code_review_internal};
 pub use request::{
     CodeReviewRequest, CodeReviewResponse, FileChange, ReviewResult, ReviewSeverity, ReviewStatus,
     SecurityDeniedResponse, UsageResponse,

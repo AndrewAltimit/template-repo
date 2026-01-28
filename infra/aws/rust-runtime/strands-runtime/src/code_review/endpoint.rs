@@ -49,20 +49,29 @@ impl IntoResponse for CodeReviewError {
     }
 }
 
-/// Code review invocation handler.
+/// Code review invocation handler (for direct /code-review route).
 ///
 /// POST /code-review
+#[instrument(skip(state, request), fields(review_id))]
+pub async fn invoke_code_review(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<CodeReviewRequest>,
+) -> Result<Json<CodeReviewResponse>, Response> {
+    invoke_code_review_internal(state, request).await
+}
+
+/// Internal code review handler (can be called from unified /invocations router).
 ///
-/// This endpoint:
+/// This function:
 /// 1. Validates the request
 /// 2. Checks for prompt injection in the instructions
 /// 3. Creates a specialized code review agent with JSON response tools
 /// 4. Runs the agent with early termination support
 /// 5. Returns the structured review result
 #[instrument(skip(state, request), fields(review_id))]
-pub async fn invoke_code_review(
-    State(state): State<Arc<AppState>>,
-    Json(request): Json<CodeReviewRequest>,
+pub async fn invoke_code_review_internal(
+    state: Arc<AppState>,
+    request: CodeReviewRequest,
 ) -> Result<Json<CodeReviewResponse>, Response> {
     let review_id = Uuid::new_v4().to_string();
     tracing::Span::current().record("review_id", &review_id);

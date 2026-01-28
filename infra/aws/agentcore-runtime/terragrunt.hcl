@@ -24,7 +24,7 @@ dependency "ecr" {
 inputs = {
   # Note: AgentCore runtime names must use underscores, not hyphens
   runtime_name       = "strands_agent_runtime_dev"
-  description        = "Strands-based AI agent runtime (dev)"
+  description        = "Strands-based AI agent runtime (dev) v4"
   container_uri      = "${dependency.ecr.outputs.repository_url}:latest"
   runtime_role_arn   = dependency.iam.outputs.runtime_execution_role_arn
   network_mode       = "PUBLIC"
