@@ -96,10 +96,22 @@ runs:
     - name: Clean up any stale containers from previous runs
       shell: bash
       run: |
-        # Remove any orphaned containers from previous CI runs to prevent name conflicts
+        # Remove any orphaned containers from ALL previous CI runs to prevent port conflicts
         # This handles the case where a previous run failed without cleanup
+        # We must kill containers from OTHER CI runs too, not just our project
         echo "Checking for stale CI containers..."
+
+        # First, clean up current project's orphans
         docker compose down --remove-orphans 2>/dev/null || true
+
+        # Then, remove ALL containers from any CI run (they all start with "ci-")
+        # This prevents port conflicts from stale containers of other runs
+        stale_containers=$(docker ps -a --format "{{.Names}}" | grep -E "^ci-" || true)
+        if [ -n "$stale_containers" ]; then
+          echo "Removing stale CI containers from previous runs:"
+          echo "$stale_containers"
+          echo "$stale_containers" | xargs -r docker rm -f 2>/dev/null || true
+        fi
 
     - name: Start services
       shell: bash

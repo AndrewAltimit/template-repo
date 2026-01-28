@@ -264,8 +264,9 @@ impl CrushIntegration {
 
         debug!("Executing docker compose with args: {:?}", args);
 
-        let mut cmd = Command::new("docker-compose");
-        cmd.args(&args)
+        // Use docker compose (V2) instead of docker-compose (V1)
+        let mut cmd = Command::new("docker");
+        cmd.arg("compose").args(&args)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
