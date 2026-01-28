@@ -37,8 +37,8 @@ cd template-repo
 # Start the AI Toolkit MCP server
 ./automation/scripts/remote-ai-services.sh start
 
-# Or use docker-compose directly
-docker-compose --profile ai-services up -d mcp-ai-toolkit
+# Or use docker compose directly
+docker compose --profile ai-services up -d mcp-ai-toolkit
 ```
 
 ### Host Mode (alternative)
@@ -110,13 +110,13 @@ status = mcp__aitoolkit__get_training_status(
 
 ```bash
 # View logs
-docker-compose logs -f mcp-ai-toolkit
+docker compose logs -f mcp-ai-toolkit
 
 # Restart service
-docker-compose restart mcp-ai-toolkit
+docker compose restart mcp-ai-toolkit
 
 # Stop service
-docker-compose --profile ai-services down
+docker compose --profile ai-services down
 
 # Update and restart
 ./automation/scripts/remote-ai-services.sh update

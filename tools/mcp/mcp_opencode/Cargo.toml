@@ -1,0 +1,54 @@
+[package]
+name = "mcp-opencode"
+version = "1.1.0"
+edition = "2024"
+description = "MCP server for AI-powered code assistance via OpenRouter"
+authors = ["AndrewAltimit"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/AndrewAltimit/template-repo"
+
+[[bin]]
+name = "mcp-opencode"
+path = "src/main.rs"
+
+[dependencies]
+# MCP Core (path to sibling directory)
+mcp-core = { path = "../mcp_core_rust/crates/mcp-core" }
+
+# Async runtime
+tokio = { version = "1.40", features = ["full"] }
+async-trait = "0.1"
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# CLI
+clap = { version = "4.5", features = ["derive"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Environment variables
+dotenvy = "0.15"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

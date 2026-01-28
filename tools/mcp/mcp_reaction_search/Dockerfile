@@ -14,13 +14,15 @@
 # =============================================================================
 # Stage 1: Builder
 # =============================================================================
-FROM rust:1.83-slim-bookworm AS builder
+FROM rust:1.93-slim-bookworm AS builder
 
 # Install build dependencies
+# Note: g++ provides libstdc++ needed for linking ONNX runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
     ca-certificates \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -34,10 +36,11 @@ COPY mcp_reaction_search/Cargo.toml ./mcp_reaction_search/
 COPY mcp_reaction_search/src ./mcp_reaction_search/src
 
 # Build release binary
+# Use CARGO_TARGET_DIR to put output in /app/target for caching
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
     cd mcp_reaction_search && \
-    cargo build --release \
+    CARGO_TARGET_DIR=/app/target cargo build --release \
     && cp /app/target/release/mcp-reaction-search /usr/local/bin/
 
 # =============================================================================

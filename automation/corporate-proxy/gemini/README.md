@@ -85,7 +85,7 @@ cd automation/corporate-proxy/gemini
 # 2. Run interactively (default mode)
 ./gemini
 # or
-docker-compose run --rm -it gemini-proxy
+docker compose run --rm -it gemini-proxy
 
 # 3. Test in Gemini CLI
 > What is 2+2?
@@ -105,7 +105,7 @@ export COMPANY_API_TOKEN=your-corporate-token
 export USE_MOCK_API=false
 
 # 2. Run with corporate backend
-docker-compose run --rm -it \
+docker compose run --rm -it \
   -e COMPANY_API_BASE=$COMPANY_API_BASE \
   -e COMPANY_API_TOKEN=$COMPANY_API_TOKEN \
   -e USE_MOCK_API=false \
@@ -248,10 +248,10 @@ subprocess.run(cmd_list, ...)  # Direct execution, no shell
 ./scripts/run.sh test
 
 # Test tools specifically
-docker-compose run --rm gemini-proxy bash -c "./scripts/test-tools.sh"
+docker compose run --rm gemini-proxy bash -c "./scripts/test-tools.sh"
 
 # Test API translation
-docker-compose run --rm gemini-proxy bash -c "python test_translation.py"
+docker compose run --rm gemini-proxy bash -c "python test_translation.py"
 
 # Interactive testing
 ./gemini
@@ -312,7 +312,7 @@ Error: connect ECONNREFUSED
 
 # Solution: Check services are running
 docker logs gemini-proxy
-docker-compose ps
+docker compose ps
 ```
 
 #### 4. Authentication Issues
@@ -342,7 +342,7 @@ cat config/gemini-config.json | jq '.models'
 export DEBUG=1
 
 # Run with verbose output
-docker-compose run --rm -e DEBUG=1 gemini-proxy
+docker compose run --rm -e DEBUG=1 gemini-proxy
 
 # Check detailed logs
 docker logs -f gemini-proxy 2>&1 | tee debug.log

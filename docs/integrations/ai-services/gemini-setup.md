@@ -126,28 +126,24 @@ This script provides:
 
 ## MCP Server Integration
 
-This project includes a dedicated Gemini MCP server that provides AI consultation capabilities:
+This project includes a dedicated Gemini MCP server (Rust) that provides AI consultation capabilities:
 
 ### Running the Gemini MCP Server
 
 ```bash
-# Run on the host system (cannot run in container)
-python -m mcp_gemini.server
+# Run in STDIO mode (recommended for Claude Code)
+mcp-gemini --mode stdio
 
-# Or with HTTP mode
-./tools/mcp/mcp_gemini/scripts/start_server.sh --mode http
+# Or standalone HTTP mode for remote access
+mcp-gemini --mode standalone --port 8006
+
+# Build from source
+cd tools/mcp/mcp_gemini
+cargo build --release
+# Binary at target/release/mcp-gemini
 ```
 
-**Important: Why Gemini MCP Server Must Run on Host**
-
-The Gemini MCP server is an exception to the project's container-first approach and must run on the host system because:
-
-1. **Docker Access Required**: The server needs to execute Docker commands to interact with other containerized services
-2. **Docker-in-Docker Complexity**: Running Docker inside a container would require privileged mode and complex socket mounting
-3. **Security Considerations**: Avoiding nested Docker layers reduces security risks and complexity
-4. **Integration Requirements**: The server needs direct access to the host's Docker daemon for service orchestration
-
-This is a deliberate architectural decision to maintain simplicity and security while still providing seamless AI integration.
+**Note**: The Gemini MCP server has been migrated from Python to Rust for improved performance and lower resource usage. See `tools/mcp/mcp_gemini/README.md` for detailed documentation.
 
 The server runs on port 8006 and provides:
 - `consult_gemini` - Get AI assistance for technical questions

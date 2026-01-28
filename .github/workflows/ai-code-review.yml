@@ -135,25 +135,25 @@ jobs:
             which "$AGENT" >/dev/null 2>&1 && echo "Found $AGENT CLI" || echo "Warning: $AGENT CLI not found"
           fi
 
-      # Gemini-specific: Clear conversation history
+      # Gemini-specific: Clear conversation history using Rust MCP server
       - name: Clear Gemini conversation history
         if: inputs.agent == 'gemini'
         continue-on-error: true
         run: |
           echo "Clearing Gemini conversation history..."
-          # Install uv for fast package installation
-          if ! command -v uv &> /dev/null; then
-            curl -LsSf https://astral.sh/uv/install.sh | sh
-            export PATH="$HOME/.local/bin:$PATH"
-          fi
-          # Create temporary venv for MCP packages
-          uv venv .gemini-venv
-          source .gemini-venv/bin/activate
-          uv pip install -e ./tools/mcp/mcp_core
-          uv pip install -e ./tools/mcp/mcp_gemini
 
-          # Start Gemini MCP server in background
-          python -m mcp_gemini.server --mode http &
+          # Check if mcp-gemini binary is available in downloaded artifacts
+          if [ -f "rust-tools/mcp-gemini" ]; then
+            chmod +x rust-tools/mcp-gemini
+            MCP_GEMINI="./rust-tools/mcp-gemini"
+            echo "Using mcp-gemini from artifact"
+          else
+            echo "Warning: mcp-gemini not found in artifact, skipping history clear"
+            exit 0
+          fi
+
+          # Start Gemini MCP server in background (HTTP mode)
+          $MCP_GEMINI --mode standalone --port 8006 &
           GEMINI_PID=$!
 
           # Wait for server to be ready
@@ -185,7 +185,7 @@ jobs:
         run: |
           echo "Starting Reaction Search MCP server..."
           source ./automation/setup/docker/set-docker-user.sh 2>/dev/null || true
-          docker-compose --profile services up -d mcp-reaction-search
+          docker compose --profile services up -d mcp-reaction-search
 
           echo "Waiting for Reaction Search server..."
           for i in {1..60}; do
@@ -260,8 +260,8 @@ jobs:
         if: always() && inputs.agent == 'gemini' && inputs.start_reaction_server
         run: |
           echo "Stopping Reaction Search MCP server..."
-          docker-compose --profile services stop mcp-reaction-search || true
-          docker-compose --profile services rm -f mcp-reaction-search || true
+          docker compose --profile services stop mcp-reaction-search || true
+          docker compose --profile services rm -f mcp-reaction-search || true
 
       - name: Upload review artifact
         if: always()

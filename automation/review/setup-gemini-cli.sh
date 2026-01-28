@@ -21,34 +21,34 @@ if [ ! -d "$HOME/.gemini" ]; then
     mkdir -p "$HOME/.gemini"
 fi
 
-# First, try docker-compose approach which handles authentication better
-if [ -f "docker-compose.yml" ] && command -v docker-compose >/dev/null 2>&1; then
-    echo "Using docker-compose for Gemini setup..."
+# First, try docker compose approach which handles authentication better
+if [ -f "docker-compose.yml" ] && command -v docker compose >/dev/null 2>&1; then
+    echo "Using docker compose for Gemini setup..."
 
     # Build the MCP Gemini container if needed
     echo "Building/updating MCP Gemini container..."
-    docker-compose build mcp-gemini >/dev/null 2>&1 || {
+    docker compose build mcp-gemini >/dev/null 2>&1 || {
         echo -e "${YELLOW}Warning: Could not build mcp-gemini container${NC}"
     }
 
-    # Create wrapper using docker-compose run
-    # Store the project root path for docker-compose
+    # Create wrapper using docker compose run
+    # Store the project root path for docker compose
     PROJECT_ROOT="$(pwd)"
     cat > /tmp/gemini <<EOF
 #!/bin/bash
-# Wrapper using docker-compose for proper volume mounting
+# Wrapper using docker compose for proper volume mounting
 cd "$PROJECT_ROOT"
 # Use --no-deps to avoid starting dependent services
-# Note: docker-compose warnings go to stderr, Gemini output goes to stdout
+# Note: docker compose warnings go to stderr, Gemini output goes to stdout
 # We keep both but warnings won't interfere with the actual output
-exec docker-compose run --rm -T --no-deps mcp-gemini gemini "\$@"
+exec docker compose run --rm -T --no-deps mcp-gemini gemini "\$@"
 EOF
     chmod +x /tmp/gemini
 
     # Test if it works
     if /tmp/gemini --version 2>/dev/null | grep -q "^[0-9]"; then
-        echo -e "${GREEN}Successfully set up Gemini via docker-compose${NC}"
-        AUTH_METHOD="docker-compose"
+        echo -e "${GREEN}Successfully set up Gemini via docker compose${NC}"
+        AUTH_METHOD="docker compose"
     else
         echo -e "${YELLOW}Docker-compose setup failed, trying fallback methods...${NC}"
         AUTH_METHOD=""
@@ -57,7 +57,7 @@ else
     AUTH_METHOD=""
 fi
 
-# If docker-compose didn't work, check other authentication methods
+# If docker compose didn't work, check other authentication methods
 if [ -z "$AUTH_METHOD" ]; then
     if [ -f "$HOME/.gemini/oauth_creds.json" ]; then
         echo -e "${GREEN}Found Gemini OAuth credentials${NC}"
@@ -83,9 +83,9 @@ if [ -z "$AUTH_METHOD" ]; then
 fi
 
 # Handle different authentication methods
-if [ "$AUTH_METHOD" = "docker-compose" ]; then
+if [ "$AUTH_METHOD" = "docker compose" ]; then
     # Docker-compose already set up the wrapper, nothing more to do
-    echo -e "${GREEN}Using docker-compose managed Gemini${NC}"
+    echo -e "${GREEN}Using docker compose managed Gemini${NC}"
 
 elif [ "$AUTH_METHOD" = "oauth" ]; then
     echo "Setting up containerized Gemini with OAuth..."
@@ -96,7 +96,7 @@ elif [ "$AUTH_METHOD" = "oauth" ]; then
     else
         echo "Building MCP Gemini container..."
         if [ -f "docker-compose.yml" ]; then
-            docker-compose build mcp-gemini
+            docker compose build mcp-gemini
         else
             echo -e "${YELLOW}Warning: docker-compose.yml not found, building with Docker directly${NC}"
 

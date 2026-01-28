@@ -42,9 +42,9 @@ echo.
 
 REM Run in Docker GPU container
 if defined LAYERS_ARG (
-    docker-compose run --rm python-gpu python packages/sleeper_agents/scripts/train_deception_probes.py --model-path "%MODEL_PATH%" --layers%LAYERS_ARG% --save-probes
+    docker compose run --rm python-gpu python packages/sleeper_agents/scripts/train_deception_probes.py --model-path "%MODEL_PATH%" --layers%LAYERS_ARG% --save-probes
 ) else (
-    docker-compose run --rm python-gpu python packages/sleeper_agents/scripts/train_deception_probes.py --model-path "%MODEL_PATH%" --save-probes
+    docker compose run --rm python-gpu python packages/sleeper_agents/scripts/train_deception_probes.py --model-path "%MODEL_PATH%" --save-probes
 )
 
 if %ERRORLEVEL% NEQ 0 (

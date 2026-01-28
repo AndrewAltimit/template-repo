@@ -51,17 +51,17 @@ A reusable composite action for starting Docker Compose services and waiting for
 
 3. **Health check endpoint**: The action will continuously check the specified endpoint until it responds successfully or the timeout is reached. Make sure at least one of your services exposes this endpoint.
 
-4. **Automatic cleanup**: On failure, the action automatically runs `docker-compose down` to clean up services.
+4. **Automatic cleanup**: On failure, the action automatically runs `docker compose down` to clean up services.
 
 ## Migration Guide
 
-To migrate from inline docker-compose commands to this action:
+To migrate from inline docker compose commands to this action:
 
 **Before:**
 ```yaml
 - name: Start services
   run: |
-    docker-compose up --build -d
+    docker compose up --build -d
     # Wait for health check
     timeout=60
     elapsed=0

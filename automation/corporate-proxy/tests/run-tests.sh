@@ -118,7 +118,7 @@ run_crush_tests() {
 
     # Test Crush Docker build
     TESTS_RUN=$((TESTS_RUN + 1))
-    if run_test "Crush Docker build" "docker-compose build crush-proxy"; then
+    if run_test "Crush Docker build" "docker compose build crush-proxy"; then
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
         TESTS_FAILED=$((TESTS_FAILED + 1))
@@ -140,7 +140,7 @@ run_opencode_tests() {
 
     # Test OpenCode Docker build
     TESTS_RUN=$((TESTS_RUN + 1))
-    if run_test "OpenCode Docker build" "docker-compose build opencode-proxy"; then
+    if run_test "OpenCode Docker build" "docker compose build opencode-proxy"; then
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
         TESTS_FAILED=$((TESTS_FAILED + 1))
@@ -162,7 +162,7 @@ run_gemini_tests() {
 
     # Test Gemini Docker build
     TESTS_RUN=$((TESTS_RUN + 1))
-    if run_test "Gemini Docker build" "docker-compose build gemini-proxy"; then
+    if run_test "Gemini Docker build" "docker compose build gemini-proxy"; then
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
         TESTS_FAILED=$((TESTS_FAILED + 1))
@@ -249,14 +249,14 @@ run_integration_tests() {
 
     # Test Docker Compose up
     TESTS_RUN=$((TESTS_RUN + 1))
-    if run_test "Docker Compose services" "docker-compose up -d crush-proxy opencode-proxy && sleep 5 && docker-compose ps | grep -E 'crush-proxy|opencode-proxy'"; then
+    if run_test "Docker Compose services" "docker compose up -d crush-proxy opencode-proxy && sleep 5 && docker compose ps | grep -E 'crush-proxy|opencode-proxy'"; then
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
         TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
 
     # Clean up
-    docker-compose down 2>/dev/null || true
+    docker compose down 2>/dev/null || true
 }
 
 # Main test execution

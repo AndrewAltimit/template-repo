@@ -6,7 +6,7 @@
 # - Python 3.11 (10-60% faster than 3.10)
 
 # Stage 1: Build gh-validator from source
-FROM rust:1.83-slim AS gh-validator-builder
+FROM rust:1.93-slim AS gh-validator-builder
 
 RUN apt-get update && apt-get install -y \
     pkg-config \
@@ -70,7 +70,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Install workspace packages
 # Note: This happens before copying the full codebase to leverage caching
-# The actual code will be mounted at runtime via docker-compose volumes
+# The actual code will be mounted at runtime via docker compose volumes
 COPY pyproject.toml /app/pyproject.toml
 COPY tools /app/tools
 COPY automation /app/automation
@@ -81,7 +81,7 @@ COPY packages/sleeper_agents /app/packages/sleeper_agents
 
 # Install all workspace packages in a single uv command (with cache)
 # This is ~10-100x faster than individual pip install commands
-# Note: mcp_codex and mcp_reaction_search are Rust packages, built separately
+# Note: mcp_codex, mcp_reaction_search, mcp_gemini, mcp_crush, and mcp_opencode are Rust packages, built separately
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install \
     /app/tools/mcp/mcp_core \
@@ -90,13 +90,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     /app/tools/mcp/mcp_code_quality \
     /app/tools/mcp/mcp_comfyui \
     /app/tools/mcp/mcp_content_creation \
-    /app/tools/mcp/mcp_crush \
     /app/tools/mcp/mcp_elevenlabs_speech \
     /app/tools/mcp/mcp_gaea2 \
-    /app/tools/mcp/mcp_gemini \
     /app/tools/mcp/mcp_github_board \
     /app/tools/mcp/mcp_meme_generator \
-    /app/tools/mcp/mcp_opencode \
     /app/tools/mcp/mcp_video_editor \
     /app/tools/mcp/mcp_virtual_character \
     /app/packages/sleeper_agents

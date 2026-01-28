@@ -68,7 +68,7 @@ echo %COLOR_BLUE%[INFO]%COLOR_RESET% Runtime: ~4 seconds (CPU-only)
 echo.
 
 REM Run tests in container (install package first, then run tests)
-docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents && !PYTEST_CMD!"
+docker compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents && !PYTEST_CMD!"
 
 if errorlevel 1 (
     echo.

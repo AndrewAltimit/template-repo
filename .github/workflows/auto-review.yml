@@ -51,7 +51,7 @@ permissions:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  # Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+  # Enable BuildKit for docker compose builds (required for --mount syntax in Dockerfiles)
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
 
@@ -128,7 +128,7 @@ jobs:
         if: contains(inputs.agents, 'opencode') || contains(inputs.agents, 'crush') || github.event_name == 'schedule'
         run: |
           echo "[INFO] Building containers for OpenRouter agents..."
-          docker-compose --profile agents build openrouter-agents
+          docker compose --profile agents build openrouter-agents
           echo "[INFO] Container build complete"
 
       - name: Set up Node.js for Claude (if needed)

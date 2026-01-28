@@ -33,10 +33,10 @@ Memes are cultural artifacts with specific contexts, formats, and usage patterns
 
 ```bash
 # Build and start the server
-docker-compose up -d mcp-meme-generator
+docker compose up -d mcp-meme-generator
 
 # Check logs
-docker-compose logs -f mcp-meme-generator
+docker compose logs -f mcp-meme-generator
 
 # Test the server
 python tools/mcp/meme_generator/scripts/test_server.py

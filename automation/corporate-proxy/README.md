@@ -102,43 +102,43 @@ cd automation/corporate-proxy
 **2. Build Services (Docker)**
 ```bash
 # Build all proxy services
-docker-compose build crush-proxy opencode-proxy gemini-proxy
+docker compose build crush-proxy opencode-proxy gemini-proxy
 
 # Or build individually
-docker-compose build gemini-proxy
+docker compose build gemini-proxy
 ```
 
 **3. Start in Mock Mode (Default)**
 ```bash
 # Start all proxies with mock API
-docker-compose --profile proxy up -d
+docker compose --profile proxy up -d
 
 # Verify services are running
-docker-compose ps
+docker compose ps
 
 # Check logs
-docker-compose logs -f gemini-proxy
+docker compose logs -f gemini-proxy
 ```
 
 **4. Test Mock Functionality**
 ```bash
 # Test Gemini with tools
-docker-compose run --rm gemini-proxy bash -c "./scripts/test-tools.sh"
+docker compose run --rm gemini-proxy bash -c "./scripts/test-tools.sh"
 # Expected: Tool execution results
 
 # Test Crush
-docker-compose run --rm crush-proxy bash -c "./scripts/test-patched.sh"
+docker compose run --rm crush-proxy bash -c "./scripts/test-patched.sh"
 # Expected: "Hatsune Miku"
 
 # Test OpenCode
-docker-compose run --rm opencode-proxy bash -c "./scripts/test-api-only.sh"
+docker compose run --rm opencode-proxy bash -c "./scripts/test-api-only.sh"
 # Expected: "Response: Hatsune Miku"
 ```
 
 **5. Interactive Testing**
 ```bash
 # Run Gemini CLI interactively
-docker-compose run --rm -it gemini-proxy
+docker compose run --rm -it gemini-proxy
 
 # Inside container, test with:
 # > What is 2+2?
@@ -169,7 +169,7 @@ NO_PROXY=localhost,127.0.0.1
 **2. Validate Configuration**
 ```bash
 # Check environment is loaded
-docker-compose config | grep -A5 environment
+docker compose config | grep -A5 environment
 
 # Test connectivity to corporate API
 curl -H "Authorization: Bearer $COMPANY_API_TOKEN" \
@@ -179,22 +179,22 @@ curl -H "Authorization: Bearer $COMPANY_API_TOKEN" \
 **3. Start Services in Corporate Mode**
 ```bash
 # Start with corporate configuration
-docker-compose --env-file .env --profile proxy up -d
+docker compose --env-file .env --profile proxy up -d
 
 # Monitor logs for connection status
-docker-compose logs -f gemini-proxy | grep -E "Corporate|Connected"
+docker compose logs -f gemini-proxy | grep -E "Corporate|Connected"
 ```
 
 **4. Test Corporate Integration**
 ```bash
 # Test with real corporate endpoint
-docker-compose run --rm gemini-proxy bash -c "
+docker compose run --rm gemini-proxy bash -c "
   export USE_MOCK_API=false
   ./scripts/test-api.sh
 "
 
 # Interactive test with corporate backend
-docker-compose run --rm -it gemini-proxy
+docker compose run --rm -it gemini-proxy
 # > Generate a Python function to calculate fibonacci
 # Should return real AI response from corporate service
 ```
@@ -206,21 +206,21 @@ docker-compose run --rm -it gemini-proxy
 - **Status**: Full tool support
 - **Features**: File operations, command execution, web search
 - **Config**: `gemini/config/gemini-config.json`
-- **Test**: `docker-compose run --rm gemini-proxy bash -c "./scripts/test-tools.sh"`
+- **Test**: `docker compose run --rm gemini-proxy bash -c "./scripts/test-tools.sh"`
 
 ### Crush CLI
 - **Port**: 8051
 - **Status**: Catwalk validation bypass
 - **Features**: Fast code generation
 - **Config**: Environment variables
-- **Test**: `docker-compose run --rm crush-proxy bash -c "./scripts/test-patched.sh"`
+- **Test**: `docker compose run --rm crush-proxy bash -c "./scripts/test-patched.sh"`
 
 ### OpenCode CLI
 - **Port**: 8052
 - **Status**: API translation working
 - **Features**: Comprehensive code generation
 - **Config**: Environment variables
-- **Test**: `docker-compose run --rm opencode-proxy bash -c "./scripts/test-api-only.sh"`
+- **Test**: `docker compose run --rm opencode-proxy bash -c "./scripts/test-api-only.sh"`
 
 ## Configuration Reference
 
@@ -433,14 +433,14 @@ Error: connect ECONNREFUSED 127.0.0.1:8053
 
 # Solutions:
 # a) Check service is running
-docker-compose ps
-docker-compose logs gemini-proxy
+docker compose ps
+docker compose logs gemini-proxy
 
 # b) Verify port mapping
 docker port gemini-proxy
 
 # c) Restart service
-docker-compose restart gemini-proxy
+docker compose restart gemini-proxy
 ```
 
 #### 2. Authentication Failures
@@ -484,7 +484,7 @@ export NO_PROXY=localhost,127.0.0.1
 curl -x $HTTP_PROXY $COMPANY_API_BASE/health
 
 # c) Add proxy config to Docker
-docker-compose run --rm \
+docker compose run --rm \
   -e HTTP_PROXY=$HTTP_PROXY \
   -e HTTPS_PROXY=$HTTPS_PROXY \
   gemini-proxy
@@ -502,8 +502,8 @@ export USE_MOCK_API=true
 curl http://localhost:8050/health
 
 # c) Restart with clean state
-docker-compose down
-docker-compose --profile proxy up -d
+docker compose down
+docker compose --profile proxy up -d
 ```
 
 ### Debug Mode
@@ -515,10 +515,10 @@ Enable verbose logging for troubleshooting:
 export DEBUG=1
 
 # Run with debug output
-docker-compose run --rm -e DEBUG=1 gemini-proxy
+docker compose run --rm -e DEBUG=1 gemini-proxy
 
 # Check detailed logs
-docker-compose logs -f --tail=100 gemini-proxy 2>&1 | tee debug.log
+docker compose logs -f --tail=100 gemini-proxy 2>&1 | tee debug.log
 
 # Analyze specific errors
 grep -E "ERROR|WARN|Failed" debug.log

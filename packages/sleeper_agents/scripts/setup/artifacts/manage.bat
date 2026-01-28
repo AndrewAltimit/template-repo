@@ -30,7 +30,7 @@ IF "%1"=="list" (
     echo ========================================
     echo Listing Experiments
     echo ========================================
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/list_experiments.py %2 %3 %4 %5 %6
+    docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/list_experiments.py %2 %3 %4 %5 %6
     goto :end
 )
 
@@ -43,7 +43,7 @@ IF "%1"=="package" (
         echo Example: manage_artifacts.bat package i_hate_you_gpt2_20251004_111710
         exit /b 1
     )
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/package_experiment.py %2 %3 %4 %5 %6 %7 %8 %9
+    docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/package_experiment.py %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
@@ -56,7 +56,7 @@ IF "%1"=="import" (
         echo Example: manage_artifacts.bat import artifacts/packages/experiment.tar.gz
         exit /b 1
     )
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/import_experiment.py %2 %3 %4 %5 %6 %7 %8 %9
+    docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/import_experiment.py %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
@@ -67,7 +67,7 @@ IF "%1"=="clean" (
     echo This will remove experiments older than 30 days
     set /p confirm="Are you sure? (y/N): "
     if /i "%confirm%"=="y" (
-        docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu find models/backdoored -type d -mtime +30 -exec rm -rf {} +
+        docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu find models/backdoored -type d -mtime +30 -exec rm -rf {} +
         echo Cleanup complete
     ) else (
         echo Cancelled

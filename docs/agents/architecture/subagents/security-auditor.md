@@ -119,8 +119,8 @@ Stage 6: Processing → Execute only if ALL pass
    pip install package
 
    # PASS: Container execution
-   docker-compose run --rm python-ci python script.py
-   docker-compose run --rm python-ci pip freeze
+   docker compose run --rm python-ci python script.py
+   docker compose run --rm python-ci pip freeze
    ```
 
 2. **Image Security**
@@ -241,7 +241,7 @@ gh variable set ENABLE_AGENTS --body "false"
 gh security-advisory create --severity critical
 
 # 3. INVESTIGATE: Check logs
-docker-compose logs ai-agents | grep -E "(ERROR|SECURITY)"
+docker compose logs ai-agents | grep -E "(ERROR|SECURITY)"
 
 # 4. FIX: Develop patch
 git checkout -b security-fix-CVE-YYYY-NNNN

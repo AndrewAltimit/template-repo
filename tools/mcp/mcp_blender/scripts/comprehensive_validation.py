@@ -676,7 +676,7 @@ class BlenderValidationSuite:
         except Exception as e:
             print(f"❌ Cannot connect to server: {e}")
             print("\n📝 To start the server locally:")
-            print("  1. Using Docker: docker-compose up -d mcp-blender")
+            print("  1. Using Docker: docker compose up -d mcp-blender")
             print("  2. Using Python: python -m tools.mcp.blender.server")
             return
 

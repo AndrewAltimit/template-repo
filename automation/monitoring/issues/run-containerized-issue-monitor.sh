@@ -19,7 +19,7 @@ if [ -n "$GITHUB_ACTIONS" ]; then
 fi
 
 # Pass through all environment variables needed by the agents
-docker-compose --profile agents run --rm \
+docker compose --profile agents run --rm \
     -e GITHUB_TOKEN="${GITHUB_TOKEN}" \
     -e GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
     -e OPENROUTER_API_KEY="${OPENROUTER_API_KEY}" \

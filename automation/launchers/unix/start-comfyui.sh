@@ -17,11 +17,11 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Use docker compose v2 (plugin) if available, fallback to docker-compose v1
+# Use docker compose v2 (plugin) if available, fallback to docker compose v1
 if docker compose version &> /dev/null; then
     COMPOSE_CMD="docker compose"
-elif command -v docker-compose &> /dev/null; then
-    COMPOSE_CMD="docker-compose"
+elif command -v docker compose &> /dev/null; then
+    COMPOSE_CMD="docker compose"
 else
     echo -e "\033[31mERROR: docker compose not found\033[0m"
     echo "Please install Docker Compose:"
@@ -48,7 +48,7 @@ echo -e "\033[33mBuilding ComfyUI container...\033[0m"
 echo "This may take a while on first run or after updates"
 $COMPOSE_CMD build mcp-comfyui
 
-# Remove stale container to avoid docker-compose v1 ContainerConfig bug
+# Remove stale container to avoid docker compose v1 ContainerConfig bug
 docker rm -f comfyui 2>/dev/null || true
 
 echo

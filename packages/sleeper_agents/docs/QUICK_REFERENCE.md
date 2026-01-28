@@ -8,7 +8,7 @@
 python packages/sleeper_agents/scripts/test_cpu_mode.py
 
 # Run with Docker (CPU mode)
-docker-compose --profile detection up mcp-sleeper-agents
+docker compose --profile detection up mcp-sleeper-agents
 ```
 
 ### Windows Deployment (GPU Mode)
@@ -132,35 +132,35 @@ python packages/sleeper_agents/scripts/validate_mcp_server_structure.py
 
 ### Build
 ```bash
-docker-compose build mcp-sleeper-agents
-docker-compose build mcp-sleeper-agents-gpu
+docker compose build mcp-sleeper-agents
+docker compose build mcp-sleeper-agents-gpu
 ```
 
 ### Run Services
 ```bash
 # CPU mode
-docker-compose --profile detection up
+docker compose --profile detection up
 
 # GPU mode
-docker-compose --profile detection-gpu up
+docker compose --profile detection-gpu up
 
 # With vector database
-docker-compose --profile detection up mcp-sleeper-agents sleeper-vectordb
+docker compose --profile detection up mcp-sleeper-agents sleeper-vectordb
 
 # Detached mode
-docker-compose --profile detection up -d
+docker compose --profile detection up -d
 ```
 
 ### View Logs
 ```bash
-docker-compose logs -f mcp-sleeper-agents
-docker-compose logs -f sleeper-vectordb
+docker compose logs -f mcp-sleeper-agents
+docker compose logs -f sleeper-vectordb
 ```
 
 ### Stop Services
 ```bash
-docker-compose --profile detection down
-docker-compose --profile detection-gpu down
+docker compose --profile detection down
+docker compose --profile detection-gpu down
 ```
 
 ## Environment Variables

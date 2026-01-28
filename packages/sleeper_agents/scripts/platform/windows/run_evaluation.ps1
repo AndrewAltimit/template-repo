@@ -82,15 +82,15 @@ if (Test-Path "/proc/version") {
     }
 }
 
-# Build Docker image using docker-compose for consistency
+# Build Docker image using docker compose for consistency
 Write-Host "Building evaluation image..." -ForegroundColor Cyan
 
 # Determine which image to build based on GPU flag
 if ($GPU) {
-    docker-compose build sleeper-eval-gpu 2>&1 | Out-Null
+    docker compose build sleeper-eval-gpu 2>&1 | Out-Null
     $imageName = "sleeper-eval-gpu"
 } else {
-    docker-compose build sleeper-eval-cpu 2>&1 | Out-Null
+    docker compose build sleeper-eval-cpu 2>&1 | Out-Null
     $imageName = "sleeper-eval-cpu"
 }
 

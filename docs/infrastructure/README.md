@@ -54,8 +54,8 @@ sudo systemctl start github-runner
 
 ### Check Docker setup
 ```bash
-docker-compose ps
-docker-compose logs -f
+docker compose ps
+docker compose logs -f
 ```
 
 ## Related Documentation

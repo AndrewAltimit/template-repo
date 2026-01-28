@@ -216,13 +216,13 @@ Run with Docker Compose:
 
 ```bash
 # Run the CLI
-docker-compose run economic-agents-cli run --config /home/agent/config/agent.yml
+docker compose run economic-agents-cli run --config /home/agent/config/agent.yml
 
 # Start the dashboard
-docker-compose up dashboard
+docker compose up dashboard
 
 # Run a scenario
-docker-compose --profile scenario run scenario
+docker compose --profile scenario run scenario
 ```
 
 ## CI/CD

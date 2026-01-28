@@ -533,7 +533,7 @@ async def main():
     # Test connection first
     if not await test_server_connection():
         print("\n⚠️  Server not available. Please start the server with:")
-        print("  docker-compose up -d mcp-blender")
+        print("  docker compose up -d mcp-blender")
         print("  OR")
         print("  python -m tools.mcp.blender.server")
         sys.exit(1)

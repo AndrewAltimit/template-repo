@@ -6,10 +6,10 @@
 
 ```bash
 # CPU-only version
-docker-compose up sleeper-eval-cpu
+docker compose up sleeper-eval-cpu
 
 # GPU version (requires NVIDIA Docker runtime)
-docker-compose up sleeper-eval-gpu
+docker compose up sleeper-eval-gpu
 ```
 
 ### Local Installation
@@ -122,7 +122,7 @@ python packages/sleeper_agents/scripts/comprehensive_cpu_test.py --model pythia-
 
 ```bash
 # Using Docker
-docker-compose run --rm sleeper-eval-cpu pytest packages/sleeper_agents/tests/
+docker compose run --rm sleeper-eval-cpu pytest packages/sleeper_agents/tests/
 
 # Local
 pytest packages/sleeper_agents/tests/ -v
@@ -187,11 +187,11 @@ export TRANSFORMERS_OFFLINE=1
 ./automation/setup/runner/fix-runner-permissions.sh
 
 # Or run with user permissions
-docker-compose run --user $(id -u):$(id -g) sleeper-eval-cpu
+docker compose run --user $(id -u):$(id -g) sleeper-eval-cpu
 ```
 
 ### Getting Help
 
-- Check logs: `docker-compose logs sleeper-eval-cpu`
+- Check logs: `docker compose logs sleeper-eval-cpu`
 - Run diagnostic: `python packages/sleeper_agents/scripts/diagnostic.py`
 - Open an issue: [GitHub Issues](https://github.com/AndrewAltimit/template-repo/issues)

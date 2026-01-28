@@ -36,7 +36,7 @@ on:
         default: false
         type: boolean
 
-# Enable BuildKit for docker-compose builds (required for --mount syntax in Dockerfiles)
+# Enable BuildKit for docker compose builds (required for --mount syntax in Dockerfiles)
 env:
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
@@ -85,13 +85,13 @@ jobs:
       - name: Build test container
         run: |
           echo "🔨 Building test container..."
-          docker-compose build python-ci
+          docker compose build python-ci
 
       - name: Test 1 - Connectivity & Basic Operations
         id: connectivity
         run: |
           echo "🌐 Testing MCP server connectivity..."
-          docker-compose run --rm \
+          docker compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
             python-ci python tools/mcp/mcp_gaea2/tests/run_all_integration_tests.py ${{ env.GAEA2_MCP_URL }}
 
@@ -100,7 +100,7 @@ jobs:
         if: success()
         run: |
           echo "Testing expected successful operations..."
-          docker-compose run --rm \
+          docker compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
             python-ci pytest tools/mcp/mcp_gaea2/tests/test_gaea_operations.py -v --tb=short
 
@@ -109,7 +109,7 @@ jobs:
         if: success()
         run: |
           echo "Testing expected failures and error handling..."
-          docker-compose run --rm \
+          docker compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
             python-ci pytest tools/mcp/mcp_gaea2/tests/test_gaea_failures.py -v --tb=short
 
@@ -118,7 +118,7 @@ jobs:
         if: success()
         run: |
           echo "🔍 Testing edge cases and boundary conditions..."
-          docker-compose run --rm \
+          docker compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
             python-ci pytest tools/mcp/mcp_gaea2/tests/test_framework_integration.py::TestEdgeCases -v --tb=short
 
@@ -127,7 +127,7 @@ jobs:
         if: success() && inputs.run_regression != 'false'
         run: |
           echo "📊 Running regression tests..."
-          docker-compose run --rm \
+          docker compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
             -e UPDATE_BASELINES=${{ env.UPDATE_BASELINES }} \
             python-ci pytest tools/mcp/mcp_gaea2/tests/test_gaea_regression.py -v --tb=short
@@ -137,7 +137,7 @@ jobs:
         if: success()
         run: |
           echo "🚀 Running full Gaea2 MCP test suite..."
-          docker-compose run --rm \
+          docker compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
             python-ci python tools/mcp/mcp_gaea2/tests/run_all_integration_tests.py ${{ env.GAEA2_MCP_URL }}
 

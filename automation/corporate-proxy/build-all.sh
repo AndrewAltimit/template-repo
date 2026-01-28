@@ -6,6 +6,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source common functions
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/shared/scripts/common-functions.sh"
 
 print_header "Building ALL Corporate Proxy Containers"
@@ -25,9 +26,9 @@ CONTAINER="${1:-all}"
 build_container() {
     local name=$1
     local script_path=$2
-    
+
     print_header "Building $name..."
-    
+
     if [ -f "$script_path" ]; then
         # Export TARGETARCH for the build script to use
         export TARGETARCH

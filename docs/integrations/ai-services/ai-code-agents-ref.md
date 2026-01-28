@@ -67,10 +67,10 @@ codex "Add error handling to this function"
 
 ```bash
 # Start servers
-docker-compose up -d mcp-opencode mcp-crush mcp-codex
+docker compose up -d mcp-opencode mcp-crush mcp-codex
 
 # Run via container
-docker-compose run --rm openrouter-agents opencode run -q "your prompt"
+docker compose run --rm openrouter-agents opencode run -q "your prompt"
 ```
 
 ## Health Checks
@@ -88,5 +88,5 @@ curl http://localhost:8006/health  # Gemini
 |-------|----------|
 | API key not found | `export OPENROUTER_API_KEY="your-key"` |
 | Agent not found | `pip3 install -e ./packages/github_agents --force-reinstall` |
-| Server not responding | `docker-compose restart mcp-opencode mcp-crush` |
+| Server not responding | `docker compose restart mcp-opencode mcp-crush` |
 | Codex auth issues | Run `codex auth` to re-authenticate |

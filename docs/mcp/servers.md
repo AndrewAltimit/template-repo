@@ -38,13 +38,13 @@ The code quality server provides formatting and linting tools for multiple progr
 
 ```bash
 # Start via Docker Compose (recommended for container-first approach)
-docker-compose up -d mcp-code-quality
+docker compose up -d mcp-code-quality
 
 # Or run locally for development
 python -m tools.mcp.code_quality.server
 
 # View logs
-docker-compose logs -f mcp-code-quality
+docker compose logs -f mcp-code-quality
 
 # Test health
 curl http://localhost:8010/health
@@ -68,13 +68,13 @@ The content creation server provides tools for creating animations and compiling
 
 ```bash
 # Start via Docker Compose (recommended for container-first approach)
-docker-compose up -d mcp-content-creation
+docker compose up -d mcp-content-creation
 
 # Or run locally for development
 python -m tools.mcp.content_creation.server
 
 # View logs
-docker-compose logs -f mcp-content-creation
+docker compose logs -f mcp-content-creation
 
 # Test health
 curl http://localhost:8011/health
@@ -92,30 +92,32 @@ Output directory is configured via the `MCP_OUTPUT_DIR` environment variable (de
 
 See `tools/mcp/mcp_content_creation/docs/README.md` for detailed documentation.
 
-## Gemini MCP Server
+## Gemini MCP Server (Rust)
 
-The Gemini server provides AI assistance through the Gemini CLI. It can run on the host system or in a container.
+The Gemini server provides AI assistance through the Gemini CLI. This server has been migrated to Rust for improved performance and lower resource usage.
 
 ### Starting the Server
 
 ```bash
-# Run on host system for development
-python -m tools.mcp.gemini.server
+# Run in STDIO mode (for local Claude Desktop) - Recommended
+mcp-gemini --mode stdio
 
-# Or use HTTP mode
-python -m tools.mcp.gemini.server --mode http
+# Or standalone HTTP mode for remote access
+mcp-gemini --mode standalone --port 8006
 
-# Or use the helper script
-./tools/mcp/mcp_gemini/scripts/start_server.sh
+# Or use Docker container
+docker compose run --rm mcp-gemini mcp-gemini --mode stdio
 
-# Use containerized version with host auth
-./tools/cli/containers/run_gemini_container.sh
-
-# Or use corporate proxy version (mock mode)
-./automation/corporate-proxy/gemini/gemini
-
-# Test health
+# Test health (HTTP mode)
 curl http://localhost:8006/health
+```
+
+### Building from Source
+
+```bash
+cd tools/mcp/mcp_gemini
+cargo build --release
+# Binary at target/release/mcp-gemini
 ```
 
 ### Available Tools
@@ -125,20 +127,17 @@ curl http://localhost:8006/health
 - **gemini_status** - Get integration status
 - **toggle_gemini_auto_consult** - Control auto-consultation
 
-### Containerization Options
+### Configuration
 
-Gemini CLI is now fully containerized with multiple options:
+Environment variables:
+- `GEMINI_ENABLED` - Enable/disable integration (default: true)
+- `GEMINI_AUTO_CONSULT` - Enable auto-consultation (default: true)
+- `GEMINI_TIMEOUT` - Timeout in seconds (default: 60)
+- `GEMINI_MAX_CONTEXT` - Maximum context length (default: 4000)
+- `GEMINI_AUTH_PATH` - Path to auth directory (default: ~/.gemini)
+- `GEMINI_YOLO_MODE` - Enable auto-approval mode (default: false)
 
-1. **Standard container with host auth**: `tools/cli/containers/run_gemini_container.sh`
-   - Uses your host's `~/.gemini` authentication
-   - Supports YOLO mode for auto-approval
-
-2. **Corporate proxy version**: `automation/corporate-proxy/gemini/`
-   - Full containerization with mock API support
-   - Bypasses Google API validation
-   - Pre-configured authentication
-
-See `tools/mcp/mcp_gemini/docs/README.md` and `automation/corporate-proxy/gemini/README.md` for detailed documentation.
+See `tools/mcp/mcp_gemini/README.md` for detailed documentation.
 
 ## Blender MCP Server
 
@@ -148,13 +147,13 @@ The Blender server provides comprehensive 3D content creation and rendering capa
 
 ```bash
 # Start via Docker Compose (recommended for container-first approach)
-docker-compose up -d mcp-blender
+docker compose up -d mcp-blender
 
 # Or run locally for development
 python -m tools.mcp.blender.server
 
 # View logs
-docker-compose logs -f mcp-blender
+docker compose logs -f mcp-blender
 
 # Test health
 curl http://localhost:8016/health
@@ -184,13 +183,13 @@ The Virtual Character server provides AI agent embodiment in virtual worlds thro
 
 ```bash
 # Start via Docker Compose (recommended for container-first approach)
-docker-compose up -d mcp-virtual-character
+docker compose up -d mcp-virtual-character
 
 # Or run locally for development
 python -m tools.mcp.virtual_character.server
 
 # View logs
-docker-compose logs -f mcp-virtual-character
+docker compose logs -f mcp-virtual-character
 
 # Test health
 curl http://localhost:8020/health
@@ -224,13 +223,13 @@ The Desktop Control server provides cross-platform desktop automation for Linux 
 
 ```bash
 # Start via Docker Compose (recommended - requires X11 access)
-docker-compose up -d mcp-desktop-control
+docker compose up -d mcp-desktop-control
 
 # Or run locally for development
 python -m mcp_desktop_control.server --mode http
 
 # View logs
-docker-compose logs -f mcp-desktop-control
+docker compose logs -f mcp-desktop-control
 
 # Test health
 curl http://localhost:8025/health
@@ -289,7 +288,7 @@ The Gaea2 server provides comprehensive terrain generation capabilities.
 
 ```bash
 # Start via Docker Compose (recommended for container-first approach)
-docker-compose up -d mcp-gaea2
+docker compose up -d mcp-gaea2
 
 # Or run locally for development
 python -m tools.mcp.gaea2.server
@@ -299,7 +298,7 @@ python -m tools.mcp.gaea2.server
 export GAEA2_REMOTE_URL=http://remote-server:8007
 
 # View logs
-docker-compose logs -f mcp-gaea2
+docker compose logs -f mcp-gaea2
 
 # Test health
 curl http://localhost:8007/health
@@ -334,7 +333,7 @@ The AI Toolkit server provides an interface to remote AI Toolkit for LoRA traini
 
 ```bash
 # Start via Docker Compose (if configured)
-docker-compose up -d mcp-ai-toolkit
+docker compose up -d mcp-ai-toolkit
 
 # Or run locally as proxy
 python -m tools.mcp.ai_toolkit.server
@@ -371,7 +370,7 @@ The ComfyUI server provides an interface to remote ComfyUI for AI image generati
 
 ```bash
 # Start via Docker Compose (if configured)
-docker-compose up -d mcp-comfyui
+docker compose up -d mcp-comfyui
 
 # Or run locally as proxy
 python -m tools.mcp.comfyui.server
@@ -412,7 +411,7 @@ mcp-codex --mode standalone --port 8021
 
 # Or use the Docker container (with auth mounted from host)
 # Note: :rw mount is required for Codex session files and history
-docker-compose run --rm -v ~/.codex:/home/user/.codex:rw mcp-codex mcp-codex --mode stdio
+docker compose run --rm -v ~/.codex:/home/user/.codex:rw mcp-codex mcp-codex --mode stdio
 
 # Or use the helper script
 ./tools/cli/agents/run_codex.sh
@@ -450,30 +449,38 @@ Environment variables:
 
 **Authentication**: Requires running `codex auth` first (creates `~/.codex/auth.json`)
 
-## OpenCode MCP Server
+## OpenCode MCP Server (Rust)
 
-The OpenCode server provides AI-powered code generation using OpenRouter API.
+The OpenCode server provides AI-powered code assistance using OpenRouter API. This server has been migrated to Rust for improved performance and lower resource usage.
 
 ### Starting the Server
 
 ```bash
-# Run in STDIO mode (for local Claude Desktop)
-python -m tools.mcp.opencode.server --mode stdio
+# Run in STDIO mode (for local Claude Desktop) - Recommended
+mcp-opencode --mode stdio
 
-# Or HTTP mode for remote access
-python -m tools.mcp.opencode.server --mode http
+# Or standalone HTTP mode for remote access
+mcp-opencode --mode standalone --port 8014
 
-# Or use the helper script
-./tools/utilities/run_opencode.sh
+# Or use Docker container
+docker compose run --rm mcp-opencode mcp-opencode --mode stdio
 
 # Test health (HTTP mode)
 curl http://localhost:8014/health
 ```
 
+### Building from Source
+
+```bash
+cd tools/mcp/mcp_opencode
+cargo build --release
+# Binary at target/release/mcp-opencode
+```
+
 ### Available Tools
 
 - **consult_opencode** - Generate, refactor, review, or explain code
-  - Modes: `generate`, `refactor`, `review`, `explain`
+  - Modes: `generate`, `refactor`, `review`, `explain`, `quick`
   - Supports comparison with previous Claude responses
 - **clear_opencode_history** - Clear conversation history
 - **opencode_status** - Get integration status and statistics
@@ -481,30 +488,42 @@ curl http://localhost:8014/health
 
 ### Configuration
 
-- **Model**: Model-agnostic via OpenRouter
-- **API Key**: Requires `OPENROUTER_API_KEY` environment variable
-- **Modes**: Supports both STDIO (local) and HTTP (remote) modes
+Environment variables:
+- `OPENCODE_ENABLED` - Enable/disable integration (default: true)
+- `OPENCODE_AUTO_CONSULT` - Enable auto-consultation (default: true)
+- `OPENROUTER_API_KEY` - OpenRouter API key (required)
+- `OPENCODE_MODEL` - Model to use (default: qwen/qwen-2.5-coder-32b-instruct)
+- `OPENCODE_TIMEOUT` - Timeout in seconds (default: 300)
+- `OPENCODE_MAX_PROMPT` - Maximum prompt length (default: 8000)
 
 See `tools/mcp/mcp_opencode/README.md` and `docs/integrations/ai-services/ai-code-agents.md` for detailed documentation.
 
-## Crush MCP Server
+## Crush MCP Server (Rust)
 
-The Crush server provides code generation using the OpenRouter API.
+The Crush server provides code generation using the Crush CLI via OpenRouter API. This server has been migrated to Rust for improved performance and lower resource usage.
 
 ### Starting the Server
 
 ```bash
-# Run in STDIO mode (for local Claude Desktop)
-python -m tools.mcp.crush.server --mode stdio
+# Run in STDIO mode (for local Claude Desktop) - Recommended
+mcp-crush --mode stdio
 
-# Or HTTP mode for remote access
-python -m tools.mcp.crush.server --mode http
+# Or standalone HTTP mode for remote access
+mcp-crush --mode standalone --port 8015
 
-# Or use the helper script
-./tools/utilities/run_crush.sh
+# Or use Docker container
+docker compose run --rm mcp-crush mcp-crush --mode stdio
 
 # Test health (HTTP mode)
 curl http://localhost:8015/health
+```
+
+### Building from Source
+
+```bash
+cd tools/mcp/mcp_crush
+cargo build --release
+# Binary at target/release/mcp-crush
 ```
 
 ### Available Tools
@@ -517,9 +536,13 @@ curl http://localhost:8015/health
 
 ### Configuration
 
-- **Model**: Uses models via OpenRouter
-- **API Key**: Requires `OPENROUTER_API_KEY` environment variable
-- **Modes**: Supports both STDIO (local) and HTTP (remote) modes
+Environment variables:
+- `CRUSH_ENABLED` - Enable/disable integration (default: true)
+- `CRUSH_AUTO_CONSULT` - Enable auto-consultation (default: true)
+- `OPENROUTER_API_KEY` - OpenRouter API key (required)
+- `CRUSH_TIMEOUT` - Timeout in seconds (default: 300)
+- `CRUSH_MAX_PROMPT` - Maximum prompt length (default: 4000)
+- `CRUSH_DOCKER_SERVICE` - Docker service name (default: openrouter-agents)
 
 See `tools/mcp/mcp_crush/README.md` and `docs/integrations/ai-services/ai-code-agents.md` for detailed documentation.
 
@@ -531,13 +554,13 @@ The Meme Generator server creates memes from templates with customizable text ov
 
 ```bash
 # The server is configured in .mcp.json and runs automatically through Claude Desktop
-# It uses docker-compose in STDIO mode
+# It uses docker compose in STDIO mode
 
 # For manual testing or development:
-docker-compose run --rm -T mcp-meme-generator python -m tools.mcp.meme_generator.server --mode stdio
+docker compose run --rm -T mcp-meme-generator python -m tools.mcp.meme_generator.server --mode stdio
 
 # View container logs
-docker-compose logs -f mcp-meme-generator
+docker compose logs -f mcp-meme-generator
 ```
 
 ### Available Tools
@@ -572,13 +595,13 @@ The ElevenLabs Speech server provides advanced text-to-speech synthesis with emo
 # It uses STDIO mode for seamless integration
 
 # For HTTP mode (testing/development):
-docker-compose up -d mcp-elevenlabs-speech
+docker compose up -d mcp-elevenlabs-speech
 
 # Or run locally
 python -m tools.mcp.elevenlabs_speech.server --mode http
 
 # View logs
-docker-compose logs -f mcp-elevenlabs-speech
+docker compose logs -f mcp-elevenlabs-speech
 
 # Test health
 curl http://localhost:8018/health
@@ -632,13 +655,13 @@ The Video Editor server provides AI-powered video editing capabilities with auto
 # It uses STDIO mode for seamless integration
 
 # For HTTP mode (testing/development):
-docker-compose up -d mcp-video-editor
+docker compose up -d mcp-video-editor
 
 # Or run locally
 python -m tools.mcp.video_editor.server --mode http
 
 # View logs
-docker-compose logs -f mcp-video-editor
+docker compose logs -f mcp-video-editor
 
 # Test health
 curl http://localhost:8019/health
@@ -772,7 +795,7 @@ mcp-reaction-search --mode standalone --port 8024
 mcp-reaction-search --mode server --port 8024
 
 # Docker
-docker-compose --profile services up -d mcp-reaction-search
+docker compose --profile services up -d mcp-reaction-search
 ```
 
 ### Available Tools
@@ -848,15 +871,21 @@ The modular servers are configured in `.mcp.json`:
       "url": "http://localhost:8013/messages"
     },
     "opencode": {
-      "command": "python",
-      "args": ["-m", "tools.mcp.opencode.server", "--mode", "stdio"]
+      "command": "mcp-opencode",
+      "args": ["--mode", "stdio"],
+      "env": {
+        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}"
+      }
     },
     "crush": {
-      "command": "python",
-      "args": ["-m", "tools.mcp.crush.server", "--mode", "stdio"]
+      "command": "mcp-crush",
+      "args": ["--mode", "stdio"],
+      "env": {
+        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}"
+      }
     },
     "meme-generator": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": [
         "-f", "./docker-compose.yml", "--profile", "services",
         "run", "--rm", "-T", "mcp-meme-generator",
@@ -870,7 +899,7 @@ The modular servers are configured in `.mcp.json`:
 
 **Important Notes**:
 1. Most servers in the actual `.mcp.json` configuration use **STDIO mode through Docker Compose**, not HTTP mode. The configuration above shows a simplified example.
-2. The actual `.mcp.json` uses `docker-compose run` commands to start servers in STDIO mode within containers.
+2. The actual `.mcp.json` uses `docker compose run` commands to start servers in STDIO mode within containers.
 3. Remote servers (Gaea2, AI Toolkit, ComfyUI) use HTTP mode with the `/messages` endpoint.
 4. The `/messages` endpoint is for MCP protocol (JSON-RPC) communication. For direct HTTP API tool execution during development, use the `/mcp/execute` endpoint instead.
 
@@ -904,7 +933,7 @@ For complete examples, see the test scripts in `tools/mcp/*/scripts/test_server.
 sudo lsof -i :8010
 
 # Stop specific container
-docker-compose down mcp-code-quality
+docker compose down mcp-code-quality
 ```
 
 ### Container Permission Issues

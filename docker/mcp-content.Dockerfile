@@ -67,7 +67,7 @@ USER appuser
 # Expose port
 EXPOSE 8011
 
-# Run as host user via docker-compose - no entrypoint needed
+# Run as host user via docker compose - no entrypoint needed
 
 # Run the server
 CMD ["python", "-m", "mcp_content_creation.server", "--mode", "http"]

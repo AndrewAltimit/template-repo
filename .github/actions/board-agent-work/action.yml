@@ -885,7 +885,7 @@ runs:
           opencode)
             if [ "$USE_DOCKER" = "true" ]; then
               echo "Running OpenCode in Docker..."
-              if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
+              if timeout "${AGENT_TIMEOUT}m" docker compose -f "$DOCKER_COMPOSE_FILE" run --rm \
                 -e OPENROUTER_API_KEY \
                 -e PR_TITLE_FILE \
                 -e PR_BODY_FILE \
@@ -911,7 +911,7 @@ runs:
           crush)
             if [ "$USE_DOCKER" = "true" ]; then
               echo "Running Crush in Docker..."
-              if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
+              if timeout "${AGENT_TIMEOUT}m" docker compose -f "$DOCKER_COMPOSE_FILE" run --rm \
                 -e OPENROUTER_API_KEY \
                 -e PR_TITLE_FILE \
                 -e PR_BODY_FILE \
@@ -944,7 +944,7 @@ runs:
             if [ "$USE_DOCKER" = "true" ]; then
               echo "Running Gemini in Docker..."
               # Use array to safely handle paths with spaces
-              DOCKER_CMD=(docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm)
+              DOCKER_CMD=(docker compose -f "$DOCKER_COMPOSE_FILE" run --rm)
               # Mount PR_TITLE_DIR so container can write agent-provided PR titles and bodies
               DOCKER_CMD+=(-e PR_TITLE_FILE -e PR_BODY_FILE -v "$PR_TITLE_DIR:$PR_TITLE_DIR")
               if [ -n "$INPUT_GEMINI_API_KEY" ]; then
@@ -974,7 +974,7 @@ runs:
           codex)
             if [ "$USE_DOCKER" = "true" ]; then
               echo "Running Codex in Docker..."
-              if timeout "${AGENT_TIMEOUT}m" docker-compose -f "$DOCKER_COMPOSE_FILE" run --rm \
+              if timeout "${AGENT_TIMEOUT}m" docker compose -f "$DOCKER_COMPOSE_FILE" run --rm \
                 -e PR_TITLE_FILE \
                 -e PR_BODY_FILE \
                 -v "$PR_TITLE_DIR:$PR_TITLE_DIR" \

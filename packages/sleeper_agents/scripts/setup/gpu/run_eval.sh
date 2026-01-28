@@ -37,7 +37,7 @@ case "$COMMAND" in
     validate)
         echo -e "\n${BLUE}Running foundation validation...${NC}"
         if [ "$GPU_AVAILABLE" = true ]; then
-            docker-compose -f docker/docker-compose.gpu.yml run --rm validate
+            docker compose -f docker/docker-compose.gpu.yml run --rm validate
         else
             python3 scripts/validate_foundation.py
         fi
@@ -46,7 +46,7 @@ case "$COMMAND" in
     test)
         echo -e "\n${BLUE}Running model management tests...${NC}"
         if [ "$GPU_AVAILABLE" = true ]; then
-            docker-compose -f docker/docker-compose.gpu.yml run --rm evaluate
+            docker compose -f docker/docker-compose.gpu.yml run --rm evaluate
         else
             python3 scripts/test_model_management.py
         fi
@@ -56,7 +56,7 @@ case "$COMMAND" in
         MODEL="${2:-gpt2}"
         echo -e "\n${BLUE}Downloading model: ${MODEL}${NC}"
         if [ "$GPU_AVAILABLE" = true ]; then
-            docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
+            docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
                 python3 -c "from models import ModelDownloader; dl = ModelDownloader(); dl.download('$MODEL', show_progress=True)"
         else
             python3 -c "from models import ModelDownloader; dl = ModelDownloader(); dl.download('$MODEL', show_progress=True)"
@@ -66,7 +66,7 @@ case "$COMMAND" in
     shell)
         echo -e "\n${BLUE}Starting interactive shell...${NC}"
         if [ "$GPU_AVAILABLE" = true ]; then
-            docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
+            docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
         else
             echo -e "${YELLOW}GPU not available, starting local shell${NC}"
             /bin/bash
@@ -75,12 +75,12 @@ case "$COMMAND" in
 
     build)
         echo -e "\n${BLUE}Building GPU Docker image...${NC}"
-        docker-compose -f docker/docker-compose.gpu.yml build
+        docker compose -f docker/docker-compose.gpu.yml build
         ;;
 
     clean)
         echo -e "\n${BLUE}Cleaning Docker resources...${NC}"
-        docker-compose -f docker/docker-compose.gpu.yml down -v
+        docker compose -f docker/docker-compose.gpu.yml down -v
         ;;
 
     gpu-info)

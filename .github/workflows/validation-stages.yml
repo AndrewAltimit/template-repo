@@ -79,9 +79,9 @@ jobs:
         if: inputs.stage == 'workflows'
         run: |
           echo "Validating YAML structure of workflow files..."
-          docker-compose build python-ci
+          docker compose build python-ci
 
-          docker-compose run --rm python-ci bash -c '
+          docker compose run --rm python-ci bash -c '
             echo "Checking workflow files in .github/workflows/..."
             workflow_errors=0
 

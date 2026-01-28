@@ -122,10 +122,10 @@ docker run -d \
 
 ```bash
 # CPU evaluation
-docker-compose --profile eval-cpu up sleeper-eval-cpu
+docker compose --profile eval-cpu up sleeper-eval-cpu
 
 # GPU evaluation (requires NVIDIA Docker)
-docker-compose --profile eval-gpu up sleeper-eval-gpu
+docker compose --profile eval-gpu up sleeper-eval-gpu
 ```
 
 ## Windows Quick Start

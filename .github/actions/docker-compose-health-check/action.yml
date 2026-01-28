@@ -36,7 +36,7 @@ runs:
       run: |
         # Use run_id, run_attempt, job name, and optional unique-id for project naming to:
         # 1. Prevent cross-job interference on shared runners (including parallel/matrix jobs)
-        # 2. Prevent ContainerConfig errors (docker-compose v1 incompatibility with newer Docker)
+        # 2. Prevent ContainerConfig errors (docker compose v1 incompatibility with newer Docker)
         #    by ensuring no existing containers to recreate
         # For matrix jobs, callers should pass unique-id: ${{ strategy.job-index }}
         PROJECT_NAME="ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
@@ -75,22 +75,42 @@ runs:
           echo "COMPOSE_PROFILES=$SAFE_PROFILES" >> $GITHUB_ENV
         fi
 
-    - name: Validate docker-compose configuration
+    - name: Validate docker compose configuration
       shell: bash
       env:
         INPUT_SERVICES: ${{ inputs.services }}
       run: |
-        echo "Validating docker-compose configuration..."
-        docker-compose config
+        echo "Validating docker compose configuration..."
+        docker compose config
 
         # Check if any services will be started
-        service_count=$(docker-compose config --services | wc -l | tr -d ' ')
+        service_count=$(docker compose config --services | wc -l | tr -d ' ')
         if [ "$service_count" -eq 0 ] && [ -z "$INPUT_SERVICES" ]; then
           echo "ERROR: No services selected!"
           echo "Either specify services explicitly or set profiles to activate services."
           echo "Available profiles in docker-compose.yml:"
           grep -E "^\s*profiles:" docker-compose.yml | sort -u || echo "No profiles found"
           exit 1
+        fi
+
+    - name: Clean up any stale containers from previous runs
+      shell: bash
+      run: |
+        # Remove any orphaned containers from ALL previous CI runs to prevent port conflicts
+        # This handles the case where a previous run failed without cleanup
+        # We must kill containers from OTHER CI runs too, not just our project
+        echo "Checking for stale CI containers..."
+
+        # First, clean up current project's orphans
+        docker compose down --remove-orphans 2>/dev/null || true
+
+        # Then, remove ALL containers from any CI run (they all start with "ci-")
+        # This prevents port conflicts from stale containers of other runs
+        stale_containers=$(docker ps -a --format "{{.Names}}" | grep -E "^ci-" || true)
+        if [ -n "$stale_containers" ]; then
+          echo "Removing stale CI containers from previous runs:"
+          echo "$stale_containers"
+          echo "$stale_containers" | xargs -r docker rm -f 2>/dev/null || true
         fi
 
     - name: Start services
@@ -110,10 +130,11 @@ runs:
             echo "Starting specific services: $INPUT_SERVICES"
             # shellcheck disable=SC2086 - Word splitting is intentional for service names
             # Use -- to separate options from service names for safety
-            docker-compose up --build -d -- $INPUT_SERVICES
+            # Use --force-recreate to ensure fresh containers
+            docker compose up --build --force-recreate -d -- $INPUT_SERVICES
           else
             echo "Starting all services in active profiles"
-            docker-compose up --build -d
+            docker compose up --build --force-recreate -d
           fi
         else
           echo "Starting services..."
@@ -121,10 +142,11 @@ runs:
             echo "Starting specific services: $INPUT_SERVICES"
             # shellcheck disable=SC2086 - Word splitting is intentional for service names
             # Use -- to separate options from service names for safety
-            docker-compose up -d -- $INPUT_SERVICES
+            # Use --force-recreate to ensure fresh containers
+            docker compose up --force-recreate -d -- $INPUT_SERVICES
           else
             echo "Starting all services in active profiles"
-            docker-compose up -d
+            docker compose up --force-recreate -d
           fi
         fi
 
@@ -159,20 +181,20 @@ runs:
 
         if [ $elapsed -ge "$INPUT_TIMEOUT" ]; then
           echo "Timeout waiting for services to be healthy"
-          docker-compose ps
-          docker-compose logs
-          docker-compose down
+          docker compose ps
+          docker compose logs
+          docker compose down
           exit 1
         fi
 
-        docker-compose ps
+        docker compose ps
 
     - name: Clean up on failure
       if: failure()
       shell: bash
       run: |
         echo "Cleaning up services..."
-        docker-compose down
+        docker compose down
 
     - name: Clean up output directories
       if: always()

@@ -15,7 +15,7 @@ This MCP server provides persistent memory for AI agents, enabling:
 
 1. Start ChromaDB:
 ```bash
-docker-compose --profile memory-chromadb up -d
+docker compose --profile memory-chromadb up -d
 ```
 
 2. The MCP server will auto-connect when invoked via Claude Code.
@@ -158,12 +158,12 @@ pytest tests/ -v
 
 ### Build container
 ```bash
-docker-compose build mcp-agentcore-memory
+docker compose build mcp-agentcore-memory
 ```
 
 ### Run in HTTP mode (for debugging)
 ```bash
-docker-compose --profile memory up -d
+docker compose --profile memory up -d
 curl http://localhost:8023/health
 ```
 

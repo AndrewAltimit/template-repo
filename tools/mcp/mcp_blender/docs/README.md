@@ -58,10 +58,10 @@ MCP Client -> FastAPI Server -> Job Manager -> Blender Subprocess -> File System
 
 ```bash
 # Build
-docker-compose build mcp-blender
+docker compose build mcp-blender
 
 # Start
-docker-compose up -d mcp-blender
+docker compose up -d mcp-blender
 
 # Verify
 curl http://localhost:8017/health
@@ -225,7 +225,7 @@ See [API Reference - Assets](API_REFERENCE.md#asset-management) for supported fo
 
 | Issue | First Step |
 |-------|------------|
-| Server not responding | Check `docker-compose logs mcp-blender` |
+| Server not responding | Check `docker compose logs mcp-blender` |
 | Renders fail | Verify project path and check job error |
 | GPU not detected | Run `nvidia-smi` in container |
 | Jobs stuck in queue | Check concurrent job limit |

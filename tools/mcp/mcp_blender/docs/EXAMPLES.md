@@ -27,7 +27,7 @@ First, ensure the Blender MCP server is running:
 
 ```bash
 # Using Docker (recommended)
-docker-compose up -d mcp-blender
+docker compose up -d mcp-blender
 
 # Or locally
 python -m mcp_blender.server

@@ -55,7 +55,7 @@ Inside the corporate network:
 ```bash
 export COMPANY_API_BASE="https://bedrock.internal.company.com"
 export COMPANY_API_TOKEN="your-actual-token"
-docker-compose up crush-corporate
+docker compose up crush-corporate
 ```
 
 ## Configuration

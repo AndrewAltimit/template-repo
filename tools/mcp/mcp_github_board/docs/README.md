@@ -49,10 +49,10 @@ uvicorn mcp_github_board.server:app --host 0.0.0.0 --port 8022
 
 ```bash
 # Using docker-compose
-docker-compose up -d mcp-github-board
+docker compose up -d mcp-github-board
 
 # View logs
-docker-compose logs -f mcp-github-board
+docker compose logs -f mcp-github-board
 ```
 
 ### STDIO Mode

@@ -104,7 +104,7 @@ echo [INFO] Tests: 4 difficulty scenarios
 echo [INFO] Runtime: ~30 seconds (CPU-only, no GPU needed)
 echo.
 
-docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/benchmark_detectors_comprehensive.py"
+docker compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/benchmark_detectors_comprehensive.py"
 if errorlevel 1 (
     echo.
     echo [FAILED] Synthetic Testing benchmark failed
@@ -130,7 +130,7 @@ echo [INFO] Device: CUDA (RTX 4090)
 echo [INFO] Runtime: ~15 seconds (GPU-accelerated)
 echo.
 
-docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/real_transformer_benchmark.py"
+docker compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/real_transformer_benchmark.py"
 if errorlevel 1 (
     echo.
     echo [FAILED] Transformer Testing benchmark failed
@@ -157,7 +157,7 @@ echo [INFO] Strategies: Subtle, Context, Distributed, Mimicry, Typo
 echo [INFO] Runtime: ~60 seconds (GPU-accelerated)
 echo.
 
-docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/red_team_benchmark.py"
+docker compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/red_team_benchmark.py"
 if errorlevel 1 (
     echo.
     echo [FAILED] Red Team Testing benchmark failed
@@ -174,19 +174,19 @@ REM Quick Mode Benchmarks (Reduced Datasets)
 REM ==================================================
 :run_synthetic_quick
 echo [Synthetic Testing Quick] Running with reduced dataset...
-docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/benchmark_detectors.py"
+docker compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/benchmark_detectors.py"
 if errorlevel 1 exit /b 1
 exit /b 0
 
 :run_transformer_quick
 echo [Transformer Testing Quick] Running with GPU...
-docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/real_transformer_benchmark.py"
+docker compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/real_transformer_benchmark.py"
 if errorlevel 1 exit /b 1
 exit /b 0
 
 :run_redteam_quick
 echo [Red Team Testing Quick] Running with GPU...
-docker-compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/red_team_benchmark.py"
+docker compose run --rm python-ci bash -c "pip install -e packages/sleeper_agents[evaluation] && python packages/sleeper_agents/examples/red_team_benchmark.py"
 if errorlevel 1 exit /b 1
 exit /b 0
 

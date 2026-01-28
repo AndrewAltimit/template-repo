@@ -6,7 +6,7 @@
 
 ```bash
 # Build and start the Blender MCP server
-docker-compose up -d mcp-blender
+docker compose up -d mcp-blender
 
 # Check if it's running
 docker ps | grep mcp-blender
@@ -102,7 +102,7 @@ docker ps -a | grep mcp-blender
 docker logs mcp-blender --tail=50
 
 # Restart container
-docker-compose restart mcp-blender
+docker compose restart mcp-blender
 ```
 
 ### Projects Not Being Created
@@ -133,8 +133,8 @@ deploy:
 
 Then rebuild and restart:
 ```bash
-docker-compose build mcp-blender
-docker-compose up -d mcp-blender
+docker compose build mcp-blender
+docker compose up -d mcp-blender
 ```
 
 ## API Documentation

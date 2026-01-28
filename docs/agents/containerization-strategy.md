@@ -80,11 +80,11 @@ Run the monitor manually in the container:
 
 ```bash
 # For issues
-docker-compose --profile agents run --rm openrouter-agents \
+docker compose --profile agents run --rm openrouter-agents \
   python -m github_agents.cli issue-monitor
 
 # For PRs
-docker-compose --profile agents run --rm openrouter-agents \
+docker compose --profile agents run --rm openrouter-agents \
   python -m github_agents.cli pr-monitor
 ```
 
@@ -147,14 +147,14 @@ claude --help
 gemini --help
 
 # Containerized agents
-docker-compose run --rm openrouter-agents crush run -q "Write a function"
-docker-compose run --rm openrouter-agents python -m github_agents.cli issue-monitor
+docker compose run --rm openrouter-agents crush run -q "Write a function"
+docker compose run --rm openrouter-agents python -m github_agents.cli issue-monitor
 ```
 
 ### Production (Recommended)
 ```bash
 # All agents that can be containerized should be
-docker-compose --profile openrouter up -d
+docker compose --profile openrouter up -d
 
 # Only Claude and Gemini on host
 python -m github_agents.cli issue-monitor

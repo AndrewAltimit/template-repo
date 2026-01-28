@@ -115,14 +115,14 @@ services:
 
 ```bash
 # Build images
-docker-compose build
+docker compose build
 
 # Run CPU evaluation
-docker-compose --profile eval-cpu run --rm sleeper-eval-cpu \
+docker compose --profile eval-cpu run --rm sleeper-eval-cpu \
   python -m packages.sleeper_agents.cli evaluate gpt2
 
 # Run GPU evaluation
-docker-compose --profile eval-gpu run --rm sleeper-eval-gpu \
+docker compose --profile eval-gpu run --rm sleeper-eval-gpu \
   python -m packages.sleeper_agents.cli evaluate gpt2 --gpu
 ```
 

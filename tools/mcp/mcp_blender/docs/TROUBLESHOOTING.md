@@ -22,13 +22,13 @@ curl -s http://localhost:8017/health | jq
 
 ```bash
 # View recent logs
-docker-compose logs --tail=100 mcp-blender
+docker compose logs --tail=100 mcp-blender
 
 # Follow logs in real-time
-docker-compose logs -f mcp-blender
+docker compose logs -f mcp-blender
 
 # Check for errors only
-docker-compose logs mcp-blender 2>&1 | grep -i error
+docker compose logs mcp-blender 2>&1 | grep -i error
 ```
 
 ---
@@ -49,7 +49,7 @@ docker-compose logs mcp-blender 2>&1 | grep -i error
 docker ps -a | grep mcp-blender
 
 # View startup logs
-docker-compose logs mcp-blender | head -50
+docker compose logs mcp-blender | head -50
 ```
 
 **Common causes and solutions:**
@@ -57,7 +57,7 @@ docker-compose logs mcp-blender | head -50
 | Cause | Solution |
 |-------|----------|
 | Port conflict | Change PORT in docker-compose.yml |
-| Missing dependencies | Rebuild: `docker-compose build --no-cache mcp-blender` |
+| Missing dependencies | Rebuild: `docker compose build --no-cache mcp-blender` |
 | Permission errors | Check volume mount permissions |
 | Blender not found | Verify Dockerfile installs Blender |
 
@@ -70,7 +70,7 @@ docker-compose logs mcp-blender | head -50
 **Diagnosis:**
 ```bash
 # Check server logs for exceptions
-docker-compose logs mcp-blender 2>&1 | grep -A 10 "Traceback"
+docker compose logs mcp-blender 2>&1 | grep -A 10 "Traceback"
 ```
 
 **Common causes and solutions:**
@@ -105,7 +105,7 @@ docker exec mcp-blender cat /app/jobs/*.job 2>/dev/null | jq
 
 1. Check if max concurrent jobs reached (default: 4)
 2. Cancel stuck jobs and retry
-3. Restart server: `docker-compose restart mcp-blender`
+3. Restart server: `docker compose restart mcp-blender`
 
 #### Renders fail immediately
 
@@ -120,7 +120,7 @@ curl -s http://localhost:8017/tools/get_job_result \
   -d '{"job_id": "YOUR_JOB_ID"}' | jq '.error'
 
 # Check Blender logs
-docker-compose logs mcp-blender 2>&1 | grep "Blender"
+docker compose logs mcp-blender 2>&1 | grep "Blender"
 ```
 
 **Common causes:**
@@ -183,7 +183,7 @@ sudo systemctl restart docker
 
 2. Run with GPU profile:
 ```bash
-docker-compose --profile gpu up mcp-blender
+docker compose --profile gpu up mcp-blender
 ```
 
 3. Verify runtime configuration:
@@ -378,13 +378,13 @@ docker exec mcp-blender blender --version
 
 ```bash
 # Count errors
-docker-compose logs mcp-blender 2>&1 | grep -c ERROR
+docker compose logs mcp-blender 2>&1 | grep -c ERROR
 
 # Recent warnings
-docker-compose logs mcp-blender 2>&1 | grep WARN | tail -20
+docker compose logs mcp-blender 2>&1 | grep WARN | tail -20
 
 # Render job logs
-docker-compose logs mcp-blender 2>&1 | grep -A 5 "render"
+docker compose logs mcp-blender 2>&1 | grep -A 5 "render"
 ```
 
 ---

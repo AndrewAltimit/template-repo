@@ -37,7 +37,7 @@ echo 'ELEVENLABS_API_KEY=your_api_key_here' >> .env
 python -m mcp_elevenlabs_speech.server
 
 # Or with Docker
-docker-compose up -d mcp-elevenlabs-speech
+docker compose up -d mcp-elevenlabs-speech
 ```
 
 ### 3. Test the Server

@@ -73,7 +73,7 @@ def _check_files(base_path: Path, required_files: Dict[str, List[str]], errors: 
 
 
 def _check_docker_config(root_path: Path, errors: List[str], warnings: List[str]) -> None:
-    """Check Docker files and docker-compose configuration."""
+    """Check Docker files and docker compose configuration."""
     print()
     print("Checking Docker configuration...")
     docker_files = [
@@ -139,7 +139,7 @@ def _print_validation_summary(errors: List[str], warnings: List[str]) -> bool:
         print("2. Run on Windows with GPU:")
         print("   .\\automation\\sleeper-agents\\windows\\launch_gpu.ps1")
         print("3. Or test locally with CPU:")
-        print("   docker-compose --profile detection up mcp-sleeper-agents")
+        print("   docker compose --profile detection up mcp-sleeper-agents")
         return True
 
     if errors:

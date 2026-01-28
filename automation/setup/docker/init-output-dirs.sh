@@ -1,6 +1,6 @@
 #!/bin/bash
 # Pre-create output directories with correct ownership for Docker bind mounts
-# This prevents docker-compose from creating them as root when run with sudo
+# This prevents docker compose from creating them as root when run with sudo
 
 set -e
 

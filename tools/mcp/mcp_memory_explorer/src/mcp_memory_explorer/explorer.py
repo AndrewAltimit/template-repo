@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import ctypes
 import ctypes.wintypes
-from dataclasses import dataclass, field
-import re
+from dataclasses import dataclass
 import struct
 from typing import Any
 

@@ -97,9 +97,9 @@ exit /b 1
 
 :train_exec
 REM Pass all arguments except %1 (the command name)
-echo Running: docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %2 %3 %4 %5 %6 %7 %8 %9
+echo Running: docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %2 %3 %4 %5 %6 %7 %8 %9
 echo.
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %2 %3 %4 %5 %6 %7 %8 %9
+docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_simple
@@ -121,7 +121,7 @@ IF NOT "%2"=="--model-path" (
     echo.
     exit /b 1
 )
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/evaluation/backdoor_validation.py %2 %3 %4 %5 %6 %7 %8 %9
+docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/evaluation/backdoor_validation.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_full
@@ -135,7 +135,7 @@ echo.
 echo WARNING: This script needs refactoring for backdoored models.
 echo Use 'simple' command for now.
 echo.
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/evaluation/comprehensive_test.py %2 %3 %4 %5 %6 %7 %8 %9
+docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/evaluation/comprehensive_test.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_deception
@@ -163,7 +163,7 @@ IF NOT "%2"=="--model-path" (
     echo.
     exit /b 1
 )
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_probes.py %2 %3 %4 %5 %6 %7 %8 %9
+docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_probes.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_sft
@@ -183,7 +183,7 @@ IF NOT "%2"=="--model-path" (
     echo.
     exit /b 1
 )
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/safety_training.py --method sft --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
+docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/safety_training.py --method sft --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_ppo
@@ -203,7 +203,7 @@ IF NOT "%2"=="--model-path" (
     echo.
     exit /b 1
 )
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/safety_training.py --method rl --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
+docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/safety_training.py --method rl --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_persist
@@ -223,7 +223,7 @@ IF ERRORLEVEL 1 (
     echo.
     exit /b 1
 )
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/evaluation/backdoor_validation.py %2 %3 %4 %5 %6 %7 %8 %9
+docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/evaluation/backdoor_validation.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_compare
@@ -253,7 +253,7 @@ GOTO :end
 echo ========================================
 echo Opening Container Shell
 echo ========================================
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu bash
+docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu bash
 GOTO :end
 
 :end

@@ -4,7 +4,6 @@ services:
     build:
       context: .
       dockerfile: docker/mcp-code-quality.Dockerfile
-    container_name: mcp-code-quality
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8010:8010"
@@ -32,7 +31,6 @@ services:
     build:
       context: .
       dockerfile: docker/mcp-content.Dockerfile
-    container_name: mcp-content-creation
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8011:8011"
@@ -62,7 +60,6 @@ services:
     build:
       context: .
       dockerfile: docker/mcp-meme.Dockerfile
-    container_name: mcp-meme-generator
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8016:8016"
@@ -91,7 +88,6 @@ services:
     build:
       context: .
       dockerfile: docker/mcp-github-board.Dockerfile
-    container_name: mcp-github-board
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8022:8022"
@@ -122,7 +118,6 @@ services:
     build:
       context: .
       dockerfile: docker/mcp-video-editor.Dockerfile
-    container_name: mcp-video-editor
     # Note: user directive removed - entrypoint handles user switching after permission setup
     ports:
       - "8019:8019"
@@ -173,7 +168,6 @@ services:
     build:
       context: .
       dockerfile: docker/elevenlabs.Dockerfile
-    container_name: mcp-elevenlabs-speech
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8018:8018"
@@ -205,7 +199,6 @@ services:
     build:
       context: .
       dockerfile: docker/blender-mcp.Dockerfile
-    container_name: mcp-blender
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8017:8017"
@@ -246,7 +239,6 @@ services:
     build:
       context: .
       dockerfile: docker/mcp-gaea2.Dockerfile
-    container_name: mcp-gaea2
     # Note: user directive removed - entrypoint handles user switching after permission setup
     ports:
       - "8007:8007"
@@ -277,7 +269,6 @@ services:
     build:
       context: .
       dockerfile: docker/sleeper-evaluation-cpu.Dockerfile
-    container_name: sleeper-eval-cpu
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/app:ro
@@ -291,7 +282,7 @@ services:
     networks:
       - mcp-network
     # Default: Run CLI test for validation.
-    # To run API server instead: docker-compose run --rm sleeper-eval-cpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8022
+    # To run API server instead: docker compose run --rm sleeper-eval-cpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8022
     command: ["python", "-m", "sleeper_agents.cli", "test", "--cpu"]
     profiles:
       - evaluation
@@ -302,7 +293,6 @@ services:
     build:
       context: .
       dockerfile: docker/sleeper-evaluation.Dockerfile
-    container_name: sleeper-eval-gpu
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/app:ro
@@ -318,7 +308,7 @@ services:
     networks:
       - mcp-network
     # Default: Run model evaluation.
-    # To run API server instead: docker-compose run --rm sleeper-eval-gpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8022
+    # To run API server instead: docker compose run --rm sleeper-eval-gpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8022
     command: ["python", "-m", "sleeper_agents.cli", "evaluate", "--gpu"]
     deploy:
       resources:
@@ -337,7 +327,6 @@ services:
     build:
       context: ./packages/sleeper_agents/dashboard
       dockerfile: Dockerfile
-    container_name: sleeper-dashboard
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8501:8501"
@@ -372,7 +361,6 @@ services:
       args:
         USER_ID: "${USER_ID:-1000}"
         GROUP_ID: "${GROUP_ID:-1000}"
-    container_name: mcp-gemini
     volumes:
       - ~/.gemini:/home/geminiuser/.gemini  # Mount host Gemini credentials directory
       - ./:/workspace:ro  # Mount workspace for file access (read-only)
@@ -405,7 +393,6 @@ services:
     build:
       context: .
       dockerfile: docker/mcp-virtual-character.Dockerfile
-    container_name: mcp-virtual-character
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8020:8020"
@@ -439,7 +426,6 @@ services:
     build:
       context: .
       dockerfile: docker/ai-toolkit.Dockerfile
-    container_name: ai-toolkit
     runtime: nvidia
     ports:
       - "8675:8675"   # Web UI (Next.js app)
@@ -476,7 +462,6 @@ services:
       context: .
       # Use COMFYUI_DOCKERFILE env var for architecture-specific builds (arm64 vs x86_64)
       dockerfile: ${COMFYUI_DOCKERFILE:-docker/comfyui.Dockerfile}
-    container_name: comfyui
     runtime: nvidia
     user: "${USER_ID}:${GROUP_ID}"
     ports:
@@ -525,29 +510,26 @@ services:
       - gpu
 
 
-  # OpenCode MCP Server
+  # OpenCode MCP Server (Rust)
   mcp-opencode:
     build:
       context: .
       dockerfile: docker/mcp-opencode.Dockerfile
-    container_name: mcp-opencode
-    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     ports:
       - "8014:8014"
     volumes:
       - ./:/app:ro
-      - /tmp:/tmp
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      - PYTHONUNBUFFERED=1
       - PORT=8014
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - OPENCODE_ENABLED=${OPENCODE_ENABLED:-true}
       - OPENCODE_MODEL=${OPENCODE_MODEL:-qwen/qwen-2.5-coder-32b-instruct}
-      - RUNNING_IN_DOCKER=true
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_opencode.server", "--mode", "http"]
+    command: ["mcp-opencode", "--mode", "standalone", "--port", "8014"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8014/health"]
@@ -558,29 +540,25 @@ services:
     profiles:
       - services
 
-  # Crush MCP Server
+  # Crush MCP Server (Rust)
   mcp-crush:
     build:
       context: .
       dockerfile: docker/mcp-crush.Dockerfile
-    container_name: mcp-crush
-    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     ports:
       - "8015:8015"
     volumes:
       - ./:/app:ro
-      - /tmp:/tmp
-      - crush-data:/home/node/.crush
-      - crush-local-data:/home/node/.local/share/crush
-      - crush-cache:/home/node/.cache/crush
     environment:
-      - PYTHONUNBUFFERED=1
       - PORT=8015
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - CRUSH_ENABLED=${CRUSH_ENABLED:-true}
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_crush.server", "--mode", "http"]
+    command: ["mcp-crush", "--mode", "standalone", "--port", "8015"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8015/health"]
@@ -599,7 +577,6 @@ services:
       dockerfile: docker/codex.Dockerfile
       args:
         MODE: mcp
-    container_name: mcp-codex
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8021:8021"
@@ -632,7 +609,6 @@ services:
     build:
       context: .
       dockerfile: docker/ai-agents.Dockerfile
-    container_name: ai-agents
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/workspace
@@ -646,7 +622,7 @@ services:
     networks:
       - mcp-network
     # Default to interactive mode for development
-    # Override with docker-compose run for specific agent commands
+    # Override with docker compose run for specific agent commands
     command: ["/bin/bash"]
     tty: true
     stdin_open: true
@@ -663,7 +639,6 @@ services:
       args:
         OPENCODE_IMAGE: template-repo-mcp-opencode:latest
         CRUSH_IMAGE: template-repo-mcp-crush:latest
-    container_name: openrouter-agents
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/workspace
@@ -692,7 +667,6 @@ services:
       dockerfile: docker/codex.Dockerfile
       args:
         MODE: agent
-    container_name: codex-agent
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/workspace
@@ -720,7 +694,6 @@ services:
     build:
       context: .
       dockerfile: docker/texlive.Dockerfile
-    container_name: texlive
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/data
@@ -736,7 +709,6 @@ services:
     build:
       context: .
       dockerfile: docker/python-ci.Dockerfile
-    container_name: python-ci
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/app
@@ -764,7 +736,6 @@ services:
     build:
       context: .
       dockerfile: docker/rust-ci.Dockerfile
-    container_name: rust-ci
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - .:/app
@@ -787,7 +758,6 @@ services:
     build:
       context: .
       dockerfile: docker/rust-ci-nightly.Dockerfile
-    container_name: rust-ci-nightly
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - .:/app
@@ -810,7 +780,6 @@ services:
     build:
       context: .
       dockerfile: docker/terraform-ci.Dockerfile
-    container_name: terraform-ci
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - .:/workspace
@@ -833,7 +802,6 @@ services:
   # Optional PostgreSQL for future use
   postgres:
     image: postgres:15-alpine
-    container_name: mcp-postgres
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-mcp}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-mcp_password}
@@ -856,7 +824,6 @@ services:
   # Optional Redis for caching
   redis:
     image: redis:7-alpine
-    container_name: mcp-redis
     ports:
       - "6379:6379"
     networks:
@@ -876,7 +843,6 @@ services:
     build:
       context: ./tools/mcp/mcp_virtual_character/storage_service
       dockerfile: Dockerfile
-    container_name: vc-storage
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8021:8021"
@@ -901,7 +867,6 @@ services:
     build:
       context: .
       dockerfile: automation/corporate-proxy/crush/docker/Dockerfile
-    container_name: crush-proxy
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8051:8051"  # Crush proxy port
@@ -930,7 +895,6 @@ services:
     build:
       context: .
       dockerfile: automation/corporate-proxy/opencode/docker/Dockerfile
-    container_name: opencode-proxy
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8052:8052"  # OpenCode proxy port
@@ -959,7 +923,6 @@ services:
     build:
       context: .
       dockerfile: automation/corporate-proxy/gemini/docker/Dockerfile
-    container_name: gemini-proxy
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8053:8053"  # Gemini proxy port
@@ -996,10 +959,9 @@ services:
     build:
       context: .
       dockerfile: docker/mcp-agentcore-memory.Dockerfile
-    container_name: mcp-agentcore-memory
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     # Note: ChromaDB dependency is optional - only needed when MEMORY_PROVIDER=chromadb
-    # Start chromadb first with: docker-compose --profile memory-chromadb up -d chromadb
+    # Start chromadb first with: docker compose --profile memory-chromadb up -d chromadb
     ports:
       - "8023:8023"
     volumes:
@@ -1043,7 +1005,6 @@ services:
     build:
       context: ./tools/mcp
       dockerfile: mcp_reaction_search/Dockerfile
-    container_name: mcp-reaction-search
     ports:
       - "8024:8024"
     volumes:
@@ -1071,7 +1032,6 @@ services:
     build:
       context: .
       dockerfile: docker/mcp-desktop-control.Dockerfile
-    container_name: mcp-desktop-control
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/app:ro
@@ -1100,10 +1060,9 @@ services:
       - desktop
 
   # ChromaDB - Self-hosted vector database for memory
-  # Start with: docker-compose --profile memory-chromadb up -d
+  # Start with: docker compose --profile memory-chromadb up -d
   chromadb:
     image: chromadb/chroma:0.5.23
-    container_name: chromadb
     ports:
       - "8000:8000"
     volumes:

@@ -853,13 +853,13 @@ Enable debug logging:
 
 ```bash
 export LOG_LEVEL=DEBUG
-docker-compose up mcp-server
+docker compose up mcp-server
 ```
 
 View logs:
 
 ```bash
-docker-compose logs -f mcp-server
+docker compose logs -f mcp-server
 ```
 
 ## API Reference

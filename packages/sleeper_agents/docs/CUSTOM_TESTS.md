@@ -307,7 +307,7 @@ jobs:
 
       - name: Run custom test suite
         run: |
-          docker-compose run --rm sleeper-eval-cpu \
+          docker compose run --rm sleeper-eval-cpu \
             pytest packages/sleeper_agents/tests/custom/ \
             -v --tb=short --report-log=test_results.json
 

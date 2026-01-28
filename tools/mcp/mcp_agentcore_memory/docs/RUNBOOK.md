@@ -23,7 +23,7 @@ This runbook covers operational procedures for managing the AgentCore Memory sys
 # Use memory_status tool
 
 # Via CLI (containerized)
-docker-compose --profile memory run --rm mcp-agentcore-memory python -c "
+docker compose --profile memory run --rm mcp-agentcore-memory python -c "
 import asyncio
 from mcp_agentcore_memory.providers.factory import get_provider
 
@@ -77,11 +77,11 @@ https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#dashbo
 
 ```bash
 # Create CloudWatch dashboard and alarms (containerized)
-docker-compose --profile memory run --rm mcp-agentcore-memory \
+docker compose --profile memory run --rm mcp-agentcore-memory \
   python scripts/setup_cloudwatch.py create
 
 # With SNS notifications
-docker-compose --profile memory run --rm mcp-agentcore-memory \
+docker compose --profile memory run --rm mcp-agentcore-memory \
   python scripts/setup_cloudwatch.py create \
   --sns-topic arn:aws:sns:us-east-1:ACCOUNT:alerts
 ```
@@ -383,7 +383,7 @@ Enable debug logging:
 
 ```bash
 # Run server with debug (containerized)
-docker-compose --profile memory run --rm \
+docker compose --profile memory run --rm \
   -e LOG_LEVEL=DEBUG \
   mcp-agentcore-memory \
   python -m mcp_agentcore_memory.server --mode http --log-level DEBUG
@@ -401,7 +401,7 @@ If AgentCore is experiencing issues:
 2. **Fallback to ChromaDB**:
    ```bash
    # Update .mcp.json or environment
-   MEMORY_PROVIDER=chromadb docker-compose up -d mcp-agentcore-memory
+   MEMORY_PROVIDER=chromadb docker compose up -d mcp-agentcore-memory
    ```
 3. **Disable memory features** in agents (graceful degradation already implemented)
 
@@ -460,6 +460,6 @@ docker run --rm -v ~/.aws:/root/.aws:ro -e AWS_PROFILE=agentcore \
   --memory-id ${AGENTCORE_MEMORY_ID}
 
 # Check budget status (containerized)
-docker-compose --profile memory run --rm mcp-agentcore-memory \
+docker compose --profile memory run --rm mcp-agentcore-memory \
   python scripts/setup_cost_alerts.py status
 ```

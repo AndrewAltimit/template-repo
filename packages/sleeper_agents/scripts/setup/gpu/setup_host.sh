@@ -49,15 +49,15 @@ docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi
 echo -e "\n${BLUE}Step 3: Building GPU Docker Image${NC}"
 # Navigate up 3 levels from scripts/setup/gpu/ to sleeper_agents/
 cd "$(dirname "$(dirname "$(dirname "$0")")")"
-docker-compose -f docker/docker-compose.gpu.yml build
+docker compose -f docker/docker-compose.gpu.yml build
 
 # Step 4: Run validation
 echo -e "\n${BLUE}Step 4: Running Foundation Validation on GPU${NC}"
-docker-compose -f docker/docker-compose.gpu.yml run --rm validate
+docker compose -f docker/docker-compose.gpu.yml run --rm validate
 
 # Step 5: Test resource detection
 echo -e "\n${BLUE}Step 5: Testing Resource Detection${NC}"
-docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
+docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
     python3 -c "
 from models import get_resource_manager
 rm = get_resource_manager()
@@ -77,7 +77,7 @@ echo -e "\n${BLUE}Step 6: Test Model Download${NC}"
 read -p "Download gpt2 model for testing? (y/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
+    docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
         python3 -c "
 from models import ModelDownloader
 dl = ModelDownloader()

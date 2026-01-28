@@ -134,7 +134,7 @@ export GROUP_ID=$(id -g)
 ./automation/ci-cd/run-ci.sh format
 
 # Container with user permissions
-docker-compose run --rm --user "${USER_ID}:${GROUP_ID}" python-ci command
+docker compose run --rm --user "${USER_ID}:${GROUP_ID}" python-ci command
 ```
 
 ### Bad Patterns

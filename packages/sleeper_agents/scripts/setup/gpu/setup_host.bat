@@ -50,24 +50,24 @@ echo.
 echo Step 3: Building GPU Docker Image
 REM Navigate up 3 levels from scripts\setup\gpu\ to sleeper_agents\
 cd /d "%~dp0..\..\..\"
-docker-compose -f docker/docker-compose.gpu.yml build
+docker compose -f docker/docker-compose.gpu.yml build
 
 REM Step 4: Run validation
 echo.
 echo Step 4: Running Foundation Validation on GPU
-docker-compose -f docker/docker-compose.gpu.yml run --rm validate
+docker compose -f docker/docker-compose.gpu.yml run --rm validate
 
 REM Step 5: Test resource detection
 echo.
 echo Step 5: Testing Resource Detection
-docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu python3 -c "from models import get_resource_manager; rm = get_resource_manager(); rm.print_system_info(); print('\n=== RTX 4090 Compatibility ==='); from models import get_registry; registry = get_registry(); [print(f'{model.short_name:20} {rm.recommend_quantization(model.estimated_vram_gb).value:8} batch={rm.get_optimal_batch_size(model.estimated_vram_gb)}') for model in registry.list_rtx4090_compatible()]"
+docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu python3 -c "from models import get_resource_manager; rm = get_resource_manager(); rm.print_system_info(); print('\n=== RTX 4090 Compatibility ==='); from models import get_registry; registry = get_registry(); [print(f'{model.short_name:20} {rm.recommend_quantization(model.estimated_vram_gb).value:8} batch={rm.get_optimal_batch_size(model.estimated_vram_gb)}') for model in registry.list_rtx4090_compatible()]"
 
 REM Step 6: Download a test model
 echo.
 echo Step 6: Test Model Download
 set /p REPLY="Download gpt2 model for testing? (y/n) "
 if /i "!REPLY!"=="y" (
-    docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu python3 -c "from models import ModelDownloader; dl = ModelDownloader(); path, quant = dl.download_with_fallback('gpt2', max_vram_gb=24.0, show_progress=True); print(f'\nDownloaded to: {path}'); print(f'Quantization: {quant or \"none\"}')"
+    docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu python3 -c "from models import ModelDownloader; dl = ModelDownloader(); path, quant = dl.download_with_fallback('gpt2', max_vram_gb=24.0, show_progress=True); print(f'\nDownloaded to: {path}'); print(f'Quantization: {quant or \"none\"}')"
 )
 
 echo.

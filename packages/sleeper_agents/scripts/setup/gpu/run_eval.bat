@@ -59,7 +59,7 @@ REM ============================================================
 echo.
 echo Running foundation validation...
 if "!GPU_AVAILABLE!"=="true" (
-    docker-compose -f docker\docker-compose.gpu.yml run --rm validate
+    docker compose -f docker\docker-compose.gpu.yml run --rm validate
 ) else (
     python scripts\validate_foundation.py
 )
@@ -69,7 +69,7 @@ goto :success
 echo.
 echo Running model management tests...
 if "!GPU_AVAILABLE!"=="true" (
-    docker-compose -f docker\docker-compose.gpu.yml run --rm evaluate
+    docker compose -f docker\docker-compose.gpu.yml run --rm evaluate
 ) else (
     python scripts\test_model_management.py
 )
@@ -81,7 +81,7 @@ if "!MODEL!"=="" set MODEL=gpt2
 echo.
 echo Downloading model: !MODEL!
 if "!GPU_AVAILABLE!"=="true" (
-    docker-compose -f docker\docker-compose.gpu.yml run --rm sleeper-eval-gpu python3 -c "from models import ModelDownloader; dl = ModelDownloader(); dl.download('!MODEL!', show_progress=True)"
+    docker compose -f docker\docker-compose.gpu.yml run --rm sleeper-eval-gpu python3 -c "from models import ModelDownloader; dl = ModelDownloader(); dl.download('!MODEL!', show_progress=True)"
 ) else (
     python -c "from models import ModelDownloader; dl = ModelDownloader(); dl.download('!MODEL!', show_progress=True)"
 )
@@ -91,7 +91,7 @@ goto :success
 echo.
 echo Starting interactive shell...
 if "!GPU_AVAILABLE!"=="true" (
-    docker-compose -f docker\docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
+    docker compose -f docker\docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
 ) else (
     echo [WARNING] GPU not available, starting local shell
     cmd
@@ -101,13 +101,13 @@ goto :success
 :build_handler
 echo.
 echo Building GPU Docker image...
-docker-compose -f docker\docker-compose.gpu.yml build
+docker compose -f docker\docker-compose.gpu.yml build
 goto :success
 
 :clean_handler
 echo.
 echo Cleaning Docker resources...
-docker-compose -f docker\docker-compose.gpu.yml down -v
+docker compose -f docker\docker-compose.gpu.yml down -v
 goto :success
 
 :gpuinfo_handler

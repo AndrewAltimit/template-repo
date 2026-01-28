@@ -254,10 +254,10 @@ scripts\testing\test_pytorch_probe.bat shell
 **Direct Docker Compose:**
 ```bash
 # Run GPU test service
-docker-compose -f docker/docker-compose.gpu.yml run --rm test-pytorch-probe
+docker compose -f docker/docker-compose.gpu.yml run --rm test-pytorch-probe
 
 # Run unit tests in container
-docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
+docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
     pytest tests/test_torch_probe.py tests/test_probe_factory.py -v
 ```
 

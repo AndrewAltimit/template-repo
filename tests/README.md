@@ -17,13 +17,13 @@ This directory contains **integration tests for AI agents and major system workf
 
 ```bash
 # Run all root tests (containerized)
-docker-compose run --rm python-ci pytest tests/ -v
+docker compose run --rm python-ci pytest tests/ -v
 
 # Run a specific test file
-docker-compose run --rm python-ci pytest tests/test_codex_pr_review.py -v
+docker compose run --rm python-ci pytest tests/test_codex_pr_review.py -v
 
 # Run with coverage
-docker-compose run --rm python-ci pytest tests/ -v --cov=. --cov-report=xml
+docker compose run --rm python-ci pytest tests/ -v --cov=. --cov-report=xml
 
 # Quick test via helper script
 ./automation/ci-cd/run-ci.sh test

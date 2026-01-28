@@ -41,7 +41,7 @@ REM Navigate to project root
 cd /d "%~dp0\..\..\..\"
 
 echo Building Docker image...
-docker-compose build sleeper-eval-gpu
+docker compose build sleeper-eval-gpu
 
 if %errorlevel% neq 0 (
     echo ERROR: Failed to build Docker image
@@ -60,6 +60,6 @@ echo   - Vector DB: http://localhost:8024
 echo.
 
 REM Start the GPU-enabled service
-docker-compose --profile eval-gpu up sleeper-eval-gpu sleeper-vectordb
+docker compose --profile eval-gpu up sleeper-eval-gpu sleeper-vectordb
 
 pause

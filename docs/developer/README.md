@@ -42,13 +42,13 @@ All Python operations run in Docker containers:
 
 ```bash
 # Start development containers
-docker-compose up -d
+docker compose up -d
 
 # Run Python commands in container
-docker-compose run --rm python-ci python script.py
+docker compose run --rm python-ci python script.py
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ## Best Practices

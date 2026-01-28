@@ -52,9 +52,9 @@ case $MODE in
             exit 1
         fi
 
-        # Check if docker-compose is installed
-        if ! command -v docker-compose &> /dev/null; then
-            echo -e "${RED}✗ docker-compose is not installed${NC}"
+        # Check if docker compose is installed
+        if ! command -v docker compose &> /dev/null; then
+            echo -e "${RED}✗ docker compose is not installed${NC}"
             exit 1
         fi
 
@@ -68,17 +68,17 @@ case $MODE in
 
         echo ""
         echo "Building containers (this may take a while on first run)..."
-        docker-compose build mcp-ai-toolkit mcp-comfyui
+        docker compose build mcp-ai-toolkit mcp-comfyui
 
         echo ""
         echo "Starting services with profile: $PROFILE"
-        docker-compose --profile "$PROFILE" up -d mcp-ai-toolkit mcp-comfyui
+        docker compose --profile "$PROFILE" up -d mcp-ai-toolkit mcp-comfyui
 
         # Wait for services to be healthy
         echo ""
         echo "Waiting for services to become healthy..."
         for _ in {1..30}; do
-            if docker-compose ps | grep -q healthy; then
+            if docker compose ps | grep -q healthy; then
                 echo -e "${GREEN}✓ Services are healthy${NC}"
                 break
             fi
@@ -100,13 +100,13 @@ case $MODE in
         echo -e "  ${BLUE}MCP Server${NC}: http://0.0.0.0:8013"
         echo ""
         echo "Container status:"
-        docker-compose ps mcp-ai-toolkit mcp-comfyui
+        docker compose ps mcp-ai-toolkit mcp-comfyui
         echo ""
         echo "Commands:"
-        echo "  View logs:    docker-compose logs -f mcp-ai-toolkit mcp-comfyui"
-        echo "  Stop:         docker-compose --profile $PROFILE down"
-        echo "  Restart:      docker-compose --profile $PROFILE restart"
-        echo "  Shell access: docker-compose exec mcp-ai-toolkit bash"
+        echo "  View logs:    docker compose logs -f mcp-ai-toolkit mcp-comfyui"
+        echo "  Stop:         docker compose --profile $PROFILE down"
+        echo "  Restart:      docker compose --profile $PROFILE restart"
+        echo "  Shell access: docker compose exec mcp-ai-toolkit bash"
         ;;
 
     host)

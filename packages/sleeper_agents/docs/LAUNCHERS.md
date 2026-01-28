@@ -92,7 +92,7 @@ This provides an interactive menu with all operations:
 **Windows:**
 ```powershell
 # Launch with Docker Compose (recommended)
-.\packages\sleeper_agents\scripts\platform\windows\launch_dashboard.ps1 -Mode docker-compose -Database mock
+.\packages\sleeper_agents\scripts\platform\windows\launch_dashboard.ps1 -Mode docker compose -Database mock
 
 # Launch locally
 .\packages\sleeper_agents\scripts\platform\windows\launch_dashboard.ps1 -Mode local -OpenBrowser

@@ -63,8 +63,8 @@ This MCP server is designed for **enterprise environments** where AI agents cann
 ## Quick Start
 
 ```bash
-# Using docker-compose (recommended)
-docker-compose up -d mcp-code-quality
+# Using docker compose (recommended)
+docker compose up -d mcp-code-quality
 
 # Or run directly
 python -m mcp_code_quality.server --mode http
@@ -178,16 +178,16 @@ Each linter supports its own configuration format:
 
 ```bash
 # Using docker-compose
-docker-compose up -d mcp-code-quality
+docker compose up -d mcp-code-quality
 
 # View logs
-docker-compose logs -f mcp-code-quality
+docker compose logs -f mcp-code-quality
 
 # Rebuild after changes
-docker-compose build mcp-code-quality
+docker compose build mcp-code-quality
 
 # Access audit logs (persisted in Docker volume)
-docker-compose exec mcp-code-quality cat /var/log/mcp-code-quality/audit.log
+docker compose exec mcp-code-quality cat /var/log/mcp-code-quality/audit.log
 ```
 
 ### Docker Volume for Audit Logs

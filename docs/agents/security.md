@@ -425,7 +425,7 @@ The repository includes an advanced **Sleeper Agents System** for identifying po
 ### Usage
 ```bash
 # Run sleeper agents tests in CI/CD
-docker-compose run --rm sleeper-eval-cpu python -m packages.sleeper_agents.cli evaluate \
+docker compose run --rm sleeper-eval-cpu python -m packages.sleeper_agents.cli evaluate \
   --model "gpt2" --test-suite "robustness"
 ```
 

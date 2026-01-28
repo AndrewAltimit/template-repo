@@ -16,8 +16,8 @@
 ## Quick Start
 
 ```bash
-# Using docker-compose (recommended)
-docker-compose up -d mcp-content-creation
+# Using docker compose (recommended)
+docker compose up -d mcp-content-creation
 
 # Or run directly
 python -m mcp_content_creation.server --mode http
@@ -114,13 +114,13 @@ outputs/mcp-content/
 
 ```bash
 # Start the server
-docker-compose up -d mcp-content-creation
+docker compose up -d mcp-content-creation
 
 # View logs
-docker-compose logs -f mcp-content-creation
+docker compose logs -f mcp-content-creation
 
 # Rebuild after changes
-docker-compose build mcp-content-creation
+docker compose build mcp-content-creation
 ```
 
 ## Testing

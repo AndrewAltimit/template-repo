@@ -509,7 +509,7 @@ def test_tool_list_identical():
 
 ```dockerfile
 # Rust MCP Server Dockerfile
-FROM rust:1.83-slim as builder
+FROM rust:1.93-slim as builder
 WORKDIR /app
 
 # Build dependencies first (caching)

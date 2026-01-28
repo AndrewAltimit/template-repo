@@ -44,7 +44,7 @@ case "$COMMAND" in
     gpu-test)
         echo -e "\n${BLUE}Running PyTorch probe GPU test...${NC}"
         if [ "$GPU_AVAILABLE" = true ]; then
-            docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
+            docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
                 python3 examples/test_pytorch_probe_gpu.py
         else
             echo -e "${RED}ERROR: GPU not available - cannot run GPU tests${NC}"
@@ -55,7 +55,7 @@ case "$COMMAND" in
     unit-test)
         echo -e "\n${BLUE}Running PyTorch probe unit tests (CPU mode)...${NC}"
         if [ "$GPU_AVAILABLE" = true ]; then
-            docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
+            docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
                 pytest tests/test_torch_probe.py tests/test_probe_factory.py -v
         else
             echo -e "${YELLOW}Running locally without GPU${NC}"
@@ -67,11 +67,11 @@ case "$COMMAND" in
         echo -e "\n${BLUE}Running all PyTorch probe tests...${NC}"
         if [ "$GPU_AVAILABLE" = true ]; then
             echo -e "${BLUE}[1/2] Running unit tests...${NC}"
-            docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
+            docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
                 pytest tests/test_torch_probe.py tests/test_probe_factory.py -v
 
             echo -e "\n${BLUE}[2/2] Running GPU end-to-end test...${NC}"
-            docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
+            docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu \
                 python3 examples/test_pytorch_probe_gpu.py
         else
             echo -e "${RED}ERROR: GPU not available - cannot run all tests${NC}"
@@ -82,7 +82,7 @@ case "$COMMAND" in
     shell)
         echo -e "\n${BLUE}Starting interactive shell...${NC}"
         if [ "$GPU_AVAILABLE" = true ]; then
-            docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
+            docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
         else
             echo -e "${YELLOW}GPU not available, starting local shell${NC}"
             /bin/bash
@@ -91,12 +91,12 @@ case "$COMMAND" in
 
     build)
         echo -e "\n${BLUE}Building GPU Docker image...${NC}"
-        docker-compose -f docker/docker-compose.gpu.yml build
+        docker compose -f docker/docker-compose.gpu.yml build
         ;;
 
     clean)
         echo -e "\n${BLUE}Cleaning Docker resources...${NC}"
-        docker-compose -f docker/docker-compose.gpu.yml down -v
+        docker compose -f docker/docker-compose.gpu.yml down -v
         ;;
 
     gpu-info)

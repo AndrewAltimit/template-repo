@@ -84,10 +84,10 @@ Cache files:
 
 ```bash
 # Start the MCP server
-docker-compose up -d mcp-reaction-search
+docker compose up -d mcp-reaction-search
 
 # View logs
-docker-compose logs -f mcp-reaction-search
+docker compose logs -f mcp-reaction-search
 
 # Test health
 curl http://localhost:8024/health
@@ -114,7 +114,7 @@ Or with Docker:
 {
   "mcpServers": {
     "reaction-search": {
-      "command": "docker-compose",
+      "command": "docker compose",
       "args": ["-f", "./docker-compose.yml", "--profile", "services", "run", "--rm", "-T", "mcp-reaction-search", "mcp-reaction-search", "--mode", "stdio"]
     }
   }

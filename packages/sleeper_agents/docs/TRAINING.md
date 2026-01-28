@@ -181,7 +181,7 @@ torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 260.00 MiB...
 4. **Clear GPU memory:**
    ```bash
    # Kill all Python processes
-   docker-compose down
+   docker compose down
    ```
 
 ### Missing PEFT Library
@@ -194,7 +194,7 @@ ModuleNotFoundError: No module named 'peft'
 **Solution:**
 ```bash
 # Rebuild Docker image with updated dependencies
-docker-compose -f docker/docker-compose.gpu.yml build sleeper-eval-gpu --no-cache
+docker compose -f docker/docker-compose.gpu.yml build sleeper-eval-gpu --no-cache
 ```
 
 Or for local installation:

@@ -40,7 +40,7 @@ detect_container_runtime() {
         # Prefer modern 'docker compose' over legacy 'docker-compose'
         if docker compose version &> /dev/null 2>&1; then
             export COMPOSE_RUNTIME="docker compose"
-        elif command -v docker-compose &> /dev/null; then
+        elif command -v docker compose &> /dev/null; then
             export COMPOSE_RUNTIME="docker-compose"
             print_warn "Using legacy docker-compose. Consider upgrading to Docker Compose V2."
         else

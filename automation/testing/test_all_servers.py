@@ -33,13 +33,16 @@ class MCPServerTester:
                 "test_tool": "compile_latex",
                 "test_args": {"content": "Hello \\LaTeX", "template": "article"},
             },
+            # Note: Gemini MCP server has been migrated to Rust
+            # Binary: tools/mcp/mcp_gemini/target/release/mcp-gemini
+            # Test with: mcp-gemini --mode standalone --port 8006
             {
-                "name": "Gemini",
-                "module": "mcp_gemini.server",
+                "name": "Gemini (Rust)",
+                "binary": "tools/mcp/mcp_gemini/target/release/mcp-gemini",
                 "port": 8006,
                 "test_tool": "gemini_status",
                 "test_args": {},
-                "skip_container": True,  # Must run on host
+                "rust_server": True,  # Rust binary, not Python
             },
             {
                 "name": "Gaea2",
@@ -80,14 +83,22 @@ class MCPServerTester:
     async def start_server(self, server_info: dict) -> Optional[subprocess.Popen]:
         """Start an MCP server"""
         if self.is_port_open(int(server_info["port"])):
-            print(f"⚠️  Port {server_info['port']} already in use, skipping {server_info['name']}")
+            print(f"  Port {server_info['port']} already in use, skipping {server_info['name']}")
             return None
 
         if server_info.get("skip_container") and self.is_running_in_container():
-            print(f"⚠️  {server_info['name']} cannot run in container, skipping")
+            print(f"  {server_info['name']} cannot run in container, skipping")
             return None
 
-        cmd = [sys.executable, "-m", server_info["module"], "--mode", "http"]
+        # Handle Rust binary servers
+        if server_info.get("rust_server"):
+            binary_path = Path(__file__).parent.parent.parent / server_info["binary"]
+            if not binary_path.exists():
+                print(f"  Rust binary not found: {binary_path}, skipping {server_info['name']}")
+                return None
+            cmd = [str(binary_path), "--mode", "standalone", "--port", str(server_info["port"])]
+        else:
+            cmd = [sys.executable, "-m", server_info["module"], "--mode", "http"]
 
         print(f"Starting {server_info['name']} server on port {server_info['port']}...")
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

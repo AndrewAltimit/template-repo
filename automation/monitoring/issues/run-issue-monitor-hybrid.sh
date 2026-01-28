@@ -58,16 +58,16 @@ else
 fi
 
 # Check Docker availability (for containerized agents)
-if command -v docker &> /dev/null && command -v docker-compose &> /dev/null; then
-    echo "[INFO] Docker and docker-compose are available"
+if command -v docker &> /dev/null && command -v docker compose &> /dev/null; then
+    echo "[INFO] Docker and docker compose are available"
 
     # Verify openrouter-agents container is available (using the agents profile)
-    if docker-compose --profile agents config --services 2>/dev/null | grep -q "openrouter-agents"; then
+    if docker compose --profile agents config --services 2>/dev/null | grep -q "openrouter-agents"; then
         echo "[INFO] openrouter-agents service found in docker-compose.yml"
 
         # Build the container if needed
         echo "[INFO] Ensuring openrouter-agents container is up to date..."
-        docker-compose --profile agents build openrouter-agents || {
+        docker compose --profile agents build openrouter-agents || {
             echo "[WARNING] Failed to build openrouter-agents container"
             echo "[WARNING] OpenCode and Crush agents will not be available"
         }
@@ -76,7 +76,7 @@ if command -v docker &> /dev/null && command -v docker-compose &> /dev/null; the
         echo "[WARNING] OpenCode and Crush agents will not be available"
     fi
 else
-    echo "[WARNING] Docker or docker-compose not found"
+    echo "[WARNING] Docker or docker compose not found"
     echo "[WARNING] OpenCode and Crush agents will not be available"
 fi
 

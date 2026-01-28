@@ -95,14 +95,14 @@ EOF
 test_docker_permissions() {
     echo "🧪 Testing Docker permissions..."
 
-    # Check if docker-compose is available
-    if ! command -v docker-compose &> /dev/null; then
-        echo "⚠️  docker-compose not found, skipping permission test"
+    # Check if docker compose is available
+    if ! command -v docker compose &> /dev/null; then
+        echo "⚠️  docker compose not found, skipping permission test"
         return 0
     fi
 
     # Test creating a simple container with the user permissions
-    if docker-compose run --rm python-ci bash -c "whoami && id && touch /tmp/test-permission && ls -la /tmp/test-permission" 2>/dev/null; then
+    if docker compose run --rm python-ci bash -c "whoami && id && touch /tmp/test-permission && ls -la /tmp/test-permission" 2>/dev/null; then
         echo "✅ Docker user permissions working correctly"
     else
         echo "⚠️  Docker permission test failed - this may cause issues"
@@ -140,7 +140,7 @@ main() {
     echo ""
 
     # Only test Docker in local environment or if Docker is available
-    if [ "${GITHUB_ACTIONS:-false}" != "true" ] || command -v docker-compose &> /dev/null; then
+    if [ "${GITHUB_ACTIONS:-false}" != "true" ] || command -v docker compose &> /dev/null; then
         test_docker_permissions
         echo ""
     fi

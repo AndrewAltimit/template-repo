@@ -285,7 +285,7 @@ These are not guaranteed and depend on project requirements.
 
 When reporting issues, include:
 
-1. Server logs (`docker-compose logs mcp-blender`)
+1. Server logs (`docker compose logs mcp-blender`)
 2. Request/response JSON
 3. Blender version (from health check)
 4. System specifications (CPU, GPU, RAM)

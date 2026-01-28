@@ -17,11 +17,11 @@ try {
     exit 1
 }
 
-# Check if docker-compose is available
+# Check if docker compose is available
 try {
-    docker-compose --version | Out-Null
+    docker compose --version | Out-Null
 } catch {
-    Write-Host "ERROR: docker-compose not found" -ForegroundColor Red
+    Write-Host "ERROR: docker compose not found" -ForegroundColor Red
     Write-Host "Please ensure Docker Desktop is properly installed"
     Read-Host "Press Enter to exit"
     exit 1
@@ -34,18 +34,18 @@ Set-Location $repoRoot
 
 Write-Host "Building ComfyUI container..." -ForegroundColor Yellow
 Write-Host "This may take a while on first run or after updates"
-docker-compose build mcp-comfyui
+docker compose build mcp-comfyui
 
 Write-Host ""
 Write-Host "Starting ComfyUI container..." -ForegroundColor Yellow
-docker-compose --profile ai-services up -d mcp-comfyui
+docker compose --profile ai-services up -d mcp-comfyui
 
 # Check if the container started successfully
 $running = docker ps --format "table {{.Names}}" | Select-String "comfyui"
 if (-not $running) {
     Write-Host "ERROR: Failed to start ComfyUI container" -ForegroundColor Red
     Write-Host "Check Docker Desktop and try again"
-    docker-compose logs mcp-comfyui
+    docker compose logs mcp-comfyui
     Read-Host "Press Enter to exit"
     exit 1
 }
@@ -93,12 +93,12 @@ Write-Host "ComfyUI is running!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Commands:" -ForegroundColor Yellow
-Write-Host "  View logs:  docker-compose logs -f mcp-comfyui"
-Write-Host "  Stop:       docker-compose --profile ai-services stop mcp-comfyui"
-Write-Host "  Restart:    docker-compose --profile ai-services restart mcp-comfyui"
+Write-Host "  View logs:  docker compose logs -f mcp-comfyui"
+Write-Host "  Stop:       docker compose --profile ai-services stop mcp-comfyui"
+Write-Host "  Restart:    docker compose --profile ai-services restart mcp-comfyui"
 Write-Host ""
 Write-Host "Press any key to view logs (Ctrl+C to exit logs)..." -ForegroundColor Yellow
 Read-Host
 
 # Show logs
-docker-compose logs -f mcp-comfyui
+docker compose logs -f mcp-comfyui

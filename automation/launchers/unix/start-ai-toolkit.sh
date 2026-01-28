@@ -17,9 +17,9 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Check if docker-compose is available
-if ! command -v docker-compose &> /dev/null; then
-    echo -e "\033[31mERROR: docker-compose not found\033[0m"
+# Check if docker compose is available
+if ! command -v docker compose &> /dev/null; then
+    echo -e "\033[31mERROR: docker compose not found\033[0m"
     echo "Please install docker-compose:"
     echo "  https://docs.docker.com/compose/install/"
     exit 1
@@ -32,17 +32,17 @@ cd "$REPO_ROOT" || exit 1
 
 echo -e "\033[33mBuilding AI Toolkit container...\033[0m"
 echo "This may take a while on first run or after updates"
-docker-compose build mcp-ai-toolkit
+docker compose build mcp-ai-toolkit
 
 echo
 echo -e "\033[33mStarting AI Toolkit container...\033[0m"
-docker-compose --profile ai-services up -d mcp-ai-toolkit
+docker compose --profile ai-services up -d mcp-ai-toolkit
 
 # Check if the container started successfully
 if ! docker ps --format "table {{.Names}}" | grep -q "ai-toolkit"; then
     echo -e "\033[31mERROR: Failed to start AI Toolkit container\033[0m"
     echo "Check Docker and try again"
-    docker-compose logs mcp-ai-toolkit
+    docker compose logs mcp-ai-toolkit
     exit 1
 fi
 
@@ -102,12 +102,12 @@ echo -e "\033[32mAI Toolkit is running!\033[0m"
 echo -e "\033[36m========================================\033[0m"
 echo
 echo -e "\033[33mCommands:\033[0m"
-echo "  View logs:  docker-compose logs -f mcp-ai-toolkit"
-echo "  Stop:       docker-compose --profile ai-services stop mcp-ai-toolkit"
-echo "  Restart:    docker-compose --profile ai-services restart mcp-ai-toolkit"
+echo "  View logs:  docker compose logs -f mcp-ai-toolkit"
+echo "  Stop:       docker compose --profile ai-services stop mcp-ai-toolkit"
+echo "  Restart:    docker compose --profile ai-services restart mcp-ai-toolkit"
 echo
 echo "Press Enter to view logs (Ctrl+C to exit logs)..."
 read -r
 
 # Show logs
-docker-compose logs -f mcp-ai-toolkit
+docker compose logs -f mcp-ai-toolkit

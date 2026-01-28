@@ -68,39 +68,46 @@ jobs:
           timeout: '30'
           build: 'false'
 
-      - name: Start Gemini server on host
+      - name: Build and start Gemini server on host
         if: steps.determine_server.outputs.host_only == 'true'
         run: |
-          # Try to create virtual environment, fall back to --user install if venv unavailable
-          if python3 -m venv .venv 2>/dev/null; then
-            echo "[INFO] Virtual environment created successfully"
-            source .venv/bin/activate
-            PYTHON_CMD="$PWD/.venv/bin/python"
-            PIP_USER_FLAG=""
-          else
-            echo "[WARNING] python3-venv not available, using --user install"
-            PYTHON_CMD="python3"
-            PIP_USER_FLAG="--user"
-            export PATH="$HOME/.local/bin:$PATH"
-          fi
+          # Build Rust mcp-gemini binary
+          cd tools/mcp/mcp_gemini
+          cargo build --release
 
-          # Install mcp packages for host execution
-          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./tools/mcp/mcp_core
-          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./tools/mcp/mcp_gemini
-          $PYTHON_CMD -m mcp_gemini.server --mode http &
-          echo $! > gemini.pid
-          sleep 5
+          # Start server in background
+          ./target/release/mcp-gemini --mode standalone --port 8006 &
+          echo $! > ../../../gemini.pid
+
+          # Wait for server to be ready
+          echo "Waiting for Gemini server..."
+          for i in {1..30}; do
+            if curl -f -s http://localhost:8006/health > /dev/null 2>&1; then
+              echo "Gemini server is ready"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Gemini server failed to start"
+              exit 1
+            fi
+            sleep 1
+          done
 
       - name: Execute MCP tool
         id: mcp_tool
+        env:
+          TOOL_NAME: ${{ github.event.inputs.tool_name }}
+          TOOL_ARGS: ${{ github.event.inputs.tool_args }}
+          MCP_PORT: ${{ steps.determine_server.outputs.port }}
         run: |
           python -c "
           import json
+          import os
           import requests
 
-          tool_name = '${{ github.event.inputs.tool_name }}'
-          tool_args = json.loads('${{ github.event.inputs.tool_args }}')
-          port = '${{ steps.determine_server.outputs.port }}'
+          tool_name = os.environ.get('TOOL_NAME', '')
+          tool_args = json.loads(os.environ.get('TOOL_ARGS', '{}'))
+          port = os.environ.get('MCP_PORT', '8010')
 
           response = requests.post(
               f'http://localhost:{port}/mcp/execute',
@@ -157,7 +164,7 @@ jobs:
             rm gemini.pid
           fi
           # || true prevents failure if containers are already stopped/removed
-          docker-compose down --remove-orphans || true
+          docker compose down --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh || echo "Warning: cleanup-outputs.sh failed but continuing"
 
@@ -177,40 +184,49 @@ jobs:
         run: |
           git diff origin/${{ github.base_ref }}...HEAD > pr_changes.diff
 
-      - name: Consult Gemini about changes
+      - name: Build and start Gemini server
         run: |
-          # Try to create virtual environment, fall back to --user install if venv unavailable
-          if python3 -m venv .venv 2>/dev/null; then
-            echo "[INFO] Virtual environment created successfully"
-            source .venv/bin/activate
-            PYTHON_CMD="$PWD/.venv/bin/python"
-            PIP_USER_FLAG=""
-          else
-            echo "[WARNING] python3-venv not available, using --user install"
-            PYTHON_CMD="python3"
-            PIP_USER_FLAG="--user"
-            export PATH="$HOME/.local/bin:$PATH"
-          fi
+          # Build Rust mcp-gemini binary
+          cd tools/mcp/mcp_gemini
+          cargo build --release
 
-          # Install mcp packages for host execution
-          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./tools/mcp/mcp_core
-          $PYTHON_CMD -m pip install $PIP_USER_FLAG -e ./tools/mcp/mcp_gemini
-          # Start Gemini MCP server on host
-          $PYTHON_CMD -m mcp_gemini.server --mode http &
-          GEMINI_PID=$!
-          sleep 5
+          # Start server in background
+          ./target/release/mcp-gemini --mode standalone --port 8006 &
+          echo $! > ../../../gemini.pid
+
+          # Wait for server to be ready
+          echo "Waiting for Gemini server..."
+          for i in {1..30}; do
+            if curl -f -s http://localhost:8006/health > /dev/null 2>&1; then
+              echo "Gemini server is ready"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Gemini server failed to start"
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Consult Gemini about changes
+        env:
+          PR_CHANGES: ${{ '' }}
+        run: |
+          # Read PR changes (truncated for API limits) via environment variable
+          # to avoid shell injection issues with special characters in diffs
+          export PR_CHANGES="$(head -c 5000 pr_changes.diff)"
 
           # Use the MCP server to consult Gemini
-          python -c "
+          python3 -c "
           import json
+          import os
           import requests
 
-          with open('pr_changes.diff', 'r') as f:
-              changes = f.read()
+          changes = os.environ.get('PR_CHANGES', '')
 
           prompt = f'''Review these code changes and provide feedback:
 
-          {changes[:5000]}  # Truncate for API limits
+          {changes}
 
           Focus on:
           1. Potential bugs or issues
@@ -234,11 +250,16 @@ jobs:
           review_text = result.get('result', {}).get('result', 'No review available')
 
           with open('gemini_review.md', 'w') as f:
-              f.write(f'## Gemini AI Code Review\\n\\n{review_text}')
+              f.write(f'## Gemini AI Code Review\n\n{review_text}')
           "
 
-          # Stop Gemini server
-          kill $GEMINI_PID || true
+      - name: Stop Gemini server
+        if: always()
+        run: |
+          if [ -f gemini.pid ]; then
+            kill $(cat gemini.pid) || true
+            rm gemini.pid
+          fi
 
       - name: Post Gemini review
         uses: actions/github-script@v7

@@ -41,7 +41,7 @@ MCP servers support two transport modes that serve fundamentally different purpo
 ### WRONG: Starting HTTP server for Claude
 ```bash
 # This starts HTTP mode - Claude CANNOT use this!
-docker-compose up mcp-content-creation
+docker compose up mcp-content-creation
 ```
 
 ### RIGHT: Claude uses STDIO automatically
@@ -86,11 +86,11 @@ result = mcp__content-creation__compile_latex(content="...")
 Both modes can use the same output directories:
 
 ### STDIO Mode
-The `.mcp.json` configuration uses `docker-compose run` which respects volume mounts:
+The `.mcp.json` configuration uses `docker compose run` which respects volume mounts:
 ```json
 {
   "content-creation": {
-    "command": "docker-compose",
+    "command": "docker compose",
     "args": ["run", "--rm", "-T", "mcp-content-creation", ...]
   }
 }
@@ -124,7 +124,7 @@ Both modes will write to `./outputs/mcp-content/` on the host.
 ## Best Practices
 
 1. **For Claude Code**: Never manually start MCP servers
-2. **For testing/debugging**: Use HTTP mode with `docker-compose up`
+2. **For testing/debugging**: Use HTTP mode with `docker compose up`
 3. **For output files**: Both modes use the same `outputs/` directory
 4. **For development**: Edit servers knowing they support both modes
 

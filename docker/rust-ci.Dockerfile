@@ -5,7 +5,7 @@
 # - Rust 1.90+ (required for edition 2024 and let chains)
 # - Incremental compilation cache
 
-FROM rust:1.90-slim
+FROM rust:1.93-slim
 
 # Install system dependencies with BuildKit cache
 # libx11-dev etc. are needed for the overlay crate

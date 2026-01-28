@@ -69,18 +69,18 @@ if [ "$CONTAINER_CMD" = "podman" ]; then
         echo "podman-compose not found: will use podman run"
     fi
 elif [ "$CONTAINER_CMD" = "docker" ]; then
-    # Check for docker-compose
-    if command -v docker-compose &> /dev/null; then
-        USE_COMPOSE=1
-        COMPOSE_CMD="docker-compose"
-        echo "Found docker-compose: will use docker-compose.yml"
-    # Check for docker compose (v2 syntax)
-    elif docker compose version &> /dev/null; then
+    # Check for docker compose v2 (plugin) first - preferred
+    if docker compose version &> /dev/null; then
         USE_COMPOSE=2
         COMPOSE_CMD="docker compose"
         echo "Found docker compose v2: will use docker-compose.yml"
+    # Check for docker-compose v1 (standalone) as fallback
+    elif command -v docker-compose &> /dev/null; then
+        USE_COMPOSE=1
+        COMPOSE_CMD="docker-compose"
+        echo "Found docker-compose v1: will use docker-compose.yml"
     else
-        echo "docker-compose not found: will use docker run"
+        echo "docker compose not found: will use docker run"
     fi
 fi
 echo ""

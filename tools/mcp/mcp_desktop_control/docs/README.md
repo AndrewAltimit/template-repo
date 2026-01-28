@@ -36,7 +36,7 @@ python -m mcp_desktop_control.server --mode http
 
 ```bash
 # Build and start
-docker-compose up -d mcp-desktop-control
+docker compose up -d mcp-desktop-control
 
 # Note: Requires X11 display access (see Docker section below)
 ```
@@ -139,7 +139,7 @@ xhost +local:docker
 
 ```bash
 # Run unit tests
-docker-compose run --rm python-ci pytest tools/mcp/mcp_desktop_control/tests/ -v
+docker compose run --rm python-ci pytest tools/mcp/mcp_desktop_control/tests/ -v
 
 # Test server directly
 python tools/mcp/mcp_desktop_control/scripts/test_server.py

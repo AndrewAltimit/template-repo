@@ -130,13 +130,13 @@ For more control, use Docker Compose directly:
 
 ```bash
 # Run Black formatter
-docker-compose run --rm python-ci black .
+docker compose run --rm python-ci black .
 
 # Run specific pytest tests
-docker-compose run --rm python-ci pytest tests/test_specific.py -v
+docker compose run --rm python-ci pytest tests/test_specific.py -v
 
 # Run with custom environment
-docker-compose run --rm -e CUSTOM_VAR=value python-ci command
+docker compose run --rm -e CUSTOM_VAR=value python-ci command
 ```
 
 ## Python Cache Prevention
@@ -190,14 +190,14 @@ To add a new Python tool:
    ```bash
    new-stage)
      echo "=== Running new tool ==="
-     docker-compose run --rm python-ci new-tool .
+     docker compose run --rm python-ci new-tool .
      ;;
    ```
 
 3. Rebuild the container:
 
    ```bash
-   docker-compose build python-ci
+   docker compose build python-ci
    ```
 
 ## Troubleshooting
@@ -206,10 +206,10 @@ To add a new Python tool:
 
 ```bash
 # Force rebuild without cache
-docker-compose build --no-cache python-ci
+docker compose build --no-cache python-ci
 
 # Check build logs
-docker-compose build python-ci 2>&1 | tee build.log
+docker compose build python-ci 2>&1 | tee build.log
 ```
 
 ### Permission Issues
@@ -219,14 +219,14 @@ docker-compose build python-ci 2>&1 | tee build.log
 echo "USER_ID=$(id -u) GROUP_ID=$(id -g)"
 
 # Run with explicit user
-USER_ID=$(id -u) GROUP_ID=$(id -g) docker-compose run --rm python-ci command
+USER_ID=$(id -u) GROUP_ID=$(id -g) docker compose run --rm python-ci command
 ```
 
 ### Performance Optimization
 
 ```bash
 # Use BuildKit for faster builds
-DOCKER_BUILDKIT=1 docker-compose build python-ci
+DOCKER_BUILDKIT=1 docker compose build python-ci
 
 # Prune old images
 docker image prune -f
