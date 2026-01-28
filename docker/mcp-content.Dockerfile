@@ -1,6 +1,6 @@
 # Multi-stage Rust build for mcp-content-creation
 # Stage 1: Build the Rust binary
-FROM rust:1.83 AS builder
+FROM rust:1.93 AS builder
 
 WORKDIR /build
 

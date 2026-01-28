@@ -305,13 +305,16 @@ impl CodeQualityEngine {
             }
         }
 
-        let mut cmd: Vec<String> = match linter {
-            Linter::Flake8 => vec!["flake8".to_string(), path.to_string()],
-            Linter::Ruff => vec!["ruff".to_string(), "check".to_string(), path.to_string()],
-            Linter::Eslint => vec!["eslint".to_string(), path.to_string()],
-            Linter::Golint => vec!["golint".to_string(), path.to_string()],
-            Linter::Clippy => vec!["cargo".to_string(), "clippy".to_string()],
+        let (cmd, cwd): (Vec<String>, Option<&str>) = match linter {
+            Linter::Flake8 => (vec!["flake8".to_string(), path.to_string()], None),
+            Linter::Ruff => (vec!["ruff".to_string(), "check".to_string(), path.to_string()], None),
+            Linter::Eslint => (vec!["eslint".to_string(), path.to_string()], None),
+            Linter::Golint => (vec!["golint".to_string(), path.to_string()], None),
+            // Clippy needs to run in the target directory where Cargo.toml is located
+            Linter::Clippy => (vec!["cargo".to_string(), "clippy".to_string()], Some(path)),
         };
+
+        let mut cmd = cmd;
 
         // Add config file if provided
         if let Some(cfg) = config {
@@ -328,7 +331,7 @@ impl CodeQualityEngine {
 
         let cmd_refs: Vec<&str> = cmd.iter().map(|s| s.as_str()).collect();
 
-        match self.run_subprocess(&cmd_refs, None).await {
+        match self.run_subprocess(&cmd_refs, cwd).await {
             Ok((code, stdout, _stderr)) => {
                 let issues: Vec<String> = stdout.lines().map(|s| s.to_string()).collect();
                 let passed = code == 0;
