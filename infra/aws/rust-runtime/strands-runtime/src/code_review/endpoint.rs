@@ -125,8 +125,8 @@ pub async fn invoke_code_review(
     // Step 4: Create the code review agent
     let system_prompt = get_system_prompt(request.apply_fixes, request.create_pr);
 
-    // Create a new model instance for this request
-    let model = BedrockModel::new(&state.model_id, &state.region).await;
+    // Create a new model instance for this request (with AgentCore MMDS credentials)
+    let model = BedrockModel::new_for_agentcore(&state.model_id, &state.region).await;
 
     let agent_config = AgentConfig {
         max_iterations: 20, // Allow enough iterations for JSON retries

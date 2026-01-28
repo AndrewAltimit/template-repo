@@ -57,6 +57,56 @@ impl BedrockModel {
         }
     }
 
+    /// Create a new Bedrock model for AgentCore/Firecracker environments.
+    ///
+    /// This uses MMDS V1 for credentials instead of IMDSv2, which is required
+    /// because Firecracker's MMDS doesn't support the PUT token requests that
+    /// IMDSv2 requires.
+    pub async fn new_for_agentcore(
+        model_id: impl Into<String>,
+        region: impl Into<String>,
+    ) -> Self {
+        use crate::mmds::MmdsCredentialsProvider;
+
+        let region = region.into();
+        let mmds_provider = MmdsCredentialsProvider::new();
+
+        let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
+            .region(aws_config::Region::new(region.clone()))
+            .credentials_provider(mmds_provider)
+            .load()
+            .await;
+
+        tracing::info!(
+            region = %region,
+            "Created BedrockModel with MMDS credentials provider for AgentCore"
+        );
+
+        Self {
+            client: Client::new(&config),
+            model_id: model_id.into(),
+            region,
+        }
+    }
+
+    /// Create a new Bedrock model, automatically detecting the environment.
+    ///
+    /// If running in AgentCore/Firecracker (MMDS available), uses MMDS V1 credentials.
+    /// Otherwise, uses the default AWS credential chain.
+    pub async fn new_auto(model_id: impl Into<String>, region: impl Into<String>) -> Self {
+        let model_id = model_id.into();
+        let region = region.into();
+
+        // Check if we're in an MMDS environment
+        if crate::mmds::is_mmds_available().await {
+            tracing::info!("MMDS detected, using MMDS credentials provider");
+            Self::new_for_agentcore(model_id, region).await
+        } else {
+            tracing::info!("MMDS not detected, using default credentials chain");
+            Self::new(model_id, region).await
+        }
+    }
+
     /// Create with a custom AWS config.
     pub fn with_config(
         config: &aws_config::SdkConfig,

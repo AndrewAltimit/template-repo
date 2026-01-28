@@ -36,6 +36,7 @@ aws-sdk-bedrockagentcore = "1.3"
 aws-sdk-secretsmanager = "1.61"
 aws-smithy-types = "1.2"
 aws-smithy-runtime-api = "1.7"
+aws-credential-types = "1.2"
 
 # HTTP server
 axum = { version = "0.8", features = ["json", "tokio"] }

@@ -114,8 +114,9 @@ impl Server {
             info!(env_var = %var, value = %display_value, "Credential env check");
         }
 
-        // Create the Bedrock model
-        let model = BedrockModel::new(&self.config.model_id, &self.config.region).await;
+        // Create the Bedrock model with AgentCore-compatible credentials
+        // This uses MMDS V1 which works in Firecracker microVMs
+        let model = BedrockModel::new_for_agentcore(&self.config.model_id, &self.config.region).await;
 
         // Build the agent configuration
         let agent_config = AgentConfig {
@@ -148,7 +149,9 @@ impl Server {
         });
 
         // Build router with request logging middleware
+        // Note: AgentCore sends requests to "/" by default for HTTP protocol
         let app = Router::new()
+            .route("/", post(invoke))
             .route("/ping", get(health_check))
             .route("/invocations", post(invoke))
             .route("/code-review", post(invoke_code_review))
@@ -173,8 +176,8 @@ impl Server {
 
     /// Build the router without running (for testing).
     pub async fn build_router(self) -> Result<Router> {
-        // Create the Bedrock model
-        let model = BedrockModel::new(&self.config.model_id, &self.config.region).await;
+        // Create the Bedrock model with AgentCore-compatible credentials
+        let model = BedrockModel::new_for_agentcore(&self.config.model_id, &self.config.region).await;
 
         // Build the agent configuration
         let agent_config = AgentConfig {
