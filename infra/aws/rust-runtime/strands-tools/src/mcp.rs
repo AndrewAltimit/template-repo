@@ -92,9 +92,11 @@ impl Tool for McpToolAdapter {
             task: None,
         };
 
-        let result = self.client.call_tool(request).await.map_err(|e| {
-            StrandsError::tool(&self.name, format!("MCP call failed: {e}"))
-        })?;
+        let result = self
+            .client
+            .call_tool(request)
+            .await
+            .map_err(|e| StrandsError::tool(&self.name, format!("MCP call failed: {e}")))?;
 
         // Check if any content indicates an error
         let is_error = result.is_error.unwrap_or(false);
@@ -126,9 +128,10 @@ impl Tool for McpToolAdapter {
 pub async fn load_mcp_tools(
     client: Arc<RunningService<RoleClient, ()>>,
 ) -> Result<Vec<McpToolAdapter>> {
-    let tools_result = client.list_tools(None).await.map_err(|e| {
-        StrandsError::tool("mcp", format!("Failed to list MCP tools: {e}"))
-    })?;
+    let tools_result = client
+        .list_tools(None)
+        .await
+        .map_err(|e| StrandsError::tool("mcp", format!("Failed to list MCP tools: {e}")))?;
 
     let mut adapters = Vec::new();
     for tool in tools_result.tools {
@@ -143,7 +146,12 @@ pub async fn load_mcp_tools(
         let input_schema = convert_mcp_schema(&tool.input_schema);
 
         debug!(tool = %name, "Loaded MCP tool");
-        adapters.push(McpToolAdapter::new(name, description, input_schema, client.clone()));
+        adapters.push(McpToolAdapter::new(
+            name,
+            description,
+            input_schema,
+            client.clone(),
+        ));
     }
 
     Ok(adapters)
@@ -194,14 +202,11 @@ fn convert_mcp_schema(schema: &serde_json::Map<String, Value>) -> InputSchema {
                         .and_then(|d| d.as_str())
                         .unwrap_or("")
                         .to_string();
-                    let item_enum = item_obj
-                        .get("enum")
-                        .and_then(|e| e.as_array())
-                        .map(|arr| {
-                            arr.iter()
-                                .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                                .collect()
-                        });
+                    let item_enum = item_obj.get("enum").and_then(|e| e.as_array()).map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                            .collect()
+                    });
                     Box::new(PropertySchema {
                         property_type: item_type,
                         description: item_desc,

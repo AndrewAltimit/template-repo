@@ -222,6 +222,4 @@ impl AgentEvent {
 }
 
 /// Type alias for an event stream.
-pub type EventStream = std::pin::Pin<
-    Box<dyn futures::Stream<Item = AgentEvent> + Send>,
->;
+pub type EventStream = std::pin::Pin<Box<dyn futures::Stream<Item = AgentEvent> + Send>>;

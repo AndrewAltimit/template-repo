@@ -19,6 +19,10 @@ use uuid::Uuid;
 pub struct AppState {
     pub agent: Agent,
     pub session_manager: SessionManager,
+    /// Model ID for creating additional agents (e.g., code review)
+    pub model_id: String,
+    /// AWS region for Bedrock
+    pub region: String,
 }
 
 /// Invocation request body.
@@ -115,7 +119,9 @@ pub async fn invoke(
     let invocation_id = Uuid::new_v4().to_string();
 
     // Get or create session
-    let session_id = request.session_id.unwrap_or_else(|| Uuid::new_v4().to_string());
+    let session_id = request
+        .session_id
+        .unwrap_or_else(|| Uuid::new_v4().to_string());
     let mut session = state
         .session_manager
         .get_or_create(&session_id)
@@ -211,7 +217,9 @@ fn map_strands_error(error: StrandsError) -> ErrorResponse {
             code: Some("TOOL_NOT_FOUND".to_string()),
             retryable: false,
         },
-        StrandsError::Tool { tool_name, message, .. } => ErrorResponse {
+        StrandsError::Tool {
+            tool_name, message, ..
+        } => ErrorResponse {
             error: format!("Tool '{}' failed: {}", tool_name, message),
             code: Some("TOOL_ERROR".to_string()),
             retryable: false,

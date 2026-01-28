@@ -8,10 +8,11 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use aws_sdk_bedrockruntime::{
     types::{
-        ContentBlock as BedrockContentBlock, ConversationRole, ConverseOutput as ConverseOutputType,
-        ConverseStreamOutput as StreamEvent, InferenceConfiguration, Message as BedrockMessage,
-        StopReason as BedrockStopReason, SystemContentBlock, Tool, ToolConfiguration,
-        ToolInputSchema, ToolResultBlock, ToolResultContentBlock as BedrockToolResultContentBlock,
+        ContentBlock as BedrockContentBlock, ConversationRole,
+        ConverseOutput as ConverseOutputType, ConverseStreamOutput as StreamEvent,
+        InferenceConfiguration, Message as BedrockMessage, StopReason as BedrockStopReason,
+        SystemContentBlock, Tool, ToolConfiguration, ToolInputSchema, ToolResultBlock,
+        ToolResultContentBlock as BedrockToolResultContentBlock,
         ToolResultStatus as BedrockToolResultStatus, ToolSpecification, ToolUseBlock,
     },
     Client,
@@ -307,9 +308,7 @@ impl BedrockModel {
             aws_smithy_types::Document::Null => serde_json::Value::Null,
             aws_smithy_types::Document::Bool(b) => serde_json::Value::Bool(*b),
             aws_smithy_types::Document::Number(n) => match n {
-                aws_smithy_types::Number::PosInt(i) => {
-                    serde_json::Value::Number((*i).into())
-                }
+                aws_smithy_types::Number::PosInt(i) => serde_json::Value::Number((*i).into()),
                 aws_smithy_types::Number::NegInt(i) => serde_json::Value::Number((*i).into()),
                 aws_smithy_types::Number::Float(f) => serde_json::Number::from_f64(*f)
                     .map(serde_json::Value::Number)

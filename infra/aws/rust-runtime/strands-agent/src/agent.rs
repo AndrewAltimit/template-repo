@@ -17,6 +17,7 @@ use strands_core::{
 };
 
 use crate::conversation::ConversationManager;
+use crate::loop_control::{LoopTerminationSignal, TerminationReceiver};
 use crate::model::{BoxedModel, InferenceConfig, Model, ModelRequest};
 
 /// Configuration for the agent.
@@ -244,7 +245,10 @@ impl Agent {
         mut messages: Messages,
     ) -> Result<(AgentResult, Messages)> {
         let prompt = prompt.into();
-        info!(prompt_len = prompt.len(), "Agent invocation (session-isolated) started");
+        info!(
+            prompt_len = prompt.len(),
+            "Agent invocation (session-isolated) started"
+        );
 
         // Add user message to local state
         messages.push(Message::user(&prompt));
@@ -347,7 +351,10 @@ impl Agent {
                         ));
                     }
                     overflow_retries += 1;
-                    warn!(retry = overflow_retries, "Context overflow, reducing context");
+                    warn!(
+                        retry = overflow_retries,
+                        "Context overflow, reducing context"
+                    );
 
                     let mut conv = self.conversation.lock().await;
                     if !conv.reduce_context() {
@@ -392,10 +399,7 @@ impl Agent {
     /// Run the agent loop with an isolated (local) conversation state.
     /// This avoids touching the shared `self.conversation` mutex entirely,
     /// preventing race conditions when used concurrently with different sessions.
-    async fn run_loop_isolated(
-        &self,
-        mut messages: Messages,
-    ) -> Result<(AgentResult, Messages)> {
+    async fn run_loop_isolated(&self, mut messages: Messages) -> Result<(AgentResult, Messages)> {
         let mut total_usage = Usage::default();
         let mut iterations = 0u32;
         let mut overflow_retries = 0u32;
@@ -409,7 +413,10 @@ impl Agent {
                 });
             }
 
-            debug!(iteration = iterations, "Starting agent loop iteration (isolated)");
+            debug!(
+                iteration = iterations,
+                "Starting agent loop iteration (isolated)"
+            );
 
             // Build the model request from local messages
             let tool_config = if self.tools.is_empty() {
@@ -436,7 +443,10 @@ impl Agent {
                         ));
                     }
                     overflow_retries += 1;
-                    warn!(retry = overflow_retries, "Context overflow, reducing context");
+                    warn!(
+                        retry = overflow_retries,
+                        "Context overflow, reducing context"
+                    );
 
                     // Use a temporary ConversationManager for reduction logic
                     let mut conv = ConversationManager::from(messages);
@@ -474,6 +484,141 @@ impl Agent {
 
             // Add tool results to local state
             messages.push(Message::user_with_content(tool_results));
+        }
+    }
+
+    /// Run the agent loop with early termination support.
+    ///
+    /// Similar to `run_loop_isolated`, but allows tools to signal early termination
+    /// via a channel. When a termination signal is received, the loop stops immediately
+    /// and returns the committed result.
+    ///
+    /// # Arguments
+    ///
+    /// * `messages` - Initial conversation messages
+    /// * `termination_rx` - Receiver for termination signals from tools
+    ///
+    /// # Returns
+    ///
+    /// A tuple of (AgentResult, Messages, Option<Value>) where the Value is the
+    /// committed result if early termination occurred.
+    #[instrument(skip(self, messages, termination_rx), fields(model = %self.model.model_id()))]
+    pub async fn run_loop_with_early_termination(
+        &self,
+        mut messages: Messages,
+        mut termination_rx: TerminationReceiver,
+    ) -> Result<(AgentResult, Messages, Option<serde_json::Value>)> {
+        let mut total_usage = Usage::default();
+        let mut iterations = 0u32;
+        let mut overflow_retries = 0u32;
+
+        loop {
+            iterations += 1;
+
+            if iterations > self.config.max_iterations {
+                return Err(StrandsError::MaxIterationsExceeded {
+                    max: self.config.max_iterations,
+                });
+            }
+
+            debug!(
+                iteration = iterations,
+                "Starting agent loop iteration (with early termination)"
+            );
+
+            // Build the model request from local messages
+            let tool_config = if self.tools.is_empty() {
+                ToolConfig::empty()
+            } else {
+                ToolConfig::from_specs(self.tool_specs())
+            };
+
+            let request = ModelRequest::new(messages.clone())
+                .with_system(self.config.system_prompt.clone())
+                .with_tools(tool_config)
+                .with_inference_config(self.config.inference_config.clone());
+
+            // Call the model
+            let response = match self.model.invoke(request).await {
+                Ok(resp) => {
+                    overflow_retries = 0;
+                    resp
+                }
+                Err(StrandsError::ContextWindowOverflow { .. }) => {
+                    if overflow_retries >= self.config.max_overflow_retries {
+                        return Err(StrandsError::context_overflow(
+                            "Max overflow retries exceeded",
+                        ));
+                    }
+                    overflow_retries += 1;
+                    warn!(
+                        retry = overflow_retries,
+                        "Context overflow, reducing context"
+                    );
+
+                    let mut conv = ConversationManager::from(messages);
+                    if !conv.reduce_context() {
+                        return Err(StrandsError::context_overflow(
+                            "Cannot reduce context further",
+                        ));
+                    }
+                    messages = conv.snapshot();
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+
+            total_usage.add(&response.usage);
+            messages.push(response.message.clone());
+
+            // Check if we should continue (tool use) or stop
+            if response.stop_reason.is_terminal() {
+                return Ok((
+                    AgentResult {
+                        message: response.message,
+                        stop_reason: response.stop_reason,
+                        usage: total_usage,
+                        iterations,
+                    },
+                    messages,
+                    None,
+                ));
+            }
+
+            // Execute tools
+            let tool_results = self.execute_tools(&response.message).await?;
+            messages.push(Message::user_with_content(tool_results));
+
+            // Check for early termination signal after tool execution
+            match termination_rx.try_recv() {
+                Ok(LoopTerminationSignal::ToolCompleted { tool_name, result }) => {
+                    info!(
+                        tool = %tool_name,
+                        iterations,
+                        "Agent loop terminated by tool completion"
+                    );
+                    return Ok((
+                        AgentResult {
+                            message: Message::assistant(&format!(
+                                "Response committed by {} tool.",
+                                tool_name
+                            )),
+                            stop_reason: StopReason::EndTurn,
+                            usage: total_usage,
+                            iterations,
+                        },
+                        messages,
+                        Some(result),
+                    ));
+                }
+                Err(tokio::sync::mpsc::error::TryRecvError::Empty) => {
+                    // No termination signal, continue loop
+                }
+                Err(tokio::sync::mpsc::error::TryRecvError::Disconnected) => {
+                    warn!("Termination channel disconnected unexpectedly");
+                    // Continue anyway - channel being dropped is not fatal
+                }
+            }
         }
     }
 

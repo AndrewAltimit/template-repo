@@ -7,9 +7,7 @@ use async_trait::async_trait;
 use futures::Stream;
 use std::pin::Pin;
 
-use strands_core::{
-    Message, Messages, Result, StopReason, SystemPrompt, ToolConfig, Usage,
-};
+use strands_core::{Message, Messages, Result, StopReason, SystemPrompt, ToolConfig, Usage};
 
 /// Response from a model invocation.
 #[derive(Debug, Clone)]
@@ -31,10 +29,7 @@ pub enum ModelStreamChunk {
     TextDelta(String),
 
     /// Tool use block started
-    ToolUseStart {
-        tool_use_id: String,
-        name: String,
-    },
+    ToolUseStart { tool_use_id: String, name: String },
 
     /// Partial tool input
     ToolInputDelta {

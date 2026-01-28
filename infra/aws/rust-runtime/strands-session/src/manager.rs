@@ -251,6 +251,7 @@ impl Default for SessionManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::SessionState;
     use strands_core::{ContentBlock, Message, Role};
 
     #[tokio::test]

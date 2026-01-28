@@ -64,6 +64,10 @@ chrono = { version = "0.4", features = ["serde"] }
 bytes = "1.9"
 base64 = "0.22"
 url = "2.5"
+regex = "1.11"
+
+# JSON Schema validation
+jsonschema = "0.27"
 
 # Testing
 mockall = "0.13"
