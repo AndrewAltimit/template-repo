@@ -50,6 +50,10 @@ impl GitHubClient {
         let body_file = temp_dir.join(format!("pr-comment-{}.md", std::process::id()));
         std::fs::write(&body_file, body).context("Failed to write comment body")?;
 
+        let body_file_str = body_file
+            .to_str()
+            .context("Temp file path contains invalid UTF-8")?;
+
         let result = self
             .run_gh(&[
                 "pr",
@@ -58,7 +62,7 @@ impl GitHubClient {
                 "--repo",
                 repository,
                 "--body-file",
-                body_file.to_str().unwrap(),
+                body_file_str,
             ])
             .await;
 
@@ -89,6 +93,10 @@ impl GitHubClient {
         let body_file = temp_dir.join(format!("pr-body-{}.md", std::process::id()));
         std::fs::write(&body_file, body).context("Failed to write PR body")?;
 
+        let body_file_str = body_file
+            .to_str()
+            .context("Temp file path contains invalid UTF-8")?;
+
         let output = self
             .run_gh(&[
                 "pr",
@@ -98,7 +106,7 @@ impl GitHubClient {
                 "--title",
                 title,
                 "--body-file",
-                body_file.to_str().unwrap(),
+                body_file_str,
                 "--head",
                 head,
                 "--base",
@@ -112,12 +120,8 @@ impl GitHubClient {
         let output = output?;
         let url = output.trim();
 
-        // Extract PR number from URL
-        let pr_number = url
-            .rsplit('/')
-            .next()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0);
+        // Extract PR number from URL (default to 0 if parsing fails)
+        let pr_number = url.rsplit('/').next().and_then(|s| s.parse().ok()).unwrap_or(0);
 
         Ok((pr_number, url.to_string()))
     }

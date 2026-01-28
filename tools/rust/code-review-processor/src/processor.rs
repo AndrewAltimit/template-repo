@@ -171,15 +171,16 @@ impl ReviewProcessor {
         }
 
         let file_changes = review.file_changes();
+        let has_changes = review.has_fixes();
 
         // Apply changes if requested and there are changes
-        if args.commit_changes && !file_changes.is_empty() {
+        if args.commit_changes && has_changes {
             self.apply_changes(file_changes).await?;
             self.git.commit(&args.commit_message).await?;
         }
 
         // Create PR if requested and there are changes
-        if args.create_pr && !file_changes.is_empty() {
+        if args.create_pr && has_changes {
             // Create a new branch if not specified
             let branch_name = args.branch.clone().unwrap_or_else(|| {
                 format!("code-review-fixes-{}", chrono::Utc::now().timestamp())
@@ -211,7 +212,7 @@ impl ReviewProcessor {
             return Ok(ProcessingResult::PrCreated { pr_number, pr_url });
         }
 
-        if args.commit_changes && !file_changes.is_empty() {
+        if args.commit_changes && has_changes {
             Ok(ProcessingResult::ChangesCommitted)
         } else if args.post_comment {
             Ok(ProcessingResult::ReviewPosted)

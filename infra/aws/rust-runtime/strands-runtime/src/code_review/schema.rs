@@ -82,11 +82,17 @@ pub const REVIEW_WITH_FIXES_SCHEMA: &str = r#"{
 }"#;
 
 /// Get the appropriate schema based on request flags.
+///
+/// # Panics
+/// Panics if the embedded schema constants are invalid JSON.
+/// This should never happen as schemas are compile-time constants.
 pub fn get_schema(apply_fixes: bool) -> serde_json::Value {
     if apply_fixes {
-        serde_json::from_str(REVIEW_WITH_FIXES_SCHEMA).unwrap()
+        serde_json::from_str(REVIEW_WITH_FIXES_SCHEMA)
+            .expect("REVIEW_WITH_FIXES_SCHEMA is invalid JSON - this is a bug")
     } else {
-        serde_json::from_str(REVIEW_ONLY_SCHEMA).unwrap()
+        serde_json::from_str(REVIEW_ONLY_SCHEMA)
+            .expect("REVIEW_ONLY_SCHEMA is invalid JSON - this is a bug")
     }
 }
 
