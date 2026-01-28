@@ -55,31 +55,30 @@ services:
     profiles:
       - services
 
-  # Meme Generator MCP Server
+  # Meme Generator MCP Server (Rust)
   mcp-meme-generator:
     build:
       context: .
       dockerfile: docker/mcp-meme.Dockerfile
-    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     ports:
       - "8016:8016"
     volumes:
-      - ./:/app:ro
       - ./outputs/mcp-memes:/output  # Bind mount to local outputs directory
     environment:
-      - PYTHONUNBUFFERED=1
-      - PORT=8016
-      - MCP_OUTPUT_DIR=/output
+      - RUST_LOG=info
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_meme_generator.server", "--mode", "http"]
+    command: ["mcp-meme-generator", "--mode", "standalone", "--port", "8016", "--templates", "/app/templates", "--output", "/output"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8016/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 10s
     profiles:
       - services
 
