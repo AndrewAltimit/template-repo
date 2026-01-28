@@ -8,17 +8,12 @@ import pytest
 
 def test_imports():
     """Test that basic imports work"""
-    # Test code quality server imports
-    from mcp_code_quality.server import CodeQualityMCPServer  # noqa: E402
+    # Test desktop control server imports
+    # Note: mcp_code_quality and mcp_content_creation were migrated to Rust
+    from mcp_desktop_control.server import DesktopControlMCPServer  # noqa: E402
 
-    server = CodeQualityMCPServer()
+    server = DesktopControlMCPServer()
     assert len(server.get_tools()) > 0
-
-    # Test content creation server imports
-    from mcp_content_creation.server import ContentCreationMCPServer  # noqa: E402
-
-    content_server = ContentCreationMCPServer()
-    assert len(content_server.get_tools()) > 0
 
     # Test core imports
     from mcp_core.base_server import BaseMCPServer  # noqa: E402

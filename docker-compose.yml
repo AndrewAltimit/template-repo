@@ -1,85 +1,88 @@
 services:
-  # Code Quality MCP Server
+  # Code Quality MCP Server (Rust)
   mcp-code-quality:
     build:
       context: .
       dockerfile: docker/mcp-code-quality.Dockerfile
-    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     ports:
       - "8010:8010"
     volumes:
       - ./:/app:ro  # Read-only mount for security
       - /tmp:/tmp   # For temporary files
     environment:
-      - PYTHONUNBUFFERED=1
-      - PORT=8010
+      - RUST_LOG=info
+      - MCP_CODE_QUALITY_ALLOWED_PATHS=/app,/workspace,/home
+      - MCP_CODE_QUALITY_RATE_LIMIT=true
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_code_quality.server", "--mode", "http"]
+    command: ["mcp-code-quality", "--mode", "standalone", "--port", "8010", "--allowed-paths", "/app,/workspace,/home"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8010/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 10s
     profiles:
       - services
 
-  # Content Creation MCP Server
+  # Content Creation MCP Server (Rust)
   mcp-content-creation:
     build:
       context: .
       dockerfile: docker/mcp-content.Dockerfile
-    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     ports:
       - "8011:8011"
     volumes:
-      - ./:/app:ro
       - ./outputs/mcp-content:/output  # Bind mount to local outputs directory
     environment:
-      - PYTHONUNBUFFERED=1
-      - PORT=8011
+      - RUST_LOG=info
       - MCP_OUTPUT_DIR=/output
+      - MCP_PROJECT_ROOT=/app
       - MCP_HOST_PROJECT_ROOT=${PWD}
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_content_creation.server", "--mode", "http"]
+    command: ["mcp-content-creation", "--mode", "standalone", "--port", "8011", "--output-dir", "/output", "--project-root", "/app"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8011/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 10s
     profiles:
       - services
 
-  # Meme Generator MCP Server
+  # Meme Generator MCP Server (Rust)
   mcp-meme-generator:
     build:
       context: .
       dockerfile: docker/mcp-meme.Dockerfile
-    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     ports:
       - "8016:8016"
     volumes:
-      - ./:/app:ro
       - ./outputs/mcp-memes:/output  # Bind mount to local outputs directory
     environment:
-      - PYTHONUNBUFFERED=1
-      - PORT=8016
-      - MCP_OUTPUT_DIR=/output
+      - RUST_LOG=info
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_meme_generator.server", "--mode", "http"]
+    command: ["mcp-meme-generator", "--mode", "standalone", "--port", "8016", "--templates", "/app/templates", "--output", "/output"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8016/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 10s
     profiles:
       - services
 
