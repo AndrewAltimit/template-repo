@@ -1,28 +1,44 @@
+# Multi-stage Rust build for mcp-code-quality
+# Stage 1: Build the Rust binary
+FROM rust:1.83 AS builder
+
+WORKDIR /build
+
+# Copy MCP core framework first (dependency)
+COPY tools/mcp/mcp_core_rust /build/tools/mcp/mcp_core_rust
+
+# Copy code quality server
+COPY tools/mcp/mcp_code_quality /build/tools/mcp/mcp_code_quality
+
+# Build the binary
+WORKDIR /build/tools/mcp/mcp_code_quality
+RUN cargo build --release
+
+# Stage 2: Runtime image with code quality tools
 FROM python:3.11-slim
 
-# Install system dependencies and code formatters/linters
-RUN apt-get update && apt-get install -y \
+# Install system dependencies and code quality tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
-    build-essential \
+    ca-certificates \
     # For JavaScript/TypeScript
     nodejs \
     npm \
-    # For Go
-    golang-go \
-    # For Rust
-    rustc \
-    cargo \
+    # For Go (lightweight go-fmt only)
+    # golang-go \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app directory
-WORKDIR /app
-
-# Copy requirements first for better layer caching
-COPY docker/requirements/requirements-code-quality.txt /app/requirements.txt
-
-# Install Python formatters, linters, and MCP dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python code quality tools
+RUN pip install --no-cache-dir \
+    black \
+    ruff \
+    flake8 \
+    pytest \
+    pytest-cov \
+    bandit \
+    pip-audit \
+    ty
 
 # Install JavaScript/TypeScript tools
 RUN npm install -g \
@@ -31,38 +47,29 @@ RUN npm install -g \
     @typescript-eslint/eslint-plugin \
     @typescript-eslint/parser
 
-# Install Go tools (skip for now due to version issues)
-# RUN go install golang.org/x/lint/golint@latest && \
-#     go install golang.org/x/tools/cmd/goimports@latest
+# Create app user with configurable UID/GID
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+RUN groupadd -g ${GROUP_ID} mcp || true && \
+    useradd -m -u ${USER_ID} -g ${GROUP_ID} mcp || true
 
-# Install Rust formatter (skip - rustup not available in this image)
-# RUN rustup component add rustfmt clippy
+# Create directories
+RUN mkdir -p /app /var/log/mcp-code-quality && \
+    chown -R mcp:mcp /app /var/log/mcp-code-quality
 
-# Copy MCP server code
-COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
-COPY tools/mcp/mcp_code_quality /app/tools/mcp/mcp_code_quality
+WORKDIR /app
 
-# Copy markdown link checker utility (required by server)
-COPY tools/cli/utilities /app/tools/cli/utilities
+# Copy the binary from builder
+COPY --from=builder /build/tools/mcp/mcp_code_quality/target/release/mcp-code-quality /usr/local/bin/
 
-# Install MCP packages
-RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_code_quality
-
-# Set Python path
-ENV PYTHONPATH=/app
-
-# Create a non-root user that will be overridden by docker-compose
-RUN useradd -m -u 1000 appuser
-
-# Create audit log directory with proper permissions
-RUN mkdir -p /var/log/mcp-code-quality && \
-    chown appuser:appuser /var/log/mcp-code-quality
+# Set permissions
+RUN chmod +x /usr/local/bin/mcp-code-quality
 
 # Switch to non-root user
-USER appuser
+USER mcp
 
-# Environment variables for enterprise configuration
+# Environment
+ENV RUST_LOG=info
 ENV MCP_CODE_QUALITY_TIMEOUT=600
 ENV MCP_CODE_QUALITY_ALLOWED_PATHS=/workspace,/app,/home
 ENV MCP_CODE_QUALITY_AUDIT_LOG=/var/log/mcp-code-quality/audit.log
@@ -71,8 +78,12 @@ ENV MCP_CODE_QUALITY_RATE_LIMIT=true
 # Expose port
 EXPOSE 8010
 
-# Define volume for audit logs (allows persistence across container restarts)
+# Define volume for audit logs
 VOLUME ["/var/log/mcp-code-quality"]
 
-# Run the server
-CMD ["python", "-m", "mcp_code_quality.server", "--mode", "http"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8010/health || exit 1
+
+# Default command
+CMD ["mcp-code-quality", "--mode", "standalone", "--port", "8010"]

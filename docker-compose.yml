@@ -1,28 +1,31 @@
 services:
-  # Code Quality MCP Server
+  # Code Quality MCP Server (Rust)
   mcp-code-quality:
     build:
       context: .
       dockerfile: docker/mcp-code-quality.Dockerfile
-    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     ports:
       - "8010:8010"
     volumes:
       - ./:/app:ro  # Read-only mount for security
       - /tmp:/tmp   # For temporary files
     environment:
-      - PYTHONUNBUFFERED=1
-      - PORT=8010
+      - RUST_LOG=info
+      - MCP_CODE_QUALITY_ALLOWED_PATHS=/app,/workspace,/home
+      - MCP_CODE_QUALITY_RATE_LIMIT=true
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_code_quality.server", "--mode", "http"]
+    command: ["mcp-code-quality", "--mode", "standalone", "--port", "8010", "--allowed-paths", "/app,/workspace,/home"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8010/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 10s
     profiles:
       - services
 

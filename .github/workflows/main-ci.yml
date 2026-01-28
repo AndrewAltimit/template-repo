@@ -160,26 +160,13 @@ jobs:
 
           # Test Python MCP servers - install packages properly via pip
           # Note: mcp_codex, mcp_gemini, mcp_crush, mcp_opencode, mcp_reaction_search,
-          # mcp_meme_generator, and mcp_content_creation are Rust packages tested separately via cargo test
+          # mcp_meme_generator, mcp_content_creation, and mcp_code_quality are Rust packages tested separately via cargo test
           docker compose run --rm python-ci bash -c "
           pip install -q -r config/python/requirements.txt && \
           pip install -q -e tools/mcp/mcp_core && \
-          pip install -q -e tools/mcp/mcp_code_quality && \
           pip install -q -e tools/mcp/mcp_gaea2 && \
           pip install -q -e tools/mcp/mcp_blender && \
           python3 -c '
-          # Test Code Quality server
-          try:
-              from mcp_code_quality.server import CodeQualityMCPServer
-              from mcp_code_quality.tools import TOOLS as CODE_TOOLS
-              print(\"Code Quality MCP server imported successfully\")
-              print(f\"  - {len(CODE_TOOLS)} tools available\")
-              for tool in CODE_TOOLS:
-                  print(f\"    - {tool}\")
-          except ImportError as e:
-              print(f\"Failed to import Code Quality server: {e}\")
-              exit(1)
-
           # Test Gaea2 server (stubs only in container)
           try:
               from mcp_gaea2.server import Gaea2MCPServer
@@ -212,6 +199,7 @@ jobs:
           print(\"  - mcp-reaction-search (Semantic reaction image search)\")
           print(\"  - mcp-meme-generator (Meme generation with text overlays)\")
           print(\"  - mcp-content-creation (LaTeX, TikZ, PDF previews, Manim)\")
+          print(\"  - mcp-code-quality (Format checking, linting, testing, security)\")
           '
           "
 
@@ -623,12 +611,6 @@ jobs:
             cp target/release/board-manager /app/rust-binaries/board-manager-linux-x64
             echo "Built board-manager for Linux x64"
 
-            # Build mcp-code-quality
-            cd /app/tools/rust/mcp-code-quality
-            cargo build --release
-            cp target/release/mcp-code-quality /app/rust-binaries/mcp-code-quality-linux-x64
-            echo "Built mcp-code-quality for Linux x64"
-
             # Build markdown-link-checker
             cd /app/tools/rust/markdown-link-checker
             cargo build --release
@@ -701,6 +683,12 @@ jobs:
             cargo build --release
             cp target/release/mcp-content-creation /app/rust-binaries/mcp-content-creation-linux-x64
             echo "Built mcp-content-creation for Linux x64"
+
+            # Build mcp-code-quality
+            cd /app/tools/mcp/mcp_code_quality
+            cargo build --release
+            cp target/release/mcp-code-quality /app/rust-binaries/mcp-code-quality-linux-x64
+            echo "Built mcp-code-quality for Linux x64"
           '
 
       # Build injection-toolkit for Windows using rust-ci-nightly (has mingw-w64)
