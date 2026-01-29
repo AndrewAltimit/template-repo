@@ -101,9 +101,26 @@ impl ChromaDBClient {
     }
 
     /// Get the records collection name for a namespace
+    /// ChromaDB collection names must be 3-63 characters, alphanumeric with underscores/hyphens
     fn records_collection_name(&self, namespace: &str) -> String {
-        let safe_name = namespace.replace(['/', '-'], "_");
-        format!("{}_records_{}", self.config.collection_prefix, safe_name)
+        // Replace any non-alphanumeric characters (except underscore) with underscore
+        let safe_name: String = namespace
+            .chars()
+            .map(|c| {
+                if c.is_ascii_alphanumeric() || c == '_' {
+                    c
+                } else {
+                    '_'
+                }
+            })
+            .collect();
+        let full_name = format!("{}_records_{}", self.config.collection_prefix, safe_name);
+        // Truncate to 63 characters if needed (ChromaDB limit)
+        if full_name.len() > 63 {
+            full_name[..63].to_string()
+        } else {
+            full_name
+        }
     }
 
     /// Store a short-term memory event
