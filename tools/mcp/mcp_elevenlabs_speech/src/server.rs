@@ -139,6 +139,10 @@ impl Tool for SynthesizeSpeechTool {
                 "language_code": {
                     "type": "string",
                     "description": "Language code for multilingual models (e.g., 'en', 'ja', 'de'). Auto-detected if not provided."
+                },
+                "use_speaker_boost": {
+                    "type": "boolean",
+                    "description": "Enable speaker boost for enhanced clarity and presence. Default: false"
                 }
             },
             "required": ["text"]
