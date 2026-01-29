@@ -51,7 +51,15 @@ jobs:
       ci_changed: ${{ steps.changes.outputs.ci_changed }}
       injection_toolkit_changed: ${{ steps.changes.outputs.injection_toolkit_changed }}
       economic_agents_changed: ${{ steps.changes.outputs.economic_agents_changed }}
+      rust_tools_changed: ${{ steps.changes.outputs.rust_tools_changed }}
+      workflow_files_changed: ${{ steps.changes.outputs.workflow_files_changed }}
       files_changed: ${{ steps.changes.outputs.files_changed }}
+      # Docker image-specific change detection
+      docker_code_quality_changed: ${{ steps.changes.outputs.docker_code_quality_changed }}
+      docker_content_changed: ${{ steps.changes.outputs.docker_content_changed }}
+      docker_gaea2_changed: ${{ steps.changes.outputs.docker_gaea2_changed }}
+      docker_http_bridge_changed: ${{ steps.changes.outputs.docker_http_bridge_changed }}
+      docker_python_ci_changed: ${{ steps.changes.outputs.docker_python_ci_changed }}
     steps:
       - name: Pre-checkout cleanup
         run: |
@@ -104,7 +112,38 @@ jobs:
           ci_count=$(grep -E '(automation/ci-cd|\.github/workflows|docker/)' changed_files.txt | wc -l || echo "0")
           injection_toolkit_count=$(grep -E 'packages/injection_toolkit' changed_files.txt | wc -l || echo "0")
           economic_agents_count=$(grep -E 'packages/economic_agents' changed_files.txt | wc -l || echo "0")
+          rust_tools_count=$(grep -E 'tools/rust/|tools/mcp/mcp_gemini' changed_files.txt | wc -l || echo "0")
+          workflow_files_count=$(grep -E '\.github/workflows/' changed_files.txt | wc -l || echo "0")
           total_files=$(cat changed_files.txt | wc -l)
+
+          # Docker image-specific change detection
+          # Each image only rebuilds when its specific dependencies change
+          CODE_QUALITY_PATTERN='docker/mcp-code-quality\.Dockerfile'
+          CODE_QUALITY_PATTERN="$CODE_QUALITY_PATTERN|tools/mcp/mcp_core_rust|tools/mcp/mcp_code_quality"
+          CODE_QUALITY_PATTERN="$CODE_QUALITY_PATTERN|tools/rust/markdown-link-checker"
+          docker_code_quality_count=$(grep -E "($CODE_QUALITY_PATTERN)" changed_files.txt | wc -l || echo "0")
+
+          CONTENT_PATTERN='docker/mcp-content\.Dockerfile|tools/mcp/mcp_core_rust|tools/mcp/mcp_content_creation'
+          docker_content_count=$(grep -E "($CONTENT_PATTERN)" changed_files.txt | wc -l || echo "0")
+
+          GAEA2_PATTERN='docker/mcp-gaea2\.Dockerfile|docker/requirements/requirements-gaea2\.txt'
+          GAEA2_PATTERN="$GAEA2_PATTERN|tools/mcp/mcp_core/|tools/mcp/mcp_gaea2"
+          GAEA2_PATTERN="$GAEA2_PATTERN|docker/entrypoints/gaea2-entrypoint\.sh"
+          docker_gaea2_count=$(grep -E "($GAEA2_PATTERN)" changed_files.txt | wc -l || echo "0")
+
+          HTTP_BRIDGE_PATTERN='docker/mcp-http-bridge\.Dockerfile'
+          HTTP_BRIDGE_PATTERN="$HTTP_BRIDGE_PATTERN|docker/requirements/requirements-http-bridge\.txt"
+          HTTP_BRIDGE_PATTERN="$HTTP_BRIDGE_PATTERN|tools/cli/bridges/mcp-http-bridge\.py"
+          docker_http_bridge_count=$(grep -E "($HTTP_BRIDGE_PATTERN)" changed_files.txt | wc -l || echo "0")
+
+          PYTHON_CI_PATTERN='docker/python-ci\.Dockerfile|config/python/requirements\.txt|pyproject\.toml'
+          PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/rust/gh-validator|tools/mcp/mcp_core/"
+          PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/mcp/mcp_ai_toolkit|tools/mcp/mcp_blender"
+          PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/mcp/mcp_comfyui|tools/mcp/mcp_elevenlabs_speech"
+          PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/mcp/mcp_gaea2|tools/mcp/mcp_github_board"
+          PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/mcp/mcp_video_editor|tools/mcp/mcp_virtual_character"
+          PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|packages/sleeper_agents|automation/|\.flake8"
+          docker_python_ci_count=$(grep -E "($PYTHON_CI_PATTERN)" changed_files.txt | wc -l || echo "0")
 
           # Set outputs
           echo "python_changed=$([[ $python_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
@@ -117,7 +156,16 @@ jobs:
           echo "ci_changed=$([[ $ci_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "injection_toolkit_changed=$([[ $injection_toolkit_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "economic_agents_changed=$([[ $economic_agents_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "rust_tools_changed=$([[ $rust_tools_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "workflow_files_changed=$([[ $workflow_files_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "files_changed=$total_files" >> $GITHUB_OUTPUT
+
+          # Docker image-specific outputs
+          echo "docker_code_quality_changed=$([[ $docker_code_quality_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "docker_content_changed=$([[ $docker_content_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "docker_gaea2_changed=$([[ $docker_gaea2_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "docker_http_bridge_changed=$([[ $docker_http_bridge_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "docker_python_ci_changed=$([[ $docker_python_ci_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
 
           echo "[INFO] Change Summary:"
           echo "  Python files: $python_count"
@@ -130,14 +178,24 @@ jobs:
           echo "  CI/CD files: $ci_count"
           echo "  Injection Toolkit: $injection_toolkit_count"
           echo "  Economic Agents: $economic_agents_count"
+          echo "  Rust CLI tools: $rust_tools_count"
+          echo "  Workflow files: $workflow_files_count"
           echo "  Total files: $total_files"
+          echo ""
+          echo "[INFO] Docker Image Rebuild Detection:"
+          echo "  mcp-code-quality: $([[ $docker_code_quality_count -gt 0 ]] && echo 'REBUILD' || echo 'skip')"
+          echo "  mcp-content: $([[ $docker_content_count -gt 0 ]] && echo 'REBUILD' || echo 'skip')"
+          echo "  mcp-gaea2: $([[ $docker_gaea2_count -gt 0 ]] && echo 'REBUILD' || echo 'skip')"
+          echo "  mcp-http-bridge: $([[ $docker_http_bridge_count -gt 0 ]] && echo 'REBUILD' || echo 'skip')"
+          echo "  python-ci: $([[ $docker_python_ci_count -gt 0 ]] && echo 'REBUILD' || echo 'skip')"
 
   # Stage 1b: Build Rust CLI tools (for use by review jobs)
+  # Only rebuilds when Rust tool code changes, otherwise uses cached binaries
   build-rust-tools:
     name: Build Rust CLI Tools
     needs: detect-changes
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Pre-checkout cleanup
         run: |
@@ -155,7 +213,33 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           lfs: true
 
+      # Cache cargo registry, index, and build artifacts
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: cargo-registry-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-registry-${{ runner.os }}-
+
+      - name: Cache Rust CLI tool binaries
+        id: cache-rust-binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            tools/rust/github-agents-cli/target/release/github-agents
+            tools/rust/board-manager/target/release/board-manager
+            tools/rust/markdown-link-checker/target/release/md-link-checker
+            tools/rust/git-guard/target/release/git
+            tools/mcp/mcp_gemini/target/release/mcp-gemini
+            tools/rust/code-review-processor/target/release/code-review-processor
+          key: rust-cli-binaries-${{ runner.os }}-${{ hashFiles('tools/rust/**/Cargo.toml', 'tools/rust/**/Cargo.lock', 'tools/rust/**/*.rs', 'tools/mcp/mcp_gemini/**/*.rs') }}
+
       - name: Build github-agents-cli
+        if: steps.cache-rust-binaries.outputs.cache-hit != 'true' || needs.detect-changes.outputs.rust_tools_changed == 'true'
         run: |
           cd tools/rust/github-agents-cli
           cargo build --release
@@ -163,6 +247,7 @@ jobs:
           ls -la target/release/github-agents
 
       - name: Build board-manager
+        if: steps.cache-rust-binaries.outputs.cache-hit != 'true' || needs.detect-changes.outputs.rust_tools_changed == 'true'
         run: |
           cd tools/rust/board-manager
           cargo build --release
@@ -170,6 +255,7 @@ jobs:
           ls -la target/release/board-manager
 
       - name: Build markdown-link-checker
+        if: steps.cache-rust-binaries.outputs.cache-hit != 'true' || needs.detect-changes.outputs.rust_tools_changed == 'true'
         run: |
           cd tools/rust/markdown-link-checker
           cargo build --release
@@ -177,6 +263,7 @@ jobs:
           ls -la target/release/md-link-checker
 
       - name: Build git-guard
+        if: steps.cache-rust-binaries.outputs.cache-hit != 'true' || needs.detect-changes.outputs.rust_tools_changed == 'true'
         run: |
           cd tools/rust/git-guard
           cargo build --release
@@ -184,6 +271,7 @@ jobs:
           ls -la target/release/git
 
       - name: Build mcp-gemini
+        if: steps.cache-rust-binaries.outputs.cache-hit != 'true' || needs.detect-changes.outputs.rust_tools_changed == 'true'
         run: |
           cd tools/mcp/mcp_gemini
           cargo build --release
@@ -191,6 +279,7 @@ jobs:
           ls -la target/release/mcp-gemini
 
       - name: Build code-review-processor
+        if: steps.cache-rust-binaries.outputs.cache-hit != 'true' || needs.detect-changes.outputs.rust_tools_changed == 'true'
         run: |
           cd tools/rust/code-review-processor
           cargo build --release
@@ -200,13 +289,20 @@ jobs:
       - name: Stage binaries for upload
         run: |
           mkdir -p rust-binaries
-          cp tools/rust/github-agents-cli/target/release/github-agents rust-binaries/
-          cp tools/rust/board-manager/target/release/board-manager rust-binaries/
-          cp tools/rust/markdown-link-checker/target/release/md-link-checker rust-binaries/
-          cp tools/rust/git-guard/target/release/git rust-binaries/git-guard
-          cp tools/mcp/mcp_gemini/target/release/mcp-gemini rust-binaries/
-          cp tools/rust/code-review-processor/target/release/code-review-processor rust-binaries/
+          # Copy binaries (whether from cache or freshly built)
+          cp tools/rust/github-agents-cli/target/release/github-agents rust-binaries/ || echo "github-agents not found"
+          cp tools/rust/board-manager/target/release/board-manager rust-binaries/ || echo "board-manager not found"
+          cp tools/rust/markdown-link-checker/target/release/md-link-checker rust-binaries/ || echo "md-link-checker not found"
+          cp tools/rust/git-guard/target/release/git rust-binaries/git-guard || echo "git-guard not found"
+          cp tools/mcp/mcp_gemini/target/release/mcp-gemini rust-binaries/ || echo "mcp-gemini not found"
+          cp tools/rust/code-review-processor/target/release/code-review-processor rust-binaries/ || echo "code-review-processor not found"
+          echo "Staged binaries:"
           ls -la rust-binaries/
+          # Verify required binaries exist
+          if [ ! -f rust-binaries/github-agents ]; then
+            echo "ERROR: Required binary github-agents not found!"
+            exit 1
+          fi
 
       - name: Upload Rust binaries
         uses: actions/upload-artifact@v4
@@ -392,14 +488,16 @@ jobs:
             ./automation/ci-cd/cleanup-outputs.sh
           fi
 
-  # Stage 3a: Format check stage
+  # Stage 3a: Format check stage (after AI review cycle completes)
   format-check:
     name: Python Format Check
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: |
-      needs.detect-changes.outputs.python_changed == 'true' ||
-      needs.detect-changes.outputs.mcp_changed == 'true' ||
-      !github.event.pull_request.draft
+      always() && !cancelled() &&
+      needs.detect-changes.result == 'success' &&
+      (needs.detect-changes.outputs.python_changed == 'true' ||
+       needs.detect-changes.outputs.mcp_changed == 'true' ||
+       !github.event.pull_request.draft)
     uses: ./.github/workflows/lint-stages.yml
     with:
       stage: format
@@ -411,9 +509,11 @@ jobs:
     name: Python Basic Lint
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: |
-      needs.detect-changes.outputs.python_changed == 'true' ||
-      needs.detect-changes.outputs.mcp_changed == 'true' ||
-      !github.event.pull_request.draft
+      always() && !cancelled() &&
+      needs.detect-changes.result == 'success' &&
+      (needs.detect-changes.outputs.python_changed == 'true' ||
+       needs.detect-changes.outputs.mcp_changed == 'true' ||
+       !github.event.pull_request.draft)
     uses: ./.github/workflows/lint-stages.yml
     with:
       stage: basic
@@ -425,9 +525,11 @@ jobs:
     name: Python Full Lint
     needs: [detect-changes, gemini-review, codex-review, format-check, basic-lint]
     if: |
-      needs.detect-changes.outputs.python_changed == 'true' ||
-      needs.detect-changes.outputs.mcp_changed == 'true' ||
-      !github.event.pull_request.draft
+      always() && !cancelled() &&
+      needs.detect-changes.result == 'success' &&
+      (needs.detect-changes.outputs.python_changed == 'true' ||
+       needs.detect-changes.outputs.mcp_changed == 'true' ||
+       !github.event.pull_request.draft)
     uses: ./.github/workflows/lint-stages.yml
     with:
       stage: full
@@ -439,8 +541,10 @@ jobs:
     name: Documentation Link Check
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: |
-      needs.detect-changes.outputs.docs_changed == 'true' ||
-      !github.event.pull_request.draft
+      always() && !cancelled() &&
+      needs.detect-changes.result == 'success' &&
+      (needs.detect-changes.outputs.docs_changed == 'true' ||
+       !github.event.pull_request.draft)
     uses: ./.github/workflows/lint-stages.yml
     with:
       stage: links
@@ -451,37 +555,49 @@ jobs:
   config-validation:
     name: Config File Validation
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
-    if: needs.detect-changes.outputs.yaml_changed == 'true'
+    if: |
+      always() && !cancelled() &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.yaml_changed == 'true'
     uses: ./.github/workflows/validation-stages.yml
     with:
       stage: config
     secrets: inherit
 
-  # Stage 4b: Workflow file validation (always run)
+  # Stage 4b: Workflow file validation (when workflow files changed or CI files changed)
   workflow-validation:
     name: Workflow File Validation
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
-    if: always() && !cancelled()
+    if: |
+      always() && !cancelled() &&
+      needs.detect-changes.result == 'success' &&
+      (needs.detect-changes.outputs.workflow_files_changed == 'true' ||
+       needs.detect-changes.outputs.ci_changed == 'true')
     uses: ./.github/workflows/validation-stages.yml
     with:
       stage: workflows
     secrets: inherit
 
-  # Stage 4c: Comprehensive YAML linting (always run)
+  # Stage 4c: Comprehensive YAML linting (when YAML files changed)
   yaml-lint:
     name: YAML Lint All Files
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
-    if: always() && !cancelled()
+    if: |
+      always() && !cancelled() &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.yaml_changed == 'true'
     uses: ./.github/workflows/validation-stages.yml
     with:
       stage: yaml-all
     secrets: inherit
 
-  # Stage 5: Test execution
+  # Stage 5: Test execution (after AI review cycle and linting)
   test-suite:
     name: Test Suite
     needs: [detect-changes, gemini-review, codex-review, agent-review-response, format-check, basic-lint, full-lint]
     if: |
+      always() && !cancelled() &&
+      needs.detect-changes.result == 'success' &&
       (needs.detect-changes.outputs.python_changed == 'true' ||
        needs.detect-changes.outputs.mcp_changed == 'true') &&
       !github.event.inputs.skip_tests
@@ -549,11 +665,13 @@ jobs:
             htmlcov/
           retention-days: 14
 
-  # Stage 6: MCP Server validation
+  # Stage 6: MCP Server validation (after AI review cycle)
   mcp-validation:
     name: MCP Server Validation
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
     if: |
+      always() && !cancelled() &&
+      needs.detect-changes.result == 'success' &&
       needs.detect-changes.outputs.mcp_changed == 'true' &&
       !github.event.pull_request.draft
     runs-on: self-hosted
@@ -646,22 +764,28 @@ jobs:
     uses: ./.github/workflows/dashboard-tests.yml
     secrets: inherit
 
-  # Stage 8: Gaea2 MCP Integration Tests
+  # Stage 8: Gaea2 MCP Integration Tests (after AI review cycle)
   gaea2-integration-tests:
     name: Gaea2 MCP Integration Tests
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
-    if: needs.detect-changes.outputs.mcp_changed == 'true'
+    if: |
+      always() && !cancelled() &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.mcp_changed == 'true'
     uses: ./.github/workflows/gaea2-integration-tests.yml
     with:
       server_url: 'http://192.168.0.152:8007'
       run_regression: true
       update_baselines: false
 
-  # Stage 8b: Injection Toolkit Tests (Rust)
+  # Stage 8b: Injection Toolkit Tests (Rust) - after AI review cycle
   injection-toolkit-tests:
     name: Injection Toolkit Tests
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
-    if: needs.detect-changes.outputs.injection_toolkit_changed == 'true'
+    if: |
+      always() && !cancelled() &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.injection_toolkit_changed == 'true'
     runs-on: self-hosted
     timeout-minutes: 30
     env:
@@ -740,11 +864,14 @@ jobs:
           echo "## Injection Toolkit CI Summary" >> $GITHUB_STEP_SUMMARY
           echo "All checks: fully containerized (rust-ci, rust-ci-nightly)" >> $GITHUB_STEP_SUMMARY
 
-  # Stage 8c: Economic Agents Tests (Rust)
+  # Stage 8c: Economic Agents Tests (Rust) - after AI review cycle
   economic-agents-tests:
     name: Economic Agents Tests
     needs: [detect-changes, gemini-review, codex-review, agent-review-response]
-    if: needs.detect-changes.outputs.economic_agents_changed == 'true'
+    if: |
+      always() && !cancelled() &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.economic_agents_changed == 'true'
     runs-on: self-hosted
     timeout-minutes: 20
     env:
@@ -805,13 +932,18 @@ jobs:
           echo "## Economic Agents CI Summary" >> $GITHUB_STEP_SUMMARY
           echo "All checks: fully containerized (rust-ci)" >> $GITHUB_STEP_SUMMARY
 
-  # Stage 9: Docker image validation
+  # Stage 9: Docker image validation (after AI review cycle and linting)
   docker-validation:
     name: Docker Image Validation
     needs: [detect-changes, gemini-review, codex-review, agent-review-response, format-check, basic-lint, full-lint]
     if: |
-      (needs.detect-changes.outputs.docker_changed == 'true' ||
-       needs.detect-changes.outputs.python_changed == 'true' ||
+      always() && !cancelled() &&
+      needs.detect-changes.result == 'success' &&
+      (needs.detect-changes.outputs.docker_code_quality_changed == 'true' ||
+       needs.detect-changes.outputs.docker_content_changed == 'true' ||
+       needs.detect-changes.outputs.docker_gaea2_changed == 'true' ||
+       needs.detect-changes.outputs.docker_http_bridge_changed == 'true' ||
+       needs.detect-changes.outputs.docker_python_ci_changed == 'true' ||
        github.event.inputs.force_docker_validation) &&
       !github.event.pull_request.draft
     runs-on: self-hosted
@@ -847,6 +979,7 @@ jobs:
             type=sha,prefix=pr-${{ github.event.pull_request.number }}-
 
       - name: Build Code Quality MCP image
+        if: needs.detect-changes.outputs.docker_code_quality_changed == 'true' || github.event.inputs.force_docker_validation
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -857,8 +990,11 @@ jobs:
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-code-quality
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-code-quality-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=mcp-code-quality
+          cache-to: type=gha,mode=max,scope=mcp-code-quality
 
       - name: Build Content Creation MCP image
+        if: needs.detect-changes.outputs.docker_content_changed == 'true' || github.event.inputs.force_docker_validation
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -869,8 +1005,11 @@ jobs:
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-content
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-content-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=mcp-content
+          cache-to: type=gha,mode=max,scope=mcp-content
 
       - name: Build Gaea2 MCP image
+        if: needs.detect-changes.outputs.docker_gaea2_changed == 'true' || github.event.inputs.force_docker_validation
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -881,8 +1020,11 @@ jobs:
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-gaea2
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-gaea2-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=mcp-gaea2
+          cache-to: type=gha,mode=max,scope=mcp-gaea2
 
       - name: Build MCP HTTP Bridge image
+        if: needs.detect-changes.outputs.docker_http_bridge_changed == 'true' || github.event.inputs.force_docker_validation
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -893,8 +1035,11 @@ jobs:
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-http-bridge
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-http-bridge-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=mcp-http-bridge
+          cache-to: type=gha,mode=max,scope=mcp-http-bridge
 
       - name: Build Python CI image
+        if: needs.detect-changes.outputs.docker_python_ci_changed == 'true' || github.event.inputs.force_docker_validation
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -905,14 +1050,32 @@ jobs:
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-python-ci
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-python-ci-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=python-ci
+          cache-to: type=gha,mode=max,scope=python-ci
+
+      - name: Docker build summary
+        run: |
+          echo "## Docker Image Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| mcp-code-quality | ${{ needs.detect-changes.outputs.docker_code_quality_changed == 'true' && 'Built' || 'Skipped (no changes)' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| mcp-content | ${{ needs.detect-changes.outputs.docker_content_changed == 'true' && 'Built' || 'Skipped (no changes)' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| mcp-gaea2 | ${{ needs.detect-changes.outputs.docker_gaea2_changed == 'true' && 'Built' || 'Skipped (no changes)' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| mcp-http-bridge | ${{ needs.detect-changes.outputs.docker_http_bridge_changed == 'true' && 'Built' || 'Skipped (no changes)' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| python-ci | ${{ needs.detect-changes.outputs.docker_python_ci_changed == 'true' && 'Built' || 'Skipped (no changes)' }} |" >> $GITHUB_STEP_SUMMARY
 
       - name: Test Docker Compose with health check
+        if: |
+          needs.detect-changes.outputs.docker_code_quality_changed == 'true' ||
+          needs.detect-changes.outputs.docker_content_changed == 'true' ||
+          needs.detect-changes.outputs.docker_gaea2_changed == 'true'
         uses: ./.github/actions/docker-compose-health-check
         with:
           services: 'mcp-code-quality mcp-content-creation mcp-gaea2'
           health-endpoint: 'http://localhost:8010/health'
           timeout: '60'
-          build: 'true'
+          build: 'false'
 
       - name: Cleanup PR-specific images
         if: always()
