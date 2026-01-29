@@ -25,8 +25,11 @@ static BLOCKED_PATTERNS: LazyLock<Vec<(&'static str, Regex)>> = LazyLock::new(||
         // AWS credentials
         ("aws_access_key", Regex::new(r"AKIA[0-9A-Z]{16}").unwrap()),
         // AWS secret keys - simplified pattern (no look-around in Rust regex)
-        // Matches 40-char base64-like strings that are likely AWS secret keys
-        ("aws_secret_key", Regex::new(r"[A-Za-z0-9/+=]{40}").unwrap()),
+        // Uses word boundaries to reduce false positives on arbitrary 40-char strings
+        (
+            "aws_secret_key",
+            Regex::new(r"\b[A-Za-z0-9/+=]{40}\b").unwrap(),
+        ),
         // GitHub tokens
         (
             "github_pat_new",

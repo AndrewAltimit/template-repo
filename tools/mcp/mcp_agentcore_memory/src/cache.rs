@@ -39,12 +39,14 @@ impl MemoryCache {
         format!("{:x}", md5::compute(data.as_bytes()))
     }
 
-    /// Get cached results for a query
-    pub fn get(&self, query: &str, namespace: &str) -> Option<Vec<Value>> {
+    /// Get cached results for a query (updates access time for LRU behavior)
+    pub fn get(&mut self, query: &str, namespace: &str) -> Option<Vec<Value>> {
         let key = Self::make_key(query, namespace);
 
-        if let Some(entry) = self.cache.get(&key) {
+        if let Some(entry) = self.cache.get_mut(&key) {
             if entry.timestamp.elapsed() < self.ttl {
+                // Update timestamp for true LRU behavior
+                entry.timestamp = Instant::now();
                 tracing::debug!("Cache hit for query in namespace {}", namespace);
                 return Some(entry.results.clone());
             }

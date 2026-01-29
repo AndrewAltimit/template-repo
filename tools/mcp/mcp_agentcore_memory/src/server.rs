@@ -309,9 +309,9 @@ Returns relevant memories ranked by similarity."#
 
         let top_k = args.get("top_k").and_then(|v| v.as_u64()).unwrap_or(5) as u32;
 
-        // Check cache first
+        // Check cache first (uses write lock for LRU timestamp update)
         {
-            let cache = self.cache.read().await;
+            let mut cache = self.cache.write().await;
             if let Some(cached) = cache.get(query, namespace) {
                 debug!("Returning cached search results");
                 let response = json!({

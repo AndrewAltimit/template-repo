@@ -184,9 +184,11 @@ impl ChromaDBClient {
             self.base_url(),
             collection_id
         );
+        // Don't limit at database level - ChromaDB get doesn't guarantee order,
+        // so we need to fetch all matching events, sort by timestamp, then apply limit
         let request = GetRequest {
             ids: None,
-            limit: Some(limit),
+            limit: None,
             where_filter: Some(json!({
                 "$and": [
                     {"actor_id": {"$eq": actor_id}},
@@ -258,8 +260,9 @@ impl ChromaDBClient {
             });
         }
 
-        // Sort by timestamp descending
+        // Sort by timestamp descending and apply limit after sorting
         events.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        events.truncate(limit as usize);
         Ok(events)
     }
 
