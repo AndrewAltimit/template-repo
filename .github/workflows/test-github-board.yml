@@ -2,26 +2,25 @@
 name: GitHub Board Integration Tests
 # Tests for GitHub Projects v2 board integration
 # Note: Python board tests removed - board module migrated to Rust (tools/rust/board-manager)
+#
+# This workflow is now called from pr-validation.yml instead of triggering independently.
+# Use workflow_dispatch for manual testing only.
 
 'on':
-  push:
-    branches:
-      - main
-      - github-agents-refine
-    paths:
-      - 'tools/rust/board-manager/**'
-      - 'tools/mcp/mcp_github_board/**'
-      - '.github/workflows/test-github-board.yml'
-      - 'docker/mcp-github-board.Dockerfile'
-      - 'docker/requirements/requirements-github-board.txt'
-  pull_request:
-    paths:
-      - 'tools/rust/board-manager/**'
-      - 'tools/mcp/mcp_github_board/**'
-      - '.github/workflows/test-github-board.yml'
-      - 'docker/mcp-github-board.Dockerfile'
-      - 'docker/requirements/requirements-github-board.txt'
+  # Manual trigger for testing
   workflow_dispatch: {}
+
+  # Reusable workflow - called from pr-validation.yml
+  workflow_call:
+    inputs:
+      skip_docker_tests:
+        description: 'Skip Docker build and health tests'
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      GITHUB_TOKEN:
+        required: false
 
 concurrency:
   group: github-board-tests-${{ github.ref }}
