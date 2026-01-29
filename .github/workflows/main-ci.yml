@@ -201,6 +201,7 @@ jobs:
           print(\"  - mcp-content-creation (LaTeX, TikZ, PDF previews, Manim)\")
           print(\"  - mcp-code-quality (Format checking, linting, testing, security)\")
           print(\"  - mcp-github-board (GitHub Projects v2 board operations)\")
+          print(\"  - mcp-elevenlabs-speech (ElevenLabs text-to-speech synthesis)\")
           '
           "
 
@@ -697,6 +698,12 @@ jobs:
             cp target/release/mcp-github-board /app/rust-binaries/mcp-github-board-linux-x64
             echo "Built mcp-github-board for Linux x64"
 
+            # Build mcp-elevenlabs-speech
+            cd /app/tools/mcp/mcp_elevenlabs_speech
+            cargo build --release
+            cp target/release/mcp-elevenlabs-speech /app/rust-binaries/mcp-elevenlabs-speech-linux-x64
+            echo "Built mcp-elevenlabs-speech for Linux x64"
+
             # Build code-review-processor
             cd /app/tools/rust/code-review-processor
             cargo build --release
@@ -960,6 +967,7 @@ jobs:
           | `mcp-meme-generator-linux-x64` | Linux x64 | MCP server for meme generation with text overlays |
           | `mcp-content-creation-linux-x64` | Linux x64 | MCP server for LaTeX, TikZ, PDF previews, and Manim |
           | `mcp-github-board-linux-x64` | Linux x64 | MCP server for GitHub Projects v2 board operations |
+          | `mcp-elevenlabs-speech-linux-x64` | Linux x64 | MCP server for ElevenLabs text-to-speech synthesis |
           | `economic-agents-linux-x64` | Linux x64 | Autonomous economic agent simulation CLI |
           | `pr-monitor-linux-x64` | Linux x64 | PR monitoring tool for admin/Gemini feedback |
           | `gh-linux-x64` | Linux x64 | GitHub CLI validator and security checker |
