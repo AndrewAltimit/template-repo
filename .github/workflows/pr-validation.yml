@@ -710,6 +710,7 @@ jobs:
         uses: ./.github/actions/docker-compose-health-check
         with:
           services: 'mcp-code-quality mcp-content-creation mcp-gaea2'
+          profiles: 'services'
           health-endpoint: 'http://localhost:8010/health'
           timeout: '60'
           build: 'true'
@@ -1076,6 +1077,7 @@ jobs:
         uses: ./.github/actions/docker-compose-health-check
         with:
           services: 'mcp-code-quality mcp-content-creation mcp-gaea2'
+          profiles: 'services'
           health-endpoint: 'http://localhost:8010/health'
           timeout: '60'
           build: 'false'
