@@ -166,7 +166,7 @@ services:
       - services
       - gpu
 
-  # ElevenLabs Speech MCP Server
+  # ElevenLabs Speech MCP Server (Rust)
   mcp-elevenlabs-speech:
     build:
       context: .
@@ -175,10 +175,9 @@ services:
     ports:
       - "8018:8018"
     volumes:
-      - ./:/app:ro
       - ./outputs/elevenlabs_speech:/output  # Bind mount to local outputs directory
     environment:
-      - PYTHONUNBUFFERED=1
+      - RUST_LOG=info
       - PORT=8018  # Note: If you change this port, also update the healthcheck below
       - MCP_OUTPUT_DIR=/output
       - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
@@ -186,7 +185,7 @@ services:
       - ELEVENLABS_DEFAULT_VOICE=${ELEVENLABS_DEFAULT_VOICE:-Rachel}
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_elevenlabs_speech.server", "--mode", "http"]
+    command: ["mcp-elevenlabs-speech", "--mode", "http", "--port", "8018"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8018/health"]  # Must match PORT above
