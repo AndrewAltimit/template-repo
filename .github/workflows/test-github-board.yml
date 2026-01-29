@@ -18,9 +18,6 @@ name: GitHub Board Integration Tests
         required: false
         type: boolean
         default: false
-    secrets:
-      GITHUB_TOKEN:
-        required: false
 
 concurrency:
   group: github-board-tests-${{ github.ref }}
