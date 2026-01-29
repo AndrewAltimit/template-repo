@@ -1,40 +1,63 @@
-FROM python:3.11-slim
+# Dockerfile for GitHub Board MCP Server (Rust)
+# Multi-stage build for smaller final image
+#
+# This server requires the board-manager CLI tool to be available,
+# so we build both binaries in this image.
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    build-essential \
+# Stage 1: Build the Rust binaries
+FROM rust:1.93-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app directory
+WORKDIR /build
+
+# Copy MCP core library (dependency)
+COPY tools/mcp/mcp_core_rust /build/tools/mcp/mcp_core_rust
+
+# Copy board-manager (required CLI tool)
+COPY tools/rust/board-manager /build/tools/rust/board-manager
+
+# Copy MCP GitHub Board server
+COPY tools/mcp/mcp_github_board /build/tools/mcp/mcp_github_board
+
+# Build board-manager first
+WORKDIR /build/tools/rust/board-manager
+RUN cargo build --release
+
+# Build mcp-github-board
+WORKDIR /build/tools/mcp/mcp_github_board
+RUN cargo build --release
+
+# Stage 2: Runtime image
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build arguments for dynamic user creation
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+# Create a user with proper passwd entry (matching host UID/GID)
+RUN (getent group ${GROUP_ID} || groupadd -g ${GROUP_ID} boarduser) && \
+    (getent passwd ${USER_ID} || useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash boarduser)
+
+# Copy the binaries from builder
+COPY --from=builder /build/tools/rust/board-manager/target/release/board-manager /usr/local/bin/board-manager
+COPY --from=builder /build/tools/mcp/mcp_github_board/target/release/mcp-github-board /usr/local/bin/mcp-github-board
+
+# Set working directory
 WORKDIR /app
 
-# Copy requirements first for better layer caching
-COPY docker/requirements/requirements-github-board.txt /app/requirements.txt
+# Switch to the created user
+USER boarduser
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy MCP server code
-COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
-COPY tools/mcp/mcp_github_board /app/tools/mcp/mcp_github_board
-
-# Install packages
-RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_github_board
-
-# Set Python path
-ENV PYTHONPATH=/app
-
-# Create a non-root user that will be overridden by docker-compose
-RUN useradd -m -u 1000 appuser
-
-# Switch to non-root user
-USER appuser
-
-# Expose port
-EXPOSE 8021
-
-# Run the server
-CMD ["python", "-m", "mcp_github_board.server", "--mode", "http"]
+# Default command - stdio mode for MCP clients
+CMD ["mcp-github-board", "--mode", "stdio"]

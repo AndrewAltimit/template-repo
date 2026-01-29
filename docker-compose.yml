@@ -86,26 +86,27 @@ services:
     profiles:
       - services
 
-  # GitHub Board MCP Server
+  # GitHub Board MCP Server (Rust)
   mcp-github-board:
     build:
       context: .
       dockerfile: docker/mcp-github-board.Dockerfile
-    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     ports:
       - "8022:8022"
     volumes:
       - ./:/app:ro  # Read-only mount for security
       - /tmp:/tmp   # For temporary files
     environment:
-      - PYTHONUNBUFFERED=1
-      - PORT=8022
+      - RUST_LOG=info
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
       - GITHUB_PROJECT_NUMBER=${GITHUB_PROJECT_NUMBER:-1}
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_github_board.server", "--mode", "http"]
+    command: ["mcp-github-board", "--mode", "standalone", "--port", "8022"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8022/health"]
