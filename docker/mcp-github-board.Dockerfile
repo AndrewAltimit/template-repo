@@ -33,12 +33,14 @@ WORKDIR /build/tools/mcp/mcp_github_board
 RUN cargo build --release
 
 # Stage 2: Runtime image
-FROM debian:bookworm-slim
+# Use trixie-slim to match glibc version from rust:1.93-slim builder
+FROM debian:trixie-slim
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
-    libssl3 \
+    libssl3t64 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Build arguments for dynamic user creation
