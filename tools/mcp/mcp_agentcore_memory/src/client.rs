@@ -185,10 +185,14 @@ impl ChromaDBClient {
             collection_id
         );
         // Don't limit at database level - ChromaDB get doesn't guarantee order,
-        // so we need to fetch all matching events, sort by timestamp, then apply limit
+        // so we need to fetch all matching events, sort by timestamp, then apply limit.
+        // Use a large buffer (10000) to prevent unbounded memory usage while still
+        // capturing typical session histories. Sessions larger than this may miss
+        // some recent events - this is an acceptable tradeoff vs unbounded fetches.
+        let fetch_limit = std::cmp::max(limit, 10000);
         let request = GetRequest {
             ids: None,
-            limit: None,
+            limit: Some(fetch_limit),
             where_filter: Some(json!({
                 "$and": [
                     {"actor_id": {"$eq": actor_id}},
