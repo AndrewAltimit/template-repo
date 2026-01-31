@@ -113,7 +113,10 @@ jobs:
           ci_count=$(grep -E '(automation/ci-cd|\.github/workflows|docker/)' changed_files.txt | wc -l || echo "0")
           injection_toolkit_count=$(grep -E 'packages/injection_toolkit' changed_files.txt | wc -l || echo "0")
           economic_agents_count=$(grep -E 'packages/economic_agents' changed_files.txt | wc -l || echo "0")
-          rust_tools_count=$(grep -E 'tools/rust/|tools/mcp/mcp_gemini|tools/mcp/mcp_github_board|tools/mcp/mcp_elevenlabs_speech|tools/mcp/mcp_agentcore_memory' changed_files.txt | wc -l || echo "0")
+          RUST_TOOLS_PATTERN='tools/rust/|tools/mcp/mcp_gemini|tools/mcp/mcp_github_board'
+          RUST_TOOLS_PATTERN="$RUST_TOOLS_PATTERN|tools/mcp/mcp_elevenlabs_speech|tools/mcp/mcp_agentcore_memory"
+          RUST_TOOLS_PATTERN="$RUST_TOOLS_PATTERN|tools/mcp/mcp_desktop_control"
+          rust_tools_count=$(grep -E "$RUST_TOOLS_PATTERN" changed_files.txt | wc -l || echo "0")
           workflow_files_count=$(grep -E '\.github/workflows/' changed_files.txt | wc -l || echo "0")
           BOARD_PATTERN='tools/rust/board-manager|tools/mcp/mcp_github_board'
           BOARD_PATTERN="$BOARD_PATTERN|docker/mcp-github-board\\.Dockerfile"
