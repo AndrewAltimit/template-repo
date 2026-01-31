@@ -197,7 +197,8 @@ impl LinuxBackend {
     }
 
     fn window_to_info(&self, window: Window) -> Option<WindowInfo> {
-        let title = self.get_window_title(window)?;
+        // Use empty string for windows without titles (they should still be manageable)
+        let title = self.get_window_title(window).unwrap_or_default();
         let (x, y, width, height) = self.get_window_geometry(window)?;
         let (visible, minimized, maximized) = self.get_window_state(window);
 
@@ -306,16 +307,16 @@ impl LinuxBackend {
             "x" => Some(53),
             "y" => Some(29),
             "z" => Some(52),
-            "0" => Some(19),
-            "1" => Some(10),
-            "2" => Some(11),
-            "3" => Some(12),
-            "4" => Some(13),
-            "5" => Some(14),
-            "6" => Some(15),
-            "7" => Some(16),
-            "8" => Some(17),
-            "9" => Some(18),
+            "0" | ")" => Some(19),
+            "1" | "!" => Some(10),
+            "2" | "@" => Some(11),
+            "3" | "#" => Some(12),
+            "4" | "$" => Some(13),
+            "5" | "%" => Some(14),
+            "6" | "^" => Some(15),
+            "7" | "&" => Some(16),
+            "8" | "*" => Some(17),
+            "9" | "(" => Some(18),
             "space" | " " => Some(65),
             "enter" | "return" => Some(36),
             "tab" => Some(23),
@@ -346,6 +347,18 @@ impl LinuxBackend {
             "alt" => Some(64),
             "shift" => Some(50),
             "super" | "win" | "meta" => Some(133),
+            // Punctuation and symbols (US QWERTY layout)
+            "`" | "~" => Some(49),
+            "-" | "_" => Some(20),
+            "=" | "+" => Some(21),
+            "[" | "{" => Some(34),
+            "]" | "}" => Some(35),
+            "\\" | "|" => Some(51),
+            ";" | ":" => Some(47),
+            "'" | "\"" => Some(48),
+            "," | "<" => Some(59),
+            "." | ">" => Some(60),
+            "/" | "?" => Some(61),
             _ => None,
         }
     }
