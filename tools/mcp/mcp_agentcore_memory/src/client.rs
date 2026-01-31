@@ -10,6 +10,20 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
 
+/// Flatten metadata value to ChromaDB-compatible types.
+/// ChromaDB only supports primitive types (string, int, float, bool).
+/// Arrays and objects are serialized to JSON strings.
+fn flatten_metadata_value(value: Value) -> Value {
+    match value {
+        // Primitives pass through unchanged
+        Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_) => value,
+        // Arrays and objects get serialized to JSON strings
+        Value::Array(_) | Value::Object(_) => {
+            Value::String(serde_json::to_string(&value).unwrap_or_default())
+        }
+    }
+}
+
 /// ChromaDB HTTP client
 pub struct ChromaDBClient {
     client: Client,
@@ -102,19 +116,14 @@ impl ChromaDBClient {
 
     /// Get the records collection name for a namespace
     /// ChromaDB collection names must be 3-63 characters, alphanumeric with underscores/hyphens
+    ///
+    /// Uses hex encoding of namespace to prevent collisions (e.g., "a/b" vs "a-b" vs "a_b")
     fn records_collection_name(&self, namespace: &str) -> String {
-        // Replace any non-alphanumeric characters (except underscore) with underscore
-        let safe_name: String = namespace
-            .chars()
-            .map(|c| {
-                if c.is_ascii_alphanumeric() || c == '_' {
-                    c
-                } else {
-                    '_'
-                }
-            })
-            .collect();
-        let full_name = format!("{}_records_{}", self.config.collection_prefix, safe_name);
+        // Use hex encoding to prevent namespace collisions
+        // This ensures "a/b", "a-b", "a_b" map to different collections
+        let hex_name: String = namespace.bytes().map(|b| format!("{:02x}", b)).collect();
+
+        let full_name = format!("{}_rec_{}", self.config.collection_prefix, hex_name);
         // Truncate to 63 characters if needed (ChromaDB limit)
         if full_name.len() > 63 {
             full_name[..63].to_string()
@@ -138,13 +147,23 @@ impl ChromaDBClient {
         let timestamp = Utc::now();
         let sanitized_content = sanitize_content(content);
 
+        // Reserved system keys that user metadata cannot overwrite
+        const RESERVED_KEYS: &[&str] = &["actor_id", "session_id", "timestamp"];
+
+        // Start with user metadata, then overwrite with system keys to prevent collisions
         let mut meta: HashMap<String, Value> = HashMap::new();
+        if let Some(extra) = metadata.clone() {
+            // Filter out reserved keys from user metadata and flatten nested values
+            for (k, v) in extra {
+                if !RESERVED_KEYS.contains(&k.as_str()) {
+                    meta.insert(k, flatten_metadata_value(v));
+                }
+            }
+        }
+        // System keys always take precedence
         meta.insert("actor_id".to_string(), json!(actor_id));
         meta.insert("session_id".to_string(), json!(session_id));
         meta.insert("timestamp".to_string(), json!(timestamp.to_rfc3339()));
-        if let Some(extra) = metadata.clone() {
-            meta.extend(extra);
-        }
 
         let url = format!(
             "{}/api/v1/collections/{}/add",
@@ -308,12 +327,22 @@ impl ChromaDBClient {
             let id = uuid::Uuid::new_v4().to_string();
             let sanitized = sanitize_content(content);
 
+            // Reserved system keys that user metadata cannot overwrite
+            const RESERVED_KEYS: &[&str] = &["namespace", "created_at"];
+
+            // Start with user metadata, then overwrite with system keys to prevent collisions
             let mut meta: HashMap<String, Value> = HashMap::new();
+            if let Some(extra) = extra_meta {
+                // Filter out reserved keys from user metadata and flatten nested values
+                for (k, v) in extra {
+                    if !RESERVED_KEYS.contains(&k.as_str()) {
+                        meta.insert(k.clone(), flatten_metadata_value(v.clone()));
+                    }
+                }
+            }
+            // System keys always take precedence
             meta.insert("namespace".to_string(), json!(namespace));
             meta.insert("created_at".to_string(), json!(Utc::now().to_rfc3339()));
-            if let Some(extra) = extra_meta {
-                meta.extend(extra.clone());
-            }
 
             ids.push(id);
             documents.push(sanitized);

@@ -106,20 +106,24 @@ impl ServerRefs {
 
         info!("Initializing board-manager CLI...");
 
-        // Find board-manager binary
+        // Find board-manager binary in common locations
         let search_paths = [
-            // Via which crate (PATH lookup)
+            // Via which crate (PATH lookup) - most reliable
             which::which("board-manager").ok(),
-            // Local build paths
+            // Standard system locations
+            Some(PathBuf::from("/usr/local/bin/board-manager")),
+            // Home local bin (common for user installations)
+            dirs::home_dir().map(|h| h.join(".local/bin/board-manager")),
+            // Cargo bin directory
+            dirs::home_dir().map(|h| h.join(".cargo/bin/board-manager")),
+            // Local build paths (development)
             Some(PathBuf::from(
                 "tools/rust/board-manager/target/release/board-manager",
             )),
-            // Relative to current working directory
+            // Relative to current working directory (development)
             std::env::current_dir()
                 .ok()
                 .map(|cwd| cwd.join("tools/rust/board-manager/target/release/board-manager")),
-            // Home local bin
-            dirs::home_dir().map(|h| h.join(".local/bin/board-manager")),
         ];
 
         for path in search_paths.into_iter().flatten() {
@@ -151,7 +155,8 @@ impl ServerRefs {
         }
 
         Err(MCPError::Internal(
-            "board-manager CLI not found. Please install or build it.".to_string(),
+            "board-manager CLI not found. Install with 'cargo install --path tools/rust/board-manager' \
+             or ensure it's in PATH, ~/.local/bin, ~/.cargo/bin, or /usr/local/bin".to_string(),
         ))
     }
 
