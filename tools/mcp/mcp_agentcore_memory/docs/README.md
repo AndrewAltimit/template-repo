@@ -1,6 +1,10 @@
 # AgentCore Memory MCP Server
 
-> A Model Context Protocol server for persistent AI agent memory, supporting AWS Bedrock AgentCore (managed) or ChromaDB (self-hosted) with semantic search capabilities.
+> This MCP server was converted from Python to Rust for improved performance
+> and consistency with the project's container-first philosophy.
+> See the MIT License in the repository root for licensing information.
+
+A Model Context Protocol server for persistent AI agent memory using ChromaDB with semantic search capabilities.
 
 ## Overview
 
@@ -11,7 +15,7 @@ This MCP server provides persistent memory for AI agents, enabling:
 
 ## Quick Start
 
-### Using ChromaDB (Self-Hosted, Recommended for Development)
+### Using ChromaDB (Self-Hosted)
 
 1. Start ChromaDB:
 ```bash
@@ -20,52 +24,43 @@ docker compose --profile memory-chromadb up -d
 
 2. The MCP server will auto-connect when invoked via Claude Code.
 
-### Using AWS AgentCore (Managed)
-
-1. Set up IAM role with required permissions (see below)
-2. Create memory instance:
-```bash
-python -m mcp_agentcore_memory.scripts.setup_memory --name my-agent-memory
-```
-3. Configure environment:
-```bash
-export MEMORY_PROVIDER=agentcore
-export AGENTCORE_MEMORY_ID=mem-xxxxxxxxxxxx
-export AWS_REGION=us-east-1
-```
-
 ## MCP Tools
 
 ### `store_event`
 Store a short-term memory event.
 
-**Note**: AWS AgentCore is rate-limited to 0.25 req/sec per session. Only use for sparse, high-value events.
-
-```python
-# Example usage via Claude Code
-"Store this event: Starting work on authentication refactoring"
-```
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `content` | string | Yes | Content to remember |
+| `actor_id` | string | Yes | Actor identifier (e.g., 'claude-code') |
+| `session_id` | string | Yes | Session identifier |
 
 ### `store_facts`
-Store facts for long-term retention. No rate limits - use this for patterns and learnings.
+Store facts for long-term retention.
 
-```python
-# Example
-"Store these facts in codebase/patterns:
-- The API uses JWT tokens with 15-minute expiry
-- Refresh tokens are stored in httpOnly cookies"
-```
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `facts` | array | Yes | List of fact strings to store |
+| `namespace` | string | Yes | Namespace for organization |
+| `source` | string | No | Source attribution |
 
 ### `search_memories`
 Search memories using semantic similarity.
 
-```python
-# Example
-"Search my memories for authentication patterns in codebase/patterns"
-```
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | string | Yes | Search query |
+| `namespace` | string | Yes | Namespace to search |
+| `top_k` | integer | No | Maximum results (default: 5) |
 
 ### `list_session_events`
 List events from a specific session.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `actor_id` | string | Yes | Actor identifier |
+| `session_id` | string | Yes | Session identifier |
+| `limit` | integer | No | Maximum events (default: 50) |
 
 ### `list_namespaces`
 List available predefined namespaces.
@@ -77,64 +72,21 @@ Get provider status and info.
 
 Memories are organized into hierarchical namespaces:
 
-| Namespace | Purpose |
-|-----------|---------|
-| `codebase/patterns` | Code patterns and idioms |
-| `codebase/architecture` | Architectural decisions |
-| `codebase/conventions` | Coding conventions |
-| `reviews/pr` | PR review context |
-| `preferences/user` | User preferences |
-| `agents/claude` | Claude-specific learnings |
-
-## Provider Comparison
-
-| Feature | AWS AgentCore | ChromaDB |
-|---------|---------------|----------|
-| Managed | Yes | No |
-| Rate Limits | 0.25 req/sec (events) | None |
-| Cost | ~$2/month | Free |
-| Setup | IAM + Memory ID | Docker one-liner |
-| Best For | Enterprise, compliance | Development, prototyping |
-
-## AWS IAM Permissions
-
-### Runtime Role (for MCP server)
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "bedrock-agentcore:CreateEvent",
-                "bedrock-agentcore:ListEvents",
-                "bedrock-agentcore:BatchCreateMemoryRecords",
-                "bedrock-agentcore:RetrieveMemoryRecords",
-                "bedrock-agentcore:ListMemoryRecords"
-            ],
-            "Resource": "arn:aws:bedrock-agentcore:*:*:memory/*"
-        }
-    ]
-}
-```
-
-### Bootstrap Role (for setup scripts)
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "bedrock-agentcore:CreateMemory",
-                "bedrock-agentcore:GetMemory",
-                "bedrock-agentcore:DeleteMemory"
-            ],
-            "Resource": "arn:aws:bedrock-agentcore:*:*:memory/*"
-        }
-    ]
-}
-```
+| Category | Namespace | Purpose |
+|----------|-----------|---------|
+| Codebase | `codebase/patterns` | Code patterns and idioms |
+| Codebase | `codebase/architecture` | Architectural decisions |
+| Codebase | `codebase/conventions` | Coding conventions |
+| Codebase | `codebase/dependencies` | Dependency information |
+| Reviews | `reviews/pr` | PR review context |
+| Reviews | `reviews/issues` | Issue context |
+| Preferences | `preferences/user` | User preferences |
+| Preferences | `preferences/project` | Project preferences |
+| Agents | `agents/claude` | Claude-specific learnings |
+| Agents | `agents/gemini` | Gemini-specific learnings |
+| Agents | `agents/opencode` | OpenCode-specific learnings |
+| Agents | `agents/crush` | Crush-specific learnings |
+| Agents | `agents/codex` | Codex-specific learnings |
 
 ## Configuration
 
@@ -142,29 +94,33 @@ Environment variables:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MEMORY_PROVIDER` | `agentcore` or `chromadb` | `chromadb` |
-| `AGENTCORE_MEMORY_ID` | AWS memory instance ID | (required for agentcore) |
-| `AWS_REGION` | AWS region | `us-east-1` |
 | `CHROMADB_HOST` | ChromaDB host | `localhost` |
 | `CHROMADB_PORT` | ChromaDB port | `8000` |
+| `CHROMADB_COLLECTION` | Collection prefix | `agent_memory` |
 
-## Development
+## Building
 
-### Run tests
 ```bash
 cd tools/mcp/mcp_agentcore_memory
-pytest tests/ -v
+cargo build --release
 ```
 
-### Build container
-```bash
-docker compose build mcp-agentcore-memory
-```
+The binary will be at `target/release/mcp-agentcore-memory`.
 
-### Run in HTTP mode (for debugging)
+## Usage
+
 ```bash
-docker compose --profile memory up -d
+# STDIO mode (for Claude Code)
+./target/release/mcp-agentcore-memory --mode stdio
+
+# Standalone HTTP mode
+./target/release/mcp-agentcore-memory --mode standalone --port 8023
+
+# Check health
 curl http://localhost:8023/health
+
+# List tools
+curl http://localhost:8023/mcp/tools
 ```
 
 ## Security
@@ -173,27 +129,40 @@ curl http://localhost:8023/health
 - **Entropy Analysis**: High-entropy strings that look like secrets are redacted
 - **No Secrets Policy**: Credentials are never stored in memory
 
+### Blocked Patterns
+
+The sanitizer detects and redacts:
+- Generic secrets (`api_key=`, `secret=`, `password=`, `token=`)
+- Private keys (`-----BEGIN.*PRIVATE KEY-----`)
+- OpenAI/Stripe keys (`sk-`, `pk_`, `rk_`)
+- AWS credentials (`AKIA...`, 40-char base64)
+- GitHub tokens (`ghp_`, `gho_`, `github_pat_`)
+- Slack tokens (`xox*-`)
+- Anthropic keys (`sk-ant-`)
+- OpenRouter keys (`sk-or-`)
+- Bearer/Basic auth tokens
+- Connection strings with passwords
+
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    MCP Server (agentcore-memory)                │
-│                                                                 │
-│  Tools: store_event, store_facts, search_memories, etc.        │
-│                           │                                     │
-│                           ▼                                     │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │              MemoryProvider (Abstract Interface)            ││
-│  └─────────────────────────────────────────────────────────────┘│
-│                           │                                     │
-│           ┌───────────────┴───────────────┐                    │
-│           ▼                               ▼                    │
-│  ┌─────────────────┐             ┌─────────────────┐          │
-│  │  AgentCore      │             │  ChromaDB       │          │
-│  │  Provider       │             │  Provider       │          │
-│  │  (AWS)          │             │  (Local)        │          │
-│  └─────────────────┘             └─────────────────┘          │
-└─────────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------+
+|               MCP Server (agentcore-memory)                |
+|                                                           |
+|  Tools: store_event, store_facts, search_memories, etc.   |
+|                          |                                |
+|                          v                                |
+|  +-----------------------------------------------------+  |
+|  |             ChromaDB HTTP Client                    |  |
+|  +-----------------------------------------------------+  |
+|                          |                                |
+|                          v                                |
+|  +-----------------------------------------------------+  |
+|  |              ChromaDB Server (Docker)               |  |
+|  |              - Vector embeddings                    |  |
+|  |              - Semantic search                      |  |
+|  +-----------------------------------------------------+  |
++-----------------------------------------------------------+
 ```
 
 ## License

@@ -53,6 +53,7 @@ jobs:
       economic_agents_changed: ${{ steps.changes.outputs.economic_agents_changed }}
       rust_tools_changed: ${{ steps.changes.outputs.rust_tools_changed }}
       workflow_files_changed: ${{ steps.changes.outputs.workflow_files_changed }}
+      github_board_changed: ${{ steps.changes.outputs.github_board_changed }}
       files_changed: ${{ steps.changes.outputs.files_changed }}
       # Docker image-specific change detection
       docker_code_quality_changed: ${{ steps.changes.outputs.docker_code_quality_changed }}
@@ -112,8 +113,12 @@ jobs:
           ci_count=$(grep -E '(automation/ci-cd|\.github/workflows|docker/)' changed_files.txt | wc -l || echo "0")
           injection_toolkit_count=$(grep -E 'packages/injection_toolkit' changed_files.txt | wc -l || echo "0")
           economic_agents_count=$(grep -E 'packages/economic_agents' changed_files.txt | wc -l || echo "0")
-          rust_tools_count=$(grep -E 'tools/rust/|tools/mcp/mcp_gemini' changed_files.txt | wc -l || echo "0")
+          rust_tools_count=$(grep -E 'tools/rust/|tools/mcp/mcp_gemini|tools/mcp/mcp_github_board|tools/mcp/mcp_elevenlabs_speech|tools/mcp/mcp_agentcore_memory' changed_files.txt | wc -l || echo "0")
           workflow_files_count=$(grep -E '\.github/workflows/' changed_files.txt | wc -l || echo "0")
+          BOARD_PATTERN='tools/rust/board-manager|tools/mcp/mcp_github_board'
+          BOARD_PATTERN="$BOARD_PATTERN|docker/mcp-github-board\\.Dockerfile"
+          BOARD_PATTERN="$BOARD_PATTERN|docker/requirements/requirements-github-board\\.txt"
+          github_board_count=$(grep -E "$BOARD_PATTERN" changed_files.txt | wc -l || echo "0")
           total_files=$(cat changed_files.txt | wc -l)
 
           # Docker image-specific change detection
@@ -139,8 +144,8 @@ jobs:
           PYTHON_CI_PATTERN='docker/python-ci\.Dockerfile|config/python/requirements\.txt|pyproject\.toml'
           PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/rust/gh-validator|tools/mcp/mcp_core/"
           PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/mcp/mcp_ai_toolkit|tools/mcp/mcp_blender"
-          PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/mcp/mcp_comfyui|tools/mcp/mcp_elevenlabs_speech"
-          PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/mcp/mcp_gaea2|tools/mcp/mcp_github_board"
+          PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/mcp/mcp_comfyui"
+          PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/mcp/mcp_gaea2"
           PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/mcp/mcp_video_editor|tools/mcp/mcp_virtual_character"
           PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|packages/sleeper_agents|automation/|\.flake8"
           docker_python_ci_count=$(grep -E "($PYTHON_CI_PATTERN)" changed_files.txt | wc -l || echo "0")
@@ -158,6 +163,7 @@ jobs:
           echo "economic_agents_changed=$([[ $economic_agents_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "rust_tools_changed=$([[ $rust_tools_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "workflow_files_changed=$([[ $workflow_files_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "github_board_changed=$([[ $github_board_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "files_changed=$total_files" >> $GITHUB_OUTPUT
 
           # Docker image-specific outputs
@@ -180,6 +186,7 @@ jobs:
           echo "  Economic Agents: $economic_agents_count"
           echo "  Rust CLI tools: $rust_tools_count"
           echo "  Workflow files: $workflow_files_count"
+          echo "  GitHub Board: $github_board_count"
           echo "  Total files: $total_files"
           echo ""
           echo "[INFO] Docker Image Rebuild Detection:"
@@ -703,6 +710,7 @@ jobs:
         uses: ./.github/actions/docker-compose-health-check
         with:
           services: 'mcp-code-quality mcp-content-creation mcp-gaea2'
+          profiles: 'services'
           health-endpoint: 'http://localhost:8010/health'
           timeout: '60'
           build: 'true'
@@ -925,6 +933,17 @@ jobs:
           echo "## Economic Agents CI Summary" >> $GITHUB_STEP_SUMMARY
           echo "All checks: fully containerized (rust-ci)" >> $GITHUB_STEP_SUMMARY
 
+  # Stage 8d: GitHub Board Tests - after AI review cycle
+  github-board-tests:
+    name: GitHub Board Tests
+    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
+    if: |
+      always() && !cancelled() &&
+      needs.detect-changes.result == 'success' &&
+      needs.detect-changes.outputs.github_board_changed == 'true'
+    uses: ./.github/workflows/test-github-board.yml
+    secrets: inherit
+
   # Stage 9: Docker image validation (after AI review cycle and linting)
   docker-validation:
     name: Docker Image Validation
@@ -1058,6 +1077,7 @@ jobs:
         uses: ./.github/actions/docker-compose-health-check
         with:
           services: 'mcp-code-quality mcp-content-creation mcp-gaea2'
+          profiles: 'services'
           health-endpoint: 'http://localhost:8010/health'
           timeout: '60'
           build: 'false'
@@ -1267,6 +1287,8 @@ jobs:
       - dashboard-tests
       - gaea2-integration-tests
       - injection-toolkit-tests
+      - economic-agents-tests
+      - github-board-tests
       - docker-validation
       - agent-failure-handler
     if: always()
@@ -1300,6 +1322,8 @@ jobs:
           echo "- Dashboard Tests: ${{ needs.dashboard-tests.result }}"
           echo "- Gaea2 Integration Tests: ${{ needs.gaea2-integration-tests.result }}"
           echo "- Injection Toolkit Tests: ${{ needs.injection-toolkit-tests.result }}"
+          echo "- Economic Agents Tests: ${{ needs.economic-agents-tests.result }}"
+          echo "- GitHub Board Tests: ${{ needs.github-board-tests.result }}"
           echo "- Docker Validation: ${{ needs.docker-validation.result }}"
 
           # Check for failures (AI reviews are advisory, not blocking)
@@ -1317,6 +1341,8 @@ jobs:
                 "${{ needs.dashboard-tests.result }}" == "failure" ||
                 "${{ needs.gaea2-integration-tests.result }}" == "failure" ||
                 "${{ needs.injection-toolkit-tests.result }}" == "failure" ||
+                "${{ needs.economic-agents-tests.result }}" == "failure" ||
+                "${{ needs.github-board-tests.result }}" == "failure" ||
                 "${{ needs.docker-validation.result }}" == "failure" ]]; then
             echo ""
             echo "PR validation failed - please review the failed checks"
@@ -1349,6 +1375,8 @@ jobs:
               'dashboard-tests': '${{ needs.dashboard-tests.result }}',
               'gaea2-integration-tests': '${{ needs.gaea2-integration-tests.result }}',
               'injection-toolkit': '${{ needs.injection-toolkit-tests.result }}',
+              'economic-agents': '${{ needs.economic-agents-tests.result }}',
+              'github-board': '${{ needs.github-board-tests.result }}',
               'docker-validation': '${{ needs.docker-validation.result }}'
             };
 

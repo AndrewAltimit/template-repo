@@ -86,26 +86,27 @@ services:
     profiles:
       - services
 
-  # GitHub Board MCP Server
+  # GitHub Board MCP Server (Rust)
   mcp-github-board:
     build:
       context: .
       dockerfile: docker/mcp-github-board.Dockerfile
-    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     ports:
       - "8022:8022"
     volumes:
       - ./:/app:ro  # Read-only mount for security
       - /tmp:/tmp   # For temporary files
     environment:
-      - PYTHONUNBUFFERED=1
-      - PORT=8022
+      - RUST_LOG=info
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
       - GITHUB_PROJECT_NUMBER=${GITHUB_PROJECT_NUMBER:-1}
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_github_board.server", "--mode", "http"]
+    command: ["mcp-github-board", "--mode", "standalone", "--port", "8022"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8022/health"]
@@ -166,7 +167,7 @@ services:
       - services
       - gpu
 
-  # ElevenLabs Speech MCP Server
+  # ElevenLabs Speech MCP Server (Rust)
   mcp-elevenlabs-speech:
     build:
       context: .
@@ -175,10 +176,9 @@ services:
     ports:
       - "8018:8018"
     volumes:
-      - ./:/app:ro
       - ./outputs/elevenlabs_speech:/output  # Bind mount to local outputs directory
     environment:
-      - PYTHONUNBUFFERED=1
+      - RUST_LOG=info
       - PORT=8018  # Note: If you change this port, also update the healthcheck below
       - MCP_OUTPUT_DIR=/output
       - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
@@ -186,7 +186,7 @@ services:
       - ELEVENLABS_DEFAULT_VOICE=${ELEVENLABS_DEFAULT_VOICE:-Rachel}
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_elevenlabs_speech.server", "--mode", "http"]
+    command: ["mcp-elevenlabs-speech", "--mode", "http", "--port", "8018"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8018/health"]  # Must match PORT above

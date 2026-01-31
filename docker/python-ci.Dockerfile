@@ -84,15 +84,14 @@ COPY packages/sleeper_agents /app/packages/sleeper_agents
 # Note: The following are Rust packages, built separately via rust-ci container:
 #   - mcp_codex, mcp_reaction_search, mcp_gemini, mcp_crush, mcp_opencode
 #   - mcp_code_quality, mcp_content_creation, mcp_meme_generator
+#   - mcp_github_board, mcp_elevenlabs_speech, mcp_agentcore_memory
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install \
     /app/tools/mcp/mcp_core \
     /app/tools/mcp/mcp_ai_toolkit \
     /app/tools/mcp/mcp_blender \
     /app/tools/mcp/mcp_comfyui \
-    /app/tools/mcp/mcp_elevenlabs_speech \
     /app/tools/mcp/mcp_gaea2 \
-    /app/tools/mcp/mcp_github_board \
     /app/tools/mcp/mcp_video_editor \
     /app/tools/mcp/mcp_virtual_character \
     /app/packages/sleeper_agents

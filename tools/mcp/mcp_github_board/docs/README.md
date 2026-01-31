@@ -9,57 +9,80 @@
 - **Dependency Tracking**: Add blockers and parent-child relationships
 - **Status Updates**: Update issue status on the board
 - **Agent Coordination**: Multi-agent support with conflict prevention
+- **Native Rust Performance**: Fast execution with minimal overhead
 
 ## Installation
 
-The server is included in the template repository's MCP server collection.
+### Pre-built Binary
+
+Download from GitHub Releases:
+
+```bash
+# Linux x64
+curl -L https://github.com/AndrewAltimit/template-repo/releases/latest/download/mcp-github-board-linux-x64 -o mcp-github-board
+chmod +x mcp-github-board
+```
+
+### Build from Source
+
+```bash
+cd tools/mcp/mcp_github_board
+cargo build --release
+# Binary will be at target/release/mcp-github-board
+```
 
 ### Requirements
 
-- Python 3.11+
-- GitHub token with repository and project access
-- github-ai-agents package installed
-
-### Environment Variables
-
-```bash
-# Required
-GITHUB_TOKEN=ghp_your_token_here
-GITHUB_REPOSITORY=owner/repo
-
-# Optional - Board Configuration
-GITHUB_PROJECT_NUMBER=1
-GITHUB_OWNER=owner
-GITHUB_BOARD_CONFIG=.github/board_config.yaml
-```
+- **board-manager CLI**: Must be installed and in PATH (or at a known location)
+- **GitHub token**: With repository and project access
+- **Environment Variables**:
+  ```bash
+  export GITHUB_TOKEN=ghp_your_token_here
+  export GITHUB_REPOSITORY=owner/repo
+  ```
 
 ## Running the Server
 
-### HTTP Mode (Recommended)
+### Standalone Mode (Recommended)
 
 ```bash
 # Start server on port 8022
-python -m mcp_github_board.server
+mcp-github-board --mode standalone --port 8022
 
-# Or with custom port
-uvicorn mcp_github_board.server:app --host 0.0.0.0 --port 8022
-```
-
-### Docker Mode
-
-```bash
-# Using docker-compose
-docker compose up -d mcp-github-board
-
-# View logs
-docker compose logs -f mcp-github-board
+# Or with custom settings
+mcp-github-board --mode standalone --port 8022 --log-level debug
 ```
 
 ### STDIO Mode
 
+For direct MCP client integration:
+
 ```bash
-# For local MCP client integration
-python -m mcp_github_board.server --stdio
+mcp-github-board --mode standalone
+```
+
+### Server Mode (REST API only)
+
+```bash
+mcp-github-board --mode server --port 8022
+```
+
+### Test Endpoints
+
+```bash
+# Health check
+curl http://localhost:8022/health
+
+# List tools
+curl http://localhost:8022/mcp/tools
+
+# Execute tool
+curl -X POST http://localhost:8022/mcp/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool": "query_ready_work",
+    "arguments": {"limit": 5}
+  }'
 ```
 
 ## Available Tools
@@ -79,28 +102,6 @@ Get ready work from the board (unblocked, unclaimed TODO issues).
   "arguments": {
     "agent_name": "claude",
     "limit": 5
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "result": {
-    "count": 3,
-    "issues": [
-      {
-        "number": 42,
-        "title": "Implement authentication",
-        "status": "Todo",
-        "priority": "High",
-        "type": "Feature",
-        "url": "https://github.com/owner/repo/issues/42",
-        "labels": ["backend", "security"],
-        "blocked_by": []
-      }
-    ]
   }
 }
 ```
@@ -126,19 +127,6 @@ Claim an issue for implementation.
 }
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "result": {
-    "claimed": true,
-    "issue_number": 42,
-    "agent": "claude",
-    "session_id": "claude-session-123"
-  }
-}
-```
-
 ### 3. renew_claim
 
 Renew an active claim for long-running tasks.
@@ -147,18 +135,6 @@ Renew an active claim for long-running tasks.
 - `issue_number` (required): Issue with active claim
 - `agent_name` (required): Agent renewing the claim
 - `session_id` (required): Session ID from original claim
-
-**Example:**
-```json
-{
-  "tool": "renew_claim",
-  "arguments": {
-    "issue_number": 42,
-    "agent_name": "claude",
-    "session_id": "claude-session-123"
-  }
-}
-```
 
 ### 4. release_work
 
@@ -169,18 +145,6 @@ Release claim on an issue.
 - `agent_name` (required): Agent releasing the claim
 - `reason` (optional): Release reason (completed/blocked/abandoned/error)
 
-**Example:**
-```json
-{
-  "tool": "release_work",
-  "arguments": {
-    "issue_number": 42,
-    "agent_name": "claude",
-    "reason": "completed"
-  }
-}
-```
-
 ### 5. update_status
 
 Update issue status on the board.
@@ -188,17 +152,6 @@ Update issue status on the board.
 **Parameters:**
 - `issue_number` (required): Issue to update
 - `status` (required): New status (Todo/In Progress/Blocked/Done/Abandoned)
-
-**Example:**
-```json
-{
-  "tool": "update_status",
-  "arguments": {
-    "issue_number": 42,
-    "status": "Done"
-  }
-}
-```
 
 ### 6. add_blocker
 
@@ -208,17 +161,6 @@ Add a blocking dependency between issues.
 - `issue_number` (required): Issue that is blocked
 - `blocker_number` (required): Issue that blocks
 
-**Example:**
-```json
-{
-  "tool": "add_blocker",
-  "arguments": {
-    "issue_number": 43,
-    "blocker_number": 42
-  }
-}
-```
-
 ### 7. mark_discovered_from
 
 Mark an issue as discovered from another (parent-child relationship).
@@ -226,17 +168,6 @@ Mark an issue as discovered from another (parent-child relationship).
 **Parameters:**
 - `issue_number` (required): Child issue
 - `parent_number` (required): Parent issue
-
-**Example:**
-```json
-{
-  "tool": "mark_discovered_from",
-  "arguments": {
-    "issue_number": 44,
-    "parent_number": 42
-  }
-}
-```
 
 ### 8. get_issue_details
 
@@ -258,105 +189,21 @@ Get list of enabled agents for this board.
 
 **Parameters:** None
 
-**Example:**
-```json
-{
-  "tool": "list_agents",
-  "arguments": {}
-}
-```
-
 ### 11. get_board_config
 
 Get current board configuration.
 
 **Parameters:** None
 
-**Example:**
-```json
-{
-  "tool": "get_board_config",
-  "arguments": {}
-}
-```
+### 12. board_status
+
+Get server status and board-manager CLI availability.
+
+**Parameters:** None
 
 ## Configuration
 
-### Board Configuration File
-
-Create `.github/board_config.yaml`:
-
-```yaml
-project:
-  number: 1
-  owner: "your-username"
-
-repository: "your-username/your-repo"
-
-fields:
-  status: "Status"
-  priority: "Priority"
-  agent: "Agent"
-  type: "Type"
-  blocked_by: "Blocked By"
-  discovered_from: "Discovered From"
-  size: "Estimated Size"
-
-agents:
-  enabled_agents:
-    - "claude"
-    - "opencode"
-    - "gemini"
-  auto_discover: true
-
-work_claims:
-  timeout: 86400  # 24 hours
-  renewal_interval: 3600  # 1 hour
-
-work_queue:
-  exclude_labels:
-    - "wontfix"
-    - "duplicate"
-  priority_labels:
-    critical:
-      - "security"
-      - "data-loss"
-    high:
-      - "bug"
-      - "performance"
-```
-
-## Testing
-
-### Run Tests
-
-```bash
-# Test the server
-python tools/mcp/github_board/scripts/test_server.py
-
-# Test with custom URL
-python tools/mcp/github_board/scripts/test_server.py --url http://localhost:8022
-```
-
-### Manual Testing
-
-```bash
-# Health check
-curl http://localhost:8022/health
-
-# List tools
-curl http://localhost:8022/mcp/tools
-
-# Execute tool
-curl -X POST http://localhost:8022/mcp/execute \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tool": "list_agents",
-    "arguments": {}
-  }'
-```
-
-## Integration with .mcp.json
+### Integration with .mcp.json
 
 Add to your `.mcp.json`:
 
@@ -364,103 +211,68 @@ Add to your `.mcp.json`:
 {
   "mcpServers": {
     "github-board": {
-      "command": "python",
-      "args": [
-        "-m",
-        "mcp_github_board.server"
-      ],
+      "command": "mcp-github-board",
+      "args": ["--mode", "standalone"],
       "env": {
         "GITHUB_TOKEN": "${GITHUB_TOKEN}",
-        "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}",
-        "GITHUB_PROJECT_NUMBER": "1"
+        "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}"
       }
     }
   }
 }
 ```
 
+### Board Configuration
+
+The server uses the `board-manager` CLI which reads configuration from `.github/board_config.yaml`. See the [Board Manager documentation](../../../rust/board-manager/README.md) for configuration details.
+
 ## Architecture
 
 ### Components
 
-- **GitHubBoardMCPServer**: Main MCP server class
-- **BoardManager**: Core board operations (from github_agents package)
-- **BoardConfig**: Configuration management
-- **GraphQL Client**: GitHub Projects v2 API integration
+- **MCP Server**: Built on mcp-core Rust library
+- **board-manager CLI**: Handles all GitHub API interactions
+- **Async Runtime**: Tokio for high-performance async operations
 
 ### Flow
 
-1. Client sends tool request to `/mcp/execute`
-2. Server validates and routes to appropriate handler
-3. Handler calls BoardManager methods
-4. BoardManager executes GraphQL operations
-5. Response returned to client
+1. Client sends tool request to server
+2. Server validates parameters and constructs CLI command
+3. board-manager CLI executes operation against GitHub API
+4. JSON response returned to client
 
 ### Error Handling
 
-- **BoardNotFoundError**: Project not found for owner
-- **GraphQLError**: GitHub API errors
-- **ValidationError**: Invalid parameters
-- **TimeoutError**: Claim timeout exceeded
+- **MCPError::InvalidParameters**: Missing or invalid tool parameters
+- **MCPError::Internal**: board-manager CLI errors or JSON parsing failures
+- CLI errors include stderr output for debugging
 
 ## Troubleshooting
 
-### Server Won't Start
+### board-manager Not Found
 
-**Issue:** `Board manager not initialized`
-
-**Solution:**
-- Check `GITHUB_TOKEN` environment variable is set
-- Verify token has `repo` and `project` scopes
-- Check network connectivity to GitHub API
-
-### Claims Not Working
-
-**Issue:** `Failed to claim work`
+**Issue:** `board-manager CLI not found`
 
 **Solution:**
-- Verify issue exists and is in TODO status
-- Check issue isn't already claimed
-- Ensure agent name matches enabled_agents in config
+- Install board-manager or ensure it's in PATH
+- Build from source: `cd tools/rust/board-manager && cargo build --release`
+- Check common locations: `~/.local/bin/board-manager`
 
-### GraphQL Errors
+### GitHub API Errors
 
-**Issue:** `GraphQL error: Failed to fetch project items`
+**Issue:** `board-manager error: ...`
 
 **Solution:**
-- Verify project number is correct
-- Check owner has access to project
-- Ensure project is a Projects v2 board (not classic project)
-
-## Development
-
-### Running Locally
-
-```bash
-# Install dependencies
-pip install -e packages/github_agents
-
-# Set environment
-export GITHUB_TOKEN=your_token
-export GITHUB_REPOSITORY=owner/repo
-
-# Run server
-python -m mcp_github_board.server
-```
-
-### Adding New Tools
-
-1. Add tool definition to `get_tools()`
-2. Add route handler in `execute_tool()`
-3. Implement tool method (e.g., `_my_new_tool()`)
-4. Update documentation
+- Verify GITHUB_TOKEN has proper scopes (repo, project)
+- Check GITHUB_REPOSITORY format (owner/repo)
+- Ensure project number is correct in board config
 
 ## Related Documentation
 
-- [Board Manager CLI](../../../../tools/rust/board-manager/README.md)
-- [GitHub Agents CLI](../../../../tools/rust/github-agents-cli/README.md)
-- [MCP Core Documentation](../../mcp_core/docs/README.md)
+- [Board Manager CLI](../../../rust/board-manager/README.md)
+- [MCP Core Rust](../../mcp_core_rust/docs/README.md)
+- [GitHub Agents CLI](../../../rust/github-agents-cli/README.md)
 
 ## License
 
-Part of the template-repo project. See repository LICENSE file.
+Part of the template-repo project. See repository root [LICENSE](../../../../LICENSE) file.
