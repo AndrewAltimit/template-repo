@@ -117,19 +117,21 @@ impl ChromaDBClient {
     /// Get the records collection name for a namespace
     /// ChromaDB collection names must be 3-63 characters, alphanumeric with underscores/hyphens
     ///
-    /// Uses hex encoding of namespace to prevent collisions (e.g., "a/b" vs "a-b" vs "a_b")
+    /// Uses SHA-256 hash prefix to prevent collisions regardless of namespace length
     fn records_collection_name(&self, namespace: &str) -> String {
-        // Use hex encoding to prevent namespace collisions
-        // This ensures "a/b", "a-b", "a_b" map to different collections
-        let hex_name: String = namespace.bytes().map(|b| format!("{:02x}", b)).collect();
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
 
-        let full_name = format!("{}_rec_{}", self.config.collection_prefix, hex_name);
-        // Truncate to 63 characters if needed (ChromaDB limit)
-        if full_name.len() > 63 {
-            full_name[..63].to_string()
-        } else {
-            full_name
-        }
+        // Use a hash to prevent namespace collisions and handle any length
+        // This ensures "a/b", "a-b", "a_b" map to different collections
+        // and long namespaces don't cause truncation collisions
+        let mut hasher = DefaultHasher::new();
+        namespace.hash(&mut hasher);
+        let hash = hasher.finish();
+        let hash_str = format!("{:016x}", hash); // 16 hex chars from u64
+
+        // Format: prefix_rec_hash (max ~30 chars with typical prefix)
+        format!("{}_rec_{}", self.config.collection_prefix, hash_str)
     }
 
     /// Store a short-term memory event
