@@ -953,11 +953,23 @@ impl DesktopBackend for LinuxBackend {
     }
 
     fn send_hotkey(&self, keys: &[String]) -> DesktopResult<bool> {
-        let keycodes: Vec<u8> = keys.iter().filter_map(|k| self.key_to_keycode(k)).collect();
+        // Validate all keys first - don't silently drop unknown keys
+        let mut keycodes = Vec::with_capacity(keys.len());
+        for key in keys {
+            match self.key_to_keycode(key) {
+                Some(keycode) => keycodes.push(keycode),
+                None => {
+                    return Err(DesktopError::OperationFailed(format!(
+                        "Unknown key in hotkey: {}",
+                        key
+                    )));
+                }
+            }
+        }
 
         if keycodes.is_empty() {
             return Err(DesktopError::OperationFailed(
-                "No valid keys in hotkey".to_string(),
+                "No keys in hotkey".to_string(),
             ));
         }
 
@@ -1006,8 +1018,10 @@ impl LinuxBackend {
             )));
         }
 
-        let bytes_per_pixel = if depth == 32 { 4 } else { 3 };
-        let expected_size = (width * height * bytes_per_pixel as u32) as usize;
+        // X11 commonly uses 32bpp (4 bytes per pixel) even for 24-bit depth,
+        // with one byte unused for padding. Always use 4 bytes per pixel.
+        let bytes_per_pixel = 4usize;
+        let expected_size = (width * height) as usize * bytes_per_pixel;
 
         if data.len() < expected_size {
             return Err(DesktopError::ScreenshotFailed(format!(
@@ -1022,13 +1036,15 @@ impl LinuxBackend {
         for y in 0..height {
             for x in 0..width {
                 let idx = (y * width + x) as usize * bytes_per_pixel;
-                let (r, g, b, a) = if depth == 32 {
-                    // BGRA format
-                    (data[idx + 2], data[idx + 1], data[idx], data[idx + 3])
-                } else {
-                    // BGR format
-                    (data[idx + 2], data[idx + 1], data[idx], 255)
-                };
+                // X11 uses BGRX/BGRA format (4 bytes per pixel)
+                // For 24-bit depth, the 4th byte is padding (unused)
+                // For 32-bit depth, the 4th byte is alpha
+                let (r, g, b, a) = (
+                    data[idx + 2],
+                    data[idx + 1],
+                    data[idx],
+                    if depth == 32 { data[idx + 3] } else { 255 },
+                );
                 img.put_pixel(x, y, Rgba([r, g, b, a]));
             }
         }
