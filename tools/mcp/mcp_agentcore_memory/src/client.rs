@@ -226,10 +226,11 @@ impl ChromaDBClient {
         );
         // Don't limit at database level - ChromaDB get doesn't guarantee order,
         // so we need to fetch all matching events, sort by timestamp, then apply limit.
-        // Use a large buffer (10000) to prevent unbounded memory usage while still
-        // capturing typical session histories. Sessions larger than this may miss
-        // some recent events - this is an acceptable tradeoff vs unbounded fetches.
-        let fetch_limit = std::cmp::max(limit, 10000);
+        // Use a buffer of min 10000 to capture recent events, but cap at 50000 to prevent
+        // DoS from extremely large limit values. Sessions larger than 50k events may miss
+        // some recent events - this is an acceptable tradeoff vs memory exhaustion.
+        const MAX_FETCH_LIMIT: u32 = 50000;
+        let fetch_limit = std::cmp::min(std::cmp::max(limit, 10000), MAX_FETCH_LIMIT);
         let request = GetRequest {
             ids: None,
             limit: Some(fetch_limit),
