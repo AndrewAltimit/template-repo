@@ -117,18 +117,20 @@ impl ChromaDBClient {
     /// Get the records collection name for a namespace
     /// ChromaDB collection names must be 3-63 characters, alphanumeric with underscores/hyphens
     ///
-    /// Uses SHA-256 hash prefix to prevent collisions regardless of namespace length
+    /// Uses SHA-256 hash prefix to prevent collisions regardless of namespace length.
+    /// SHA-256 is stable across compiler versions and architectures, ensuring existing
+    /// memories remain accessible after rebuilds.
     fn records_collection_name(&self, namespace: &str) -> String {
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
+        use sha2::{Sha256, Digest};
 
-        // Use a hash to prevent namespace collisions and handle any length
+        // Use SHA-256 for stable hashing across compiler versions/architectures
         // This ensures "a/b", "a-b", "a_b" map to different collections
         // and long namespaces don't cause truncation collisions
-        let mut hasher = DefaultHasher::new();
-        namespace.hash(&mut hasher);
-        let hash = hasher.finish();
-        let hash_str = format!("{:016x}", hash); // 16 hex chars from u64
+        let mut hasher = Sha256::new();
+        hasher.update(namespace.as_bytes());
+        let hash = hasher.finalize();
+        // Take first 16 hex chars (8 bytes) for a compact but unique identifier
+        let hash_str: String = hash.iter().take(8).map(|b| format!("{:02x}", b)).collect();
 
         // Format: prefix_rec_hash (max ~30 chars with typical prefix)
         format!("{}_rec_{}", self.config.collection_prefix, hash_str)
