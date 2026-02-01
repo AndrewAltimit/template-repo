@@ -207,12 +207,21 @@ impl ComfyUIClient {
         data: &[u8],
         metadata: Option<&Value>,
     ) -> Result<PathBuf, String> {
+        // Sanitize filename to prevent path traversal attacks
+        let safe_filename = std::path::Path::new(filename)
+            .file_name()
+            .ok_or_else(|| {
+                "Invalid filename: must not be empty or contain path separators".to_string()
+            })?
+            .to_str()
+            .ok_or_else(|| "Invalid filename: contains non-UTF8 characters".to_string())?;
+
         let lora_dir = self.models_path.join("loras");
         tokio::fs::create_dir_all(&lora_dir)
             .await
             .map_err(|e| format!("Failed to create lora directory: {}", e))?;
 
-        let lora_path = lora_dir.join(filename);
+        let lora_path = lora_dir.join(safe_filename);
         tokio::fs::write(&lora_path, data)
             .await
             .map_err(|e| format!("Failed to write LoRA file: {}", e))?;
@@ -269,10 +278,19 @@ impl ComfyUIClient {
 
     /// Download a LoRA model
     pub async fn download_lora(&self, filename: &str) -> Result<Vec<u8>, String> {
-        let lora_path = self.models_path.join("loras").join(filename);
+        // Sanitize filename to prevent path traversal attacks
+        let safe_filename = std::path::Path::new(filename)
+            .file_name()
+            .ok_or_else(|| {
+                "Invalid filename: must not be empty or contain path separators".to_string()
+            })?
+            .to_str()
+            .ok_or_else(|| "Invalid filename: contains non-UTF8 characters".to_string())?;
+
+        let lora_path = self.models_path.join("loras").join(safe_filename);
 
         if !lora_path.exists() {
-            return Err(format!("LoRA not found: {}", filename));
+            return Err(format!("LoRA not found: {}", safe_filename));
         }
 
         tokio::fs::read(&lora_path)

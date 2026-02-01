@@ -206,7 +206,8 @@ impl Tool for GenerateImageTool {
 
         // Use provided workflow or create default
         let workflow = if let Some(custom) = args.get("workflow") {
-            custom.clone()
+            // Inject prompt into CLIPTextEncode nodes if present
+            inject_prompt_into_workflow(custom.clone(), prompt, negative_prompt)
         } else {
             WorkflowFactory::create_flux_workflow(
                 prompt,
@@ -795,6 +796,48 @@ impl Tool for ExecuteWorkflowTool {
             }
         }
     }
+}
+
+/// Inject prompt and negative_prompt into CLIPTextEncode nodes in a custom workflow.
+/// This matches the behavior of the previous Python implementation.
+fn inject_prompt_into_workflow(mut workflow: Value, prompt: &str, negative_prompt: &str) -> Value {
+    if let Some(obj) = workflow.as_object_mut() {
+        // Track which nodes we've updated for positive/negative
+        let mut positive_updated = false;
+        let mut negative_updated = false;
+
+        for (_node_id, node) in obj.iter_mut() {
+            if let Some(node_obj) = node.as_object_mut()
+                && node_obj.get("class_type").and_then(|v| v.as_str()) == Some("CLIPTextEncode")
+                && let Some(inputs) = node_obj.get_mut("inputs")
+                && let Some(inputs_obj) = inputs.as_object_mut()
+            {
+                // Check if this is likely a positive or negative prompt node
+                // by looking at the existing text or node connections
+                let current_text = inputs_obj
+                    .get("text")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+
+                // Heuristic: if text contains "negative" keywords, consider it negative
+                let is_negative = current_text.to_lowercase().contains("negative")
+                    || current_text.to_lowercase().contains("bad")
+                    || current_text.to_lowercase().contains("worst");
+
+                if is_negative && !negative_updated {
+                    inputs_obj.insert("text".to_string(), json!(negative_prompt));
+                    negative_updated = true;
+                } else if !positive_updated {
+                    inputs_obj.insert("text".to_string(), json!(prompt));
+                    positive_updated = true;
+                } else if !negative_updated {
+                    inputs_obj.insert("text".to_string(), json!(negative_prompt));
+                    negative_updated = true;
+                }
+            }
+        }
+    }
+    workflow
 }
 
 #[cfg(test)]
