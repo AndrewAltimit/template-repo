@@ -1,55 +1,81 @@
-FROM python:3.11-slim
+# syntax=docker/dockerfile:1.4
+# MCP Gaea2 Server - Rust
+#
+# Multi-stage build for minimal runtime image
+#
+# Build (from repo root directory):
+#   docker build -f docker/mcp-gaea2.Dockerfile -t mcp-gaea2 .
+#
+# Run modes:
+#   Standalone: docker run -p 8007:8007 mcp-gaea2
+#   Server:     docker run -p 8007:8007 mcp-gaea2 --mode server
+#   Client:     docker run -p 8007:8007 mcp-gaea2 --mode client --backend-url http://host:port
+#
+# Note: CLI automation features require Windows host with Gaea2 installed.
+#       Container provides project creation, validation, and template generation.
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    build-essential \
-    gosu \
-    passwd \
+# =============================================================================
+# Stage 1: Builder
+# =============================================================================
+FROM rust:1.93-slim-bookworm AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app directory
 WORKDIR /app
 
-# Copy requirements first for better layer caching
-COPY docker/requirements/requirements-gaea2.txt /app/requirements.txt
+# Copy mcp_core_rust (dependency)
+COPY tools/mcp/mcp_core_rust/Cargo.toml tools/mcp/mcp_core_rust/Cargo.lock ./tools/mcp/mcp_core_rust/
+COPY tools/mcp/mcp_core_rust/crates ./tools/mcp/mcp_core_rust/crates
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy mcp_gaea2
+COPY tools/mcp/mcp_gaea2/Cargo.toml ./tools/mcp/mcp_gaea2/
+COPY tools/mcp/mcp_gaea2/src ./tools/mcp/mcp_gaea2/src
 
-# Create a non-root user first
-RUN useradd -m -u 1000 appuser
+# Build release binary
+# Use CARGO_TARGET_DIR to put output in /app/target for caching
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    cd tools/mcp/mcp_gaea2 && \
+    CARGO_TARGET_DIR=/app/target cargo build --release \
+    && cp /app/target/release/mcp-gaea2 /usr/local/bin/
 
-# Create output directory with proper ownership for non-root user
-RUN mkdir -p /output/gaea2 && \
-    chown -R appuser:appuser /output && \
-    chmod -R 755 /output
+# =============================================================================
+# Stage 2: Runtime
+# =============================================================================
+FROM debian:bookworm-slim AS runtime
 
-# Copy MCP server code
-COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
-COPY tools/mcp/mcp_gaea2 /app/tools/mcp/mcp_gaea2
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libssl3 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install MCP packages
-RUN pip install --no-cache-dir /app/tools/mcp/mcp_core && \
-    pip install --no-cache-dir /app/tools/mcp/mcp_gaea2
+# Create non-root user
+RUN useradd -m -u 1000 -s /bin/bash mcp
 
-# Set Python path
-ENV PYTHONPATH=/app
+# Create output directory for generated projects
+RUN mkdir -p /output/gaea2 && chown -R mcp:mcp /output
 
-# Note about limitations
-RUN echo "Note: This container provides Gaea2 project creation and validation only." > /app/CONTAINER_NOTE.txt && \
-    echo "For CLI automation features, run on Windows host with Gaea2 installed." >> /app/CONTAINER_NOTE.txt
+# Copy binary from builder
+COPY --from=builder /usr/local/bin/mcp-gaea2 /usr/local/bin/
 
-# Copy entrypoint script
-COPY docker/entrypoints/gaea2-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/gaea2-entrypoint.sh
+# Switch to non-root user
+USER mcp
+WORKDIR /home/mcp
 
-# Expose port
+# Default port (matches existing compose configuration)
 EXPOSE 8007
 
-# Entrypoint for permission handling (runs as root, then switches to appuser)
-ENTRYPOINT ["/usr/local/bin/gaea2-entrypoint.sh"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8007/health || exit 1
 
-# Run the server
-CMD ["python", "-m", "mcp_gaea2.server", "--mode", "http"]
+# Default to standalone mode
+ENTRYPOINT ["mcp-gaea2"]
+CMD ["--mode", "standalone", "--port", "8007", "--output-dir", "/output/gaea2"]
