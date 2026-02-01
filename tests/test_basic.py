@@ -8,14 +8,9 @@ import pytest
 
 def test_imports():
     """Test that basic imports work"""
-    # Test virtual character server imports
-    # Note: mcp_code_quality, mcp_content_creation, and mcp_desktop_control were migrated to Rust
-    from mcp_virtual_character.server import VirtualCharacterMCPServer  # noqa: E402
-
-    server = VirtualCharacterMCPServer(auto_connect=False)
-    assert len(server.get_tools()) > 0
-
     # Test core imports
+    # Note: mcp_code_quality, mcp_content_creation, mcp_desktop_control, and
+    # mcp_virtual_character were migrated to Rust
     from mcp_core.base_server import BaseMCPServer  # noqa: E402
 
     assert BaseMCPServer is not None
