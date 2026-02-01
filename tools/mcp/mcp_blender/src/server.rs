@@ -315,6 +315,14 @@ animation, physics, architectural, product, vfx, game_asset, sculpting"#
             .and_then(|v| v.as_str())
             .ok_or_else(|| MCPError::InvalidParameters("Missing 'name' parameter".to_string()))?;
 
+        // Validate project name to prevent path traversal
+        // Reject names containing path separators or parent directory references
+        if name.contains('/') || name.contains('\\') || name.contains("..") {
+            return Err(MCPError::InvalidParameters(
+                "Project name cannot contain path separators or '..'".to_string(),
+            ));
+        }
+
         let template = args
             .get("template")
             .and_then(|v| v.as_str())
@@ -1981,9 +1989,17 @@ Texture types: IMAGE, NOISE, VORONOI, MUSGRAVE, WAVE, MAGIC, BRICK, CHECKER"#
             .ok_or_else(|| {
                 MCPError::InvalidParameters("Missing 'texture_type' parameter".to_string())
             })?;
-        let settings = args.get("settings").cloned().unwrap_or(json!({}));
+        let mut settings = args.get("settings").cloned().unwrap_or(json!({}));
 
         let project_path = self.server.validate_project_path(project).await?;
+
+        // Validate image_path if present (for IMAGE texture type) to prevent directory traversal
+        if texture_type == "IMAGE" {
+            if let Some(image_path) = settings.get("image_path").and_then(|v| v.as_str()) {
+                let validated_path = self.server.validate_asset_path(image_path).await?;
+                settings["image_path"] = json!(validated_path);
+            }
+        }
 
         let script_args = json!({
             "operation": "add_texture",
@@ -2569,9 +2585,17 @@ Environment types: HDRI, SKY_TEXTURE, GRADIENT, COLOR, VOLUMETRIC"#
             .ok_or_else(|| {
                 MCPError::InvalidParameters("Missing 'environment_type' parameter".to_string())
             })?;
-        let settings = args.get("settings").cloned().unwrap_or(json!({}));
+        let mut settings = args.get("settings").cloned().unwrap_or(json!({}));
 
         let project_path = self.server.validate_project_path(project).await?;
+
+        // Validate hdri_path if present (for HDRI environment type) to prevent directory traversal
+        if environment_type == "HDRI" {
+            if let Some(hdri_path) = settings.get("hdri_path").and_then(|v| v.as_str()) {
+                let validated_path = self.server.validate_asset_path(hdri_path).await?;
+                settings["hdri_path"] = json!(validated_path);
+            }
+        }
 
         let script_args = json!({
             "operation": "setup_world_environment",
@@ -3261,11 +3285,12 @@ Supports extrusion, bevel, and custom fonts."#
         let project_path = self.server.validate_project_path(project).await?;
 
         // Validate font_path if present to prevent directory traversal
-        let validated_font_path = if let Some(font_path) = args.get("font_path").and_then(|v| v.as_str()) {
-            Some(self.server.validate_asset_path(font_path).await?)
-        } else {
-            None
-        };
+        let validated_font_path =
+            if let Some(font_path) = args.get("font_path").and_then(|v| v.as_str()) {
+                Some(self.server.validate_asset_path(font_path).await?)
+            } else {
+                None
+            };
 
         let script_args = json!({
             "operation": "create_text_object",
