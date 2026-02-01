@@ -10,8 +10,10 @@ use clap::Parser;
 use mcp_core::{init_logging, server::MCPServerArgs, MCPServer};
 
 mod audio;
+mod audio_emotion_mappings;
 mod backends;
 mod constants;
+mod sequence_handler;
 mod server;
 mod storage;
 mod types;

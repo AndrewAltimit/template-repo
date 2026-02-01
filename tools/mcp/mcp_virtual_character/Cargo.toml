@@ -64,6 +64,10 @@ sha2 = "0.10"
 hex = "0.4"
 rand = "0.8"
 
+# Regex for audio tag parsing
+regex = "1.10"
+lazy_static = "1.4"
+
 [dev-dependencies]
 tokio-test = "0.4"
 

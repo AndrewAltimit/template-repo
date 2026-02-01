@@ -1076,6 +1076,14 @@ mod tests {
     use super::*;
     use mcp_core::tool::Content;
 
+    fn get_response_json(result: &ToolResult) -> Value {
+        if let Content::Text { text } = &result.content[0] {
+            serde_json::from_str(text).unwrap()
+        } else {
+            panic!("Expected text content");
+        }
+    }
+
     #[tokio::test]
     async fn test_server_creation() {
         let server = VirtualCharacterServer::new();
@@ -1095,11 +1103,292 @@ mod tests {
             .await
             .unwrap();
 
-        if let Content::Text { text } = &result.content[0] {
-            let response: Value = serde_json::from_str(text).unwrap();
-            assert!(response["success"].as_bool().unwrap());
-        } else {
-            panic!("Expected text content");
+        let response = get_response_json(&result);
+        assert!(response["success"].as_bool().unwrap());
+        assert_eq!(response["backend"].as_str().unwrap(), "mock");
+    }
+
+    #[tokio::test]
+    async fn test_set_backend_unknown() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
+
+        let result = set_backend
+            .execute(json!({"backend": "nonexistent"}))
+            .await
+            .unwrap();
+
+        assert!(result.is_error);
+    }
+
+    #[tokio::test]
+    async fn test_list_backends() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        let list_backends = tools.iter().find(|t| t.name() == "list_backends").unwrap();
+
+        let result = list_backends.execute(json!({})).await.unwrap();
+
+        let response = get_response_json(&result);
+        assert!(response["success"].as_bool().unwrap());
+        let backends = response["backends"].as_array().unwrap();
+        assert_eq!(backends.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_get_backend_status_not_connected() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        let get_status = tools.iter().find(|t| t.name() == "get_backend_status").unwrap();
+
+        let result = get_status.execute(json!({})).await.unwrap();
+
+        let response = get_response_json(&result);
+        assert!(response["success"].as_bool().unwrap());
+        assert!(!response["connected"].as_bool().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_send_animation_not_connected() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        let send_animation = tools.iter().find(|t| t.name() == "send_animation").unwrap();
+
+        let result = send_animation
+            .execute(json!({"emotion": "happy"}))
+            .await
+            .unwrap();
+
+        assert!(result.is_error);
+    }
+
+    #[tokio::test]
+    async fn test_send_animation_after_connect() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        // First connect
+        let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
+        set_backend.execute(json!({"backend": "mock"})).await.unwrap();
+
+        // Then send animation
+        let send_animation = tools.iter().find(|t| t.name() == "send_animation").unwrap();
+        let result = send_animation
+            .execute(json!({"emotion": "happy", "emotion_intensity": 0.8}))
+            .await
+            .unwrap();
+
+        let response = get_response_json(&result);
+        assert!(response["success"].as_bool().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_reset_not_connected() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        let reset = tools.iter().find(|t| t.name() == "reset").unwrap();
+
+        let result = reset.execute(json!({})).await.unwrap();
+
+        assert!(result.is_error);
+    }
+
+    #[tokio::test]
+    async fn test_reset_after_connect() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        // Connect first
+        let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
+        set_backend.execute(json!({"backend": "mock"})).await.unwrap();
+
+        // Then reset
+        let reset = tools.iter().find(|t| t.name() == "reset").unwrap();
+        let result = reset.execute(json!({})).await.unwrap();
+
+        let response = get_response_json(&result);
+        assert!(response["success"].as_bool().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_create_sequence() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        let create_sequence = tools.iter().find(|t| t.name() == "create_sequence").unwrap();
+
+        let result = create_sequence
+            .execute(json!({"name": "greeting", "description": "A greeting sequence", "loop": false}))
+            .await
+            .unwrap();
+
+        let response = get_response_json(&result);
+        assert!(response["success"].as_bool().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_add_sequence_event_without_sequence() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        let add_event = tools.iter().find(|t| t.name() == "add_sequence_event").unwrap();
+
+        let result = add_event
+            .execute(json!({"event_type": "expression", "timestamp": 0.0}))
+            .await
+            .unwrap();
+
+        assert!(result.is_error);
+    }
+
+    #[tokio::test]
+    async fn test_sequence_workflow() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        // Create sequence
+        let create_sequence = tools.iter().find(|t| t.name() == "create_sequence").unwrap();
+        create_sequence
+            .execute(json!({"name": "test_seq"}))
+            .await
+            .unwrap();
+
+        // Add events
+        let add_event = tools.iter().find(|t| t.name() == "add_sequence_event").unwrap();
+        add_event
+            .execute(json!({"event_type": "expression", "timestamp": 0.0, "expression": "happy"}))
+            .await
+            .unwrap();
+
+        add_event
+            .execute(json!({"event_type": "wait", "timestamp": 1.0, "wait_duration": 0.5}))
+            .await
+            .unwrap();
+
+        // Get status
+        let get_status = tools.iter().find(|t| t.name() == "get_sequence_status").unwrap();
+        let result = get_status.execute(json!({})).await.unwrap();
+
+        let response = get_response_json(&result);
+        assert!(response["success"].as_bool().unwrap());
+        assert!(response["status"]["has_sequence"].as_bool().unwrap());
+        assert_eq!(response["status"]["event_count"].as_u64().unwrap(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_panic_reset() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        // Connect first
+        let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
+        set_backend.execute(json!({"backend": "mock"})).await.unwrap();
+
+        // Create a sequence
+        let create_sequence = tools.iter().find(|t| t.name() == "create_sequence").unwrap();
+        create_sequence.execute(json!({"name": "test"})).await.unwrap();
+
+        // Panic reset
+        let panic_reset = tools.iter().find(|t| t.name() == "panic_reset").unwrap();
+        let result = panic_reset.execute(json!({})).await.unwrap();
+
+        let response = get_response_json(&result);
+        assert!(response["success"].as_bool().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_execute_behavior() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        // Connect first
+        let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
+        set_backend.execute(json!({"backend": "mock"})).await.unwrap();
+
+        // Execute behavior
+        let execute_behavior = tools.iter().find(|t| t.name() == "execute_behavior").unwrap();
+        let result = execute_behavior
+            .execute(json!({"behavior": "greet"}))
+            .await
+            .unwrap();
+
+        let response = get_response_json(&result);
+        assert!(response["success"].as_bool().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_send_vrcemote_not_vrchat() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        // Connect with mock backend
+        let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
+        set_backend.execute(json!({"backend": "mock"})).await.unwrap();
+
+        // Try to send VRCEmote
+        let send_vrcemote = tools.iter().find(|t| t.name() == "send_vrcemote").unwrap();
+        let result = send_vrcemote
+            .execute(json!({"emote_value": 5}))
+            .await
+            .unwrap();
+
+        // Should fail because mock backend doesn't support VRCEmote
+        assert!(result.is_error);
+    }
+
+    #[tokio::test]
+    async fn test_tool_names() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        let expected_names = [
+            "set_backend",
+            "send_animation",
+            "execute_behavior",
+            "reset",
+            "get_backend_status",
+            "list_backends",
+            "play_audio",
+            "create_sequence",
+            "add_sequence_event",
+            "play_sequence",
+            "pause_sequence",
+            "resume_sequence",
+            "stop_sequence",
+            "get_sequence_status",
+            "panic_reset",
+            "send_vrcemote",
+        ];
+
+        for name in expected_names {
+            assert!(
+                tools.iter().any(|t| t.name() == name),
+                "Missing tool: {}",
+                name
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_tool_schemas() {
+        let server = VirtualCharacterServer::new();
+        let tools = server.tools();
+
+        for tool in &tools {
+            let schema = tool.schema();
+            // All schemas should be objects
+            assert!(schema.is_object(), "Tool {} schema is not an object", tool.name());
+            assert!(
+                schema.get("type").is_some(),
+                "Tool {} schema missing type",
+                tool.name()
+            );
         }
     }
 }
