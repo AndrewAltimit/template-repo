@@ -486,3 +486,239 @@ impl Default for ServerConfig {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_analysis_options_default() {
+        // Note: #[derive(Default)] uses bool::default() = false
+        // The serde defaults only apply during deserialization
+        let options = AnalysisOptions::default();
+        assert!(!options.transcribe);
+        assert!(!options.identify_speakers);
+        assert!(!options.detect_scenes);
+        assert!(!options.extract_highlights);
+    }
+
+    #[test]
+    fn test_analysis_options_serde_default() {
+        // When deserializing empty JSON, serde defaults kick in
+        let options: AnalysisOptions = serde_json::from_str("{}").unwrap();
+        assert!(options.transcribe);
+        assert!(options.identify_speakers);
+        assert!(options.detect_scenes);
+        assert!(options.extract_highlights);
+    }
+
+    #[test]
+    fn test_analysis_options_serialize() {
+        let options = AnalysisOptions {
+            transcribe: true,
+            identify_speakers: false,
+            detect_scenes: true,
+            extract_highlights: false,
+        };
+
+        let json = serde_json::to_string(&options).unwrap();
+        let parsed: AnalysisOptions = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(options.transcribe, parsed.transcribe);
+        assert_eq!(options.identify_speakers, parsed.identify_speakers);
+        assert_eq!(options.detect_scenes, parsed.detect_scenes);
+        assert_eq!(options.extract_highlights, parsed.extract_highlights);
+    }
+
+    #[test]
+    fn test_edit_decision_serialize() {
+        let decision = EditDecision {
+            timestamp: 10.5,
+            duration: 5.0,
+            source: "/path/to/video.mp4".to_string(),
+            action: "show".to_string(),
+            transition_type: Some("cross_dissolve".to_string()),
+            effects: vec!["zoom".to_string()],
+            pip_size: Some(0.25),
+        };
+
+        let json = serde_json::to_string(&decision).unwrap();
+        let parsed: EditDecision = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(decision.timestamp, parsed.timestamp);
+        assert_eq!(decision.duration, parsed.duration);
+        assert_eq!(decision.source, parsed.source);
+        assert_eq!(decision.action, parsed.action);
+        assert_eq!(decision.transition_type, parsed.transition_type);
+        assert_eq!(decision.effects, parsed.effects);
+        assert_eq!(decision.pip_size, parsed.pip_size);
+    }
+
+    #[test]
+    fn test_editing_rules_default() {
+        let rules = EditingRules::default();
+
+        assert!(rules.switch_on_speaker);
+        assert!(rules.remove_silence);
+        assert!(rules.zoom_on_emphasis);
+        assert_eq!(rules.speaker_switch_delay, 0.5);
+        assert_eq!(rules.picture_in_picture, "auto");
+        assert_eq!(rules.silence_threshold, 2.0);
+        assert_eq!(rules.pip_size, 0.25);
+    }
+
+    #[test]
+    fn test_output_settings_default() {
+        let settings = OutputSettings::default();
+
+        assert_eq!(settings.format, "mp4");
+        assert_eq!(settings.resolution, "1920x1080");
+        assert_eq!(settings.fps, 30);
+        assert_eq!(settings.bitrate, "8M");
+        assert!(settings.output_path.is_none());
+        assert!(settings.codec.is_none());
+    }
+
+    #[test]
+    fn test_output_settings_serialize() {
+        let settings = OutputSettings {
+            format: "mp4".to_string(),
+            resolution: "3840x2160".to_string(),
+            fps: 60,
+            bitrate: "20M".to_string(),
+            output_path: Some("/output/video.mp4".to_string()),
+            codec: Some("h264".to_string()),
+        };
+
+        let json = serde_json::to_string(&settings).unwrap();
+        let parsed: OutputSettings = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(settings.resolution, parsed.resolution);
+        assert_eq!(settings.fps, parsed.fps);
+        assert_eq!(settings.bitrate, parsed.bitrate);
+        assert_eq!(settings.output_path, parsed.output_path);
+        assert_eq!(settings.codec, parsed.codec);
+    }
+
+    #[test]
+    fn test_transcript_segment_serialize() {
+        let segment = TranscriptSegment {
+            id: 1,
+            start: 0.0,
+            end: 5.5,
+            text: "Hello, world!".to_string(),
+            words: vec![
+                Word {
+                    word: "Hello,".to_string(),
+                    start: 0.0,
+                    end: 0.5,
+                    probability: 0.95,
+                },
+                Word {
+                    word: "world!".to_string(),
+                    start: 0.6,
+                    end: 1.0,
+                    probability: 0.98,
+                },
+            ],
+        };
+
+        let json = serde_json::to_string(&segment).unwrap();
+        let parsed: TranscriptSegment = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(segment.start, parsed.start);
+        assert_eq!(segment.end, parsed.end);
+        assert_eq!(segment.text, parsed.text);
+        assert_eq!(parsed.words.len(), 2);
+    }
+
+    #[test]
+    fn test_extraction_criteria_default() {
+        // Note: #[derive(Default)] uses f64::default() = 0.0
+        // The serde defaults only apply during deserialization
+        let criteria = ExtractionCriteria::default();
+
+        assert!(criteria.keywords.is_empty());
+        assert!(criteria.speakers.is_empty());
+        assert!(criteria.time_ranges.is_empty());
+        assert_eq!(criteria.min_clip_length, 0.0);
+        assert_eq!(criteria.max_clip_length, 0.0);
+        assert_eq!(criteria.padding, 0.0);
+    }
+
+    #[test]
+    fn test_extraction_criteria_serde_default() {
+        // When deserializing empty JSON, serde defaults kick in
+        let criteria: ExtractionCriteria = serde_json::from_str("{}").unwrap();
+
+        assert!(criteria.keywords.is_empty());
+        assert!(criteria.speakers.is_empty());
+        assert!(criteria.time_ranges.is_empty());
+        assert_eq!(criteria.min_clip_length, 3.0);
+        assert_eq!(criteria.max_clip_length, 60.0);
+        assert_eq!(criteria.padding, 0.5);
+    }
+
+    #[test]
+    fn test_extraction_criteria_serialize() {
+        let criteria = ExtractionCriteria {
+            keywords: vec!["important".to_string(), "key".to_string()],
+            time_ranges: vec![(0.0, 10.0), (20.0, 30.0)],
+            speakers: vec!["Speaker 1".to_string()],
+            min_clip_length: 5.0,
+            max_clip_length: 120.0,
+            padding: 2.0,
+        };
+
+        let json = serde_json::to_string(&criteria).unwrap();
+        let parsed: ExtractionCriteria = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(criteria.keywords, parsed.keywords);
+        assert_eq!(criteria.time_ranges.len(), parsed.time_ranges.len());
+        assert_eq!(criteria.min_clip_length, parsed.min_clip_length);
+        assert_eq!(criteria.max_clip_length, parsed.max_clip_length);
+        assert_eq!(criteria.padding, parsed.padding);
+    }
+
+    #[test]
+    fn test_server_config_default() {
+        let config = ServerConfig::default();
+
+        assert!(!config.output_dir.is_empty());
+        assert!(!config.cache_dir.is_empty());
+        assert!(!config.temp_dir.is_empty());
+        assert!(!config.models.whisper_model.is_empty());
+        assert!(config.performance.enable_gpu);
+    }
+
+    #[test]
+    fn test_caption_style_default() {
+        let style = CaptionStyle::default();
+
+        assert_eq!(style.font, "Arial");
+        assert_eq!(style.size, 42);
+        assert_eq!(style.color, "#FFFFFF");
+        assert_eq!(style.background, "#000000");
+        assert_eq!(style.position, "bottom");
+        assert_eq!(style.max_chars_per_line, 40);
+        assert!(style.display_speaker_names);
+    }
+
+    #[test]
+    fn test_word_serialize() {
+        let word = Word {
+            word: "test".to_string(),
+            start: 0.0,
+            end: 0.5,
+            probability: 0.99,
+        };
+
+        let json = serde_json::to_string(&word).unwrap();
+        let parsed: Word = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(word.word, parsed.word);
+        assert_eq!(word.start, parsed.start);
+        assert_eq!(word.end, parsed.end);
+        assert_eq!(word.probability, parsed.probability);
+    }
+}

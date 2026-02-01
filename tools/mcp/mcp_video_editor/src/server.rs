@@ -1348,6 +1348,7 @@ fn generate_edl(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::{EditingRules, ExtractionCriteria, OutputSettings, RenderOptions};
 
     #[test]
     fn test_server_creation() {
@@ -1368,5 +1369,166 @@ mod tests {
         assert!(names.contains(&"video_editor/extract_clips"));
         assert!(names.contains(&"video_editor/add_captions"));
         assert!(names.contains(&"video_editor/get_job_status"));
+    }
+
+    #[test]
+    fn test_tool_descriptions() {
+        let server = VideoEditorServer::new();
+        let tools = server.tools();
+
+        for tool in &tools {
+            // All tools should have non-empty descriptions
+            assert!(
+                !tool.description().is_empty(),
+                "Tool {} has empty description",
+                tool.name()
+            );
+        }
+    }
+
+    #[test]
+    fn test_generate_edl_fixed_intervals() {
+        let video_inputs = vec!["/path/to/video.mp4".to_string()];
+        let editing_rules = EditingRules::default();
+
+        // Without analysis, should generate fixed interval EDL
+        let edl = generate_edl(&video_inputs, None, &editing_rules, None);
+
+        assert!(!edl.is_empty(), "EDL should not be empty");
+        assert_eq!(edl[0].source, "/path/to/video.mp4");
+        assert_eq!(edl[0].action, "show");
+    }
+
+    #[test]
+    fn test_generate_edl_with_scene_changes() {
+        let video_inputs = vec!["/path/to/video.mp4".to_string()];
+        let editing_rules = EditingRules::default();
+
+        let analysis = serde_json::json!({
+            "scene_changes": [5.0, 10.0, 15.0, 20.0]
+        });
+
+        let edl = generate_edl(&video_inputs, Some(&analysis), &editing_rules, None);
+
+        assert!(!edl.is_empty(), "EDL should not be empty");
+        // First edit should start at 0
+        assert_eq!(edl[0].timestamp, 0.0);
+    }
+
+    #[test]
+    fn test_extract_highlights_empty_analysis() {
+        let analysis = VideoAnalysis {
+            file: "/path/to/video.mp4".to_string(),
+            file_size: 1000,
+            transcript: None,
+            speakers: None,
+            segments_with_speakers: None,
+            audio_analysis: None,
+            scene_changes: None,
+            highlights: None,
+            suggested_edits: None,
+        };
+
+        let highlights = extract_highlights(&analysis);
+        assert!(
+            highlights.is_empty(),
+            "No highlights without transcript/scenes"
+        );
+    }
+
+    #[test]
+    fn test_editing_rules_default() {
+        let rules = EditingRules::default();
+
+        assert!(rules.switch_on_speaker);
+        assert!(rules.remove_silence);
+        assert!(rules.zoom_on_emphasis);
+        assert_eq!(rules.speaker_switch_delay, 0.5);
+    }
+
+    #[test]
+    fn test_extraction_criteria_default() {
+        // Note: #[derive(Default)] uses f64::default() = 0.0
+        let criteria = ExtractionCriteria::default();
+
+        assert!(criteria.keywords.is_empty());
+        assert!(criteria.time_ranges.is_empty());
+        assert_eq!(criteria.min_clip_length, 0.0);
+        assert_eq!(criteria.max_clip_length, 0.0);
+        assert_eq!(criteria.padding, 0.0);
+    }
+
+    #[test]
+    fn test_output_settings_default() {
+        let settings = OutputSettings::default();
+
+        assert_eq!(settings.resolution, "1920x1080");
+        assert_eq!(settings.fps, 30);
+        assert_eq!(settings.bitrate, "8M");
+        assert!(settings.output_path.is_none());
+    }
+
+    #[test]
+    fn test_render_options_default() {
+        let options = RenderOptions::default();
+
+        assert!(!options.preview_mode);
+        assert!(options.hardware_acceleration);
+    }
+
+    #[tokio::test]
+    async fn test_job_manager_create_job() {
+        let manager = JobManager::new();
+        let job_id = manager.create_job("test_operation").await;
+
+        assert!(!job_id.is_empty());
+
+        let job = manager.get_job(&job_id).await;
+        assert!(job.is_some());
+
+        let job = job.unwrap();
+        assert_eq!(job.operation, "test_operation");
+        assert_eq!(job.status, JobStatus::Pending);
+    }
+
+    #[tokio::test]
+    async fn test_job_manager_update_job() {
+        let manager = JobManager::new();
+        let job_id = manager.create_job("test_operation").await;
+
+        manager
+            .update_job(&job_id, JobStatus::Running, 50, "processing")
+            .await;
+
+        let job = manager.get_job(&job_id).await.unwrap();
+        assert_eq!(job.status, JobStatus::Running);
+        assert_eq!(job.progress, 50);
+        assert_eq!(job.stage, "processing");
+    }
+
+    #[tokio::test]
+    async fn test_job_manager_complete_job() {
+        let manager = JobManager::new();
+        let job_id = manager.create_job("test_operation").await;
+
+        let result = serde_json::json!({"success": true});
+        manager.complete_job(&job_id, result.clone()).await;
+
+        let job = manager.get_job(&job_id).await.unwrap();
+        assert_eq!(job.status, JobStatus::Completed);
+        assert_eq!(job.progress, 100);
+        assert_eq!(job.result, Some(result));
+    }
+
+    #[tokio::test]
+    async fn test_job_manager_fail_job() {
+        let manager = JobManager::new();
+        let job_id = manager.create_job("test_operation").await;
+
+        manager.fail_job(&job_id, "Something went wrong").await;
+
+        let job = manager.get_job(&job_id).await.unwrap();
+        assert_eq!(job.status, JobStatus::Failed);
+        assert_eq!(job.error.as_deref(), Some("Something went wrong"));
     }
 }
