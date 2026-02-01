@@ -911,7 +911,7 @@ impl Tool for StartTrainingTool {
             .await
             .map_err(|e| MCPError::Internal(format!("Failed to create log file: {}", e)))?;
 
-        let child = Command::new("python")
+        let child = Command::new("python3")
             .arg("run.py")
             .arg(config_path.to_string_lossy().to_string())
             .current_dir(&self.server.paths.base_path)
@@ -1423,12 +1423,28 @@ impl Tool for DownloadModelTool {
             }
         };
 
+        // Check file size before reading to prevent OOM
+        let metadata = fs::metadata(&model_path)
+            .await
+            .map_err(|e| MCPError::Internal(format!("Failed to get model metadata: {}", e)))?;
+        let size = metadata.len();
+
+        // Limit to 100MB to prevent OOM when base64 encoding
+        const MAX_DOWNLOAD_SIZE: u64 = 100 * 1024 * 1024;
+        if size > MAX_DOWNLOAD_SIZE {
+            return ToolResult::json(&json!({
+                "error": "Model too large for download",
+                "size": size,
+                "max_size": MAX_DOWNLOAD_SIZE,
+                "size_mb": (size as f64 / 1024.0 / 1024.0 * 100.0).round() / 100.0,
+                "note": "Use export_model to copy to a location, or access the file directly at the path"
+            }));
+        }
+
         // Read model file
         let data = fs::read(&model_path)
             .await
             .map_err(|e| MCPError::Internal(format!("Failed to read model: {}", e)))?;
-
-        let size = data.len();
 
         if encoding == "base64" {
             let encoded = BASE64.encode(&data);
