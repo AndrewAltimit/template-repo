@@ -128,20 +128,20 @@ AI-powered video editing with intelligent automation:
 - Compositor nodes for post-processing
 - Import/export various 3D formats
 
-#### 10. Virtual Character MCP Server
+#### 10. Virtual Character MCP Server (Rust)
 **Location**: `tools/mcp/mcp_virtual_character/`
-**Transport**: STDIO (local) or HTTP (Port 8020)
+**Transport**: STDIO (local) or HTTP (Port 8025)
 **Documentation**: [Virtual Character MCP Documentation](../../tools/mcp/mcp_virtual_character/README.md)
 
-AI agent embodiment in virtual worlds:
-- Plugin-based architecture for multiple backends
-- VRChat integration via OSC protocol (remote Windows support)
-- Blender character animation
-- Unity WebSocket integration
-- Canonical data model for cross-platform compatibility
-- Bidirectional communication (animation out, video feed in)
-- Multi-agent coordination support
-- State synchronization and caching
+AI agent embodiment in virtual worlds (Rust implementation):
+- Backend adapter pattern for cross-platform compatibility
+- VRChat integration via OSC protocol with VRCEmote system
+- Mock backend for testing without VRChat
+- PAD emotion model for smooth interpolation
+- VRCEmote toggle behavior with automatic timeout handling
+- ElevenLabs expression tag detection for audio
+- Event sequencing for choreographed performances
+- 16 MCP tools for complete avatar control
 
 #### 11. Codex MCP Server
 **Location**: `tools/mcp/mcp_codex/`

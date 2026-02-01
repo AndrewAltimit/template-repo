@@ -389,7 +389,7 @@ services:
     profiles:
       - services
 
-  # Virtual Character MCP Server (Middleware only - VRChat runs on remote Windows)
+  # Virtual Character MCP Server (Rust - Middleware only - VRChat runs on remote Windows)
   # This is the middleware that bridges AI agents to virtual platforms.
   # For VRChat: Connects to Windows machine at VRCHAT_REMOTE_HOST (default 192.168.0.152)
   mcp-virtual-character:
@@ -398,29 +398,20 @@ services:
       dockerfile: docker/mcp-virtual-character.Dockerfile
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
-      - "8020:8020"
-    volumes:
-      - ./:/app:ro
-      - ./config/avatars:/app/config/avatars:ro  # Avatar configurations
+      - "8025:8025"
     environment:
-      - PYTHONUNBUFFERED=1
-      - VIRTUAL_CHARACTER_HOST=0.0.0.0
-      - VIRTUAL_CHARACTER_PORT=8020
-      - DEFAULT_BACKEND=mock
-      - VRCHAT_REMOTE_HOST=${VRCHAT_REMOTE_HOST:-192.168.0.152}
-      - OBS_PASSWORD=${OBS_PASSWORD}
-      - STREAM_AUTH_TOKEN=${STREAM_AUTH_TOKEN}
-      - UNITY_API_KEY=${UNITY_API_KEY}
+      - VIRTUAL_CHARACTER_HOST=${VRCHAT_REMOTE_HOST:-127.0.0.1}
+      - VIRTUAL_CHARACTER_OSC_IN=9000
+      - VIRTUAL_CHARACTER_OSC_OUT=9001
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_virtual_character.server"]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8020/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8025/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 10s
     profiles:
       - services
 
