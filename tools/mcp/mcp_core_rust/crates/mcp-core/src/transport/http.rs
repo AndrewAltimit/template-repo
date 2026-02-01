@@ -275,8 +275,7 @@ async fn messages_post_handler(
         for req in requests {
             match serde_json::from_value::<JsonRpcRequest>(req.clone()) {
                 Ok(request) => {
-                    if let Some(resp) =
-                        process_jsonrpc_request(&state, &request, &session_id).await
+                    if let Some(resp) = process_jsonrpc_request(&state, &request, &session_id).await
                     {
                         responses.push(resp);
                     }

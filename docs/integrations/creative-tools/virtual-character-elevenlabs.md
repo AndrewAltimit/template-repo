@@ -2,6 +2,9 @@
 
 This guide demonstrates how to combine the Virtual Character MCP server with ElevenLabs Speech synthesis to create expressive, talking virtual characters with synchronized animation and emotion.
 
+> **Note**: The Virtual Character MCP Server has been migrated to Rust. The integration
+> concepts remain the same, but the server is now run as a Rust binary via Docker Compose.
+
 ## Overview
 
 The integration enables:
@@ -25,14 +28,18 @@ ElevenLabs TTS → Audio + Tags → Virtual Character → Backend Platform
 ### 1. Start Both MCP Servers
 
 ```bash
-# Terminal 1: Start Virtual Character server
-python -m tools.mcp.virtual_character.server
+# Terminal 1: Start Virtual Character server (Rust binary via Docker)
+docker compose --profile virtual-character up mcp-virtual-character
 
-# Terminal 2: Start ElevenLabs server (if using MCP interface)
-python -m tools.mcp.elevenlabs_speech.server
+# Terminal 2: Start ElevenLabs server
+docker compose --profile services run --rm -T mcp-elevenlabs-speech
 ```
 
+The Virtual Character HTTP server will be available at `http://localhost:8025`.
+
 ### 2. Basic Integration Example
+
+The following example shows how to integrate with the servers via HTTP:
 
 ```python
 import asyncio

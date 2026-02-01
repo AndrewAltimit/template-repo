@@ -1,0 +1,83 @@
+[package]
+name = "mcp-virtual-character"
+version = "1.0.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/AndrewAltimit/template-repo"
+authors = ["AndrewAltimit"]
+description = "MCP server for virtual character control via VRChat OSC"
+
+[[bin]]
+name = "mcp-virtual-character"
+path = "src/main.rs"
+
+[dependencies]
+# MCP Core (path to sibling directory)
+mcp-core = { path = "../mcp_core_rust/crates/mcp-core" }
+
+# Async runtime
+tokio = { version = "1.40", features = ["full", "sync", "time", "process"] }
+async-trait = "0.1"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json"] }
+
+# OSC protocol
+rosc = "0.10"
+
+# CLI
+clap = { version = "4.5", features = ["derive"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Base64 encoding
+base64 = "0.22"
+
+# Directories
+dirs = "6.0"
+
+# Tempfile handling
+tempfile = "3.10"
+
+# Async file I/O
+tokio-util = { version = "0.7", features = ["io"] }
+
+# UUID generation
+uuid = { version = "1.8", features = ["v4"] }
+
+# Cryptography for storage service
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+rand = "0.8"
+
+# Regex for audio tag parsing
+regex = "1.10"
+lazy_static = "1.4"
+
+# HTTP server for storage service
+axum = "0.8"
+tower = "0.5"
+tower-service = "0.3"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

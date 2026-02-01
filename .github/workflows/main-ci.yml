@@ -194,6 +194,7 @@ jobs:
           print(\"  - mcp-comfyui (ComfyUI image generation)\")
           print(\"  - mcp-video-editor (Intelligent automated video editing)\")
           print(\"  - mcp-ai-toolkit (AI Toolkit LoRA training)\")
+          print(\"  - mcp-virtual-character (Virtual character control via VRChat OSC)\")
           '
           "
 
@@ -737,6 +738,12 @@ jobs:
             cargo build --release
             cp target/release/code-review-processor /app/rust-binaries/code-review-processor-linux-x64
             echo "Built code-review-processor for Linux x64"
+
+            # Build mcp-virtual-character
+            cd /app/tools/mcp/mcp_virtual_character
+            cargo build --release
+            cp target/release/mcp-virtual-character /app/rust-binaries/mcp-virtual-character-linux-x64
+            echo "Built mcp-virtual-character for Linux x64"
           '
 
       # Build injection-toolkit for Windows using rust-ci-nightly (has mingw-w64)
@@ -1002,6 +1009,7 @@ jobs:
           | `mcp-comfyui-linux-x64` | Linux x64 | MCP server for ComfyUI image generation |
           | `mcp-video-editor-linux-x64` | Linux x64 | MCP server for intelligent automated video editing |
           | `mcp-ai-toolkit-linux-x64` | Linux x64 | MCP server for AI Toolkit LoRA training |
+          | `mcp-virtual-character-linux-x64` | Linux x64 | MCP server for virtual character control via VRChat OSC |
           | `economic-agents-linux-x64` | Linux x64 | Autonomous economic agent simulation CLI |
           | `pr-monitor-linux-x64` | Linux x64 | PR monitoring tool for admin/Gemini feedback |
           | `gh-linux-x64` | Linux x64 | GitHub CLI validator and security checker |

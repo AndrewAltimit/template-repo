@@ -1,5 +1,10 @@
 # MCP Integration Proposal: Unified Expressive AI Agent System
 
+> **Note**: This proposal was written when the Virtual Character server was implemented in Python.
+> The server has since been **migrated to Rust**. The integration concepts and emotion model
+> architecture remain valid, but code examples showing Python imports should be adapted
+> for Rust. See `tools/mcp/mcp_virtual_character/src/types.rs` for the Rust emotion types.
+
 ## Executive Summary
 
 This proposal outlines integration opportunities between four MCP servers that, when combined, create a **coherent expressive AI agent system** capable of multi-modal communication with persistent personality and contextual memory.

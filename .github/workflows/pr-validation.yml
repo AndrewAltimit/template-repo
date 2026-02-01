@@ -116,7 +116,7 @@ jobs:
           RUST_TOOLS_PATTERN='tools/rust/|tools/mcp/mcp_gemini|tools/mcp/mcp_github_board'
           RUST_TOOLS_PATTERN="$RUST_TOOLS_PATTERN|tools/mcp/mcp_elevenlabs_speech|tools/mcp/mcp_agentcore_memory"
           RUST_TOOLS_PATTERN="$RUST_TOOLS_PATTERN|tools/mcp/mcp_desktop_control|tools/mcp/mcp_blender|tools/mcp/mcp_comfyui|tools/mcp/mcp_ai_toolkit"
-          RUST_TOOLS_PATTERN="$RUST_TOOLS_PATTERN|tools/mcp/mcp_video_editor"
+          RUST_TOOLS_PATTERN="$RUST_TOOLS_PATTERN|tools/mcp/mcp_video_editor|tools/mcp/mcp_virtual_character"
           rust_tools_count=$(grep -E "$RUST_TOOLS_PATTERN" changed_files.txt | wc -l || echo "0")
           workflow_files_count=$(grep -E '\.github/workflows/' changed_files.txt | wc -l || echo "0")
           BOARD_PATTERN='tools/rust/board-manager|tools/mcp/mcp_github_board'
@@ -149,7 +149,7 @@ jobs:
           PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/rust/gh-validator|tools/mcp/mcp_core/"
           # Note: mcp_blender, mcp_comfyui, mcp_ai_toolkit are now Rust (not triggering Python CI)
           PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/mcp/mcp_gaea2"
-          PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/mcp/mcp_virtual_character"
+          PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/mcp/mcp_virtual_character|tools/mcp/mcp_video_editor"
           PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|packages/sleeper_agents|automation/|\.flake8"
           docker_python_ci_count=$(grep -E "($PYTHON_CI_PATTERN)" changed_files.txt | wc -l || echo "0")
 
