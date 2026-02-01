@@ -29,25 +29,67 @@ cargo build --release
 curl http://localhost:8012/health
 ```
 
-## Available Tools
+## Available Tools (21 total)
+
+### Configuration Management
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `create_training_config` | Create a new LoRA training configuration | `name` (required), `model_name`, `dataset_path`, `resolution`, `steps`, `rank`, `alpha`, `trigger_word`, `test_prompts` |
+| `create_training_config` | Create a new LoRA training configuration | `name` (required), `dataset_path` (required), `model_name`, `resolution`, `steps`, `batch_size`, `rank`, `alpha`, `lr`, `optimizer`, `noise_scheduler`, `trigger_word`, `prompts`, `is_flux`, `is_xl`, `is_v3`, `quantize`, `gradient_checkpointing`, `cache_latents`, `caption_dropout_rate` |
 | `list_configs` | List all training configurations | None |
 | `get_config` | Get a specific configuration | `name` (required) |
+| `delete_config` | Delete a configuration file | `name` (required) |
+| `validate_config` | Validate config before training | `name` (required) |
+
+### Dataset Management
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
 | `upload_dataset` | Upload images to create a dataset | `dataset_name` (required), `images` (required) |
 | `list_datasets` | List all available datasets | None |
+| `get_dataset_info` | Get detailed dataset info | `name` (required) |
+| `delete_dataset` | Delete a dataset | `name` (required) |
+
+### Training Operations
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
 | `start_training` | Start a training job | `config_name` (required) |
 | `get_training_status` | Get job status and progress | `job_id` (required) |
 | `stop_training` | Stop a running training job | `job_id` (required) |
 | `list_training_jobs` | List all training jobs | None |
+| `get_training_logs` | Get training logs | `job_id` (required), `lines` |
+| `get_training_info` | Get overall training info | None |
+
+### Model Management
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
 | `export_model` | Export a trained model | `model_name` (required), `output_path` |
 | `list_exported_models` | List exported models | None |
 | `download_model` | Download model as base64 | `model_name` (required), `encoding` |
+| `delete_model` | Delete a model file | `name` (required) |
+
+### Utilities
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
 | `get_system_stats` | Get system statistics | None |
-| `get_training_logs` | Get training logs | `job_id` (required), `lines` |
-| `get_training_info` | Get overall training info | None |
+| `list_model_presets` | List recommended model presets | None |
+
+## Supported Models
+
+The server supports multiple model architectures with smart defaults:
+
+| Model | Path | Scheduler | Quantize | Min VRAM |
+|-------|------|-----------|----------|----------|
+| **Flux.1-dev** | `black-forest-labs/FLUX.1-dev` | flowmatch | Yes | 24GB |
+| **Flux.1-schnell** | `black-forest-labs/FLUX.1-schnell` | flowmatch | Yes | 24GB |
+| **SD 3.5 Large** | `stabilityai/stable-diffusion-3.5-large` | flowmatch | Yes | 24GB |
+| **SDXL** | `stabilityai/stable-diffusion-xl-base-1.0` | ddpm | No | 12GB |
+| **SD 1.5** | `runwayml/stable-diffusion-v1-5` | ddpm | No | 8GB |
+
+Use `list_model_presets` to see all presets with recommended settings.
 
 ## Configuration
 

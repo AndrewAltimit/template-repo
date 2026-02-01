@@ -1,6 +1,7 @@
 //! MCP server implementation for AI Toolkit.
 
 #![allow(clippy::collapsible_if)]
+#![allow(clippy::collapsible_else_if)]
 
 use async_trait::async_trait;
 use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
@@ -94,6 +95,25 @@ impl AIToolkitServer {
             Arc::new(GetTrainingInfoTool {
                 server: self.clone_refs(),
             }),
+            // New tools for improved functionality
+            Arc::new(DeleteConfigTool {
+                server: self.clone_refs(),
+            }),
+            Arc::new(DeleteDatasetTool {
+                server: self.clone_refs(),
+            }),
+            Arc::new(DeleteModelTool {
+                server: self.clone_refs(),
+            }),
+            Arc::new(ValidateConfigTool {
+                server: self.clone_refs(),
+            }),
+            Arc::new(GetDatasetInfoTool {
+                server: self.clone_refs(),
+            }),
+            Arc::new(ListModelPresetsTool {
+                server: self.clone_refs(),
+            }),
         ]
     }
 
@@ -137,7 +157,15 @@ impl Tool for CreateTrainingConfigTool {
     }
 
     fn description(&self) -> &str {
-        "Create a new training configuration file for AI Toolkit LoRA training."
+        r#"Create a new training configuration file for AI Toolkit LoRA training.
+
+Supports multiple model types:
+- Flux.1-dev/schnell (is_flux: true, noise_scheduler: flowmatch)
+- SD 3.5 Large (is_v3: true, noise_scheduler: flowmatch)
+- SDXL (is_xl: true)
+- SD 1.5/2.1 (default)
+
+Use list_model_presets to see recommended settings for each model type."#
     }
 
     fn schema(&self) -> Value {
@@ -146,47 +174,107 @@ impl Tool for CreateTrainingConfigTool {
             "properties": {
                 "name": {
                     "type": "string",
-                    "description": "Configuration name"
+                    "description": "Configuration name (will be used for output folder and model name)"
                 },
                 "model_name": {
                     "type": "string",
-                    "description": "Base model to train from (e.g., 'runwayml/stable-diffusion-v1-5')"
+                    "description": "Base model path (e.g., 'black-forest-labs/FLUX.1-dev', 'runwayml/stable-diffusion-v1-5')"
                 },
                 "dataset_path": {
                     "type": "string",
-                    "description": "Path to training dataset"
+                    "description": "Path to training dataset folder (must contain images and .txt caption files)"
                 },
                 "resolution": {
-                    "type": "integer",
-                    "description": "Training resolution",
+                    "oneOf": [
+                        {"type": "integer"},
+                        {"type": "array", "items": {"type": "integer"}}
+                    ],
+                    "description": "Training resolution - single value or array like [512, 768, 1024]",
                     "default": 512
                 },
                 "steps": {
                     "type": "integer",
-                    "description": "Number of training steps",
-                    "default": 1000
+                    "description": "Total training steps (500-4000 typical)",
+                    "default": 2000
+                },
+                "batch_size": {
+                    "type": "integer",
+                    "description": "Batch size",
+                    "default": 1
                 },
                 "rank": {
                     "type": "integer",
-                    "description": "LoRA rank",
+                    "description": "LoRA rank (linear dimension)",
                     "default": 16
                 },
                 "alpha": {
                     "type": "integer",
-                    "description": "LoRA alpha",
+                    "description": "LoRA alpha (scaling)",
                     "default": 16
+                },
+                "lr": {
+                    "type": "number",
+                    "description": "Learning rate",
+                    "default": 0.0001
+                },
+                "optimizer": {
+                    "type": "string",
+                    "enum": ["adamw", "adamw8bit", "prodigy", "lion", "adafactor"],
+                    "description": "Optimizer to use (adamw8bit recommended for Flux)",
+                    "default": "adamw8bit"
+                },
+                "noise_scheduler": {
+                    "type": "string",
+                    "enum": ["ddpm", "ddim", "flowmatch", "euler", "euler_a"],
+                    "description": "Noise scheduler (flowmatch for Flux/SD3)",
+                    "default": "ddpm"
                 },
                 "trigger_word": {
                     "type": "string",
-                    "description": "Trigger word for the LoRA"
+                    "description": "Trigger word for the LoRA (added to captions if not present)"
                 },
-                "test_prompts": {
+                "prompts": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Test prompts for sample generation"
+                    "description": "Sample prompts for generating test images during training"
+                },
+                "is_flux": {
+                    "type": "boolean",
+                    "description": "Is this a Flux model",
+                    "default": false
+                },
+                "is_xl": {
+                    "type": "boolean",
+                    "description": "Is this an SDXL model",
+                    "default": false
+                },
+                "is_v3": {
+                    "type": "boolean",
+                    "description": "Is this a SD 3.x model",
+                    "default": false
+                },
+                "quantize": {
+                    "type": "boolean",
+                    "description": "Enable 8-bit quantization (required for large models)",
+                    "default": false
+                },
+                "gradient_checkpointing": {
+                    "type": "boolean",
+                    "description": "Enable gradient checkpointing to save VRAM",
+                    "default": true
+                },
+                "cache_latents": {
+                    "type": "boolean",
+                    "description": "Cache latents to disk (recommended)",
+                    "default": true
+                },
+                "caption_dropout_rate": {
+                    "type": "number",
+                    "description": "Caption dropout rate (0.0-1.0)",
+                    "default": 0.05
                 }
             },
-            "required": ["name", "model_name", "dataset_path"]
+            "required": ["name", "dataset_path"]
         })
     }
 
@@ -196,38 +284,121 @@ impl Tool for CreateTrainingConfigTool {
             .and_then(|v| v.as_str())
             .ok_or_else(|| MCPError::InvalidParameters("Missing 'name' parameter".to_string()))?;
 
+        let dataset_path = args
+            .get("dataset_path")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'dataset_path' parameter".to_string())
+            })?;
+
+        // Get model settings with smart defaults
         let model_name = args
             .get("model_name")
             .and_then(|v| v.as_str())
             .unwrap_or("runwayml/stable-diffusion-v1-5");
 
-        let dataset_path = args
-            .get("dataset_path")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| format!("{}/{}", self.server.paths.datasets_path.display(), name));
+        let is_flux = args
+            .get("is_flux")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(model_name.to_lowercase().contains("flux"));
+        let is_xl = args
+            .get("is_xl")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(model_name.to_lowercase().contains("xl"));
+        let is_v3 = args
+            .get("is_v3")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(model_name.contains("3.5") || model_name.contains("sd3"));
 
-        let resolution = args
-            .get("resolution")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(512) as u32;
-        let steps = args.get("steps").and_then(|v| v.as_u64()).unwrap_or(1000) as u32;
+        // Resolution handling - can be single value or array
+        let resolution = match args.get("resolution") {
+            Some(Value::Number(n)) => Resolution::Single(n.as_u64().unwrap_or(512) as u32),
+            Some(Value::Array(arr)) => Resolution::Multiple(
+                arr.iter()
+                    .filter_map(|v| v.as_u64().map(|n| n as u32))
+                    .collect(),
+            ),
+            _ => {
+                if is_flux || is_v3 {
+                    Resolution::Multiple(vec![512, 768, 1024])
+                } else if is_xl {
+                    Resolution::Single(1024)
+                } else {
+                    Resolution::Single(512)
+                }
+            }
+        };
+
+        // Smart defaults based on model type
+        let default_scheduler = if is_flux || is_v3 {
+            "flowmatch"
+        } else {
+            "ddpm"
+        };
+        let default_optimizer = if is_flux || is_v3 {
+            "adamw8bit"
+        } else {
+            "adamw"
+        };
+        let default_guidance = if is_flux { 4.0 } else { 7.5 };
+        let default_quantize = is_flux || is_v3;
+
+        let steps = args.get("steps").and_then(|v| v.as_u64()).unwrap_or(2000) as u32;
+        let batch_size = args.get("batch_size").and_then(|v| v.as_u64()).unwrap_or(1) as u32;
         let rank = args.get("rank").and_then(|v| v.as_u64()).unwrap_or(16) as u32;
         let alpha = args.get("alpha").and_then(|v| v.as_u64()).unwrap_or(16) as u32;
+        let lr = args.get("lr").and_then(|v| v.as_f64()).unwrap_or(1e-4);
+        let optimizer = args
+            .get("optimizer")
+            .and_then(|v| v.as_str())
+            .unwrap_or(default_optimizer);
+        let noise_scheduler = args
+            .get("noise_scheduler")
+            .and_then(|v| v.as_str())
+            .unwrap_or(default_scheduler);
+        let quantize = args
+            .get("quantize")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(default_quantize);
+        let gradient_checkpointing = args
+            .get("gradient_checkpointing")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+        let cache_latents = args
+            .get("cache_latents")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+        let caption_dropout_rate = args
+            .get("caption_dropout_rate")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.05) as f32;
+
         let trigger_word = args
             .get("trigger_word")
             .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
-        let test_prompts: Vec<String> = args
-            .get("test_prompts")
+            .map(String::from);
+        let prompts: Vec<String> = args
+            .get("prompts")
             .and_then(|v| v.as_array())
             .map(|arr| {
                 arr.iter()
                     .filter_map(|v| v.as_str().map(String::from))
                     .collect()
             })
-            .unwrap_or_default();
+            .unwrap_or_else(|| {
+                vec![
+                    "a woman holding a coffee cup, in a beanie, sitting at a cafe".to_string(),
+                    "a man showing off his cool new t-shirt at the beach".to_string(),
+                ]
+            });
+
+        // Sample dimensions
+        let (sample_width, sample_height) = match &resolution {
+            Resolution::Single(r) => (*r, *r),
+            Resolution::Multiple(arr) => {
+                (*arr.last().unwrap_or(&1024), *arr.last().unwrap_or(&1024))
+            }
+        };
 
         // Validate config name
         let config_filename = format!("{}.yaml", name);
@@ -235,61 +406,106 @@ impl Tool for CreateTrainingConfigTool {
             validate_path(&config_filename, &self.server.paths.configs_path, "config")
                 .map_err(|e| self.server.config_error_to_mcp(e, "Invalid config name"))?;
 
-        // Create AI Toolkit compatible config
+        // Create AI Toolkit compatible config matching actual format
         let config = TrainingConfig {
             job: "extension".to_string(),
             config: ConfigDetails {
                 name: name.to_string(),
                 process: vec![ProcessConfig {
                     process_type: "sd_trainer".to_string(),
-                    training_folder: dataset_path,
-                    output_name: name.to_string(),
-                    save_root: self.server.paths.outputs_path.display().to_string(),
+                    training_folder: "output".to_string(),
                     device: "cuda:0".to_string(),
+                    trigger_word,
+                    performance_log_every: None,
                     network: NetworkConfig {
                         network_type: "lora".to_string(),
                         linear: rank,
                         linear_alpha: alpha,
+                        conv: None,
+                        conv_alpha: None,
+                        dropout: None,
+                        transformer_only: Some(true),
                     },
+                    save: SaveConfig {
+                        dtype: "float16".to_string(),
+                        save_every: 250,
+                        max_step_saves_to_keep: 4,
+                        push_to_hub: false,
+                        hf_repo_id: None,
+                        hf_private: None,
+                    },
+                    datasets: vec![DatasetConfig {
+                        folder_path: dataset_path.to_string(),
+                        caption_ext: "txt".to_string(),
+                        caption_dropout_rate,
+                        shuffle_tokens: false,
+                        cache_latents_to_disk: cache_latents,
+                        resolution,
+                        default_caption: None,
+                        is_reg: false,
+                        network_weight: None,
+                    }],
                     train: TrainConfig {
-                        noise_scheduler: "ddpm".to_string(),
+                        batch_size,
                         steps,
-                        lr: 1e-4,
                         gradient_accumulation_steps: 1,
                         train_unet: true,
                         train_text_encoder: false,
-                        content_or_style: "balanced".to_string(),
-                        clip_skip: 2,
+                        gradient_checkpointing,
+                        noise_scheduler: noise_scheduler.to_string(),
+                        optimizer: optimizer.to_string(),
+                        lr,
+                        skip_first_sample: false,
+                        disable_sampling: false,
+                        linear_timesteps: false,
+                        dtype: if is_flux || is_v3 {
+                            "bf16".to_string()
+                        } else {
+                            "fp16".to_string()
+                        },
                         ema_config: EmaConfig {
                             use_ema: true,
                             ema_decay: 0.99,
                         },
+                        max_grad_norm: None,
+                        noise_offset: None,
                     },
                     model: ModelConfig {
                         name_or_path: model_name.to_string(),
+                        is_flux,
                         is_v2: false,
+                        is_v3,
+                        is_xl,
                         is_v_pred: false,
-                        quantize: true,
+                        quantize,
+                        low_vram: false,
                     },
                     sample: SampleConfig {
-                        sampler: "ddpm".to_string(),
-                        sample_every: 100,
-                        width: resolution,
-                        height: resolution,
-                        prompts: test_prompts,
+                        sampler: noise_scheduler.to_string(),
+                        sample_every: 250,
+                        width: sample_width,
+                        height: sample_height,
+                        prompts,
                         neg: String::new(),
                         seed: 42,
                         walk_seed: true,
-                        guidance_scale: 7.5,
+                        guidance_scale: default_guidance,
                         sample_steps: 20,
                     },
-                    trigger_word,
+                    logging: Some(LoggingConfig {
+                        log_every: 100,
+                        verbose: false,
+                        use_wandb: false,
+                        use_ui_logger: false,
+                        project_name: None,
+                        run_name: None,
+                    }),
                 }],
             },
-            meta: ConfigMeta {
-                name: name.to_string(),
+            meta: Some(ConfigMeta {
+                name: "[name]".to_string(),
                 version: "1.0".to_string(),
-            },
+            }),
         };
 
         // Serialize and save
@@ -614,8 +830,11 @@ impl Tool for ListDatasetsTool {
 
                     datasets.push(DatasetInfo {
                         name,
-                        images: image_count,
                         path: path.display().to_string(),
+                        image_count,
+                        caption_count: 0, // Not counted in list view
+                        missing_captions: vec![],
+                        total_size_bytes: 0,
                     });
                 }
             }
@@ -1115,6 +1334,8 @@ impl Tool for ListExportedModelsTool {
                                 path: path.display().to_string(),
                                 size: metadata.len(),
                                 extension: ext_str,
+                                created_at: None,
+                                metadata: None,
                             });
                         }
                     }
@@ -1481,6 +1702,500 @@ impl Tool for GetTrainingInfoTool {
     }
 }
 
+// ============================================================================
+// Tool: delete_config
+// ============================================================================
+
+struct DeleteConfigTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for DeleteConfigTool {
+    fn name(&self) -> &str {
+        "delete_config"
+    }
+
+    fn description(&self) -> &str {
+        "Delete a training configuration file."
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Configuration name to delete"
+                }
+            },
+            "required": ["name"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let name = args
+            .get("name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'name' parameter".to_string()))?;
+
+        let config_filename = format!("{}.yaml", name);
+        let config_path =
+            validate_path(&config_filename, &self.server.paths.configs_path, "config")
+                .map_err(|e| self.server.config_error_to_mcp(e, "Invalid config name"))?;
+
+        if !config_path.exists() {
+            return ToolResult::json(&json!({
+                "success": false,
+                "error": "Configuration not found"
+            }));
+        }
+
+        fs::remove_file(&config_path)
+            .await
+            .map_err(|e| MCPError::Internal(format!("Failed to delete config: {}", e)))?;
+
+        info!("Deleted config: {}", name);
+
+        ToolResult::json(&json!({
+            "success": true,
+            "deleted": name
+        }))
+    }
+}
+
+// ============================================================================
+// Tool: delete_dataset
+// ============================================================================
+
+struct DeleteDatasetTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for DeleteDatasetTool {
+    fn name(&self) -> &str {
+        "delete_dataset"
+    }
+
+    fn description(&self) -> &str {
+        "Delete a training dataset and all its contents."
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Dataset name to delete"
+                }
+            },
+            "required": ["name"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let name = args
+            .get("name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'name' parameter".to_string()))?;
+
+        let dataset_path = validate_path(name, &self.server.paths.datasets_path, "dataset")
+            .map_err(|e| self.server.config_error_to_mcp(e, "Invalid dataset name"))?;
+
+        if !dataset_path.exists() {
+            return ToolResult::json(&json!({
+                "success": false,
+                "error": "Dataset not found"
+            }));
+        }
+
+        fs::remove_dir_all(&dataset_path)
+            .await
+            .map_err(|e| MCPError::Internal(format!("Failed to delete dataset: {}", e)))?;
+
+        info!("Deleted dataset: {}", name);
+
+        ToolResult::json(&json!({
+            "success": true,
+            "deleted": name
+        }))
+    }
+}
+
+// ============================================================================
+// Tool: delete_model
+// ============================================================================
+
+struct DeleteModelTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for DeleteModelTool {
+    fn name(&self) -> &str {
+        "delete_model"
+    }
+
+    fn description(&self) -> &str {
+        "Delete a trained model file."
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Model name to delete"
+                }
+            },
+            "required": ["name"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let name = args
+            .get("name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'name' parameter".to_string()))?;
+
+        // Try each extension
+        let extensions = ["safetensors", "ckpt", "pt"];
+        let mut deleted = false;
+
+        for ext in &extensions {
+            let filename = format!("{}.{}", name, ext);
+            if let Ok(path) = validate_path(&filename, &self.server.paths.outputs_path, "model") {
+                if path.exists() {
+                    fs::remove_file(&path).await.map_err(|e| {
+                        MCPError::Internal(format!("Failed to delete model: {}", e))
+                    })?;
+                    deleted = true;
+                    info!("Deleted model: {}", filename);
+                }
+            }
+        }
+
+        if deleted {
+            ToolResult::json(&json!({
+                "success": true,
+                "deleted": name
+            }))
+        } else {
+            ToolResult::json(&json!({
+                "success": false,
+                "error": "Model not found"
+            }))
+        }
+    }
+}
+
+// ============================================================================
+// Tool: validate_config
+// ============================================================================
+
+struct ValidateConfigTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for ValidateConfigTool {
+    fn name(&self) -> &str {
+        "validate_config"
+    }
+
+    fn description(&self) -> &str {
+        "Validate a training configuration before running."
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Configuration name to validate"
+                }
+            },
+            "required": ["name"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let name = args
+            .get("name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'name' parameter".to_string()))?;
+
+        let config_filename = format!("{}.yaml", name);
+        let config_path =
+            validate_path(&config_filename, &self.server.paths.configs_path, "config")
+                .map_err(|e| self.server.config_error_to_mcp(e, "Invalid config name"))?;
+
+        if !config_path.exists() {
+            return ToolResult::json(&json!({
+                "valid": false,
+                "errors": ["Configuration file not found"],
+                "warnings": []
+            }));
+        }
+
+        let content = fs::read_to_string(&config_path)
+            .await
+            .map_err(|e| MCPError::Internal(format!("Failed to read config: {}", e)))?;
+
+        let mut errors = Vec::new();
+        let mut warnings = Vec::new();
+
+        // Parse YAML
+        let config: serde_yaml::Value = match serde_yaml::from_str(&content) {
+            Ok(c) => c,
+            Err(e) => {
+                return ToolResult::json(&json!({
+                    "valid": false,
+                    "errors": [format!("Invalid YAML: {}", e)],
+                    "warnings": []
+                }));
+            }
+        };
+
+        // Check required top-level keys
+        if config.get("job").is_none() {
+            errors.push("Missing required key: 'job'".to_string());
+        }
+        if config.get("config").is_none() {
+            errors.push("Missing required key: 'config'".to_string());
+        }
+
+        // Check config.name
+        if let Some(cfg) = config.get("config") {
+            if cfg.get("name").is_none() {
+                errors.push("Missing required key: 'config.name'".to_string());
+            }
+
+            // Check process array
+            if let Some(process) = cfg.get("process") {
+                if let Some(arr) = process.as_sequence() {
+                    if arr.is_empty() {
+                        errors.push("'config.process' array is empty".to_string());
+                    } else {
+                        // Validate first process
+                        if let Some(first) = arr.first() {
+                            // Check datasets
+                            if let Some(datasets) = first.get("datasets") {
+                                if let Some(ds_arr) = datasets.as_sequence() {
+                                    for (i, ds) in ds_arr.iter().enumerate() {
+                                        if let Some(folder) =
+                                            ds.get("folder_path").and_then(|v| v.as_str())
+                                        {
+                                            if !Path::new(folder).exists() {
+                                                warnings.push(format!(
+                                                    "Dataset {} folder does not exist: {}",
+                                                    i, folder
+                                                ));
+                                            }
+                                        } else {
+                                            errors.push(format!(
+                                                "Dataset {} missing 'folder_path'",
+                                                i
+                                            ));
+                                        }
+                                    }
+                                }
+                            } else {
+                                errors.push("Missing 'datasets' in process config".to_string());
+                            }
+
+                            // Check model
+                            if let Some(model) = first.get("model") {
+                                if model.get("name_or_path").is_none() {
+                                    errors.push("Missing 'model.name_or_path'".to_string());
+                                }
+                            } else {
+                                errors.push("Missing 'model' in process config".to_string());
+                            }
+                        }
+                    }
+                } else {
+                    errors.push("'config.process' is not an array".to_string());
+                }
+            } else {
+                errors.push("Missing required key: 'config.process'".to_string());
+            }
+        }
+
+        let valid = errors.is_empty();
+
+        ToolResult::json(&json!({
+            "valid": valid,
+            "errors": errors,
+            "warnings": warnings
+        }))
+    }
+}
+
+// ============================================================================
+// Tool: get_dataset_info
+// ============================================================================
+
+struct GetDatasetInfoTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for GetDatasetInfoTool {
+    fn name(&self) -> &str {
+        "get_dataset_info"
+    }
+
+    fn description(&self) -> &str {
+        "Get detailed information about a dataset including image count, caption stats."
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Dataset name"
+                }
+            },
+            "required": ["name"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let name = args
+            .get("name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'name' parameter".to_string()))?;
+
+        let dataset_path = validate_path(name, &self.server.paths.datasets_path, "dataset")
+            .map_err(|e| self.server.config_error_to_mcp(e, "Invalid dataset name"))?;
+
+        if !dataset_path.exists() {
+            return ToolResult::json(&json!({
+                "error": "Dataset not found"
+            }));
+        }
+
+        let mut image_count = 0;
+        let mut caption_count = 0;
+        let mut missing_captions = Vec::new();
+        let mut total_size: u64 = 0;
+        let image_extensions = ["jpg", "jpeg", "png", "webp"];
+
+        if let Ok(mut entries) = fs::read_dir(&dataset_path).await {
+            while let Ok(Some(entry)) = entries.next_entry().await {
+                let path = entry.path();
+                if let Some(ext) = path.extension() {
+                    let ext_lower = ext.to_string_lossy().to_lowercase();
+
+                    if image_extensions.contains(&ext_lower.as_str()) {
+                        image_count += 1;
+
+                        if let Ok(metadata) = fs::metadata(&path).await {
+                            total_size += metadata.len();
+                        }
+
+                        // Check for corresponding caption file
+                        let caption_path = path.with_extension("txt");
+                        if caption_path.exists() {
+                            caption_count += 1;
+                        } else {
+                            if let Some(filename) = path.file_name() {
+                                missing_captions.push(filename.to_string_lossy().to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let info = DatasetInfo {
+            name: name.to_string(),
+            path: dataset_path.display().to_string(),
+            image_count,
+            caption_count,
+            missing_captions: missing_captions.clone(),
+            total_size_bytes: total_size,
+        };
+
+        ToolResult::json(&json!({
+            "name": info.name,
+            "path": info.path,
+            "image_count": info.image_count,
+            "caption_count": info.caption_count,
+            "captions_complete": missing_captions.is_empty(),
+            "missing_captions": if missing_captions.len() > 10 {
+                format!("{} images missing captions (showing first 10): {:?}",
+                    missing_captions.len(),
+                    &missing_captions[..10])
+            } else {
+                format!("{:?}", missing_captions)
+            },
+            "total_size_mb": (total_size as f64 / 1024.0 / 1024.0 * 100.0).round() / 100.0
+        }))
+    }
+}
+
+// ============================================================================
+// Tool: list_model_presets
+// ============================================================================
+
+struct ListModelPresetsTool {
+    #[allow(dead_code)]
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for ListModelPresetsTool {
+    fn name(&self) -> &str {
+        "list_model_presets"
+    }
+
+    fn description(&self) -> &str {
+        "List available model presets with recommended settings for each model type."
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {}
+        })
+    }
+
+    async fn execute(&self, _args: Value) -> Result<ToolResult> {
+        let presets = ModelPreset::all_presets();
+
+        let preset_list: Vec<_> = presets
+            .iter()
+            .map(|p| {
+                json!({
+                    "name": p.name,
+                    "model_path": p.model_path,
+                    "description": p.description,
+                    "is_flux": p.is_flux,
+                    "is_xl": p.is_xl,
+                    "is_v3": p.is_v3,
+                    "recommended_resolution": p.recommended_resolution,
+                    "recommended_scheduler": p.recommended_scheduler,
+                    "requires_quantize": p.requires_quantize,
+                    "min_vram_gb": p.min_vram_gb
+                })
+            })
+            .collect();
+
+        ToolResult::json(&json!({
+            "presets": preset_list,
+            "note": "Use these settings as a starting point for create_training_config"
+        }))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1494,7 +2209,7 @@ mod tests {
         }
         let server = AIToolkitServer::new().await.unwrap();
         let tools = server.tools();
-        assert_eq!(tools.len(), 15);
+        assert_eq!(tools.len(), 21); // 15 original + 6 new tools
     }
 
     #[test]
@@ -1515,6 +2230,13 @@ mod tests {
             "get_system_stats",
             "get_training_logs",
             "get_training_info",
+            // New tools
+            "delete_config",
+            "delete_dataset",
+            "delete_model",
+            "validate_config",
+            "get_dataset_info",
+            "list_model_presets",
         ];
 
         for name in expected_tools {
