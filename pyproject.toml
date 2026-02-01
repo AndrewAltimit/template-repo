@@ -40,12 +40,11 @@ known_first_party = [
     "economic_agents",
     "mcp_core",
     "mcp_ai_toolkit",
-    "mcp_blender",
     "mcp_gaea2",
     "mcp_video_editor",
     "mcp_virtual_character",
     # Note: The following have been migrated to Rust and are no longer Python modules:
-    # mcp_comfyui,
+    # mcp_comfyui, mcp_blender,
     # mcp_codex, mcp_code_quality, mcp_content_creation, mcp_crush, mcp_elevenlabs_speech,
     # mcp_gemini, mcp_github_board, mcp_meme_generator, mcp_opencode, mcp_agentcore_memory
     # Local modules within packages (e.g., sleeper_agents dashboard)
@@ -117,8 +116,8 @@ exclude = [
     "packages/economic_agents/src/economic_agents/observability/",
     # Gaea2 generation templates
     "tools/mcp/mcp_gaea2/mcp_gaea2/generation/",
-    # Blender templates
-    "tools/mcp/mcp_blender/mcp_blender/core/templates.py",
+    # Blender is now a Rust MCP server - exclude remaining Python scripts
+    "tools/mcp/mcp_blender/",
 ]
 
 # Rule configuration - equivalent to mypy's ignore_missing_imports
@@ -209,11 +208,10 @@ known-first-party = [
     "economic_agents",
     "mcp_core",
     "mcp_ai_toolkit",
-    "mcp_blender",
     "mcp_gaea2",
     "mcp_video_editor",
     "mcp_virtual_character",
-    # Note: Rust MCP servers are no longer Python modules (including mcp_comfyui)
+    # Note: Rust MCP servers are no longer Python modules (including mcp_comfyui, mcp_blender)
     # Local modules within packages (e.g., sleeper_agents dashboard)
     "config",
     "utils",

@@ -151,6 +151,84 @@ def render_animation(args, job_id):
         return False
 
 
+def batch_render(args, job_id):
+    """Render multiple frames, cameras, or render layers in batch."""
+    try:
+        # Load project
+        if "project" in args:
+            bpy.ops.wm.open_mainfile(filepath=args["project"])
+
+        scene = bpy.context.scene
+        frames = args.get("frames", [1])
+        cameras = args.get("cameras", [])
+        layers = args.get("layers", [])
+        settings = args.get("settings", {})
+        output_dir = args.get("output_dir", f"/app/outputs/batch/{job_id}")
+
+        # Create output directory
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Configure render settings
+        engine = settings.get("engine", "CYCLES")
+        if engine == "EEVEE":
+            engine = "BLENDER_EEVEE_NEXT"
+        elif engine == "WORKBENCH":
+            engine = "BLENDER_WORKBENCH"
+        scene.render.engine = engine
+        scene.render.resolution_x = settings.get("resolution", [1920, 1080])[0]
+        scene.render.resolution_y = settings.get("resolution", [1920, 1080])[1]
+
+        # Set samples
+        if scene.render.engine == "CYCLES":
+            scene.cycles.samples = settings.get("samples", 128)
+            scene.cycles.use_denoising = True
+        elif scene.render.engine == "BLENDER_EEVEE_NEXT":
+            scene.eevee.taa_render_samples = settings.get("samples", 64)
+
+        scene.render.image_settings.file_format = settings.get("format", "PNG")
+
+        # Get cameras to render from
+        camera_objects = []
+        if cameras:
+            for cam_name in cameras:
+                cam = bpy.data.objects.get(cam_name)
+                if cam and cam.type == "CAMERA":
+                    camera_objects.append(cam)
+        if not camera_objects and scene.camera:
+            camera_objects = [scene.camera]
+
+        total_renders = len(frames) * len(camera_objects)
+        current_render = 0
+        output_files = []
+
+        update_status(job_id, "RUNNING", 0, f"Starting batch render: {total_renders} renders")
+
+        for cam in camera_objects:
+            scene.camera = cam
+            cam_name = cam.name.replace(" ", "_")
+
+            for frame in frames:
+                scene.frame_set(frame)
+                output_file = os.path.join(output_dir, f"{cam_name}_frame_{frame:04d}.png")
+                scene.render.filepath = output_file
+
+                # Render
+                bpy.ops.render.render(write_still=True)
+                output_files.append(output_file)
+
+                current_render += 1
+                progress = int((current_render / total_renders) * 100)
+                update_status(job_id, "RUNNING", progress, f"Rendered {current_render}/{total_renders}")
+
+        update_status(job_id, "COMPLETED", 100, f"Batch render complete: {len(output_files)} images", output_path=output_dir)
+
+        return True
+
+    except Exception as e:
+        update_status(job_id, "FAILED", 0, str(e))
+        return False
+
+
 def main():
     """Main entry point."""
     # Get arguments from command line
@@ -178,6 +256,8 @@ def main():
         success = render_image(args, job_id)
     elif operation == "render_animation":
         success = render_animation(args, job_id)
+    elif operation == "batch_render":
+        success = batch_render(args, job_id)
     else:
         print(f"Unknown operation: {operation}")
         sys.exit(1)
