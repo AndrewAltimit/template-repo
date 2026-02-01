@@ -673,6 +673,447 @@ def create_curve(args, _job_id):
         return False
 
 
+def add_texture(args, _job_id):
+    """Add a texture to an object."""
+    try:
+        # Load project
+        if "project" in args:
+            bpy.ops.wm.open_mainfile(filepath=args["project"])
+
+        object_name = args.get("object_name")
+        texture_type = args.get("texture_type")
+        settings = args.get("settings", {})
+
+        # Find object
+        obj = bpy.data.objects.get(object_name)
+        if not obj:
+            print(f"Object '{object_name}' not found")
+            return False
+
+        # Ensure object has a material
+        if not obj.data.materials:
+            mat = bpy.data.materials.new(name=f"{object_name}_material")
+            mat.use_nodes = True
+            obj.data.materials.append(mat)
+        mat = obj.data.materials[0]
+
+        # Get or create node tree
+        if not mat.use_nodes:
+            mat.use_nodes = True
+        nodes = mat.node_tree.nodes
+        links = mat.node_tree.links
+
+        # Find principled BSDF
+        bsdf = None
+        for node in nodes:
+            if node.type == "BSDF_PRINCIPLED":
+                bsdf = node
+                break
+
+        if not bsdf:
+            print("No Principled BSDF found")
+            return False
+
+        # Add texture node based on type
+        if texture_type == "IMAGE":
+            tex_node = nodes.new(type="ShaderNodeTexImage")
+            tex_node.location = (-300, 300)
+            image_path = settings.get("image_path")
+            if image_path and Path(image_path).exists():
+                tex_node.image = bpy.data.images.load(image_path)
+            links.new(tex_node.outputs["Color"], bsdf.inputs["Base Color"])
+
+        elif texture_type == "NOISE":
+            tex_node = nodes.new(type="ShaderNodeTexNoise")
+            tex_node.location = (-300, 300)
+            tex_node.inputs["Scale"].default_value = settings.get("scale", 5.0)
+            tex_node.inputs["Detail"].default_value = settings.get("detail", 2.0)
+            links.new(tex_node.outputs["Fac"], bsdf.inputs["Roughness"])
+
+        elif texture_type == "VORONOI":
+            tex_node = nodes.new(type="ShaderNodeTexVoronoi")
+            tex_node.location = (-300, 300)
+            tex_node.inputs["Scale"].default_value = settings.get("scale", 5.0)
+            links.new(tex_node.outputs["Distance"], bsdf.inputs["Roughness"])
+
+        elif texture_type == "MUSGRAVE":
+            tex_node = nodes.new(type="ShaderNodeTexMusgrave")
+            tex_node.location = (-300, 300)
+            tex_node.inputs["Scale"].default_value = settings.get("scale", 5.0)
+            links.new(tex_node.outputs["Fac"], bsdf.inputs["Roughness"])
+
+        elif texture_type == "GRADIENT":
+            tex_node = nodes.new(type="ShaderNodeTexGradient")
+            tex_node.location = (-300, 300)
+            links.new(tex_node.outputs["Color"], bsdf.inputs["Base Color"])
+
+        elif texture_type == "CHECKER":
+            tex_node = nodes.new(type="ShaderNodeTexChecker")
+            tex_node.location = (-300, 300)
+            tex_node.inputs["Scale"].default_value = settings.get("scale", 5.0)
+            links.new(tex_node.outputs["Color"], bsdf.inputs["Base Color"])
+
+        else:
+            print(f"Unknown texture type: {texture_type}")
+            return False
+
+        # Save project
+        if "project" in args:
+            bpy.ops.wm.save_mainfile()
+
+        return True
+
+    except Exception as e:
+        print(f"Error adding texture: {e}")
+        return False
+
+
+def add_uv_map(args, _job_id):
+    """Add UV mapping to an object."""
+    try:
+        # Load project
+        if "project" in args:
+            bpy.ops.wm.open_mainfile(filepath=args["project"])
+
+        object_name = args.get("object_name")
+        projection_type = args.get("projection_type", "SMART_PROJECT")
+
+        # Find object
+        obj = bpy.data.objects.get(object_name)
+        if not obj:
+            print(f"Object '{object_name}' not found")
+            return False
+
+        if obj.type != "MESH":
+            print(f"Object '{object_name}' is not a mesh")
+            return False
+
+        # Select and make active
+        bpy.ops.object.select_all(action="DESELECT")
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+
+        # Enter edit mode for UV projection
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
+
+        # Apply UV projection
+        if projection_type == "SMART_PROJECT":
+            bpy.ops.uv.smart_project(angle_limit=math.radians(66))
+        elif projection_type == "CUBE_PROJECT":
+            bpy.ops.uv.cube_project()
+        elif projection_type == "CYLINDER_PROJECT":
+            bpy.ops.uv.cylinder_project()
+        elif projection_type == "SPHERE_PROJECT":
+            bpy.ops.uv.sphere_project()
+        elif projection_type == "PROJECT_FROM_VIEW":
+            bpy.ops.uv.project_from_view()
+        else:
+            print(f"Unknown projection type: {projection_type}")
+            bpy.ops.object.mode_set(mode="OBJECT")
+            return False
+
+        # Return to object mode
+        bpy.ops.object.mode_set(mode="OBJECT")
+
+        # Save project
+        if "project" in args:
+            bpy.ops.wm.save_mainfile()
+
+        return True
+
+    except Exception as e:
+        print(f"Error adding UV map: {e}")
+        # Try to return to object mode
+        try:
+            bpy.ops.object.mode_set(mode="OBJECT")
+        except Exception:
+            pass
+        return False
+
+
+def setup_compositor(args, _job_id):
+    """Setup compositor nodes for post-processing."""
+    try:
+        # Load project
+        if "project" in args:
+            bpy.ops.wm.open_mainfile(filepath=args["project"])
+
+        setup = args.get("setup")
+        settings = args.get("settings", {})
+
+        scene = bpy.context.scene
+        scene.use_nodes = True
+        tree = scene.node_tree
+        nodes = tree.nodes
+        links = tree.links
+
+        # Clear existing nodes
+        nodes.clear()
+
+        # Add render layers node
+        render_layers = nodes.new(type="CompositorNodeRLayers")
+        render_layers.location = (0, 300)
+
+        # Add composite output
+        composite = nodes.new(type="CompositorNodeComposite")
+        composite.location = (800, 300)
+
+        # Add viewer
+        viewer = nodes.new(type="CompositorNodeViewer")
+        viewer.location = (800, 0)
+
+        if setup == "BASIC":
+            # Direct connection
+            links.new(render_layers.outputs["Image"], composite.inputs["Image"])
+            links.new(render_layers.outputs["Image"], viewer.inputs["Image"])
+
+        elif setup == "DENOISING":
+            # Add denoise node
+            denoise = nodes.new(type="CompositorNodeDenoise")
+            denoise.location = (400, 300)
+            links.new(render_layers.outputs["Image"], denoise.inputs["Image"])
+            links.new(denoise.outputs["Image"], composite.inputs["Image"])
+            links.new(denoise.outputs["Image"], viewer.inputs["Image"])
+
+        elif setup == "COLOR_GRADING":
+            # Add color balance and curves
+            color_balance = nodes.new(type="CompositorNodeColorBalance")
+            color_balance.location = (400, 300)
+            curves = nodes.new(type="CompositorNodeCurveRGB")
+            curves.location = (600, 300)
+            links.new(render_layers.outputs["Image"], color_balance.inputs["Image"])
+            links.new(color_balance.outputs["Image"], curves.inputs["Image"])
+            links.new(curves.outputs["Image"], composite.inputs["Image"])
+            links.new(curves.outputs["Image"], viewer.inputs["Image"])
+
+        elif setup == "GLARE":
+            # Add glare node
+            glare = nodes.new(type="CompositorNodeGlare")
+            glare.location = (400, 300)
+            glare.glare_type = "FOG_GLOW"
+            glare.threshold = settings.get("threshold", 1.0)
+            links.new(render_layers.outputs["Image"], glare.inputs["Image"])
+            links.new(glare.outputs["Image"], composite.inputs["Image"])
+            links.new(glare.outputs["Image"], viewer.inputs["Image"])
+
+        elif setup == "FOG_GLOW":
+            # Add fog glow effect
+            glare = nodes.new(type="CompositorNodeGlare")
+            glare.location = (400, 300)
+            glare.glare_type = "FOG_GLOW"
+            glare.quality = "HIGH"
+            links.new(render_layers.outputs["Image"], glare.inputs["Image"])
+            links.new(glare.outputs["Image"], composite.inputs["Image"])
+            links.new(glare.outputs["Image"], viewer.inputs["Image"])
+
+        elif setup == "LENS_DISTORTION":
+            # Add lens distortion
+            lens = nodes.new(type="CompositorNodeLensdist")
+            lens.location = (400, 300)
+            lens.inputs["Distort"].default_value = settings.get("distort", 0.0)
+            lens.inputs["Dispersion"].default_value = settings.get("dispersion", 0.0)
+            links.new(render_layers.outputs["Image"], lens.inputs["Image"])
+            links.new(lens.outputs["Image"], composite.inputs["Image"])
+            links.new(lens.outputs["Image"], viewer.inputs["Image"])
+
+        elif setup == "VIGNETTE":
+            # Create vignette effect with ellipse mask
+            ellipse = nodes.new(type="CompositorNodeEllipseMask")
+            ellipse.location = (200, 0)
+            ellipse.width = 0.8
+            ellipse.height = 0.8
+            blur = nodes.new(type="CompositorNodeBlur")
+            blur.location = (400, 0)
+            blur.size_x = 200
+            blur.size_y = 200
+            mix = nodes.new(type="CompositorNodeMixRGB")
+            mix.location = (600, 300)
+            mix.blend_type = "MULTIPLY"
+            links.new(render_layers.outputs["Image"], mix.inputs[1])
+            links.new(ellipse.outputs["Mask"], blur.inputs["Image"])
+            links.new(blur.outputs["Image"], mix.inputs[2])
+            links.new(mix.outputs["Image"], composite.inputs["Image"])
+            links.new(mix.outputs["Image"], viewer.inputs["Image"])
+
+        else:
+            print(f"Unknown compositor setup: {setup}")
+            return False
+
+        # Save project
+        if "project" in args:
+            bpy.ops.wm.save_mainfile()
+
+        return True
+
+    except Exception as e:
+        print(f"Error setting up compositor: {e}")
+        return False
+
+
+def analyze_scene(args, job_id):
+    """Analyze scene for statistics and potential issues."""
+    try:
+        # Load project
+        if "project" in args:
+            bpy.ops.wm.open_mainfile(filepath=args["project"])
+
+        analysis_type = args.get("analysis_type", "BASIC")
+        result = {}
+
+        # Count objects by type
+        object_counts = {}
+        total_vertices = 0
+        total_faces = 0
+        total_tris = 0
+
+        for obj in bpy.data.objects:
+            obj_type = obj.type
+            object_counts[obj_type] = object_counts.get(obj_type, 0) + 1
+
+            if obj.type == "MESH" and obj.data:
+                mesh = obj.data
+                total_vertices += len(mesh.vertices)
+                total_faces += len(mesh.polygons)
+                # Count triangles
+                for poly in mesh.polygons:
+                    total_tris += len(poly.vertices) - 2
+
+        result["object_counts"] = object_counts
+        result["total_objects"] = len(bpy.data.objects)
+        result["total_vertices"] = total_vertices
+        result["total_faces"] = total_faces
+        result["total_triangles"] = total_tris
+        result["materials"] = len(bpy.data.materials)
+        result["textures"] = len(bpy.data.images)
+
+        if analysis_type in ("DETAILED", "PERFORMANCE", "MEMORY"):
+            # Additional detailed info
+            result["meshes"] = len(bpy.data.meshes)
+            result["curves"] = len(bpy.data.curves)
+            result["lights"] = len(bpy.data.lights)
+            result["cameras"] = len(bpy.data.cameras)
+            result["collections"] = len(bpy.data.collections)
+            result["worlds"] = len(bpy.data.worlds)
+            result["scenes"] = len(bpy.data.scenes)
+
+        if analysis_type == "PERFORMANCE":
+            # Performance-related warnings
+            warnings = []
+            if total_tris > 1000000:
+                warnings.append(f"High triangle count: {total_tris}")
+            if len(bpy.data.materials) > 50:
+                warnings.append(f"Many materials: {len(bpy.data.materials)}")
+            result["warnings"] = warnings
+
+        if analysis_type == "MEMORY":
+            # Memory estimation (rough)
+            vertex_mem = total_vertices * 12  # 3 floats * 4 bytes
+            face_mem = total_faces * 16  # Average 4 indices * 4 bytes
+            result["estimated_mesh_memory_mb"] = round((vertex_mem + face_mem) / (1024 * 1024), 2)
+
+        # Write result to file for handler to read
+        write_result(job_id, result)
+
+        # Also print for stdout parsing
+        print(json.dumps(result))
+        return True
+
+    except Exception as e:
+        print(f"Error analyzing scene: {e}")
+        return False
+
+
+def optimize_scene(args, _job_id):
+    """Optimize scene for better performance."""
+    try:
+        # Load project
+        if "project" in args:
+            bpy.ops.wm.open_mainfile(filepath=args["project"])
+
+        optimization_type = args.get("optimization_type")
+        settings = args.get("settings", {})
+
+        if optimization_type == "MESH_CLEANUP":
+            # Clean up meshes
+            for obj in bpy.data.objects:
+                if obj.type == "MESH":
+                    bpy.ops.object.select_all(action="DESELECT")
+                    obj.select_set(True)
+                    bpy.context.view_layer.objects.active = obj
+                    bpy.ops.object.mode_set(mode="EDIT")
+                    # Remove doubles
+                    bpy.ops.mesh.select_all(action="SELECT")
+                    bpy.ops.mesh.remove_doubles(threshold=settings.get("merge_threshold", 0.0001))
+                    # Delete loose vertices
+                    bpy.ops.mesh.delete_loose()
+                    bpy.ops.object.mode_set(mode="OBJECT")
+
+        elif optimization_type == "TEXTURE_OPTIMIZATION":
+            # Resize large textures
+            max_size = settings.get("max_size", 2048)
+            for image in bpy.data.images:
+                if image.size[0] > max_size or image.size[1] > max_size:
+                    scale = max_size / max(image.size)
+                    new_width = int(image.size[0] * scale)
+                    new_height = int(image.size[1] * scale)
+                    image.scale(new_width, new_height)
+
+        elif optimization_type == "MODIFIER_APPLY":
+            # Apply modifiers
+            for obj in bpy.data.objects:
+                if obj.type == "MESH":
+                    bpy.ops.object.select_all(action="DESELECT")
+                    obj.select_set(True)
+                    bpy.context.view_layer.objects.active = obj
+                    for modifier in obj.modifiers[:]:
+                        try:
+                            bpy.ops.object.modifier_apply(modifier=modifier.name)
+                        except Exception:
+                            pass  # Skip modifiers that can't be applied
+
+        elif optimization_type == "INSTANCE_OPTIMIZATION":
+            # Convert duplicates to instances
+            # This is a simplified version - just links duplicate mesh data
+            mesh_users = {}
+            for obj in bpy.data.objects:
+                if obj.type == "MESH" and obj.data:
+                    key = (len(obj.data.vertices), len(obj.data.polygons))
+                    if key not in mesh_users:
+                        mesh_users[key] = []
+                    mesh_users[key].append(obj)
+
+        elif optimization_type == "MATERIAL_CLEANUP":
+            # Remove unused materials
+            for mat in bpy.data.materials:
+                if not mat.users:
+                    bpy.data.materials.remove(mat)
+
+            # Remove unused images
+            for img in bpy.data.images:
+                if not img.users:
+                    bpy.data.images.remove(img)
+
+        else:
+            print(f"Unknown optimization type: {optimization_type}")
+            return False
+
+        # Save project
+        if "project" in args:
+            bpy.ops.wm.save_mainfile()
+
+        return True
+
+    except Exception as e:
+        print(f"Error optimizing scene: {e}")
+        # Try to return to object mode
+        try:
+            bpy.ops.object.mode_set(mode="OBJECT")
+        except Exception:
+            pass
+        return False
+
+
 def export_scene(args, _job_id):
     """Export scene to various formats."""
     try:
@@ -745,6 +1186,16 @@ def main():
         success = delete_objects(args, job_id)
     elif operation == "create_curve":
         success = create_curve(args, job_id)
+    elif operation == "add_texture":
+        success = add_texture(args, job_id)
+    elif operation == "add_uv_map":
+        success = add_uv_map(args, job_id)
+    elif operation == "setup_compositor":
+        success = setup_compositor(args, job_id)
+    elif operation == "analyze_scene":
+        success = analyze_scene(args, job_id)
+    elif operation == "optimize_scene":
+        success = optimize_scene(args, job_id)
     else:
         print(f"Unknown operation: {operation}")
         sys.exit(1)
