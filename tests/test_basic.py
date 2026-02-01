@@ -11,9 +11,9 @@ def test_imports():
     # Test core imports
     # Note: All MCP servers have been migrated to Rust. No Python MCP modules to test.
     # Testing sleeper_agents as a representative Python package
-    from sleeper_agents.config import SleeperConfig  # noqa: E402
+    from sleeper_agents import DetectionConfig  # noqa: E402
 
-    assert SleeperConfig is not None
+    assert DetectionConfig is not None
 
 
 def test_basic_functionality():
