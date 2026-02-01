@@ -192,6 +192,7 @@ jobs:
           print(\"  - mcp-desktop-control (Cross-platform desktop automation)\")
           print(\"  - mcp-blender (Headless Blender 3D content creation)\")
           print(\"  - mcp-comfyui (ComfyUI image generation)\")
+          print(\"  - mcp-video-editor (Intelligent automated video editing)\")
           print(\"  - mcp-ai-toolkit (AI Toolkit LoRA training)\")
           print(\"  - mcp-virtual-character (Virtual character control via VRChat OSC)\")
           '
@@ -720,6 +721,12 @@ jobs:
             cp target/release/mcp-comfyui /app/rust-binaries/mcp-comfyui-linux-x64
             echo "Built mcp-comfyui for Linux x64"
 
+            # Build mcp-video-editor
+            cd /app/tools/mcp/mcp_video_editor
+            cargo build --release
+            cp target/release/mcp-video-editor /app/rust-binaries/mcp-video-editor-linux-x64
+            echo "Built mcp-video-editor for Linux x64"
+
             # Build mcp-ai-toolkit
             cd /app/tools/mcp/mcp_ai_toolkit
             cargo build --release
@@ -1000,6 +1007,7 @@ jobs:
           | `mcp-desktop-control-linux-x64` | Linux x64 | MCP server for cross-platform desktop automation |
           | `mcp-blender-linux-x64` | Linux x64 | MCP server for headless Blender 3D content creation |
           | `mcp-comfyui-linux-x64` | Linux x64 | MCP server for ComfyUI image generation |
+          | `mcp-video-editor-linux-x64` | Linux x64 | MCP server for intelligent automated video editing |
           | `mcp-ai-toolkit-linux-x64` | Linux x64 | MCP server for AI Toolkit LoRA training |
           | `mcp-virtual-character-linux-x64` | Linux x64 | MCP server for virtual character control via VRChat OSC |
           | `economic-agents-linux-x64` | Linux x64 | Autonomous economic agent simulation CLI |
