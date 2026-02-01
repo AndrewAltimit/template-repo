@@ -40,6 +40,8 @@ pub struct MemoryExplorer {
     process_handle: Option<windows::Win32::Foundation::HANDLE>,
     process_id: Option<u32>,
     process_name: Option<String>,
+    /// True if the target process is 32-bit (WoW64 on 64-bit Windows).
+    is_32bit: bool,
     modules: HashMap<String, ModuleInfo>,
     watches: HashMap<String, WatchedAddress>,
     scan_results: Vec<ScanResult>,
@@ -53,6 +55,7 @@ impl MemoryExplorer {
             process_handle: None,
             process_id: None,
             process_name: None,
+            is_32bit: false,
             modules: HashMap::new(),
             watches: HashMap::new(),
             scan_results: Vec::new(),
@@ -128,7 +131,9 @@ impl MemoryExplorer {
             CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW,
             TH32CS_SNAPPROCESS,
         };
-        use windows::Win32::System::Threading::{OpenProcess, PROCESS_ALL_ACCESS};
+        use windows::Win32::System::Threading::{
+            IsWow64Process, OpenProcess, PROCESS_ALL_ACCESS, PROCESS_QUERY_INFORMATION,
+        };
 
         // Detach from current process if attached
         if self.process_handle.is_some() {
@@ -178,9 +183,20 @@ impl MemoryExplorer {
         let handle = unsafe { OpenProcess(PROCESS_ALL_ACCESS, false, pid) }
             .map_err(|e| ExplorerError::OpenProcessError(e.to_string()))?;
 
+        // Detect if target process is 32-bit (WoW64)
+        let mut is_wow64 = windows::Win32::Foundation::BOOL::default();
+        let is_32bit = unsafe {
+            if IsWow64Process(handle, &mut is_wow64).is_ok() {
+                is_wow64.as_bool()
+            } else {
+                false // Assume 64-bit if detection fails
+            }
+        };
+
         self.process_handle = Some(handle);
         self.process_id = Some(pid);
         self.process_name = Some(process_name.to_string());
+        self.is_32bit = is_32bit;
 
         // Refresh modules
         self.refresh_modules()?;
@@ -211,6 +227,7 @@ impl MemoryExplorer {
         }
         self.process_id = None;
         self.process_name = None;
+        self.is_32bit = false;
         self.modules.clear();
         self.watches.clear();
     }
@@ -363,7 +380,13 @@ impl MemoryExplorer {
 
     #[cfg(windows)]
     pub fn read_pointer(&self, address: u64) -> Result<u64, ExplorerError> {
-        self.read_u64(address)
+        if self.is_32bit {
+            // 32-bit process: pointers are 4 bytes
+            self.read_u32(address).map(|v| v as u64)
+        } else {
+            // 64-bit process: pointers are 8 bytes
+            self.read_u64(address)
+        }
     }
 
     #[cfg(windows)]
@@ -789,6 +812,7 @@ impl MemoryExplorer {
     pub fn detach(&mut self) {
         self.process_id = None;
         self.process_name = None;
+        self.is_32bit = false;
         self.modules.clear();
         self.watches.clear();
     }
