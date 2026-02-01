@@ -4,6 +4,11 @@
 **Created**: 2025-12-25
 **Author**: Claude Code + Human
 
+> **Note**: This proposal references planned Python modules (`mcp_virtual_character/cognition/`)
+> that were never implemented. The Virtual Character server has since been **migrated to Rust**.
+> If these cognitive features are implemented, they should be added to the Rust codebase
+> in `tools/mcp/mcp_virtual_character/src/` or as a separate Rust crate.
+
 ---
 
 ## Executive Summary

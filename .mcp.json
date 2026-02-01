@@ -167,6 +167,22 @@
         "stdio"
       ]
     },
+    "virtual-character": {
+      "command": "docker compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "virtual-character",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-virtual-character",
+        "mcp-virtual-character",
+        "--mode",
+        "stdio"
+      ]
+    },
     "memory-explorer": {
       "command": "C:\\Python313\\python.exe",
       "args": [

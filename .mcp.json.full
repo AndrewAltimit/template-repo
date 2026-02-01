@@ -71,7 +71,7 @@
     },
     "virtual-character": {
       "type": "http",
-      "url": "http://192.168.0.222:8020/messages"
+      "url": "http://192.168.0.222:8025/messages"
     },
     "opencode": {
       "command": "docker compose",

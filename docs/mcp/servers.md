@@ -175,43 +175,65 @@ curl http://localhost:8016/health
 
 See `tools/mcp/mcp_blender/docs/README.md` for detailed documentation.
 
-## Virtual Character MCP Server
+## Virtual Character MCP Server (Rust)
 
-The Virtual Character server provides AI agent embodiment in virtual worlds through a plugin-based middleware architecture.
+The Virtual Character server provides AI agent embodiment in virtual worlds through a backend adapter architecture. This server has been migrated to Rust for improved performance and lower resource usage.
 
 ### Starting the Server
 
 ```bash
-# Start via Docker Compose (recommended for container-first approach)
-docker compose up -d mcp-virtual-character
+# Run in STDIO mode (for local Claude Desktop) - Recommended
+mcp-virtual-character --mode stdio
 
-# Or run locally for development
-python -m tools.mcp.virtual_character.server
+# Or standalone HTTP mode for remote access
+mcp-virtual-character --mode standalone --port 8025
 
-# View logs
-docker compose logs -f mcp-virtual-character
+# Or use Docker container
+docker compose run --rm mcp-virtual-character mcp-virtual-character --mode stdio
 
-# Test health
-curl http://localhost:8020/health
+# Test health (HTTP mode)
+curl http://localhost:8025/health
+```
+
+### Building from Source
+
+```bash
+cd tools/mcp/mcp_virtual_character
+cargo build --release
+# Binary at target/release/mcp-virtual-character
 ```
 
 ### Available Tools
 
-- **connect_backend** - Connect to a virtual world backend (VRChat, Blender, Unity)
-- **send_animation** - Send animation data to the connected backend
-- **send_audio** - Send audio data with lip-sync metadata
-- **get_state** - Get current state from the virtual environment
-- **capture_video** - Capture video feed from agent's perspective
-- **list_backends** - List available backend plugins
-- **switch_backend** - Switch between different backends
+- **set_backend** - Connect to a backend (mock, vrchat_remote)
+- **send_animation** - Send animation data (emotion, gesture, blendshapes)
+- **send_vrcemote** - Send VRCEmote value (0-8) for gesture wheel positions
+- **execute_behavior** - Execute platform-specific behaviors
+- **reset** - Reset to neutral state
+- **get_backend_status** - Get current backend status and statistics
+- **list_backends** - List available backend adapters
+- **play_audio** - Play audio with ElevenLabs expression detection
+- **create_sequence** - Create event sequences for choreography
+- **add_sequence_event** - Add events to sequences
+- **play_sequence** / **pause_sequence** / **resume_sequence** / **stop_sequence** - Sequence control
+- **get_sequence_status** - Get sequence playback status
+- **panic_reset** - Emergency reset all states
 
 ### Architecture
 
-The server acts as middleware between AI agents and various virtual world platforms:
-- **VRChat Backend** - OSC protocol communication (remote Windows support)
-- **Blender Backend** - Direct Python API integration
-- **Unity Backend** - WebSocket communication
-- **Plugin System** - Easy to add new backends
+The server uses a backend adapter pattern for cross-platform compatibility:
+- **VRChat Remote Backend** - OSC protocol communication with VRCEmote system
+- **Mock Backend** - Testing and development without VRChat
+- **PAD Emotion Model** - Smooth emotion interpolation (Pleasure/Arousal/Dominance)
+- **Toggle Behavior** - Automatic handling of VRCEmote toggle states
+
+### Configuration
+
+Environment variables:
+- `VIRTUAL_CHARACTER_HOST` - VRChat host (default: 127.0.0.1)
+- `VIRTUAL_CHARACTER_OSC_IN` - OSC receive port (default: 9000)
+- `VIRTUAL_CHARACTER_OSC_OUT` - OSC send port (default: 9001)
+- `VIRTUAL_CHARACTER_EMOTE_TIMEOUT` - Emote timeout in seconds (default: 3)
 
 See `tools/mcp/mcp_virtual_character/README.md` for detailed documentation.
 

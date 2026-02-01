@@ -293,7 +293,7 @@ class StreamConfig:
 - `tools/mcp/mcp_elevenlabs_speech/mcp_elevenlabs_speech/server.py` - New tools
 
 ### Phase 3
-- `tools/mcp/mcp_virtual_character/mcp_virtual_character/server.py` - Integration tools
+- `tools/mcp/mcp_virtual_character/src/server.rs` - Integration tools (Rust)
 - `tools/mcp/mcp_elevenlabs_speech/mcp_elevenlabs_speech/server.py` - Direct pipeline
 
 ---
