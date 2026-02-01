@@ -94,6 +94,10 @@ temp/
 *.dll
 *.exe
 
+# Rust build artifacts
+target/
+**/*.rs.bk
+
 # Archives
 *.tar
 *.tar.gz
