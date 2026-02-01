@@ -194,6 +194,7 @@ jobs:
           print(\"  - mcp-comfyui (ComfyUI image generation)\")
           print(\"  - mcp-ai-toolkit (AI Toolkit LoRA training)\")
           print(\"  - mcp-virtual-character (Virtual character control via VRChat OSC)\")
+          print(\"  - mcp-memory-explorer (Game memory exploration and reverse engineering)\")
           '
           "
 
@@ -737,6 +738,12 @@ jobs:
             cargo build --release
             cp target/release/mcp-virtual-character /app/rust-binaries/mcp-virtual-character-linux-x64
             echo "Built mcp-virtual-character for Linux x64"
+
+            # Build mcp-memory-explorer
+            cd /app/tools/mcp/mcp_memory_explorer
+            cargo build --release
+            cp target/release/mcp-memory-explorer /app/rust-binaries/mcp-memory-explorer-linux-x64
+            echo "Built mcp-memory-explorer for Linux x64"
           '
 
       # Build injection-toolkit for Windows using rust-ci-nightly (has mingw-w64)
@@ -1002,6 +1009,7 @@ jobs:
           | `mcp-comfyui-linux-x64` | Linux x64 | MCP server for ComfyUI image generation |
           | `mcp-ai-toolkit-linux-x64` | Linux x64 | MCP server for AI Toolkit LoRA training |
           | `mcp-virtual-character-linux-x64` | Linux x64 | MCP server for virtual character control via VRChat OSC |
+          | `mcp-memory-explorer-linux-x64` | Linux x64 | MCP server for game memory exploration and reverse engineering |
           | `economic-agents-linux-x64` | Linux x64 | Autonomous economic agent simulation CLI |
           | `pr-monitor-linux-x64` | Linux x64 | PR monitoring tool for admin/Gemini feedback |
           | `gh-linux-x64` | Linux x64 | GitHub CLI validator and security checker |
