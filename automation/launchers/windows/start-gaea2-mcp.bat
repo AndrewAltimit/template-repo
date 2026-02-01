@@ -1,9 +1,9 @@
 @echo off
-REM Start Gaea2 MCP Server on Windows
-REM This script starts the Gaea2 MCP server with optional Gaea2 path
+REM Start Gaea2 MCP Server on Windows (Rust version)
+REM This script starts the Rust-based Gaea2 MCP server
 
 echo ========================================
-echo Gaea2 MCP Server Launcher
+echo Gaea2 MCP Server Launcher (Rust)
 echo ========================================
 echo.
 
@@ -35,46 +35,49 @@ if "%GAEA2_PATH%"=="" (
     echo.
 )
 
-REM Check if Python is available
-python --version >nul 2>&1
-if errorlevel 1 (
-    echo ERROR: Python not found in PATH
-    echo Please install Python 3.10+ and add it to PATH
-    pause
-    exit /b 1
-)
-
-REM Check if mcp_core package is installed (dependency)
-python -c "import mcp_core" >nul 2>&1
-if errorlevel 1 (
-    echo Installing mcp_core package...
-    pip install -e tools\mcp\mcp_core -q
-    if errorlevel 1 (
-        echo ERROR: Failed to install mcp_core package
-        pause
-        exit /b 1
-    )
-)
-
-REM Check if mcp_gaea2 package is installed
-python -c "import mcp_gaea2" >nul 2>&1
-if errorlevel 1 (
-    echo Installing mcp_gaea2 package...
-    pip install -e tools\mcp\mcp_gaea2 -q
-    if errorlevel 1 (
-        echo ERROR: Failed to install mcp_gaea2 package
-        pause
-        exit /b 1
-    )
-    echo Packages installed successfully.
-    echo.
-)
-
 REM Set output directory to a Windows-friendly path
 if "%GAEA2_OUTPUT_DIR%"=="" (
     set "GAEA2_OUTPUT_DIR=%USERPROFILE%\gaea2_output"
 )
 if not exist "%GAEA2_OUTPUT_DIR%" mkdir "%GAEA2_OUTPUT_DIR%"
+
+REM Look for the Rust binary in common locations
+set "MCP_BINARY="
+
+REM Check for pre-built release binary
+if exist "tools\mcp\mcp_gaea2\target\release\mcp-gaea2.exe" (
+    set "MCP_BINARY=tools\mcp\mcp_gaea2\target\release\mcp-gaea2.exe"
+    echo Found release binary
+) else if exist "rust-binaries\mcp-gaea2-windows-x64.exe" (
+    set "MCP_BINARY=rust-binaries\mcp-gaea2-windows-x64.exe"
+    echo Found pre-built binary
+) else (
+    echo Rust binary not found. Building from source...
+    echo.
+
+    REM Check if cargo is available
+    cargo --version >nul 2>&1
+    if errorlevel 1 (
+        echo ERROR: Cargo (Rust) not found in PATH
+        echo Please install Rust from https://rustup.rs/ or download a pre-built binary
+        pause
+        exit /b 1
+    )
+
+    REM Build the binary
+    echo Building mcp-gaea2...
+    cd tools\mcp\mcp_gaea2
+    cargo build --release
+    if errorlevel 1 (
+        echo ERROR: Failed to build mcp-gaea2
+        pause
+        exit /b 1
+    )
+    cd ..\..\..
+    set "MCP_BINARY=tools\mcp\mcp_gaea2\target\release\mcp-gaea2.exe"
+    echo Build complete.
+    echo.
+)
 
 REM Start the server
 echo Starting server on http://0.0.0.0:8007
@@ -82,6 +85,6 @@ echo Output directory: %GAEA2_OUTPUT_DIR%
 echo Press Ctrl+C to stop the server
 echo.
 
-python -m mcp_gaea2.server --mode http --port 8007 --output-dir "%GAEA2_OUTPUT_DIR%" %*
+"%MCP_BINARY%" --mode standalone --port 8007 --output-dir "%GAEA2_OUTPUT_DIR%" %*
 
 pause
