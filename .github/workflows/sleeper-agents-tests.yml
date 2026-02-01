@@ -14,8 +14,8 @@ on:
 env:
   # Explicit project name ensures consistent image naming across forks/different directories
   COMPOSE_PROJECT_NAME: template-repo
-  # Docker Compose names images as <project>_<service> (underscore separator)
-  DOCKER_IMAGE_COMPOSE_NAME: template-repo_sleeper-eval-cpu
+  # Docker Compose v2 names images as <project>-<service> (hyphen separator)
+  DOCKER_IMAGE_COMPOSE_NAME: template-repo-sleeper-eval-cpu
   # Enable BuildKit for docker compose builds (required for --mount syntax in Dockerfiles)
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1
