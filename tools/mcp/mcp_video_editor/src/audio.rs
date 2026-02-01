@@ -156,14 +156,11 @@ impl AudioProcessor {
         }
 
         // Find and parse the JSON output
-        let json_path = output_dir.path().join(
-            audio_path
-                .file_stem()
-                .unwrap()
-                .to_string_lossy()
-                .to_string()
-                + ".json",
-        );
+        let file_stem = audio_path
+            .file_stem()
+            .ok_or_else(|| anyhow::anyhow!("Audio path has no file name"))?
+            .to_string_lossy();
+        let json_path = output_dir.path().join(format!("{}.json", file_stem));
 
         let transcript = if json_path.exists() {
             let content = std::fs::read_to_string(&json_path)?;

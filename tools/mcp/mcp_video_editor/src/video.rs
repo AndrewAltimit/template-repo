@@ -246,13 +246,16 @@ impl VideoProcessor {
 
         for (i, decision) in edit_decision_list.iter().enumerate() {
             let segment_path = concat_dir.path().join(format!("segment_{:04}.mp4", i));
+            let segment_path_str = segment_path
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("Segment path contains invalid UTF-8"))?;
 
             // Extract the segment
             self.extract_clip(
                 &decision.source,
                 decision.timestamp,
                 decision.timestamp + decision.duration,
-                segment_path.to_str().unwrap(),
+                segment_path_str,
             )
             .await?;
 
@@ -274,15 +277,12 @@ impl VideoProcessor {
         let (width, height) = self.parse_resolution(&output_settings.resolution)?;
 
         // Build ffmpeg command for concatenation
+        let concat_file_str = concat_file
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("Concat file path contains invalid UTF-8"))?;
+
         let mut cmd = Command::new("ffmpeg");
-        cmd.args([
-            "-f",
-            "concat",
-            "-safe",
-            "0",
-            "-i",
-            concat_file.to_str().unwrap(),
-        ]);
+        cmd.args(["-f", "concat", "-safe", "0", "-i", concat_file_str]);
 
         // Add video filters for resolution
         cmd.args(["-vf", &format!("scale={}:{}", width, height)]);

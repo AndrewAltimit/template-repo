@@ -32,8 +32,8 @@ fn extract_result_text(result: &ToolResult) -> Option<&str> {
 pub struct VideoEditorServer {
     config: Arc<ServerConfig>,
     job_manager: Arc<JobManager>,
-    audio_processor: Arc<RwLock<Option<AudioProcessor>>>,
-    video_processor: Arc<RwLock<Option<VideoProcessor>>>,
+    audio_processor: Arc<RwLock<Option<Arc<AudioProcessor>>>>,
+    video_processor: Arc<RwLock<Option<Arc<VideoProcessor>>>>,
     output_dir: PathBuf,
     renders_dir: PathBuf,
     clips_dir: PathBuf,
@@ -75,24 +75,24 @@ impl VideoEditorServer {
 
     /// Get or initialize audio processor (lazy loading)
     #[allow(dead_code)]
-    async fn get_audio_processor(&self) -> anyhow::Result<AudioProcessor> {
+    async fn get_audio_processor(&self) -> anyhow::Result<Arc<AudioProcessor>> {
         let mut processor = self.audio_processor.write().await;
         if processor.is_none() {
             info!("Initializing audio processor...");
-            *processor = Some(AudioProcessor::new((*self.config).clone())?);
+            *processor = Some(Arc::new(AudioProcessor::new((*self.config).clone())?));
         }
-        Ok(processor.as_ref().unwrap().clone())
+        Ok(Arc::clone(processor.as_ref().unwrap()))
     }
 
     /// Get or initialize video processor (lazy loading)
     #[allow(dead_code)]
-    async fn get_video_processor(&self) -> anyhow::Result<VideoProcessor> {
+    async fn get_video_processor(&self) -> anyhow::Result<Arc<VideoProcessor>> {
         let mut processor = self.video_processor.write().await;
         if processor.is_none() {
             info!("Initializing video processor...");
-            *processor = Some(VideoProcessor::new((*self.config).clone())?);
+            *processor = Some(Arc::new(VideoProcessor::new((*self.config).clone())?));
         }
-        Ok(processor.as_ref().unwrap().clone())
+        Ok(Arc::clone(processor.as_ref().unwrap()))
     }
 
     /// Get all tools as boxed trait objects
@@ -141,29 +141,13 @@ impl Default for VideoEditorServer {
     }
 }
 
-// Make AudioProcessor cloneable for lazy loading pattern
-impl Clone for AudioProcessor {
-    fn clone(&self) -> Self {
-        // Re-create from stored config to preserve settings
-        AudioProcessor::new(self.config.clone()).unwrap()
-    }
-}
-
-// Make VideoProcessor cloneable for lazy loading pattern
-impl Clone for VideoProcessor {
-    fn clone(&self) -> Self {
-        // Re-create from stored config to preserve settings
-        VideoProcessor::new(self.config.clone()).unwrap()
-    }
-}
-
 /// Shared references for tools
 #[derive(Clone)]
 struct ServerRefs {
     config: Arc<ServerConfig>,
     job_manager: Arc<JobManager>,
-    audio_processor: Arc<RwLock<Option<AudioProcessor>>>,
-    video_processor: Arc<RwLock<Option<VideoProcessor>>>,
+    audio_processor: Arc<RwLock<Option<Arc<AudioProcessor>>>>,
+    video_processor: Arc<RwLock<Option<Arc<VideoProcessor>>>>,
     #[allow(dead_code)]
     output_dir: PathBuf,
     renders_dir: PathBuf,
@@ -174,20 +158,20 @@ struct ServerRefs {
 }
 
 impl ServerRefs {
-    async fn get_audio_processor(&self) -> anyhow::Result<AudioProcessor> {
+    async fn get_audio_processor(&self) -> anyhow::Result<Arc<AudioProcessor>> {
         let mut processor = self.audio_processor.write().await;
         if processor.is_none() {
-            *processor = Some(AudioProcessor::new((*self.config).clone())?);
+            *processor = Some(Arc::new(AudioProcessor::new((*self.config).clone())?));
         }
-        Ok(processor.as_ref().unwrap().clone())
+        Ok(Arc::clone(processor.as_ref().unwrap()))
     }
 
-    async fn get_video_processor(&self) -> anyhow::Result<VideoProcessor> {
+    async fn get_video_processor(&self) -> anyhow::Result<Arc<VideoProcessor>> {
         let mut processor = self.video_processor.write().await;
         if processor.is_none() {
-            *processor = Some(VideoProcessor::new((*self.config).clone())?);
+            *processor = Some(Arc::new(VideoProcessor::new((*self.config).clone())?));
         }
-        Ok(processor.as_ref().unwrap().clone())
+        Ok(Arc::clone(processor.as_ref().unwrap()))
     }
 }
 
@@ -1017,12 +1001,24 @@ customizable style options."#
                 .collect();
 
             let lang_output_path = if languages.len() > 1 {
-                output_path.replace(".mp4", &format!("_{}.mp4", language))
+                let base = std::path::Path::new(&output_path);
+                let stem = base
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("output");
+                let parent = base.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+                parent
+                    .join(format!("{}_{}.mp4", stem, language))
+                    .to_string_lossy()
+                    .to_string()
             } else {
                 output_path.clone()
             };
 
-            let srt_path = lang_output_path.replace(".mp4", ".srt");
+            let srt_path = std::path::Path::new(&lang_output_path)
+                .with_extension("srt")
+                .to_string_lossy()
+                .to_string();
             video_processor
                 .generate_srt(&srt_segments, std::path::Path::new(&srt_path))
                 .map_err(|e| MCPError::Internal(format!("Failed to generate SRT: {}", e)))?;
