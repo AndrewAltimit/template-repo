@@ -1,4 +1,26 @@
-# AI Toolkit with Web UI and MCP Server
+# AI Toolkit with Web UI and MCP Server (Rust)
+# Stage 1: Build Rust MCP server
+FROM rust:1.93-slim AS mcp-builder
+
+# Install OpenSSL for reqwest
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copy MCP core first for dependency caching
+COPY tools/mcp/mcp_core_rust /build/tools/mcp/mcp_core_rust
+
+# Copy AI Toolkit MCP server
+COPY tools/mcp/mcp_ai_toolkit /build/tools/mcp/mcp_ai_toolkit
+
+# Build the MCP server
+WORKDIR /build/tools/mcp/mcp_ai_toolkit
+RUN cargo build --release
+
+# Stage 2: Runtime image
 FROM nvidia/cuda:12.1.0-base-ubuntu22.04
 
 # Install system dependencies including Node.js
@@ -11,6 +33,7 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     libsm6 \
     libxext6 \
+    ca-certificates \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
@@ -31,30 +54,9 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 WORKDIR /ai-toolkit/ui
 RUN npm install && npm run build
 
-# Install additional dependencies for MCP server
-RUN pip3 install --no-cache-dir \
-    fastapi \
-    uvicorn[standard] \
-    httpx \
-    httpx-sse \
-    pydantic \
-    pydantic-settings \
-    aiofiles \
-    psutil \
-    jsonschema \
-    anyio \
-    sse-starlette \
-    starlette \
-    python-multipart \
-    mcp
-
-# Copy only necessary MCP server components for AI Toolkit
-COPY tools/mcp/mcp_core /workspace/tools/mcp/mcp_core
-COPY tools/mcp/mcp_ai_toolkit /workspace/tools/mcp/mcp_ai_toolkit
-
-# Install packages
-RUN pip3 install --no-cache-dir /workspace/tools/mcp/mcp_core && \
-    pip3 install --no-cache-dir /workspace/tools/mcp/mcp_ai_toolkit
+# Copy the Rust MCP server binary
+COPY --from=mcp-builder /build/tools/mcp/mcp_ai_toolkit/target/release/mcp-ai-toolkit /usr/local/bin/mcp-ai-toolkit
+RUN chmod +x /usr/local/bin/mcp-ai-toolkit
 
 # Create directories
 RUN mkdir -p /ai-toolkit/datasets \
