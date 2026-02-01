@@ -672,3 +672,250 @@ impl std::fmt::Display for OptimizationType {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ========== JobStatus Tests ==========
+    #[test]
+    fn test_job_status_display() {
+        assert_eq!(JobStatus::Queued.to_string(), "QUEUED");
+        assert_eq!(JobStatus::Running.to_string(), "RUNNING");
+        assert_eq!(JobStatus::Completed.to_string(), "COMPLETED");
+        assert_eq!(JobStatus::Failed.to_string(), "FAILED");
+        assert_eq!(JobStatus::Cancelled.to_string(), "CANCELLED");
+    }
+
+    #[test]
+    fn test_job_status_serialization() {
+        assert_eq!(
+            serde_json::to_string(&JobStatus::Completed).unwrap(),
+            "\"COMPLETED\""
+        );
+        assert_eq!(
+            serde_json::to_string(&JobStatus::Running).unwrap(),
+            "\"RUNNING\""
+        );
+    }
+
+    #[test]
+    fn test_job_status_deserialization() {
+        let status: JobStatus = serde_json::from_str("\"RUNNING\"").unwrap();
+        assert_eq!(status, JobStatus::Running);
+
+        let status: JobStatus = serde_json::from_str("\"FAILED\"").unwrap();
+        assert_eq!(status, JobStatus::Failed);
+    }
+
+    // ========== Job Tests ==========
+    #[test]
+    fn test_job_creation() {
+        let job = Job::new("render");
+        assert_eq!(job.job_type, "render");
+        assert_eq!(job.status, JobStatus::Queued);
+        assert_eq!(job.progress, 0);
+        assert!(job.message.is_empty());
+        assert!(job.result.is_none());
+        assert!(job.output_path.is_none());
+        assert!(job.error.is_none());
+    }
+
+    #[test]
+    fn test_job_with_custom_id() {
+        let custom_id = Uuid::new_v4();
+        let job = Job::new("bake").with_id(custom_id);
+        assert_eq!(job.id, custom_id);
+        assert_eq!(job.job_type, "bake");
+    }
+
+    #[test]
+    fn test_job_serialization_roundtrip() {
+        let job = Job::new("animation");
+        let json = serde_json::to_string(&job).unwrap();
+        let restored: Job = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.job_type, job.job_type);
+        assert_eq!(restored.status, job.status);
+        assert_eq!(restored.id, job.id);
+    }
+
+    // ========== ProjectTemplate Tests ==========
+    #[test]
+    fn test_project_template_display() {
+        assert_eq!(ProjectTemplate::Empty.to_string(), "empty");
+        assert_eq!(ProjectTemplate::BasicScene.to_string(), "basic_scene");
+        assert_eq!(
+            ProjectTemplate::StudioLighting.to_string(),
+            "studio_lighting"
+        );
+        assert_eq!(ProjectTemplate::LitEmpty.to_string(), "lit_empty");
+        assert_eq!(ProjectTemplate::Procedural.to_string(), "procedural");
+        assert_eq!(ProjectTemplate::Animation.to_string(), "animation");
+        assert_eq!(ProjectTemplate::Physics.to_string(), "physics");
+        assert_eq!(ProjectTemplate::Architectural.to_string(), "architectural");
+        assert_eq!(ProjectTemplate::Product.to_string(), "product");
+        assert_eq!(ProjectTemplate::Vfx.to_string(), "vfx");
+        assert_eq!(ProjectTemplate::GameAsset.to_string(), "game_asset");
+        assert_eq!(ProjectTemplate::Sculpting.to_string(), "sculpting");
+    }
+
+    #[test]
+    fn test_project_template_default() {
+        assert_eq!(ProjectTemplate::default(), ProjectTemplate::BasicScene);
+    }
+
+    #[test]
+    fn test_project_template_serialization() {
+        assert_eq!(
+            serde_json::to_string(&ProjectTemplate::Physics).unwrap(),
+            "\"physics\""
+        );
+        let template: ProjectTemplate = serde_json::from_str("\"vfx\"").unwrap();
+        assert_eq!(template, ProjectTemplate::Vfx);
+    }
+
+    // ========== PrimitiveType Tests ==========
+    #[test]
+    fn test_primitive_type_all_variants() {
+        assert_eq!(PrimitiveType::Cube.to_string(), "cube");
+        assert_eq!(PrimitiveType::Sphere.to_string(), "sphere");
+        assert_eq!(PrimitiveType::Cylinder.to_string(), "cylinder");
+        assert_eq!(PrimitiveType::Cone.to_string(), "cone");
+        assert_eq!(PrimitiveType::Torus.to_string(), "torus");
+        assert_eq!(PrimitiveType::Plane.to_string(), "plane");
+        assert_eq!(PrimitiveType::Monkey.to_string(), "monkey");
+    }
+
+    #[test]
+    fn test_primitive_type_serialization() {
+        assert_eq!(
+            serde_json::to_string(&PrimitiveType::Monkey).unwrap(),
+            "\"monkey\""
+        );
+        let prim: PrimitiveType = serde_json::from_str("\"torus\"").unwrap();
+        assert_eq!(prim, PrimitiveType::Torus);
+    }
+
+    // ========== LightingType Tests ==========
+    #[test]
+    fn test_lighting_type_all_variants() {
+        assert_eq!(LightingType::ThreePoint.to_string(), "three_point");
+        assert_eq!(LightingType::Studio.to_string(), "studio");
+        assert_eq!(LightingType::Hdri.to_string(), "hdri");
+        assert_eq!(LightingType::Sun.to_string(), "sun");
+        assert_eq!(LightingType::Area.to_string(), "area");
+    }
+
+    // ========== MaterialType Tests ==========
+    #[test]
+    fn test_material_type_default() {
+        assert_eq!(MaterialType::default(), MaterialType::Principled);
+    }
+
+    #[test]
+    fn test_material_type_all_variants() {
+        assert_eq!(MaterialType::Principled.to_string(), "principled");
+        assert_eq!(MaterialType::Emission.to_string(), "emission");
+        assert_eq!(MaterialType::Glass.to_string(), "glass");
+        assert_eq!(MaterialType::Metal.to_string(), "metal");
+        assert_eq!(MaterialType::Plastic.to_string(), "plastic");
+        assert_eq!(MaterialType::Wood.to_string(), "wood");
+    }
+
+    // ========== RenderEngine Tests ==========
+    #[test]
+    fn test_render_engine_default() {
+        assert_eq!(RenderEngine::default(), RenderEngine::Cycles);
+    }
+
+    #[test]
+    fn test_render_engine_serialization() {
+        assert_eq!(
+            serde_json::to_string(&RenderEngine::Cycles).unwrap(),
+            "\"CYCLES\""
+        );
+        assert_eq!(
+            serde_json::to_string(&RenderEngine::BlenderEevee).unwrap(),
+            "\"BLENDER_EEVEE\""
+        );
+
+        let engine: RenderEngine = serde_json::from_str("\"BLENDER_WORKBENCH\"").unwrap();
+        assert_eq!(engine, RenderEngine::BlenderWorkbench);
+    }
+
+    // ========== ImageFormat Tests ==========
+    #[test]
+    fn test_image_format_default() {
+        assert_eq!(ImageFormat::default(), ImageFormat::Png);
+    }
+
+    #[test]
+    fn test_image_format_all_variants() {
+        assert_eq!(ImageFormat::Png.to_string(), "PNG");
+        assert_eq!(ImageFormat::Jpeg.to_string(), "JPEG");
+        assert_eq!(ImageFormat::Exr.to_string(), "EXR");
+        assert_eq!(ImageFormat::Tiff.to_string(), "TIFF");
+    }
+
+    // ========== PhysicsType Tests ==========
+    #[test]
+    fn test_physics_type_all_variants() {
+        assert_eq!(PhysicsType::RigidBody.to_string(), "rigid_body");
+        assert_eq!(PhysicsType::SoftBody.to_string(), "soft_body");
+        assert_eq!(PhysicsType::Cloth.to_string(), "cloth");
+        assert_eq!(PhysicsType::Fluid.to_string(), "fluid");
+    }
+
+    // ========== ExportFormat Tests ==========
+    #[test]
+    fn test_export_format_all_variants() {
+        assert_eq!(ExportFormat::Fbx.to_string(), "FBX");
+        assert_eq!(ExportFormat::Obj.to_string(), "OBJ");
+        assert_eq!(ExportFormat::Gltf.to_string(), "GLTF");
+        assert_eq!(ExportFormat::Stl.to_string(), "STL");
+        assert_eq!(ExportFormat::Usd.to_string(), "USD");
+    }
+
+    // ========== SmokeType Tests ==========
+    #[test]
+    fn test_smoke_type_all_variants() {
+        assert_eq!(SmokeType::Smoke.to_string(), "smoke");
+        assert_eq!(SmokeType::Fire.to_string(), "fire");
+        assert_eq!(SmokeType::Both.to_string(), "both");
+    }
+
+    // ========== AnalysisType Tests ==========
+    #[test]
+    fn test_analysis_type_serialization() {
+        assert_eq!(
+            serde_json::to_string(&AnalysisType::Basic).unwrap(),
+            "\"BASIC\""
+        );
+        assert_eq!(
+            serde_json::to_string(&AnalysisType::Performance).unwrap(),
+            "\"PERFORMANCE\""
+        );
+    }
+
+    // ========== OptimizationType Tests ==========
+    #[test]
+    fn test_optimization_type_all_variants() {
+        assert_eq!(OptimizationType::MeshCleanup.to_string(), "MESH_CLEANUP");
+        assert_eq!(
+            OptimizationType::TextureOptimization.to_string(),
+            "TEXTURE_OPTIMIZATION"
+        );
+        assert_eq!(
+            OptimizationType::ModifierApply.to_string(),
+            "MODIFIER_APPLY"
+        );
+        assert_eq!(
+            OptimizationType::InstanceOptimization.to_string(),
+            "INSTANCE_OPTIMIZATION"
+        );
+        assert_eq!(
+            OptimizationType::MaterialCleanup.to_string(),
+            "MATERIAL_CLEANUP"
+        );
+    }
+}

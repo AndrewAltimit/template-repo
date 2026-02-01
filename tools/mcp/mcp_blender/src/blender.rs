@@ -106,7 +106,9 @@ impl BlenderExecutor {
             // System paths
             Some(PathBuf::from("/usr/bin/blender")),
             // macOS paths
-            Some(PathBuf::from("/Applications/Blender.app/Contents/MacOS/Blender")),
+            Some(PathBuf::from(
+                "/Applications/Blender.app/Contents/MacOS/Blender",
+            )),
             // Via which crate (PATH lookup)
             which::which("blender").ok(),
             // Home directory
@@ -119,7 +121,11 @@ impl BlenderExecutor {
                 match Command::new(&path).arg("--version").output().await {
                     Ok(output) if output.status.success() => {
                         let version = String::from_utf8_lossy(&output.stdout);
-                        info!("Found Blender at {:?}: {}", path, version.lines().next().unwrap_or("unknown"));
+                        info!(
+                            "Found Blender at {:?}: {}",
+                            path,
+                            version.lines().next().unwrap_or("unknown")
+                        );
 
                         let mut bm_path = self.blender_path.write().await;
                         *bm_path = Some(path.clone());
@@ -133,7 +139,10 @@ impl BlenderExecutor {
                         return Ok(path);
                     }
                     Ok(output) => {
-                        debug!("Blender at {:?} failed version check: {:?}", path, output.status);
+                        debug!(
+                            "Blender at {:?} failed version check: {:?}",
+                            path, output.status
+                        );
                     }
                     Err(e) => {
                         debug!("Blender at {:?} not executable: {}", path, e);
@@ -295,7 +304,9 @@ impl BlenderExecutor {
     pub fn validate_path(&self, user_path: &str, base_dir: &Path) -> Result<PathBuf> {
         // Reject empty paths
         if user_path.is_empty() {
-            return Err(MCPError::InvalidParameters("Empty path provided".to_string()));
+            return Err(MCPError::InvalidParameters(
+                "Empty path provided".to_string(),
+            ));
         }
 
         let path = Path::new(user_path);
@@ -450,5 +461,287 @@ impl Clone for BlenderExecutor {
             semaphore: self.semaphore.clone(),
             processes: self.processes.clone(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    fn create_test_executor() -> (BlenderExecutor, TempDir) {
+        let temp_dir = TempDir::new().unwrap();
+        let executor = BlenderExecutor::new();
+        (executor, temp_dir)
+    }
+
+    // ========== Path Validation Tests (Security Critical) ==========
+
+    #[test]
+    fn test_validate_path_simple_filename() {
+        let (executor, temp_dir) = create_test_executor();
+        let base = temp_dir.path();
+
+        let result = executor.validate_path("project.blend", base);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), base.join("project.blend"));
+    }
+
+    #[test]
+    fn test_validate_path_with_subdirectory() {
+        let (executor, temp_dir) = create_test_executor();
+        let base = temp_dir.path();
+
+        let result = executor.validate_path("subdir/project.blend", base);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), base.join("subdir/project.blend"));
+    }
+
+    #[test]
+    fn test_validate_path_rejects_empty() {
+        let (executor, temp_dir) = create_test_executor();
+        let base = temp_dir.path();
+
+        let result = executor.validate_path("", base);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Empty path"));
+    }
+
+    #[test]
+    fn test_validate_path_rejects_absolute_path() {
+        let (executor, temp_dir) = create_test_executor();
+        let base = temp_dir.path();
+
+        let result = executor.validate_path("/etc/passwd", base);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Absolute paths not allowed")
+        );
+    }
+
+    #[test]
+    fn test_validate_path_rejects_parent_traversal() {
+        let (executor, temp_dir) = create_test_executor();
+        let base = temp_dir.path();
+
+        // Direct parent reference
+        let result = executor.validate_path("../secret.txt", base);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Parent directory references not allowed")
+        );
+
+        // Nested parent reference
+        let result = executor.validate_path("subdir/../../etc/passwd", base);
+        assert!(result.is_err());
+
+        // Parent at the end
+        let result = executor.validate_path("subdir/..", base);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_path_rejects_current_directory() {
+        let (executor, temp_dir) = create_test_executor();
+        let base = temp_dir.path();
+
+        let result = executor.validate_path(".", base);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Current directory reference not allowed")
+        );
+
+        let result = executor.validate_path("./", base);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_path_rejects_hidden_files() {
+        let (executor, temp_dir) = create_test_executor();
+        let base = temp_dir.path();
+
+        let result = executor.validate_path(".hidden", base);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Hidden files/directories not allowed")
+        );
+
+        let result = executor.validate_path(".git/config", base);
+        assert!(result.is_err());
+
+        let result = executor.validate_path("subdir/.secret", base);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_path_rejects_hidden_directory_in_path() {
+        let (executor, temp_dir) = create_test_executor();
+        let base = temp_dir.path();
+
+        let result = executor.validate_path(".hidden/file.txt", base);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_path_allows_dots_in_filename() {
+        let (executor, temp_dir) = create_test_executor();
+        let base = temp_dir.path();
+
+        // File extension dots are fine
+        let result = executor.validate_path("my.project.blend", base);
+        assert!(result.is_ok());
+
+        let result = executor.validate_path("file.tar.gz", base);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_path_multiple_traversal_attempts() {
+        let (executor, temp_dir) = create_test_executor();
+        let base = temp_dir.path();
+
+        // Various path traversal attack patterns
+        // Note: URL-encoded paths (%2e, %2f) are NOT decoded here - that should
+        // happen at the HTTP layer before reaching path validation
+        let attack_paths = vec![
+            "../../../etc/passwd",
+            "....//....//etc/passwd",
+            "..\\..\\etc\\passwd",
+            "foo/../../../etc/passwd",
+            "bar/baz/../../..",
+        ];
+
+        for path in attack_paths {
+            let result = executor.validate_path(path, base);
+            assert!(result.is_err(), "Path '{}' should have been rejected", path);
+        }
+    }
+
+    // ========== Project Path Validation Tests ==========
+
+    #[test]
+    fn test_validate_project_path_adds_blend_extension() {
+        let executor = BlenderExecutor::new();
+
+        let result = executor.validate_project_path("myproject");
+        assert!(result.is_ok());
+        let path = result.unwrap();
+        assert!(path.to_string_lossy().ends_with("myproject.blend"));
+    }
+
+    #[test]
+    fn test_validate_project_path_preserves_blend_extension() {
+        let executor = BlenderExecutor::new();
+
+        let result = executor.validate_project_path("myproject.blend");
+        assert!(result.is_ok());
+        let path = result.unwrap();
+        assert!(path.to_string_lossy().ends_with("myproject.blend"));
+        // Should not double up the extension
+        assert!(!path.to_string_lossy().ends_with("myproject.blend.blend"));
+    }
+
+    #[test]
+    fn test_validate_project_path_rejects_traversal() {
+        let executor = BlenderExecutor::new();
+
+        let result = executor.validate_project_path("../../../etc/passwd");
+        assert!(result.is_err());
+
+        let result = executor.validate_project_path("..\\..\\secret.blend");
+        assert!(result.is_err());
+    }
+
+    // ========== Format Detection Tests ==========
+
+    #[test]
+    fn test_detect_format() {
+        let executor = BlenderExecutor::new();
+
+        assert_eq!(executor.detect_format("model.fbx"), Some("FBX".to_string()));
+        assert_eq!(executor.detect_format("model.obj"), Some("OBJ".to_string()));
+        assert_eq!(
+            executor.detect_format("model.gltf"),
+            Some("GLTF".to_string())
+        );
+        assert_eq!(executor.detect_format("model.stl"), Some("STL".to_string()));
+        assert_eq!(
+            executor.detect_format("model.blend"),
+            Some("BLEND".to_string())
+        );
+        assert_eq!(executor.detect_format("noextension"), None);
+    }
+
+    #[test]
+    fn test_detect_format_case_insensitive() {
+        let executor = BlenderExecutor::new();
+
+        assert_eq!(executor.detect_format("model.FBX"), Some("FBX".to_string()));
+        assert_eq!(executor.detect_format("model.Obj"), Some("OBJ".to_string()));
+    }
+
+    // ========== Executor Creation Tests ==========
+
+    #[test]
+    fn test_executor_creation() {
+        let executor = BlenderExecutor::new();
+
+        // Basic sanity checks
+        assert!(executor.base_dir().exists() || !executor.base_dir().starts_with("/app"));
+    }
+
+    #[test]
+    fn test_executor_default() {
+        let executor = BlenderExecutor::default();
+        // Should be equivalent to new()
+        assert_eq!(executor.base_dir(), BlenderExecutor::new().base_dir());
+    }
+
+    #[test]
+    fn test_executor_clone() {
+        let executor = BlenderExecutor::new();
+        let cloned = executor.clone();
+
+        assert_eq!(executor.base_dir(), cloned.base_dir());
+        assert_eq!(executor.output_dir(), cloned.output_dir());
+    }
+
+    #[test]
+    fn test_projects_dir() {
+        let executor = BlenderExecutor::new();
+        let projects_dir = executor.projects_dir();
+
+        assert!(projects_dir.ends_with("projects"));
+    }
+
+    #[test]
+    fn test_assets_dir() {
+        let executor = BlenderExecutor::new();
+        let assets_dir = executor.assets_dir();
+
+        assert!(assets_dir.ends_with("assets"));
+    }
+
+    // ========== List Projects Tests ==========
+
+    #[tokio::test]
+    async fn test_list_projects_empty_directory() {
+        let executor = BlenderExecutor::new();
+        // This will return empty if the projects directory doesn't exist or is empty
+        let projects = executor.list_projects().await;
+        // Should not error, may return empty list
+        assert!(projects.is_ok());
     }
 }

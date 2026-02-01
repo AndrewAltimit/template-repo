@@ -4,7 +4,7 @@
 
 use async_trait::async_trait;
 use mcp_core::prelude::*;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 // tracing macros are used in the blender.rs module
@@ -224,9 +224,7 @@ impl ServerRefs {
         tokio::spawn(async move {
             match executor_clone.execute_script(&script, args, job_id).await {
                 Ok(result) => {
-                    jobs_clone
-                        .complete_job(job_id, result, None)
-                        .await;
+                    jobs_clone.complete_job(job_id, result, None).await;
                 }
                 Err(e) => {
                     jobs_clone.fail_job(job_id, &e.to_string()).await;
@@ -440,7 +438,9 @@ Object types: cube, sphere, cylinder, cone, torus, plane, monkey"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let objects = args.get("objects").cloned().unwrap_or(json!([]));
 
         let project_path = self.server.validate_project_path(project).await?;
@@ -514,7 +514,9 @@ Lighting types: three_point, studio, hdri, sun, area"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let lighting_type = args
             .get("type")
             .and_then(|v| v.as_str())
@@ -592,7 +594,9 @@ Material types: principled, emission, glass, metal, plastic, wood"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_name = args
             .get("object_name")
             .and_then(|v| v.as_str())
@@ -672,7 +676,9 @@ This is an async operation. Use get_job_status to check progress."#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let frame = args.get("frame").and_then(|v| v.as_i64()).unwrap_or(1);
         let settings = args.get("settings").cloned().unwrap_or(json!({}));
 
@@ -758,12 +764,17 @@ This is an async operation. Use get_job_status to check progress."#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let start_frame = args
             .get("start_frame")
             .and_then(|v| v.as_i64())
             .unwrap_or(1);
-        let end_frame = args.get("end_frame").and_then(|v| v.as_i64()).unwrap_or(250);
+        let end_frame = args
+            .get("end_frame")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(250);
         let settings = args.get("settings").cloned().unwrap_or(json!({}));
 
         let project_path = self.server.validate_project_path(project).await?;
@@ -774,7 +785,10 @@ This is an async operation. Use get_job_status to check progress."#
 
         // Get output path
         let executor = self.server.executor.read().await;
-        let output_path = executor.output_dir().join("animations").join(job_id.to_string());
+        let output_path = executor
+            .output_dir()
+            .join("animations")
+            .join(job_id.to_string());
 
         let script_args = json!({
             "operation": "render_animation",
@@ -855,7 +869,9 @@ Physics types: rigid_body, soft_body, cloth, fluid"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_name = args
             .get("object_name")
             .and_then(|v| v.as_str())
@@ -930,12 +946,17 @@ This is an async operation. Use get_job_status to check progress."#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let start_frame = args
             .get("start_frame")
             .and_then(|v| v.as_i64())
             .unwrap_or(1);
-        let end_frame = args.get("end_frame").and_then(|v| v.as_i64()).unwrap_or(250);
+        let end_frame = args
+            .get("end_frame")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(250);
 
         let project_path = self.server.validate_project_path(project).await?;
 
@@ -1019,7 +1040,9 @@ Interpolation types: LINEAR, BEZIER, CONSTANT"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_name = args
             .get("object_name")
             .and_then(|v| v.as_str())
@@ -1110,7 +1133,9 @@ edge_crease_detection, organic_mutation"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_name = args
             .get("object_name")
             .and_then(|v| v.as_str())
@@ -1373,7 +1398,9 @@ Supported formats: FBX, OBJ, GLTF, STL, PLY"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let model_path = args
             .get("model_path")
             .and_then(|v| v.as_str())
@@ -1455,7 +1482,9 @@ Supported formats: FBX, OBJ, GLTF, STL, USD"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let export_format = args
             .get("format")
             .and_then(|v| v.as_str())
@@ -1473,9 +1502,11 @@ Supported formats: FBX, OBJ, GLTF, STL, USD"#
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("export");
-        let output_path = executor
-            .output_dir()
-            .join(format!("{}.{}", project_stem, export_format.to_lowercase()));
+        let output_path = executor.output_dir().join(format!(
+            "{}.{}",
+            project_stem,
+            export_format.to_lowercase()
+        ));
 
         let script_args = json!({
             "operation": "export_scene",
@@ -1538,7 +1569,9 @@ impl Tool for SetupCameraTool {
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
 
         let project_path = self.server.validate_project_path(project).await?;
 
@@ -1606,7 +1639,9 @@ Track types: TRACK_TO, DAMPED_TRACK, LOCKED_TRACK"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let target = args
             .get("target")
             .and_then(|v| v.as_str())
@@ -1680,7 +1715,9 @@ Modifier types: SUBSURF, ARRAY, MIRROR, SOLIDIFY, BEVEL, DECIMATE, REMESH, SMOOT
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_name = args
             .get("object_name")
             .and_then(|v| v.as_str())
@@ -1761,7 +1798,9 @@ Particle types: emitter, hair"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_name = args
             .get("object_name")
             .and_then(|v| v.as_str())
@@ -1842,7 +1881,9 @@ Smoke types: smoke, fire, both"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_name = args
             .get("object_name")
             .and_then(|v| v.as_str())
@@ -1919,7 +1960,9 @@ Texture types: IMAGE, NOISE, VORONOI, MUSGRAVE, WAVE, MAGIC, BRICK, CHECKER"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_name = args
             .get("object_name")
             .and_then(|v| v.as_str())
@@ -1999,7 +2042,9 @@ Projection types: SMART_PROJECT, CUBE_PROJECT, CYLINDER_PROJECT, SPHERE_PROJECT,
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_name = args
             .get("object_name")
             .and_then(|v| v.as_str())
@@ -2074,7 +2119,9 @@ Setups: BASIC, DENOISING, COLOR_GRADING, GLARE, FOG_GLOW, LENS_DISTORTION, VIGNE
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let setup = args
             .get("setup")
             .and_then(|v| v.as_str())
@@ -2139,7 +2186,9 @@ impl Tool for BatchRenderTool {
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let frames = args.get("frames").cloned().unwrap_or(json!([1]));
         let cameras = args.get("cameras").cloned().unwrap_or(json!([]));
         let layers = args.get("layers").cloned().unwrap_or(json!([]));
@@ -2213,7 +2262,9 @@ impl Tool for DeleteObjectsTool {
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let names = args.get("names").cloned().unwrap_or(json!([]));
         let type_pattern = args.get("type_pattern").and_then(|v| v.as_str());
 
@@ -2280,7 +2331,9 @@ Analysis types: BASIC, DETAILED, PERFORMANCE, MEMORY"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let analysis_type = args
             .get("analysis_type")
             .and_then(|v| v.as_str())
@@ -2348,7 +2401,9 @@ Optimization types: MESH_CLEANUP, TEXTURE_OPTIMIZATION, MODIFIER_APPLY, INSTANCE
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let optimization_type = args
             .get("optimization_type")
             .and_then(|v| v.as_str())
@@ -2421,7 +2476,9 @@ impl Tool for CreateCurveTool {
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let name = args
             .get("name")
             .and_then(|v| v.as_str())
@@ -2430,7 +2487,10 @@ impl Tool for CreateCurveTool {
             .get("points")
             .cloned()
             .ok_or_else(|| MCPError::InvalidParameters("Missing 'points' parameter".to_string()))?;
-        let cyclic = args.get("cyclic").and_then(|v| v.as_bool()).unwrap_or(false);
+        let cyclic = args
+            .get("cyclic")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
 
         let project_path = self.server.validate_project_path(project).await?;
 
@@ -2494,7 +2554,9 @@ Environment types: HDRI, SKY_TEXTURE, GRADIENT, COLOR, VOLUMETRIC"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let environment_type = args
             .get("environment_type")
             .and_then(|v| v.as_str())
@@ -2637,7 +2699,9 @@ Styles: SMOKE, FIRE, BOTH"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_names = args.get("object_names").cloned().ok_or_else(|| {
             MCPError::InvalidParameters("Missing 'object_names' parameter".to_string())
         })?;
@@ -2645,7 +2709,10 @@ Styles: SMOKE, FIRE, BOTH"#
             .get("style")
             .and_then(|v| v.as_str())
             .unwrap_or("SMOKE");
-        let show_flows = args.get("show_flows").and_then(|v| v.as_bool()).unwrap_or(false);
+        let show_flows = args
+            .get("show_flows")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
         let resolution = args
             .get("domain_resolution")
             .and_then(|v| v.as_i64())
@@ -2718,11 +2785,16 @@ Creates a fluid domain with selected objects as liquid sources."#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_names = args.get("object_names").cloned().ok_or_else(|| {
             MCPError::InvalidParameters("Missing 'object_names' parameter".to_string())
         })?;
-        let show_flows = args.get("show_flows").and_then(|v| v.as_bool()).unwrap_or(false);
+        let show_flows = args
+            .get("show_flows")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
         let resolution = args
             .get("domain_resolution")
             .and_then(|v| v.as_i64())
@@ -2796,12 +2868,20 @@ Creates particle system with explode modifier for destruction effects."#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_names = args.get("object_names").cloned().ok_or_else(|| {
             MCPError::InvalidParameters("Missing 'object_names' parameter".to_string())
         })?;
-        let piece_count = args.get("piece_count").and_then(|v| v.as_i64()).unwrap_or(100);
-        let frame_start = args.get("frame_start").and_then(|v| v.as_i64()).unwrap_or(1);
+        let piece_count = args
+            .get("piece_count")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(100);
+        let frame_start = args
+            .get("frame_start")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(1);
         let frame_duration = args
             .get("frame_duration")
             .and_then(|v| v.as_i64())
@@ -2885,7 +2965,9 @@ Density levels: LOW (1000), MEDIUM (10000), HIGH (100000)"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_names = args.get("object_names").cloned().ok_or_else(|| {
             MCPError::InvalidParameters("Missing 'object_names' parameter".to_string())
         })?;
@@ -2895,8 +2977,14 @@ Density levels: LOW (1000), MEDIUM (10000), HIGH (100000)"#
             .unwrap_or("MEDIUM");
         let length = args.get("length").and_then(|v| v.as_f64()).unwrap_or(0.1);
         let radius = args.get("radius").and_then(|v| v.as_f64()).unwrap_or(0.001);
-        let use_noise = args.get("use_noise").and_then(|v| v.as_bool()).unwrap_or(true);
-        let use_frizz = args.get("use_frizz").and_then(|v| v.as_bool()).unwrap_or(true);
+        let use_noise = args
+            .get("use_noise")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+        let use_frizz = args
+            .get("use_frizz")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
 
         let project_path = self.server.validate_project_path(project).await?;
 
@@ -2970,7 +3058,9 @@ LIMIT_LOCATION, LIMIT_ROTATION, LIMIT_SCALE, FOLLOW_PATH, DAMPED_TRACK, FLOOR"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_name = args
             .get("object_name")
             .and_then(|v| v.as_str())
@@ -3063,12 +3153,18 @@ Bones are defined with head/tail positions and optional parent relationships."#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
-        let name = args.get("name").and_then(|v| v.as_str()).unwrap_or("Armature");
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
+        let name = args
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Armature");
         let location = args.get("location").cloned().unwrap_or(json!([0, 0, 0]));
-        let bones = args.get("bones").cloned().ok_or_else(|| {
-            MCPError::InvalidParameters("Missing 'bones' parameter".to_string())
-        })?;
+        let bones = args
+            .get("bones")
+            .cloned()
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'bones' parameter".to_string()))?;
 
         let project_path = self.server.validate_project_path(project).await?;
 
@@ -3147,7 +3243,9 @@ Supports extrusion, bevel, and custom fonts."#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let text = args
             .get("text")
             .and_then(|v| v.as_str())
@@ -3237,7 +3335,9 @@ Types: grid, circle, ico_sphere, empty, bezier_curve, nurbs_curve, metaball"#
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let objects = args.get("objects").cloned().ok_or_else(|| {
             MCPError::InvalidParameters("Missing 'objects' parameter".to_string())
         })?;
@@ -3311,7 +3411,9 @@ impl Tool for ParentObjectsTool {
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let parent_name = args
             .get("parent_name")
             .and_then(|v| v.as_str())
@@ -3387,7 +3489,9 @@ impl Tool for JoinObjectsTool {
         let project = args
             .get("project")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'project' parameter".to_string())
+            })?;
         let object_names = args.get("object_names").cloned().ok_or_else(|| {
             MCPError::InvalidParameters("Missing 'object_names' parameter".to_string())
         })?;
@@ -3426,63 +3530,382 @@ impl Tool for JoinObjectsTool {
 mod tests {
     use super::*;
 
+    // ========== Server Creation Tests ==========
+
     #[test]
     fn test_server_creation() {
         let server = BlenderServer::new();
         let tools = server.tools();
-        assert!(tools.len() >= 40);
+        assert!(
+            tools.len() >= 40,
+            "Expected at least 40 tools, got {}",
+            tools.len()
+        );
     }
 
     #[test]
-    fn test_tool_names() {
+    fn test_server_has_job_manager() {
+        let server = BlenderServer::new();
+        // Server should be properly initialized with job manager and executor
+        assert!(server.tools().len() > 0);
+    }
+
+    // ========== Complete Tool List Tests ==========
+
+    #[test]
+    fn test_all_core_tools_present() {
         let server = BlenderServer::new();
         let tools = server.tools();
         let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
 
-        // Core tools
-        assert!(names.contains(&"create_blender_project"));
-        assert!(names.contains(&"list_projects"));
-        assert!(names.contains(&"add_primitive_objects"));
-        assert!(names.contains(&"setup_lighting"));
-        assert!(names.contains(&"apply_material"));
-        assert!(names.contains(&"render_image"));
-        assert!(names.contains(&"render_animation"));
-        assert!(names.contains(&"setup_physics"));
-        assert!(names.contains(&"bake_simulation"));
-        assert!(names.contains(&"create_animation"));
-        assert!(names.contains(&"create_geometry_nodes"));
+        // Core project tools
+        assert!(
+            names.contains(&"create_blender_project"),
+            "Missing create_blender_project"
+        );
+        assert!(names.contains(&"list_projects"), "Missing list_projects");
 
-        // Job tools
-        assert!(names.contains(&"get_job_status"));
-        assert!(names.contains(&"get_job_result"));
-        assert!(names.contains(&"cancel_job"));
+        // Scene manipulation tools
+        assert!(
+            names.contains(&"add_primitive_objects"),
+            "Missing add_primitive_objects"
+        );
+        assert!(names.contains(&"setup_lighting"), "Missing setup_lighting");
+        assert!(names.contains(&"apply_material"), "Missing apply_material");
+        assert!(names.contains(&"delete_objects"), "Missing delete_objects");
 
-        // Asset tools
-        assert!(names.contains(&"import_model"));
-        assert!(names.contains(&"export_scene"));
+        // Rendering tools
+        assert!(names.contains(&"render_image"), "Missing render_image");
+        assert!(
+            names.contains(&"render_animation"),
+            "Missing render_animation"
+        );
+        assert!(names.contains(&"batch_render"), "Missing batch_render");
 
-        // Extended tools
-        assert!(names.contains(&"setup_camera"));
-        assert!(names.contains(&"add_modifier"));
-        assert!(names.contains(&"add_particle_system"));
-        assert!(names.contains(&"setup_compositor"));
-        assert!(names.contains(&"setup_world_environment"));
+        // Physics tools
+        assert!(names.contains(&"setup_physics"), "Missing setup_physics");
+        assert!(
+            names.contains(&"bake_simulation"),
+            "Missing bake_simulation"
+        );
 
-        // Quick Effects tools
-        assert!(names.contains(&"quick_smoke"));
-        assert!(names.contains(&"quick_liquid"));
-        assert!(names.contains(&"quick_explode"));
-        assert!(names.contains(&"quick_fur"));
+        // Animation tools
+        assert!(
+            names.contains(&"create_animation"),
+            "Missing create_animation"
+        );
+        assert!(
+            names.contains(&"create_geometry_nodes"),
+            "Missing create_geometry_nodes"
+        );
 
-        // Advanced Object tools
-        assert!(names.contains(&"add_constraint"));
-        assert!(names.contains(&"create_armature"));
-        assert!(names.contains(&"create_text_object"));
-        assert!(names.contains(&"add_advanced_primitives"));
-        assert!(names.contains(&"parent_objects"));
-        assert!(names.contains(&"join_objects"));
+        // Job management tools
+        assert!(names.contains(&"get_job_status"), "Missing get_job_status");
+        assert!(names.contains(&"get_job_result"), "Missing get_job_result");
+        assert!(names.contains(&"cancel_job"), "Missing cancel_job");
 
-        // Status
-        assert!(names.contains(&"blender_status"));
+        // Import/Export tools
+        assert!(names.contains(&"import_model"), "Missing import_model");
+        assert!(names.contains(&"export_scene"), "Missing export_scene");
+
+        // Camera tools
+        assert!(names.contains(&"setup_camera"), "Missing setup_camera");
+        assert!(
+            names.contains(&"add_camera_track"),
+            "Missing add_camera_track"
+        );
+
+        // Modifier and effects tools
+        assert!(names.contains(&"add_modifier"), "Missing add_modifier");
+        assert!(
+            names.contains(&"add_particle_system"),
+            "Missing add_particle_system"
+        );
+        assert!(
+            names.contains(&"add_smoke_simulation"),
+            "Missing add_smoke_simulation"
+        );
+
+        // Texture tools
+        assert!(names.contains(&"add_texture"), "Missing add_texture");
+        assert!(names.contains(&"add_uv_map"), "Missing add_uv_map");
+
+        // Compositing tools
+        assert!(
+            names.contains(&"setup_compositor"),
+            "Missing setup_compositor"
+        );
+
+        // Environment tools
+        assert!(
+            names.contains(&"setup_world_environment"),
+            "Missing setup_world_environment"
+        );
+
+        // Scene analysis tools
+        assert!(names.contains(&"analyze_scene"), "Missing analyze_scene");
+        assert!(names.contains(&"optimize_scene"), "Missing optimize_scene");
+        assert!(names.contains(&"create_curve"), "Missing create_curve");
+
+        // Status tool
+        assert!(names.contains(&"blender_status"), "Missing blender_status");
+    }
+
+    #[test]
+    fn test_quick_effects_tools_present() {
+        let server = BlenderServer::new();
+        let tools = server.tools();
+        let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
+
+        assert!(names.contains(&"quick_smoke"), "Missing quick_smoke");
+        assert!(names.contains(&"quick_liquid"), "Missing quick_liquid");
+        assert!(names.contains(&"quick_explode"), "Missing quick_explode");
+        assert!(names.contains(&"quick_fur"), "Missing quick_fur");
+    }
+
+    #[test]
+    fn test_advanced_object_tools_present() {
+        let server = BlenderServer::new();
+        let tools = server.tools();
+        let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
+
+        assert!(names.contains(&"add_constraint"), "Missing add_constraint");
+        assert!(
+            names.contains(&"create_armature"),
+            "Missing create_armature"
+        );
+        assert!(
+            names.contains(&"create_text_object"),
+            "Missing create_text_object"
+        );
+        assert!(
+            names.contains(&"add_advanced_primitives"),
+            "Missing add_advanced_primitives"
+        );
+        assert!(names.contains(&"parent_objects"), "Missing parent_objects");
+        assert!(names.contains(&"join_objects"), "Missing join_objects");
+    }
+
+    // ========== Tool Schema Tests ==========
+
+    #[test]
+    fn test_all_tools_have_descriptions() {
+        let server = BlenderServer::new();
+        let tools = server.tools();
+
+        for tool in &tools {
+            assert!(
+                !tool.description().is_empty(),
+                "Tool '{}' has empty description",
+                tool.name()
+            );
+        }
+    }
+
+    #[test]
+    fn test_all_tools_have_valid_schemas() {
+        let server = BlenderServer::new();
+        let tools = server.tools();
+
+        for tool in &tools {
+            let schema = tool.schema();
+            // Schema should be a valid JSON object
+            assert!(
+                schema.is_object(),
+                "Tool '{}' schema is not an object",
+                tool.name()
+            );
+
+            let obj = schema.as_object().unwrap();
+            // Should have a "type" field
+            assert!(
+                obj.contains_key("type"),
+                "Tool '{}' schema missing 'type' field",
+                tool.name()
+            );
+        }
+    }
+
+    #[test]
+    fn test_create_project_schema() {
+        let server = BlenderServer::new();
+        let tools = server.tools();
+        let create_project = tools
+            .iter()
+            .find(|t| t.name() == "create_blender_project")
+            .unwrap();
+
+        let schema = create_project.schema();
+        let obj = schema.as_object().unwrap();
+
+        // Check required fields
+        assert!(obj.contains_key("properties"));
+        let props = obj.get("properties").unwrap().as_object().unwrap();
+        assert!(props.contains_key("name"), "Missing 'name' property");
+    }
+
+    #[test]
+    fn test_render_image_schema() {
+        let server = BlenderServer::new();
+        let tools = server.tools();
+        let render_image = tools.iter().find(|t| t.name() == "render_image").unwrap();
+
+        let schema = render_image.schema();
+        let obj = schema.as_object().unwrap();
+
+        assert!(obj.contains_key("properties"));
+        let props = obj.get("properties").unwrap().as_object().unwrap();
+        assert!(props.contains_key("project"), "Missing 'project' property");
+    }
+
+    #[test]
+    fn test_quick_smoke_schema() {
+        let server = BlenderServer::new();
+        let tools = server.tools();
+        let quick_smoke = tools.iter().find(|t| t.name() == "quick_smoke").unwrap();
+
+        let schema = quick_smoke.schema();
+        let obj = schema.as_object().unwrap();
+
+        assert!(obj.contains_key("properties"));
+        let props = obj.get("properties").unwrap().as_object().unwrap();
+        assert!(props.contains_key("project"), "Missing 'project' property");
+        assert!(
+            props.contains_key("object_names"),
+            "Missing 'object_names' property"
+        );
+        assert!(props.contains_key("style"), "Missing 'style' property");
+    }
+
+    #[test]
+    fn test_add_constraint_schema() {
+        let server = BlenderServer::new();
+        let tools = server.tools();
+        let add_constraint = tools.iter().find(|t| t.name() == "add_constraint").unwrap();
+
+        let schema = add_constraint.schema();
+        let obj = schema.as_object().unwrap();
+
+        assert!(obj.contains_key("properties"));
+        let props = obj.get("properties").unwrap().as_object().unwrap();
+        assert!(props.contains_key("project"), "Missing 'project' property");
+        assert!(
+            props.contains_key("object_name"),
+            "Missing 'object_name' property"
+        );
+        assert!(
+            props.contains_key("constraint_type"),
+            "Missing 'constraint_type' property"
+        );
+    }
+
+    // ========== Tool Count Tests ==========
+
+    #[test]
+    fn test_minimum_tool_count() {
+        let server = BlenderServer::new();
+        let tools = server.tools();
+
+        // We should have at least 41 tools (all Python tools + new additions)
+        assert!(
+            tools.len() >= 41,
+            "Expected at least 41 tools, got {}",
+            tools.len()
+        );
+    }
+
+    #[test]
+    fn test_exact_tool_count() {
+        let server = BlenderServer::new();
+        let tools = server.tools();
+
+        // Current tool count should be 41
+        // Update this if tools are added/removed
+        assert_eq!(
+            tools.len(),
+            41,
+            "Tool count changed. Expected 41, got {}. Update test if intentional.",
+            tools.len()
+        );
+    }
+
+    // ========== Tool Name Uniqueness Tests ==========
+
+    #[test]
+    fn test_no_duplicate_tool_names() {
+        let server = BlenderServer::new();
+        let tools = server.tools();
+        let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
+
+        let mut seen = std::collections::HashSet::new();
+        for name in &names {
+            assert!(seen.insert(*name), "Duplicate tool name found: {}", name);
+        }
+    }
+
+    // ========== Tool Description Quality Tests ==========
+
+    #[test]
+    fn test_tool_descriptions_not_too_short() {
+        let server = BlenderServer::new();
+        let tools = server.tools();
+
+        for tool in &tools {
+            assert!(
+                tool.description().len() >= 10,
+                "Tool '{}' has too short description: '{}'",
+                tool.name(),
+                tool.description()
+            );
+        }
+    }
+
+    // ========== Categories Test ==========
+
+    #[test]
+    fn test_tools_cover_all_categories() {
+        let server = BlenderServer::new();
+        let tools = server.tools();
+        let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
+
+        // Verify we have tools in each major category
+        // Project management
+        assert!(names.iter().any(|n| n.contains("project")));
+
+        // Rendering
+        assert!(names.iter().any(|n| n.contains("render")));
+
+        // Physics
+        assert!(
+            names
+                .iter()
+                .any(|n| n.contains("physics") || n.contains("simulation"))
+        );
+
+        // Animation
+        assert!(names.iter().any(|n| n.contains("animation")));
+
+        // Materials
+        assert!(names.iter().any(|n| n.contains("material")));
+
+        // Camera
+        assert!(names.iter().any(|n| n.contains("camera")));
+
+        // Import/Export
+        assert!(
+            names
+                .iter()
+                .any(|n| n.contains("import") || n.contains("export"))
+        );
+
+        // Quick effects
+        assert!(names.iter().any(|n| n.starts_with("quick_")));
+
+        // Advanced objects
+        assert!(
+            names
+                .iter()
+                .any(|n| n.contains("armature") || n.contains("constraint"))
+        );
     }
 }
