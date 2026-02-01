@@ -35,6 +35,11 @@ pub struct VRChatRemoteBackend {
     remote_host: Arc<RwLock<String>>,
     osc_in_port: Arc<RwLock<u16>>,
 
+    // OSC receiver state
+    osc_receiver_cancel: Arc<RwLock<Option<tokio::sync::oneshot::Sender<()>>>>,
+    avatar_params: Arc<RwLock<HashMap<String, Value>>>,
+    world_name: Arc<RwLock<Option<String>>>,
+
     // Avatar state tracking
     current_emotion: Arc<RwLock<EmotionType>>,
     current_gesture: Arc<RwLock<GestureType>>,
@@ -53,6 +58,7 @@ pub struct VRChatRemoteBackend {
 
     // Statistics
     osc_messages_sent: AtomicU64,
+    osc_messages_received: AtomicU64,
     animation_frames: AtomicU64,
     errors: AtomicU64,
 }
@@ -81,6 +87,9 @@ impl VRChatRemoteBackend {
             osc_socket: Arc::new(RwLock::new(None)),
             remote_host: Arc::new(RwLock::new(DEFAULT_VRCHAT_HOST.to_string())),
             osc_in_port: Arc::new(RwLock::new(DEFAULT_OSC_IN_PORT)),
+            osc_receiver_cancel: Arc::new(RwLock::new(None)),
+            avatar_params: Arc::new(RwLock::new(HashMap::new())),
+            world_name: Arc::new(RwLock::new(None)),
             current_emotion: Arc::new(RwLock::new(EmotionType::Neutral)),
             current_gesture: Arc::new(RwLock::new(GestureType::None)),
             use_vrcemote: AtomicBool::new(true),
@@ -92,8 +101,140 @@ impl VRChatRemoteBackend {
             movement_cancel: Arc::new(RwLock::new(None)),
             emote_cancel: Arc::new(RwLock::new(None)),
             osc_messages_sent: AtomicU64::new(0),
+            osc_messages_received: AtomicU64::new(0),
             animation_frames: AtomicU64::new(0),
             errors: AtomicU64::new(0),
+        }
+    }
+
+    /// Start the OSC receiver task to listen for incoming messages from VRChat.
+    async fn start_osc_receiver(&self, osc_out_port: u16) -> BackendResult<()> {
+        // Cancel existing receiver if any
+        if let Some(cancel) = self.osc_receiver_cancel.write().await.take() {
+            let _ = cancel.send(());
+        }
+
+        // Create UDP socket for receiving
+        let receiver_socket = UdpSocket::bind(format!("0.0.0.0:{}", osc_out_port)).map_err(|e| {
+            BackendError::NetworkError(format!(
+                "Failed to bind OSC receiver to port {}: {}",
+                osc_out_port, e
+            ))
+        })?;
+
+        receiver_socket.set_nonblocking(true).map_err(|e| {
+            BackendError::NetworkError(format!("Failed to set non-blocking: {}", e))
+        })?;
+
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        *self.osc_receiver_cancel.write().await = Some(tx);
+
+        let avatar_params = self.avatar_params.clone();
+        let world_name = self.world_name.clone();
+        let use_vrcemote = Arc::new(AtomicBool::new(self.use_vrcemote.load(Ordering::SeqCst)));
+        let osc_messages_received = Arc::new(AtomicU64::new(0));
+
+        // Spawn receiver task
+        tokio::spawn(async move {
+            let mut buf = [0u8; 1024];
+
+            tokio::select! {
+                _ = async {
+                    loop {
+                        // Non-blocking receive with small delay
+                        match receiver_socket.recv_from(&mut buf) {
+                            Ok((size, _addr)) => {
+                                if let Ok((_, packet)) = rosc::decoder::decode_udp(&buf[..size]) {
+                                    Self::handle_osc_packet(
+                                        packet,
+                                        &avatar_params,
+                                        &world_name,
+                                        &use_vrcemote,
+                                        &osc_messages_received,
+                                    ).await;
+                                }
+                            }
+                            Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                                // No data available, sleep briefly
+                                sleep(Duration::from_millis(10)).await;
+                            }
+                            Err(e) => {
+                                warn!("OSC receiver error: {}", e);
+                                sleep(Duration::from_millis(100)).await;
+                            }
+                        }
+                    }
+                } => {}
+                _ = rx => {
+                    info!("OSC receiver stopped");
+                }
+            }
+        });
+
+        info!("OSC receiver listening on port {}", osc_out_port);
+        Ok(())
+    }
+
+    /// Handle incoming OSC packet.
+    async fn handle_osc_packet(
+        packet: OscPacket,
+        avatar_params: &Arc<RwLock<HashMap<String, Value>>>,
+        world_name: &Arc<RwLock<Option<String>>>,
+        use_vrcemote: &AtomicBool,
+        osc_messages_received: &AtomicU64,
+    ) {
+        match packet {
+            OscPacket::Message(msg) => {
+                Self::handle_osc_message(msg, avatar_params, world_name, use_vrcemote, osc_messages_received).await;
+            }
+            OscPacket::Bundle(bundle) => {
+                for p in bundle.content {
+                    Box::pin(Self::handle_osc_packet(p, avatar_params, world_name, use_vrcemote, osc_messages_received)).await;
+                }
+            }
+        }
+    }
+
+    /// Handle a single OSC message.
+    async fn handle_osc_message(
+        msg: OscMessage,
+        avatar_params: &Arc<RwLock<HashMap<String, Value>>>,
+        world_name: &Arc<RwLock<Option<String>>>,
+        use_vrcemote: &AtomicBool,
+        osc_messages_received: &AtomicU64,
+    ) {
+        osc_messages_received.fetch_add(1, Ordering::SeqCst);
+
+        // Handle avatar parameter updates
+        if msg.addr.starts_with("/avatar/parameters/") {
+            let param_name = msg.addr.replace("/avatar/parameters/", "");
+
+            if let Some(arg) = msg.args.first() {
+                let value = match arg {
+                    OscType::Float(f) => Value::Number(serde_json::Number::from_f64(*f as f64).unwrap_or(0.into())),
+                    OscType::Int(i) => Value::Number((*i).into()),
+                    OscType::Bool(b) => Value::Bool(*b),
+                    OscType::String(s) => Value::String(s.clone()),
+                    _ => return,
+                };
+
+                avatar_params.write().await.insert(param_name.clone(), value);
+
+                // Auto-detect VRCEmote system
+                if param_name == "VRCEmote" && !use_vrcemote.load(Ordering::SeqCst) {
+                    info!("VRCEmote detected! Switching to VRCEmote emotion system.");
+                    use_vrcemote.store(true, Ordering::SeqCst);
+                }
+
+                debug!("Received avatar param: {} = {:?}", param_name, arg);
+            }
+        }
+        // Handle world info
+        else if msg.addr.starts_with("/world/") {
+            if let Some(OscType::String(name)) = msg.args.first() {
+                *world_name.write().await = Some(name.clone());
+                debug!("Received world name: {}", name);
+            }
         }
     }
 
@@ -477,7 +618,7 @@ impl BackendAdapter for VRChatRemoteBackend {
             .and_then(|v| v.as_u64())
             .unwrap_or(DEFAULT_OSC_IN_PORT as u64) as u16;
 
-        let _osc_out_port = config
+        let osc_out_port = config
             .get("osc_out_port")
             .and_then(|v| v.as_u64())
             .unwrap_or(DEFAULT_OSC_OUT_PORT as u64) as u16;
@@ -512,6 +653,14 @@ impl BackendAdapter for VRChatRemoteBackend {
         self.send_osc_float("/avatar/parameters/TestConnection", 1.0)
             .await?;
 
+        // Start OSC receiver for incoming messages from VRChat
+        match self.start_osc_receiver(osc_out_port).await {
+            Ok(()) => info!("OSC receiver started on port {}", osc_out_port),
+            Err(e) => {
+                warn!("Could not start OSC receiver: {} - continuing in send-only mode", e);
+            }
+        }
+
         self.connected.store(true, Ordering::SeqCst);
         info!("Connected to VRChat at {}:{}", remote_host, osc_in_port);
 
@@ -520,6 +669,11 @@ impl BackendAdapter for VRChatRemoteBackend {
 
     async fn disconnect(&mut self) -> BackendResult<()> {
         info!("VRChat remote backend disconnecting");
+
+        // Cancel OSC receiver
+        if let Some(cancel) = self.osc_receiver_cancel.write().await.take() {
+            let _ = cancel.send(());
+        }
 
         // Cancel timers
         if let Some(cancel) = self.movement_cancel.write().await.take() {
@@ -675,9 +829,11 @@ impl BackendAdapter for VRChatRemoteBackend {
             return Err(BackendError::NotConnected);
         }
 
-        // Return basic state from tracked parameters
+        // Return state from OSC receiver tracked parameters
+        let world = self.world_name.read().await.clone();
+
         let state = EnvironmentState {
-            world_name: Some("Unknown".to_string()),
+            world_name: world.or_else(|| Some("Unknown".to_string())),
             ..Default::default()
         };
 
@@ -788,6 +944,14 @@ impl BackendAdapter for VRChatRemoteBackend {
         stats.insert(
             "osc_messages_sent".to_string(),
             Value::Number(self.osc_messages_sent.load(Ordering::SeqCst).into()),
+        );
+        stats.insert(
+            "osc_messages_received".to_string(),
+            Value::Number(self.osc_messages_received.load(Ordering::SeqCst).into()),
+        );
+        stats.insert(
+            "avatar_params_count".to_string(),
+            Value::Number(self.avatar_params.read().await.len().into()),
         );
         stats.insert(
             "animation_frames".to_string(),

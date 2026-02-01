@@ -16,6 +16,7 @@ mod constants;
 mod sequence_handler;
 mod server;
 mod storage;
+mod storage_server;
 mod types;
 
 use server::VirtualCharacterServer;

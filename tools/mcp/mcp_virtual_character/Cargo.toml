@@ -68,6 +68,11 @@ rand = "0.8"
 regex = "1.10"
 lazy_static = "1.4"
 
+# HTTP server for storage service
+axum = "0.8"
+tower = "0.5"
+tower-service = "0.3"
+
 [dev-dependencies]
 tokio-test = "0.4"
 

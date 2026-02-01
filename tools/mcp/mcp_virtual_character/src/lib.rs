@@ -12,6 +12,7 @@ pub mod constants;
 pub mod sequence_handler;
 pub mod server;
 pub mod storage;
+pub mod storage_server;
 pub mod types;
 
 pub use audio::{

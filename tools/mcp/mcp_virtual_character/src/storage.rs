@@ -418,6 +418,139 @@ impl StorageService {
     pub fn base_url(&self) -> &str {
         &self.base_url
     }
+
+    /// Get the storage path.
+    pub fn storage_path(&self) -> &PathBuf {
+        &self.storage_path
+    }
+
+    /// Get stats (files stored, nonces tracked).
+    pub fn get_stats(&self) -> (usize, usize) {
+        // Synchronous version for quick stats
+        let files = self.files.blocking_read();
+        let nonces = self.used_nonces.blocking_read();
+        (files.len(), nonces.len())
+    }
+
+    /// Create with explicit secret (for testing).
+    pub fn new_with_secret(
+        storage_path: &str,
+        ttl_hours: f64,
+        secret_key: &str,
+    ) -> StorageResult<Self> {
+        let path = PathBuf::from(storage_path);
+        let ttl = (ttl_hours * 3600.0) as u64;
+
+        std::fs::create_dir_all(&path)?;
+
+        Ok(Self {
+            storage_path: path,
+            ttl_seconds: ttl,
+            files: Arc::new(RwLock::new(HashMap::new())),
+            secret_key: secret_key.to_string(),
+            used_nonces: Arc::new(RwLock::new(HashMap::new())),
+            base_url: "http://localhost:8021".to_string(),
+        })
+    }
+
+    /// Synchronous token verification (for HTTP handler).
+    pub fn verify_token_sync(&self, token: &str) -> bool {
+        let parts: Vec<&str> = token.split('.').collect();
+
+        if parts.len() != 2 {
+            return self.verify_legacy_token(token);
+        }
+
+        let (payload_b64, provided_signature) = (parts[0], parts[1]);
+
+        // Verify signature
+        let mut mac =
+            HmacSha256::new_from_slice(self.secret_key.as_bytes()).expect("HMAC key error");
+        mac.update(payload_b64.as_bytes());
+        let expected_signature = hex::encode(mac.finalize().into_bytes());
+
+        if provided_signature != expected_signature {
+            warn!("Token signature verification failed");
+            return false;
+        }
+
+        // Decode payload
+        let payload_json = match base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(payload_b64)
+        {
+            Ok(bytes) => match String::from_utf8(bytes) {
+                Ok(s) => s,
+                Err(_) => return self.verify_legacy_token(token),
+            },
+            Err(_) => return self.verify_legacy_token(token),
+        };
+
+        let payload: TokenPayload = match serde_json::from_str(&payload_json) {
+            Ok(p) => p,
+            Err(_) => return self.verify_legacy_token(token),
+        };
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs_f64();
+
+        // Check expiration
+        if now > payload.expires_at + CLOCK_SKEW_SECONDS as f64 {
+            warn!("Token expired");
+            return false;
+        }
+
+        // Check not issued in the future
+        if payload.issued_at > now + CLOCK_SKEW_SECONDS as f64 {
+            warn!("Token issued in the future");
+            return false;
+        }
+
+        // Check nonce hasn't been used (use try_read to avoid blocking)
+        if let Ok(nonces) = self.used_nonces.try_read() {
+            if nonces.contains_key(&payload.nonce) {
+                warn!("Token nonce already used (replay attack?)");
+                return false;
+            }
+        }
+
+        // Mark nonce as used
+        if let Ok(mut nonces) = self.used_nonces.try_write() {
+            nonces.insert(payload.nonce.clone(), now);
+        }
+
+        true
+    }
+
+    /// Get file content and filename (for HTTP server).
+    pub async fn get_file_content(&self, file_id: &str) -> StorageResult<Option<(Vec<u8>, String)>> {
+        let metadata = {
+            let files = self.files.read().await;
+            files.get(file_id).cloned()
+        };
+
+        let metadata = match metadata {
+            Some(m) => m,
+            None => return Ok(None),
+        };
+
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        if now > metadata.expires_at {
+            return Ok(None);
+        }
+
+        let file_path = PathBuf::from(&metadata.path);
+        if !file_path.exists() {
+            return Ok(None);
+        }
+
+        let content = fs::read(&file_path).await?;
+        Ok(Some((content, metadata.filename)))
+    }
 }
 
 #[cfg(test)]
