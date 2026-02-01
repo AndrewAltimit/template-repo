@@ -144,15 +144,16 @@ impl Default for VideoEditorServer {
 // Make AudioProcessor cloneable for lazy loading pattern
 impl Clone for AudioProcessor {
     fn clone(&self) -> Self {
-        // Re-create from config since internal state isn't easily cloneable
-        AudioProcessor::new(ServerConfig::default()).unwrap()
+        // Re-create from stored config to preserve settings
+        AudioProcessor::new(self.config.clone()).unwrap()
     }
 }
 
 // Make VideoProcessor cloneable for lazy loading pattern
 impl Clone for VideoProcessor {
     fn clone(&self) -> Self {
-        VideoProcessor::new(ServerConfig::default()).unwrap()
+        // Re-create from stored config to preserve settings
+        VideoProcessor::new(self.config.clone()).unwrap()
     }
 }
 

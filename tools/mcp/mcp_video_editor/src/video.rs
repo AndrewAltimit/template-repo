@@ -12,7 +12,7 @@ use tracing::info;
 
 /// Video processor for editing operations
 pub struct VideoProcessor {
-    config: ServerConfig,
+    pub(crate) config: ServerConfig,
     temp_dir: PathBuf,
 }
 

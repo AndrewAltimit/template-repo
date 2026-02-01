@@ -17,7 +17,7 @@ use tracing::{info, warn};
 
 /// Audio processor for video editing operations
 pub struct AudioProcessor {
-    config: ServerConfig,
+    pub(crate) config: ServerConfig,
     #[allow(dead_code)]
     cache_dir: PathBuf,
     transcripts_cache: PathBuf,
@@ -54,6 +54,10 @@ impl AudioProcessor {
         temp_file.keep()?;
 
         // Use ffmpeg to extract audio
+        let audio_path_str = audio_path
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("Audio path contains invalid UTF-8"))?;
+
         let output = Command::new("ffmpeg")
             .args([
                 "-i",
@@ -66,7 +70,7 @@ impl AudioProcessor {
                 "-ac",
                 "1",  // Mono
                 "-y", // Overwrite
-                audio_path.to_str().unwrap(),
+                audio_path_str,
             ])
             .stderr(Stdio::piped())
             .output()
@@ -114,8 +118,12 @@ impl AudioProcessor {
             });
         }
 
+        let audio_path_str = audio_path
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("Audio path contains invalid UTF-8"))?;
+
         let mut cmd = Command::new("whisper");
-        cmd.arg(audio_path.to_str().unwrap())
+        cmd.arg(audio_path_str)
             .arg("--model")
             .arg(&self.config.models.whisper_model)
             .arg("--output_format")
@@ -263,6 +271,10 @@ impl AudioProcessor {
     pub async fn analyze_audio_levels(&self, audio_path: &Path) -> Result<AudioAnalysis> {
         info!("Analyzing audio levels: {:?}", audio_path);
 
+        let audio_path_str = audio_path
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("Audio path contains invalid UTF-8"))?;
+
         // Use ffprobe to get audio info
         let probe_output = Command::new("ffprobe")
             .args([
@@ -272,7 +284,7 @@ impl AudioProcessor {
                 "format=duration:stream=sample_rate",
                 "-of",
                 "json",
-                audio_path.to_str().unwrap(),
+                audio_path_str,
             ])
             .output()
             .await
@@ -319,7 +331,7 @@ impl AudioProcessor {
         let silence_output = Command::new("ffmpeg")
             .args([
                 "-i",
-                audio_path.to_str().unwrap(),
+                audio_path_str,
                 "-af",
                 "silencedetect=n=-40dB:d=2",
                 "-f",
