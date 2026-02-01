@@ -41,11 +41,11 @@ known_first_party = [
     "mcp_core",
     "mcp_ai_toolkit",
     "mcp_blender",
-    "mcp_comfyui",
     "mcp_gaea2",
     "mcp_video_editor",
     "mcp_virtual_character",
     # Note: The following have been migrated to Rust and are no longer Python modules:
+    # mcp_comfyui,
     # mcp_codex, mcp_code_quality, mcp_content_creation, mcp_crush, mcp_elevenlabs_speech,
     # mcp_gemini, mcp_github_board, mcp_meme_generator, mcp_opencode, mcp_agentcore_memory
     # Local modules within packages (e.g., sleeper_agents dashboard)
@@ -210,11 +210,10 @@ known-first-party = [
     "mcp_core",
     "mcp_ai_toolkit",
     "mcp_blender",
-    "mcp_comfyui",
     "mcp_gaea2",
     "mcp_video_editor",
     "mcp_virtual_character",
-    # Note: Rust MCP servers are no longer Python modules
+    # Note: Rust MCP servers are no longer Python modules (including mcp_comfyui)
     # Local modules within packages (e.g., sleeper_agents dashboard)
     "config",
     "utils",
