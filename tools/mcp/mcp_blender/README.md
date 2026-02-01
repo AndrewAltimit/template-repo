@@ -27,6 +27,8 @@ curl http://localhost:8017/mcp/tools
 
 ## Available Tools
 
+### Core Tools
+
 | Tool | Description | Async |
 |------|-------------|-------|
 | `create_blender_project` | Create project from template | No |
@@ -60,6 +62,26 @@ curl http://localhost:8017/mcp/tools
 | `create_curve` | Create Bezier curves | No |
 | `setup_world_environment` | Configure world environment | No |
 | `blender_status` | Server status and configuration | No |
+
+### Quick Effects (One-Click Simulations)
+
+| Tool | Description | Async |
+|------|-------------|-------|
+| `quick_smoke` | Add smoke/fire simulation (SMOKE, FIRE, BOTH) | No |
+| `quick_liquid` | Add liquid simulation with fluid domain | No |
+| `quick_explode` | Add explosion effect with particle debris | No |
+| `quick_fur` | Add fur/hair using geometry nodes | No |
+
+### Advanced Objects
+
+| Tool | Description | Async |
+|------|-------------|-------|
+| `add_constraint` | Add object constraints (TRACK_TO, COPY_LOCATION, etc.) | No |
+| `create_armature` | Create armature with bones for rigging | No |
+| `create_text_object` | Create 3D text with extrusion and bevel | No |
+| `add_advanced_primitives` | Add grid, circle, ico_sphere, metaball, curves | No |
+| `parent_objects` | Set parent-child relationships | No |
+| `join_objects` | Join multiple meshes into one | No |
 
 ## Templates
 
@@ -115,11 +137,13 @@ The server executes Python scripts located in the `scripts/` directory:
 - `render.py` - Image and animation rendering
 - `animation.py` - Keyframe animation
 - `physics_sim.py` - Physics simulation and baking
-- `geometry_nodes.py` - Procedural geometry node setups
+- `geometry_nodes.py` - Procedural geometry node setups (scatter, crystal, mutation)
 - `camera_tools.py` - Camera setup and tracking
 - `modifiers.py` - Mesh modifiers
 - `particles.py` - Particle systems and smoke
 - `environment.py` - World environment setup
+- `quick_effects.py` - One-click smoke, liquid, explode, fur effects
+- `advanced_objects.py` - Constraints, armatures, text, advanced primitives
 
 ## Security
 

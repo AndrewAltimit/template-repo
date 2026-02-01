@@ -7,7 +7,7 @@ use mcp_core::prelude::*;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::warn;
+// tracing macros are used in the blender.rs module
 use uuid::Uuid;
 
 use crate::blender::BlenderExecutor;
@@ -140,6 +140,38 @@ impl BlenderServer {
             }),
             // Status
             Arc::new(BlenderStatusTool {
+                server: self.clone_refs(),
+            }),
+            // Quick Effects (one-click simulations)
+            Arc::new(QuickSmokeTool {
+                server: self.clone_refs(),
+            }),
+            Arc::new(QuickLiquidTool {
+                server: self.clone_refs(),
+            }),
+            Arc::new(QuickExplodeTool {
+                server: self.clone_refs(),
+            }),
+            Arc::new(QuickFurTool {
+                server: self.clone_refs(),
+            }),
+            // Advanced Objects
+            Arc::new(AddConstraintTool {
+                server: self.clone_refs(),
+            }),
+            Arc::new(CreateArmatureTool {
+                server: self.clone_refs(),
+            }),
+            Arc::new(CreateTextObjectTool {
+                server: self.clone_refs(),
+            }),
+            Arc::new(AddAdvancedPrimitivesTool {
+                server: self.clone_refs(),
+            }),
+            Arc::new(ParentObjectsTool {
+                server: self.clone_refs(),
+            }),
+            Arc::new(JoinObjectsTool {
                 server: self.clone_refs(),
             }),
         ]
@@ -2558,6 +2590,838 @@ impl Tool for BlenderStatusTool {
     }
 }
 
+// ============================================================================
+// Tool: quick_smoke
+// ============================================================================
+
+struct QuickSmokeTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for QuickSmokeTool {
+    fn name(&self) -> &str {
+        "quick_smoke"
+    }
+
+    fn description(&self) -> &str {
+        r#"Add smoke/fire simulation with one click.
+
+Creates a fluid domain around selected objects configured as smoke emitters.
+Styles: SMOKE, FIRE, BOTH"#
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "project": { "type": "string", "description": "Project file path" },
+                "object_names": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Names of mesh objects to make smoke emitters"
+                },
+                "style": {
+                    "type": "string",
+                    "enum": ["SMOKE", "FIRE", "BOTH"],
+                    "default": "SMOKE"
+                },
+                "show_flows": { "type": "boolean", "default": false },
+                "domain_resolution": { "type": "integer", "default": 32 }
+            },
+            "required": ["project", "object_names"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let project = args
+            .get("project")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+        let object_names = args.get("object_names").cloned().ok_or_else(|| {
+            MCPError::InvalidParameters("Missing 'object_names' parameter".to_string())
+        })?;
+        let style = args
+            .get("style")
+            .and_then(|v| v.as_str())
+            .unwrap_or("SMOKE");
+        let show_flows = args.get("show_flows").and_then(|v| v.as_bool()).unwrap_or(false);
+        let resolution = args
+            .get("domain_resolution")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(32);
+
+        let project_path = self.server.validate_project_path(project).await?;
+
+        let script_args = json!({
+            "operation": "quick_smoke",
+            "project": project_path,
+            "object_names": object_names,
+            "style": style,
+            "show_flows": show_flows,
+            "domain_resolution": resolution
+        });
+
+        let result = self
+            .server
+            .execute_script("quick_effects.py", script_args)
+            .await?;
+
+        let response = json!({
+            "success": true,
+            "style": style,
+            "message": format!("Smoke simulation '{}' created", style),
+            "result": result
+        });
+        ToolResult::json(&response)
+    }
+}
+
+// ============================================================================
+// Tool: quick_liquid
+// ============================================================================
+
+struct QuickLiquidTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for QuickLiquidTool {
+    fn name(&self) -> &str {
+        "quick_liquid"
+    }
+
+    fn description(&self) -> &str {
+        r#"Add liquid simulation with one click.
+
+Creates a fluid domain with selected objects as liquid sources."#
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "project": { "type": "string", "description": "Project file path" },
+                "object_names": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Names of mesh objects to make liquid sources"
+                },
+                "show_flows": { "type": "boolean", "default": false },
+                "domain_resolution": { "type": "integer", "default": 64 }
+            },
+            "required": ["project", "object_names"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let project = args
+            .get("project")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+        let object_names = args.get("object_names").cloned().ok_or_else(|| {
+            MCPError::InvalidParameters("Missing 'object_names' parameter".to_string())
+        })?;
+        let show_flows = args.get("show_flows").and_then(|v| v.as_bool()).unwrap_or(false);
+        let resolution = args
+            .get("domain_resolution")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(64);
+
+        let project_path = self.server.validate_project_path(project).await?;
+
+        let script_args = json!({
+            "operation": "quick_liquid",
+            "project": project_path,
+            "object_names": object_names,
+            "show_flows": show_flows,
+            "domain_resolution": resolution
+        });
+
+        let result = self
+            .server
+            .execute_script("quick_effects.py", script_args)
+            .await?;
+
+        let response = json!({
+            "success": true,
+            "message": "Liquid simulation created",
+            "result": result
+        });
+        ToolResult::json(&response)
+    }
+}
+
+// ============================================================================
+// Tool: quick_explode
+// ============================================================================
+
+struct QuickExplodeTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for QuickExplodeTool {
+    fn name(&self) -> &str {
+        "quick_explode"
+    }
+
+    fn description(&self) -> &str {
+        r#"Add explosion effect to objects.
+
+Creates particle system with explode modifier for destruction effects."#
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "project": { "type": "string", "description": "Project file path" },
+                "object_names": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Names of mesh objects to explode"
+                },
+                "piece_count": { "type": "integer", "default": 100 },
+                "frame_start": { "type": "integer", "default": 1 },
+                "frame_duration": { "type": "integer", "default": 50 },
+                "velocity": { "type": "number", "default": 1.0 },
+                "fade": { "type": "boolean", "default": true }
+            },
+            "required": ["project", "object_names"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let project = args
+            .get("project")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+        let object_names = args.get("object_names").cloned().ok_or_else(|| {
+            MCPError::InvalidParameters("Missing 'object_names' parameter".to_string())
+        })?;
+        let piece_count = args.get("piece_count").and_then(|v| v.as_i64()).unwrap_or(100);
+        let frame_start = args.get("frame_start").and_then(|v| v.as_i64()).unwrap_or(1);
+        let frame_duration = args
+            .get("frame_duration")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(50);
+        let velocity = args.get("velocity").and_then(|v| v.as_f64()).unwrap_or(1.0);
+        let fade = args.get("fade").and_then(|v| v.as_bool()).unwrap_or(true);
+
+        let project_path = self.server.validate_project_path(project).await?;
+
+        let script_args = json!({
+            "operation": "quick_explode",
+            "project": project_path,
+            "object_names": object_names,
+            "piece_count": piece_count,
+            "frame_start": frame_start,
+            "frame_duration": frame_duration,
+            "velocity": velocity,
+            "fade": fade
+        });
+
+        let result = self
+            .server
+            .execute_script("quick_effects.py", script_args)
+            .await?;
+
+        let response = json!({
+            "success": true,
+            "pieces": piece_count,
+            "message": "Explosion effect created",
+            "result": result
+        });
+        ToolResult::json(&response)
+    }
+}
+
+// ============================================================================
+// Tool: quick_fur
+// ============================================================================
+
+struct QuickFurTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for QuickFurTool {
+    fn name(&self) -> &str {
+        "quick_fur"
+    }
+
+    fn description(&self) -> &str {
+        r#"Add fur/hair to objects using geometry nodes.
+
+Density levels: LOW (1000), MEDIUM (10000), HIGH (100000)"#
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "project": { "type": "string", "description": "Project file path" },
+                "object_names": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Names of mesh objects to add fur"
+                },
+                "density": {
+                    "type": "string",
+                    "enum": ["LOW", "MEDIUM", "HIGH"],
+                    "default": "MEDIUM"
+                },
+                "length": { "type": "number", "default": 0.1 },
+                "radius": { "type": "number", "default": 0.001 },
+                "use_noise": { "type": "boolean", "default": true },
+                "use_frizz": { "type": "boolean", "default": true }
+            },
+            "required": ["project", "object_names"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let project = args
+            .get("project")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+        let object_names = args.get("object_names").cloned().ok_or_else(|| {
+            MCPError::InvalidParameters("Missing 'object_names' parameter".to_string())
+        })?;
+        let density = args
+            .get("density")
+            .and_then(|v| v.as_str())
+            .unwrap_or("MEDIUM");
+        let length = args.get("length").and_then(|v| v.as_f64()).unwrap_or(0.1);
+        let radius = args.get("radius").and_then(|v| v.as_f64()).unwrap_or(0.001);
+        let use_noise = args.get("use_noise").and_then(|v| v.as_bool()).unwrap_or(true);
+        let use_frizz = args.get("use_frizz").and_then(|v| v.as_bool()).unwrap_or(true);
+
+        let project_path = self.server.validate_project_path(project).await?;
+
+        let script_args = json!({
+            "operation": "quick_fur",
+            "project": project_path,
+            "object_names": object_names,
+            "density": density,
+            "length": length,
+            "radius": radius,
+            "use_noise": use_noise,
+            "use_frizz": use_frizz
+        });
+
+        let result = self
+            .server
+            .execute_script("quick_effects.py", script_args)
+            .await?;
+
+        let response = json!({
+            "success": true,
+            "density": density,
+            "message": "Fur system created",
+            "result": result
+        });
+        ToolResult::json(&response)
+    }
+}
+
+// ============================================================================
+// Tool: add_constraint
+// ============================================================================
+
+struct AddConstraintTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for AddConstraintTool {
+    fn name(&self) -> &str {
+        "add_constraint"
+    }
+
+    fn description(&self) -> &str {
+        r#"Add constraint to an object.
+
+Constraint types: TRACK_TO, COPY_LOCATION, COPY_ROTATION, COPY_SCALE,
+LIMIT_LOCATION, LIMIT_ROTATION, LIMIT_SCALE, FOLLOW_PATH, DAMPED_TRACK, FLOOR"#
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "project": { "type": "string", "description": "Project file path" },
+                "object_name": { "type": "string", "description": "Object to add constraint to" },
+                "constraint_type": {
+                    "type": "string",
+                    "enum": ["TRACK_TO", "COPY_LOCATION", "COPY_ROTATION", "COPY_SCALE",
+                             "LIMIT_LOCATION", "LIMIT_ROTATION", "LIMIT_SCALE",
+                             "FOLLOW_PATH", "DAMPED_TRACK", "FLOOR", "CHILD_OF"]
+                },
+                "target_object": { "type": "string", "description": "Target object for constraint" },
+                "settings": { "type": "object", "description": "Constraint-specific settings" }
+            },
+            "required": ["project", "object_name", "constraint_type"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let project = args
+            .get("project")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+        let object_name = args
+            .get("object_name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'object_name' parameter".to_string())
+            })?;
+        let constraint_type = args
+            .get("constraint_type")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'constraint_type' parameter".to_string())
+            })?;
+        let target_object = args.get("target_object").and_then(|v| v.as_str());
+        let settings = args.get("settings").cloned().unwrap_or(json!({}));
+
+        let project_path = self.server.validate_project_path(project).await?;
+
+        let script_args = json!({
+            "operation": "add_constraint",
+            "project": project_path,
+            "object_name": object_name,
+            "constraint_type": constraint_type,
+            "target_object": target_object,
+            "settings": settings
+        });
+
+        let result = self
+            .server
+            .execute_script("advanced_objects.py", script_args)
+            .await?;
+
+        let response = json!({
+            "success": true,
+            "object": object_name,
+            "constraint_type": constraint_type,
+            "message": format!("Constraint '{}' added to '{}'", constraint_type, object_name),
+            "result": result
+        });
+        ToolResult::json(&response)
+    }
+}
+
+// ============================================================================
+// Tool: create_armature
+// ============================================================================
+
+struct CreateArmatureTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for CreateArmatureTool {
+    fn name(&self) -> &str {
+        "create_armature"
+    }
+
+    fn description(&self) -> &str {
+        r#"Create an armature with bones for rigging.
+
+Bones are defined with head/tail positions and optional parent relationships."#
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "project": { "type": "string", "description": "Project file path" },
+                "name": { "type": "string", "default": "Armature" },
+                "location": { "type": "array", "items": { "type": "number" }, "default": [0, 0, 0] },
+                "bones": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": { "type": "string" },
+                            "head": { "type": "array", "items": { "type": "number" } },
+                            "tail": { "type": "array", "items": { "type": "number" } },
+                            "parent": { "type": "string" },
+                            "connected": { "type": "boolean", "default": false }
+                        },
+                        "required": ["name", "head", "tail"]
+                    }
+                }
+            },
+            "required": ["project", "bones"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let project = args
+            .get("project")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+        let name = args.get("name").and_then(|v| v.as_str()).unwrap_or("Armature");
+        let location = args.get("location").cloned().unwrap_or(json!([0, 0, 0]));
+        let bones = args.get("bones").cloned().ok_or_else(|| {
+            MCPError::InvalidParameters("Missing 'bones' parameter".to_string())
+        })?;
+
+        let project_path = self.server.validate_project_path(project).await?;
+
+        let script_args = json!({
+            "operation": "create_armature",
+            "project": project_path,
+            "name": name,
+            "location": location,
+            "bones": bones
+        });
+
+        let result = self
+            .server
+            .execute_script("advanced_objects.py", script_args)
+            .await?;
+
+        let response = json!({
+            "success": true,
+            "armature": name,
+            "message": format!("Armature '{}' created", name),
+            "result": result
+        });
+        ToolResult::json(&response)
+    }
+}
+
+// ============================================================================
+// Tool: create_text_object
+// ============================================================================
+
+struct CreateTextObjectTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for CreateTextObjectTool {
+    fn name(&self) -> &str {
+        "create_text_object"
+    }
+
+    fn description(&self) -> &str {
+        r#"Create a 3D text object.
+
+Supports extrusion, bevel, and custom fonts."#
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "project": { "type": "string", "description": "Project file path" },
+                "text": { "type": "string", "description": "Text content" },
+                "name": { "type": "string", "default": "Text" },
+                "location": { "type": "array", "items": { "type": "number" }, "default": [0, 0, 0] },
+                "rotation": { "type": "array", "items": { "type": "number" }, "default": [0, 0, 0] },
+                "size": { "type": "number", "default": 1.0 },
+                "extrude": { "type": "number", "default": 0.0 },
+                "bevel_depth": { "type": "number", "default": 0.0 },
+                "align_x": {
+                    "type": "string",
+                    "enum": ["CENTER", "LEFT", "RIGHT", "JUSTIFY", "FLUSH"],
+                    "default": "LEFT"
+                },
+                "align_y": {
+                    "type": "string",
+                    "enum": ["TOP", "CENTER", "BOTTOM"],
+                    "default": "TOP"
+                },
+                "font_path": { "type": "string", "description": "Path to custom font file" }
+            },
+            "required": ["project", "text"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let project = args
+            .get("project")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+        let text = args
+            .get("text")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'text' parameter".to_string()))?;
+
+        let project_path = self.server.validate_project_path(project).await?;
+
+        let script_args = json!({
+            "operation": "create_text_object",
+            "project": project_path,
+            "text": text,
+            "name": args.get("name").and_then(|v| v.as_str()).unwrap_or("Text"),
+            "location": args.get("location").cloned().unwrap_or(json!([0, 0, 0])),
+            "rotation": args.get("rotation").cloned().unwrap_or(json!([0, 0, 0])),
+            "size": args.get("size").and_then(|v| v.as_f64()).unwrap_or(1.0),
+            "extrude": args.get("extrude").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            "bevel_depth": args.get("bevel_depth").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            "align_x": args.get("align_x").and_then(|v| v.as_str()).unwrap_or("LEFT"),
+            "align_y": args.get("align_y").and_then(|v| v.as_str()).unwrap_or("TOP"),
+            "font_path": args.get("font_path").and_then(|v| v.as_str())
+        });
+
+        let result = self
+            .server
+            .execute_script("advanced_objects.py", script_args)
+            .await?;
+
+        let response = json!({
+            "success": true,
+            "text": text,
+            "message": "Text object created",
+            "result": result
+        });
+        ToolResult::json(&response)
+    }
+}
+
+// ============================================================================
+// Tool: add_advanced_primitives
+// ============================================================================
+
+struct AddAdvancedPrimitivesTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for AddAdvancedPrimitivesTool {
+    fn name(&self) -> &str {
+        "add_advanced_primitives"
+    }
+
+    fn description(&self) -> &str {
+        r#"Add advanced primitive objects.
+
+Types: grid, circle, ico_sphere, empty, bezier_curve, nurbs_curve, metaball"#
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "project": { "type": "string", "description": "Project file path" },
+                "objects": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["grid", "circle", "ico_sphere", "empty",
+                                         "bezier_curve", "nurbs_curve", "nurbs_circle", "metaball"]
+                            },
+                            "name": { "type": "string" },
+                            "location": { "type": "array", "items": { "type": "number" } },
+                            "rotation": { "type": "array", "items": { "type": "number" } },
+                            "scale": { "type": "array", "items": { "type": "number" } }
+                        },
+                        "required": ["type"]
+                    }
+                }
+            },
+            "required": ["project", "objects"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let project = args
+            .get("project")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+        let objects = args.get("objects").cloned().ok_or_else(|| {
+            MCPError::InvalidParameters("Missing 'objects' parameter".to_string())
+        })?;
+
+        let project_path = self.server.validate_project_path(project).await?;
+
+        let script_args = json!({
+            "operation": "add_advanced_primitives",
+            "project": project_path,
+            "objects": objects
+        });
+
+        let result = self
+            .server
+            .execute_script("advanced_objects.py", script_args)
+            .await?;
+
+        let count = objects.as_array().map(|a| a.len()).unwrap_or(0);
+        let response = json!({
+            "success": true,
+            "objects_added": count,
+            "message": format!("Added {} advanced primitives", count),
+            "result": result
+        });
+        ToolResult::json(&response)
+    }
+}
+
+// ============================================================================
+// Tool: parent_objects
+// ============================================================================
+
+struct ParentObjectsTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for ParentObjectsTool {
+    fn name(&self) -> &str {
+        "parent_objects"
+    }
+
+    fn description(&self) -> &str {
+        "Set parent-child relationships between objects."
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "project": { "type": "string", "description": "Project file path" },
+                "parent_name": { "type": "string", "description": "Name of parent object" },
+                "children": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Names of child objects"
+                },
+                "keep_transform": { "type": "boolean", "default": true },
+                "parent_type": {
+                    "type": "string",
+                    "enum": ["OBJECT", "ARMATURE", "BONE"],
+                    "default": "OBJECT"
+                },
+                "bone_name": { "type": "string", "description": "Bone name if parent_type is BONE" }
+            },
+            "required": ["project", "parent_name", "children"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let project = args
+            .get("project")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+        let parent_name = args
+            .get("parent_name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'parent_name' parameter".to_string())
+            })?;
+        let children = args.get("children").cloned().ok_or_else(|| {
+            MCPError::InvalidParameters("Missing 'children' parameter".to_string())
+        })?;
+
+        let project_path = self.server.validate_project_path(project).await?;
+
+        let script_args = json!({
+            "operation": "parent_objects",
+            "project": project_path,
+            "parent_name": parent_name,
+            "children": children,
+            "keep_transform": args.get("keep_transform").and_then(|v| v.as_bool()).unwrap_or(true),
+            "parent_type": args.get("parent_type").and_then(|v| v.as_str()).unwrap_or("OBJECT"),
+            "bone_name": args.get("bone_name").and_then(|v| v.as_str())
+        });
+
+        let result = self
+            .server
+            .execute_script("advanced_objects.py", script_args)
+            .await?;
+
+        let response = json!({
+            "success": true,
+            "parent": parent_name,
+            "message": format!("Objects parented to '{}'", parent_name),
+            "result": result
+        });
+        ToolResult::json(&response)
+    }
+}
+
+// ============================================================================
+// Tool: join_objects
+// ============================================================================
+
+struct JoinObjectsTool {
+    server: ServerRefs,
+}
+
+#[async_trait]
+impl Tool for JoinObjectsTool {
+    fn name(&self) -> &str {
+        "join_objects"
+    }
+
+    fn description(&self) -> &str {
+        "Join multiple mesh objects into one."
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "project": { "type": "string", "description": "Project file path" },
+                "object_names": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Names of objects to join"
+                },
+                "target_name": { "type": "string", "description": "Name of target object (will contain result)" }
+            },
+            "required": ["project", "object_names", "target_name"]
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let project = args
+            .get("project")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| MCPError::InvalidParameters("Missing 'project' parameter".to_string()))?;
+        let object_names = args.get("object_names").cloned().ok_or_else(|| {
+            MCPError::InvalidParameters("Missing 'object_names' parameter".to_string())
+        })?;
+        let target_name = args
+            .get("target_name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| {
+                MCPError::InvalidParameters("Missing 'target_name' parameter".to_string())
+            })?;
+
+        let project_path = self.server.validate_project_path(project).await?;
+
+        let script_args = json!({
+            "operation": "join_objects",
+            "project": project_path,
+            "object_names": object_names,
+            "target_name": target_name
+        });
+
+        let result = self
+            .server
+            .execute_script("advanced_objects.py", script_args)
+            .await?;
+
+        let response = json!({
+            "success": true,
+            "result_object": target_name,
+            "message": format!("Objects joined into '{}'", target_name),
+            "result": result
+        });
+        ToolResult::json(&response)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2566,7 +3430,7 @@ mod tests {
     fn test_server_creation() {
         let server = BlenderServer::new();
         let tools = server.tools();
-        assert!(tools.len() >= 30);
+        assert!(tools.len() >= 40);
     }
 
     #[test]
@@ -2603,6 +3467,20 @@ mod tests {
         assert!(names.contains(&"add_particle_system"));
         assert!(names.contains(&"setup_compositor"));
         assert!(names.contains(&"setup_world_environment"));
+
+        // Quick Effects tools
+        assert!(names.contains(&"quick_smoke"));
+        assert!(names.contains(&"quick_liquid"));
+        assert!(names.contains(&"quick_explode"));
+        assert!(names.contains(&"quick_fur"));
+
+        // Advanced Object tools
+        assert!(names.contains(&"add_constraint"));
+        assert!(names.contains(&"create_armature"));
+        assert!(names.contains(&"create_text_object"));
+        assert!(names.contains(&"add_advanced_primitives"));
+        assert!(names.contains(&"parent_objects"));
+        assert!(names.contains(&"join_objects"));
 
         // Status
         assert!(names.contains(&"blender_status"));
