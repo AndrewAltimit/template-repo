@@ -55,6 +55,15 @@ tempfile = "3.10"
 # Async file I/O
 tokio-util = { version = "0.7", features = ["io"] }
 
+# UUID generation
+uuid = { version = "1.8", features = ["v4"] }
+
+# Cryptography for storage service
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+rand = "0.8"
+
 [dev-dependencies]
 tokio-test = "0.4"
 

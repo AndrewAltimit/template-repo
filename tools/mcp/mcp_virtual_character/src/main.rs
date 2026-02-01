@@ -9,9 +9,11 @@ use anyhow::Result;
 use clap::Parser;
 use mcp_core::{init_logging, server::MCPServerArgs, MCPServer};
 
+mod audio;
 mod backends;
 mod constants;
 mod server;
+mod storage;
 mod types;
 
 use server::VirtualCharacterServer;

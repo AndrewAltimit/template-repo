@@ -11,6 +11,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{error, info};
 
+use crate::audio::AudioHandler;
 use crate::backends::{BackendAdapter, MockBackend, VRChatRemoteBackend};
 use crate::constants::{get_vrcemote_name, VRCEmoteValue, VRCEMOTE_DESCRIPTION};
 use crate::types::{
@@ -567,27 +568,29 @@ impl Tool for PlayAudioTool {
             .and_then(|v| v.as_str())
             .unwrap_or("");
 
-        // Decode audio data (assume base64 for simplicity)
-        let audio_bytes = match base64::Engine::decode(
-            &base64::engine::general_purpose::STANDARD,
-            audio_data_str,
-        ) {
-            Ok(bytes) => bytes,
-            Err(_) => {
-                // Try treating it as a file path or URL - for now just return error
+        // Use the AudioHandler to process various input formats
+        let audio_handler = AudioHandler::default();
+        let (audio_bytes, error): (Option<Vec<u8>>, Option<String>) =
+            audio_handler.process_audio_input(audio_data_str).await;
+
+        let audio_bytes = match audio_bytes {
+            Some(bytes) => bytes,
+            None => {
                 return Ok(ToolResult::error(
-                    "Audio must be base64 encoded. File paths and URLs not yet implemented.",
+                    error.unwrap_or_else(|| "Failed to process audio data".to_string()),
                 ));
             }
         };
 
+        // Detect format from data or use provided format
+        let format_str = args
+            .get("audio_format")
+            .and_then(|v| v.as_str())
+            .unwrap_or("mp3");
+
         let audio = AudioData {
             data: audio_bytes,
-            format: args
-                .get("audio_format")
-                .and_then(|v| v.as_str())
-                .unwrap_or("mp3")
-                .to_string(),
+            format: format_str.to_string(),
             duration: args.get("duration").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
             text: args.get("text").and_then(|v| v.as_str()).map(String::from),
             expression_tags: args.get("expression_tags").and_then(|v| {
@@ -603,7 +606,7 @@ impl Tool for PlayAudioTool {
         let mut backend_guard = self.server.backend.write().await;
         if let Some(ref mut backend) = *backend_guard {
             match backend.send_audio_data(audio).await {
-                Ok(()) => ToolResult::json(&json!({"success": true})),
+                Ok(()) => ToolResult::json(&json!({"success": true, "message": "Audio sent to backend"})),
                 Err(e) => Ok(ToolResult::error(format!("Failed to play audio: {}", e))),
             }
         } else {
