@@ -51,12 +51,16 @@ class MCPServerTester:
                 "test_tool": "suggest_gaea2_nodes",
                 "test_args": {"current_nodes": ["Mountain"]},
             },
+            # Note: AI Toolkit MCP server has been migrated to Rust
+            # Binary: tools/mcp/mcp_ai_toolkit/target/release/mcp-ai-toolkit
+            # Test with: mcp-ai-toolkit --mode http --host 0.0.0.0 --port 8012
             {
-                "name": "AI Toolkit",
-                "module": "mcp_ai_toolkit.server",
+                "name": "AI Toolkit (Rust)",
+                "binary": "tools/mcp/mcp_ai_toolkit/target/release/mcp-ai-toolkit",
                 "port": 8012,
                 "test_tool": "list_configs",
                 "test_args": {},
+                "rust_server": True,  # Rust binary, not Python
                 "remote_only": True,  # Requires remote server
             },
             {
