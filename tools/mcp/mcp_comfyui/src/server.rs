@@ -589,8 +589,9 @@ impl Tool for DownloadLoraTool {
                 },
                 "encoding": {
                     "type": "string",
-                    "enum": ["base64", "raw"],
-                    "default": "base64"
+                    "enum": ["base64"],
+                    "default": "base64",
+                    "description": "Encoding for the response data (only base64 supported for JSON)"
                 }
             },
             "required": ["filename"]
@@ -605,28 +606,14 @@ impl Tool for DownloadLoraTool {
                 MCPError::InvalidParameters("Missing 'filename' parameter".to_string())
             })?;
 
-        let encoding = args
-            .get("encoding")
-            .and_then(|v| v.as_str())
-            .unwrap_or("base64");
-
         match self.client.download_lora(filename).await {
             Ok(data) => {
-                let response = if encoding == "base64" {
-                    json!({
-                        "success": true,
-                        "filename": filename,
-                        "data": ComfyUIClient::encode_base64(&data),
-                        "size": data.len()
-                    })
-                } else {
-                    json!({
-                        "success": true,
-                        "filename": filename,
-                        "size": data.len(),
-                        "note": "Raw data not supported in JSON response, use base64"
-                    })
-                };
+                let response = json!({
+                    "success": true,
+                    "filename": filename,
+                    "data": ComfyUIClient::encode_base64(&data),
+                    "size": data.len()
+                });
                 ToolResult::json(&response)
             }
             Err(e) => {
