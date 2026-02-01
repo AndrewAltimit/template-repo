@@ -8,11 +8,11 @@ import pytest
 
 def test_imports():
     """Test that basic imports work"""
-    # Test desktop control server imports
-    # Note: mcp_code_quality and mcp_content_creation were migrated to Rust
-    from mcp_desktop_control.server import DesktopControlMCPServer  # noqa: E402
+    # Test virtual character server imports
+    # Note: mcp_code_quality, mcp_content_creation, and mcp_desktop_control were migrated to Rust
+    from mcp_virtual_character.server import VirtualCharacterMCPServer  # noqa: E402
 
-    server = DesktopControlMCPServer()
+    server = VirtualCharacterMCPServer(auto_connect=False)
     assert len(server.get_tools()) > 0
 
     # Test core imports
