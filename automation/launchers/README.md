@@ -7,74 +7,53 @@ Centralized launcher scripts for various services and tools in the repository.
 ```
 launchers/
 ├── windows/             # Windows-specific launchers
-│   └── vrchat/          # VRChat Virtual Character MCP Server
-│       ├── start_server_windows.bat      # Windows batch launcher
-│       └── start_server_windows.ps1      # Windows PowerShell launcher
 ├── linux/               # Linux/Mac launchers
-│   └── vrchat_server.sh # VRChat server launcher
 └── README.md            # This file
 ```
 
-## VRChat Virtual Character Server
+## Virtual Character Server
 
-Control VRChat avatars remotely via MCP server.
+> **Note**: The Virtual Character MCP Server has been migrated from Python to Rust.
+> For running the server, use Docker Compose or the pre-built binary from GitHub releases.
 
-### Windows
-
-**PowerShell (Recommended):**
-```powershell
-cd automation\launchers\windows\vrchat
-.\start_server_windows.ps1
-```
-
-**Command Prompt:**
-```cmd
-cd automation\launchers\windows\vrchat
-start_server_windows.bat
-```
-
-### Linux/Mac
+### Running via Docker Compose (Recommended)
 
 ```bash
-./automation/launchers/linux/vrchat_server.sh
+# STDIO mode (for MCP clients)
+docker compose --profile virtual-character run --rm -T mcp-virtual-character mcp-virtual-character --mode stdio
+
+# HTTP mode (standalone server)
+docker compose --profile virtual-character up mcp-virtual-character
+```
+
+The HTTP server will be available at `http://localhost:8025`.
+
+### Running the Binary Directly
+
+Download the pre-built binary from [GitHub Releases](https://github.com/AndrewAltimit/template-repo/releases), then:
+
+```bash
+# STDIO mode
+./mcp-virtual-character --mode stdio
+
+# HTTP mode
+./mcp-virtual-character --mode standalone --port 8025
 ```
 
 ### Configuration
 
-All launchers accept these parameters:
-- **Port**: Server port (default: 8020)
-- **Host**: Bind address (default: 0.0.0.0)
-
-**PowerShell Example:**
-```powershell
-.\start_server_windows.ps1 -Port 8020 -Host 0.0.0.0
-```
-
-**Bash Example:**
-```bash
-./vrchat_server.sh 8020 0.0.0.0
-```
+The server accepts these parameters:
+- `--mode`: `stdio` or `standalone` (default: stdio)
+- `--port`: Server port for standalone mode (default: 8025)
+- `--host`: Bind address for standalone mode (default: 0.0.0.0)
+- `--log-level`: Log level (default: info)
 
 ### Features
 
-- Auto-installs required Python packages
-- Validates Python installation
-- Shows available API endpoints
-- Colored output for better readability
-- Cross-platform support
-
-### Remote Access
-
-After starting the server, it will be accessible at:
-- Local: `http://localhost:8020`
-- Network: `http://<machine-ip>:8020`
-
-Test the connection from another machine:
-```bash
-python tools/mcp/mcp_virtual_character/scripts/test_remote_server.py \
-  --server http://<server-ip>:8020 \
-  --test status
-```
+- VRChat OSC protocol support for avatar control
+- VRCEmote system for gesture wheel control
+- PAD emotion model for smooth expression interpolation
+- Mock backend for testing without VRChat
 
 ## Adding New Launchers
 
@@ -86,7 +65,6 @@ When adding new launcher scripts:
 4. Consider adding:
    - Dependency checks
    - Configuration validation
-   - Colored output for readability
    - Error handling
    - Auto-restart capabilities
 
