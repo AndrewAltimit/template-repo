@@ -90,7 +90,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     /app/tools/mcp/mcp_core \
     /app/tools/mcp/mcp_ai_toolkit \
     /app/tools/mcp/mcp_blender \
-    /app/tools/mcp/mcp_comfyui \
     /app/tools/mcp/mcp_gaea2 \
     /app/tools/mcp/mcp_video_editor \
     /app/tools/mcp/mcp_virtual_character \

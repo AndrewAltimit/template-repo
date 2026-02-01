@@ -1,203 +1,269 @@
-# ComfyUI MCP Server
+# MCP ComfyUI Server
 
-> A Model Context Protocol server for AI image and video generation using ComfyUI workflows, with support for FLUX, SDXL, LoRA models, and custom workflow execution.
+> High-performance MCP server for ComfyUI image generation, providing text-to-image, image-to-image, upscaling, and ControlNet workflows with LoRA support.
 
-## Overview
+## Features
 
-This MCP server provides an interface to ComfyUI for AI image and video generation. It can run locally or connect to a remote instance. Features include:
+- **Text-to-Image Generation**: FLUX and SDXL/IllustriousXL workflows
+- **Image-to-Image**: Transform existing images with text prompts
+- **Upscaling**: AI-powered image upscaling
+- **ControlNet**: Guided generation using control images
+- **LoRA Support**: Upload, list, and use LoRA models
+- **Workflow Management**: Pre-built templates and custom workflow execution
 
-- Advanced workflow system with FLUX, SDXL, and WAN 2.2 video support
-- Text-to-video and image-to-video generation
-- LoRA and checkpoint model management
-- Custom ComfyUI workflow execution
-- Image-to-image, upscaling, and ControlNet support
-- Model transfer between AI services
+## Requirements
 
-## Architecture
+- Running ComfyUI instance (remote or local)
+- Network access to ComfyUI API
 
-The server provides flexible deployment options:
-1. **Local Mode**: Runs alongside ComfyUI on the same machine
-2. **Remote Mode**: Connects to ComfyUI instance (e.g., `192.168.0.222:8188`)
-3. **Docker Mode**: Containerized deployment with GPU support
+## Installation
 
-### Workflow System
-The server includes a sophisticated workflow factory that creates optimized workflows for different model types. See [WORKFLOWS.md](WORKFLOWS.md) for detailed workflow documentation.
+### Pre-built Binary
 
-## Available Tools
+Download from GitHub Releases:
 
-### Image & Video Generation
-- `generate_image` - Generate images or videos with workflows
-- `execute_workflow` - Execute custom ComfyUI workflows
+```bash
+# Linux x64
+curl -L https://github.com/AndrewAltimit/template-repo/releases/latest/download/mcp-comfyui-linux-x64 -o mcp-comfyui
+chmod +x mcp-comfyui
+```
 
-### Workflow Management
-- `list_workflows` - List available workflows
-- `get_workflow` - Get workflow configuration
+### Build from Source
 
-### Model Management
-- `list_models` - List models by type (checkpoint, lora, vae, embeddings)
-- `list_loras` - List LoRA models
-- `upload_lora` - Upload LoRA model (small files)
-- `download_lora` - Download LoRA model
-
-### Chunked Upload (for large files >100MB)
-- `upload_lora_chunked_init` - Initialize chunked upload
-- `upload_lora_chunk` - Upload file chunk
-- `upload_lora_chunked_complete` - Complete upload
-
-### Integration Tools
-- `transfer_lora_from_ai_toolkit` - Transfer LoRA from AI Toolkit
-- `get_object_info` - Get ComfyUI node information
-- `get_system_info` - Get system information
+```bash
+cd tools/mcp/mcp_comfyui
+cargo build --release
+# Binary will be at target/release/mcp-comfyui
+```
 
 ## Configuration
 
 Environment variables:
-- `COMFYUI_HOST` - ComfyUI host (default: localhost)
-- `COMFYUI_PORT` - ComfyUI API port (default: 8188)
-- `COMFYUI_PATH` - ComfyUI installation path (default: /comfyui)
-- `COMFYUI_GENERATION_TIMEOUT` - Generation timeout in seconds (default: 300)
 
-## Usage Examples
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `COMFYUI_HOST` | `192.168.0.222` | ComfyUI server hostname |
+| `COMFYUI_PORT` | `8188` | ComfyUI server port |
+| `COMFYUI_PATH` | `/opt/ComfyUI` | Path to ComfyUI installation (for model access) |
 
-### Generate Image with FLUX
-```python
-# FLUX performs best with lower CFG values
-result = await generate_image(
-    prompt="a cyberpunk city at night, neon lights",
-    negative_prompt="",  # Can be empty for FLUX
-    width=1024,
-    height=1024,
-    steps=20,
-    cfg_scale=3.5  # Lower CFG for FLUX
-)
-```
+## Running the Server
 
-### Generate with IllustriousXL
-```python
-from mcp_comfyui.workflows import WorkflowFactory
-
-workflow = WorkflowFactory.create_sdxl_workflow(
-    prompt="anime character, silver hair, detailed",
-    negative_prompt="low quality, bad anatomy",
-    model_name="illustriousXL_smoothftSOLID.safetensors",
-    steps=30,
-    cfg_scale=7.0
-)
-result = await generate_image(workflow=workflow)
-```
-
-### Using LoRA
-```python
-workflow = WorkflowFactory.create_flux_workflow(
-    prompt="robot in inkpunk art style",
-    lora_name="Inkpunk_Flux.safetensors",
-    lora_strength=0.8
-)
-result = await generate_image(workflow=workflow)
-```
-
-### Generate Video with WAN 2.2
-```python
-# Text-to-video generation
-workflow = WorkflowFactory.create_wan22_video_workflow(
-    prompt="a cat playing with a ball of yarn, smooth motion",
-    negative_prompt="static, blurry, choppy",
-    width=1280,
-    height=704,
-    video_frames=121,  # 5 seconds at 24fps
-    output_format="webm"
-)
-result = await generate_image(workflow=workflow, timeout=600)  # Longer timeout for video
-
-# Image-to-video (animate a still image)
-with open("cat.jpg", "rb") as f:
-    start_image = base64.b64encode(f.read()).decode()
-
-workflow = WorkflowFactory.create_wan22_video_workflow(
-    prompt="cat slowly turns head and blinks",
-    start_image=start_image,
-    video_frames=60  # 2.5 seconds
-)
-result = await generate_image(workflow=workflow)
-```
-
-### Upload LoRA (Chunked)
-```python
-# For files >100MB
-init_result = await upload_lora_chunked_init(
-    filename="my_lora.safetensors",
-    total_size=file_size_bytes
-)
-
-# Upload chunks
-for i, chunk in enumerate(chunks):
-    await upload_lora_chunk(
-        upload_id=init_result["upload_id"],
-        chunk_index=i,
-        chunk=base64_chunk,
-        total_chunks=len(chunks)
-    )
-
-# Complete upload
-await upload_lora_chunked_complete(upload_id=init_result["upload_id"])
-```
-
-## Supported Models
-
-### Current Models
-- **FLUX**: `flux1-dev-fp8.safetensors` - Latest FLUX development model
-- **SDXL**: `illustriousXL_smoothftSOLID.safetensors` - High-quality anime/illustration
-- **Video**: `wan2.2_ti2v_5B_fp16.safetensors` - WAN 2.2 text/image-to-video model
-- **LoRA**: `Inkpunk_Flux.safetensors` - Inkpunk art style for FLUX
-
-### Model-Specific Settings
-
-#### FLUX
-- **CFG Scale**: 3.0-4.0 (lower is better)
-- **Steps**: 20-30
-- **Sampler**: euler, dpm++
-- **Resolution**: 1024x1024 minimum
-
-#### SDXL/IllustriousXL
-- **CFG Scale**: 6.0-8.0
-- **Steps**: 25-40
-- **Sampler**: dpmpp_2m, dpmpp_sde
-- **Scheduler**: karras
-
-#### WAN 2.2 Video
-- **CFG Scale**: 4.0-6.0 (5.0 optimal)
-- **Steps**: 25-35 (30 optimal)
-- **Sampler**: uni_pc
-- **Resolution**: 1280x704 (optimal)
-- **Frames**: 121 frames (~5 seconds at 24fps)
-
-For comprehensive workflow documentation, see [WORKFLOWS.md](WORKFLOWS.md).
-
-## Testing
-
-Run the test script to verify connectivity:
+### Standalone Mode (Recommended)
 
 ```bash
-python tools/mcp/comfyui/scripts/test_server.py
+# Start server on port 8013
+mcp-comfyui --mode standalone --port 8013
+
+# Or with custom settings
+mcp-comfyui --mode standalone --port 8013 --log-level debug
 ```
 
-## Integration with AI Toolkit
+### STDIO Mode
 
-Models trained in AI Toolkit can be transferred directly:
+For direct MCP client integration:
 
-```python
-await transfer_lora_from_ai_toolkit(
-    model_name="my_trained_lora",
-    filename="my_lora_v1.safetensors"
-)
+```bash
+mcp-comfyui --mode stdio
 ```
 
-## Important Notes
+### Server Mode (REST API only)
 
-1. **Chunked Upload**: Required for files >100MB
-2. **FLUX Models**: Have specific workflow requirements
-3. **Remote Dependency**: Requires ComfyUI server running on remote host
+```bash
+mcp-comfyui --mode server --port 8013
+```
+
+### Test Endpoints
+
+```bash
+# Health check
+curl http://localhost:8013/health
+
+# List tools
+curl http://localhost:8013/mcp/tools
+
+# Execute tool
+curl -X POST http://localhost:8013/mcp/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool": "list_workflows",
+    "arguments": {}
+  }'
+```
+
+## Available Tools
+
+### 1. generate_image
+
+Generate an image using FLUX or SDXL workflows.
+
+**Parameters:**
+- `prompt` (required): Text description of the image to generate
+- `negative_prompt` (optional): What to avoid in the image
+- `workflow` (optional, default: `flux`): Workflow type (`flux` or `sdxl`)
+- `width` (optional, default: 1024): Image width in pixels
+- `height` (optional, default: 1024): Image height in pixels
+- `seed` (optional, default: -1): Seed for reproducibility (-1 for random)
+- `steps` (optional): Sampling steps (default varies by workflow)
+- `cfg_scale` (optional): CFG scale (default varies by workflow)
+- `lora_name` (optional): LoRA model to apply
+- `lora_strength` (optional, default: 1.0): LoRA strength
+- `timeout` (optional, default: 300): Timeout in seconds
+
+**Example:**
+```json
+{
+  "prompt": "A cyberpunk cityscape at night, neon lights",
+  "workflow": "flux",
+  "width": 1024,
+  "height": 1024,
+  "steps": 20
+}
+```
+
+### 2. list_workflows
+
+List all available workflow templates.
+
+**Parameters:** None
+
+**Returns:** Array of workflow templates with name, description, and model type.
+
+### 3. get_workflow
+
+Get a sample workflow by name.
+
+**Parameters:**
+- `name` (required): Workflow name (e.g., `flux_default`, `sdxl_default`, `img2img`)
+
+### 4. list_models
+
+List available models of a specific type.
+
+**Parameters:**
+- `model_type` (required): Type of models (`checkpoint`, `lora`, or `vae`)
+
+### 5. upload_lora
+
+Upload a LoRA model to ComfyUI.
+
+**Parameters:**
+- `filename` (required): Filename for the LoRA (must end in .safetensors or .ckpt)
+- `data` (required): Base64-encoded LoRA file data
+- `metadata` (optional): JSON metadata to save alongside the LoRA
+
+### 6. list_loras
+
+List all uploaded LoRA models.
+
+**Parameters:** None
+
+**Returns:** Array of LoRA info with name, filename, and file size.
+
+### 7. download_lora
+
+Download a LoRA model as base64.
+
+**Parameters:**
+- `filename` (required): LoRA filename to download
+
+### 8. get_object_info
+
+Get ComfyUI node information including available nodes and their inputs.
+
+**Parameters:** None
+
+### 9. get_system_info
+
+Get ComfyUI system statistics including GPU info.
+
+**Parameters:** None
+
+**Returns:** System info including Python version and GPU VRAM stats.
+
+### 10. execute_workflow
+
+Execute a custom ComfyUI workflow.
+
+**Parameters:**
+- `workflow` (required): Complete workflow JSON
+- `timeout` (optional, default: 300): Timeout in seconds
+
+**Example:**
+```json
+{
+  "workflow": {
+    "1": {
+      "inputs": {"ckpt_name": "flux1-dev-fp8.safetensors"},
+      "class_type": "CheckpointLoaderSimple"
+    }
+  }
+}
+```
+
+## Workflow Templates
+
+| Template | Description | Model Type |
+|----------|-------------|------------|
+| `flux_default` | FLUX text-to-image with FP8 checkpoint | flux |
+| `sdxl_default` | SDXL/IllustriousXL text-to-image | sdxl |
+| `flux_with_lora` | FLUX with LoRA support | flux |
+| `img2img` | Image transformation with prompts | any |
+| `upscale` | AI upscaling (4x-UltraSharp) | upscale |
+| `controlnet` | ControlNet-guided generation | any |
+
+## Default Models
+
+The workflows use these default models (must be available in ComfyUI):
+
+- **FLUX**: `flux1-dev-fp8.safetensors`
+- **SDXL**: `illustriousXL_smoothftSOLID.safetensors`
+- **Upscale**: `4x-UltraSharp.pth`
+- **ControlNet**: `control_v11p_sd15_canny.pth`
+
+## Architecture
+
+### Components
+
+- **MCP Server**: Built on mcp-core Rust library
+- **HTTP Client**: reqwest for ComfyUI API communication
+- **Async Runtime**: Tokio for high-performance async operations
+
+### Flow
+
+1. Client sends generation request to MCP server
+2. Server constructs workflow JSON from parameters
+3. Workflow queued to ComfyUI via HTTP API
+4. Server polls history endpoint until completion
+5. Image paths returned to client
+
+### Error Handling
+
+- **Timeout**: Configurable timeout for long generations
+- **ComfyUI Errors**: API errors passed through with status codes
+- **Validation**: Parameter validation before queuing
+
+## Integration with .mcp.json
+
+```json
+{
+  "mcpServers": {
+    "comfyui": {
+      "command": "mcp-comfyui",
+      "args": ["--mode", "standalone", "--port", "8013"],
+      "env": {
+        "COMFYUI_HOST": "192.168.0.222",
+        "COMFYUI_PORT": "8188"
+      }
+    }
+  }
+}
+```
+
+## Related Documentation
+
+- [MCP Core Rust](../../mcp_core_rust/docs/README.md)
+- [AI Toolkit Server](../../mcp_ai_toolkit/docs/README.md)
 
 ## License
 
-Part of the template-repo project. See repository LICENSE file.
+Part of the template-repo project. See repository root [LICENSE](../../../../LICENSE) file.
