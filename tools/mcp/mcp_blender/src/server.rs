@@ -521,9 +521,15 @@ Lighting types: three_point, studio, hdri, sun, area"#
             .get("type")
             .and_then(|v| v.as_str())
             .ok_or_else(|| MCPError::InvalidParameters("Missing 'type' parameter".to_string()))?;
-        let settings = args.get("settings").cloned().unwrap_or(json!({}));
+        let mut settings = args.get("settings").cloned().unwrap_or(json!({}));
 
         let project_path = self.server.validate_project_path(project).await?;
+
+        // Validate hdri_path if present to prevent directory traversal
+        if let Some(hdri_path) = settings.get("hdri_path").and_then(|v| v.as_str()) {
+            let validated_path = self.server.validate_asset_path(hdri_path).await?;
+            settings["hdri_path"] = json!(validated_path);
+        }
 
         let script_args = json!({
             "operation": "setup_lighting",
@@ -2640,7 +2646,8 @@ impl Tool for BlenderStatusTool {
             "blender_available": blender_path.is_some(),
             "blender_path": blender_path,
             "base_dir": executor.base_dir().to_string_lossy(),
-            "scripts_dir": executor.projects_dir().to_string_lossy(),
+            "scripts_dir": executor.scripts_dir().to_string_lossy(),
+            "projects_dir": executor.projects_dir().to_string_lossy(),
             "output_dir": executor.output_dir().to_string_lossy(),
             "jobs": {
                 "running": running_jobs,
@@ -3253,6 +3260,13 @@ Supports extrusion, bevel, and custom fonts."#
 
         let project_path = self.server.validate_project_path(project).await?;
 
+        // Validate font_path if present to prevent directory traversal
+        let validated_font_path = if let Some(font_path) = args.get("font_path").and_then(|v| v.as_str()) {
+            Some(self.server.validate_asset_path(font_path).await?)
+        } else {
+            None
+        };
+
         let script_args = json!({
             "operation": "create_text_object",
             "project": project_path,
@@ -3265,7 +3279,7 @@ Supports extrusion, bevel, and custom fonts."#
             "bevel_depth": args.get("bevel_depth").and_then(|v| v.as_f64()).unwrap_or(0.0),
             "align_x": args.get("align_x").and_then(|v| v.as_str()).unwrap_or("LEFT"),
             "align_y": args.get("align_y").and_then(|v| v.as_str()).unwrap_or("TOP"),
-            "font_path": args.get("font_path").and_then(|v| v.as_str())
+            "font_path": validated_font_path
         });
 
         let result = self

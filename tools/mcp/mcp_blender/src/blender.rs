@@ -10,6 +10,21 @@ use tokio::sync::{RwLock, Semaphore};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
+/// Script argument parsing patterns used by different Blender Python scripts
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ScriptType {
+    /// Inline JSON: `blender --python script.py -- <json_string>`
+    /// Used by: advanced_objects.py, quick_effects.py
+    InlineJson,
+    /// File with job ID: `blender --python script.py -- args.json job_id`
+    /// Used by: render.py, scene_builder.py, animation.py, environment.py,
+    ///          geometry_nodes.py, physics_sim.py
+    FileWithJobId,
+    /// Argparse with --args: `blender --python script.py -- --args <json_string>`
+    /// Used by: camera_tools.py, modifiers.py, particles.py
+    ArgparseArgs,
+}
+
 /// Blender executor for running Python scripts in headless Blender
 pub struct BlenderExecutor {
     blender_path: Arc<RwLock<Option<PathBuf>>>,
@@ -82,6 +97,11 @@ impl BlenderExecutor {
     /// Get the outputs directory
     pub fn output_dir(&self) -> &Path {
         &self.output_dir
+    }
+
+    /// Get the scripts directory
+    pub fn scripts_dir(&self) -> &Path {
+        &self.scripts_dir
     }
 
     /// Ensure Blender is available
@@ -205,13 +225,53 @@ impl BlenderExecutor {
             script_name, args
         );
 
-        // Build Blender command
+        // Scripts have different argument parsing patterns:
+        // - Pattern 1 (inline JSON): advanced_objects.py, quick_effects.py
+        //   Expects: blender --python script.py -- <json_string>
+        // - Pattern 2 (file + job_id): render.py, scene_builder.py, animation.py, etc.
+        //   Expects: blender --python script.py -- args.json job_id
+        // - Pattern 3 (argparse --args): camera_tools.py, modifiers.py, particles.py
+        //   Expects: blender --python script.py -- --args <json_string>
+        let script_type = Self::detect_script_type(script_name);
+
+        // For file-based scripts, write args to a temp file
+        let temp_file = if script_type == ScriptType::FileWithJobId {
+            let temp_dir = self.base_dir.join("temp");
+            tokio::fs::create_dir_all(&temp_dir)
+                .await
+                .map_err(|e| MCPError::Internal(format!("Failed to create temp dir: {}", e)))?;
+            let temp_path = temp_dir.join(format!("{}.json", job_id));
+            let json_str = serde_json::to_string(&args).unwrap_or_default();
+            tokio::fs::write(&temp_path, &json_str)
+                .await
+                .map_err(|e| MCPError::Internal(format!("Failed to write temp file: {}", e)))?;
+            Some(temp_path)
+        } else {
+            None
+        };
+
+        // Build Blender command with appropriate arguments
         let mut cmd = Command::new(&blender_path);
-        cmd.arg("--background")
-            .arg("--python")
-            .arg(&script_path)
-            .arg("--")
-            .arg(serde_json::to_string(&args).unwrap_or_default());
+        cmd.arg("--background").arg("--python").arg(&script_path);
+
+        match script_type {
+            ScriptType::InlineJson => {
+                cmd.arg("--")
+                    .arg(serde_json::to_string(&args).unwrap_or_default());
+            }
+            ScriptType::FileWithJobId => {
+                if let Some(ref temp_path) = temp_file {
+                    cmd.arg("--")
+                        .arg(temp_path.to_string_lossy().as_ref())
+                        .arg(job_id.to_string());
+                }
+            }
+            ScriptType::ArgparseArgs => {
+                cmd.arg("--")
+                    .arg("--args")
+                    .arg(serde_json::to_string(&args).unwrap_or_default());
+            }
+        }
 
         // Set environment variables
         if let Ok(cuda_devices) = std::env::var("CUDA_VISIBLE_DEVICES") {
@@ -238,6 +298,13 @@ impl BlenderExecutor {
         {
             let mut processes = self.processes.write().await;
             processes.remove(&job_id);
+        }
+
+        // Clean up temp file if created
+        if let Some(temp_path) = temp_file {
+            if let Err(e) = tokio::fs::remove_file(&temp_path).await {
+                debug!("Failed to remove temp file {:?}: {}", temp_path, e);
+            }
         }
 
         if !output.status.success() {
@@ -411,6 +478,20 @@ impl BlenderExecutor {
         path.extension()
             .and_then(|ext| ext.to_str())
             .map(|ext| ext.to_uppercase())
+    }
+
+    /// Detect the argument parsing pattern used by a script
+    fn detect_script_type(script_name: &str) -> ScriptType {
+        match script_name {
+            // Pattern 1: Inline JSON parsing
+            "advanced_objects.py" | "quick_effects.py" => ScriptType::InlineJson,
+            // Pattern 3: Argparse with --args flag
+            "camera_tools.py" | "modifiers.py" | "particles.py" => ScriptType::ArgparseArgs,
+            // Pattern 2: File with job ID (default for most scripts)
+            // render.py, scene_builder.py, animation.py, environment.py,
+            // geometry_nodes.py, physics_sim.py
+            _ => ScriptType::FileWithJobId,
+        }
     }
 
     /// List available projects
