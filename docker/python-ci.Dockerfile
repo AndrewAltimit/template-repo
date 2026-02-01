@@ -87,9 +87,9 @@ COPY packages/sleeper_agents /app/packages/sleeper_agents
 #   - mcp_github_board, mcp_elevenlabs_speech, mcp_agentcore_memory
 #   - mcp_desktop_control, mcp_blender, mcp_comfyui, mcp_ai_toolkit
 #   - mcp_video_editor, mcp_virtual_character, mcp_gaea2, mcp_memory_explorer
+#   - mcp_core (Python version deprecated - all MCP servers are now Rust)
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install \
-    /app/tools/mcp/mcp_core \
     /app/packages/sleeper_agents
 
 # Copy linting configuration files to both /workspace and /app
