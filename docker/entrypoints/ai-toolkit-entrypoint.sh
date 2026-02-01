@@ -23,10 +23,10 @@ while ! curl -s http://localhost:8675/ > /dev/null 2>&1; do
 done
 echo " AI Toolkit UI is ready!"
 
-# Start MCP server
+# Start MCP server (Rust binary)
 echo "Starting AI Toolkit MCP Server on port 8012..."
 cd /workspace
-python3 -m tools.mcp.ai_toolkit.server --mode http --host 0.0.0.0 --port 8012 &
+mcp-ai-toolkit --mode http --host 0.0.0.0 --port 8012 &
 MCP_PID=$!
 
 # Keep container running and handle shutdown
