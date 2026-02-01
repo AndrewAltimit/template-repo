@@ -218,20 +218,9 @@ def batch_render(args, job_id):
 
                 current_render += 1
                 progress = int((current_render / total_renders) * 100)
-                update_status(
-                    job_id,
-                    "RUNNING",
-                    progress,
-                    f"Rendered {current_render}/{total_renders}"
-                )
+                update_status(job_id, "RUNNING", progress, f"Rendered {current_render}/{total_renders}")
 
-        update_status(
-            job_id,
-            "COMPLETED",
-            100,
-            f"Batch render complete: {len(output_files)} images",
-            output_path=output_dir
-        )
+        update_status(job_id, "COMPLETED", 100, f"Batch render complete: {len(output_files)} images", output_path=output_dir)
 
         return True
 
