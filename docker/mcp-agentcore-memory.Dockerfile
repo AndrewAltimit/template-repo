@@ -51,9 +51,11 @@ USER mcp
 # Expose port for HTTP mode
 EXPOSE 8023
 
-# Health check
+# Health check (only works when running in standalone mode, not stdio)
+# When using docker-compose with --mode standalone, this health check is active
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8023/health || exit 1
 
 # Default command - run in STDIO mode for Claude Code integration
+# Note: Health check will fail in stdio mode (expected behavior)
 CMD ["mcp-agentcore-memory", "--mode", "stdio"]

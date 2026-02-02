@@ -107,28 +107,38 @@ docker compose run --rm python-ci pytest tests/ -v
 ### Creating New MCP Servers
 ```rust
 // tools/mcp/your_server/src/main.rs
+use anyhow::Result;
+use clap::Parser;
 use mcp_core::{MCPServer, init_logging, server::MCPServerArgs};
+
+#[derive(Parser)]
+#[command(name = "mcp-your-server")]
+struct Args {
+    #[command(flatten)]
+    server: MCPServerArgs,
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    init_logging();
-    let args = MCPServerArgs::parse();
-    let server = YourServer::new();
-    MCPServer::run(server, args).await
-}
+    let args = Args::parse();
+    init_logging(&args.server.log_level);
 
-// tools/mcp/your_server/src/server.rs
-use mcp_core::{MCPServer, tool::ToolRegistry};
+    // Create your server instance
+    let your_server = YourServer::new();
 
-pub fn build_server(port: u16) -> MCPServer {
-    let mut tools = ToolRegistry::new();
-    // Register your tools
-    // tools.register(YourTool);
+    // Build MCP server
+    let mut builder = MCPServer::builder("your-server", "1.0.0");
+    builder = args.server.apply_to(builder);
 
-    MCPServer::builder("your-server", "1.0.0")
-        .port(port)
-        .tool_boxed(/* your tools */)
-        .build()
+    // Register all tools
+    for tool in your_server.tools() {
+        builder = builder.tool_boxed(tool);
+    }
+
+    let server = builder.build();
+    server.run().await?;
+
+    Ok(())
 }
 ```
 
