@@ -78,11 +78,9 @@ impl GeminiAgent {
         // Build command with appropriate flags:
         // --yolo: Auto-approve all tool uses (needed for non-interactive mode)
         // --model: Specify the model to use
-        // --sandbox: Disable MCP servers and file system access (avoids connection errors in CI)
         // Prompt is passed via stdin to handle large prompts safely
         let mut cmd = Command::new(gemini_path);
         cmd.arg("--yolo")
-            .arg("--sandbox")
             .arg("--model")
             .arg(model)
             .stdin(Stdio::piped())
