@@ -238,32 +238,30 @@ services:
       - gpu
 
   # Gaea2 MCP Server (Windows host required for full functionality)
+  # Gaea2 MCP Server (Rust)
+  # Note: CLI automation requires Windows host with Gaea2 installed at GAEA2_PATH
+  #       Container provides project creation, validation, and template generation
   mcp-gaea2:
     build:
       context: .
       dockerfile: docker/mcp-gaea2.Dockerfile
-    # Note: user directive removed - entrypoint handles user switching after permission setup
     ports:
       - "8007:8007"
     volumes:
-      - ./:/app:ro
-      - ./outputs/mcp-gaea2:/output/gaea2  # Bind mount to local outputs directory
+      - ./outputs/mcp-gaea2:/output/gaea2  # Bind mount for generated projects
     environment:
-      - PYTHONUNBUFFERED=1
-      - PORT=8007
-      - GAEA2_TEST_MODE=0
-      - USER_ID=${USER_ID:-1000}
-      - GROUP_ID=${GROUP_ID:-1000}
+      - RUST_LOG=info
+      - MCP_OUTPUT_DIR=/output/gaea2
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_gaea2.server", "--mode", "http", "--output-dir", "/output/gaea2"]
+    command: ["mcp-gaea2", "--mode", "standalone", "--port", "8007", "--output-dir", "/output/gaea2"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 10s
     profiles:
       - services
 
