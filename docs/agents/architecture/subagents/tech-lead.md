@@ -31,15 +31,25 @@ You are the technical lead for @AndrewAltimit's single-maintainer project with a
 ```rust
 // ALWAYS follow this pattern for new MCP tools
 use mcp_core::prelude::*;
+use async_trait::async_trait;
 
-#[mcp_tool(name = "tool_name", description = "Tool description")]
-async fn your_tool(args: YourToolArgs) -> Result<ToolResult> {
-    // Implementation with proper error handling
-            # Your logic here
-            return {"success": True, "result": result}
-        except Exception as e:
-            logger.error(f"Tool failed: {e}")
-            return {"success": False, "error": str(e)}
+pub struct YourTool;
+
+#[async_trait]
+impl Tool for YourTool {
+    fn name(&self) -> &str { "tool_name" }
+    fn description(&self) -> &str { "Tool description" }
+    fn schema(&self) -> serde_json::Value {
+        serde_json::json!({
+            "type": "object",
+            "properties": {}
+        })
+    }
+    async fn execute(&self, args: serde_json::Value) -> Result<ToolResult> {
+        // Your logic here
+        Ok(ToolResult::text("success"))
+    }
+}
 ```
 
 ### Container Integration
@@ -108,22 +118,17 @@ async fn main() -> Result<()> {
 }
 
 // tools/mcp/your_server/src/server.rs
-use mcp_core::prelude::*;
+use mcp_core::{MCPServer, tool::ToolRegistry};
 
-pub struct YourServer;
+pub fn build_server(port: u16) -> MCPServer {
+    let mut tools = ToolRegistry::new();
+    // Register your tools
+    // tools.register(YourTool);
 
-impl YourServer {
-    pub fn new() -> Self {
-        Self
-    }
-}
-
-impl MCPServerTrait for YourServer {
-    fn name(&self) -> &'static str { "your-server" }
-    fn version(&self) -> &'static str { "1.0.0" }
-    fn tools(&self) -> Vec<BoxedTool> {
-        vec![/* your tools */]
-    }
+    MCPServer::builder("your-server", "1.0.0")
+        .port(port)
+        .tool_boxed(/* your tools */)
+        .build()
 }
 ```
 

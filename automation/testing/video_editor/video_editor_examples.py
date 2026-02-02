@@ -312,7 +312,7 @@ async def edit_interview():
     async with httpx.AsyncClient() as client:
         # Step 1: Analyze videos
         print("Analyzing videos...")
-        response = await client.post(f"{server_url}/tool", json={
+        response = await client.post(f"{server_url}/mcp/execute", json={
             "tool": "video_editor/analyze",
             "arguments": {
                 "video_inputs": ["camera1.mp4", "camera2.mp4"],
@@ -326,7 +326,7 @@ async def edit_interview():
 
         # Step 2: Create edit
         print("Creating edit decision list...")
-        response = await client.post(f"{server_url}/tool", json={
+        response = await client.post(f"{server_url}/mcp/execute", json={
             "tool": "video_editor/create_edit",
             "arguments": {
                 "video_inputs": ["camera1.mp4", "camera2.mp4"],
@@ -344,7 +344,7 @@ async def edit_interview():
 
         # Step 3: Render final video
         print("Rendering final video...")
-        response = await client.post(f"{server_url}/tool", json={
+        response = await client.post(f"{server_url}/mcp/execute", json={
             "tool": "video_editor/render",
             "arguments": {
                 "video_inputs": ["camera1.mp4", "camera2.mp4"],
@@ -380,7 +380,7 @@ def example_bash_usage():
 SERVER_URL="http://localhost:8019"
 
 # Example 1: Analyze a video
-curl -X POST "$SERVER_URL/tool" \\
+curl -X POST "$SERVER_URL/mcp/execute" \\
   -H "Content-Type: application/json" \\
   -d '{
     "tool": "video_editor/analyze",
@@ -394,7 +394,7 @@ curl -X POST "$SERVER_URL/tool" \\
   }'
 
 # Example 2: Create an edit
-curl -X POST "$SERVER_URL/tool" \\
+curl -X POST "$SERVER_URL/mcp/execute" \\
   -H "Content-Type: application/json" \\
   -d '{
     "tool": "video_editor/create_edit",
@@ -408,7 +408,7 @@ curl -X POST "$SERVER_URL/tool" \\
 
 # Example 3: Check job status
 JOB_ID="job_123"
-curl "$SERVER_URL/tool" \\
+curl "$SERVER_URL/mcp/execute" \\
   -H "Content-Type: application/json" \\
   -d '{
     "tool": "video_editor/get_job_status",

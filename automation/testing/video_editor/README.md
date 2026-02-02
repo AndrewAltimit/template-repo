@@ -184,7 +184,7 @@ When the MCP server is running, you can use the full feature set via HTTP:
 import httpx
 
 async with httpx.AsyncClient() as client:
-    response = await client.post("http://localhost:8019/tool", json={
+    response = await client.post("http://localhost:8019/mcp/execute", json={
         "tool": "video_editor/analyze",
         "arguments": {
             "video_inputs": ["video.mp4"],
