@@ -3,8 +3,10 @@
 # Use bookworm-based rust image to match runtime glibc version
 FROM rust:1.93-slim-bookworm AS builder
 
-# Install X11 development libraries for building
+# Install X11 development libraries and build dependencies for building
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config \
+    libssl-dev \
     libx11-dev \
     libxcb1-dev \
     libxkbcommon-dev \
