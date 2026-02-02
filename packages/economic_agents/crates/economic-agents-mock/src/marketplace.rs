@@ -259,7 +259,7 @@ fn generate_skills_for_category<R: Rng>(category: TaskCategory, rng: &mut R) -> 
         ],
         TaskCategory::Documentation => {
             vec![Skill::TechnicalWriting, Skill::Research, Skill::ApiDesign]
-        }
+        },
         TaskCategory::DataAnalysis => vec![
             Skill::DataAnalysis,
             Skill::Python,

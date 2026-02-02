@@ -215,7 +215,7 @@ except SyntaxError as e:
             "python" => {
                 self.run_python_test(challenge, solution, test_case, start)
                     .await
-            }
+            },
             lang => TestResult {
                 name: test_case.name.clone(),
                 passed: false,
@@ -272,7 +272,7 @@ except Exception as e:
                     error: Some(format!("Failed to spawn Python: {}", e)),
                     execution_time_ms: start.elapsed().as_millis() as u64,
                 };
-            }
+            },
         };
 
         // Take ownership of stdout/stderr before the async block
@@ -318,7 +318,7 @@ except Exception as e:
                     )),
                     execution_time_ms: start.elapsed().as_millis() as u64,
                 };
-            }
+            },
         };
 
         let stdout = String::from_utf8_lossy(&stdout_buf).trim().to_string();

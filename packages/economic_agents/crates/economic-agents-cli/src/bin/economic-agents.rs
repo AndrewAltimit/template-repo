@@ -252,7 +252,7 @@ async fn main() -> anyhow::Result<()> {
                             "duration_ms": result.duration_ms,
                         }))?
                     );
-                }
+                },
                 _ => {
                     println!("\n=== Agent Run Complete ===");
                     println!("Agent: {}", result.agent_id);
@@ -267,9 +267,9 @@ async fn main() -> anyhow::Result<()> {
                     println!("Net profit: ${:.2}", result.net_profit());
                     println!("Has company: {}", result.has_company);
                     println!("Duration: {}ms", result.duration_ms);
-                }
+                },
             }
-        }
+        },
 
         Commands::Dashboard {
             port,
@@ -294,7 +294,7 @@ async fn main() -> anyhow::Result<()> {
 
             let listener = tokio::net::TcpListener::bind(addr).await?;
             axum::serve(listener, router).await?;
-        }
+        },
 
         Commands::Scenario {
             name,
@@ -346,12 +346,12 @@ async fn main() -> anyhow::Result<()> {
                             "best_performer": result.best_performer().map(|b| &b.agent_id),
                         }))?
                     );
-                }
+                },
                 _ => {
                     result.print_summary();
-                }
+                },
             }
-        }
+        },
 
         Commands::ListScenarios => {
             println!("\nAvailable Scenarios:");
@@ -360,7 +360,7 @@ async fn main() -> anyhow::Result<()> {
                 println!("  {:<20} - {}", name, description);
             }
             println!("\nUsage: economic-agents scenario <name>\n");
-        }
+        },
 
         Commands::Status { output } => {
             let state_manager = StateManager::with_default_dir().await?;
@@ -383,7 +383,7 @@ async fn main() -> anyhow::Result<()> {
                             })).collect::<Vec<_>>(),
                         }))?
                     );
-                }
+                },
                 _ => {
                     println!("\n=== Economic Agents Status ===\n");
                     println!("Data directory: {}", state_manager.base_dir().display());
@@ -406,9 +406,9 @@ async fn main() -> anyhow::Result<()> {
                         }
                     }
                     println!();
-                }
+                },
             }
-        }
+        },
 
         Commands::ListSaved { output } => {
             let state_manager = StateManager::with_default_dir().await?;
@@ -430,7 +430,7 @@ async fn main() -> anyhow::Result<()> {
                                 .collect::<Vec<_>>()
                         )?
                     );
-                }
+                },
                 _ => {
                     if agents.is_empty() {
                         println!("No saved agents found.");
@@ -455,9 +455,9 @@ async fn main() -> anyhow::Result<()> {
                         println!("{:-<70}", "");
                         println!("Total: {} agents\n", agents.len());
                     }
-                }
+                },
             }
-        }
+        },
 
         Commands::DeleteSaved { agent_id, force } => {
             let state_manager = StateManager::with_default_dir().await?;
@@ -480,7 +480,7 @@ async fn main() -> anyhow::Result<()> {
 
             state_manager.delete_agent_state(&agent_id).await?;
             println!("Agent '{}' deleted.", agent_id);
-        }
+        },
 
         Commands::Report {
             agent_id,
@@ -503,7 +503,7 @@ async fn main() -> anyhow::Result<()> {
                     } else {
                         report.to_markdown()
                     }
-                }
+                },
                 ReportTypeArg::Technical => {
                     let report = generator.generate_technical_report();
                     if output == "json" {
@@ -511,7 +511,7 @@ async fn main() -> anyhow::Result<()> {
                     } else {
                         report.to_markdown()
                     }
-                }
+                },
                 ReportTypeArg::Audit => {
                     let report = generator.generate_audit_trail();
                     if output == "json" {
@@ -519,7 +519,7 @@ async fn main() -> anyhow::Result<()> {
                     } else {
                         report.to_markdown()
                     }
-                }
+                },
                 ReportTypeArg::Governance => {
                     let report = generator.generate_governance_analysis();
                     if output == "json" {
@@ -527,11 +527,11 @@ async fn main() -> anyhow::Result<()> {
                     } else {
                         report.to_markdown()
                     }
-                }
+                },
             };
 
             println!("{}", report_markdown);
-        }
+        },
 
         Commands::Analyze {
             agent_id,
@@ -562,7 +562,7 @@ async fn main() -> anyhow::Result<()> {
                         "quality_scores": quality_scores,
                         "recommendations": alignment.recommendations,
                     })
-                }
+                },
                 AnalysisType::Risk => {
                     let mut profiler = RiskProfiler::with_agent_id(&agent_id);
                     let decisions = convert_to_risk_records(&loaded.decisions);
@@ -589,7 +589,7 @@ async fn main() -> anyhow::Result<()> {
                             "compute_hours": c.compute_hours,
                         })).collect::<Vec<_>>(),
                     })
-                }
+                },
                 AnalysisType::Behavior => {
                     let mut detector = EmergentBehaviorDetector::with_agent_id(&agent_id);
                     let decisions = convert_to_behavior_records(&loaded.decisions);
@@ -617,7 +617,7 @@ async fn main() -> anyhow::Result<()> {
                             "confidence": p.confidence,
                         })).collect::<Vec<_>>(),
                     })
-                }
+                },
                 AnalysisType::LlmQuality => {
                     let mut analyzer = LLMQualityAnalyzer::with_agent_id(&agent_id);
                     let decisions = convert_to_llm_records(&loaded.decisions);
@@ -643,13 +643,13 @@ async fn main() -> anyhow::Result<()> {
                             "cycle": h.cycle,
                         })).collect::<Vec<_>>(),
                     })
-                }
+                },
             };
 
             match output.as_str() {
                 "json" => {
                     println!("{}", serde_json::to_string_pretty(&result)?);
-                }
+                },
                 _ => {
                     println!("\n{}", "=".repeat(60));
                     println!(
@@ -693,7 +693,7 @@ async fn main() -> anyhow::Result<()> {
                                     println!("  - {}", rec.as_str().unwrap_or("?"));
                                 }
                             }
-                        }
+                        },
                         AnalysisType::Risk => {
                             println!("\nRisk Tolerance:");
                             println!(
@@ -722,7 +722,7 @@ async fn main() -> anyhow::Result<()> {
                                 "\nCrisis decisions: {}",
                                 result["crisis_decisions_count"].as_u64().unwrap_or(0)
                             );
-                        }
+                        },
                         AnalysisType::Behavior => {
                             if let Some(strategies) = result["novel_strategies"].as_array() {
                                 if !strategies.is_empty() {
@@ -755,7 +755,7 @@ async fn main() -> anyhow::Result<()> {
                                     println!("    {}", p["description"].as_str().unwrap_or(""));
                                 }
                             }
-                        }
+                        },
                         AnalysisType::LlmQuality => {
                             println!("\nQuality Metrics:");
                             println!(
@@ -792,12 +792,12 @@ async fn main() -> anyhow::Result<()> {
                             } else {
                                 println!("\nNo hallucinations detected.");
                             }
-                        }
+                        },
                     }
                     println!("\n{}", "=".repeat(60));
-                }
+                },
             }
-        }
+        },
     }
 
     Ok(())

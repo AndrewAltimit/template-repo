@@ -231,7 +231,7 @@ Values must sum to 1.0. Consider:
             _ => {
                 warn!("Unknown decision type: {}", parsed.decision_type);
                 return None;
-            }
+            },
         };
 
         Some(Decision {
@@ -414,7 +414,7 @@ impl DecisionEngine for LlmDecisionEngine {
                     "LLM decision made"
                 );
                 Ok(decision)
-            }
+            },
             Err(e) => {
                 if self.config.fallback_enabled {
                     warn!(error = %e, "LLM call failed, using fallback");
@@ -422,7 +422,7 @@ impl DecisionEngine for LlmDecisionEngine {
                 } else {
                     Err(e)
                 }
-            }
+            },
         }
     }
 
@@ -446,7 +446,7 @@ impl DecisionEngine for LlmDecisionEngine {
                     "LLM allocation made"
                 );
                 Ok(allocation)
-            }
+            },
             Err(e) => {
                 if self.config.fallback_enabled {
                     warn!(error = %e, "LLM allocation failed, using fallback");
@@ -472,7 +472,7 @@ impl DecisionEngine for LlmDecisionEngine {
                 } else {
                     Err(e)
                 }
-            }
+            },
         }
     }
 }

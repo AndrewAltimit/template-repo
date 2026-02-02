@@ -42,11 +42,11 @@ pub extern "system" fn DllMain(
                     vlog!("Init failed: {}", e);
                 }
             });
-        }
+        },
         DLL_PROCESS_DETACH => {
             shutdown();
-        }
-        _ => {}
+        },
+        _ => {},
     }
     TRUE
 }

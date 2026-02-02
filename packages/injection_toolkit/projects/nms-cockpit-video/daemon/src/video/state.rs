@@ -94,7 +94,7 @@ impl PlayerState {
                 // Calculate current position based on elapsed time
                 let elapsed_ms = started_at.elapsed().as_millis() as u64;
                 position_ms.saturating_add(elapsed_ms)
-            }
+            },
             PlayerState::Paused { position_ms, .. } => *position_ms,
             PlayerState::Buffering {
                 target_position_ms, ..

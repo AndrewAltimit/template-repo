@@ -31,7 +31,7 @@ impl FrameWriter {
                 // Fall back to opening existing region (injector may still hold it)
                 info!("Shared memory already exists, reusing existing region");
                 FrameBuffer::open(name, width, height)?
-            }
+            },
             Err(e) => return Err(e.into()),
         };
         Ok(Self {

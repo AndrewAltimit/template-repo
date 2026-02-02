@@ -331,7 +331,7 @@ impl DriftCorrector {
                 } else {
                     1.02
                 }
-            }
+            },
             501..=1500 => {
                 // Moderate correction
                 if drift_ms > 0 {
@@ -339,11 +339,11 @@ impl DriftCorrector {
                 } else {
                     1.05
                 }
-            }
+            },
             _ => {
                 // Large drift - recommend hard seek instead
                 0.0
-            }
+            },
         }
     }
 

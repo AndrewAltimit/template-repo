@@ -398,7 +398,7 @@ impl AutonomousSubAgent {
                         };
                         results.push(result.clone());
                         delegation.result = Some(result);
-                    }
+                    },
                     Err(e) => {
                         delegation.status = DelegationStatus::Failed;
                         delegation.result = Some(DelegationResult {
@@ -408,7 +408,7 @@ impl AutonomousSubAgent {
                             quality_score: None,
                             notes: format!("Error: {}", e),
                         });
-                    }
+                    },
                 }
             }
         }

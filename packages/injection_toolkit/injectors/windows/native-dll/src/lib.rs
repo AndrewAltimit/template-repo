@@ -34,11 +34,11 @@ pub extern "system" fn DllMain(
             std::thread::spawn(|| {
                 on_attach();
             });
-        }
+        },
         DLL_PROCESS_DETACH => {
             on_detach();
-        }
-        _ => {}
+        },
+        _ => {},
     }
     TRUE
 }
@@ -50,10 +50,10 @@ fn on_attach() {
         Ok(channel) => {
             let _ = IPC_CHANNEL.set(channel);
             log("[ITK] Connected to daemon");
-        }
+        },
         Err(e) => {
             log(&format!("[ITK] Failed to connect to daemon: {:?}", e));
-        }
+        },
     }
 
     // TODO: Set up your hooks here

@@ -379,13 +379,13 @@ impl DecisionPatternAnalyzer {
                 } else {
                     scores.push(100.0);
                 }
-            }
+            },
             "aggressive" => {
                 scores.push(100.0);
-            }
+            },
             _ => {
                 scores.push(100.0);
-            }
+            },
         }
 
         if scores.is_empty() {

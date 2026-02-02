@@ -51,7 +51,7 @@ impl AudioPlayer {
             None => {
                 warn!("No audio output device available");
                 return None;
-            }
+            },
         };
 
         let device_name = device.name().unwrap_or_else(|_| "unknown".to_string());
@@ -63,7 +63,7 @@ impl AudioPlayer {
             None => {
                 warn!("No suitable audio output configuration");
                 return None;
-            }
+            },
         };
 
         let sample_rate = config.sample_rate.0;
@@ -246,7 +246,7 @@ fn audio_decode_loop(
         Err(e) => {
             error!(?e, "Failed to open audio source");
             return;
-        }
+        },
     };
 
     // Find audio stream
@@ -255,7 +255,7 @@ fn audio_decode_loop(
         None => {
             info!("No audio stream found in source");
             return;
-        }
+        },
     };
 
     let audio_stream_index = audio_stream.index();
@@ -268,7 +268,7 @@ fn audio_decode_loop(
         None => {
             error!(?codec_id, "No audio decoder found");
             return;
-        }
+        },
     };
 
     let mut decoder_ctx = codec::context::Context::new_with_codec(codec);
@@ -282,7 +282,7 @@ fn audio_decode_loop(
         Err(e) => {
             error!(?e, "Failed to open audio decoder");
             return;
-        }
+        },
     };
 
     info!(
@@ -312,11 +312,11 @@ fn audio_decode_loop(
                 AudioCommand::Play => {
                     debug!("Audio: play");
                     paused.store(false, Ordering::Relaxed);
-                }
+                },
                 AudioCommand::Pause => {
                     debug!("Audio: pause");
                     paused.store(true, Ordering::Relaxed);
-                }
+                },
                 AudioCommand::Seek { position_ms } => {
                     debug!(position_ms, "Audio: seek");
                     let timestamp_us = (position_ms as i64) * 1000;
@@ -326,14 +326,14 @@ fn audio_decode_loop(
                     audio_decoder.flush();
                     // Signal consumer to discard buffered samples
                     flush_flag.store(true, Ordering::Release);
-                }
+                },
                 AudioCommand::SetVolume { volume } => {
                     volume_atomic.store(volume.to_bits(), Ordering::Relaxed);
-                }
+                },
                 AudioCommand::Stop => {
                     debug!("Audio: stop");
                     running = false;
-                }
+                },
             }
         }
 
@@ -381,12 +381,12 @@ fn audio_decode_loop(
                                 "Audio resampler created"
                             );
                             resampler = Some(r);
-                        }
+                        },
                         Err(e) => {
                             error!(?e, "Failed to create audio resampler");
                             running = false;
                             continue;
-                        }
+                        },
                     }
                 }
 
@@ -425,26 +425,26 @@ fn audio_decode_loop(
                                     std::thread::sleep(Duration::from_millis(1));
                                 }
                             }
-                        }
+                        },
                         Err(e) => {
                             warn!(?e, "Audio resample failed");
-                        }
+                        },
                     }
                 }
-            }
+            },
             Err(ffmpeg_next::Error::Other { errno }) if errno == ffmpeg_next::error::EAGAIN => {
                 // Need more input packets - fall through to read next packet
-            }
+            },
             Err(ffmpeg_next::Error::Eof) => {
                 info!("Audio stream ended");
                 running = false;
                 continue;
-            }
+            },
             Err(e) => {
                 warn!(?e, "Audio decode error");
                 running = false;
                 continue;
-            }
+            },
         }
 
         // Read the next packet
@@ -455,11 +455,11 @@ fn audio_decode_loop(
                         warn!(?e, "Failed to send audio packet");
                     }
                 }
-            }
+            },
             None => {
                 // End of stream - flush decoder
                 let _ = audio_decoder.send_eof();
-            }
+            },
         }
     }
 

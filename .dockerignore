@@ -94,8 +94,8 @@ temp/
 *.dll
 *.exe
 
-# Rust build artifacts
-target/
+# Rust build artifacts (use **/ to match nested directories)
+**/target/
 **/*.rs.bk
 
 # Archives

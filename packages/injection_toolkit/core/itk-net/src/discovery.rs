@@ -161,14 +161,14 @@ impl Discovery {
                     if let Some(peer) = self.handle_packet(&buf[..len], src_addr) {
                         new_peers.push(peer);
                     }
-                }
+                },
                 Err(ref e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     break;
-                }
+                },
                 Err(e) => {
                     warn!(error = ?e, "Discovery recv error");
                     break;
-                }
+                },
             }
         }
 
@@ -186,7 +186,7 @@ impl Discovery {
             Err(e) => {
                 warn!(error = ?e, "Failed to serialize announce");
                 return;
-            }
+            },
         };
 
         // Broadcast to LAN

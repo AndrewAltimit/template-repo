@@ -245,17 +245,17 @@ impl VideoDecoder {
                         width: self.scaler.width(),
                         height: self.scaler.height(),
                     }));
-                }
+                },
                 Err(ffmpeg_next::Error::Other { errno }) if errno == ffmpeg_next::error::EAGAIN => {
                     // Need more input, continue to read packets
-                }
+                },
                 Err(ffmpeg_next::Error::Eof) => {
                     // End of stream
                     return Ok(None);
-                }
+                },
                 Err(e) => {
                     return Err(VideoError::DecodeError(e.to_string()));
-                }
+                },
             }
 
             // Read the next packet
@@ -266,11 +266,11 @@ impl VideoDecoder {
                         self.decoder.send_packet(&packet)?;
                     }
                     // Non-video packets are ignored
-                }
+                },
                 None => {
                     // No more packets, flush the decoder
                     self.decoder.send_eof()?;
-                }
+                },
             }
         }
     }

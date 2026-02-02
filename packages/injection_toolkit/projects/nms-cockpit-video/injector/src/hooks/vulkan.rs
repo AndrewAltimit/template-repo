@@ -351,7 +351,7 @@ unsafe fn setup_icd_hooks(device: vk::Device) {
         Err(e) => {
             vlog!("Failed to get vulkan module for ICD hooks: {}", e);
             return;
-        }
+        },
     };
 
     // Get vkGetDeviceProcAddr from vulkan-1.dll
@@ -360,7 +360,7 @@ unsafe fn setup_icd_hooks(device: vk::Device) {
         Err(e) => {
             vlog!("Failed to get vkGetDeviceProcAddr: {}", e);
             return;
-        }
+        },
     };
     let gdpa: vk::PFN_vkGetDeviceProcAddr = std::mem::transmute(gdpa_addr);
 
@@ -380,10 +380,10 @@ unsafe fn setup_icd_hooks(device: vk::Device) {
                         let _ = ICD_PRESENT_DETOUR.set(DetourHolder(detour));
                         ICD_PRESENT_ACTIVE.store(true, Ordering::Relaxed);
                         vlog!("ICD vkQueuePresentKHR hooked successfully (loader hook disabled)");
-                    }
+                    },
                     Err(e) => vlog!("Failed to enable ICD present hook: {}", e),
                 }
-            }
+            },
             Err(e) => vlog!("Failed to create ICD present detour: {}", e),
         }
     } else {
@@ -405,10 +405,10 @@ unsafe fn setup_icd_hooks(device: vk::Device) {
                         let _ = ICD_SWAPCHAIN_TRAMPOLINE.set(trampoline);
                         let _ = ICD_SWAPCHAIN_DETOUR.set(DetourHolder(detour));
                         vlog!("ICD vkCreateSwapchainKHR hooked successfully");
-                    }
+                    },
                     Err(e) => vlog!("Failed to enable ICD swapchain hook: {}", e),
                 }
-            }
+            },
             Err(e) => vlog!("Failed to create ICD swapchain detour: {}", e),
         }
     } else {
@@ -526,13 +526,13 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
             match init_renderer(queue, swapchain) {
                 Ok(renderer) => {
                     *guard = Some(renderer);
-                }
+                },
                 Err(e) => {
                     if frame.is_multiple_of(300) {
                         vlog!("Renderer not ready: {}", e);
                     }
                     return;
-                }
+                },
             }
         }
 
@@ -543,13 +543,13 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
                 Ok(reader) => {
                     SHMEM_FAILED.store(false, Ordering::Relaxed);
                     Ok(Mutex::new(reader))
-                }
+                },
                 Err(e) => {
                     if !SHMEM_FAILED.swap(true, Ordering::Relaxed) {
                         vlog!("ShmemFrameReader open failed: {} (daemon not running?)", e);
                     }
                     Err(e)
-                }
+                },
             });
             let mut shmem_guard = reader_result.ok().and_then(|m| m.lock().ok());
             let new_frame = match shmem_guard.as_mut() {
@@ -567,13 +567,13 @@ unsafe fn try_render_overlay(queue: vk::Queue, present_info_ptr: *const c_void, 
                         }
                     }
                     result
-                }
+                },
                 None => {
                     if frame.is_multiple_of(600) {
                         vlog!("Waiting for video daemon (shmem not available)");
                     }
                     None
-                }
+                },
             };
 
             // Use cached swapchain images (fetched once per swapchain lifetime)

@@ -145,11 +145,11 @@ impl DaemonConnection {
             Ok(ch) => {
                 info!(channel = %self.channel_name, "Connected to daemon");
                 self.channel = Some(Box::new(ch));
-            }
+            },
             Err(e) => {
                 debug!(?e, "Daemon not available, will retry");
                 self.channel = None;
-            }
+            },
         }
     }
 
@@ -167,12 +167,12 @@ impl DaemonConnection {
                     warn!(?e, "Failed to send to daemon, disconnecting");
                     self.channel = None;
                     false
-                }
+                },
             },
             Err(e) => {
                 error!(?e, "Failed to encode message");
                 false
-            }
+            },
         }
     }
 
@@ -258,11 +258,11 @@ fn main() -> Result<()> {
                     match event {
                         WindowEvent::CloseRequested => {
                             elwt.exit();
-                        }
+                        },
 
                         WindowEvent::Resized(physical_size) => {
                             renderer.resize(physical_size);
-                        }
+                        },
 
                         WindowEvent::KeyboardInput { event, .. } => {
                             if event.state.is_pressed() {
@@ -286,7 +286,7 @@ fn main() -> Result<()> {
                                             },
                                             "Mode toggled"
                                         );
-                                    }
+                                    },
                                     // Space toggles play/pause in interactive mode
                                     winit::keyboard::PhysicalKey::Code(
                                         winit::keyboard::KeyCode::Space,
@@ -294,7 +294,7 @@ fn main() -> Result<()> {
                                         if !state.click_through {
                                             controls.toggle_play_pause();
                                         }
-                                    }
+                                    },
                                     // Left arrow seeks back 10s
                                     winit::keyboard::PhysicalKey::Code(
                                         winit::keyboard::KeyCode::ArrowLeft,
@@ -302,7 +302,7 @@ fn main() -> Result<()> {
                                         if !state.click_through {
                                             controls.seek_relative(-10_000);
                                         }
-                                    }
+                                    },
                                     // Right arrow seeks forward 10s
                                     winit::keyboard::PhysicalKey::Code(
                                         winit::keyboard::KeyCode::ArrowRight,
@@ -310,11 +310,11 @@ fn main() -> Result<()> {
                                         if !state.click_through {
                                             controls.seek_relative(10_000);
                                         }
-                                    }
-                                    _ => {}
+                                    },
+                                    _ => {},
                                 }
                             }
-                        }
+                        },
 
                         WindowEvent::RedrawRequested => {
                             // Get screen rect: prefer NMS mod rect, fall back to CLI/default
@@ -331,11 +331,11 @@ fn main() -> Result<()> {
                             if let Err(e) = renderer.render(screen_rect, show_ui, &mut controls) {
                                 error!(?e, "Render failed");
                             }
-                        }
+                        },
 
-                        _ => {}
+                        _ => {},
                     }
-                }
+                },
 
                 Event::AboutToWait => {
                     // Poll global F9 hotkey (works even in click-through mode)
@@ -382,9 +382,9 @@ fn main() -> Result<()> {
 
                     // Request redraw
                     window.request_redraw();
-                }
+                },
 
-                _ => {}
+                _ => {},
             }
         })
         .context("Event loop failed")?;

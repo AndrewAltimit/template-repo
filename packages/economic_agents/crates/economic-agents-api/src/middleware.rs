@@ -85,7 +85,7 @@ pub fn validate_api_key(
                 warn!("Invalid API key provided");
                 Err("Invalid API key".to_string())
             }
-        }
+        },
         None => {
             if config.required {
                 warn!("API key required but not provided");
@@ -94,7 +94,7 @@ pub fn validate_api_key(
                 debug!("No API key provided (optional auth)");
                 Ok(None)
             }
-        }
+        },
     }
 }
 
@@ -209,7 +209,10 @@ impl RateLimitState {
 
     /// Check if a request from the given client ID is allowed.
     pub fn check(&self, client_id: &str) -> bool {
-        let mut entries = self.entries.write().unwrap();
+        let mut entries = self
+            .entries
+            .write()
+            .expect("rate limit lock should not be poisoned");
         let entry = entries
             .entry(client_id.to_string())
             .or_insert_with(RateLimitEntry::new);
@@ -218,7 +221,10 @@ impl RateLimitState {
 
     /// Get remaining requests for a client.
     pub fn remaining(&self, client_id: &str) -> (u32, u32) {
-        let entries = self.entries.read().unwrap();
+        let entries = self
+            .entries
+            .read()
+            .expect("rate limit lock should not be poisoned");
         if let Some(entry) = entries.get(client_id) {
             let minute_remaining = self
                 .config

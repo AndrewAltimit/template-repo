@@ -72,7 +72,7 @@ impl ScenarioResult {
     pub fn best_performer(&self) -> Option<&AgentRunResult> {
         self.agent_results
             .iter()
-            .max_by(|a, b| a.net_profit().partial_cmp(&b.net_profit()).unwrap())
+            .max_by(|a, b| a.net_profit().total_cmp(&b.net_profit()))
     }
 
     /// Print a summary to stdout.

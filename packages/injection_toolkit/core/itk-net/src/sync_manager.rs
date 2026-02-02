@@ -252,16 +252,16 @@ impl SyncManager {
         match &cmd {
             VideoCommand::Load { url } => {
                 self.load(url.clone());
-            }
+            },
             VideoCommand::Play => {
                 self.play();
-            }
+            },
             VideoCommand::Pause => {
                 self.pause();
-            }
+            },
             VideoCommand::Seek { position_ms } => {
                 self.seek(*position_ms);
-            }
+            },
         }
 
         // Broadcast to peers
@@ -279,19 +279,19 @@ impl SyncManager {
             VideoCommand::Load { url } => {
                 info!(url = %url, "Received load command");
                 self.load(url);
-            }
+            },
             VideoCommand::Play => {
                 info!("Received play command");
                 self.play();
-            }
+            },
             VideoCommand::Pause => {
                 info!("Received pause command");
                 self.pause();
-            }
+            },
             VideoCommand::Seek { position_ms } => {
                 info!(position_ms, "Received seek command");
                 self.seek(position_ms);
-            }
+            },
         }
     }
 }

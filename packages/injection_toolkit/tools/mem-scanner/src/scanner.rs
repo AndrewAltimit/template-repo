@@ -72,17 +72,17 @@ fn parse_args() -> Result<Args, String> {
                 i += 1;
                 let s = args.get(i).ok_or("--min-addr requires a value")?;
                 min_addr = parse_hex(s)?;
-            }
+            },
             "--max-addr" => {
                 i += 1;
                 let s = args.get(i).ok_or("--max-addr requires a value")?;
                 max_addr = parse_hex(s)?;
-            }
+            },
             "--max-results" => {
                 i += 1;
                 let s = args.get(i).ok_or("--max-results requires a value")?;
                 max_results = s.parse().map_err(|e| format!("Invalid max-results: {e}"))?;
-            }
+            },
             "--hex" => output_json = false,
             "--json" => output_json = true,
             other => return Err(format!("Unknown option: {other}")),

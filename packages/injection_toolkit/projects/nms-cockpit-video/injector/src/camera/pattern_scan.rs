@@ -45,8 +45,8 @@ unsafe fn scan_region(base: *const u8, size: usize, pattern: &[PatternByte]) -> 
                         matched = false;
                         break;
                     }
-                }
-                PatternByte::Wildcard => {}
+                },
+                PatternByte::Wildcard => {},
             }
         }
         if matched {

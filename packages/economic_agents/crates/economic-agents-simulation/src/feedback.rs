@@ -17,7 +17,10 @@ impl FeedbackGenerator {
             ];
             (
                 FeedbackStatus::Excellent,
-                options.choose(&mut rng).unwrap().to_string(),
+                options
+                    .choose(&mut rng)
+                    .expect("feedback options array is non-empty")
+                    .to_string(),
             )
         } else if quality_score >= 0.7 {
             let options = [
@@ -27,7 +30,10 @@ impl FeedbackGenerator {
             ];
             (
                 FeedbackStatus::Good,
-                options.choose(&mut rng).unwrap().to_string(),
+                options
+                    .choose(&mut rng)
+                    .expect("feedback options array is non-empty")
+                    .to_string(),
             )
         } else if quality_score >= 0.5 {
             let options = [
@@ -37,7 +43,10 @@ impl FeedbackGenerator {
             ];
             (
                 FeedbackStatus::Acceptable,
-                options.choose(&mut rng).unwrap().to_string(),
+                options
+                    .choose(&mut rng)
+                    .expect("feedback options array is non-empty")
+                    .to_string(),
             )
         } else {
             let options = [
@@ -47,7 +56,10 @@ impl FeedbackGenerator {
             ];
             (
                 FeedbackStatus::NeedsImprovement,
-                options.choose(&mut rng).unwrap().to_string(),
+                options
+                    .choose(&mut rng)
+                    .expect("feedback options array is non-empty")
+                    .to_string(),
             )
         };
 

@@ -88,7 +88,7 @@ impl AutonomousAgent {
                 // Falls back to rule-based if Claude is not available
                 info!("Initializing LLM decision engine");
                 Box::new(LlmDecisionEngine::with_defaults())
-            }
+            },
         };
 
         Self {
@@ -243,7 +243,7 @@ impl AutonomousAgent {
                     reward,
                     final_submission.quality_score.unwrap_or(0.0),
                 ))
-            }
+            },
             SubmissionStatus::Rejected => {
                 self.state.record_failure();
 
@@ -262,14 +262,14 @@ impl AutonomousAgent {
                         .feedback
                         .unwrap_or_else(|| "Submission rejected".to_string()),
                 ))
-            }
+            },
             _ => {
                 // Still pending - treat as partial success
                 Ok(TaskWorkResult::failure(
                     format!("Submission still {:?}", final_submission.status),
                     actual_hours,
                 ))
-            }
+            },
         }
     }
 
@@ -439,7 +439,10 @@ impl AutonomousAgent {
         self.state.consume_compute(hours);
 
         // Determine activities based on company stage
-        let company = self.company.as_mut().unwrap();
+        let company = self
+            .company
+            .as_mut()
+            .expect("company existence verified above");
         let activities = match company.stage {
             CompanyStage::Ideation => {
                 // Transition to development after working on ideation
@@ -449,31 +452,31 @@ impl AutonomousAgent {
                     "Market research".to_string(),
                     "Product concept design".to_string(),
                 ]
-            }
+            },
             CompanyStage::Development => {
                 vec![
                     "Product development".to_string(),
                     "Engineering work".to_string(),
                     "Quality assurance".to_string(),
                 ]
-            }
+            },
             CompanyStage::SeekingInvestment => {
                 vec![
                     "Investor pitch preparation".to_string(),
                     "Due diligence materials".to_string(),
                     "Financial projections".to_string(),
                 ]
-            }
+            },
             CompanyStage::Operational => {
                 vec![
                     "Customer support".to_string(),
                     "Operations management".to_string(),
                     "Sales and marketing".to_string(),
                 ]
-            }
+            },
             CompanyStage::Failed => {
                 return Ok(CompanyWorkResult::failure("Company has failed", 0.0));
-            }
+            },
         };
 
         // Generate revenue based on company stage and maturity
@@ -482,11 +485,11 @@ impl AutonomousAgent {
                 // Revenue scales with product count and tasks completed
                 let base_rate = 2.0 + (company.products.len() as f64 * 0.5);
                 Some(hours * base_rate)
-            }
+            },
             CompanyStage::Development if self.state.tasks_completed > 10 => {
                 // Small revenue during development
                 Some(hours * 0.5)
-            }
+            },
             _ => None,
         };
 
@@ -580,7 +583,10 @@ impl AutonomousAgent {
         let wallet = Arc::clone(&backends.wallet);
 
         // Now work with company
-        let company = self.company.as_mut().unwrap();
+        let company = self
+            .company
+            .as_mut()
+            .expect("company existence verified above");
 
         // Can only seek investment if in Development or SeekingInvestment stage
         if !matches!(
@@ -669,22 +675,22 @@ impl AutonomousAgent {
                     requested_amount,
                     "Angel Investor Fund".to_string(),
                 ))
-            }
+            },
             economic_agents_investment::InvestmentDecision::Counteroffer => {
                 // Partial funding or different terms
                 let counter_amount = requested_amount * 0.5;
                 Ok(InvestmentResult::pending(proposal_id, counter_amount))
-            }
+            },
             economic_agents_investment::InvestmentDecision::Rejected => {
                 // Go back to development
                 if let Some(company) = self.company.as_mut() {
                     let _ = company.transition_to(CompanyStage::Development);
                 }
                 Ok(InvestmentResult::failure("Investment proposal rejected"))
-            }
+            },
             economic_agents_investment::InvestmentDecision::MoreInfoRequired => {
                 Ok(InvestmentResult::pending(proposal_id, requested_amount))
-            }
+            },
         }
     }
 
@@ -754,7 +760,7 @@ impl AutonomousAgent {
             Err(e) => {
                 result.add_error(format!("Failed to allocate resources: {}", e));
                 crate::decision::ResourceAllocation::default()
-            }
+            },
         };
 
         // Calculate hours for this cycle (default 8-hour work day)
@@ -772,7 +778,7 @@ impl AutonomousAgent {
                     reasoning: "Decision engine failed".to_string(),
                     confidence: 0.0,
                 }
-            }
+            },
         };
 
         result.decision = Some(DecisionRecord::from(&decision));
@@ -787,13 +793,13 @@ impl AutonomousAgent {
                         Err(e) => result.add_error(format!("Task work failed: {}", e)),
                     }
                 }
-            }
+            },
 
             DecisionType::PurchaseCompute { hours } => {
                 if let Err(e) = self.purchase_compute(*hours).await {
                     result.add_error(format!("Failed to purchase compute: {}", e));
                 }
-            }
+            },
 
             DecisionType::WorkOnCompany => {
                 // Check if should form company first
@@ -819,7 +825,7 @@ impl AutonomousAgent {
                         }
                     }
                 }
-            }
+            },
 
             DecisionType::SeekInvestment => match self.seek_investment().await {
                 Ok(inv_result) => result.investment_result = Some(inv_result),
@@ -828,7 +834,7 @@ impl AutonomousAgent {
 
             DecisionType::Wait => {
                 debug!(agent_id = %self.id, "Agent waiting this cycle");
-            }
+            },
         }
 
         // Step 5: Also do task work if in Company mode with allocation

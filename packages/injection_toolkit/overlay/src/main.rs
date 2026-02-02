@@ -73,7 +73,7 @@ impl ApplicationHandler for App {
                 error!(?e, "Failed to create window");
                 event_loop.exit();
                 return;
-            }
+            },
         };
 
         // Set platform-specific attributes
@@ -95,12 +95,12 @@ impl ApplicationHandler for App {
             Ok(r) => {
                 info!("Renderer initialized");
                 self.renderer = Some(r);
-            }
+            },
             Err(e) => {
                 error!(?e, "Failed to create renderer");
                 event_loop.exit();
                 return;
-            }
+            },
         }
 
         self.window = Some(window);
@@ -116,13 +116,13 @@ impl ApplicationHandler for App {
         match event {
             WindowEvent::CloseRequested => {
                 event_loop.exit();
-            }
+            },
 
             WindowEvent::Resized(physical_size) => {
                 if let Some(renderer) = &mut self.renderer {
                     renderer.resize(physical_size);
                 }
-            }
+            },
 
             WindowEvent::KeyboardInput { event, .. } => {
                 // F9 toggles click-through mode
@@ -141,7 +141,7 @@ impl ApplicationHandler for App {
                         info!(click_through = %self.state.click_through, "Toggled click-through mode");
                     }
                 }
-            }
+            },
 
             WindowEvent::RedrawRequested => {
                 if let Some(renderer) = &mut self.renderer {
@@ -159,9 +159,9 @@ impl ApplicationHandler for App {
                         error!(?e, "Render failed");
                     }
                 }
-            }
+            },
 
-            _ => {}
+            _ => {},
         }
     }
 

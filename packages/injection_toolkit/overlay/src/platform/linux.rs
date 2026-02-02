@@ -114,13 +114,13 @@ pub fn set_click_through_impl(window: &winit::window::Window, enabled: bool) -> 
                 window_id
             );
             Ok(())
-        }
+        },
         RawWindowHandle::Xcb(_) => {
             // XCB support could be added here using the same x11rb connection
             Err(OverlayError::UnsupportedPlatform(
                 "XCB not yet supported, use Xlib".into(),
             ))
-        }
+        },
         RawWindowHandle::Wayland(_) => {
             // Wayland doesn't support click-through in the same way
             // Layer-shell protocol would be needed
@@ -131,7 +131,7 @@ pub fn set_click_through_impl(window: &winit::window::Window, enabled: bool) -> 
                  or use an X11 session."
                     .into(),
             ))
-        }
+        },
         _ => Err(OverlayError::UnsupportedPlatform(
             "Unknown window handle type".into(),
         )),
@@ -211,7 +211,7 @@ pub fn set_always_on_top_impl(window: &winit::window::Window, enabled: bool) -> 
                 window_id
             );
             Ok(())
-        }
+        },
         _ => Err(OverlayError::UnsupportedPlatform(
             "Only Xlib supported for always-on-top".into(),
         )),
@@ -263,7 +263,7 @@ pub fn set_transparent_impl(window: &winit::window::Window) -> Result<()> {
 
             tracing::debug!("Set window type to DOCK for window {}", window_id);
             Ok(())
-        }
+        },
         _ => Ok(()), // Ignore for other platforms
     }
 }

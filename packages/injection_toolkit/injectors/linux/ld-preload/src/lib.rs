@@ -33,10 +33,10 @@ pub extern "C" fn itk_init() {
             let _ = IPC_CHANNEL.set(channel);
             // Log success (can't use tracing easily in injected context)
             eprintln!("[ITK] Connected to daemon");
-        }
+        },
         Err(e) => {
             eprintln!("[ITK] Failed to connect to daemon: {:?}", e);
-        }
+        },
     }
 }
 

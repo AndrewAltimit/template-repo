@@ -71,7 +71,7 @@ impl ShmemFrameReader {
                 } else {
                     None
                 }
-            }
+            },
             Err(_) => None,
         }
     }

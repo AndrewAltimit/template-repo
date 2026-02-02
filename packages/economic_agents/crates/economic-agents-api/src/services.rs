@@ -341,36 +341,36 @@ fn to_api_error(err: EconomicAgentError) -> (StatusCode, Json<ApiErrorResponse>)
         EconomicAgentError::NotInitialized => (StatusCode::BAD_REQUEST, "NOT_INITIALIZED"),
         EconomicAgentError::InsufficientCapital { .. } => {
             (StatusCode::BAD_REQUEST, "INSUFFICIENT_CAPITAL")
-        }
+        },
         EconomicAgentError::InsufficientInvestorCapital { .. } => {
             (StatusCode::BAD_REQUEST, "INSUFFICIENT_INVESTOR_CAPITAL")
-        }
+        },
         EconomicAgentError::CompanyBankrupt { .. } => (StatusCode::BAD_REQUEST, "COMPANY_BANKRUPT"),
         EconomicAgentError::InvalidStageTransition { .. } => {
             (StatusCode::BAD_REQUEST, "INVALID_STAGE_TRANSITION")
-        }
+        },
         EconomicAgentError::CompanyNotFound { .. } => (StatusCode::NOT_FOUND, "COMPANY_NOT_FOUND"),
         EconomicAgentError::ProductDevelopmentFailed { .. } => {
             (StatusCode::BAD_REQUEST, "PRODUCT_DEVELOPMENT_FAILED")
-        }
+        },
         EconomicAgentError::StageRegression { .. } => {
             (StatusCode::INTERNAL_SERVER_ERROR, "STAGE_REGRESSION")
-        }
+        },
         EconomicAgentError::InvestmentRejected { .. } => {
             (StatusCode::BAD_REQUEST, "INVESTMENT_REJECTED")
-        }
+        },
         EconomicAgentError::TaskNotFound { .. } => (StatusCode::NOT_FOUND, "TASK_NOT_FOUND"),
         EconomicAgentError::TaskAlreadyClaimed { .. } => {
             (StatusCode::CONFLICT, "TASK_ALREADY_CLAIMED")
-        }
+        },
         EconomicAgentError::SubmissionRejected { .. } => {
             (StatusCode::BAD_REQUEST, "SUBMISSION_REJECTED")
-        }
+        },
         EconomicAgentError::Network(_) => (StatusCode::BAD_GATEWAY, "NETWORK_ERROR"),
         EconomicAgentError::Timeout { .. } => (StatusCode::GATEWAY_TIMEOUT, "TIMEOUT"),
         EconomicAgentError::Serialization(_) => {
             (StatusCode::INTERNAL_SERVER_ERROR, "SERIALIZATION_ERROR")
-        }
+        },
         EconomicAgentError::Configuration(_) => (StatusCode::INTERNAL_SERVER_ERROR, "CONFIG_ERROR"),
         EconomicAgentError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL_ERROR"),
     };

@@ -81,28 +81,29 @@ async fn handle_socket(socket: WebSocket, state: Arc<DashboardState>) {
                 } else if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text) {
                     // Handle ping
                     if matches!(ws_msg, WsMessage::Ping) {
-                        let pong = serde_json::to_string(&WsMessage::Pong).unwrap();
+                        let pong = serde_json::to_string(&WsMessage::Pong)
+                            .expect("Pong enum serialization cannot fail");
                         // Note: can't send from here easily, client should handle ping/pong at ws level
                         debug!("Received ping, pong would be: {}", pong);
                     }
                 } else {
                     debug!("Received unknown message: {}", text);
                 }
-            }
+            },
             Ok(Message::Ping(data)) => {
                 debug!("Received WebSocket ping");
                 // Pong is automatically sent by axum
                 let _ = data; // satisfy unused warning
-            }
+            },
             Ok(Message::Close(_)) => {
                 info!("WebSocket client sent close");
                 break;
-            }
+            },
             Err(e) => {
                 error!("WebSocket error: {}", e);
                 break;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -126,7 +127,7 @@ fn should_send(subscription: &WsSubscription, message: &WsMessage) -> bool {
                 return true;
             }
             subscription.agent_ids.contains(&summary.id)
-        }
+        },
         WsMessage::CycleCompleted { agent_id, .. } => {
             if !subscription.agent_updates {
                 return false;
@@ -135,7 +136,7 @@ fn should_send(subscription: &WsSubscription, message: &WsMessage) -> bool {
                 return true;
             }
             subscription.agent_ids.contains(agent_id)
-        }
+        },
         WsMessage::MetricsUpdate(_) => subscription.metrics,
         WsMessage::Error { .. } => true, // Always send errors
         WsMessage::Ping | WsMessage::Pong => true,

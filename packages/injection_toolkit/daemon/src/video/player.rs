@@ -44,11 +44,11 @@ impl VideoPlayer {
                     "Created video frame buffer"
                 );
                 Some(fb)
-            }
+            },
             Err(e) => {
                 warn!(?e, "Failed to create frame buffer, video output disabled");
                 None
-            }
+            },
         };
 
         // Start the decode thread
@@ -175,29 +175,29 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
                         autoplay,
                     } => {
                         handle_load(&state, &source, start_position_ms, autoplay);
-                    }
+                    },
                     PlayerCommand::Play => {
                         handle_play(&state);
-                    }
+                    },
                     PlayerCommand::Pause => {
                         handle_pause(&state);
-                    }
+                    },
                     PlayerCommand::Seek { position_ms } => {
                         handle_seek(&state, position_ms);
-                    }
+                    },
                     PlayerCommand::SetRate { rate } => {
                         handle_set_rate(&state, rate);
-                    }
+                    },
                     PlayerCommand::SetVolume { volume } => {
                         handle_set_volume(&state, volume);
-                    }
+                    },
                     PlayerCommand::Stop => {
                         info!("Video decode thread stopping");
                         *state.lock().unwrap() = PlayerState::Idle;
                         break;
-                    }
+                    },
                 }
-            }
+            },
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 // Check if we need to decode more frames
                 let current_state = state.lock().unwrap().clone();
@@ -205,11 +205,11 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
                     // In a real implementation, this would decode and output frames
                     // For now, just update the position based on elapsed time
                 }
-            }
+            },
             Err(mpsc::RecvTimeoutError::Disconnected) => {
                 info!("Command channel disconnected, stopping decode thread");
                 break;
-            }
+            },
         }
     }
 }
@@ -305,14 +305,14 @@ fn handle_seek(state: &Arc<Mutex<PlayerState>>, position_ms: u64) {
                 position_ms,
                 started_at: Instant::now(),
             };
-        }
+        },
         PlayerState::Paused { info, .. } => {
             info!(position_ms, "Seeking (paused)");
             *state = PlayerState::Paused { info, position_ms };
-        }
+        },
         _ => {
             warn!("Seek ignored - no video loaded");
-        }
+        },
     }
 }
 
@@ -330,8 +330,8 @@ fn handle_set_rate(state: &Arc<Mutex<PlayerState>>, rate: f64) {
             | PlayerState::Paused { info, .. }
             | PlayerState::Buffering { info, .. } => {
                 *info = new_info;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 }
@@ -350,8 +350,8 @@ fn handle_set_volume(state: &Arc<Mutex<PlayerState>>, volume: f32) {
             | PlayerState::Paused { info, .. }
             | PlayerState::Buffering { info, .. } => {
                 *info = new_info;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 }

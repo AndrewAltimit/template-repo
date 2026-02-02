@@ -68,7 +68,7 @@ impl MetricsCollector {
             let mean = if count > 0 { sum / count as f64 } else { 0.0 };
 
             let mut sorted = values.clone();
-            sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            sorted.sort_by(|a, b| a.total_cmp(b));
 
             let min = sorted.first().copied().unwrap_or(0.0);
             let max = sorted.last().copied().unwrap_or(0.0);

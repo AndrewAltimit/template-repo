@@ -1,0 +1,45 @@
+# Clippy Lint Configuration
+# This file defines project-specific lint thresholds and allowed patterns.
+# Run with: cargo clippy
+# CI runs with: cargo clippy -- -D warnings
+
+# Cognitive complexity threshold for functions
+# Functions exceeding this will trigger clippy::cognitive_complexity
+cognitive-complexity-threshold = 25
+
+# Maximum number of lines in a function before triggering clippy::too_many_lines
+too-many-lines-threshold = 100
+
+# Maximum number of arguments before triggering clippy::too_many_arguments
+too-many-arguments-threshold = 7
+
+# Maximum number of struct fields with bool type before suggesting refactoring
+max-struct-bools = 3
+
+# Type complexity threshold
+type-complexity-threshold = 250
+
+# Enum variant size difference threshold (bytes)
+# Triggers clippy::large_enum_variant when exceeded
+enum-variant-size-threshold = 200
+
+# Threshold for suggesting Vec capacity pre-allocation
+vec-box-size-threshold = 4096
+
+# Single character binding names allowed
+# Common conventions: i/j for loops, e for errors, _ for ignored
+allowed-idents-below-min-chars = ["i", "j", "k", "n", "x", "y", "z", "e", "_"]
+
+# MSRV (Minimum Supported Rust Version)
+# This affects which lints suggest newer language features
+# Note: Edition 2024 requires Rust 1.85+, but codebase uses features from 1.87+
+msrv = "1.87.0"
+
+# Trivially copy-able types size threshold (bytes)
+trivial-copy-size-limit = 16
+
+# Pass by value size threshold (bytes)
+pass-by-value-size-limit = 256
+
+# Literals threshold for clippy::unreadable_literal
+unreadable-literal-lint-fractions = true
