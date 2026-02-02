@@ -147,7 +147,7 @@ services:
       - CUDA_VISIBLE_DEVICES=${GPU_DEVICE:-0}
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_video_editor.server", "--mode", "http"]
+    command: ["mcp-video-editor", "--mode", "standalone", "--port", "8019"]
     restart: unless-stopped
     # GPU support for AI models and video encoding
     deploy:
@@ -363,6 +363,8 @@ services:
       args:
         USER_ID: "${USER_ID:-1000}"
         GROUP_ID: "${GROUP_ID:-1000}"
+    ports:
+      - "8012:8012"
     volumes:
       - ~/.gemini:/home/geminiuser/.gemini  # Mount host Gemini credentials directory
       - ./:/workspace:ro  # Mount workspace for file access (read-only)
@@ -377,14 +379,14 @@ services:
       - HOME=/home/geminiuser  # Set home directory for .gemini access
     networks:
       - mcp-network
-    # For stdio mode, we don't need a long-running service
-    stdin_open: true
-    tty: false
+    command: ["mcp-gemini", "--mode", "standalone", "--port", "8012"]
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "gemini --help > /dev/null || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:8012/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 10s
     profiles:
       - services
 
@@ -955,7 +957,7 @@ services:
       - CHROMADB_COLLECTION=${CHROMADB_COLLECTION:-agent_memory}
     networks:
       - mcp-network
-    command: ["python", "-m", "mcp_agentcore_memory.server", "--mode", "http"]
+    command: ["mcp-agentcore-memory", "--mode", "standalone", "--port", "8023"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8023/health"]
@@ -1016,7 +1018,7 @@ services:
       - DESKTOP_CONTROL_OUTPUT_DIR=/output
       - DESKTOP_CONTROL_HOST_PATH=outputs/desktop-control  # Host-relative path for client access
     network_mode: host  # Required for X11 access (incompatible with networks)
-    command: ["python", "-m", "mcp_desktop_control.server", "--mode", "http"]
+    command: ["mcp-desktop-control", "--mode", "standalone", "--port", "8025"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8025/health"]

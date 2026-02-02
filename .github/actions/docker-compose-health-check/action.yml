@@ -113,6 +113,30 @@ runs:
           echo "$stale_containers" | xargs -r docker rm -f 2>/dev/null || true
         fi
 
+    - name: Stop local containers using conflicting ports
+      shell: bash
+      env:
+        INPUT_SERVICES: ${{ inputs.services }}
+      run: |
+        # On self-hosted runners, local development containers may be using ports
+        # that CI needs. Stop any containers binding to MCP service ports.
+        # This is safe because CI runs in isolation with unique project names.
+        echo "Checking for local containers using MCP ports..."
+
+        # Define MCP ports that may conflict (add more as needed)
+        MCP_PORTS="8007 8010 8011 8012 8014 8015 8019 8021 8022 8023 8024 8025"
+
+        for port in $MCP_PORTS; do
+          # Find containers binding to this port (exclude CI containers we just cleaned)
+          container=$(docker ps --format "{{.ID}} {{.Names}}" --filter "publish=$port" | grep -v "^ci-" | head -1 || true)
+          if [ -n "$container" ]; then
+            container_id=$(echo "$container" | awk '{print $1}')
+            container_name=$(echo "$container" | awk '{print $2}')
+            echo "Stopping local container '$container_name' using port $port"
+            docker stop "$container_id" 2>/dev/null || true
+          fi
+        done
+
     - name: Start services
       shell: bash
       env:
