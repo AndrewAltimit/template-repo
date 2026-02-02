@@ -6,7 +6,8 @@
 # - Python 3.11 (10-60% faster than 3.10)
 
 # Stage 1: Build gh-validator from source
-FROM rust:1.93-slim AS gh-validator-builder
+# Use bookworm-based rust image to match runtime glibc version
+FROM rust:1.93-slim-bookworm AS gh-validator-builder
 
 RUN apt-get update && apt-get install -y \
     pkg-config \

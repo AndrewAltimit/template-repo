@@ -244,7 +244,7 @@ docker-compose.override.yml
 .codex/
 .opencode/
 .claude/
-.gemini/
+.gemini/*
 # Allow Gemini project settings (MCP config) to be committed
 !.gemini/settings.json
 

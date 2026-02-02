@@ -2,7 +2,8 @@
 # Multi-stage build for smaller final image
 
 # Stage 1: Build the Rust binary
-FROM rust:1.93-slim AS builder
+# Use bookworm-based rust image to match runtime glibc version
+FROM rust:1.93-slim-bookworm AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \

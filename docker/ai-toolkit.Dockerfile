@@ -1,6 +1,7 @@
 # AI Toolkit with Web UI and MCP Server (Rust)
 # Stage 1: Build Rust MCP server
-FROM rust:1.93-slim AS mcp-builder
+# Use bookworm-based rust image to match runtime glibc version
+FROM rust:1.93-slim-bookworm AS mcp-builder
 
 # Install OpenSSL for reqwest
 RUN apt-get update && apt-get install -y \
