@@ -86,21 +86,21 @@ impl MarketDynamics {
                 } else {
                     MarketPhase::Stable
                 }
-            }
+            },
             MarketPhase::Stable => {
                 if rng.r#gen::<f64>() < 0.5 {
                     MarketPhase::Bull
                 } else {
                     MarketPhase::Bear
                 }
-            }
+            },
             MarketPhase::Bear => {
                 if rng.r#gen::<f64>() < 0.2 {
                     MarketPhase::Crash
                 } else {
                     MarketPhase::Stable
                 }
-            }
+            },
             MarketPhase::Crash => MarketPhase::Bear, // Always recover to bear first
         };
 

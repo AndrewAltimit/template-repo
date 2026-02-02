@@ -671,7 +671,7 @@ impl SubAgent {
                         ],
                     }
                 }
-            }
+            },
             Some(ExecutiveTitle::CTO) => {
                 let uptime = metrics.get("uptime").copied().unwrap_or(99.0);
                 let response_time = metrics.get("avg_response_ms").copied().unwrap_or(200.0);
@@ -702,7 +702,7 @@ impl SubAgent {
                         ],
                     }
                 }
-            }
+            },
             Some(ExecutiveTitle::CFO) => {
                 let runway_months = metrics.get("runway_months").copied().unwrap_or(12.0);
                 let burn_multiple = metrics.get("burn_multiple").copied().unwrap_or(2.0);
@@ -747,7 +747,7 @@ impl SubAgent {
                         ],
                     }
                 }
-            }
+            },
             _ => Decision {
                 decision: "execute_plan".to_string(),
                 reasoning: "Executing according to assigned plan".to_string(),
@@ -863,7 +863,7 @@ impl SubAgentManager {
                 } else {
                     format!("Executive ({})", specialization)
                 }
-            }
+            },
             SubAgentRole::SubjectMatterExpert => format!("SME ({})", specialization),
             SubAgentRole::IndividualContributor => format!("IC ({})", specialization),
         };

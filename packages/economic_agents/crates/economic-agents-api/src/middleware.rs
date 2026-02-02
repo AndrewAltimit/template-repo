@@ -85,7 +85,7 @@ pub fn validate_api_key(
                 warn!("Invalid API key provided");
                 Err("Invalid API key".to_string())
             }
-        }
+        },
         None => {
             if config.required {
                 warn!("API key required but not provided");
@@ -94,7 +94,7 @@ pub fn validate_api_key(
                 debug!("No API key provided (optional auth)");
                 Ok(None)
             }
-        }
+        },
     }
 }
 

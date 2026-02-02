@@ -108,7 +108,7 @@ impl TaskExecutor {
                     execution_time_ms: start.elapsed().as_millis() as u64,
                     model: self.config.model.clone(),
                 }
-            }
+            },
             Err(e) => ExecutionResult {
                 success: false,
                 solution: None,

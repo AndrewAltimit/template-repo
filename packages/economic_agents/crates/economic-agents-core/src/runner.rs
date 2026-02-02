@@ -316,7 +316,7 @@ async fn run_agent_loop(
                 AgentCommand::Stop => {
                     should_stop = true;
                     break;
-                }
+                },
                 AgentCommand::GetStatus(tx) => {
                     let status = AgentStatus {
                         agent_id: agent_id.clone(),
@@ -328,11 +328,11 @@ async fn run_agent_loop(
                         has_company: agent.state.has_company,
                     };
                     let _ = tx.send(status);
-                }
+                },
                 AgentCommand::GetCycles(tx, count) => {
                     let cycles = agent.recent_cycles(count).to_vec();
                     let _ = tx.send(cycles);
-                }
+                },
             }
         }
 
@@ -364,7 +364,7 @@ async fn run_agent_loop(
                 {
                     debug!(agent_id = %agent_id, "Event buffer full, dropped cycle event");
                 }
-            }
+            },
             Err(e) => {
                 // Non-blocking send to avoid stalling on full buffer
                 if event_tx
@@ -377,7 +377,7 @@ async fn run_agent_loop(
                     debug!(agent_id = %agent_id, "Event buffer full, dropped error event");
                 }
                 error!(agent_id = %agent_id, error = %e, "Cycle failed");
-            }
+            },
         }
 
         // Delay between cycles

@@ -89,21 +89,21 @@ async fn handle_socket(socket: WebSocket, state: Arc<DashboardState>) {
                 } else {
                     debug!("Received unknown message: {}", text);
                 }
-            }
+            },
             Ok(Message::Ping(data)) => {
                 debug!("Received WebSocket ping");
                 // Pong is automatically sent by axum
                 let _ = data; // satisfy unused warning
-            }
+            },
             Ok(Message::Close(_)) => {
                 info!("WebSocket client sent close");
                 break;
-            }
+            },
             Err(e) => {
                 error!("WebSocket error: {}", e);
                 break;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -127,7 +127,7 @@ fn should_send(subscription: &WsSubscription, message: &WsMessage) -> bool {
                 return true;
             }
             subscription.agent_ids.contains(&summary.id)
-        }
+        },
         WsMessage::CycleCompleted { agent_id, .. } => {
             if !subscription.agent_updates {
                 return false;
@@ -136,7 +136,7 @@ fn should_send(subscription: &WsSubscription, message: &WsMessage) -> bool {
                 return true;
             }
             subscription.agent_ids.contains(agent_id)
-        }
+        },
         WsMessage::MetricsUpdate(_) => subscription.metrics,
         WsMessage::Error { .. } => true, // Always send errors
         WsMessage::Ping | WsMessage::Pong => true,

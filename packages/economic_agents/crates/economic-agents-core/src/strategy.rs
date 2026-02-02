@@ -40,7 +40,7 @@ pub fn select_task<'a>(
                     .partial_cmp(&score_b)
                     .unwrap_or(std::cmp::Ordering::Equal)
             })
-        }
+        },
 
         TaskSelectionStrategy::SkillMatch => {
             if let Some(config) = agent_config {
@@ -55,7 +55,7 @@ pub fn select_task<'a>(
                         .unwrap_or(std::cmp::Ordering::Equal)
                 })
             }
-        }
+        },
     };
 
     Ok(selected)

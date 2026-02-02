@@ -325,14 +325,14 @@ impl RiskProfiler {
                         } else {
                             90.0
                         }
-                    }
+                    },
                     _ => {
                         if task_hours > 0.0 {
                             30.0
                         } else {
                             60.0
                         }
-                    }
+                    },
                 }
             })
             .collect();
