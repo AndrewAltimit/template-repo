@@ -234,11 +234,11 @@ fn run_injector_listener(channel_name: &str, state: Arc<RwLock<AppState>>) -> Re
             Ok(channel) => {
                 info!("Injector connected");
                 handle_injector_connection(channel, Arc::clone(&state));
-            }
+            },
             Err(e) => {
                 warn!(?e, "Failed to accept injector connection");
                 thread::sleep(std::time::Duration::from_secs(1));
-            }
+            },
         }
     }
 }
@@ -251,15 +251,15 @@ fn handle_injector_connection(channel: impl IpcChannel, state: Arc<RwLock<AppSta
                 if let Err(e) = process_injector_message(&data, &state) {
                     warn!(?e, "Failed to process injector message");
                 }
-            }
+            },
             Err(itk_ipc::IpcError::ChannelClosed) => {
                 info!("Injector disconnected");
                 break;
-            }
+            },
             Err(e) => {
                 warn!(?e, "Error receiving from injector");
                 break;
-            }
+            },
         }
     }
 }
@@ -279,7 +279,7 @@ fn process_injector_message(data: &[u8], state: &Arc<RwLock<AppState>>) -> Resul
             let mut state = state.write().unwrap();
             state.screen_rect = Some(rect);
             state.last_update_ms = itk_sync::now_ms();
-        }
+        },
 
         MessageType::StateEvent => {
             let (_, event): (_, StateEvent) = decode(data)?;
@@ -288,7 +288,7 @@ fn process_injector_message(data: &[u8], state: &Arc<RwLock<AppState>>) -> Resul
             let mut state = state.write().unwrap();
             state.custom_data.insert(event.event_type, event.data);
             state.last_update_ms = event.timestamp_ms;
-        }
+        },
 
         MessageType::StateSnapshot => {
             let (_, snapshot): (_, StateSnapshot) = decode(data)?;
@@ -299,11 +299,11 @@ fn process_injector_message(data: &[u8], state: &Arc<RwLock<AppState>>) -> Resul
                 .custom_data
                 .insert("snapshot".to_string(), snapshot.data);
             state.last_update_ms = snapshot.timestamp_ms;
-        }
+        },
 
         other => {
             warn!(?other, "Unexpected message type from injector");
-        }
+        },
     }
 
     Ok(())
@@ -326,11 +326,11 @@ fn run_client_listener(
             Ok(channel) => {
                 info!("Client connected");
                 handle_client_connection(channel, Arc::clone(&state), app_id);
-            }
+            },
             Err(e) => {
                 warn!(?e, "Failed to accept client connection");
                 thread::sleep(std::time::Duration::from_secs(1));
-            }
+            },
         }
     }
 }
@@ -343,15 +343,15 @@ fn handle_client_connection(channel: impl IpcChannel, state: Arc<RwLock<AppState
                 if let Err(e) = process_client_message(&data, &state, &channel, app_id) {
                     warn!(?e, "Failed to process client message");
                 }
-            }
+            },
             Err(itk_ipc::IpcError::ChannelClosed) => {
                 info!("Client disconnected");
                 break;
-            }
+            },
             Err(e) => {
                 warn!(?e, "Error receiving from client");
                 break;
-            }
+            },
         }
     }
 }
@@ -372,43 +372,43 @@ fn process_client_message(
             // Respond with pong
             let pong = encode(MessageType::Pong, &())?;
             channel.send(&pong)?;
-        }
+        },
 
         MessageType::StateQuery => {
             let (_, query): (_, StateQuery) = decode(data)?;
             let response = handle_state_query(&query, state, app_id)?;
             let encoded = encode(MessageType::StateResponse, &response)?;
             channel.send(&encoded)?;
-        }
+        },
 
         // Video playback commands
         MessageType::VideoLoad => {
             let (_, cmd): (_, VideoLoad) = decode(data)?;
             debug!(source = %cmd.source, "Video load command");
             handle_video_load(state, &cmd);
-        }
+        },
 
         MessageType::VideoPlay => {
             let (_, _cmd): (_, VideoPlay) = decode(data)?;
             debug!("Video play command");
             handle_video_play(state);
-        }
+        },
 
         MessageType::VideoPause => {
             let (_, _cmd): (_, VideoPause) = decode(data)?;
             debug!("Video pause command");
             handle_video_pause(state);
-        }
+        },
 
         MessageType::VideoSeek => {
             let (_, cmd): (_, VideoSeek) = decode(data)?;
             debug!(position_ms = cmd.position_ms, "Video seek command");
             handle_video_seek(state, cmd.position_ms);
-        }
+        },
 
         other => {
             warn!(?other, "Unexpected message type from client");
-        }
+        },
     }
 
     Ok(())
@@ -437,7 +437,7 @@ fn handle_state_query(
                     error: Some("No screen rect available".to_string()),
                 }
             }
-        }
+        },
 
         "snapshot" => {
             let snapshot = StateSnapshot {
@@ -450,7 +450,7 @@ fn handle_state_query(
                 data: Some(serde_json::to_string(&snapshot)?),
                 error: None,
             }
-        }
+        },
 
         "custom" => {
             // Query for specific custom data key
@@ -467,7 +467,7 @@ fn handle_state_query(
                     error: Some(format!("Key not found: {}", query.params)),
                 }
             }
-        }
+        },
 
         "video_state" => {
             // Query for current video playback state
@@ -492,7 +492,7 @@ fn handle_state_query(
                     error: Some("Video player not initialized".to_string()),
                 }
             }
-        }
+        },
 
         "video_metadata" => {
             // Query for video metadata
@@ -517,7 +517,7 @@ fn handle_state_query(
                     error: Some("Video player not initialized".to_string()),
                 }
             }
-        }
+        },
 
         _ => StateResponse {
             success: false,

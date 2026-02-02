@@ -81,7 +81,7 @@ impl CameraReader {
             Some(addr) => {
                 vlog!("CameraReader: pattern scan found singleton at 0x{:X}", addr);
                 addr
-            }
+            },
             None => {
                 let fallback = base + CAMERA_MANAGER_RVA_FALLBACK;
                 vlog!(
@@ -89,7 +89,7 @@ impl CameraReader {
                     fallback
                 );
                 fallback
-            }
+            },
         };
 
         vlog!(

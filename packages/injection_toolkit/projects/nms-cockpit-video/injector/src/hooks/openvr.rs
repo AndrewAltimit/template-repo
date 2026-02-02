@@ -155,7 +155,7 @@ pub unsafe fn try_install() -> Result<bool, String> {
         Err(_) => {
             vlog!("openvr_api.dll not loaded - VR not active");
             return Ok(false);
-        }
+        },
     };
 
     vlog!("openvr_api.dll found - attempting VR hook");
@@ -342,13 +342,13 @@ unsafe fn render_to_vr_eye(eye: EVREye, vk_data: &VRVulkanTextureData_t, frame: 
             Ok(reader) => {
                 SHMEM_FAILED.store(false, Ordering::Relaxed);
                 Ok(Mutex::new(reader))
-            }
+            },
             Err(e) => {
                 if !SHMEM_FAILED.swap(true, Ordering::Relaxed) {
                     vlog!("VR: ShmemFrameReader open failed: {}", e);
                 }
                 Err(e)
-            }
+            },
         });
         let mut shmem_guard = reader_result.ok().and_then(|m| m.lock().ok());
         let new_frame = match shmem_guard.as_mut() {

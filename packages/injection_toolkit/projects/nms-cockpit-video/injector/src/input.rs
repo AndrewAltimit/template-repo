@@ -209,12 +209,12 @@ fn ensure_connected(ipc: &mut Option<Box<dyn IpcChannel>>) -> Option<&dyn IpcCha
             vlog!("Connected to daemon IPC ({})", CLIENT_CHANNEL);
             *ipc = Some(Box::new(channel));
             ipc.as_deref()
-        }
+        },
         Err(e) => {
             vlog!("IPC connect failed: {} (is daemon running?)", e);
             *ipc = None;
             None
-        }
+        },
     }
 }
 
@@ -225,9 +225,9 @@ fn send_command<T: serde::Serialize>(channel: &dyn IpcChannel, msg_type: Message
             if let Err(e) = channel.send(&data) {
                 vlog!("IPC send failed: {}", e);
             }
-        }
+        },
         Err(e) => {
             vlog!("Protocol encode failed: {}", e);
-        }
+        },
     }
 }

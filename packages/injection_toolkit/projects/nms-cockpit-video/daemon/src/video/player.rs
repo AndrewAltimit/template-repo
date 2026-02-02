@@ -250,30 +250,30 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
                         autoplay,
                     } => {
                         ctx = handle_load(&state, &source, start_position_ms, autoplay);
-                    }
+                    },
                     PlayerCommand::Play => {
                         handle_play(&state, &mut ctx);
-                    }
+                    },
                     PlayerCommand::Pause => {
                         handle_pause(&state, &ctx);
-                    }
+                    },
                     PlayerCommand::Seek { position_ms } => {
                         handle_seek(&state, &mut ctx, position_ms);
-                    }
+                    },
                     PlayerCommand::SetRate { rate } => {
                         handle_set_rate(&state, rate);
-                    }
+                    },
                     PlayerCommand::SetVolume { volume } => {
                         handle_set_volume(&state, &ctx, volume);
-                    }
+                    },
                     PlayerCommand::Stop => {
                         info!("Video decode thread stopping");
                         drop(ctx.take());
                         *state.lock().unwrap() = PlayerState::Idle;
                         break;
-                    }
+                    },
                 }
-            }
+            },
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 // Decode next frame if playing
                 if is_playing {
@@ -281,11 +281,11 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
                         decode_next_frame(decode_ctx, &state);
                     }
                 }
-            }
+            },
             Err(mpsc::RecvTimeoutError::Disconnected) => {
                 info!("Command channel disconnected, stopping decode thread");
                 break;
-            }
+            },
         }
     }
 }
@@ -330,12 +330,12 @@ fn decode_next_frame(ctx: &mut DecodeContext, state: &Arc<Mutex<PlayerState>>) {
                     if let PlayerState::Playing { position_ms, .. } = &mut *s {
                         *position_ms = frame.pts_ms;
                     }
-                }
+                },
                 Err(e) => {
                     warn!(?e, "Failed to write frame to shared memory");
-                }
+                },
             }
-        }
+        },
         Ok(None) => {
             // End of stream
             info!("Video playback complete (end of stream)");
@@ -346,13 +346,13 @@ fn decode_next_frame(ctx: &mut DecodeContext, state: &Arc<Mutex<PlayerState>>) {
                     position_ms: ctx.info.duration_ms,
                 };
             }
-        }
+        },
         Err(e) => {
             error!(?e, "Decode error");
             *state.lock().unwrap() = PlayerState::Error {
                 message: format!("Decode error: {e}"),
             };
-        }
+        },
     }
 }
 
@@ -379,7 +379,7 @@ fn handle_load(
                 message: format!("Source resolution failed: {e}"),
             };
             return None;
-        }
+        },
     };
 
     // Get the audio source path: use separate audio URL for DASH streams,
@@ -398,7 +398,7 @@ fn handle_load(
                 message: format!("Decoder init failed: {e}"),
             };
             return None;
-        }
+        },
     };
 
     // Create the frame writer (shared memory)
@@ -410,7 +410,7 @@ fn handle_load(
                 message: format!("Frame writer failed: {e}"),
             };
             return None;
-        }
+        },
     };
 
     // Build video info from decoder metadata
@@ -561,14 +561,14 @@ fn handle_seek(state: &Arc<Mutex<PlayerState>>, ctx: &mut Option<DecodeContext>,
                 position_ms,
                 started_at: Instant::now(),
             };
-        }
+        },
         PlayerState::Paused { info, .. } => {
             info!(position_ms, "Seeking (paused)");
             *s = PlayerState::Paused { info, position_ms };
-        }
+        },
         _ => {
             warn!("Seek ignored - no video loaded");
-        }
+        },
     }
 }
 
@@ -585,8 +585,8 @@ fn handle_set_rate(state: &Arc<Mutex<PlayerState>>, rate: f64) {
             | PlayerState::Paused { info, .. }
             | PlayerState::Buffering { info, .. } => {
                 *info = new_info;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 }
@@ -613,8 +613,8 @@ fn handle_set_volume(state: &Arc<Mutex<PlayerState>>, ctx: &Option<DecodeContext
             | PlayerState::Paused { info, .. }
             | PlayerState::Buffering { info, .. } => {
                 *info = new_info;
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 }

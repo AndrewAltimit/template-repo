@@ -38,7 +38,7 @@ impl StreamSource {
         match self {
             StreamSource::Url(url) | StreamSource::UrlWithAudio { video: url, .. } => {
                 url.contains("youtube.com") || url.contains("youtu.be")
-            }
+            },
             StreamSource::File(_) => false,
         }
     }

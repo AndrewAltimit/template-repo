@@ -987,7 +987,7 @@ impl SubAgentManager {
         let agent_ids: Vec<Uuid> = self
             .agents
             .iter()
-            .filter(|(_, agent)| roles.is_none() || roles.unwrap().contains(&agent.role))
+            .filter(|(_, agent)| roles.is_none_or(|r| r.contains(&agent.role)))
             .take(5)
             .map(|(id, _)| *id)
             .collect();

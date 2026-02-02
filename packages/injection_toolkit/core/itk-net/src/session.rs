@@ -301,7 +301,7 @@ impl Session {
                         addr: peer.addr,
                     });
                 }
-            }
+            },
 
             PeerEvent::PeerDisconnected(peer_id) | PeerEvent::Timeout(peer_id) => {
                 info!(peer = %peer_id, "Peer left session");
@@ -316,11 +316,11 @@ impl Session {
                 }
 
                 self.events.push(SessionEvent::PeerLeft { name: peer_id });
-            }
+            },
 
             PeerEvent::Message { from, data } => {
                 self.handle_message(&from, &data);
-            }
+            },
         }
     }
 
@@ -342,23 +342,23 @@ impl Session {
                     position_ms: self.sync.current_position_ms(),
                     is_playing: self.sync.is_playing(),
                 });
-            }
+            },
 
             NetMessage::ClockPing(ping) => {
                 self.sync
                     .receive_clock_ping(from, ping, &mut self.peers, peer_addr);
-            }
+            },
 
             NetMessage::ClockPong(pong) => {
                 self.sync.receive_clock_pong(from, pong);
-            }
+            },
 
             NetMessage::VideoCommand(cmd) => {
                 self.sync.receive_command(cmd.clone());
                 self.events.push(SessionEvent::Command(cmd));
-            }
+            },
 
-            _ => {}
+            _ => {},
         }
     }
 

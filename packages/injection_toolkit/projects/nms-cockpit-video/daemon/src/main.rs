@@ -183,11 +183,11 @@ fn run_mod_listener(channel_name: &str, state: Arc<RwLock<AppState>>) -> Result<
             Ok(channel) => {
                 info!("NMS mod connected");
                 handle_mod_connection(channel, Arc::clone(&state));
-            }
+            },
             Err(e) => {
                 warn!(?e, "Failed to accept mod connection");
                 thread::sleep(Duration::from_secs(1));
-            }
+            },
         }
     }
 }
@@ -200,15 +200,15 @@ fn handle_mod_connection(channel: impl IpcChannel, state: Arc<RwLock<AppState>>)
                 if let Err(e) = process_mod_message(&data, &state) {
                     warn!(?e, "Failed to process mod message");
                 }
-            }
+            },
             Err(itk_ipc::IpcError::ChannelClosed) => {
                 info!("NMS mod disconnected");
                 break;
-            }
+            },
             Err(e) => {
                 warn!(?e, "Error receiving from mod");
                 break;
-            }
+            },
         }
     }
 }
@@ -237,10 +237,10 @@ fn process_mod_message(data: &[u8], state: &Arc<RwLock<AppState>>) -> Result<()>
             let mut state = state.write().unwrap();
             state.screen_rect = Some(rect);
             state.last_update_ms = itk_sync::now_ms();
-        }
+        },
         other => {
             warn!(?other, "Unexpected message type from mod");
-        }
+        },
     }
 
     Ok(())
@@ -259,11 +259,11 @@ fn run_client_listener(channel_name: &str, state: Arc<RwLock<AppState>>) -> Resu
             Ok(channel) => {
                 info!("Client connected");
                 handle_client_connection(channel, Arc::clone(&state));
-            }
+            },
             Err(e) => {
                 warn!(?e, "Failed to accept client connection");
                 thread::sleep(Duration::from_secs(1));
-            }
+            },
         }
     }
 }
@@ -276,15 +276,15 @@ fn handle_client_connection(channel: impl IpcChannel, state: Arc<RwLock<AppState
                 if let Err(e) = process_client_message(&data, &state, &channel) {
                     warn!(?e, "Failed to process client message");
                 }
-            }
+            },
             Err(itk_ipc::IpcError::ChannelClosed) => {
                 info!("Client disconnected");
                 break;
-            }
+            },
             Err(e) => {
                 warn!(?e, "Error receiving from client");
                 break;
-            }
+            },
         }
     }
 }
@@ -301,14 +301,14 @@ fn process_client_message(
         MessageType::Ping => {
             let pong = encode(MessageType::Pong, &())?;
             channel.send(&pong)?;
-        }
+        },
 
         MessageType::StateQuery => {
             let (_, query): (_, StateQuery) = decode(data)?;
             let response = handle_state_query(&query, state)?;
             let encoded = encode(MessageType::StateResponse, &response)?;
             channel.send(&encoded)?;
-        }
+        },
 
         MessageType::VideoLoad => {
             let (_, cmd): (_, VideoLoad) = decode(data)?;
@@ -317,7 +317,7 @@ fn process_client_message(
             if let Some(ref player) = state.video_player {
                 player.load(&cmd.source, cmd.start_position_ms, cmd.autoplay);
             }
-        }
+        },
 
         MessageType::VideoPlay => {
             let (_, _cmd): (_, VideoPlay) = decode(data)?;
@@ -326,7 +326,7 @@ fn process_client_message(
             if let Some(ref player) = state.video_player {
                 player.play();
             }
-        }
+        },
 
         MessageType::VideoPause => {
             let (_, _cmd): (_, VideoPause) = decode(data)?;
@@ -335,7 +335,7 @@ fn process_client_message(
             if let Some(ref player) = state.video_player {
                 player.pause();
             }
-        }
+        },
 
         MessageType::VideoSeek => {
             let (_, cmd): (_, VideoSeek) = decode(data)?;
@@ -344,11 +344,11 @@ fn process_client_message(
             if let Some(ref player) = state.video_player {
                 player.seek(cmd.position_ms);
             }
-        }
+        },
 
         other => {
             warn!(?other, "Unexpected message type from client");
-        }
+        },
     }
 
     Ok(())
@@ -373,7 +373,7 @@ fn handle_state_query(query: &StateQuery, state: &Arc<RwLock<AppState>>) -> Resu
                     error: Some("No screen rect available (NMS mod not connected)".to_string()),
                 }
             }
-        }
+        },
 
         "video_state" => {
             if let Some(ref player) = state.video_player {
@@ -397,7 +397,7 @@ fn handle_state_query(query: &StateQuery, state: &Arc<RwLock<AppState>>) -> Resu
                     error: Some("Video player not initialized".to_string()),
                 }
             }
-        }
+        },
 
         _ => StateResponse {
             success: false,

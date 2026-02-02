@@ -36,14 +36,14 @@ impl VideoFrameReader {
             Ok(fb) => {
                 debug!("Opened video frame buffer");
                 Some(fb)
-            }
+            },
             Err(e) => {
                 debug!(
                     ?e,
                     "Frame buffer not available yet (daemon may not be running)"
                 );
                 None
-            }
+            },
         };
 
         Self {
@@ -80,18 +80,18 @@ impl VideoFrameReader {
                 } else {
                     None
                 }
-            }
+            },
             Err(itk_shmem::ShmemError::SeqlockContention) => {
                 // Writer may be slow or crashed, don't spam logs
                 trace!("Seqlock contention, will retry");
                 None
-            }
+            },
             Err(e) => {
                 warn!(?e, "Failed to read frame");
                 // Connection may have been lost, try to reconnect next time
                 self.buffer = None;
                 None
-            }
+            },
         }
     }
 

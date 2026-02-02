@@ -204,7 +204,7 @@ impl EmergentBehaviorDetector {
             } else {
                 if current_duration >= 10 {
                     hoarding_sequences.push((
-                        current_start.unwrap(),
+                        current_start.expect("start set when duration tracking begins"),
                         current_duration,
                         peak_balance,
                     ));

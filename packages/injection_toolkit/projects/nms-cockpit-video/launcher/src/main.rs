@@ -87,7 +87,7 @@ fn main() {
         Err(e) => {
             eprintln!("Error: cannot resolve DLL path: {}", e);
             process::exit(1);
-        }
+        },
     };
 
     // Strip \\?\ prefix from canonicalized path (LoadLibraryW handles regular paths fine)
@@ -125,11 +125,11 @@ fn main() {
             let pid = child.id();
             println!("NMS launched: initial PID {}", pid);
             pid
-        }
+        },
         Err(e) => {
             eprintln!("Error: failed to launch NMS: {}", e);
             process::exit(1);
-        }
+        },
     };
 
     // Wait for the real NMS process to appear (skip the initial stub PID)
@@ -142,7 +142,7 @@ fn main() {
         None => {
             eprintln!("Error: NMS process not found within {:?}", WAIT_TIMEOUT);
             process::exit(1);
-        }
+        },
     };
 
     println!("Found NMS game process: PID {}", pid);
@@ -159,7 +159,7 @@ fn main() {
             Err(e) => {
                 eprintln!("Error: {}", e);
                 process::exit(1);
-            }
+            },
         }
     }
 
@@ -267,11 +267,11 @@ fn spawn_daemon(path: &Path) -> Option<u32> {
             let pid = child.id();
             println!("Daemon started: PID {}", pid);
             Some(pid)
-        }
+        },
         Err(e) => {
             println!("Warning: failed to start daemon: {}", e);
             None
-        }
+        },
     };
     println!();
     pid
@@ -414,7 +414,7 @@ unsafe fn do_inject(
         None => {
             let _ = VirtualFreeEx(process, remote_buf, 0, MEM_RELEASE);
             return Err("GetProcAddress(LoadLibraryW) failed".into());
-        }
+        },
     };
 
     println!("LoadLibraryW at {:p}", load_library_addr as *const ());
@@ -460,10 +460,10 @@ fn wait_for_process_exit(pid: u32) {
                 // Wait indefinitely for the process to exit
                 WaitForSingleObject(h, INFINITE);
                 let _ = CloseHandle(h);
-            }
+            },
             Err(_) => {
                 // Process already exited or can't be opened
-            }
+            },
         }
     }
 }
@@ -476,10 +476,10 @@ fn kill_process(pid: u32) {
             Ok(h) => {
                 let _ = TerminateProcess(h, 0);
                 let _ = CloseHandle(h);
-            }
+            },
             Err(_) => {
                 // Process already exited
-            }
+            },
         }
     }
 }

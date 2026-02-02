@@ -439,7 +439,10 @@ impl AutonomousAgent {
         self.state.consume_compute(hours);
 
         // Determine activities based on company stage
-        let company = self.company.as_mut().unwrap();
+        let company = self
+            .company
+            .as_mut()
+            .expect("company existence verified above");
         let activities = match company.stage {
             CompanyStage::Ideation => {
                 // Transition to development after working on ideation
@@ -580,7 +583,10 @@ impl AutonomousAgent {
         let wallet = Arc::clone(&backends.wallet);
 
         // Now work with company
-        let company = self.company.as_mut().unwrap();
+        let company = self
+            .company
+            .as_mut()
+            .expect("company existence verified above");
 
         // Can only seek investment if in Development or SeekingInvestment stage
         if !matches!(

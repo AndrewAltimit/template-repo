@@ -226,12 +226,12 @@ impl PeerManager {
                 match bincode::deserialize::<NetMessage>(packet.payload()) {
                     Ok(msg) => {
                         self.handle_message(addr, msg);
-                    }
+                    },
                     Err(e) => {
                         warn!(peer = %addr, error = ?e, "Failed to deserialize message");
-                    }
+                    },
                 }
-            }
+            },
 
             SocketEvent::Connect(addr) => {
                 let peer_id = addr.to_string();
@@ -243,7 +243,7 @@ impl PeerManager {
                 }
 
                 self.events.write().push(PeerEvent::PeerConnected(peer_id));
-            }
+            },
 
             SocketEvent::Disconnect(addr) => {
                 let peer_id = addr.to_string();
@@ -257,7 +257,7 @@ impl PeerManager {
                 self.events
                     .write()
                     .push(PeerEvent::PeerDisconnected(peer_id));
-            }
+            },
 
             SocketEvent::Timeout(addr) => {
                 let peer_id = addr.to_string();
@@ -269,7 +269,7 @@ impl PeerManager {
                 }
 
                 self.events.write().push(PeerEvent::Timeout(peer_id));
-            }
+            },
         }
     }
 
@@ -289,7 +289,7 @@ impl PeerManager {
                     drop(peers);
                     self.events.write().push(PeerEvent::PeerConnected(peer_id));
                 }
-            }
+            },
 
             NetMessage::Ping { timestamp_ms } => {
                 // Respond with pong
@@ -298,7 +298,7 @@ impl PeerManager {
                     peer_time_ms: itk_sync::now_ms(),
                 };
                 let _ = self.send_unreliable(addr, &pong);
-            }
+            },
 
             NetMessage::Pong {
                 timestamp_ms,
@@ -312,7 +312,7 @@ impl PeerManager {
                 if let Some(peer) = peers.get_mut(&peer_id) {
                     peer.latency_ms = Some(rtt / 2);
                 }
-            }
+            },
 
             // Forward other messages as events
             _ => {
@@ -321,7 +321,7 @@ impl PeerManager {
                     from: peer_id,
                     data,
                 });
-            }
+            },
         }
     }
 

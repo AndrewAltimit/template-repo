@@ -81,7 +81,8 @@ async fn handle_socket(socket: WebSocket, state: Arc<DashboardState>) {
                 } else if let Ok(ws_msg) = serde_json::from_str::<WsMessage>(&text) {
                     // Handle ping
                     if matches!(ws_msg, WsMessage::Ping) {
-                        let pong = serde_json::to_string(&WsMessage::Pong).unwrap();
+                        let pong = serde_json::to_string(&WsMessage::Pong)
+                            .expect("Pong enum serialization cannot fail");
                         // Note: can't send from here easily, client should handle ping/pong at ws level
                         debug!("Received ping, pong would be: {}", pong);
                     }

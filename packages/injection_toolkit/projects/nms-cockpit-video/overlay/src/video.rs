@@ -65,13 +65,13 @@ impl VideoFrameReader {
                 // Pre-allocate frame buffer
                 self.last_frame = vec![0u8; buffer.frame_size()];
                 self.buffer = Some(buffer);
-            }
+            },
             Err(e) => {
                 if !self.connection_attempted {
                     debug!(?e, "Frame buffer not available yet");
                     self.connection_attempted = true;
                 }
-            }
+            },
         }
     }
 
@@ -98,10 +98,10 @@ impl VideoFrameReader {
                         self.last_pts = pts_ms;
                         return Some(&self.last_frame);
                     }
-                }
+                },
                 Err(e) => {
                     debug!(?e, "Failed to read frame");
-                }
+                },
             }
         }
 

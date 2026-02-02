@@ -1,0 +1,66 @@
+# Rust Formatting Configuration
+# This file defines explicit formatting rules for the project.
+# Run with: cargo fmt
+# Check with: cargo fmt --check
+#
+# Note: We only use stable rustfmt options here. Unstable options would require
+# nightly toolchain and are commented out below for reference.
+
+# Edition to use for parsing (matches Cargo.toml)
+edition = "2024"
+
+# Maximum line width
+max_width = 100
+
+# Use spaces for indentation
+hard_tabs = false
+tab_spaces = 4
+
+# Import ordering
+reorder_imports = true
+reorder_modules = true
+
+# Keep newlines for readability
+newline_style = "Unix"
+
+# Function signatures
+fn_params_layout = "Tall"
+
+# Match arm formatting
+match_block_trailing_comma = true
+
+# Use field init shorthand where possible
+use_field_init_shorthand = true
+
+# Merge derives into a single attribute
+merge_derives = true
+
+# Use try! shorthand (?)
+use_try_shorthand = true
+
+# Chain formatting
+chain_width = 60
+
+# Array formatting
+array_width = 60
+
+# ----------------------------------------------------------------------------
+# Unstable options (require nightly toolchain)
+# Uncomment these if using nightly rustfmt:
+# ----------------------------------------------------------------------------
+# imports_granularity = "Module"
+# group_imports = "StdExternalCrate"
+# wrap_comments = false
+# normalize_comments = false
+# normalize_doc_attributes = true
+# format_code_in_doc_comments = true
+# struct_lit_single_line = true
+# fn_single_line = false
+# where_single_line = false
+# overflow_delimited_expr = true
+# enum_discrim_align_threshold = 20
+# match_arm_blocks = true
+# brace_style = "SameLineWhere"
+# control_brace_style = "AlwaysSameLine"
+# blank_lines_upper_bound = 2
+# blank_lines_lower_bound = 0
