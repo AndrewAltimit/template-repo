@@ -161,7 +161,6 @@ jobs:
           # Note: All MCP servers are now Rust packages tested separately via cargo test
           docker compose run --rm python-ci bash -c "
           pip install -q -r config/python/requirements.txt && \
-          pip install -q -e tools/mcp/mcp_core && \
           python3 -c '
           # Note: All MCP servers are now Rust
           # They are built and tested in the build-rust-binaries job

@@ -1,4 +1,4 @@
-# Start Gaea2 MCP Server on Windows
+# Start Gaea2 MCP Server on Windows (Rust version)
 # This script starts the Gaea2 MCP server with optional Gaea2 path
 
 param(
@@ -7,7 +7,7 @@ param(
 )
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "Gaea2 MCP Server Launcher" -ForegroundColor Cyan
+Write-Host "Gaea2 MCP Server Launcher (Rust)" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -47,42 +47,50 @@ if (-not $env:GAEA2_PATH) {
     Write-Host ""
 }
 
-# Check if Python is available
-try {
-    $pythonVersion = python --version 2>&1
-    Write-Host "Python found: $pythonVersion" -ForegroundColor Green
-} catch {
-    Write-Host "ERROR: Python not found in PATH" -ForegroundColor Red
-    Write-Host "Please install Python 3.10+ and add it to PATH" -ForegroundColor Red
-    Read-Host "Press Enter to exit"
-    exit 1
-}
+# Look for the Rust binary
+$binaryPaths = @(
+    "tools\mcp\mcp_gaea2\target\release\mcp-gaea2.exe",
+    "tools\mcp\mcp_gaea2\target\debug\mcp-gaea2.exe"
+)
 
-# Check if mcp_core package is installed (dependency)
-$coreCheck = python -c "import mcp_core" 2>&1
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Installing mcp_core package..." -ForegroundColor Yellow
-    pip install -e tools\mcp\mcp_core -q
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: Failed to install mcp_core package" -ForegroundColor Red
-        Read-Host "Press Enter to exit"
-        exit 1
+$binaryPath = $null
+foreach ($path in $binaryPaths) {
+    $fullPath = Join-Path $repoRoot $path
+    if (Test-Path $fullPath) {
+        $binaryPath = $fullPath
+        break
     }
 }
 
-# Check if mcp_gaea2 package is installed
-$packageCheck = python -c "import mcp_gaea2" 2>&1
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Installing mcp_gaea2 package..." -ForegroundColor Yellow
-    pip install -e tools\mcp\mcp_gaea2 -q
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: Failed to install mcp_gaea2 package" -ForegroundColor Red
+if (-not $binaryPath) {
+    Write-Host "Rust binary not found. Building..." -ForegroundColor Yellow
+
+    # Check if cargo is available
+    try {
+        $cargoVersion = cargo --version 2>&1
+        Write-Host "Cargo found: $cargoVersion" -ForegroundColor Green
+    } catch {
+        Write-Host "ERROR: Cargo (Rust) not found in PATH" -ForegroundColor Red
+        Write-Host "Please install Rust from https://rustup.rs/" -ForegroundColor Red
         Read-Host "Press Enter to exit"
         exit 1
     }
-    Write-Host "Packages installed successfully." -ForegroundColor Green
-    Write-Host ""
+
+    # Build the binary
+    Push-Location (Join-Path $repoRoot "tools\mcp\mcp_gaea2")
+    cargo build --release
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: Failed to build mcp-gaea2" -ForegroundColor Red
+        Pop-Location
+        Read-Host "Press Enter to exit"
+        exit 1
+    }
+    Pop-Location
+
+    $binaryPath = Join-Path $repoRoot "tools\mcp\mcp_gaea2\target\release\mcp-gaea2.exe"
 }
+
+Write-Host "Using binary: $binaryPath" -ForegroundColor Green
 
 # Set output directory to a Windows-friendly path
 if (-not $env:GAEA2_OUTPUT_DIR) {
@@ -98,4 +106,4 @@ Write-Host "Output directory: $env:GAEA2_OUTPUT_DIR" -ForegroundColor Gray
 Write-Host "Press Ctrl+C to stop the server" -ForegroundColor Yellow
 Write-Host ""
 
-python -m mcp_gaea2.server --mode http --port $Port --output-dir $env:GAEA2_OUTPUT_DIR $args
+& $binaryPath --mode standalone --port $Port $args

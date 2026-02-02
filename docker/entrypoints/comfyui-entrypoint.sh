@@ -23,10 +23,9 @@ while ! curl -s http://localhost:8188/system_stats > /dev/null 2>&1; do
 done
 echo " ComfyUI UI is ready!"
 
-# Start MCP server
+# Start MCP server (Rust binary)
 echo "Starting ComfyUI MCP Server on port 8013..."
-cd /workspace
-python3 -m tools.mcp.comfyui.server --mode http --host 0.0.0.0 --port 8013 &
+mcp-comfyui --mode standalone --port 8013 &
 MCP_PID=$!
 
 # Keep container running and handle shutdown

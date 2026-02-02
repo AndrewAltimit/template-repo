@@ -1,5 +1,22 @@
-# ComfyUI with Web UI and MCP Server (x86_64 version)
+# Multi-stage build for ComfyUI with Rust MCP server (x86_64 version)
 # For ARM64 systems, use comfyui-arm64.Dockerfile instead
+
+# Stage 1: Build the Rust MCP binary
+FROM rust:1.93 AS builder
+
+WORKDIR /build
+
+# Copy MCP core framework first (dependency)
+COPY tools/mcp/mcp_core_rust /build/tools/mcp/mcp_core_rust
+
+# Copy comfyui server
+COPY tools/mcp/mcp_comfyui /build/tools/mcp/mcp_comfyui
+
+# Build the binary
+WORKDIR /build/tools/mcp/mcp_comfyui
+RUN cargo build --release
+
+# Stage 2: Runtime image with ComfyUI and CUDA
 FROM nvidia/cuda:12.4.0-base-ubuntu22.04
 
 # Install system dependencies
@@ -16,6 +33,7 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev \
     libgomp1 \
     libgoogle-perftools4 \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -48,33 +66,6 @@ RUN git clone https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved.git
 RUN git clone https://github.com/jags111/efficiency-nodes-comfyui.git
 RUN git clone https://github.com/WASasquatch/was-node-suite-comfyui.git
 
-# Install additional dependencies for MCP server
-RUN pip3 install --no-cache-dir \
-    fastapi \
-    uvicorn[standard] \
-    httpx \
-    httpx-sse \
-    pydantic \
-    pydantic-settings \
-    aiofiles \
-    psutil \
-    websocket-client \
-    jsonschema \
-    anyio \
-    sse-starlette \
-    starlette \
-    python-multipart \
-    mcp
-
-# Copy only necessary MCP server components for ComfyUI
-# Note: __init__.py files not needed - packages installed via pip below
-COPY tools/mcp/mcp_core /workspace/tools/mcp/mcp_core
-COPY tools/mcp/mcp_comfyui /workspace/tools/mcp/mcp_comfyui
-
-# Install MCP packages
-RUN pip3 install --no-cache-dir /workspace/tools/mcp/mcp_core &&\
-    pip3 install --no-cache-dir /workspace/tools/mcp/mcp_comfyui
-
 # Create directories
 RUN mkdir -p /comfyui/models/checkpoints \
     /comfyui/models/vae \
@@ -85,12 +76,18 @@ RUN mkdir -p /comfyui/models/checkpoints \
     /comfyui/input \
     /workspace/logs
 
+# Copy the Rust MCP binary from builder
+COPY --from=builder /build/tools/mcp/mcp_comfyui/target/release/mcp-comfyui /usr/local/bin/
+RUN chmod +x /usr/local/bin/mcp-comfyui
+
 # Environment variables
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
 ENV PYTHONUNBUFFERED=1
 ENV COMFYUI_PATH=/comfyui
 ENV COMFYUI_DISABLE_XFORMERS=0
+ENV RUST_LOG=info
+ENV COMFYUI_URL=http://localhost:8188
 
 # Create non-root user
 RUN groupadd --gid 1000 appuser && \

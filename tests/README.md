@@ -51,7 +51,7 @@ Each MCP server has its own tests directory under `tools/mcp/`:
 | Blender (3D) | `tools/mcp/mcp_blender/tests/` |
 | Virtual Character | `tools/mcp/mcp_virtual_character/tests/` |
 | ElevenLabs Speech | `tools/mcp/mcp_elevenlabs_speech/tests/` |
-| Core Components | `tools/mcp/mcp_core/tests/` |
+| Core Library (Rust) | `tools/mcp/mcp_core_rust/` (uses `cargo test`) |
 | AgentCore Memory | `tools/mcp/mcp_agentcore_memory/tests/` |
 | Code Quality | `tools/mcp/mcp_code_quality/tests/` |
 | GitHub Board | `tools/mcp/mcp_github_board/tests/` |
