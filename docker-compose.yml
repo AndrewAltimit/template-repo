@@ -254,7 +254,8 @@ services:
       - MCP_OUTPUT_DIR=/output/gaea2
     networks:
       - mcp-network
-    command: ["mcp-gaea2", "--mode", "standalone", "--port", "8007", "--output-dir", "/output/gaea2"]
+    # Command args only - ENTRYPOINT provides the binary
+    command: ["--mode", "standalone", "--port", "8007", "--output-dir", "/output/gaea2"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
