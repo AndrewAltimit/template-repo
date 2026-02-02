@@ -1,9 +1,24 @@
-# Blender MCP Server Dockerfile with GPU support
+# Multi-stage Rust build for mcp-blender with GPU support
+# Stage 1: Build the Rust binary
+FROM rust:1.93 AS builder
+
+WORKDIR /build
+
+# Copy MCP core framework first (dependency)
+COPY tools/mcp/mcp_core_rust /build/tools/mcp/mcp_core_rust
+
+# Copy blender server
+COPY tools/mcp/mcp_blender /build/tools/mcp/mcp_blender
+
+# Build the binary
+WORKDIR /build/tools/mcp/mcp_blender
+RUN cargo build --release
+
+# Stage 2: Runtime image with Blender and CUDA
 FROM nvidia/cuda:12.1.1-base-ubuntu22.04
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PYTHONUNBUFFERED=1
 ENV BLENDER_VERSION=4.5.1
 
 # Install system dependencies
@@ -11,8 +26,6 @@ RUN apt-get update && apt-get install -y \
     wget \
     curl \
     xz-utils \
-    python3 \
-    python3-pip \
     libxxf86vm1 \
     libgl1-mesa-glx \
     libxi6 \
@@ -21,6 +34,7 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libglib2.0-0 \
     libgomp1 \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Download and install Blender
@@ -30,39 +44,36 @@ RUN wget -q https://download.blender.org/release/Blender4.5/blender-${BLENDER_VE
     && rm blender-${BLENDER_VERSION}-linux-x64.tar.xz \
     && ln -s /opt/blender/blender /usr/local/bin/blender
 
-# Create app directory
-WORKDIR /app
-
-# Upgrade pip first for proper pyproject.toml support
-RUN pip3 install --upgrade pip setuptools wheel
-
-# Copy requirements first for better caching
-COPY tools/mcp/mcp_blender/requirements.txt /app/requirements.txt
-RUN pip3 install --no-cache-dir -r requirements.txt
-
-# Copy MCP packages
-COPY tools/mcp/mcp_core /app/tools/mcp/mcp_core
-COPY tools/mcp/mcp_blender /app/tools/mcp/mcp_blender
-
-# Install MCP packages (use -v for verbose output)
-RUN pip install --no-cache-dir -v /app/tools/mcp/mcp_core && \
-    pip install --no-cache-dir -v /app/tools/mcp/mcp_blender
-
-# Copy Blender scripts to expected Docker location
-# BlenderExecutor looks for scripts at /app/blender/scripts first
-COPY tools/mcp/mcp_blender/scripts /app/blender/scripts
-
-# Set Python path for module discovery
-ENV PYTHONPATH=/app
-
-# Create non-root user, directories, and set permissions in one layer
+# Create app user with configurable UID/GID
 ARG USER_ID=1000
 ARG GROUP_ID=1000
-RUN groupadd -g ${GROUP_ID} blender && \
-    useradd -m -u ${USER_ID} -g ${GROUP_ID} blender && \
-    mkdir -p /app/projects /app/assets /app/outputs /app/temp /app/templates && \
-    chown -R blender:blender /app && \
-    chmod -R 755 /app
+RUN groupadd -g ${GROUP_ID} blender || true && \
+    useradd -m -u ${USER_ID} -g ${GROUP_ID} blender || true
+
+# Create directories
+RUN mkdir -p /app /app/projects /app/assets /app/outputs /app/temp /app/templates /app/blender/scripts && \
+    chown -R blender:blender /app
+
+WORKDIR /app
+
+# Copy the binary from builder
+COPY --from=builder /build/tools/mcp/mcp_blender/target/release/mcp-blender /usr/local/bin/
+
+# Copy Blender scripts
+COPY tools/mcp/mcp_blender/scripts /app/blender/scripts
+
+# Set permissions
+RUN chmod +x /usr/local/bin/mcp-blender && \
+    chown -R blender:blender /app
+
+# Environment variables
+ENV RUST_LOG=info
+ENV MCP_BLENDER_PROJECT_DIR=/app/projects
+ENV MCP_BLENDER_ASSETS_DIR=/app/assets
+ENV MCP_BLENDER_OUTPUT_DIR=/app/outputs
+ENV MCP_BLENDER_TEMP_DIR=/app/temp
+ENV MCP_BLENDER_TEMPLATES_DIR=/app/templates
+ENV MCP_BLENDER_SCRIPTS_DIR=/app/blender/scripts
 
 # Switch to non-root user
 USER blender
@@ -70,5 +81,9 @@ USER blender
 # Expose port
 EXPOSE 8017
 
-# Run the server
-CMD ["python3", "-m", "mcp_blender.server"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8017/health || exit 1
+
+# Default command
+CMD ["mcp-blender", "--mode", "standalone", "--port", "8017"]

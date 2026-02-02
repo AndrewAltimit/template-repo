@@ -13,9 +13,9 @@ You are the technical lead for @AndrewAltimit's single-maintainer project with a
    - Designed for maximum portability
 
 2. **MCP Server Architecture**
-   - Modular servers: code_quality (8010), content_creation (8011), gemini (8006), gaea2 (8007)
-   - Each server extends BaseMCPServer from `tools/mcp/mcp_core/base_server.py`
-   - HTTP mode for web APIs, stdio mode for Claude Desktop
+   - Modular Rust servers: code_quality (8010), content_creation (8011), gemini (8006), gaea2 (8007)
+   - Each server uses the `mcp-core` Rust library from `tools/mcp/mcp_core_rust/`
+   - Standalone mode for web APIs, stdio mode for Claude Desktop
    - Gemini MUST run on host (Docker access requirement)
    - Gaea2 can run remotely (hardcoded 192.168.0.152:8007)
 
@@ -28,15 +28,13 @@ You are the technical lead for @AndrewAltimit's single-maintainer project with a
 ## Implementation Standards
 
 ### Code Organization
-```python
-# ALWAYS follow this pattern for new MCP tools
-class YourTool(BaseMCPTool):
-    def __init__(self):
-        super().__init__("tool_name", "Tool description")
+```rust
+// ALWAYS follow this pattern for new MCP tools
+use mcp_core::prelude::*;
 
-    async def execute(self, **kwargs) -> Dict[str, Any]:
-        # Implementation with proper error handling
-        try:
+#[mcp_tool(name = "tool_name", description = "Tool description")]
+async fn your_tool(args: YourToolArgs) -> Result<ToolResult> {
+    // Implementation with proper error handling
             # Your logic here
             return {"success": True, "result": result}
         except Exception as e:
@@ -97,18 +95,36 @@ docker compose run --rm python-ci pytest tests/ -v
 ## MCP Server Development
 
 ### Creating New MCP Servers
-```python
-# tools/mcp/your_server/server.py
-from tools.mcp.mcp_core.base_server import BaseMCPServer
+```rust
+// tools/mcp/your_server/src/main.rs
+use mcp_core::{MCPServer, init_logging, server::MCPServerArgs};
 
-class YourMCPServer(BaseMCPServer):
-    def __init__(self):
-        super().__init__("your-server", "Description")
-        self.setup_routes()
+#[tokio::main]
+async fn main() -> Result<()> {
+    init_logging();
+    let args = MCPServerArgs::parse();
+    let server = YourServer::new();
+    MCPServer::run(server, args).await
+}
 
-    def setup_routes(self):
-        # HTTP mode routes
-        self.app.post("/execute")(self.execute_tool)
+// tools/mcp/your_server/src/server.rs
+use mcp_core::prelude::*;
+
+pub struct YourServer;
+
+impl YourServer {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl MCPServerTrait for YourServer {
+    fn name(&self) -> &'static str { "your-server" }
+    fn version(&self) -> &'static str { "1.0.0" }
+    fn tools(&self) -> Vec<BoxedTool> {
+        vec![/* your tools */]
+    }
+}
 ```
 
 ### Docker Configuration

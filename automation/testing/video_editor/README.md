@@ -178,19 +178,23 @@ Test outputs are created in:
 
 ## Integration with MCP Server
 
-When the MCP server is running, you can use the full feature set:
+When the MCP server is running, you can use the full feature set via HTTP:
 
 ```python
-from mcp_core.client import MCPClient
+import httpx
 
-async with MCPClient("video_editor", port=8019) as client:
-    result = await client.call("video_editor/analyze", {
-        "video_inputs": ["video.mp4"],
-        "analysis_options": {
-            "transcribe": True,
-            "identify_speakers": True
+async with httpx.AsyncClient() as client:
+    response = await client.post("http://localhost:8019/tool", json={
+        "tool": "video_editor/analyze",
+        "arguments": {
+            "video_inputs": ["video.mp4"],
+            "analysis_options": {
+                "transcribe": True,
+                "identify_speakers": True
+            }
         }
     })
+    result = response.json()
 ```
 
 ## Troubleshooting

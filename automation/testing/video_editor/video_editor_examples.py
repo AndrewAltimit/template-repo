@@ -297,51 +297,65 @@ async def example_complex_workflow():
 
 
 def example_python_client():
-    """Example 7: Using Python client"""
-    print_example(7, "Python Client Usage", "How to use the MCP client in Python scripts")
+    """Example 7: Using Python HTTP client"""
+    print_example(7, "Python HTTP Client Usage", "How to call the MCP server via HTTP")
 
     code = '''
 import asyncio
-from mcp_core.client import MCPClient
+import httpx
 
 async def edit_interview():
-    """Edit an interview with two cameras"""
+    """Edit an interview with two cameras using HTTP API"""
 
-    async with MCPClient("video_editor", port=8019) as client:
+    server_url = "http://localhost:8019"
+
+    async with httpx.AsyncClient() as client:
         # Step 1: Analyze videos
         print("Analyzing videos...")
-        analysis = await client.call("video_editor/analyze", {
-            "video_inputs": ["camera1.mp4", "camera2.mp4"],
-            "analysis_options": {
-                "transcribe": True,
-                "identify_speakers": True
+        response = await client.post(f"{server_url}/tool", json={
+            "tool": "video_editor/analyze",
+            "arguments": {
+                "video_inputs": ["camera1.mp4", "camera2.mp4"],
+                "analysis_options": {
+                    "transcribe": True,
+                    "identify_speakers": True
+                }
             }
         })
+        analysis = response.json()
 
         # Step 2: Create edit
         print("Creating edit decision list...")
-        edit = await client.call("video_editor/create_edit", {
-            "video_inputs": ["camera1.mp4", "camera2.mp4"],
-            "editing_rules": {
-                "switch_on_speaker": True,
-                "remove_silence": True
-            },
-            "speaker_mapping": {
-                "SPEAKER_00": "camera1.mp4",
-                "SPEAKER_01": "camera2.mp4"
+        response = await client.post(f"{server_url}/tool", json={
+            "tool": "video_editor/create_edit",
+            "arguments": {
+                "video_inputs": ["camera1.mp4", "camera2.mp4"],
+                "editing_rules": {
+                    "switch_on_speaker": True,
+                    "remove_silence": True
+                },
+                "speaker_mapping": {
+                    "SPEAKER_00": "camera1.mp4",
+                    "SPEAKER_01": "camera2.mp4"
+                }
             }
         })
+        edit = response.json()
 
         # Step 3: Render final video
         print("Rendering final video...")
-        result = await client.call("video_editor/render", {
-            "video_inputs": ["camera1.mp4", "camera2.mp4"],
-            "edit_decision_list": edit["edit_decision_list"],
-            "render_options": {
-                "add_captions": True,
-                "add_speaker_labels": True
+        response = await client.post(f"{server_url}/tool", json={
+            "tool": "video_editor/render",
+            "arguments": {
+                "video_inputs": ["camera1.mp4", "camera2.mp4"],
+                "edit_decision_list": edit["edit_decision_list"],
+                "render_options": {
+                    "add_captions": True,
+                    "add_speaker_labels": True
+                }
             }
         })
+        result = response.json()
 
         print(f"Final video: {result['output_path']}")
         print(f"Duration: {result['duration']}s")

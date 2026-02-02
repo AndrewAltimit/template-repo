@@ -146,7 +146,7 @@ jobs:
           docker_http_bridge_count=$(grep -E "($HTTP_BRIDGE_PATTERN)" changed_files.txt | wc -l || echo "0")
 
           PYTHON_CI_PATTERN='docker/python-ci\.Dockerfile|config/python/requirements\.txt|pyproject\.toml'
-          PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/rust/gh-validator|tools/mcp/mcp_core/"
+          PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|tools/rust/gh-validator"
           # Note: mcp_blender, mcp_comfyui, mcp_ai_toolkit, mcp_gaea2, mcp_virtual_character, mcp_video_editor, mcp_memory_explorer are now Rust (not triggering Python CI)
           PYTHON_CI_PATTERN="$PYTHON_CI_PATTERN|packages/sleeper_agents|automation/|\.flake8"
           docker_python_ci_count=$(grep -E "($PYTHON_CI_PATTERN)" changed_files.txt | wc -l || echo "0")
