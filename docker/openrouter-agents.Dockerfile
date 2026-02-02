@@ -6,7 +6,8 @@ ARG OPENCODE_IMAGE=template-repo-mcp-opencode:latest
 ARG CRUSH_IMAGE=template-repo-mcp-crush:latest
 
 # Stage 1: Build gh-validator from source
-FROM rust:1.93-slim AS gh-validator-builder
+# Use bookworm-based rust image to match node:20-slim runtime glibc version
+FROM rust:1.93-slim-bookworm AS gh-validator-builder
 
 RUN apt-get update && apt-get install -y \
     pkg-config \
