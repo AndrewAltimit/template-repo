@@ -52,5 +52,5 @@ WORKDIR /app
 # Switch to the created user
 USER geminiuser
 
-# Default command - stdio mode for MCP clients
-CMD ["mcp-gemini", "--mode", "stdio"]
+# Default command - standalone mode for HTTP-based MCP
+CMD ["mcp-gemini", "--mode", "standalone", "--port", "8012"]

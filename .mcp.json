@@ -1,197 +1,44 @@
 {
   "mcpServers": {
     "code-quality": {
-      "command": "docker compose",
-      "args": [
-        "-f",
-        "./docker-compose.yml",
-        "--profile",
-        "services",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-code-quality",
-        "python",
-        "-m",
-        "mcp_code_quality.server",
-        "--mode",
-        "stdio"
-      ]
+      "type": "http",
+      "url": "http://localhost:8010/messages"
     },
     "content-creation": {
-      "command": "docker compose",
-      "args": [
-        "-f",
-        "./docker-compose.yml",
-        "--profile",
-        "services",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-content-creation",
-        "python",
-        "-m",
-        "mcp_content_creation.server",
-        "--mode",
-        "stdio"
-      ]
+      "type": "http",
+      "url": "http://localhost:8011/messages"
     },
     "gemini": {
-      "command": "docker compose",
-      "args": [
-        "-f",
-        "./docker-compose.yml",
-        "--profile",
-        "services",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-gemini",
-        "mcp-gemini",
-        "--mode",
-        "stdio"
-      ],
-      "env": {
-        "GEMINI_TIMEOUT": "300",
-        "GEMINI_USE_CONTAINER": "false",
-        "_comment": "GEMINI_USE_CONTAINER is set to false to prevent docker-in-docker, as mcp-gemini itself runs in a container. API key is set via GEMINI_API_KEY in docker-compose.yml from GOOGLE_API_KEY. Note: Don't specify GEMINI_MODEL - the CLI uses the default model automatically to avoid 404 errors"
-      }
+      "type": "http",
+      "url": "http://localhost:8012/messages"
     },
     "opencode": {
-      "command": "docker compose",
-      "args": [
-        "-f",
-        "./docker-compose.yml",
-        "--profile",
-        "services",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-opencode",
-        "mcp-opencode",
-        "--mode",
-        "stdio"
-      ]
+      "type": "http",
+      "url": "http://localhost:8014/messages"
     },
     "crush": {
-      "command": "docker compose",
-      "args": [
-        "-f",
-        "./docker-compose.yml",
-        "--profile",
-        "services",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-crush",
-        "mcp-crush",
-        "--mode",
-        "stdio"
-      ]
+      "type": "http",
+      "url": "http://localhost:8015/messages"
     },
     "codex": {
-      "command": "docker compose",
-      "args": [
-        "-f",
-        "./docker-compose.yml",
-        "--profile",
-        "services",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-codex",
-        "mcp-codex",
-        "--mode",
-        "stdio"
-      ]
+      "type": "http",
+      "url": "http://localhost:8021/messages"
     },
     "github-board": {
-      "command": "docker compose",
-      "args": [
-        "-f",
-        "./docker-compose.yml",
-        "--profile",
-        "services",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-github-board",
-        "python",
-        "-m",
-        "mcp_github_board.server",
-        "--mode",
-        "stdio"
-      ],
-      "env": {
-        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
-        "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}",
-        "GITHUB_PROJECT_NUMBER": "1",
-        "_comment": "GitHub Board MCP server for board operations and agent coordination. Runs containerized via docker compose run."
-      }
+      "type": "http",
+      "url": "http://localhost:8022/messages"
     },
     "agentcore-memory": {
-      "command": "docker compose",
-      "args": [
-        "-f",
-        "./docker-compose.yml",
-        "--env-file",
-        "./.env",
-        "--profile",
-        "memory",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-agentcore-memory",
-        "python",
-        "-m",
-        "mcp_agentcore_memory.server",
-        "--mode",
-        "stdio"
-      ]
+      "type": "http",
+      "url": "http://localhost:8023/messages"
     },
     "reaction-search": {
-      "command": "docker compose",
-      "args": [
-        "-f",
-        "./docker-compose.yml",
-        "--profile",
-        "services",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-reaction-search",
-        "python",
-        "-m",
-        "mcp_reaction_search.server",
-        "--mode",
-        "stdio"
-      ]
+      "type": "http",
+      "url": "http://localhost:8024/messages"
     },
     "virtual-character": {
-      "command": "docker compose",
-      "args": [
-        "-f",
-        "./docker-compose.yml",
-        "--profile",
-        "virtual-character",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-virtual-character",
-        "mcp-virtual-character",
-        "--mode",
-        "stdio"
-      ]
-    },
-    "memory-explorer": {
-      "command": "C:\\Python313\\python.exe",
-      "args": [
-        "-u",
-        "-X",
-        "utf8",
-        "-m",
-        "mcp_memory_explorer"
-      ]
+      "type": "http",
+      "url": "http://localhost:8025/messages"
     }
   }
 }
