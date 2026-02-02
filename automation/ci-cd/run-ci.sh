@@ -107,13 +107,13 @@ case "$STAGE" in
 
   test)
     echo "=== Running tests ==="
-    # Note: --ignore-glob is required because --ignore doesn't work properly with glob-expanded paths
     # Include corporate-proxy tests in the main test suite
     # Using pytest-xdist for parallel test execution (packages already installed in image)
+    # Note: MCP server tests are now in Rust (run via 'cargo test' in each mcp_* directory)
     docker compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
-      python-ci pytest tests/ tools/mcp/*/tests/ automation/corporate-proxy/tests/ -v -n auto --cov=. --cov-report=xml --cov-report=html --cov-report=term --ignore-glob='**/mcp_gaea2/**' "${EXTRA_ARGS[@]}"
+      python-ci pytest tests/ automation/corporate-proxy/tests/ -v -n auto --cov=. --cov-report=xml --cov-report=html --cov-report=term "${EXTRA_ARGS[@]}"
 
     # Run additional corporate proxy component tests (scripts, not pytest)
     echo "=== Testing corporate proxy components ==="

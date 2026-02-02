@@ -158,26 +158,14 @@ jobs:
           # Build the CI image if needed
           docker compose build python-ci
 
-          # Test Python MCP servers - install packages properly via pip
-          # Note: Most MCP servers are now Rust packages tested separately via cargo test
+          # Note: All MCP servers are now Rust packages tested separately via cargo test
           docker compose run --rm python-ci bash -c "
           pip install -q -r config/python/requirements.txt && \
           pip install -q -e tools/mcp/mcp_core && \
-          pip install -q -e tools/mcp/mcp_gaea2 && \
           python3 -c '
-          # Test Gaea2 server (stubs only in container)
-          try:
-              from mcp_gaea2.server import Gaea2MCPServer
-              from mcp_gaea2.tools import TOOLS as GAEA2_TOOLS
-              print(\"Gaea2 MCP server imported successfully\")
-              print(f\"  - {len(GAEA2_TOOLS)} tools available\")
-          except ImportError as e:
-              print(f\"Failed to import Gaea2 server: {e}\")
-              exit(1)
-
-          # Note: Most MCP servers are now Rust
+          # Note: All MCP servers are now Rust
           # They are built and tested in the build-rust-binaries job
-          print(\"\\nRust MCP servers (tested separately):\")
+          print(\"Rust MCP servers (tested separately):\")
           print(\"  - mcp-codex (AI code generation via OpenAI Codex)\")
           print(\"  - mcp-gemini (AI assistance via Gemini CLI)\")
           print(\"  - mcp-crush (AI code generation via OpenRouter)\")
@@ -195,6 +183,7 @@ jobs:
           print(\"  - mcp-video-editor (Intelligent automated video editing)\")
           print(\"  - mcp-ai-toolkit (AI Toolkit LoRA training)\")
           print(\"  - mcp-virtual-character (Virtual character control via VRChat OSC)\")
+          print(\"  - mcp-gaea2 (Gaea2 terrain generation)\")
           print(\"  - mcp-memory-explorer (Game memory exploration and reverse engineering)\")
           '
           "
@@ -746,6 +735,12 @@ jobs:
             cp target/release/mcp-virtual-character /app/rust-binaries/mcp-virtual-character-linux-x64
             echo "Built mcp-virtual-character for Linux x64"
 
+            # Build mcp-gaea2
+            cd /app/tools/mcp/mcp_gaea2
+            cargo build --release
+            cp target/release/mcp-gaea2 /app/rust-binaries/mcp-gaea2-linux-x64
+            echo "Built mcp-gaea2 for Linux x64"
+
             # Build mcp-memory-explorer
             cd /app/tools/mcp/mcp_memory_explorer
             cargo build --release
@@ -1017,6 +1012,7 @@ jobs:
           | `mcp-video-editor-linux-x64` | Linux x64 | MCP server for intelligent automated video editing |
           | `mcp-ai-toolkit-linux-x64` | Linux x64 | MCP server for AI Toolkit LoRA training |
           | `mcp-virtual-character-linux-x64` | Linux x64 | MCP server for virtual character control via VRChat OSC |
+          | `mcp-gaea2-linux-x64` | Linux x64 | MCP server for Gaea2 terrain generation |
           | `mcp-memory-explorer-linux-x64` | Linux x64 | MCP server for game memory exploration and reverse engineering |
           | `economic-agents-linux-x64` | Linux x64 | Autonomous economic agent simulation CLI |
           | `pr-monitor-linux-x64` | Linux x64 | PR monitoring tool for admin/Gemini feedback |

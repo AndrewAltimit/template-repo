@@ -9,11 +9,11 @@ import pytest
 def test_imports():
     """Test that basic imports work"""
     # Test core imports
-    # Note: mcp_code_quality, mcp_content_creation, mcp_desktop_control, and
-    # mcp_virtual_character were migrated to Rust
-    from mcp_core.base_server import BaseMCPServer  # noqa: E402
+    # Note: All MCP servers have been migrated to Rust. No Python MCP modules to test.
+    # Testing sleeper_agents as a representative Python package
+    from sleeper_agents import DetectionConfig  # noqa: E402
 
-    assert BaseMCPServer is not None
+    assert DetectionConfig is not None
 
 
 def test_basic_functionality():
