@@ -2,7 +2,8 @@
 # For ARM64 systems, use comfyui-arm64.Dockerfile instead
 
 # Stage 1: Build the Rust MCP binary
-FROM rust:1.93 AS builder
+# Use bookworm-based rust image to match runtime glibc version
+FROM rust:1.93-slim-bookworm AS builder
 
 WORKDIR /build
 

@@ -1,6 +1,7 @@
 # Multi-stage Rust build for mcp-desktop-control
 # Stage 1: Build the Rust binary
-FROM rust:1.93 AS builder
+# Use bookworm-based rust image to match runtime glibc version
+FROM rust:1.93-slim-bookworm AS builder
 
 # Install X11 development libraries for building
 RUN apt-get update && apt-get install -y --no-install-recommends \
