@@ -544,7 +544,7 @@ jobs:
     needs: [test-suite]
     if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Pre-checkout cleanup
         run: |
