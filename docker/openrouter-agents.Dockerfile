@@ -14,7 +14,8 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /build
+COPY tools/rust/wrapper-common /build/wrapper-common
+WORKDIR /build/gh-validator
 COPY tools/rust/gh-validator/Cargo.toml tools/rust/gh-validator/Cargo.lock* ./
 RUN mkdir -p src && echo "fn main() {}" > src/main.rs
 RUN cargo build --release 2>/dev/null || true
@@ -61,7 +62,7 @@ RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | 
 # Install gh-validator - shadows system gh via PATH priority
 # /usr/local/bin comes before /usr/bin in PATH, so our validator runs first
 # The validator finds the real gh at /usr/bin/gh automatically
-COPY --from=gh-validator-builder /build/target/release/gh /usr/local/bin/gh
+COPY --from=gh-validator-builder /build/gh-validator/target/release/gh /usr/local/bin/gh
 RUN chmod +x /usr/local/bin/gh
 
 # Copy pre-built binaries from their respective images
