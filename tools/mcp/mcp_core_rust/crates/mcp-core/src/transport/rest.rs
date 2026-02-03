@@ -155,7 +155,7 @@ async fn call_tool_handler(
                     error: Some(format!("Tool '{}' not found", name)),
                 }),
             );
-        }
+        },
     };
 
     match tool.execute(request.arguments).await {
@@ -174,7 +174,7 @@ async fn call_tool_handler(
                     error: None,
                 }),
             )
-        }
+        },
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ExecuteResponse {
@@ -201,7 +201,7 @@ async fn execute_handler(
                     error: Some("Missing 'tool' field in request".to_string()),
                 }),
             );
-        }
+        },
     };
 
     info!("REST execute tool: {}", name);
@@ -217,7 +217,7 @@ async fn execute_handler(
                     error: Some(format!("Tool '{}' not found", name)),
                 }),
             );
-        }
+        },
     };
 
     match tool.execute(request.arguments).await {
@@ -235,7 +235,7 @@ async fn execute_handler(
                     error: None,
                 }),
             )
-        }
+        },
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ExecuteResponse {

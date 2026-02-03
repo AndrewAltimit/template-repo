@@ -8,10 +8,11 @@ use tokio::net::TcpListener;
 use tracing::{error, info, warn};
 
 use crate::error::Result;
-use crate::session::SessionManager;
 use crate::tool::{BoxedTool, Tool, ToolRegistry};
+use crate::transport::handler::MCPHandler;
 use crate::transport::http::{HttpState, HttpTransport};
 use crate::transport::rest::{RestState, RestTransport};
+use crate::transport::stdio::StdioTransport;
 
 /// Server operational mode
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
@@ -24,6 +25,8 @@ pub enum ServerMode {
     Server,
     /// MCP proxy - forwards tool calls to a REST backend
     Client,
+    /// STDIO transport - JSON-RPC over stdin/stdout
+    Stdio,
 }
 
 impl std::fmt::Display for ServerMode {
@@ -32,6 +35,7 @@ impl std::fmt::Display for ServerMode {
             Self::Standalone => write!(f, "standalone"),
             Self::Server => write!(f, "server"),
             Self::Client => write!(f, "client"),
+            Self::Stdio => write!(f, "stdio"),
         }
     }
 }
@@ -154,6 +158,7 @@ impl MCPServer {
             ServerMode::Standalone => self.run_standalone().await,
             ServerMode::Server => self.run_rest_only().await,
             ServerMode::Client => self.run_client().await,
+            ServerMode::Stdio => self.run_stdio().await,
         }
     }
 
@@ -171,12 +176,7 @@ impl MCPServer {
             info!("  - {}", name);
         }
 
-        let state = Arc::new(HttpState {
-            name: self.name,
-            version: self.version,
-            tools: self.tools,
-            sessions: SessionManager::new(),
-        });
+        let state = Arc::new(HttpState::new(self.name, self.version, self.tools));
 
         let app = HttpTransport::router(state);
 
@@ -260,10 +260,10 @@ impl MCPServer {
             Ok(true) => info!("Backend health check: OK"),
             Ok(false) => {
                 warn!("Backend health check failed, continuing anyway");
-            }
+            },
             Err(e) => {
                 warn!("Backend health check error: {}, continuing anyway", e);
-            }
+            },
         }
 
         // Fetch tool list from backend
@@ -271,14 +271,14 @@ impl MCPServer {
             Ok(tools) => {
                 info!("Fetched {} tools from backend", tools.len());
                 tools
-            }
+            },
             Err(e) => {
                 error!("Failed to fetch tools from backend: {}", e);
                 return Err(crate::error::MCPError::Internal(format!(
                     "Failed to fetch backend tools: {}",
                     e
                 )));
-            }
+            },
         };
 
         // Create proxy tools
@@ -296,12 +296,7 @@ impl MCPServer {
             info!("  - {} (proxied)", tool_info.name);
         }
 
-        let state = Arc::new(HttpState {
-            name: self.name,
-            version: self.version,
-            tools,
-            sessions: SessionManager::new(),
-        });
+        let state = Arc::new(HttpState::new(self.name, self.version, tools));
 
         let app = HttpTransport::router(state);
 
@@ -325,6 +320,12 @@ impl MCPServer {
             })?;
 
         Ok(())
+    }
+
+    /// Run in STDIO mode (JSON-RPC over stdin/stdout)
+    async fn run_stdio(self) -> Result<()> {
+        let handler = Arc::new(MCPHandler::new(self.name, self.version, self.tools));
+        StdioTransport::run(handler).await
     }
 }
 
@@ -419,7 +420,7 @@ impl Tool for ProxyToolWrapper {
                         is_error: true,
                     })
                 }
-            }
+            },
             Err(e) => Err(crate::error::MCPError::Internal(format!(
                 "Proxy error: {}",
                 e
@@ -435,7 +436,7 @@ pub struct MCPServerArgs {
     #[arg(long, short, default_value = "standalone")]
     pub mode: ServerMode,
 
-    /// Port to listen on
+    /// Port to listen on (ignored in stdio mode)
     #[arg(long, short, default_value = "8000")]
     pub port: u16,
 
@@ -461,14 +462,17 @@ impl MCPServerArgs {
     }
 }
 
-/// Initialize logging for MCP servers
+/// Initialize logging for MCP servers.
+///
+/// In STDIO mode, all log output MUST go to stderr (stdout is the data channel).
+/// The default `tracing_subscriber::fmt` layer writes to stderr, which is correct.
 pub fn init_logging(level: &str) {
     use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(level));
 
     tracing_subscriber::registry()
-        .with(fmt::layer())
+        .with(fmt::layer().with_writer(std::io::stderr))
         .with(filter)
         .init();
 }
@@ -518,6 +522,17 @@ mod tests {
         assert_eq!(ServerMode::Standalone.to_string(), "standalone");
         assert_eq!(ServerMode::Server.to_string(), "server");
         assert_eq!(ServerMode::Client.to_string(), "client");
+        assert_eq!(ServerMode::Stdio.to_string(), "stdio");
+    }
+
+    #[test]
+    fn test_stdio_mode() {
+        let server = MCPServer::builder("test", "1.0.0")
+            .mode(ServerMode::Stdio)
+            .tool(PingTool)
+            .build();
+
+        assert_eq!(server.mode(), ServerMode::Stdio);
     }
 
     #[test]

@@ -13,24 +13,40 @@ use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 
-use crate::error::{JsonRpcErrorCode, MCPError};
-use crate::jsonrpc::{
-    ContentBlock, InitializeParams, InitializeResult, JsonRpcRequest, JsonRpcResponse,
-    ServerCapabilities, ServerInfo, ToolCallParams, ToolCallResult, ToolInfo, ToolsListResult,
-};
-use crate::session::{ClientInfo, SessionManager};
-use crate::tool::{Content, ToolRegistry};
+use crate::error::JsonRpcErrorCode;
+use crate::jsonrpc::{JsonRpcRequest, JsonRpcResponse};
+use crate::session::SessionManager;
+use crate::tool::ToolRegistry;
+use crate::transport::handler::MCPHandler;
 
 /// Shared state for HTTP handlers
 pub struct HttpState {
-    /// Server name
-    pub name: String,
-    /// Server version
-    pub version: String,
-    /// Tool registry
-    pub tools: ToolRegistry,
-    /// Session manager
-    pub sessions: SessionManager,
+    /// The shared MCP protocol handler
+    pub handler: MCPHandler,
+}
+
+impl HttpState {
+    /// Create a new HTTP state.
+    pub fn new(name: String, version: String, tools: ToolRegistry) -> Self {
+        Self {
+            handler: MCPHandler::new(name, version, tools),
+        }
+    }
+
+    /// Get the server name.
+    pub fn name(&self) -> &str {
+        &self.handler.name
+    }
+
+    /// Get the server version.
+    pub fn version(&self) -> &str {
+        &self.handler.version
+    }
+
+    /// Get the session manager.
+    pub fn sessions(&self) -> &SessionManager {
+        &self.handler.sessions
+    }
 }
 
 /// HTTP transport for MCP server
@@ -114,13 +130,14 @@ struct ToolResponse {
 async fn health_handler(State(state): State<Arc<HttpState>>) -> impl IntoResponse {
     Json(HealthResponse {
         status: "healthy".to_string(),
-        server: state.name.clone(),
-        version: state.version.clone(),
+        server: state.name().to_string(),
+        version: state.version().to_string(),
     })
 }
 
 async fn list_tools_handler(State(state): State<Arc<HttpState>>) -> impl IntoResponse {
     let tools: Vec<_> = state
+        .handler
         .tools
         .list()
         .into_iter()
@@ -140,7 +157,7 @@ async fn execute_tool_handler(
     State(state): State<Arc<HttpState>>,
     Json(request): Json<ToolRequest>,
 ) -> impl IntoResponse {
-    let tool = match state.tools.get(&request.tool) {
+    let tool = match state.handler.tools.get(&request.tool) {
         Some(t) => t,
         None => {
             return (
@@ -151,7 +168,7 @@ async fn execute_tool_handler(
                     error: Some(format!("Tool '{}' not found", request.tool)),
                 }),
             );
-        }
+        },
     };
 
     match tool.execute(request.get_args()).await {
@@ -177,8 +194,8 @@ async fn execute_tool_handler(
 async fn discovery_handler(State(state): State<Arc<HttpState>>) -> impl IntoResponse {
     Json(json!({
         "mcp_version": "1.0",
-        "server_name": state.name,
-        "server_version": state.version,
+        "server_name": state.name(),
+        "server_version": state.version(),
         "capabilities": {
             "tools": true,
             "prompts": false,
@@ -198,13 +215,13 @@ async fn initialize_simple_handler(
     Json(_request): Json<Value>,
 ) -> impl IntoResponse {
     // Create and register session with the session manager
-    let session_id = state.sessions.create_session("simple-api").await;
+    let session_id = state.sessions().create_session("simple-api").await;
 
     Json(json!({
         "session_id": session_id,
         "server": {
-            "name": state.name,
-            "version": state.version,
+            "name": state.name(),
+            "version": state.version(),
         },
         "capabilities": {
             "tools": true,
@@ -215,7 +232,7 @@ async fn initialize_simple_handler(
 }
 
 async fn capabilities_handler(State(state): State<Arc<HttpState>>) -> impl IntoResponse {
-    let tool_names: Vec<_> = state.tools.names().into_iter().collect();
+    let tool_names: Vec<_> = state.handler.tools.names().into_iter().collect();
 
     Json(json!({
         "capabilities": {
@@ -238,9 +255,9 @@ async fn messages_get_handler(State(state): State<Arc<HttpState>>) -> impl IntoR
         "protocol": "mcp",
         "version": "1.0",
         "server": {
-            "name": state.name,
-            "version": state.version,
-            "description": format!("{} MCP Server", state.name),
+            "name": state.name(),
+            "version": state.version(),
+            "description": format!("{} MCP Server", state.name()),
         },
         "transport": {
             "type": "streamable-http",
@@ -275,22 +292,18 @@ async fn messages_post_handler(
         for req in requests {
             match serde_json::from_value::<JsonRpcRequest>(req.clone()) {
                 Ok(request) => {
-                    if let Some(resp) = process_jsonrpc_request(&state, &request, &session_id).await
-                    {
+                    if let Some(resp) = state.handler.process_request(&request, &session_id).await {
                         responses.push(resp);
                     }
-                    // Notifications (no id) don't get responses, which is correct
-                }
+                },
                 Err(e) => {
-                    // Per JSON-RPC 2.0, return an error for invalid batch items
-                    // Try to extract the id from the raw value for the error response
                     let id = req.get("id").cloned().unwrap_or(json!(null));
                     responses.push(JsonRpcResponse::error_with_code(
                         id,
                         JsonRpcErrorCode::InvalidRequest,
                         Some(format!("Invalid request in batch: {}", e)),
                     ));
-                }
+                },
             }
         }
         return json_response_with_session(json!(responses), session_id);
@@ -301,24 +314,27 @@ async fn messages_post_handler(
         Ok(request) => {
             // Generate session ID for initialize requests
             let effective_session = if request.method == "initialize" && session_id.is_none() {
-                Some(state.sessions.create_session("2024-11-05").await)
+                Some(state.sessions().create_session("2024-11-05").await)
             } else {
                 session_id
             };
 
-            match process_jsonrpc_request(&state, &request, &effective_session).await {
+            match state
+                .handler
+                .process_request(&request, &effective_session)
+                .await
+            {
                 Some(resp) => json_response_with_session(json!(resp), effective_session),
                 None => {
                     // Notification - no response body
-                    // Only include session header if we have a session
                     let mut builder = Response::builder().status(StatusCode::ACCEPTED);
                     if let Some(sid) = effective_session {
                         builder = builder.header("Mcp-Session-Id", sid);
                     }
                     builder.body(axum::body::Body::empty()).unwrap()
-                }
+                },
             }
-        }
+        },
         Err(e) => {
             let error_resp = JsonRpcResponse::error_with_code(
                 json!(null),
@@ -326,7 +342,7 @@ async fn messages_post_handler(
                 Some(e.to_string()),
             );
             json_response_with_session(json!(error_resp), session_id)
-        }
+        },
     }
 }
 
@@ -359,158 +375,6 @@ async fn options_handler() -> impl IntoResponse {
         .header("Access-Control-Max-Age", "86400")
         .body(axum::body::Body::empty())
         .unwrap()
-}
-
-// ============================================================================
-// JSON-RPC processing
-// ============================================================================
-
-async fn process_jsonrpc_request(
-    state: &HttpState,
-    request: &JsonRpcRequest,
-    session_id: &Option<String>,
-) -> Option<JsonRpcResponse> {
-    let is_notification = request.is_notification();
-    let id = request.id.clone().unwrap_or(json!(null));
-
-    info!("JSON-RPC request: method={}, id={:?}", request.method, id);
-
-    let result = match request.method.as_str() {
-        "initialize" => handle_initialize(state, &request.params, session_id).await,
-        "initialized" => {
-            info!("Client sent initialized notification");
-            if is_notification {
-                return None;
-            }
-            Ok(json!({"status": "acknowledged"}))
-        }
-        "tools/list" => handle_tools_list(state).await,
-        "tools/call" => handle_tools_call(state, &request.params).await,
-        "ping" => Ok(json!({"pong": true})),
-        "completion/complete" => Ok(json!({"error": "Completions not supported"})),
-        _ => {
-            if is_notification {
-                return None;
-            }
-            return Some(JsonRpcResponse::error_with_code(
-                id,
-                JsonRpcErrorCode::MethodNotFound,
-                Some(format!("Method not found: {}", request.method)),
-            ));
-        }
-    };
-
-    if is_notification {
-        return None;
-    }
-
-    Some(match result {
-        Ok(value) => JsonRpcResponse::success(id, value),
-        Err(e) => JsonRpcResponse::error_with_code(
-            id,
-            JsonRpcErrorCode::from(e.clone()),
-            Some(e.to_string()),
-        ),
-    })
-}
-
-async fn handle_initialize(
-    state: &HttpState,
-    params: &Value,
-    session_id: &Option<String>,
-) -> Result<Value, MCPError> {
-    let init_params: InitializeParams =
-        serde_json::from_value(params.clone()).unwrap_or(InitializeParams {
-            protocol_version: "2024-11-05".to_string(),
-            client_info: None,
-            capabilities: json!({}),
-        });
-
-    info!(
-        "Initialize: client={:?}, protocol={}",
-        init_params.client_info, init_params.protocol_version
-    );
-
-    // Update session with client info
-    if let Some(sid) = session_id {
-        if let Some(client) = &init_params.client_info {
-            state
-                .sessions
-                .update(sid, |s| {
-                    s.client_info = Some(ClientInfo {
-                        name: client.name.clone(),
-                        version: client.version.clone(),
-                    });
-                    s.mark_initialized();
-                })
-                .await;
-        }
-    }
-
-    let result = InitializeResult {
-        protocol_version: init_params.protocol_version,
-        server_info: ServerInfo {
-            name: state.name.clone(),
-            version: state.version.clone(),
-        },
-        capabilities: ServerCapabilities::default(),
-    };
-
-    Ok(serde_json::to_value(result)?)
-}
-
-async fn handle_tools_list(state: &HttpState) -> Result<Value, MCPError> {
-    let tools: Vec<ToolInfo> = state
-        .tools
-        .list()
-        .into_iter()
-        .map(|t| ToolInfo {
-            name: t.name,
-            description: t.description,
-            input_schema: t.input_schema,
-        })
-        .collect();
-
-    info!("Returning {} tools", tools.len());
-
-    let result = ToolsListResult {
-        tools,
-        next_cursor: None,
-    };
-
-    Ok(serde_json::to_value(result)?)
-}
-
-async fn handle_tools_call(state: &HttpState, params: &Value) -> Result<Value, MCPError> {
-    let call_params: ToolCallParams = serde_json::from_value(params.clone())
-        .map_err(|e| MCPError::InvalidParameters(e.to_string()))?;
-
-    info!("Calling tool: {}", call_params.name);
-
-    let tool = state
-        .tools
-        .get(&call_params.name)
-        .ok_or_else(|| MCPError::ToolNotFound(call_params.name.clone()))?;
-
-    let result = tool.execute(call_params.arguments).await?;
-
-    // Convert internal content to JSON-RPC content blocks
-    let content: Vec<ContentBlock> = result
-        .content
-        .into_iter()
-        .map(|c| match c {
-            Content::Text { text } => ContentBlock::Text { text },
-            Content::Image { data, mime_type } => ContentBlock::Image { data, mime_type },
-            Content::Resource { uri, mime_type } => ContentBlock::Resource { uri, mime_type },
-        })
-        .collect();
-
-    let call_result = ToolCallResult {
-        content,
-        is_error: result.is_error,
-    };
-
-    Ok(serde_json::to_value(call_result)?)
 }
 
 fn json_response_with_session(value: Value, session_id: Option<String>) -> Response {
@@ -559,12 +423,11 @@ mod tests {
         let mut tools = ToolRegistry::new();
         tools.register(TestTool);
 
-        let state = Arc::new(HttpState {
-            name: "test-server".to_string(),
-            version: "1.0.0".to_string(),
+        let state = Arc::new(HttpState::new(
+            "test-server".to_string(),
+            "1.0.0".to_string(),
             tools,
-            sessions: SessionManager::new(),
-        });
+        ));
 
         let app = HttpTransport::router(state);
         let client = axum_test::TestServer::new(app).unwrap();
