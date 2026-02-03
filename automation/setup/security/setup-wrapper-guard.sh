@@ -145,11 +145,13 @@ for binary in git gh; do
 done
 
 # --- Step 4: Install wrapper binaries as /usr/bin/{git,gh} ---
+# Wrappers are setgid wrapper-guard so they inherit group permission
+# to execute the real binaries in the restricted directory.
 for binary in git gh; do
     info "Installing wrapper: /usr/bin/$binary"
     cp "$WRAPPER_DIR/$binary" "/usr/bin/$binary"
-    chown root:root "/usr/bin/$binary"
-    chmod 0755 "/usr/bin/$binary"
+    chown root:"$GUARD_GROUP" "/usr/bin/$binary"
+    chmod 2755 "/usr/bin/$binary"
 done
 
 # --- Step 5: Add real user to wrapper-guard group ---

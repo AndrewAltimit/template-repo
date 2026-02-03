@@ -208,9 +208,9 @@ Step 3: Relocate real binaries with dpkg-divert
          /usr/bin/git  -->  /usr/lib/wrapper-guard/git.real  (root:wrapper-guard 0750)
          /usr/bin/gh   -->  /usr/lib/wrapper-guard/gh.real   (root:wrapper-guard 0750)
 
-Step 4: Install wrapper binaries in place of originals
-         git-guard  -->  /usr/bin/git   (root:root 0755)
-         gh-validator  -->  /usr/bin/gh (root:root 0755)
+Step 4: Install wrapper binaries in place of originals (setgid wrapper-guard)
+         git-guard  -->  /usr/bin/git   (root:wrapper-guard 2755)
+         gh-validator  -->  /usr/bin/gh (root:wrapper-guard 2755)
 
 Step 5: Add the admin user to wrapper-guard group
          usermod -aG wrapper-guard $SUDO_USER
@@ -230,12 +230,13 @@ Step 6: Record integrity hashes to /usr/lib/wrapper-guard/integrity.json
 /usr/lib/wrapper-guard/           root:wrapper-guard  0750  (drwxr-x---)
 /usr/lib/wrapper-guard/git.real   root:wrapper-guard  0750  (-rwxr-x---)
 /usr/lib/wrapper-guard/gh.real    root:wrapper-guard  0750  (-rwxr-x---)
-/usr/bin/git                      root:root           0755  (-rwxr-xr-x)  [wrapper]
-/usr/bin/gh                       root:root           0755  (-rwxr-xr-x)  [wrapper]
+/usr/bin/git                      root:wrapper-guard  2755  (-rwxr-sr-x)  [wrapper, setgid]
+/usr/bin/gh                       root:wrapper-guard  2755  (-rwxr-sr-x)  [wrapper, setgid]
 ```
 
 - **Any user** can execute `/usr/bin/git` (the wrapper). The wrapper enforces policy.
-- **Only `root` and `wrapper-guard` group members** can execute the real binaries.
+- Wrappers are **setgid `wrapper-guard`**, so the wrapper process inherits group permission to execute the real binaries without granting the agent user direct access.
+- **Only `root` and `wrapper-guard` group members** can execute the real binaries directly.
 - AI agents (not in the group) cannot read, execute, or copy the real binaries.
 - Human administrators (in the group) can use the real binaries for emergencies.
 

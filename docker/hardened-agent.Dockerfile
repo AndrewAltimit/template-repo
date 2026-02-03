@@ -75,9 +75,12 @@ RUN mv /usr/bin/git /usr/lib/wrapper-guard/git.real \
     && chmod 0750 /usr/lib/wrapper-guard /usr/lib/wrapper-guard/*
 
 # Install wrapper binaries as the commands users will invoke
+# Wrappers are setgid wrapper-guard so they inherit group permission
+# to execute the real binaries in the restricted directory.
 COPY --from=builder /build/git-guard/target/release/git /usr/bin/git
 COPY --from=builder /build/gh-validator/target/release/gh /usr/bin/gh
-RUN chmod 0755 /usr/bin/git /usr/bin/gh
+RUN chown root:wrapper-guard /usr/bin/git /usr/bin/gh \
+    && chmod 2755 /usr/bin/git /usr/bin/gh
 
 # Copy secrets config for gh-validator
 COPY .secrets.yaml /etc/wrapper-guard/.secrets.yaml
