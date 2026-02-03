@@ -128,7 +128,7 @@ impl RestToolClient {
             _ => {
                 debug!("REST endpoint failed, trying MCP endpoint: {}", mcp_url);
                 self.client.get(&mcp_url).send().await?
-            }
+            },
         };
 
         if !response.status().is_success() {
@@ -170,7 +170,7 @@ impl RestToolClient {
                     "arguments": arguments
                 });
                 self.client.post(&mcp_url).json(&mcp_body).send().await?
-            }
+            },
         };
 
         if response.status() == reqwest::StatusCode::NOT_FOUND {
@@ -315,7 +315,7 @@ impl ProxyToolTrait for ProxyTool {
                         is_error: true,
                     })
                 }
-            }
+            },
             Err(e) => Err(e.to_string()),
         }
     }

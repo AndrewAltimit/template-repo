@@ -1,44 +1,171 @@
 {
   "mcpServers": {
     "code-quality": {
-      "type": "http",
-      "url": "http://localhost:8010/messages"
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-code-quality",
+        "mcp-code-quality",
+        "--mode",
+        "stdio"
+      ]
     },
     "content-creation": {
-      "type": "http",
-      "url": "http://localhost:8011/messages"
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-content-creation",
+        "mcp-content-creation",
+        "--mode",
+        "stdio"
+      ]
     },
     "gemini": {
-      "type": "http",
-      "url": "http://localhost:8012/messages"
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-gemini",
+        "mcp-gemini",
+        "--mode",
+        "stdio"
+      ],
+      "env": {
+        "GEMINI_TIMEOUT": "300",
+        "GEMINI_USE_CONTAINER": "false"
+      }
     },
     "opencode": {
-      "type": "http",
-      "url": "http://localhost:8014/messages"
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-opencode",
+        "mcp-opencode",
+        "--mode",
+        "stdio"
+      ]
     },
     "crush": {
-      "type": "http",
-      "url": "http://localhost:8015/messages"
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-crush",
+        "mcp-crush",
+        "--mode",
+        "stdio"
+      ]
     },
     "codex": {
-      "type": "http",
-      "url": "http://localhost:8021/messages"
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-codex",
+        "mcp-codex",
+        "--mode",
+        "stdio"
+      ]
     },
     "github-board": {
-      "type": "http",
-      "url": "http://localhost:8022/messages"
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-github-board",
+        "mcp-github-board",
+        "--mode",
+        "stdio"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+        "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}",
+        "GITHUB_PROJECT_NUMBER": "1"
+      }
     },
     "agentcore-memory": {
-      "type": "http",
-      "url": "http://localhost:8023/messages"
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "./docker-compose.yml",
+        "--env-file",
+        "./.env",
+        "--profile",
+        "memory",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-agentcore-memory",
+        "mcp-agentcore-memory",
+        "--mode",
+        "stdio"
+      ]
     },
     "reaction-search": {
-      "type": "http",
-      "url": "http://localhost:8024/messages"
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-reaction-search",
+        "--mode",
+        "stdio"
+      ]
     },
     "virtual-character": {
       "type": "http",
-      "url": "http://localhost:8025/messages"
+      "url": "http://192.168.0.222:8025/messages"
     }
   }
 }

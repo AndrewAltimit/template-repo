@@ -237,6 +237,13 @@ impl PRReviewer {
             }
         }
 
+        // 12.5. Validate review is not empty (catches blank agent responses)
+        if review.trim().is_empty() {
+            return Err(Error::Config(
+                "Agent returned empty or whitespace-only review, skipping post".to_string(),
+            ));
+        }
+
         // 13. Get current commit SHA for tracking
         let commit_sha = get_current_commit_sha().unwrap_or_default();
 

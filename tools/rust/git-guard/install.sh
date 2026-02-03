@@ -42,6 +42,26 @@ chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
 
 echo "Binary installed successfully."
 
+# Check if hardened mode is active (wrapper-guard setup has been run)
+GUARD_DIR="/usr/lib/wrapper-guard"
+if [ -f "$GUARD_DIR/git.real" ]; then
+    echo ""
+    echo "============================================"
+    echo "Hardened mode detected"
+    echo "============================================"
+    echo ""
+    echo "Wrapper-guard setup has been run. The wrapper should be"
+    echo "installed at /usr/bin/git, not ~/.local/bin/git."
+    echo ""
+    echo "To update the hardened wrapper, re-run the setup script:"
+    echo "  sudo bash automation/setup/security/setup-wrapper-guard.sh"
+    echo ""
+    echo "The binary has been installed to ${INSTALL_DIR}/${BINARY_NAME}"
+    echo "but will not take effect until the setup script is re-run."
+    echo ""
+    exit 0
+fi
+
 # Check PATH
 echo ""
 echo "Checking PATH configuration..."
@@ -116,9 +136,14 @@ echo "============================================"
 echo "Installation complete!"
 echo "============================================"
 echo ""
-echo "git-guard will now require sudo for:"
+echo "git-guard will block:"
 echo "  - Force push (--force, -f, --force-with-lease)"
 echo "  - Skip hooks (--no-verify, -n on commit/merge)"
+echo "  - Push to protected branches (main, master)"
 echo ""
-echo "To bypass when needed, use: sudo git <command>"
+echo "To bypass when needed, use the real git binary directly:"
+echo "  /usr/bin/git <command>"
+echo ""
+echo "For maximum hardening, run the wrapper-guard setup:"
+echo "  sudo bash automation/setup/security/setup-wrapper-guard.sh"
 echo ""

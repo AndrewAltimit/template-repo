@@ -683,6 +683,32 @@ services:
       - agents
       - codex
 
+  # Hardened Agent container with wrapper-only CLI access
+  # Real git/gh binaries are permission-restricted; only wrappers are available.
+  # No package managers, curl, or wget to prevent installing bypass tools.
+  hardened-agent:
+    build:
+      context: .
+      dockerfile: docker/hardened-agent.Dockerfile
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    read_only: true
+    tmpfs:
+      - /tmp:size=100M
+    environment:
+      - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+      - CONTAINER=hardened-agent
+    networks:
+      - mcp-network
+    command: ["/bin/bash"]
+    tty: true
+    stdin_open: true
+    profiles:
+      - agents
+      - hardened
+
   # TeXLive container for building LaTeX documents
   # Multi-arch support (amd64 and arm64)
   texlive:

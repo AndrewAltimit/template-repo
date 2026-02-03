@@ -166,6 +166,7 @@ This renders as:
 ### Infrastructure
 - `docs/infrastructure/containerization.md` - Container philosophy
 - `docs/infrastructure/self-hosted-runner.md` - Runner setup
+- `docs/infrastructure/wrapper-guard.md` - CLI binary hardening (git-guard, gh-validator)
 - `docs/developer/claude-code-hooks.md` - Hook system
 
 ### Integrations

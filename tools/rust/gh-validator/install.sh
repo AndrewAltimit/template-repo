@@ -172,6 +172,23 @@ main() {
 finalize_install() {
     local install_path="$1"
 
+    # Check if hardened mode is active (wrapper-guard setup has been run)
+    local guard_dir="/usr/lib/wrapper-guard"
+    if [ -f "$guard_dir/gh.real" ]; then
+        info "Hardened mode detected"
+        echo ""
+        echo "Wrapper-guard setup has been run. The wrapper should be"
+        echo "installed at /usr/bin/gh, not ~/.local/bin/gh."
+        echo ""
+        echo "To update the hardened wrapper, re-run the setup script:"
+        echo "  sudo bash automation/setup/security/setup-wrapper-guard.sh"
+        echo ""
+        echo "The binary has been installed to $install_path"
+        echo "but will not take effect until the setup script is re-run."
+        echo ""
+        return 0
+    fi
+
     # Check if install directory is in PATH
     if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
         warn "$INSTALL_DIR is not in your PATH"

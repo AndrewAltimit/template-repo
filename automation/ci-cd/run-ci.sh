@@ -174,10 +174,58 @@ case "$STAGE" in
 
   autoformat)
     echo "=== Running autoformatters ==="
-    # Use ruff format (replaces black, 10-100x faster)
+    # Python: Use ruff format (replaces black, 10-100x faster)
     docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff format .
     # Fix import sorting
     docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I --fix .
+
+    # Rust: Format all Rust crates/workspaces
+    echo "--- Running Rust autoformat ---"
+    # shellcheck disable=SC1091
+    source "$HOME/.cargo/env" 2>/dev/null || true
+
+    if command -v cargo &> /dev/null; then
+      # Format standalone Rust crates in tools/rust/
+      for crate_dir in "$PROJECT_ROOT"/tools/rust/*/; do
+        if [ -f "$crate_dir/Cargo.toml" ]; then
+          echo "  Formatting $(basename "$crate_dir")..."
+          (cd "$crate_dir" && cargo fmt --all 2>&1) || echo "  Warning: cargo fmt failed for $(basename "$crate_dir")"
+        fi
+      done
+      # Format Rust workspace roots
+      for workspace_dir in "$PROJECT_ROOT"/packages/*/ "$PROJECT_ROOT"/tools/mcp/mcp_core_rust/; do
+        if [ -f "$workspace_dir/Cargo.toml" ]; then
+          ws_name="${workspace_dir#"$PROJECT_ROOT"/}"
+          echo "  Formatting ${ws_name%/}..."
+          (cd "$workspace_dir" && cargo fmt --all 2>&1) || echo "  Warning: cargo fmt failed for ${ws_name%/}"
+        fi
+      done
+    else
+      echo "  cargo not available natively, using Docker for Rust formatting..."
+      docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci 2>/dev/null || {
+        echo "  Warning: Could not build rust-ci image, skipping Rust autoformat"
+        true
+      }
+      # Format tools/rust/* crates via Docker
+      for crate_dir in "$PROJECT_ROOT"/tools/rust/*/; do
+        if [ -f "$crate_dir/Cargo.toml" ]; then
+          crate_name=$(basename "$crate_dir")
+          echo "  Formatting $crate_name (Docker)..."
+          docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+            -w "/app/tools/rust/$crate_name" \
+            rust-ci cargo fmt --all 2>&1 || echo "  Warning: cargo fmt failed for $crate_name"
+        fi
+      done
+      # Format workspace roots via Docker
+      for workspace in packages/economic_agents packages/injection_toolkit tools/mcp/mcp_core_rust; do
+        if [ -d "$PROJECT_ROOT/$workspace" ]; then
+          echo "  Formatting $workspace (Docker)..."
+          docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+            -w "/app/$workspace" \
+            rust-ci cargo fmt --all 2>&1 || echo "  Warning: cargo fmt failed for $workspace"
+        fi
+      done
+    fi
     ;;
 
   test-gaea2)
@@ -489,6 +537,53 @@ case "$STAGE" in
     $0 test-corporate-proxy
     ;;
 
+  # ============================================
+  # Wrapper Guard CI Stages (wrapper-common, git-guard, gh-validator)
+  # ============================================
+
+  wrapper-fmt)
+    echo "=== Running Wrapper format checks ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    for crate in wrapper-common git-guard gh-validator; do
+      echo "--- Checking format: $crate ---"
+      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+        -w /app/tools/rust/$crate \
+        rust-ci cargo fmt --all -- --check
+    done
+    ;;
+
+  wrapper-clippy)
+    echo "=== Running Wrapper clippy lints ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    for crate in wrapper-common git-guard gh-validator; do
+      echo "--- Linting: $crate ---"
+      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+        -w /app/tools/rust/$crate \
+        rust-ci cargo clippy --all-targets -- -D warnings
+    done
+    ;;
+
+  wrapper-test)
+    echo "=== Running Wrapper tests ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    for crate in wrapper-common git-guard gh-validator; do
+      echo "--- Testing: $crate ---"
+      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+        -w /app/tools/rust/$crate \
+        rust-ci cargo test
+    done
+    ;;
+
+  wrapper-full)
+    echo "=== Running full Wrapper CI checks ==="
+    $0 wrapper-fmt
+    $0 wrapper-clippy
+    $0 wrapper-test
+    ;;
+
   *)
     echo "Unknown stage: $STAGE"
     echo "Available stages:"
@@ -497,6 +592,7 @@ case "$STAGE" in
     echo "  Rust (nightly):           rust-loom, rust-miri, rust-cross-linux, rust-cross-windows, rust-advanced"
     echo "  Rust (economic_agents):   econ-fmt, econ-clippy, econ-test, econ-build, econ-deny, econ-doc, econ-coverage, econ-full"
     echo "  Rust (mcp_core_rust):     mcp-fmt, mcp-clippy, mcp-test, mcp-build, mcp-deny, mcp-doc, mcp-full"
+    echo "  Rust (wrapper_guard):     wrapper-fmt, wrapper-clippy, wrapper-test, wrapper-full"
     exit 1
     ;;
 esac

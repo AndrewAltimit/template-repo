@@ -6,6 +6,7 @@
 //! - **Standalone**: Full MCP server with embedded tools (default)
 //! - **Server**: REST API only, no MCP protocol
 //! - **Client**: MCP proxy that forwards tool calls to a REST backend
+//! - **Stdio**: JSON-RPC over stdin/stdout for process-based transports
 //!
 //! # Quick Start
 //!

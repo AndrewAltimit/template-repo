@@ -138,7 +138,7 @@ impl Config {
                             p.name, e
                         );
                         None
-                    }
+                    },
                 }
             })
             .collect()

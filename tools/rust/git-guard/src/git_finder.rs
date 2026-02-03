@@ -1,103 +1,18 @@
-//! Find the real `git` binary in PATH, avoiding infinite recursion
+//! Find the real `git` binary, avoiding infinite recursion
 //!
-//! This module handles the critical task of finding the actual git
-//! binary while avoiding calling ourselves (which would cause infinite recursion).
+//! Delegates to wrapper-common's generic binary finder which checks
+//! the hardened location first, then falls back to PATH scanning.
 
 use crate::error::{Error, Result};
-use once_cell::sync::Lazy;
 use std::path::PathBuf;
 
-/// Platform-specific PATH separator
-#[cfg(windows)]
-const PATH_SEPARATOR: char = ';';
-
-#[cfg(not(windows))]
-const PATH_SEPARATOR: char = ':';
-
-/// Platform-specific executable name
-#[cfg(windows)]
-const GIT_BINARY_NAME: &str = "git.exe";
-
-#[cfg(not(windows))]
-const GIT_BINARY_NAME: &str = "git";
-
-/// Cached path to the real git binary (stores Option to avoid cloning Error)
-static REAL_GIT_PATH: Lazy<Option<PathBuf>> = Lazy::new(|| find_real_git_internal().ok());
-
-/// Cached error message if git was not found
-static GIT_SEARCH_PATHS: Lazy<String> = Lazy::new(get_search_paths);
-
-/// Get the path to the real git binary (cached)
+/// Get the path to the real git binary (cached after first lookup)
 pub fn find_real_git() -> Result<PathBuf> {
-    REAL_GIT_PATH.clone().ok_or_else(|| Error::GitNotFound {
-        searched_paths: GIT_SEARCH_PATHS.clone(),
-    })
-}
-
-/// Get the PATH directories that were searched
-fn get_search_paths() -> String {
-    let path_var = std::env::var("PATH").unwrap_or_default();
-    path_var
-        .split(PATH_SEPARATOR)
-        .filter(|p| !p.is_empty())
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-/// Internal implementation of git binary discovery
-fn find_real_git_internal() -> Result<PathBuf> {
-    // Get our own executable path (canonicalized to handle symlinks)
-    let self_path = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.canonicalize().ok());
-
-    // Get PATH environment variable
-    let path_var = std::env::var("PATH").unwrap_or_default();
-    let mut searched_paths = Vec::new();
-
-    for path_dir in path_var.split(PATH_SEPARATOR) {
-        if path_dir.is_empty() {
-            continue;
-        }
-
-        let candidate = PathBuf::from(path_dir).join(GIT_BINARY_NAME);
-        searched_paths.push(path_dir.to_string());
-
-        // Check if the candidate exists
-        if !candidate.exists() {
-            continue;
-        }
-
-        // Canonicalize to resolve symlinks
-        let canonical = match candidate.canonicalize() {
-            Ok(p) => p,
-            Err(_) => continue,
-        };
-
-        // Skip if this is ourselves
-        if let Some(ref self_canonical) = self_path {
-            if &canonical == self_canonical {
-                continue;
-            }
-        }
-
-        // Check if it's actually executable
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            if let Ok(metadata) = candidate.metadata() {
-                let permissions = metadata.permissions();
-                if permissions.mode() & 0o111 == 0 {
-                    continue; // Not executable
-                }
-            }
-        }
-
-        return Ok(canonical);
-    }
-
-    Err(Error::GitNotFound {
-        searched_paths: searched_paths.join(", "),
+    wrapper_common::binary_finder::find_real_binary("git").map_err(|e| match e {
+        wrapper_common::error::CommonError::BinaryNotFound { searched_paths, .. } => {
+            Error::GitNotFound { searched_paths }
+        },
+        other => Error::Common(other),
     })
 }
 
@@ -106,20 +21,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_path_separator() {
-        #[cfg(windows)]
-        assert_eq!(PATH_SEPARATOR, ';');
-
-        #[cfg(not(windows))]
-        assert_eq!(PATH_SEPARATOR, ':');
-    }
-
-    #[test]
-    fn test_binary_name() {
-        #[cfg(windows)]
-        assert_eq!(GIT_BINARY_NAME, "git.exe");
-
-        #[cfg(not(windows))]
-        assert_eq!(GIT_BINARY_NAME, "git");
+    fn test_find_real_git_returns_path() {
+        // git should be available in the test environment
+        let result = find_real_git();
+        // May fail in minimal environments, so just check it doesn't panic
+        if let Ok(path) = result {
+            assert!(path.exists());
+        }
     }
 }

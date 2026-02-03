@@ -87,7 +87,7 @@ impl syn::parse::Parse for ToolAttrs {
                         {
                             description = Some(s.value());
                         }
-                    }
+                    },
                     Some("name") => {
                         if let syn::Expr::Lit(syn::ExprLit {
                             lit: Lit::Str(s), ..
@@ -95,8 +95,8 @@ impl syn::parse::Parse for ToolAttrs {
                         {
                             name = Some(s.value());
                         }
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
@@ -319,7 +319,7 @@ fn rust_type_to_json_type(ty: &Type) -> &'static str {
             "String" | "str" => "string",
             "i8" | "i16" | "i32" | "i64" | "u8" | "u16" | "u32" | "u64" | "isize" | "usize" => {
                 "integer"
-            }
+            },
             "f32" | "f64" => "number",
             "bool" => "boolean",
             "Vec" => "array",
@@ -331,7 +331,7 @@ fn rust_type_to_json_type(ty: &Type) -> &'static str {
                     return rust_type_to_json_type(inner);
                 }
                 "string"
-            }
+            },
             _ => "object",
         };
     }
