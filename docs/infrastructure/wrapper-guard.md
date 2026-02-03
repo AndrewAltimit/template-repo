@@ -212,10 +212,7 @@ Step 4: Install wrapper binaries in place of originals (setgid wrapper-guard)
          git-guard  -->  /usr/bin/git   (root:wrapper-guard 2755)
          gh-validator  -->  /usr/bin/gh (root:wrapper-guard 2755)
 
-Step 5: Add the admin user to wrapper-guard group
-         usermod -aG wrapper-guard $SUDO_USER
-
-Step 6: Record integrity hashes to /usr/lib/wrapper-guard/integrity.json
+Step 5: Record integrity hashes to /usr/lib/wrapper-guard/integrity.json
 ```
 
 ### Why `dpkg-divert`?
@@ -236,19 +233,24 @@ Step 6: Record integrity hashes to /usr/lib/wrapper-guard/integrity.json
 
 - **Any user** can execute `/usr/bin/git` (the wrapper). The wrapper enforces policy.
 - Wrappers are **setgid `wrapper-guard`**, so the wrapper process inherits group permission to execute the real binaries without granting the agent user direct access.
-- **Only `root` and `wrapper-guard` group members** can execute the real binaries directly.
-- AI agents (not in the group) cannot read, execute, or copy the real binaries.
-- Human administrators (in the group) can use the real binaries for emergencies.
+- **Only `root`** can execute the real binaries directly (no users are added to the group by default).
+- AI agents cannot read, execute, or copy the real binaries.
+- Human administrators can bypass via `sudo`.
 
 ### Emergency bypass
 
-After setup, administrators who need to bypass the wrapper (e.g., for a legitimate force-push) can call the real binary directly:
+After setup, administrators who need to bypass the wrapper (e.g., for a legitimate force-push) must use `sudo`:
 
 ```bash
-/usr/lib/wrapper-guard/git.real push --force origin main
+sudo /usr/lib/wrapper-guard/git.real push --force origin main
 ```
 
-This requires membership in the `wrapper-guard` group. After running the setup script, log out and back in for group membership to take effect.
+No users are added to the `wrapper-guard` group by default. The setgid bit on the wrappers is what allows them to execute the real binaries. To grant a user direct bypass access without sudo (not recommended):
+
+```bash
+sudo usermod -aG wrapper-guard <username>
+# Log out and back in for group membership to take effect
+```
 
 ### Uninstalling
 

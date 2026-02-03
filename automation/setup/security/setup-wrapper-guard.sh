@@ -9,7 +9,9 @@
 #
 # After setup:
 # - AI agents cannot bypass the wrappers (real binaries are permission-restricted)
-# - The human admin (added to wrapper-guard group) can access real binaries for emergencies
+# - Wrappers are setgid wrapper-guard, so they can execute the real binaries without
+#   granting the calling user direct access
+# - Emergency bypass requires sudo (no users are added to the group by default)
 # - Package manager updates will place new binaries in the restricted directory, not /usr/bin/
 #
 # Requires: sudo, dpkg-divert (Debian/Ubuntu)
@@ -69,12 +71,8 @@ if [[ $EUID -ne 0 ]]; then
     error "This script must be run with sudo or as root"
 fi
 
-# Detect the real user (not root from sudo)
+# Detect the real user (not root from sudo) -- used for integrity metadata
 REAL_USER="${SUDO_USER:-$USER}"
-if [[ "$REAL_USER" == "root" ]]; then
-    warn "Running as actual root (not sudo). No user will be added to the wrapper-guard group."
-    warn "Add users manually later with: sudo usermod -aG $GUARD_GROUP <username>"
-fi
 
 # Check dpkg-divert availability
 if ! command -v dpkg-divert &>/dev/null; then
@@ -154,17 +152,11 @@ for binary in git gh; do
     chmod 2755 "/usr/bin/$binary"
 done
 
-# --- Step 5: Add real user to wrapper-guard group ---
-if [[ "$REAL_USER" != "root" ]]; then
-    if id -nG "$REAL_USER" 2>/dev/null | grep -qw "$GUARD_GROUP"; then
-        info "User $REAL_USER is already in $GUARD_GROUP group"
-    else
-        usermod -aG "$GUARD_GROUP" "$REAL_USER"
-        info "Added $REAL_USER to $GUARD_GROUP group"
-    fi
-fi
-
-# --- Step 6: Record integrity hashes ---
+# --- Step 5: Record integrity hashes ---
+# Note: No users are added to the wrapper-guard group by default.
+# The setgid bit on the wrappers allows them to execute the real binaries.
+# Emergency bypass requires sudo. To grant a user direct access:
+#   sudo usermod -aG wrapper-guard <username>
 info "Recording wrapper integrity hashes..."
 {
     echo "{"
@@ -220,16 +212,12 @@ info "Wrapper binaries:    /usr/bin/{git,gh}"
 info "Guard group:         $GUARD_GROUP"
 info "Integrity file:      $INTEGRITY_FILE"
 echo ""
-if [[ "$REAL_USER" != "root" ]]; then
-    warn "IMPORTANT: Log out and back in for group membership to take effect."
-    echo ""
-    echo "Emergency bypass (after re-login):"
-    echo "  $GUARD_DIR/git.real <command>"
-    echo "  $GUARD_DIR/gh.real <command>"
-else
-    echo "No user added to $GUARD_GROUP. Add users manually:"
-    echo "  sudo usermod -aG $GUARD_GROUP <username>"
-fi
+echo "Emergency bypass (requires sudo):"
+echo "  sudo $GUARD_DIR/git.real <command>"
+echo "  sudo $GUARD_DIR/gh.real <command>"
+echo ""
+echo "To grant a user direct bypass access (not recommended):"
+echo "  sudo usermod -aG $GUARD_GROUP <username>"
 echo ""
 echo "Verify installation:"
 echo "  sudo bash automation/setup/security/verify-wrapper-guard.sh"

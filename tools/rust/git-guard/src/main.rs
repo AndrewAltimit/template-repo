@@ -207,9 +207,9 @@ fn format_blocked_message(ops: &[DangerousOp]) -> String {
         std::path::Path::new(wrapper_common::binary_finder::hardened_base_dir()).join("git.real");
     if hardened_path.exists() {
         msg.push_str("If you absolutely need to perform this operation, use the\n");
-        msg.push_str("real git binary directly (requires wrapper-guard group):\n");
+        msg.push_str("real git binary directly (requires sudo):\n");
         msg.push('\n');
-        msg.push_str(&format!("  {} <your command>\n", hardened_path.display()));
+        msg.push_str(&format!("  sudo {} <your command>\n", hardened_path.display()));
     } else {
         msg.push_str("If you absolutely need to perform this operation, use the\n");
         msg.push_str("real git binary directly:\n");
