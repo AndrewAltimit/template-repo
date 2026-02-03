@@ -121,6 +121,19 @@ main() {
     # Ensure ~/.local/bin exists and is in PATH
     mkdir -p "${HOME}/.local/bin"
 
+    # Build wrapper-common first (shared dependency for git-guard and gh-validator)
+    local wrapper_common_dir="${SCRIPT_DIR}/wrapper-common"
+    if [ -d "$wrapper_common_dir" ]; then
+        print_header "Building wrapper-common (shared library)"
+        cd "$wrapper_common_dir"
+        if cargo build --release 2>&1; then
+            echo -e "${GREEN}wrapper-common built successfully${NC}"
+        else
+            echo -e "${YELLOW}wrapper-common build failed (wrappers may fail to build)${NC}"
+        fi
+        cd "$SCRIPT_DIR"
+    fi
+
     local success=0
     local failed=0
 

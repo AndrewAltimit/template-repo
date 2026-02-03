@@ -61,6 +61,10 @@ pub enum Error {
     #[error("Failed to parse command arguments")]
     #[allow(dead_code)]
     ArgParse,
+
+    /// Error from wrapper-common shared library
+    #[error(transparent)]
+    Common(#[from] wrapper_common::error::CommonError),
 }
 
 impl Error {
@@ -90,6 +94,7 @@ impl Error {
                 "Available reactions: https://github.com/AndrewAltimit/Media/tree/main/reaction\n\
                  Config with valid reactions: https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml",
             ),
+            Error::Common(e) => e.help_text(),
             _ => None,
         }
     }

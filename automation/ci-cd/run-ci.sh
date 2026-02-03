@@ -489,6 +489,53 @@ case "$STAGE" in
     $0 test-corporate-proxy
     ;;
 
+  # ============================================
+  # Wrapper Guard CI Stages (wrapper-common, git-guard, gh-validator)
+  # ============================================
+
+  wrapper-fmt)
+    echo "=== Running Wrapper format checks ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    for crate in wrapper-common git-guard gh-validator; do
+      echo "--- Checking format: $crate ---"
+      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+        -w /app/tools/rust/$crate \
+        rust-ci cargo fmt --all -- --check
+    done
+    ;;
+
+  wrapper-clippy)
+    echo "=== Running Wrapper clippy lints ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    for crate in wrapper-common git-guard gh-validator; do
+      echo "--- Linting: $crate ---"
+      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+        -w /app/tools/rust/$crate \
+        rust-ci cargo clippy --all-targets -- -D warnings
+    done
+    ;;
+
+  wrapper-test)
+    echo "=== Running Wrapper tests ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    for crate in wrapper-common git-guard gh-validator; do
+      echo "--- Testing: $crate ---"
+      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+        -w /app/tools/rust/$crate \
+        rust-ci cargo test
+    done
+    ;;
+
+  wrapper-full)
+    echo "=== Running full Wrapper CI checks ==="
+    $0 wrapper-fmt
+    $0 wrapper-clippy
+    $0 wrapper-test
+    ;;
+
   *)
     echo "Unknown stage: $STAGE"
     echo "Available stages:"
@@ -497,6 +544,7 @@ case "$STAGE" in
     echo "  Rust (nightly):           rust-loom, rust-miri, rust-cross-linux, rust-cross-windows, rust-advanced"
     echo "  Rust (economic_agents):   econ-fmt, econ-clippy, econ-test, econ-build, econ-deny, econ-doc, econ-coverage, econ-full"
     echo "  Rust (mcp_core_rust):     mcp-fmt, mcp-clippy, mcp-test, mcp-build, mcp-deny, mcp-doc, mcp-full"
+    echo "  Rust (wrapper_guard):     wrapper-fmt, wrapper-clippy, wrapper-test, wrapper-full"
     exit 1
     ;;
 esac

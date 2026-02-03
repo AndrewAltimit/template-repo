@@ -14,6 +14,10 @@ pub enum Error {
     /// Failed to execute real git binary
     #[error("Failed to execute git: {0}")]
     ExecFailed(#[from] std::io::Error),
+
+    /// Error from wrapper-common shared library
+    #[error(transparent)]
+    Common(#[from] wrapper_common::error::CommonError),
 }
 
 impl Error {
@@ -24,6 +28,7 @@ impl Error {
                 "Ensure git is installed and available in your PATH.\n\
                  The git-guard wrapper needs to find the real git binary to function.",
             ),
+            Error::Common(e) => e.help_text(),
             _ => None,
         }
     }

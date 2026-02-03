@@ -175,28 +175,28 @@ impl UrlValidator {
                         url: url.to_string(),
                         reason: format!("HTTP status {}", response.status()),
                     });
-                }
+                },
                 Err(ureq::Error::Status(404, _)) => {
                     // 404 is definitive - no retry
                     return Err(Error::InvalidUrl {
                         url: url.to_string(),
                         reason: "Image not found (404)".to_string(),
                     });
-                }
+                },
                 Err(ureq::Error::Status(code, _)) if (400..500).contains(&code) => {
                     // Other 4xx errors are definitive
                     return Err(Error::InvalidUrl {
                         url: url.to_string(),
                         reason: format!("HTTP error {}", code),
                     });
-                }
+                },
                 Err(e) => {
                     // 5xx or network errors - retry
                     last_error = Some(e.to_string());
                     if attempt < self.max_retries - 1 {
                         std::thread::sleep(Duration::from_millis(500));
                     }
-                }
+                },
             }
         }
 
