@@ -966,7 +966,7 @@ jobs:
           CURRENT_TAG="${{ steps.version.outputs.version }}"
 
           # Find the previous release tag for comparison
-          PREVIOUS_TAG=$(git tag --sort=-version:refname --list 'v[0-9]*' | grep -v "^${CURRENT_TAG}$" | head -n 1)
+          PREVIOUS_TAG=$(git tag --sort=-version:refname --list 'v[0-9]*' | grep -Fxv "$CURRENT_TAG" | head -n 1)
 
           CHANGELOG=""
           if [ -n "$PREVIOUS_TAG" ]; then
