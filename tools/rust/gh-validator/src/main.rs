@@ -378,10 +378,7 @@ fn run() -> Result<(), Error> {
                     let urls = UrlValidator::extract_reaction_urls(&content);
                     for url in urls {
                         if let Err(e) = url_validator.validate_exists(&url) {
-                            log_blocked(
-                                &format!("invalid URL: {}", url),
-                                &masked_args,
-                            );
+                            log_blocked(&format!("invalid URL: {}", url), &masked_args);
                             return Err(e);
                         }
                     }
