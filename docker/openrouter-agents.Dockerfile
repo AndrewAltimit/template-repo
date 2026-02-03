@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
 
 COPY tools/rust/wrapper-common /build/wrapper-common
 WORKDIR /build/gh-validator
-COPY tools/rust/gh-validator/Cargo.toml tools/rust/gh-validator/Cargo.lock* ./
+COPY tools/rust/gh-validator/Cargo.toml tools/rust/gh-validator/Cargo.lock* tools/rust/gh-validator/build.rs ./
 RUN mkdir -p src && echo "fn main() {}" > src/main.rs
 RUN cargo build --release 2>/dev/null || true
 COPY tools/rust/gh-validator/src ./src
