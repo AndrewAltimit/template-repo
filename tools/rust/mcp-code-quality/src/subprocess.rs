@@ -63,21 +63,21 @@ pub async fn run_command<S: AsRef<str> + std::fmt::Debug>(
                 stderr,
                 success: output.status.success(),
             })
-        }
+        },
         Ok(Err(e)) => {
             warn!("Command failed to execute: {}", e);
             Err(ToolError::SubprocessFailed(format!(
                 "Failed to execute {}: {}",
                 command, e
             )))
-        }
+        },
         Err(_) => {
             warn!(
                 "Command timed out after {:?}: {} {:?}",
                 timeout_duration, command, args
             );
             Err(ToolError::Timeout(timeout_duration.as_secs()))
-        }
+        },
     }
 }
 
@@ -100,10 +100,7 @@ pub async fn check_tool_available(command: &str) -> bool {
 /// Get the version of a tool (if available)
 pub async fn get_tool_version(command: &str) -> Option<String> {
     let result = timeout(Duration::from_secs(5), async {
-        Command::new(command)
-            .arg("--version")
-            .output()
-            .await
+        Command::new(command).arg("--version").output().await
     })
     .await;
 

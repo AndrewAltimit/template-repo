@@ -109,11 +109,11 @@ impl BaseMonitor {
             "issue" => {
                 self.config.target_issue_numbers.is_empty()
                     || self.config.target_issue_numbers.contains(&item_number)
-            }
+            },
             "pr" => {
                 self.config.target_pr_numbers.is_empty()
                     || self.config.target_pr_numbers.contains(&item_number)
-            }
+            },
             _ => true,
         }
     }
@@ -196,14 +196,14 @@ impl BaseMonitor {
                         "{} cycle completed, sleeping for {}s",
                         monitor_name, interval_secs
                     );
-                }
+                },
                 Err(Error::Interrupted) => {
                     info!("{} interrupted", monitor_name);
                     return Ok(());
-                }
+                },
                 Err(e) => {
                     warn!("{} error (will retry): {}", monitor_name, e);
-                }
+                },
             }
 
             // Sleep in small increments to check for interruption

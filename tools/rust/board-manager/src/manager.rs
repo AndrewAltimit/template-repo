@@ -571,14 +571,14 @@ impl BoardManager {
                 self.post_issue_comment(issue_number, &comment).await?;
                 info!("Renewed claim on #{} by {}", issue_number, agent_name);
                 Ok(true)
-            }
+            },
             _ => {
                 warn!(
                     "Cannot renew claim on #{}: no active claim by {}",
                     issue_number, agent_name
                 );
                 Ok(false)
-            }
+            },
         }
     }
 
@@ -603,17 +603,17 @@ impl BoardManager {
         match reason {
             ReleaseReason::Completed | ReleaseReason::PrCreated => {
                 // Stay In Progress until PR is merged
-            }
+            },
             ReleaseReason::Blocked => {
                 self.update_status(issue_number, IssueStatus::Blocked)
                     .await?;
-            }
+            },
             ReleaseReason::Abandoned | ReleaseReason::Error => {
                 // Use Abandoned status to prevent infinite loops where agents
                 // repeatedly pick up and fail on the same issue
                 self.update_status(issue_number, IssueStatus::Abandoned)
                     .await?;
-            }
+            },
         }
 
         info!(
@@ -1728,7 +1728,7 @@ impl BoardManager {
             None => {
                 debug!("Field {} not found, skipping", field_name);
                 return Ok(());
-            }
+            },
         };
 
         let field = match data.get("node").and_then(|n| n.get("field")) {
@@ -1736,7 +1736,7 @@ impl BoardManager {
             _ => {
                 debug!("Field {} not found, skipping", field_name);
                 return Ok(());
-            }
+            },
         };
 
         let field_id = match field.get("id").and_then(|id| id.as_str()) {
@@ -1744,7 +1744,7 @@ impl BoardManager {
             None => {
                 debug!("Field {} has no ID, skipping", field_name);
                 return Ok(());
-            }
+            },
         };
 
         let options = match field.get("options").and_then(|o| o.as_array()) {
@@ -1752,7 +1752,7 @@ impl BoardManager {
             None => {
                 debug!("Field {} has no options, skipping", field_name);
                 return Ok(());
-            }
+            },
         };
 
         let option_id = match options
@@ -1768,7 +1768,7 @@ impl BoardManager {
                     value, field_name
                 );
                 return Ok(());
-            }
+            },
         };
 
         let mutation = r#"

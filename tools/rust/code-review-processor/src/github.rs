@@ -39,7 +39,12 @@ impl GitHubClient {
     }
 
     /// Post a comment on a PR.
-    pub async fn post_pr_comment(&self, repository: &str, pr_number: u64, body: &str) -> Result<()> {
+    pub async fn post_pr_comment(
+        &self,
+        repository: &str,
+        pr_number: u64,
+        body: &str,
+    ) -> Result<()> {
         if self.dry_run {
             info!("[DRY RUN] Would post comment to {repository} PR #{pr_number}");
             return Ok(());
@@ -121,7 +126,11 @@ impl GitHubClient {
         let url = output.trim();
 
         // Extract PR number from URL (default to 0 if parsing fails)
-        let pr_number = url.rsplit('/').next().and_then(|s| s.parse().ok()).unwrap_or(0);
+        let pr_number = url
+            .rsplit('/')
+            .next()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0);
 
         Ok((pr_number, url.to_string()))
     }

@@ -560,11 +560,11 @@ impl AgentAnalyzer {
 
                     total_chars += content.len();
                     contents.push(format!("### {}\n```\n{}\n```", relative_path, content));
-                }
+                },
                 Err(e) => {
                     warn!("Failed to read {}: {}", file_path.display(), e);
                     contents.push(format!("### {}\n(could not read: {})", relative_path, e));
-                }
+                },
             }
         }
 
@@ -596,7 +596,7 @@ impl AgentAnalyzer {
                 Some(finding) => findings.push(finding),
                 None => {
                     debug!("Failed to parse finding section");
-                }
+                },
             }
         }
 
@@ -638,7 +638,7 @@ impl AgentAnalyzer {
             Err(e) => {
                 debug!("JSON parse error: {}", e);
                 return None;
-            }
+            },
         };
 
         let mut findings = Vec::new();
@@ -739,8 +739,8 @@ impl AgentAnalyzer {
                             end = i + 1;
                             break;
                         }
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
             if end > 0 {
@@ -762,8 +762,8 @@ impl AgentAnalyzer {
                             end = i + 1;
                             break;
                         }
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
             if end > 0 {
@@ -989,10 +989,10 @@ Example output:
                 for finding in findings {
                     self.add_finding(finding);
                 }
-            }
+            },
             Err(e) => {
                 warn!("Agent analysis failed: {}", e);
-            }
+            },
         }
 
         Ok(self.findings.clone())

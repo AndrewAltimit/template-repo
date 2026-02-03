@@ -233,7 +233,7 @@ impl CliAgent {
                         stderr,
                     })
                 }
-            }
+            },
             Err(_) => {
                 warn!(
                     "Agent {} timed out after {}s",
@@ -245,7 +245,7 @@ impl CliAgent {
                     stdout: String::new(),
                     stderr: String::new(),
                 })
-            }
+            },
         }
     }
 
@@ -311,7 +311,7 @@ impl CliAgent {
                         stderr,
                     })
                 }
-            }
+            },
             Err(_) => {
                 warn!(
                     "Agent {} timed out after {}s",
@@ -323,7 +323,7 @@ impl CliAgent {
                     stdout: String::new(),
                     stderr: String::new(),
                 })
-            }
+            },
         }
     }
 
@@ -339,15 +339,15 @@ impl CliAgent {
                     debug!("Codex auth not found at {}", auth_path);
                     return false;
                 }
-            }
+            },
             "opencode" | "crush" => {
                 // These require OPENROUTER_API_KEY
                 if env::var("OPENROUTER_API_KEY").is_err() {
                     debug!("Agent {} requires OPENROUTER_API_KEY", self.config.name);
                     return false;
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         // Try to run with --version or --help
@@ -363,7 +363,7 @@ impl CliAgent {
             Err(e) => {
                 debug!("Agent {} not available: {}", self.config.name, e);
                 false
-            }
+            },
         }
     }
 
@@ -557,20 +557,20 @@ impl CliAgent {
                         if let Some(message) = msg.get("message").and_then(|v| v.as_str()) {
                             messages.push(message.to_string());
                         }
-                    }
+                    },
                     "exec_command_end" => {
                         if let Some(stdout) = msg.get("stdout").and_then(|v| v.as_str()) {
                             command_outputs.push(stdout.trim().to_string());
                         }
-                    }
+                    },
                     "agent_reasoning" => {
                         if let Some(text) = msg.get("text").and_then(|v| v.as_str()) {
                             if !text.starts_with("**") {
                                 messages.push(format!("[Reasoning] {}", text));
                             }
                         }
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
@@ -591,7 +591,7 @@ impl CliAgent {
                         if let Some(text) = item.get("text").and_then(|v| v.as_str()) {
                             messages.push(text.to_string());
                         }
-                    }
+                    },
                     "message" => {
                         if let Some(content) = item.get("content").and_then(|v| v.as_array()) {
                             for part in content {
@@ -602,8 +602,8 @@ impl CliAgent {
                                 }
                             }
                         }
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
@@ -658,7 +658,7 @@ impl Agent for CliAgent {
                     error!("Agent {} stderr: {}", self.config.name, stderr);
                 }
                 Ok(stdout)
-            }
+            },
         }
     }
 }

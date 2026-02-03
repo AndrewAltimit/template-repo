@@ -121,23 +121,25 @@ pub async fn autoformat(
 
 /// Get the command and args for format checking
 /// Prefers modern tools: ruff for Python (faster than black)
-fn get_format_check_command(language: Language, path: &Path) -> Result<(&'static str, Vec<String>)> {
+fn get_format_check_command(
+    language: Language,
+    path: &Path,
+) -> Result<(&'static str, Vec<String>)> {
     let path_str = path.display().to_string();
 
     match language {
         // Use ruff format (10-100x faster than black, drop-in compatible)
-        Language::Python => Ok(("ruff", vec!["format".to_string(), "--check".to_string(), path_str])),
+        Language::Python => Ok((
+            "ruff",
+            vec!["format".to_string(), "--check".to_string(), path_str],
+        )),
         Language::JavaScript | Language::TypeScript => {
             Ok(("prettier", vec!["--check".to_string(), path_str]))
-        }
+        },
         Language::Go => Ok(("gofmt", vec!["-l".to_string(), path_str])),
         Language::Rust => Ok((
             "cargo",
-            vec![
-                "fmt".to_string(),
-                "--".to_string(),
-                "--check".to_string(),
-            ],
+            vec!["fmt".to_string(), "--".to_string(), "--check".to_string()],
         )),
     }
 }
@@ -152,7 +154,7 @@ fn get_autoformat_command(language: Language, path: &Path) -> Result<(&'static s
         Language::Python => Ok(("ruff", vec!["format".to_string(), path_str])),
         Language::JavaScript | Language::TypeScript => {
             Ok(("prettier", vec!["--write".to_string(), path_str]))
-        }
+        },
         Language::Go => Ok(("gofmt", vec!["-w".to_string(), path_str])),
         Language::Rust => Ok(("cargo", vec!["fmt".to_string()])),
     }

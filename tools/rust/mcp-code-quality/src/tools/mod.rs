@@ -62,7 +62,7 @@ impl Linter {
     #[allow(dead_code)] // Part of public API
     pub fn command(&self) -> &'static str {
         match self {
-            Linter::Flake8 => "ruff",  // Map to ruff for compatibility
+            Linter::Flake8 => "ruff", // Map to ruff for compatibility
             Linter::Ruff => "ruff",
             Linter::Eslint => "eslint",
             Linter::Golint => "golint",

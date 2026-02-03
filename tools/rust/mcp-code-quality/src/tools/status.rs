@@ -108,7 +108,7 @@ pub async fn get_audit_log(
                 total_entries: 0,
                 message: Some("Audit log file not found or not readable".to_string()),
             });
-        }
+        },
     };
 
     let reader = BufReader::new(file);

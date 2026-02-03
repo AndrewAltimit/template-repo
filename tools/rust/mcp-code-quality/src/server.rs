@@ -4,13 +4,13 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::{
+    Json, Router,
     extract::State,
     http::StatusCode,
     routing::{get, post},
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 
@@ -276,11 +276,11 @@ async fn call_tool(
                             Json(ToolCallResponse::error(ErrorResponse::from(
                                 ToolError::Internal(e.to_string()),
                             ))),
-                        )
-                    }
+                        );
+                    },
                 };
             format_check_impl(state, req).await
-        }
+        },
         "lint" => {
             let req: tools::lint::LintRequest = match serde_json::from_value(request.arguments) {
                 Ok(r) => r,
@@ -290,11 +290,11 @@ async fn call_tool(
                         Json(ToolCallResponse::error(ErrorResponse::from(
                             ToolError::Internal(e.to_string()),
                         ))),
-                    )
-                }
+                    );
+                },
             };
             lint_impl(state, req).await
-        }
+        },
         "autoformat" => {
             let req: tools::format::AutoformatRequest =
                 match serde_json::from_value(request.arguments) {
@@ -305,11 +305,11 @@ async fn call_tool(
                             Json(ToolCallResponse::error(ErrorResponse::from(
                                 ToolError::Internal(e.to_string()),
                             ))),
-                        )
-                    }
+                        );
+                    },
                 };
             autoformat_impl(state, req).await
-        }
+        },
         "run_tests" => {
             let req: tools::test::RunTestsRequest = match serde_json::from_value(request.arguments)
             {
@@ -320,26 +320,26 @@ async fn call_tool(
                         Json(ToolCallResponse::error(ErrorResponse::from(
                             ToolError::Internal(e.to_string()),
                         ))),
-                    )
-                }
+                    );
+                },
             };
             run_tests_impl(state, req).await
-        }
+        },
         "type_check" => {
-            let req: tools::lint::TypeCheckRequest =
-                match serde_json::from_value(request.arguments) {
-                    Ok(r) => r,
-                    Err(e) => {
-                        return (
-                            StatusCode::BAD_REQUEST,
-                            Json(ToolCallResponse::error(ErrorResponse::from(
-                                ToolError::Internal(e.to_string()),
-                            ))),
-                        )
-                    }
-                };
+            let req: tools::lint::TypeCheckRequest = match serde_json::from_value(request.arguments)
+            {
+                Ok(r) => r,
+                Err(e) => {
+                    return (
+                        StatusCode::BAD_REQUEST,
+                        Json(ToolCallResponse::error(ErrorResponse::from(
+                            ToolError::Internal(e.to_string()),
+                        ))),
+                    );
+                },
+            };
             type_check_impl(state, req).await
-        }
+        },
         "security_scan" => {
             let req: tools::lint::SecurityScanRequest =
                 match serde_json::from_value(request.arguments) {
@@ -350,11 +350,11 @@ async fn call_tool(
                             Json(ToolCallResponse::error(ErrorResponse::from(
                                 ToolError::Internal(e.to_string()),
                             ))),
-                        )
-                    }
+                        );
+                    },
                 };
             security_scan_impl(state, req).await
-        }
+        },
         "audit_dependencies" => {
             let req: tools::test::AuditDependenciesRequest =
                 match serde_json::from_value(request.arguments) {
@@ -365,11 +365,11 @@ async fn call_tool(
                             Json(ToolCallResponse::error(ErrorResponse::from(
                                 ToolError::Internal(e.to_string()),
                             ))),
-                        )
-                    }
+                        );
+                    },
                 };
             audit_dependencies_impl(state, req).await
-        }
+        },
         "check_markdown_links" => {
             let req: tools::test::CheckMarkdownLinksRequest =
                 match serde_json::from_value(request.arguments) {
@@ -380,11 +380,11 @@ async fn call_tool(
                             Json(ToolCallResponse::error(ErrorResponse::from(
                                 ToolError::Internal(e.to_string()),
                             ))),
-                        )
-                    }
+                        );
+                    },
                 };
             check_markdown_links_impl(state, req).await
-        }
+        },
         "get_status" => get_status_impl(state).await,
         "get_audit_log" => {
             let req: tools::status::GetAuditLogRequest =
@@ -396,11 +396,11 @@ async fn call_tool(
                             Json(ToolCallResponse::error(ErrorResponse::from(
                                 ToolError::Internal(e.to_string()),
                             ))),
-                        )
-                    }
+                        );
+                    },
                 };
             get_audit_log_impl(state, req).await
-        }
+        },
         _ => (
             StatusCode::NOT_FOUND,
             Json(ToolCallResponse::error(ErrorResponse::from(
@@ -433,8 +433,8 @@ async fn format_check_impl(
             return (
                 StatusCode::FORBIDDEN,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
-            )
-        }
+            );
+        },
     };
 
     // Language parsing
@@ -446,8 +446,8 @@ async fn format_check_impl(
                 Json(ToolCallResponse::error(ErrorResponse::from(
                     ToolError::UnsupportedLanguage(req.language),
                 ))),
-            )
-        }
+            );
+        },
     };
 
     // Execute
@@ -459,15 +459,23 @@ async fn format_check_impl(
                 result.formatted,
                 result.to_json(),
             );
-            (StatusCode::OK, Json(ToolCallResponse::success(result.to_json())))
-        }
+            (
+                StatusCode::OK,
+                Json(ToolCallResponse::success(result.to_json())),
+            )
+        },
         Err(e) => {
-            state.audit_logger.log("format_check", Some(&req.path), false, json!({"error": e.to_string()}));
+            state.audit_logger.log(
+                "format_check",
+                Some(&req.path),
+                false,
+                json!({"error": e.to_string()}),
+            );
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
             )
-        }
+        },
     }
 }
 
@@ -488,8 +496,8 @@ async fn lint_impl(
             return (
                 StatusCode::FORBIDDEN,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
-            )
-        }
+            );
+        },
     };
 
     let linter = match Linter::from_str(&req.linter) {
@@ -500,22 +508,32 @@ async fn lint_impl(
                 Json(ToolCallResponse::error(ErrorResponse::from(
                     ToolError::ToolNotFound(req.linter),
                 ))),
-            )
-        }
+            );
+        },
     };
 
     match tools::lint(&path, linter, req.config.as_deref(), state.config.timeout).await {
         Ok(result) => {
-            state.audit_logger.log("lint", Some(&req.path), result.clean, result.to_json());
-            (StatusCode::OK, Json(ToolCallResponse::success(result.to_json())))
-        }
+            state
+                .audit_logger
+                .log("lint", Some(&req.path), result.clean, result.to_json());
+            (
+                StatusCode::OK,
+                Json(ToolCallResponse::success(result.to_json())),
+            )
+        },
         Err(e) => {
-            state.audit_logger.log("lint", Some(&req.path), false, json!({"error": e.to_string()}));
+            state.audit_logger.log(
+                "lint",
+                Some(&req.path),
+                false,
+                json!({"error": e.to_string()}),
+            );
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
             )
-        }
+        },
     }
 }
 
@@ -536,8 +554,8 @@ async fn autoformat_impl(
             return (
                 StatusCode::FORBIDDEN,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
-            )
-        }
+            );
+        },
     };
 
     let language = match Language::from_str(&req.language) {
@@ -548,22 +566,35 @@ async fn autoformat_impl(
                 Json(ToolCallResponse::error(ErrorResponse::from(
                     ToolError::UnsupportedLanguage(req.language),
                 ))),
-            )
-        }
+            );
+        },
     };
 
     match tools::autoformat(&path, language, state.config.timeout).await {
         Ok(result) => {
-            state.audit_logger.log("autoformat", Some(&req.path), result.success, result.to_json());
-            (StatusCode::OK, Json(ToolCallResponse::success(result.to_json())))
-        }
+            state.audit_logger.log(
+                "autoformat",
+                Some(&req.path),
+                result.success,
+                result.to_json(),
+            );
+            (
+                StatusCode::OK,
+                Json(ToolCallResponse::success(result.to_json())),
+            )
+        },
         Err(e) => {
-            state.audit_logger.log("autoformat", Some(&req.path), false, json!({"error": e.to_string()}));
+            state.audit_logger.log(
+                "autoformat",
+                Some(&req.path),
+                false,
+                json!({"error": e.to_string()}),
+            );
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
             )
-        }
+        },
     }
 }
 
@@ -584,8 +615,8 @@ async fn run_tests_impl(
             return (
                 StatusCode::FORBIDDEN,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
-            )
-        }
+            );
+        },
     };
 
     match tools::run_tests(
@@ -600,16 +631,29 @@ async fn run_tests_impl(
     .await
     {
         Ok(result) => {
-            state.audit_logger.log("run_tests", Some(&req.path), result.passed, result.to_json());
-            (StatusCode::OK, Json(ToolCallResponse::success(result.to_json())))
-        }
+            state.audit_logger.log(
+                "run_tests",
+                Some(&req.path),
+                result.passed,
+                result.to_json(),
+            );
+            (
+                StatusCode::OK,
+                Json(ToolCallResponse::success(result.to_json())),
+            )
+        },
         Err(e) => {
-            state.audit_logger.log("run_tests", Some(&req.path), false, json!({"error": e.to_string()}));
+            state.audit_logger.log(
+                "run_tests",
+                Some(&req.path),
+                false,
+                json!({"error": e.to_string()}),
+            );
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
             )
-        }
+        },
     }
 }
 
@@ -630,22 +674,42 @@ async fn type_check_impl(
             return (
                 StatusCode::FORBIDDEN,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
-            )
-        }
+            );
+        },
     };
 
-    match tools::type_check(&path, req.strict, req.config.as_deref(), state.config.timeout).await {
+    match tools::type_check(
+        &path,
+        req.strict,
+        req.config.as_deref(),
+        state.config.timeout,
+    )
+    .await
+    {
         Ok(result) => {
-            state.audit_logger.log("type_check", Some(&req.path), result.passed, result.to_json());
-            (StatusCode::OK, Json(ToolCallResponse::success(result.to_json())))
-        }
+            state.audit_logger.log(
+                "type_check",
+                Some(&req.path),
+                result.passed,
+                result.to_json(),
+            );
+            (
+                StatusCode::OK,
+                Json(ToolCallResponse::success(result.to_json())),
+            )
+        },
         Err(e) => {
-            state.audit_logger.log("type_check", Some(&req.path), false, json!({"error": e.to_string()}));
+            state.audit_logger.log(
+                "type_check",
+                Some(&req.path),
+                false,
+                json!({"error": e.to_string()}),
+            );
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
             )
-        }
+        },
     }
 }
 
@@ -666,22 +730,35 @@ async fn security_scan_impl(
             return (
                 StatusCode::FORBIDDEN,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
-            )
-        }
+            );
+        },
     };
 
     match tools::security_scan(&path, &req.severity, &req.confidence, state.config.timeout).await {
         Ok(result) => {
-            state.audit_logger.log("security_scan", Some(&req.path), result.clean, result.to_json());
-            (StatusCode::OK, Json(ToolCallResponse::success(result.to_json())))
-        }
+            state.audit_logger.log(
+                "security_scan",
+                Some(&req.path),
+                result.clean,
+                result.to_json(),
+            );
+            (
+                StatusCode::OK,
+                Json(ToolCallResponse::success(result.to_json())),
+            )
+        },
         Err(e) => {
-            state.audit_logger.log("security_scan", Some(&req.path), false, json!({"error": e.to_string()}));
+            state.audit_logger.log(
+                "security_scan",
+                Some(&req.path),
+                false,
+                json!({"error": e.to_string()}),
+            );
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
             )
-        }
+        },
     }
 }
 
@@ -702,8 +779,8 @@ async fn audit_dependencies_impl(
             return (
                 StatusCode::FORBIDDEN,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
-            )
-        }
+            );
+        },
     };
 
     match tools::audit_dependencies(&path, state.config.timeout).await {
@@ -714,8 +791,11 @@ async fn audit_dependencies_impl(
                 result.clean,
                 result.to_json(),
             );
-            (StatusCode::OK, Json(ToolCallResponse::success(result.to_json())))
-        }
+            (
+                StatusCode::OK,
+                Json(ToolCallResponse::success(result.to_json())),
+            )
+        },
         Err(e) => {
             state.audit_logger.log(
                 "audit_dependencies",
@@ -727,7 +807,7 @@ async fn audit_dependencies_impl(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
             )
-        }
+        },
     }
 }
 
@@ -748,8 +828,8 @@ async fn check_markdown_links_impl(
             return (
                 StatusCode::FORBIDDEN,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
-            )
-        }
+            );
+        },
     };
 
     match tools::check_markdown_links(
@@ -769,8 +849,11 @@ async fn check_markdown_links_impl(
                 result.all_valid,
                 result.to_json(),
             );
-            (StatusCode::OK, Json(ToolCallResponse::success(result.to_json())))
-        }
+            (
+                StatusCode::OK,
+                Json(ToolCallResponse::success(result.to_json())),
+            )
+        },
         Err(e) => {
             state.audit_logger.log(
                 "check_markdown_links",
@@ -782,7 +865,7 @@ async fn check_markdown_links_impl(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ToolCallResponse::error(ErrorResponse::from(e))),
             )
-        }
+        },
     }
 }
 
@@ -795,7 +878,10 @@ async fn get_status_impl(state: AppState) -> (StatusCode, Json<ToolCallResponse>
     }
 
     match tools::get_status(state.config.rate_limit_enabled).await {
-        Ok(result) => (StatusCode::OK, Json(ToolCallResponse::success(result.to_json()))),
+        Ok(result) => (
+            StatusCode::OK,
+            Json(ToolCallResponse::success(result.to_json())),
+        ),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ToolCallResponse::error(ErrorResponse::from(e))),
@@ -821,7 +907,10 @@ async fn get_audit_log_impl(
     )
     .await
     {
-        Ok(result) => (StatusCode::OK, Json(ToolCallResponse::success(result.to_json()))),
+        Ok(result) => (
+            StatusCode::OK,
+            Json(ToolCallResponse::success(result.to_json())),
+        ),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ToolCallResponse::error(ErrorResponse::from(e))),

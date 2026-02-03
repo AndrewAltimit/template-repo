@@ -103,10 +103,7 @@ pub async fn run_tests(
         message: if result.success {
             Some("All tests passed".to_string())
         } else {
-            Some(format!(
-                "{} tests failed",
-                failed_count.unwrap_or(0)
-            ))
+            Some(format!("{} tests failed", failed_count.unwrap_or(0)))
         },
     })
 }
@@ -262,13 +259,23 @@ pub async fn check_markdown_links(
     let timeout_str = link_timeout.to_string();
     let concurrent_str = concurrent.to_string();
 
-    let mut args = vec![&path_str, "--json", "--timeout", &timeout_str, "--concurrent", &concurrent_str];
+    let mut args = vec![
+        &path_str,
+        "--json",
+        "--timeout",
+        &timeout_str,
+        "--concurrent",
+        &concurrent_str,
+    ];
 
     if !check_external {
         args.push("--internal-only");
     }
 
-    let ignore_args: Vec<String> = ignore_patterns.iter().map(|p| format!("--ignore={}", p)).collect();
+    let ignore_args: Vec<String> = ignore_patterns
+        .iter()
+        .map(|p| format!("--ignore={}", p))
+        .collect();
     for arg in &ignore_args {
         args.push(arg);
     }
@@ -280,10 +287,22 @@ pub async fn check_markdown_links(
         Ok(output) => {
             // Parse JSON output
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&output.stdout) {
-                let files_checked = json.get("files_checked").and_then(|v| v.as_u64()).map(|v| v as usize);
-                let total_links = json.get("total_links").and_then(|v| v.as_u64()).map(|v| v as usize);
-                let broken_links = json.get("broken_links").and_then(|v| v.as_u64()).map(|v| v as usize);
-                let all_valid = json.get("all_valid").and_then(|v| v.as_bool()).unwrap_or(false);
+                let files_checked = json
+                    .get("files_checked")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize);
+                let total_links = json
+                    .get("total_links")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize);
+                let broken_links = json
+                    .get("broken_links")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as usize);
+                let all_valid = json
+                    .get("all_valid")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
 
                 return Ok(CheckMarkdownLinksResponse {
                     success: true,
@@ -316,7 +335,7 @@ pub async fn check_markdown_links(
                     "Link check found issues".to_string()
                 }),
             })
-        }
+        },
         Err(_) => {
             // Fallback message if tool not available
             Ok(CheckMarkdownLinksResponse {
@@ -329,7 +348,7 @@ pub async fn check_markdown_links(
                 output: None,
                 message: Some("md-link-checker not available".to_string()),
             })
-        }
+        },
     }
 }
 

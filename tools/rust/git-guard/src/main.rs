@@ -209,7 +209,10 @@ fn format_blocked_message(ops: &[DangerousOp]) -> String {
         msg.push_str("If you absolutely need to perform this operation, use the\n");
         msg.push_str("real git binary directly (requires sudo):\n");
         msg.push('\n');
-        msg.push_str(&format!("  sudo {} <your command>\n", hardened_path.display()));
+        msg.push_str(&format!(
+            "  sudo {} <your command>\n",
+            hardened_path.display()
+        ));
     } else {
         msg.push_str("If you absolutely need to perform this operation, use the\n");
         msg.push_str("real git binary directly:\n");

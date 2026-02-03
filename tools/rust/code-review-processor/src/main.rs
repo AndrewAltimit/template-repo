@@ -52,10 +52,7 @@ async fn main() -> Result<()> {
     })?;
 
     // Create processor
-    let processor = ReviewProcessor::new(
-        args.repository.clone(),
-        args.dry_run,
-    );
+    let processor = ReviewProcessor::new(args.repository.clone(), args.dry_run);
 
     // Process the review
     let result = processor.process(&review, &args).await?;
@@ -64,17 +61,17 @@ async fn main() -> Result<()> {
     match result {
         processor::ProcessingResult::ReviewPosted => {
             info!("Review posted as comment");
-        }
+        },
         processor::ProcessingResult::ChangesCommitted => {
             info!("Changes committed successfully");
-        }
+        },
         processor::ProcessingResult::PrCreated { pr_number, pr_url } => {
             info!(pr_number, pr_url = %pr_url, "Pull request created");
             println!("{}", pr_url);
-        }
+        },
         processor::ProcessingResult::NoAction => {
             info!("No action taken (no flags specified)");
-        }
+        },
     }
 
     Ok(())

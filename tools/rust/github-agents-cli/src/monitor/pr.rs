@@ -179,16 +179,16 @@ impl PrMonitor {
         match trigger_info.action.as_str() {
             "approved" => {
                 self.handle_approved(pr, &trigger_info).await?;
-            }
+            },
             "review" => {
                 self.handle_review(pr).await?;
-            }
+            },
             "summarize" => {
                 self.handle_summarize(pr).await?;
-            }
+            },
             _ => {
                 debug!("Unknown action: {}", trigger_info.action);
-            }
+            },
         }
 
         Ok(())
@@ -218,7 +218,7 @@ impl PrMonitor {
                 );
                 self.base.post_comment(pr_number, &comment, "pr").await?;
                 return Ok(());
-            }
+            },
         };
 
         let agent_display_name = agent.trigger_keyword();
@@ -297,13 +297,13 @@ impl PrMonitor {
                     pr_number,
                     agent.name()
                 );
-            }
+            },
             Err(e) => {
                 error!("Agent {} failed for PR #{}: {}", agent.name(), pr_number, e);
                 self.base
                     .post_error_comment(pr_number, &e.to_string(), "pr")
                     .await?;
-            }
+            },
         }
 
         Ok(())
@@ -329,7 +329,7 @@ impl PrMonitor {
                 );
                 self.base.post_comment(pr_number, &comment, "pr").await?;
                 return Ok(());
-            }
+            },
         };
 
         // Get diff for review
@@ -383,13 +383,13 @@ impl PrMonitor {
                     truncated
                 );
                 self.base.post_comment(pr_number, &comment, "pr").await?;
-            }
+            },
             Err(e) => {
                 error!("Review failed for PR #{}: {}", pr_number, e);
                 self.base
                     .post_error_comment(pr_number, &e.to_string(), "pr")
                     .await?;
-            }
+            },
         }
 
         Ok(())

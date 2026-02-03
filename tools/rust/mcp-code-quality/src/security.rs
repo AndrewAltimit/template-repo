@@ -12,7 +12,7 @@ use serde::Serialize;
 use tokio::sync::Mutex;
 use tracing::{info, warn};
 
-use crate::config::{get_rate_limit, Config};
+use crate::config::{Config, get_rate_limit};
 use crate::error::{Result, ToolError};
 
 /// Path validator for ensuring operations stay within allowed directories
@@ -189,7 +189,7 @@ impl AuditLogger {
             Err(e) => {
                 warn!("Failed to serialize audit entry: {}", e);
                 return;
-            }
+            },
         };
 
         // Try primary log path
