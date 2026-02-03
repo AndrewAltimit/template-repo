@@ -25,7 +25,12 @@ GUARD_GROUP="wrapper-guard"
 INTEGRITY_FILE="$GUARD_DIR/integrity.json"
 
 # Default wrapper binary locations
-WRAPPER_DIR="${HOME}/.local/bin"
+# When run under sudo, resolve the original user's home directory
+if [[ -n "${SUDO_USER:-}" ]]; then
+    WRAPPER_DIR="$(getent passwd "$SUDO_USER" | cut -d: -f6)/.local/bin"
+else
+    WRAPPER_DIR="${HOME}/.local/bin"
+fi
 
 # Colors
 RED='\033[0;31m'
@@ -146,6 +151,12 @@ done
 # Wrappers are setgid wrapper-guard so they inherit group permission
 # to execute the real binaries in the restricted directory.
 for binary in git gh; do
+    DIVERTED_PATH="$GUARD_DIR/${binary}.real"
+    if [[ ! -f "$DIVERTED_PATH" ]]; then
+        warn "Skipping wrapper install for $binary: real binary not found at $DIVERTED_PATH"
+        warn "The wrapper would have no real binary to execute. Install $binary first, then re-run."
+        continue
+    fi
     info "Installing wrapper: /usr/bin/$binary"
     cp "$WRAPPER_DIR/$binary" "/usr/bin/$binary"
     chown root:"$GUARD_GROUP" "/usr/bin/$binary"
