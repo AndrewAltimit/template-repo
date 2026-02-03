@@ -11,9 +11,7 @@
         "--rm",
         "-T",
         "mcp-code-quality",
-        "python",
-        "-m",
-        "mcp_code_quality.server",
+        "mcp-code-quality",
         "--mode",
         "stdio"
       ]
@@ -29,9 +27,7 @@
         "--rm",
         "-T",
         "mcp-content-creation",
-        "python",
-        "-m",
-        "mcp_content_creation.server",
+        "mcp-content-creation",
         "--mode",
         "stdio"
       ]
@@ -116,9 +112,7 @@
         "--rm",
         "-T",
         "mcp-meme-generator",
-        "python",
-        "-m",
-        "mcp_meme_generator.server",
+        "mcp-meme-generator",
         "--mode",
         "stdio"
       ]
@@ -134,9 +128,7 @@
         "--rm",
         "-T",
         "mcp-blender",
-        "python3",
-        "-m",
-        "mcp_blender.server",
+        "mcp-blender",
         "--mode",
         "stdio"
       ]
@@ -152,9 +144,7 @@
         "--rm",
         "-T",
         "mcp-elevenlabs-speech",
-        "python",
-        "-m",
-        "mcp_elevenlabs_speech.server",
+        "mcp-elevenlabs-speech",
         "--mode",
         "stdio"
       ],
@@ -190,9 +180,7 @@
         "--rm",
         "-T",
         "mcp-github-board",
-        "python",
-        "-m",
-        "mcp_github_board.server",
+        "mcp-github-board",
         "--mode",
         "stdio"
       ],
@@ -216,9 +204,7 @@
         "--rm",
         "-T",
         "mcp-agentcore-memory",
-        "python",
-        "-m",
-        "mcp_agentcore_memory.server",
+        "mcp-agentcore-memory",
         "--mode",
         "stdio"
       ]
@@ -234,9 +220,7 @@
         "--rm",
         "-T",
         "mcp-reaction-search",
-        "python",
-        "-m",
-        "mcp_reaction_search.server",
+        "mcp-reaction-search",
         "--mode",
         "stdio"
       ]
