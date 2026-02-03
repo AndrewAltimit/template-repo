@@ -57,7 +57,7 @@ pub async fn select_agent_with_models(
                 tracing::warn!("Gemini CLI not available");
                 None
             }
-        }
+        },
         "claude" => {
             let agent = match review_model {
                 Some(m) => claude::ClaudeAgent::with_model(m),
@@ -69,7 +69,7 @@ pub async fn select_agent_with_models(
                 tracing::warn!("Claude Code CLI not available");
                 None
             }
-        }
+        },
         "codex" => {
             let agent = match review_model {
                 Some(m) => codex::CodexAgent::with_model(m),
@@ -81,7 +81,7 @@ pub async fn select_agent_with_models(
                 tracing::warn!("Codex CLI not available");
                 None
             }
-        }
+        },
         "opencode" => {
             let agent = match review_model {
                 Some(m) => opencode::OpenCodeAgent::with_model(m),
@@ -93,7 +93,7 @@ pub async fn select_agent_with_models(
                 tracing::warn!("OpenCode CLI not available");
                 None
             }
-        }
+        },
         "crush" => {
             let agent = crush::CrushAgent::new();
             if agent.is_available().await {
@@ -102,10 +102,10 @@ pub async fn select_agent_with_models(
                 tracing::warn!("Crush CLI not available");
                 None
             }
-        }
+        },
         _ => {
             tracing::warn!("Unknown agent: {}", agent_name);
             None
-        }
+        },
     }
 }

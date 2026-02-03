@@ -105,8 +105,7 @@ pub fn parse_review_json(json: &str) -> Result<ReviewResponse> {
     }
 
     // Fall back to tagged format for backwards compatibility
-    let result: ReviewResult =
-        serde_json::from_str(json).context("Failed to parse review JSON")?;
+    let result: ReviewResult = serde_json::from_str(json).context("Failed to parse review JSON")?;
     Ok(result.into())
 }
 
@@ -182,9 +181,10 @@ impl ReviewProcessor {
         // Create PR if requested and there are changes
         if args.create_pr && has_changes {
             // Create a new branch if not specified
-            let branch_name = args.branch.clone().unwrap_or_else(|| {
-                format!("code-review-fixes-{}", chrono::Utc::now().timestamp())
-            });
+            let branch_name = args
+                .branch
+                .clone()
+                .unwrap_or_else(|| format!("code-review-fixes-{}", chrono::Utc::now().timestamp()));
 
             // Create and push branch
             self.git.create_branch(&branch_name).await?;
@@ -206,7 +206,13 @@ impl ReviewProcessor {
 
             let (pr_number, pr_url) = self
                 .github
-                .create_pr(repository, title, description, &branch_name, &args.base_branch)
+                .create_pr(
+                    repository,
+                    title,
+                    description,
+                    &branch_name,
+                    &args.base_branch,
+                )
                 .await?;
 
             return Ok(ProcessingResult::PrCreated { pr_number, pr_url });

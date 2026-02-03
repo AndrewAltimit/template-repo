@@ -51,9 +51,10 @@ struct Args {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            "mcp_code_quality=info,tower_http=info".into()
-        }))
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "mcp_code_quality=info,tower_http=info".into()),
+        )
         .with(tracing_subscriber::fmt::layer())
         .init();
 
@@ -72,7 +73,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         env!("CARGO_PKG_VERSION")
     );
     info!("Listening on {}:{}", config.host, config.port);
-    info!("Rate limiting: {}", if config.rate_limit_enabled { "enabled" } else { "disabled" });
+    info!(
+        "Rate limiting: {}",
+        if config.rate_limit_enabled {
+            "enabled"
+        } else {
+            "disabled"
+        }
+    );
     info!("Allowed paths: {:?}", config.allowed_paths);
 
     // Start server

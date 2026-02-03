@@ -98,7 +98,7 @@ impl PRReviewConfig {
                 // If no config file found, use defaults
                 tracing::info!("No .agents.yaml found, using default PR review config");
                 Ok(Self::default())
-            }
+            },
         }
     }
 }

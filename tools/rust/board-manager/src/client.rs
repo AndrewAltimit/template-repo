@@ -82,7 +82,7 @@ impl GraphQLClient {
                     }
 
                     return Ok(response);
-                }
+                },
                 Err(e) => {
                     // Don't retry client errors (4xx)
                     if let BoardError::Auth(_) = e {
@@ -101,7 +101,7 @@ impl GraphQLClient {
                     } else {
                         return Err(e);
                     }
-                }
+                },
             }
         }
 
@@ -236,7 +236,7 @@ impl GraphQLClient {
                     } else {
                         return Err(e);
                     }
-                }
+                },
             }
         }
 

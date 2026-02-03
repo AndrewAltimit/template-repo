@@ -301,7 +301,7 @@ pub async fn run(cli: Cli) -> Result<()> {
                 }
             }
             return Ok(());
-        }
+        },
 
         Commands::TrustLevel {
             username,
@@ -323,7 +323,7 @@ pub async fn run(cli: Cli) -> Result<()> {
                 println!("User '{}' has trust level: {}", username, level);
             }
             return Ok(());
-        }
+        },
 
         Commands::BucketComments {
             comments_json,
@@ -370,9 +370,9 @@ pub async fn run(cli: Cli) -> Result<()> {
                 println!("{}", formatted);
             }
             return Ok(());
-        }
+        },
 
-        _ => {}
+        _ => {},
     }
 
     // Commands that require board manager
@@ -442,7 +442,7 @@ pub async fn run(cli: Cli) -> Result<()> {
                     );
                 }
             }
-        }
+        },
 
         Commands::Claim {
             issue,
@@ -470,7 +470,7 @@ pub async fn run(cli: Cli) -> Result<()> {
             } else {
                 println!("Failed to claim issue #{} - already claimed", issue);
             }
-        }
+        },
 
         Commands::Renew {
             issue,
@@ -496,7 +496,7 @@ pub async fn run(cli: Cli) -> Result<()> {
                     issue, agent
                 );
             }
-        }
+        },
 
         Commands::Release {
             issue,
@@ -522,7 +522,7 @@ pub async fn run(cli: Cli) -> Result<()> {
             } else {
                 println!("Released claim on issue #{} (reason: {})", issue, reason);
             }
-        }
+        },
 
         Commands::Status { issue, status } => {
             let new_status = IssueStatus::from_str(&status).ok_or_else(|| {
@@ -543,7 +543,7 @@ pub async fn run(cli: Cli) -> Result<()> {
             } else {
                 println!("Updated issue #{} status to {}", issue, status);
             }
-        }
+        },
 
         Commands::Block { issue, blocker } => {
             manager.add_blocker(issue, blocker).await?;
@@ -560,7 +560,7 @@ pub async fn run(cli: Cli) -> Result<()> {
             } else {
                 println!("Added blocker: #{} blocks #{}", blocker, issue);
             }
-        }
+        },
 
         Commands::DiscoverFrom { issue, parent } => {
             manager.mark_discovered_from(issue, parent).await?;
@@ -577,7 +577,7 @@ pub async fn run(cli: Cli) -> Result<()> {
             } else {
                 println!("Marked issue #{} as discovered from #{}", issue, parent);
             }
-        }
+        },
 
         Commands::Info { issue } => {
             let issue_data = manager.get_issue(issue).await?;
@@ -605,7 +605,7 @@ pub async fn run(cli: Cli) -> Result<()> {
             } else {
                 println!("Issue #{} not found on board", issue);
             }
-        }
+        },
 
         Commands::Agents => {
             let agents = manager.get_enabled_agents();
@@ -618,7 +618,7 @@ pub async fn run(cli: Cli) -> Result<()> {
                     println!("  - {}", agent);
                 }
             }
-        }
+        },
 
         Commands::Config => {
             let config = manager.get_config();
@@ -635,7 +635,7 @@ pub async fn run(cli: Cli) -> Result<()> {
                 println!("  Claim timeout: {}h", config.claim_timeout / 3600);
                 println!("  Enabled agents: {:?}", config.enabled_agents);
             }
-        }
+        },
 
         Commands::FindApproved { agent } => {
             let approved_issues = manager.find_approved_issues(&agent).await?;
@@ -655,7 +655,7 @@ pub async fn run(cli: Cli) -> Result<()> {
                     println!("  #{}: {} ({})", issue.number, issue.title, board_status);
                 }
             }
-        }
+        },
 
         Commands::AddToBoard {
             issue,
@@ -732,7 +732,7 @@ pub async fn run(cli: Cli) -> Result<()> {
             } else {
                 println!("Failed to add issue #{} to board", issue);
             }
-        }
+        },
 
         Commands::CheckApproval { issue } => {
             let (is_approved, approver) = manager.is_issue_approved(issue).await?;
@@ -755,14 +755,14 @@ pub async fn run(cli: Cli) -> Result<()> {
             } else {
                 println!("Issue #{} is NOT approved", issue);
             }
-        }
+        },
 
         // These commands are handled early and shouldn't reach here
         Commands::AssessFix { .. }
         | Commands::TrustLevel { .. }
         | Commands::BucketComments { .. } => {
             unreachable!("Security commands should be handled before board manager init")
-        }
+        },
     }
 
     Ok(())

@@ -95,7 +95,7 @@ fn get_lint_command(
             }
             args.push(path_str);
             Ok(("ruff", args))
-        }
+        },
         // Native ruff linting
         Linter::Ruff => {
             args.push("check".to_string());
@@ -104,7 +104,7 @@ fn get_lint_command(
             }
             args.push(path_str);
             Ok(("ruff", args))
-        }
+        },
         Linter::Eslint => {
             if let Some(cfg) = config {
                 args.push("-c".to_string());
@@ -112,18 +112,18 @@ fn get_lint_command(
             }
             args.push(path_str);
             Ok(("eslint", args))
-        }
+        },
         Linter::Golint => {
             args.push(path_str);
             Ok(("golint", args))
-        }
+        },
         Linter::Clippy => {
             args.push("clippy".to_string());
             args.push("--".to_string());
             args.push("-D".to_string());
             args.push("warnings".to_string());
             Ok(("cargo", args))
-        }
+        },
     }
 }
 
@@ -231,7 +231,7 @@ pub struct SecurityScanResponse {
 /// Uses the S rule set which implements bandit security rules in Rust
 pub async fn security_scan(
     path: &Path,
-    _severity: &str,  // ruff doesn't have severity filtering, we check all
+    _severity: &str, // ruff doesn't have severity filtering, we check all
     _confidence: &str,
     timeout: Duration,
 ) -> Result<SecurityScanResponse> {
@@ -240,7 +240,7 @@ pub async fn security_scan(
     // Use ruff check with security rules (S = bandit rules implemented in Rust)
     let args = vec![
         "check".to_string(),
-        "--select=S".to_string(),  // Security rules (bandit compatible)
+        "--select=S".to_string(), // Security rules (bandit compatible)
         path_str,
     ];
 

@@ -204,12 +204,12 @@ async fn fetch_pr_comments(repo: &str, pr_number: u64) -> Result<Vec<GitHubComme
                                 }
                                 start = i + 1;
                             }
-                        }
-                        _ => {}
+                        },
+                        _ => {},
                     }
                 }
                 all_comments
-            }
+            },
         }
     } else {
         Vec::new()

@@ -201,8 +201,8 @@ impl LinkChecker {
                     if !url.is_empty() {
                         links.insert(url);
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -262,7 +262,7 @@ impl LinkChecker {
                     valid: true,
                     error: None,
                 }
-            }
+            },
             Ok(response) => {
                 // Try GET as fallback (some servers don't support HEAD)
                 match self.client.get(&url).send().await {
@@ -275,7 +275,7 @@ impl LinkChecker {
                             valid: true,
                             error: None,
                         }
-                    }
+                    },
                     Ok(get_response) => LinkResult {
                         url: link.to_string(),
                         valid: false,
@@ -287,7 +287,7 @@ impl LinkChecker {
                         error: Some(format!("HTTP {}: {}", response.status().as_u16(), e)),
                     },
                 }
-            }
+            },
             Err(e) => {
                 // Try GET as fallback
                 match self.client.get(&url).send().await {
@@ -299,7 +299,7 @@ impl LinkChecker {
                             valid: true,
                             error: None,
                         }
-                    }
+                    },
                     Ok(response) => LinkResult {
                         url: link.to_string(),
                         valid: false,
@@ -311,7 +311,7 @@ impl LinkChecker {
                         error: Some(e.to_string()),
                     },
                 }
-            }
+            },
         }
     }
 
@@ -358,7 +358,7 @@ impl LinkChecker {
                     total_count: 0,
                     error: Some(e.to_string()),
                 };
-            }
+            },
         };
 
         // Extract links
@@ -405,7 +405,7 @@ impl LinkChecker {
                         broken_count += 1;
                     }
                     links.push(result);
-                }
+                },
                 Err(e) => {
                     links.push(LinkResult {
                         url: "unknown".to_string(),
@@ -413,7 +413,7 @@ impl LinkChecker {
                         error: Some(format!("Task failed: {}", e)),
                     });
                     broken_count += 1;
-                }
+                },
             }
         }
 

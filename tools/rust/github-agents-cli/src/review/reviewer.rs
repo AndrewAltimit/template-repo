@@ -201,7 +201,7 @@ impl PRReviewer {
             Err(e) => {
                 tracing::warn!("Condensation failed, using original review: {}", e);
                 // Continue with original review rather than aborting
-            }
+            },
         }
 
         // 11.5. Editor pass to clean up formatting (if enabled)
@@ -217,11 +217,11 @@ impl PRReviewer {
                         new_words
                     );
                     review = edited;
-                }
+                },
                 Err(e) => {
                     tracing::warn!("Editor pass failed, using original review: {}", e);
                     // Continue with unedited review
-                }
+                },
             }
         }
 
@@ -230,10 +230,10 @@ impl PRReviewer {
             match fetch_reaction_config(Some(&self.config.reaction_config_url)).await {
                 Ok(config) => {
                     review = fix_reaction_urls(&review, &config);
-                }
+                },
                 Err(e) => {
                     tracing::warn!("Failed to fetch reaction config: {}", e);
-                }
+                },
             }
         }
 

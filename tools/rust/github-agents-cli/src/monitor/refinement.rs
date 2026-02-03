@@ -483,7 +483,7 @@ impl RefinementMonitor {
             Err(e) => {
                 result.error = Some(format!("Failed to get comments: {}", e));
                 return result;
-            }
+            },
         };
 
         let existing_refinements = self.extract_existing_refinements(&existing_comments);
@@ -509,7 +509,7 @@ impl RefinementMonitor {
                 None => {
                     warn!("Agent {} not available", agent_name);
                     continue;
-                }
+                },
             };
 
             // Check if agent is available
@@ -533,10 +533,10 @@ impl RefinementMonitor {
                     } else {
                         result.insights_skipped += 1;
                     }
-                }
+                },
                 None => {
                     result.insights_skipped += 1;
-                }
+                },
             }
         }
 
@@ -567,7 +567,7 @@ impl RefinementMonitor {
                 }
                 let wrapper: CommentsWrapper = serde_json::from_str(&json)?;
                 Ok(wrapper.comments)
-            }
+            },
             None => Ok(Vec::new()),
         }
     }
@@ -672,11 +672,11 @@ impl RefinementMonitor {
                     return None;
                 }
                 self.parse_insight_response(&response, agent_name, issue.number)
-            }
+            },
             Err(e) => {
                 error!("Agent {} failed: {}", agent_name, e);
                 None
-            }
+            },
         }
     }
 
@@ -781,7 +781,7 @@ impl RefinementMonitor {
                     insight.agent_name, insight.issue_number
                 );
                 true
-            }
+            },
             Ok(None) => {
                 // Command succeeded but no output
                 info!(
@@ -789,14 +789,14 @@ impl RefinementMonitor {
                     insight.agent_name, insight.issue_number
                 );
                 true
-            }
+            },
             Err(e) => {
                 error!(
                     "Failed to post comment to issue #{}: {}",
                     insight.issue_number, e
                 );
                 false
-            }
+            },
         }
     }
 }

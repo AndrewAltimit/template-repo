@@ -184,20 +184,20 @@ impl IssueMonitor {
         match trigger_info.action.as_str() {
             "approved" | "fix" | "implement" => {
                 self.handle_implementation(issue, &trigger_info).await?;
-            }
+            },
             "close" => {
                 self.handle_close(issue_number, &trigger_info.username)
                     .await?;
-            }
+            },
             "summarize" => {
                 self.handle_summarize(issue).await?;
-            }
+            },
             "review" => {
                 self.handle_review(issue).await?;
-            }
+            },
             _ => {
                 debug!("Unknown action: {}", trigger_info.action);
-            }
+            },
         }
 
         Ok(())
@@ -229,7 +229,7 @@ impl IssueMonitor {
                     .post_comment(issue_number, &comment, "issue")
                     .await?;
                 return Ok(());
-            }
+            },
         };
 
         let agent_display_name = agent.trigger_keyword();
@@ -296,7 +296,7 @@ impl IssueMonitor {
                     issue_number,
                     agent.name()
                 );
-            }
+            },
             Err(e) => {
                 error!(
                     "Agent {} failed for issue #{}: {}",
@@ -308,7 +308,7 @@ impl IssueMonitor {
                 let error_msg = match &e {
                     Error::AgentTimeout { timeout, .. } => {
                         format!("The agent timed out after {} seconds.", timeout)
-                    }
+                    },
                     Error::AgentExecutionFailed { stderr, .. } => {
                         let truncated_stderr = if stderr.len() > 500 {
                             format!("{}...", &stderr[..500])
@@ -316,10 +316,10 @@ impl IssueMonitor {
                             stderr.clone()
                         };
                         format!("Agent execution failed:\n```\n{}\n```", truncated_stderr)
-                    }
+                    },
                     Error::AgentNotAvailable { reason, .. } => {
                         format!("Agent is not available: {}", reason)
-                    }
+                    },
                     _ => format!("An error occurred: {}", e),
                 };
 
@@ -333,7 +333,7 @@ impl IssueMonitor {
                 self.base
                     .post_comment(issue_number, &comment, "issue")
                     .await?;
-            }
+            },
         }
 
         Ok(())
@@ -431,7 +431,7 @@ impl IssueMonitor {
                     .post_comment(issue_number, &comment, "issue")
                     .await?;
                 return Ok(());
-            }
+            },
         };
 
         // Build review prompt
@@ -478,13 +478,13 @@ impl IssueMonitor {
                 self.base
                     .post_comment(issue_number, &comment, "issue")
                     .await?;
-            }
+            },
             Err(e) => {
                 error!("Review failed for issue #{}: {}", issue_number, e);
                 self.base
                     .post_error_comment(issue_number, &e.to_string(), "issue")
                     .await?;
-            }
+            },
         }
 
         Ok(())

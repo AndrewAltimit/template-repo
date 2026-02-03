@@ -328,11 +328,11 @@ impl IssueCreator {
                     self.known_fingerprints.insert(fingerprint);
                 }
                 result
-            }
+            },
             Err(e) => {
                 error!("Failed to create issue: {}", e);
                 CreationResult::skipped(finding, format!("creation failed: {}", e))
-            }
+            },
         }
     }
 
@@ -401,7 +401,7 @@ impl IssueCreator {
                         &error_msg[..error_msg.len().min(100)]
                     ),
                 ));
-            }
+            },
         };
 
         // Parse issue number from URL
@@ -418,7 +418,7 @@ impl IssueCreator {
                         finding.clone(),
                         format!("failed to parse issue URL: {:?}", issue_url),
                     ));
-                }
+                },
             },
             None => {
                 error!("Failed to parse issue number from output: {:?}", issue_url);
@@ -426,7 +426,7 @@ impl IssueCreator {
                     finding.clone(),
                     format!("failed to parse issue URL: {:?}", issue_url),
                 ));
-            }
+            },
         };
 
         info!("Created issue #{}: {}", issue_number, title);
@@ -552,18 +552,18 @@ impl IssueCreator {
                             "Loaded {} existing fingerprints",
                             self.known_fingerprints.len()
                         );
-                    }
+                    },
                     Err(e) => {
                         warn!("Failed to parse existing issues: {}", e);
-                    }
+                    },
                 }
-            }
+            },
             Ok(None) => {
                 debug!("No existing issues found");
-            }
+            },
             Err(e) => {
                 warn!("Failed to load existing fingerprints: {}", e);
-            }
+            },
         }
     }
 

@@ -20,9 +20,9 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
-use tracing::warn;
 #[cfg(feature = "fs")]
 use tracing::debug;
+use tracing::warn;
 
 /// Errors that can occur during code parsing or application
 #[derive(Error, Debug)]
@@ -317,7 +317,7 @@ impl CodeParser {
                 Err(e) => {
                     results.insert(filename.clone(), format!("error: {}", e));
                     continue;
-                }
+                },
             };
 
             let filepath = base_path.join(&sanitized);
@@ -334,7 +334,7 @@ impl CodeParser {
                         }
                     }
                     filepath.clone()
-                }
+                },
             };
 
             // Security check: ensure path is within base_path
@@ -368,10 +368,10 @@ impl CodeParser {
                     }
                     debug!("{} file: {}", operation, sanitized);
                     results.insert(sanitized, operation.to_string());
-                }
+                },
                 Err(e) => {
                     results.insert(sanitized, format!("error: {}", e));
-                }
+                },
             }
         }
 

@@ -244,7 +244,7 @@ async fn run() -> Result<(), Error> {
                 info!("Running issue monitor once");
                 monitor.process_items().await?;
             }
-        }
+        },
 
         Commands::PrMonitor {
             continuous,
@@ -258,7 +258,7 @@ async fn run() -> Result<(), Error> {
                 info!("Running PR monitor once");
                 monitor.process_items().await?;
             }
-        }
+        },
 
         Commands::RefinementMonitor {
             agents,
@@ -301,7 +301,7 @@ async fn run() -> Result<(), Error> {
                     results.iter().map(|r| r.insights_added).sum::<usize>()
                 );
             }
-        }
+        },
 
         Commands::PrReview {
             pr_number,
@@ -339,7 +339,7 @@ async fn run() -> Result<(), Error> {
                 println!("Review posted to PR #{}", pr_number);
             }
             // If dry_run, the review was already printed by the reviewer
-        }
+        },
 
         Commands::IterationCheck {
             pr,
@@ -380,10 +380,10 @@ async fn run() -> Result<(), Error> {
             match format.as_str() {
                 "json" => {
                     println!("{}", serde_json::to_string_pretty(&result)?);
-                }
+                },
                 "github-actions" => {
                     iteration::output_github_actions(&result);
-                }
+                },
                 _ => {
                     println!("Agent Type: {}", result.agent_type);
                     println!("Iteration Count: {}", result.iteration_count);
@@ -393,9 +393,9 @@ async fn run() -> Result<(), Error> {
                     );
                     println!("Exceeded Max: {}", result.exceeded_max);
                     println!("Should Skip: {}", result.should_skip);
-                }
+                },
             }
-        }
+        },
 
         Commands::Analyze {
             agents,
@@ -480,7 +480,7 @@ async fn run() -> Result<(), Error> {
                     None => {
                         info!("Agent {} not available, skipping", agent_name);
                         continue;
-                    }
+                    },
                 };
 
                 // Create analyzer for this agent
@@ -534,10 +534,10 @@ Prioritize by real-world impact: P0=critical security/data, P1=bugs/performance,
                     Ok(findings) => {
                         info!("Agent {} found {} findings", agent_name, findings.len());
                         all_findings.extend(findings);
-                    }
+                    },
                     Err(e) => {
                         error!("Agent {} analysis failed: {}", agent_name, e);
-                    }
+                    },
                 }
             }
 
@@ -584,7 +584,7 @@ Prioritize by real-world impact: P0=critical security/data, P1=bugs/performance,
                     }
                 }
             }
-        }
+        },
     }
 
     info!("GitHub AI Agents CLI completed");

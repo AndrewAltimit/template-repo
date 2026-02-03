@@ -73,7 +73,7 @@ fn run() -> Result<(), Error> {
                     eprintln!();
                 }
                 Some(time)
-            }
+            },
             Err(e) => {
                 if !args.json {
                     eprintln!("WARNING: Could not resolve commit timestamp: {}", e);
@@ -81,7 +81,7 @@ fn run() -> Result<(), Error> {
                     eprintln!();
                 }
                 None
-            }
+            },
         }
     } else {
         None
@@ -117,7 +117,7 @@ fn run() -> Result<(), Error> {
             // Output JSON to stdout
             println!("{}", serde_json::to_string_pretty(&decision)?);
             Ok(())
-        }
+        },
         Err(e) => Err(e),
     }
 }

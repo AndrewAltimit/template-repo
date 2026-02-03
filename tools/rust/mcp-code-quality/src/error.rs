@@ -67,7 +67,7 @@ impl From<ToolError> for ErrorResponse {
             ),
             ToolError::ToolNotFound(tool) => {
                 (ErrorType::ToolNotFound, format!("Tool not found: {}", tool))
-            }
+            },
             ToolError::UnsupportedLanguage(lang) => (
                 ErrorType::UnsupportedLanguage,
                 format!("Unsupported language: {}", lang),

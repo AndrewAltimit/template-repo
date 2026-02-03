@@ -187,12 +187,12 @@ pub async fn check_gh_available() -> Result<(), Error> {
     match version_output {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
             return Err(Error::GhNotFound);
-        }
+        },
         Err(e) => return Err(Error::Io(e)),
         Ok(output) if !output.status.success() => {
             return Err(Error::GhNotFound);
-        }
-        Ok(_) => {}
+        },
+        Ok(_) => {},
     }
 
     // Check authentication
@@ -225,12 +225,12 @@ pub async fn check_git_available() -> Result<(), Error> {
     match version_output {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
             return Err(Error::GitNotFound);
-        }
+        },
         Err(e) => return Err(Error::Io(e)),
         Ok(output) if !output.status.success() => {
             return Err(Error::GitNotFound);
-        }
-        Ok(_) => {}
+        },
+        Ok(_) => {},
     }
 
     debug!("Git available");
@@ -254,7 +254,7 @@ mod tests {
         // We're just verifying the function compiles and returns the expected type.
         match result {
             Ok(token) => assert!(!token.is_empty()),
-            Err(Error::GitHubTokenNotFound) => {} // Expected when no token set
+            Err(Error::GitHubTokenNotFound) => {}, // Expected when no token set
             Err(_) => panic!("Unexpected error type"),
         }
     }
