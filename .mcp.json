@@ -159,7 +159,6 @@
         "--rm",
         "-T",
         "mcp-reaction-search",
-        "mcp-reaction-search",
         "--mode",
         "stdio"
       ]
