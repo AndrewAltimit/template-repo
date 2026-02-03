@@ -25,6 +25,13 @@ Container-first philosophy and Docker implementation.
 - CI/CD containerization
 - Development workflows
 
+### [Wrapper Guard](./wrapper-guard.md)
+CLI binary hardening for git-guard and gh-validator.
+- Defense-in-depth wrapper protection
+- Binary relocation with group-restricted permissions
+- Structured audit logging
+- Hardened container for CI/automated agents
+
 ### [Git Hooks](./git-hooks.md)
 Git hooks configuration and management.
 - Pre-commit hooks

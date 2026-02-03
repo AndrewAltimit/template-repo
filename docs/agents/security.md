@@ -313,6 +313,8 @@ export PATH="$HOME/.local/bin:$PATH"
 
 See `tools/rust/gh-validator/README.md` for complete documentation.
 
+Both `git-guard` and `gh-validator` are hardened against bypass through the **Wrapper Guard** system, which relocates real binaries behind group-restricted permissions and provides structured audit logging. See [Wrapper Guard Documentation](../infrastructure/wrapper-guard.md) for the full security model.
+
 ### 3. Deduplication and State Management
 
 The agents use a sophisticated deduplication system to prevent duplicate processing and ensure each issue/PR is only handled once per trigger.
