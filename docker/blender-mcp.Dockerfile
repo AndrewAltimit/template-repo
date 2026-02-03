@@ -41,14 +41,25 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libglib2.0-0 \
     libgomp1 \
+    libpulse0 \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Download and install Blender
-RUN wget -q https://download.blender.org/release/Blender4.5/blender-${BLENDER_VERSION}-linux-x64.tar.xz \
-    && tar -xf blender-${BLENDER_VERSION}-linux-x64.tar.xz \
-    && mv blender-${BLENDER_VERSION}-linux-x64 /opt/blender \
-    && rm blender-${BLENDER_VERSION}-linux-x64.tar.xz \
+# Download and install Blender (multi-arch: x64 from official, arm64 from community)
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        wget -q https://download.blender.org/release/Blender4.5/blender-${BLENDER_VERSION}-linux-x64.tar.xz \
+        && tar -xf blender-${BLENDER_VERSION}-linux-x64.tar.xz \
+        && mv blender-${BLENDER_VERSION}-linux-x64 /opt/blender \
+        && rm blender-${BLENDER_VERSION}-linux-x64.tar.xz; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        wget -q https://github.com/lfdevs/blender-linux-arm64/releases/download/v${BLENDER_VERSION}/blender-${BLENDER_VERSION}-git20250730.28c0962c45ac-aarch64.tar.gz \
+        && tar -xf blender-${BLENDER_VERSION}-git20250730.28c0962c45ac-aarch64.tar.gz \
+        && mv blender-${BLENDER_VERSION}-git20250730.28c0962c45ac-aarch64 /opt/blender \
+        && rm blender-${BLENDER_VERSION}-git20250730.28c0962c45ac-aarch64.tar.gz; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi \
     && ln -s /opt/blender/blender /usr/local/bin/blender
 
 # Create app user with configurable UID/GID

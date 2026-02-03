@@ -17,6 +17,23 @@
         "stdio"
       ]
     },
+    "blender": {
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-blender",
+        "mcp-blender",
+        "--mode",
+        "stdio"
+      ]
+    },
     "content-creation": {
       "command": "docker",
       "args": [
@@ -162,10 +179,6 @@
         "--mode",
         "stdio"
       ]
-    },
-    "virtual-character": {
-      "type": "http",
-      "url": "http://192.168.0.222:8025/messages"
     }
   }
 }

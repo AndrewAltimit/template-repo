@@ -439,7 +439,9 @@ def apply_material(args, _job_id):
             node_bsdf.inputs["Base Color"].default_value = base_color
             node_bsdf.inputs["Metallic"].default_value = 0.0
             node_bsdf.inputs["Roughness"].default_value = material_data.get("roughness", 0.4)
-            node_bsdf.inputs["Clearcoat Weight"].default_value = 0.5
+            # "Clearcoat Weight" renamed to "Coat Weight" in Blender 4.x
+            coat_input = "Coat Weight" if "Coat Weight" in node_bsdf.inputs else "Clearcoat Weight"
+            node_bsdf.inputs[coat_input].default_value = 0.5
 
             links.new(node_bsdf.outputs["BSDF"], node_output.inputs["Surface"])
 
