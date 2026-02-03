@@ -155,9 +155,14 @@ def main():
     # Get arguments from command line
     import argparse
 
+    # Filter sys.argv to only include args after "--" (Blender passes all args)
+    argv = sys.argv
+    if "--" in argv:
+        argv = argv[argv.index("--") + 1 :]
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--args", type=str, required=True)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Parse JSON arguments
     script_args = json.loads(args.args)
