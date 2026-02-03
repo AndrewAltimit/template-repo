@@ -288,8 +288,22 @@ fn run() -> Result<(), Error> {
     let masker = SecretMasker::new(&config);
     let url_validator = UrlValidator::default();
 
+    // Helper closure to log blocked operations before returning errors
+    let log_blocked = |reason: &str, blocked_args: &[String]| {
+        let entry = AuditEntry::new(
+            "gh-validator",
+            AuditAction::Blocked,
+            blocked_args.to_vec(),
+            &real_gh.to_string_lossy(),
+            SOURCE_HASH,
+        )
+        .with_blocked_reason(reason.to_string());
+        wrapper_common::audit::log_event(&entry);
+    };
+
     // 1. Check for stdin usage (blocked for security) - check args directly
     if is_stdin_body_file(&args) {
+        log_blocked("stdin body file blocked for security", &args);
         return Err(Error::StdinBlocked);
     }
 
@@ -299,6 +313,10 @@ fn run() -> Result<(), Error> {
     // 3. Check Unicode emojis in args (operates directly on arg vector)
     if CommentValidator::args_post_content(&masked_args) {
         if let Some(emoji) = CommentValidator::check_unicode_emoji_in_args(&masked_args) {
+            log_blocked(
+                &format!("unicode emoji U+{:04X} blocked", emoji as u32),
+                &masked_args,
+            );
             return Err(Error::UnicodeEmoji {
                 char: emoji,
                 codepoint: emoji as u32,
@@ -309,6 +327,10 @@ fn run() -> Result<(), Error> {
     // 4. Check formatting violations (operates directly on arg vector)
     // This catches --body/-b with reaction images (should use --body-file instead)
     if let Some(violation) = CommentValidator::check_formatting_violations_in_args(&masked_args) {
+        log_blocked(
+            &format!("formatting violation: {}", violation),
+            &masked_args,
+        );
         return Err(Error::FormattingViolation {
             description: violation.to_string(),
         });
@@ -355,7 +377,13 @@ fn run() -> Result<(), Error> {
                     // Strict mode: fail on any invalid URL
                     let urls = UrlValidator::extract_reaction_urls(&content);
                     for url in urls {
-                        url_validator.validate_exists(&url)?;
+                        if let Err(e) = url_validator.validate_exists(&url) {
+                            log_blocked(
+                                &format!("invalid URL: {}", url),
+                                &masked_args,
+                            );
+                            return Err(e);
+                        }
                     }
                 }
             },

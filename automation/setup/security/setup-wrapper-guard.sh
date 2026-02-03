@@ -177,6 +177,9 @@ info "Recording wrapper integrity hashes..."
 
     first=true
     for binary in git gh; do
+        if [[ ! -f "/usr/bin/$binary" ]]; then
+            continue
+        fi
         if [[ "$first" == "true" ]]; then
             first=false
         else
