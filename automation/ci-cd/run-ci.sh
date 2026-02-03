@@ -174,10 +174,58 @@ case "$STAGE" in
 
   autoformat)
     echo "=== Running autoformatters ==="
-    # Use ruff format (replaces black, 10-100x faster)
+    # Python: Use ruff format (replaces black, 10-100x faster)
     docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff format .
     # Fix import sorting
     docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I --fix .
+
+    # Rust: Format all Rust crates/workspaces
+    echo "--- Running Rust autoformat ---"
+    # shellcheck disable=SC1091
+    source "$HOME/.cargo/env" 2>/dev/null || true
+
+    if command -v cargo &> /dev/null; then
+      # Format standalone Rust crates in tools/rust/
+      for crate_dir in "$PROJECT_ROOT"/tools/rust/*/; do
+        if [ -f "$crate_dir/Cargo.toml" ]; then
+          echo "  Formatting $(basename "$crate_dir")..."
+          (cd "$crate_dir" && cargo fmt --all 2>&1) || echo "  Warning: cargo fmt failed for $(basename "$crate_dir")"
+        fi
+      done
+      # Format Rust workspace roots
+      for workspace_dir in "$PROJECT_ROOT"/packages/*/ "$PROJECT_ROOT"/tools/mcp/mcp_core_rust/; do
+        if [ -f "$workspace_dir/Cargo.toml" ]; then
+          ws_name="${workspace_dir#"$PROJECT_ROOT"/}"
+          echo "  Formatting ${ws_name%/}..."
+          (cd "$workspace_dir" && cargo fmt --all 2>&1) || echo "  Warning: cargo fmt failed for ${ws_name%/}"
+        fi
+      done
+    else
+      echo "  cargo not available natively, using Docker for Rust formatting..."
+      docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci 2>/dev/null || {
+        echo "  Warning: Could not build rust-ci image, skipping Rust autoformat"
+        true
+      }
+      # Format tools/rust/* crates via Docker
+      for crate_dir in "$PROJECT_ROOT"/tools/rust/*/; do
+        if [ -f "$crate_dir/Cargo.toml" ]; then
+          crate_name=$(basename "$crate_dir")
+          echo "  Formatting $crate_name (Docker)..."
+          docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+            -w "/app/tools/rust/$crate_name" \
+            rust-ci cargo fmt --all 2>&1 || echo "  Warning: cargo fmt failed for $crate_name"
+        fi
+      done
+      # Format workspace roots via Docker
+      for workspace in packages/economic_agents packages/injection_toolkit tools/mcp/mcp_core_rust; do
+        if [ -d "$PROJECT_ROOT/$workspace" ]; then
+          echo "  Formatting $workspace (Docker)..."
+          docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+            -w "/app/$workspace" \
+            rust-ci cargo fmt --all 2>&1 || echo "  Warning: cargo fmt failed for $workspace"
+        fi
+      done
+    fi
     ;;
 
   test-gaea2)

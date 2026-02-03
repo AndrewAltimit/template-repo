@@ -212,11 +212,26 @@ if [ -f "./automation/ci-cd/run-ci.sh" ]; then
 else
     # Fallback to direct tool invocation if running in container
     echo "Using direct formatting tools..."
-    if command -v black &> /dev/null; then
-        black . 2>&1 || echo "Black completed"
+    if command -v ruff &> /dev/null; then
+        ruff format . 2>&1 || echo "ruff format completed"
+        ruff check --select=I --fix . 2>&1 || echo "ruff import sort completed"
     fi
-    if command -v isort &> /dev/null; then
-        isort . 2>&1 || echo "Isort completed"
+    # shellcheck disable=SC1091
+    source "$HOME/.cargo/env" 2>/dev/null || true
+    if command -v cargo &> /dev/null; then
+        echo "Running cargo fmt on Rust crates..."
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        FALLBACK_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+        for crate_dir in "$FALLBACK_ROOT"/tools/rust/*/; do
+            if [ -f "$crate_dir/Cargo.toml" ]; then
+                (cd "$crate_dir" && cargo fmt --all 2>&1) || true
+            fi
+        done
+        for workspace_dir in "$FALLBACK_ROOT"/packages/*/ "$FALLBACK_ROOT"/tools/mcp/mcp_core_rust/; do
+            if [ -f "$workspace_dir/Cargo.toml" ]; then
+                (cd "$workspace_dir" && cargo fmt --all 2>&1) || true
+            fi
+        done
     fi
 fi
 
@@ -311,7 +326,7 @@ if [ -n "$FAILURES_DETECTED" ]; then
 INSTRUCTIONS FOR LINT ISSUES:
 1. Fix unused imports, formatting issues, type hints
 2. Make minimal changes - only what's needed to pass CI
-3. The autoformat tools (black, isort) have already been run
+3. The autoformat tools (ruff format, cargo fmt) have already been run
 
 "
     if [ -n "$LINT_OUTPUT" ]; then
@@ -420,7 +435,7 @@ Automated fix by Claude in response to pipeline failures.
 Failures addressed:
 $(echo -e "$FAILURES_SUMMARY")
 Actions taken:
-- Ran autoformat (black, isort)
+- Ran autoformat (ruff format, cargo fmt)
 - Fixed remaining lint issues
 
 Iteration: ${ITERATION_COUNT}/${MAX_ITERATIONS}
