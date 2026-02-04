@@ -517,7 +517,9 @@ sudo usermod -aG docker $USER
 sudo chown -R $USER:$USER .
 ```
 
-### Getting Help
+### Troubleshooting Resources
+
+> **Note:** The maintainer does not provide support, guidance, or consulting for users of this template. You are on your own. See [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 1. **Check existing documentation:**
    - [MCP Architecture](./mcp/README.md)

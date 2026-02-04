@@ -1,11 +1,13 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Internal use only -- external bug reports may be ignored without response
 title: '[BUG] '
 labels: bug
 assignees: ''
 
 ---
+
+> **Notice:** This template exists primarily for internal agent workflow use. External bug reports may be ignored without acknowledgment or response. The maintainer has no obligation to fix reported issues or communicate with reporters. See [CONTRIBUTING.md](../../CONTRIBUTING.md).
 
 ## Description
 A clear and concise description of what the bug is.

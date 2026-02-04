@@ -49,17 +49,9 @@ We aim to be concrete and specific while acknowledging uncertainty. Probability 
 
 These documents are for policy, security, and research audiences engaged in defensive analysis. They are intended for audiences with appropriate context.
 
-## Contributing
+## Disclaimer
 
-Additional projection topics can be proposed to the committee. Priority areas include:
-
-- Economic disruption scenarios
-- Information environment dynamics
-- Critical infrastructure vulnerabilities
-- International relations implications
-- Long-term societal structure changes
-- Autonomous systems and conflict escalation
-- AI governance and international coordination
+These documents are published for defensive policy research and education. The author does not provide guidance, consultation, or briefings on any topic covered in these reports. Feature requests, topic suggestions, and engagement requests will not be accepted regardless of compensation. The author may ignore public comments, inquiries, and news coverage related to these reports to maintain neutrality and legal distance. See [CONTRIBUTING.md](../../CONTRIBUTING.md).
 
 ## Related Resources
 
