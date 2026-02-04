@@ -3,17 +3,17 @@
 ## A Projection Report on How Autonomous AI Transforms Intelligence Tradecraft
 
 **Classification**: Policy Research - For Defensive Analysis
-**Prepared For**: Emerging Technology Risk Assessment Committee
+**Prepared For**: Emerging Technology Risk Assessment (independent research)
 
 ### Document Control
 
 | Field | Value |
 |-------|-------|
-| **Version** | 1.4 (Revised - Committee Submission) |
+| **Version** | 1.4 |
 | **Date** | December 2025 |
 | **Status** | Final - Approved for Committee |
 | **Change Summary** | v1.4: Added structured comparison tables (Economics of Espionage, Pattern-of-Life Analysis, Spearphishing Evolution, Smart Home/Edge Espionage); aligned with PDF v1.4 formatting; enhanced tactical data presentation for committee review |
-| **Distribution** | Committee members, designated reviewers |
+| **Distribution** | Public (open-source) |
 
 ---
 
@@ -2689,7 +2689,7 @@ The future of espionage isn't just "more spies"—it's Centaur Handlers running 
 
 ---
 
-*Emerging Technology Risk Assessment Committee*
+*Emerging Technology Risk Assessment*
 *For questions or comments, contact the research team.*
 
 ---
@@ -2923,6 +2923,6 @@ Traditional vulnerability research required human analysts to manually review ye
 
 ---
 
-**Document Version**: 1.4 (Revised - Committee Submission)
+**Document Version**: 1.4
 **Last Updated**: December 2025
 **Classification**: Policy Research - For Defensive Analysis

@@ -3,7 +3,7 @@
 ## Money Laundering, Bribery, and Corruption: Risks and Defenses in an Autonomous Economy
 
 **Classification**: Policy Research - For Defensive Analysis
-**Prepared For**: Emerging Technology Risk Assessment Committee
+**Prepared For**: Emerging Technology Risk Assessment (independent research)
 **Document ID**: ETRA-2025-FIN-001
 **Version**: 1.0
 **Date**: December 2025
@@ -1978,6 +1978,6 @@ This projection will be updated as capabilities evolve, detection methods mature
 
 ---
 
-*Emerging Technology Risk Assessment Committee*
+*Emerging Technology Risk Assessment*
 *Document ID: ETRA-2025-FIN-001*
 *Version: 0.1 (Draft for Review)*

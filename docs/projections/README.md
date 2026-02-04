@@ -1,6 +1,6 @@
 # Projection Reports: Emerging Technology Risk Assessment
 
-This directory contains scenario-based projection reports analyzing potential futures involving advanced AI systems and their societal impacts. These documents are prepared for the Emerging Technology Risk Assessment Committee.
+This directory contains scenario-based projection reports analyzing potential futures involving advanced AI systems and their societal impacts. These are independent analyses, not affiliated with any government agency, think tank, or official institution. The "ETRA" branding is a document formatting convention, not an organizational identity.
 
 ## Purpose
 
@@ -35,7 +35,7 @@ PDFs are automatically compiled from LaTeX source and published with each [relea
 
 ## Methodology
 
-Our projection methodology draws on:
+The projection methodology draws on:
 
 - **Trend extrapolation** from current AI capabilities
 - **Historical case analysis** of technology-society interactions
@@ -43,7 +43,7 @@ Our projection methodology draws on:
 - **Expert consultation** across relevant domains
 - **Red team exercises** conducted under controlled conditions
 
-We aim to be concrete and specific while acknowledging uncertainty. Probability estimates are provided where appropriate.
+These reports aim to be concrete and specific while acknowledging uncertainty. Probability estimates are provided where appropriate.
 
 ## Classification
 
@@ -62,4 +62,4 @@ These documents are published for defensive policy research and education. The a
 
 ---
 
-*Emerging Technology Risk Assessment Committee*
+*Independent research -- not affiliated with any institution or committee*
