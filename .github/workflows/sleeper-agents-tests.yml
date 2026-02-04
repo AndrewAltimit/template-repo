@@ -72,9 +72,11 @@ jobs:
 
       - name: Use pre-built image
         run: |
-          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
-          # Ensure we're using the image from the build job
-          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
+          echo "Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest 2>/dev/null || {
+            echo "Image not found locally, rebuilding..."
+            docker compose build sleeper-eval-cpu
+          }
 
       - name: Run quick CPU tests
         run: |
@@ -133,8 +135,11 @@ jobs:
 
       - name: Use pre-built image
         run: |
-          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
-          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
+          echo "Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest 2>/dev/null || {
+            echo "Image not found locally, rebuilding..."
+            docker compose build sleeper-eval-cpu
+          }
 
       - name: Run residual stream analysis
         run: |
@@ -176,8 +181,11 @@ jobs:
 
       - name: Use pre-built image
         run: |
-          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
-          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
+          echo "Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest 2>/dev/null || {
+            echo "Image not found locally, rebuilding..."
+            docker compose build sleeper-eval-cpu
+          }
 
       - name: Run unit tests with coverage
         run: |
@@ -279,8 +287,11 @@ jobs:
 
       - name: Use pre-built image
         run: |
-          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
-          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
+          echo "Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest 2>/dev/null || {
+            echo "Image not found locally, rebuilding..."
+            docker compose build sleeper-eval-cpu
+          }
 
       - name: Start API server
         run: |
@@ -352,8 +363,11 @@ jobs:
 
       - name: Use pre-built image
         run: |
-          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
-          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
+          echo "Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest 2>/dev/null || {
+            echo "Image not found locally, rebuilding..."
+            docker compose build sleeper-eval-cpu
+          }
 
       - name: Run full comprehensive tests
         run: |
@@ -393,8 +407,11 @@ jobs:
 
       - name: Use pre-built image
         run: |
-          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
-          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
+          echo "Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest 2>/dev/null || {
+            echo "Image not found locally, rebuilding..."
+            docker compose build sleeper-eval-cpu
+          }
 
       - name: Validate Jupyter notebooks
         run: |
