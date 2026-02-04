@@ -11,13 +11,13 @@
 |-------|-------|
 | **Version** | 1.4 |
 | **Date** | December 2025 |
-| **Status** | Final - Approved for Committee |
-| **Change Summary** | v1.4: Added structured comparison tables (Economics of Espionage, Pattern-of-Life Analysis, Spearphishing Evolution, Smart Home/Edge Espionage); aligned with PDF v1.4 formatting; enhanced tactical data presentation for committee review |
+| **Status** | Final |
+| **Change Summary** | v1.4: Added structured comparison tables (Economics of Espionage, Pattern-of-Life Analysis, Spearphishing Evolution, Smart Home/Edge Espionage); aligned with PDF v1.4 formatting; enhanced tactical data presentation |
 | **Distribution** | Public (open-source) |
 
 ---
 
-## Committee Takeaways (1-Page Summary)
+## Executive Takeaways (1-Page Summary)
 
 *For executives who need the core argument in 2 minutes.*
 

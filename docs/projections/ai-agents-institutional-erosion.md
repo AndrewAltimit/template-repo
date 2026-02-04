@@ -19,7 +19,7 @@
 
 ---
 
-## Committee Takeaways (1-Page Summary)
+## Executive Takeaways (1-Page Summary)
 
 *For executives who need the core argument in 2 minutes.*
 
@@ -161,7 +161,7 @@ The Intelligence Community has repeatedly adapted to technological disruption. T
 
 ## Table of Contents
 
-- [Committee Takeaways](#committee-takeaways-1-page-summary)
+- [Executive Takeaways](#executive-takeaways-1-page-summary)
 - [Executive Summary](#executive-summary)
 - [Base-Rate Context](#base-rate-context-anchoring-expectations)
 
