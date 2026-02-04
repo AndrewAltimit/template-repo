@@ -1,11 +1,13 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Internal use only -- external feature requests are not accepted
 title: '[FEATURE] '
 labels: enhancement
 assignees: ''
 
 ---
+
+> **Notice:** This template exists for internal agent workflow use. External feature requests will not be accepted or implemented regardless of compensation. The maintainer does not accept solicited or unsolicited guidance requests. See [CONTRIBUTING.md](../../CONTRIBUTING.md) for details.
 
 ## Description
 A clear and concise description of the feature you'd like to see implemented.

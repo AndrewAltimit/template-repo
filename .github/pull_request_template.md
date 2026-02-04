@@ -1,3 +1,5 @@
+> **Notice:** This repository does not accept external pull requests. This template exists for internal AI agent workflow use only. External PRs will be closed without review. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Description
 Brief description of what this PR does.
 

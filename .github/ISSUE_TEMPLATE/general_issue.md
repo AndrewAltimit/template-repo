@@ -1,11 +1,13 @@
 ---
 name: General issue
-about: For issues that don't fit bug report or feature request categories
+about: Internal use only -- external issues may be ignored without response
 title: ''
 labels: ''
 assignees: ''
 
 ---
+
+> **Notice:** This template exists primarily for internal agent workflow use. External issues may be ignored without acknowledgment or response. The maintainer does not provide guidance or support. See [CONTRIBUTING.md](../../CONTRIBUTING.md).
 
 ## Description
 Provide a clear and concise description of the issue.

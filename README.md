@@ -26,6 +26,18 @@ This repo demonstrates how to run a council of AI agents (Claude, Gemini, Codex,
 
 ---
 
+## Legal Notice
+
+> **This repository contains dual-use research and tooling.** The maintainer provides no guidance, consultation, or feature development -- whether solicited or unsolicited, compensated or uncompensated. This policy exists as a legal protection given the nature of the codebase.
+>
+> - **No feature requests will be accepted.** Money does not change this.
+> - **No guidance or consulting will be provided** on usage, adaptation, or deployment of any component.
+> - **No external contributions are accepted.** See [CONTRIBUTING.md](CONTRIBUTING.md).
+> - **The maintainer does not seek or engage with community interaction.** Public comments, issues filed by external parties, events, and news surrounding this repository or its components may be ignored without response to maintain neutrality and legal distance.
+> - **No endorsement is implied.** The existence of code in this repository does not constitute encouragement, recommendation, or endorsement of any particular use.
+>
+> This repository is released under a public domain dedication. You may fork and adapt it freely. The maintainer assumes no obligation to any downstream user for any reason.
+
 ## Project Philosophy
 
 This project follows a **container-first approach**:
@@ -33,7 +45,7 @@ This project follows a **container-first approach**:
 - **All tools and CI/CD operations run in Docker containers** for maximum portability
 - **Zero external dependencies** - runs on any Linux system with Docker
 - **Self-hosted infrastructure** - no cloud costs, full control over runners
-- **Single maintainer design** - optimized for individual developer productivity
+- **Single maintainer design** - optimized for individual developer productivity, no contributors model
 - **Modular MCP architecture** - Separate specialized servers for different functionalities
 
 ## Quick Start
@@ -337,3 +349,11 @@ All workflows run on self-hosted runners for zero-cost operation.
 This project is released under the [Unlicense](LICENSE) (public domain dedication).
 
 **For jurisdictions that do not recognize public domain:** As a fallback, this project is also available under the [MIT License](LICENSE-MIT).
+
+## Disclaimer
+
+This repository and all associated documentation, code, research papers, and tools are provided **as-is** with no warranty of any kind. The maintainer makes no representations regarding the suitability, legality, or safety of any component for any purpose. Users assume all responsibility for their use of this material.
+
+The maintainer is not responsible for any use or misuse of the contents of this repository. No advisory, consulting, support, or guidance relationship is created by the publication of this code. The maintainer expressly disclaims any obligation to respond to inquiries, feature requests, bug reports, or other communications from any party.
+
+Portions of this repository contain dual-use security research and tooling. Publication of this material is for defensive research, education, and policy analysis purposes. The maintainer does not endorse, encourage, or facilitate any unlawful use.

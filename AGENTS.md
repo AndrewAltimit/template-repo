@@ -12,6 +12,7 @@ This is a **single-maintainer project** by @AndrewAltimit with a **container-fir
 - Self-hosted infrastructure for zero-cost operation
 - Designed for maximum portability - works on any Linux system with Docker
 - No contributors model - optimized for individual developer efficiency
+- **No external engagement** - no feature requests, guidance, or community interaction accepted (legal protection due to dual-use codebase)
 
 ## AI Agent Collaboration
 
