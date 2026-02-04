@@ -2,37 +2,17 @@
 name: Build Documentation
 
 on:
-  push:
-    paths:
-      - 'packages/sleeper_agents/docs/**/*.tex'
-      - 'docs/integrations/ai-services/**/*.tex'
-      - 'docs/projections/latex/**/*.tex'
-      - 'docs/philosophy/latex/**/*.tex'
-      - 'docs/agents/**/*.tex'
-      - 'automation/ci-cd/build-latex-doc.sh'
-      - '.github/workflows/build-docs.yml'
-      - 'docker/texlive.Dockerfile'
-  pull_request:
-    paths:
-      - 'packages/sleeper_agents/docs/**/*.tex'
-      - 'docs/integrations/ai-services/**/*.tex'
-      - 'docs/projections/latex/**/*.tex'
-      - 'docs/philosophy/latex/**/*.tex'
-      - 'docs/agents/**/*.tex'
-      - 'automation/ci-cd/build-latex-doc.sh'
-      - '.github/workflows/build-docs.yml'
-      - 'docker/texlive.Dockerfile'
+  workflow_call: {}
   workflow_dispatch: {}
 
-# Build TeXLive image once, reuse across jobs
 env:
   TEXLIVE_IMAGE: texlive-local
 
 jobs:
-  build-texlive-image:
-    name: Build TeXLive Docker Image
+  build-all-docs:
+    name: Build All LaTeX Documents
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -42,303 +22,90 @@ jobs:
 
       - name: Build TeXLive image
         run: |
-          echo "Building multi-arch TeXLive image..."
+          echo "Building TeXLive image..."
           docker build -t $TEXLIVE_IMAGE -f docker/texlive.Dockerfile .
           echo "Image built successfully"
-          docker run --rm $TEXLIVE_IMAGE pdflatex --version
 
-  build-sleeper-agents-guide:
-    name: Build Sleeper Agents Framework Guide
-    runs-on: self-hosted
-    needs: build-texlive-image
-    timeout-minutes: 10
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          clean: true
-
-      - name: Build PDF
+      - name: Build all documents
         run: |
+          echo "Building all LaTeX documents..."
+          mkdir -p docs_output
+
+          # Guides
           ./automation/ci-cd/build-latex-doc.sh \
             Sleeper_Agents_Framework_Guide.tex \
             packages/sleeper_agents/docs \
             docs_output \
             sleeper-agents-framework-guide
 
-      - name: Upload PDF artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: sleeper-agents-framework-guide
-          path: docs_output/sleeper-agents-framework-guide.pdf
-          retention-days: 90
-
-  build-agentcore-memory-guide:
-    name: Build AgentCore Memory Integration Guide
-    runs-on: self-hosted
-    needs: build-texlive-image
-    timeout-minutes: 10
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          clean: true
-
-      - name: Build PDF
-        run: |
           ./automation/ci-cd/build-latex-doc.sh \
             AgentCore_Memory_Integration_Guide.tex \
             docs/integrations/ai-services \
             docs_output \
             agentcore-memory-integration-guide
 
-      - name: Upload PDF artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: agentcore-memory-integration-guide
-          path: docs_output/agentcore-memory-integration-guide.pdf
-          retention-days: 90
-
-  build-virtual-character-guide:
-    name: Build Virtual Character System Guide
-    runs-on: self-hosted
-    needs: build-texlive-image
-    timeout-minutes: 10
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          clean: true
-
-      - name: Build PDF
-        run: |
           ./automation/ci-cd/build-latex-doc.sh \
             Virtual_Character_System_Guide.tex \
             docs/integrations/ai-services \
             docs_output \
             virtual-character-system-guide
 
-      - name: Upload PDF artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: virtual-character-system-guide
-          path: docs_output/virtual-character-system-guide.pdf
-          retention-days: 90
-
-  build-wmd-proliferation-report:
-    name: Build AI Agents WMD Proliferation Report
-    runs-on: self-hosted
-    needs: build-texlive-image
-    timeout-minutes: 30
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          clean: true
-
-      - name: Build PDF
-        run: |
+          # Projection reports
           ./automation/ci-cd/build-latex-doc.sh \
             ai-agents-wmd-proliferation.tex \
             docs/projections/latex \
             docs_output \
             ai-agents-wmd-proliferation-report
 
-      - name: Upload PDF artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: ai-agents-wmd-proliferation-report
-          path: docs_output/ai-agents-wmd-proliferation-report.pdf
-          retention-days: 90
-
-  build-political-targeting-report:
-    name: Build AI Agents Political Targeting Report
-    runs-on: self-hosted
-    needs: build-texlive-image
-    timeout-minutes: 30
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          clean: true
-
-      - name: Build PDF
-        run: |
           ./automation/ci-cd/build-latex-doc.sh \
             ai-agents-political-targeting.tex \
             docs/projections/latex \
             docs_output \
             ai-agents-political-targeting-report
 
-      - name: Upload PDF artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: ai-agents-political-targeting-report
-          path: docs_output/ai-agents-political-targeting-report.pdf
-          retention-days: 90
-
-  build-espionage-operations-report:
-    name: Build AI Agents Espionage Operations Report
-    runs-on: self-hosted
-    needs: build-texlive-image
-    timeout-minutes: 30
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          clean: true
-
-      - name: Build PDF
-        run: |
           ./automation/ci-cd/build-latex-doc.sh \
             ai-agents-espionage-operations.tex \
             docs/projections/latex \
             docs_output \
             ai-agents-espionage-operations-report
 
-      - name: Upload PDF artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: ai-agents-espionage-operations-report
-          path: docs_output/ai-agents-espionage-operations-report.pdf
-          retention-days: 90
-
-  build-economic-actors-report:
-    name: Build AI Agents Economic Actors Report
-    runs-on: self-hosted
-    needs: build-texlive-image
-    timeout-minutes: 30
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          clean: true
-
-      - name: Build PDF
-        run: |
           ./automation/ci-cd/build-latex-doc.sh \
             ai-agents-economic-actors.tex \
             docs/projections/latex \
             docs_output \
             ai-agents-economic-actors-report
 
-      - name: Upload PDF artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: ai-agents-economic-actors-report
-          path: docs_output/ai-agents-economic-actors-report.pdf
-          retention-days: 90
-
-  build-financial-integrity-report:
-    name: Build AI Agents Financial Integrity Report
-    runs-on: self-hosted
-    needs: build-texlive-image
-    timeout-minutes: 30
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          clean: true
-
-      - name: Build PDF
-        run: |
           ./automation/ci-cd/build-latex-doc.sh \
             ai-agents-financial-integrity.tex \
             docs/projections/latex \
             docs_output \
             ai-agents-financial-integrity-report
 
-      - name: Upload PDF artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: ai-agents-financial-integrity-report
-          path: docs_output/ai-agents-financial-integrity-report.pdf
-          retention-days: 90
-
-  build-institutional-erosion-report:
-    name: Build AI Agents Institutional Erosion Report
-    runs-on: self-hosted
-    needs: build-texlive-image
-    timeout-minutes: 30
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          clean: true
-
-      - name: Build PDF
-        run: |
           ./automation/ci-cd/build-latex-doc.sh \
             ai-agents-institutional-erosion.tex \
             docs/projections/latex \
             docs_output \
             ai-agents-institutional-erosion-report
 
-      - name: Upload PDF artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: ai-agents-institutional-erosion-report
-          path: docs_output/ai-agents-institutional-erosion-report.pdf
-          retention-days: 90
-
-  build-architectural-qualia-paper:
-    name: Build Architectural Qualia Paper
-    runs-on: self-hosted
-    needs: build-texlive-image
-    timeout-minutes: 30
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          clean: true
-
-      - name: Build PDF
-        run: |
+          # Research papers
           ./automation/ci-cd/build-latex-doc.sh \
             architectural-qualia.tex \
             docs/philosophy/latex \
             docs_output
 
-      - name: Upload PDF artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: architectural-qualia-paper
-          path: docs_output/architectural-qualia.pdf
-          retention-days: 90
-
-  build-agentic-workflow-handout:
-    name: Build Agentic Workflow Handout
-    runs-on: self-hosted
-    needs: build-texlive-image
-    timeout-minutes: 10
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-          clean: true
-
-      - name: Build PDF
-        run: |
+          # Handouts
           ./automation/ci-cd/build-latex-doc.sh \
             Agentic_Workflow_Handout.tex \
             docs/agents \
             docs_output \
             agentic-workflow-handout
 
-      - name: Upload PDF artifact
+          echo "All documents built successfully"
+          ls -lh docs_output/*.pdf
+
+      - name: Upload PDF artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: agentic-workflow-handout
-          path: docs_output/agentic-workflow-handout.pdf
+          name: documentation-pdfs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: docs_output/*.pdf
           retention-days: 90

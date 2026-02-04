@@ -55,6 +55,7 @@ jobs:
       workflow_files_changed: ${{ steps.changes.outputs.workflow_files_changed }}
       github_board_changed: ${{ steps.changes.outputs.github_board_changed }}
       files_changed: ${{ steps.changes.outputs.files_changed }}
+      tex_changed: ${{ steps.changes.outputs.tex_changed }}
       # Docker image-specific change detection
       docker_code_quality_changed: ${{ steps.changes.outputs.docker_code_quality_changed }}
       docker_content_changed: ${{ steps.changes.outputs.docker_content_changed }}
@@ -123,6 +124,8 @@ jobs:
           BOARD_PATTERN="$BOARD_PATTERN|docker/mcp-github-board\\.Dockerfile"
           BOARD_PATTERN="$BOARD_PATTERN|docker/requirements/requirements-github-board\\.txt"
           github_board_count=$(grep -E "$BOARD_PATTERN" changed_files.txt | wc -l || echo "0")
+          TEX_PATTERN='\.tex$|automation/ci-cd/build-latex-doc\.sh|docker/texlive\.Dockerfile|\.github/workflows/build-docs\.yml'
+          tex_count=$(grep -E "$TEX_PATTERN" changed_files.txt | wc -l || echo "0")
           total_files=$(cat changed_files.txt | wc -l)
 
           # Docker image-specific change detection
@@ -165,6 +168,7 @@ jobs:
           echo "rust_tools_changed=$([[ $rust_tools_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "workflow_files_changed=$([[ $workflow_files_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "github_board_changed=$([[ $github_board_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "tex_changed=$([[ $tex_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "files_changed=$total_files" >> $GITHUB_OUTPUT
 
           # Docker image-specific outputs
@@ -188,6 +192,7 @@ jobs:
           echo "  Rust CLI tools: $rust_tools_count"
           echo "  Workflow files: $workflow_files_count"
           echo "  GitHub Board: $github_board_count"
+          echo "  LaTeX/TeX files: $tex_count"
           echo "  Total files: $total_files"
           echo ""
           echo "[INFO] Docker Image Rebuild Detection:"
@@ -766,6 +771,14 @@ jobs:
     uses: ./.github/workflows/dashboard-tests.yml
     secrets: inherit
 
+  # Stage 7c: Build Documentation (LaTeX)
+  build-docs:
+    name: Build Documentation
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.tex_changed == 'true'
+    uses: ./.github/workflows/build-docs.yml
+    secrets: inherit
+
   # Stage 8: Gaea2 MCP Integration Tests (after AI review cycle)
   gaea2-integration-tests:
     name: Gaea2 MCP Integration Tests
@@ -1289,6 +1302,7 @@ jobs:
       - economic-agents-tests
       - github-board-tests
       - docker-validation
+      - build-docs
       - agent-failure-handler
     if: always()
     runs-on: self-hosted
@@ -1324,6 +1338,7 @@ jobs:
           echo "- Economic Agents Tests: ${{ needs.economic-agents-tests.result }}"
           echo "- GitHub Board Tests: ${{ needs.github-board-tests.result }}"
           echo "- Docker Validation: ${{ needs.docker-validation.result }}"
+          echo "- Build Documentation: ${{ needs.build-docs.result }}"
 
           # Check for failures (AI reviews are advisory, not blocking)
           if [[ "${{ needs.detect-changes.result }}" == "failure" ||
@@ -1342,7 +1357,8 @@ jobs:
                 "${{ needs.injection-toolkit-tests.result }}" == "failure" ||
                 "${{ needs.economic-agents-tests.result }}" == "failure" ||
                 "${{ needs.github-board-tests.result }}" == "failure" ||
-                "${{ needs.docker-validation.result }}" == "failure" ]]; then
+                "${{ needs.docker-validation.result }}" == "failure" ||
+                "${{ needs.build-docs.result }}" == "failure" ]]; then
             echo ""
             echo "PR validation failed - please review the failed checks"
             exit 1
@@ -1376,6 +1392,7 @@ jobs:
               'injection-toolkit': '${{ needs.injection-toolkit-tests.result }}',
               'economic-agents': '${{ needs.economic-agents-tests.result }}',
               'github-board': '${{ needs.github-board-tests.result }}',
+              'build-docs': '${{ needs.build-docs.result }}',
               'docker-validation': '${{ needs.docker-validation.result }}'
             };
 
