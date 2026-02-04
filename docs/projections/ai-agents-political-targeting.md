@@ -3,7 +3,7 @@
 ## A Projection Report on Emerging Risks to Political Figures and Governmental Structures
 
 **Classification**: Policy Research - For Defensive Analysis
-**Prepared For**: Emerging Technology Risk Assessment Committee
+**Prepared For**: Emerging Technology Risk Assessment (independent research)
 **Version**: 1.1
 **Date**: January 2026
 

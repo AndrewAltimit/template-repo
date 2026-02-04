@@ -1,12 +1,38 @@
 # Security Policy
 
+## Threat Model and Scope
+
+This repository contains dual-use components. The following outlines what each component is designed for, and what falls outside responsible use.
+
+### In-Scope (Intended Use)
+
+| Component | Intended Use |
+|-----------|-------------|
+| **Sleeper Agents Framework** | Evaluating open-weight models for hidden backdoors before deployment; testing detection methodologies; AI safety research |
+| **Injection Toolkit** | Game modding, debugging tools, AI agent embodiment in virtual worlds, runtime integration research |
+| **Economic Agents** | AI governance research, policy analysis, simulation of autonomous economic dynamics |
+| **Projection Reports** | Defensive policy analysis, threat anticipation, academic discussion of emerging technology risks |
+| **MCP Servers** | Developer tooling, content creation, code quality automation |
+
+### Out-of-Scope (Not Supported, Not Endorsed)
+
+- Deploying backdoored models in production
+- Using injection tooling for unauthorized access to systems you do not own
+- Using projection reports as operational planning documents
+- Circumventing safety measures in deployed AI systems
+- Any use that violates applicable law in your jurisdiction
+
+### Known Limitations
+
+- The sleeper agents framework is validated for teacher-forced backdoor detection only; generalization to other backdoor insertion methods is not validated
+- Linear probes are vulnerable to white-box gradient attacks (expected for linear classifiers; documented in the README)
+- Projection reports contain subjective probability estimates, not empirical predictions
+
 ## AI Agent Security
 
 This repository uses AI agents with a comprehensive multi-layer security model.
 
 **For complete security documentation, see:** [`docs/agents/security.md`](docs/agents/security.md)
-
-## Quick Reference
 
 ### Emergency Kill Switch
 - Set `ENABLE_AGENTS=false` in GitHub Variables to disable all agents immediately
@@ -20,7 +46,7 @@ This repository uses AI agents with a comprehensive multi-layer security model.
 - **Environment isolation**: Agents restricted to development environments only
 - **Centralized secrets config**: `.secrets.yaml` defines all sensitive patterns
 
-### Reporting Security Vulnerabilities
+## Reporting Security Vulnerabilities
 
 If you discover a security vulnerability in this repository:
 

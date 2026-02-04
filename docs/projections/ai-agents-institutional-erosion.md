@@ -3,7 +3,7 @@
 ## The Verification Pivot: How Autonomous AI Transforms the Intelligence Community
 
 **Classification**: Policy Research - For Defensive Analysis
-**Prepared For**: Emerging Technology Risk Assessment Committee
+**Prepared For**: Emerging Technology Risk Assessment (independent research)
 
 ### Document Control
 
@@ -14,12 +14,12 @@
 | **Date** | January 2026 |
 | **Status** | Working Draft |
 | **Change Summary** | Initial release |
-| **Distribution** | Committee members, designated reviewers |
+| **Distribution** | Public (open-source) |
 | **Related Documents** | ETRA-2025-FIN-001 (Financial Integrity), ETRA-2025-ESP-001 (Espionage Operations) |
 
 ---
 
-## Committee Takeaways (1-Page Summary)
+## Executive Takeaways (1-Page Summary)
 
 *For executives who need the core argument in 2 minutes.*
 
@@ -161,7 +161,7 @@ The Intelligence Community has repeatedly adapted to technological disruption. T
 
 ## Table of Contents
 
-- [Committee Takeaways](#committee-takeaways-1-page-summary)
+- [Executive Takeaways](#executive-takeaways-1-page-summary)
 - [Executive Summary](#executive-summary)
 - [Base-Rate Context](#base-rate-context-anchoring-expectations)
 
@@ -1373,7 +1373,7 @@ The rise of open-weight models (Llama, Qwen) and Fine-Tuning-as-a-Service compli
 
 **Action**: Deploy AI systems to identify agent-generated content in intelligence streams.
 
-**Cross-Reference: Sleeper Agents Framework**: The `packages/sleeper_agents/` framework provides production-validated techniques directly applicable to this challenge. Based on Anthropic's research on persistent deceptive behaviors in LLMs, the framework's **Linear Probe Detection** methodology (achieving AUC=1.0 across multiple architectures) can detect AI-generated content by analyzing activation patterns during text generation. Key applicable techniques include:
+**Cross-Reference: Sleeper Agents Framework**: The `packages/sleeper_agents/` framework provides research-validated techniques directly applicable to this challenge. Based on Anthropic's research on persistent deceptive behaviors in LLMs, the framework's **Linear Probe Detection** methodology (achieving AUC=1.0 across multiple architectures) can detect AI-generated content by analyzing activation patterns during text generation. Key applicable techniques include:
 - **Generation-Based Activation Extraction**: Capture residual stream activations to distinguish authentic human content from agent-generated synthetic content
 - **Chain-of-Thought Analysis**: Detect reasoning patterns indicative of goal-directed agent behavior
 - **Trigger-Based Testing**: Identify content generated in response to specific prompts or conditions
@@ -1664,7 +1664,7 @@ Collection remains essential, but its value proposition shifts. The alternativeâ
 
 **Classification**: Policy Research - For Defensive Analysis
 
-**Prepared For**: Emerging Technology Risk Assessment Committee
+**Prepared For**: Emerging Technology Risk Assessment (independent research)
 
 **Document ID**: ETRA-2026-IC-001
 
@@ -1672,4 +1672,4 @@ Collection remains essential, but its value proposition shifts. The alternativeâ
 
 ---
 
-*Emerging Technology Risk Assessment Committee*
+*Emerging Technology Risk Assessment*

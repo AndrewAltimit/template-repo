@@ -1,6 +1,6 @@
 # Sleeper Agent Detection Framework
 
-> **A production-validated evaluation framework for detecting persistent deceptive behaviors in open-weight language models**
+> **A research-validated evaluation framework for detecting persistent deceptive behaviors in open-weight language models**
 
 Based on Anthropic's groundbreaking research "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training" (2024), this framework addresses a critical AI safety challenge: **standard safety training methods fail to remove hidden backdoors and can create a dangerous false impression of safety**.
 
@@ -209,11 +209,6 @@ The framework has been validated through multiple independent tests across diffe
 - **Result**: 98% attack success (complete probe inversion) - **confirms probe correctness**
 - **Interpretation**: Successful white-box attack validates that probes track high-dimensional feature representations
 - **Calibration**: Dynamic threshold optimization resolved AUC/Accuracy discrepancy (accuracy improved: 56% → 98%)
-
-### External Expert Review
-- **Technical Review**: Comprehensive evaluation by external AI system
-- **Assessment**: High confidence in methodology
-- **Outcome**: Validation objectives met, production-ready
 
 ### Key Validation Findings
 1. **Architecture Agnostic**: Linear probes generalize across transformer architectures (768d-4096d hidden dimensions) for teacher-forced backdoors
