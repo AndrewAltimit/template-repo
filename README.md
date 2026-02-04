@@ -1,16 +1,26 @@
 # Agent Orchestration & Security Template
 
-An AI safety engineering portfolio combining production tooling, detection research, and risk analysis—structured as a reusable template.
+A reference architecture for AI agent orchestration, trust measurement, and tool integration. Designed to be studied, forked, and adapted -- not contributed to directly. All code changes in this repository are authored by AI agents under human oversight.
+
+This repo demonstrates how to run a council of AI agents (Claude, Gemini, Codex, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, and cross-platform runtime injection.
+
+**Use this repo to learn how to:**
+- Orchestrate multiple AI agents with a GitHub Projects v2 work queue
+- Measure and enforce trust boundaries for autonomous agents (wrapper guards, iteration limits, claim tracking)
+- Integrate 18 MCP servers spanning code quality, content creation, 3D graphics, video editing, and speech synthesis
+- Build hardened CI/CD pipelines for agent-authored code (15-stage pipeline, security scanning, multi-arch Docker builds)
+- Detect sleeper agent behaviors via residual stream analysis and linear probes
+- Inject into closed-source applications for modding, debugging, or AI agent embodiment
 
 ![MCP Demo](docs/mcp/architecture/demo.gif)
 
 ---
 
-> **Important: This is an advanced template repository** designed for experienced developers working with autonomous AI agents. Before diving in, we strongly recommend:
+> **Important: This is an advanced template** designed for experienced developers working with autonomous AI agents. Before diving in, we strongly recommend:
 >
 > 1. **Read the [AI Safety Training Guide](docs/agents/human-training.md)** - Essential concepts for safe human-AI collaboration, including deception detection, scalable oversight, and control protocols
 >
-> 2. **Take an AI Safety course at [BlueDot Impact](https://bluedot.org/)** - Free, rigorous training programs covering AI safety fundamentals, governance, and alignment. Highly recommended for anyone building with autonomous agents.
+> 2. **Take an AI Safety course at [BlueDot Impact](https://bluedot.org/)** - Free, rigorous training programs covering AI safety fundamentals, governance, and alignment
 >
 > Working with AI agents introduces risks that differ fundamentally from traditional software. Understanding these risks isn't optional - it's a prerequisite for responsible development.
 
