@@ -1,17 +1,58 @@
 # Template Quickstart Guide
 
-**Transform this template into your perfect development environment in 15 minutes**
+This guide helps you fork and adapt this template for your own projects. The components are modular -- you are expected to pick and choose what you need, not use everything.
 
-This guide helps you customize the MCP-Enabled Project Template for your specific needs. Whether you're building a solo project, team application, or just want specific tools, this guide shows you exactly what to enable, disable, and configure.
+**What to expect:** The MCP servers, packages, and CI/CD tools are designed to work independently. You can enable a single MCP server (e.g., code-quality) without touching the rest. However, the agent orchestration system (board-driven workflows, PR review pipelines, security wrappers) is tightly integrated and requires more effort to adapt.
 
 ## Table of Contents
 
-1. [Understanding the Template](#understanding-the-template)
-2. [Choose Your Setup Path](#choose-your-setup-path)
-3. [Step-by-Step Customization](#step-by-step-customization)
-4. [Common Configurations](#common-configurations)
-5. [Testing Your Setup](#testing-your-setup)
-6. [Troubleshooting](#troubleshooting)
+1. [Before You Start: What You Need to Change](#before-you-start-what-you-need-to-change)
+2. [Understanding the Template](#understanding-the-template)
+3. [Choose Your Setup Path](#choose-your-setup-path)
+4. [Step-by-Step Customization](#step-by-step-customization)
+5. [Common Configurations](#common-configurations)
+6. [Testing Your Setup](#testing-your-setup)
+7. [Troubleshooting](#troubleshooting)
+
+## Before You Start: What You Need to Change
+
+This template was built for a specific infrastructure. When forking, you will need to update the following to match your own environment:
+
+### Required Changes
+
+| What | Where | Why |
+|------|-------|-----|
+| **GitHub repository references** | `.agents.yaml`, workflow files, README.md | Repo URLs point to `AndrewAltimit/template-repo` |
+| **`agent_admins` list** | `.agents.yaml` | Controls who can approve agent work -- must be your GitHub username |
+| **GitHub Projects board ID** | `ai-agents-board.yml` | The board ID is specific to the original repo's GitHub Projects v2 board |
+
+### API Keys (per feature)
+
+| Key | Required For | How to Get |
+|-----|-------------|------------|
+| `OPENROUTER_API_KEY` | OpenCode, Crush MCP servers | [openrouter.ai](https://openrouter.ai/) |
+| `GOOGLE_API_KEY` | Gemini MCP server | [Google AI Studio](https://aistudio.google.com/) |
+| `ELEVENLABS_API_KEY` | ElevenLabs Speech MCP server | [elevenlabs.io](https://elevenlabs.io/) |
+| `GITHUB_TOKEN` | Agent workflows, board-manager, gh-validator | GitHub Settings > Developer Settings > Fine-grained tokens |
+| `CODEX_API_KEY` | Codex MCP server | [OpenAI](https://platform.openai.com/) |
+
+You only need keys for the features you enable. The Minimal setup path requires no API keys at all.
+
+### Remote Server Addresses
+
+The template references machines on the maintainer's LAN. These will not work for you and should be removed or replaced:
+
+| Address | Service | What to Do |
+|---------|---------|------------|
+| `192.168.0.152:8007` | Gaea2 terrain generation | Remove from `.mcp.json`, or replace with your own Windows machine running Gaea2 |
+| `192.168.0.222:8012` | AI Toolkit (LoRA training) | Remove, or replace with your own GPU machine |
+| `192.168.0.222:8013` | ComfyUI (image generation) | Remove, or replace with your own GPU machine |
+
+These addresses appear in `.mcp.json.full`, `docker-compose.yml`, and some documentation files. If you don't have dedicated GPU hardware for these services, simply delete them from your configuration.
+
+### Self-Hosted Runner
+
+The CI/CD workflows are configured for a self-hosted GitHub Actions runner. If you use GitHub-hosted runners instead, you will need to change `runs-on: self-hosted` to `runs-on: ubuntu-latest` (or similar) in the workflow YAML files. Some features (Docker builds, GPU evaluation) require self-hosted runners.
 
 ## Understanding the Template
 
@@ -126,7 +167,7 @@ The template provides two MCP configuration files to optimize performance:
 
 ### Minimal Setup
 
-**Time Required:** 5 minutes
+**Requires:** Docker only (no API keys)
 
 1. **Disable unnecessary MCP servers in `.mcp.json`:**
    ```json
@@ -167,7 +208,7 @@ The template provides two MCP configuration files to optimize performance:
 
 ### AI-Powered Setup
 
-**Time Required:** 10 minutes
+**Requires:** Docker + at least one API key (OpenRouter, Gemini, or OpenAI)
 
 1. **Configure AI services in `.env`:**
    ```bash
@@ -230,7 +271,7 @@ The template provides two MCP configuration files to optimize performance:
 
 ### Content Creation Setup
 
-**Time Required:** 10 minutes
+**Requires:** Docker + optional ElevenLabs API key for speech
 
 1. **Enable content MCP servers in `.mcp.json`:**
    ```json
@@ -278,9 +319,11 @@ The template provides two MCP configuration files to optimize performance:
 
 ### Full Stack Setup
 
-**Time Required:** 15 minutes
+**Requires:** Docker, Rust toolchain, all API keys, self-hosted GitHub Actions runner. Remote GPU services (Gaea2, AI Toolkit, ComfyUI) require dedicated hardware on your network.
 
-1. **Enable all MCP servers** (keep default `.mcp.json`)
+> **Note:** This path requires the most adaptation. You will need to update remote server addresses, GitHub Projects board IDs, the `agent_admins` list, and workflow runner labels. See [Before You Start](#before-you-start-what-you-need-to-change) for the full list.
+
+1. **Enable all MCP servers** (use `.mcp.json.full` as your starting point)
 
 2. **Configure all API keys in `.env`:**
    ```bash
@@ -290,16 +333,17 @@ The template provides two MCP configuration files to optimize performance:
    GITHUB_TOKEN="your-token"
    ```
 
-3. **Set up remote services (optional):**
+3. **Set up remote services (if you have the hardware):**
    ```bash
-   # For Gaea2 (terrain generation)
-   GAEA2_REMOTE_HOST="192.168.0.152"  # Or your Windows machine IP
+   # For Gaea2 (requires a Windows machine running Gaea2)
+   GAEA2_REMOTE_HOST="your-windows-machine-ip"
    GAEA2_REMOTE_PORT="8007"
 
-   # For AI Toolkit & ComfyUI
-   AI_TOOLKIT_URL="http://192.168.0.222:8012"
-   COMFYUI_URL="http://192.168.0.222:8013"
+   # For AI Toolkit & ComfyUI (requires a machine with an NVIDIA GPU)
+   AI_TOOLKIT_URL="http://your-gpu-machine-ip:8012"
+   COMFYUI_URL="http://your-gpu-machine-ip:8013"
    ```
+   If you don't have dedicated hardware for these, remove the `gaea2`, `ai-toolkit`, and `comfyui` entries from `.mcp.json` and their services from `docker-compose.yml`.
 
 4. **Install all components:**
    ```bash
@@ -537,6 +581,4 @@ After customizing your template:
 
 ---
 
-**Congratulations!** You've successfully customized the template for your needs. The modular architecture means you can always add or remove components later as your project evolves.
-
-**Remember:** Start simple and add complexity only when needed. You can always enable more features later!
+The modular architecture means you can always add or remove components later as your project evolves. Start simple and add complexity only when needed.
