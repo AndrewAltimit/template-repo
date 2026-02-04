@@ -2845,7 +2845,7 @@ Sources: Anthropic API pricing (claude.com/pricing, December 2025); OpenAI API p
 
 ### Additional Notes
 
-For claims marked [E] (Expert judgment) or [S] (Speculative), the research team has documented reasoning in internal memoranda available upon request to Committee members.
+For claims marked [E] (Expert judgment) or [S] (Speculative), the research team has documented reasoning in internal memoranda available upon request.
 
 ---
 
