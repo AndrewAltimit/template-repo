@@ -278,25 +278,30 @@ The system follows a layered architecture with strict separation of concerns bet
 \end{keybox}
 
 \begin{center}
-\begin{tikzpicture}[node distance=1.8cm, font=\sffamily\small]
-    \tikzstyle{layer} = [rectangle, rounded corners=4pt, minimum width=12cm, minimum height=1.2cm, text centered, draw=textdark, line width=0.8pt]
+\begin{tikzpicture}[node distance=2.2cm, font=\sffamily\small]
+    \tikzstyle{layer} = [rectangle, rounded corners=4pt, minimum width=13cm, minimum height=1.6cm,
+      text centered, draw=textdark, line width=0.8pt, align=center]
     \tikzstyle{iface} = [font=\sffamily\scriptsize\color{softslate}, align=center]
 
     \node (agent) [layer, fill=visionpurple!12] {
-      \textbf{Layer 1: AI Agent} --- Claude / Local LLM --- Experiment design, protocol reasoning, data analysis};
+      \textbf{Layer 1: AI Agent} (Claude / Local LLM)\\[-2pt]
+      {\scriptsize Experiment design, protocol reasoning, data analysis, iterative optimization}};
     \node (mcp) [layer, below of=agent, fill=lightteal!12] {
-      \textbf{Layer 2: MCP Server} --- Rust binary on Pi 5 --- Validation, safety, state machine, audit};
+      \textbf{Layer 2: MCP Server} (Rust binary on Pi 5)\\[-2pt]
+      {\scriptsize Protocol validation, safety interlocks, state machine, audit logging}};
     \node (hal) [layer, below of=mcp, fill=instrumentgold!12] {
-      \textbf{Layer 3: HAL} --- Rust async drivers --- Pumps, thermal PID, motion, camera, sensors};
+      \textbf{Layer 3: Hardware Abstraction} (Rust async drivers)\\[-2pt]
+      {\scriptsize Pumps, thermal PID, motion control, camera, sensors}};
     \node (phys) [layer, below of=hal, fill=fluidblue!12] {
-      \textbf{Layer 4: Physical} --- Pi 5 + ESP32 + Actuators --- Steppers, Peltiers, camera, probes};
+      \textbf{Layer 4: Physical Actuators} (Pi 5 + ESP32)\\[-2pt]
+      {\scriptsize Stepper motors, Peltier modules, Pi Camera, DS18B20 probes}};
 
     \draw [-{Stealth[scale=1.0]}, line width=1pt, deepforest]
-      (agent.south) -- (mcp.north) node[midway, right=0.3cm, iface] {MCP JSON-RPC\\(stdio / SSE)};
+      (agent.south) -- (mcp.north) node[midway, right=0.4cm, iface] {JSON-RPC\\(stdio/SSE)};
     \draw [-{Stealth[scale=1.0]}, line width=1pt, deepforest]
-      (mcp.south) -- (hal.north) node[midway, right=0.3cm, iface] {Internal async\\channel API};
+      (mcp.south) -- (hal.north) node[midway, right=0.4cm, iface] {Async\\channels};
     \draw [-{Stealth[scale=1.0]}, line width=1pt, deepforest]
-      (hal.south) -- (phys.north) node[midway, right=0.3cm, iface] {GPIO / SPI / I2C\\UART / CSI};
+      (hal.south) -- (phys.north) node[midway, right=0.4cm, iface] {GPIO/SPI\\I2C/UART};
 \end{tikzpicture}
 \end{center}
 
@@ -509,53 +514,60 @@ The enclosure is divided into a cold zone ($\sim$4\textdegree{}C via Peltier coo
 \subsection{Wiring and Interface Architecture}
 
 \begin{center}
-\begin{tikzpicture}[font=\sffamily\small, node distance=2cm,
+\resizebox{0.95\textwidth}{!}{%
+\begin{tikzpicture}[font=\sffamily\small,
     box/.style={rectangle, rounded corners=3pt, draw=textdark, line width=0.7pt,
-      minimum width=2.8cm, minimum height=0.9cm, text centered, font=\sffamily\scriptsize},
-    conn/.style={-{Stealth[scale=0.8]}, line width=0.7pt, deepforest},
+      minimum width=2.4cm, minimum height=0.8cm, text centered, align=center, font=\sffamily\scriptsize},
+    conn/.style={-{Stealth[scale=0.7]}, line width=0.6pt, deepforest},
     lbl/.style={font=\sffamily\tiny\color{softslate}, midway}]
 
-    % Pi 5
-    \node (pi) [box, fill=labgreen!15, minimum width=3.5cm, minimum height=1.2cm]
-      {\textbf{Raspberry Pi 5}\\MCP Server + HAL};
+    % Pi 5 (left column)
+    \node (pi) [box, fill=labgreen!15, minimum width=2.8cm, minimum height=1.1cm]
+      at (0,0) {\textbf{Raspberry Pi 5}\\{\tiny MCP Server + HAL}};
 
-    % ESP32
-    \node (esp) [box, fill=safetyamber!15, right=3cm of pi, minimum width=3cm, minimum height=1.2cm]
-      {\textbf{ESP32-S3}\\Real-time control};
+    % ESP32 (center column)
+    \node (esp) [box, fill=safetyamber!15, minimum width=2.6cm, minimum height=1.1cm]
+      at (4.5,0) {\textbf{ESP32-S3}\\{\tiny Real-time control}};
 
-    % Camera
-    \node (cam) [box, fill=visionpurple!15, above=1.5cm of pi] {Pi Camera v3};
+    % Camera (above Pi)
+    \node (cam) [box, fill=visionpurple!15] at (-0.3,1.8) {Pi Camera v3};
 
-    % Peripherals from ESP32
-    \node (stepper) [box, fill=fluidblue!15, right=2.5cm of esp] {TMC2209 Drivers};
-    \node (peltier) [box, fill=thermalred!15, above=1cm of stepper] {H-Bridge + Peltier};
-    \node (pump) [box, fill=fluidblue!15, below=1cm of stepper] {Peristaltic Pumps};
-    \node (ds18) [box, fill=thermalred!15, above=1cm of peltier] {DS18B20 Probes};
+    % Network (above between Pi and ESP)
+    \node (net) [box, fill=lightteal!15] at (2.5,1.8) {WiFi/Ethernet};
 
-    % Pi peripherals
-    \node (dht) [box, fill=softslate!15, below left=1.2cm and -0.5cm of pi] {DHT22 Sensor};
-    \node (led) [box, fill=instrumentgold!15, below right=1.2cm and -0.5cm of pi] {LED Ring Light};
-    \node (estop) [box, fill=safetyamber!25, below=2.5cm of pi] {\textbf{E-Stop Button}};
-    \node (net) [box, fill=lightteal!15, above right=1.5cm and 0.5cm of pi] {WiFi/Ethernet};
+    % ESP32 peripherals (right column, stacked)
+    \node (ds18) [box, fill=thermalred!15] at (8.5,2.0) {DS18B20 Probes};
+    \node (peltier) [box, fill=thermalred!15] at (8.5,0.9) {H-Bridge + Peltier};
+    \node (stepper) [box, fill=fluidblue!15] at (8.5,0) {TMC2209 Drivers};
+    \node (pump) [box, fill=fluidblue!15] at (8.5,-1.0) {Peristaltic Pumps};
 
-    % Connections
-    \draw[conn] (pi) -- (esp) node[lbl, above] {USB Serial / UART};
-    \draw[conn] (pi) -- (cam) node[lbl, right] {CSI (MIPI)};
-    \draw[conn] (pi) -- (net) node[lbl, above left] {MCP transport};
-    \draw[conn] (pi) -- (dht) node[lbl, left] {GPIO};
-    \draw[conn] (pi) -- (led) node[lbl, right] {PWM};
-    \draw[conn, safetyamber, line width=1.2pt] (pi) -- (estop) node[lbl, right] {HW Interrupt};
+    % NEMA motors (far right)
+    \node (nema) [box, fill=softslate!15] at (11.8,0) {NEMA 17};
 
-    \draw[conn] (esp) -- (stepper) node[lbl, above] {SPI/Step};
-    \draw[conn] (esp) -- (peltier) node[lbl, right] {PWM};
-    \draw[conn] (esp) -- (pump) node[lbl, right] {PWM};
-    \draw[{Stealth[scale=0.8]}-, line width=0.7pt, deepforest] (esp) -- (ds18)
-      node[lbl, left] {1-Wire};
+    % Pi peripherals (below Pi)
+    \node (dht) [box, fill=softslate!15] at (-2.2,-1.8) {DHT22};
+    \node (led) [box, fill=instrumentgold!15] at (2.2,-1.8) {LED Ring};
+    \node (estop) [box, fill=safetyamber!25] at (0,-3.2) {\textbf{E-Stop}};
 
-    % NEMA motors from drivers
-    \node (nema) [box, fill=softslate!15, right=2cm of stepper] {NEMA 17 Steppers};
+    % Connections -- Pi
+    \draw[conn] (pi) -- (esp) node[lbl, above] {UART};
+    \draw[conn] (pi) -- (cam) node[lbl, left] {CSI};
+    \draw[conn] (pi) -- (net) node[lbl, above] {TCP/IP};
+    \draw[conn] (pi) -- (dht) node[lbl, above] {GPIO};
+    \draw[conn] (pi) -- (led) node[lbl, above] {PWM};
+    \draw[conn, safetyamber, line width=1pt] (pi) -- (estop) node[lbl, right] {HW IRQ};
+
+    % Connections -- ESP32
+    \draw[conn] (esp) -- (stepper) node[lbl, above] {SPI};
+    \draw[conn] (esp) |- (peltier) node[lbl, above, pos=0.75] {PWM};
+    \draw[conn] (esp) |- (pump) node[lbl, below, pos=0.75] {PWM};
+    \draw[{Stealth[scale=0.7]}-, line width=0.6pt, deepforest] (esp) |- (ds18)
+      node[lbl, above, pos=0.75] {1-Wire};
+
+    % Connections -- Stepper to NEMA
     \draw[conn] (stepper) -- (nema) node[lbl, above] {Step/Dir};
-\end{tikzpicture}
+\end{tikzpicture}%
+}
 \end{center}
 
 \subsubsection{Pin Mapping Summary}
@@ -668,64 +680,66 @@ The Rust workspace at \texttt{packages/bioforge/} contains five library crates a
 The protocol engine enforces a strict state ordering. Transitions are validated at the MCP server layer; the agent cannot skip states or bypass human gates.
 
 \begin{center}
-\begin{tikzpicture}[->, >=Stealth, shorten >=1pt, auto, node distance=2.2cm,
-    semithick, font=\sffamily\tiny,
-    state/.style={circle, draw=textdark, line width=0.6pt, minimum size=1.1cm, text centered,
-      font=\sffamily\tiny\bfseries, inner sep=1pt},
-    gate/.style={rectangle, draw=safetyamber, fill=safetyamber!25, line width=1pt,
-      minimum width=0.6cm, minimum height=0.3cm, font=\sffamily\tiny\bfseries, inner sep=2pt}]
+\begin{tikzpicture}[font=\sffamily\scriptsize,
+    state/.style={rectangle, rounded corners=3pt, draw=textdark, line width=0.5pt,
+      minimum width=1.8cm, minimum height=0.65cm, text centered, font=\sffamily\scriptsize},
+    arr/.style={-{Stealth[scale=0.7]}, line width=0.6pt, deepforest},
+    gate/.style={rectangle, draw=safetyamber, fill=safetyamber!30, line width=1pt,
+      minimum width=1.4cm, minimum height=0.5cm, font=\sffamily\scriptsize\bfseries}]
 
-    % Row 1
-    \node[state, fill=softslate!15] (idle) {Idle};
-    \node[state, fill=softslate!15, right of=idle] (loaded) {Loaded};
-    \node[state, fill=fluidblue!15, right of=loaded] (media) {Media\\Prep};
-    \node[state, fill=fluidblue!15, right of=media] (ready) {Media\\Ready};
+    % Row 1: Protocol start (y=0)
+    \node[state, fill=softslate!15] (idle) at (0,0) {Idle};
+    \node[state, fill=softslate!15] (loaded) at (2.6,0) {Loaded};
+    \node[state, fill=fluidblue!15] (media) at (5.2,0) {Media Prep};
+    \node[state, fill=fluidblue!15] (ready) at (8.0,0) {Media Ready};
 
-    % Row 2
-    \node[state, fill=labgreen!15, below of=ready] (reagents) {Reagents\\Loaded};
-    \node[state, fill=fluidblue!15, left of=reagents] (transform) {Trans-\\forming};
-    \node[state, fill=thermalred!15, left of=transform] (heatshock) {Heat\\Shock};
-    \node[state, fill=fluidblue!15, left of=heatshock] (recovery) {Recovery};
+    \draw[arr] (idle) -- (loaded);
+    \draw[arr] (loaded) -- (media);
+    \draw[arr] (media) -- (ready);
 
-    % Row 3
-    \node[state, fill=labgreen!15, below of=recovery] (plating) {Plating};
-    \node[state, fill=labgreen!15, right of=plating] (plates) {Plates\\Ready};
-    \node[state, fill=thermalred!15, right of=plates] (incubate) {Incubating};
-    \node[state, fill=visionpurple!15, right of=incubate] (imaging) {Imaging};
+    % Human Gate 1
+    \node[gate] (hg1) at (8.0,-1.0) {Human Gate};
+    \draw[arr, safetyamber] (ready) -- (hg1);
 
-    % Row 4
-    \node[state, fill=visionpurple!15, below of=imaging] (analysis) {Analysis};
-    \node[state, fill=instrumentgold!15, left of=analysis] (optimize) {Optimize};
-    \node[state, fill=safetygreen!20, double, left of=optimize] (complete) {Complete};
-    \node[state, fill=safetyamber!20, dashed, left of=complete] (error) {Error};
+    % Row 2: Transformation (y=-2.0, flows right-to-left)
+    \node[state, fill=labgreen!15] (reagents) at (8.0,-2.0) {Reagents Loaded};
+    \node[state, fill=fluidblue!15] (transform) at (5.2,-2.0) {Transforming};
+    \node[state, fill=thermalred!15] (heatshock) at (2.6,-2.0) {Heat Shock};
+    \node[state, fill=fluidblue!15] (recovery) at (0,-2.0) {Recovery};
 
-    % Transitions
-    \draw (idle) -- (loaded) node[midway, above, font=\sffamily\tiny] {load};
-    \draw (loaded) -- (media) node[midway, above, font=\sffamily\tiny] {start};
-    \draw (media) -- (ready) node[midway, above, font=\sffamily\tiny] {timer};
-    \draw (ready) -- (reagents);
-    \draw (reagents) -- (transform);
-    \draw (transform) -- (heatshock);
-    \draw (heatshock) -- (recovery);
-    \draw (recovery) -- (plating);
-    \draw (plating) -- (plates);
-    \draw (plates) -- (incubate);
-    \draw (incubate) -- (imaging) node[midway, above, font=\sffamily\tiny] {timer};
-    \draw (imaging) -- (analysis);
-    \draw (analysis) -- (optimize);
-    \draw (analysis) -- (complete);
-    \draw[dashed] (optimize) to[bend left=30] (media);
+    \draw[arr, safetyamber] (hg1) -- (reagents);
+    \draw[arr] (reagents) -- (transform);
+    \draw[arr] (transform) -- (heatshock);
+    \draw[arr] (heatshock) -- (recovery);
 
-    % Human gates
-    \node[gate] at ($(ready)!0.5!(reagents) + (0.8,0)$) {HG};
-    \node[gate] at ($(plates)!0.5!(incubate) + (0,0.5)$) {HG};
+    % Row 3: Plating + Incubation (y=-3.5, flows left-to-right)
+    \node[state, fill=labgreen!15] (plating) at (0,-3.5) {Plating};
+    \node[state, fill=labgreen!15] (plates) at (2.6,-3.5) {Plates Ready};
+    \node[gate] (hg2) at (5.2,-3.5) {Human Gate};
+    \node[state, fill=thermalred!15] (incubate) at (8.0,-3.5) {Incubating};
 
-    % Error transitions (from any state)
-    \draw[dashed, safetyamber, line width=0.5pt] (idle) -- (error);
+    \draw[arr] (recovery) -- (plating);
+    \draw[arr] (plating) -- (plates);
+    \draw[arr, safetyamber] (plates) -- (hg2);
+    \draw[arr, safetyamber] (hg2) -- (incubate);
 
-    % Legend
-    \node[font=\sffamily\tiny, anchor=west] at (-1.5,-7.5) {%
-      \tikz{\node[gate]{HG};} = Human Gate (requires physical confirmation)};
+    % Row 4: Analysis (y=-5.0, flows right-to-left)
+    \node[state, fill=visionpurple!15] (imaging) at (8.0,-5.0) {Imaging};
+    \node[state, fill=visionpurple!15] (analysis) at (5.2,-5.0) {Analysis};
+    \node[state, fill=safetygreen!20, line width=1pt] (complete) at (2.6,-5.0) {Complete};
+
+    \draw[arr] (incubate) -- (imaging);
+    \draw[arr] (imaging) -- (analysis);
+    \draw[arr] (analysis) -- (complete);
+
+    % Optimize loop
+    \node[state, fill=instrumentgold!15] (optimize) at (5.2,-6.2) {Optimize};
+    \draw[arr] (analysis) -- (optimize);
+    \draw[arr, dashed] (optimize) -| ([xshift=-0.5cm]media.south) -- (media.south);
+
+    % Legend (well below entire diagram)
+    \node[anchor=west, font=\sffamily\tiny\color{softslate}] at (0,-7.2)
+      {\raisebox{0pt}[0pt][0pt]{\tikz[baseline=-0.3ex]{\node[gate, scale=0.6, inner sep=1pt]{HG};}} = Human-in-the-loop gate (requires physical confirmation)};
 \end{tikzpicture}
 \end{center}
 
@@ -831,23 +845,35 @@ Safety is architected at multiple layers following a defense-in-depth model. No 
 \subsection{Safety Layer Hierarchy}
 
 \begin{center}
-\begin{tikzpicture}[font=\sffamily]
-    % Concentric rectangles (defense in depth)
-    \fill[safetygreen!8, rounded corners=8pt] (-5.5,-3.5) rectangle (5.5,3.5);
-    \fill[fluidblue!8, rounded corners=6pt] (-4.5,-2.7) rectangle (4.5,2.7);
-    \fill[instrumentgold!10, rounded corners=4pt] (-3.3,-1.9) rectangle (3.3,1.9);
-    \fill[safetyamber!12, rounded corners=3pt] (-2,-1.1) rectangle (2,1.1);
+\begin{tikzpicture}[font=\sffamily\small]
+    \tikzstyle{safetybar} = [rectangle, rounded corners=3pt, minimum width=12cm, minimum height=0.9cm,
+      text centered, draw=none, line width=0pt]
 
-    % Layer labels
-    \node[font=\sffamily\footnotesize\bfseries\color{safetygreen}] at (0,3.1) {Layer 6: Audit (Immutable Logging)};
-    \node[font=\sffamily\footnotesize\bfseries\color{fluidblue}] at (0,2.3) {Layer 5: MCP (Input Validation + Rate Limits)};
-    \node[font=\sffamily\footnotesize\bfseries\color{instrumentgold}] at (0,1.5) {Layer 4: Protocol (State Machine + Human Gates)};
-    \node[font=\sffamily\footnotesize\bfseries\color{safetyamber}] at (0,0.7) {Layer 3: HAL (Bounds Checking)};
-    \node[font=\sffamily\footnotesize\bfseries\color{thermalred}] at (0,0) {Layer 2: Firmware (Watchdog + Current Limit)};
-    \node[font=\sffamily\footnotesize\bfseries\color{textdark}] at (0,-0.7) {Layer 1: Hardware (E-Stop + Thermal Fuse)};
+    \node (l6) [safetybar, fill=safetygreen!15] at (0,5.0)
+      {\textbf{\color{safetygreen}Layer 6: Audit} --- Immutable append-only logging};
+    \node (l5) [safetybar, fill=fluidblue!12] at (0,4.0)
+      {\textbf{\color{fluidblue}Layer 5: MCP} --- Input validation + rate limiting};
+    \node (l4) [safetybar, fill=instrumentgold!12] at (0,3.0)
+      {\textbf{\color{instrumentgold}Layer 4: Protocol} --- State machine + human gates};
+    \node (l3) [safetybar, fill=safetyamber!12] at (0,2.0)
+      {\textbf{\color{safetyamber}Layer 3: HAL} --- Volume/temperature bounds checking};
+    \node (l2) [safetybar, fill=thermalred!12] at (0,1.0)
+      {\textbf{\color{thermalred}Layer 2: Firmware} --- Watchdog timer + motor current limits};
+    \node (l1) [safetybar, fill=softslate!15] at (0,0.0)
+      {\textbf{\color{textdark}Layer 1: Hardware} --- Physical E-Stop + thermal fuse (60\textdegree{}C)};
 
-    % Outer border
-    \draw[deepforest, line width=1.5pt, rounded corners=8pt] (-5.5,-3.5) rectangle (5.5,3.5);
+    % Bracket on left side
+    \draw[deepforest, line width=1.2pt, decorate, decoration={brace, amplitude=8pt, mirror}]
+      (-6.3,-0.45) -- (-6.3,5.45) node[midway, left=10pt, rotate=90, font=\sffamily\footnotesize\bfseries\color{deepforest}]
+      {Defense in Depth};
+
+    % Arrow indicating "closer to physical"
+    \draw[-{Stealth[scale=0.8]}, softslate, line width=0.8pt] (6.5,5.0) -- (6.5,0.0)
+      node[midway, right=3pt, font=\sffamily\tiny\color{softslate}, align=left] {Closer to\\physical\\hardware};
+
+    % Outer frame
+    \draw[deepforest, line width=1pt, rounded corners=6pt]
+      (-6.15,-0.55) rectangle (6.15,5.55);
 \end{tikzpicture}
 \end{center}
 
