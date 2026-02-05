@@ -44,6 +44,12 @@ impl MockMotionController {
             }),
         }
     }
+
+    fn lock_pos(&self) -> Result<std::sync::MutexGuard<'_, Position>, BioForgeError> {
+        self.pos.lock().map_err(|e| {
+            BioForgeError::HardwareFault(format!("motion controller mutex poisoned: {e}"))
+        })
+    }
 }
 
 impl Default for MockMotionController {
@@ -66,7 +72,7 @@ impl MotionController for MockMotionController {
             z_mm: z_mm.unwrap_or(0.0),
         };
         tracing::info!(?new_pos, "mock: move to");
-        *self.pos.lock().unwrap() = new_pos;
+        *self.lock_pos()? = new_pos;
         Ok(new_pos)
     }
 
@@ -76,11 +82,11 @@ impl MotionController for MockMotionController {
             y_mm: 0.0,
             z_mm: 0.0,
         };
-        *self.pos.lock().unwrap() = home;
+        *self.lock_pos()? = home;
         Ok(home)
     }
 
     async fn position(&self) -> Result<Position, BioForgeError> {
-        Ok(*self.pos.lock().unwrap())
+        Ok(*self.lock_pos()?)
     }
 }

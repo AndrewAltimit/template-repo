@@ -9,6 +9,36 @@ use async_trait::async_trait;
 use mcp_core::prelude::*;
 use serde_json::{Value, json};
 
+/// Maximum incubation duration in hours (72h = 3 days).
+const MAX_INCUBATION_HOURS: f64 = 72.0;
+
+/// Maximum heat shock hold in seconds (5 minutes).
+const MAX_HEAT_SHOCK_HOLD_S: u64 = 300;
+
+/// Maximum mix cycles per operation.
+const MAX_MIX_CYCLES: u64 = 20;
+
+/// Extract a required string parameter, returning an MCP error if missing.
+fn require_str<'a>(args: &'a Value, key: &str) -> Result<&'a str> {
+    args.get(key)
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| MCPError::InvalidParameters(format!("missing required parameter: {key}")))
+}
+
+/// Extract a required f64 parameter, returning an MCP error if missing.
+fn require_f64(args: &Value, key: &str) -> Result<f64> {
+    args.get(key)
+        .and_then(|v| v.as_f64())
+        .ok_or_else(|| MCPError::InvalidParameters(format!("missing required parameter: {key}")))
+}
+
+/// Extract a required u64 parameter, returning an MCP error if missing.
+fn require_u64(args: &Value, key: &str) -> Result<u64> {
+    args.get(key)
+        .and_then(|v| v.as_u64())
+        .ok_or_else(|| MCPError::InvalidParameters(format!("missing required parameter: {key}")))
+}
+
 /// Server state shared across all tool implementations.
 pub struct BioForgeServer;
 
@@ -78,18 +108,9 @@ impl Tool for DispenseTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let target = args
-            .get("target")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
-        let volume_ul = args
-            .get("volume_ul")
-            .and_then(|v| v.as_f64())
-            .unwrap_or(0.0);
-        let reagent = args
-            .get("reagent")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
+        let target = require_str(&args, "target")?;
+        let volume_ul = require_f64(&args, "volume_ul")?;
+        let reagent = require_str(&args, "reagent")?;
 
         tracing::info!(target, volume_ul, reagent, "mock: dispense");
 
@@ -140,14 +161,8 @@ impl Tool for AspirateTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let source = args
-            .get("source")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
-        let volume_ul = args
-            .get("volume_ul")
-            .and_then(|v| v.as_f64())
-            .unwrap_or(0.0);
+        let source = require_str(&args, "source")?;
+        let volume_ul = require_f64(&args, "volume_ul")?;
 
         tracing::info!(source, volume_ul, "mock: aspirate");
 
@@ -189,7 +204,7 @@ impl Tool for MixTool {
                 },
                 "cycles": {
                     "type": "integer",
-                    "description": "Number of aspirate-dispense cycles"
+                    "description": "Number of aspirate-dispense cycles (max 20)"
                 },
                 "flow_rate": {
                     "type": "number",
@@ -201,15 +216,15 @@ impl Tool for MixTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let target = args
-            .get("target")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
-        let volume_ul = args
-            .get("volume_ul")
-            .and_then(|v| v.as_f64())
-            .unwrap_or(0.0);
-        let cycles = args.get("cycles").and_then(|v| v.as_u64()).unwrap_or(3);
+        let target = require_str(&args, "target")?;
+        let volume_ul = require_f64(&args, "volume_ul")?;
+        let cycles = require_u64(&args, "cycles")?;
+
+        if cycles > MAX_MIX_CYCLES {
+            return Err(MCPError::InvalidParameters(format!(
+                "cycles {cycles} exceeds maximum {MAX_MIX_CYCLES}"
+            )));
+        }
 
         tracing::info!(target, volume_ul, cycles, "mock: mix");
 
@@ -250,8 +265,8 @@ impl Tool for MoveToTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let x = args.get("x_mm").and_then(|v| v.as_f64()).unwrap_or(0.0);
-        let y = args.get("y_mm").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let x = require_f64(&args, "x_mm")?;
+        let y = require_f64(&args, "y_mm")?;
         let z = args.get("z_mm").and_then(|v| v.as_f64()).unwrap_or(0.0);
 
         tracing::info!(x, y, z, "mock: move to");
@@ -302,11 +317,8 @@ impl Tool for SetTemperatureTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let zone = args.get("zone").and_then(|v| v.as_str()).unwrap_or("warm");
-        let target_c = args
-            .get("target_c")
-            .and_then(|v| v.as_f64())
-            .unwrap_or(37.0);
+        let zone = require_str(&args, "zone")?;
+        let target_c = require_f64(&args, "target_c")?;
 
         tracing::info!(zone, target_c, "mock: set temperature");
 
@@ -346,7 +358,7 @@ impl Tool for HeatShockTool {
                 },
                 "hold_s": {
                     "type": "integer",
-                    "description": "Hold duration in seconds"
+                    "description": "Hold duration in seconds (max 300)"
                 },
                 "return_to_c": {
                     "type": "number",
@@ -358,15 +370,15 @@ impl Tool for HeatShockTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let ramp_to = args
-            .get("ramp_to_c")
-            .and_then(|v| v.as_f64())
-            .unwrap_or(42.0);
-        let hold_s = args.get("hold_s").and_then(|v| v.as_u64()).unwrap_or(45);
-        let return_to = args
-            .get("return_to_c")
-            .and_then(|v| v.as_f64())
-            .unwrap_or(4.0);
+        let ramp_to = require_f64(&args, "ramp_to_c")?;
+        let hold_s = require_u64(&args, "hold_s")?;
+        let return_to = require_f64(&args, "return_to_c")?;
+
+        if hold_s > MAX_HEAT_SHOCK_HOLD_S {
+            return Err(MCPError::InvalidParameters(format!(
+                "hold_s {hold_s} exceeds maximum {MAX_HEAT_SHOCK_HOLD_S}s"
+            )));
+        }
 
         tracing::info!(ramp_to, hold_s, return_to, "mock: heat shock");
 
@@ -411,7 +423,7 @@ impl Tool for IncubateTool {
                 },
                 "duration_hours": {
                     "type": "number",
-                    "description": "Incubation duration in hours"
+                    "description": "Incubation duration in hours (max 72)"
                 }
             },
             "required": ["zone", "target_c", "duration_hours"]
@@ -419,15 +431,15 @@ impl Tool for IncubateTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let zone = args.get("zone").and_then(|v| v.as_str()).unwrap_or("warm");
-        let target_c = args
-            .get("target_c")
-            .and_then(|v| v.as_f64())
-            .unwrap_or(37.0);
-        let hours = args
-            .get("duration_hours")
-            .and_then(|v| v.as_f64())
-            .unwrap_or(16.0);
+        let zone = require_str(&args, "zone")?;
+        let target_c = require_f64(&args, "target_c")?;
+        let hours = require_f64(&args, "duration_hours")?;
+
+        if hours <= 0.0 || hours > MAX_INCUBATION_HOURS {
+            return Err(MCPError::InvalidParameters(format!(
+                "duration_hours {hours} out of range (0, {MAX_INCUBATION_HOURS}]"
+            )));
+        }
 
         tracing::info!(zone, target_c, hours, "mock: incubate");
 
@@ -478,10 +490,7 @@ impl Tool for CaptureImageTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let plate_id = args
-            .get("plate_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or("plate_1");
+        let plate_id = require_str(&args, "plate_id")?;
         let mode = args
             .get("lighting_mode")
             .and_then(|v| v.as_str())
@@ -495,7 +504,7 @@ impl Tool for CaptureImageTool {
             "image_id": image_id,
             "plate_id": plate_id,
             "lighting_mode": mode,
-            "image_path": format!("/tmp/bioforge/images/{image_id}.png"),
+            "image_path": format!("bioforge://images/{image_id}.png"),
             "resolution": "4608x2592"
         }))
     }
@@ -535,14 +544,8 @@ impl Tool for CountColoniesTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let plate_id = args
-            .get("plate_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or("plate_1");
-        let image_id = args
-            .get("image_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
+        let plate_id = require_str(&args, "plate_id")?;
+        let image_id = require_str(&args, "image_id")?;
 
         tracing::info!(plate_id, image_id, "mock: count colonies");
 
@@ -587,10 +590,7 @@ impl Tool for LoadProtocolTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let protocol_id = args
-            .get("protocol_id")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown");
+        let protocol_id = require_str(&args, "protocol_id")?;
 
         tracing::info!(protocol_id, "mock: load protocol");
 
@@ -678,14 +678,8 @@ impl Tool for RequestHumanActionTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let description = args
-            .get("action_description")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unknown action");
-        let timeout = args
-            .get("timeout_min")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(30);
+        let description = require_str(&args, "action_description")?;
+        let timeout = require_u64(&args, "timeout_min")?;
 
         tracing::info!(description, timeout, "mock: request human action");
 
