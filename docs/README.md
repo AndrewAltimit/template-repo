@@ -11,6 +11,10 @@ DevOps, CI/CD, and self-hosted infrastructure setup
 - [Containerization](./infrastructure/containerization.md)
 - [Git Hooks](./infrastructure/git-hooks.md)
 
+### [Hardware](./hardware/)
+Physical hardware systems for secure field deployment
+- [Secure Terminal Briefcase](./hardware/secure-terminal-briefcase.md) -- Tamper-responsive Pi briefcase with dual-sensor detection, LUKS2 wipe, and PQC recovery
+
 ### [AI Agents](./agents/)
 Comprehensive AI agent system documentation
 - [Overview](./agents/README.md)

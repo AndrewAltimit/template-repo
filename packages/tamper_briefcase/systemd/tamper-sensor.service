@@ -1,0 +1,34 @@
+# Tamper Sensor Daemon -- reads Hall effect and light sensors.
+# Runs as unprivileged user. Emits events to FIFO for tamper-gate.
+
+[Unit]
+Description=Tamper Sensor Daemon (unprivileged)
+After=multi-user.target
+Before=tamper-gate.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/tamper-sensor
+Restart=always
+RestartSec=3
+Environment=RUST_LOG=info
+
+# Run as dedicated low-privilege user.
+User=tamper
+Group=tamper
+
+# Hardening -- this service has NO reason to write to disk or devices.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/
+ReadWritePaths=/run/tamper
+PrivateDevices=false
+# PrivateDevices=false because we need /dev/i2c-1 and /dev/gpiomem.
+DeviceAllow=/dev/i2c-1 r
+DeviceAllow=/dev/gpiomem r
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

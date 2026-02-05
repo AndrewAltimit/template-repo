@@ -1,0 +1,18 @@
+# Tamper Drive Wipe -- irreversible one-shot.
+# Only activates when trigger file exists.
+
+[Unit]
+Description=Tamper Drive Wipe (irreversible)
+# CRITICAL: Will not start unless this file exists.
+ConditionPathExists=/run/tamper/wipe-authorized
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/wipe_drive.sh
+RemainAfterExit=false
+
+# Needs raw block device access.
+PrivateDevices=false
+ProtectSystem=false
+
+# Not installed in any target -- only started explicitly by tamper-gate.

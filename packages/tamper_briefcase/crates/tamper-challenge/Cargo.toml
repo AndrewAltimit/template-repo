@@ -1,0 +1,21 @@
+[package]
+name = "tamper-challenge"
+description = "Interactive password challenge for tamper authentication"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "tamper-challenge"
+path = "src/main.rs"
+
+[dependencies]
+rpassword = { workspace = true }
+scrypt = { workspace = true }
+subtle = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
+rand = { workspace = true }
+secrecy = { workspace = true }
