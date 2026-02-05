@@ -85,6 +85,7 @@ pub struct SafetyLimits {
     pub volume: VolumeLimits,
     pub motion: MotionLimits,
     pub rate: RateLimits,
+    pub operations: OperationLimits,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -107,6 +108,8 @@ pub struct VolumeLimits {
     pub min_dispense_ul: f64,
     /// Maximum total volume per run in mL.
     pub max_total_ml: f64,
+    /// Maximum flow rate for any pump in uL/s.
+    pub max_flow_rate_ul_s: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -123,4 +126,16 @@ pub struct RateLimits {
     pub max_calls_per_minute: u32,
     /// Minimum interval between actuator commands in ms.
     pub min_actuator_interval_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OperationLimits {
+    /// Maximum incubation duration in hours.
+    pub max_incubation_hours: f64,
+    /// Maximum heat shock hold in seconds.
+    pub max_heat_shock_hold_s: u64,
+    /// Maximum mix cycles per operation.
+    pub max_mix_cycles: u32,
+    /// Default Z height (mm) when Z is omitted from move commands.
+    pub safe_travel_height_mm: f64,
 }

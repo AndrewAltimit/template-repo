@@ -1,22 +1,14 @@
 //! BioForge MCP tool implementations.
 //!
-//! Phase 1: All tools return mock responses for end-to-end agent integration
-//! testing. Real hardware drivers will be wired in subsequent phases.
+//! Phase 2: Tools validate inputs through SafetyEnforcer before returning
+//! mock responses. Real hardware drivers will be wired in subsequent phases.
 
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use bioforge_safety::enforcer::SafetyEnforcer;
 use mcp_core::prelude::*;
 use serde_json::{Value, json};
-
-/// Maximum incubation duration in hours (72h = 3 days).
-const MAX_INCUBATION_HOURS: f64 = 72.0;
-
-/// Maximum heat shock hold in seconds (5 minutes).
-const MAX_HEAT_SHOCK_HOLD_S: u64 = 300;
-
-/// Maximum mix cycles per operation.
-const MAX_MIX_CYCLES: u64 = 20;
 
 /// Extract a required string parameter, returning an MCP error if missing.
 fn require_str<'a>(args: &'a Value, key: &str) -> Result<&'a str> {
@@ -39,23 +31,31 @@ fn require_u64(args: &Value, key: &str) -> Result<u64> {
         .ok_or_else(|| MCPError::InvalidParameters(format!("missing required parameter: {key}")))
 }
 
+/// Map a BioForgeError to an MCP InvalidParameters error.
+fn safety_err(e: bioforge_types::error::BioForgeError) -> MCPError {
+    MCPError::InvalidParameters(e.to_string())
+}
+
 /// Server state shared across all tool implementations.
-pub struct BioForgeServer;
+pub struct BioForgeServer {
+    enforcer: Arc<SafetyEnforcer>,
+}
 
 impl BioForgeServer {
-    pub fn new() -> Self {
-        Self
+    pub fn new(enforcer: Arc<SafetyEnforcer>) -> Self {
+        Self { enforcer }
     }
 
     pub fn tools(&self) -> Vec<BoxedTool> {
+        let e = &self.enforcer;
         vec![
-            Arc::new(DispenseTool),
-            Arc::new(AspirateTool),
-            Arc::new(MixTool),
-            Arc::new(MoveToTool),
-            Arc::new(SetTemperatureTool),
-            Arc::new(HeatShockTool),
-            Arc::new(IncubateTool),
+            Arc::new(DispenseTool(e.clone())),
+            Arc::new(AspirateTool(e.clone())),
+            Arc::new(MixTool(e.clone())),
+            Arc::new(MoveToTool(e.clone())),
+            Arc::new(SetTemperatureTool(e.clone())),
+            Arc::new(HeatShockTool(e.clone())),
+            Arc::new(IncubateTool(e.clone())),
             Arc::new(CaptureImageTool),
             Arc::new(CountColoniesTool),
             Arc::new(LoadProtocolTool),
@@ -70,7 +70,7 @@ impl BioForgeServer {
 // Tool: dispense
 // ============================================================================
 
-struct DispenseTool;
+struct DispenseTool(Arc<SafetyEnforcer>);
 
 #[async_trait]
 impl Tool for DispenseTool {
@@ -112,6 +112,16 @@ impl Tool for DispenseTool {
         let volume_ul = require_f64(&args, "volume_ul")?;
         let reagent = require_str(&args, "reagent")?;
 
+        self.0.check_rate_limit().map_err(safety_err)?;
+        self.0.check_actuator_interval().map_err(safety_err)?;
+        self.0
+            .validate_and_track_dispense(volume_ul)
+            .map_err(safety_err)?;
+
+        if let Some(rate) = args.get("flow_rate").and_then(|v| v.as_f64()) {
+            self.0.validate_flow_rate(rate).map_err(safety_err)?;
+        }
+
         tracing::info!(target, volume_ul, reagent, "mock: dispense");
 
         ToolResult::json(&json!({
@@ -127,7 +137,7 @@ impl Tool for DispenseTool {
 // Tool: aspirate
 // ============================================================================
 
-struct AspirateTool;
+struct AspirateTool(Arc<SafetyEnforcer>);
 
 #[async_trait]
 impl Tool for AspirateTool {
@@ -164,6 +174,14 @@ impl Tool for AspirateTool {
         let source = require_str(&args, "source")?;
         let volume_ul = require_f64(&args, "volume_ul")?;
 
+        self.0.check_rate_limit().map_err(safety_err)?;
+        self.0.check_actuator_interval().map_err(safety_err)?;
+        self.0.validate_volume(volume_ul).map_err(safety_err)?;
+
+        if let Some(rate) = args.get("flow_rate").and_then(|v| v.as_f64()) {
+            self.0.validate_flow_rate(rate).map_err(safety_err)?;
+        }
+
         tracing::info!(source, volume_ul, "mock: aspirate");
 
         ToolResult::json(&json!({
@@ -178,7 +196,7 @@ impl Tool for AspirateTool {
 // Tool: mix
 // ============================================================================
 
-struct MixTool;
+struct MixTool(Arc<SafetyEnforcer>);
 
 #[async_trait]
 impl Tool for MixTool {
@@ -204,7 +222,7 @@ impl Tool for MixTool {
                 },
                 "cycles": {
                     "type": "integer",
-                    "description": "Number of aspirate-dispense cycles (max 20)"
+                    "description": "Number of aspirate-dispense cycles"
                 },
                 "flow_rate": {
                     "type": "number",
@@ -220,10 +238,15 @@ impl Tool for MixTool {
         let volume_ul = require_f64(&args, "volume_ul")?;
         let cycles = require_u64(&args, "cycles")?;
 
-        if cycles > MAX_MIX_CYCLES {
-            return Err(MCPError::InvalidParameters(format!(
-                "cycles {cycles} exceeds maximum {MAX_MIX_CYCLES}"
-            )));
+        self.0.check_rate_limit().map_err(safety_err)?;
+        self.0.check_actuator_interval().map_err(safety_err)?;
+        self.0
+            .validate_mix_cycles(cycles as u32)
+            .map_err(safety_err)?;
+        self.0.validate_volume(volume_ul).map_err(safety_err)?;
+
+        if let Some(rate) = args.get("flow_rate").and_then(|v| v.as_f64()) {
+            self.0.validate_flow_rate(rate).map_err(safety_err)?;
         }
 
         tracing::info!(target, volume_ul, cycles, "mock: mix");
@@ -240,7 +263,7 @@ impl Tool for MixTool {
 // Tool: move_to
 // ============================================================================
 
-struct MoveToTool;
+struct MoveToTool(Arc<SafetyEnforcer>);
 
 #[async_trait]
 impl Tool for MoveToTool {
@@ -258,7 +281,7 @@ impl Tool for MoveToTool {
             "properties": {
                 "x_mm": { "type": "number", "description": "X position in mm" },
                 "y_mm": { "type": "number", "description": "Y position in mm" },
-                "z_mm": { "type": "number", "description": "Z position in mm (optional)" }
+                "z_mm": { "type": "number", "description": "Z position in mm (defaults to safe travel height)" }
             },
             "required": ["x_mm", "y_mm"]
         })
@@ -267,7 +290,14 @@ impl Tool for MoveToTool {
     async fn execute(&self, args: Value) -> Result<ToolResult> {
         let x = require_f64(&args, "x_mm")?;
         let y = require_f64(&args, "y_mm")?;
-        let z = args.get("z_mm").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let z = args
+            .get("z_mm")
+            .and_then(|v| v.as_f64())
+            .unwrap_or_else(|| self.0.safe_travel_height());
+
+        self.0.check_rate_limit().map_err(safety_err)?;
+        self.0.check_actuator_interval().map_err(safety_err)?;
+        self.0.validate_position(x, y, z).map_err(safety_err)?;
 
         tracing::info!(x, y, z, "mock: move to");
 
@@ -282,7 +312,7 @@ impl Tool for MoveToTool {
 // Tool: set_temperature
 // ============================================================================
 
-struct SetTemperatureTool;
+struct SetTemperatureTool(Arc<SafetyEnforcer>);
 
 #[async_trait]
 impl Tool for SetTemperatureTool {
@@ -320,6 +350,10 @@ impl Tool for SetTemperatureTool {
         let zone = require_str(&args, "zone")?;
         let target_c = require_f64(&args, "target_c")?;
 
+        self.0.check_rate_limit().map_err(safety_err)?;
+        self.0.check_actuator_interval().map_err(safety_err)?;
+        self.0.validate_temperature(target_c).map_err(safety_err)?;
+
         tracing::info!(zone, target_c, "mock: set temperature");
 
         ToolResult::json(&json!({
@@ -336,7 +370,7 @@ impl Tool for SetTemperatureTool {
 // Tool: heat_shock
 // ============================================================================
 
-struct HeatShockTool;
+struct HeatShockTool(Arc<SafetyEnforcer>);
 
 #[async_trait]
 impl Tool for HeatShockTool {
@@ -358,7 +392,7 @@ impl Tool for HeatShockTool {
                 },
                 "hold_s": {
                     "type": "integer",
-                    "description": "Hold duration in seconds (max 300)"
+                    "description": "Hold duration in seconds"
                 },
                 "return_to_c": {
                     "type": "number",
@@ -374,11 +408,13 @@ impl Tool for HeatShockTool {
         let hold_s = require_u64(&args, "hold_s")?;
         let return_to = require_f64(&args, "return_to_c")?;
 
-        if hold_s > MAX_HEAT_SHOCK_HOLD_S {
-            return Err(MCPError::InvalidParameters(format!(
-                "hold_s {hold_s} exceeds maximum {MAX_HEAT_SHOCK_HOLD_S}s"
-            )));
-        }
+        self.0.check_rate_limit().map_err(safety_err)?;
+        self.0.check_actuator_interval().map_err(safety_err)?;
+        self.0.validate_temperature(ramp_to).map_err(safety_err)?;
+        self.0.validate_temperature(return_to).map_err(safety_err)?;
+        self.0
+            .validate_heat_shock_hold_s(hold_s)
+            .map_err(safety_err)?;
 
         tracing::info!(ramp_to, hold_s, return_to, "mock: heat shock");
 
@@ -396,7 +432,7 @@ impl Tool for HeatShockTool {
 // Tool: incubate
 // ============================================================================
 
-struct IncubateTool;
+struct IncubateTool(Arc<SafetyEnforcer>);
 
 #[async_trait]
 impl Tool for IncubateTool {
@@ -423,7 +459,7 @@ impl Tool for IncubateTool {
                 },
                 "duration_hours": {
                     "type": "number",
-                    "description": "Incubation duration in hours (max 72)"
+                    "description": "Incubation duration in hours"
                 }
             },
             "required": ["zone", "target_c", "duration_hours"]
@@ -435,11 +471,12 @@ impl Tool for IncubateTool {
         let target_c = require_f64(&args, "target_c")?;
         let hours = require_f64(&args, "duration_hours")?;
 
-        if hours <= 0.0 || hours > MAX_INCUBATION_HOURS {
-            return Err(MCPError::InvalidParameters(format!(
-                "duration_hours {hours} out of range (0, {MAX_INCUBATION_HOURS}]"
-            )));
-        }
+        self.0.check_rate_limit().map_err(safety_err)?;
+        self.0.check_actuator_interval().map_err(safety_err)?;
+        self.0.validate_temperature(target_c).map_err(safety_err)?;
+        self.0
+            .validate_incubation_hours(hours)
+            .map_err(safety_err)?;
 
         tracing::info!(zone, target_c, hours, "mock: incubate");
 

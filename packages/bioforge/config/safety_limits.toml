@@ -13,6 +13,7 @@ max_overshoot_c = 1.5       # Abort if overshoot exceeds this during heat shock
 max_dispense_ul = 1000.0    # Maximum single dispense volume (1 mL)
 min_dispense_ul = 1.0       # Minimum dispense volume (1 uL)
 max_total_ml = 50.0         # Maximum total volume dispensed per run
+max_flow_rate_ul_s = 500.0  # Maximum flow rate for any pump
 
 [motion]
 max_speed_mm_s = 50.0       # Maximum gantry speed
@@ -21,3 +22,9 @@ max_accel_mm_s2 = 100.0     # Maximum acceleration
 [rate]
 max_calls_per_minute = 60   # Maximum MCP tool calls per minute
 min_actuator_interval_ms = 100  # Minimum gap between actuator commands
+
+[operations]
+max_incubation_hours = 72.0     # Maximum incubation duration (3 days)
+max_heat_shock_hold_s = 300     # Maximum heat shock hold (5 minutes)
+max_mix_cycles = 20             # Maximum aspirate-dispense cycles per mix
+safe_travel_height_mm = 15.0    # Default Z height when Z is omitted
