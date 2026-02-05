@@ -138,7 +138,7 @@ See [`packages/bioforge/`](../../packages/bioforge/) for the full implementation
 | Crate | Binary | Role |
 |-------|--------|------|
 | `bioforge-types` | (library) | Shared types: config, protocol schema, errors, tool params |
-| `bioforge-safety` | (library) | Safety interlocks, audit log (JSON Lines), rate limiting |
+| `bioforge-safety` | (library) | Stateful safety enforcement (cumulative volume, rate limiting, actuator interval), NaN/Inf guards, audit log (JSON Lines) |
 | `bioforge-hal` | (library) | Hardware drivers: pumps, thermal (PID), motion, camera, sensors |
 | `bioforge-protocol` | (library) | Protocol state machine, step validation, human gates |
 | `bioforge-vision` | (library) | Colony counting, plate analysis pipeline |
@@ -155,10 +155,10 @@ MCP server at [`tools/mcp/mcp_bioforge/`](../../tools/mcp/mcp_bioforge/):
 
 | Tool | Parameters | Description |
 |------|-----------|-------------|
-| `dispense` | `target, volume_ul, reagent, flow_rate` | Dispense precise volume to target position |
+| `dispense` | `target, volume_ul, reagent, flow_rate` | Dispense precise volume to target position. Cumulative tracking (50 mL/run). Flow rate validated |
 | `aspirate` | `source, volume_ul, flow_rate` | Aspirate from source container |
 | `mix` | `target, volume_ul, cycles, flow_rate` | Aspirate-dispense cycles to mix in place |
-| `move_to` | `x_mm, y_mm, z_mm` | Move gantry to absolute position |
+| `move_to` | `x_mm, y_mm, z_mm` | Move gantry to absolute position. `z_mm` optional (defaults to 15mm safe travel height) |
 
 #### Thermal Control Tools
 
@@ -323,12 +323,30 @@ Safety is architected at multiple layers following a defense-in-depth model. No 
 | Firmware | Watchdog timer on ESP32 | Firmware hang / runaway | Auto-resets to safe state |
 | Firmware | Motor current limiting | Stepper stall / jam | Cannot be bypassed |
 | HAL | Volume bounds checking | Dispensing impossible volumes | Agent cannot override |
-| HAL | Temperature range limits | Heating beyond safe range | Configurable but logged |
+| HAL | Temperature range limits | Heating beyond safe range (-5 to 50C) | Configurable but logged |
+| HAL | Cumulative volume tracking | Exceeding 50 mL per run | Resets on new run only |
 | Protocol | State machine ordering | Steps executed out of order | Agent cannot override |
 | Protocol | Human-in-the-loop gates | Unattended bio operations | Requires physical confirm |
+| MCP | NaN/Infinity guards | Bypassing comparisons via NaN | Agent cannot override |
 | MCP | Tool input validation | Malformed or out-of-range params | Agent cannot override |
-| MCP | Rate limiting | Rapid-fire actuator abuse | Configurable but logged |
+| MCP | `absolute_max_c` guard | Misconfigured tool limits above 60C fuse | Defense-in-depth |
+| MCP | Sliding-window rate limit | >60 calls per minute | Configurable but logged |
+| MCP | Actuator interval (100ms) | Rapid-fire actuator abuse | Configurable but logged |
+| MCP | Flow rate validation | Pump speed above 500 uL/s | Agent cannot override |
 | Audit | Immutable operation log | Untracked changes to protocol | Append-only, no deletion |
+
+### Stateful Safety Enforcer
+
+The `SafetyEnforcer` in `bioforge-safety` is a stateful validator that tracks cumulative state across tool calls within a single experiment run. All limits are config-driven, loaded from `safety_limits.toml` and `hardware.toml` at server startup via the `--config-dir` flag. Internal state is protected by `Mutex<EnforcerState>` and the enforcer is shared across all MCP tools via `Arc<SafetyEnforcer>`.
+
+Key capabilities:
+- **Input sanitization** -- All numeric inputs pass through `require_finite()` guards that reject NaN and Infinity before any comparison
+- **Defense-in-depth temperature guard** -- Checks both `tool_max_c` (50C) and `absolute_max_c` (60C hardware fuse) independently
+- **Cumulative volume tracking** -- Tracks total dispensed volume across all `dispense` calls, rejecting operations that would exceed 50 mL per run
+- **Flow rate validation** -- Enforces maximum pump speed (500 uL/s) on all liquid handling tools
+- **Sliding-window rate limiting** -- 60-second sliding window, rejecting calls that exceed 60 calls/minute
+- **Actuator interval enforcement** -- Minimum 100ms gap between consecutive actuator commands
+- **Operation-specific limits** -- Max incubation (72h), max heat shock hold (300s), max mix cycles (20), safe travel height (15mm) -- all from config
 
 ### Audit Logging
 
@@ -356,15 +374,16 @@ Every tool call, sensor reading, state transition, and human interaction is logg
 
 ### Phase 1: Foundation (Weeks 1-2)
 
-Pi 5 running Rust MCP server with simulated hardware, basic enclosure frame.
+Pi 5 running Rust MCP server with simulated hardware, basic enclosure frame. Safety enforcement is fully active even in mock mode -- all tool inputs are validated through the stateful `SafetyEnforcer` before mock responses are returned. Limits are config-driven, loaded from `safety_limits.toml` and `hardware.toml` via the `--config-dir` flag.
 
 1. Set up Pi 5 with Rust toolchain and cross-compilation for ARM64.
 2. Implement MCP server with all tool definitions returning mock responses.
 3. Build basic enclosure frame from 2020 extrusion. No actuators yet.
 4. Verify MCP transport end-to-end: agent issues commands, server responds.
 5. Implement audit logging infrastructure.
+6. Implement stateful safety enforcement: config-driven limits from TOML, cumulative volume tracking, sliding-window rate limiting, actuator interval enforcement, NaN/Infinity guards.
 
-**Milestone**: Agent can "run" a full protocol against simulated hardware.
+**Milestone**: Agent can "run" a full protocol against simulated hardware with all safety enforcement active.
 
 ### Phase 2: Thermal Control (Weeks 3-4)
 
@@ -431,9 +450,13 @@ Test 2 -- Protocol state machine:
   Verify human gate blocks execution until confirmed.
 
 Test 3 -- Safety limits:
-  Attempt set_temperature above tool_max_c -- verify rejection.
-  Attempt dispense above max_dispense_ul -- verify rejection.
+  Attempt set_temperature above tool_max_c (50C) -- verify rejection.
+  Attempt set_temperature above absolute_max_c (60C) -- verify rejection.
+  Attempt dispense above max_dispense_ul (1000 uL) -- verify rejection.
+  Attempt cumulative dispense above max_total_ml (50 mL) -- verify rejection.
+  Attempt dispense with NaN volume -- verify rejection before comparison.
   Attempt move_to outside enclosure bounds -- verify rejection.
+  Attempt flow_rate above max_flow_rate_ul_s (500 uL/s) -- verify rejection.
   Verify all rejections logged to audit file.
 
 Test 4 -- Thermal control (Phase 2):
@@ -463,14 +486,16 @@ Test 7 -- End-to-end (Phase 5):
 
 | Threat | Mitigation |
 |--------|------------|
-| Agent commands out-of-range parameters | Safety enforcer validates all inputs at MCP layer |
+| Agent commands out-of-range parameters | Stateful `SafetyEnforcer` validates all inputs at MCP layer; NaN/Infinity rejected before comparison |
+| NaN/Infinity bypass of bounds checks | All numeric inputs pass through `require_finite()` -- NaN silently passes `<` comparisons but is caught explicitly |
+| Cumulative reagent exhaustion | Enforcer tracks dispensed volume per run (50 mL cap); resets only via explicit `reset_run()` |
 | Agent attempts to bypass human gates | State machine enforces gates; agent receives pending status |
-| Rapid-fire actuator commands | Rate limiting at MCP layer; minimum interval between commands |
-| Thermal runaway | Hardware thermal fuses (60C), PID overshoot detection, auto-abort |
+| Rapid-fire actuator commands | Sliding-window rate limiting (60 calls/min) + minimum 100ms actuator interval |
+| Thermal runaway | Hardware thermal fuses (60C), `absolute_max_c` software guard, PID overshoot detection, auto-abort |
 | Mechanical jam / stall | Motor current limiting on stepper drivers |
 | Firmware hang | ESP32 watchdog timer auto-resets to safe state |
-| Audit log tampering | Append-only file, no deletion API exposed to agent |
-| Malicious protocol injection | Protocol validation checks all steps against safety limits |
+| Audit log tampering | Append-only file with nanosecond timestamps and `sync_data()`, no deletion API exposed to agent |
+| Malicious protocol injection | Protocol validation checks all steps against safety limits; step IDs must be unique and ascending |
 | Power loss during operation | All actuators default to safe state (heaters off, pumps stopped) |
 | Reagent contamination | Human gates require physical verification of deck state |
 

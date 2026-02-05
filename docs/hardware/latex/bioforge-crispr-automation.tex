@@ -611,7 +611,7 @@ The Rust workspace at \texttt{packages/bioforge/} contains five library crates a
 \midrule
 \endhead
 \texttt{bioforge-types} & Library & Shared types: config structs, protocol schema, error enums, MCP tool parameter types \\
-\texttt{bioforge-safety} & Library & Safety limit enforcement, append-only audit log (JSON Lines), rate limiting \\
+\texttt{bioforge-safety} & Library & Stateful safety enforcement (cumulative volume, rate limiting, actuator interval), NaN/Inf guards, append-only audit log (JSON Lines) \\
 \texttt{bioforge-hal} & Library & Async hardware drivers: pumps, thermal (PID), motion, camera, sensors. Mock impls for dev \\
 \texttt{bioforge-protocol} & Library & Protocol state machine, step validation, human-in-the-loop gate enforcement \\
 \texttt{bioforge-vision} & Library & Colony counting pipeline, plate image analysis, morphology assessment \\
@@ -628,10 +628,10 @@ The Rust workspace at \texttt{packages/bioforge/} contains five library crates a
 \textbf{Tool} & \textbf{Parameters} & \textbf{Description} \\
 \midrule
 \endhead
-\texttt{dispense} & \texttt{target}, \texttt{volume\_ul}, \texttt{reagent}, \texttt{flow\_rate} & Dispense precise volume to position. Bounds: 1--1000\textmu{}L \\
+\texttt{dispense} & \texttt{target}, \texttt{volume\_ul}, \texttt{reagent}, \texttt{flow\_rate} & Dispense precise volume to position. Bounds: 1--1000\textmu{}L. Cumulative tracking (50\,mL/run). Flow rate validated \\
 \texttt{aspirate} & \texttt{source}, \texttt{volume\_ul}, \texttt{flow\_rate} & Aspirate from source container. Bounds: 1--1000\textmu{}L \\
 \texttt{mix} & \texttt{target}, \texttt{volume\_ul}, \texttt{cycles}, \texttt{flow\_rate} & Aspirate-dispense cycles. Max 20 cycles \\
-\texttt{move\_to} & \texttt{x\_mm}, \texttt{y\_mm}, \texttt{z\_mm} & Move gantry. Bounds: enclosure limits \\
+\texttt{move\_to} & \texttt{x\_mm}, \texttt{y\_mm}, \texttt{z\_mm} & Move gantry. \texttt{z\_mm} optional (defaults to 15mm safe travel height) \\
 \bottomrule
 \end{longtable}
 
@@ -642,9 +642,9 @@ The Rust workspace at \texttt{packages/bioforge/} contains five library crates a
 \textbf{Tool} & \textbf{Parameters} & \textbf{Description} \\
 \midrule
 \endhead
-\texttt{set\_temp} & \texttt{zone}, \texttt{target\_c}, \texttt{hold\_s} & PID-controlled temp hold. Range: 0--50\textdegree{}C \\
+\texttt{set\_temperature} & \texttt{zone}, \texttt{target\_c}, \texttt{hold\_seconds} & PID-controlled temp hold. Range: $-$5--50\textdegree{}C \\
 \texttt{heat\_shock} & \texttt{ramp\_to\_c}, \texttt{hold\_s}, \texttt{return\_to\_c} & Atomic heat shock sequence \\
-\texttt{incubate} & \texttt{zone}, \texttt{target\_c}, \texttt{duration\_h} & Long-duration monitored hold \\
+\texttt{incubate} & \texttt{zone}, \texttt{target\_c}, \texttt{duration\_hours} & Long-duration monitored hold. Max 72h \\
 \bottomrule
 \end{longtable}
 
@@ -851,13 +851,13 @@ Safety is architected at multiple layers following a defense-in-depth model. No 
       text centered, draw=none, line width=0pt]
 
     \node (l6) [safetybar, fill=safetygreen!15] at (0,5.0)
-      {\textbf{\color{safetygreen}Layer 6: Audit} --- Immutable append-only logging};
+      {\textbf{\color{safetygreen}Layer 6: Audit} --- Immutable append-only logging (nanosecond timestamps)};
     \node (l5) [safetybar, fill=fluidblue!12] at (0,4.0)
-      {\textbf{\color{fluidblue}Layer 5: MCP} --- Input validation + rate limiting};
+      {\textbf{\color{fluidblue}Layer 5: MCP} --- Input validation + NaN guards + stateful rate limiting};
     \node (l4) [safetybar, fill=instrumentgold!12] at (0,3.0)
       {\textbf{\color{instrumentgold}Layer 4: Protocol} --- State machine + human gates};
     \node (l3) [safetybar, fill=safetyamber!12] at (0,2.0)
-      {\textbf{\color{safetyamber}Layer 3: HAL} --- Volume/temperature bounds checking};
+      {\textbf{\color{safetyamber}Layer 3: HAL} --- Volume/temperature bounds + cumulative tracking};
     \node (l2) [safetybar, fill=thermalred!12] at (0,1.0)
       {\textbf{\color{thermalred}Layer 2: Firmware} --- Watchdog timer + motor current limits};
     \node (l1) [safetybar, fill=softslate!15] at (0,0.0)
@@ -891,13 +891,36 @@ Firmware & Watchdog timer (100ms) & Firmware hang / runaway & Auto-resets to saf
 Firmware & Motor current limiting & Stepper stall / mechanical jam & Cannot be bypassed \\
 HAL & Volume bounds checking & Dispensing impossible volumes & Agent cannot override \\
 HAL & Temperature range limits & Heating beyond safe range & Configurable but logged \\
+HAL & Cumulative volume tracking & Exceeding 50\,mL per run & Resets on new run only \\
 Protocol & State machine ordering & Steps executed out of order & Agent cannot override \\
 Protocol & Human-in-the-loop gates & Unattended bio operations & Requires physical confirm \\
+MCP & NaN/Infinity guards & Bypassing comparisons via NaN & Agent cannot override \\
 MCP & Tool input validation & Malformed / out-of-range params & Agent cannot override \\
-MCP & Rate limiting & Rapid-fire actuator abuse & Configurable but logged \\
+MCP & \texttt{absolute\_max\_c} guard & Misconfigured tool limits above 60\textdegree{}C fuse & Defense-in-depth \\
+MCP & Sliding-window rate limit & >60 calls per minute & Configurable but logged \\
+MCP & Actuator interval (100ms) & Rapid-fire actuator abuse & Configurable but logged \\
+MCP & Flow rate validation & Pump speed above 500\,\textmu{}L/s & Agent cannot override \\
 Audit & Immutable operation log & Untracked changes to protocol & Append-only, no deletion \\
 \bottomrule
 \end{longtable}
+
+\subsection{Stateful Safety Enforcer}
+
+The \texttt{SafetyEnforcer} in \texttt{bioforge-safety} is a stateful validator that tracks cumulative state across tool calls within a single experiment run. All limits are config-driven, loaded from \texttt{safety\_limits.toml} and \texttt{hardware.toml} at server startup via the \texttt{-{}-config-dir} flag.
+
+\begin{keybox}[Enforcer Capabilities]
+\begin{itemize}
+  \item \textbf{Input sanitization} --- All numeric inputs pass through \texttt{require\_finite()} guards that reject NaN and Infinity before any comparison, preventing silent bypass of bounds checks
+  \item \textbf{Defense-in-depth temperature guard} --- Checks both \texttt{tool\_max\_c} (50\textdegree{}C) and \texttt{absolute\_max\_c} (60\textdegree{}C hardware fuse) independently, protecting against misconfigured tool limits
+  \item \textbf{Cumulative volume tracking} --- Tracks total dispensed volume across all \texttt{dispense} calls, rejecting operations that would exceed 50\,mL per run. Resets via \texttt{reset\_run()}
+  \item \textbf{Flow rate validation} --- Enforces maximum pump speed (500\,\textmu{}L/s) on all liquid handling tools
+  \item \textbf{Sliding-window rate limiting} --- Maintains a 60-second sliding window of call timestamps, rejecting calls that exceed 60 calls/minute
+  \item \textbf{Actuator interval enforcement} --- Requires minimum 100ms gap between consecutive actuator commands, preventing mechanical stress from rapid-fire operations
+  \item \textbf{Operation-specific limits} --- Max incubation (72h), max heat shock hold (300s), max mix cycles (20), safe travel height (15mm) --- all from config
+\end{itemize}
+\end{keybox}
+
+Internal state (\texttt{Mutex<EnforcerState>}) is thread-safe for concurrent async tasks. The enforcer is shared across all MCP tools via \texttt{Arc<SafetyEnforcer>}.
 
 \subsection{ESP32 Watchdog and Heartbeat}
 
@@ -938,7 +961,7 @@ This safety architecture is intentionally thorough for the risk level of BSL-1 e
 \section{Build Phases}
 
 \subsection{Phase 1: Foundation (Weeks 1--2)}
-Pi 5 running Rust MCP server with simulated hardware, basic enclosure frame.
+Pi 5 running Rust MCP server with simulated hardware, basic enclosure frame. Safety enforcement is fully active even in mock mode --- all tool inputs are validated through the stateful \texttt{SafetyEnforcer} before mock responses are returned.
 
 \begin{enumerate}
   \item Set up Pi 5 with Rust toolchain and cross-compilation for ARM64
@@ -946,10 +969,11 @@ Pi 5 running Rust MCP server with simulated hardware, basic enclosure frame.
   \item Build basic enclosure frame from 2020 aluminum extrusion (no actuators)
   \item Verify MCP transport end-to-end: agent issues commands, server responds
   \item Implement audit logging infrastructure (JSON Lines, append-only)
+  \item Implement stateful safety enforcement: config-driven limits loaded from TOML, cumulative volume tracking, sliding-window rate limiting, actuator interval enforcement, NaN/Infinity guards
 \end{enumerate}
 
-\textbf{Milestone}: Agent can run a full protocol against simulated hardware.\\
-\textbf{Verification}: \texttt{cargo test} passes on all crates. MCP tool calls return valid JSON. Audit log captures every call.
+\textbf{Milestone}: Agent can run a full protocol against simulated hardware with all safety enforcement active.\\
+\textbf{Verification}: \texttt{cargo test} passes on all crates (60+ enforcer tests). MCP tool calls return valid JSON. All out-of-range inputs rejected. Audit log captures every call.
 
 \subsection{Phase 2: Thermal Control (Weeks 3--4)}
 Working temperature control with Peltier modules and PID tuning.
@@ -1021,7 +1045,7 @@ End-to-end agent-orchestrated experiment with The Odin CRISPR kit.
 \endhead
 1 & MCP tools (mock) & Start \texttt{mcp-bioforge} standalone. Issue each tool call via curl. & Valid JSON responses. All calls logged to audit file. \\
 2 & State machine & Load protocol TOML. Step through transitions. Attempt invalid transition. & Ordering enforced. Invalid transitions rejected. Human gate blocks until confirmed. \\
-3 & Safety limits & Attempt temp above 50\textdegree{}C, volume above 1000\textmu{}L, position out of bounds. & All rejected with appropriate error. All rejections logged. \\
+3 & Safety limits & Attempt temp above 50\textdegree{}C and above 60\textdegree{}C (\texttt{absolute\_max\_c}), volume above 1000\textmu{}L, cumulative volume above 50\,mL, NaN inputs, position out of bounds, flow rate above 500\,\textmu{}L/s. & All rejected with appropriate error. NaN/Inf caught before comparison. All rejections logged. \\
 4 & Thermal control & Set cold zone to 4\textdegree{}C. Set warm zone to 37\textdegree{}C. Execute heat shock cycle. & PID converges in 5 min. Stability $\pm$0.5\textdegree{}C over 1 hour. Heat shock timing accurate. \\
 5 & Liquid handling & Dispense 100\textmu{}L water onto scale. Move gantry to 5 positions. Run 10-cycle mix. & Volume accuracy $\pm$5\%. Position accuracy $\pm$1mm. No air bubbles or spills. \\
 6 & Colony counting & Capture known plates. Compare automated count to manual ground truth. & >90\% accuracy on 5 test plates. \\
@@ -1040,10 +1064,12 @@ End-to-end agent-orchestrated experiment with The Odin CRISPR kit.
 \textbf{Threat} & \textbf{Mitigation} \\
 \midrule
 \endhead
-Out-of-range parameters & Safety enforcer validates all inputs at MCP layer before dispatching to HAL \\
+Out-of-range parameters & Stateful \texttt{SafetyEnforcer} validates all inputs at MCP layer; NaN/Infinity rejected before comparison \\
+NaN/Infinity bypass & All numeric inputs pass through \texttt{require\_finite()} --- NaN silently passes \texttt{<} comparisons but is caught explicitly \\
+Cumulative reagent exhaustion & Enforcer tracks dispensed volume per run (50\,mL cap); resets only via explicit \texttt{reset\_run()} \\
 Human gate bypass & State machine enforces gates; agent receives \texttt{pending} status and cannot proceed \\
-Rapid-fire actuator commands & Rate limiting at MCP layer; minimum configurable interval between commands \\
-Thermal runaway & Hardware thermal fuses (60\textdegree{}C), PID overshoot detection, ESP32 auto-abort \\
+Rapid-fire actuator commands & Sliding-window rate limiting (60 calls/min) + minimum 100ms actuator interval \\
+Thermal runaway & Hardware thermal fuses (60\textdegree{}C), \texttt{absolute\_max\_c} software guard, PID overshoot detection, ESP32 auto-abort \\
 Mechanical jam / stall & Motor current limiting on TMC2209 stepper drivers; stall detection via StallGuard \\
 Firmware hang & ESP32 watchdog timer (300ms) auto-resets to safe state; kills 12V relay \\
 Audit log tampering & Append-only file, no deletion API exposed to agent or MCP server \\
