@@ -23,6 +23,7 @@ pub struct PlateComparison {
 }
 
 /// Colony counting pipeline.
+#[derive(Debug)]
 pub struct ColonyCounter {
     /// Minimum blob area in pixels to count as a colony.
     min_area_px: u32,
@@ -33,19 +34,22 @@ pub struct ColonyCounter {
 impl ColonyCounter {
     /// Create a new colony counter with area thresholds.
     ///
-    /// # Panics
-    ///
-    /// Panics if `min_area_px >= max_area_px` or either is zero.
-    pub fn new(min_area_px: u32, max_area_px: u32) -> Self {
-        assert!(min_area_px > 0, "min_area_px must be > 0");
-        assert!(
-            min_area_px < max_area_px,
-            "min_area_px ({min_area_px}) must be less than max_area_px ({max_area_px})"
-        );
-        Self {
+    /// Returns an error if `min_area_px` is zero or `min_area_px >= max_area_px`.
+    pub fn new(min_area_px: u32, max_area_px: u32) -> Result<Self, BioForgeError> {
+        if min_area_px == 0 {
+            return Err(BioForgeError::ConfigError(
+                "min_area_px must be > 0".to_string(),
+            ));
+        }
+        if min_area_px >= max_area_px {
+            return Err(BioForgeError::ConfigError(format!(
+                "min_area_px ({min_area_px}) must be less than max_area_px ({max_area_px})"
+            )));
+        }
+        Ok(Self {
             min_area_px,
             max_area_px,
-        }
+        })
     }
 
     /// Count colonies in an image file.
@@ -90,7 +94,8 @@ impl ColonyCounter {
 
 impl Default for ColonyCounter {
     fn default() -> Self {
-        Self::new(50, 5000)
+        // Safe: 50 < 5000, both > 0.
+        Self::new(50, 5000).expect("default colony counter config is valid")
     }
 }
 
@@ -107,26 +112,26 @@ mod tests {
 
     #[test]
     fn valid_area_range() {
-        let counter = ColonyCounter::new(10, 100);
+        let counter = ColonyCounter::new(10, 100).unwrap();
         assert_eq!(counter.min_area_px, 10);
     }
 
     #[test]
-    #[should_panic(expected = "min_area_px")]
     fn rejects_inverted_range() {
-        ColonyCounter::new(100, 10);
+        let err = ColonyCounter::new(100, 10).unwrap_err();
+        assert!(err.to_string().contains("min_area_px"));
     }
 
     #[test]
-    #[should_panic(expected = "min_area_px")]
     fn rejects_equal_range() {
-        ColonyCounter::new(50, 50);
+        let err = ColonyCounter::new(50, 50).unwrap_err();
+        assert!(err.to_string().contains("min_area_px"));
     }
 
     #[test]
-    #[should_panic(expected = "min_area_px must be > 0")]
     fn rejects_zero_min() {
-        ColonyCounter::new(0, 100);
+        let err = ColonyCounter::new(0, 100).unwrap_err();
+        assert!(err.to_string().contains("min_area_px must be > 0"));
     }
 
     #[test]

@@ -701,7 +701,7 @@ impl Tool for RequestHumanActionTool {
         json!({
             "type": "object",
             "properties": {
-                "action_description": {
+                "description": {
                     "type": "string",
                     "description": "Description of the required human action"
                 },
@@ -710,19 +710,19 @@ impl Tool for RequestHumanActionTool {
                     "description": "Maximum wait time in minutes before timeout"
                 }
             },
-            "required": ["action_description", "timeout_min"]
+            "required": ["description", "timeout_min"]
         })
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let description = require_str(&args, "action_description")?;
+        let description = require_str(&args, "description")?;
         let timeout = require_u64(&args, "timeout_min")?;
 
         tracing::info!(description, timeout, "mock: request human action");
 
         ToolResult::json(&json!({
             "status": "pending_human_approval",
-            "action_description": description,
+            "description": description,
             "timeout_min": timeout,
             "mock_note": "In production, this blocks until human confirms via touchscreen"
         }))

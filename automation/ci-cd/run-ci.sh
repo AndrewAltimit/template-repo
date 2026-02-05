@@ -573,7 +573,7 @@ case "$STAGE" in
     docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/packages/bioforge \
-      rust-ci cargo deny check || true
+      rust-ci cargo deny check
     ;;
 
   bio-full)
