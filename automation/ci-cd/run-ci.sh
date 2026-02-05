@@ -538,6 +538,10 @@ case "$STAGE" in
     docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/packages/bioforge \
       rust-ci cargo fmt --all -- --check
+    echo "=== Running MCP BioForge format checks ==="
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/tools/mcp/mcp_bioforge \
+      rust-ci cargo fmt --all -- --check
     ;;
 
   bio-clippy)
@@ -547,6 +551,10 @@ case "$STAGE" in
     docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/packages/bioforge \
       rust-ci cargo clippy --workspace --all-targets -- -D warnings
+    echo "=== Running MCP BioForge clippy lints ==="
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/tools/mcp/mcp_bioforge \
+      rust-ci cargo clippy --all-targets -- -D warnings
     ;;
 
   bio-test)
@@ -565,6 +573,10 @@ case "$STAGE" in
     docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -w /app/packages/bioforge \
       rust-ci cargo build --workspace --all-targets
+    echo "=== Building MCP BioForge server ==="
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/tools/mcp/mcp_bioforge \
+      rust-ci cargo build --all-targets
     ;;
 
   bio-deny)
@@ -648,7 +660,7 @@ case "$STAGE" in
     echo "  Rust (nightly):           rust-loom, rust-miri, rust-cross-linux, rust-cross-windows, rust-advanced"
     echo "  Rust (economic_agents):   econ-fmt, econ-clippy, econ-test, econ-build, econ-deny, econ-doc, econ-coverage, econ-full"
     echo "  Rust (mcp_core_rust):     mcp-fmt, mcp-clippy, mcp-test, mcp-build, mcp-deny, mcp-doc, mcp-full"
-    echo "  Rust (bioforge):          bio-fmt, bio-clippy, bio-test, bio-build, bio-deny, bio-full"
+    echo "  Rust (bioforge+mcp):      bio-fmt, bio-clippy, bio-test, bio-build, bio-deny, bio-full"
     echo "  Rust (wrapper_guard):     wrapper-fmt, wrapper-clippy, wrapper-test, wrapper-full"
     exit 1
     ;;
