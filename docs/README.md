@@ -12,8 +12,9 @@ DevOps, CI/CD, and self-hosted infrastructure setup
 - [Git Hooks](./infrastructure/git-hooks.md)
 
 ### [Hardware](./hardware/)
-Physical hardware systems for secure field deployment
+Physical hardware systems for secure field deployment and biological automation
 - [Secure Terminal Briefcase](./hardware/secure-terminal-briefcase.md) -- Tamper-responsive Pi briefcase with dual-sensor detection, LUKS2 wipe, and PQC recovery
+- [BioForge CRISPR Automation](./hardware/bioforge-crispr-automation.md) -- Agent-driven biological automation with Pi 5, MCP tools, and closed-loop experiment orchestration
 
 ### [AI Agents](./agents/)
 Comprehensive AI agent system documentation

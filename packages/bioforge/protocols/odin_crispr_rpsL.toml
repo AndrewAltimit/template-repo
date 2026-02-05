@@ -1,0 +1,183 @@
+# The Odin CRISPR Kit -- rpsL Streptomycin Resistance Protocol
+#
+# Default protocol for agent-orchestrated CRISPR-Cas9 gene editing in
+# E. coli K-12 (BSL-1). Targets the rpsL gene to confer streptomycin
+# resistance, with selection on streptomycin-containing LB agar plates.
+#
+# Based on The Odin's DIY CRISPR Kit instructions, adapted for automated
+# execution with human-in-the-loop gates at critical physical steps.
+
+name = "odin_crispr_rpsL"
+version = "1.0"
+description = "CRISPR-Cas9 rpsL streptomycin resistance in E. coli K-12"
+
+[[steps]]
+id = 1
+name = "Prepare selective plates"
+human_gate = false
+notes = "Dispense LB agar with streptomycin onto plates"
+
+[steps.action]
+type = "dispense"
+target = "plate_selective:center"
+volume_ul = 20000.0
+reagent = "lb_agar_streptomycin"
+
+[[steps]]
+id = 2
+name = "Prepare control plates"
+human_gate = false
+
+[steps.action]
+type = "dispense"
+target = "plate_control:center"
+volume_ul = 20000.0
+reagent = "lb_agar_plain"
+
+[[steps]]
+id = 3
+name = "Wait for agar solidification"
+human_gate = false
+notes = "Allow plates to solidify at room temperature"
+
+[steps.action]
+type = "wait"
+seconds = 1800
+reason = "Agar solidification (30 minutes)"
+
+[[steps]]
+id = 4
+name = "Load cells and reagents"
+human_gate = true
+notes = "Place thawed competent E. coli K-12 cells and CRISPR DNA on the deck"
+
+[steps.action]
+type = "request_human_action"
+description = "Place thawed competent cells (tube A) and CRISPR DNA (tube B) on deck positions 1 and 2"
+timeout_min = 30
+
+[[steps]]
+id = 5
+name = "Cool cells on ice"
+human_gate = false
+notes = "Pre-chill the transformation zone"
+
+[steps.action]
+type = "set_temperature"
+zone = "cold"
+target_c = 4.0
+hold_seconds = 300
+
+[[steps]]
+id = 6
+name = "Mix cells with DNA"
+human_gate = false
+notes = "Add CRISPR DNA to competent cells and mix gently"
+
+[steps.action]
+type = "mix"
+target = "tube_transformation"
+volume_ul = 50.0
+cycles = 3
+
+[[steps]]
+id = 7
+name = "Ice incubation"
+human_gate = false
+notes = "Incubate cells+DNA on ice for 30 minutes"
+
+[steps.action]
+type = "incubate"
+zone = "cold"
+target_c = 4.0
+duration_hours = 0.5
+
+[[steps]]
+id = 8
+name = "Heat shock"
+human_gate = false
+notes = "42C for 45 seconds -- critical timing"
+
+[steps.action]
+type = "heat_shock"
+ramp_to_c = 42.0
+hold_s = 45
+return_to_c = 4.0
+
+[[steps]]
+id = 9
+name = "Recovery incubation"
+human_gate = false
+notes = "Allow cells to recover in LB at 37C"
+
+[steps.action]
+type = "incubate"
+zone = "warm"
+target_c = 37.0
+duration_hours = 1.0
+
+[[steps]]
+id = 10
+name = "Plate on selective media"
+human_gate = false
+notes = "Spread transformed cells on streptomycin plates"
+
+[steps.action]
+type = "dispense"
+target = "plate_selective:spread"
+volume_ul = 100.0
+reagent = "transformed_cells"
+
+[[steps]]
+id = 11
+name = "Plate control"
+human_gate = false
+
+[steps.action]
+type = "dispense"
+target = "plate_control:spread"
+volume_ul = 100.0
+reagent = "transformed_cells"
+
+[[steps]]
+id = 12
+name = "Confirm plates into incubator"
+human_gate = true
+notes = "Verify plates are correctly positioned in the warm zone"
+
+[steps.action]
+type = "request_human_action"
+description = "Confirm plates are positioned in the warm zone incubation area"
+timeout_min = 15
+
+[[steps]]
+id = 13
+name = "Overnight incubation"
+human_gate = false
+notes = "37C for 12-16 hours"
+
+[steps.action]
+type = "incubate"
+zone = "warm"
+target_c = 37.0
+duration_hours = 16.0
+
+[[steps]]
+id = 14
+name = "Capture plate images"
+human_gate = false
+
+[steps.action]
+type = "capture_image"
+plate_id = "plate_selective"
+lighting_mode = "white"
+
+[[steps]]
+id = 15
+name = "Count colonies"
+human_gate = false
+
+[steps.action]
+type = "count_colonies"
+plate_id = "plate_selective"
+image_id = "latest"

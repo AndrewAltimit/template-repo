@@ -1,6 +1,6 @@
 # Hardware Documentation
 
-Physical hardware systems for secure field deployment and agent terminal operation.
+Physical hardware systems for secure field deployment, agent terminal operation, and biological automation.
 
 ## Documentation
 
@@ -11,6 +11,18 @@ Tamper-responsive Raspberry Pi briefcase with dual-sensor detection, cryptograph
 - LUKS2 full-disk encryption with instant header destruction
 - Hybrid classical/post-quantum key wrapping for recovery media
 - **Implementation**: [`packages/tamper_briefcase/`](../../packages/tamper_briefcase/)
+
+### [BioForge CRISPR Automation](./bioforge-crispr-automation.md)
+Agent-driven biological automation platform with Raspberry Pi 5, closed-loop experiment orchestration, and defense-in-depth safety architecture.
+- Raspberry Pi 5 with ESP32 co-processor for real-time control
+- MCP tool endpoints for liquid handling, thermal control, and imaging
+- Protocol state machine with human-in-the-loop gates
+- Multi-layer safety interlocks with immutable audit logging
+- **Implementation**: [`packages/bioforge/`](../../packages/bioforge/)
+
+| Document | PDF | Source |
+|----------|-----|--------|
+| BioForge CRISPR Automation | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./bioforge-crispr-automation.md) \| [LaTeX](./latex/bioforge-crispr-automation.tex) |
 
 ## Planned Systems
 

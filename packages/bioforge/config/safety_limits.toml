@@ -1,0 +1,23 @@
+# BioForge Safety Limits
+# These constraints are enforced at the software layer and cannot be
+# overridden by agent commands. Hardware-level limits (thermal fuses,
+# motor current limiting) provide independent backup.
+
+[thermal]
+absolute_max_c = 60.0      # Hardware fuse triggers at this point
+tool_max_c = 50.0           # Maximum temperature settable via MCP tools
+tool_min_c = -5.0           # Minimum temperature settable via MCP tools
+max_overshoot_c = 1.5       # Abort if overshoot exceeds this during heat shock
+
+[volume]
+max_dispense_ul = 1000.0    # Maximum single dispense volume (1 mL)
+min_dispense_ul = 1.0       # Minimum dispense volume (1 uL)
+max_total_ml = 50.0         # Maximum total volume dispensed per run
+
+[motion]
+max_speed_mm_s = 50.0       # Maximum gantry speed
+max_accel_mm_s2 = 100.0     # Maximum acceleration
+
+[rate]
+max_calls_per_minute = 60   # Maximum MCP tool calls per minute
+min_actuator_interval_ms = 100  # Minimum gap between actuator commands

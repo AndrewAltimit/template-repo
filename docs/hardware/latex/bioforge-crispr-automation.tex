@@ -1,0 +1,414 @@
+\documentclass[11pt,letterpaper]{article}
+
+% ============================================================================
+% PACKAGES
+% ============================================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[margin=0.85in, headheight=28pt]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{tcolorbox}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{multicol}
+\usepackage{listings}
+\usepackage{upquote}
+\usepackage{amsmath,amssymb}
+\usepackage{array}
+\usepackage{longtable}
+
+% Ragged-right paragraph columns to prevent word spacing issues
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% Increase vertical spacing between table rows for readability
+\renewcommand{\arraystretch}{1.4}
+
+\usepackage{colortbl}
+\usepackage{pifont}
+\usepackage{setspace}
+\usepackage{parskip}
+\usepackage{caption}
+\usepackage{tabularx}
+
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit}
+
+% ============================================================================
+% COLOR DEFINITIONS - Laboratory Systems Theme (bioengineering/hardware)
+% ============================================================================
+% Primary: Forest green - biological, growth, laboratory
+\definecolor{labgreen}{HTML}{1B7A3D}
+\definecolor{lightteal}{HTML}{20B2AA}
+\definecolor{deepforest}{HTML}{0B5345}
+% Accent: Instrument gold for highlights and callouts
+\definecolor{instrumentgold}{HTML}{B7950B}
+\definecolor{safetyamber}{HTML}{F39C12}
+% Domain colors
+\definecolor{thermalred}{HTML}{C0392B}
+\definecolor{fluidblue}{HTML}{2980B9}
+\definecolor{visionpurple}{HTML}{7D3C98}
+\definecolor{safetygreen}{HTML}{27AE60}
+% Neutrals
+\definecolor{lightgray}{HTML}{F4F6F7}
+\definecolor{medgray}{HTML}{BDC3C7}
+\definecolor{softslate}{HTML}{5D6D7E}
+\definecolor{textdark}{HTML}{1C2833}
+
+% ============================================================================
+% HYPERREF SETUP
+% ============================================================================
+\hypersetup{
+  colorlinks=true,
+  linkcolor=deepforest,
+  urlcolor=lightteal,
+  pdftitle={BioForge: Agent-Driven CRISPR Automation Platform},
+  pdfauthor={Hardware Systems Documentation}
+}
+
+% ============================================================================
+% SPACING AND TYPOGRAPHY
+% ============================================================================
+\setstretch{1.15}
+\setlength{\parskip}{0.5em}
+\setlist{nosep, leftmargin=1.5em, itemsep=0.3em}
+
+% ============================================================================
+% PAGE STYLE - Laboratory circuit pattern (hardware/bioengineering theme)
+% ============================================================================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{%
+  \begin{tikzpicture}[baseline=-0.5ex]
+    % Circuit-like pattern (hardware/engineering feel)
+    \draw[lightteal, opacity=0.5, line width=0.6pt] (0,0.15) -- (0.3,0.15);
+    \draw[lightteal, opacity=0.5, line width=0.6pt] (0.3,0.15) -- (0.3,0.3);
+    \draw[lightteal, opacity=0.5, line width=0.6pt] (0.3,0.3) -- (0.6,0.3);
+    \draw[lightteal, opacity=0.5, line width=0.6pt] (0.6,0.3) -- (0.6,0.0);
+    \draw[lightteal, opacity=0.5, line width=0.6pt] (0.6,0.0) -- (0.9,0.0);
+    \draw[lightteal, opacity=0.5, line width=0.6pt] (0.9,0.0) -- (0.9,0.15);
+    \draw[lightteal, opacity=0.5, line width=0.6pt] (0.9,0.15) -- (1.2,0.15);
+    \fill[labgreen, opacity=0.8] (0.3,0.15) circle (0.04);
+    \fill[instrumentgold, opacity=0.8] (0.6,0.3) circle (0.04);
+    \fill[labgreen, opacity=0.8] (0.9,0.15) circle (0.04);
+  \end{tikzpicture}
+  \hspace{0.4em}\textcolor{deepforest}{\textsf{\small BIOFORGE-2026-HW-001}}%
+}
+\fancyhead[R]{\textcolor{softslate}{\textsf{\thepage}}}
+\fancyfoot[C]{\textcolor{softslate}{\footnotesize\textsf{Hardware Systems Documentation | Agent-Driven Biological Automation}}}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\fancyheadoffset{0pt}
+\setlength{\headheight}{32pt}
+
+% ============================================================================
+% SECTION FORMATTING - Laboratory systems style with circuit accents
+% ============================================================================
+\titleformat{\section}
+  {\normalfont\LARGE\bfseries\color{deepforest}}
+  {\thesection}{0.8em}{}[\vspace{-0.3em}{\color{lightteal}\rule{\textwidth}{1.5pt}\hspace{-\textwidth}\color{labgreen}\rule{3cm}{1.5pt}}]
+\titleformat{\subsection}
+  {\normalfont\Large\bfseries\color{deepforest}}
+  {\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}
+  {\normalfont\large\color{softslate}\bfseries}
+  {\thesubsubsection}{0.5em}{}
+
+\titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
+\titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+
+\setcounter{tocdepth}{2}
+
+% ============================================================================
+% TCOLORBOX ENVIRONMENTS - Laboratory systems styling
+% ============================================================================
+\tcbuselibrary{skins,breakable,hooks}
+
+\newtcolorbox{keybox}[1][Key Design Principle]{
+  enhanced, breakable,
+  colback=labgreen!10, colframe=labgreen,
+  colbacktitle=labgreen, coltitle=white,
+  fonttitle=\bfseries\sffamily,
+  title={\ding{72}\hspace{0.5em}#1},
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt
+}
+
+\newtcolorbox{safetybox}[1][Safety]{
+  enhanced, breakable,
+  colback=safetyamber!12, colframe=safetyamber,
+  colbacktitle=safetyamber, coltitle=white,
+  fonttitle=\bfseries\sffamily,
+  title={\ding{73}\hspace{0.5em}#1},
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt
+}
+
+\newtcolorbox{hardwarebox}[1][Hardware Note]{
+  enhanced, breakable,
+  colback=fluidblue!10, colframe=fluidblue,
+  colbacktitle=fluidblue, coltitle=white,
+  fonttitle=\bfseries\sffamily,
+  title={\ding{51}\hspace{0.5em}#1},
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt
+}
+
+% ============================================================================
+% LISTINGS CONFIGURATION - Code blocks
+% ============================================================================
+\lstset{
+  basicstyle=\small\ttfamily\color{textdark},
+  backgroundcolor=\color{lightgray},
+  frame=none,
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=2,
+  showstringspaces=false,
+  xleftmargin=1em,
+  xrightmargin=1em,
+  aboveskip=1em,
+  belowskip=1em,
+  numbers=none
+}
+
+% ============================================================================
+% DOCUMENT
+% ============================================================================
+\begin{document}
+
+% ============================================================================
+% TITLE PAGE
+% ============================================================================
+\begin{titlepage}
+\begin{tikzpicture}[remember picture, overlay]
+  % Header band (tall enough to contain title block)
+  \fill[deepforest] (current page.north west) rectangle ([yshift=-9cm]current page.north east);
+  % Accent stripe
+  \fill[labgreen] ([yshift=-9cm]current page.north west) rectangle ([yshift=-9.2cm]current page.north east);
+
+  % Circuit pattern decoration
+  \begin{scope}[shift={(current page.north west)}, xshift=1cm, yshift=-2cm, opacity=0.3]
+    \foreach \x in {0,1,...,15} {
+      \draw[lightteal, line width=0.4pt] (\x*1.2, 0) -- ++(0, -0.5) -- ++(0.6, 0) -- ++(0, 0.5);
+    }
+  \end{scope}
+\end{tikzpicture}
+
+\vspace*{1.5cm}
+
+{\color{white}\sffamily
+\begin{flushleft}
+{\fontsize{14}{16}\selectfont HARDWARE SYSTEMS DOCUMENTATION}\\[0.3em]
+{\fontsize{28}{32}\selectfont\bfseries BioForge}\\[0.2em]
+{\fontsize{18}{22}\selectfont Agent-Driven CRISPR Automation Platform}\\[1.5em]
+{\fontsize{11}{14}\selectfont System Design Document v1.0 --- February 2026}
+\end{flushleft}
+}
+
+\vspace{2.5cm}
+
+\begin{tcolorbox}[
+  enhanced, width=0.92\textwidth,
+  colback=lightgray, colframe=labgreen,
+  boxrule=0pt, leftrule=4pt,
+  left=15pt, right=15pt, top=12pt, bottom=12pt
+]
+\small\sffamily
+\textbf{Platform}: Raspberry Pi 5 | Rust | MCP | AI Agent Orchestration\\
+\textbf{Target}: BSL-1 CRISPR-Cas9 gene editing (E.~coli K-12)\\
+\textbf{Architecture}: Open-source hardware, closed-loop biological experimentation\\
+\textbf{Safety}: Defense-in-depth with human-in-the-loop gates\\
+\textbf{Implementation}: \texttt{packages/bioforge/} | \texttt{tools/mcp/mcp\_bioforge/}
+\end{tcolorbox}
+
+\vspace{1cm}
+
+\begin{safetybox}[Governance-Aware Design]
+This platform prioritizes safety interlocks at every layer, human-in-the-loop checkpoints for irreversible biological steps, comprehensive audit logging, and modular hardware that can be incrementally expanded. The architecture embodies the safety principles that should govern any system where AI agents have physical-world actuation capability over biological materials.
+\end{safetybox}
+
+\vfill
+
+{\small\color{softslate}\sffamily
+Independent research --- not affiliated with any institution or committee\\
+Published for defensive governance research and education\\
+MIT License
+}
+
+\end{titlepage}
+
+% ============================================================================
+% TABLE OF CONTENTS
+% ============================================================================
+\tableofcontents
+\newpage
+
+% ============================================================================
+% SECTION 1: SYSTEM ARCHITECTURE
+% ============================================================================
+\section{System Architecture}
+
+The system follows a layered architecture with strict separation of concerns between agent reasoning, protocol translation, hardware abstraction, and physical actuation.
+
+\subsection{Architecture Layers}
+
+\begin{keybox}[Four-Layer Architecture]
+\begin{enumerate}
+  \item \textbf{AI Agent} --- Experiment design, protocol reasoning, data analysis, iterative optimization
+  \item \textbf{MCP Server} --- Protocol validation, safety interlocks, state machine, audit logging
+  \item \textbf{Hardware Abstraction} --- Rust drivers for pumps, thermal, motion, camera, sensors
+  \item \textbf{Physical Actuators} --- Syringe pumps, Peltier modules, stepper motors, Pi Camera
+\end{enumerate}
+\end{keybox}
+
+\subsection{Data Flow}
+
+The system operates in two primary modes:
+
+\textbf{Protocol Execution}: Agent designs experiment $\rightarrow$ emits MCP tool calls $\rightarrow$ MCP server validates against safety constraints $\rightarrow$ commands dispatched to hardware drivers $\rightarrow$ actuators execute $\rightarrow$ sensor data returned $\rightarrow$ agent analyzes and decides next step.
+
+\textbf{Monitoring}: Sensors continuously stream data to the MCP server $\rightarrow$ server publishes as MCP resources $\rightarrow$ agent subscribes and reacts to anomalies.
+
+\begin{safetybox}[Human-in-the-Loop Gates]
+Certain operations require explicit human confirmation before proceeding. These are enforced at the MCP server layer and cannot be bypassed by agent commands. The agent receives a \texttt{pending\_human\_approval} status and waits.
+\end{safetybox}
+
+% ============================================================================
+% SECTION 2: HARDWARE DESIGN
+% ============================================================================
+\section{Hardware Design}
+
+All components are sourced from standard consumer and maker channels. Estimated total cost is \$800--\$1,500.
+
+\subsection{Bill of Materials}
+
+\begin{longtable}{L{3.5cm} L{4cm} L{1cm} L{2cm} L{2cm}}
+\toprule
+\textbf{Component} & \textbf{Model} & \textbf{Qty} & \textbf{Est. Cost} & \textbf{Interface} \\
+\midrule
+\endhead
+
+\multicolumn{5}{l}{\textbf{\textcolor{deepforest}{Core Compute}}} \\
+\midrule
+Raspberry Pi 5 (8GB) & Official kit w/ PSU & 1 & \$80--100 & --- \\
+Pi Camera Module 3 & Sony IMX708 & 1 & \$25--35 & CSI \\
+MicroSD Card & Samsung EVO 128GB & 1 & \$15 & --- \\
+\midrule
+
+\multicolumn{5}{l}{\textbf{\textcolor{fluidblue}{Liquid Handling}}} \\
+\midrule
+Syringe Pump & 3D-printed, NEMA 17 & 2 & \$30--50 ea & GPIO/Step \\
+Peristaltic Pump & 12V DC, silicone & 2 & \$15--25 ea & GPIO/PWM \\
+Stepper Drivers & TMC2209 or A4988 & 4 & \$5--10 ea & SPI/Step \\
+Co-Processor & ESP32-S3 or RP2040 & 1 & \$8--15 & UART/USB \\
+\midrule
+
+\multicolumn{5}{l}{\textbf{\textcolor{thermalred}{Thermal Control}}} \\
+\midrule
+Peltier Module & TEC1-12706, 60W & 2 & \$8--12 ea & PWM/H-Bridge \\
+H-Bridge Driver & L298N or BTS7960 & 2 & \$5--10 ea & GPIO \\
+DS18B20 Sensors & Waterproof probe & 4 & \$3--5 ea & 1-Wire \\
+\bottomrule
+\end{longtable}
+
+\subsection{Enclosure Design}
+
+\begin{hardwarebox}[Thermal Zones]
+The enclosure is divided into a cold zone ($\sim$4\textdegree{}C via Peltier) and a warm zone (42\textdegree{}C heat shock / 37\textdegree{}C incubation). DS18B20 probes provide closed-loop PID temperature control.
+\end{hardwarebox}
+
+% ============================================================================
+% SECTION 3: SAFETY ARCHITECTURE
+% ============================================================================
+\section{Safety Architecture}
+
+Safety is architected at multiple layers, following a defense-in-depth model.
+
+\begin{longtable}{L{2cm} L{3.5cm} L{4cm} L{3cm}}
+\toprule
+\textbf{Layer} & \textbf{Mechanism} & \textbf{What It Prevents} & \textbf{Bypass Policy} \\
+\midrule
+\endhead
+Hardware & Physical E-Stop & Unsafe actuator state & Cannot bypass \\
+Hardware & Thermal fuse & Overheating beyond 60\textdegree{}C & Cannot bypass \\
+Firmware & Watchdog timer & Firmware hang / runaway & Auto-reset \\
+HAL & Volume bounds & Impossible volumes & Agent cannot override \\
+Protocol & State machine & Out-of-order steps & Agent cannot override \\
+Protocol & Human gates & Unattended operations & Physical confirm \\
+MCP & Input validation & Malformed parameters & Agent cannot override \\
+MCP & Rate limiting & Actuator abuse & Configurable, logged \\
+Audit & Immutable log & Untracked changes & Append-only \\
+\bottomrule
+\end{longtable}
+
+\begin{safetybox}[Governance Demonstrator]
+This safety architecture is intentionally thorough for the risk level of BSL-1 experiments. The point is to build and validate the patterns that would be necessary for higher-stakes agent-actuated systems. If we cannot build responsible governance into a system that edits non-pathogenic bacteria, we have no business deploying AI agents with actuation capability over more consequential systems.
+\end{safetybox}
+
+% ============================================================================
+% SECTION 4: BUILD PHASES
+% ============================================================================
+\section{Build Phases}
+
+\subsection{Phase 1: Foundation (Weeks 1--2)}
+Pi 5 running Rust MCP server with simulated hardware.
+
+\textbf{Milestone}: Agent can run a full protocol against simulated hardware.
+
+\subsection{Phase 2: Thermal Control (Weeks 3--4)}
+Working Peltier thermal control with PID tuning.
+
+\textbf{Milestone}: Heat shock cycle with $\pm$0.5\textdegree{}C accuracy.
+
+\subsection{Phase 3: Liquid Handling (Weeks 5--7)}
+3D-printed syringe pumps on XY gantry.
+
+\textbf{Milestone}: Accurate 10--500\textmu{}L dispensing.
+
+\subsection{Phase 4: Imaging and Vision (Weeks 8--9)}
+Pi Camera imaging pipeline and colony counting.
+
+\textbf{Milestone}: Colony counting with >90\% accuracy.
+
+\subsection{Phase 5: Integration (Weeks 10--12)}
+End-to-end agent-orchestrated experiment.
+
+\textbf{Milestone}: Closed-loop optimization across multiple iterations.
+
+% ============================================================================
+% SECTION 5: GOVERNANCE IMPLICATIONS
+% ============================================================================
+\section{Governance Implications}
+
+BioForge exists at the intersection of two rapidly accelerating capability curves: DIY biology accessibility and AI agent autonomy. Building this system responsibly means treating it as a governance test case.
+
+The platform demonstrates several principles:
+
+\begin{itemize}
+  \item \textbf{Capability bounding} --- Hard limits enforced at compile-time and runtime
+  \item \textbf{Audit transparency} --- Every agent action logged with reconstruction detail
+  \item \textbf{Human oversight} --- Gates positioned at digital-to-physical transitions
+  \item \textbf{Graduated autonomy} --- Gate requirements relaxable as trust is established
+\end{itemize}
+
+See \texttt{packages/bioforge/docs/governance-implications.md} for the full governance analysis.
+
+% ============================================================================
+% END
+% ============================================================================
+\vfill
+\begin{center}
+\small\color{softslate}\sffamily
+\rule{0.5\textwidth}{0.4pt}\\[0.5em]
+Independent research --- not affiliated with any institution or committee\\
+Published for defensive governance research and education
+\end{center}
+
+\end{document}

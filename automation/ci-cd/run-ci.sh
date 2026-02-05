@@ -527,6 +527,62 @@ case "$STAGE" in
     $0 mcp-test
     ;;
 
+  # ============================================
+  # BioForge CI Stages
+  # ============================================
+
+  bio-fmt)
+    echo "=== Running BioForge format checks ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/packages/bioforge \
+      rust-ci cargo fmt --all -- --check
+    ;;
+
+  bio-clippy)
+    echo "=== Running BioForge clippy lints ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/packages/bioforge \
+      rust-ci cargo clippy --workspace --all-targets -- -D warnings
+    ;;
+
+  bio-test)
+    echo "=== Running BioForge tests ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/packages/bioforge \
+      rust-ci cargo test --workspace "${EXTRA_ARGS[@]}"
+    ;;
+
+  bio-build)
+    echo "=== Building BioForge workspace ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/packages/bioforge \
+      rust-ci cargo build --workspace --all-targets
+    ;;
+
+  bio-deny)
+    echo "=== Running BioForge cargo-deny checks ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/packages/bioforge \
+      rust-ci cargo deny check || true
+    ;;
+
+  bio-full)
+    echo "=== Running full BioForge CI checks ==="
+    $0 bio-fmt
+    $0 bio-clippy
+    $0 bio-test
+    ;;
+
   full)
     echo "=== Running full CI checks ==="
     $0 format
@@ -592,6 +648,7 @@ case "$STAGE" in
     echo "  Rust (nightly):           rust-loom, rust-miri, rust-cross-linux, rust-cross-windows, rust-advanced"
     echo "  Rust (economic_agents):   econ-fmt, econ-clippy, econ-test, econ-build, econ-deny, econ-doc, econ-coverage, econ-full"
     echo "  Rust (mcp_core_rust):     mcp-fmt, mcp-clippy, mcp-test, mcp-build, mcp-deny, mcp-doc, mcp-full"
+    echo "  Rust (bioforge):          bio-fmt, bio-clippy, bio-test, bio-build, bio-deny, bio-full"
     echo "  Rust (wrapper_guard):     wrapper-fmt, wrapper-clippy, wrapper-test, wrapper-full"
     exit 1
     ;;
