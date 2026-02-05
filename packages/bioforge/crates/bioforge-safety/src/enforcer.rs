@@ -35,8 +35,17 @@ impl SafetyEnforcer {
     }
 
     /// Validate that a temperature target is within allowed range.
+    ///
+    /// Checks both the tool-settable range and the hardware absolute maximum
+    /// as defense-in-depth against misconfigured tool limits.
     pub fn validate_temperature(&self, target_c: f64) -> Result<(), BioForgeError> {
         require_finite(target_c, "target_c")?;
+        if target_c > self.limits.thermal.absolute_max_c {
+            return Err(BioForgeError::TemperatureOutOfRange {
+                actual_c: target_c,
+                limit_c: self.limits.thermal.absolute_max_c,
+            });
+        }
         if target_c > self.limits.thermal.tool_max_c {
             return Err(BioForgeError::TemperatureOutOfRange {
                 actual_c: target_c,
@@ -97,7 +106,14 @@ impl SafetyEnforcer {
             || z < 0.0
             || z > self.bounds.z_max_mm
         {
-            return Err(BioForgeError::PositionOutOfBounds { x, y, z });
+            return Err(BioForgeError::PositionOutOfBounds {
+                x,
+                y,
+                z,
+                x_max: self.bounds.x_max_mm,
+                y_max: self.bounds.y_max_mm,
+                z_max: self.bounds.z_max_mm,
+            });
         }
         Ok(())
     }
@@ -269,6 +285,19 @@ mod tests {
     #[test]
     fn temperature_rejects_under_min() {
         assert!(enforcer().validate_temperature(-5.1).is_err());
+    }
+
+    #[test]
+    fn temperature_rejects_above_absolute_max() {
+        // absolute_max_c = 60.0 (hardware fuse level)
+        assert!(enforcer().validate_temperature(60.1).is_err());
+    }
+
+    #[test]
+    fn temperature_accepts_between_tool_and_absolute_max() {
+        // tool_max_c = 50.0, absolute_max_c = 60.0
+        // Values above tool_max are still rejected even if below absolute_max
+        assert!(enforcer().validate_temperature(55.0).is_err());
     }
 
     #[test]

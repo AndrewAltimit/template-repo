@@ -25,8 +25,15 @@ pub enum BioForgeError {
     #[error("volume out of range: {actual_ul}uL (limit: {limit_ul}uL)")]
     VolumeOutOfRange { actual_ul: f64, limit_ul: f64 },
 
-    #[error("position out of bounds: ({x}, {y}, {z})")]
-    PositionOutOfBounds { x: f64, y: f64, z: f64 },
+    #[error("position out of bounds: ({x}, {y}, {z}) outside [{x_max}, {y_max}, {z_max}]")]
+    PositionOutOfBounds {
+        x: f64,
+        y: f64,
+        z: f64,
+        x_max: f64,
+        y_max: f64,
+        z_max: f64,
+    },
 
     #[error("emergency stop activated")]
     EmergencyStop,
