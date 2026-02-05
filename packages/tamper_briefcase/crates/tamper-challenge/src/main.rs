@@ -137,17 +137,38 @@ fn setup(hash_file: &PathBuf, salt_file: &PathBuf) -> Result<()> {
         fs::create_dir_all(parent).context("Failed to create credential directory")?;
     }
 
-    fs::write(hash_file, &hash_bytes).context("Failed to write password hash")?;
-    fs::write(salt_file, &salt_bytes).context("Failed to write salt")?;
-
-    // Restrict permissions (owner-only read).
+    // Write credential files with restricted permissions from creation (no
+    // race window where the file is world-readable).
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
-        let perms = fs::Permissions::from_mode(0o600);
-        fs::set_permissions(hash_file, perms.clone())
-            .context("Failed to set hash file permissions")?;
-        fs::set_permissions(salt_file, perms).context("Failed to set salt file permissions")?;
+        use std::io::Write;
+        use std::os::unix::fs::OpenOptionsExt;
+
+        let mut f = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .mode(0o600)
+            .open(hash_file)
+            .context("Failed to create password hash file")?;
+        f.write_all(&hash_bytes)
+            .context("Failed to write password hash")?;
+
+        let mut f = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .mode(0o600)
+            .open(salt_file)
+            .context("Failed to create salt file")?;
+        f.write_all(&salt_bytes)
+            .context("Failed to write salt")?;
+    }
+
+    #[cfg(not(unix))]
+    {
+        fs::write(hash_file, &hash_bytes).context("Failed to write password hash")?;
+        fs::write(salt_file, &salt_bytes).context("Failed to write salt")?;
     }
 
     eprintln!("[OK] Password configured.");

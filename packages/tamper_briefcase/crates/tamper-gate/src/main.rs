@@ -56,32 +56,60 @@ fn ensure_fifo(path: &Path) -> Result<()> {
 // ---------------------------------------------------------------------------
 
 /// Launch the password challenge binary. Returns `true` on success (exit 0).
+/// Enforces the configured timeout -- kills the child if it exceeds the limit.
 fn run_challenge(config: &Config) -> bool {
     log::info!(
         "Launching password challenge (timeout={}s)",
         config.challenge_timeout_secs
     );
 
-    let result = Command::new(&config.challenge_binary)
+    let mut child = match Command::new(&config.challenge_binary)
         .stdin(std::process::Stdio::inherit())
         .stdout(std::process::Stdio::inherit())
         .stderr(std::process::Stdio::inherit())
-        .status();
-
-    match result {
-        Ok(status) => {
-            if status.success() {
-                log::info!("Challenge PASSED");
-                true
-            } else {
-                log::error!("Challenge FAILED (exit code: {:?})", status.code());
-                false
-            }
-        },
+        .spawn()
+    {
+        Ok(c) => c,
         Err(e) => {
             log::error!("Challenge subprocess error: {}", e);
-            false
+            return false;
         },
+    };
+
+    let timeout = std::time::Duration::from_secs(config.challenge_timeout_secs);
+    let deadline = Instant::now() + timeout;
+
+    // Poll the child with short sleeps to enforce the timeout.
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => {
+                if status.success() {
+                    log::info!("Challenge PASSED");
+                    return true;
+                } else {
+                    log::error!("Challenge FAILED (exit code: {:?})", status.code());
+                    return false;
+                }
+            },
+            Ok(None) => {
+                if Instant::now() >= deadline {
+                    log::error!(
+                        "Challenge TIMEOUT after {}s -- killing child",
+                        config.challenge_timeout_secs
+                    );
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return false;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            },
+            Err(e) => {
+                log::error!("Error waiting for challenge process: {}", e);
+                let _ = child.kill();
+                let _ = child.wait();
+                return false;
+            },
+        }
     }
 }
 
