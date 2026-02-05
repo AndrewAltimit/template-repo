@@ -28,7 +28,7 @@
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 
 % Increase vertical spacing between table rows for readability
-\renewcommand{\arraystretch}{1.4}
+\renewcommand{\arraystretch}{1.2}
 
 \usepackage{colortbl}
 \usepackage{pifont}
@@ -278,7 +278,7 @@ The system follows a layered architecture with strict separation of concerns bet
 \end{keybox}
 
 \begin{center}
-\begin{tikzpicture}[node distance=2.2cm, font=\sffamily\small]
+\begin{tikzpicture}[node distance=3.0cm, font=\sffamily\small]
     \tikzstyle{layer} = [rectangle, rounded corners=4pt, minimum width=13cm, minimum height=1.6cm,
       text centered, draw=textdark, line width=0.8pt, align=center]
     \tikzstyle{iface} = [font=\sffamily\scriptsize\color{softslate}, align=center]
@@ -519,7 +519,7 @@ The enclosure is divided into a cold zone ($\sim$4\textdegree{}C via Peltier coo
     box/.style={rectangle, rounded corners=3pt, draw=textdark, line width=0.7pt,
       minimum width=2.4cm, minimum height=0.8cm, text centered, align=center, font=\sffamily\scriptsize},
     conn/.style={-{Stealth[scale=0.7]}, line width=0.6pt, deepforest},
-    lbl/.style={font=\sffamily\tiny\color{softslate}, midway}]
+    lbl/.style={font=\sffamily\tiny\color{softslate}, midway, fill=white, inner sep=1pt}]
 
     % Pi 5 (left column)
     \node (pi) [box, fill=labgreen!15, minimum width=2.8cm, minimum height=1.1cm]
@@ -527,35 +527,35 @@ The enclosure is divided into a cold zone ($\sim$4\textdegree{}C via Peltier coo
 
     % ESP32 (center column)
     \node (esp) [box, fill=safetyamber!15, minimum width=2.6cm, minimum height=1.1cm]
-      at (4.5,0) {\textbf{ESP32-S3}\\{\tiny Real-time control}};
+      at (5,0) {\textbf{ESP32-S3}\\{\tiny Real-time control}};
 
     % Camera (above Pi)
-    \node (cam) [box, fill=visionpurple!15] at (-0.3,1.8) {Pi Camera v3};
+    \node (cam) [box, fill=visionpurple!15] at (-0.3,2.0) {Pi Camera v3};
 
     % Network (above between Pi and ESP)
-    \node (net) [box, fill=lightteal!15] at (2.5,1.8) {WiFi/Ethernet};
+    \node (net) [box, fill=lightteal!15] at (2.8,2.0) {WiFi/Ethernet};
 
     % ESP32 peripherals (right column, stacked)
-    \node (ds18) [box, fill=thermalred!15] at (8.5,2.0) {DS18B20 Probes};
-    \node (peltier) [box, fill=thermalred!15] at (8.5,0.9) {H-Bridge + Peltier};
-    \node (stepper) [box, fill=fluidblue!15] at (8.5,0) {TMC2209 Drivers};
-    \node (pump) [box, fill=fluidblue!15] at (8.5,-1.0) {Peristaltic Pumps};
+    \node (ds18) [box, fill=thermalred!15] at (9,2.0) {DS18B20 Probes};
+    \node (peltier) [box, fill=thermalred!15] at (9,0.9) {H-Bridge + Peltier};
+    \node (stepper) [box, fill=fluidblue!15] at (9,0) {TMC2209 Drivers};
+    \node (pump) [box, fill=fluidblue!15] at (9,-1.0) {Peristaltic Pumps};
 
     % NEMA motors (far right)
-    \node (nema) [box, fill=softslate!15] at (11.8,0) {NEMA 17};
+    \node (nema) [box, fill=softslate!15] at (12.3,0) {NEMA 17};
 
     % Pi peripherals (below Pi)
-    \node (dht) [box, fill=softslate!15] at (-2.2,-1.8) {DHT22};
-    \node (led) [box, fill=instrumentgold!15] at (2.2,-1.8) {LED Ring};
-    \node (estop) [box, fill=safetyamber!25] at (0,-3.2) {\textbf{E-Stop}};
+    \node (dht) [box, fill=softslate!15] at (-2.5,-2.0) {DHT22};
+    \node (led) [box, fill=instrumentgold!15] at (2.5,-2.0) {LED Ring};
+    \node (estop) [box, fill=safetyamber!25] at (0,-3.5) {\textbf{E-Stop}};
 
-    % Connections -- Pi
+    % Connections -- Pi (pos adjusted to keep labels clear of wide Pi node)
     \draw[conn] (pi) -- (esp) node[lbl, above] {UART};
     \draw[conn] (pi) -- (cam) node[lbl, left] {CSI};
-    \draw[conn] (pi) -- (net) node[lbl, above] {TCP/IP};
-    \draw[conn] (pi) -- (dht) node[lbl, above] {GPIO};
-    \draw[conn] (pi) -- (led) node[lbl, above] {PWM};
-    \draw[conn, safetyamber, line width=1pt] (pi) -- (estop) node[lbl, right] {HW IRQ};
+    \draw[conn] (pi) -- (net) node[lbl, above, pos=0.65] {TCP/IP};
+    \draw[conn] (pi) -- (dht) node[lbl, above, pos=0.6] {GPIO};
+    \draw[conn] (pi) -- (led) node[lbl, above, pos=0.6] {PWM};
+    \draw[conn, safetyamber, line width=1pt] (pi) -- (estop) node[lbl, right, pos=0.35] {HW IRQ};
 
     % Connections -- ESP32
     \draw[conn] (esp) -- (stepper) node[lbl, above] {SPI};
@@ -732,10 +732,11 @@ The protocol engine enforces a strict state ordering. Transitions are validated 
     \draw[arr] (imaging) -- (analysis);
     \draw[arr] (analysis) -- (complete);
 
-    % Optimize loop
+    % Optimize loop (routed around left side to avoid overlapping center nodes)
     \node[state, fill=instrumentgold!15] (optimize) at (5.2,-6.2) {Optimize};
     \draw[arr] (analysis) -- (optimize);
-    \draw[arr, dashed] (optimize) -| ([xshift=-0.5cm]media.south) -- (media.south);
+    \draw[arr, dashed] (optimize.west) -- (-1.5,-6.2) -- (-1.5,0) -- (idle.west)
+      node[midway, above, font=\sffamily\scriptsize\color{softslate}] {loop};
 
     % Legend (well below entire diagram)
     \node[anchor=west, font=\sffamily\tiny\color{softslate}] at (0,-7.2)
@@ -800,7 +801,7 @@ A heat shock sequence demonstrates the full tool call lifecycle:
 
 \subsection{Capabilities by Workflow Phase}
 
-\begin{longtable}{L{2cm} L{3.5cm} L{3cm} L{4cm}}
+\begin{longtable}{L{2cm} L{5cm} L{3.5cm} L{4cm}}
 \toprule
 \textbf{Phase} & \textbf{Agent Capability} & \textbf{Automation} & \textbf{Human Role} \\
 \midrule

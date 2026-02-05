@@ -93,6 +93,13 @@ jobs:
             docs/philosophy/latex \
             docs_output
 
+          # Hardware systems
+          ./automation/ci-cd/build-latex-doc.sh \
+            bioforge-crispr-automation.tex \
+            docs/hardware/latex \
+            docs_output \
+            bioforge-crispr-automation
+
           # Handouts
           ./automation/ci-cd/build-latex-doc.sh \
             Agentic_Workflow_Handout.tex \

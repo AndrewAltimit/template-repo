@@ -884,6 +884,14 @@ jobs:
             architectural-qualia.tex \
             docs/philosophy/latex
 
+      - name: Build BioForge CRISPR Automation
+        run: |
+          ./automation/ci-cd/build-latex-doc.sh \
+            bioforge-crispr-automation.tex \
+            docs/hardware/latex \
+            docs_output \
+            bioforge-crispr-automation
+
       - name: Build Agentic Workflow Handout
         run: |
           ./automation/ci-cd/build-latex-doc.sh \
