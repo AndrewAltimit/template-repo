@@ -56,6 +56,7 @@ impl SafetyEnforcer {
     /// target beyond the configured margin.
     pub fn validate_overshoot(&self, actual_c: f64, target_c: f64) -> Result<(), BioForgeError> {
         require_finite(actual_c, "actual_c")?;
+        require_finite(target_c, "target_c")?;
         let overshoot = (actual_c - target_c).abs();
         if overshoot > self.limits.thermal.max_overshoot_c {
             return Err(BioForgeError::TemperatureOutOfRange {
@@ -297,6 +298,16 @@ mod tests {
     fn overshoot_beyond_limit() {
         assert!(enforcer().validate_overshoot(43.6, 42.0).is_err());
         assert!(enforcer().validate_overshoot(40.4, 42.0).is_err());
+    }
+
+    #[test]
+    fn overshoot_rejects_nan_target() {
+        assert!(enforcer().validate_overshoot(42.0, f64::NAN).is_err());
+    }
+
+    #[test]
+    fn overshoot_rejects_nan_actual() {
+        assert!(enforcer().validate_overshoot(f64::NAN, 42.0).is_err());
     }
 
     // -- Volume validation --
