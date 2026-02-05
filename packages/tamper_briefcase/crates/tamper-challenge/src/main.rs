@@ -161,8 +161,7 @@ fn setup(hash_file: &PathBuf, salt_file: &PathBuf) -> Result<()> {
             .mode(0o600)
             .open(salt_file)
             .context("Failed to create salt file")?;
-        f.write_all(&salt_bytes)
-            .context("Failed to write salt")?;
+        f.write_all(&salt_bytes).context("Failed to write salt")?;
     }
 
     #[cfg(not(unix))]

@@ -157,14 +157,24 @@ pub fn unwrap_secrets(
         .decrypt(device_nonce, device_ciphertext)
         .map_err(|_| anyhow::anyhow!("Failed to decrypt device secrets"))?;
 
-    // Write to output file.
-    fs::write(output, &device_secrets).context("Failed to write decrypted device secrets")?;
-
+    // Write to output file with restricted permissions from creation.
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(output, fs::Permissions::from_mode(0o600))
-            .context("Failed to set output permissions")?;
+        use std::io::Write;
+        use std::os::unix::fs::OpenOptionsExt;
+        let mut f = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .mode(0o600)
+            .open(output)
+            .context("Failed to create output file")?;
+        f.write_all(&device_secrets)
+            .context("Failed to write decrypted device secrets")?;
+    }
+    #[cfg(not(unix))]
+    {
+        fs::write(output, &device_secrets).context("Failed to write decrypted device secrets")?;
     }
 
     log::info!("[OK] Device secrets unwrapped to {}", output.display());
