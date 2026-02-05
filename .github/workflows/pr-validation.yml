@@ -71,6 +71,19 @@ jobs:
               sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
+      - name: Clean up stale Docker networks
+        run: |
+          # Remove orphaned CI networks from previous runs to prevent
+          # "all predefined address pools have been fully subnetted" errors
+          stale_networks=$(docker network ls --filter "name=ci-" --format "{{.Name}}" || true)
+          if [ -n "$stale_networks" ]; then
+            stale_count=$(echo "$stale_networks" | wc -l)
+            echo "Removing $stale_count stale CI network(s)..."
+            echo "$stale_networks" | xargs -r docker network rm 2>/dev/null || true
+          else
+            echo "No stale CI networks found"
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:

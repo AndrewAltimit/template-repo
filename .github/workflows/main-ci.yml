@@ -32,8 +32,28 @@ env:
   COMPOSE_DOCKER_CLI_BUILD: 1
 
 jobs:
+  # Stage 0: Clean up stale Docker networks from previous CI runs
+  docker-network-cleanup:
+    name: Docker Network Cleanup
+    runs-on: self-hosted
+    timeout-minutes: 2
+    steps:
+      - name: Clean up stale Docker networks
+        run: |
+          # Remove orphaned CI networks from previous runs to prevent
+          # "all predefined address pools have been fully subnetted" errors
+          stale_networks=$(docker network ls --filter "name=ci-" --format "{{.Name}}" || true)
+          if [ -n "$stale_networks" ]; then
+            stale_count=$(echo "$stale_networks" | wc -l)
+            echo "Removing $stale_count stale CI network(s)..."
+            echo "$stale_networks" | xargs -r docker network rm 2>/dev/null || true
+          else
+            echo "No stale CI networks found"
+          fi
+
   # Stage 1: Format check
   format-check:
+    needs: docker-network-cleanup
     uses: ./.github/workflows/lint-stages.yml
     with:
       stage: format
