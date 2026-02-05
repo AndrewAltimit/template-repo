@@ -102,6 +102,7 @@ docker compose down                      # Stop services
 | `packages/economic_agents/` | Rust | Autonomous AI economic simulation |
 | `packages/injection_toolkit/` | Rust | Cross-platform screen capture/injection |
 | `packages/tamper_briefcase/` | Rust | Tamper-responsive briefcase with PQC recovery |
+| `packages/bioforge/` | Rust | Agent-driven CRISPR automation platform |
 
 ## Development Reminders
 
@@ -168,6 +169,7 @@ This renders as:
 ### Hardware
 - `docs/hardware/README.md` - Hardware systems overview
 - `docs/hardware/secure-terminal-briefcase.md` - Tamper-responsive briefcase system
+- `docs/hardware/bioforge-crispr-automation.md` - Agent-driven biological automation platform
 
 ### Infrastructure
 - `docs/infrastructure/containerization.md` - Container philosophy
@@ -186,3 +188,5 @@ This renders as:
 - `packages/economic_agents/docs/economic-implications.md` - **AI governance policy analysis**
 - `packages/injection_toolkit/README.md` - Injection toolkit
 - `packages/tamper_briefcase/README.md` - Tamper-responsive briefcase system (Rust)
+- `packages/bioforge/README.md` - BioForge CRISPR automation (Rust)
+- `packages/bioforge/docs/governance-implications.md` - Biological agent governance analysis

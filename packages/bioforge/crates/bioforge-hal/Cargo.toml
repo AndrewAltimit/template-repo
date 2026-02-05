@@ -1,0 +1,22 @@
+[package]
+name = "bioforge-hal"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Hardware abstraction layer for BioForge -- pump drivers, thermal control, motion, camera, sensors"
+
+[dependencies]
+bioforge-types.workspace = true
+serde.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+tokio.workspace = true
+chrono.workspace = true
+async-trait.workspace = true
+pid.workspace = true
+
+[target.'cfg(target_arch = "aarch64")'.dependencies]
+rppal.workspace = true

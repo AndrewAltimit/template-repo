@@ -1,0 +1,41 @@
+# BioForge Hardware Configuration
+# Pin mappings, calibration values, and interface settings for Raspberry Pi 5
+
+[pi]
+estop_pin = 17          # GPIO 17 -- physical E-Stop button (hardware interrupt)
+led_pwm_pin = 18        # GPIO 18 -- LED ring light PWM
+dht22_pin = 27          # GPIO 27 -- DHT22 ambient sensor
+
+[coprocessor]
+serial_port = "/dev/ttyUSB0"
+baud_rate = 115200
+
+[thermal]
+cold_zone_sensor = "28-00000aaaa001"   # DS18B20 1-Wire address (cold zone)
+warm_zone_sensor = "28-00000aaaa002"   # DS18B20 1-Wire address (warm zone)
+
+[thermal.cold_zone_pid]
+kp = 2.0
+ki = 0.5
+kd = 1.0
+
+[thermal.warm_zone_pid]
+kp = 3.0
+ki = 0.8
+kd = 1.5
+
+[motion]
+x_steps_per_mm = 80.0
+y_steps_per_mm = 80.0
+x_max_mm = 200.0
+y_max_mm = 150.0
+z_max_mm = 50.0
+
+[pumps]
+syringe_steps_per_ul = [10.0, 10.0]  # Steps per uL for each syringe pump
+peristaltic_max_flow_rate = 500.0     # Max flow rate in uL/s
+
+[camera]
+width = 4608
+height = 2592
+focal_distance_mm = 120.0

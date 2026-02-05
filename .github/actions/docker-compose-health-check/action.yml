@@ -93,7 +93,7 @@ runs:
           exit 1
         fi
 
-    - name: Clean up any stale containers from previous runs
+    - name: Clean up any stale containers and networks from previous runs
       shell: bash
       run: |
         # Remove any orphaned containers from ALL previous CI runs to prevent port conflicts
@@ -111,6 +111,17 @@ runs:
           echo "Removing stale CI containers from previous runs:"
           echo "$stale_containers"
           echo "$stale_containers" | xargs -r docker rm -f 2>/dev/null || true
+        fi
+
+        # Clean up stale Docker networks from previous CI runs to prevent
+        # "all predefined address pools have been fully subnetted" errors.
+        # Networks named ci-* are created by CI jobs and should be removed
+        # when their containers are gone.
+        stale_networks=$(docker network ls --filter "name=ci-" --format "{{.Name}}" || true)
+        if [ -n "$stale_networks" ]; then
+          echo "Removing stale CI networks from previous runs:"
+          echo "$stale_networks"
+          echo "$stale_networks" | xargs -r docker network rm 2>/dev/null || true
         fi
 
     - name: Stop local containers using conflicting ports

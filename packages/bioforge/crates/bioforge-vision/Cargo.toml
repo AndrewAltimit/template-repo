@@ -1,0 +1,17 @@
+[package]
+name = "bioforge-vision"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Colony counting and plate analysis pipeline for BioForge"
+
+[dependencies]
+bioforge-types.workspace = true
+image.workspace = true
+imageproc.workspace = true
+serde.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true

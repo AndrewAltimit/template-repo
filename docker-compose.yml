@@ -41,6 +41,7 @@ services:
       - "8011:8011"
     volumes:
       - ./outputs/mcp-content:/output  # Bind mount to local outputs directory
+      - .:/app:ro                      # Mount repo root read-only for input files
     environment:
       - RUST_LOG=info
       - MCP_OUTPUT_DIR=/output
