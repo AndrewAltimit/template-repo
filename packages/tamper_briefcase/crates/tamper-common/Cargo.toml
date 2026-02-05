@@ -1,0 +1,16 @@
+[package]
+name = "tamper-common"
+description = "Shared types and configuration for the tamper-responsive briefcase system"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }

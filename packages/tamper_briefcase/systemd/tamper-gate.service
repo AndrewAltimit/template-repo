@@ -1,0 +1,24 @@
+# Tamper Gate Orchestrator -- manages arming FSM, challenge, wipe authorization.
+# Runs as root with restricted write paths.
+
+[Unit]
+Description=Tamper Gate Orchestrator
+After=tamper-sensor.service
+Requires=tamper-sensor.service
+
+[Service]
+Type=simple
+ExecStartPre=/bin/mkdir -p /run/tamper
+ExecStart=/usr/local/bin/tamper-gate
+Restart=on-failure
+RestartSec=5
+Environment=RUST_LOG=info
+
+# Runs as root -- but with restricted write paths.
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/run/tamper /var/log /etc/tamper
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

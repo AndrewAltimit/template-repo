@@ -101,6 +101,7 @@ docker compose down                      # Stop services
 | `packages/sleeper_agents/` | Python | Sleeper agent detection framework |
 | `packages/economic_agents/` | Rust | Autonomous AI economic simulation |
 | `packages/injection_toolkit/` | Rust | Cross-platform screen capture/injection |
+| `packages/tamper_briefcase/` | Rust | Tamper-responsive briefcase with PQC recovery |
 
 ## Development Reminders
 
@@ -164,6 +165,10 @@ This renders as:
 - `docs/mcp/servers.md` - Server reference
 - `docs/mcp/tools.md` - Tools reference
 
+### Hardware
+- `docs/hardware/README.md` - Hardware systems overview
+- `docs/hardware/secure-terminal-briefcase.md` - Tamper-responsive briefcase system
+
 ### Infrastructure
 - `docs/infrastructure/containerization.md` - Container philosophy
 - `docs/infrastructure/self-hosted-runner.md` - Runner setup
@@ -180,3 +185,4 @@ This renders as:
 - `packages/economic_agents/README.md` - Economic agents simulation (Rust)
 - `packages/economic_agents/docs/economic-implications.md` - **AI governance policy analysis**
 - `packages/injection_toolkit/README.md` - Injection toolkit
+- `packages/tamper_briefcase/README.md` - Tamper-responsive briefcase system (Rust)
