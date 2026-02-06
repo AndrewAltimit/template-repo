@@ -155,8 +155,7 @@ impl SecurityManager {
         // Try parsing as .agents.yaml (nested format) first, then flat.
         // Only treat as nested when the `security` key is actually present,
         // otherwise fall through to flat SecurityConfig parsing.
-        let config = if let Ok(agents_config) = serde_yaml::from_str::<AgentsYamlConfig>(&content)
-        {
+        let config = if let Ok(agents_config) = serde_yaml::from_str::<AgentsYamlConfig>(&content) {
             if let Some(security) = agents_config.security {
                 info!("Loaded security config from agents YAML (nested format)");
                 security
@@ -488,7 +487,9 @@ security:
   rate_limit_window_minutes: 30
 "#;
         let agents_config: AgentsYamlConfig = serde_yaml::from_str(yaml).unwrap();
-        let security = agents_config.security.expect("security key should be present");
+        let security = agents_config
+            .security
+            .expect("security key should be present");
         assert_eq!(security.agent_admins, vec!["TestAdmin"]);
         assert_eq!(security.rate_limit_window_minutes, 30);
     }
